@@ -150,6 +150,30 @@ block_has_inst_named_with_slot(const MIRBasicBlock *block, const char *name, con
 }
 
 static bool
+routine_has_stmt_call_named(const MIRRoutine *routine, const char *callee_name)
+{
+    if (routine == NULL || callee_name == NULL)
+        return false;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const ASTNode *ast = inst->ast;
+            if (inst->kind != MIR_INST_STMT || ast == NULL || ast->type != AST_CALL)
+                continue;
+            if (ast->data.call.callee == NULL
+                || ast->data.call.callee->type != AST_IDENTIFIER
+                || ast->data.call.callee->data.identifier.name == NULL) {
+                continue;
+            }
+            if (strcmp(ast->data.call.callee->data.identifier.name, callee_name) == 0)
+                return true;
+        }
+    }
+    return false;
+}
+
+static bool
 block_has_phi_result_prefix(const MIRBasicBlock *block, const char *prefix)
 {
     size_t prefix_len = strlen(prefix);
@@ -488,6 +512,31 @@ test_mir_lowering(void)
                && dead_merge->dce_removed_count > 0
                && live_summary != NULL
                && !has_dead_phi);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR DCE removes dead pure-query statements while preserving routine validity");
+    {
+        const char *src =
+            "func Probe(ch: Channel<Int>) -> Int {\n"
+            "    ChannelLength(ch);\n"
+            "    return 1;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *probe = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            probe = find_mir_routine(mir, "Probe", MIR_SCOPE_FUNCTION);
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && probe != NULL
+               && probe->has_dce
+               && probe->dce_removed_count > 0
+               && !routine_has_stmt_call_named(probe, "ChannelLength"));
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

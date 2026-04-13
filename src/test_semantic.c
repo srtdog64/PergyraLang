@@ -3875,6 +3875,47 @@ test_event_semantics(void)
     }
 }
 
+static void
+test_projection_contract_diagnostics(void)
+{
+    printf("\n[projection_contract_diagnostics]\n");
+
+    TEST("zone refresh reports missing source field with structured diagnostic");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "object PlayerView {\n"
+            "    hp: Int;\n"
+            "    mana: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "target field 'mana' is missing from source slot 'player'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "projection target 'playerView' expects field 'mana'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "add field 'mana' to source declaration 'Player'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+}
+
 #include "tests/semantic/test_semantic_shared_domain.inc"
 #include "tests/semantic/test_semantic_parallel_family.inc"
 #include "tests/semantic/test_semantic_parallel_context.inc"
@@ -3904,6 +3945,7 @@ main(void)
     test_quantum_extensions();
     test_match_stmt();
     test_event_semantics();
+    test_projection_contract_diagnostics();
     test_ability_decl();
     test_role_decl();
     test_party_decl();

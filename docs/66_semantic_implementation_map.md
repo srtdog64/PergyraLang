@@ -177,16 +177,21 @@
 - rollback/compensate/cleanup 경로
 - action contract reuse
 - transfer derivation
-- history 일부
+- history/trace observability baseline
+  - `IntentLast*`
+  - `IntentHistoryStep*`
+  - `IntentActive*`
+  - `IntentRecent*`
 
 이번 알파 범위에서 끝내야 할 것:
-- richer runtime observability
+- richer multi-instance timeline query
+- failure provenance diagnostics
 - distributed runtime 모델
 - deeper policy surface
 
 판단:
 - intent는 이미 executable orchestration이다
-- 다만 runtime introspection과 더 깊은 execution model은 아직 얕다
+- 다만 runtime introspection의 deeper query/diagnostic와 execution model은 아직 얕다
 
 ### 4.3 Zone / World semantics
 
@@ -218,6 +223,11 @@
 - refresh/publish/bind
 - object/tobject projection contract 분리
 - 일부 query surface (`HasProjection`, `HasLayer`, `HasState`)
+- projection contract diagnostics baseline
+  - target/source slot mismatch
+  - wrong projection kind
+  - missing/ambiguous source field
+  - structured reason/fix text
 
 이번 알파 범위에서 끝내야 할 것:
 - full effect lattice

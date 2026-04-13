@@ -112,7 +112,7 @@ llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
 }
 
 static ASTNode *
-llvm_stmt_find_subject_host_decl(LLVMGenCtx *ctx, const char *type_name)
+llvm_stmt_find_host_decl_by_type_name(LLVMGenCtx *ctx, const char *type_name)
 {
     ASTNode **types = NULL;
     size_t type_count = 0;
@@ -120,18 +120,59 @@ llvm_stmt_find_subject_host_decl(LLVMGenCtx *ctx, const char *type_name)
     if (ctx == NULL || type_name == NULL)
         return NULL;
     llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
-    if (types == NULL) {
-        return NULL;
+    if (types != NULL) {
+        for (size_t i = 0; i < type_count; i++) {
+            ASTNode *stmt = types[i];
+            if (stmt == NULL)
+                continue;
+            if (stmt->type == AST_CLASS_DECL
+                && stmt->data.class_decl.name != NULL
+                && strcmp(stmt->data.class_decl.name, type_name) == 0) {
+                return stmt;
+            }
+        }
     }
 
-    for (size_t i = 0; i < type_count; i++) {
-        ASTNode *stmt = types[i];
-        if (stmt == NULL)
-            continue;
-        if (stmt->type == AST_CLASS_DECL
-            && stmt->data.class_decl.name != NULL
-            && strcmp(stmt->data.class_decl.name, type_name) == 0) {
-            return stmt;
+    {
+        ASTNode *decl = llvm_stmt_find_effect_decl(ctx, type_name);
+        if (decl != NULL)
+            return decl;
+    }
+    {
+        ASTNode **relations = NULL;
+        size_t relation_count = 0;
+        llvm_active_inventory(ctx, AST_RELATION_DECL, &relations, &relation_count);
+        if (relations != NULL) {
+            for (size_t i = 0; i < relation_count; i++) {
+                ASTNode *stmt = relations[i];
+                if (stmt != NULL
+                    && stmt->type == AST_RELATION_DECL
+                    && stmt->data.relation_decl.name != NULL
+                    && strcmp(stmt->data.relation_decl.name, type_name) == 0) {
+                    return stmt;
+                }
+            }
+        }
+    }
+    {
+        ASTNode *decl = llvm_stmt_find_zone_decl(ctx, type_name);
+        if (decl != NULL)
+            return decl;
+    }
+    {
+        ASTNode **worlds = NULL;
+        size_t world_count = 0;
+        llvm_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
+        if (worlds != NULL) {
+            for (size_t i = 0; i < world_count; i++) {
+                ASTNode *stmt = worlds[i];
+                if (stmt != NULL
+                    && stmt->type == AST_WORLD_DECL
+                    && stmt->data.world_decl.name != NULL
+                    && strcmp(stmt->data.world_decl.name, type_name) == 0) {
+                    return stmt;
+                }
+            }
         }
     }
     return NULL;
@@ -140,26 +181,9 @@ llvm_stmt_find_subject_host_decl(LLVMGenCtx *ctx, const char *type_name)
 static ASTNode *
 llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx, const char *name)
 {
-    ASTNode **functions = NULL;
-    size_t function_count = 0;
-
     if (ctx == NULL || name == NULL)
         return NULL;
-    llvm_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
-    if (functions == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < function_count; i++) {
-        ASTNode *stmt = functions[i];
-        if (stmt != NULL && stmt->type == AST_FUNC_DECL
-            && stmt->data.func_decl.name != NULL
-            && strcmp(stmt->data.func_decl.name, name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_FUNC_DECL, name);
 }
 
 static const char *
@@ -547,6 +571,42 @@ llvm_stmt_find_host_method_decl(ASTNode *host_decl, const char *method_name)
                 return method;
             }
         }
+    } else if (host_decl->type == AST_RELATION_DECL) {
+        for (size_t i = 0; i < host_decl->data.relation_decl.method_count; i++) {
+            ASTNode *method = host_decl->data.relation_decl.methods[i];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && method->data.func_decl.name != NULL
+                && strcmp(method->data.func_decl.name, method_name) == 0) {
+                return method;
+            }
+        }
+    } else if (host_decl->type == AST_EFFECT_DECL) {
+        for (size_t i = 0; i < host_decl->data.effect_decl.method_count; i++) {
+            ASTNode *method = host_decl->data.effect_decl.methods[i];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && method->data.func_decl.name != NULL
+                && strcmp(method->data.func_decl.name, method_name) == 0) {
+                return method;
+            }
+        }
+    } else if (host_decl->type == AST_ZONE_DECL) {
+        for (size_t i = 0; i < host_decl->data.zone_decl.method_count; i++) {
+            ASTNode *method = host_decl->data.zone_decl.methods[i];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && method->data.func_decl.name != NULL
+                && strcmp(method->data.func_decl.name, method_name) == 0) {
+                return method;
+            }
+        }
+    } else if (host_decl->type == AST_WORLD_DECL) {
+        for (size_t i = 0; i < host_decl->data.world_decl.method_count; i++) {
+            ASTNode *method = host_decl->data.world_decl.methods[i];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && method->data.func_decl.name != NULL
+                && strcmp(method->data.func_decl.name, method_name) == 0) {
+                return method;
+            }
+        }
     }
 
     return NULL;
@@ -682,7 +742,7 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         return;
     }
 
-    host_decl = llvm_stmt_find_subject_host_decl(ctx, receiver_type_name);
+    host_decl = llvm_stmt_find_host_decl_by_type_name(ctx, receiver_type_name);
     method_decl = llvm_stmt_find_host_method_decl(host_decl, method_name);
     if (method_decl == NULL || method_decl->type != AST_FUNC_DECL
         || method_decl->is_async_decl
@@ -816,6 +876,25 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                     && (strcmp(method_name, "Write") == 0
                         || strcmp(method_name, "Release") == 0)) {
                     return "Void";
+                }
+                {
+                    const char *receiver_type = NULL;
+                    ASTNode *host_decl = NULL;
+                    ASTNode *method_decl = NULL;
+                    if (strcmp(name, "self") == 0)
+                        receiver_type = ctx != NULL ? ctx->current_class_name : NULL;
+                    if (receiver_type == NULL)
+                        receiver_type = llvm_lookup_var_class(ctx, name);
+                    if (receiver_type != NULL) {
+                        host_decl = llvm_stmt_find_host_decl_by_type_name(ctx, receiver_type);
+                        method_decl = llvm_stmt_find_host_method_decl(host_decl, method_name);
+                        if (method_decl != NULL
+                            && method_decl->data.func_decl.return_type != NULL
+                            && method_decl->data.func_decl.return_type->type == AST_TYPE
+                            && method_decl->data.func_decl.return_type->data.type.name != NULL) {
+                            return method_decl->data.func_decl.return_type->data.type.name;
+                        }
+                    }
                 }
             }
         }

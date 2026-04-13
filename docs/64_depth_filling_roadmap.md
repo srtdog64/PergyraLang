@@ -371,8 +371,8 @@ post-beta / follow-up:
 - failure surface
 
 작업:
-1. intent history를 실제 ring buffer 또는 구조체 저장소로 올린다.
-2. zone/world runtime 상태를 최소 조회 가능 형태로 정리한다.
+1. intent history baseline(`last` / `history` / `active` / `recent`)을 source-of-truth로 문서화하고 richer timeline query를 확장한다.
+2. zone/world runtime 상태를 최소 조회 가능 형태에서 더 설명 가능한 inspection surface로 올린다.
 3. 실패 원인을 authority, boundary, slot, projection 단위로 진단에 노출한다.
 
 완료 기준:

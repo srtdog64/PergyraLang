@@ -528,6 +528,78 @@ llvm_active_inventory(const LLVMGenCtx *ctx,
         *count_out = count;
 }
 
+static inline const char *
+llvm_decl_node_name(ASTNode *node)
+{
+    if (node == NULL)
+        return NULL;
+
+    switch (node->type) {
+    case AST_FUNC_DECL:
+        return node->data.func_decl.name;
+    case AST_INTENT_DECL:
+        return node->data.intent_decl.name;
+    case AST_ABILITY_DECL:
+        return node->data.ability_decl.name;
+    case AST_ROLE_DECL:
+        return node->data.role_decl.name;
+    case AST_PARTY_DECL:
+        return node->data.party_decl.name;
+    case AST_ROSTER_DECL:
+        return node->data.roster_decl.name;
+    case AST_WORLD_DECL:
+        return node->data.world_decl.name;
+    case AST_RELATION_DECL:
+        return node->data.relation_decl.name;
+    case AST_EFFECT_DECL:
+        return node->data.effect_decl.name;
+    case AST_ZONE_DECL:
+        return node->data.zone_decl.name;
+    case AST_EVENT_DECL:
+        return node->data.event_decl.name;
+    case AST_CLASS_DECL:
+        return node->data.class_decl.name;
+    case AST_ENUM_DECL:
+        return node->data.enum_decl.name;
+    case AST_TYPE_ALIAS:
+        return node->data.type_alias.name;
+    default:
+        return NULL;
+    }
+}
+
+static inline ASTNode *
+llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
+                                   ASTNodeType decl_type,
+                                   const char *name)
+{
+    const MIRDeclHeader *decl_header = NULL;
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    if (ctx->mir != NULL) {
+        decl_header = mir_find_decl_header(ctx->mir, name);
+        if (decl_header != NULL && decl_header->ast_type == decl_type)
+            return decl_header->ast;
+    }
+
+    llvm_active_inventory(ctx, decl_type, &nodes, &count);
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *node = nodes != NULL ? nodes[i] : NULL;
+        const char *node_name;
+        if (node == NULL || node->type != decl_type)
+            continue;
+        node_name = llvm_decl_node_name(node);
+        if (node_name != NULL && strcmp(node_name, name) == 0)
+            return node;
+    }
+
+    return NULL;
+}
+
 static inline void
 llvm_active_nominal_inventory(const LLVMGenCtx *ctx,
                               ASTNode ***nodes_out,

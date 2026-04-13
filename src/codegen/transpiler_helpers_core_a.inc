@@ -380,76 +380,19 @@ register_projection_borrow_var(TranspilerCtx *ctx, const char *name,
 static ASTNode *
 find_role_decl(TranspilerCtx *ctx, const char *role_name)
 {
-    ASTNode **roles = NULL;
-    size_t role_count = 0;
-
-    if (ctx == NULL)
-        return NULL;
-    transpiler_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
-    if (roles == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < role_count; i++) {
-        ASTNode *stmt = roles[i];
-        if (stmt->type == AST_ROLE_DECL
-            && stmt->data.role_decl.name != NULL
-            && strcmp(stmt->data.role_decl.name, role_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_ROLE_DECL, role_name);
 }
 
 static ASTNode *
 find_function_decl(TranspilerCtx *ctx, const char *function_name)
 {
-    ASTNode **functions = NULL;
-    size_t function_count = 0;
-
-    if (ctx == NULL)
-        return NULL;
-    transpiler_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
-    if (functions == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < function_count; i++) {
-        ASTNode *stmt = functions[i];
-        if (stmt->type == AST_FUNC_DECL
-            && stmt->data.func_decl.name != NULL
-            && strcmp(stmt->data.func_decl.name, function_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_FUNC_DECL, function_name);
 }
 
 static ASTNode *
 find_intent_decl(TranspilerCtx *ctx, const char *intent_name)
 {
-    ASTNode **intents = NULL;
-    size_t intent_count = 0;
-
-    if (ctx == NULL)
-        return NULL;
-    transpiler_active_inventory(ctx, AST_INTENT_DECL, &intents, &intent_count);
-    if (intents == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < intent_count; i++) {
-        ASTNode *stmt = intents[i];
-        if (stmt->type == AST_INTENT_DECL
-            && stmt->data.intent_decl.name != NULL
-            && strcmp(stmt->data.intent_decl.name, intent_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_INTENT_DECL, intent_name);
 }
 
 static ASTNode *

@@ -271,7 +271,7 @@ Pergyra의 현재 pain point를 정리한다.
 
 - 이미 action/zone/authority에 있는 정보를 intent step에서 다시 쓰게 된다
 - 유도가 들어와도 작성자는 "언제 생략해도 되는가"를 다시 학습해야 한다
-- 진단이 inheritance/inference provenance를 더 직접적으로 보여주지 않으면 부담이 줄지 않는다
+- 진단이 inheritance/derivation provenance를 더 직접적으로 보여주지 않으면 부담이 줄지 않는다
 
 ### 2.3 trust-signaling family
 

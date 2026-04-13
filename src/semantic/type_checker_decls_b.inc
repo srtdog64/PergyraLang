@@ -2074,10 +2074,27 @@ type_check_projection_contract(ASTNode **slots,
 
             if (!projection_target_decl_has_field(target_decl, mapped_target)) {
                 semantic_error(ctx, site,
-                    "%s %s projection map refers to unknown target field '%s' in slot '%s'",
+                    "%s %s projection map refers to unknown target field '%s' in slot '%s'.\n"
+                    "Reason:\n"
+                    "- target projection declaration '%s' does not declare field '%s'\n"
+                    "- %s cannot write source slot '%s' into a field that does not exist\n"
+                    "Fix:\n"
+                    "- add field '%s' to projection declaration '%s'\n"
+                    "- or remove/update the field map entry for '%s'",
                     owner_label, action_name,
                     mapped_target != NULL ? mapped_target : "<field>",
-                    object_slot_name != NULL ? object_slot_name : "<unknown>");
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    target_type != NULL && target_type->name != NULL
+                        ? target_type->name
+                        : "<unknown>",
+                    mapped_target != NULL ? mapped_target : "<field>",
+                    action_name,
+                    source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    mapped_target != NULL ? mapped_target : "<field>",
+                    target_type != NULL && target_type->name != NULL
+                        ? target_type->name
+                        : "<unknown>",
+                    mapped_target != NULL ? mapped_target : "<field>");
             }
 
             for (size_t j = i + 1; j < site->data.zone_refresh.field_map_count; j++) {
@@ -2086,8 +2103,14 @@ type_check_projection_contract(ASTNode **slots,
                 if (mapped_target != NULL && other_target != NULL
                     && strcmp(mapped_target, other_target) == 0) {
                     semantic_error(ctx, site,
-                        "%s %s projection map duplicates target field '%s'",
-                        owner_label, action_name, mapped_target);
+                        "%s %s projection map duplicates target field '%s'.\n"
+                        "Reason:\n"
+                        "- each projection target field may be filled from exactly one source field\n"
+                        "- duplicate map entries make the projection source ambiguous\n"
+                        "Fix:\n"
+                        "- keep a single mapping for '%s'\n"
+                        "- or split the target into distinct projection fields",
+                        owner_label, action_name, mapped_target, mapped_target);
                 }
             }
         }
@@ -2115,26 +2138,64 @@ type_check_projection_contract(ASTNode **slots,
             if (source_field_name != NULL
                 && strcmp(source_field_name, target_field->name) != 0) {
                 semantic_error(ctx, site,
-                    "%s %s target field '%s' maps from missing source field '%s' in slot '%s'",
+                    "%s %s target field '%s' maps from missing source field '%s' in slot '%s'.\n"
+                    "Reason:\n"
+                    "- field map explicitly requests '%s <- %s'\n"
+                    "- source declaration '%s' does not expose '%s'\n"
+                    "Fix:\n"
+                    "- add source field '%s' to '%s'\n"
+                    "- or change the map entry to a field that actually exists",
                     owner_label, action_name,
                     target_field->name,
                     source_field_name,
-                    source_slot_name != NULL ? source_slot_name : "<unknown>");
+                    source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    target_field->name,
+                    source_field_name,
+                    source_type != NULL && source_type->name != NULL
+                        ? source_type->name
+                        : "<unknown>",
+                    source_field_name,
+                    source_field_name,
+                    source_type != NULL && source_type->name != NULL
+                        ? source_type->name
+                        : "<unknown>");
             } else {
                 semantic_error(ctx, site,
-                    "%s %s target field '%s' is missing from source slot '%s'",
+                    "%s %s target field '%s' is missing from source slot '%s'.\n"
+                    "Reason:\n"
+                    "- projection target '%s' expects field '%s'\n"
+                    "- source declaration '%s' does not expose a matching field\n"
+                    "Fix:\n"
+                    "- add field '%s' to source declaration '%s'\n"
+                    "- or add an explicit field map to a different existing source field",
                     owner_label, action_name,
                     target_field->name,
-                    source_slot_name != NULL ? source_slot_name : "<unknown>");
+                    source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    target_field->name,
+                    source_type != NULL && source_type->name != NULL
+                        ? source_type->name
+                        : "<unknown>",
+                    target_field->name,
+                    source_type != NULL && source_type->name != NULL
+                        ? source_type->name
+                        : "<unknown>");
             }
             continue;
         }
         if (source_status == 2) {
             semantic_error(ctx, site,
-                "%s %s target field '%s' is ambiguous in source slot '%s'; rename the field or expose it through a dedicated object/tobject field",
+                "%s %s target field '%s' is ambiguous in source slot '%s'.\n"
+                "Reason:\n"
+                "- multiple projection source paths match field '%s'\n"
+                "- automatic projection cannot choose one path safely\n"
+                "Fix:\n"
+                "- rename one of the source fields to make the path unique\n"
+                "- or expose the desired value through a dedicated object/tobject field",
                 owner_label, action_name,
                 target_field->name,
-                source_slot_name != NULL ? source_slot_name : "<unknown>");
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                source_field_name != NULL ? source_field_name : target_field->name);
             continue;
         }
 

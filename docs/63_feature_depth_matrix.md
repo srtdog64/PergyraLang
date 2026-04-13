@@ -183,13 +183,13 @@
 - `transfer -> using/where`, `using -> where`, `where -> using` 유도가 이미 연결돼 있다
 
 남은 gap:
-- intent history/storage는 여전히 thin
-- runtime inspection은 최소 정보 중심
+- `IntentLast*`, `IntentHistoryStep*`, `IntentActive*`, `IntentRecent*`까지의 baseline은 이미 존재한다
+- 남은 것은 richer multi-instance timeline query와 failure provenance 정교화다
 - distributed/multi-process intent runtime은 아직 범위 밖
 
 판정:
 - core compile path는 강하다.
-- runtime observability가 아직 얕다.
+- runtime observability baseline은 존재하며, 더 깊은 query/diagnostic closure가 남아 있다.
 
 ### 2.7 Zone
 

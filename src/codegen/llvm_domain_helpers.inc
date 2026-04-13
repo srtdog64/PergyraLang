@@ -1,25 +1,9 @@
 static ASTNode *
 llvm_find_role_decl(LLVMGenCtx *ctx, const char *role_name)
 {
-    ASTNode **roles = NULL;
-    size_t role_count = 0;
-
     if (ctx == NULL || role_name == NULL)
         return NULL;
-
-    llvm_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
-    if (roles == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < role_count; i++) {
-        ASTNode *stmt = roles[i];
-        if (stmt != NULL && stmt->type == AST_ROLE_DECL
-            && stmt->data.role_decl.name != NULL
-            && strcmp(stmt->data.role_decl.name, role_name) == 0) {
-            return stmt;
-        }
-    }
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_ROLE_DECL, role_name);
 }
 
 static ASTNode *
@@ -598,26 +582,9 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
 static ASTNode *
 llvm_find_projection_nominal_decl_local(LLVMGenCtx *ctx, const char *name)
 {
-    ASTNode **types = NULL;
-    size_t type_count = 0;
-
     if (ctx == NULL || name == NULL)
         return NULL;
-    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
-    if (types == NULL) {
-        return NULL;
-    }
-    for (size_t i = 0; i < type_count; i++) {
-        ASTNode *stmt = types[i];
-        if (stmt == NULL)
-            continue;
-        if (stmt->type == AST_CLASS_DECL
-            && stmt->data.class_decl.name != NULL
-            && strcmp(stmt->data.class_decl.name, name) == 0) {
-            return stmt;
-        }
-    }
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
 }
 
 static size_t

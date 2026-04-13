@@ -36,10 +36,16 @@
 현재:
 - intent orchestration, inherited/derived contract, rollback/cleanup carrier, zone/world declaration과 기본 lowering은 존재
 - zone/world projection/layer/state query도 존재
+- intent runtime observability baseline도 존재
+  - `IntentLast*`
+  - `IntentHistoryStep*`
+  - `IntentActive*`
+  - `IntentRecent*`
+  - runtime 내부 recent ring + active registry + typed step history storage 연결 완료
 
 남은 것:
 - embedding ownership / handoff policy를 surface trust 수준까지 명확히 고정
-- richer runtime observability
+- richer multi-instance timeline query와 failure provenance 정교화
 - cross-layer propagation policy의 더 깊은 closure
 - C/LLVM parity를 declaration/runtime/diagnostic까지 같은 품질로 정렬
 
@@ -48,11 +54,12 @@
 현재:
 - declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync baseline 존재
 - effect join/meet/conflict API와 basic closure 존재
+- projection contract diagnostics는 target/source/mode/fix를 포함하는 structured error 쪽으로 보강됨
 
 남은 것:
 - authority/resource와 effect partial order의 더 완전한 통합
 - projection propagation policy 심화
-- runtime/diagnostic contract를 더 설명 가능하게 정리
+- runtime contract와 deeper propagation failure provenance를 더 설명 가능하게 정리
 - C/LLVM parity에서 helper-heavy edge path 감소
 
 #### 3. generic contract closure
@@ -114,8 +121,9 @@
   - slot / secure baseline
   - async/channel basic runtime
   - basic intent execution/rollback
+  - intent observability baseline (`last` / `history` / `active` / `recent`)
 - 아직 얕은 부분:
-  - intent history / observability
+  - richer multi-instance timeline / failure provenance
   - channel backpressure protocol
   - party edge-path completeness
   - richer zone/world runtime policy
@@ -210,9 +218,9 @@
 ## P1.5 — 언어/컴파일러 보강
 
 - [ ] **MIR DCE statement-level 확장**
-  - 현재는 `Intent*` 같은 semantic carrier를 보존하도록 방어됐지만, statement-level DCE 자체는 아직 정교하지 않음
-  - 다음 단계: pure expression stmt / dead call / dead resource-op / carrier stmt를 분리해 제거 정책을 세분화
-  - 목표: MIR-only emitter가 기대하는 metadata carrier를 잃지 않으면서도 불필요한 stmt는 실제로 제거
+  - 현재는 dead SSA/PHI 제거 + `HasState`/`ChannelLength`류 pure-query stmt 제거까지는 동작함
+  - 남은 단계: pure expression stmt / dead call / dead resource-op / carrier stmt를 더 세분화하고, side-effect lattice 기준으로 제거 정책을 정교화
+  - 목표: MIR-only emitter가 기대하는 metadata carrier를 잃지 않으면서도 불필요한 stmt 제거 범위를 넓힘
 
 - [x] **IR 계층 설계 검토** — HIR/DIR/RIR/MIR 분리 타당성 평가
   - **DIR 유지 결정**: intent domain structure 검증에 필수 (step dependency, zone binding, post-condition)

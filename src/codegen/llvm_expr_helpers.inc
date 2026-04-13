@@ -44,47 +44,22 @@ llvm_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param, bool *is_secure
 static ASTNode *
 llvm_find_function_decl(LLVMGenCtx *ctx, const char *name)
 {
-    ASTNode **functions = NULL;
-    size_t function_count = 0;
+    ASTNode *decl;
 
     if (ctx == NULL || name == NULL)
         return NULL;
-    llvm_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
-    if (functions == NULL) {
-        return llvm_lookup_generic_template(ctx, name);
-    }
-    for (size_t i = 0; i < function_count; i++) {
-        ASTNode *stmt = functions[i];
-        if (stmt != NULL && stmt->type == AST_FUNC_DECL
-            && stmt->data.func_decl.name != NULL
-            && strcmp(stmt->data.func_decl.name, name) == 0) {
-            return stmt;
-        }
-    }
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_FUNC_DECL, name);
+    if (decl != NULL)
+        return decl;
     return llvm_lookup_generic_template(ctx, name);
 }
 
 static ASTNode *
 llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name)
 {
-    ASTNode **intents = NULL;
-    size_t intent_count = 0;
-
     if (ctx == NULL || name == NULL)
         return NULL;
-    llvm_active_inventory(ctx, AST_INTENT_DECL, &intents, &intent_count);
-    if (intents == NULL) {
-        return NULL;
-    }
-    for (size_t i = 0; i < intent_count; i++) {
-        ASTNode *stmt = intents[i];
-        if (stmt != NULL && stmt->type == AST_INTENT_DECL
-            && stmt->data.intent_decl.name != NULL
-            && strcmp(stmt->data.intent_decl.name, name) == 0) {
-            return stmt;
-        }
-    }
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_INTENT_DECL, name);
 }
 
 static bool
@@ -256,32 +231,9 @@ llvm_build_option_value(LLVMGenCtx *ctx, LLVMTypeRef inner_ty,
 static ASTNode *
 llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
 {
-    const MIRDeclHeader *decl_header = NULL;
-    ASTNode **types = NULL;
-    size_t type_count = 0;
-
     if (ctx == NULL || name == NULL)
         return NULL;
-    if (ctx->mir != NULL) {
-        decl_header = mir_find_decl_header(ctx->mir, name);
-        if (decl_header != NULL && decl_header->ast_type == AST_CLASS_DECL)
-            return decl_header->ast;
-    }
-    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
-    if (types == NULL) {
-        return NULL;
-    }
-    for (size_t i = 0; i < type_count; i++) {
-        ASTNode *stmt = types[i];
-        if (stmt == NULL)
-            continue;
-        if (stmt->type == AST_CLASS_DECL
-            && stmt->data.class_decl.name != NULL
-            && strcmp(stmt->data.class_decl.name, name) == 0) {
-            return stmt;
-        }
-    }
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
 }
 
 static size_t

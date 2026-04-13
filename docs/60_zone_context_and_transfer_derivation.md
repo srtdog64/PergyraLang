@@ -163,7 +163,7 @@ step Pay {
 - explicit가 우선
 - 유도값과 충돌하면 domain-first diagnostic
 
-#### Rule D. no multi-hop inference
+#### Rule D. no multi-hop derivation
 
 금지:
 
