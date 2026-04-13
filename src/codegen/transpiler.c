@@ -431,6 +431,9 @@ static const char *transpiler_require_ast_c_type(TranspilerCtx *ctx,
 static const char *transpiler_require_type_name_c_type(TranspilerCtx *ctx,
                                                        const char *type_name,
                                                        const char *surface_desc);
+static bool class_has_generic_params(ASTNode *node);
+static const char *ensure_generic_class_specialization(
+    TranspilerCtx *ctx, ASTNode *class_decl, ASTNode *ann);
 
 #include "transpiler_helpers.inc"
 #include "transpiler_emitters.inc"

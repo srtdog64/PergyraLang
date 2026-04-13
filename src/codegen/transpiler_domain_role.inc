@@ -16,24 +16,33 @@ build_ability_ref_bindings(ASTNode *ability_decl,
     if (ability_decl == NULL || ability_ref == NULL
         || ability_decl->type != AST_ABILITY_DECL
         || ability_ref->type != AST_TYPE
-        || ability_decl->data.ability_decl.generic_params == NULL
-        || ability_ref->data.type.generic_args == NULL) {
+        || ability_decl->data.ability_decl.generic_params == NULL) {
         return;
     }
 
     for (size_t i = 0;
          i < ability_decl->data.ability_decl.generic_params->count
-         && i < ability_ref->data.type.generic_args->count
          && out < MAX_GENERIC_BINDINGS;
          i++) {
         GenericParam *formal = ability_decl->data.ability_decl.generic_params->params[i];
-        GenericParam *actual = ability_ref->data.type.generic_args->params[i];
+        GenericParam *actual = NULL;
+        ASTNode *actual_type = NULL;
         char *rendered = NULL;
 
-        if (formal == NULL || formal->name == NULL || actual == NULL || actual->constraint == NULL)
+        if (formal == NULL || formal->name == NULL)
+            continue;
+        if (ability_ref->data.type.generic_args != NULL
+            && i < ability_ref->data.type.generic_args->count) {
+            actual = ability_ref->data.type.generic_args->params[i];
+            if (actual != NULL)
+                actual_type = actual->constraint;
+        }
+        if (actual_type == NULL)
+            actual_type = formal->default_type;
+        if (actual_type == NULL)
             continue;
 
-        rendered = render_type_name(actual->constraint);
+        rendered = render_type_name(actual_type);
         if (rendered == NULL) {
             transpiler_set_backend_error(
                 ctx,
@@ -55,6 +64,61 @@ build_ability_ref_bindings(ASTNode *ability_decl,
         *binding_count = out;
 }
 
+static char *
+render_effective_ability_ref_vtable_tag(ASTNode *ability_decl,
+                                        ASTNode *ability_ref,
+                                        TranspilerCtx *ctx)
+{
+    GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
+    size_t binding_count = 0;
+    char *rendered = NULL;
+    char suffix[128];
+    size_t len;
+
+    if (ability_ref == NULL)
+        return NULL;
+
+    if (ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
+        && ability_decl->data.ability_decl.generic_params != NULL
+        && ability_decl->data.ability_decl.generic_params->count > 0) {
+        CodeBuf *buf = codebuf_create();
+        if (buf == NULL)
+            return NULL;
+        build_ability_ref_bindings(ability_decl, ability_ref, ctx, bindings, &binding_count);
+        if (ctx != NULL && ctx->backend_error != NULL) {
+            codebuf_destroy(buf);
+            return NULL;
+        }
+        codebuf_write(buf, "%s", ability_ref->data.type.name != NULL
+                               ? ability_ref->data.type.name
+                               : "Ability");
+        if (binding_count > 0) {
+            codebuf_write(buf, "<");
+            for (size_t i = 0; i < binding_count; i++) {
+                if (i > 0)
+                    codebuf_write(buf, ", ");
+                codebuf_write(buf, "%s", bindings[i].concrete_type);
+            }
+            codebuf_write(buf, ">");
+        }
+        rendered = pergyra_strdup(buf->data);
+        codebuf_destroy(buf);
+    } else {
+        rendered = render_type_name(ability_ref);
+    }
+
+    if (rendered == NULL)
+        return NULL;
+    sanitize_c_suffix(rendered, suffix, sizeof(suffix));
+    len = strlen(suffix);
+    while (len > 0 && suffix[len - 1] == '_')
+        suffix[--len] = '\0';
+    free(rendered);
+    if (len == 0)
+        return NULL;
+    return pergyra_strdup(suffix);
+}
+
 static bool
 ability_ref_vtable_typedef_name(ASTNode *ability_ref,
                                 char *buf,
@@ -62,11 +126,14 @@ ability_ref_vtable_typedef_name(ASTNode *ability_ref,
                                 TranspilerCtx *ctx)
 {
     char *tag;
+    ASTNode *ability_decl = NULL;
 
     if (buf == NULL || buf_size == 0)
         return false;
 
-    tag = render_ability_ref_vtable_tag(ability_ref);
+    if (ctx != NULL && ability_ref != NULL && ability_ref->type == AST_TYPE)
+        ability_decl = find_ability_decl(ctx, ability_ref->data.type.name);
+    tag = render_effective_ability_ref_vtable_tag(ability_decl, ability_ref, ctx);
     if (tag == NULL) {
         transpiler_set_backend_error(
             ctx,
@@ -106,7 +173,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         return;
     }
 
-    tag = render_ability_ref_vtable_tag(ability_ref);
+    tag = render_effective_ability_ref_vtable_tag(ability_decl, ability_ref, ctx);
     if (tag == NULL) {
         transpiler_set_backend_error(
             ctx,

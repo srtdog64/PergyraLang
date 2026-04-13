@@ -919,32 +919,40 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
 {
     GenericParams *gp = class_decl->data.class_decl.generic_params;
     GenericParams *ga = ann->data.type.generic_args;
-    if (gp == NULL || ga == NULL || gp->count != ga->count)
+    bool has_effective_args = false;
+
+    if (gp == NULL)
         return class_decl->data.class_decl.name;
 
     /* Build specialized name: ClassName_Arg1_Arg2 */
     CodeBuf *nbuf = codebuf_create();
     codebuf_write(nbuf, "%s", class_decl->data.class_decl.name);
-    for (size_t i = 0; i < ga->count; i++) {
-        codebuf_write(nbuf, "_");
-        GenericParam *garg = ga->params[i];
+    for (size_t i = 0; i < gp->count; i++) {
+        GenericParam *formal = gp->params[i];
+        GenericParam *garg = (ga != NULL && i < ga->count) ? ga->params[i] : NULL;
+        const char *effective_name = NULL;
+
         if (garg != NULL && garg->name != NULL)
-            append_mangled_type_name(nbuf, garg->name);
+            effective_name = garg->name;
         else if (garg != NULL && garg->constraint != NULL
                  && garg->constraint->type == AST_TYPE
                  && garg->constraint->data.type.name != NULL)
-            append_mangled_type_name(nbuf, garg->constraint->data.type.name);
-        else {
-            transpiler_set_backend_error(
-                ctx,
-                "cannot build generic specialization name for class '%s': unresolved generic argument at position %zu",
-                class_decl->data.class_decl.name != NULL
-                    ? class_decl->data.class_decl.name
-                    : "<class>",
-                i);
-            codebuf_destroy(nbuf);
+            effective_name = garg->constraint->data.type.name;
+        else if (formal != NULL && formal->default_type != NULL
+                 && formal->default_type->type == AST_TYPE
+                 && formal->default_type->data.type.name != NULL)
+            effective_name = formal->default_type->data.type.name;
+        else
             return class_decl->data.class_decl.name;
-        }
+
+        has_effective_args = true;
+        codebuf_write(nbuf, "_");
+        append_mangled_type_name(nbuf, effective_name);
+    }
+
+    if (!has_effective_args) {
+        codebuf_destroy(nbuf);
+        return class_decl->data.class_decl.name;
     }
 
     /* Check if already emitted */
@@ -971,6 +979,10 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     /* Build bindings: T -> Int, U -> String, etc. */
     int saved_binding_count = ctx->generic_binding_count;
     for (size_t i = 0; i < gp->count; i++) {
+        GenericParam *formal = gp->params[i];
+        GenericParam *garg = (ga != NULL && i < ga->count) ? ga->params[i] : NULL;
+        const char *effective_name = NULL;
+
         if (ctx->generic_binding_count >= MAX_GENERIC_BINDINGS)
             break;
         GenericBindingEntry *b = &ctx->generic_bindings[ctx->generic_binding_count++];
@@ -979,13 +991,20 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         /* The concrete type name comes from the annotation's generic_args.
          * ga->params[i] is a GenericParam whose 'name' field holds the
          * actual type name (e.g. "Int") when used as a type argument. */
-        if (ga->params[i] != NULL && ga->params[i]->name != NULL)
+        if (garg != NULL && garg->name != NULL)
+            effective_name = garg->name;
+        else if (garg != NULL && garg->constraint != NULL
+                 && garg->constraint->type == AST_TYPE
+                 && garg->constraint->data.type.name != NULL)
+            effective_name = garg->constraint->data.type.name;
+        else if (formal != NULL && formal->default_type != NULL
+                 && formal->default_type->type == AST_TYPE
+                 && formal->default_type->data.type.name != NULL)
+            effective_name = formal->default_type->data.type.name;
+
+        if (effective_name != NULL)
             snprintf(b->concrete_type, sizeof(b->concrete_type), "%s",
-                     ga->params[i]->name);
-        else if (ga->params[i] != NULL && ga->params[i]->constraint != NULL
-                 && ga->params[i]->constraint->type == AST_TYPE)
-            snprintf(b->concrete_type, sizeof(b->concrete_type), "%s",
-                     ga->params[i]->constraint->data.type.name);
+                     effective_name);
         else {
             if (ctx->backend_error == NULL) {
                 ctx->backend_error = strdup_fmt(

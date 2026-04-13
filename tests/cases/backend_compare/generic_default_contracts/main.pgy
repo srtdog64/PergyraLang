@@ -1,0 +1,41 @@
+ability Bufferable<T = Int> {
+    fields item: T;
+    func Put(value: T) -> Void;
+}
+
+class Box<T = Int> {
+    let value: T;
+}
+
+subject Bag {
+    let item: Int;
+
+    action Save(self) -> Void requires Bufferable {
+        Log("save=" + ToString(item));
+        return;
+    }
+}
+
+role IntBuffer for Bag {
+    impl ability Bufferable {
+        func Put(value: Int) -> Void {
+            return;
+        }
+    }
+}
+
+zone StorageZone {
+    subject slot bag: Bag
+    authority bag requires Bufferable
+}
+
+party StorageParty {
+    role slot buffer: Bufferable
+}
+
+func Main() -> Void {
+    let b: Box = Box(7);
+    let bag = Bag(9);
+    bag.Save();
+    Log("box=" + ToString(b.value));
+}

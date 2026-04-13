@@ -54,6 +54,8 @@ static void emit_func_decl_from_mir_named(ASTNode *node,
                                           const char *emitted_name,
                                           CodeBuf *buf,
                                           TranspilerCtx *ctx);
+static char *transpiler_render_effective_local_type_name(TranspilerCtx *ctx,
+                                                         ASTNode *type_node);
 /* Forward declarations for generic class monomorphization */
 static bool class_has_generic_params(ASTNode *node);
 static const char *ensure_generic_class_specialization(
@@ -147,8 +149,6 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (ann != NULL && ann->type == AST_TYPE
-        && ann->data.type.generic_args != NULL
-        && ann->data.type.generic_args->count > 0
         && ann->data.type.name != NULL) {
         ASTNode *gc_decl = find_class_decl(ctx, ann->data.type.name);
         if (gc_decl != NULL && class_has_generic_params(gc_decl)) {
@@ -511,7 +511,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     if (init != NULL && init->type == AST_CALL
         && init->data.call.callee->type == AST_IDENTIFIER) {
         const char *callee_name = init->data.call.callee->data.identifier.name;
-        if (strcmp(callee_name, "Box") == 0) {
+        if (strcmp(callee_name, "Box") == 0
+            && find_class_decl(ctx, callee_name) == NULL) {
             is_box = true;
             /* Infer type from annotation or argument */
             if (ann != NULL && ann->data.type.generic_args != NULL
@@ -526,7 +527,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         /* Rc<T> - Reference counted box */
-        else if (strcmp(callee_name, "Rc") == 0) {
+        else if (strcmp(callee_name, "Rc") == 0
+                 && find_class_decl(ctx, callee_name) == NULL) {
             is_box = true;
             if (ann != NULL && ann->data.type.generic_args != NULL
                 && ann->data.type.generic_args->count > 0) {
@@ -2007,7 +2009,8 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
         if (body->data.let_decl.type != NULL) {
             static char *rendered = NULL;
             free(rendered);
-            rendered = render_type_name(body->data.let_decl.type);
+            rendered = transpiler_render_effective_local_type_name(
+                ctx, body->data.let_decl.type);
             return rendered;
         }
         return transpiler_infer_local_type_name_from_expr(ctx, func_decl, body->data.let_decl.initializer);
@@ -2122,6 +2125,23 @@ transpiler_find_local_type_ast(TranspilerCtx *ctx,
         ctx, func_decl->data.func_decl.body, base_name);
 }
 
+static char *
+transpiler_render_effective_local_type_name(TranspilerCtx *ctx, ASTNode *type_node)
+{
+    if (type_node != NULL
+        && type_node->type == AST_TYPE
+        && type_node->data.type.name != NULL) {
+        ASTNode *class_decl = find_class_decl(ctx, type_node->data.type.name);
+        if (class_decl != NULL && class_has_generic_params(class_decl)) {
+            const char *spec_name =
+                ensure_generic_class_specialization(ctx, class_decl, type_node);
+            if (spec_name != NULL && strcmp(spec_name, type_node->data.type.name) != 0)
+                return pergyra_strdup(spec_name);
+        }
+    }
+    return render_type_name(type_node);
+}
+
 static bool
 transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
 {
@@ -2212,7 +2232,8 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
             const char *type_name = NULL;
             char *rendered_type = NULL;
             if (stmt->data.let_decl.type != NULL) {
-                rendered_type = render_type_name(stmt->data.let_decl.type);
+                rendered_type = transpiler_render_effective_local_type_name(
+                    ctx, stmt->data.let_decl.type);
                 type_name = rendered_type;
             } else if (stmt->data.let_decl.initializer != NULL) {
                 type_name = transpiler_infer_local_type_name_from_expr(
@@ -2327,7 +2348,7 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
         if (p != NULL && p->name != NULL && strcmp(p->name, base_name) == 0 && p->type != NULL) {
             static char *rendered_param = NULL;
             free(rendered_param);
-            rendered_param = render_type_name(p->type);
+            rendered_param = transpiler_render_effective_local_type_name(ctx, p->type);
             if (ctx != NULL && rendered_param != NULL)
                 register_typed_var(ctx, base_name, rendered_param);
             return rendered_param;

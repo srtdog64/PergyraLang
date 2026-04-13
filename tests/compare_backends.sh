@@ -132,12 +132,14 @@ main() {
         "tests/cases/backend_compare/intent_decl_overlay"
         "tests/cases/backend_compare/intent_conflict_runtime"
         "tests/cases/backend_compare/intent_trace_compensate"
+        "tests/cases/backend_compare/intent_failure_observability_strings"
         "tests/cases/backend_compare/intent_zone_binding"
         "tests/cases/backend_compare/intent_cross_world_transfer"
         "tests/cases/backend_compare/intent_rich_history_identity"
         "tests/cases/backend_compare/zone_param_mutation"
         "tests/cases/backend_compare/zone_host_method_abi_combo"
         "tests/cases/backend_compare/ownership_forwarding"
+        "tests/cases/backend_compare/generic_default_contracts"
     )
 
     if [[ "$#" -gt 0 ]]; then

@@ -109,9 +109,10 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                                              const char *owner_name)
 {
     GenericParams *decl_params;
-    GenericParams *ref_args;
     WhereClause *wc;
     char *required_text;
+    ASTNode **effective_args;
+    size_t effective_count = 0;
 
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
         || ability_ref == NULL || ability_ref->type != AST_TYPE
@@ -120,13 +121,24 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
     }
 
     decl_params = ability_decl->data.ability_decl.generic_params;
-    ref_args = ability_ref->data.type.generic_args;
     wc = ability_decl->data.ability_decl.where_clause;
     if (decl_params == NULL || decl_params->count == 0
-        || ref_args == NULL || ref_args->count == 0
         || wc == NULL || wc->count == 0) {
         return true;
     }
+
+    effective_args = collect_effective_generic_arg_nodes(
+        decl_params,
+        ability_ref->data.type.generic_args,
+        site,
+        ctx,
+        "Ability",
+        ability_decl->data.ability_decl.name != NULL
+            ? ability_decl->data.ability_decl.name
+            : "<ability>",
+        &effective_count);
+    if (effective_args == NULL)
+        return ctx != NULL ? !ctx->has_error : false;
 
     required_text = ability_ref_display(ability_ref);
 
@@ -139,10 +151,10 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
             continue;
 
         param_index = ability_decl_generic_param_index(decl_params, tc->type_param);
-        if (param_index < 0 || (size_t)param_index >= ref_args->count)
+        if (param_index < 0 || (size_t)param_index >= effective_count)
             continue;
 
-        concrete_type = resolve_generic_type_arg(ref_args->params[param_index], ctx, site);
+        concrete_type = resolve_type_node(effective_args[param_index], ctx);
         if (concrete_type == NULL)
             continue;
 
@@ -180,12 +192,14 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     ability_decl->data.ability_decl.name != NULL
                         ? ability_decl->data.ability_decl.name : "<ability>");
                 free(required_text);
+                free(effective_args);
                 return false;
             }
         }
     }
 
     free(required_text);
+    free(effective_args);
     return true;
 }
 
@@ -320,19 +334,24 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             return NULL;
         }
 
-        if (arg_count != param_count) {
+        if (arg_count > param_count
+            || arg_count < generic_params_required_count(
+                ability_decl->data.ability_decl.generic_params)) {
+            size_t required_count = generic_params_required_count(
+                ability_decl->data.ability_decl.generic_params);
             semantic_error(ctx, site,
-                "Ability '%s' requires %zu generic argument(s) in requires clauses, got %zu.\n"
+                "Ability '%s' requires between %zu and %zu generic argument(s) in requires clauses, got %zu.\n"
                 "Reason:\n"
                 "- requires uses '%s'\n"
                 "- ability declaration '%s' expects %zu type parameter(s)\n"
                 "Fix:\n"
-                "- pass exactly %zu generic argument(s) to '%s'\n"
+                "- pass enough generic argument(s) to cover non-default parameters of '%s'\n"
+                "- or rely on declaration defaults for trailing parameters only\n"
                 "- or change the ability declaration to match the intended arity",
-                ability, param_count, arg_count,
+                ability, required_count, param_count, arg_count,
                 required_text != NULL ? required_text : ability,
                 ability, param_count,
-                param_count, ability);
+                ability);
             free(required_text);
             return NULL;
         }

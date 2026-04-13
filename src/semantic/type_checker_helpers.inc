@@ -238,6 +238,10 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
 static Type *
 resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
 {
+    Symbol *sym = scope_lookup(ctx->scope, name);
+    if (sym != NULL && sym->kind == SYMBOL_CLASS && sym->type != TYPE_UNKNOWN)
+        return sym->type;
+
     if (strcmp(name, "Int")    == 0) return TYPE_INT;
     if (strcmp(name, "Long")   == 0) return TYPE_LONG;
     if (strcmp(name, "Float")  == 0) return TYPE_FLOAT;
@@ -260,7 +264,6 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
     if (strcmp(name, "Allocator") == 0) return TYPE_ALLOCATOR;
     if (strcmp(name, "Option") == 0) return TYPE_OPTION;
 
-    Symbol *sym = scope_lookup(ctx->scope, name);
     if (sym != NULL && sym->type != TYPE_UNKNOWN)
         return sym->type;
 

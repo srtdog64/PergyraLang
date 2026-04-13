@@ -947,7 +947,12 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     BuiltinKind bk     = BUILTIN_NOT_BUILTIN;
 
     if (callee->type == AST_IDENTIFIER) {
-        bk = builtin_resolve(callee->data.identifier.name);
+        const char *callee_name = callee->data.identifier.name;
+        bk = builtin_resolve(callee_name);
+        if ((bk == BUILTIN_BOX || bk == BUILTIN_RC_NEW)
+            && find_class_decl(ctx, callee_name) != NULL) {
+            bk = BUILTIN_NOT_BUILTIN;
+        }
     }
 
     switch (bk) {
@@ -1505,8 +1510,21 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         const char *fn = callee->data.identifier.name;
         ASTNode *class_decl = find_class_decl(ctx, fn);
         if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
+            const char *ctor_type = fn;
             size_t argc = call->data.call.arg_count;
             CodeBuf *fields = codebuf_create();
+            if (class_has_generic_params(class_decl)) {
+                ASTNode synthetic_type = {0};
+                synthetic_type.type = AST_TYPE;
+                synthetic_type.data.type.name = (char *)fn;
+                synthetic_type.data.type.generic_args = NULL;
+                {
+                    const char *spec_name =
+                        ensure_generic_class_specialization(ctx, class_decl, &synthetic_type);
+                    if (spec_name != NULL)
+                        ctor_type = spec_name;
+                }
+            }
             for (size_t i = 0; i < argc && i < class_decl->data.class_decl.field_count; i++) {
                 ClassField *field = class_decl->data.class_decl.fields[i];
                 char *arg = emit_expression(call->data.call.arguments[i], ctx);
@@ -1519,9 +1537,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             }
             char *result;
             if (fields->len > 0)
-                result = strdup_fmt("(%s){ %s }", fn, fields->data);
+                result = strdup_fmt("(%s){ %s }", ctor_type, fields->data);
             else
-                result = strdup_fmt("(%s){0}", fn);
+                result = strdup_fmt("(%s){0}", ctor_type);
             codebuf_destroy(fields);
             return result;
         }

@@ -505,8 +505,77 @@ find_subject_surface_field_by_name(ASTNode *program_root,
 }
 
 static void
+resolve_ability_require_field_type_scope(ASTNode *ability_decl,
+                                         ASTNode *ability_ref,
+                                         ASTNode *type_node,
+                                         ASTNode *site,
+                                         SemanticContext *ctx,
+                                         Type **out_type)
+{
+    GenericParams *decl_params;
+    ASTNode **effective_args = NULL;
+    size_t effective_count = 0;
+
+    if (out_type != NULL)
+        *out_type = TYPE_UNKNOWN;
+    if (ctx == NULL || out_type == NULL || type_node == NULL) {
+        return;
+    }
+    if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
+        || ability_ref == NULL || ability_ref->type != AST_TYPE) {
+        *out_type = resolve_type_node(type_node, ctx);
+        return;
+    }
+
+    decl_params = ability_decl->data.ability_decl.generic_params;
+    if (decl_params == NULL || decl_params->count == 0) {
+        *out_type = resolve_type_node(type_node, ctx);
+        return;
+    }
+
+    effective_args = collect_effective_generic_arg_nodes(
+        decl_params,
+        ability_ref->data.type.generic_args,
+        site != NULL ? site : type_node,
+        ctx,
+        "ability",
+        ability_decl->data.ability_decl.name != NULL
+            ? ability_decl->data.ability_decl.name : "<ability>",
+        &effective_count);
+    if (effective_args == NULL) {
+        *out_type = TYPE_UNKNOWN;
+        return;
+    }
+
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    for (size_t i = 0; i < decl_params->count && i < effective_count; i++) {
+        GenericParam *param = decl_params->params[i];
+        Type *arg_type = NULL;
+        Symbol *s = NULL;
+
+        if (param == NULL || param->name == NULL || effective_args[i] == NULL)
+            continue;
+
+        arg_type = resolve_type_node(effective_args[i], ctx);
+        s = symbol_create_variable(param->name,
+                                   arg_type != NULL ? arg_type : TYPE_UNKNOWN,
+                                   site != NULL ? site->line : ability_decl->line,
+                                   site != NULL ? site->column : ability_decl->column);
+        if (s == NULL)
+            continue;
+        s->kind = SYMBOL_TYPE_PARAM;
+        scope_declare(ctx->scope, s);
+    }
+
+    *out_type = resolve_type_node(type_node, ctx);
+    scope_exit(&ctx->scope);
+    free(effective_args);
+}
+
+static void
 validate_ability_require_fields_for_role(ASTNode *role_decl,
                                          ASTNode *ability_decl,
+                                         ASTNode *ability_ref,
                                          SemanticContext *ctx)
 {
     ASTNode *bound_decl;
@@ -551,7 +620,12 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
             continue;
         }
 
-        required_type = resolve_type_node(req->data.require_field.type, ctx);
+        resolve_ability_require_field_type_scope(ability_decl,
+                                                 ability_ref,
+                                                 req->data.require_field.type,
+                                                 role_decl,
+                                                 ctx,
+                                                 &required_type);
         field_type = resolve_type_node(field->type, ctx);
         if (required_type != NULL && field_type != NULL
             && !type_is_assignable(field_type, required_type)) {
@@ -686,21 +760,26 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             ability_name,
                             ability_name);
                         free(impl_text);
-                    } else if (arg_count != param_count) {
+                    } else if (arg_count > param_count
+                               || arg_count < generic_params_required_count(
+                                      ability_decl->data.ability_decl.generic_params)) {
+                        size_t required_count = generic_params_required_count(
+                            ability_decl->data.ability_decl.generic_params);
                         char *impl_text =
                             ability_ref_display(impl->data.impl_ability.ability_ref);
                         semantic_error(ctx, impl,
-                            "Ability '%s' requires %zu generic argument(s) in impl clauses, got %zu.\n"
+                            "Ability '%s' requires between %zu and %zu generic argument(s) in impl clauses, got %zu.\n"
                             "Reason:\n"
                             "- impl ability uses '%s'\n"
                             "- ability declaration '%s' expects %zu type parameter(s)\n"
                             "Fix:\n"
-                            "- pass exactly %zu generic argument(s) to '%s'\n"
+                            "- pass enough generic argument(s) to cover non-default parameters of '%s'\n"
+                            "- or rely on declaration defaults for trailing parameters only\n"
                             "- or change the ability declaration to match the intended arity",
-                            ability_name, param_count, arg_count,
+                            ability_name, required_count, param_count, arg_count,
                             impl_text != NULL ? impl_text : ability_name,
                             ability_name, param_count,
-                            param_count, ability_name);
+                            ability_name);
                         free(impl_text);
                     } else {
                         for (size_t k = 0; k < arg_count; k++) {
@@ -718,7 +797,11 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         ctx,
                         "role",
                         name != NULL ? name : "<role>");
-                    validate_ability_require_fields_for_role(node, ability_decl, ctx);
+                    validate_ability_require_fields_for_role(
+                        node,
+                        ability_decl,
+                        impl->data.impl_ability.ability_ref,
+                        ctx);
                 }
             }
 

@@ -70,7 +70,8 @@
 - action / intent step / zone authority / party role slot generic mismatch diagnostics baseline 존재
 - hidden/default-export generic ability visibility는 action/role impl뿐 아니라 zone authority/party role slot consumer path까지 회귀로 고정
 - `ability<T> where ...` bound는 `requires` / `impl ability` / party role slot ref에서 다시 검증됨
-- default type argument는 beta-stable surface에서 `unsupported`로 고정되어 있으며 semantic에서 explicit reject됨
+- default type argument는 semantic + transpiler + backend compare까지 baseline closure 완료
+  - user-defined `class/ability<T = ...>`가 omitted arg 경로에서도 effective specialization으로 정렬됨
 - multi-bound `where T: A + B` baseline은 현재 동작함
 - hidden/default-export와 generic ability ref 규칙 정렬 완료
 
@@ -162,6 +163,7 @@
 
 ## 완료 (최근)
 
+- [x] **generic default-arg closure 1차 복구** — declaration acceptance만이 아니라 user-defined generic class omission, generic ability impl-reference omission, arity diagnostics range화, semantic/backend parity까지 다시 녹색으로 정렬
 - [x] **ABI Unification Infrastructure** — `pgy_abi_spec.h`, `test_abi_spec.c` (28 PASS), `MIRTypeLayout`, `mir_abi_lookup()`, `rir_dump_json()`, dumb emitter Visitor
 - [x] **Windows CI Fix** — `TOKEN_TYPE` → `PGY_TOKEN_TYPE`, `TokenType` → `PgyTokenType` (~20개 파일)
 - [x] **v2 Quantum Planning** — 양자 연산 미지원 명시, v2 계획 문서화
@@ -191,6 +193,8 @@
 - [ ] **generic contract 완전 closure**
   - strict beta-quality 기준으로 stable subset closure에서 재개방
   - `default type arg` actual resolution, `where T: A + B` 전경로 enforcement, `ability<T>` mismatch provenance, instantiation-path parity까지 닫는다
+  - 완료: default type arg declaration acceptance / omitted trailing default resolution / generic ability impl-reference omission / arity diagnostics provenance
+  - 남음: multi-bound 전경로 enforcement, module-contract propagation, richer mismatch provenance, wider C/LLVM regression 확대
 - [ ] **own/ref 완전 closure**
   - strict beta-quality 기준으로 anchored subset closure에서 재개방
   - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫는다

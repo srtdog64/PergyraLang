@@ -2872,7 +2872,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "requires 1 generic argument(s)"));
+            "requires between 1 and 1 generic argument(s)"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3023,7 +3023,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "requires 1 generic argument(s) in impl clauses, got 2"));
+            "requires between 1 and 1 generic argument(s) in impl clauses, got 2"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "impl ability uses 'Combatable<Int, String>'"));
 
@@ -3075,7 +3075,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("generic function declaration rejects default type argument for now");
+    TEST("generic function declaration accepts default type argument");
     {
         const char *source =
             "func Identity<T = Int>(value: T) -> T {\n"
@@ -3087,9 +3087,7 @@
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Default generic type arguments are not supported yet in function declarations"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3097,7 +3095,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("generic class declaration rejects default type argument for now");
+    TEST("generic class declaration accepts default type argument");
     {
         const char *source =
             "class Box<T = Int> {\n"
@@ -3109,9 +3107,7 @@
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Default generic type arguments are not supported yet in class declarations"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3119,7 +3115,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("generic ability declaration rejects default type argument for now");
+    TEST("generic ability declaration accepts default type argument");
     {
         const char *source =
             "ability Bufferable<T = Int> {\n"
@@ -3131,9 +3127,7 @@
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Default generic type arguments are not supported yet in ability declarations"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3141,7 +3135,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("generic party declaration rejects default type argument for now");
+    TEST("generic party declaration accepts default type argument");
     {
         const char *source =
             "party RaidTeam<T = Int> {\n"
@@ -3152,9 +3146,7 @@
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Default generic type arguments are not supported yet in party declarations"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3162,7 +3154,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("generic roster declaration rejects default type argument for now");
+    TEST("generic roster declaration accepts default type argument");
     {
         const char *source =
             "roster RaidRoster<T = Int> {\n"
@@ -3173,9 +3165,136 @@
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Default generic type arguments are not supported yet in roster declarations"));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class default type argument resolves when omitted");
+    {
+        const char *source =
+            "class Box<T = Int> {\n"
+            "    let value: T;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let b: Box = Box(1);\n"
+            "    Log(ToString(b.value));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic ability default type argument resolves in impl reference");
+    {
+        const char *source =
+            "ability Bufferable<T = Int> {\n"
+            "    fields item: T;\n"
+            "}\n"
+            "subject Bag {\n"
+            "    let item: Int;\n"
+            "}\n"
+            "role IntBuffer for Bag {\n"
+            "    impl ability Bufferable {\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("action requires may omit trailing generic default arguments");
+    {
+        const char *source =
+            "ability Bufferable<T = Int> { func Put(value: T) -> Void; }\n"
+            "subject Bag {\n"
+            "    let item: Int;\n"
+            "    action Save(self) -> Void requires Bufferable {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n"
+            "role IntBuffer for Bag {\n"
+            "    impl ability Bufferable { func Put(value: Int) -> Void { return; } }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone authority may omit trailing generic default arguments");
+    {
+        const char *source =
+            "ability Bufferable<T = Int> { func Put(value: T) -> Void; }\n"
+            "subject Bag { let item: Int; }\n"
+            "role IntBuffer for Bag {\n"
+            "    impl ability Bufferable { func Put(value: Int) -> Void { return; } }\n"
+            "}\n"
+            "zone StorageZone {\n"
+            "    subject slot bag: Bag\n"
+            "    authority bag requires Bufferable\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("party role slot may omit trailing generic default arguments");
+    {
+        const char *source =
+            "ability Bufferable<T = Int> { func Put(value: T) -> Void; }\n"
+            "subject Bag { let item: Int; }\n"
+            "role IntBuffer for Bag {\n"
+            "    impl ability Bufferable { func Put(value: Int) -> Void { return; } }\n"
+            "}\n"
+            "party StorageParty {\n"
+            "    role slot buffer: Bufferable\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

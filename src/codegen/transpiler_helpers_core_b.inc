@@ -912,7 +912,7 @@ slot_inner_type_name(const char *slot_type_name)
     static char buf[128];
     const char *close = strrchr(slot_type_name, '>');
     if (close == NULL || close <= open)
-        return "Int";
+        return "Unknown";
 
     size_t len = (size_t)(close - open);
     if (len >= sizeof(buf))
@@ -928,7 +928,7 @@ channel_inner_type_name(TranspilerCtx *ctx, ASTNode *expr)
     const char *type_name = infer_expression_type_name(ctx, expr);
     if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
         return slot_inner_type_name(type_name);
-    return "Int";
+    return "Unknown";
 }
 
 static void
@@ -987,11 +987,11 @@ constructed_arg_name_at(const char *type_name, int arg_index)
     size_t out = 0;
 
     if (type_name == NULL || arg_index < 0)
-        return "Int";
+        return "Unknown";
 
     lt = strchr(type_name, '<');
     if (lt == NULL)
-        return "Int";
+        return "Unknown";
     lt++;
 
     for (const char *p = lt; *p != '\0'; p++) {
@@ -1537,7 +1537,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
     static char derived_call_type[128];
 
     if (expr == NULL)
-        return "Int";
+        return "Unknown";
 
     switch (expr->type) {
     case AST_NUMBER:
@@ -1558,7 +1558,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         const char *array_type = infer_expression_type_name(ctx, expr->data.array_access.array);
         if (strncmp(array_type, "Array<", 6) == 0 || strncmp(array_type, "Slice<", 6) == 0)
             return slot_inner_type_name(array_type);
-        return "Int";
+        return "Unknown";
     }
     case AST_IDENTIFIER: {
         ASTNode *alias_expr = lookup_alias_expr(ctx, expr->data.identifier.name);
@@ -1583,7 +1583,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return enum_name;
             }
         }
-        return "Int";
+        return "Unknown";
     }
     case AST_CHANNEL_RECV: {
         ASTNode *channel = expr->data.channel_recv.channel;
@@ -1592,7 +1592,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
                 return slot_inner_type_name(type_name);
         }
-        return "Int";
+        return "Unknown";
     }
     case AST_MEMBER_ACCESS: {
         const char *resolved = resolve_nominal_host_expr_type_name(ctx, expr);
@@ -1619,7 +1619,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
             }
         }
-        return "Int";
+        return "Unknown";
     }
     case AST_BINARY: {
         PgyTokenType op = expr->data.binary.op.type;
@@ -1650,7 +1650,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             || op == TOKEN_AND || op == TOKEN_OR) {
             return "Bool";
         }
-        return "Int";
+        return "Unknown";
     }
     case AST_CALL:
         if (expr->data.call.callee != NULL
@@ -1706,7 +1706,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     expr->data.call.arguments[0]);
                 if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
                     return constructed_arg_name_at(map_type, 1);
-                return "Int";
+                return "Unknown";
             }
             if (strcmp(name, "ToString") == 0)
                 return "String";
@@ -1751,7 +1751,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     expr->data.call.arguments[0]);
                 if (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
                     return slot_inner_type_name(list_type);
-                return "Int";
+                return "Unknown";
             }
             if (strcmp(name, "ListSize") == 0)
                 return "Int";
@@ -1947,13 +1947,13 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
             }
         }
-        return "Int";
+        return "Unknown";
     case AST_UNARY:
         if (expr->data.unary.op.type == TOKEN_NOT)
             return "Bool";
         return infer_expression_type_name(ctx, expr->data.unary.operand);
     default:
-        return "Int";
+        return "Unknown";
     }
 }
 

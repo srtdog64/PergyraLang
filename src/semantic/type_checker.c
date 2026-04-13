@@ -22,6 +22,16 @@ static bool
 semantic_is_known_stdlib_use_module(const char *module_name);
 static bool
 callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx);
+static size_t
+generic_params_required_count(GenericParams *params);
+static ASTNode **
+collect_effective_generic_arg_nodes(GenericParams *decl_params,
+                                    GenericParams *provided_args,
+                                    const ASTNode *site,
+                                    SemanticContext *ctx,
+                                    const char *owner_kind,
+                                    const char *owner_name,
+                                    size_t *out_count);
 
 /* Local printf-to-heap helper (same as transpiler's strdup_fmt) */
 #include "type_checker_helpers.inc"
@@ -148,11 +158,133 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
         GenericParam *param = gp->params[i];
         if (param == NULL || param->default_type == NULL)
             continue;
-        semantic_error(ctx, owner,
-            "Default generic type arguments are not supported yet in %s declarations (parameter '%s')",
-            kind_name != NULL ? kind_name : "generic",
-            param->name != NULL ? param->name : "<type-param>");
+        {
+            size_t saved_diag = ctx->diagnostic_count;
+            bool saved_err = ctx->has_error;
+            Type *resolved = resolve_type_node(param->default_type, ctx);
+            if (resolved == NULL || resolved == TYPE_UNKNOWN
+                || ctx->diagnostic_count > saved_diag) {
+                ctx->diagnostic_count = saved_diag;
+                ctx->has_error = saved_err;
+                semantic_error(ctx, owner != NULL ? owner : param->default_type,
+                    "Invalid default generic type argument '%s' in %s declaration (parameter '%s')",
+                    param->default_type->type == AST_TYPE
+                        && param->default_type->data.type.name != NULL
+                            ? param->default_type->data.type.name
+                            : "<type>",
+                    kind_name != NULL ? kind_name : "generic",
+                    param->name != NULL ? param->name : "<type-param>");
+            }
+        }
     }
+}
+
+static size_t
+generic_params_required_count(GenericParams *params)
+{
+    size_t required = 0;
+    if (params == NULL)
+        return 0;
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam *param = params->params[i];
+        if (param != NULL && param->default_type == NULL)
+            required++;
+    }
+    return required;
+}
+
+static ASTNode **
+collect_effective_generic_arg_nodes(GenericParams *decl_params,
+                                    GenericParams *provided_args,
+                                    const ASTNode *site,
+                                    SemanticContext *ctx,
+                                    const char *owner_kind,
+                                    const char *owner_name,
+                                    size_t *out_count)
+{
+    size_t decl_count;
+    size_t provided_count;
+    size_t required_count;
+    ASTNode **effective = NULL;
+
+    if (out_count != NULL)
+        *out_count = 0;
+    if (decl_params == NULL)
+        return NULL;
+
+    decl_count = decl_params->count;
+    provided_count = provided_args != NULL ? provided_args->count : 0;
+    required_count = generic_params_required_count(decl_params);
+
+    if (decl_count == 0) {
+        if (provided_count == 0)
+            return NULL;
+        if (ctx != NULL) {
+            semantic_error(ctx, site,
+                "%s '%s' does not accept generic type arguments",
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>");
+        }
+        return NULL;
+    }
+
+    if (provided_count > decl_count) {
+        if (ctx != NULL) {
+            semantic_error(ctx, site,
+                "%s '%s' accepts at most %zu generic argument(s), got %zu",
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                decl_count, provided_count);
+        }
+        return NULL;
+    }
+
+    if (provided_count < required_count) {
+        if (ctx != NULL) {
+            semantic_error(ctx, site,
+                "%s '%s' requires at least %zu generic argument(s), got %zu",
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                required_count, provided_count);
+        }
+        return NULL;
+    }
+
+    effective = calloc(decl_count > 0 ? decl_count : 1, sizeof(ASTNode *));
+    if (effective == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < decl_count; i++) {
+        ASTNode *arg = NULL;
+        if (provided_args != NULL && i < provided_args->count) {
+            GenericParam *provided = provided_args->params[i];
+            arg = provided != NULL ? provided->constraint : NULL;
+        } else if (decl_params->params[i] != NULL) {
+            arg = decl_params->params[i]->default_type;
+        }
+
+        if (arg == NULL) {
+            if (ctx != NULL) {
+                const char *param_name =
+                    decl_params->params[i] != NULL && decl_params->params[i]->name != NULL
+                        ? decl_params->params[i]->name
+                        : "<type-param>";
+                semantic_error(ctx, site,
+                    "%s '%s' is missing generic argument for parameter '%s'",
+                    owner_kind != NULL ? owner_kind : "declaration",
+                    owner_name != NULL ? owner_name : "<anonymous>",
+                    param_name);
+            }
+            free(effective);
+            return NULL;
+        }
+
+        effective[i] = arg;
+    }
+
+    if (out_count != NULL)
+        *out_count = decl_count;
+    return effective;
 }
 
 static bool
@@ -556,14 +688,19 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         return type_create_constructed(TYPE_SET, args, 1);
     }
 
-    if (strcmp(name, "Array") == 0 || strcmp(name, "Slice") == 0
-        || strcmp(name, "List") == 0 || strcmp(name, "Queue") == 0
-        || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0
-        || strcmp(name, "Weak") == 0 || strcmp(name, "Channel") == 0
-        || strcmp(name, "Future") == 0 || strcmp(name, "RemoteFuture") == 0
-        || strcmp(name, "Token") == 0
-        || strcmp(name, "DeviceSlot") == 0 || strcmp(name, "Result") == 0
-        || strcmp(name, "Option") == 0) {
+    Symbol *builtin_shadow = scope_lookup(ctx->scope, name);
+    bool allow_builtin_constructed =
+        builtin_shadow == NULL || builtin_shadow->kind != SYMBOL_CLASS;
+
+    if (allow_builtin_constructed
+        && (strcmp(name, "Array") == 0 || strcmp(name, "Slice") == 0
+            || strcmp(name, "List") == 0 || strcmp(name, "Queue") == 0
+            || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0
+            || strcmp(name, "Weak") == 0 || strcmp(name, "Channel") == 0
+            || strcmp(name, "Future") == 0 || strcmp(name, "RemoteFuture") == 0
+            || strcmp(name, "Token") == 0
+            || strcmp(name, "DeviceSlot") == 0 || strcmp(name, "Result") == 0
+            || strcmp(name, "Option") == 0)) {
         size_t expected_min = strcmp(name, "Result") == 0 ? 1 : 1;
         size_t expected_max = strcmp(name, "Result") == 0 ? 2 : 1;
         size_t provided = node->data.type.generic_args != NULL
@@ -610,29 +747,37 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
      * If the name resolves to a SYMBOL_CLASS and generic_args are present,
      * build a TYPE_KIND_CONSTRUCTED type so the class specialization can
      * be tracked through the type system. */
-    if (node->data.type.generic_args != NULL
-        && node->data.type.generic_args->count > 0) {
+    {
         Symbol *sym = scope_lookup(ctx->scope, name);
-        if (sym != NULL && sym->kind == SYMBOL_CLASS && sym->type != NULL) {
-            GenericParams *ga = node->data.type.generic_args;
-            size_t argc = ga->count;
-            Type **args = calloc(argc, sizeof(Type *));
-            if (args != NULL) {
-                ASTNode *class_decl = NULL;
-                for (size_t i = 0; i < argc; i++)
-                    args[i] = resolve_generic_type_arg(ga->params[i], ctx, node);
-                Type *result = type_create_constructed(sym->type, args, argc);
-                if (ctx != NULL && ctx->program_root != NULL) {
-                    class_decl = find_type_decl_by_name(ctx->program_root, name);
-                    if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
-                        validate_class_where_clause_instantiation(class_decl,
-                                                                  result,
-                                                                  node,
-                                                                  ctx);
-                    }
+        if (sym != NULL && sym->kind == SYMBOL_CLASS && sym->type != NULL
+            && ctx != NULL && ctx->program_root != NULL) {
+            ASTNode *class_decl = find_type_decl_by_name(ctx->program_root, name);
+            if (class_decl != NULL
+                && class_decl->type == AST_CLASS_DECL
+                && class_decl->data.class_decl.generic_params != NULL
+                && class_decl->data.class_decl.generic_params->count > 0) {
+                size_t argc = 0;
+                ASTNode **effective_args = collect_effective_generic_arg_nodes(
+                    class_decl->data.class_decl.generic_params,
+                    node->data.type.generic_args,
+                    node, ctx, "class", name, &argc);
+                if (effective_args == NULL)
+                    return TYPE_UNKNOWN;
+
+                Type **args = calloc(argc > 0 ? argc : 1, sizeof(Type *));
+                if (args != NULL) {
+                    for (size_t i = 0; i < argc; i++)
+                        args[i] = resolve_type_node(effective_args[i], ctx);
+                    free(effective_args);
+                    Type *result = type_create_constructed(sym->type, args, argc);
+                    validate_class_where_clause_instantiation(class_decl,
+                                                              result,
+                                                              node,
+                                                              ctx);
+                    free(args);
+                    return result;
                 }
-                free(args);
-                return result;
+                free(effective_args);
             }
         }
     }
@@ -1516,6 +1661,16 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                 && init->data.call.callee->type == AST_IDENTIFIER
                 && strcmp(init->data.call.callee->data.identifier.name,
                           "BoxArray") == 0) {
+                init_type = decl_type;
+            } else if (init->type == AST_CALL
+                       && init->data.call.callee != NULL
+                       && init->data.call.callee->type == AST_IDENTIFIER
+                       && ann->type == AST_TYPE
+                       && ann->data.type.name != NULL
+                       && strcmp(init->data.call.callee->data.identifier.name,
+                                 ann->data.type.name) == 0
+                       && decl_type != NULL
+                       && decl_type->kind == TYPE_KIND_CONSTRUCTED) {
                 init_type = decl_type;
             }
             if (!slot_transfer_compatible(init_type, decl_type))
