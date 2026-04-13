@@ -809,6 +809,33 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     }
     if (node->data.func_decl.body != NULL)
         emit_block(node->data.func_decl.body, ctx);
+
+    /* If the function returns a non-void type and the body does not end
+     * with an explicit return (e.g. ends with a match/if/while), emit a
+     * fallback return to silence C compiler warnings about missing return. */
+    if (strcmp(ctx->current_return_type, "Void") != 0
+        && strcmp(ctx->current_return_type, "void") != 0) {
+        const char *ret_type = ctx->current_return_type;
+        /* Simple zero-initialised return for non-void functions that may
+         * fall off the end (e.g. match without default, or if/else with
+         * only one branch returning). */
+        write_indent(ctx);
+        if (strcmp(ret_type, "Bool") == 0) {
+            codebuf_write(ctx->out, "return false;  /* fallback return */\n");
+        } else if (strcmp(ret_type, "String") == 0
+                   || strncmp(ret_type, "char *", 6) == 0) {
+            codebuf_write(ctx->out, "return NULL;  /* fallback return */\n");
+        } else if (strncmp(ret_type, "Option<", 7) == 0) {
+            const char *inner = slot_inner_type_name(ret_type);
+            codebuf_write(ctx->out, "return None_%s();  /* fallback return */\n", inner);
+        } else if (strncmp(ret_type, "Result<", 7) == 0) {
+            const char *inner = slot_inner_type_name(ret_type);
+            codebuf_write(ctx->out, "return Err_%s(0);  /* fallback return */\n", inner);
+        } else {
+            codebuf_write(ctx->out, "return 0;  /* fallback return */\n");
+        }
+    }
+
     ctx->indent--;
     ctx->slot_var_count = saved_slot_count;
     ctx->typed_var_count = saved_typed_count;

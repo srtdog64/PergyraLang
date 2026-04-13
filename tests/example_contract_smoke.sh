@@ -310,6 +310,14 @@ run_stable_examples() {
         "$ROOT_DIR/examples/projection_bind_group_minimal.pgy" "projection bind group minimal"
     run_expect_lines "projection_refresh_publish_group_minimal" "$backend" \
         "$ROOT_DIR/examples/projection_refresh_publish_group_minimal.pgy" "projection refresh publish group minimal"
+    run_expect_lines "calendar_manage_event_explicit" "$backend" \
+        "$ROOT_DIR/examples/calendar_manage_event_explicit.pgy" "calendar-manage-explicit" "mode=explicit" "steps=3"
+    run_expect_lines "calendar_manage_event_compressed" "$backend" \
+        "$ROOT_DIR/examples/calendar_manage_event_compressed.pgy" "calendar-manage-compressed" "mode=compressed" "steps=3"
+    run_expect_lines "composite_intent_orchestration_explicit" "$backend" \
+        "$ROOT_DIR/examples/composite_intent_orchestration_explicit.pgy" "composite-orchestration-explicit" "mode=explicit" "ok=true"
+    run_expect_lines "composite_intent_orchestration_compressed" "$backend" \
+        "$ROOT_DIR/examples/composite_intent_orchestration_compressed.pgy" "composite-orchestration-compressed" "mode=compressed" "ok=true"
     run_expect_lines "six_item_alignment_demo" "$backend" \
         "$ROOT_DIR/examples/six_item_alignment_demo.pgy" "six item alignment demo" "Mina" "1" "paid"
     run_expect_lines "ownership_forwarding_probe" "$backend" \

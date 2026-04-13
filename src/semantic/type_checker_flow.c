@@ -318,9 +318,23 @@ type_check_match_case_patterns(ASTNode *mc, Type *subj_type,
     }
 
     if (match_case_uses_named_variant_pattern(mc)) {
-        semantic_error(ctx, mc,
-            "OR patterns currently support only literal/simple expression cases; split variant destructuring into separate cases");
-        return false;
+        /* OR patterns with named variants (e.g. case North | South) are now
+         * allowed for simple enum variants (no payload destructuring). */
+        for (size_t i = 0; i < count; i++) {
+            const char *name = NULL;
+            ASTNode **args = NULL;
+            size_t arg_count = 0;
+            if (match_pattern_is_named_variant(patterns[i], &name, &args, &arg_count)) {
+                /* Allow simple variant names without payload bindings */
+                if (arg_count > 0) {
+                    semantic_error(ctx, patterns[i],
+                        "OR patterns with variant destructuring (e.g. case .Some(x) | .None) "
+                        "are not yet supported; split into separate cases");
+                    return false;
+                }
+            }
+        }
+        /* Continue to pattern checking below — allow simple variant names */
     }
 
     for (size_t i = 0; i < count; i++) {
@@ -388,9 +402,21 @@ case_list_covers_variant(ASTNode *node, const Type *subj_type,
             continue;
         if (mc->data.match_case.guard != NULL)
             continue;
+
+        /* Check single pattern */
         if (!match_case_has_or_patterns(mc)
             && pattern_covers_variant(mc->data.match_case.pattern, subj_type, variant_name))
             return true;
+
+        /* Check OR patterns: any of the patterns covering the variant is enough */
+        if (match_case_has_or_patterns(mc)) {
+            size_t count = mc->data.match_case.pattern_count;
+            ASTNode **patterns = mc->data.match_case.patterns;
+            for (size_t j = 0; j < count; j++) {
+                if (pattern_covers_variant(patterns[j], subj_type, variant_name))
+                    return true;
+            }
+        }
     }
 
     return false;

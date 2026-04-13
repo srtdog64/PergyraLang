@@ -164,6 +164,9 @@
 - [x] **P0-3: `None` 심볼 정의** — `type_checker.c`에서 AST_IDENTIFIER 처리, `type_system.c`에서 `Option<unknown>` → `Option<T>` 할당 허용, 코드젠에서 `expected_type` 기반 타입 해결
 - [x] **P0-6: defer 변수 스코프 버그 수정** — `type_checker_flow.c`에서 defer body 처리 전/후 slot 상태 저장/복원
 - [x] **P1-7: struct/subject Slot 매크로 warning 억제** — `transpiler.c`에서 `#pragma GCC diagnostic push/pop`으로 `-Wunused-function` 억제
+- [x] **P1-emit_call 갭 메우기** — `BUILTIN_BOX_ARRAY`, `BUILTIN_PARALLEL` 케이스 추가
+- [x] **P0-4: enum match OR 패턴 수정** — `type_checker_flow.c`에서 named variant OR 패턴 허용 + coverage 체크 수정
+- [x] **P2-13: match 기반 함수 default return 자동 생성** — `transpiler_emitters_base_b.inc`에서 non-void 함수 끝 fallback return 추가
 - [x] **Pain Point 보고서** — `docs/68_pain_point_report.md`에 수정 내역 기록
 
 ## 완료 (최근)
@@ -218,6 +221,16 @@
 원칙:
 - 기능을 더 넓히기 전에 반복해서 다시 깨지는 작성/진단 pain point를 먼저 고정한다
 - 각 pain point는 `stable contract + regression + docs wording`까지 같이 잠근다
+
+- [ ] **large canonical pair 예제 추가**
+  - 큰 예제에서 `explicit`와 `compressed`를 둘 다 stable source of truth로 유지한다
+  - 최소 4개 파일 기준으로 관리한다
+    - `calendar manage-event`: explicit/compressed
+    - `composite intent orchestration`: explicit/compressed
+  - 목적:
+    - 큰 예제의 전체 계약을 명시형으로 읽을 수 있게 유지
+    - 같은 의미를 축약형으로도 바로 복사해 시작할 수 있게 유지
+    - smoke에서 두 예제가 모두 실행 가능하도록 고정
 - 이 보드는 sugar backlog가 아니라 beta surface trust를 지키기 위한 고정판이다
 - P0 pain point가 잠기기 전에는 declaration-side MIR-only debt를 국소 복구 외에는 넓게 건드리지 않는다
 - backend 내부 정리는 pain point 기준선과 회귀가 먼저 고정된 뒤에만 다시 확장한다

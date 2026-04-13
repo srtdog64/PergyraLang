@@ -1,0 +1,170 @@
+subject Clerk
+{
+    let reserved: Int;
+    let charged: Int;
+    let shipped: Int;
+
+    action Reserve(self) -> Void
+        within OrderZone
+        authorized by self
+    {
+        reserved = reserved + 1;
+    }
+
+    action RollbackReserve(self) -> Void
+        within OrderZone
+        authorized by self
+    {
+        reserved = reserved - 1;
+    }
+
+    action Charge(self) -> Void
+        within PaymentZone
+        authorized by self
+    {
+        charged = charged + 1;
+    }
+
+    action RollbackCharge(self) -> Void
+        within PaymentZone
+        authorized by self
+    {
+        charged = charged - 1;
+    }
+
+    action Ship(self) -> Void
+        within ShippingZone
+        authorized by self
+    {
+        shipped = shipped + 1;
+    }
+
+    action RollbackShip(self) -> Void
+        within ShippingZone
+        authorized by self
+    {
+        shipped = shipped - 1;
+    }
+}
+
+zone OrderZone
+{
+    subject slot clerk: Clerk
+    authority clerk
+}
+
+zone PaymentZone
+{
+    subject slot clerk: Clerk
+    authority clerk
+}
+
+zone ShippingZone
+{
+    subject slot clerk: Clerk
+    authority clerk
+}
+
+intent ReserveStock(order: OrderZone, clerk: Clerk)
+{
+    step reserve
+    {
+        using: order;
+        who: clerk;
+        authorized by: clerk;
+        on: clerk.Reserve();
+        compensate: clerk.RollbackReserve();
+        post: order.clerk.reserved > 0;
+        expect: order.clerk.reserved > 0;
+    }
+
+    success: order.clerk.reserved > 0;
+    failure: false;
+}
+
+intent ChargeBuyer(payment: PaymentZone, clerk: Clerk)
+{
+    step charge
+    {
+        using: payment;
+        who: clerk;
+        authorized by: clerk;
+        on: clerk.Charge();
+        compensate: clerk.RollbackCharge();
+        post: payment.clerk.charged > 0;
+        expect: payment.clerk.charged > 0;
+    }
+
+    success: payment.clerk.charged > 0;
+    failure: false;
+}
+
+intent ShipParcel(shipping: ShippingZone, clerk: Clerk)
+{
+    step ship
+    {
+        using: shipping;
+        who: clerk;
+        authorized by: clerk;
+        on: clerk.Ship();
+        compensate: clerk.RollbackShip();
+        post: shipping.clerk.shipped > 0;
+        expect: shipping.clerk.shipped > 0;
+    }
+
+    success: shipping.clerk.shipped > 0;
+    failure: false;
+}
+
+intent FulfillOrder(order: OrderZone, payment: PaymentZone, shipping: ShippingZone, clerk: Clerk)
+{
+    exclusive;
+
+    step reserve
+    {
+        intent: ReserveStock(order, clerk);
+        expect: order.clerk.reserved > 0;
+    }
+
+    step charge
+    {
+        intent: ChargeBuyer(payment, clerk);
+        expect: payment.clerk.charged > 0;
+    }
+
+    step ship
+    {
+        intent: ShipParcel(shipping, clerk);
+        expect: shipping.clerk.shipped > 0;
+    }
+
+    success: shipping.clerk.shipped > 0;
+    failure: false;
+}
+
+intent ProcessOrder(order: OrderZone, payment: PaymentZone, shipping: ShippingZone, clerk: Clerk)
+{
+    exclusive;
+
+    step fulfill
+    {
+        intent: FulfillOrder(order, payment, shipping, clerk);
+        expect: shipping.clerk.shipped > 0;
+    }
+
+    success: shipping.clerk.shipped > 0;
+    failure: false;
+}
+
+func Main() -> Void
+{
+    let clerk = Clerk(0, 0, 0);
+    let order = OrderZone(clerk);
+    let payment = PaymentZone(clerk);
+    let shipping = ShippingZone(clerk);
+
+    let ok = ProcessOrder(order, payment, shipping, clerk);
+    Log("composite-orchestration-compressed");
+    Log("mode=compressed");
+    Log("ok=" + ToString(ok));
+}

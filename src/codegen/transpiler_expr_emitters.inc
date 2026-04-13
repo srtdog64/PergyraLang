@@ -722,6 +722,21 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     case BUILTIN_BOX_IS_VALID:
         inner = lookup_wrapped_inner_type(ctx, arg, "Box");
         break;
+    case BUILTIN_BOX_ARRAY:
+        /* BoxArray(arr) → Box<Array<T>> wrapper around an existing array */
+        if (call->data.call.arg_count < 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: BoxArray requires an array argument");
+            return pergyra_strdup("0");
+        }
+        {
+            const char *arr_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
+                inner = arr_type;
+            else if (arr_type != NULL)
+                inner = arr_type;
+        }
+        break;
     default:
         break;
     }
@@ -760,6 +775,21 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = emit_expression(arg, ctx);
         char *result = strdup_fmt("pgy_box_is_valid_%s(&%s)", inner, value);
         free(value);
+        return result;
+    }
+
+    if (kind == BUILTIN_BOX_ARRAY) {
+        /* BoxArray(arr) → pgy_box_new_Array_T(arr) — wraps array in a box */
+        if (call->data.call.arg_count < 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: BoxArray requires an array argument");
+            return pergyra_strdup("0");
+        }
+        char *arr_expr = emit_expression(call->data.call.arguments[0], ctx);
+        /* Extract inner type from Array<T> */
+        const char *elem = slot_inner_type_name(inner);
+        char *result = strdup_fmt("pgy_box_new_Array_%s(%s)", elem, arr_expr);
+        free(arr_expr);
         return result;
     }
 
@@ -1003,6 +1033,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_BOX_SET:
     case BUILTIN_BOX_DROP:
     case BUILTIN_BOX_IS_VALID:
+    case BUILTIN_BOX_ARRAY:
         return emit_builtin_box(call, bk, ctx);
     case BUILTIN_TO_OBJECT:
         return emit_builtin_to_dto(call, ctx);
@@ -1501,6 +1532,10 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         free(index);
         return result;
     }
+    case BUILTIN_PARALLEL:
+        /* parallel { ... } is a statement, not an expression.
+         * If encountered as expression, emit empty compound literal. */
+        return pergyra_strdup("((void)0)");
     default:
         break;
     }

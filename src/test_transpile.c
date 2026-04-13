@@ -2854,10 +2854,18 @@ test_ability_role_emit(void)
         ASTNode *abilities[1] = { &ability_node };
         ASTNode *roles[1] = { &role_node };
         MIRProgram mir; memset(&mir, 0, sizeof(mir));
+        MIRRoutine routine; memset(&routine, 0, sizeof(routine));
         mir.abilities = abilities;
         mir.ability_count = 1;
         mir.roles = roles;
         mir.role_count = 1;
+        routine.kind = MIR_SCOPE_METHOD;
+        routine.name = "BatchMark";
+        routine.ast = &impl_method;
+        routine.owner_name = "CourierRoute";
+        routine.owner_ast_type = AST_ROLE_DECL;
+        mir.routines = &routine;
+        mir.routine_count = 1;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = &mir;

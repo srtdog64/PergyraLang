@@ -2258,6 +2258,8 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
         bool matched_def = false;
         if (stmt == NULL)
             continue;
+        if (mir_stmt_is_control_flow(stmt, entry))
+            continue;
         if (mir_stmt_is_def_source(stmt)) {
             const char *stmt_name = mir_stmt_def_name(stmt);
             for (size_t j = 0; j < entry->instruction_count; j++) {

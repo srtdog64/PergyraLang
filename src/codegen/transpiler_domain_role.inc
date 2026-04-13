@@ -368,7 +368,10 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
     if (!ability_ref_vtable_typedef_name(
             impl->data.impl_ability.ability_ref, typedef_name, sizeof(typedef_name), ctx))
         return;
-    vtable_tag = render_ability_ref_vtable_tag(impl->data.impl_ability.ability_ref);
+    vtable_tag = render_effective_ability_ref_vtable_tag(
+        find_ability_decl(ctx, ability_name),
+        impl->data.impl_ability.ability_ref,
+        ctx);
     if (vtable_tag == NULL) {
         transpiler_set_backend_error(
             ctx,
