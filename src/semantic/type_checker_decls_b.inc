@@ -1445,7 +1445,8 @@ role_decl_has_ability(ASTNode *role, ASTNode *program,
         if (impl != NULL
             && impl->type == AST_IMPL_ABILITY
             && impl->data.impl_ability.ability_ref != NULL
-            && ability_ref_matches(impl->data.impl_ability.ability_ref, ability_ref)) {
+            && ability_ref_matches(program,
+                impl->data.impl_ability.ability_ref, ability_ref)) {
             return true;
         }
     }

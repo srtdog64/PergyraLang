@@ -240,13 +240,61 @@ ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
 }
 
 static bool
-ability_ref_matches(ASTNode *impl_ref, ASTNode *required_ref)
+ability_ref_matches(ASTNode *program, ASTNode *impl_ref, ASTNode *required_ref)
 {
+    ASTNode *ability_decl;
+    GenericParams *decl_params;
+    ASTNode **impl_effective = NULL;
+    ASTNode **required_effective = NULL;
+    size_t impl_count = 0;
+    size_t required_count = 0;
+    bool matches = false;
+
     if (impl_ref == NULL || required_ref == NULL)
         return false;
     if (impl_ref->type != AST_TYPE || required_ref->type != AST_TYPE)
         return false;
-    return ability_ref_type_arg_equal(impl_ref, required_ref);
+    if (impl_ref->data.type.name == NULL || required_ref->data.type.name == NULL)
+        return false;
+    if (strcmp(impl_ref->data.type.name, required_ref->data.type.name) != 0)
+        return false;
+
+    ability_decl = find_ability_decl_by_name(program, impl_ref->data.type.name);
+    if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
+        return ability_ref_type_arg_equal(impl_ref, required_ref);
+
+    decl_params = ability_decl->data.ability_decl.generic_params;
+    if (decl_params == NULL || decl_params->count == 0)
+        return true;
+
+    impl_effective = collect_effective_generic_arg_nodes(
+        decl_params, impl_ref->data.type.generic_args, NULL, NULL,
+        "Ability",
+        ability_decl->data.ability_decl.name != NULL
+            ? ability_decl->data.ability_decl.name : "<ability>",
+        &impl_count);
+    required_effective = collect_effective_generic_arg_nodes(
+        decl_params, required_ref->data.type.generic_args, NULL, NULL,
+        "Ability",
+        ability_decl->data.ability_decl.name != NULL
+            ? ability_decl->data.ability_decl.name : "<ability>",
+        &required_count);
+
+    if (impl_effective == NULL || required_effective == NULL || impl_count != required_count)
+        goto cleanup;
+
+    matches = true;
+    for (size_t i = 0; i < impl_count; i++) {
+        if (!ability_ref_type_arg_equal(impl_effective[i], required_effective[i])) {
+            matches = false;
+            break;
+        }
+    }
+
+cleanup:
+    free(impl_effective);
+    free(required_effective);
+    return matches;
 }
 
 static ASTNode *

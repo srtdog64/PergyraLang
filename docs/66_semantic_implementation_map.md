@@ -182,6 +182,8 @@
   - `IntentHistoryStep*`
   - `IntentActive*`
   - `IntentRecent*`
+  - `IntentCurrentHandle()` / `IntentRecentHandle()` / `IntentRecentTraceId()`
+  - `IntentActiveStep*()` field query family
 
 이번 알파 범위에서 끝내야 할 것:
 - richer multi-instance timeline query
@@ -248,18 +250,18 @@
 - hidden/default-export generic ability visibility baseline
 - action / zone authority / party role slot consumer path 회귀
 - 일부 bound validation
-- current stable subset still uses default type argument explicit reject
+- current stable subset no longer uses default type argument explicit reject on implemented declaration/call/module-consumer paths
 - exact bound / ability-style bound / multi-bound baseline
 - `ability<T> where ...` bound의 reference/impl revalidation
 
 이번 알파/베타 범위에서 끝내야 할 것:
-- strict beta-quality closure track에서는 default type arg actual resolution을 다시 연다
+- strict beta-quality closure track에서는 richer mismatch provenance와 broader instantiation-path parity를 계속 민다
 - broader type-family generalization이 아니라 parser가 이미 받는 표면의 actual closure를 우선한다
 - parser가 받는 표면 대비 semantic closure 범위를 실제 구현 기준으로 다시 맞춘다
 
 판단:
 - parser가 넓게 받아들인다고 구현이 깊은 것은 아니다
-- generic은 current stable subset이 있지만, strict beta-quality closure에서는 unresolved parser surface를 다시 닫아야 한다
+- generic은 current stable subset이 있지만, strict beta-quality closure에서는 remaining richer mismatch provenance와 broader instantiation-path parity를 계속 닫아야 한다
 
 ### 5.3 own/ref ownership surface
 

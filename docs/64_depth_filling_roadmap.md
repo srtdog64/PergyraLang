@@ -339,7 +339,7 @@ post-beta / follow-up:
 작업:
 1. `ability<T>` 선언 허용 범위를 분명히 정한다.
 2. `requires Ability<T>` mismatch 시 실제 기대/실제 인자를 진단한다.
-3. default type arg는 beta-stable generic surface에서 unsupported로 고정하고, parser가 받는 표면과 semantic 진단을 일치시킨다.
+3. default type arg는 beta-stable generic surface에서 declaration acceptance가 아니라 implemented declaration/call/module-consumer path의 actual resolution baseline까지 닫고, 남은 debt는 richer mismatch provenance와 broader instantiation-path parity로 남긴다.
 4. `use/require`를 모듈 경계까지 올리되, surface expansion 없이 기존 규칙을 닫는 방향으로 간다.
 5. hidden/default-export policy를 generic 해석과 같이 정렬한다.
 
@@ -376,6 +376,7 @@ post-beta / follow-up:
 현재 subset 분류:
 
 - stable subset: `last / history / active / recent`
+- stable subset extension: `IntentCurrentHandle()` / `IntentRecentHandle()` / `IntentRecentTraceId()` / `IntentActiveStep*()`
 - explicit reject: 없음
 - beta-out-of-scope: richer multi-instance timeline query와 deeper failure provenance query
 2. zone/world runtime 상태를 최소 조회 가능 형태에서 더 설명 가능한 inspection surface로 올린다.

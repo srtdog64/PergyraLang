@@ -43,8 +43,8 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 현재 핵심 축의 적용:
 
 - generics
-  - current stable subset: exact/ability/multi-bound baseline
-  - strict closure target: default type argument actual resolution across declaration/instantiation paths
+  - current stable subset: exact/ability/multi-bound baseline + implemented declaration/call/module-consumer path의 default type argument actual resolution
+  - strict closure target: richer mismatch provenance와 broader instantiation-path parity
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: anchored slot-handle boundary subset
@@ -104,7 +104,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 | 영역 | 파싱 | 시맨틱 | MIR/하강 | C | LLVM | 런타임 | 테스트 | 깊이 판정 | 핵심 메모 |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|---|
 | 기본 코어 (`let/func/if/for/while/match`) | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 현재 언어의 가장 안정된 축 |
-| 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | default type arg는 beta-stable surface에서 explicit reject로 고정됐다. exact/ability/multi-bound baseline은 동작하고, 남은 것은 broader generalization이 아니라 module contract와 richer diagnostics/tooling 정렬이다 |
+| 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | exact/ability/multi-bound baseline은 동작하고, default type arg actual resolution도 implemented declaration/call/module-consumer path에서는 회귀로 고정됐다. 남은 것은 broader generic generalization이 아니라 richer mismatch provenance와 broader instantiation-path parity 정렬이다 |
 | `subject/class/object/tobject/enum/vessel` | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 6종 존재론 전부 동작 확인 |
 | `ability/role/require/use` 계약 | ✅ | ◐ | ◐ | ✅ | ✅ | 해당 없음 | ◐ | 중상 | `fields` canonical surface, generic ability ref, action/step/zone/party-role contract derivation·diagnostics, ability-bound revalidation은 정렬됨. `override/dyn/extends`는 비코어 축으로 분리 |
 | `Slot/SecureSlot/DeviceSlot/QubitSlot` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 현재 가장 완성도 높은 도메인 축 |
@@ -141,7 +141,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 파서는 많이 받아들이지만, 시맨틱과 lower 단계가 아직 surface를 다 따라가지 못한다.
 
 대표 gap:
-- default type arg는 beta-stable generic surface에서 explicit reject로 고정됐다.
+- default type arg는 beta-stable generic surface에서 declaration acceptance가 아니라 actual resolution baseline까지 연결됐다.
 - `where T: A + B` 같은 richer bound는 parser가 받을 수 있어도 검증과 활용이 얕다.
 - generic ability reference는 구조는 올라왔지만 완전한 declaration/validation 체인은 닫히지 않았다.
 
@@ -213,7 +213,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 - `transfer -> using/where`, `using -> where`, `where -> using` 유도가 이미 연결돼 있다
 
 남은 gap:
-- `IntentLast*`, `IntentHistoryStep*`, `IntentActive*`, `IntentRecent*`까지의 baseline은 이미 존재한다
+- `IntentLast*`, `IntentHistoryStep*`, `IntentActive*`, `IntentRecent*`, `IntentCurrentHandle()` / `IntentRecentHandle()` / `IntentRecentTraceId()`, `IntentActiveStep*()`까지의 baseline은 이미 존재한다
 - 남은 것은 richer multi-instance timeline query와 failure provenance 정교화다
 - distributed/multi-process intent runtime은 아직 범위 밖
 

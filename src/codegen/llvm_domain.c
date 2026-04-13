@@ -2314,16 +2314,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     llvm_scope_declare(ctx, p->name, a, pt);
                 }
 
-    if (method->data.func_decl.body != NULL) {
-        if (ctx->mir != NULL) {
-            llvm_set_error(ctx,
-                           "MIR-only LLVM path reached AST fallback for "
-                           "domain method '%s.%s'",
-                           role_name, method->data.func_decl.name);
-            return;
-        }
-        llvm_emit_block(method->data.func_decl.body, ctx);
-    }
+                if (method->data.func_decl.body != NULL)
+                    llvm_emit_block(method->data.func_decl.body, ctx);
 
                 if (LLVMGetBasicBlockTerminator(
                         LLVMGetInsertBlock(ctx->builder)) == NULL) {
@@ -2613,16 +2605,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     sync_args, 1, "");
             }
 
-    if (method->data.func_decl.body != NULL) {
-        if (ctx->mir != NULL) {
-            llvm_set_error(ctx,
-                           "MIR-only LLVM path reached AST fallback for "
-                           "domain method '%s.%s'",
-                           decl_name, method->data.func_decl.name);
-            return;
-        }
-        llvm_emit_block(method->data.func_decl.body, ctx);
-    }
+            if (method->data.func_decl.body != NULL)
+                llvm_emit_block(method->data.func_decl.body, ctx);
 
             if (LLVMGetBasicBlockTerminator(
                     LLVMGetInsertBlock(ctx->builder)) == NULL) {

@@ -41,6 +41,7 @@
   - `IntentHistoryStep*`
   - `IntentActive*`
   - `IntentRecent*`
+  - active/recent handle + active-step field query builtin의 semantic/transpiler/runtime/LLVM baseline 연결 완료
   - runtime 내부 recent ring + active registry + typed step history storage 연결 완료
   - ABI regression: `IntentRecent*` trace/failure baseline, failed-intent provenance, world zone query, relation/effect zone state parity 고정
   - backend parity: embedded world -> zone projection visibility regression 고정
@@ -76,6 +77,8 @@
 - `ability<T> where ...` bound는 `requires` / `impl ability` / party role slot ref에서 다시 검증됨
 - default type argument는 semantic + transpiler + backend compare까지 baseline closure 완료
   - user-defined `class/ability<T = ...>`가 omitted arg 경로에서도 effective specialization으로 정렬됨
+  - non-deduced trailing generic parameter default도 function call `where` validation 경로에서 회귀로 고정
+  - cross-module omitted default generic ability consumer(`party role slot` / `zone authority`)도 회귀로 고정
 - multi-bound `where T: A + B` baseline은 현재 동작함
 - hidden/default-export와 generic ability ref 규칙 정렬 완료
 
@@ -358,7 +361,7 @@
 현재 고정하려는 baseline:
 - generics
   - stable subset: exact/ability/multi-bound baseline
-  - explicit reject: default type argument surface
+  - stable subset extension: default type argument actual resolution on implemented declaration/call/module-consumer paths
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: anchored slot-handle boundary subset
@@ -495,7 +498,8 @@
 - [ ] **MIR DCE 확장 (statement-level)**
   - dead DEF/PHI 제거를 넘어 side-effect-free STMT/unused call 제거
   - 현재는 pure query builtin (`Has*`, `ChannelLength/Capacity/Space/Full/Closed`)만 안전 제거 시작
-  - dead `let`/identifier-assign 제거는 loop/phi/live-out 오판이 남아 있어 계속 보수 보류
+  - `unused pure let initializer` 제거는 source-local/runtime-backed storage와 충돌해 다시 보류
+  - dead identifier-assign 제거는 loop/phi/live-out 오판이 남아 있어 계속 보수 보류
   - 다음 reopen 조건: value summary의 block-boundary / phi provenance를 이용해 loop-carried DEF와 진짜 dead local DEF를 분리
   - user call purity는 아직 보수적으로 side-effect 있다고 간주
   - RESOURCE_OP/CLEANUP_EDGE/abort/IO 등 side-effect 보존 규칙 명시

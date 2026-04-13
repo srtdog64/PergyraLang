@@ -1494,9 +1494,114 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         free(index);
         return result;
     }
+    case BUILTIN_INTENT_ACTIVE_STEP_NAME: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_name_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_ZONE: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_zone_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_PHASE: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_phase_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_PARTICIPANT: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_participant_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_SLOT: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_slot_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_FROM_ZONE: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_from_zone_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_FROM_SLOT: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_from_slot_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_TO_ZONE: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_to_zone_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_TO_SLOT: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_to_slot_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_OK: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_ok_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_FAILURE: {
+        ctx->uses_intent_observability = true;
+        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
+        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_failure_export(%s, %s)", intent_index, step_index);
+        free(intent_index); free(step_index);
+        return result;
+    }
+    case BUILTIN_INTENT_CURRENT_HANDLE:
+        ctx->uses_intent_observability = true;
+        return pergyra_strdup("pgy_intent_current_handle_export()");
     case BUILTIN_INTENT_RECENT_COUNT:
         ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_recent_count_export()");
+    case BUILTIN_INTENT_RECENT_HANDLE: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_recent_handle_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_RECENT_TRACE_ID: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_recent_trace_id_export(%s)", index);
+        free(index);
+        return result;
+    }
     case BUILTIN_INTENT_RECENT_NAME: {
         ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);

@@ -3173,6 +3173,35 @@
         lexer_destroy(lexer);
     }
 
+    TEST("generic function call uses trailing default type argument for where-bound validation");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "subject Token { let id: Int; }\n"
+            "role TokenComparable for Token {\n"
+            "    impl ability Comparable { }\n"
+            "}\n"
+            "func Keep<T, U = Token>(value: T) -> T where U: Comparable {\n"
+            "    return value;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let value: Int = Keep(7);\n"
+            "    Log(ToString(value));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("generic class default type argument resolves when omitted");
     {
         const char *source =
@@ -3300,6 +3329,55 @@
         ast_destroy(program);
         parser_destroy(parser);
         lexer_destroy(lexer);
+    }
+
+    TEST("cross-module consumers may omit trailing generic default arguments");
+    {
+        const char *module_path = "test_generic_default_contract_module_a.pgy";
+        const char *main_path = "test_generic_default_contract_main_a.pgy";
+        const char *module_source =
+            "ability Bufferable<T = Int> { func Put(value: T) -> Void; }\n";
+        const char *main_source =
+            "import \"test_generic_default_contract_module_a.pgy\";\n"
+            "subject Bag { let item: Int; }\n"
+            "role IntBuffer for Bag {\n"
+            "    impl ability Bufferable<Int> { func Put(value: Int) -> Void { return; } }\n"
+            "}\n"
+            "party StorageParty {\n"
+            "    role slot buffer: Bufferable\n"
+            "}\n"
+            "zone StorageZone {\n"
+            "    subject slot bag: Bag\n"
+            "    authority bag requires Bufferable\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
     }
 
     TEST("generic ability declaration rejects unknown where bound");

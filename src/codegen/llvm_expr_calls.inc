@@ -2067,12 +2067,111 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }
 
+    if (strcmp(callee_name, "IntentActiveStepName") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_name_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepZone") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_zone_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepPhase") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_phase_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepParticipant") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_participant_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepSlot") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_slot_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepFromZone") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_from_zone_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepFromSlot") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_from_slot_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepToZone") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_to_zone_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepToSlot") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_to_slot_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepOk") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_ok_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentActiveStepFailure") == 0
+        && node->data.call.arg_count == 2) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_failure_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2);
+    }
+    if (strcmp(callee_name, "IntentCurrentHandle") == 0
+        && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_current_handle_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
     if (strcmp(callee_name, "IntentRecentCount") == 0
         && node->data.call.arg_count == 0) {
         ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_recent_count_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+    if (strcmp(callee_name, "IntentRecentHandle") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_recent_handle_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+    if (strcmp(callee_name, "IntentRecentTraceId") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_recent_trace_id_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }
 
     if (strcmp(callee_name, "IntentRecentName") == 0

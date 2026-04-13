@@ -541,6 +541,7 @@ test_mir_lowering(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
 }
 
 int

@@ -1962,26 +1962,51 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 && stmt->data.func_decl.generic_params->count > 0
                 && stmt->data.func_decl.where_clause != NULL) {
                 /* Generic function with where clause — validate constraints */
+                GenericParams *decl_gp = stmt->data.func_decl.generic_params;
                 WhereClause *wc = stmt->data.func_decl.where_clause;
+                Type **effective_generic_types =
+                    calloc(decl_gp->count > 0 ? decl_gp->count : 1, sizeof(Type *));
+                if (effective_generic_types == NULL)
+                    break;
+
+                for (size_t gi = 0; gi < decl_gp->count; gi++) {
+                    GenericParam *gp = decl_gp->params[gi];
+                    if (gp != NULL && gp->default_type != NULL)
+                        effective_generic_types[gi] = resolve_type_node(gp->default_type, ctx);
+                }
+                for (size_t ai = 0; ai < provided; ai++) {
+                    FuncParam *fp = (ai < stmt->data.func_decl.param_count)
+                        ? stmt->data.func_decl.params[ai] : NULL;
+                    int param_index;
+                    if (fp == NULL || fp->type == NULL
+                        || fp->type->type != AST_TYPE
+                        || fp->type->data.type.name == NULL) {
+                        continue;
+                    }
+                    param_index = find_generic_param_index(
+                        decl_gp, fp->type->data.type.name);
+                    if (param_index < 0)
+                        continue;
+                    effective_generic_types[param_index] =
+                        (call_arg_types != NULL) ? call_arg_types[ai] : NULL;
+                }
+
                 for (size_t ci = 0; ci < wc->count; ci++) {
                     TypeConstraint *tc = wc->constraints[ci];
+                    int param_index;
+                    const char *param_name;
+                    Type *concrete_type;
+
                     if (tc == NULL || tc->type_param == NULL)
                         continue;
-                    /* Find the concrete type argument at call site */
-                    const char *param_name = tc->type_param;
-                    Type *concrete_type = NULL;
-                    for (size_t ai = 0; ai < provided && concrete_type == NULL; ai++) {
-                        FuncParam *fp = (ai < stmt->data.func_decl.param_count)
-                            ? stmt->data.func_decl.params[ai] : NULL;
-                        if (fp != NULL && fp->type != NULL
-                            && fp->type->type == AST_TYPE
-                            && fp->type->data.type.name != NULL
-                            && strcmp(fp->type->data.type.name, param_name) == 0) {
-                            concrete_type = (call_arg_types != NULL)
-                                ? call_arg_types[ai]
-                                : NULL;
-                        }
+
+                    param_name = tc->type_param;
+                    param_index = find_generic_param_index(decl_gp, param_name);
+                    if (param_index < 0
+                        || (size_t)param_index >= decl_gp->count) {
+                        continue;
                     }
+                    concrete_type = effective_generic_types[param_index];
                     if (concrete_type == NULL)
                         continue;
                     /* Check each bound */
@@ -2031,6 +2056,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         }
                     }
                 }
+                free(effective_generic_types);
                 break;
             }
         }

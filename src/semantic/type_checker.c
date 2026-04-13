@@ -32,6 +32,8 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     const char *owner_kind,
                                     const char *owner_name,
                                     size_t *out_count);
+static int
+find_generic_param_index(GenericParams *gp, const char *param_name);
 
 /* Local printf-to-heap helper (same as transpiler's strdup_fmt) */
 #include "type_checker_helpers.inc"

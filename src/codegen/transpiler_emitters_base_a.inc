@@ -2344,8 +2344,8 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
         if (typed_name != NULL)
             return typed_name;
     }
-    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL || base_name == NULL)
-        goto owner_fallback;
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return transpiler_lookup_current_owner_member_type_name(ctx, base_name);
     for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
         FuncParam *p = func_decl->data.func_decl.params[i];
         if (p != NULL && p->name != NULL && strcmp(p->name, base_name) == 0 && p->type != NULL) {
@@ -2365,7 +2365,6 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
         return typed_name;
     }
 
-owner_fallback:
     return transpiler_lookup_current_owner_member_type_name(ctx, base_name);
 }
 

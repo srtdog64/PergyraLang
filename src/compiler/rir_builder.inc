@@ -543,14 +543,12 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
         }
     }
 
-    if (node->data.intent_decl.rollback_policy != INTENT_ROLLBACK_NONE) {
-        if (!add_op(&scope, RIR_OP_ABORT_INTENT,
-                    node->data.intent_decl.name,
-                    rollback_policy_name(node->data.intent_decl.rollback_policy),
-                    NULL,
-                    node))
-            goto oom;
-    }
+    if (!add_op(&scope, RIR_OP_ABORT_INTENT,
+                node->data.intent_decl.name,
+                rollback_policy_name(node->data.intent_decl.rollback_policy),
+                NULL,
+                node))
+        goto oom;
     if (!add_op(&scope, RIR_OP_COMMIT_INTENT, node->data.intent_decl.name, NULL, NULL, node))
         goto oom;
 

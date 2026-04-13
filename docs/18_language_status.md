@@ -53,7 +53,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `HasZone(zoneOrState)` builtin이 world method 안에서 선언된 zone slot / world state alias를 Bool query로 읽을 수 있음
 - `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)` builtin이 world method 안에서 embedded zone의 projection/layer/state flag를 직접 읽을 수 있음
 - 파생 `world state`는 zone active flag와 embedded zone projection/layer/state flag를 자동 조합하는 읽기 전용 contract로 동작함
-- intent observability는 `IntentLast*`, `IntentHistoryStep*`, `IntentActive*`에 더해 최근 완료 ring을 읽는 `IntentRecent*` (`Count/Name/Trace/Failure/StepCount/Failed`)까지 semantic/C/LLVM/runtime surface가 연결되어 있다
+- intent observability는 `IntentLast*`, `IntentHistoryStep*`, `IntentActive*`에 더해 최근 완료 ring을 읽는 `IntentRecent*` (`Count/Name/Trace/Failure/StepCount/Failed`)와 `IntentCurrentHandle()` / `IntentRecentHandle()` / `IntentRecentTraceId()`, 그리고 active-step field query(`IntentActiveStepName/Zone/Phase/Participant/Slot/FromZone/FromSlot/ToZone/ToSlot/Ok/Failure`)까지 semantic/C/LLVM/runtime surface가 연결되어 있다
 - `all` / `any` 조합 state는 앞서 선언된 zone slot 또는 world state alias를 다시 조합하는 최소 inter-layer composition policy로 동작함
 - `all` / `any` 조합 state는 duplicate input과 direct zone slot + plain zone alias 중복을 warning으로 정리해 policy를 더 엄격히 가짐
 - `all` / `any` 조합 state는 raw zone slot 직접 입력도 warning으로 낮춰, command layer보다 plain world state alias 중심의 derived layer 조합을 권장함
@@ -104,7 +104,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 intent를 시작하지 않는 passive state target으로 정리됨
 - `object`는 이제 문서 수준이 아니라 실제 semantic/codegen에서도 effect target, relation endpoint, projection source로 쓸 수 있음
 - 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
-- 현재 `intent`는 `Intent(args...)` 호출이 generated runtime function으로 lowering되고, same-subject conflict registry를 통해 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행한다. step-level `guard` / `invariant`도 실행되고, reverse-order `compensate` rollback과 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` history도 동작한다. `IntentHistoryCount()` / `IntentHistoryStep*()`는 마지막 completed intent의 step-level typed history를 읽는다. `using: zoneAlias;`는 live zone-instance sync와 participant-to-zone-slot materialization을, `transfer: source -> target;`는 cross-zone handoff materialization과 transfer trace를 제공한다.
+- 현재 `intent`는 `Intent(args...)` 호출이 generated runtime function으로 lowering되고, same-subject conflict registry를 통해 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행한다. step-level `guard` / `invariant`도 실행되고, reverse-order `compensate` rollback과 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` history도 동작한다. `IntentHistoryCount()` / `IntentHistoryStep*()`는 마지막 completed intent의 step-level typed history를 읽고, `IntentCurrentHandle()` / `IntentRecentHandle()` / `IntentRecentTraceId()`와 `IntentActiveStep*()` 계열은 현재 실행 중 step과 최근 완료 intent의 provenance를 직접 노출한다. `using: zoneAlias;`는 live zone-instance sync와 participant-to-zone-slot materialization을, `transfer: source -> target;`는 cross-zone handoff materialization과 transfer trace를 제공한다.
 
 ## 현재 한계
 
@@ -145,8 +145,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 문서와 구현을 같은 기준으로 읽기 위해, subset surface는 아래처럼 분류한다.
 
 - generics
-  - current stable subset: exact/ability/multi-bound baseline
-  - strict closure target: default type argument actual resolution across declaration/instantiation paths
+  - current stable subset: exact/ability/multi-bound baseline + implemented declaration/call/module-consumer path의 default type argument actual resolution
+  - strict closure target: richer mismatch provenance와 broader instantiation-path parity
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: anchored slot-handle boundary subset
@@ -192,6 +192,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
   - `IntentHistoryStep*`
   - `IntentActive*`
   - `IntentRecent*`
+  - `IntentCurrentHandle()` / `IntentRecentHandle()` / `IntentRecentTraceId()`
+  - `IntentActiveStep*()` field query family
 
 ### 현재 hard-fail로 남아 있는 것
 

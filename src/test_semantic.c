@@ -2019,6 +2019,48 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("ref Int parameter reports closed subset diagnostic");
+    {
+        const char *source =
+            "func Borrow(ref value: Int) -> Void {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "parameter mode is currently a closed subset"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("own DeviceSlot<Int> parameter reports anchored handle local-only diagnostic");
+    {
+        const char *source =
+            "func Submit(own device: DeviceSlot<Int>) -> Void {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "other anchored handles remain local-only"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("Slot<subject> parameter without own/ref reports anchored subject-slot boundary diagnostic");
     {
         const char *source =
@@ -3917,6 +3959,49 @@ test_projection_contract_diagnostics(void)
     }
 }
 
+static void
+test_intent_observability_semantics(void)
+{
+    printf("\n[intent_observability]\n");
+
+    TEST("intent observability builtins accept structured handle and step queries");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let current: Int = IntentCurrentHandle();\n"
+            "    let recent: Int = IntentRecentHandle(0);\n"
+            "    let trace: Int = IntentRecentTraceId(0);\n"
+            "    let steps: Int = IntentActiveStepCount(current);\n"
+            "    let name: String = IntentActiveStepName(recent, 0);\n"
+            "    let zone: String = IntentActiveStepZone(recent, 0);\n"
+            "    let phase: String = IntentActiveStepPhase(recent, 0);\n"
+            "    let participant: String = IntentActiveStepParticipant(recent, 0);\n"
+            "    let slot: String = IntentActiveStepSlot(recent, 0);\n"
+            "    let from_zone: String = IntentActiveStepFromZone(recent, 0);\n"
+            "    let from_slot: String = IntentActiveStepFromSlot(recent, 0);\n"
+            "    let to_zone: String = IntentActiveStepToZone(recent, 0);\n"
+            "    let to_slot: String = IntentActiveStepToSlot(recent, 0);\n"
+            "    let ok: Bool = IntentActiveStepOk(recent, 0);\n"
+            "    let failure: String = IntentActiveStepFailure(recent, 0);\n"
+            "    Log(ToString(current + recent + trace + steps));\n"
+            "    Log(name + zone + phase + participant + slot + from_zone + from_slot + to_zone + to_slot + failure);\n"
+            "    Log(ok);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+}
+
 #include "tests/semantic/test_semantic_shared_domain.inc"
 #include "tests/semantic/test_semantic_parallel_family.inc"
 #include "tests/semantic/test_semantic_parallel_context.inc"
@@ -3947,6 +4032,7 @@ main(void)
     test_match_stmt();
     test_event_semantics();
     test_projection_contract_diagnostics();
+    test_intent_observability_semantics();
     test_ability_decl();
     test_role_decl();
     test_party_decl();

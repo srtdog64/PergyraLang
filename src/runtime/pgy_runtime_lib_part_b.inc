@@ -1106,7 +1106,7 @@ pgy_intent_find_active_entry_export(int32_t handle)
     return NULL;
 }
 
-static int32_t
+int32_t
 pgy_intent_current_handle_export(void)
 {
     if (pgy_intent_current_depth <= 0)
@@ -1555,6 +1555,20 @@ pgy_intent_recent_entry_by_index_export(int32_t index)
     return &pgy_intent_recent_ring[recent_index];
 }
 
+static PgyIntentHistoryStep *
+pgy_intent_active_step_by_index_export(int32_t intent_index, int32_t step_index)
+{
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(intent_index);
+    if (entry == NULL)
+        return NULL;
+    if (step_index < 0 || step_index >= entry->step_count) {
+        pgy_runtime_warn_invalid_intent_index("active_step_by_index", step_index,
+                                              entry->step_count);
+        return NULL;
+    }
+    return &entry->steps[step_index];
+}
+
 char *
 pgy_intent_history_step_name_export(int32_t index)
 {
@@ -1834,6 +1848,56 @@ pgy_intent_active_failure_export(int32_t index)
     return result;
 }
 
+char *
+pgy_intent_active_step_name_export(int32_t intent_index, int32_t step_index)
+{
+    char *result = "";
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentHistoryStep *step =
+        pgy_intent_active_step_by_index_export(intent_index, step_index);
+    if (step != NULL && step->name != NULL)
+        result = step->name;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+#define PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(fn_name, field_name) \
+char * \
+fn_name(int32_t intent_index, int32_t step_index) \
+{ \
+    char *result = ""; \
+    pthread_mutex_lock(&pgy_intent_registry_mutex); \
+    PgyIntentHistoryStep *step = \
+        pgy_intent_active_step_by_index_export(intent_index, step_index); \
+    if (step != NULL && step->field_name != NULL) \
+        result = step->field_name; \
+    pthread_mutex_unlock(&pgy_intent_registry_mutex); \
+    return result; \
+}
+
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_zone_export, zone)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_phase_export, phase)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_participant_export, participant)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_slot_export, slot)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_from_zone_export, from_zone)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_from_slot_export, from_slot)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_to_zone_export, to_zone)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_to_slot_export, to_slot)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_failure_export, failure_reason)
+
+bool
+pgy_intent_active_step_ok_export(int32_t intent_index, int32_t step_index)
+{
+    bool result = false;
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentHistoryStep *step =
+        pgy_intent_active_step_by_index_export(intent_index, step_index);
+    if (step != NULL)
+        result = step->ok;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
 int32_t
 pgy_intent_recent_count_export(void)
 {
@@ -1843,6 +1907,30 @@ pgy_intent_recent_count_export(void)
     count = pgy_intent_recent_count;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
     return count;
+}
+
+int32_t
+pgy_intent_recent_handle_export(int32_t index)
+{
+    int32_t result = 0;
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->handle;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+int32_t
+pgy_intent_recent_trace_id_export(int32_t index)
+{
+    int32_t result = 0;
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->trace_id;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
 }
 
 char *
