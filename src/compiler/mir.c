@@ -314,38 +314,38 @@ mir_intent_ast_needs_invalidation(const HIRRoutine *hir_routine)
 static bool
 mir_append_intent_invalidation_markers(MIRRoutine *routine, MIRBasicBlock *block)
 {
-    ASTNode *intent;
-    if (routine == NULL || block == NULL || routine->hir_routine == NULL)
+    if (routine == NULL || block == NULL)
         return false;
-    if (routine->hir_routine->ast == NULL || routine->hir_routine->ast->type != AST_INTENT_DECL)
-        return true;
-    intent = routine->hir_routine->ast;
-    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent->data.intent_decl.steps[i];
-        MIRInstruction inst;
-        const char *target = NULL;
-        if (step == NULL || step->type != AST_INTENT_STEP)
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *src_block = &routine->blocks[bi];
+        if (src_block->is_cleanup || !src_block->is_reachable)
             continue;
-        if (step->data.intent_step.using_expr != NULL)
-            target = mir_node_name(step->data.intent_step.using_expr);
-        else if (step->data.intent_step.transfer_to_alias != NULL)
-            target = step->data.intent_step.transfer_to_alias;
-        else if (step->data.intent_step.transfer_from_alias != NULL)
-            target = step->data.intent_step.transfer_from_alias;
-        if (target == NULL)
-            continue;
-        memset(&inst, 0, sizeof(inst));
-        inst.id = routine->instruction_count++;
-        inst.kind = MIR_INST_CLEANUP_EDGE;
-        inst.name = "DetachInvalidation";
-        inst.slot_anchor = target;
-        inst.arg0 = target;
-        inst.arg1 = step->data.intent_step.name;
-        inst.ast = step;
-        if (!append_instruction(block, inst))
-            return false;
-        routine->cleanup_instruction_count++;
+        for (size_t ii = 0; ii < src_block->instruction_count; ii++) {
+            const MIRInstruction *src = &src_block->instructions[ii];
+            MIRInstruction inst;
+
+            if (src->kind != MIR_INST_STMT)
+                continue;
+            if (src->name == NULL || strcmp(src->name, "IntentInvalidationTarget") != 0)
+                continue;
+            if (src->arg0 == NULL)
+                continue;
+
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_CLEANUP_EDGE;
+            inst.name = "DetachInvalidation";
+            inst.slot_anchor = src->arg0;
+            inst.arg0 = src->arg0;
+            inst.arg1 = src->arg1;
+            inst.ast = src->ast;
+            if (!append_instruction(block, inst))
+                return false;
+            routine->cleanup_instruction_count++;
+        }
     }
+
     return true;
 }
 
@@ -447,6 +447,28 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
                 inst.name = "IntentZoneAlias";
                 inst.slot_anchor = step->data.intent_step.name;
                 inst.arg0 = effective_zone_alias;
+                inst.arg1 = step->data.intent_step.name;
+                inst.ast = step;
+                if (!append_instruction(block, inst))
+                    return false;
+            }
+        }
+
+        {
+            const char *invalidation_target = NULL;
+            if (step->data.intent_step.using_expr != NULL)
+                invalidation_target = mir_node_name(step->data.intent_step.using_expr);
+            else if (step->data.intent_step.transfer_to_alias != NULL)
+                invalidation_target = step->data.intent_step.transfer_to_alias;
+            else if (step->data.intent_step.transfer_from_alias != NULL)
+                invalidation_target = step->data.intent_step.transfer_from_alias;
+            if (invalidation_target != NULL) {
+                memset(&inst, 0, sizeof(inst));
+                inst.id = routine->instruction_count++;
+                inst.kind = MIR_INST_STMT;
+                inst.name = "IntentInvalidationTarget";
+                inst.slot_anchor = step->data.intent_step.name;
+                inst.arg0 = invalidation_target;
                 inst.arg1 = step->data.intent_step.name;
                 inst.ast = step;
                 if (!append_instruction(block, inst))
@@ -2385,6 +2407,7 @@ mir_populate_instructions(MIRRoutine *routine)
     MIRBasicBlock *entry;
     MIRBasicBlock *rollback;
     MIRBasicBlock *invalidation;
+    bool appended_non_cfg_intent_steps = false;
 
     if (routine == NULL || routine->block_count == 0)
         return true;
@@ -2396,6 +2419,14 @@ mir_populate_instructions(MIRRoutine *routine)
 
     if (rir_scope == NULL)
         return true;
+
+    if (routine->kind == MIR_SCOPE_INTENT
+        && routine->hir_routine != NULL
+        && !routine->hir_routine->has_cfg) {
+        if (!mir_append_intent_step_instructions(routine, entry))
+            return false;
+        appended_non_cfg_intent_steps = true;
+    }
 
     for (size_t i = 0; i < rir_scope->op_count; i++) {
         const RIROp *op = &rir_scope->ops[i];
@@ -2441,7 +2472,7 @@ mir_populate_instructions(MIRRoutine *routine)
             return false;
     }
 
-    if (routine->kind == MIR_SCOPE_INTENT
+    if (!appended_non_cfg_intent_steps && routine->kind == MIR_SCOPE_INTENT
         && routine->hir_routine != NULL
         && !routine->hir_routine->has_cfg) {
         if (!mir_append_intent_step_instructions(routine, entry))

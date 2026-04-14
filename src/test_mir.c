@@ -389,6 +389,8 @@ test_mir_lowering(void)
                && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
                    "IntentZoneAlias", "payment", "pay")
                && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentInvalidationTarget", "payment", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
                    "IntentWho", "buyer", "pay")
                && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block],
                    "IntentAuthorizedBy", "pay")
