@@ -55,6 +55,11 @@ typedef struct
     int     scope_depth;
     StructuredComment *pending_doc_comment;
     const char *source_path;
+    char   **decl_hint_names;
+    ASTNodeType *decl_hint_types;
+    NominalDeclKind *decl_hint_nominal_kinds;
+    size_t   decl_hint_count;
+    size_t   decl_hint_capacity;
 } Parser;
 
 /*
@@ -122,5 +127,8 @@ void        parser_synchronize(Parser *parser);
 bool parser_is_at_end(const Parser *parser);
 bool parser_is_statement_start(PgyTokenType type);
 bool parser_is_expression_start(PgyTokenType type);
+bool parser_lookup_decl_hint(Parser *parser, const char *name,
+                             ASTNodeType *node_type_out,
+                             NominalDeclKind *nominal_kind_out);
 
 #endif /* PERGYRA_PARSER_H */

@@ -778,6 +778,8 @@ struct ASTNode
             size_t involve_count;
             ASTNode** values;
             size_t value_count;
+            ASTNode** bindings;
+            size_t binding_count;
             ASTNode** steps;
             size_t step_count;
             bool is_concurrent;

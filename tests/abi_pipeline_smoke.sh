@@ -54,16 +54,6 @@ files_equal() {
     local left="$1"
     local right="$2"
 
-    if command -v cmp >/dev/null 2>&1; then
-        cmp -s "$left" "$right"
-        return $?
-    fi
-
-    if command -v git >/dev/null 2>&1; then
-        git diff --no-index --quiet -- "$left" "$right"
-        return $?
-    fi
-
     if [[ -n "$PYTHON_BIN" ]]; then
         "$PYTHON_BIN" - "$left" "$right" <<'PY'
 import pathlib, sys
@@ -74,22 +64,22 @@ PY
         return $?
     fi
 
+    if command -v git >/dev/null 2>&1; then
+        git diff --no-index --quiet -- "$left" "$right"
+        return $?
+    fi
+
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$left" "$right"
+        return $?
+    fi
+
     [[ "$(cat "$left")" == "$(cat "$right")" ]]
 }
 
 show_diff() {
     local left="$1"
     local right="$2"
-
-    if command -v diff >/dev/null 2>&1; then
-        diff -u "$left" "$right" || true
-        return 0
-    fi
-
-    if command -v git >/dev/null 2>&1; then
-        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
-        return 0
-    fi
 
     if [[ -n "$PYTHON_BIN" ]]; then
         "$PYTHON_BIN" - "$left" "$right" <<'PY'
@@ -98,6 +88,16 @@ left = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").s
 right = pathlib.Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace").splitlines(True)
 sys.stdout.writelines(difflib.unified_diff(left, right, fromfile=sys.argv[1], tofile=sys.argv[2]))
 PY
+        return 0
+    fi
+
+    if command -v git >/dev/null 2>&1; then
+        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
+        return 0
+    fi
+
+    if command -v diff >/dev/null 2>&1; then
+        diff -u "$left" "$right" || true
         return 0
     fi
 
@@ -164,6 +164,7 @@ CASES=(
     projection_abi
     zone_projection_abi
     intent_trace_abi
+    intent_value_params_abi
     intent_recent_abi
     intent_failure_abi
     world_clone_ownership_abi

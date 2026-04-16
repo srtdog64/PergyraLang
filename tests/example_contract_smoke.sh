@@ -56,16 +56,6 @@ files_equal() {
     local left="$1"
     local right="$2"
 
-    if command -v cmp >/dev/null 2>&1; then
-        cmp -s "$left" "$right"
-        return $?
-    fi
-
-    if command -v git >/dev/null 2>&1; then
-        git diff --no-index --quiet -- "$left" "$right"
-        return $?
-    fi
-
     if [[ -n "$PYTHON_BIN" ]]; then
         "$PYTHON_BIN" - "$left" "$right" <<'PY'
 import pathlib, sys
@@ -76,22 +66,22 @@ PY
         return $?
     fi
 
+    if command -v git >/dev/null 2>&1; then
+        git diff --no-index --quiet -- "$left" "$right"
+        return $?
+    fi
+
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$left" "$right"
+        return $?
+    fi
+
     [[ "$(cat "$left")" == "$(cat "$right")" ]]
 }
 
 show_diff() {
     local left="$1"
     local right="$2"
-
-    if command -v diff >/dev/null 2>&1; then
-        diff -u "$left" "$right" || true
-        return 0
-    fi
-
-    if command -v git >/dev/null 2>&1; then
-        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
-        return 0
-    fi
 
     if [[ -n "$PYTHON_BIN" ]]; then
         "$PYTHON_BIN" - "$left" "$right" <<'PY'
@@ -102,6 +92,16 @@ left = left_path.read_text(encoding="utf-8", errors="replace").splitlines(True)
 right = right_path.read_text(encoding="utf-8", errors="replace").splitlines(True)
 sys.stdout.writelines(difflib.unified_diff(left, right, fromfile=str(left_path), tofile=str(right_path)))
 PY
+        return 0
+    fi
+
+    if command -v git >/dev/null 2>&1; then
+        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
+        return 0
+    fi
+
+    if command -v diff >/dev/null 2>&1; then
+        diff -u "$left" "$right" || true
         return 0
     fi
 
@@ -292,6 +292,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/action_contract_inheritance_minimal.pgy" "action contract reuse minimal"
     run_expect_lines "intent_contract_derivation_minimal" "$backend" \
         "$ROOT_DIR/examples/intent_contract_derivation_minimal.pgy" "intent contract derivation minimal"
+    run_expect_lines "intent_value_params_minimal" "$backend" \
+        "$ROOT_DIR/examples/intent_value_params_minimal.pgy" "intent value params minimal"
     run_expect_lines "intent_contract_pair_minimal" "$backend" \
         "$ROOT_DIR/examples/intent_contract_pair_minimal.pgy" "intent-contract-pair-minimal"
     run_expect_lines "authority_contract_pair_minimal" "$backend" \

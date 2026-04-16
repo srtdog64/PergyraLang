@@ -131,77 +131,74 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         && node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT;
 
     codebuf_write(ctx->out, "\nbool\n%s(", node->data.intent_decl.name);
-    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = node->data.intent_decl.involves[i];
-        const char *pt = NULL;
-        const char *alias = (mir_only_intent && participant_aliases != NULL && i < participant_count
-            && participant_aliases[i] != NULL)
-            ? participant_aliases[i]
-            : (involves != NULL && involves->data.intent_involves.alias != NULL
-                ? involves->data.intent_involves.alias : "participant");
-        const char *participant_type = participant_types != NULL && i < participant_count
-            ? participant_types[i]
-            : NULL;
-        char *type_name = NULL;
-        bool pointer_param = false;
-        char surface_desc[256];
-        if (i > 0)
-            codebuf_write(ctx->out, ", ");
-        snprintf(surface_desc, sizeof(surface_desc),
-            "intent participant '%s' of '%s'",
-            alias != NULL ? alias : "(anonymous)",
-            node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
-        if (participant_type != NULL) {
-            pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
-            type_name = pergyra_strdup(participant_type);
-            pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
-        } else if (!mir_only_intent
-                   && involves != NULL
-                   && involves->data.intent_involves.subject_type != NULL) {
-            pt = transpiler_require_ast_c_type(
-                ctx, involves->data.intent_involves.subject_type, surface_desc);
-            type_name = render_type_name(involves->data.intent_involves.subject_type);
-            pointer_param = intent_involves_uses_pointer_self(ctx, involves);
-        }
-        if (pt == NULL)
-            goto intent_emit_fail;
-        codebuf_write(ctx->out, "%s%s%s", pt, pointer_param ? " *" : " ", alias);
-        if (type_name != NULL) {
-            register_typed_var(ctx, alias, type_name);
-            TypedVarEntry *entry = lookup_typed_entry(ctx, alias);
-            if (entry != NULL)
-                entry->is_subject_ref = pointer_param;
-            free(type_name);
-        }
-    }
-    for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
-        ASTNode *value = node->data.intent_decl.values[i];
-        const char *pt = NULL;
-        char *type_name = NULL;
-        char surface_desc[256];
-        if (node->data.intent_decl.involve_count > 0 || i > 0)
-            codebuf_write(ctx->out, ", ");
-        snprintf(surface_desc, sizeof(surface_desc),
-            "intent value '%s' of '%s'",
-            value != NULL && value->data.intent_value.alias != NULL
-                ? value->data.intent_value.alias
-                : "value",
-            node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
-        pt = transpiler_require_ast_c_type(
-            ctx,
-            value != NULL ? value->data.intent_value.value_type : NULL,
-            surface_desc);
-        if (pt == NULL)
-            goto intent_emit_fail;
-        if (value != NULL && value->data.intent_value.value_type != NULL) {
-            type_name = render_type_name(value->data.intent_value.value_type);
-        }
-        codebuf_write(ctx->out, "%s %s", pt,
-            value != NULL && value->data.intent_value.alias != NULL
-                ? value->data.intent_value.alias : "value");
-        if (type_name != NULL) {
-            register_typed_var(ctx, value->data.intent_value.alias, type_name);
-            free(type_name);
+    {
+        size_t binding_count = node->data.intent_decl.binding_count > 0
+            ? node->data.intent_decl.binding_count
+            : (node->data.intent_decl.involve_count + node->data.intent_decl.value_count);
+        size_t participant_index = 0;
+        for (size_t i = 0; i < binding_count; i++) {
+            ASTNode *binding = node->data.intent_decl.binding_count > 0
+                ? node->data.intent_decl.bindings[i]
+                : (i < node->data.intent_decl.involve_count
+                    ? node->data.intent_decl.involves[i]
+                    : node->data.intent_decl.values[i - node->data.intent_decl.involve_count]);
+            const char *pt = NULL;
+            const char *alias = "value";
+            char *type_name = NULL;
+            bool pointer_param = false;
+            char surface_desc[256];
+
+            if (i > 0)
+                codebuf_write(ctx->out, ", ");
+
+            if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+                const char *participant_type = participant_types != NULL && participant_index < participant_count
+                    ? participant_types[participant_index]
+                    : NULL;
+                alias = (mir_only_intent && participant_aliases != NULL && participant_index < participant_count
+                    && participant_aliases[participant_index] != NULL)
+                    ? participant_aliases[participant_index]
+                    : (binding->data.intent_involves.alias != NULL
+                        ? binding->data.intent_involves.alias : "participant");
+                snprintf(surface_desc, sizeof(surface_desc),
+                    "intent participant '%s' of '%s'",
+                    alias != NULL ? alias : "(anonymous)",
+                    node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
+                if (participant_type != NULL) {
+                    pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
+                    type_name = pergyra_strdup(participant_type);
+                    pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
+                } else if (!mir_only_intent && binding->data.intent_involves.subject_type != NULL) {
+                    pt = transpiler_require_ast_c_type(
+                        ctx, binding->data.intent_involves.subject_type, surface_desc);
+                    type_name = render_type_name(binding->data.intent_involves.subject_type);
+                    pointer_param = intent_involves_uses_pointer_self(ctx, binding);
+                }
+                participant_index++;
+            } else {
+                ASTNode *value_type = binding != NULL ? binding->data.intent_value.value_type : NULL;
+                alias = (binding != NULL && binding->data.intent_value.alias != NULL)
+                    ? binding->data.intent_value.alias : "value";
+                snprintf(surface_desc, sizeof(surface_desc),
+                    "intent value '%s' of '%s'",
+                    alias,
+                    node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
+                pt = transpiler_require_ast_c_type(ctx, value_type, surface_desc);
+                if (value_type != NULL)
+                    type_name = render_type_name(value_type);
+            }
+            if (pt == NULL)
+                goto intent_emit_fail;
+            codebuf_write(ctx->out, "%s%s%s", pt, pointer_param ? " *" : " ", alias);
+            if (type_name != NULL) {
+                register_typed_var(ctx, alias, type_name);
+                if (pointer_param) {
+                    TypedVarEntry *entry = lookup_typed_entry(ctx, alias);
+                    if (entry != NULL)
+                        entry->is_subject_ref = true;
+                }
+                free(type_name);
+            }
         }
     }
     codebuf_write(ctx->out, ")\n{\n");

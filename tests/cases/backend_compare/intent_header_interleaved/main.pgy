@@ -1,0 +1,38 @@
+subject Buyer {
+    let hp: Int;
+
+    action Pay(self) -> Void {
+        hp = hp - 1;
+    }
+}
+
+struct PriceQuote {
+    amount: Int;
+}
+
+zone CheckoutZone {
+    subject slot buyer: Buyer
+}
+
+intent Checkout(checkout: CheckoutZone, quote: PriceQuote, buyer: Buyer, price: Int, adjustments: Array<Int>) {
+    step pay {
+        where: CheckoutZone;
+        using: checkout;
+        who: buyer;
+        guard: quote.amount >= price;
+        expect: ArrayLength(adjustments) == 2;
+        on: buyer.Pay();
+    }
+
+    success: buyer.hp == 6;
+    failure: false;
+}
+
+func Main() -> Void {
+    let checkout = CheckoutZone(Buyer(7));
+    let quote = PriceQuote(9);
+    let ok = Checkout(checkout, quote, checkout.buyer, 5, [1, 2]);
+    Log("ok=" + ToString(ok));
+    Log("buyer.hp=" + ToString(checkout.buyer.hp));
+    Log("quote.amount=" + ToString(quote.amount));
+}

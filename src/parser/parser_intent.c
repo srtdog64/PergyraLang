@@ -37,6 +37,15 @@ intent_append_node(ASTNode ***items, size_t *count, ASTNode *node)
 }
 
 static void
+intent_append_binding(ASTNode *intent, ASTNode *node)
+{
+    if (intent == NULL || intent->type != AST_INTENT_DECL || node == NULL)
+        return;
+    intent_append_node(&intent->data.intent_decl.bindings,
+        &intent->data.intent_decl.binding_count, node);
+}
+
+static void
 intent_append_name(char ***items, size_t *count, const char *name)
 {
     char **grown;
@@ -119,6 +128,67 @@ parse_intent_name_list(Parser *parser, char ***items, size_t *count,
     } while (parser_match(parser, TOKEN_COMMA));
 }
 
+static bool
+intent_header_value_type_name(const char *type_name)
+{
+    static const char *value_types[] = {
+        "Int", "Long", "Float", "Double", "Bool", "String", "Void",
+        "Qubit", "QubitSlot", "Token",
+        "Array", "Slice", "List", "Queue", "HashMap", "Set",
+        "Box", "Rc", "Weak", "Channel", "Future", "RemoteFuture",
+        "Result", "Option",
+        "Slot", "SecureSlot", "DeviceSlot",
+        "Allocator", "Timer", "Duration", "Instant",
+        "Money", "Version", "IdempotencyKey"
+    };
+
+    if (type_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < sizeof(value_types) / sizeof(value_types[0]); i++) {
+        if (strcmp(type_name, value_types[i]) == 0)
+            return true;
+    }
+
+    return false;
+}
+
+static bool
+intent_param_type_is_value_binding(Parser *parser, ASTNode *type_node)
+{
+    ASTNodeType decl_type = AST_PROGRAM;
+    NominalDeclKind nominal_kind = NOMINAL_DECL_CLASS;
+
+    if (type_node == NULL || type_node->type != AST_TYPE
+        || type_node->data.type.name == NULL) {
+        return false;
+    }
+
+    if (type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0) {
+        return true;
+    }
+
+    if (parser_lookup_decl_hint(parser, type_node->data.type.name,
+                                &decl_type, &nominal_kind)) {
+        if (decl_type == AST_CLASS_DECL) {
+            return nominal_kind != NOMINAL_DECL_SUBJECT;
+        }
+        if (decl_type != AST_ZONE_DECL
+            && decl_type != AST_WORLD_DECL
+            && decl_type != AST_RELATION_DECL
+            && decl_type != AST_EFFECT_DECL
+            && decl_type != AST_PARTY_DECL
+            && decl_type != AST_ROSTER_DECL
+            && decl_type != AST_INTENT_DECL
+            && decl_type != AST_EVENT_DECL) {
+            return true;
+        }
+    }
+
+    return intent_header_value_type_name(type_node->data.type.name);
+}
+
 static void
 parse_intent_param_list(Parser *parser, ASTNode *intent)
 {
@@ -131,11 +201,23 @@ parse_intent_param_list(Parser *parser, ASTNode *intent)
                 "Duplicate intent binding alias '%s' in parameter list", alias.text);
             return;
         }
-        ASTNode *involves = ast_create_intent_involves(alias.text);
         parser_consume(parser, TOKEN_COLON, "Expected ':' after intent participant name");
-        involves->data.intent_involves.subject_type = parse_type(parser);
-        intent_append_node(&intent->data.intent_decl.involves,
-            &intent->data.intent_decl.involve_count, involves);
+        {
+            ASTNode *binding_type = parse_type(parser);
+            if (intent_param_type_is_value_binding(parser, binding_type)) {
+                ASTNode *value = ast_create_intent_value(alias.text);
+                value->data.intent_value.value_type = binding_type;
+                intent_append_node(&intent->data.intent_decl.values,
+                    &intent->data.intent_decl.value_count, value);
+                intent_append_binding(intent, value);
+            } else {
+                ASTNode *involves = ast_create_intent_involves(alias.text);
+                involves->data.intent_involves.subject_type = binding_type;
+                intent_append_node(&intent->data.intent_decl.involves,
+                    &intent->data.intent_decl.involve_count, involves);
+                intent_append_binding(intent, involves);
+            }
+        }
         if (!parser_match(parser, TOKEN_COMMA))
             break;
     }
@@ -533,6 +615,7 @@ parse_intent_declaration(Parser *parser)
                 parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent-level who declaration");
                 intent_append_node(&intent->data.intent_decl.involves,
                     &intent->data.intent_decl.involve_count, involves);
+                intent_append_binding(intent, involves);
                 intent_append_name(&intent->data.intent_decl.default_who_names,
                     &intent->data.intent_decl.default_who_count, alias.text);
                 continue;
@@ -565,6 +648,7 @@ parse_intent_declaration(Parser *parser)
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after involves clause");
             intent_append_node(&intent->data.intent_decl.involves,
                 &intent->data.intent_decl.involve_count, involves);
+            intent_append_binding(intent, involves);
             continue;
         }
 
@@ -583,6 +667,7 @@ parse_intent_declaration(Parser *parser)
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent value clause");
             intent_append_node(&intent->data.intent_decl.values,
                 &intent->data.intent_decl.value_count, value);
+            intent_append_binding(intent, value);
             continue;
         }
 

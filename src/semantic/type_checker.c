@@ -447,23 +447,34 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                                                SemanticContext *ctx)
 {
     GenericParams *decl_params;
-    GenericParams *spec_args;
     WhereClause *wc;
+    ASTNode **effective_args = NULL;
+    size_t effective_count = 0;
 
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
         || specialized_type == NULL || specialized_type->type != AST_TYPE
-        || specialized_type->data.type.generic_args == NULL
         || site == NULL || ctx == NULL) {
         return;
     }
 
     decl_params = class_decl->data.class_decl.generic_params;
-    spec_args = specialized_type->data.type.generic_args;
     wc = class_decl->data.class_decl.where_clause;
     if (decl_params == NULL || decl_params->count == 0
         || wc == NULL || wc->count == 0) {
         return;
     }
+
+    effective_args = collect_effective_generic_arg_nodes(
+        decl_params,
+        specialized_type->data.type.generic_args,
+        specialized_type,
+        ctx,
+        "class",
+        class_decl->data.class_decl.name != NULL
+            ? class_decl->data.class_decl.name : "<class>",
+        &effective_count);
+    if (effective_args == NULL)
+        return;
 
     for (size_t ci = 0; ci < wc->count; ci++) {
         TypeConstraint *tc = wc->constraints[ci];
@@ -474,11 +485,10 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             continue;
 
         param_index = find_generic_param_index(decl_params, tc->type_param);
-        if (param_index < 0 || (size_t)param_index >= spec_args->count)
+        if (param_index < 0 || (size_t)param_index >= effective_count)
             continue;
 
-        concrete_type = resolve_generic_type_arg(spec_args->params[param_index],
-                                                 ctx, specialized_type);
+        concrete_type = resolve_type_node(effective_args[param_index], ctx);
         if (concrete_type == NULL)
             continue;
 
@@ -518,6 +528,8 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             }
         }
     }
+
+    free(effective_args);
 }
 
 void
@@ -1647,8 +1659,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         decl_type = resolve_type_node(ann, ctx);
         if (ctx->program_root != NULL
             && ann->type == AST_TYPE
-            && ann->data.type.name != NULL
-            && ann->data.type.generic_args != NULL) {
+            && ann->data.type.name != NULL) {
             ASTNode *class_decl = find_type_decl_by_name(ctx->program_root,
                                                          ann->data.type.name);
             if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
@@ -2866,16 +2877,40 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (param->mode != PARAM_MODE_DEFAULT
             && !type_is_anchored_resource_handle(param_types[i])) {
-            semantic_error(ctx, node,
-                "'%s' parameter mode is currently a closed subset: only ref/own Slot<subject-host> / "
-                "own SecureSlot<subject-host> are supported at function boundaries.\n"
-                "Reason:\n"
-                "- this parameter type is not part of the anchored-handle boundary subset\n"
-                "- the compiler does not yet enforce general own/ref rules for arbitrary value types at call boundaries\n"
-                "Fix:\n"
-                "- keep this value local to the function boundary\n"
-                "- or pass a Slot<subject-host> / own SecureSlot<subject-host> handle instead",
-                param->mode == PARAM_MODE_OWN ? "own" : "ref");
+            if (type_is_movable_resource_handle(param_types[i])) {
+                if (param->mode == PARAM_MODE_REF) {
+                    semantic_error(ctx, node,
+                        "'ref' movable resource parameters are not supported at function boundaries yet.\n"
+                        "Reason:\n"
+                        "- value is parameter '%s'\n"
+                        "- ownership mode is 'ref'\n"
+                        "- consumer path is function '%s'\n"
+                        "- movable resource handles currently cross function boundaries only by transfer\n"
+                        "- borrowed movable-resource forwarding is not part of the closed subset yet\n"
+                        "Fix:\n"
+                        "- use an unqualified or 'own' movable resource parameter for transfer semantics\n"
+                        "- or keep the movable resource local to the current function",
+                        param->name != NULL ? param->name : "<param>",
+                        node->data.func_decl.name != NULL ? node->data.func_decl.name : "<anonymous>");
+                }
+            } else {
+                semantic_error(ctx, node,
+                    "'%s' parameter mode is currently a closed subset: only ref/own Slot<subject-host> / "
+                    "own SecureSlot<subject-host> are supported at function boundaries.\n"
+                    "Reason:\n"
+                    "- value is parameter '%s'\n"
+                    "- ownership mode is '%s'\n"
+                    "- consumer path is function '%s'\n"
+                    "- this parameter type is not part of the anchored-handle boundary subset\n"
+                    "- the compiler does not yet enforce general own/ref rules for arbitrary value types at call boundaries\n"
+                    "Fix:\n"
+                    "- keep this value local to the function boundary\n"
+                    "- or pass a Slot<subject-host> / own SecureSlot<subject-host> handle instead",
+                    param->mode == PARAM_MODE_OWN ? "own" : "ref",
+                    param->name != NULL ? param->name : "<param>",
+                    param->mode == PARAM_MODE_OWN ? "own" : "ref",
+                    node->data.func_decl.name != NULL ? node->data.func_decl.name : "<anonymous>");
+            }
         }
         if (type_is_anchored_resource_handle(param_types[i])) {
             bool allowed_subject_slot = type_is_subject_host_slot_handle(param_types[i], ctx);
@@ -3035,37 +3070,49 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 semantic_error(ctx, node,
                     "Borrowed ref slot '%s' cannot escape via return.\n"
                     "Reason:\n"
+                    "- consumer path is function '%s'\n"
                     "- '%s' entered this function as a borrowed 'ref' handle\n"
                     "- 'ref' is a non-owning borrow tied to the caller scope\n"
                     "- returning it would let the borrow outlive the call boundary\n"
                     "Fix:\n"
                     "- return a projection/object/tobject/value instead\n"
                     "- or change the parameter to 'own' if transfer is intended",
-                    param->name, param->name);
+                    param->name,
+                    node->data.func_decl.name != NULL
+                        ? node->data.func_decl.name : "<anonymous>",
+                    param->name);
             }
             if ((summary_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
                 semantic_error(ctx, node,
                     "Borrowed ref slot '%s' cannot escape through channel send.\n"
                     "Reason:\n"
+                    "- consumer path is function '%s'\n"
                     "- '%s' entered this function as a borrowed 'ref' handle\n"
                     "- 'ref' is a non-owning borrow tied to the current call\n"
                     "- channel send would transfer the borrow beyond that boundary\n"
                     "Fix:\n"
                     "- send a projection/object/tobject/value snapshot instead\n"
                     "- or take ownership with 'own' before transfer",
-                    param->name, param->name);
+                    param->name,
+                    node->data.func_decl.name != NULL
+                        ? node->data.func_decl.name : "<anonymous>",
+                    param->name);
             }
             if ((summary_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
                 semantic_error(ctx, node,
                     "Borrowed ref slot '%s' cannot escape through helper/function call.\n"
                     "Reason:\n"
+                    "- consumer path is function '%s'\n"
                     "- '%s' entered this function as a borrowed 'ref' handle\n"
                     "- 'ref' is a non-owning borrow tied to the current call boundary\n"
                     "- forwarding it to another call would create a transitive borrow the compiler does not yet track precisely\n"
                     "Fix:\n"
                     "- perform the slot operation locally in this function\n"
                     "- or change the parameter to 'own' if transfer/forwarding is intended",
-                    param->name, param->name);
+                    param->name,
+                    node->data.func_decl.name != NULL
+                        ? node->data.func_decl.name : "<anonymous>",
+                    param->name);
             }
         }
     }
@@ -3498,17 +3545,34 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         } else if (stmt->type == AST_INTENT_DECL) {
             const char *iname = stmt->data.intent_decl.name;
             if (iname != NULL && scope_lookup_current(ctx->scope, iname) == NULL) {
-                size_t ipc = stmt->data.intent_decl.involve_count
-                    + stmt->data.intent_decl.value_count;
+                size_t ipc = stmt->data.intent_decl.binding_count > 0
+                    ? stmt->data.intent_decl.binding_count
+                    : (stmt->data.intent_decl.involve_count
+                        + stmt->data.intent_decl.value_count);
                 Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
-                for (size_t j = 0; j < stmt->data.intent_decl.involve_count; j++) {
-                    ASTNode *involves = stmt->data.intent_decl.involves[j];
-                    if (involves != NULL && involves->type == AST_INTENT_INVOLVES
-                        && involves->data.intent_involves.subject_type != NULL) {
+                for (size_t j = 0; j < ipc; j++) {
+                    ASTNode *binding = stmt->data.intent_decl.binding_count > 0
+                        ? stmt->data.intent_decl.bindings[j]
+                        : (j < stmt->data.intent_decl.involve_count
+                            ? stmt->data.intent_decl.involves[j]
+                            : stmt->data.intent_decl.values[j - stmt->data.intent_decl.involve_count]);
+                    if (binding != NULL && binding->type == AST_INTENT_INVOLVES
+                        && binding->data.intent_involves.subject_type != NULL) {
                         size_t saved_diag = ctx->diagnostic_count;
                         bool saved_err = ctx->has_error;
                         ptypes[j] = resolve_type_node(
-                            involves->data.intent_involves.subject_type, ctx);
+                            binding->data.intent_involves.subject_type, ctx);
+                        if (ctx->diagnostic_count > saved_diag) {
+                            ctx->diagnostic_count = saved_diag;
+                            ctx->has_error = saved_err;
+                            ptypes[j] = TYPE_UNKNOWN;
+                        }
+                    } else if (binding != NULL && binding->type == AST_INTENT_VALUE
+                        && binding->data.intent_value.value_type != NULL) {
+                        size_t saved_diag = ctx->diagnostic_count;
+                        bool saved_err = ctx->has_error;
+                        ptypes[j] = resolve_type_node(
+                            binding->data.intent_value.value_type, ctx);
                         if (ctx->diagnostic_count > saved_diag) {
                             ctx->diagnostic_count = saved_diag;
                             ctx->has_error = saved_err;
@@ -3516,24 +3580,6 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                         }
                     } else {
                         ptypes[j] = TYPE_UNKNOWN;
-                    }
-                }
-                for (size_t j = 0; j < stmt->data.intent_decl.value_count; j++) {
-                    ASTNode *value = stmt->data.intent_decl.values[j];
-                    size_t param_index = stmt->data.intent_decl.involve_count + j;
-                    if (value != NULL && value->type == AST_INTENT_VALUE
-                        && value->data.intent_value.value_type != NULL) {
-                        size_t saved_diag = ctx->diagnostic_count;
-                        bool saved_err = ctx->has_error;
-                        ptypes[param_index] = resolve_type_node(
-                            value->data.intent_value.value_type, ctx);
-                        if (ctx->diagnostic_count > saved_diag) {
-                            ctx->diagnostic_count = saved_diag;
-                            ctx->has_error = saved_err;
-                            ptypes[param_index] = TYPE_UNKNOWN;
-                        }
-                    } else {
-                        ptypes[param_index] = TYPE_UNKNOWN;
                     }
                 }
                 Type *ft = type_create_function(ptypes, ipc, TYPE_BOOL);

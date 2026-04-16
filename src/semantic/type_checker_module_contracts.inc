@@ -63,43 +63,59 @@ report_subject_ability_requirement_mismatch(SemanticContext *ctx,
     if (ctx == NULL || site == NULL)
         return;
 
+    if (actual_text != NULL) {
+        semantic_error(ctx, site,
+            "%s '%s' requires ability '%s', but %s '%s' implements '%s' instead.\n"
+            "Reason:\n"
+            "- consumer path is %s '%s'\n"
+            "- %s '%s' does not satisfy required ability '%s'\n"
+            "- expected type args are encoded in '%s'\n"
+            "- actual implementation is '%s'\n"
+            "- actual type args are encoded in '%s'\n"
+            "Fix:\n"
+            "- implement '%s' for %s '%s'\n"
+            "- %s",
+            owner_label != NULL ? owner_label : "construct",
+            owner_name != NULL ? owner_name : "<anonymous>",
+            required_text != NULL ? required_text : "<ability>",
+            subject_label != NULL ? subject_label : "subject",
+            subject_name != NULL ? subject_name : "<subject>",
+            actual_text,
+            owner_label != NULL ? owner_label : "construct",
+            owner_name != NULL ? owner_name : "<anonymous>",
+            subject_label != NULL ? subject_label : "subject",
+            subject_name != NULL ? subject_name : "<subject>",
+            required_text != NULL ? required_text : "<ability>",
+            required_text != NULL ? required_text : "<ability>",
+            actual_text,
+            actual_text,
+            required_text != NULL ? required_text : "<ability>",
+            subject_label != NULL ? subject_label : "subject",
+            subject_name != NULL ? subject_name : "<subject>",
+            fix_tail != NULL ? fix_tail : "change/remove the ability requirement");
+        return;
+    }
+
     semantic_error(ctx, site,
-        actual_text != NULL
-            ? "%s '%s' requires ability '%s', but %s '%s' implements '%s' instead.\n"
-              "Reason:\n"
-              "- %s '%s' does not satisfy required ability '%s'\n"
-              "- actual implementation is '%s'\n"
-              "Fix:\n"
-              "- implement '%s' for %s '%s'\n"
-              "- %s"
-            : "%s '%s' requires ability '%s', but %s '%s' has no matching role impl.\n"
-              "Reason:\n"
-              "- %s '%s' does not satisfy required ability '%s'\n"
-              "- no matching implementation was found for '%s'\n"
-              "Fix:\n"
-              "- implement '%s' for %s '%s'\n"
-              "- %s",
+        "%s '%s' requires ability '%s', but %s '%s' has no matching role impl.\n"
+        "Reason:\n"
+        "- consumer path is %s '%s'\n"
+        "- %s '%s' does not satisfy required ability '%s'\n"
+        "- expected type args are encoded in '%s'\n"
+        "- no matching implementation was found for '%s'\n"
+        "Fix:\n"
+        "- implement '%s' for %s '%s'\n"
+        "- %s",
         owner_label != NULL ? owner_label : "construct",
         owner_name != NULL ? owner_name : "<anonymous>",
         required_text != NULL ? required_text : "<ability>",
         subject_label != NULL ? subject_label : "subject",
         subject_name != NULL ? subject_name : "<subject>",
-        actual_text != NULL ? actual_text : NULL,
-        subject_label != NULL ? subject_label : "subject",
-        subject_name != NULL ? subject_name : "<subject>",
-        required_text != NULL ? required_text : "<ability>",
-        actual_text != NULL ? actual_text : required_text != NULL ? required_text : "<ability>",
-        required_text != NULL ? required_text : "<ability>",
-        subject_label != NULL ? subject_label : "subject",
-        subject_name != NULL ? subject_name : "<subject>",
-        fix_tail != NULL ? fix_tail : "change/remove the ability requirement",
         owner_label != NULL ? owner_label : "construct",
         owner_name != NULL ? owner_name : "<anonymous>",
+        subject_label != NULL ? subject_label : "subject",
+        subject_name != NULL ? subject_name : "<subject>",
         required_text != NULL ? required_text : "<ability>",
-        subject_label != NULL ? subject_label : "subject",
-        subject_name != NULL ? subject_name : "<subject>",
-        subject_label != NULL ? subject_label : "subject",
-        subject_name != NULL ? subject_name : "<subject>",
         required_text != NULL ? required_text : "<ability>",
         required_text != NULL ? required_text : "<ability>",
         required_text != NULL ? required_text : "<ability>",
@@ -230,9 +246,12 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                 semantic_error(ctx, site,
                     "%s '%s' uses ability '%s' with generic argument '%s' that does not satisfy bound '%s'.\n"
                     "Reason:\n"
+                    "- consumer path is %s '%s'\n"
                     "- ability declaration '%s' requires '%s: %s'\n"
+                    "- generic subject is ability '%s'\n"
                     "- %s uses '%s'\n"
                     "- actual type argument is '%s'\n"
+                    "- expected type args are constrained by '%s: %s'\n"
                     "Fix:\n"
                     "- pass a type argument that satisfies '%s'\n"
                     "- or relax the bound on ability '%s'",
@@ -242,6 +261,10 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                         ? ability_decl->data.ability_decl.name : "<ability>",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
                     bound_name,
+                    owner_label != NULL ? owner_label : "construct",
+                    owner_name != NULL ? owner_name : "<anonymous>",
+                    ability_decl->data.ability_decl.name != NULL
+                        ? ability_decl->data.ability_decl.name : "<ability>",
                     ability_decl->data.ability_decl.name != NULL
                         ? ability_decl->data.ability_decl.name : "<ability>",
                     tc->type_param,
@@ -249,6 +272,8 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     owner_label != NULL ? owner_label : "construct",
                     required_text != NULL ? required_text : "<ability>",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
+                    tc->type_param,
+                    bound_name,
                     bound_name,
                     ability_decl->data.ability_decl.name != NULL
                         ? ability_decl->data.ability_decl.name : "<ability>");

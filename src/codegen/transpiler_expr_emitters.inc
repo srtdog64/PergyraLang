@@ -3418,16 +3418,20 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         char *arg = NULL;
 
         if (decl != NULL && decl->type == AST_INTENT_DECL) {
-            if (i < decl->data.intent_decl.involve_count
-                && decl->data.intent_decl.involves[i] != NULL) {
-                intent_param_type =
-                    decl->data.intent_decl.involves[i]->data.intent_involves.subject_type;
-            } else if (i < decl->data.intent_decl.involve_count
-                    + decl->data.intent_decl.value_count) {
-                size_t value_index = i - decl->data.intent_decl.involve_count;
-                ASTNode *value = decl->data.intent_decl.values[value_index];
-                if (value != NULL)
-                    intent_param_type = value->data.intent_value.value_type;
+            size_t binding_count = decl->data.intent_decl.binding_count > 0
+                ? decl->data.intent_decl.binding_count
+                : (decl->data.intent_decl.involve_count
+                    + decl->data.intent_decl.value_count);
+            if (i < binding_count) {
+                ASTNode *binding = decl->data.intent_decl.binding_count > 0
+                    ? decl->data.intent_decl.bindings[i]
+                    : (i < decl->data.intent_decl.involve_count
+                        ? decl->data.intent_decl.involves[i]
+                        : decl->data.intent_decl.values[i - decl->data.intent_decl.involve_count]);
+                if (binding != NULL && binding->type == AST_INTENT_INVOLVES)
+                    intent_param_type = binding->data.intent_involves.subject_type;
+                else if (binding != NULL && binding->type == AST_INTENT_VALUE)
+                    intent_param_type = binding->data.intent_value.value_type;
             }
         }
 

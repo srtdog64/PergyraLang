@@ -512,6 +512,8 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.involve_count = 0;
     node->data.intent_decl.values = NULL;
     node->data.intent_decl.value_count = 0;
+    node->data.intent_decl.bindings = NULL;
+    node->data.intent_decl.binding_count = 0;
     node->data.intent_decl.steps = NULL;
     node->data.intent_decl.step_count = 0;
     node->data.intent_decl.is_concurrent = false;
@@ -1691,6 +1693,7 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.intent_decl.value_count; i++)
                 ast_destroy(node->data.intent_decl.values[i]);
             free(node->data.intent_decl.values);
+            free(node->data.intent_decl.bindings);
             for (size_t i = 0; i < node->data.intent_decl.step_count; i++)
                 ast_destroy(node->data.intent_decl.steps[i]);
             free(node->data.intent_decl.steps);

@@ -39,6 +39,9 @@ void            parser_collect_doc_comments(Parser *parser);
 void            parser_discard_pending_doc_comment(Parser *parser);
 StructuredComment *parser_take_pending_doc_comment(Parser *parser);
 ASTNode        *parser_finalize_statement(Parser *parser, ASTNode *node);
+bool            parser_lookup_decl_hint(Parser *parser, const char *name,
+                                        ASTNodeType *node_type_out,
+                                        NominalDeclKind *nominal_kind_out);
 
 /* --- Expressions (parser_expr.c) --- */
 ASTNode *parse_logical_or(Parser *parser);

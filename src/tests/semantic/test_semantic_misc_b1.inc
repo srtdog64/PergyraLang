@@ -345,8 +345,7 @@
         const char *module_path = "test_private_intent_module_a.pgy";
         const char *main_path = "test_private_intent_module_main_a.pgy";
         const char *module_source =
-            "private intent HiddenIntent {\n"
-            "    with value: Int;\n"
+            "private intent HiddenIntent(value: Int) {\n"
             "    step Check {\n"
             "        on: value > 0;\n"
             "    }\n"

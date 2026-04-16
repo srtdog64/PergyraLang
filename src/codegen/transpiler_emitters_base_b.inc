@@ -3622,6 +3622,8 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     const char **participant_aliases = NULL;
     const char **participant_types = NULL;
     size_t participant_count = 0;
+    size_t binding_count = 0;
+    size_t participant_index = 0;
 
     if (node == NULL || node->type != AST_INTENT_DECL || buf == NULL || ctx == NULL)
         return;
@@ -3630,66 +3632,73 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         participant_count = transpiler_collect_mir_intent_participants(
             mir_routine, &participant_aliases, &participant_types);
     }
+    binding_count = node->data.intent_decl.binding_count > 0
+        ? node->data.intent_decl.binding_count
+        : (node->data.intent_decl.involve_count + node->data.intent_decl.value_count);
     codebuf_write(buf, "\nbool\n%s(", node->data.intent_decl.name);
-    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = node->data.intent_decl.involves[i];
+    for (size_t i = 0; i < binding_count; i++) {
+        ASTNode *binding = node->data.intent_decl.binding_count > 0
+            ? node->data.intent_decl.bindings[i]
+            : (i < node->data.intent_decl.involve_count
+                ? node->data.intent_decl.involves[i]
+                : node->data.intent_decl.values[i - node->data.intent_decl.involve_count]);
         const char *pt = NULL;
-        const char *alias = involves != NULL && involves->data.intent_involves.alias != NULL
-            ? involves->data.intent_involves.alias : "participant";
-        const char *participant_type = participant_types != NULL && i < participant_count
-            ? participant_types[i]
-            : NULL;
+        const char *alias = "value";
         bool pointer_param = false;
         char surface_desc[256];
+
         if (i > 0)
             codebuf_write(buf, ", ");
-        snprintf(surface_desc, sizeof(surface_desc),
-            "intent participant '%s' of '%s'",
-            alias != NULL ? alias : "(anonymous)",
-            node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
-        if (participant_type != NULL) {
-            pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
-            pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
-        } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
-            pt = transpiler_require_ast_c_type(
-                ctx, involves->data.intent_involves.subject_type, surface_desc);
-            pointer_param = intent_involves_uses_pointer_self(ctx, involves);
+
+        if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+            const char *participant_type = participant_types != NULL
+                    && participant_index < participant_count
+                ? participant_types[participant_index]
+                : NULL;
+            alias = binding->data.intent_involves.alias != NULL
+                ? binding->data.intent_involves.alias : "participant";
+            snprintf(surface_desc, sizeof(surface_desc),
+                "intent participant '%s' of '%s'",
+                alias != NULL ? alias : "(anonymous)",
+                node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
+            if (participant_type != NULL) {
+                pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
+                pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
+            } else if (binding->data.intent_involves.subject_type != NULL) {
+                pt = transpiler_require_ast_c_type(
+                    ctx, binding->data.intent_involves.subject_type, surface_desc);
+                pointer_param = intent_involves_uses_pointer_self(ctx, binding);
+            }
+            if (participant_aliases != NULL && participant_index < participant_count
+                && participant_aliases[participant_index] != NULL) {
+                alias = participant_aliases[participant_index];
+            }
+            participant_index++;
+            if (pt == NULL) {
+                free((void *)participant_aliases);
+                free((void *)participant_types);
+                return;
+            }
+            codebuf_write(buf, "%s%s%s", pt, pointer_param ? " *" : " ", alias);
+            continue;
         }
-        if (pt == NULL) {
-            free((void *)participant_aliases);
-            free((void *)participant_types);
-            return;
-        }
-        if (participant_aliases != NULL && i < participant_count
-            && participant_aliases[i] != NULL) {
-            alias = participant_aliases[i];
-        }
-        codebuf_write(buf, "%s%s%s", pt, pointer_param ? " *" : " ", alias);
-    }
-    for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
-        ASTNode *value = node->data.intent_decl.values[i];
-        const char *pt = NULL;
-        char surface_desc[256];
-        if (node->data.intent_decl.involve_count > 0 || i > 0)
-            codebuf_write(buf, ", ");
+
+        alias = binding != NULL && binding->data.intent_value.alias != NULL
+            ? binding->data.intent_value.alias : "value";
         snprintf(surface_desc, sizeof(surface_desc),
             "intent value '%s' of '%s'",
-            value != NULL && value->data.intent_value.alias != NULL
-                ? value->data.intent_value.alias
-                : "value",
+            alias,
             node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
         pt = transpiler_require_ast_c_type(
             ctx,
-            value != NULL ? value->data.intent_value.value_type : NULL,
+            binding != NULL ? binding->data.intent_value.value_type : NULL,
             surface_desc);
         if (pt == NULL) {
             free((void *)participant_aliases);
             free((void *)participant_types);
             return;
         }
-        codebuf_write(buf, "%s %s", pt,
-            value != NULL && value->data.intent_value.alias != NULL
-                ? value->data.intent_value.alias : "value");
+        codebuf_write(buf, "%s %s", pt, alias);
     }
     codebuf_write(buf, ");\n");
     free((void *)participant_aliases);

@@ -1612,6 +1612,71 @@ test_qubit_slot_semantics(void)
         ast_destroy(call);
     }
 
+    TEST("own QubitSlot parameter is accepted as explicit transfer boundary");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("UseOwnedQubit");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        FuncParam *param = calloc(1, sizeof(FuncParam));
+        param->name = pergyra_strdup("q");
+        param->type = ast_create_type("QubitSlot");
+        param->mode = PARAM_MODE_OWN;
+        func->data.func_decl.params[0] = param;
+        type_check_func_decl(func, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 2);
+        type_check_let_decl(decl, ctx);
+
+        ASTNode *call_args[1] = { make_identifier("q", 3) };
+        ASTNode *call = make_call("UseOwnedQubit", call_args, 1, 3);
+        type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *state_args[1] = { make_identifier("q", 4) };
+        ASTNode *state_call = make_call("QubitState", state_args, 1, 4);
+        type_check_expression(state_call, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+        ast_destroy(decl);
+        ast_destroy(call);
+        ast_destroy(state_call);
+    }
+
+    TEST("ref QubitSlot parameter is rejected outside movable transfer subset");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("BorrowQubit");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        FuncParam *param = calloc(1, sizeof(FuncParam));
+        param->name = pergyra_strdup("q");
+        param->type = ast_create_type("QubitSlot");
+        param->mode = PARAM_MODE_REF;
+        func->data.func_decl.params[0] = param;
+        type_check_func_decl(func, ctx);
+
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "ref' movable resource parameters are not supported"));
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "consumer path is function 'BorrowQubit'"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
     TEST("Slot<Int> parameter types remain rejected");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -2033,6 +2098,10 @@ test_qubit_slot_semantics(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "parameter mode is currently a closed subset"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "ownership mode is 'ref'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is function 'Borrow'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3219,6 +3288,8 @@ test_party_decl(void)
         EXPECT(result != NULL && result->error_count == 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "no subject-bound role implements it"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is party role slot 'tank'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

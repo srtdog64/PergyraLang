@@ -1230,11 +1230,17 @@ void ast_print(ASTNode* node, int indent) {
                 ast_print_inline(node->data.intent_decl.priority_expr);
                 printf("\n");
             }
-            for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-                ast_print(node->data.intent_decl.involves[i], indent + 1);
-            }
-            for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
-                ast_print(node->data.intent_decl.values[i], indent + 1);
+            if (node->data.intent_decl.binding_count > 0) {
+                for (size_t i = 0; i < node->data.intent_decl.binding_count; i++) {
+                    ast_print(node->data.intent_decl.bindings[i], indent + 1);
+                }
+            } else {
+                for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+                    ast_print(node->data.intent_decl.involves[i], indent + 1);
+                }
+                for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
+                    ast_print(node->data.intent_decl.values[i], indent + 1);
+                }
             }
             for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
                 ast_print(node->data.intent_decl.steps[i], indent + 1);

@@ -232,11 +232,16 @@ hir_collect_intent_signature_refs(ASTNode *node, const char ***names, size_t *co
     if (node == NULL || node->type != AST_INTENT_DECL)
         return true;
 
-    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-        ASTNode *inv = node->data.intent_decl.involves[i];
-        if (inv != NULL
-            && inv->type == AST_INTENT_INVOLVES
-            && !hir_collect_type_refs(inv->data.intent_involves.subject_type, names, count)) {
+    for (size_t i = 0; i < node->data.intent_decl.binding_count; i++) {
+        ASTNode *binding = node->data.intent_decl.bindings[i];
+        if (binding != NULL
+            && binding->type == AST_INTENT_INVOLVES
+            && !hir_collect_type_refs(binding->data.intent_involves.subject_type, names, count)) {
+            return false;
+        }
+        if (binding != NULL
+            && binding->type == AST_INTENT_VALUE
+            && !hir_collect_type_refs(binding->data.intent_value.value_type, names, count)) {
             return false;
         }
     }

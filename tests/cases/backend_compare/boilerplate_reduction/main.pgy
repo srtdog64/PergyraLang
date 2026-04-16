@@ -1,90 +1,75 @@
-// Test: boilerplate reduction features
-// 1. zone action within lexical derivation
-// 2. intent-level who/where propagation
-// 3. action with optional clauses (no within, no authorized by, no causes)
+// Boilerplate reduction surface that is currently closed:
+// 1. subject action may omit within/authorized by/causes
+// 2. intent-level who propagates to steps
+// 3. step using: derives its zone contract
+// 4. grouped subject slot syntax stays available in zones
 
-subject Adventurer
-{
+ability Climber {
+    fields hp: Int;
+    func CanClimb() -> Bool;
+}
+
+subject Adventurer {
     let name: String;
     let hp: Int;
 
     action Climb(self) -> Void
         requires Climber
-        // no within, no authorized by, no causes
     {
         hp = hp + 1;
+        return;
     }
 }
 
-ability Climber
-{
-    fields hp: Int;
-    func CanClimb() -> Bool;
-}
-
-role AdventurerClimber for Adventurer
-{
-    impl ability Climber
-    {
-        func CanClimb() -> Bool
-        {
+role AdventurerClimber for Adventurer {
+    impl ability Climber {
+        func CanClimb() -> Bool {
             return true;
         }
     }
 }
 
-// Test 4: group slot syntax — subjects [a, b]: Type
-zone CampZone
-{
+zone CampZone {
     subjects [camper, guide]: Adventurer
 
-    // within CampZone is lexically derived — not written explicitly
-    action Rest(self) -> Void
-        requires Climber
-    {
+    func Rest() -> Void {
         camper.hp = camper.hp + 5;
+        guide.hp = guide.hp + 1;
     }
 }
 
-intent MountainTrip(explorer: Adventurer)
-{
+intent MountainTrip(camp: CampZone, explorer: Adventurer) {
     exclusive;
-    who: explorer;          // intent-level — all steps inherit
+    who: explorer;
 
-    step prepare
-    {
-        where: CampZone;
-        // who: explorer ← inherited from intent level
+    step prepare {
+        using: camp;
         on: explorer.Climb();
-        post: explorer.hp > 0;
+        expect: explorer.hp == 11;
     }
 
-    step summit
-    {
-        where: CampZone;
-        // who: explorer ← inherited
+    step summit {
+        using: camp;
         on: explorer.Climb();
-        post: explorer.hp > 1;
+        expect: explorer.hp == 12;
     }
 
-    success: explorer.hp > 0;
+    success: explorer.hp == 12;
     failure: false;
 }
 
-func Main() -> Void
-{
+func Main() -> Void {
     let hero = Adventurer("Alice", 10);
+    let camp = CampZone(Adventurer("Bob", 5), Adventurer("Guide", 7));
 
-    // Test 1: action without within (Climb has no within)
     hero.Climb();
     Log("after climb hp=" + ToString(hero.hp));
 
-    // Test 2: zone action with lexically derived within
-    let camp = CampZone(Adventurer("Bob", 5));
-    // camp.Rest() would use within CampZone automatically
+    camp.Rest();
+    Log("camper hp=" + ToString(camp.camper.hp));
+    Log("guide hp=" + ToString(camp.guide.hp));
 
-    // Test 3: intent with inherited who
-    let ok = MountainTrip(hero);
+    let ok = MountainTrip(camp, hero);
     Log("intent ok=" + ToString(ok));
     Log("final hp=" + ToString(hero.hp));
 }

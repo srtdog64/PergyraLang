@@ -896,30 +896,46 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                         ctx->program_root, ability_name);
                     char *actual_text = actual_impl != NULL
                         ? ability_ref_display(actual_impl) : NULL;
-                    semantic_error(ctx, rs,
-                        actual_impl != NULL
-                            ? "Party role slot '%s' requires ability '%s', but subject-bound roles implement '%s' instead.\n"
-                              "Reason:\n"
-                              "- no subject-bound role satisfies required ability '%s'\n"
-                              "- actual implementation is '%s'\n"
-                              "Fix:\n"
-                              "- implement '%s' on a subject-bound role\n"
-                              "- or change the role slot contract"
-                            : "Party role slot '%s' requires ability '%s', but no subject-bound role implements it.\n"
-                              "Reason:\n"
-                              "- no subject-bound role satisfies required ability '%s'\n"
-                              "- no matching implementation was found for '%s'\n"
-                              "Fix:\n"
-                              "- implement '%s' on a subject-bound role\n"
-                              "- or change the role slot contract",
-                        rs->data.role_slot.slot_name,
-                        required_text != NULL ? required_text : ability_name,
-                        actual_text != NULL ? actual_text : NULL,
-                        required_text != NULL ? required_text : ability_name,
-                        actual_text != NULL ? actual_text
-                                            : (required_text != NULL ? required_text : ability_name),
-                        required_text != NULL ? required_text : ability_name,
-                        required_text != NULL ? required_text : ability_name);
+                    if (actual_text != NULL) {
+                        semantic_error(ctx, rs,
+                            "Party role slot '%s' requires ability '%s', but subject-bound roles implement '%s' instead.\n"
+                            "Reason:\n"
+                            "- consumer path is party role slot '%s'\n"
+                            "- no subject-bound role satisfies required ability '%s'\n"
+                            "- expected type args are encoded in '%s'\n"
+                            "- actual implementation is '%s'\n"
+                            "- actual type args are encoded in '%s'\n"
+                            "Fix:\n"
+                            "- implement '%s' on a subject-bound role\n"
+                            "- or change the role slot contract",
+                            rs->data.role_slot.slot_name,
+                            required_text != NULL ? required_text : ability_name,
+                            actual_text,
+                            rs->data.role_slot.slot_name,
+                            required_text != NULL ? required_text : ability_name,
+                            required_text != NULL ? required_text : ability_name,
+                            actual_text,
+                            actual_text,
+                            required_text != NULL ? required_text : ability_name);
+                    } else {
+                        semantic_error(ctx, rs,
+                            "Party role slot '%s' requires ability '%s', but no subject-bound role implements it.\n"
+                            "Reason:\n"
+                            "- consumer path is party role slot '%s'\n"
+                            "- no subject-bound role satisfies required ability '%s'\n"
+                            "- expected type args are encoded in '%s'\n"
+                            "- no matching implementation was found for '%s'\n"
+                            "Fix:\n"
+                            "- implement '%s' on a subject-bound role\n"
+                            "- or change the role slot contract",
+                            rs->data.role_slot.slot_name,
+                            required_text != NULL ? required_text : ability_name,
+                            rs->data.role_slot.slot_name,
+                            required_text != NULL ? required_text : ability_name,
+                            required_text != NULL ? required_text : ability_name,
+                            required_text != NULL ? required_text : ability_name,
+                            required_text != NULL ? required_text : ability_name);
+                    }
                     free(actual_text);
                 }
                 free(required_text);

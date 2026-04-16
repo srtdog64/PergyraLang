@@ -45,21 +45,36 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
     (void)routine;
     for (size_t i = 0; i < param_count; i++) {
         if (is_intent) {
-            ASTNode *involves = func_decl->data.intent_decl.involves[i];
-            const char *alias = involves != NULL ? involves->data.intent_involves.alias : NULL;
-            ASTNode *subject_type = involves != NULL ? involves->data.intent_involves.subject_type : NULL;
-            const char *type_name = (subject_type != NULL && subject_type->type == AST_TYPE)
-                ? subject_type->data.type.name : NULL;
-            LLVMTypeRef pt = (subject_type != NULL) ? llvm_mir_type_from_ast(ctx, subject_type)
-                                                    : ctx->type_i32;
-            if (involves != NULL && llvm_intent_involves_uses_pointer_self(ctx, involves))
+            ASTNode *binding = func_decl->data.intent_decl.binding_count > 0
+                ? func_decl->data.intent_decl.bindings[i]
+                : (i < func_decl->data.intent_decl.involve_count
+                    ? func_decl->data.intent_decl.involves[i]
+                    : func_decl->data.intent_decl.values[i - func_decl->data.intent_decl.involve_count]);
+            const char *alias = NULL;
+            ASTNode *type_node = NULL;
+            const char *type_name = NULL;
+            LLVMTypeRef pt = ctx->type_i32;
+            bool pointer_param = false;
+            if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+                alias = binding->data.intent_involves.alias;
+                type_node = binding->data.intent_involves.subject_type;
+                pointer_param = llvm_intent_involves_uses_pointer_self(ctx, binding);
+            } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
+                alias = binding->data.intent_value.alias;
+                type_node = binding->data.intent_value.value_type;
+            }
+            if (type_node != NULL && type_node->type == AST_TYPE)
+                type_name = type_node->data.type.name;
+            if (type_node != NULL)
+                pt = llvm_mir_type_from_ast(ctx, type_node);
+            if (pointer_param)
                 pt = LLVMPointerType(pt, 0);
             LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt,
-                alias != NULL ? alias : "participant");
+                alias != NULL ? alias : "binding");
             LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), alloca);
-            llvm_scope_declare(ctx, alias != NULL ? alias : "participant", alloca, pt);
-            if (subject_type != NULL)
-                llvm_register_typed_var(ctx, alias, subject_type);
+            llvm_scope_declare(ctx, alias != NULL ? alias : "binding", alloca, pt);
+            if (type_node != NULL)
+                llvm_register_typed_var(ctx, alias, type_node);
             if (type_name != NULL)
                 llvm_register_var_class(ctx, alias, type_name);
         } else {

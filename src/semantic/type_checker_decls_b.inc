@@ -7,29 +7,28 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     }
     if (existing != NULL && existing->kind == SYMBOL_INTENT) {
-        size_t ipc = node->data.intent_decl.involve_count
-            + node->data.intent_decl.value_count;
+        size_t ipc = node->data.intent_decl.binding_count > 0
+            ? node->data.intent_decl.binding_count
+            : (node->data.intent_decl.involve_count
+                + node->data.intent_decl.value_count);
         Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
         Type *ft;
-        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-            ASTNode *involves = node->data.intent_decl.involves[i];
-            if (involves != NULL && involves->type == AST_INTENT_INVOLVES
-                && involves->data.intent_involves.subject_type != NULL) {
+        for (size_t i = 0; i < ipc; i++) {
+            ASTNode *binding = node->data.intent_decl.binding_count > 0
+                ? node->data.intent_decl.bindings[i]
+                : (i < node->data.intent_decl.involve_count
+                    ? node->data.intent_decl.involves[i]
+                    : node->data.intent_decl.values[i - node->data.intent_decl.involve_count]);
+            if (binding != NULL && binding->type == AST_INTENT_INVOLVES
+                && binding->data.intent_involves.subject_type != NULL) {
                 ptypes[i] = resolve_type_node(
-                    involves->data.intent_involves.subject_type, ctx);
+                    binding->data.intent_involves.subject_type, ctx);
+            } else if (binding != NULL && binding->type == AST_INTENT_VALUE
+                && binding->data.intent_value.value_type != NULL) {
+                ptypes[i] = resolve_type_node(
+                    binding->data.intent_value.value_type, ctx);
             } else {
                 ptypes[i] = TYPE_UNKNOWN;
-            }
-        }
-        for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
-            ASTNode *value = node->data.intent_decl.values[i];
-            size_t param_index = node->data.intent_decl.involve_count + i;
-            if (value != NULL && value->type == AST_INTENT_VALUE
-                && value->data.intent_value.value_type != NULL) {
-                ptypes[param_index] = resolve_type_node(
-                    value->data.intent_value.value_type, ctx);
-            } else {
-                ptypes[param_index] = TYPE_UNKNOWN;
             }
         }
         ft = type_create_function(ptypes, ipc, TYPE_BOOL);

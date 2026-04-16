@@ -187,8 +187,12 @@ semantic_print_diagnostics(SemanticContext *ctx)
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         Diagnostic *d = ctx->diagnostics[i];
         const char *level = (d->level == DIAG_ERROR) ? "ERROR" : "WARNING";
-        fprintf(stderr, "[%s] %u:%u - %s\n",
-                level, d->line, d->col, d->message);
+        if (d->line == 0 || d->col == 0) {
+            fprintf(stderr, "[%s] - %s\n", level, d->message);
+        } else {
+            fprintf(stderr, "[%s] %u:%u - %s\n",
+                    level, d->line, d->col, d->message);
+        }
     }
 }
 
@@ -2040,9 +2044,11 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             semantic_error(ctx, expr,
                                 "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'.\n"
                                 "Reason:\n"
+                                "- generic subject is function '%s'\n"
                                 "- function '%s' requires '%s: %s'\n"
                                 "- actual type argument is '%s'\n"
-                                "- this type argument was derived from the call site of '%s'\n"
+                                "- consumer path is call site of '%s'\n"
+                                "- expected type args are constrained by '%s: %s'\n"
                                 "Fix:\n"
                                 "- pass an argument whose type satisfies '%s'\n"
                                 "- or relax the function where-clause",
@@ -2050,10 +2056,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 bound_name != NULL ? bound_name : "<constraint>",
                                 param_name,
                                 display_name,
+                                display_name,
                                 param_name,
                                 bound_name != NULL ? bound_name : "<constraint>",
                                 concrete_type->name != NULL ? concrete_type->name : "<type>",
                                 display_name,
+                                param_name,
+                                bound_name != NULL ? bound_name : "<constraint>",
                                 bound_name != NULL ? bound_name : "<constraint>");
                         }
                     }

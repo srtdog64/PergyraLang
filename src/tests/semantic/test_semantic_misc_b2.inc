@@ -1468,6 +1468,47 @@
         lexer_destroy(lexer);
     }
 
+    TEST("intent declaration accepts interleaved participant and value header bindings");
+    {
+        const char *source =
+            "subject Buyer {\n"
+            "    let hp: Int;\n"
+            "    action Pay(self) -> Void { return; }\n"
+            "}\n"
+            "struct PriceQuote {\n"
+            "    amount: Int;\n"
+            "}\n"
+            "zone CheckoutZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Checkout(checkout: CheckoutZone, quote: PriceQuote, buyer: Buyer, price: Int) {\n"
+            "    step pay {\n"
+            "        where: CheckoutZone;\n"
+            "        using: checkout;\n"
+            "        who: buyer;\n"
+            "        guard: quote.amount >= price;\n"
+            "        on: buyer.Pay();\n"
+            "        expect: price > 0;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent step reuses action requires within causes and authorized by");
     {
         const char *source =
@@ -3112,7 +3153,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "requires ability 'Combatable<Int>'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "implement 'Combatable<String>' instead"));
+            "consumer path is party role slot 'fighter'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "actual implementation is 'Combatable<String>'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -3523,6 +3564,224 @@
         ast_destroy(program);
         remove(main_path);
         remove(module_path);
+    }
+
+    TEST("role impl rejects omitted trailing generic default arguments when default violates where bound");
+    {
+        const char *source =
+            "ability Bufferable<T = String> where T: Int {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n"
+            "subject Bag { let item: String; }\n"
+            "role BadBuffer for Bag {\n"
+            "    impl ability Bufferable {\n"
+            "        func Put(value: String) -> Void { return; }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "role 'BadBuffer' uses ability 'Bufferable' with generic argument 'String'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Int'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("action requires rejects omitted trailing generic default arguments when default violates where bound");
+    {
+        const char *source =
+            "ability Bufferable<T = String> where T: Int { func Put(value: T) -> Void; }\n"
+            "subject Bag {\n"
+            "    action Save(self) -> Void requires Bufferable {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n"
+            "role BadBuffer for Bag {\n"
+            "    impl ability Bufferable<String> { func Put(value: String) -> Void { return; } }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is action 'Save'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual type argument is 'String'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Int'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone authority rejects omitted trailing generic default arguments when default violates where bound");
+    {
+        const char *source =
+            "ability Bufferable<T = String> where T: Int { func Put(value: T) -> Void; }\n"
+            "subject Bag { let item: String; }\n"
+            "role BadBuffer for Bag {\n"
+            "    impl ability Bufferable<String> { func Put(value: String) -> Void { return; } }\n"
+            "}\n"
+            "zone StorageZone {\n"
+            "    subject slot bag: Bag\n"
+            "    authority bag requires Bufferable\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is Zone authority 'bag'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual type argument is 'String'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Int'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("party role slot rejects omitted trailing generic default arguments when default violates where bound");
+    {
+        const char *source =
+            "ability Bufferable<T = String> where T: Int { func Put(value: T) -> Void; }\n"
+            "subject Bag { let item: String; }\n"
+            "role BadBuffer for Bag {\n"
+            "    impl ability Bufferable<String> { func Put(value: String) -> Void { return; } }\n"
+            "}\n"
+            "party StorageParty {\n"
+            "    role slot buffer: Bufferable\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is party role slot 'buffer'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual type argument is 'String'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Int'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("action requires rejects generic ability reference that violates one of multiple where bounds");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "ability Cloneable { }\n"
+            "ability Bufferable<T> where T: Comparable + Cloneable { func Put(value: T) -> Void; }\n"
+            "subject Item { let hp: Int; action Save(self) -> Void requires Bufferable<Item> { return; } }\n"
+            "role ItemComparable for Item {\n"
+            "    impl ability Comparable { }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Cloneable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is action 'Save'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "expected type args are constrained by 'T: Cloneable'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone authority rejects generic ability reference that violates one of multiple where bounds");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "ability Cloneable { }\n"
+            "ability Bufferable<T> where T: Comparable + Cloneable { func Put(value: T) -> Void; }\n"
+            "subject Item { let hp: Int; }\n"
+            "role ItemComparable for Item {\n"
+            "    impl ability Comparable { }\n"
+            "}\n"
+            "zone StorageZone {\n"
+            "    subject slot item: Item\n"
+            "    authority item requires Bufferable<Item>\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Cloneable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is Zone authority 'item'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("party role slot rejects generic ability reference that violates one of multiple where bounds");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "ability Cloneable { }\n"
+            "ability Bufferable<T> where T: Comparable + Cloneable { func Put(value: T) -> Void; }\n"
+            "subject Item { let hp: Int; }\n"
+            "role ItemComparable for Item {\n"
+            "    impl ability Comparable { }\n"
+            "}\n"
+            "party StorageParty {\n"
+            "    role slot item: Bufferable<Item>\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Cloneable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is party role slot 'item'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("generic ability declaration rejects unknown where bound");

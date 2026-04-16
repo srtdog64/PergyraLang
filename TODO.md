@@ -1,13 +1,24 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-14
+마지막 업데이트: 2026-04-16
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
 ### 종합 판단: Late-Stage Alpha
 
-- 베타 진행률 추정: 약 `83%`
+- 베타 진행률 추정: 약 `86-87%`
 - 현재 표현: `late-stage alpha / beta-closure sprint`
+
+### 최근 closure 진행 (2026-04-16)
+
+- generic contract consumer path를 한 단계 더 닫음
+  - omitted trailing default type arg가 user-defined generic class specialization path에서도 effective arg 기준으로 검증되도록 정렬
+  - role impl / action requires / zone authority / party role slot에서 `default arg omission + where-bound violation` negative regressions 추가
+  - multi-bound / omitted-default / consumer provenance 조합 회귀를 semantic 기준으로 고정
+- own/ref 첫 일반화 vertical slice 시작
+  - existing movable resource value(`QubitSlot`)는 function boundary에서 explicit `own` transfer parameter를 허용
+  - `ref QubitSlot`는 아직 미닫힘 subset으로 유지하되, 이유/consumer path/fix가 포함된 structured diagnostic으로 고정
+  - 즉, `own/ref`는 여전히 전역 closure 전이지만, move semantics가 이미 있는 resource value에 대해서는 explicit transfer boundary가 부분적으로 열리기 시작함
 
 ### 최근 closure 진행 (2026-04-14)
 
@@ -122,6 +133,9 @@
 - anchored subset은 닫혀 있음
   - `ref Slot<subject-host>`
   - `own SecureSlot<subject-host>`
+- first movable-value transfer slice도 시작됨
+  - explicit `own QubitSlot` parameter는 허용
+  - `ref QubitSlot`는 아직 reject + structured diagnostic
 - 관련 진단/예제/문서는 현재 구현 기준으로 정렬됨
 
 판정:
