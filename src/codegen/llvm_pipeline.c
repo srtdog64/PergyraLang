@@ -509,14 +509,17 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 
     {
         ASTNode **decl_items = NULL;
+        ASTNode **methods = NULL;
         size_t decl_item_count = 0;
+        size_t method_count = 0;
         llvm_active_nominal_inventory(ctx, &decl_items, &decl_item_count);
         for (size_t i = 0; i < decl_item_count; i++) {
             ASTNode *stmt = decl_items[i];
             if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
                 const char *cls_name = stmt->data.class_decl.name;
-                for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
-                    ASTNode *method = stmt->data.class_decl.methods[j];
+                llvm_find_host_decl_methods_in_context(ctx, cls_name, &methods, &method_count);
+                for (size_t j = 0; j < method_count; j++) {
+                    ASTNode *method = methods != NULL ? methods[j] : NULL;
                     const MIRRoutine *mir_method;
                     if (method == NULL || method->type != AST_FUNC_DECL)
                         continue;

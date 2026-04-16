@@ -78,7 +78,7 @@ Current execution truth override:
 현재 baseline:
 
 - Linux: C + LLVM
-- Windows: C only
+- Windows: C regression always, plus LLVM smoke/backend-compare when an LLVM toolchain is detected
 
 완료 조건:
 

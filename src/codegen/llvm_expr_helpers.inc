@@ -220,13 +220,8 @@ llvm_build_option_value(LLVMGenCtx *ctx, LLVMTypeRef inner_ty,
 static ASTNode *
 llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
 {
-    const MIRDeclHeader *decl_header;
-
     if (ctx == NULL || name == NULL)
         return NULL;
-    decl_header = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, name) : NULL;
-    if (decl_header != NULL && decl_header->ast_type == AST_CLASS_DECL)
-        return decl_header->ast;
     return llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
 }
 
@@ -1298,17 +1293,15 @@ llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty)
 ASTNode *
 llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name)
 {
-    const MIRDeclHeader *decl_header = NULL;
     ASTNode **types = NULL;
     size_t type_count = 0;
+    ASTNode *decl;
 
     if (ctx == NULL || enum_name == NULL)
         return NULL;
-    if (ctx->mir != NULL) {
-        decl_header = mir_find_decl_header(ctx->mir, enum_name);
-        if (decl_header != NULL && decl_header->ast_type == AST_ENUM_DECL)
-            return decl_header->ast;
-    }
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, enum_name);
+    if (decl != NULL)
+        return decl;
     llvm_active_inventory(ctx, AST_ENUM_DECL, &types, &type_count);
     if (types == NULL) {
         return NULL;

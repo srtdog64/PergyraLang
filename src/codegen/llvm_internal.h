@@ -748,6 +748,36 @@ llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
 }
 
 static inline void
+llvm_find_host_decl_methods_in_context(const LLVMGenCtx *ctx,
+                                       const char *host_type_name,
+                                       ASTNode ***methods_out,
+                                       size_t *method_count_out)
+{
+    const MIRDeclHeader *decl_header = NULL;
+    ASTNode *decl = NULL;
+
+    if (methods_out != NULL)
+        *methods_out = NULL;
+    if (method_count_out != NULL)
+        *method_count_out = 0;
+    if (ctx == NULL || host_type_name == NULL)
+        return;
+
+    if (ctx->mir != NULL) {
+        decl_header = mir_find_decl_header(ctx->mir, host_type_name);
+        if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type))
+            decl = decl_header->ast;
+    }
+
+    if (decl == NULL)
+        decl = llvm_find_host_decl_in_active_inventory(ctx, host_type_name);
+    if (decl == NULL)
+        return;
+
+    llvm_host_decl_methods(decl_header, decl, methods_out, method_count_out);
+}
+
+static inline void
 llvm_active_nominal_inventory(const LLVMGenCtx *ctx,
                               ASTNode ***nodes_out,
                               size_t *count_out)

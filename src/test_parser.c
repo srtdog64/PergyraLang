@@ -56,7 +56,7 @@ ast_print_contains(ASTNode *ast, const char *needle)
         return 0;
     }
 
-    if (pgy_dup2(pgy_fileno(capture), pgy_fileno(stdout)) != 0) {
+    if (pgy_dup2(pgy_fileno(capture), pgy_fileno(stdout)) < 0) {
         pgy_close(saved_stdout);
         fclose(capture);
         return 0;

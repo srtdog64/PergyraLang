@@ -49,6 +49,10 @@ CI_LINUX_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-linux-build
 CI_LINUX_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-linux-bin
 CI_WINDOWS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-windows-build
 CI_WINDOWS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-windows-bin
+BASH := $(shell command -v bash 2>/dev/null)
+ifeq ($(strip $(BASH)),)
+BASH := bash
+endif
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
 WINDOWS_LLVM_READY := $(shell if [ -n "$(LLVM_CONFIG)" ] || [ -d /c/Program\ Files/LLVM/lib ] || [ -d "C:/Program Files/LLVM/lib" ]; then echo 1; else echo 0; fi)
 LLD := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
@@ -464,7 +468,7 @@ test-abi: $(ABI_TEST) $(PGY)
 	@echo "=== ABI Pipeline Smoke ==="
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_ABI_PIPELINE_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
-	bash tests/abi_pipeline_smoke.sh
+	$(BASH) tests/abi_pipeline_smoke.sh
 
 $(ABI_PERF_RUNTIME_RELEASE_OBS0): $(RUNTIME_DIR)/pgy_runtime_lib.c $(RUNTIME_DIR)/pgy_runtime.h
 	@mkdir -p $(dir $@)
@@ -548,7 +552,7 @@ llvm-test-hir:
 
 llvm-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(abspath $(PGY))" bash tests/llvm_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/llvm_smoke.sh
 
 llvm-test-abi-same-process: $(ABI_PIPELINE_TEST)
 	@echo "=== ABI Pipeline Same-Process LLVM Regression ==="
@@ -558,30 +562,30 @@ llvm-test-abi-same-process: $(ABI_PIPELINE_TEST)
 
 fmt-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" bash tests/fmt_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/fmt_smoke.sh
 
 stdlib-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" bash tests/stdlib_surface_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/stdlib_surface_smoke.sh
 
 module-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" bash tests/module_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/module_smoke.sh
 
 ir-pipeline-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" bash tests/ir_pipeline_probe.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir_pipeline_probe.sh
 
 llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
-	bash tests/compare_backends.sh
+	"$(BASH)" tests/compare_backends.sh
 
 example-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" bash tests/example_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/example_contract_smoke.sh
 
 llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test
@@ -591,8 +595,8 @@ llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test-memory
 	$(MAKE) LLVM_ENABLED=1 test-concurrency
 	$(MAKE) LLVM_ENABLED=1 test-hir
-	PGY_BIN="$(abspath $(PGY))" bash tests/llvm_smoke.sh
-	PGY_BIN="$(abspath $(PGY))" bash tests/compare_backends.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/llvm_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/compare_backends.sh
 
 check-linux-toolchain:
 	@cc_machine="$$( $(CI_LINUX_CC) -dumpmachine 2>/dev/null || true )"; \
