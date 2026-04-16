@@ -103,7 +103,7 @@ register_methods:
         size_t user_pc = 0;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = method->data.func_decl.params[k];
-            if (p->type == NULL && strcmp(p->name, "self") == 0)
+            if (llvm_param_is_implicit_self(p))
                 continue;
             user_pc++;
         }
@@ -117,7 +117,7 @@ register_methods:
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = method->data.func_decl.params[k];
-            if (p->type == NULL && strcmp(p->name, "self") == 0)
+            if (llvm_param_is_implicit_self(p))
                 continue;
             param_types[pidx++] = (p->type != NULL) ? ast_type_to_llvm(ctx, p->type)
                                                     : ctx->type_i32;
@@ -189,7 +189,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         size_t user_pc = 0;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = method->data.func_decl.params[k];
-            if (p->type == NULL && strcmp(p->name, "self") == 0)
+            if (llvm_param_is_implicit_self(p))
                 continue;
             user_pc++;
         }
@@ -199,7 +199,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = method->data.func_decl.params[k];
-            if (p->type == NULL && strcmp(p->name, "self") == 0)
+            if (llvm_param_is_implicit_self(p))
                 continue;
             param_types[pidx++] = (p->type != NULL) ? ast_type_to_llvm(ctx, p->type)
                                                     : ctx->type_i32;
@@ -226,7 +226,7 @@ llvm_register_active_nominal_types(LLVMGenCtx *ctx)
     if (ctx == NULL)
         return;
 
-    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
+    llvm_active_nominal_inventory(ctx, &types, &type_count);
     if (types == NULL)
         return;
 

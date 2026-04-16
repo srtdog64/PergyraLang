@@ -48,7 +48,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: anchored slot-handle boundary subset
-  - strict closure target: general own/ref on non-anchored/general movable value types
+  - explicit reject: general own/ref on non-anchored/general movable value types
   - beta-out-of-scope: general ownership system
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`

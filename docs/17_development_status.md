@@ -1,6 +1,6 @@
 # Pergyra 개발 현황
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-16
 
 ## 요약
 
@@ -12,6 +12,11 @@
 - C backend의 공식 역할 재정의는 `docs/51_c_backend_reference_policy.md`에 정리한다.
 - LLVM/native-first 전환 단계는 `docs/52_llvm_native_first_roadmap.md`에서 추적한다.
 - LLVM backend의 현재 검증 범위와 실제 debt는 `docs/62_llvm_backend_debt_ledger.md`에 따로 정리한다.
+- 2026-04-16 기준 LLVM 내부 helper 정리:
+  - host declaration/method lookup, implicit `self` 판정, pointer-self type classification을 공용 helper로 묶었다
+  - 이 정리 이후 남은 LLVM debt는 주로 `기능 누락`이 아니라 `AST-carried declaration inventory`와 일부 placement/provenance 구조 debt다
+- 메모리/런타임 음성 경로 테스트 위생:
+  - `test_memory_layout`의 expected panic / tracing allocator stderr를 억제해 CI 로그가 의도된 실패 probe 때문에 오염되지 않도록 했다
 - `parallel`을 코어 실행 primitive로 재정의한 정책은 `docs/53_parallel_core_policy.md`에 정리한다.
 - `spawn/select/async`를 `parallel` 아래 실행 family로 재배치하는 작업 보드는 `docs/54_parallel_execution_relayout_board.md`에서 추적한다.
 - 전체 언어 키워드의 현재 완성도와 공백은 `docs/55_keyword_progress_board.md`에서 추적한다.

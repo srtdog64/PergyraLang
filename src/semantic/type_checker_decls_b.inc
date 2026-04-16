@@ -2025,13 +2025,15 @@ type_check_projection_contract(ASTNode **slots,
             semantic_error(ctx, site,
                 "%s %s target slot '%s' uses the wrong projection kind.\n"
                 "Reason:\n"
-                "- %s expects a %s declaration\n"
-                "- '%s' is declared as a different projection kind\n"
+                "- %s requires target slot '%s' to use %s declaration\n"
+                "- actual target type '%s' uses a different projection kind\n"
                 "Fix:\n"
-                "- change '%s' to a %s declaration\n"
+                "- change slot '%s' to use %s declaration\n"
                 "- or switch to the matching projection operation",
                 owner_label, action_name,
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
+                action_name,
+                object_slot_name != NULL ? object_slot_name : "<slot>",
                 expected_label,
                 target_type->name != NULL ? target_type->name : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<slot>",

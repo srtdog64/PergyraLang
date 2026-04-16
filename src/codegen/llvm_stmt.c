@@ -66,116 +66,17 @@ llvm_stmt_render_type_arg(GenericParam *param)
 static ASTNode *
 llvm_stmt_find_zone_decl(LLVMGenCtx *ctx, const char *zone_name)
 {
-    ASTNode **zones = NULL;
-    size_t zone_count = 0;
-
     if (ctx == NULL || zone_name == NULL)
         return NULL;
-    llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
-    if (zones == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *stmt = zones[i];
-        if (stmt != NULL
-            && stmt->data.zone_decl.name != NULL
-            && strcmp(stmt->data.zone_decl.name, zone_name) == 0) {
-            return stmt;
-        }
-    }
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL, zone_name);
 }
 
 static ASTNode *
 llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
 {
-    ASTNode **effects = NULL;
-    size_t effect_count = 0;
-
     if (ctx == NULL || effect_name == NULL)
         return NULL;
-    llvm_active_inventory(ctx, AST_EFFECT_DECL, &effects, &effect_count);
-    if (effects == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < effect_count; i++) {
-        ASTNode *stmt = effects[i];
-        if (stmt != NULL
-            && stmt->data.effect_decl.name != NULL
-            && strcmp(stmt->data.effect_decl.name, effect_name) == 0) {
-            return stmt;
-        }
-    }
-    return NULL;
-}
-
-static ASTNode *
-llvm_stmt_find_host_decl_by_type_name(LLVMGenCtx *ctx, const char *type_name)
-{
-    ASTNode **types = NULL;
-    size_t type_count = 0;
-
-    if (ctx == NULL || type_name == NULL)
-        return NULL;
-    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
-    if (types != NULL) {
-        for (size_t i = 0; i < type_count; i++) {
-            ASTNode *stmt = types[i];
-            if (stmt == NULL)
-                continue;
-            if (stmt->type == AST_CLASS_DECL
-                && stmt->data.class_decl.name != NULL
-                && strcmp(stmt->data.class_decl.name, type_name) == 0) {
-                return stmt;
-            }
-        }
-    }
-
-    {
-        ASTNode *decl = llvm_stmt_find_effect_decl(ctx, type_name);
-        if (decl != NULL)
-            return decl;
-    }
-    {
-        ASTNode **relations = NULL;
-        size_t relation_count = 0;
-        llvm_active_inventory(ctx, AST_RELATION_DECL, &relations, &relation_count);
-        if (relations != NULL) {
-            for (size_t i = 0; i < relation_count; i++) {
-                ASTNode *stmt = relations[i];
-                if (stmt != NULL
-                    && stmt->type == AST_RELATION_DECL
-                    && stmt->data.relation_decl.name != NULL
-                    && strcmp(stmt->data.relation_decl.name, type_name) == 0) {
-                    return stmt;
-                }
-            }
-        }
-    }
-    {
-        ASTNode *decl = llvm_stmt_find_zone_decl(ctx, type_name);
-        if (decl != NULL)
-            return decl;
-    }
-    {
-        ASTNode **worlds = NULL;
-        size_t world_count = 0;
-        llvm_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
-        if (worlds != NULL) {
-            for (size_t i = 0; i < world_count; i++) {
-                ASTNode *stmt = worlds[i];
-                if (stmt != NULL
-                    && stmt->type == AST_WORLD_DECL
-                    && stmt->data.world_decl.name != NULL
-                    && strcmp(stmt->data.world_decl.name, type_name) == 0) {
-                    return stmt;
-                }
-            }
-        }
-    }
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_EFFECT_DECL, effect_name);
 }
 
 static ASTNode *
@@ -557,62 +458,6 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
 }
 
 static ASTNode *
-llvm_stmt_find_host_method_decl(ASTNode *host_decl, const char *method_name)
-{
-    if (host_decl == NULL || method_name == NULL)
-        return NULL;
-
-    if (host_decl->type == AST_CLASS_DECL) {
-        for (size_t i = 0; i < host_decl->data.class_decl.method_count; i++) {
-            ASTNode *method = host_decl->data.class_decl.methods[i];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, method_name) == 0) {
-                return method;
-            }
-        }
-    } else if (host_decl->type == AST_RELATION_DECL) {
-        for (size_t i = 0; i < host_decl->data.relation_decl.method_count; i++) {
-            ASTNode *method = host_decl->data.relation_decl.methods[i];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, method_name) == 0) {
-                return method;
-            }
-        }
-    } else if (host_decl->type == AST_EFFECT_DECL) {
-        for (size_t i = 0; i < host_decl->data.effect_decl.method_count; i++) {
-            ASTNode *method = host_decl->data.effect_decl.methods[i];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, method_name) == 0) {
-                return method;
-            }
-        }
-    } else if (host_decl->type == AST_ZONE_DECL) {
-        for (size_t i = 0; i < host_decl->data.zone_decl.method_count; i++) {
-            ASTNode *method = host_decl->data.zone_decl.methods[i];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, method_name) == 0) {
-                return method;
-            }
-        }
-    } else if (host_decl->type == AST_WORLD_DECL) {
-        for (size_t i = 0; i < host_decl->data.world_decl.method_count; i++) {
-            ASTNode *method = host_decl->data.world_decl.methods[i];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, method_name) == 0) {
-                return method;
-            }
-        }
-    }
-
-    return NULL;
-}
-
-static ASTNode *
 llvm_stmt_find_zone_domain_slot_decl(ASTNode *zone_decl, const char *slot_name)
 {
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
@@ -707,7 +552,6 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     ASTNode *callee;
     ASTNode *receiver;
     ASTNode *zone_decl;
-    ASTNode *host_decl;
     ASTNode *method_decl;
     ASTNode *effect_decl;
     LLVMClassTypeEntry *zone_cls;
@@ -742,8 +586,8 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         return;
     }
 
-    host_decl = llvm_stmt_find_host_decl_by_type_name(ctx, receiver_type_name);
-    method_decl = llvm_stmt_find_host_method_decl(host_decl, method_name);
+    method_decl = llvm_find_host_method_decl_in_context(ctx, receiver_type_name,
+                                                        method_name);
     if (method_decl == NULL || method_decl->type != AST_FUNC_DECL
         || method_decl->is_async_decl
         || !method_decl->data.func_decl.is_action
@@ -879,15 +723,14 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                 }
                 {
                     const char *receiver_type = NULL;
-                    ASTNode *host_decl = NULL;
                     ASTNode *method_decl = NULL;
                     if (strcmp(name, "self") == 0)
                         receiver_type = ctx != NULL ? ctx->current_class_name : NULL;
                     if (receiver_type == NULL)
                         receiver_type = llvm_lookup_var_class(ctx, name);
                     if (receiver_type != NULL) {
-                        host_decl = llvm_stmt_find_host_decl_by_type_name(ctx, receiver_type);
-                        method_decl = llvm_stmt_find_host_method_decl(host_decl, method_name);
+                        method_decl = llvm_find_host_method_decl_in_context(
+                            ctx, receiver_type, method_name);
                         if (method_decl != NULL
                             && method_decl->data.func_decl.return_type != NULL
                             && method_decl->data.func_decl.return_type->type == AST_TYPE

@@ -364,7 +364,7 @@ run_stable_examples() {
 run_qubit_example() {
     local backend="$1"
     local output
-    local values
+    local -a values=()
     local line1
     local line2
     local line3
@@ -373,13 +373,17 @@ run_qubit_example() {
     local out_bin="$WORK_DIR/beta_qubit_experimental_${backend}"
 
     output="$("$PGY" "$ROOT_DIR/examples/beta_qubit_experimental.pgy" --run --backend="$backend" -o "$out_bin" 2>&1)"
-    values="$(grep -E '^(0|1|2)$' <<<"$output" || true)"
+    mapfile -t values < <(
+        printf '%s\n' "$output" \
+            | tr -d '\r' \
+            | sed -n 's/^[[:space:]]*\([012]\)[[:space:]]*$/\1/p'
+    )
 
-    line1="$(sed -n '1p' <<<"$values")"
-    line2="$(sed -n '2p' <<<"$values")"
-    line3="$(sed -n '3p' <<<"$values")"
-    line4="$(sed -n '4p' <<<"$values")"
-    line5="$(sed -n '5p' <<<"$values")"
+    line1="${values[0]:-}"
+    line2="${values[1]:-}"
+    line3="${values[2]:-}"
+    line4="${values[3]:-}"
+    line5="${values[4]:-}"
 
     if [[ "$line1" != "2" ]]; then
         echo "[example-smoke] beta_qubit_experimental backend=$backend missing initial superposition state" >&2

@@ -1,6 +1,6 @@
 # LLVM 백엔드 커버리지 현황
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-16
 
 이 문서는 현재 LLVM 백엔드의 실제 검증 범위와 남은 debt만 짧게 정리한다.
 이전의 AST inventory 중심 문서는 구현 진척을 따라가지 못해 stale해졌고,
@@ -93,7 +93,13 @@
 - [llvm_pipeline.c](/mnt/e/PergyraLang/src/codegen/llvm_pipeline.c)
 - [llvm_intent.c](/mnt/e/PergyraLang/src/codegen/llvm_intent.c)
 
-### 2. expression-level type exactness debt
+### 2. recently reduced structural duplication
+
+- declaration / intent / MIR param path가 각각 따로 들고 있던 pointer-self 판정은 이제 `llvm_type_name_uses_pointer_self(...)`와 `llvm_ast_type_uses_pointer_self(...)` 공용 helper로 합쳐졌다
+- host declaration / host method lookup도 active inventory helper를 공용 사용하도록 맞췄다
+- 따라서 현재 LLVM debt를 읽을 때 `중복 판정 로직`은 주 채무가 아니고, 여전히 남은 것은 declaration inventory representation 쪽이다
+
+### 3. expression-level type exactness debt
 
 - party/vtable dispatch의 hardcoded arg type debt는 제거됐다
 - 남은 debt는 domain declaration emission과 intent/domain 내부의 일부 AST-assisted 경로 쪽이다
@@ -102,7 +108,7 @@
 
 - [llvm_expr_call_methods.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods.inc)
 
-### 3. escape/local placement debt
+### 4. escape/local placement debt
 
 - LLVM AST emission path와 hosted method path에는 local sinking이 들어갔다
 - 하지만 MIR temporary/storage placement 전체를 다 닫은 상태는 아니다
@@ -112,7 +118,16 @@
 - [llvm_mir_emit.c](/mnt/e/PergyraLang/src/codegen/llvm_mir_emit.c)
 - [slot_analyzer.c](/mnt/e/PergyraLang/src/semantic/slot_analyzer.c)
 
-### 4. coverage 문서 debt
+### 5. test/log noise debt
+
+- expected panic probe와 tracing allocator probe는 이제 stderr suppression으로 정리됐다
+- 남은 테스트 debt는 실제 regression 신호와 운영 노이즈를 더 분리하는 쪽이다
+
+관련 파일:
+
+- [test_memory_layout.c](/mnt/e/PergyraLang/src/test_memory_layout.c)
+
+### 6. coverage 문서 debt
 
 - 이전 문서가 `미구현`으로 적어 둔 여러 AST 항목은 현재 구현과 맞지 않았다
 - 특히 `intent`, `zone`, `relation/effect`, `subject dispatch` 쪽이 stale했다

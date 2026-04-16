@@ -28,6 +28,8 @@
 | **현황** | [`docs/65_stable_example_surface_board.md`](docs/65_stable_example_surface_board.md) | stable example / design sketch 예제 경계와 source of truth |
 | **현황** | [`docs/66_semantic_implementation_map.md`](docs/66_semantic_implementation_map.md) | 의미론 기준의 현재 구현 지도와 stable/partial 분류 |
 | **현황** | [`docs/68_pain_point_report.md`](docs/68_pain_point_report.md) | 실제 사용 pain point 보고 (컴파일/런타임 버그 포함) |
+| **현황** | [`docs/70_beta_closure_master_board.md`](docs/70_beta_closure_master_board.md) | 베타 판정 기준, B0/B1 차단축, MIR-only/parity/observability 마감 보드 |
+| **현황** | [`docs/71_beta_execution_tickets.md`](docs/71_beta_execution_tickets.md) | master board를 16개 실행 티켓으로 자른 beta blocker / trust 실행 보드 |
 | **라이브러리** | [`docs/29_stdlib_design.md`](docs/29_stdlib_design.md) | stdlib/common/domain kit 계층과 모듈 정책 |
 | **라이브러리** | [`docs/67_layered_stdlib_and_domain_kits.md`](docs/67_layered_stdlib_and_domain_kits.md) | 코어 추가 금지, common stdlib vs domain kit 분리 정책 |
 | **사용성** | [`docs/58_keyword_authorship_pain_points.md`](docs/58_keyword_authorship_pain_points.md) | 키워드/작성 UX pain point 정리 |

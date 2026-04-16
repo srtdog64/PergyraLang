@@ -2655,12 +2655,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *k = emit_expression(call->data.call.arguments[1], ctx);
             char *v = emit_expression(call->data.call.arguments[2], ctx);
             const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *key = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
-                ? constructed_arg_name_at(map_type, 0)
-                : "String";
-            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
-                ? constructed_arg_name_at(map_type, 1)
-                : "Int";
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt(
                 strcmp(key, "Int") == 0 ? "pgy_map_set_i32_%s(&%s, %s, %s)"
@@ -2673,12 +2677,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
             const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *key = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
-                ? constructed_arg_name_at(map_type, 0)
-                : "String";
-            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
-                ? constructed_arg_name_at(map_type, 1)
-                : "Int";
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt(
                 strcmp(key, "Int") == 0 ? "pgy_map_get_i32_%s(&%s, %s)"
@@ -2691,12 +2699,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
             const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *key = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
-                ? constructed_arg_name_at(map_type, 0)
-                : "String";
-            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
-                ? constructed_arg_name_at(map_type, 1)
-                : "Int";
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt(
                 strcmp(key, "Int") == 0 ? "pgy_map_has_i32_%s(&%s, %s)"
@@ -2709,12 +2721,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
             const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *key = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
-                ? constructed_arg_name_at(map_type, 0)
-                : "String";
-            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
-                ? constructed_arg_name_at(map_type, 1)
-                : "Int";
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt(
                 strcmp(key, "Int") == 0 ? "pgy_map_remove_i32_%s(&%s, %s)"
@@ -2731,6 +2747,28 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 : "Int";
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt("pgy_map_size_%s(&%s)",
+                collection_runtime_suffix(value), m);
+            free(m);
+            return result;
+        }
+        if (strcmp(fn, "MapKeys") == 0 && call->data.call.arg_count == 1) {
+            char *m = emit_expression(call->data.call.arguments[0], ctx);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0
+                    ? "pgy_map_keys_i32_%s(&%s)"
+                    : "pgy_map_keys_%s(&%s)",
                 collection_runtime_suffix(value), m);
             free(m);
             return result;

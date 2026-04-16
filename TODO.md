@@ -28,6 +28,13 @@
 즉, intent declaration/step emission은 아직 완전 MIR-only 선언이 끝난 것은 아니지만,
 `participant/step contract inventory`를 AST presence에 기대던 가장 거친 fallback는 한 단계 더 제거됐다.
 
+### 베타 기준판 추가 (2026-04-15)
+
+- `docs/70_beta_closure_master_board.md` 추가
+  - B0 4축, declaration-side MIR-only debt, parity, runtime observability, surface trust를 한 장으로 고정
+  - 베타 acceptance line과 exit rule을 명시
+  - 앞으로 TODO의 개별 작업은 이 보드 기준으로 우선순위를 따른다
+
 실행 가능한 연구용 컴파일러 단계는 넘겼지만, 아직 베타라고 부를 수는 없다.
 
 판정 기준:
@@ -239,13 +246,23 @@
 
 - [ ] **Intent/Zone/World semantics 완전 closure**
   - contract reuse/derivation / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
+  - 이미 존재: intent orchestration, inherited/derived contract, zone/world query, observability baseline
+  - 남음: embedding ownership/handoff policy, cross-layer propagation policy, richer provenance, declaration/runtime/diagnostic parity
+  - 이 축은 언어 정체성 자체이므로 beta 직전까지 열어두지 않는다
 - [ ] **relation/effect/projection semantics 완전 closure**
   - effect lattice, authority-resource partial order 통합, refresh/publish/bind/causes 일관화, diagnostics, C/LLVM parity
+  - 이미 존재: declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync, effect join/meet/conflict, projection contract diagnostics baseline
+  - 남음: authority-resource partial order 통합, projection propagation policy, runtime contract provenance, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity
+  - 이 축은 domain semantics 핵심이므로 partial 상태로 beta에 올리지 않는다
+  - projection diagnostics는 `target/source/projection kind/field path/fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
 - [ ] **generic contract 완전 closure**
   - strict beta-quality 기준으로 stable subset closure에서 재개방
   - `default type arg` actual resolution, `where T: A + B` 전경로 enforcement, `ability<T>` mismatch provenance, instantiation-path parity까지 닫는다
   - 완료: default type arg declaration acceptance / omitted trailing default resolution / generic ability impl-reference omission / arity diagnostics provenance
-  - 남음: multi-bound 전경로 enforcement, module-contract propagation, richer mismatch provenance, wider C/LLVM regression 확대
+  - 이미 존재: `ability<T>` baseline, default type arg baseline, omitted trailing default resolution, generic mismatch provenance baseline
+  - 남음: multi-bound 전경로 enforcement, module-contract propagation, instantiation-path parity, richer mismatch diagnostics, wider C/LLVM regression 확대
+  - generic mismatch는 `generic subject / expected type args / actual type args / broken bound / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
+  - generic은 partial acceptance를 beta에 올리지 않는다
 - [ ] **own/ref 완전 closure**
   - strict beta-quality 기준으로 anchored subset closure에서 재개방
   - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫는다
@@ -258,6 +275,10 @@
   - canonical examples와 closure examples를 smoke에 직접 연결
   - explicit surface vs compressed surface를 같은 의미로 보여주는 pair example 최소 4쌍 고정
   - 대상: app/web orchestration, game/simulation, async/worker/device, world-handoff/domain propagation
+- [ ] **Backend parity final closure**
+  - C/LLVM이 domain semantics 기준으로 같은 결과를 내는지 고정
+  - 대상: intent/zone/world, relation/effect/projection, ownership boundary, refresh/publish/bind, world embedding/handoff
+  - 기준: backend compare / llvm smoke / example smoke / ABI-runtime probe가 Linux/Windows 모두 녹색
 - [ ] **experimental surface 제거 또는 격리**
   - 닫지 못한 parser surface는 명시 거부 또는 문법 제거
 

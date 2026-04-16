@@ -82,6 +82,7 @@ pgy_exec_argv(const char *const argv[], bool verbose)
 #endif
 }
 
+#ifdef PGY_LLVM_ENABLED
 static void
 compiler_debug_llvm_host_stage(const char *stage)
 {
@@ -90,6 +91,7 @@ compiler_debug_llvm_host_stage(const char *stage)
     printf("[llvm host] %s\n", stage);
     fflush(stdout);
 }
+#endif
 
 #ifdef _WIN32
 /* Silent probe via CreateProcess: stdout/stderr → NUL in the child only.
@@ -622,16 +624,22 @@ compiler_build_native(const CompilerIRBundle *bundle,
     const char *cc = pgy_detect_c_compiler();
     const char *cc_target = pgy_cc_extra_target_flag();
     {
-        const char *compile_argv[20];
+        const char *compile_argv[24];
         int ci = 0;
 #ifdef _WIN32
-        const char *link_argv[20];
+        const char *link_argv[24];
         int li = 0;
 #endif
         compile_argv[ci++] = cc;
         if (cc_target != NULL) compile_argv[ci++] = cc_target;
         compile_argv[ci++] = "-std=c11";
         compile_argv[ci++] = "-Wall";
+        compile_argv[ci++] = "-Wno-unused-function";
+#ifdef _WIN32
+        compile_argv[ci++] = "-Wno-unused-value";
+        compile_argv[ci++] = "-Wno-parentheses-equality";
+        compile_argv[ci++] = "-Wno-c23-extensions";
+#endif
         compile_argv[ci++] = opt_flag;
 #ifndef _WIN32
         compile_argv[ci++] = "-fopenmp";
@@ -905,6 +913,8 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         uses_intent_observability
             ? "-DPGY_INTENT_OBSERVABILITY_ENABLED=1"
             : "-DPGY_INTENT_OBSERVABILITY_ENABLED=0";
+    const char *cc = pgy_detect_c_compiler();
+    const char *cc_target = pgy_cc_extra_target_flag();
     result = compiler_success(output_obj_path, output_binary_path);
     if (result == NULL) {
         free(runtime_obj_path);
@@ -913,25 +923,45 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     result->backend_timings.codegen = compiler_now_seconds() - phase_start;
     compiler_debug_llvm_host_stage("runtime_prepare");
 #ifdef _WIN32
-    const char *compile_runtime_argv[] = {
-        pgy_detect_c_compiler(), "-std=c11", "-Wall", opt_flag,
-        intent_observability_flag,
-        "-DPGY_LLVM_ENABLED",
-        "-I", PGY_SRC_DIR,
-        "-c", PGY_RUNTIME_LIB_C,
-        "-o", runtime_obj_path,
-        NULL
-    };
+    const char *compile_runtime_argv[24];
+    int compile_runtime_argc = 0;
+    compile_runtime_argv[compile_runtime_argc++] = cc;
+    if (cc_target != NULL)
+        compile_runtime_argv[compile_runtime_argc++] = cc_target;
+    compile_runtime_argv[compile_runtime_argc++] = "-std=c11";
+    compile_runtime_argv[compile_runtime_argc++] = "-Wall";
+    compile_runtime_argv[compile_runtime_argc++] = "-Wno-unused-value";
+    compile_runtime_argv[compile_runtime_argc++] = "-Wno-parentheses-equality";
+    compile_runtime_argv[compile_runtime_argc++] = "-Wno-c23-extensions";
+    compile_runtime_argv[compile_runtime_argc++] = opt_flag;
+    compile_runtime_argv[compile_runtime_argc++] = intent_observability_flag;
+    compile_runtime_argv[compile_runtime_argc++] = "-DPGY_LLVM_ENABLED";
+    compile_runtime_argv[compile_runtime_argc++] = "-I";
+    compile_runtime_argv[compile_runtime_argc++] = PGY_SRC_DIR;
+    compile_runtime_argv[compile_runtime_argc++] = "-c";
+    compile_runtime_argv[compile_runtime_argc++] = PGY_RUNTIME_LIB_C;
+    compile_runtime_argv[compile_runtime_argc++] = "-o";
+    compile_runtime_argv[compile_runtime_argc++] = runtime_obj_path;
+    compile_runtime_argv[compile_runtime_argc] = NULL;
 #else
-    const char *compile_runtime_argv[] = {
-        pgy_detect_c_compiler(), "-std=c11", "-Wall", opt_flag, "-fopenmp",
-        intent_observability_flag,
-        "-DPGY_LLVM_ENABLED",
-        "-I", PGY_SRC_DIR,
-        "-c", PGY_RUNTIME_LIB_C,
-        "-o", runtime_obj_path,
-        NULL
-    };
+    const char *compile_runtime_argv[20];
+    int compile_runtime_argc = 0;
+    compile_runtime_argv[compile_runtime_argc++] = cc;
+    if (cc_target != NULL)
+        compile_runtime_argv[compile_runtime_argc++] = cc_target;
+    compile_runtime_argv[compile_runtime_argc++] = "-std=c11";
+    compile_runtime_argv[compile_runtime_argc++] = "-Wall";
+    compile_runtime_argv[compile_runtime_argc++] = opt_flag;
+    compile_runtime_argv[compile_runtime_argc++] = "-fopenmp";
+    compile_runtime_argv[compile_runtime_argc++] = intent_observability_flag;
+    compile_runtime_argv[compile_runtime_argc++] = "-DPGY_LLVM_ENABLED";
+    compile_runtime_argv[compile_runtime_argc++] = "-I";
+    compile_runtime_argv[compile_runtime_argc++] = PGY_SRC_DIR;
+    compile_runtime_argv[compile_runtime_argc++] = "-c";
+    compile_runtime_argv[compile_runtime_argc++] = PGY_RUNTIME_LIB_C;
+    compile_runtime_argv[compile_runtime_argc++] = "-o";
+    compile_runtime_argv[compile_runtime_argc++] = runtime_obj_path;
+    compile_runtime_argv[compile_runtime_argc] = NULL;
 #endif
     phase_start = compiler_now_seconds();
     if (using_prebuilt_runtime && !compiler_runtime_cache_is_fresh(runtime_obj_path)) {
@@ -966,9 +996,11 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     int rc;
 #ifdef _WIN32
     {
-        const char *link_argv[16];
+        const char *link_argv[18];
         int link_argc = 0;
-        link_argv[link_argc++] = pgy_detect_c_compiler();
+        link_argv[link_argc++] = cc;
+        if (cc_target != NULL)
+            link_argv[link_argc++] = cc_target;
         link_argv[link_argc++] = "-std=c11";
         link_argv[link_argc++] = opt_flag;
         link_argv[link_argc++] = "-mconsole";
@@ -986,9 +1018,11 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     }
 #else
     {
-        const char *link_argv[20];
+        const char *link_argv[22];
         int link_argc = 0;
-        link_argv[link_argc++] = pgy_detect_c_compiler();
+        link_argv[link_argc++] = cc;
+        if (cc_target != NULL)
+            link_argv[link_argc++] = cc_target;
         link_argv[link_argc++] = "-std=c11";
         link_argv[link_argc++] = opt_flag;
         if (opt_profile == PGY_OPT_RELEASE) {

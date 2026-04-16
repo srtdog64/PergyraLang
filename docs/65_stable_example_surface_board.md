@@ -1,6 +1,6 @@
 # Stable Example Surface Board
 
-마지막 업데이트: 2026-04-14
+마지막 업데이트: 2026-04-15
 
 이 문서는 예제를 세 가지로 분리한다.
 
@@ -53,7 +53,6 @@
 | `examples/six_item_alignment_demo/` | stable | alignment/authoring demo |
 | `examples/ownership_forwarding_probe/` | stable | `own/ref` anchored-slot boundary subset |
 | `examples/order_analytics/` | stable | compile-smoke covered analytics example |
-| `examples/beta_qubit_experimental.pgy` | stable | quantum surface probe within current partial scope |
 
 이 목록의 의미:
 
@@ -118,6 +117,15 @@
 
 즉 이 파일들은 "방향"을 보여 주는 문서형 예제이지,
 현재 문법/semantic/codegen 계약의 기준 예제가 아니다.
+
+## 2.5 Explicit experimental examples
+
+다음 예제는 compile-smoke를 돌릴 수 있어도 beta stable subset으로 취급하지 않는다.
+문서에서 이 예제들을 stable source of truth처럼 링크하면 surface trust가 무너진다.
+
+| 예제 | 상태 | 주의 |
+| --- | --- | --- |
+| `examples/beta_qubit_experimental.pgy` | experimental | `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` partial surface probe only; full quantum resource semantics is `v2 / experimental` |
 
 ## 3. Reference examples (real surface, not smoke-covered yet)
 

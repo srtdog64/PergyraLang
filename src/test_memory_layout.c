@@ -21,6 +21,25 @@
 #include <stddef.h>
 #include <signal.h>
 #include <setjmp.h>
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#define PGY_DUP _dup
+#define PGY_DUP2 _dup2
+#define PGY_CLOSE _close
+#define PGY_OPEN _open
+#define PGY_FILENO _fileno
+#define PGY_NULL_DEVICE "NUL"
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#define PGY_DUP dup
+#define PGY_DUP2 dup2
+#define PGY_CLOSE close
+#define PGY_OPEN open
+#define PGY_FILENO fileno
+#define PGY_NULL_DEVICE "/dev/null"
+#endif
 
 /* Enable debug mode for slot safety checks */
 #define PGY_DEBUG
@@ -49,6 +68,100 @@ static int g_fail = 0;
 static jmp_buf g_panic_jmp;
 static volatile sig_atomic_t g_panic_expected = 0;
 
+static int
+pgy_suppress_expected_panic_output(void)
+{
+    int saved_stderr = PGY_DUP(PGY_FILENO(stderr));
+    int null_fd;
+
+    if (saved_stderr < 0)
+        return -1;
+
+    null_fd = PGY_OPEN(PGY_NULL_DEVICE, O_WRONLY);
+    if (null_fd < 0) {
+        PGY_CLOSE(saved_stderr);
+        return -1;
+    }
+
+    if (PGY_DUP2(null_fd, PGY_FILENO(stderr)) < 0) {
+        PGY_CLOSE(null_fd);
+        PGY_CLOSE(saved_stderr);
+        return -1;
+    }
+
+    PGY_CLOSE(null_fd);
+    return saved_stderr;
+}
+
+static void
+pgy_restore_expected_panic_output(int saved_stderr)
+{
+    if (saved_stderr < 0)
+        return;
+    fflush(stderr);
+    PGY_DUP2(saved_stderr, PGY_FILENO(stderr));
+    PGY_CLOSE(saved_stderr);
+}
+
+static void
+pgy_with_suppressed_stderr(void (*fn)(void *), void *userdata)
+{
+    int saved_stderr;
+
+    if (fn == NULL)
+        return;
+
+    saved_stderr = pgy_suppress_expected_panic_output();
+    fn(userdata);
+    pgy_restore_expected_panic_output(saved_stderr);
+}
+
+typedef struct {
+    PgyAllocator alloc;
+} AllocatorTraceProbe;
+
+static void
+allocator_trace_probe_run(void *userdata)
+{
+    AllocatorTraceProbe *probe = (AllocatorTraceProbe *)userdata;
+    int32_t *data;
+
+    if (probe == NULL)
+        return;
+
+    data = (int32_t*)pgy_alloc(&probe->alloc, sizeof(int32_t) * 4, _Alignof(int32_t));
+    pgy_free(&probe->alloc, data, sizeof(int32_t) * 4);
+}
+
+typedef struct {
+    PgyAllocator alloc;
+    PgyBoxArray_Int box;
+    PgyArray_Int *arr;
+} BoxArrayTraceProbe;
+
+static void
+box_array_trace_probe_create(void *userdata)
+{
+    BoxArrayTraceProbe *probe = (BoxArrayTraceProbe *)userdata;
+
+    if (probe == NULL)
+        return;
+
+    probe->box = pgy_box_array_new_Int(16, &probe->alloc);
+    probe->arr = pgy_box_array_get_Int(&probe->box);
+}
+
+static void
+box_array_trace_probe_drop(void *userdata)
+{
+    BoxArrayTraceProbe *probe = (BoxArrayTraceProbe *)userdata;
+
+    if (probe == NULL)
+        return;
+
+    pgy_box_array_drop_Int(&probe->box);
+}
+
 static void
 panic_handler(int sig)
 {
@@ -69,6 +182,7 @@ panic_handler(int sig)
  */
 #define EXPECT_PANIC(name, code_block) \
     do { \
+        int _saved_stderr = pgy_suppress_expected_panic_output(); \
         printf("  %-60s", name); \
         signal(SIGABRT, panic_handler); \
         g_panic_expected = 1; \
@@ -80,6 +194,7 @@ panic_handler(int sig)
         } else { \
             printf("pass\n"); g_pass++; \
         } \
+        pgy_restore_expected_panic_output(_saved_stderr); \
         signal(SIGABRT, SIG_DFL); \
     } while (0)
 
@@ -430,10 +545,9 @@ test_allocator_features(void)
 
     TEST("tracing allocator tracks allocation and free counts");
     {
-        PgyAllocator alloc = pgy_allocator_tracing();
-        int32_t *data = (int32_t*)pgy_alloc(&alloc, sizeof(int32_t) * 4, _Alignof(int32_t));
-        pgy_free(&alloc, data, sizeof(int32_t) * 4);
-        EXPECT(alloc.allocations == 1 && alloc.deallocations == 1);
+        AllocatorTraceProbe probe = { pgy_allocator_tracing() };
+        pgy_with_suppressed_stderr(allocator_trace_probe_run, &probe);
+        EXPECT(probe.alloc.allocations == 1 && probe.alloc.deallocations == 1);
     }
 
     TEST("pool allocator serves allocations from fixed buffer");
@@ -487,12 +601,13 @@ test_box_array_features(void)
 
     TEST("BoxArray uses single fused allocation layout");
     {
-        PgyAllocator alloc = pgy_allocator_tracing();
-        PgyBoxArray_Int box = pgy_box_array_new_Int(16, &alloc);
-        PgyArray_Int *arr = pgy_box_array_get_Int(&box);
-        EXPECT(arr->data == ((int32_t*)((char*)arr + sizeof(PgyArray_Int))));
-        EXPECT(alloc.allocations == 1);
-        pgy_box_array_drop_Int(&box);
+        BoxArrayTraceProbe probe;
+        memset(&probe, 0, sizeof(probe));
+        probe.alloc = pgy_allocator_tracing();
+        pgy_with_suppressed_stderr(box_array_trace_probe_create, &probe);
+        EXPECT(probe.arr->data == ((int32_t*)((char*)probe.arr + sizeof(PgyArray_Int))));
+        EXPECT(probe.alloc.allocations == 1);
+        pgy_with_suppressed_stderr(box_array_trace_probe_drop, &probe);
     }
 
     TEST("BoxArray stores values through embedded array");

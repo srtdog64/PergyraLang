@@ -1,6 +1,6 @@
 # Pergyra 언어 상태 평가
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-15
 
 ## 요약
 
@@ -150,7 +150,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: anchored slot-handle boundary subset
-  - strict closure target: general own/ref on non-anchored/general movable value types
+  - explicit reject: general own/ref on non-anchored/general movable value types
   - beta-out-of-scope: general ownership system
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`
@@ -160,6 +160,20 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
   - stable subset: `last / history / active / recent`
   - explicit reject: 없음
   - beta-out-of-scope: richer multi-instance timeline query와 deeper failure provenance query
+
+## Current beta support matrix
+
+문서와 CI가 같은 말을 하도록 현재 지원 범위를 아래처럼 고정한다.
+
+- Linux
+  - beta support contract: C backend + LLVM backend
+  - CI truth: `make ci-linux`가 `test-all`, `fmt-test-smoke`, `stdlib-test-smoke`, `module-test-smoke`, `example-test-smoke`, `llvm-test-backend-compare`를 돈다
+- Windows
+  - beta support contract: C backend는 기본 지원, LLVM backend는 toolchain이 잡힌 환경에서 smoke/backend-compare 기준으로 지원
+  - CI truth: `make ci-windows`가 항상 C regression(`test-all`, `fmt-test-smoke`, `stdlib-test-smoke`, `example-test-smoke`)을 돌리고, Windows LLVM toolchain이 감지되면 `llvm-test-smoke`와 `llvm-test-backend-compare`까지 추가로 돈다
+
+이 문서 기준으로는 아직 Windows LLVM parity를 beta 지원 계약에 올리지 않는다.
+Windows LLVM을 공식 beta support로 올리려면 README, TODO, CI, backend parity regressions가 함께 바뀌어야 한다.
 
 ## Failure handling status and policy boundary
 

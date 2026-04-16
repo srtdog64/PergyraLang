@@ -287,7 +287,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     size_t argc = node->data.call.arg_count;
                     LLVMValueRef *args = calloc(argc + 1,
                                                  sizeof(LLVMValueRef));
-                    if (llvm_nominal_uses_pointer_self(ctx, class_name)) {
+                    if (llvm_type_name_uses_pointer_self(ctx, class_name)) {
                         if (var != NULL && strcmp(var_name, "self") == 0) {
                             if (var->type == LLVMPointerType(cls->struct_type, 0))
                                 args[0] = LLVMBuildLoad2(ctx->builder,
@@ -458,7 +458,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     return LLVMConstInt(ctx->type_i32, 0, 0);
                 }
 
-                if (llvm_nominal_uses_pointer_self(ctx, class_name)) {
+                if (llvm_type_name_uses_pointer_self(ctx, class_name)) {
                     args[0] = self_ptr;
                 } else {
                     args[0] = LLVMBuildLoad2(ctx->builder,
@@ -558,7 +558,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 ASTNode *method_decl = llvm_find_nominal_host_method_decl(ctx,
                     class_name, method_name);
 
-                if (llvm_nominal_uses_pointer_self(ctx, class_name))
+                if (llvm_type_name_uses_pointer_self(ctx, class_name))
                     args[0] = field_ptr;
                 else
                     args[0] = LLVMBuildLoad2(ctx->builder,

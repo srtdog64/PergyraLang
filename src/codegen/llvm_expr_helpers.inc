@@ -63,20 +63,9 @@ llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name)
 }
 
 static bool
-llvm_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name);
-
-static bool
 llvm_boundary_param_uses_pointer_self(LLVMGenCtx *ctx, FuncParam *param)
 {
-    const char *type_name;
-
-    if (ctx == NULL || param == NULL || param->type == NULL
-        || param->type->type != AST_TYPE
-        || param->type->data.type.name == NULL)
-        return false;
-
-    type_name = param->type->data.type.name;
-    return llvm_nominal_uses_pointer_self(ctx, type_name);
+    return param != NULL && llvm_ast_type_uses_pointer_self(ctx, param->type);
 }
 
 static LLVMValueRef *
@@ -231,8 +220,13 @@ llvm_build_option_value(LLVMGenCtx *ctx, LLVMTypeRef inner_ty,
 static ASTNode *
 llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
 {
+    const MIRDeclHeader *decl_header;
+
     if (ctx == NULL || name == NULL)
         return NULL;
+    decl_header = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, name) : NULL;
+    if (decl_header != NULL && decl_header->ast_type == AST_CLASS_DECL)
+        return decl_header->ast;
     return llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
 }
 
@@ -480,133 +474,16 @@ llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx)
 static ASTNode *
 llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *name)
 {
-    const MIRDeclHeader *decl_header = NULL;
-    ASTNode **decls = NULL;
-    size_t decl_count = 0;
-
     if (ctx == NULL || name == NULL)
         return NULL;
-    if (ctx->mir != NULL) {
-        decl_header = mir_find_decl_header(ctx->mir, name);
-        if (decl_header != NULL && decl_header->ast_type == decl_type)
-            return decl_header->ast;
-    }
-    llvm_active_inventory(ctx, decl_type, &decls, &decl_count);
-
-    for (size_t i = 0; i < decl_count; i++) {
-        ASTNode *stmt = decls[i];
-        if (stmt == NULL)
-            continue;
-        switch (decl_type) {
-        case AST_PARTY_DECL:
-            if (stmt->type == AST_PARTY_DECL
-                && stmt->data.party_decl.name != NULL
-                && strcmp(stmt->data.party_decl.name, name) == 0)
-                return stmt;
-            break;
-        case AST_ROSTER_DECL:
-            if (stmt->type == AST_ROSTER_DECL
-                && stmt->data.roster_decl.name != NULL
-                && strcmp(stmt->data.roster_decl.name, name) == 0)
-                return stmt;
-            break;
-        case AST_RELATION_DECL:
-            if (stmt->type == AST_RELATION_DECL
-                && stmt->data.relation_decl.name != NULL
-                && strcmp(stmt->data.relation_decl.name, name) == 0)
-                return stmt;
-            break;
-        case AST_EFFECT_DECL:
-            if (stmt->type == AST_EFFECT_DECL
-                && stmt->data.effect_decl.name != NULL
-                && strcmp(stmt->data.effect_decl.name, name) == 0)
-                return stmt;
-            break;
-        case AST_ZONE_DECL:
-            if (stmt->type == AST_ZONE_DECL
-                && stmt->data.zone_decl.name != NULL
-                && strcmp(stmt->data.zone_decl.name, name) == 0)
-                return stmt;
-            break;
-        case AST_WORLD_DECL:
-            if (stmt->type == AST_WORLD_DECL
-                && stmt->data.world_decl.name != NULL
-                && strcmp(stmt->data.world_decl.name, name) == 0)
-                return stmt;
-            break;
-        default:
-            break;
-        }
-    }
-
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, decl_type, name);
 }
 
 static ASTNode *
 llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx, const char *host_type_name,
                                    const char *method_name)
 {
-    ASTNode *decl = NULL;
-    ASTNode **methods = NULL;
-    size_t method_count = 0;
-
-    if (ctx == NULL || host_type_name == NULL || method_name == NULL)
-        return NULL;
-
-    decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL, host_type_name);
-    if (decl == NULL)
-    decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, host_type_name);
-    if (decl == NULL)
-        decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL, host_type_name);
-    if (decl == NULL)
-        decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL, host_type_name);
-    if (decl == NULL)
-        decl = llvm_find_enum_decl(ctx, host_type_name);
-    if (decl == NULL)
-        decl = llvm_find_projection_nominal_decl(ctx, host_type_name);
-
-    if (decl == NULL)
-        return NULL;
-
-    switch (decl->type) {
-    case AST_CLASS_DECL:
-        methods = decl->data.class_decl.methods;
-        method_count = decl->data.class_decl.method_count;
-        break;
-    case AST_ENUM_DECL:
-        methods = decl->data.enum_decl.methods;
-        method_count = decl->data.enum_decl.method_count;
-        break;
-    case AST_RELATION_DECL:
-        methods = decl->data.relation_decl.methods;
-        method_count = decl->data.relation_decl.method_count;
-        break;
-    case AST_EFFECT_DECL:
-        methods = decl->data.effect_decl.methods;
-        method_count = decl->data.effect_decl.method_count;
-        break;
-    case AST_ZONE_DECL:
-        methods = decl->data.zone_decl.methods;
-        method_count = decl->data.zone_decl.method_count;
-        break;
-    case AST_WORLD_DECL:
-        methods = decl->data.world_decl.methods;
-        method_count = decl->data.world_decl.method_count;
-        break;
-    default:
-        return NULL;
-    }
-
-    for (size_t i = 0; i < method_count; i++) {
-        ASTNode *method = methods[i];
-        if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, method_name) == 0) {
-            return method;
-        }
-    }
-
-    return NULL;
+    return llvm_find_host_method_decl_in_context(ctx, host_type_name, method_name);
 }
 
 static ASTNode *
@@ -719,8 +596,8 @@ llvm_world_has_zone_slot(ASTNode *world_decl, const char *slot_name)
 static LLVMClassTypeEntry *
 llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty);
 
-static bool
-llvm_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
+bool
+llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 {
     const MIRDeclHeader *mir_decl;
 
@@ -909,85 +786,10 @@ llvm_emit_projection_from_binding(LLVMGenCtx *ctx,
 static ASTNode *
 llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
 {
-    ASTNode *decl = NULL;
-    ASTNode **methods = NULL;
-    size_t method_count = 0;
-    const MIRDeclHeader *mir_decl = NULL;
-
     if (ctx == NULL || method_name == NULL || ctx->current_class_name == NULL)
         return NULL;
-
-    if (ctx->mir != NULL) {
-        mir_decl = mir_find_decl_header(ctx->mir, ctx->current_class_name);
-        if (mir_decl != NULL) {
-            decl = mir_decl->ast;
-            methods = mir_decl->methods;
-            method_count = mir_decl->method_count;
-        }
-    }
-
-    if (decl == NULL) {
-        decl = llvm_find_projection_nominal_decl(ctx, ctx->current_class_name);
-        if (decl == NULL)
-            decl = llvm_find_enum_decl(ctx, ctx->current_class_name);
-        if (decl == NULL)
-            decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL,
-                                               ctx->current_class_name);
-        if (decl == NULL)
-            decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL,
-                                               ctx->current_class_name);
-        if (decl == NULL)
-            decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
-                                               ctx->current_class_name);
-        if (decl == NULL)
-            decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL,
-                                               ctx->current_class_name);
-        if (decl != NULL) {
-            methods = mir_decl != NULL ? mir_decl->methods : NULL;
-            method_count = mir_decl != NULL ? mir_decl->method_count : 0;
-            if (methods == NULL) {
-                switch (decl->type) {
-                case AST_CLASS_DECL:
-                    methods = decl->data.class_decl.methods;
-                    method_count = decl->data.class_decl.method_count;
-                    break;
-                case AST_ENUM_DECL:
-                    methods = decl->data.enum_decl.methods;
-                    method_count = decl->data.enum_decl.method_count;
-                    break;
-                case AST_RELATION_DECL:
-                    methods = decl->data.relation_decl.methods;
-                    method_count = decl->data.relation_decl.method_count;
-                    break;
-                case AST_EFFECT_DECL:
-                    methods = decl->data.effect_decl.methods;
-                    method_count = decl->data.effect_decl.method_count;
-                    break;
-                case AST_ZONE_DECL:
-                    methods = decl->data.zone_decl.methods;
-                    method_count = decl->data.zone_decl.method_count;
-                    break;
-                case AST_WORLD_DECL:
-                    methods = decl->data.world_decl.methods;
-                    method_count = decl->data.world_decl.method_count;
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-    }
-
-    for (size_t i = 0; methods != NULL && i < method_count; i++) {
-        ASTNode *method = methods[i];
-        if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, method_name) == 0) {
-            return method;
-        }
-    }
-
-    return NULL;
+    return llvm_find_nominal_host_method_decl(ctx, ctx->current_class_name,
+                                              method_name);
 }
 
 static LLVMValueRef
@@ -1133,7 +935,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         size_t real_pc = 0;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = generic_ast->data.func_decl.params[k];
-            if (p->type == NULL && strcmp(p->name, "self") == 0)
+            if (llvm_param_is_implicit_self(p))
                 continue;
             {
                 bool is_secure = false;
@@ -1164,7 +966,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         real_pc = 0;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = generic_ast->data.func_decl.params[k];
-            if (p->type == NULL && strcmp(p->name, "self") == 0)
+            if (llvm_param_is_implicit_self(p))
                 continue;
             {
                 bool is_secure = false;
@@ -1496,11 +1298,17 @@ llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty)
 ASTNode *
 llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name)
 {
+    const MIRDeclHeader *decl_header = NULL;
     ASTNode **types = NULL;
     size_t type_count = 0;
 
     if (ctx == NULL || enum_name == NULL)
         return NULL;
+    if (ctx->mir != NULL) {
+        decl_header = mir_find_decl_header(ctx->mir, enum_name);
+        if (decl_header != NULL && decl_header->ast_type == AST_ENUM_DECL)
+            return decl_header->ast;
+    }
     llvm_active_inventory(ctx, AST_ENUM_DECL, &types, &type_count);
     if (types == NULL) {
         return NULL;

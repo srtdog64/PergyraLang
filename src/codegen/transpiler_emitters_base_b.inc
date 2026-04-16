@@ -1,3 +1,9 @@
+static bool transpiler_condition_is_already_parenthesized(const char *expr);
+static void transpiler_write_condition_head(TranspilerCtx *ctx,
+                                            const char *keyword,
+                                            const char *expr,
+                                            const char *suffix);
+
 static void
 emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                               const char *emitted_name, CodeBuf *buf,
@@ -532,6 +538,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                                                  block);
         write_indent(ctx);
         codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n", name, block->id);
+        write_indent(ctx);
+        codebuf_write(ctx->out, ";\n");
         block_emitted = transpiler_emit_mir_block_statements(ctx->out, node, mir_routine,
                                                            block, ctx, &block_ssa_map,
                                                            block_reason,
@@ -580,7 +588,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent, i, block,
                         &mir_routine->blocks[block->succ_true]);
                 write_indent(ctx);
-                codebuf_write(ctx->out, "if (%s) {\n", cond != NULL ? cond : "false");
+                transpiler_write_condition_head(ctx, "if",
+                    cond != NULL ? cond : "false", " {\n");
                 write_indent_to(ctx->out, ctx->indent + 1);
                 codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_true);
                 write_indent(ctx);
@@ -640,6 +649,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 continue;
             write_indent(ctx);
             codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n", name, block->id);
+            write_indent(ctx);
+            codebuf_write(ctx->out, ";\n");
             for (size_t j = 0; j < block->instruction_count; j++) {
                 const MIRInstruction *inst = &block->instructions[j];
                 if (inst->kind == MIR_INST_CLEANUP_EDGE) {
@@ -1637,7 +1648,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             char surface_desc[256];
             const char *c_type;
             snprintf(surface_desc, sizeof(surface_desc),
-                "parallel capture '%s'",
+                "parallel capture '%.220s'",
                 capture_typed_names[i]);
             c_type = transpiler_require_type_name_c_type(
                 ctx,
@@ -1783,7 +1794,7 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
             char surface_desc[256];
             const char *c_type;
             snprintf(surface_desc, sizeof(surface_desc),
-                "async capture '%s'",
+                "async capture '%.223s'",
                 capture_typed_names[i]);
             c_type = transpiler_require_type_name_c_type(
                 ctx,
@@ -1890,12 +1901,40 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
  * Control flow
  * ----------------------------------------------------------------- */
 
+static bool
+transpiler_condition_is_already_parenthesized(const char *expr)
+{
+    size_t len;
+
+    if (expr == NULL)
+        return false;
+    len = strlen(expr);
+    return len >= 2 && expr[0] == '(' && expr[len - 1] == ')';
+}
+
+static void
+transpiler_write_condition_head(TranspilerCtx *ctx,
+                                const char *keyword,
+                                const char *expr,
+                                const char *suffix)
+{
+    const char *safe_expr = expr != NULL ? expr : "false";
+    const char *safe_suffix = suffix != NULL ? suffix : "";
+
+    if (transpiler_condition_is_already_parenthesized(safe_expr)) {
+        codebuf_write(ctx->out, "%s %s%s", keyword, safe_expr, safe_suffix);
+        return;
+    }
+
+    codebuf_write(ctx->out, "%s (%s)%s", keyword, safe_expr, safe_suffix);
+}
+
 void
 emit_if_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
     char *cond = emit_expression(node->data.if_stmt.condition, ctx);
     write_indent(ctx);
-    codebuf_write(ctx->out, "if (%s)\n", cond);
+    transpiler_write_condition_head(ctx, "if", cond, "\n");
     free(cond);
 
     write_indent(ctx);
@@ -2077,7 +2116,7 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
         ctx->loop_depth++;
     }
     write_indent(ctx);
-    codebuf_write(ctx->out, "while (%s)\n", cond);
+    transpiler_write_condition_head(ctx, "while", cond, "\n");
     free(cond);
 
     write_indent(ctx);

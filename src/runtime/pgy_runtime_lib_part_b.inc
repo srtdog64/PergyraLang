@@ -2543,6 +2543,73 @@ PGY_DEFINE_ARRAY_EXPORTS(Double, double)
 PGY_DEFINE_ARRAY_EXPORTS(Bool, bool)
 PGY_DEFINE_ARRAY_EXPORTS(String, char *)
 
+void
+pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    PgyArray_String *out = (PgyArray_String *)out_array_ptr;
+
+    if (out == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys", "null output");
+        return;
+    }
+
+    *out = pgy_array_new_String(map != NULL ? map->count : 0);
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys", "null map");
+        return;
+    }
+    if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
+        return;
+
+    for (size_t i = 0; i < map->capacity; i++) {
+        char *dup_key;
+
+        if (!map->occupied[i] || map->keys[i] == NULL)
+            continue;
+        dup_key = pgy_runtime_strdup_export(map->keys[i]);
+        if (dup_key == NULL) {
+            pgy_runtime_warn_invalid_collection("map_keys", "key duplication failed");
+            continue;
+        }
+        pgy_array_push_String(out, dup_key);
+    }
+}
+
+void
+pgy_map_keys_raw_i32_export(void *map_ptr, void *out_array_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    PgyArray_Int *out = (PgyArray_Int *)out_array_ptr;
+
+    if (out == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_i32", "null output");
+        return;
+    }
+
+    *out = pgy_array_new_Int(map != NULL ? map->count : 0);
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_i32", "null map");
+        return;
+    }
+    if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
+        return;
+
+    for (size_t i = 0; i < map->capacity; i++) {
+        char *end = NULL;
+        long parsed;
+
+        if (!map->occupied[i] || map->keys[i] == NULL)
+            continue;
+        parsed = strtol(map->keys[i], &end, 10);
+        if (end == map->keys[i] || (end != NULL && *end != '\0')) {
+            pgy_runtime_warn_invalid_collection("map_keys_i32", "invalid stored int key");
+            continue;
+        }
+        pgy_array_push_Int(out, (int32_t)parsed);
+    }
+}
+
 static char *
 pgy_runtime_lib_strdup(const char *src)
 {

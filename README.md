@@ -19,9 +19,9 @@
   <a href="docs/INDEX.md">All Documentation</a>
 </p>
 
-> **Current Status**: Executable experimental alpha. Core compiler pipeline works (`HIR -> DIR -> RIR -> MIR`) with C and LLVM backends, and current direct regression entrypoints include `test-transpile`, `test-abi`, `llvm-test-backend-compare`, `example-test-smoke`, `ir-pipeline-test-smoke`, and `fmt-test-smoke`.
-> Standard library, tooling, and ecosystem are still incomplete, but LSP/debugger/formatter are no longer stubs.
-> **Quantum surface exists in v1 as a partial runtime/semantic skeleton** (`QubitSlot`, `ClaimQubit`, `Measure`, `Entangle`), while the full quantum resource model remains a v2 target.
+> **Current Status**: Executable experimental alpha, currently in a **late-stage alpha / beta-closure sprint**. The remaining beta work is not about widening the language surface; it is about freezing a narrower stable subset and aligning `syntax -> semantic -> runtime -> C -> LLVM -> diagnostics -> regression -> docs` on that subset.
+> **Stable subset being frozen for beta**: generics (`exact/ability/multi-bound` plus implemented default type argument actual resolution), `own/ref` anchored slot-handle boundaries, collections (`List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`), and runtime observability (`last / history / active / recent`).
+> **Explicit reject / beta-out-of-scope**: general ownership on non-anchored value types, unsupported map key kinds, broader generic generalization, richer multi-instance observability queries, and the full quantum resource model. `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` remain a partial `v2 / experimental` surface.
 
 ---
 
@@ -72,6 +72,22 @@ make example-test-smoke
 make ir-pipeline-test-smoke
 make fmt-test-smoke
 ```
+
+Current CI support matrix:
+
+- Linux: C backend + LLVM backend regression coverage
+- Windows: C backend regression coverage always; LLVM smoke + backend compare run when the Windows LLVM toolchain is present (`make ci-windows` now capability-detects LLVM instead of forcing `LLVM_ENABLED=0`)
+
+Failure policy snapshot:
+
+- recoverable failure: intent/authority/boundary/timeout/remote failures should surface as `Bool`, `Result<T>`, or queryable runtime state
+- contract violation: released slot, invalid token, ownership-boundary misuse, and similar invariant breaks remain hard-fail territory
+- internal compiler/runtime bug: immediate internal error or panic, never presented as a normal user-code failure
+
+Recent backend hygiene snapshot:
+
+- LLVM declaration-side helper cleanup now shares implicit-self detection, host decl/method lookup, and pointer-self classification instead of repeating the same logic across declaration/intent/MIR-expression paths
+- negative-path memory tests now suppress expected panic/tracing stderr so CI logs reflect regressions instead of deliberate failure probes
 
 Stable example guidance:
 

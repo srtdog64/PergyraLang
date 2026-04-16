@@ -463,6 +463,14 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
       LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_map_remove_raw_i32_export", ft);
       llvm_register_function(ctx, "pgy_map_remove_raw_i32_export", fn, ft, ctx->type_void); }
+    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_map_keys_raw_export", ft);
+      llvm_register_function(ctx, "pgy_map_keys_raw_export", fn, ft, ctx->type_void); }
+    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_map_keys_raw_i32_export", ft);
+      llvm_register_function(ctx, "pgy_map_keys_raw_i32_export", fn, ft, ctx->type_void); }
 
     struct {
         const char *suffix;

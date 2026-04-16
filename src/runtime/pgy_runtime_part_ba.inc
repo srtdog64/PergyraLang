@@ -3020,6 +3020,60 @@ static inline void pgy_map_remove_i32_string(PgyHashMap_String *m, int32_t key)
     free(key_str);
 }
 
+#define PGY_DEFINE_MAP_KEYS_EXPORTS(TypeSuffix, FuncSuffix) \
+static inline PgyArray_String pgy_map_keys_##FuncSuffix(PgyHashMap_##TypeSuffix *m) \
+{ \
+    PgyArray_String out = pgy_array_new_String(m != NULL ? m->count : 0); \
+    if (m == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_keys_" #FuncSuffix, "null map"); \
+        return out; \
+    } \
+    if (m->count == 0 || m->keys == NULL || m->occupied == NULL) \
+        return out; \
+    for (size_t i = 0; i < m->capacity; i++) { \
+        char *dup_key; \
+        if (!m->occupied[i] || m->keys[i] == NULL) \
+            continue; \
+        dup_key = pgy_runtime_strdup(m->keys[i]); \
+        if (dup_key == NULL) { \
+            pgy_runtime_warn_invalid_collection("map_keys_" #FuncSuffix, "key duplication failed"); \
+            continue; \
+        } \
+        pgy_array_push_String(&out, dup_key); \
+    } \
+    return out; \
+} \
+\
+static inline PgyArray_Int pgy_map_keys_i32_##FuncSuffix(PgyHashMap_##TypeSuffix *m) \
+{ \
+    PgyArray_Int out = pgy_array_new_Int(m != NULL ? m->count : 0); \
+    if (m == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_keys_i32_" #FuncSuffix, "null map"); \
+        return out; \
+    } \
+    if (m->count == 0 || m->keys == NULL || m->occupied == NULL) \
+        return out; \
+    for (size_t i = 0; i < m->capacity; i++) { \
+        char *end = NULL; \
+        long parsed; \
+        if (!m->occupied[i] || m->keys[i] == NULL) \
+            continue; \
+        parsed = strtol(m->keys[i], &end, 10); \
+        if (end == m->keys[i] || (end != NULL && *end != '\0')) { \
+            pgy_runtime_warn_invalid_collection("map_keys_i32_" #FuncSuffix, "invalid stored int key"); \
+            continue; \
+        } \
+        pgy_array_push_Int(&out, (int32_t)parsed); \
+    } \
+    return out; \
+}
+
+PGY_DEFINE_MAP_KEYS_EXPORTS(Int, int)
+PGY_DEFINE_MAP_KEYS_EXPORTS(String, string)
+
+void pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr);
+void pgy_map_keys_raw_i32_export(void *map_ptr, void *out_array_ptr);
+
 /* =================================================================
  * List<Int> — dynamic array (grows automatically)
  * ================================================================= */
@@ -3750,16 +3804,38 @@ typedef pthread_rwlock_t PgyZoneLock;
 /* Generation counter for stale-state detection */
 #define PGY_ZONE_GENERATION_FIELD  uint32_t __sync_generation;
 #define PGY_ZONE_GENERATION_INC(z) ((z)->__sync_generation++)
+static inline void
+pgy_zone_generation_warn_if_stale_impl(const char *label,
+                                       uint32_t expected,
+                                       uint32_t actual)
+{
+    static unsigned pgy_zone_stale_warn_count = 0;
+    static bool pgy_zone_stale_warn_suppressed = false;
+
+    if (actual == expected)
+        return;
+    if (pgy_zone_stale_warn_count < 8) {
+        fprintf(stderr,
+            "[pgy][warn] stale zone layer read: %s expected=%u actual=%u\n",
+            label,
+            (unsigned)expected,
+            (unsigned)actual);
+        pgy_zone_stale_warn_count++;
+        return;
+    }
+    if (!pgy_zone_stale_warn_suppressed) {
+        fprintf(stderr,
+            "[pgy][warn] further stale zone layer read warnings suppressed\n");
+        pgy_zone_stale_warn_suppressed = true;
+    }
+}
+
 #define PGY_ZONE_GENERATION_WARN_IF_STALE(z, expected, label) do {                 \
     uint32_t _pgy_expected_gen = (uint32_t)(expected);                             \
     uint32_t _pgy_actual_gen = (z)->__sync_generation;                             \
-    if (_pgy_actual_gen != _pgy_expected_gen) {                                    \
-        fprintf(stderr,                                                             \
-            "[pgy][warn] stale zone layer read: %s expected=%u actual=%u\n",       \
-            (label),                                                                \
-            (unsigned)_pgy_expected_gen,                                            \
-            (unsigned)_pgy_actual_gen);                                             \
-    }                                                                               \
+    pgy_zone_generation_warn_if_stale_impl((label),                                \
+        _pgy_expected_gen,                                                          \
+        _pgy_actual_gen);                                                           \
 } while (0)
 
 /* =================================================================

@@ -35,36 +35,14 @@ llvm_intent_type_is_subject_participant(LLVMGenCtx *ctx, const char *type_name)
     return cls != NULL && cls->is_subject;
 }
 
-static bool
-llvm_intent_type_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
-{
-    LLVMClassTypeEntry *cls;
-    const MIRDeclHeader *mir_decl;
-
-    if (ctx == NULL || type_name == NULL)
-        return false;
-    cls = llvm_lookup_class(ctx, type_name);
-    if (cls != NULL && cls->is_pointer_self_host)
-        return true;
-    mir_decl = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, type_name) : NULL;
-    return mir_decl != NULL && mir_decl->uses_pointer_self;
-}
-
 bool
 llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves)
 {
     const char *type_name = llvm_intent_involves_type_name(involves);
-    LLVMClassTypeEntry *cls;
-    const MIRDeclHeader *mir_decl;
 
     if (ctx == NULL || type_name == NULL)
         return false;
-
-    cls = llvm_lookup_class(ctx, type_name);
-    if (cls != NULL && cls->is_pointer_self_host)
-        return true;
-    mir_decl = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, type_name) : NULL;
-    return mir_decl != NULL && mir_decl->uses_pointer_self;
+    return llvm_type_name_uses_pointer_self(ctx, type_name);
 }
 
 static const char *
@@ -1054,7 +1032,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                     : llvm_intent_involves_type_name(involves));
             if (type_name != NULL) {
                 pt = pergyra_type_to_llvm(ctx, type_name);
-                if (llvm_intent_type_uses_pointer_self(ctx, type_name))
+                if (llvm_type_name_uses_pointer_self(ctx, type_name))
                     pt = LLVMPointerType(pt, 0);
             } else if (!mir_only_intent
                        && involves != NULL
@@ -1284,7 +1262,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                         ? involves->data.intent_involves.subject_type->data.type.name : NULL));
             if (type_name != NULL) {
                 pt = pergyra_type_to_llvm(ctx, type_name);
-                if (llvm_intent_type_uses_pointer_self(ctx, type_name))
+                if (llvm_type_name_uses_pointer_self(ctx, type_name))
                     pt = LLVMPointerType(pt, 0);
             } else if (!mir_only_intent
                        && involves != NULL

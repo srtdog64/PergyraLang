@@ -39,16 +39,18 @@ THREAD_LINK_LIB = -lwinpthread
 endif
 TMPDIR ?= /tmp
 export TMPDIR
+TMPDIR_CI := $(subst \,/,$(TMPDIR))
 CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) -I$(SRC_DIR)
 DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
 CI_LINUX_CC := $(or $(shell command -v cc 2>/dev/null),$(shell command -v gcc 2>/dev/null),gcc)
-CI_LINUX_BUILD_DIR := $(TMPDIR)/pgy-ci-linux-build
-CI_LINUX_BIN_DIR   := $(TMPDIR)/pgy-ci-linux-bin
-CI_WINDOWS_BUILD_DIR := $(TMPDIR)/pgy-ci-windows-build
-CI_WINDOWS_BIN_DIR   := $(TMPDIR)/pgy-ci-windows-bin
+CI_LINUX_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-linux-build
+CI_LINUX_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-linux-bin
+CI_WINDOWS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-windows-build
+CI_WINDOWS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-windows-bin
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
+WINDOWS_LLVM_READY := $(shell if [ -n "$(LLVM_CONFIG)" ] || [ -d /c/Program\ Files/LLVM/lib ] || [ -d "C:/Program Files/LLVM/lib" ]; then echo 1; else echo 0; fi)
 LLD := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
 PROJECT_ROOT := $(CURDIR)
 CFLAGS  += -DPGY_PROJECT_ROOT=\"$(PROJECT_ROOT)\"
@@ -434,31 +436,31 @@ $(REPO_BIN_DIR):
 # -----------------------------------------------------------------
 test: $(LEXER_TEST)
 	@echo "=== Lexer Test ==="
-	"$(LEXER_TEST)"
+	$(LEXER_TEST)
 
 test-parser: $(PARSER_TEST)
 	@echo "=== Parser Test ==="
-	"$(PARSER_TEST)"
+	$(PARSER_TEST)
 
 test-security: $(SECURITY_TEST)
 	@echo "=== Security Test ==="
-	"$(SECURITY_TEST)"
+	$(SECURITY_TEST)
 
 test-semantic: $(SEMANTIC_TEST)
 	@echo "=== Semantic Analyzer Test ==="
-	"$(SEMANTIC_TEST)"
+	$(SEMANTIC_TEST)
 
 test-transpile: $(TRANSPILE_TEST)
 	@echo "=== C Backend Test ==="
-	"$(TRANSPILE_TEST)"
+	$(TRANSPILE_TEST)
 
 test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="
-	"$(MEMORY_TEST)"
+	$(MEMORY_TEST)
 
 test-abi: $(ABI_TEST) $(PGY)
 	@echo "=== ABI Spec Validation ==="
-	"$(ABI_TEST)"
+	$(ABI_TEST)
 	@echo "=== ABI Pipeline Smoke ==="
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_ABI_PIPELINE_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
@@ -482,23 +484,23 @@ test-abi-perf: $(ABI_PIPELINE_TEST) abi-perf-runtime
 
 test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="
-	"$(CONCURRENCY_TEST)"
+	$(CONCURRENCY_TEST)
 
 test-dir: $(DIR_TEST)
 	@echo "=== DIR Test ==="
-	"$(DIR_TEST)"
+	$(DIR_TEST)
 
 test-rir: $(RIR_TEST)
 	@echo "=== RIR Test ==="
-	"$(RIR_TEST)"
+	$(RIR_TEST)
 
 test-mir: $(MIR_TEST)
 	@echo "=== MIR Test ==="
-	"$(MIR_TEST)"
+	$(MIR_TEST)
 
 test-hir: $(HIR_TEST)
 	@echo "=== HIR Test ==="
-	"$(HIR_TEST)"
+	$(HIR_TEST)
 
 test-all:
 	$(MAKE) test
@@ -635,6 +637,13 @@ ci-windows:
 	PGY_STDLIB_BACKENDS=c $(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" fmt-test-smoke
 	PGY_STDLIB_BACKENDS=c $(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" stdlib-test-smoke
 	PGY_EXAMPLE_BACKENDS=c $(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" example-test-smoke
+	@if [ "$(WINDOWS_LLVM_READY)" = "1" ]; then \
+		echo "ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare"; \
+		$(MAKE) LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-smoke; \
+		$(MAKE) LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-backend-compare; \
+	else \
+		echo "ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare"; \
+	fi
 
 # -----------------------------------------------------------------
 # pgy driver convenience targets

@@ -103,14 +103,16 @@ test_channel_transfers_between_threads(void)
     int32_t second = 0;
     bool ok1;
     bool ok2;
-    bool ok3;
+    bool closed;
+    int32_t remaining;
 
     pgy_channel_init_Int(&channel, 1);
     PgyTaskHandle producer = pgy_spawn(producer_task, &channel);
 
     ok1 = pgy_channel_recv_Int(&channel, &first);
     ok2 = pgy_channel_recv_Int(&channel, &second);
-    ok3 = pgy_channel_recv_Int(&channel, &first);
+    closed = pgy_channel_closed_Int(&channel);
+    remaining = pgy_channel_length_Int(&channel);
 
     pgy_await_void(producer);
     pgy_channel_destroy_Int(&channel);
@@ -118,7 +120,8 @@ test_channel_transfers_between_threads(void)
 
     EXPECT(ok1);
     EXPECT(ok2);
-    EXPECT(!ok3);
+    EXPECT(closed);
+    EXPECT(remaining == 0);
     EXPECT(first == 7);
     EXPECT(second == 11);
 }
@@ -247,6 +250,16 @@ StressZone_has_layer_damage(StressZone *self, uint32_t expected_gen)
     return result;
 }
 
+static inline bool
+StressZone_has_layer_damage_current(StressZone *self)
+{
+    bool result;
+    PGY_ZONE_RDLOCK(self);
+    result = self->__layer_active_damage;
+    PGY_ZONE_UNLOCK(self);
+    return result;
+}
+
 typedef struct {
     StressZone *zone;
     int loops;
@@ -269,14 +282,9 @@ stress_zone_reader(void *arg)
 {
     StressZoneTaskArgs *args = (StressZoneTaskArgs *)arg;
     for (int i = 0; i < args->loops; i++) {
-        uint32_t gen;
         bool active;
 
-        PGY_ZONE_RDLOCK(args->zone);
-        gen = args->zone->__sync_generation;
-        PGY_ZONE_UNLOCK(args->zone);
-
-        active = StressZone_has_layer_damage(args->zone, gen);
+        active = StressZone_has_layer_damage_current(args->zone);
         atomic_fetch_add(&zone_reads, 1);
         if (active)
             atomic_fetch_add(&zone_true_reads, 1);

@@ -48,16 +48,7 @@ llvm_mir_type_from_ast(LLVMGenCtx *ctx, ASTNode *type_node)
 static bool
 llvm_mir_param_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
 {
-    LLVMClassTypeEntry *cls;
-
-    if (ctx == NULL || type_node == NULL
-        || type_node->type != AST_TYPE
-        || type_node->data.type.name == NULL) {
-        return false;
-    }
-
-    cls = llvm_lookup_class(ctx, type_node->data.type.name);
-    return cls != NULL && cls->is_pointer_self_host;
+    return llvm_ast_type_uses_pointer_self(ctx, type_node);
 }
 
 static void

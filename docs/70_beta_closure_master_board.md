@@ -1,0 +1,359 @@
+# Pergyra Beta Closure Master Board
+
+마지막 업데이트: 2026-04-15
+
+## 목적
+
+이 문서는 Pergyra를 `late-stage alpha`에서 `beta-closure` 상태로 밀어 올리기 위한 단일 기준판이다.
+
+원칙:
+
+- parser가 받는 surface는 semantic/C/LLVM/runtime/test/documentation까지 닫는다
+- `부분 구현`을 stable surface로 남기지 않는다
+- 새 ontology/키워드를 늘리기보다 기존 surface를 닫는다
+- 조용한 fallback보다 explicit contract와 explicit failure를 우선한다
+
+## 현재 판정
+
+- 현재 단계: `late-stage alpha / beta-closure sprint`
+- 베타 진행률 추정: `약 84%`
+- 핵심 판단:
+  - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
+  - 베타 차단축은 키워드 수가 아니라 B0 의미론과 declaration-side MIR-only debt다
+
+## Beta Acceptance Line
+
+베타로 부를 수 있는 최소 조건:
+
+1. B0 네 축이 전부 닫힌다
+2. declaration-side MIR emission이 HIR/AST fallback 없이 의미적으로 충분해진다
+3. C/LLVM이 domain semantics 기준 parity를 유지한다
+4. runtime observability가 디버깅 가능한 structured state를 제공한다
+5. Linux/Windows CI가 parser/semantic/transpile/abi/backend-compare/example-smoke까지 녹색이다
+6. 문서가 구현보다 앞서가지 않는다
+
+## Master Status Board
+
+| 트랙 | 상태 | 진행률 | 베타 차단 여부 | 핵심 메모 |
+|------|------|--------|----------------|----------|
+| B0-1 Intent / Zone / World | 진행 중 | 82% | 차단 | observability baseline은 생겼지만 embedding/handoff/provenance depth가 남음 |
+| B0-2 relation / effect / projection | 진행 중 | 80% | 차단 | refresh/publish/bind baseline은 있으나 propagation/effect partial order 심화가 남음 |
+| B0-3 generic contract | 진행 중 | 78% | 차단 | default arg baseline은 복구됐지만 multi-bound/module-contract 전경로 closure가 남음 |
+| B0-4 own/ref | 진행 중 | 62% | 차단 | anchored subset는 닫혔지만 일반 movable type ownership은 아직 미완 |
+| MIR-only declaration debt | 진행 중 | 74% | 차단 | intent inventory는 많이 줄였지만 zone/world/relation/effect declaration fallback 잔여가 있음 |
+| C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
+| runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
+| surface trust docs | 진행 중 | 85% | 차단 | 주요 surface는 정렬됐지만 B0 잔여에 맞춘 최종 재분류가 남음 |
+
+## B0 Closure Board
+
+### B0-1. Intent / Zone / World
+
+판정:
+
+- intent orchestration, inherited/derived contract, zone/world query, observability baseline은 이미 존재한다
+- 남은 일은 embedding ownership/handoff policy, cross-layer propagation policy, richer provenance, declaration/runtime/diagnostic까지의 C/LLVM parity를 닫는 것이다
+- 이 축은 언어 정체성 자체이므로 beta 직전까지 열어두면 안 된다
+
+닫힌 것:
+
+- intent orchestration baseline
+- active/recent/last/history query baseline
+- zone/world state/layer/projection query baseline
+- embedded world -> zone projection visibility baseline
+
+남은 것:
+
+- embedding ownership와 handoff policy를 한 규칙으로 고정
+- mutation visibility를 value-copy 오해 없이 handle/reference 의미로 정렬
+- intent failure/authority/boundary mismatch provenance를 더 깊게 연결
+- multi-instance timeline과 recent/history structured query를 보강
+- C/LLVM/runtime diagnostics 품질을 같은 수준으로 정렬
+
+직접 마감 항목:
+
+- declaration parity
+- runtime parity
+- diagnostic parity
+- embedding ownership rule
+- handoff visibility rule
+- cross-layer propagation rule
+
+완료 기준:
+
+- world embedding/handoff가 semantic/runtime/backend compare에서 같은 결과를 낸다
+- failure diagnostics가 `contract provenance + reason + fix` 구조를 유지한다
+- active/recent/history 관측이 example smoke와 ABI 경로에서 안정적으로 검증된다
+
+### B0-2. relation / effect / projection
+
+판정:
+
+- declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync baseline은 이미 존재한다
+- projection contract diagnostics baseline도 이미 존재한다
+- effect join/meet/conflict baseline도 이미 존재한다
+- 남은 일은 authority-resource partial order 통합, projection propagation policy, deeper runtime contract provenance, helper-heavy edge path 감소와 parity를 닫는 것이다
+- 이 축은 Pergyra의 domain semantics 핵심이므로 partial 상태로 beta에 올리면 안 된다
+- projection은 언어 강점이므로 실패 이유가 약하면 가장 먼저 authoring friction을 만든다
+
+닫힌 것:
+
+- declaration baseline
+- refresh/publish/bind baseline
+- layer/state query baseline
+- projection contract structured diagnostics baseline
+- effect join/meet/conflict baseline
+
+남은 것:
+
+- authority/resource/effect partial order를 semantic contract로 더 명확히 승격
+- projection propagation policy를 branch/join/handoff/embedded zone-world path까지 더 조밀하게 검증
+- helper-heavy best-effort sync를 줄이고 explicit backend/runtime failure로 승격
+- runtime contract provenance를 edge path까지 일관화
+- helper-heavy edge path를 줄여 declaration/runtime/diagnostic/backend parity를 더 직접적으로 맞춘다
+
+직접 마감 항목:
+
+- authority-resource-effect ordering rule
+- projection branch/join propagation rule
+- projection handoff propagation rule
+- projection embedded zone/world propagation rule
+- runtime contract provenance visibility
+- helper-heavy edge path 감소
+- declaration/runtime/diagnostic/backend parity
+
+diagnostic 고정 규칙:
+
+- projection failure는 최소한 다음 정보를 포함해야 한다
+  - `target`
+  - `source`
+  - `projection kind`
+  - `field path`
+  - `fix`
+- 진단 포맷은 `Reason:` / `Fix:` 구조로 고정한다
+- unsupported/ambiguous/missing projection 경로 모두 같은 구조를 유지한다
+
+완료 기준:
+
+- relation/effect propagation regression이 branch/join/handoff path까지 고정된다
+- C/LLVM compare가 propagation과 refresh/publish visibility를 같은 결과로 보여준다
+- unsupported projection surface는 parser/semantic에서 명시 거부된다
+- projection diagnostics가 `target/source/projection kind/field path/fix`를 모두 포함하고 `Reason:` / `Fix:` 포맷을 유지한다
+
+### B0-3. generic contract
+
+판정:
+
+- `ability<T>` baseline, default type argument baseline, omitted trailing default resolution, generic mismatch provenance baseline은 이미 존재한다
+- 남은 일은 multi-bound 전경로 enforcement, module-contract propagation, instantiation-path parity, richer mismatch diagnostics를 닫는 것이다
+- generic은 parser가 받는 surface와 실제 contract가 어긋나기 가장 쉬운 축이므로 partial acceptance를 beta에 올리면 안 된다
+
+닫힌 것:
+
+- generic ability baseline
+- default type arg baseline resolution
+- omitted trailing default resolution
+- generic ability impl-reference omission baseline
+- generic mismatch provenance baseline
+
+남은 것:
+
+- `where T: A + B` multi-bound 전경로 enforcement
+- function/class/ability/requires/authority/module contract 경로 정렬
+- declaration site뿐 아니라 모든 instantiation path에서 같은 constraint enforcement 보장
+- richer expected/actual/bound/consumer-path provenance diagnostics
+- cross-module consumer path에서도 generic contract가 동일하게 유지되도록 정렬
+- C/LLVM/test parity를 generic path 기준으로 확대
+
+완료 기준:
+
+- parser가 받는 generic surface는 모두 semantic/backend/test closure를 가진다
+- default arg와 multi-bound가 declaration/use/consumer path에서 동일 규칙으로 동작한다
+- generic mismatch는 `generic subject / expected type args / actual type args / broken bound / consumer path / fix`를 함께 보여준다
+
+diagnostic 고정 규칙:
+
+- generic mismatch는 최소한 다음 정보를 포함해야 한다
+  - `generic subject`
+  - `expected type args`
+  - `actual type args`
+  - `broken bound`
+  - `consumer path`
+  - `fix`
+- 진단 포맷은 `Reason:` / `Fix:` 구조로 고정한다
+- declaration-site mismatch와 consumer-site mismatch 모두 같은 구조를 유지한다
+
+### B0-4. own/ref
+
+닫힌 것:
+
+- anchored slot subset
+- anchored diagnostics baseline
+- anchored regression and docs alignment
+
+남은 것:
+
+- 일반 movable type ownership 모델 확장
+- copy vs move-only 분류 정리
+- assignment/call/return/channel/container/rebind 전경로 analysis
+- moved-here / borrowed-here / escaped-here provenance diagnostics
+
+완료 기준:
+
+- anchored subset이 아니라 general movable ownership contract가 존재한다
+- runtime 보정이 아니라 semantic 단계에서 대부분의 위반을 차단한다
+- channel/return/helper call escape path가 회귀로 고정된다
+
+## MIR-only Declaration Closure Board
+
+현재 방향:
+
+- routine emission은 MIR 중심으로 정렬 중이다
+- declaration-side intent inventory는 explicit MIR metadata를 더 많이 사용하도록 이동 중이다
+
+남은 핵심 debt:
+
+- zone/world/relation/effect declaration emission의 HIR/AST inventory fallback 제거
+- executable/declaration inventory를 MIR entry metadata로 대체
+- naming helper와 owner/self typing fallback 제거
+- block emission failure를 comment/skip가 아니라 backend error로 승격
+- `Unknown` / `Int` / `int32_t` fallback emission 제거
+
+완료 기준:
+
+- declaration emission과 routine emission 모두 MIR inventory만으로 충분하다
+- backend가 부족한 정보를 조용히 추측하지 않는다
+- fallback comment 대신 explicit backend error가 나온다
+
+## Runtime Observability Board
+
+현재 있는 것:
+
+- `IntentLast*`
+- `IntentActive*`
+- `IntentRecent*`
+- `IntentHistoryStep*`
+- zone/world state query baseline
+
+남은 것:
+
+- richer structured recent/history storage
+- failure provenance visibility
+- zone/world runtime state를 더 직접적으로 설명 가능한 형태로 노출
+- same-process compile/runtime stability 회귀 고정
+
+완료 기준:
+
+- 디버깅 가능한 최소 structured state를 제공한다
+- ABI/runtime smoke에서 same-process 재실행 안정성이 보장된다
+- C/LLVM 양쪽 모두 관측 surface가 같은 사실을 보여준다
+
+## Parity / CI Board
+
+필수 라인:
+
+- parser
+- semantic
+- transpile
+- ABI
+- backend compare
+- llvm smoke
+- example smoke
+- Linux
+- Windows
+
+### 9. Backend parity final closure
+
+목표:
+
+- C/LLVM이 기본 제어 흐름뿐 아니라 domain semantics에서도 같은 결과를 낸다
+
+대상:
+
+- intent / zone / world
+- relation / effect / projection
+- ownership boundary
+- refresh / publish / bind / propagation
+- world embedding / handoff
+
+원칙:
+
+- 한쪽 backend만 통과하는 surface는 stable로 간주하지 않는다
+- backend 차이는 조용한 fallback이 아니라 explicit error 또는 explicit unsupported contract로 드러낸다
+- parity는 stdout만이 아니라 runtime state / diagnostics / ABI shape까지 본다
+
+완료 기준:
+
+- `backend compare`
+- `llvm smoke`
+- `example smoke`
+- `ABI/runtime probe`
+
+가 Linux/Windows 모두 녹색이다
+
+추가 회귀 축:
+
+- explicit surface vs compressed surface가 backend별로 같은 결과를 낸다
+- intent history / active / recent observability가 backend별로 같은 사실을 보여준다
+- projection refresh/publish visibility가 backend별로 같은 사실을 보여준다
+
+완료 기준:
+
+- warning-only 성공이 아니라 expected stdout/stderr와 parity까지 고정
+- domain semantics 기준 compare 케이스가 지속적으로 녹색
+- same-process LLVM 재진입/ABI 불안정이 남지 않는다
+
+## Pain Point Board
+
+현재 가장 큰 작성 pain point:
+
+1. clause density
+2. action 계약과 intent/zone 쪽의 반복 기술
+3. derived/inherited contract가 실패 메시지에서 충분히 보이지 않는 문제
+4. explicit surface와 compressed surface의 정석 작성 경로가 아직 약한 점
+
+원칙:
+
+- pain point 완화는 closure 이후에만 공격적으로 늘린다
+- 단, provenance visibility와 pair example은 closure와 동시에 강화한다
+
+고정 작업:
+
+- `derived_* / inherited_*` vocabulary 전면 정렬
+- explicit vs compressed pair example 최소 4쌍 유지
+- long-form과 compressed-form이 같은 의미를 가진다는 regression/source-of-truth 확보
+
+## Next Locked Sequence
+
+1. B0-1 Intent / Zone / World 잔여 좁히기
+   - embedding ownership / handoff
+   - cross-layer propagation
+   - richer provenance
+   - declaration/runtime/diagnostic parity
+2. B0-2 relation / effect / projection closure
+   - authority-resource-effect partial order
+   - branch/join/handoff/embedded propagation
+   - projection propagation policy
+   - runtime contract provenance
+   - helper-heavy edge path 감소
+   - declaration/runtime/diagnostic/backend parity
+3. B0-3 generic multi-bound/module-contract closure
+   - multi-bound 전경로 enforcement
+   - module-contract propagation
+   - instantiation-path parity
+   - expected/actual/bound/consumer-path diagnostics
+4. B0-4 own/ref general movable rule 확장
+5. declaration-side MIR-only debt 제거
+6. Backend parity final closure
+7. runtime observability structured state 보강
+8. surface trust 문서 최종 정렬
+
+## Exit Rule
+
+다음 중 하나라도 남아 있으면 베타라고 부르지 않는다:
+
+- parser가 받는 surface 중 semantic/runtime/backend/test/documentation이 닫히지 않은 것
+- declaration-side backend가 AST/HIR fallback 없이는 유지되지 않는 것
+- C/LLVM 중 하나만 되는 domain semantics
+- runtime observability가 얇아서 failure provenance를 설명하지 못하는 것
+- 문서가 stable이라고 주장하지만 실제 구현은 partial인 것

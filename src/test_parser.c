@@ -12,12 +12,92 @@
 #include "parser/parser.h"
 #include "semantic/type_system.h"
 
+#if defined(_WIN32)
+#include <io.h>
+#define pgy_dup _dup
+#define pgy_dup2 _dup2
+#define pgy_fileno _fileno
+#define pgy_close _close
+#else
+#include <unistd.h>
+#define pgy_dup dup
+#define pgy_dup2 dup2
+#define pgy_fileno fileno
+#define pgy_close close
+#endif
+
 typedef struct
 {
     const char *name;
     const char *code;
     int expect_success;
 } TestCase;
+
+static int
+ast_print_contains(ASTNode *ast, const char *needle)
+{
+    FILE *capture = NULL;
+    int saved_stdout = -1;
+    long size;
+    char *buffer = NULL;
+    int contains = 0;
+
+    if (ast == NULL || needle == NULL)
+        return 0;
+
+    capture = tmpfile();
+    if (capture == NULL)
+        return 0;
+
+    fflush(stdout);
+    saved_stdout = pgy_dup(pgy_fileno(stdout));
+    if (saved_stdout < 0) {
+        fclose(capture);
+        return 0;
+    }
+
+    if (pgy_dup2(pgy_fileno(capture), pgy_fileno(stdout)) != 0) {
+        pgy_close(saved_stdout);
+        fclose(capture);
+        return 0;
+    }
+
+    ast_print(ast, 0);
+    fflush(stdout);
+
+    pgy_dup2(saved_stdout, pgy_fileno(stdout));
+    pgy_close(saved_stdout);
+    saved_stdout = -1;
+
+    if (fseek(capture, 0, SEEK_END) != 0) {
+        fclose(capture);
+        return 0;
+    }
+    size = ftell(capture);
+    if (size < 0 || fseek(capture, 0, SEEK_SET) != 0) {
+        fclose(capture);
+        return 0;
+    }
+
+    buffer = (char *)malloc((size_t)size + 1);
+    if (buffer == NULL) {
+        fclose(capture);
+        return 0;
+    }
+
+    if (size > 0) {
+        size_t read_count = fread(buffer, 1, (size_t)size, capture);
+        buffer[read_count] = '\0';
+    } else {
+        buffer[0] = '\0';
+    }
+
+    contains = strstr(buffer, needle) != NULL;
+
+    free(buffer);
+    fclose(capture);
+    return contains;
+}
 
 static int
 run_parser_test(const TestCase *test)
@@ -653,6 +733,89 @@ run_intent_step_with_effects_hint_test(void)
     }
 
     printf("Intent step misuse of 'with effects' reports a fix-oriented diagnostic.\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_intent_step_using_derivation_ast_print_test(void)
+{
+    const char *code =
+        "subject Courier {\n"
+        "    let level: Int;\n"
+        "}\n"
+        "zone DeliveryZone {\n"
+        "    subject slot courier: Courier\n"
+        "}\n"
+        "intent MoveCargo(deliver: DeliveryZone, courier: Courier) {\n"
+        "    step Deliver {\n"
+        "        using: deliver;\n"
+        "        who: courier;\n"
+        "        expect: true;\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *intent_decl = NULL;
+    ASTNode *step = NULL;
+
+    printf("\n=== Test: Intent Step Using-Derived Provenance In AST Print ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count < 3) {
+        printf("[FAIL] Expected parsed program with subject, zone, and intent\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    intent_decl = ast->data.program.statements[2];
+    if (intent_decl == NULL || intent_decl->type != AST_INTENT_DECL
+        || intent_decl->data.intent_decl.step_count != 1) {
+        printf("[FAIL] Expected parsed intent with one step\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    step = intent_decl->data.intent_decl.steps[0];
+    if (step == NULL || step->type != AST_INTENT_STEP) {
+        printf("[FAIL] Expected intent step node\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    step->data.intent_step.derived_where_from_using = true;
+
+    if (!ast_print_contains(ast, "derived zone from using binding")) {
+        printf("[FAIL] Expected AST print to include using-derived zone provenance\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("AST print includes using-derived zone provenance.\n");
 
 cleanup:
     ast_destroy(ast);
@@ -1888,6 +2051,8 @@ main(void)
     failures += run_intent_step_within_clause_hint_test();
     printf("\n");
     failures += run_intent_step_with_effects_hint_test();
+    printf("\n");
+    failures += run_intent_step_using_derivation_ast_print_test();
     printf("\n");
     failures += run_subject_keyword_alias_test();
     printf("\n");

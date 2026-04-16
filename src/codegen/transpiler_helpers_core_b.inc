@@ -1028,6 +1028,21 @@ constructed_arg_name_at(const char *type_name, int arg_index)
     return out > 0 ? buf : "Int";
 }
 
+static void
+copy_constructed_arg_name_at(const char *type_name, int arg_index,
+                             char *buf, size_t buf_size)
+{
+    const char *arg_name;
+
+    if (buf == NULL || buf_size == 0)
+        return;
+
+    arg_name = constructed_arg_name_at(type_name, arg_index);
+    if (arg_name == NULL)
+        arg_name = "Unknown";
+    snprintf(buf, buf_size, "%s", arg_name);
+}
+
 const char *
 pergyra_type_to_c(const char *name)
 {
@@ -1749,6 +1764,16 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
                     return constructed_arg_name_at(map_type, 1);
                 return "Unknown";
+            }
+            if (strcmp(name, "MapKeys") == 0 && expr->data.call.arg_count >= 1) {
+                const char *map_type = infer_expression_type_name(ctx,
+                    expr->data.call.arguments[0]);
+                if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                    const char *key_type = constructed_arg_name_at(map_type, 0);
+                    if (key_type != NULL)
+                        return strdup_fmt("Array<%s>", key_type);
+                }
+                return "Array<Int>";
             }
             if (strcmp(name, "ToString") == 0)
                 return "String";

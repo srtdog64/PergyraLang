@@ -1678,6 +1678,38 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    if (strcmp(callee_name, "MapKeys") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *map_arg = node->data.call.arguments[0];
+        LLVMVarEntry *map_var;
+        const char *key_name;
+        LLVMTypeRef array_ty;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
+            return LLVMConstNull(ctx->array_type_String);
+        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
+        array_ty = (key_name != NULL && strcmp(key_name, "Int") == 0)
+            ? ctx->array_type_Int
+            : ctx->array_type_String;
+        if (map_var == NULL)
+            return LLVMConstNull(array_ty);
+        tmp = llvm_create_entry_alloca(ctx, array_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, LLVMConstNull(array_ty), tmp);
+        fn = llvm_lookup_function(ctx,
+            key_name != NULL && strcmp(key_name, "Int") == 0
+                ? "pgy_map_keys_raw_i32_export"
+                : "pgy_map_keys_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        }
+        return LLVMBuildLoad2(ctx->builder, array_ty, tmp, llvm_tmp_name(ctx));
+    }
+
     if ((strcmp(callee_name, "ViewRead") == 0
          || strcmp(callee_name, "ViewWrite") == 0
          || strcmp(callee_name, "Move") == 0)
@@ -2752,7 +2784,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         type_name = value->data.intent_value.value_type->data.type.name;
                     }
                 }
-                pointer_self = llvm_nominal_uses_pointer_self(ctx, type_name);
+                pointer_self = llvm_type_name_uses_pointer_self(ctx, type_name);
                 if (pointer_self) {
                     if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
                         const char *arg_name = arg_node->data.identifier.name;
@@ -2821,7 +2853,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         && involves->data.intent_involves.subject_type->type == AST_TYPE) {
                         type_name = involves->data.intent_involves.subject_type->data.type.name;
                         pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
-                        if (llvm_nominal_uses_pointer_self(ctx, type_name))
+                        if (llvm_type_name_uses_pointer_self(ctx, type_name))
                             pt = LLVMPointerType(pt, 0);
                     }
                 } else {

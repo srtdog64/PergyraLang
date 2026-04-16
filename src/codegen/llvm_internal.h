@@ -600,6 +600,153 @@ llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
     return NULL;
 }
 
+static inline bool
+llvm_param_is_implicit_self(const FuncParam *param)
+{
+    return param != NULL
+        && param->type == NULL
+        && param->name != NULL
+        && strcmp(param->name, "self") == 0;
+}
+
+static inline bool
+llvm_is_host_decl_type(ASTNodeType decl_type)
+{
+    switch (decl_type) {
+    case AST_CLASS_DECL:
+    case AST_ENUM_DECL:
+    case AST_RELATION_DECL:
+    case AST_EFFECT_DECL:
+    case AST_ZONE_DECL:
+    case AST_WORLD_DECL:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static inline ASTNode *
+llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
+{
+    const MIRDeclHeader *decl_header = NULL;
+    ASTNode *decl = NULL;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    if (ctx->mir != NULL) {
+        decl_header = mir_find_decl_header(ctx->mir, name);
+        if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type))
+            return decl_header->ast;
+    }
+
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
+    if (decl != NULL)
+        return decl;
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, name);
+    if (decl != NULL)
+        return decl;
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_RELATION_DECL, name);
+    if (decl != NULL)
+        return decl;
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_EFFECT_DECL, name);
+    if (decl != NULL)
+        return decl;
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL, name);
+    if (decl != NULL)
+        return decl;
+    return llvm_find_decl_in_active_inventory(ctx, AST_WORLD_DECL, name);
+}
+
+static inline void
+llvm_host_decl_methods(const MIRDeclHeader *decl_header,
+                       ASTNode *decl,
+                       ASTNode ***methods_out,
+                       size_t *method_count_out)
+{
+    ASTNode **methods = NULL;
+    size_t method_count = 0;
+
+    if (decl_header != NULL && decl_header->ast == decl
+        && llvm_is_host_decl_type(decl_header->ast_type)) {
+        methods = decl_header->methods;
+        method_count = decl_header->method_count;
+    }
+
+    if (methods == NULL && decl != NULL) {
+        switch (decl->type) {
+        case AST_CLASS_DECL:
+            methods = decl->data.class_decl.methods;
+            method_count = decl->data.class_decl.method_count;
+            break;
+        case AST_ENUM_DECL:
+            methods = decl->data.enum_decl.methods;
+            method_count = decl->data.enum_decl.method_count;
+            break;
+        case AST_RELATION_DECL:
+            methods = decl->data.relation_decl.methods;
+            method_count = decl->data.relation_decl.method_count;
+            break;
+        case AST_EFFECT_DECL:
+            methods = decl->data.effect_decl.methods;
+            method_count = decl->data.effect_decl.method_count;
+            break;
+        case AST_ZONE_DECL:
+            methods = decl->data.zone_decl.methods;
+            method_count = decl->data.zone_decl.method_count;
+            break;
+        case AST_WORLD_DECL:
+            methods = decl->data.world_decl.methods;
+            method_count = decl->data.world_decl.method_count;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (methods_out != NULL)
+        *methods_out = methods;
+    if (method_count_out != NULL)
+        *method_count_out = method_count;
+}
+
+static inline ASTNode *
+llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
+                                      const char *host_type_name,
+                                      const char *method_name)
+{
+    const MIRDeclHeader *decl_header = NULL;
+    ASTNode *decl = NULL;
+    ASTNode **methods = NULL;
+    size_t method_count = 0;
+
+    if (ctx == NULL || host_type_name == NULL || method_name == NULL)
+        return NULL;
+
+    if (ctx->mir != NULL) {
+        decl_header = mir_find_decl_header(ctx->mir, host_type_name);
+        if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type))
+            decl = decl_header->ast;
+    }
+
+    if (decl == NULL)
+        decl = llvm_find_host_decl_in_active_inventory(ctx, host_type_name);
+    if (decl == NULL)
+        return NULL;
+
+    llvm_host_decl_methods(decl_header, decl, &methods, &method_count);
+    for (size_t i = 0; i < method_count; i++) {
+        ASTNode *method = methods != NULL ? methods[i] : NULL;
+        if (method != NULL && method->type == AST_FUNC_DECL
+            && method->data.func_decl.name != NULL
+            && strcmp(method->data.func_decl.name, method_name) == 0) {
+            return method;
+        }
+    }
+
+    return NULL;
+}
+
 static inline void
 llvm_active_nominal_inventory(const LLVMGenCtx *ctx,
                               ASTNode ***nodes_out,
@@ -913,6 +1060,18 @@ void llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt);
 ASTNode *llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name);
 void llvm_register_active_nominal_types(LLVMGenCtx *ctx);
 void llvm_register_active_extern_prototypes(LLVMGenCtx *ctx);
+bool llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name);
+
+static inline bool
+llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
+{
+    if (ctx == NULL || type_node == NULL
+        || type_node->type != AST_TYPE
+        || type_node->data.type.name == NULL) {
+        return false;
+    }
+    return llvm_type_name_uses_pointer_self(ctx, type_node->data.type.name);
+}
 
 /* =================================================================
  * Emitters — expressions (llvm_expr.c)

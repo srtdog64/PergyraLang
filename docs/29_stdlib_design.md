@@ -68,7 +68,7 @@ import "creatures.pgy";
 
 | 이름 | 타입 | 핵심 API | 상태 |
 |------|------|----------|------|
-| **HashMap** | `HashMap<K, V>` | `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize` | 부분 구현 (`MapKeys` 미구현) |
+| **HashMap** | `HashMap<K, V>` | `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`, `MapKeys` | 구현 |
 | **List** | `List<T>` | `ListNew`, `ListPush`, `ListGet`, `ListSet`, `ListSize`, `ListRemove` | 구현 |
 | **ReadLine** | `func` | `ReadLine() -> String` | 구현 |
 | **Print** | `func` | `Print(s)` (줄바꿈 없음, Log는 줄바꿈 있음) | 구현 |
@@ -229,7 +229,7 @@ let has: Bool = MapHas(inventory, "shield");  // false
 
 현재 구현 메모:
 - `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`는 연결돼 있다.
-- `MapKeys`는 아직 문서 표면만 있고 semantic/codegen/runtime 연결이 없다.
+- `MapKeys`는 현재 `HashMap<String, T>` / `HashMap<Int, T>` stable subset에 대해 `Array<String>` / `Array<Int>`를 반환한다.
 
 ## List 설계
 

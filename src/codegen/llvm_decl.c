@@ -59,41 +59,13 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
     return count;
 }
 
-static bool
-llvm_decl_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
-{
-    const MIRDeclHeader *mir_decl;
-
-    if (ctx == NULL || type_name == NULL)
-        return false;
-
-    {
-        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, type_name);
-        if (cls != NULL && cls->is_pointer_self_host)
-            return true;
-    }
-
-    mir_decl = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, type_name) : NULL;
-    if (mir_decl != NULL)
-        return mir_decl->uses_pointer_self;
-
-    return false;
-}
-
 static ASTNode *
 llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
 {
-    const MIRDeclHeader *mir_decl;
-
     if (ctx == NULL || ctx->current_class_name == NULL)
         return NULL;
-
-    mir_decl = ctx->mir != NULL
-        ? mir_find_decl_header(ctx->mir, ctx->current_class_name)
-        : NULL;
-    if (mir_decl != NULL && mir_decl->ast_type == AST_ZONE_DECL)
-        return mir_decl->ast;
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL,
+                                              ctx->current_class_name);
 }
 
 static void
@@ -193,7 +165,7 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
             if (p->type != NULL
                 && p->type->type == AST_TYPE
                 && p->type->data.type.name != NULL
-                && llvm_decl_nominal_uses_pointer_self(ctx, p->type->data.type.name)) {
+                && llvm_type_name_uses_pointer_self(ctx, p->type->data.type.name)) {
                 pt = LLVMPointerType(pt, 0);
             }
             if (llvm_boundary_slot_inner_name(ctx, p, &is_secure) != NULL) {
@@ -268,8 +240,7 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
             : ctx->type_i32;
         /* For 'self' parameter in class methods, use the class struct pointer
          * type instead of the default i32. */
-        if (p->type == NULL && strcmp(p->name, "self") == 0
-            && ctx->current_class_name != NULL) {
+        if (llvm_param_is_implicit_self(p) && ctx->current_class_name != NULL) {
             LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
             if (cls != NULL) {
                 pt = cls->is_pointer_self_host
@@ -280,7 +251,7 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (p->type != NULL
             && p->type->type == AST_TYPE
             && p->type->data.type.name != NULL
-            && llvm_decl_nominal_uses_pointer_self(ctx, p->type->data.type.name)) {
+            && llvm_type_name_uses_pointer_self(ctx, p->type->data.type.name)) {
             pt = LLVMPointerType(pt, 0);
         }
         if (inner != NULL) {

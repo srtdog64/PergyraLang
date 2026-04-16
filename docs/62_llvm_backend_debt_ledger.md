@@ -1,6 +1,6 @@
 # LLVM Backend Debt Ledger
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-16
 
 목적:
 
@@ -92,6 +92,23 @@ LLVM backend는 이제 MIR path에서 원본 `HIRProgram`을 직접 필요로 �
 - [llvm_mir_emit.c](/mnt/e/PergyraLang/src/codegen/llvm_mir_emit.c)
 - [slot_analyzer.c](/mnt/e/PergyraLang/src/semantic/slot_analyzer.c)
 
+### 3.4 최근 제거된 중복 debt와 남은 비효율
+
+- 제거된 중복:
+  - declaration / intent / MIR param 경로에 흩어져 있던 pointer-self 판정은 공용 helper로 통합됐다
+  - host declaration / host method lookup도 active inventory helper를 공유한다
+- 그래서 지금 남은 비효율의 중심은 다음이다:
+  - `MIRDeclHeader`가 여전히 AST와 method array를 운반하는 declaration inventory representation debt
+  - 일부 domain/intention edge path가 dedicated decl IR 없이 AST-carried shape를 읽는 비용
+  - 테스트/런타임 로그가 opt-in이 아닌 기본 stderr로 섞일 수 있는 운영 노이즈
+- 즉 앞으로의 정리 우선순위는 `새 분기 추가`가 아니라 `shared helper 이후에도 남아 있는 representation debt 제거`다
+
+근거:
+
+- [llvm_internal.h](/mnt/e/PergyraLang/src/codegen/llvm_internal.h)
+- [llvm_expr_helpers.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_helpers.inc)
+- [test_memory_layout.c](/mnt/e/PergyraLang/src/test_memory_layout.c)
+
 ## 4. “11건 누락” 주장과 현재 상태 대조
 
 | 주장 축 | 현재 상태 |
@@ -121,9 +138,11 @@ LLVM 관련 상태는 앞으로 이렇게 적는다.
 2. `validated by ABI pipeline`
 3. `MIR body + inventory-backed decl debt`
 4. `remaining debt`는 구체 항목만 적기
+5. `중복 helper 제거`와 `representation debt`를 구분해서 적기
 
 보조 기준:
 - backend path가 `HIR.items[]` 같은 broad top-level inventory에 의존하면 안 된다
 - 남은 debt는 `AST declaration inventory representation`인지 `actual emission fallback`인지 분리해서 적는다
+- noisy test/runtime stderr는 correctness bug와 운영 위생 debt를 분리해서 적는다
 
 이 기준을 쓰면 “부분 debt”와 “기능 누락”을 섞지 않게 된다.

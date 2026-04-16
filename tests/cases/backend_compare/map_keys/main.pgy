@@ -1,0 +1,31 @@
+func SumInts(values: Array<Int>) -> Int {
+    let total: Int = 0;
+    for i in 0..ArrayLength(values) {
+        total = total + values[i];
+    }
+    return total;
+}
+
+func SumLengths(values: Array<String>) -> Int {
+    let total: Int = 0;
+    for i in 0..ArrayLength(values) {
+        total = total + StringLength(values[i]);
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let labels: HashMap<String, Int> = MapNew();
+    MapSet(labels, "hp", 1);
+    MapSet(labels, "mana", 2);
+    let labelKeys: Array<String> = MapKeys(labels);
+    Log(ArrayLength(labelKeys));
+    Log(SumLengths(labelKeys));
+
+    let numbers: HashMap<Int, Int> = MapNew();
+    MapSet(numbers, 2, 20);
+    MapSet(numbers, 7, 70);
+    let numberKeys: Array<Int> = MapKeys(numbers);
+    Log(ArrayLength(numberKeys));
+    Log(SumInts(numberKeys));
+}

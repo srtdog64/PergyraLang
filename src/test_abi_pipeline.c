@@ -255,7 +255,6 @@ capture_driver_output(const DriverFlags *flags,
                       DriverPhaseTimings *timings,
                       double *compile_seconds)
 {
-    const char *same_process_env = getenv("PGY_ABI_PIPELINE_SAME_PROCESS");
 #ifdef _WIN32
     int saved_stdout;
     int saved_stderr;
@@ -306,6 +305,7 @@ capture_driver_output(const DriverFlags *flags,
     fclose(capture);
     return rc;
 #else
+    const char *same_process_env = getenv("PGY_ABI_PIPELINE_SAME_PROCESS");
     if (same_process_env != NULL && same_process_env[0] != '\0'
         && strcmp(same_process_env, "0") != 0) {
         int saved_stdout;

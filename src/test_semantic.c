@@ -3428,6 +3428,53 @@ test_engine_collections(void)
         lexer_destroy(lexer);
     }
 
+    TEST("MapKeys returns Array<String> for HashMap<String, T>");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let table: HashMap<String, Int> = MapNew();\n"
+            "    MapSet(table, \"hp\", 7);\n"
+            "    let keys: Array<String> = MapKeys(table);\n"
+            "    Log(ArrayLength(keys));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("MapKeys returns Array<Int> for HashMap<Int, T>");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let table: HashMap<Int, Int> = MapNew();\n"
+            "    MapSet(table, 7, 42);\n"
+            "    let keys: Array<Int> = MapKeys(table);\n"
+            "    let first: Int = keys[0];\n"
+            "    Log(first);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ListPush rejects wrong element type");
     {
         const char *source =
@@ -3481,6 +3528,31 @@ test_engine_collections(void)
             "    let table: HashMap<Long, Int> = MapNew();\n"
             "    let hp: Int = MapGet(table, 7);\n"
             "    Log(hp);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "HashMap currently supports only String or Int keys"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HashMap annotation rejects unsupported key kind before MapKeys");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let table: HashMap<Long, Int> = MapNew();\n"
+            "    let keys: Array<Long> = MapKeys(table);\n"
+            "    Log(ArrayLength(keys));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -3951,6 +4023,119 @@ test_projection_contract_diagnostics(void)
             result, "projection target 'playerView' expects field 'mana'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(
             result, "add field 'mana' to source declaration 'Player'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone refresh reports ambiguous nested source field with structured diagnostic");
+    {
+        const char *source =
+            "vessel Stats {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "vessel Aura {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "subject Player {\n"
+            "    vessel stats: Stats;\n"
+            "    vessel aura: Aura;\n"
+            "}\n"
+            "object PlayerView {\n"
+            "    hp: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "target field 'hp' is ambiguous in source slot 'player'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "multiple projection source paths match field 'hp'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "automatic projection cannot choose one path safely"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone refresh reports wrong projection kind with structured diagnostic");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "tobject PlayerPacket {\n"
+            "    hp: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    tobject slot playerPacket: PlayerPacket\n"
+            "    refresh playerPacket from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "target slot 'playerPacket' uses the wrong projection kind"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "refresh requires target slot 'playerPacket' to use object declaration"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "actual target type 'PlayerPacket' uses a different projection kind"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone refresh reports duplicate field map with structured diagnostic");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    let mana: Int;\n"
+            "}\n"
+            "object PlayerView {\n"
+            "    hp: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from player map {\n"
+            "        hp <- hp;\n"
+            "        hp <- mana;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "projection map duplicates target field 'hp'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "each projection target field may be filled from exactly one source field"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "keep a single mapping for 'hp'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

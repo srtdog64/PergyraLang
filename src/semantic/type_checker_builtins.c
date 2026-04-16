@@ -1806,6 +1806,34 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         }
         return TYPE_INT;
     }
+    if (strcmp(name, "MapKeys") == 0) {
+        Type *map_type;
+        Type *key_type;
+        Type *args[1];
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        map_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (type_is_constructed_named(map_type, "HashMap")
+            && map_type->data.constructed.arg_count == 2) {
+            key_type = map_type->data.constructed.args[0];
+            if (key_type != NULL
+                && key_type->name != NULL
+                && strcmp(key_type->name, "String") != 0
+                && strcmp(key_type->name, "Int") != 0) {
+                semantic_error(ctx, expr->data.call.arguments[0],
+                    "MapKeys currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    map_type->name != NULL ? map_type->name : "<type>");
+            }
+            args[0] = key_type != NULL ? key_type : TYPE_UNKNOWN;
+            return type_create_constructed(TYPE_ARRAY, args, 1);
+        }
+        if (map_type != NULL && map_type != TYPE_UNKNOWN) {
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "MapKeys expects HashMap<K, T> as first argument, got '%s'",
+                map_type->name != NULL ? map_type->name : "<type>");
+        }
+        return TYPE_UNKNOWN;
+    }
     /* List builtins */
     if (strcmp(name, "ListNew") == 0) {
         if (!check_call_arity(expr, 0, name, ctx))

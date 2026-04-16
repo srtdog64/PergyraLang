@@ -538,8 +538,13 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
 static ASTNode *
 llvm_find_projection_nominal_decl_local(LLVMGenCtx *ctx, const char *name)
 {
+    const MIRDeclHeader *decl_header;
+
     if (ctx == NULL || name == NULL)
         return NULL;
+    decl_header = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, name) : NULL;
+    if (decl_header != NULL && decl_header->ast_type == AST_CLASS_DECL)
+        return decl_header->ast;
     return llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
 }
 

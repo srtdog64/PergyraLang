@@ -225,6 +225,7 @@ main() {
         "tests/cases/backend_compare/zone_host_method_abi_combo"
         "tests/cases/backend_compare/ownership_forwarding"
         "tests/cases/backend_compare/generic_default_contracts"
+        "tests/cases/backend_compare/map_keys"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/relation_effect_propagation"
     )
