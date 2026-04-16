@@ -185,6 +185,13 @@ diagnostic 고정 규칙:
 
 ### B0-4. own/ref
 
+판정:
+
+- anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment은 이미 존재한다
+- 남은 일은 일반 movable type ownership model, copy vs move-only 분류, assignment/call/return/channel/container/rebind 전경로 analysis, richer provenance diagnostics를 닫는 것이다
+- own/ref는 지금 beta-quality 기준에서 다시 활성 blocker로 본다
+- anchored subset만 stable이라고 보고 넘어가면 language ownership story 자체가 partial acceptance로 남는다
+
 닫힌 것:
 
 - anchored slot subset
@@ -198,11 +205,35 @@ diagnostic 고정 규칙:
 - assignment/call/return/channel/container/rebind 전경로 analysis
 - moved-here / borrowed-here / escaped-here provenance diagnostics
 
+직접 마감 항목:
+
+- movable vs copy type rule
+- assignment ownership rule
+- call boundary ownership rule
+- return boundary ownership rule
+- channel boundary ownership rule
+- container/rebind ownership rule
+- helper-call escape analysis
+- declaration/runtime/diagnostic/backend parity
+
+diagnostic 고정 규칙:
+
+- ownership failure는 최소한 다음 정보를 포함해야 한다
+  - `value`
+  - `ownership mode`
+  - `moved here` 또는 `borrowed here`
+  - `escaped here` 또는 `rebound here`
+  - `consumer path`
+  - `fix`
+- 진단 포맷은 `Reason:` / `Fix:` 구조로 고정한다
+- assignment/call/return/channel/container path 모두 같은 구조를 유지한다
+
 완료 기준:
 
 - anchored subset이 아니라 general movable ownership contract가 존재한다
 - runtime 보정이 아니라 semantic 단계에서 대부분의 위반을 차단한다
 - channel/return/helper call escape path가 회귀로 고정된다
+- ownership diagnostics가 `value/mode/provenance/consumer-path/fix`를 포함하고 `Reason:` / `Fix:` 포맷을 유지한다
 
 ## MIR-only Declaration Closure Board
 
@@ -343,6 +374,10 @@ diagnostic 고정 규칙:
    - instantiation-path parity
    - expected/actual/bound/consumer-path diagnostics
 4. B0-4 own/ref general movable rule 확장
+   - movable vs copy type rule
+   - assignment/call/return/channel/container/rebind ownership
+   - helper-call escape analysis
+   - ownership provenance diagnostics
 5. declaration-side MIR-only debt 제거
 6. Backend parity final closure
 7. runtime observability structured state 보강

@@ -82,6 +82,62 @@ pgy_exec_argv(const char *const argv[], bool verbose)
 #endif
 }
 
+#ifdef _WIN32
+static void
+pgy_win32_normalize_exec_path(const char *path, char *dst, size_t dst_cap)
+{
+    const char *tmpbase = NULL;
+    size_t pos = 0;
+
+    if (dst == NULL || dst_cap == 0) {
+        return;
+    }
+    dst[0] = '\0';
+    if (path == NULL || path[0] == '\0') {
+        return;
+    }
+
+    if (path[0] == '/' && path[1] != '\0' && path[2] == '/'
+        && ((path[1] >= 'a' && path[1] <= 'z')
+            || (path[1] >= 'A' && path[1] <= 'Z'))) {
+        if (dst_cap < 4) {
+            return;
+        }
+        dst[pos++] = path[1];
+        dst[pos++] = ':';
+        dst[pos++] = '\\';
+        path += 3;
+    } else if (strncmp(path, "/tmp/", 5) == 0 || strcmp(path, "/tmp") == 0) {
+        tmpbase = getenv("TMPDIR");
+        if (tmpbase == NULL || tmpbase[0] == '\0')
+            tmpbase = getenv("TMP");
+        if (tmpbase == NULL || tmpbase[0] == '\0')
+            tmpbase = getenv("TEMP");
+        if (tmpbase != NULL && tmpbase[0] != '\0') {
+            size_t base_len = strlen(tmpbase);
+            if (base_len >= dst_cap)
+                base_len = dst_cap - 1;
+            memcpy(dst, tmpbase, base_len);
+            pos = base_len;
+            if (pos > 0 && dst[pos - 1] != '\\' && dst[pos - 1] != '/') {
+                if (pos + 1 >= dst_cap) {
+                    dst[dst_cap - 1] = '\0';
+                    return;
+                }
+                dst[pos++] = '\\';
+            }
+            path += (path[4] == '\0') ? 4 : 5;
+        }
+    }
+
+    while (*path != '\0' && pos + 1 < dst_cap) {
+        dst[pos++] = (*path == '/') ? '\\' : *path;
+        path++;
+    }
+    dst[pos] = '\0';
+}
+#endif
+
 #ifdef PGY_LLVM_ENABLED
 static void
 compiler_debug_llvm_host_stage(const char *stage)
@@ -748,10 +804,7 @@ compiler_run_binary(const char *binary_path, bool verbose)
 
     char safe_path[512];
 #ifdef _WIN32
-    snprintf(safe_path, sizeof(safe_path), "%s", resolved_path);
-    for (char *p = safe_path; *p; p++) {
-        if (*p == '/') *p = '\\';
-    }
+    pgy_win32_normalize_exec_path(resolved_path, safe_path, sizeof(safe_path));
 #else
     if (resolved_path[0] == '/' || strncmp(resolved_path, "./", 2) == 0) {
         snprintf(safe_path, sizeof(safe_path), "%s", resolved_path);

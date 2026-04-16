@@ -125,9 +125,9 @@
 - 관련 진단/예제/문서는 현재 구현 기준으로 정렬됨
 
 판정:
-- 베타 기준 own/ref는 anchored subset만 stable surface로 본다
-- 일반 ownership system은 이번 베타 범위에서 제외한다
-- 따라서 own/ref의 B0 클로저는 `확장`이 아니라 `surface trust 고정`으로 본다
+- anchored subset baseline은 이미 있지만, beta-quality 기준에서는 own/ref를 다시 활성 blocker로 본다
+- 남은 일은 일반 movable type ownership model, copy vs move-only 분류, assignment/call/return/channel/container/rebind 전경로 analysis, richer provenance diagnostics를 닫는 것이다
+- anchored subset만 stable이라고 보고 넘어가면 ownership story가 partial acceptance로 남는다
 
 ### 레이어별 현재 진실
 
@@ -203,6 +203,9 @@
 
 ## 완료 (최근)
 
+- [x] **Windows ABI/backend-compare precheck 실행 경로 정규화**
+  - `compiler_run_binary()`가 MSYS 스타일 `/tmp/...` 및 `/<drive>/...` 실행 파일 경로를 그대로 `_spawnvp()`에 넘기던 문제를 수정
+  - Windows에서 executable launch는 native Win32 경로로 정규화한 뒤 실행하도록 정렬
 - [x] **nested vessel-source projection ambiguity closure**
   - zone `refresh/publish/bind` projection contract 경로에서 ambiguous source path가 `missing`으로 오진되던 분기 순서를 수정
   - builtin `ToObject` / `ToTObject`도 동일한 structured `Reason/Fix` ambiguity diagnostic으로 정렬
@@ -266,6 +269,10 @@
 - [ ] **own/ref 완전 closure**
   - strict beta-quality 기준으로 anchored subset closure에서 재개방
   - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫는다
+  - 이미 존재: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
+  - 남음: movable vs copy type rule, assignment/call/return/channel/container/rebind ownership, helper-call escape analysis, ownership provenance diagnostics, wider C/LLVM regression 확대
+  - ownership diagnostics는 `value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
+  - anchored subset만 stable이라고 보고 넘기지 않는다
 
 ### B1 — 베타 신뢰도 필수
 
