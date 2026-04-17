@@ -1965,12 +1965,14 @@ type_check_projection_contract(ASTNode **slots,
             "Reason:\n"
             "- %s only writes into object/tobject projection targets\n"
             "- subject/vessel slots are ownership anchors, not projection sinks\n"
+            "- current owner surface is '%s'\n"
             "Fix:\n"
             "- choose an object slot for local projection sync\n"
             "- or choose a tobject slot for boundary publication",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
-            action_name);
+            action_name,
+            owner_label);
         return true;
     }
     requires_dto =
@@ -1984,11 +1986,13 @@ type_check_projection_contract(ASTNode **slots,
             "Reason:\n"
             "- publish writes a boundary transfer snapshot\n"
             "- object slots are local projections and cannot be published as transfer targets\n"
+            "- current owner surface is '%s'\n"
             "Fix:\n"
             "- change '%s' to a tobject slot\n"
             "- or use refresh/bind into an object slot instead",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label,
             object_slot_name != NULL ? object_slot_name : "<slot>");
         return true;
     }
@@ -2006,12 +2010,16 @@ type_check_projection_contract(ASTNode **slots,
             "Reason:\n"
             "- projection sync requires an object/tobject nominal target\n"
             "- '%s' is not an object/tobject declaration\n"
+            "- target slot '%s' is declared on %s '%s'\n"
             "Fix:\n"
             "- change the target slot type to an object or tobject declaration\n"
             "- or move this data through a plain assignment path instead",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
-            target_type->name != NULL ? target_type->name : "<unknown>");
+            target_type->name != NULL ? target_type->name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label,
+            owner_label);
         return true;
     }
     if (site != NULL && site->type == AST_ZONE_REFRESH) {
@@ -2026,6 +2034,7 @@ type_check_projection_contract(ASTNode **slots,
                 "Reason:\n"
                 "- %s requires target slot '%s' to use %s declaration\n"
                 "- actual target type '%s' uses a different projection kind\n"
+                "- target projection declaration currently comes from '%s'\n"
                 "Fix:\n"
                 "- change slot '%s' to use %s declaration\n"
                 "- or switch to the matching projection operation",
@@ -2034,6 +2043,7 @@ type_check_projection_contract(ASTNode **slots,
                 action_name,
                 object_slot_name != NULL ? object_slot_name : "<slot>",
                 expected_label,
+                target_type->name != NULL ? target_type->name : "<unknown>",
                 target_type->name != NULL ? target_type->name : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<slot>",
                 expected_label);
@@ -2047,10 +2057,12 @@ type_check_projection_contract(ASTNode **slots,
             "Reason:\n"
             "- tobject is already a boundary snapshot\n"
             "- projection sync must read from a subject/object source, not from a transfer snapshot\n"
+            "- source slot '%s' currently resolves to tobject '%s'\n"
             "Fix:\n"
             "- use the original subject/object slot as the source\n"
             "- or materialize a new object/tobject from the original source instead",
             owner_label, action_name,
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_type != NULL && source_type->name != NULL
                 ? source_type->name
@@ -2067,11 +2079,15 @@ type_check_projection_contract(ASTNode **slots,
             "Reason:\n"
             "- projection sync reads fields from a subject/object declaration\n"
             "- this slot does not point at a subject/object source host\n"
+            "- resolved source type is '%s'\n"
             "Fix:\n"
             "- use a subject slot as the source\n"
             "- or use an object slot that mirrors the desired fields",
             owner_label, action_name,
-            source_slot_name != NULL ? source_slot_name : "<unknown>");
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            source_type != NULL && source_type->name != NULL
+                ? source_type->name
+                : "<unknown>");
         return true;
     }
 
@@ -2087,6 +2103,7 @@ type_check_projection_contract(ASTNode **slots,
                     "Reason:\n"
                     "- target projection declaration '%s' does not declare field '%s'\n"
                     "- %s cannot write source slot '%s' into a field that does not exist\n"
+                    "- target contract comes from projection type '%s'\n"
                     "Fix:\n"
                     "- add field '%s' to projection declaration '%s'\n"
                     "- or remove/update the field map entry for '%s'",
@@ -2099,6 +2116,9 @@ type_check_projection_contract(ASTNode **slots,
                     mapped_target != NULL ? mapped_target : "<field>",
                     action_name,
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    target_type != NULL && target_type->name != NULL
+                        ? target_type->name
+                        : "<unknown>",
                     mapped_target != NULL ? mapped_target : "<field>",
                     target_type != NULL && target_type->name != NULL
                         ? target_type->name
@@ -2116,10 +2136,13 @@ type_check_projection_contract(ASTNode **slots,
                         "Reason:\n"
                         "- each projection target field may be filled from exactly one source field\n"
                         "- duplicate map entries make the projection source ambiguous\n"
+                        "- target projection slot is '%s'\n"
                         "Fix:\n"
                         "- keep a single mapping for '%s'\n"
                         "- or split the target into distinct projection fields",
-                        owner_label, action_name, mapped_target, mapped_target);
+                        owner_label, action_name, mapped_target,
+                        object_slot_name != NULL ? object_slot_name : "<unknown>",
+                        mapped_target);
                 }
             }
         }
@@ -2149,13 +2172,17 @@ type_check_projection_contract(ASTNode **slots,
                 "Reason:\n"
                 "- multiple projection source paths match field '%s'\n"
                 "- automatic projection cannot choose one path safely\n"
+                "- source declaration '%s' exposes overlapping candidate paths\n"
                 "Fix:\n"
                 "- rename one of the source fields to make the path unique\n"
                 "- or expose the desired value through a dedicated object/tobject field",
                 owner_label, action_name,
                 target_field->name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
-                source_field_name != NULL ? source_field_name : target_field->name);
+                source_field_name != NULL ? source_field_name : target_field->name,
+                source_type != NULL && source_type->name != NULL
+                    ? source_type->name
+                    : "<unknown>");
             continue;
         }
         if (source_status == 0 || source_field_type == NULL) {
@@ -2166,6 +2193,7 @@ type_check_projection_contract(ASTNode **slots,
                     "Reason:\n"
                     "- field map explicitly requests '%s <- %s'\n"
                     "- source declaration '%s' does not expose '%s'\n"
+                    "- target projection declaration is '%s'\n"
                     "Fix:\n"
                     "- add source field '%s' to '%s'\n"
                     "- or change the map entry to a field that actually exists",
@@ -2179,6 +2207,9 @@ type_check_projection_contract(ASTNode **slots,
                         ? source_type->name
                         : "<unknown>",
                     source_field_name,
+                    target_type != NULL && target_type->name != NULL
+                        ? target_type->name
+                        : "<unknown>",
                     source_field_name,
                     source_type != NULL && source_type->name != NULL
                         ? source_type->name
@@ -2189,6 +2220,7 @@ type_check_projection_contract(ASTNode **slots,
                     "Reason:\n"
                     "- projection target '%s' expects field '%s'\n"
                     "- source declaration '%s' does not expose a matching field\n"
+                    "- automatic field matching therefore cannot derive a safe source path\n"
                     "Fix:\n"
                     "- add field '%s' to source declaration '%s'\n"
                     "- or add an explicit field map to a different existing source field",
@@ -2625,11 +2657,23 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
             || node->data.relation_decl.between_left_type != NULL
             || node->data.relation_decl.between_right_type != NULL)) {
         semantic_warning(ctx, node,
-            "Relation '%s' should declare at least one endpoint slot; use 'for name: Type' or a bindable subject/object slot",
+            "Relation '%s' should declare at least one endpoint slot.\n"
+            "Reason:\n"
+            "- relation contracts need a concrete endpoint surface to bind/link against\n"
+            "- without an endpoint slot, relation and projection propagation stay underspecified\n"
+            "Fix:\n"
+            "- use 'for name: Type'\n"
+            "- or declare a bindable subject/object endpoint slot",
             node->data.relation_decl.name);
     } else if (endpoint_count > 2) {
         semantic_warning(ctx, node,
-            "Relation '%s' currently models a small edge; more than two endpoint slots may be better expressed as party or zone",
+            "Relation '%s' currently declares more than two endpoint slots.\n"
+            "Reason:\n"
+            "- relation is currently treated as a small edge contract\n"
+            "- more than two endpoints usually mean party/zone coordination rather than a single relation edge\n"
+            "Fix:\n"
+            "- reduce the relation to two endpoints\n"
+            "- or move the coordination shape into party/zone",
             node->data.relation_decl.name);
     }
     /* Validate 'between' clause if present */
@@ -2644,8 +2688,13 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         bool right_is_subject = (brk == RELATION_ENDPOINT_SUBJECT);
         if (!left_is_subject && !right_is_subject) {
             semantic_error(ctx, node,
-                "Relation '%s': at least one side of 'between' must be 'subject' "
-                "(got endpoint kinds %d and %d)",
+                "Relation '%s' must declare at least one subject endpoint in 'between'.\n"
+                "Reason:\n"
+                "- relation edges are anchored around at least one active subject endpoint\n"
+                "- current endpoint kinds are %d and %d, so the contract has no active anchor\n"
+                "Fix:\n"
+                "- change one side of 'between' to subject\n"
+                "- or model this shape as effect/object projection instead",
                 node->data.relation_decl.name, (int)blk, (int)brk);
             ok = false;
         }
@@ -2694,11 +2743,23 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
         node->data.effect_decl.refresh_count);
     if (target_count == 0) {
         semantic_warning(ctx, node,
-            "Effect '%s' should declare at least one target slot; use 'for name: Type' or a bindable subject/object slot",
+            "Effect '%s' should declare at least one target slot.\n"
+            "Reason:\n"
+            "- effect contracts need a concrete target surface to apply/maintain against\n"
+            "- without a target slot, effect propagation and authority checks stay underspecified\n"
+            "Fix:\n"
+            "- use 'for name: Type'\n"
+            "- or declare a bindable subject/object target slot",
             node->data.effect_decl.name);
     } else if (target_count > 1) {
         semantic_warning(ctx, node,
-            "Effect '%s' currently expects a small target surface; multiple target slots may be better expressed via relation or zone",
+            "Effect '%s' currently declares multiple target slots.\n"
+            "Reason:\n"
+            "- effect is currently treated as a focused layer on one target path\n"
+            "- multiple targets usually mean relation or zone-state coordination instead\n"
+            "Fix:\n"
+            "- keep one effect target slot\n"
+            "- or move the multi-target shape into relation/zone",
             node->data.effect_decl.name);
     }
     ctx->current_effect = saved_effect;
@@ -3060,12 +3121,27 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             if (boundary_projection) {
                 semantic_error(ctx, refresh,
-                    "Zone %s to boundary target '%s' must specify 'by <subjectSlot>' when authority is declared",
+                    "Zone %s to boundary target '%s' must specify 'by <subjectSlot>' when authority is declared.\n"
+                    "Reason:\n"
+                    "- boundary projection publishes authority-bearing state across the zone edge\n"
+                    "- zone '%s' declares authority, so provenance must name the approving subject slot\n"
+                    "Fix:\n"
+                    "- add 'by <subjectSlot>' to this %s clause\n"
+                    "- or publish into a non-authority zone",
                     action_name,
-                    object_slot_name != NULL ? object_slot_name : "<unknown>");
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    action_name);
             } else {
-                semantic_warning(ctx, refresh,
-                    "Zone %s should specify 'by <subjectSlot>' when authority is declared",
+                semantic_error(ctx, refresh,
+                    "Zone %s must specify 'by <subjectSlot>' when authority is declared.\n"
+                    "Reason:\n"
+                    "- the zone declares authority and this projection mutates local derived state\n"
+                    "- without an explicit participant, contract provenance becomes harder to explain at diagnostics/runtime\n"
+                    "Fix:\n"
+                    "- add 'by <subjectSlot>' to this %s clause\n"
+                    "- or remove the authority declaration if this projection is intentionally authority-free",
+                    action_name,
                     action_name);
             }
         }

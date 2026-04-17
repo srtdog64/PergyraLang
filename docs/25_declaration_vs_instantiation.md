@@ -161,7 +161,7 @@ Pergyra는 **사용자-facing 설계 순서**에서는 `intent-first`이고,
 - **설계 순서**는 사용자가 프로그램을 어떤 계약부터 읽고 쓰는가를 말한다.
 - **host 축**은 컴파일러가 어떤 nominal host를 중심으로 action/method/self typing을 나누는가를 말한다.
 
-문서에서 이 둘을 섞으면 `subject-first`와 `intent-first`가 충돌해 보인다.
+문서에서 이 둘을 섞으면 주체 정의를 먼저 세우는 순서와 intent-first 설계 순서가 충돌해 보인다.
 실제 기준은 다음과 같이 분리하는 것이 맞다.
 
 ### 사용자-facing 설계 순서

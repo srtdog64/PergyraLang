@@ -854,7 +854,12 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
 
     if (call->data.call.arg_count != 1) {
         semantic_error(ctx, call,
-            "'HasZone' expects exactly 1 argument, got %zu",
+            "'HasZone' expects exactly 1 argument, got %zu.\n"
+            "Reason:\n"
+            "- world zone/state observability requires a single zone-slot or world-state name\n"
+            "Fix:\n"
+            "- call HasZone(zoneOrState)\n"
+            "- or remove the extra argument(s)",
             call->data.call.arg_count);
         return TYPE_BOOL;
     }
@@ -862,13 +867,25 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     world = ctx->current_world;
     if (world == NULL || world->type != AST_WORLD_DECL) {
         semantic_error(ctx, call,
-            "HasZone(...) is only available inside world declarations and world methods");
+            "HasZone(...) is only available inside world declarations and world methods.\n"
+            "Reason:\n"
+            "- zone/state observability is anchored to the current world context\n"
+            "- there is no active world declaration or world method here\n"
+            "Fix:\n"
+            "- move this query into a world declaration or world method\n"
+            "- or pass the relevant state through another contract surface");
         return TYPE_BOOL;
     }
 
     arg = call->data.call.arguments[0];
     if (arg == NULL) {
-        semantic_error(ctx, call, "HasZone(...) requires a zone slot or world state name");
+        semantic_error(ctx, call,
+            "HasZone(...) requires a zone slot or world state name.\n"
+            "Reason:\n"
+            "- the query cannot resolve an empty zone/state reference\n"
+            "Fix:\n"
+            "- pass a world zone slot name\n"
+            "- or pass a declared world state name");
         return TYPE_BOOL;
     }
 
@@ -878,13 +895,23 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
         name = arg->data.string.value;
     } else {
         semantic_error(ctx, arg,
-            "HasZone(...) expects a zone/state identifier or string literal");
+            "HasZone(...) expects a zone/state identifier or string literal.\n"
+            "Reason:\n"
+            "- world observability queries resolve names, not arbitrary expressions\n"
+            "Fix:\n"
+            "- pass a zone/state identifier\n"
+            "- or pass a string literal with the declared name");
         return TYPE_BOOL;
     }
 
     if (name == NULL) {
         semantic_error(ctx, arg,
-            "HasZone(...) requires a valid zone/state name");
+            "HasZone(...) requires a valid zone/state name.\n"
+            "Reason:\n"
+            "- the provided identifier/string did not contain a usable name\n"
+            "Fix:\n"
+            "- provide a non-empty world zone slot name\n"
+            "- or provide a non-empty world state name");
         return TYPE_BOOL;
     }
 
@@ -907,7 +934,15 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     }
 
     semantic_error(ctx, arg,
-        "Unknown world zone/state '%s' in HasZone(...)",
+        "Unknown world zone/state '%s' in HasZone(...).\n"
+        "Reason:\n"
+        "- current world '%s' does not declare a zone slot or state named '%s'\n"
+        "Fix:\n"
+        "- use a declared world zone slot/state name\n"
+        "- or declare '%s' on the current world",
+        name,
+        world->data.world_decl.name != NULL ? world->data.world_decl.name : "<world>",
+        name,
         name);
     return TYPE_BOOL;
 }
@@ -928,15 +963,28 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
 
     if (call->data.call.arg_count != 2) {
         semantic_error(ctx, call,
-            "'%s' expects exactly 2 argument(s), got %zu",
-            builtin_name, call->data.call.arg_count);
+            "'%s' expects exactly 2 argument(s), got %zu.\n"
+            "Reason:\n"
+            "- %s needs a world zone slot and a zone %s name\n"
+            "Fix:\n"
+            "- call %s(zoneSlot, %sName)\n"
+            "- or remove the extra argument(s)",
+            builtin_name, call->data.call.arg_count,
+            builtin_name, detail_label,
+            builtin_name, detail_label);
         return TYPE_BOOL;
     }
 
     world = ctx->current_world;
     if (world == NULL || world->type != AST_WORLD_DECL) {
         semantic_error(ctx, call,
-            "%s(...) is only available inside world declarations and world methods",
+            "%s(...) is only available inside world declarations and world methods.\n"
+            "Reason:\n"
+            "- world zone detail queries are anchored to the active world context\n"
+            "- there is no active world declaration or world method here\n"
+            "Fix:\n"
+            "- move this query into a world declaration or world method\n"
+            "- or surface the needed detail through another contract",
             builtin_name);
         return TYPE_BOOL;
     }
@@ -945,8 +993,13 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
     detail_arg = call->data.call.arguments[1];
     if (zone_arg == NULL || detail_arg == NULL) {
         semantic_error(ctx, call,
-            "%s(...) requires a world zone slot and zone %s name",
-            builtin_name, detail_label);
+            "%s(...) requires a world zone slot and zone %s name.\n"
+            "Reason:\n"
+            "- the query cannot resolve a missing zone/detail reference\n"
+            "Fix:\n"
+            "- pass a world zone slot as the first argument\n"
+            "- and pass a zone %s name as the second argument",
+            builtin_name, detail_label, detail_label);
         return TYPE_BOOL;
     }
 
@@ -956,7 +1009,12 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
         zone_slot_name = zone_arg->data.string.value;
     else {
         semantic_error(ctx, zone_arg,
-            "%s(...) expects a world zone-slot identifier or string literal as the first argument",
+            "%s(...) expects a world zone-slot identifier or string literal as the first argument.\n"
+            "Reason:\n"
+            "- the first argument names the embedded zone slot inside the current world\n"
+            "Fix:\n"
+            "- pass a world zone-slot identifier\n"
+            "- or pass a string literal with that slot name",
             builtin_name);
         return TYPE_BOOL;
     }
@@ -967,31 +1025,59 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
         detail_name = detail_arg->data.string.value;
     else {
         semantic_error(ctx, detail_arg,
-            "%s(...) expects a zone %s identifier or string literal as the second argument",
-            builtin_name, detail_label);
+            "%s(...) expects a zone %s identifier or string literal as the second argument.\n"
+            "Reason:\n"
+            "- the second argument names the zone-local %s being queried\n"
+            "Fix:\n"
+            "- pass a zone %s identifier\n"
+            "- or pass a string literal with that declared name",
+            builtin_name, detail_label, detail_label, detail_label);
         return TYPE_BOOL;
     }
 
     if (zone_slot_name == NULL || detail_name == NULL) {
         semantic_error(ctx, call,
-            "%s(...) requires valid zone-slot and %s names",
-            builtin_name, detail_label);
+            "%s(...) requires valid zone-slot and %s names.\n"
+            "Reason:\n"
+            "- one or both query names resolved to an unusable value\n"
+            "Fix:\n"
+            "- provide a non-empty world zone-slot name\n"
+            "- and provide a non-empty zone %s name",
+            builtin_name, detail_label, detail_label);
         return TYPE_BOOL;
     }
 
     zone_decl = resolve_world_zone_decl_local(ctx, world, zone_slot_name);
     if (zone_decl == NULL) {
         semantic_error(ctx, zone_arg,
-            "Unknown world zone slot '%s' in %s(...)",
-            zone_slot_name, builtin_name);
+            "Unknown world zone slot '%s' in %s(...).\n"
+            "Reason:\n"
+            "- current world '%s' does not declare a zone slot named '%s'\n"
+            "Fix:\n"
+            "- use a declared world zone slot name\n"
+            "- or declare zone slot '%s' on the current world",
+            zone_slot_name, builtin_name,
+            world->data.world_decl.name != NULL ? world->data.world_decl.name : "<world>",
+            zone_slot_name,
+            zone_slot_name);
         return TYPE_BOOL;
     }
 
     detail_decl = resolver(zone_decl, detail_name);
     if (detail_decl == NULL) {
         semantic_error(ctx, detail_arg,
-            "Unknown zone %s '%s' in %s(%s, ...)",
-            detail_label, detail_name, builtin_name, zone_slot_name);
+            "Unknown zone %s '%s' in %s(%s, ...).\n"
+            "Reason:\n"
+            "- zone '%s' does not declare a %s named '%s'\n"
+            "Fix:\n"
+            "- use a declared zone %s name\n"
+            "- or declare '%s' on zone '%s'",
+            detail_label, detail_name, builtin_name, zone_slot_name,
+            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+            detail_label, detail_name,
+            detail_label,
+            detail_name,
+            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
         return TYPE_BOOL;
     }
 

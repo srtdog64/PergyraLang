@@ -398,7 +398,15 @@ resolve_required_ability_decl(ASTNode *ability_ref,
     resolve_type_node(ability_ref, ctx);
     if (ability == NULL) {
         semantic_error(ctx, site,
-            "%s '%s' requires a valid ability type reference",
+            "%s '%s' requires a valid ability type reference.\n"
+            "Reason:\n"
+            "- this contract path expects an ability type\n"
+            "- the current reference is missing, malformed, or not an ability surface\n"
+            "Fix:\n"
+            "- replace it with a visible ability type such as 'AbilityName' or 'AbilityName<T>'\n"
+            "- or remove the invalid requirement from %s '%s'",
+            owner_label != NULL ? owner_label : "construct",
+            owner_name != NULL ? owner_name : "<anonymous>",
             owner_label != NULL ? owner_label : "construct",
             owner_name != NULL ? owner_name : "<anonymous>");
         free(required_text);
@@ -432,13 +440,25 @@ resolve_required_ability_decl(ASTNode *ability_ref,
              && !ability_decl->is_exported)
             || ((site_module == NULL
                  || ability_decl->origin_path == NULL
-                 || !same_module_origin(site_module, ability_decl->origin_path))
+                || !same_module_origin(site_module, ability_decl->origin_path))
                 && ability_decl->data.ability_decl.has_explicit_access
                 && ability_decl->data.ability_decl.access != ACCESS_PUBLIC))) {
         semantic_error(ctx, site,
-            "%s '%s' cannot require non-exported ability '%s' from another module",
+            "%s '%s' cannot require non-exported ability '%s' from another module.\n"
+            "Reason:\n"
+            "- consumer path is %s '%s'\n"
+            "- ability reference is '%s'\n"
+            "- the declaration exists but is not visible across the current module boundary\n"
+            "Fix:\n"
+            "- export ability '%s' from its defining module\n"
+            "- or move this contract to the same module\n"
+            "- or require a public ability instead",
             owner_label != NULL ? owner_label : "construct",
             owner_name != NULL ? owner_name : "<anonymous>",
+            ability,
+            owner_label != NULL ? owner_label : "construct",
+            owner_name != NULL ? owner_name : "<anonymous>",
+            required_text != NULL ? required_text : ability,
             ability);
         free(required_text);
         return NULL;

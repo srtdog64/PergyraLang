@@ -579,6 +579,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                                          SemanticContext *ctx)
 {
     ASTNode *bound_decl;
+    char *ability_text = NULL;
 
     if (role_decl == NULL || role_decl->type != AST_ROLE_DECL
         || ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
@@ -593,6 +594,8 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
         ctx->program_root, role_decl->data.role_decl.for_type->data.type.name);
     if (bound_decl == NULL || !decl_is_subject_host(bound_decl))
         return;
+
+    ability_text = ability_ref_display(ability_ref);
 
     for (size_t i = 0; i < ability_decl->data.ability_decl.require_count; i++) {
         ASTNode *req = ability_decl->data.ability_decl.require_fields[i];
@@ -612,11 +615,37 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
             &container_field_name);
         if (field == NULL) {
             semantic_error(ctx, role_decl,
-                "Role '%s' implements ability '%s', but subject '%s' is missing required field '%s'",
+                "Role '%s' cannot implement ability '%s' because subject '%s' is missing required field '%s'.\n"
+                "Reason:\n"
+                "- impl contract is '%s'\n"
+                "- ability '%s' requires subject field '%s'\n"
+                "- subject '%s' has no matching surface field for that requirement\n"
+                "Fix:\n"
+                "- add field '%s' to subject '%s'\n"
+                "- or relax/remove the require-field from ability '%s'",
                 role_decl->data.role_decl.name != NULL ? role_decl->data.role_decl.name : "<role>",
-                ability_decl->data.ability_decl.name != NULL ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
                 bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
-                req->data.require_field.name);
+                req->data.require_field.name,
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
+                req->data.require_field.name,
+                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                req->data.require_field.name,
+                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"));
             continue;
         }
 
@@ -630,17 +659,50 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
         if (required_type != NULL && field_type != NULL
             && !type_is_assignable(field_type, required_type)) {
             semantic_error(ctx, role_decl,
-                "Role '%s' implements ability '%s', but subject '%s.%s%s%s' has type '%s' and ability requires '%s'",
+                "Role '%s' cannot implement ability '%s' because subject field '%s.%s%s%s' has incompatible type.\n"
+                "Reason:\n"
+                "- impl contract is '%s'\n"
+                "- subject field '%s.%s%s%s' resolves to '%s'\n"
+                "- ability '%s' requires '%s' for that field\n"
+                "Fix:\n"
+                "- change field '%s.%s%s%s' to type '%s'\n"
+                "- or relax/remove the require-field from ability '%s'",
                 role_decl->data.role_decl.name != NULL ? role_decl->data.role_decl.name : "<role>",
-                ability_decl->data.ability_decl.name != NULL ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
+                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                container_field_name != NULL ? container_field_name : "",
+                container_field_name != NULL ? "." : "",
+                req->data.require_field.name,
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
                 bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
                 container_field_name != NULL ? container_field_name : "",
                 container_field_name != NULL ? "." : "",
                 req->data.require_field.name,
                 field_type->name != NULL ? field_type->name : "<type>",
-                required_type->name != NULL ? required_type->name : "<type>");
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
+                required_type->name != NULL ? required_type->name : "<type>",
+                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                container_field_name != NULL ? container_field_name : "",
+                container_field_name != NULL ? "." : "",
+                req->data.require_field.name,
+                required_type->name != NULL ? required_type->name : "<type>",
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"));
         }
     }
+
+    free(ability_text);
 }
 
 bool
@@ -726,12 +788,32 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                            && ability_decl->type == AST_ABILITY_DECL
                            && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
                     semantic_error(ctx, impl,
-                        "Role '%s' cannot implement non-exported ability '%s' from another module",
+                        "Role '%s' cannot implement non-exported ability '%s' from another module.\n"
+                        "Reason:\n"
+                        "- impl block references ability '%s'\n"
+                        "- the declaration exists but is not visible across the current module boundary\n"
+                        "Fix:\n"
+                        "- export ability '%s' from its defining module\n"
+                        "- or move role '%s' into the same module\n"
+                        "- or implement a public ability instead",
                         name != NULL ? name : "<role>",
-                        ability_name);
+                        ability_name,
+                        ability_name,
+                        ability_name,
+                        name != NULL ? name : "<role>");
                 } else if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
-                    semantic_warning(ctx, impl,
-                        "Ability '%s' not found in current scope",
+                    semantic_error(ctx, impl,
+                        "Role '%s' implements unknown ability '%s'.\n"
+                        "Reason:\n"
+                        "- impl block references '%s'\n"
+                        "- no visible ability declaration named '%s' was found\n"
+                        "Fix:\n"
+                        "- declare ability '%s'\n"
+                        "- or import/export the module that defines it",
+                        name != NULL ? name : "<role>",
+                        ability_name,
+                        ability_name,
+                        ability_name,
                         ability_name);
                 } else if (ability_decl != NULL
                            && ability_decl->type == AST_ABILITY_DECL
@@ -793,8 +875,25 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             GenericParam *gp =
                                 impl->data.impl_ability.ability_ref->data.type.generic_args->params[k];
                             ASTNode *arg = gp != NULL ? gp->constraint : NULL;
-                            if (arg != NULL)
-                                resolve_type_node(arg, ctx);
+                            if (arg == NULL) {
+                                char *impl_text =
+                                    ability_ref_display(impl->data.impl_ability.ability_ref);
+                                semantic_error(ctx, impl,
+                                    "Ability '%s' has an invalid generic argument in impl clause.\n"
+                                    "Reason:\n"
+                                    "- generic argument %zu in '%s' is missing or malformed\n"
+                                    "- impl contract cannot derive effective type arguments from an incomplete surface\n"
+                                    "Fix:\n"
+                                    "- provide a concrete type argument for each generic parameter\n"
+                                    "- or remove the malformed generic argument from '%s'",
+                                    ability_name,
+                                    k + 1,
+                                    impl_text != NULL ? impl_text : ability_name,
+                                    ability_name);
+                                free(impl_text);
+                                continue;
+                            }
+                            resolve_type_node(arg, ctx);
                         }
                     }
                     validate_ability_decl_where_clause_reference(
@@ -881,13 +980,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
             if (ab_type != NULL && ab_type->data.type.name != NULL) {
                 const char *ability_name = ab_type->data.type.name;
                 char *required_text = ability_ref_display(ab_type);
-                Symbol *ab = scope_lookup(ctx->scope, ab_type->data.type.name);
-                if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
-                    semantic_warning(ctx, rs,
-                        "Ability '%s' not found for role slot '%s'",
-                        ab_type->data.type.name,
-                        rs->data.role_slot.slot_name);
-                } else if (ctx->program_root != NULL) {
+                if (ctx->program_root != NULL) {
                     ASTNode *ability_decl = resolve_required_ability_decl(
                         ab_type, rs, ctx, "party role slot",
                         rs->data.role_slot.slot_name);

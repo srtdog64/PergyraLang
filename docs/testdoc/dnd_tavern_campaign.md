@@ -60,6 +60,16 @@ This scenario should exercise:
 
 The example lives under `examples/dnd_tavern_campaign/`.
 
+Read it in this order:
+
+1. `intents/campaign_intents.pgy`
+2. `world.pgy`
+3. `zones/layers.pgy` / `zones/journey.pgy`
+4. `subjects/units.pgy`
+5. `subjects/abilities.pgy` / `subjects/roles.pgy`
+6. `subjects/vessels.pgy` / `subjects/views.pgy`
+7. `setup.pgy` / `main.pgy` / `report.pgy`
+
 Current source/golden layout:
 
 - `common.pgy`

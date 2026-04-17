@@ -46,6 +46,47 @@ dir_strdup_fmt(const char *fmt, ...)
     return result;
 }
 
+static char *dir_last_error_message = NULL;
+
+static void
+dir_clear_error_message(void)
+{
+    free(dir_last_error_message);
+    dir_last_error_message = NULL;
+}
+
+static bool
+dir_failf(const char *fmt, ...)
+{
+    va_list args;
+    va_list copy;
+    int length;
+    char *message;
+
+    if (dir_last_error_message != NULL)
+        return false;
+
+    va_start(args, fmt);
+    va_copy(copy, args);
+    length = vsnprintf(NULL, 0, fmt, copy);
+    va_end(copy);
+    if (length < 0) {
+        va_end(args);
+        return false;
+    }
+
+    message = malloc((size_t)length + 1);
+    if (message == NULL) {
+        va_end(args);
+        return false;
+    }
+
+    vsnprintf(message, (size_t)length + 1, fmt, args);
+    va_end(args);
+    dir_last_error_message = message;
+    return false;
+}
+
 static bool
 append_edge(DIREdge **edges, size_t *count, DIREdge edge)
 {
@@ -387,7 +428,17 @@ dir_add_projection_contract_edges(DIRProgram *dir,
                                             owner_name,
                                             refresh->data.zone_refresh.object_slot_name);
     if (projection_slot_id < 0)
-        return true;
+        return dir_failf(
+            "DIR projection contract for '%s' is missing target projection slot '%s'.\n"
+            "Reason:\n"
+            "- refresh/publish/bind declared a projection target that was not materialized as a DIR projection slot\n"
+            "Fix:\n"
+            "- declare the projection slot on '%s' before lowering\n"
+            "- or fix the projection target name so DIR can resolve it",
+            owner_name,
+            refresh->data.zone_refresh.object_slot_name != NULL
+                ? refresh->data.zone_refresh.object_slot_name : "(unnamed)",
+            owner_name);
 
     source_name = refresh->data.zone_refresh.source_slot_name;
     source_slot_id = dir_find_slot_node(dir,
@@ -400,6 +451,17 @@ dir_add_projection_contract_edges(DIRProgram *dir,
                                             owner_name,
                                             source_name);
     }
+    if (source_slot_id < 0)
+        return dir_failf(
+            "DIR projection contract for '%s' is missing source slot '%s'.\n"
+            "Reason:\n"
+            "- refresh/publish/bind declared a source that was not materialized as a DIR zone/projection slot\n"
+            "Fix:\n"
+            "- declare the source slot on '%s' before lowering\n"
+            "- or fix the projection source name so DIR can resolve it",
+            owner_name,
+            source_name != NULL ? source_name : "(unnamed)",
+            owner_name);
 
     if (!dir_add_named_edge(dir,
                             DIR_EDGE_PROJECTION_SLOT_SOURCE,
@@ -1044,11 +1106,13 @@ dir_lower(ASTNode *annotated_ast, char **error_message)
     if (error_message != NULL)
         *error_message = NULL;
     if (annotated_ast == NULL || annotated_ast->type != AST_PROGRAM) {
+        dir_clear_error_message();
         if (error_message != NULL)
             *error_message = pergyra_strdup("DIR lowering requires AST_PROGRAM root");
         return NULL;
     }
 
+    dir_clear_error_message();
     dir = calloc(1, sizeof(DIRProgram));
     if (dir == NULL) {
         if (error_message != NULL)
@@ -1057,12 +1121,20 @@ dir_lower(ASTNode *annotated_ast, char **error_message)
     }
 
     if (!dir_collect_nodes(dir, annotated_ast) || !dir_collect_edges_and_intents(dir, annotated_ast)) {
-        if (error_message != NULL)
-            *error_message = pergyra_strdup("Out of memory");
+        if (error_message != NULL) {
+            if (dir_last_error_message != NULL) {
+                *error_message = dir_last_error_message;
+                dir_last_error_message = NULL;
+            } else {
+                *error_message = pergyra_strdup("Out of memory");
+            }
+        }
+        dir_clear_error_message();
         dir_destroy(dir);
         return NULL;
     }
 
+    dir_clear_error_message();
     return dir;
 }
 

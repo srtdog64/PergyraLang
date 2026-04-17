@@ -472,7 +472,13 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
             if (zone_slot != NULL && zone_slot->type == AST_WORLD_ZONE
                 && zone_slot->data.world_zone.zone_type != NULL) {
                 semantic_warning(ctx, arg,
-                    "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'; use Clone(%s) for an explicit copy or construct the zone inline",
+                    "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
+                    "Reason:\n"
+                    "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
+                    "- mutating the original binding afterwards would diverge from the embedded world state\n"
+                    "Fix:\n"
+                    "- use Clone(%s) for an explicit copy\n"
+                    "- or construct the zone inline / mutate it through the owning world after embedding",
                     world_name != NULL ? world_name : "<world>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
@@ -499,7 +505,13 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
             if (arg_sym->type != NULL && arg_sym->type->name != NULL
                 && strcmp(arg_sym->type->name, zone_slot->data.world_zone.zone_type) == 0) {
                 semantic_warning(ctx, arg,
-                    "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'; use Clone(%s) for an explicit copy or construct the zone inline",
+                    "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
+                    "Reason:\n"
+                    "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
+                    "- mutating the original binding afterwards would diverge from the embedded world state\n"
+                    "Fix:\n"
+                    "- use Clone(%s) for an explicit copy\n"
+                    "- or construct the zone inline / mutate it through the owning world after embedding",
                     world_name != NULL ? world_name : "<world>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
@@ -1779,7 +1791,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     if (strcmp(arg_type_name,
                                             zone_slot->data.world_zone.zone_type) == 0) {
                                         semantic_warning(ctx, expr->data.call.arguments[i],
-                                            "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'; use Clone(%s) for an explicit copy or construct the zone inline",
+                                            "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
+                                            "Reason:\n"
+                                            "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
+                                            "- mutating the original binding afterwards would diverge from the embedded world state\n"
+                                            "Fix:\n"
+                                            "- use Clone(%s) for an explicit copy\n"
+                                            "- or construct the zone inline / mutate it through the owning world after embedding",
                                             display_name != NULL ? display_name : "<world>",
                                             expr->data.call.arguments[i]->data.identifier.name != NULL
                                                 ? expr->data.call.arguments[i]->data.identifier.name
@@ -2048,6 +2066,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 "- function '%s' requires '%s: %s'\n"
                                 "- actual type argument is '%s'\n"
                                 "- consumer path is call site of '%s'\n"
+                                "- call-site derived type arguments do not satisfy bound '%s'\n"
                                 "- expected type args are constrained by '%s: %s'\n"
                                 "Fix:\n"
                                 "- pass an argument whose type satisfies '%s'\n"
@@ -2061,6 +2080,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 bound_name != NULL ? bound_name : "<constraint>",
                                 concrete_type->name != NULL ? concrete_type->name : "<type>",
                                 display_name,
+                                bound_name != NULL ? bound_name : "<constraint>",
                                 param_name,
                                 bound_name != NULL ? bound_name : "<constraint>",
                                 bound_name != NULL ? bound_name : "<constraint>");

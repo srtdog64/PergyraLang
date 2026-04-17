@@ -141,7 +141,14 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
                     ctx->diagnostic_count = saved_diag;
                     ctx->has_error = saved_err;
                     semantic_error(ctx, owner != NULL ? owner : tc->bounds[b],
-                        "Unknown constraint type '%s' in where clause",
+                        "Unknown constraint type '%s' in where clause.\n"
+                        "Reason:\n"
+                        "- generic where-clause validation could not resolve this bound\n"
+                        "- every bound in a multi-bound contract must resolve before specialization can be trusted\n"
+                        "Fix:\n"
+                        "- declare or import '%s'\n"
+                        "- or remove the unresolved bound from the where-clause",
+                        tc->bounds[b]->data.type.name,
                         tc->bounds[b]->data.type.name);
                 }
             }
@@ -189,13 +196,23 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
                 ctx->diagnostic_count = saved_diag;
                 ctx->has_error = saved_err;
                 semantic_error(ctx, owner != NULL ? owner : param->default_type,
-                    "Invalid default generic type argument '%s' in %s declaration (parameter '%s')",
+                    "Invalid default generic type argument '%s' in %s declaration (parameter '%s').\n"
+                    "Reason:\n"
+                    "- the declared default type could not be resolved as a valid concrete type\n"
+                    "- generic defaults must be fully valid before they can participate in effective-argument derivation\n"
+                    "Fix:\n"
+                    "- replace '%s' with a resolvable concrete type\n"
+                    "- or remove the default and require the caller to supply it",
                     param->default_type->type == AST_TYPE
                         && param->default_type->data.type.name != NULL
                             ? param->default_type->data.type.name
                             : "<type>",
                     kind_name != NULL ? kind_name : "generic",
-                    param->name != NULL ? param->name : "<type-param>");
+                    param->name != NULL ? param->name : "<type-param>",
+                    param->default_type->type == AST_TYPE
+                        && param->default_type->data.type.name != NULL
+                            ? param->default_type->data.type.name
+                            : "<type>");
             }
         }
     }
@@ -243,7 +260,15 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
             return NULL;
         if (ctx != NULL) {
             semantic_error(ctx, site,
-                "%s '%s' does not accept generic type arguments",
+                "%s '%s' does not accept generic type arguments.\n"
+                "Reason:\n"
+                "- this declaration has no generic parameters\n"
+                "- supplied type arguments therefore have nowhere to bind\n"
+                "Fix:\n"
+                "- remove the generic arguments at the use site\n"
+                "- or declare generic parameters on %s '%s'",
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>",
                 owner_kind != NULL ? owner_kind : "declaration",
                 owner_name != NULL ? owner_name : "<anonymous>");
         }
@@ -253,10 +278,18 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
     if (provided_count > decl_count) {
         if (ctx != NULL) {
             semantic_error(ctx, site,
-                "%s '%s' accepts at most %zu generic argument(s), got %zu",
+                "%s '%s' accepts at most %zu generic argument(s), got %zu.\n"
+                "Reason:\n"
+                "- more type arguments were supplied than there are generic parameters\n"
+                "- effective generic argument derivation cannot match extras safely\n"
+                "Fix:\n"
+                "- remove the extra generic argument(s)\n"
+                "- or add matching generic parameters to %s '%s'",
                 owner_kind != NULL ? owner_kind : "declaration",
                 owner_name != NULL ? owner_name : "<anonymous>",
-                decl_count, provided_count);
+                decl_count, provided_count,
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>");
         }
         return NULL;
     }
@@ -264,10 +297,18 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
     if (provided_count < required_count) {
         if (ctx != NULL) {
             semantic_error(ctx, site,
-                "%s '%s' requires at least %zu generic argument(s), got %zu",
+                "%s '%s' requires at least %zu generic argument(s), got %zu.\n"
+                "Reason:\n"
+                "- some generic parameters have no default type argument\n"
+                "- effective generic argument derivation therefore cannot close the contract\n"
+                "Fix:\n"
+                "- provide the missing generic argument(s)\n"
+                "- or declare trailing default type arguments on %s '%s'",
                 owner_kind != NULL ? owner_kind : "declaration",
                 owner_name != NULL ? owner_name : "<anonymous>",
-                required_count, provided_count);
+                required_count, provided_count,
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>");
         }
         return NULL;
     }
@@ -292,9 +333,18 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                         ? decl_params->params[i]->name
                         : "<type-param>";
                 semantic_error(ctx, site,
-                    "%s '%s' is missing generic argument for parameter '%s'",
+                    "%s '%s' is missing generic argument for parameter '%s'.\n"
+                    "Reason:\n"
+                    "- this parameter has no provided argument and no usable default\n"
+                    "- effective generic argument derivation stopped at '%s'\n"
+                    "Fix:\n"
+                    "- provide a type argument for '%s'\n"
+                    "- or declare a default type argument for '%s'",
                     owner_kind != NULL ? owner_kind : "declaration",
                     owner_name != NULL ? owner_name : "<anonymous>",
+                    param_name,
+                    param_name,
+                    param_name,
                     param_name);
             }
             free(effective);

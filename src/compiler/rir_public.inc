@@ -245,8 +245,15 @@ rir_validate(const RIRProgram *rir, char **error_message)
                     && fact->state == RIR_STATE_PUBLISHED) {
                     if (error_message != NULL) {
                         *error_message = rir_strdup_fmt(
-                            "RIR scope '%s' object projection '%s' cannot be Published",
+                            "RIR scope '%s' object projection '%s' cannot be Published.\n"
+                            "Reason:\n"
+                            "- object projections are local refresh targets\n"
+                            "- published state is reserved for boundary tobject projections\n"
+                            "Fix:\n"
+                            "- keep '%s' in refresh/bind flow\n"
+                            "- or change it to a tobject projection before publish",
                             scope->name != NULL ? scope->name : "(anonymous)",
+                            fact->name != NULL ? fact->name : "(unnamed)",
                             fact->name != NULL ? fact->name : "(unnamed)");
                     }
                     return false;
@@ -255,8 +262,15 @@ rir_validate(const RIRProgram *rir, char **error_message)
                     && strcmp(fact->arg1 != NULL ? fact->arg1 : "", "refresh") == 0) {
                     if (error_message != NULL) {
                         *error_message = rir_strdup_fmt(
-                            "RIR scope '%s' tobject projection '%s' cannot use refresh mode",
+                            "RIR scope '%s' tobject projection '%s' cannot use refresh mode.\n"
+                            "Reason:\n"
+                            "- tobject projections are boundary publish targets\n"
+                            "- refresh mode is only valid for local object projections\n"
+                            "Fix:\n"
+                            "- use publish for '%s'\n"
+                            "- or switch the target declaration to object",
                             scope->name != NULL ? scope->name : "(anonymous)",
+                            fact->name != NULL ? fact->name : "(unnamed)",
                             fact->name != NULL ? fact->name : "(unnamed)");
                     }
                     return false;
@@ -287,7 +301,20 @@ rir_validate(const RIRProgram *rir, char **error_message)
                     kind = summary->resource_kind;
 
                 if (kind == RIR_RESOURCE_UNKNOWN) {
-                    continue;
+                    if (error_message != NULL) {
+                        *error_message = rir_strdup_fmt(
+                            "RIR scope '%s' %s on '%s' has unknown projection kind.\n"
+                            "Reason:\n"
+                            "- the projection op reached validation without a projection fact or state summary\n"
+                            "- backend lowering would otherwise guess the projection contract\n"
+                            "Fix:\n"
+                            "- materialize projection facts before validation\n"
+                            "- or ensure DIR projection-slot edges are lowered into RIR summaries",
+                            scope->name != NULL ? scope->name : "(anonymous)",
+                            op->kind == RIR_OP_PROJECT_PUBLISH ? "ProjectPublish" : "ProjectRefresh",
+                            op->slot_anchor);
+                    }
+                    return false;
                 }
 
                 if (op->kind == RIR_OP_PROJECT_PUBLISH
@@ -295,7 +322,13 @@ rir_validate(const RIRProgram *rir, char **error_message)
                     && kind != RIR_RESOURCE_TOBJECT_SLOT) {
                     if (error_message != NULL) {
                         *error_message = rir_strdup_fmt(
-                            "RIR scope '%s' ProjectPublish requires tobject projection slot '%s'",
+                            "RIR scope '%s' ProjectPublish requires tobject projection slot '%s'.\n"
+                            "Reason:\n"
+                            "- publish emits a boundary transfer snapshot\n"
+                            "- object/local projection slots cannot satisfy publish semantics\n"
+                            "Fix:\n"
+                            "- target a tobject projection slot\n"
+                            "- or use ProjectRefresh for local object projection sync",
                             scope->name != NULL ? scope->name : "(anonymous)",
                             op->slot_anchor);
                     }
@@ -306,7 +339,13 @@ rir_validate(const RIRProgram *rir, char **error_message)
                     && kind != RIR_RESOURCE_OBJECT_SLOT) {
                     if (error_message != NULL) {
                         *error_message = rir_strdup_fmt(
-                            "RIR scope '%s' ProjectRefresh requires object projection slot '%s'",
+                            "RIR scope '%s' ProjectRefresh requires object projection slot '%s'.\n"
+                            "Reason:\n"
+                            "- refresh updates a local object projection from a source anchor\n"
+                            "- tobject/boundary slots require publish semantics instead\n"
+                            "Fix:\n"
+                            "- target an object projection slot\n"
+                            "- or switch this op to ProjectPublish for tobject flow",
                             scope->name != NULL ? scope->name : "(anonymous)",
                             op->slot_anchor);
                     }
@@ -592,8 +631,15 @@ rir_validate_against_dir(const RIRProgram *rir, const DIRProgram *dir, char **er
             if (has_projection_source && projection == NULL) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
-                        "RIR scope '%s' is missing projection fact for DIR projection-slot '%s'",
+                        "RIR scope '%s' is missing projection fact for DIR projection-slot '%s'.\n"
+                        "Reason:\n"
+                        "- DIR declared a projection slot/source edge for '%s'\n"
+                        "- RIR lowering did not materialize the corresponding projection fact\n"
+                        "Fix:\n"
+                        "- lower DIR projection-slot contracts into RIR facts before validation\n"
+                        "- or remove the stale DIR projection edge",
                         scope->name != NULL ? scope->name : "(anonymous)",
+                        node->name != NULL ? node->name : "(unnamed)",
                         node->name != NULL ? node->name : "(unnamed)");
                 }
                 return false;

@@ -18,6 +18,15 @@ The scenario is intentionally small. A courier and dispatcher move cargo from `L
 
 ## Files
 
+Read it in this order:
+
+1. `examples/logistics_intent_probe/intents/logistics_intents.pgy`
+2. `examples/logistics_intent_probe/world.pgy`
+3. `examples/logistics_intent_probe/zones/*.pgy`
+4. `examples/logistics_intent_probe/subjects/*.pgy`
+5. `examples/logistics_intent_probe/setup.pgy`
+6. `examples/logistics_intent_probe/main.pgy`
+
 - `examples/logistics_intent_probe/main.pgy`
 - `examples/logistics_intent_probe/common.pgy`
 - `examples/logistics_intent_probe/intents/logistics_intents.pgy`

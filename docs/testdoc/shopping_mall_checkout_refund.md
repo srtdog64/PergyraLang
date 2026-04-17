@@ -6,6 +6,18 @@
 - intents move the buyer through cart, checkout, refund, and account sync
 
 **Layout**
+
+Read it in this order:
+
+1. `intents/commerce_intents.pgy`
+2. `world.pgy`
+3. `zones/`
+4. `subjects/`
+5. `pages/surfaces.pgy`
+6. `api/commerce_api.pgy`
+7. `report/transcript_report.pgy`
+8. `setup.pgy`
+
 - `intents/commerce_intents.pgy`: checkout, refund, and account sync intents
 - `world.pgy`: transcript orchestration
 - `zones/`: cart, payment, refund, account
