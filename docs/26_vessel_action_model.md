@@ -145,8 +145,48 @@ func DoAttack(attacker: Fighter, target: Fighter) -> Void {
 
 ## 전체 예시
 
+이 예제는 구현 선언 순서가 아니라 **독해 순서**를 기준으로 배치한다.
+즉 먼저 `intent`, 그다음 `world/zone`, 마지막에 그 계약을 수행하는 `subject`와 내부 `vessel`을 본다.
+
 ```pergyra
 // -- 값 타입 --
+intent ResolveBattle(attacker: Player, defender: Player) {
+    step attack {
+        where: BattleZone;
+        who: attacker;
+        requires: Combatable;
+        causes: DamageEffect;
+        on: attacker.Attack(defender);
+    }
+}
+
+intent ResolveTrade(selfPlayer: Player, otherPlayer: Player, item: Item) {
+    step trade {
+        where: TradeZone;
+        who: selfPlayer;
+        requires: Tradeable;
+        authorized by: selfPlayer;
+        on: selfPlayer.Trade(otherPlayer, item);
+    }
+}
+
+zone BattleZone {
+    subject slot attacker: Player;
+    subject slot defender: Player;
+    effect slot damage: DamageEffect;
+    relation slot alliance: Alliance;
+}
+
+zone TradeZone {
+    subject slot seller: Player;
+    subject slot buyer: Player;
+}
+
+world GameWorld {
+    zone battle: BattleZone;
+    zone trade: TradeZone;
+}
+
 struct Vec2 {
     x: Float;
     y: Float;
@@ -157,7 +197,14 @@ struct Item {
     weight: Int;
 }
 
-// -- vessel: 피동적 수용체 --
+effect DamageEffect for target: Player {
+    shared damage: Int;
+}
+
+relation Alliance for source: Player, dest: Player {
+    shared trust: Int;
+}
+
 vessel HealthState {
     current: Int;
     max: Int;
@@ -205,7 +252,6 @@ vessel CombatStats {
     }
 }
 
-// -- ability: 행위 계약 --
 ability Combatable {
     func GetPower(self) -> Int;
 }
@@ -214,21 +260,11 @@ ability Tradeable {
     func CanTrade(self) -> Bool;
 }
 
-// -- role: 계약 이행 --
-role Warrior for Player impl Combatable {
-    func GetPower(self) -> Int {
-        return self.combat.power;
-    }
-}
-
-// -- subject: 능동 오케스트레이터 --
 subject Player {
-    // vessel 소유 (상태는 여기에)
     vessel health: HealthState;
     vessel inventory: Inventory;
     vessel combat: CombatStats;
 
-    // subject는 func가 아니라 action으로 행동한다
     action Attack(self, target: Player) -> Result<Void>
         requires Combatable
         within BattleZone
@@ -248,31 +284,16 @@ subject Player {
     }
 }
 
-// -- object: 투영 --
+role Warrior for Player impl Combatable {
+    func GetPower(self) -> Int {
+        return self.combat.power;
+    }
+}
+
 object PlayerView {
     name: String;
     health: Int;
     level: Int;
-}
-
-// -- effect, relation, zone, world --
-effect DamageEffect for target: Player {
-    shared damage: Int;
-}
-
-relation Alliance for source: Player, dest: Player {
-    shared trust: Int;
-}
-
-zone BattleZone {
-    subject slot attacker: Player;
-    subject slot defender: Player;
-    effect slot damage: DamageEffect;
-    relation slot alliance: Alliance;
-}
-
-world GameWorld {
-    zone battle: BattleZone;
 }
 ```
 
@@ -281,7 +302,7 @@ world GameWorld {
 ```
 struct    = 순수 값 (광물/분자)
 vessel    = 피동 상태+메서드 (기관/organ)
-subject   = 능동 오케스트레이터 (유기체)
+subject   = intent/world/zone 계약을 실제로 수행하는 능동 host (유기체)
 class     = 도구/사물 (값 타입, func 있음, action 없음)
 object    = 읽기 전용 투영 (그림자)
 tobject       = 경계 밖 전송 투영 (소식/평판)
@@ -296,7 +317,7 @@ world     = 생태계 전체 (소설)
 
 ## subject vs class (이원론)
 
-subject는 "누가 움직이는가", class는 "무엇을 쓰는가".
+subject는 "누가 그 계약을 수행하는가", class는 "무엇을 들고 쓰는가".
 
 | | `subject` | `class` |
 |--|-----------|---------|
@@ -331,7 +352,8 @@ subject만으로는 못 짠다 -- Item을 subject로 만들면 pointer-self, zon
 
 ### subject 안의 class
 
-subject는 vessel(피동 수용체)과 class(도구/사물)을 모두 소유할 수 있다:
+subject는 vessel(피동 수용체)과 class(도구/사물)을 모두 소유할 수 있다.
+다만 이 역시 설계의 출발점이 아니라, 이미 정의된 intent/world/zone 계약을 수행하기 위한 host detail로 읽는 편이 맞다:
 
 ```pergyra
 class Item {

@@ -170,7 +170,7 @@ Pergyra는 **사용자-facing 설계 순서**에서는 `intent-first`이고,
 1단계: 무엇을 하려는가?   → intent (강제 구현 계약)
 2단계: 어떤 세계에서?    → world (신뢰/실패/조립 경계)
 3단계: 어떤 장면에서?    → zone (활성 규칙/authority/projection 경계)
-4단계: 누가 움직이는가?  → subject (행동 주체)
+4단계: 누가 그 계약을 수행하는가? → subject (행동 주체)
 5단계: 무엇을 쓰는가?    → class / struct / vessel
 6단계: 무엇을 보여주는가? → object / tobject
 ```

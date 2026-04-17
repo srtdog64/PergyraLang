@@ -22,10 +22,16 @@
 현재 컴파일러는 bare `subject/class`, `self` 메서드, positional constructor, subject-only projection/domain checks, subject/class 저장·복사·dispatch 분기 1단계까지는 구현했고,
 role/ability/party 중심 객체 모델은 아직 이행 중이다.
 
-즉 장기적으로 Pergyra에서 중심 이름은 `class`보다 `subject`다.
-`class`는 남겨두되 더 수동적이고 보조적인 nominal surface로 다루고,
-`subject`는 상태와 identity를 가진 주체이며,
-role/ability/party/relation/effect/zone/world 체계의 실제 기준점이다.
+즉 장기적으로 Pergyra에서 host model의 중심 이름은 `class`보다 `subject`다.
+다만 이것이 설계 순서에서 주체를 먼저 정의해야 한다는 뜻은 아니다.
+Pergyra의 사용자-facing 설계와 예제 독해 순서는 `intent -> world -> zone -> subject`가 맞고,
+이 문서는 그중 마지막 축인 “subject host가 실제로 무엇인가”를 설명하는 문서다.
+
+정리하면:
+
+- 설계/독해 순서: `intent -> world -> zone -> subject`
+- host/lowering 축의 중심: `subject`
+- `class`는 남겨두되 더 수동적이고 보조적인 nominal surface로 다룬다
 
 ## 1. 왜 subject가 필요한가
 
@@ -40,8 +46,13 @@ Pergyra는 도메인 파편화를 줄이기 위해
 - party slot에 들어가 협력하는 participant/object
 
 따라서 장기 모델에서 필요한 것은 `class`라는 OOP 이름이 아니라,
-객체적 행위와 자원 셀을 연결하는 `subject` 중심 타입이다.
+객체적 행위와 자원 셀을 연결하는 `subject` host 타입이다.
 현재 구현은 그 역할을 `subject` 중심으로 옮기기 시작했고, `class`는 별도 nominal surface로 남겨두고 있다.
+
+하지만 프로젝트를 실제로 설계할 때는 여전히 `intent`가 먼저다.
+먼저 “무엇을 하려 하는가”를 `intent`로 고정하고,
+그 intent가 놓일 `world/zone`을 잡은 뒤,
+마지막에 그 계약을 수행할 `subject` host를 정하는 것이 권장 흐름이다.
 
 ## 2. subject, object, tobject, entity
 
@@ -194,10 +205,15 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 - `object`: 읽기 전용 또는 수동 상태 대상
 - `tobject`: 경계 밖 전송 표면
 
-즉 실전 authoring과 scaffold의 첫 질문은 보통 "이것이 `subject`인가 `class`인가 `object`인가"여야 한다.
+다만 이 질문은 이미 `intent`와 `world/zone` 경계가 잡힌 뒤에 와야 한다.
+즉 실전 authoring과 scaffold의 흐름은 다음이 맞다.
+
+1. `intent`를 적는다
+2. 그 intent가 놓일 `world/zone`을 적는다
+3. 마지막에 "이 계약을 수행할 host가 `subject`인가 `class`인가 `object`인가"를 고른다
 
 여기서 `class`는 코어 존재론의 중심이 아니라 보조 nominal/value surface다.
-중심 축은 `subject / object / tobject / vessel / intent`이고, `class`는 그 사이에서 도구/사물/value host를 담당한다.
+중심 축은 `intent / world / zone / subject / object / tobject / vessel`이고, `class`는 그 사이에서 도구/사물/value host를 담당한다.
 
 ### 현재 단계의 권장 해석
 
@@ -389,7 +405,7 @@ object Door {
 
 Pergyra의 현재 declaration surface는 `subject`와 `class`이고,
 둘은 이제 같은 선언이 아니라 서로 다른 nominal flavor다.
-장기 의미론의 중심 이름은 `subject`다.
+host 의미론의 중심 이름은 `subject`다.
 
 **“ability를 수행하는 상태와 identity의 객체 타입이며, role/party/world 체계의 실제 실행 주체”**
 

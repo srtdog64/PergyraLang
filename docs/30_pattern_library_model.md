@@ -12,14 +12,18 @@ Pergyra의 라이브러리는 단순 API 모음이 아니라 **패턴 라이브�
 
 이 문서는 그 원칙을 `pgy` 기준으로 고정한다.
 
-라이브러리 authoring도 동일하다. generic pattern을 만들기 전에 먼저 host ontology를 고른다.
+라이브러리 authoring도 동일하다.
+먼저 어떤 intent/pattern contract를 닫으려는지 고정하고,
+그 다음 그 계약을 수행할 host ontology를 고른다.
 
 - `subject`: 패턴의 능동 orchestrator
 - `class`: 패턴이 소비하는 도구/정책/카드/설정 값
 - `object`: 패턴의 수동 view/state target
 - `tobject`: 패턴의 외부 전송 packet
 
-즉 scaffold와 라이브러리 설계의 첫 단계는 "무슨 패턴인가"보다 "이 host가 `subject/class/object/tobject` 중 무엇인가"이다.
+즉 scaffold와 라이브러리 설계의 첫 단계는
+"무슨 계약/패턴을 닫으려는가"이고,
+그 다음 단계가 "이 host가 `subject/class/object/tobject` 중 무엇인가"이다.
 
 ## Generic-to-Domain Injection
 

@@ -508,8 +508,8 @@ scaffold_simulator_dir(const char *target)
         goto cleanup;
 
     snprintf(hosts_content, sizeof(hosts_content),
-        "// Ontology first:\n"
-        "// - subject: active agent / who acts\n"
+        "// supporting hosts behind the contract:\n"
+        "// - subject: active host / who performs the contract\n"
         "// - class: passive tool or thing with hosted func\n"
         "// - object: passive view/state target\n"
         "// - tobject: boundary packet\n"
@@ -669,7 +669,8 @@ scaffold_project_dir(const char *target)
         goto cleanup;
 
     snprintf(subject_content, sizeof(subject_content),
-        "// subject = who acts\n"
+        "// supporting host behind intent/world/zone\n"
+        "// subject = who performs the contract\n"
         "// class   = what the subject uses\n"
         "// object  = passive projected state\n"
         "// vessel  = internal passive state holder\n"
@@ -719,6 +720,7 @@ scaffold_project_dir(const char *target)
         "}\n");
 
     snprintf(zone_content, sizeof(zone_content),
+        "// scene boundary for RecoverUnit intent\n"
         "import \"../subjects/unit.pgy\";\n"
         "\n"
         "zone MainZone\n"
@@ -736,6 +738,7 @@ scaffold_project_dir(const char *target)
         "}\n");
 
     snprintf(intent_content, sizeof(intent_content),
+        "// start here: user-facing contract first\n"
         "import \"../zones/main.pgy\";\n"
         "\n"
         "intent RecoverUnit(main: MainZone, unit: Unit)\n"
@@ -758,6 +761,7 @@ scaffold_project_dir(const char *target)
         "}\n");
 
     snprintf(world_content, sizeof(world_content),
+        "// execution / trust boundary for the project\n"
         "import \"intents/recover_unit.pgy\";\n"
         "\n"
         "world %sWorld\n"
@@ -834,8 +838,11 @@ driver_run_scaffold_command(int argc, char *argv[])
             "  pgy scaffold <subject|class|vessel|object|tobject|zone|world|simulator|project> <target>\n"
             "  pgy new <project-dir>\n"
             "\n"
-            "Ontology first:\n"
-            "  subject  = active agent / who acts\n"
+            "Project design order:\n"
+            "  intent -> world -> zone -> subject\n"
+            "\n"
+            "Host kinds:\n"
+            "  subject  = active host / who performs the contract\n"
             "  class    = passive tool or thing with hosted func\n"
             "  object   = passive view or state target\n"
             "  tobject  = transfer object (boundary data)\n");
@@ -1128,8 +1135,11 @@ driver_print_usage(void)
         "  pgy scaffold <kind> <target> create starter files\n"
         "  pgy new <project-dir>         scaffold a starter project\n"
         "\n"
-        "Ontology-first scaffold kinds:\n"
-        "  subject  active agent / who acts\n"
+        "Project design order:\n"
+        "  intent -> world -> zone -> subject\n"
+        "\n"
+        "Host scaffold kinds:\n"
+        "  subject  active host / who performs the contract\n"
         "  class    passive tool or thing with hosted func\n"
         "  object   passive view or state target\n"
         "  tobject  boundary packet\n"

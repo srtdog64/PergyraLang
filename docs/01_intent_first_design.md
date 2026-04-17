@@ -8,7 +8,7 @@
 
 **Pergyra는 intent를 최상위 설계 축으로 잡아, 현실의 복잡한 행위를 목적 단위로 닫고 나머지 구조를 유도하는 언어다.**
 
-이 정의에서 핵심어는 **"유도한다"** 다. intent가 정해지면 subject, zone, ability, effect, object/tobject 경계가 **자동으로 따라온다**.
+이 정의에서 핵심어는 **"유도한다"** 다. intent가 정해지면 world, zone, subject, ability, effect, object/tobject 경계가 **자동으로 따라온다**.
 
 ---
 
@@ -469,17 +469,18 @@ project/
     refund.pgy          → "사용자가 상품을 환불한다"
     onboarding.pgy      → "새 사용자가 시스템을 배운다"
 
-  subjects/             ← SECOND: intent에 참여하는 주체
-    member.pgy          → Purchase, Refund, Onboarding에 모두 등장
-    merchant.pgy        → Purchase, Refund에 등장
-    admin.pgy           → Onboarding에 등장
+  world.pgy             ← SECOND: 실행/신뢰/실패 경계
 
   zones/                ← THIRD: intent step이 일어나는 문맥
     shop.pgy            → Purchase step들의 무대
     payment.pgy         → Purchase, Refund step들의 무대
     tutorial.pgy        → Onboarding step들의 무대
 
-  world.pgy             ← FOURTH: 실행/신뢰/실패 경계
+  subjects/             ← FOURTH: 그 계약을 실제로 수행하는 host
+    member.pgy          → Purchase, Refund, Onboarding에 모두 등장
+    merchant.pgy        → Purchase, Refund에 등장
+    admin.pgy           → Onboarding에 등장
+
   main.pgy              ← entry point
 ```
 
@@ -564,7 +565,7 @@ error: effect 'PaymentEffect' not found → effect PaymentEffect 생성
 
 Intent-First:
   intent 하나를 쓰면
-  필요한 subject, zone, ability, effect가 자동으로 드러난다.
+  필요한 world, zone, subject, ability, effect가 자동으로 드러난다.
 ```
 
 ---

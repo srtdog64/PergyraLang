@@ -20,10 +20,10 @@ The scenario is intentionally small. A courier and dispatcher move cargo from `L
 
 - `examples/logistics_intent_probe/main.pgy`
 - `examples/logistics_intent_probe/common.pgy`
-- `examples/logistics_intent_probe/subjects/*.pgy`
-- `examples/logistics_intent_probe/zones/*.pgy`
 - `examples/logistics_intent_probe/intents/logistics_intents.pgy`
 - `examples/logistics_intent_probe/world.pgy`
+- `examples/logistics_intent_probe/zones/*.pgy`
+- `examples/logistics_intent_probe/subjects/*.pgy`
 - `examples/logistics_intent_probe/setup.pgy`
 
 ## What It Exercises

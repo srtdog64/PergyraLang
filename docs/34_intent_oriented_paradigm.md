@@ -513,15 +513,16 @@ project/
     refund.pgy
     onboarding.pgy
 
-  subjects/             ← SECOND: who acts?
-    member.pgy
-    merchant.pgy
+  world.pgy             ← SECOND: execution boundary
 
-  zones/                ← THIRD: where do they act?
+  zones/                ← THIRD: where does it happen?
     shop.pgy
     payment.pgy
 
-  world.pgy             ← FOURTH: execution boundary
+  subjects/             ← FOURTH: who performs the contract?
+    member.pgy
+    merchant.pgy
+
   main.pgy              ← entry point
 ```
 
@@ -541,9 +542,9 @@ intents/ 폴더만 읽어도
 소설 비유로 보면:
 
 - `intents/` = 줄거리 요약
-- `subjects/` = 등장인물
-- `zones/` = 장면/무대
 - `world.pgy` = 작품이 실제로 굴러가는 세계 경계
+- `zones/` = 장면/무대
+- `subjects/` = 그 계약을 실제로 수행하는 등장인물
 
 즉 Pergyra 프로젝트에서 `intents/`는 단순 기능 폴더가 아니라,
 프로그램 전체의 **의도 목차(table of contents)** 역할을 한다.
@@ -557,7 +558,7 @@ intents/ 폴더만 읽어도
 
 ```text
 설계를 시작할 때 intent를 먼저 쓴다.
-그리고 그 intent가 요구하는 subject / zone / ability / effect를
+그리고 그 intent가 요구하는 world / zone / subject / ability / effect를
 역산(backward derivation)해서 채운다.
 ```
 
@@ -636,7 +637,7 @@ intent-first에서는:
 
 ```text
 intent 하나를 쓰면
-필요한 subject, zone, ability, effect가 자동으로 드러난다.
+필요한 world, zone, subject, ability, effect가 자동으로 드러난다.
 ```
 
 이건 단순 폴더 정리가 아니라 설계 방법론이다.
@@ -647,17 +648,17 @@ intent 하나를 쓰면
 1. intents/
    - 사용자/시스템의 의도를 적는다
 
-2. subjects/
-   - 그 intent에 참여하는 능동 주체를 만든다
+2. world.pgy
+   - 전체 실행/신뢰 경계를 먼저 고정한다
 
 3. zones/
    - step이 실제로 일어날 문맥/무대를 만든다
 
-4. abilities / effects / relations
-   - intent step의 자격, 결과, 관계를 채운다
+4. subjects/
+   - 그 계약을 실제로 수행하는 host를 만든다
 
-5. world.pgy
-   - 그 모든 것을 실제 실행 경계로 묶는다
+5. abilities / effects / relations
+   - intent step의 자격, 결과, 관계를 채운다
 
 6. main.pgy
    - entry와 seed/runtime wiring을 붙인다
@@ -937,7 +938,7 @@ Pergyra 프로그램은 **업데이트를 전제하지 않는 닫힌 시스템**
 
 Pergyra 사고: "이 시스템은 이 문제를 완결한다"
   → 딱 필요한 intent만 선언
-  → 필요한 subject, zone, action만 구현
+  → 필요한 world, zone, subject, action만 구현
   → 업데이트는 새 intent 추가로 — 기존 코드를 변경하지 않는다
 ```
 
@@ -998,20 +999,22 @@ project/
       intents/                    ← 1. 왜 하는가? (purchase, refund)
         purchase.pgy
         refund.pgy
-      zones/                      ← 2. 어디서 하는가?
+      world.pgy                   ← 2. 어떤 실행/신뢰 경계인가?
+      zones/                      ← 3. 어디서 하는가?
         shop_zone.pgy
         payment_zone.pgy
-      subjects/                   ← 3. 누가 하는가?
+      subjects/                   ← 4. 누가 그 계약을 수행하는가?
         buyer.pgy
         merchant.pgy
-      abilities/                  ← 4. 자격은?
+      abilities/                  ← 5. 자격은?
         purchasable.pgy
-      effects/                    ← 5. 결과는?
+      effects/                    ← 6. 결과는?
         payment_effect.pgy
 
     onboarding/
       intents/
         signup.pgy
+      world.pgy
       zones/
         registration_zone.pgy
       subjects/
@@ -1036,11 +1039,13 @@ project/
    이 디렉터리는 프로그램의 목차이며,
    시스템이 무엇을 하려는지 가장 먼저 드러내는 진입점이다.
 
-2. 각 intent는 자신이 요구하는 subject, zone, ability, effect를 참조한다.
+2. 각 intent는 자신이 요구하는 world, zone, subject, ability, effect를 참조한다.
    따라서 개발자는 intent를 통해
    필요한 도메인 프리미티브를 역으로 탐색할 수 있다.
 
-3. subjects, zones, abilities, effects는
+3. world와 zones는 그 intent가 놓일 실행/장면 경계를 고정한다.
+
+4. subjects, abilities, effects는
    intent가 사용하는 재사용 가능한 의미론적 구성요소다.
    이들은 intent의 구현 대상이지,
    특정 intent 하나의 부산물로만 취급되지 않는다.
@@ -1134,17 +1139,17 @@ error: subject 'Member' not found       → Member 선언하라
 2단계: 컴파일 → 에러 목록 = TODO
    "Purchase에 Member가 필요하다, ProductView가 필요하다, ..."
 
-3단계: subjects/ 작성
-   "누가 움직이는가? Member, Merchant, ..."
+3단계: world/zone 작성
+   "어떤 실행 경계와 장면인가? ProductView, CartSection, PaymentZone, ..."
 
-4단계: zones/ 작성
-   "어디서 움직이는가? ProductView, CartSection, PaymentZone, ..."
+4단계: subjects/ 작성
+   "누가 그 계약을 수행하는가? Member, Merchant, ..."
 
 5단계: abilities/, effects/ 작성
    "자격과 결과는? Purchasable, PaymentEffect, ..."
 
-6단계: world.pgy 작성
-   "실행 경계를 구성한다"
+6단계: main/runtime wiring 작성
+   "실행 진입점을 연결한다"
 
 7단계: 다시 컴파일 → 에러 0 = 설계 완료
 ```

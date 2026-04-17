@@ -22,15 +22,26 @@ Can Pergyra still hold together when one program mixes:
 
 The scenario lives under `examples/campaign_graph_fsm/`.
 
+This example predates the stronger intent-first tutorial order, so there is no
+dedicated `intents/` directory here.
+Read it in this order instead:
+
+1. `world.pgy`
+2. `sectors.pgy`
+3. `units.pgy`
+4. `abilities.pgy` / `roles.pgy`
+5. `vessels.pgy` / `views.pgy`
+6. `setup.pgy` / `main.pgy`
+
 Key files:
 
+- `world.pgy`
+- `sectors.pgy`
+- `units.pgy`
 - `abilities.pgy`
 - `roles.pgy`
 - `vessels.pgy`
-- `units.pgy`
 - `views.pgy`
-- `sectors.pgy`
-- `world.pgy`
 - `setup.pgy`
 - `main.pgy`
 

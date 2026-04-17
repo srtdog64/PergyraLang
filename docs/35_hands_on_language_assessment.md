@@ -63,14 +63,15 @@ Pergyra가 어디까지 자기 철학을 밀고 갈 수 있는가의 문제다.
 
 ### 1. 존재론이 크고 복잡한 코드를 덜 섞이게 한다
 
-`subject / class / vessel / object / tobject / relation / effect / zone / world`
+`intent / world / zone / subject / class / vessel / object / tobject / relation / effect`
 구분은 실제로 효과가 있다.
 
-- `subject`: 누가 움직이는가
+- `intent`: 무엇을 하려 하는가
+- `world/zone`: 어떤 경계와 장면에서 일어나는가
+- `subject`: 누가 그 계약을 수행하는가
 - `class`: 무엇을 들고 쓰는가
 - `vessel`: subject 내부 피동 수용체
 - `object/tobject`: projection
-- `zone/world`: 규칙과 실행 경계
 
 게임/시뮬레이터처럼 상태가 많은 코드를 만들 때,
 이 구분이 없으면 결국 `god object`나 무정형 service 더미가 생긴다.
@@ -79,13 +80,14 @@ Pergyra는 이 부분이 비교적 잘 버틴다.
 ### 2. intent-first 설계는 프로젝트의 목차를 만든다
 
 `intents/`에서 먼저 “무엇을 하려 하는가”를 선언하고,
-거기서 `subject`, `zone`, `ability`, `effect`를 역산하는 방식은
+그 다음 `world/zone`을 잡고,
+마지막에 `subject`, `ability`, `effect`를 역산하는 방식은
 실제로 TODO 생성기처럼 작동한다.
 
 이 점은 일반 OOP보다 강하다.
 
-- class 먼저 만들면 나머지 필요 요소가 잘 안 드러난다
-- intent 먼저 만들면 필요한 participant/zone/ability/effect가 자동으로 보인다
+- class나 subject를 먼저 만들면 전체 계약이 잘 안 드러난다
+- intent를 먼저 만들고 world/zone을 고정하면 필요한 participant/ability/effect가 자동으로 보인다
 
 ### 3. domain contract를 정적으로 검증하는 방향이 실전 가치가 있다
 

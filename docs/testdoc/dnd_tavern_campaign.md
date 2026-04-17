@@ -63,21 +63,21 @@ The example lives under `examples/dnd_tavern_campaign/`.
 Current source/golden layout:
 
 - `common.pgy`
+- `intents/campaign_intents.pgy`
+- `world.pgy`
+- `zones/layers.pgy`
+- `zones/journey.pgy`
 - `subjects/vessels.pgy`
 - `subjects/abilities.pgy`
 - `subjects/roles.pgy`
 - `subjects/views.pgy`
 - `subjects/units.pgy`
-- `zones/layers.pgy`
-- `zones/journey.pgy`
-- `intents/campaign_intents.pgy`
 - `tables.pgy`
 - `dialogue.pgy`
 - `combat_text.pgy`
 - `combat_cards.pgy`
 - `story_cards.pgy`
 - `events.pgy`
-- `world.pgy`
 - `setup.pgy`
 - `report.pgy`
 - `main.pgy`

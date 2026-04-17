@@ -7,12 +7,12 @@
 
 **Layout**
 - `intents/commerce_intents.pgy`: checkout, refund, and account sync intents
-- `subjects/`: `Member`, `Merchant`, payment/product classes, and vessels
+- `world.pgy`: transcript orchestration
 - `zones/`: cart, payment, refund, account
+- `subjects/`: `Member`, `Merchant`, payment/product classes, and vessels
 - `pages/surfaces.pgy`: page/API projections and render helpers
 - `api/commerce_api.pgy`: request/response tobject and intent adapter handlers
 - `report/transcript_report.pgy`: transcript/report composition and file writer
-- `world.pgy`: transcript orchestration
 - `setup.pgy`: factory-style world construction
 
 **What It Proves**
