@@ -128,9 +128,24 @@ add_windows_path_candidate() {
     fi
 }
 
+add_tool_dir_to_path() {
+    local tool="$1"
+    local tool_dir=""
+
+    [[ -n "$tool" ]] || return 0
+    tool_dir="$(dirname "$tool")"
+    add_path_if_dir "$tool_dir"
+    if command -v cygpath >/dev/null 2>&1; then
+        tool_dir="$(cygpath -u "$tool_dir" 2>/dev/null || true)"
+        add_path_if_dir "$tool_dir"
+    fi
+}
+
 setup_windows_llvm_runtime_path() {
     case "$(uname -s 2>/dev/null || echo unknown)" in
         MINGW*|MSYS*|CYGWIN*)
+            add_windows_path_candidate "${MSYSTEM_PREFIX:-}/bin"
+            add_windows_path_candidate "${LLVM_INSTALL:-}"
             add_windows_path_candidate "${LLVM_INSTALL:-}/bin"
             add_path_if_dir "/c/Program Files/LLVM/bin"
             add_path_if_dir "/c/LLVM/bin"
@@ -147,10 +162,31 @@ cleanup() {
 }
 trap cleanup EXIT
 
+setup_windows_launch_path() {
+    local tool="$1"
+    local cc_path=""
+    local clang_path=""
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            add_tool_dir_to_path "$tool"
+            add_tool_dir_to_path "$PGY_BIN"
+            if cc_path="$(command -v cc 2>/dev/null)"; then
+                add_tool_dir_to_path "$cc_path"
+            fi
+            if clang_path="$(command -v clang 2>/dev/null)"; then
+                add_tool_dir_to_path "$clang_path"
+            fi
+            ;;
+    esac
+}
+
 if [[ ! -x "$PGY_BIN" ]]; then
     echo "backend-compare: missing compiler binary: $PGY_BIN" >&2
     exit 1
 fi
+
+setup_windows_launch_path "$PGY_BIN"
 
 if [[ "${PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS:-0}" != "0" ]]; then
     ABI_PIPELINE_BIN="${PGY_ABI_PIPELINE_TEST_BIN:-}"
@@ -165,6 +201,7 @@ if [[ "${PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS:-0}" != "0" ]]; then
         echo "backend-compare: missing ABI pipeline test binary: $ABI_PIPELINE_BIN" >&2
         exit 1
     fi
+    setup_windows_launch_path "$ABI_PIPELINE_BIN"
     if ! PGY_ABI_PIPELINE_SAME_PROCESS=1 \
         PGY_ABI_PIPELINE_BACKEND=llvm \
         "$ABI_PIPELINE_BIN"; then
@@ -246,6 +283,8 @@ run_case() {
 
     c_bin="$(resolve_native_bin "$c_bin")"
     llvm_bin="$(resolve_native_bin "$llvm_bin")"
+    setup_windows_launch_path "$c_bin"
+    setup_windows_launch_path "$llvm_bin"
 
     if (cd "$(dirname "$source_copy")" && "$c_bin" >"$c_out" 2>"$c_err"); then
         c_rc=0

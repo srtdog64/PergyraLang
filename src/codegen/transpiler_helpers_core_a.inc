@@ -6,6 +6,9 @@ static bool transpiler_can_forward_declare_type_early(TranspilerCtx *ctx, ASTNod
 static bool transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func);
 static bool transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx, ASTNode *func);
 static ASTNode *transpiler_current_host_decl_local(TranspilerCtx *ctx);
+static ASTNode *transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
+                                                        ASTNodeType decl_type,
+                                                        const char *name);
 
 /* -----------------------------------------------------------------
  * CodeBuf
@@ -840,7 +843,8 @@ current_zone_has_field(TranspilerCtx *ctx, const char *field_name)
         ? transpiler_current_host_decl_local(ctx)
         : NULL;
     if (decl == NULL && ctx->current_zone_name != NULL)
-        decl = find_zone_decl(ctx, ctx->current_zone_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_ZONE_DECL, ctx->current_zone_name);
     if (decl == NULL)
         return false;
 
@@ -882,7 +886,8 @@ current_relation_has_field(TranspilerCtx *ctx, const char *field_name)
         ? transpiler_current_host_decl_local(ctx)
         : NULL;
     if (decl == NULL && ctx->current_relation_name != NULL)
-        decl = find_relation_decl(ctx, ctx->current_relation_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_RELATION_DECL, ctx->current_relation_name);
     if (decl == NULL)
         return false;
 
@@ -917,7 +922,8 @@ current_effect_has_field(TranspilerCtx *ctx, const char *field_name)
         ? transpiler_current_host_decl_local(ctx)
         : NULL;
     if (decl == NULL && ctx->current_effect_name != NULL)
-        decl = find_effect_decl(ctx, ctx->current_effect_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_EFFECT_DECL, ctx->current_effect_name);
     if (decl == NULL)
         return false;
 
@@ -1163,7 +1169,8 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
     }
 
     if (ctx->current_relation_name != NULL) {
-        decl = find_relation_decl(ctx, ctx->current_relation_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_RELATION_DECL, ctx->current_relation_name);
         if (decl != NULL && decl->type == AST_RELATION_DECL) {
             if (refresh_count_out != NULL)
                 *refresh_count_out = decl->data.relation_decl.refresh_count;
@@ -1172,7 +1179,8 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
     }
 
     if (ctx->current_effect_name != NULL) {
-        decl = find_effect_decl(ctx, ctx->current_effect_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_EFFECT_DECL, ctx->current_effect_name);
         if (decl != NULL && decl->type == AST_EFFECT_DECL) {
             if (refresh_count_out != NULL)
                 *refresh_count_out = decl->data.effect_decl.refresh_count;
@@ -1181,7 +1189,8 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
     }
 
     if (ctx->current_zone_name != NULL) {
-        decl = find_zone_decl(ctx, ctx->current_zone_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_ZONE_DECL, ctx->current_zone_name);
         if (decl != NULL && decl->type == AST_ZONE_DECL) {
             if (refresh_count_out != NULL)
                 *refresh_count_out = decl->data.zone_decl.refresh_count;
@@ -1271,7 +1280,8 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
         return find_zone_domain_slot(decl, slot_name);
 
     if (ctx->current_relation_name != NULL) {
-        decl = find_relation_decl(ctx, ctx->current_relation_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_RELATION_DECL, ctx->current_relation_name);
         if (decl != NULL && decl->type == AST_RELATION_DECL) {
             for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
                 ASTNode *slot = decl->data.relation_decl.slots[i];
@@ -1285,7 +1295,8 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
     }
 
     if (ctx->current_effect_name != NULL) {
-        decl = find_effect_decl(ctx, ctx->current_effect_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_EFFECT_DECL, ctx->current_effect_name);
         if (decl != NULL && decl->type == AST_EFFECT_DECL) {
             for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
                 ASTNode *slot = decl->data.effect_decl.slots[i];
@@ -1299,7 +1310,8 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
     }
 
     if (ctx->current_zone_name != NULL) {
-        decl = find_zone_decl(ctx, ctx->current_zone_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_ZONE_DECL, ctx->current_zone_name);
         if (decl != NULL && decl->type == AST_ZONE_DECL)
             return find_zone_domain_slot(decl, slot_name);
     }
@@ -1666,7 +1678,8 @@ current_world_has_field(TranspilerCtx *ctx, const char *field_name)
         ? transpiler_current_host_decl_local(ctx)
         : NULL;
     if (decl == NULL && ctx->current_world_name != NULL)
-        decl = find_world_decl(ctx, ctx->current_world_name);
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_WORLD_DECL, ctx->current_world_name);
     if (decl == NULL)
         return false;
 
@@ -1806,7 +1819,8 @@ resolve_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
     zone_decl = (transpiler_current_host_decl_local(ctx) != NULL
                  && transpiler_current_host_decl_local(ctx)->type == AST_ZONE_DECL)
         ? transpiler_current_host_decl_local(ctx)
-        : find_zone_decl(ctx, ctx->current_zone_name);
+        : transpiler_find_decl_in_inventory_local(
+            ctx, AST_ZONE_DECL, ctx->current_zone_name);
     if (zone_decl == NULL)
         return false;
 
@@ -1888,7 +1902,8 @@ resolve_world_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
     world_decl = (transpiler_current_host_decl_local(ctx) != NULL
                   && transpiler_current_host_decl_local(ctx)->type == AST_WORLD_DECL)
         ? transpiler_current_host_decl_local(ctx)
-        : find_world_decl(ctx, ctx->current_world_name);
+        : transpiler_find_decl_in_inventory_local(
+            ctx, AST_WORLD_DECL, ctx->current_world_name);
     if (world_decl == NULL)
         return false;
 
@@ -1966,7 +1981,8 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
     zone_decl = (transpiler_current_host_decl_local(ctx) != NULL
                  && transpiler_current_host_decl_local(ctx)->type == AST_ZONE_DECL)
         ? transpiler_current_host_decl_local(ctx)
-        : find_zone_decl(ctx, ctx->current_zone_name);
+        : transpiler_find_decl_in_inventory_local(
+            ctx, AST_ZONE_DECL, ctx->current_zone_name);
     if (zone_decl == NULL)
         return;
 

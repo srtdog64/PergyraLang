@@ -7,6 +7,7 @@
 
 #include <stdarg.h>
 #include <stdbool.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -102,6 +103,8 @@ import_stack_destroy(ImportStack *stack)
 static char *
 canonicalize_path_dup(const char *path)
 {
+    char *canonical = NULL;
+
     if (path == NULL)
         return NULL;
 
@@ -109,17 +112,31 @@ canonicalize_path_dup(const char *path)
     {
         char buffer[_MAX_PATH];
         if (pgy_fullpath(buffer, path, _MAX_PATH) != NULL)
-            return pergyra_strdup(buffer);
+            canonical = pergyra_strdup(buffer);
     }
 #else
     {
         char *resolved = realpath(path, NULL);
         if (resolved != NULL)
-            return resolved;
+            canonical = resolved;
     }
 #endif
 
-    return pergyra_strdup(path);
+    if (canonical == NULL)
+        canonical = pergyra_strdup(path);
+    if (canonical == NULL)
+        return NULL;
+
+#ifndef _WIN32
+    if (strncmp(canonical, "/mnt/", 5) == 0
+        && canonical[5] != '\0'
+        && canonical[6] == '/') {
+        for (char *p = canonical; *p != '\0'; ++p)
+            *p = (char)tolower((unsigned char)*p);
+    }
+#endif
+
+    return canonical;
 }
 
 /* path_dirname_dup and path_join_dup are now in path_utils.c */
@@ -241,9 +258,11 @@ static ASTNode *
 import_resolver_load_internal(const char *source_path,
                               ImportStack *stack,
                               ImportStack *loaded,
+                              ImportStack *loaded_stdlib_modules,
                               size_t *import_module_counter,
                               bool imported,
                               bool is_stdlib_module,
+                              const char *stdlib_module_name,
                               const char *private_prefix,
                               char **error_message)
 {
@@ -257,7 +276,11 @@ import_resolver_load_internal(const char *source_path,
         return NULL;
     }
 
-    if (is_stdlib_module && imported && import_stack_contains(loaded, canonical_source)) {
+    if (is_stdlib_module && imported
+        && ((loaded_stdlib_modules != NULL
+             && stdlib_module_name != NULL
+             && import_stack_contains(loaded_stdlib_modules, stdlib_module_name))
+            || import_stack_contains(loaded, canonical_source))) {
         free(canonical_source);
         return ast_create_program();
     }
@@ -282,9 +305,18 @@ import_resolver_load_internal(const char *source_path,
         goto fail;
     }
 
-    if (is_stdlib_module && !import_stack_push(loaded, canonical_source)) {
-        set_error(error_message, "out of memory while tracking loaded modules");
-        goto fail;
+    if (is_stdlib_module) {
+        if (!import_stack_push(loaded, canonical_source)) {
+            set_error(error_message, "out of memory while tracking loaded modules");
+            goto fail;
+        }
+        if (loaded_stdlib_modules != NULL
+            && stdlib_module_name != NULL
+            && !import_stack_contains(loaded_stdlib_modules, stdlib_module_name)
+            && !import_stack_push(loaded_stdlib_modules, stdlib_module_name)) {
+            set_error(error_message, "out of memory while tracking loaded stdlib modules");
+            goto fail;
+        }
     }
 
     base_dir = path_dirname_dup(canonical_source);
@@ -342,9 +374,11 @@ import_resolver_load_internal(const char *source_path,
             imp_ast = import_resolver_load_internal(full_path,
                                                     stack,
                                                     loaded,
+                                                    loaded_stdlib_modules,
                                                     import_module_counter,
                                                     true,
                                                     stmt->type == AST_USE_DECL,
+                                                    stmt->type == AST_USE_DECL ? import_path : NULL,
                                                     nested_prefix,
                                                     error_message);
         }
@@ -408,6 +442,7 @@ import_resolver_load_program(const char *source_path, char **error_message)
 {
     ImportStack stack = {0};
     ImportStack loaded = {0};
+    ImportStack loaded_stdlib_modules = {0};
     size_t import_module_counter = 0;
     ASTNode *program;
 
@@ -417,12 +452,15 @@ import_resolver_load_program(const char *source_path, char **error_message)
     program = import_resolver_load_internal(source_path,
                                             &stack,
                                             &loaded,
+                                            &loaded_stdlib_modules,
                                             &import_module_counter,
                                             false,
                                             false,
+                                            NULL,
                                             "",
                                             error_message);
     import_stack_destroy(&stack);
     import_stack_destroy(&loaded);
+    import_stack_destroy(&loaded_stdlib_modules);
     return program;
 }
