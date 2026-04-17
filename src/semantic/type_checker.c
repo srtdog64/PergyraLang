@@ -24,6 +24,12 @@ static bool
 callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx);
 static size_t
 generic_params_required_count(GenericParams *params);
+static char *
+format_type_constraint_bounds(TypeConstraint *tc);
+static char *
+format_generic_subject_signature(const char *name, GenericParams *params);
+static char *
+format_effective_generic_type_list(const char *name, Type **types, size_t count);
 static ASTNode **
 collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     GenericParams *provided_args,
@@ -34,6 +40,8 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     size_t *out_count);
 static int
 find_generic_param_index(GenericParams *gp, const char *param_name);
+static bool
+identifier_is_borrowed_movable_param(ASTNode *expr, SemanticContext *ctx);
 
 /* Local printf-to-heap helper (same as transpiler's strdup_fmt) */
 #include "type_checker_helpers.inc"
@@ -249,6 +257,101 @@ format_type_constraint_bounds(TypeConstraint *tc)
     }
 
     return result;
+}
+
+static char *
+format_generic_subject_signature(const char *name, GenericParams *params)
+{
+    char *result;
+
+    if (name == NULL)
+        return tc_strdup_fmt("<generic>");
+    if (params == NULL || params->count == 0)
+        return tc_strdup_fmt("%s", name);
+
+    result = tc_strdup_fmt("%s<", name);
+    if (result == NULL)
+        return tc_strdup_fmt("%s", name);
+
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam *gp = params->params[i];
+        const char *param_name =
+            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+        char *next = (i + 1 < params->count)
+            ? tc_strdup_fmt("%s%s, ", result, param_name)
+            : tc_strdup_fmt("%s%s>", result, param_name);
+        free(result);
+        result = next;
+        if (result == NULL)
+            return tc_strdup_fmt("%s", name);
+    }
+
+    return result;
+}
+
+static char *
+format_effective_generic_type_list(const char *name, Type **types, size_t count)
+{
+    char *result;
+
+    if (name == NULL)
+        return tc_strdup_fmt("<generic>");
+    if (types == NULL || count == 0)
+        return tc_strdup_fmt("%s", name);
+
+    result = tc_strdup_fmt("%s<", name);
+    if (result == NULL)
+        return tc_strdup_fmt("%s", name);
+
+    for (size_t i = 0; i < count; i++) {
+        const char *type_name =
+            (types[i] != NULL && types[i]->name != NULL)
+                ? types[i]->name : "<type>";
+        char *next = (i + 1 < count)
+            ? tc_strdup_fmt("%s%s, ", result, type_name)
+            : tc_strdup_fmt("%s%s>", result, type_name);
+        free(result);
+        result = next;
+        if (result == NULL)
+            return tc_strdup_fmt("%s", name);
+    }
+
+    return result;
+}
+
+static bool
+identifier_is_borrowed_movable_param(ASTNode *expr, SemanticContext *ctx)
+{
+    ASTNode *func_decl;
+    const char *ident_name;
+
+    if (expr == NULL || ctx == NULL
+        || expr->type != AST_IDENTIFIER
+        || expr->data.identifier.name == NULL) {
+        return false;
+    }
+
+    func_decl = ctx->current_function_decl;
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return false;
+
+    ident_name = expr->data.identifier.name;
+    for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
+        FuncParam *param = func_decl->data.func_decl.params[i];
+        Type *param_type;
+
+        if (param == NULL || param->name == NULL || param->type == NULL)
+            continue;
+        if (param->mode != PARAM_MODE_REF)
+            continue;
+        if (strcmp(param->name, ident_name) != 0)
+            continue;
+
+        param_type = resolve_type_node(param->type, ctx);
+        return type_is_movable_resource_handle(param_type);
+    }
+
+    return false;
 }
 
 static size_t
@@ -582,6 +685,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
 {
     WhereClause *wc;
     GenericParams *gp;
+    char *expected_text = NULL;
 
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
         || constructed_type == NULL
@@ -594,6 +698,10 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
     wc = class_decl->data.class_decl.where_clause;
     if (gp == NULL || gp->count == 0 || wc == NULL || wc->count == 0)
         return;
+    expected_text = format_generic_subject_signature(
+        class_decl->data.class_decl.name != NULL
+            ? class_decl->data.class_decl.name : "<class>",
+        gp);
 
     for (size_t ci = 0; ci < wc->count; ci++) {
         TypeConstraint *tc = wc->constraints[ci];
@@ -644,6 +752,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
 
         for (size_t bi = 0; bi < tc->bound_count; bi++) {
             ASTNode *bound_node = tc->bounds[bi];
+            char *bounds_text = format_type_constraint_bounds(tc);
             const char *bound_name =
                 (bound_node != NULL
                  && bound_node->type == AST_TYPE
@@ -657,6 +766,8 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                     "Reason:\n"
                     "- class '%s' requires '%s: %s'\n"
                     "- full bound set is '%s: %s'\n"
+                    "- expected type args are '%s'\n"
+                    "- actual type args are '%s'\n"
                     "- instantiated type argument is '%s'\n"
                     "Fix:\n"
                     "- pass a type argument that satisfies '%s'\n"
@@ -672,6 +783,8 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                     bound_name,
                     tc->type_param,
                     bounds_text != NULL ? bounds_text : "<constraint>",
+                    expected_text != NULL ? expected_text : "<class>",
+                    constructed_type->name != NULL ? constructed_type->name : "<constructed>",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
                     bound_name,
                     class_decl->data.class_decl.name != NULL
@@ -680,6 +793,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
             free(bounds_text);
         }
     }
+    free(expected_text);
 }
 
 static void
@@ -692,6 +806,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
     WhereClause *wc;
     ASTNode **effective_args = NULL;
     size_t effective_count = 0;
+    char *expected_text = NULL;
 
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
         || specialized_type == NULL || specialized_type->type != AST_TYPE
@@ -705,6 +820,10 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         || wc == NULL || wc->count == 0) {
         return;
     }
+    expected_text = format_generic_subject_signature(
+        class_decl->data.class_decl.name != NULL
+            ? class_decl->data.class_decl.name : "<class>",
+        decl_params);
 
     effective_args = collect_effective_generic_arg_nodes(
         decl_params,
@@ -779,6 +898,8 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                     "Reason:\n"
                     "- class '%s' requires '%s: %s'\n"
                     "- full bound set is '%s: %s'\n"
+                    "- expected type args are '%s'\n"
+                    "- actual type args are '%s'\n"
                     "- specialized type argument is '%s'\n"
                     "Fix:\n"
                     "- specialize '%s' with a type that satisfies '%s'\n"
@@ -794,6 +915,9 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                     bound_name,
                     tc->type_param,
                     bounds_text != NULL ? bounds_text : "<constraint>",
+                    expected_text != NULL ? expected_text : "<class>",
+                    specialized_type->data.type.name != NULL
+                        ? specialized_type->data.type.name : "<specialized>",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
                     class_decl->data.class_decl.name != NULL
                         ? class_decl->data.class_decl.name : "<class>",
@@ -805,6 +929,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         }
     }
 
+    free(expected_text);
     free(effective_args);
 }
 
@@ -2246,6 +2371,25 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
     }
 
     if (node->data.return_stmt.value != NULL
+        && identifier_is_borrowed_movable_param(node->data.return_stmt.value, ctx)) {
+        semantic_error(ctx, node,
+            "Borrowed ref movable resource '%s' cannot escape via return.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+            "- returning it would let the borrow outlive the current call boundary\n"
+            "Fix:\n"
+            "- return a copied/projection/value result instead\n"
+            "- or change the parameter to 'own' if transfer is intended",
+            node->data.return_stmt.value->data.identifier.name,
+            ctx->current_function_decl != NULL
+                && ctx->current_function_decl->data.func_decl.name != NULL
+                    ? ctx->current_function_decl->data.func_decl.name
+                    : "<anonymous>",
+            node->data.return_stmt.value->data.identifier.name);
+    }
+
+    if (node->data.return_stmt.value != NULL
         && type_is_qubit(ret_type)
         && node->data.return_stmt.value->type == AST_IDENTIFIER) {
         consume_qubit_value(node->data.return_stmt.value, ctx, "returned");
@@ -2478,8 +2622,26 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 "- ownership transfer at a channel boundary must point to one concrete source binding\n"
                 "- unnamed expressions make moved-here provenance ambiguous\n"
                 "Fix:\n"
-                "- bind the movable resource to a local variable first\n"
+                "- bind the value first by storing the movable resource in a local variable\n"
                 "- then send that named variable");
+            return TYPE_VOID;
+        }
+        if (identifier_is_borrowed_movable_param(expr->data.channel_send.value, ctx)) {
+            semantic_error(ctx, expr->data.channel_send.value,
+                "Borrowed ref movable resource '%s' cannot escape through channel send.\n"
+                "Reason:\n"
+                "- consumer path is function '%s'\n"
+                "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                "- channel send would transfer that borrow beyond the current call boundary\n"
+                "Fix:\n"
+                "- send a copied/value/projection form instead\n"
+                "- or change the parameter to 'own' before transfer",
+                expr->data.channel_send.value->data.identifier.name,
+                ctx->current_function_decl != NULL
+                    && ctx->current_function_decl->data.func_decl.name != NULL
+                        ? ctx->current_function_decl->data.func_decl.name
+                        : "<anonymous>",
+                expr->data.channel_send.value->data.identifier.name);
             return TYPE_VOID;
         }
         consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
@@ -2957,6 +3119,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     const char *name = node->data.func_decl.name;
     bool is_action = (!node->is_async_decl && node->data.func_decl.is_action);
     ASTNode *enclosing_nominal = ctx->current_nominal_decl;
+    ASTNode *prev_function_decl = ctx->current_function_decl;
     uint32_t prev_effects = ctx->current_function_effects;
     bool prev_tracking = ctx->tracking_function_effects;
     bool prev_async = ctx->in_async_func;
@@ -3289,35 +3452,19 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (param->mode != PARAM_MODE_DEFAULT
             && !type_is_anchored_resource_handle(param_types[i])) {
-            if (type_is_movable_resource_handle(param_types[i])) {
-                if (param->mode == PARAM_MODE_REF) {
-                    semantic_error(ctx, node,
-                        "'ref' movable resource parameters are not supported at function boundaries yet.\n"
-                        "Reason:\n"
-                        "- value is parameter '%s'\n"
-                        "- ownership mode is 'ref'\n"
-                        "- consumer path is function '%s'\n"
-                        "- movable resource handles currently cross function boundaries only by transfer\n"
-                        "- borrowed movable-resource forwarding is not part of the closed subset yet\n"
-                        "Fix:\n"
-                        "- use an unqualified or 'own' movable resource parameter for transfer semantics\n"
-                        "- or keep the movable resource local to the current function",
-                        param->name != NULL ? param->name : "<param>",
-                        node->data.func_decl.name != NULL ? node->data.func_decl.name : "<anonymous>");
-                }
-            } else {
+            if (!type_is_movable_resource_handle(param_types[i])) {
                 semantic_error(ctx, node,
-                    "'%s' parameter mode is currently a closed subset: only ref/own Slot<subject-host> / "
-                    "own SecureSlot<subject-host> are supported at function boundaries.\n"
+                    "'%s' parameter mode is currently a closed subset: only ref/own movable resources, "
+                    "ref/own Slot<subject-host>, and own SecureSlot<subject-host> are supported at function boundaries.\n"
                     "Reason:\n"
                     "- value is parameter '%s'\n"
                     "- ownership mode is '%s'\n"
                     "- consumer path is function '%s'\n"
-                    "- this parameter type is not part of the anchored-handle boundary subset\n"
+                    "- this parameter type is not part of the current move/borrow boundary subset\n"
                     "- the compiler does not yet enforce general own/ref rules for arbitrary value types at call boundaries\n"
                     "Fix:\n"
                     "- keep this value local to the function boundary\n"
-                    "- or pass a Slot<subject-host> / own SecureSlot<subject-host> handle instead",
+                    "- or pass a movable resource / Slot<subject-host> / own SecureSlot<subject-host> handle instead",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
                     param->name != NULL ? param->name : "<param>",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
@@ -3421,6 +3568,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     Type *prev_return  = ctx->current_return;
+    ctx->current_function_decl = node;
     ctx->current_return = return_type;
     ctx->current_function_effects = EFFECT_NONE;
     ctx->tracking_function_effects = true;
@@ -3589,6 +3737,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     ctx->current_return = prev_return;
+    ctx->current_function_decl = prev_function_decl;
     ctx->current_function_effects = prev_effects;
     ctx->tracking_function_effects = prev_tracking;
     ctx->in_async_func = prev_async;

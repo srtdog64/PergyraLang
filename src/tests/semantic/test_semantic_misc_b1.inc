@@ -947,8 +947,7 @@
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(result != NULL && result->warning_count >= 1);
+        EXPECT(result != NULL && result->error_count >= 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(
             result, "has no matching effect slot"));
 

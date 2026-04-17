@@ -52,6 +52,7 @@ struct SemanticContext
     ASTNode*     current_nominal_decl; /* Enclosing nominal decl      */
     ASTNode*     current_zone;   /* Enclosing zone decl when any   */
     ASTNode*     current_world;  /* Enclosing world decl when any  */
+    ASTNode*     current_function_decl; /* Enclosing function/action decl */
     Type*        current_return; /* Expected return type of func   */
     uint32_t     current_function_effects; /* Inferred effect mask    */
     bool         tracking_function_effects; /* Only inside function body */

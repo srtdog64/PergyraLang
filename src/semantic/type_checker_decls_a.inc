@@ -563,19 +563,32 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
             semantic_error(ctx, site != NULL ? site : type_node,
                 "Ability field contract '%s' could not materialize generic argument for '%s'.\n"
                 "Reason:\n"
+                "- generic subject is ability '%s'\n"
+                "- consumer path is require-field resolution from '%s'\n"
                 "- require-field type resolution depends on effective type arguments from '%s'\n"
                 "- generic parameter '%s' has no effective argument on this consumer path\n"
+                "- actual type args are '%s'\n"
                 "Fix:\n"
                 "- provide/supply a type argument for '%s'\n"
                 "- or fix the ability generic/default parameter list so '%s' is materialized",
                 ability_decl->data.ability_decl.name != NULL
                     ? ability_decl->data.ability_decl.name : "<ability>",
                 param->name,
+                ability_decl->data.ability_decl.name != NULL
+                    ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
                 ability_text != NULL ? ability_text
                                      : (ability_decl->data.ability_decl.name != NULL
                                             ? ability_decl->data.ability_decl.name
                                             : "<ability>"),
                 param->name,
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
                 param->name,
                 param->name);
             continue;
@@ -586,19 +599,32 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
             semantic_error(ctx, site != NULL ? site : type_node,
                 "Ability field contract '%s' could not resolve generic argument for '%s'.\n"
                 "Reason:\n"
+                "- generic subject is ability '%s'\n"
+                "- consumer path is require-field resolution from '%s'\n"
                 "- require-field type resolution depends on effective type arguments from '%s'\n"
                 "- generic parameter '%s' did not resolve to a concrete type on this consumer path\n"
+                "- actual type args are '%s'\n"
                 "Fix:\n"
                 "- provide a concrete type argument for '%s'\n"
                 "- or fix the default type argument / imported type so '%s' resolves",
                 ability_decl->data.ability_decl.name != NULL
                     ? ability_decl->data.ability_decl.name : "<ability>",
                 param->name,
+                ability_decl->data.ability_decl.name != NULL
+                    ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
                 ability_text != NULL ? ability_text
                                      : (ability_decl->data.ability_decl.name != NULL
                                             ? ability_decl->data.ability_decl.name
                                             : "<ability>"),
                 param->name,
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
                 param->name,
                 param->name);
             continue;
@@ -893,19 +919,32 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                     if (arg_count > 0 && param_count == 0) {
                         char *impl_text =
                             ability_ref_display(impl->data.impl_ability.ability_ref);
+                        char *expected_text =
+                            ability_decl_signature_display(
+                                ability_name,
+                                ability_decl->data.ability_decl.generic_params);
                         semantic_error(ctx, impl,
                             "Ability '%s' does not accept generic type arguments in impl clauses.\n"
                             "Reason:\n"
+                            "- consumer path is impl ability '%s'\n"
+                            "- generic subject is ability '%s'\n"
                             "- impl ability uses '%s'\n"
                             "- ability declaration '%s' is non-generic\n"
+                            "- expected type args are '%s'\n"
+                            "- actual type args are '%s'\n"
                             "Fix:\n"
                             "- remove the generic arguments from '%s'\n"
                             "- or declare '%s' with matching generic parameters",
                             ability_name,
+                            ability_name,
+                            ability_name,
                             impl_text != NULL ? impl_text : ability_name,
                             ability_name,
+                            expected_text != NULL ? expected_text : ability_name,
+                            impl_text != NULL ? impl_text : ability_name,
                             ability_name,
                             ability_name);
+                        free(expected_text);
                         free(impl_text);
                     } else if (arg_count > param_count
                                || arg_count < generic_params_required_count(
@@ -914,19 +953,27 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             ability_decl->data.ability_decl.generic_params);
                         char *impl_text =
                             ability_ref_display(impl->data.impl_ability.ability_ref);
+                        char *expected_text =
+                            ability_decl_signature_display(
+                                ability_name,
+                                ability_decl->data.ability_decl.generic_params);
                         semantic_error(ctx, impl,
                             "Ability '%s' requires between %zu and %zu generic argument(s) in impl clauses, got %zu.\n"
                             "Reason:\n"
+                            "- consumer path is impl ability '%s'\n"
                             "- impl ability uses '%s'\n"
-                            "- ability declaration '%s' expects %zu type parameter(s)\n"
+                            "- actual type args are '%s'\n"
                             "Fix:\n"
                             "- pass enough generic argument(s) to cover non-default parameters of '%s'\n"
                             "- or rely on declaration defaults for trailing parameters only\n"
                             "- or change the ability declaration to match the intended arity",
-                            ability_name, required_count, param_count, arg_count,
+                            ability_name != NULL ? ability_name : "<ability>",
+                            required_count, param_count, arg_count,
+                            ability_name != NULL ? ability_name : "<ability>",
                             impl_text != NULL ? impl_text : ability_name,
-                            ability_name, param_count,
-                            ability_name);
+                            impl_text != NULL ? impl_text : ability_name,
+                            ability_name != NULL ? ability_name : "<ability>");
+                        free(expected_text);
                         free(impl_text);
                     } else {
                         for (size_t k = 0; k < arg_count; k++) {
@@ -936,18 +983,31 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             if (arg == NULL) {
                                 char *impl_text =
                                     ability_ref_display(impl->data.impl_ability.ability_ref);
+                                char *expected_text =
+                                    ability_decl_signature_display(
+                                        ability_name,
+                                        ability_decl->data.ability_decl.generic_params);
                                 semantic_error(ctx, impl,
                                     "Ability '%s' has an invalid generic argument in impl clause.\n"
                                     "Reason:\n"
+                                    "- consumer path is impl ability '%s'\n"
+                                    "- generic subject is ability '%s'\n"
                                     "- generic argument %zu in '%s' is missing or malformed\n"
                                     "- impl contract cannot derive effective type arguments from an incomplete surface\n"
+                                    "- expected type args are '%s'\n"
+                                    "- actual type args are '%s'\n"
                                     "Fix:\n"
                                     "- provide a concrete type argument for each generic parameter\n"
                                     "- or remove the malformed generic argument from '%s'",
                                     ability_name,
+                                    ability_name,
+                                    ability_name,
                                     k + 1,
                                     impl_text != NULL ? impl_text : ability_name,
+                                    expected_text != NULL ? expected_text : ability_name,
+                                    impl_text != NULL ? impl_text : ability_name,
                                     ability_name);
+                                free(expected_text);
                                 free(impl_text);
                                 malformed_impl_args = true;
                                 continue;
@@ -1063,9 +1123,9 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                             "Reason:\n"
                             "- consumer path is party role slot '%s'\n"
                             "- no subject-bound role satisfies required ability '%s'\n"
-                            "- expected type args are encoded in '%s'\n"
+                            "- expected type args are '%s'\n"
                             "- actual implementation is '%s'\n"
-                            "- actual type args are encoded in '%s'\n"
+                            "- actual type args are '%s'\n"
                             "Fix:\n"
                             "- implement '%s' on a subject-bound role\n"
                             "- or change the role slot contract",
@@ -1084,7 +1144,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                             "Reason:\n"
                             "- consumer path is party role slot '%s'\n"
                             "- no subject-bound role satisfies required ability '%s'\n"
-                            "- expected type args are encoded in '%s'\n"
+                            "- expected type args are '%s'\n"
                             "- no matching implementation was found for '%s'\n"
                             "Fix:\n"
                             "- implement '%s' on a subject-bound role\n"

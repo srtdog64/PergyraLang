@@ -982,7 +982,12 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         if (wz->data.world_zone.zone_type != NULL) {
             Symbol *zone = scope_lookup(ctx->scope,
                 wz->data.world_zone.zone_type);
-            if (zone == NULL || zone->kind != SYMBOL_ZONE) {
+            ASTNode *zone_decl = find_domain_decl_by_name(
+                ctx->program_root, AST_ZONE_DECL, wz->data.world_zone.zone_type);
+            if ((zone == NULL || zone->kind != SYMBOL_ZONE)
+                && !(zone_decl != NULL
+                     && zone_decl->type == AST_ZONE_DECL
+                     && explicit_type_reference_allowed(zone_decl, node, ctx))) {
                 semantic_error(ctx, wz,
                     "Zone type '%s' not found for slot '%s'.\n"
                     "Reason:\n"
@@ -2252,6 +2257,7 @@ type_check_projection_contract(ASTNode **slots,
             semantic_error(ctx, site,
                 "%s %s target slot '%s' uses the wrong projection kind.\n"
                 "Reason:\n"
+                "- source slot '%s' is driving this %s path\n"
                 "- %s requires target slot '%s' to use %s declaration\n"
                 "- actual target type '%s' uses a different projection kind\n"
                 "- target projection declaration currently comes from '%s'\n"
@@ -2260,6 +2266,8 @@ type_check_projection_contract(ASTNode **slots,
                 "- or switch to the matching projection operation",
                 owner_label, action_name,
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                action_name,
                 action_name,
                 object_slot_name != NULL ? object_slot_name : "<slot>",
                 expected_label,
@@ -3127,13 +3135,22 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *layer_slot = node->data.zone_decl.layer_slots[i];
         const char *type_name = layer_slot->data.zone_layer_slot.layer_type;
         Symbol *sym = type_name != NULL ? scope_lookup(ctx->scope, type_name) : NULL;
+        ASTNodeType decl_type = layer_slot->data.zone_layer_slot.is_relation
+            ? AST_RELATION_DECL
+            : AST_EFFECT_DECL;
+        ASTNode *decl = type_name != NULL
+            ? find_domain_decl_by_name(ctx->program_root, decl_type, type_name)
+            : NULL;
         SymbolKind expected = layer_slot->data.zone_layer_slot.is_relation
             ? SYMBOL_RELATION
             : SYMBOL_EFFECT;
         const char *kind_name = layer_slot->data.zone_layer_slot.is_relation
             ? "relation"
             : "effect";
-        if (sym == NULL || sym->kind != expected) {
+        if ((sym == NULL || sym->kind != expected)
+            && !(decl != NULL
+                 && decl->type == decl_type
+                 && explicit_type_reference_allowed(decl, node, ctx))) {
             semantic_error(ctx, layer_slot,
                 "Zone layer slot '%s' references unknown %s type '%s'.\n"
                 "Reason:\n"

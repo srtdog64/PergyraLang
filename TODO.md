@@ -1,6 +1,6 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-16
+마지막 업데이트: 2026-04-17
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
@@ -43,6 +43,10 @@
 - unresolved declaration entrypoint를 더 줄였다
   - role include unknown role, roster slot unknown party, world roster/zone unknown type을 hard error로 승격
   - generic where-clause consumer path에서 unresolved effective arg도 더 이상 silent skip하지 않음
+- declaration-side MIR-only domain method gate를 더 조였다
+  - party / roster / relation / effect / zone / world method emission이 MIR routine 없이 AST body로 조용히 fallback하지 않도록 C backend를 정렬
+  - role / domain method emission에서 MIR routine 미존재를 LLVM backend hard error로 승격
+  - 즉, declaration-side domain method는 MIR inventory가 존재하는 빌드에서 silent fallback이 아니라 explicit backend failure를 계약으로 삼음
 
 ### 최근 closure 진행 (2026-04-14)
 
@@ -88,7 +92,8 @@
 - ability field surface
   - legacy `require` alias 제거, `fields` canonical surface 고정
 - generic ability baseline
-  - `ability<T>`, `requires Ability<T>`, `impl ability Ability<T>`, zone authority generic ref, mismatch diagnostics baseline 존재
+- `ability<T>`, `requires Ability<T>`, `impl ability Ability<T>`, zone authority generic ref, mismatch diagnostics baseline 존재
+- cross-module imported generic ability의 multi-bound zone-authority consumer regression 추가
 - 양자 surface
   - 베타 대상에서 제외
   - `v2 / experimental`로만 추적
@@ -159,12 +164,15 @@
   - `own SecureSlot<subject-host>`
 - first movable-value transfer slice도 시작됨
   - explicit `own QubitSlot` parameter는 허용
-  - `ref QubitSlot`는 아직 reject + structured diagnostic
+  - `ref QubitSlot` borrow boundary baseline 허용
+  - call-site는 `own/default`면 consume, `ref`면 borrow 유지로 분기
+  - borrowed `ref QubitSlot`의 `return` / `channel send` escape는 semantic에서 명시 차단
 - 관련 진단/예제/문서는 현재 구현 기준으로 정렬됨
 
 판정:
 - anchored subset baseline은 이미 있지만, beta-quality 기준에서는 own/ref를 다시 활성 blocker로 본다
 - 남은 일은 일반 movable type ownership model, copy vs move-only 분류, assignment/call/return/channel/container/rebind 전경로 analysis, richer provenance diagnostics를 닫는 것이다
+- 특히 borrowed movable-resource ownership는 helper-call/return/channel-send baseline이 닫혔고, 다음은 wider movable type generalization과 container/rebind provenance를 더 닫아야 한다
 - anchored subset만 stable이라고 보고 넘어가면 ownership story가 partial acceptance로 남는다
 
 ### 레이어별 현재 진실
@@ -308,7 +316,7 @@
   - strict beta-quality 기준으로 anchored subset closure에서 재개방
   - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫는다
   - 이미 존재: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
-  - 남음: movable vs copy type rule, assignment/call/return/channel/container/rebind ownership, helper-call escape analysis, ownership provenance diagnostics, wider C/LLVM regression 확대
+  - 남음: movable vs copy type rule, assignment/call/return/channel/container/rebind ownership, wider movable-type generalization, ownership provenance diagnostics, wider C/LLVM regression 확대
   - ownership diagnostics는 `value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
   - anchored subset만 stable이라고 보고 넘기지 않는다
 
@@ -397,7 +405,7 @@
   - `examples/zone_context_minimal.pgy`
 
 - [ ] **contract provenance vocabulary 고정**
-  - 대상: `inferred_*` 잔여 표현, contract source wording, docs/example terminology
+  - 대상: contract provenance 잔여 표현, contract source wording, docs/example terminology
   - 문제: compiler type/effect inference와 domain contract 상속/파생이 같은 단어로 섞이면 설명력이 무너짐
   - 고정 기준:
     - domain contract는 `상속 / 파생`과 `inherited / derived`로만 부른다
@@ -790,8 +798,8 @@
 - [ ] **채널 의미론 강화** — 비동기 제출/대기/수거/후처리 흐름 보강
 - [x] **`Future<T>`를 transfer boundary로 고정** — await/recv와 같은 ownership 경계
 - [ ] **effect/resource capability 표기 도입** — `local cpu`, `secure device`, `remote` 등 타입/효과 시스템
-  - 현재: inferred effect mask + spawn/await/channel에서 remote 추론
-  - 현재: `/// @effects ...` 선언이 있으면 body inferred effect와 mismatch 진단
+  - 현재: derived effect mask + spawn/await/channel에서 remote 추론
+  - 현재: `/// @effects ...` 선언이 있으면 body derived effect와 mismatch 진단
   - 다음: 시그니처 문법 차원의 선언적 annotation 표면
 - [ ] **성능 목표를 orchestration overhead 중심으로 재정의**
 

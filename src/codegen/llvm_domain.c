@@ -2315,6 +2315,19 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     llvm_scope_declare(ctx, p->name, a, pt);
                 }
 
+                if (ctx->mir != NULL) {
+                    char msg[384];
+                    snprintf(msg, sizeof(msg),
+                             "MIR-only LLVM path missing routine for role method '%s.%s'",
+                             role_name != NULL ? role_name : "(anonymous-role)",
+                             method->data.func_decl.name != NULL
+                                 ? method->data.func_decl.name
+                                 : "(anonymous)");
+                    llvm_set_error(ctx, msg);
+                    llvm_scope_pop(ctx);
+                    return;
+                }
+
                 if (method->data.func_decl.body != NULL)
                     llvm_emit_block(method->data.func_decl.body, ctx);
 
@@ -2604,6 +2617,18 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 LLVMValueRef sync_args[] = { self_ptr };
                 LLVMBuildCall2(ctx->builder, sync_entry->fn_type, sync_entry->fn,
                     sync_args, 1, "");
+            }
+
+            if (ctx->mir != NULL) {
+                char msg[384];
+                snprintf(msg, sizeof(msg),
+                         "MIR-only LLVM path missing routine for domain method '%s.%s'",
+                         decl_name != NULL ? decl_name : "(anonymous-domain)",
+                         method->data.func_decl.name != NULL
+                             ? method->data.func_decl.name
+                             : "(anonymous)");
+                llvm_set_error(ctx, msg);
+                return;
             }
 
             if (method->data.func_decl.body != NULL)

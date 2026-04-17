@@ -468,6 +468,36 @@ test_rir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("RIR keeps embedded world-zone handles visible while zone projection remains conservative");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "subject Buyer { let hp: Int; }\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone CheckoutZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "world CommerceWorld {\n"
+            "    zone checkout: CheckoutZone\n"
+            "    activate checkout\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *zone = find_scope(rir, "CheckoutZone", RIR_SCOPE_ZONE);
+        const RIRScope *world = find_scope(rir, "CommerceWorld", RIR_SCOPE_WORLD);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && zone != NULL
+               && world != NULL
+               && scope_has_fact_slot_anchor(zone, RIR_FACT_PROJECTION, "view", "view")
+               && scope_has_conservative_semantics(zone, RIR_FLOW_PROJECTION)
+               && scope_has_resource_fact(world, "checkout", RIR_RESOURCE_ZONE_HANDLE));
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("RIR marks loop-header joins as widened flow states");
     {
         HIRProgram *hir = NULL;

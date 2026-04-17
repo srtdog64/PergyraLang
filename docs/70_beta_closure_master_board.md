@@ -183,6 +183,9 @@ diagnostic 고정 규칙:
 - generic function call-site where-clause validation도 missing/unresolved effective arg를 그냥 넘기지 않도록 hardening했다
 - collection generic surface도 stable key subset(`String | Int | Long | Bool`) 기준으로 semantic/C/LLVM/runtime/documentation을 다시 정렬했다
 - multi-bound generic mismatch diagnostics가 ability/class/function consumer path에서 `broken bound`뿐 아니라 `full bound set`까지 노출하도록 정렬됐다
+- module-contract `requires Ability<T>` 경로도 arity/malformed-arg 진단에서 `expected type args` / `actual type args` / `consumer path`를 함께 노출하도록 정렬됐다
+- `impl Ability<T>` / party-role consumer path도 old wording을 제거하고 `expected type args` / `actual type args` / `consumer path` vocabulary로 다시 맞췄다
+- ability require-field generic materialization/resolution failure도 `generic subject` / `consumer path` / `actual type args` vocabulary로 정렬됐다
 
 완료 기준:
 
@@ -407,6 +410,7 @@ diagnostic 고정 규칙:
    - helper-call escape analysis
    - ownership provenance diagnostics
 5. declaration-side MIR-only debt 제거
+   - 진행: domain method emission이 MIR inventory 존재 시 AST fallback으로 조용히 내려가지 않도록 C/LLVM gate를 정렬
 6. Backend parity final closure
 7. runtime observability structured state 보강
 8. surface trust 문서 최종 정렬

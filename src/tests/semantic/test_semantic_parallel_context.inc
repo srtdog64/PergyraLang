@@ -145,7 +145,7 @@ test_parallel_context_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("parallel-rejected: inferred secure-effect helper calls stay serialized");
+    TEST("parallel-rejected: derived secure-effect helper calls stay serialized");
     {
         const char *source =
             "func Touch(s: SecureSlot<Int>, s_token: Token<Int>) -> Void {\n"

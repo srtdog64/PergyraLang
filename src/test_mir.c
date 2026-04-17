@@ -428,6 +428,7 @@ test_mir_lowering(void)
             "}\n"
             "zone Arena {\n"
             "    subject slot hero: Hero\n"
+            "    effect slot guarded: Guarded\n"
             "}\n"
             "intent Patrol(arena: Arena, hero: Hero) {\n"
             "    step Guard {\n"

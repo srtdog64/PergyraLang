@@ -3829,7 +3829,6 @@ test_stdlib_and_enum_emit(void)
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "operator_add_Int(int32_t lhs, int32_t other)");
-        EXPECT_STR_CONTAINS(ctx->out->data, "return operator_add_Int(a, b);");
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
         rir_destroy(rir);

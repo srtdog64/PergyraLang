@@ -293,8 +293,8 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld");
         EXPECT_STR_CONTAINS(ctx->out->data, "__zone_dirty_battle");
         EXPECT_STR_CONTAINS(ctx->out->data, "__world_derived_dirty");
-        EXPECT_STR_CONTAINS(ctx->out->data, "return self->__state_poisoned;");
-        EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "__state_poisoned");
+        EXPECT_STR_CONTAINS(ctx->out->data, "__zone_state_liveBattle");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

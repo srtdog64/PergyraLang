@@ -1890,6 +1890,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
         if (type_is_movable_resource_handle(arg_type)
             || type_is_movable_resource_handle(param_type)) {
+            ParamMode pmode = PARAM_MODE_DEFAULT;
             if (!type_is_movable_resource_handle(arg_type)
                 || !type_is_movable_resource_handle(param_type)) {
                 semantic_error(ctx, expr->data.call.arguments[i],
@@ -1904,6 +1905,42 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     resource_handle_display_name(param_type));
                 continue;
             }
+            if (ctx->program_root != NULL) {
+                ASTNode *prog = ctx->program_root;
+                for (size_t si = 0; si < prog->data.program.count; si++) {
+                    ASTNode *stmt = prog->data.program.statements[si];
+                    if (stmt != NULL && stmt->type == AST_FUNC_DECL
+                        && stmt->data.func_decl.name != NULL
+                        && strcmp(stmt->data.func_decl.name, display_name) == 0
+                        && i < stmt->data.func_decl.param_count) {
+                        pmode = stmt->data.func_decl.params[i]->mode;
+                        break;
+                    }
+                }
+            }
+            if (pmode != PARAM_MODE_REF
+                && identifier_is_borrowed_movable_param(expr->data.call.arguments[i], ctx)) {
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Borrowed ref movable resource '%s' cannot escape through helper/function call.\n"
+                    "Reason:\n"
+                    "- consumer path is function '%s'\n"
+                    "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                    "- forwarding it to '%s' as '%s' would create a transitive transfer beyond the current call boundary\n"
+                    "Fix:\n"
+                    "- call a 'ref' helper instead\n"
+                    "- or change the current parameter to 'own' if forwarding/transfer is intended",
+                    expr->data.call.arguments[i]->data.identifier.name,
+                    ctx->current_function_decl != NULL
+                        && ctx->current_function_decl->data.func_decl.name != NULL
+                            ? ctx->current_function_decl->data.func_decl.name
+                            : "<anonymous>",
+                    expr->data.call.arguments[i]->data.identifier.name,
+                    display_name != NULL ? display_name : "<callee>",
+                    pmode == PARAM_MODE_OWN ? "own" : "default");
+                continue;
+            }
+            if (pmode == PARAM_MODE_REF)
+                continue;
             consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
             continue;
         }
@@ -1994,10 +2031,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 /* Generic function with where clause — validate constraints */
                 GenericParams *decl_gp = stmt->data.func_decl.generic_params;
                 WhereClause *wc = stmt->data.func_decl.where_clause;
+                char *expected_sig = format_generic_subject_signature(display_name, decl_gp);
                 Type **effective_generic_types =
                     calloc(decl_gp->count > 0 ? decl_gp->count : 1, sizeof(Type *));
-                if (effective_generic_types == NULL)
+                if (effective_generic_types == NULL) {
+                    free(expected_sig);
                     break;
+                }
 
                 for (size_t gi = 0; gi < decl_gp->count; gi++) {
                     GenericParam *gp = decl_gp->params[gi];
@@ -2026,9 +2066,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     int param_index;
                     const char *param_name;
                     Type *concrete_type;
+                    char *actual_sig = format_effective_generic_type_list(
+                        display_name, effective_generic_types, decl_gp->count);
 
                     if (tc == NULL || tc->type_param == NULL)
+                    {
+                        free(actual_sig);
                         continue;
+                    }
 
                     param_name = tc->type_param;
                     param_index = find_generic_param_index(decl_gp, param_name);
@@ -2048,6 +2093,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             param_name != NULL ? param_name : "<param>",
                             param_name != NULL ? param_name : "<param>",
                             display_name);
+                        free(actual_sig);
                         continue;
                     }
                     concrete_type = effective_generic_types[param_index];
@@ -2066,6 +2112,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             param_name != NULL ? param_name : "<param>",
                             param_name != NULL ? param_name : "<param>",
                             param_name != NULL ? param_name : "<param>");
+                        free(actual_sig);
                         continue;
                     }
                     /* Check each bound */
@@ -2103,6 +2150,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 "- generic subject is function '%s'\n"
                                 "- function '%s' requires '%s: %s'\n"
                                 "- full bound set is '%s: %s'\n"
+                                "- expected type args are '%s'\n"
+                                "- actual type args are '%s'\n"
                                 "- actual type argument is '%s'\n"
                                 "- consumer path is call site of '%s'\n"
                                 "- call-site derived type arguments do not satisfy bound '%s'\n"
@@ -2119,6 +2168,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 bound_name != NULL ? bound_name : "<constraint>",
                                 param_name,
                                 bounds_text != NULL ? bounds_text : "<constraint>",
+                                expected_sig != NULL ? expected_sig : display_name,
+                                actual_sig != NULL ? actual_sig : display_name,
                                 concrete_type->name != NULL ? concrete_type->name : "<type>",
                                 display_name,
                                 bound_name != NULL ? bound_name : "<constraint>",
@@ -2128,7 +2179,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         }
                         free(bounds_text);
                     }
+                    free(actual_sig);
                 }
+                free(expected_sig);
                 free(effective_generic_types);
                 break;
             }

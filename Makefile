@@ -45,6 +45,10 @@ DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
 CI_LINUX_CC := $(or $(shell command -v cc 2>/dev/null),$(shell command -v gcc 2>/dev/null),gcc)
+CI_WINDOWS_CROSS_CC := $(shell command -v x86_64-w64-mingw32-gcc 2>/dev/null)
+CI_WINDOWS_CC := $(if $(MSYSTEM),$(CC),$(or $(CI_WINDOWS_CROSS_CC),$(CC)))
+CI_WINDOWS_CC_MACHINE := $(shell $(CI_WINDOWS_CC) -dumpmachine 2>/dev/null || echo unknown)
+CI_WINDOWS_RUNNABLE := $(if $(MSYSTEM),1,0)
 CI_LINUX_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-linux-build
 CI_LINUX_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-linux-bin
 CI_WINDOWS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-windows-build
@@ -506,6 +510,12 @@ test-hir: $(HIR_TEST)
 	@echo "=== HIR Test ==="
 	$(HIR_TEST)
 
+windows-build-smoke: $(PGY) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) \
+	$(MEMORY_TEST) $(ABI_TEST) $(ABI_PIPELINE_TEST) $(CONCURRENCY_TEST) $(DIR_TEST) \
+	$(RIR_TEST) $(MIR_TEST) $(HIR_TEST)
+	@echo "=== Windows Build Smoke ==="
+	@echo "built compiler and frontend/runtime test binaries with CC=$(CC)"
+
 test-all:
 	$(MAKE) test
 	$(MAKE) test-parser
@@ -623,12 +633,12 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
 
 check-windows-toolchain:
-	@cc_machine="$$( $(CC) -dumpmachine 2>/dev/null || true )"; \
+	@cc_machine="$$( $(CI_WINDOWS_CC) -dumpmachine 2>/dev/null || true )"; \
 	if [ -n "$${MSYSTEM:-}" ] || echo "$$cc_machine" | grep -qi 'mingw'; then \
 		exit 0; \
 	fi; \
 	echo "ci-windows requires an MSYS2/MinGW toolchain." >&2; \
-	echo "current CC: $(CC)" >&2; \
+	echo "current CC: $(CI_WINDOWS_CC)" >&2; \
 	echo "detected target: $${cc_machine:-unknown}" >&2; \
 	echo "hint: run under GitHub Actions windows-latest with msys2/setup-msys2," >&2; \
 	echo "      or use a MinGW cross-compiler such as x86_64-w64-mingw32-gcc." >&2; \
@@ -636,17 +646,28 @@ check-windows-toolchain:
 
 ci-windows:
 	$(MAKE) check-windows-toolchain
-	$(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" clean
-	$(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" test-all
-	PGY_STDLIB_BACKENDS=c $(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" fmt-test-smoke
-	PGY_STDLIB_BACKENDS=c $(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" stdlib-test-smoke
-	PGY_EXAMPLE_BACKENDS=c $(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" example-test-smoke
-	@if [ "$(WINDOWS_LLVM_READY)" = "1" ]; then \
-		echo "ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare"; \
-		$(MAKE) LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-smoke; \
-		$(MAKE) LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-backend-compare; \
+	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" clean
+	@if [ "$(CI_WINDOWS_RUNNABLE)" = "1" ]; then \
+		echo "ci-windows: native MSYS2 runtime detected; running executable smoke/tests"; \
+		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" test-all; \
+		PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" fmt-test-smoke; \
+		PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" stdlib-test-smoke; \
+		PGY_EXAMPLE_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" example-test-smoke; \
+	elif echo "$(CI_WINDOWS_CC_MACHINE)" | grep -qi 'mingw'; then \
+		echo "ci-windows: cross MinGW toolchain detected; running build-only smoke"; \
+		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" windows-build-smoke; \
 	else \
-		echo "ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare"; \
+		echo "ci-windows: unable to run or cross-build Windows artifacts with CC=$(CI_WINDOWS_CC)"; \
+		exit 1; \
+	fi
+	@if [ "$(CI_WINDOWS_RUNNABLE)" = "1" ]; then \
+		if [ "$(WINDOWS_LLVM_READY)" = "1" ]; then \
+			echo "ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare"; \
+			$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-smoke; \
+			$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-backend-compare; \
+		else \
+			echo "ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare"; \
+		fi; \
 	fi
 
 # -----------------------------------------------------------------

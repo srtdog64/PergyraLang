@@ -183,6 +183,23 @@ rir_op_kind_name(RIROpKind kind)
     }
 }
 
+static RIRResourceKind
+rir_direct_projection_kind_from_ast(const ASTNode *ast)
+{
+    if (ast == NULL || ast->type != AST_CALL
+        || ast->data.call.callee == NULL
+        || ast->data.call.callee->type != AST_IDENTIFIER
+        || ast->data.call.callee->data.identifier.name == NULL) {
+        return RIR_RESOURCE_UNKNOWN;
+    }
+
+    if (strcmp(ast->data.call.callee->data.identifier.name, "ToObject") == 0)
+        return RIR_RESOURCE_PROJECTION_OBJECT;
+    if (strcmp(ast->data.call.callee->data.identifier.name, "ToTObject") == 0)
+        return RIR_RESOURCE_PROJECTION_TOBJECT;
+    return RIR_RESOURCE_UNKNOWN;
+}
+
 RIRResourceState
 rir_merge_state_for_kind(RIRResourceKind kind,
                          RIRResourceState a,
@@ -299,6 +316,8 @@ rir_validate(const RIRProgram *rir, char **error_message)
                     kind = projection->resource_kind;
                 else if (summary != NULL)
                     kind = summary->resource_kind;
+                else
+                    kind = rir_direct_projection_kind_from_ast(op->ast);
 
                 if (kind == RIR_RESOURCE_UNKNOWN) {
                     if (error_message != NULL) {

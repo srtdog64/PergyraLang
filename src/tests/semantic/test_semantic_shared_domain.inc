@@ -270,7 +270,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone/world references warn when relation/effect/zone types are missing");
+    TEST("zone/world references reject missing relation/effect/zone types");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -290,8 +290,7 @@ test_shared_memory_features(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(result != NULL && result->warning_count >= 3);
+        EXPECT(result != NULL && result->error_count >= 3);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -677,7 +676,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone warns when authority exists but mutable rules omit by subject alias");
+    TEST("zone rejects mutable rules that omit by subject alias when authority exists");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -694,8 +693,7 @@ test_shared_memory_features(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(result != NULL && result->warning_count >= 1);
+        EXPECT(result != NULL && result->error_count >= 1);
 
         semantic_result_destroy(result);
         ast_destroy(program);

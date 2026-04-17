@@ -462,8 +462,8 @@
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 2);
-        EXPECT(result != NULL && result->warning_count >= 1);
+        EXPECT(result != NULL && result->error_count == 3);
+        EXPECT(result != NULL && result->warning_count == 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "implicitly copies zone binding 'battle'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -1318,6 +1318,7 @@
             "effect PaymentEffect for bearer: Player { }\n"
             "zone PaymentZone {\n"
             "    subject slot buyer: Player\n"
+            "    effect slot payment: PaymentEffect\n"
             "}\n"
             "intent Purchase {\n"
             "    involves buyer: Player;\n"
@@ -2355,6 +2356,7 @@
             "}\n"
             "zone CockpitZone {\n"
             "    subject slot driver: Driver\n"
+            "    effect slot started: Started\n"
             "    authority driver requires DriverCap\n"
             "}\n"
             "intent DriveCar(cockpit: CockpitZone, driver: Driver) {\n"
@@ -3700,6 +3702,62 @@
             result = semantic_analyze(program);
         EXPECT(error_message == NULL);
         EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("cross-module zone authority rejects imported generic ability reference that violates one of multiple where bounds");
+    {
+        const char *module_path = "test_generic_multibound_contract_module_a.pgy";
+        const char *main_path = "test_generic_multibound_contract_main_a.pgy";
+        const char *module_source =
+            "ability Comparable { }\n"
+            "ability Cloneable { }\n"
+            "ability Bufferable<T> where T: Comparable + Cloneable {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_generic_multibound_contract_module_a.pgy\";\n"
+            "subject Item { let hp: Int; }\n"
+            "role ItemComparable for Item {\n"
+            "    impl ability Comparable { }\n"
+            "}\n"
+            "zone StorageZone {\n"
+            "    subject slot item: Item\n"
+            "    authority item requires Bufferable<Item>\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Cloneable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is Zone authority 'item'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "expected type args are constrained by 'T: Cloneable'"));
 
         free(error_message);
         semantic_result_destroy(result);

@@ -739,6 +739,16 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL)
             continue;
+        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "MIR-only C path missing routine for party method '%s.%s'",
+                name != NULL ? name : "(anonymous-party)",
+                method->data.func_decl.name != NULL
+                    ? method->data.func_decl.name
+                    : "(anonymous)");
+            return;
+        }
         if (mir_method != NULL) {
             char emitted_name[256];
             snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
@@ -874,6 +884,16 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *method = node->data.roster_decl.methods[i];
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "MIR-only C path missing routine for roster method '%s.%s'",
+                name != NULL ? name : "(anonymous-roster)",
+                method->data.func_decl.name != NULL
+                    ? method->data.func_decl.name
+                    : "(anonymous)");
+            return;
+        }
         if (mir_method != NULL) {
             char emitted_name[256];
             snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
@@ -1055,6 +1075,16 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *method = node->data.relation_decl.methods[i];
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "MIR-only C path missing routine for relation method '%s.%s'",
+                name != NULL ? name : "(anonymous-relation)",
+                method->data.func_decl.name != NULL
+                    ? method->data.func_decl.name
+                    : "(anonymous)");
+            return;
+        }
         if (mir_method != NULL) {
             char emitted_name[256];
             snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
@@ -1278,6 +1308,16 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *method = node->data.effect_decl.methods[i];
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "MIR-only C path missing routine for effect method '%s.%s'",
+                name != NULL ? name : "(anonymous-effect)",
+                method->data.func_decl.name != NULL
+                    ? method->data.func_decl.name
+                    : "(anonymous)");
+            return;
+        }
         if (mir_method != NULL) {
             char emitted_name[256];
             snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
@@ -1820,6 +1860,16 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *method = node->data.zone_decl.methods[i];
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "MIR-only C path missing routine for zone method '%s.%s'",
+                name != NULL ? name : "(anonymous-zone)",
+                method->data.func_decl.name != NULL
+                    ? method->data.func_decl.name
+                    : "(anonymous)");
+            return;
+        }
         if (mir_method != NULL) {
             char emitted_name[256];
             snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
@@ -2167,6 +2217,16 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *method = node->data.world_decl.methods[i];
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "MIR-only C path missing routine for world method '%s.%s'",
+                name != NULL ? name : "(anonymous-world)",
+                method->data.func_decl.name != NULL
+                    ? method->data.func_decl.name
+                    : "(anonymous)");
+            return;
+        }
         if (mir_method != NULL) {
             char emitted_name[256];
             snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,

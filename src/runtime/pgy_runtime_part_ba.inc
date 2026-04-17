@@ -3401,7 +3401,7 @@ static inline PgyArray_Long pgy_map_keys_i64_##FuncSuffix(PgyHashMap_##TypeSuffi
         if (!m->occupied[i] || m->keys[i] == NULL) \
             continue; \
         parsed = strtoll(m->keys[i], &end, 10); \
-        if (end == m->keys[i] || (end != NULL && *end != '\\0')) { \
+        if (end == m->keys[i] || (end != NULL && *end != '\0')) { \
             pgy_runtime_warn_invalid_collection("map_keys_i64_" #FuncSuffix, "invalid stored long key"); \
             continue; \
         } \

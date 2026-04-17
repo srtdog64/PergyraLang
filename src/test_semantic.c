@@ -1651,9 +1651,10 @@ test_qubit_slot_semantics(void)
         ast_destroy(state_call);
     }
 
-    TEST("ref QubitSlot parameter is rejected outside movable transfer subset");
+    TEST("ref QubitSlot parameter is accepted as borrowed movable-resource boundary");
     {
         SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
 
         ASTNode *func = ast_create_function("BorrowQubit");
         func->data.func_decl.return_type = ast_create_type("Void");
@@ -1665,16 +1666,107 @@ test_qubit_slot_semantics(void)
         param->type = ast_create_type("QubitSlot");
         param->mode = PARAM_MODE_REF;
         func->data.func_decl.params[0] = param;
+        ast_add_statement(program, func);
+        ctx->program_root = program;
         type_check_func_decl(func, ctx);
 
-        EXPECT(ctx->has_error);
-        EXPECT(ctx_has_diagnostic_substring(ctx,
-            "ref' movable resource parameters are not supported"));
-        EXPECT(ctx_has_diagnostic_substring(ctx,
-            "consumer path is function 'BorrowQubit'"));
+        EXPECT(!ctx->has_error);
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 2);
+        type_check_let_decl(decl, ctx);
+
+        ASTNode *call_args[1] = { make_identifier("q", 3) };
+        ASTNode *call = make_call("BorrowQubit", call_args, 1, 3);
+        type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *state_args[1] = { make_identifier("q", 4) };
+        ASTNode *state_call = make_call("QubitState", state_args, 1, 4);
+        type_check_expression(state_call, ctx);
+        EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);
-        ast_destroy(func);
+        ast_destroy(program);
+        ast_destroy(decl);
+        ast_destroy(call);
+        ast_destroy(state_call);
+    }
+
+    TEST("ref QubitSlot parameter cannot escape via return");
+    {
+        const char *source =
+            "func BorrowReturn(ref q: QubitSlot) -> QubitSlot {\n"
+            "    return q;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape via return"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "borrowed 'ref' movable resource"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref QubitSlot parameter cannot escape through channel send");
+    {
+        const char *source =
+            "func BorrowSend(ref q: QubitSlot) -> Void {\n"
+            "    let ch: Channel<QubitSlot> = Channel(2);\n"
+            "    ch <- q;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through channel send"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "borrowed 'ref' movable resource"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref QubitSlot parameter cannot escape through helper/function call");
+    {
+        const char *source =
+            "func UseOwned(own q: QubitSlot) -> Void {\n"
+            "}\n"
+            "func BorrowForward(ref q: QubitSlot) -> Void {\n"
+            "    UseOwned(q);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through helper/function call"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "call a 'ref' helper instead"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("Slot<Int> parameter types remain rejected");
@@ -3097,7 +3189,7 @@ test_role_decl(void)
         lexer_destroy(lexer);
     }
 
-    TEST("role with unknown ability produces warning");
+    TEST("role with unknown ability produces error");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
@@ -3112,8 +3204,8 @@ test_role_decl(void)
         role->data.role_decl.impl_abilities[0] = impl;
 
         type_check_role_decl(role, ctx);
-        EXPECT(!ctx->has_error);
-        EXPECT(ctx->diagnostic_count > 0);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx, "implements unknown ability"));
 
         semantic_context_destroy(ctx);
         ast_destroy(role);
@@ -3145,76 +3237,30 @@ test_role_decl(void)
 
     TEST("role ability Add enables operator overload on target type");
     {
-        SemanticContext *ctx = semantic_context_create();
+        const char *source =
+            "ability Arithmetic {\n"
+            "    func Add(other: Int) -> Int;\n"
+            "}\n"
+            "role IntMath for Int {\n"
+            "    impl ability Arithmetic {\n"
+            "        func Add(other: Int) -> Int { return 123; }\n"
+            "    }\n"
+            "}\n"
+            "func Combine(a: Int, b: Int) -> Int {\n"
+            "    return a + b;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
 
-        FuncParam *rhs = calloc(1, sizeof(FuncParam));
-        rhs->name = pergyra_strdup("other");
-        rhs->type = ast_create_type("Int");
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
-        ASTNode *method = calloc(1, sizeof(ASTNode));
-        method->type = AST_FUNC_DECL;
-        method->data.func_decl.name = pergyra_strdup("Add");
-        method->data.func_decl.params = calloc(1, sizeof(FuncParam *));
-        method->data.func_decl.params[0] = rhs;
-        method->data.func_decl.param_count = 1;
-        method->data.func_decl.return_type = ast_create_type("Int");
-        ASTNode *method_ret = calloc(1, sizeof(ASTNode));
-        method_ret->type = AST_RETURN;
-        method_ret->data.return_stmt.value = make_number(123, 3);
-        ASTNode *method_body = calloc(1, sizeof(ASTNode));
-        method_body->type = AST_BLOCK;
-        method_body->data.block.statements = calloc(1, sizeof(ASTNode *));
-        method_body->data.block.statements[0] = method_ret;
-        method_body->data.block.count = 1;
-        method->data.func_decl.body = method_body;
-
-        ASTNode *impl = ast_create_impl_ability(ast_create_type("Arithmetic"));
-        impl->data.impl_ability.methods = calloc(1, sizeof(ASTNode *));
-        impl->data.impl_ability.methods[0] = method;
-        impl->data.impl_ability.method_count = 1;
-
-        ASTNode *role = ast_create_role_declaration("IntMath");
-        role->data.role_decl.for_type = ast_create_type("Int");
-        role->data.role_decl.impl_abilities = calloc(1, sizeof(ASTNode *));
-        role->data.role_decl.impl_abilities[0] = impl;
-        role->data.role_decl.impl_count = 1;
-
-        FuncParam *a = calloc(1, sizeof(FuncParam));
-        FuncParam *b = calloc(1, sizeof(FuncParam));
-        a->name = pergyra_strdup("a");
-        b->name = pergyra_strdup("b");
-        a->type = ast_create_type("Int");
-        b->type = ast_create_type("Int");
-
-        ASTNode *binary = ast_create_binary(make_identifier("a", 8),
-            (Token){ .type = TOKEN_PLUS }, make_identifier("b", 8));
-        ASTNode *ret = calloc(1, sizeof(ASTNode));
-        ret->type = AST_RETURN;
-        ret->data.return_stmt.value = binary;
-        ASTNode *body = calloc(1, sizeof(ASTNode));
-        body->type = AST_BLOCK;
-        body->data.block.statements = calloc(1, sizeof(ASTNode *));
-        body->data.block.statements[0] = ret;
-        body->data.block.count = 1;
-
-        ASTNode *main_fn = calloc(1, sizeof(ASTNode));
-        main_fn->type = AST_FUNC_DECL;
-        main_fn->data.func_decl.name = pergyra_strdup("Main");
-        main_fn->data.func_decl.params = calloc(2, sizeof(FuncParam *));
-        main_fn->data.func_decl.params[0] = a;
-        main_fn->data.func_decl.params[1] = b;
-        main_fn->data.func_decl.param_count = 2;
-        main_fn->data.func_decl.return_type = ast_create_type("Int");
-        main_fn->data.func_decl.body = body;
-
-        ASTNode *stmts[2] = { role, main_fn };
-        ASTNode *program = make_program(stmts, 2);
-
-        EXPECT(type_check_program(program, ctx));
-        EXPECT(!ctx->has_error);
-
-        semantic_context_destroy(ctx);
+        semantic_result_destroy(result);
         ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 }
 
@@ -3596,8 +3642,8 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let table: HashMap<Long, Int> = MapNew();\n"
-            "    let hp: Int = MapGet(table, 7);\n"
+            "    let table: HashMap<Float, Int> = MapNew();\n"
+            "    let hp: Int = MapGet(table, 7.0);\n"
             "    Log(hp);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -3609,7 +3655,7 @@ test_engine_collections(void)
         EXPECT(result != NULL
             && result->error_count > 0
             && ctx_has_diagnostic_substring_from_result(
-                result, "HashMap currently supports only String or Int keys"));
+                result, "HashMap currently supports only String, Int, Long, or Bool keys"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3621,8 +3667,8 @@ test_engine_collections(void)
     {
         const char *source =
             "func Main() -> Void {\n"
-            "    let table: HashMap<Long, Int> = MapNew();\n"
-            "    let keys: Array<Long> = MapKeys(table);\n"
+            "    let table: HashMap<Float, Int> = MapNew();\n"
+            "    let keys: Array<Float> = MapKeys(table);\n"
             "    Log(ArrayLength(keys));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -3634,7 +3680,7 @@ test_engine_collections(void)
         EXPECT(result != NULL
             && result->error_count > 0
             && ctx_has_diagnostic_substring_from_result(
-                result, "HashMap currently supports only String or Int keys"));
+                result, "HashMap currently supports only String, Int, Long, or Bool keys"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4165,6 +4211,8 @@ test_projection_contract_diagnostics(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(
             result, "target slot 'playerPacket' uses the wrong projection kind"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "source slot 'player' is driving this refresh path"));
         EXPECT(ctx_has_diagnostic_substring_from_result(
             result, "refresh requires target slot 'playerPacket' to use object declaration"));
         EXPECT(ctx_has_diagnostic_substring_from_result(

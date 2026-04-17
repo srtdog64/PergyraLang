@@ -36,4 +36,4 @@ jobs:
 
       - name: Run Windows CI target
         shell: msys2 {0}
-        run: make ci-windows
+        run: CC=gcc make ci-windows

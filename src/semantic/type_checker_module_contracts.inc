@@ -42,6 +42,39 @@ ability_ref_display(ASTNode *ability_ref)
     return result;
 }
 
+static char *
+ability_decl_signature_display(const char *ability_name, GenericParams *params)
+{
+    char *result;
+
+    if (ability_name == NULL)
+        return pergyra_strdup("<ability>");
+    if (params == NULL || params->count == 0)
+        return pergyra_strdup(ability_name);
+
+    result = tc_strdup_fmt("%s<", ability_name);
+    if (result == NULL)
+        return pergyra_strdup(ability_name);
+
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam *gp = params->params[i];
+        const char *param_name =
+            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+        char *next;
+
+        if (i + 1 < params->count)
+            next = tc_strdup_fmt("%s%s, ", result, param_name);
+        else
+            next = tc_strdup_fmt("%s%s>", result, param_name);
+        free(result);
+        result = next;
+        if (result == NULL)
+            return pergyra_strdup(ability_name);
+    }
+
+    return result;
+}
+
 static ASTNode *
 subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
                                     const char *ability_name);
@@ -69,9 +102,9 @@ report_subject_ability_requirement_mismatch(SemanticContext *ctx,
             "Reason:\n"
             "- consumer path is %s '%s'\n"
             "- %s '%s' does not satisfy required ability '%s'\n"
-            "- expected type args are encoded in '%s'\n"
+            "- expected type args are '%s'\n"
             "- actual implementation is '%s'\n"
-            "- actual type args are encoded in '%s'\n"
+            "- actual type args are '%s'\n"
             "Fix:\n"
             "- implement '%s' for %s '%s'\n"
             "- %s",
@@ -101,7 +134,7 @@ report_subject_ability_requirement_mismatch(SemanticContext *ctx,
         "Reason:\n"
         "- consumer path is %s '%s'\n"
         "- %s '%s' does not satisfy required ability '%s'\n"
-        "- expected type args are encoded in '%s'\n"
+        "- expected type args are '%s'\n"
         "- no matching implementation was found for '%s'\n"
         "Fix:\n"
         "- implement '%s' for %s '%s'\n"
@@ -517,21 +550,33 @@ resolve_required_ability_decl(ASTNode *ability_ref,
         size_t arg_count = ability_ref->data.type.generic_args->count;
         size_t param_count = ability_decl->data.ability_decl.generic_params != NULL
             ? ability_decl->data.ability_decl.generic_params->count : 0;
+        char *expected_text = ability_decl_signature_display(
+            ability, ability_decl->data.ability_decl.generic_params);
 
         if (arg_count > 0 && param_count == 0) {
             semantic_error(ctx, site,
                 "Ability '%s' does not accept generic type arguments in requires clauses.\n"
                 "Reason:\n"
+                "- consumer path is %s '%s'\n"
+                "- generic subject is ability '%s'\n"
                 "- requires uses '%s'\n"
                 "- ability declaration '%s' is non-generic\n"
+                "- expected type args are '%s'\n"
+                "- actual type args are '%s'\n"
                 "Fix:\n"
                 "- remove the generic arguments from '%s'\n"
                 "- or declare '%s' with matching generic parameters",
                 ability,
+                owner_label != NULL ? owner_label : "construct",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                ability,
                 required_text != NULL ? required_text : ability,
                 ability,
+                expected_text != NULL ? expected_text : ability,
+                required_text != NULL ? required_text : ability,
                 ability,
                 ability);
+            free(expected_text);
             free(required_text);
             return NULL;
         }
@@ -544,16 +589,21 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             semantic_error(ctx, site,
                 "Ability '%s' requires between %zu and %zu generic argument(s) in requires clauses, got %zu.\n"
                 "Reason:\n"
+                "- consumer path is %s '%s'\n"
                 "- requires uses '%s'\n"
-                "- ability declaration '%s' expects %zu type parameter(s)\n"
+                "- actual type args are '%s'\n"
                 "Fix:\n"
                 "- pass enough generic argument(s) to cover non-default parameters of '%s'\n"
                 "- or rely on declaration defaults for trailing parameters only\n"
                 "- or change the ability declaration to match the intended arity",
-                ability, required_count, param_count, arg_count,
+                ability,
+                required_count, param_count, arg_count,
+                owner_label != NULL ? owner_label : "construct",
+                owner_name != NULL ? owner_name : "<anonymous>",
                 required_text != NULL ? required_text : ability,
-                ability, param_count,
+                required_text != NULL ? required_text : ability,
                 ability);
+            free(expected_text);
             free(required_text);
             return NULL;
         }
@@ -565,16 +615,28 @@ resolve_required_ability_decl(ASTNode *ability_ref,
                 semantic_error(ctx, site,
                     "Ability '%s' has an invalid generic argument in requires clause.\n"
                     "Reason:\n"
+                    "- consumer path is %s '%s'\n"
+                    "- generic subject is ability '%s'\n"
                     "- generic argument %zu in '%s' is missing or malformed\n"
+                    "- expected type args are '%s'\n"
+                    "- actual type args are '%s'\n"
                     "Fix:\n"
                     "- provide a concrete type argument for each generic parameter",
+                    ability,
+                    owner_label != NULL ? owner_label : "construct",
+                    owner_name != NULL ? owner_name : "<anonymous>",
                     ability, i + 1,
+                    required_text != NULL ? required_text : ability,
+                    expected_text != NULL ? expected_text : ability,
                     required_text != NULL ? required_text : ability);
+                free(expected_text);
                 free(required_text);
                 return NULL;
             }
             resolve_type_node(arg, ctx);
         }
+
+        free(expected_text);
     }
 
     if (!validate_ability_decl_where_clause_reference(
