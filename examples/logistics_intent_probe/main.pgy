@@ -41,7 +41,14 @@ func Main() -> Void
     world.Broadcast("merge.false=" + ToString(mergeB));
 
     let ok = RouteCargo(world.loading, world.delivery, world.loading.courier, world.loading.dispatcher);
-    world.completed = ok;
+    if ok
+    {
+        world.completed = 1;
+    }
+    else
+    {
+        world.completed = 0;
+    }
     world.Broadcast("[Intent] RouteCargo ok=" + ToString(ok));
     world.Broadcast("  [Runtime] name=" + IntentLastName() + " handle=" + ToString(IntentLastHandle()) + " failed=" + ToString(IntentLastFailed()));
     world.Broadcast("  [Runtime] steps=" + ToString(IntentLastStepCount()));

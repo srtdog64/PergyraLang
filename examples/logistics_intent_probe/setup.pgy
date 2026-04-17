@@ -54,11 +54,38 @@ func BuildDeliveryZone() -> DeliveryZone
 
 func OpenLogisticsWorld() -> LogisticsWorld
 {
-    let loading = BuildLoadingZone();
-    let delivery = BuildDeliveryZone();
-
-    delivery.courier = loading.courier;
-    delivery.dispatcher = loading.dispatcher;
+    let courier = Courier(
+        "Ivo",
+        "north-17",
+        CargoState(0, 0, ""),
+        0,
+        0,
+        "idle"
+    );
+    let dispatcher = Dispatcher(
+        "Mara",
+        DispatchLedger(0, 0, 0),
+        "north",
+        "idle"
+    );
+    let loading = LoadingZone(
+        courier,
+        dispatcher,
+        CourierView(courier.name, courier.prepared, courier.delivered, courier.lastPhase),
+        DispatchPacket(dispatcher.name, dispatcher.lane, dispatcher.ledger.approved, dispatcher.ledger.shipped),
+        "loading",
+        0,
+        0
+    );
+    let delivery = DeliveryZone(
+        courier,
+        dispatcher,
+        CourierView(courier.name, courier.prepared, courier.delivered, courier.lastPhase),
+        DispatchPacket(dispatcher.name, dispatcher.lane, dispatcher.ledger.approved, dispatcher.ledger.shipped),
+        "delivery",
+        0,
+        0
+    );
 
     return LogisticsWorld(
         loading,

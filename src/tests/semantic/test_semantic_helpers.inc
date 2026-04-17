@@ -177,14 +177,20 @@ make_effect_doc_comment(const char *content)
 
 static int g_pass = 0;
 static int g_fail = 0;
+static const char *g_current_test_name = NULL;
 
 #define TEST(name) \
-    do { printf("  %-55s", name); } while(0)
+    do { g_current_test_name = (name); printf("  %-55s", name); } while(0)
 
 #define EXPECT(cond) \
     do { \
         if (cond) { printf("✓\n"); g_pass++; } \
-        else       { printf("✗  (line %d)\n", __LINE__); g_fail++; } \
+        else       { \
+            printf("✗  (%s @ line %d)\n", \
+                   g_current_test_name != NULL ? g_current_test_name : "<unnamed test>", \
+                   __LINE__); \
+            g_fail++; \
+        } \
     } while(0)
 
 static bool
@@ -221,4 +227,3 @@ ctx_has_diagnostic_substring_from_result(const SemanticResult *result,
 
     return false;
 }
-

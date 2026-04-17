@@ -72,6 +72,36 @@ validate_secure_token_arg(ASTNode *token_arg, Symbol *slot_sym, Type *slot_type,
     return true;
 }
 
+static void
+reject_borrowed_boundary_container_store(ASTNode *value_expr,
+                                         const char *container_kind,
+                                         const char *container_name,
+                                         SemanticContext *ctx)
+{
+    if (value_expr == NULL || ctx == NULL
+        || value_expr->type != AST_IDENTIFIER
+        || value_expr->data.identifier.name == NULL
+        || !identifier_is_borrowed_boundary_param(value_expr, ctx)) {
+        return;
+    }
+
+    semantic_error(ctx, value_expr,
+        "Borrowed ref boundary value '%s' cannot escape through %s store.\n"
+        "Reason:\n"
+        "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+        "- %s inserts values into %s state that may outlive the current call boundary\n"
+        "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n"
+        "Fix:\n"
+        "- store a copied/projection/value snapshot instead\n"
+        "- or change the current parameter to 'own' if transfer into %s is intended",
+        value_expr->data.identifier.name,
+        container_kind != NULL ? container_kind : "container",
+        value_expr->data.identifier.name,
+        container_name != NULL ? container_name : "<container store>",
+        container_kind != NULL ? container_kind : "container",
+        container_kind != NULL ? container_kind : "container");
+}
+
 static Type *
 channel_builtin_element_type(ASTNode *expr, size_t channel_arg_index,
                              const char *name, SemanticContext *ctx)
@@ -1773,6 +1803,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         map_type = type_check_expression(expr->data.call.arguments[0], ctx);
         key_type = type_check_expression(expr->data.call.arguments[1], ctx);
         value_type = type_check_expression(expr->data.call.arguments[2], ctx);
+        reject_borrowed_boundary_container_store(
+            expr->data.call.arguments[2], "map", "MapSet", ctx);
         if (type_is_constructed_named(map_type, "HashMap")
             && map_type->data.constructed.arg_count == 2) {
             require_assignable(key_type,
@@ -1943,6 +1975,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         list_type = type_check_expression(expr->data.call.arguments[0], ctx);
         value_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        reject_borrowed_boundary_container_store(
+            expr->data.call.arguments[1], "list", "ListPush", ctx);
         if (type_is_constructed_named(list_type, "List")
             && list_type->data.constructed.arg_count == 1) {
             require_assignable(value_type,
@@ -1983,6 +2017,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         list_type = type_check_expression(expr->data.call.arguments[0], ctx);
         index_type = type_check_expression(expr->data.call.arguments[1], ctx);
         value_type = type_check_expression(expr->data.call.arguments[2], ctx);
+        reject_borrowed_boundary_container_store(
+            expr->data.call.arguments[2], "list", "ListSet", ctx);
         require_assignable(index_type, TYPE_INT, expr->data.call.arguments[1], ctx);
         if (type_is_constructed_named(list_type, "List")
             && list_type->data.constructed.arg_count == 1) {
@@ -2038,6 +2074,10 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         set_type = type_check_expression(expr->data.call.arguments[0], ctx);
         value_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        if (strcmp(name, "SetAdd") == 0) {
+            reject_borrowed_boundary_container_store(
+                expr->data.call.arguments[1], "set", "SetAdd", ctx);
+        }
         if (type_is_constructed_named(set_type, "Set")
             && set_type->data.constructed.arg_count == 1) {
             require_assignable(value_type,
@@ -2096,6 +2136,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         queue_type = type_check_expression(expr->data.call.arguments[0], ctx);
         value_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        reject_borrowed_boundary_container_store(
+            expr->data.call.arguments[1], "queue", "QueuePush", ctx);
         if (type_is_constructed_named(queue_type, "Queue")
             && queue_type->data.constructed.arg_count == 1) {
             require_assignable(value_type,
@@ -2240,6 +2282,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
         Type *val = type_check_expression(expr->data.call.arguments[1], ctx);
+        reject_borrowed_boundary_container_store(
+            expr->data.call.arguments[1], "array", "ArrayPush", ctx);
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error(ctx, expr->data.call.arguments[0],
                 "ArrayPush requires Array<T>, got '%s'", arr->name);
@@ -2258,6 +2302,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             type_check_expression(expr->data.call.arguments[1], ctx),
             TYPE_INT, expr->data.call.arguments[1], ctx);
         Type *val = type_check_expression(expr->data.call.arguments[2], ctx);
+        reject_borrowed_boundary_container_store(
+            expr->data.call.arguments[2], "array", "ArraySet", ctx);
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error(ctx, expr->data.call.arguments[0],
                 "ArraySet requires Array<T>, got '%s'", arr->name);

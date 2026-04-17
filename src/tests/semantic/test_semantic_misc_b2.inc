@@ -467,17 +467,17 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "implicitly copies zone binding 'battle'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot be mutated via assignment after it was embedded into a world value"));
+            "cannot be mutated via assignment after it was embedded into world 'GameWorld' slot 'battle'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot be mutated via hosted func/action call after it was embedded into a world value"));
+            "cannot be mutated via hosted func/action call after it was embedded into world 'GameWorld' slot 'battle'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "embeds zone state by value into the world value"));
+            "derived embedding provenance points to world 'GameWorld' slot 'battle'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "mutate it through the owning world after embedding"));
+            "mutate it through world 'GameWorld' slot 'battle' after embedding"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1752,6 +1752,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "transfer target derivation would choose zone 'DeliveryZone'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "transfer handoff edge on step: load -> deliver"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "locally declared zone on step: LoadingZone"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "locally declared using on step: load"));
@@ -1860,6 +1862,8 @@
             "derived zone from transfer target: DeliveryZone"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "derived using from transfer target: deliver"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "derived from transfer edge: load -> deliver"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "transfers zone state"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -2154,6 +2158,82 @@
             "Fix:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "automatic projection cannot choose one path safely"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone effect contract mismatch includes provenance reason and fix");
+    {
+        const char *source =
+            "subject Hero { let hp: Int; }\n"
+            "subject Monster { let hp: Int; }\n"
+            "effect Poison {\n"
+            "    subject slot target: Hero\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot monster: Monster\n"
+            "    effect slot poison: Poison\n"
+            "    apply poison to monster\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "target slot 'monster' has type 'Monster'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "zone slot 'monster' is bound to effect slot 'poison'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "bind effect 'Poison' to a zone slot of type 'Hero'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone relation contract mismatch includes provenance reason and fix");
+    {
+        const char *source =
+            "subject Hero { let hp: Int; }\n"
+            "subject Villain { let hp: Int; }\n"
+            "relation Rivalry {\n"
+            "    subject slot left: Hero\n"
+            "    subject slot right: Hero\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    subject slot villain: Villain\n"
+            "    relation slot rivalry: Rivalry\n"
+            "    link rivalry between hero, villain\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "right slot 'villain' has type 'Villain'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "zone relation slot 'rivalry' binds declaration 'Rivalry'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "bind relation 'Rivalry' to a right slot of type 'Hero'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

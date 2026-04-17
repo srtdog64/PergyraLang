@@ -338,6 +338,15 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
             step->data.intent_step.using_expr->data.identifier.name);
         has_any = true;
     }
+    if (step->data.intent_step.transfer_from_alias != NULL
+        && step->data.intent_step.transfer_to_alias != NULL) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- transfer handoff edge on step: %s -> %s",
+            has_any ? "\n" : "",
+            step->data.intent_step.transfer_from_alias,
+            step->data.intent_step.transfer_to_alias);
+        has_any = true;
+    }
 
     if (step->data.intent_step.inherited_who_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
@@ -424,6 +433,17 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         used += (size_t)snprintf(buffer + used, buffer_size - used,
             "%s- derived using from transfer target: %s",
             has_any ? "\n" : "", using_name);
+        has_any = true;
+    }
+    if ((step->data.intent_step.derived_where_from_transfer
+         || step->data.intent_step.derived_using_from_transfer)
+        && step->data.intent_step.transfer_from_alias != NULL
+        && step->data.intent_step.transfer_to_alias != NULL) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- derived from transfer edge: %s -> %s",
+            has_any ? "\n" : "",
+            step->data.intent_step.transfer_from_alias,
+            step->data.intent_step.transfer_to_alias);
     }
 }
 

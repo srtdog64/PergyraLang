@@ -1851,6 +1851,348 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("own subject parameter is accepted as explicit transfer boundary");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Take(own hero: Hero) -> Void {\n"
+            "    return;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let hero: Hero = Hero(10);\n"
+            "    Take(hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape via return");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowReturn(ref hero: Hero) -> Hero {\n"
+            "    return hero;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref subject 'hero' cannot escape via return"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through channel send");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowSend(ref hero: Hero) -> Void {\n"
+            "    let ch: Channel<Hero> = Channel(2);\n"
+            "    ch <- hero;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref subject 'hero' cannot escape through channel send"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through helper/function call");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func UseOwned(own hero: Hero) -> Void {\n"
+            "    return;\n"
+            "}\n"
+            "func BorrowForward(ref hero: Hero) -> Void {\n"
+            "    UseOwned(hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref subject 'hero' cannot escape through helper/function call"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape into a new binding");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowAlias(ref hero: Hero) -> Void {\n"
+            "    let alias: Hero = hero;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref subject 'hero' cannot escape into a new binding 'alias'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through list store");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowList(ref hero: Hero) -> Void {\n"
+            "    let items: List<Hero> = ListNew();\n"
+            "    ListPush(items, hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'hero' cannot escape through list store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through set store");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowSet(ref hero: Hero) -> Void {\n"
+            "    let seen: Set<Hero> = SetNew();\n"
+            "    SetAdd(seen, hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'hero' cannot escape through set store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through map store");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowMap(ref hero: Hero) -> Void {\n"
+            "    let roster: HashMap<String, Hero> = MapNew();\n"
+            "    MapSet(roster, \"lead\", hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'hero' cannot escape through map store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through list overwrite");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowListSet(ref hero: Hero) -> Void {\n"
+            "    let items: List<Hero> = ListNew();\n"
+            "    ListPush(items, Hero());\n"
+            "    ListSet(items, 0, hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'hero' cannot escape through list store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through queue store");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowQueue(ref hero: Hero) -> Void {\n"
+            "    let q: Queue<Hero> = QueueNew();\n"
+            "    QueuePush(q, hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'hero' cannot escape through queue store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through array push");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowArrayPush(ref hero: Hero) -> Void {\n"
+            "    let items: Array<Hero> = [];\n"
+            "    ArrayPush(items, hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'hero' cannot escape through array store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through array overwrite");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func BorrowArraySet(ref hero: Hero) -> Void {\n"
+            "    let items: Array<Hero> = [Hero()];\n"
+            "    ArraySet(items, 0, hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'hero' cannot escape through array store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through member assignment rebind");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "struct Squad {\n"
+            "    let lead: Hero;\n"
+            "}\n"
+            "func BorrowField(ref hero: Hero, squad: Squad) -> Void {\n"
+            "    squad.lead = hero;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref subject 'hero' cannot escape through assignment rebind"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("Slot<Int> parameter types remain rejected");
     {
         SemanticContext *ctx = semantic_context_create();

@@ -151,16 +151,67 @@ func BuildAccountZone() -> AccountZone
 
 func OpenCommerceWorld() -> CommerceWorld
 {
-    let cart = BuildCartZone();
-    let payment = BuildPaymentZone();
-    let refund = BuildRefundZone();
-    let account = BuildAccountZone();
-
-    payment.buyer = cart.buyer;
-    payment.merchant = cart.merchant;
-    refund.buyer = cart.buyer;
-    refund.merchant = cart.merchant;
-    account.buyer = cart.buyer;
+    let featured = BuildFeaturedProduct();
+    let paymentMethod = BuildPaymentMethod();
+    let buyer = Member(
+        "Hana",
+        "gold",
+        featured,
+        paymentMethod,
+        CartState(0, 0, 0, 0, ""),
+        WalletState(250, 0, 0, 0),
+        RefundState(0, 0, "", "idle"),
+        AccountState("hana@pergyra.shop", 0, 0, "/", "none"),
+        0,
+        0,
+        0,
+        "idle"
+    );
+    let merchant = Merchant(
+        "Northwind Store",
+        featured,
+        MerchantLedger(0, 0, 0, 0, 0),
+        0,
+        0,
+        "idle"
+    );
+    let cart = CartZone(
+        buyer,
+        merchant,
+        BuildBuyerZoneView(buyer),
+        BuildMerchantZonePacket(merchant),
+        "/cart",
+        "cart",
+        0,
+        0
+    );
+    let payment = PaymentZone(
+        buyer,
+        merchant,
+        BuildBuyerZoneView(buyer),
+        BuildMerchantZonePacket(merchant),
+        "/checkout",
+        4101,
+        0,
+        0,
+        "pending"
+    );
+    let refund = RefundZone(
+        buyer,
+        merchant,
+        BuildBuyerZoneView(buyer),
+        BuildMerchantZonePacket(merchant),
+        "/refund",
+        0,
+        0,
+        "idle"
+    );
+    let account = AccountZone(
+        buyer,
+        "/account/profile",
+        "view",
+        0
+    );
 
     return CommerceWorld(
         cart,

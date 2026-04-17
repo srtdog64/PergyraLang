@@ -2500,6 +2500,25 @@ type_check_zone_projection_contract(ASTNode *zone,
         object_slot_name, source_slot_name, ctx, action_name);
 }
 
+static const char *
+relation_endpoint_kind_label(RelationEndpointKind kind)
+{
+    switch (kind) {
+    case RELATION_ENDPOINT_SUBJECT:
+        return "subject";
+    case RELATION_ENDPOINT_OBJECT:
+        return "object";
+    case RELATION_ENDPOINT_TOBJECT:
+        return "tobject";
+    case RELATION_ENDPOINT_CLASS:
+        return "class/value";
+    case RELATION_ENDPOINT_NAMED:
+        return "named";
+    default:
+        return "endpoint";
+    }
+}
+
 static bool
 type_check_zone_effect_contract(ASTNode *zone,
                                 ASTNode *apply_like,
@@ -2532,12 +2551,27 @@ type_check_zone_effect_contract(ASTNode *zone,
         effect_decl->data.effect_decl.refresh_count);
     if (target_count != 1) {
         semantic_error(ctx, apply_like,
-            "Zone %s requires effect '%s' to declare exactly one target slot, found %zu",
+            "Zone %s requires effect '%s' to declare exactly one bindable target slot, found %zu.\n"
+            "Reason:\n"
+            "- zone effect slot '%s' binds effect '%s'\n"
+            "- lifecycle propagation needs one concrete target path at the declaration boundary\n"
+            "- current declaration exposes %zu bindable target paths, so target provenance is ambiguous\n"
+            "Fix:\n"
+            "- keep exactly one bindable target slot in effect '%s'\n"
+            "- or split the effect contract if it truly targets multiple subjects",
             action_name,
             effect_decl->data.effect_decl.name != NULL
                 ? effect_decl->data.effect_decl.name
                 : "<unknown>",
-            target_count);
+            target_count,
+            effect_slot_name != NULL ? effect_slot_name : "<effect-slot>",
+            effect_decl->data.effect_decl.name != NULL
+                ? effect_decl->data.effect_decl.name
+                : "<unknown>",
+            target_count,
+            effect_decl->data.effect_decl.name != NULL
+                ? effect_decl->data.effect_decl.name
+                : "<unknown>");
         return true;
     }
 
@@ -2552,7 +2586,14 @@ type_check_zone_effect_contract(ASTNode *zone,
     decl_target_type = resolve_type_node(decl_target->data.domain_slot.type, ctx);
     if (!type_is_assignable(target_type, decl_target_type)) {
         semantic_error(ctx, apply_like,
-            "Zone %s target slot '%s' has type '%s' but effect '%s' expects subject type '%s'",
+            "Zone %s target slot '%s' has type '%s' but effect '%s' expects target type '%s'.\n"
+            "Reason:\n"
+            "- zone slot '%s' is bound to effect slot '%s'\n"
+            "- effect '%s' declares target slot '%s' with required type '%s'\n"
+            "- actual bound target type is '%s'\n"
+            "Fix:\n"
+            "- bind effect '%s' to a zone slot of type '%s'\n"
+            "- or change effect '%s' so its target contract accepts '%s'",
             action_name,
             target_slot_name != NULL ? target_slot_name : "<unknown>",
             target_type != NULL && target_type->name != NULL ? target_type->name : "<unknown>",
@@ -2561,7 +2602,29 @@ type_check_zone_effect_contract(ASTNode *zone,
                 : "<unknown>",
             decl_target_type != NULL && decl_target_type->name != NULL
                 ? decl_target_type->name
-                : "<unknown>");
+                : "<unknown>",
+            target_slot_name != NULL ? target_slot_name : "<unknown>",
+            effect_slot_name != NULL ? effect_slot_name : "<effect-slot>",
+            effect_decl->data.effect_decl.name != NULL
+                ? effect_decl->data.effect_decl.name
+                : "<unknown>",
+            decl_target->data.domain_slot.slot_name != NULL
+                ? decl_target->data.domain_slot.slot_name
+                : "<target-slot>",
+            decl_target_type != NULL && decl_target_type->name != NULL
+                ? decl_target_type->name
+                : "<unknown>",
+            target_type != NULL && target_type->name != NULL ? target_type->name : "<unknown>",
+            effect_decl->data.effect_decl.name != NULL
+                ? effect_decl->data.effect_decl.name
+                : "<unknown>",
+            decl_target_type != NULL && decl_target_type->name != NULL
+                ? decl_target_type->name
+                : "<unknown>",
+            effect_decl->data.effect_decl.name != NULL
+                ? effect_decl->data.effect_decl.name
+                : "<unknown>",
+            target_type != NULL && target_type->name != NULL ? target_type->name : "<unknown>");
     }
 
     return true;
@@ -2671,22 +2734,70 @@ type_check_zone_relation_contract(ASTNode *zone,
         || between_left_type != NULL || between_right_type != NULL) {
         if (!relation_slot_matches_between_kind(left_slot, left_type, between_left_kind, between_left_type, ctx)) {
             semantic_error(ctx, link_like,
-                "Zone %s left slot '%s' does not satisfy relation '%s' between-left contract",
+                "Zone %s left slot '%s' does not satisfy relation '%s' left-endpoint contract.\n"
+                "Reason:\n"
+                "- zone relation slot '%s' binds declaration '%s'\n"
+                "- relation '%s' requires a %s-compatible left endpoint\n"
+                "- actual left slot '%s' resolves to type '%s'\n"
+                "Fix:\n"
+                "- bind relation '%s' to a left slot that matches the declared endpoint kind\n"
+                "- or change relation '%s' so its left endpoint contract accepts '%s'",
                 action_name,
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
                 relation_decl->data.relation_decl.name != NULL
                     ? relation_decl->data.relation_decl.name
-                    : "<unknown>");
+                    : "<unknown>",
+                relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                relation_endpoint_kind_label(between_left_kind),
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                left_type != NULL && left_type->name != NULL ? left_type->name : "<unknown>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                left_type != NULL && left_type->name != NULL ? left_type->name : "<unknown>");
         }
 
         if (!relation_slot_matches_between_kind(right_slot, right_type, between_right_kind, between_right_type, ctx)) {
             semantic_error(ctx, link_like,
-                "Zone %s right slot '%s' does not satisfy relation '%s' between-right contract",
+                "Zone %s right slot '%s' does not satisfy relation '%s' right-endpoint contract.\n"
+                "Reason:\n"
+                "- zone relation slot '%s' binds declaration '%s'\n"
+                "- relation '%s' requires a %s-compatible right endpoint\n"
+                "- actual right slot '%s' resolves to type '%s'\n"
+                "Fix:\n"
+                "- bind relation '%s' to a right slot that matches the declared endpoint kind\n"
+                "- or change relation '%s' so its right endpoint contract accepts '%s'",
                 action_name,
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
                 relation_decl->data.relation_decl.name != NULL
                     ? relation_decl->data.relation_decl.name
-                    : "<unknown>");
+                    : "<unknown>",
+                relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                relation_endpoint_kind_label(between_right_kind),
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                right_type != NULL && right_type->name != NULL ? right_type->name : "<unknown>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                right_type != NULL && right_type->name != NULL ? right_type->name : "<unknown>");
         }
         return true;
     }
@@ -2697,12 +2808,27 @@ type_check_zone_relation_contract(ASTNode *zone,
         relation_decl->data.relation_decl.refresh_count);
     if (endpoint_count != 2) {
         semantic_error(ctx, link_like,
-            "Zone %s requires relation '%s' to declare exactly two endpoint slots, found %zu",
+            "Zone %s requires relation '%s' to declare exactly two bindable endpoint slots, found %zu.\n"
+            "Reason:\n"
+            "- zone relation slot '%s' binds declaration '%s'\n"
+            "- relation propagation needs one left endpoint and one right endpoint at declaration time\n"
+            "- current declaration exposes %zu bindable endpoint paths, so edge provenance is ambiguous\n"
+            "Fix:\n"
+            "- keep exactly two bindable endpoint slots in relation '%s'\n"
+            "- or split the relation contract if it truly models multiple independent edges",
             action_name,
             relation_decl->data.relation_decl.name != NULL
                 ? relation_decl->data.relation_decl.name
                 : "<unknown>",
-            endpoint_count);
+            endpoint_count,
+            relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            endpoint_count,
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>");
         return true;
     }
 
@@ -2722,7 +2848,14 @@ type_check_zone_relation_contract(ASTNode *zone,
 
     if (!type_is_assignable(left_type, decl_left_type)) {
         semantic_error(ctx, link_like,
-            "Zone %s left slot '%s' has type '%s' but relation '%s' expects left endpoint type '%s'",
+            "Zone %s left slot '%s' has type '%s' but relation '%s' expects left endpoint type '%s'.\n"
+            "Reason:\n"
+            "- zone relation slot '%s' binds declaration '%s'\n"
+            "- relation '%s' declares left endpoint slot '%s' with required type '%s'\n"
+            "- actual bound left slot type is '%s'\n"
+            "Fix:\n"
+            "- bind relation '%s' to a left slot of type '%s'\n"
+            "- or change relation '%s' so its left endpoint contract accepts '%s'",
             action_name,
             left_slot_name != NULL ? left_slot_name : "<unknown>",
             left_type != NULL && left_type->name != NULL ? left_type->name : "<unknown>",
@@ -2731,12 +2864,43 @@ type_check_zone_relation_contract(ASTNode *zone,
                 : "<unknown>",
             decl_left_type != NULL && decl_left_type->name != NULL
                 ? decl_left_type->name
-                : "<unknown>");
+                : "<unknown>",
+            relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            decl_left->data.domain_slot.slot_name != NULL
+                ? decl_left->data.domain_slot.slot_name
+                : "<left-slot>",
+            decl_left_type != NULL && decl_left_type->name != NULL
+                ? decl_left_type->name
+                : "<unknown>",
+            left_type != NULL && left_type->name != NULL ? left_type->name : "<unknown>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            decl_left_type != NULL && decl_left_type->name != NULL
+                ? decl_left_type->name
+                : "<unknown>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            left_type != NULL && left_type->name != NULL ? left_type->name : "<unknown>");
     }
 
     if (!type_is_assignable(right_type, decl_right_type)) {
         semantic_error(ctx, link_like,
-            "Zone %s right slot '%s' has type '%s' but relation '%s' expects right endpoint type '%s'",
+            "Zone %s right slot '%s' has type '%s' but relation '%s' expects right endpoint type '%s'.\n"
+            "Reason:\n"
+            "- zone relation slot '%s' binds declaration '%s'\n"
+            "- relation '%s' declares right endpoint slot '%s' with required type '%s'\n"
+            "- actual bound right slot type is '%s'\n"
+            "Fix:\n"
+            "- bind relation '%s' to a right slot of type '%s'\n"
+            "- or change relation '%s' so its right endpoint contract accepts '%s'",
             action_name,
             right_slot_name != NULL ? right_slot_name : "<unknown>",
             right_type != NULL && right_type->name != NULL ? right_type->name : "<unknown>",
@@ -2745,7 +2909,31 @@ type_check_zone_relation_contract(ASTNode *zone,
                 : "<unknown>",
             decl_right_type != NULL && decl_right_type->name != NULL
                 ? decl_right_type->name
-                : "<unknown>");
+                : "<unknown>",
+            relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            decl_right->data.domain_slot.slot_name != NULL
+                ? decl_right->data.domain_slot.slot_name
+                : "<right-slot>",
+            decl_right_type != NULL && decl_right_type->name != NULL
+                ? decl_right_type->name
+                : "<unknown>",
+            right_type != NULL && right_type->name != NULL ? right_type->name : "<unknown>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            decl_right_type != NULL && decl_right_type->name != NULL
+                ? decl_right_type->name
+                : "<unknown>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            right_type != NULL && right_type->name != NULL ? right_type->name : "<unknown>");
     }
 
     return true;

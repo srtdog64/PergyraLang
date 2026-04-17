@@ -67,6 +67,8 @@ struct SemanticContext
     size_t       diagnostic_capacity;
 
     char**       embedded_world_zone_names;
+    char**       embedded_world_zone_world_names;
+    char**       embedded_world_zone_slot_names;
     size_t       embedded_world_zone_count;
     size_t       embedded_world_zone_capacity;
 

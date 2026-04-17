@@ -13,29 +13,67 @@ tc_strdup_fmt(const char *fmt, ...)
     return buf;
 }
 
-static bool
-semantic_ctx_has_embedded_world_zone_name(SemanticContext *ctx, const char *name)
+static size_t
+semantic_ctx_embedded_world_zone_index(SemanticContext *ctx, const char *name)
 {
     if (ctx == NULL || name == NULL)
-        return false;
+        return (size_t)-1;
     for (size_t i = 0; i < ctx->embedded_world_zone_count; i++) {
         if (ctx->embedded_world_zone_names[i] != NULL
             && strcmp(ctx->embedded_world_zone_names[i], name) == 0) {
-            return true;
+            return i;
         }
     }
-    return false;
+    return (size_t)-1;
+}
+
+static bool
+semantic_ctx_has_embedded_world_zone_name(SemanticContext *ctx, const char *name)
+{
+    return semantic_ctx_embedded_world_zone_index(ctx, name) != (size_t)-1;
+}
+
+static const char *
+semantic_ctx_embedded_world_zone_world_name(SemanticContext *ctx, const char *name)
+{
+    size_t index = semantic_ctx_embedded_world_zone_index(ctx, name);
+    if (index == (size_t)-1 || ctx->embedded_world_zone_world_names == NULL)
+        return NULL;
+    return ctx->embedded_world_zone_world_names[index];
+}
+
+static const char *
+semantic_ctx_embedded_world_zone_slot_name(SemanticContext *ctx, const char *name)
+{
+    size_t index = semantic_ctx_embedded_world_zone_index(ctx, name);
+    if (index == (size_t)-1 || ctx->embedded_world_zone_slot_names == NULL)
+        return NULL;
+    return ctx->embedded_world_zone_slot_names[index];
 }
 
 static void
-semantic_ctx_mark_embedded_world_zone_name(SemanticContext *ctx, const char *name)
+semantic_ctx_mark_embedded_world_zone_name(SemanticContext *ctx,
+                                           const char *name,
+                                           const char *world_name,
+                                           const char *slot_name)
 {
     char **grown;
+    size_t index;
 
     if (ctx == NULL || name == NULL || *name == '\0')
         return;
-    if (semantic_ctx_has_embedded_world_zone_name(ctx, name))
+    index = semantic_ctx_embedded_world_zone_index(ctx, name);
+    if (index != (size_t)-1) {
+        if (world_name != NULL && *world_name != '\0'
+            && ctx->embedded_world_zone_world_names[index] == NULL) {
+            ctx->embedded_world_zone_world_names[index] = pergyra_strdup(world_name);
+        }
+        if (slot_name != NULL && *slot_name != '\0'
+            && ctx->embedded_world_zone_slot_names[index] == NULL) {
+            ctx->embedded_world_zone_slot_names[index] = pergyra_strdup(slot_name);
+        }
         return;
+    }
 
     if (ctx->embedded_world_zone_count >= ctx->embedded_world_zone_capacity) {
         size_t new_cap = ctx->embedded_world_zone_capacity == 0
@@ -45,11 +83,24 @@ semantic_ctx_mark_embedded_world_zone_name(SemanticContext *ctx, const char *nam
         if (grown == NULL)
             return;
         ctx->embedded_world_zone_names = grown;
+        grown = realloc(ctx->embedded_world_zone_world_names, new_cap * sizeof(char *));
+        if (grown == NULL)
+            return;
+        ctx->embedded_world_zone_world_names = grown;
+        grown = realloc(ctx->embedded_world_zone_slot_names, new_cap * sizeof(char *));
+        if (grown == NULL)
+            return;
+        ctx->embedded_world_zone_slot_names = grown;
         ctx->embedded_world_zone_capacity = new_cap;
     }
 
-    ctx->embedded_world_zone_names[ctx->embedded_world_zone_count++] =
+    ctx->embedded_world_zone_names[ctx->embedded_world_zone_count] =
         pergyra_strdup(name);
+    ctx->embedded_world_zone_world_names[ctx->embedded_world_zone_count] =
+        (world_name != NULL && *world_name != '\0') ? pergyra_strdup(world_name) : NULL;
+    ctx->embedded_world_zone_slot_names[ctx->embedded_world_zone_count] =
+        (slot_name != NULL && *slot_name != '\0') ? pergyra_strdup(slot_name) : NULL;
+    ctx->embedded_world_zone_count++;
 }
 
 /* -----------------------------------------------------------------
@@ -95,6 +146,12 @@ semantic_context_destroy(SemanticContext *ctx)
     for (size_t i = 0; i < ctx->embedded_world_zone_count; i++)
         free(ctx->embedded_world_zone_names[i]);
     free(ctx->embedded_world_zone_names);
+    for (size_t i = 0; i < ctx->embedded_world_zone_count; i++)
+        free(ctx->embedded_world_zone_world_names[i]);
+    free(ctx->embedded_world_zone_world_names);
+    for (size_t i = 0; i < ctx->embedded_world_zone_count; i++)
+        free(ctx->embedded_world_zone_slot_names[i]);
+    free(ctx->embedded_world_zone_slot_names);
     free(ctx->diagnostics);
     free(ctx);
 }
@@ -406,6 +463,8 @@ reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
                                        ASTNode *target, const char *op_name)
 {
     const char *root_name;
+    const char *owner_world;
+    const char *owner_slot;
     Symbol *root_sym;
 
     if (ctx == NULL || site == NULL || target == NULL || op_name == NULL)
@@ -423,15 +482,29 @@ reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
         return;
     }
 
+    owner_world = semantic_ctx_embedded_world_zone_world_name(ctx, root_name);
+    owner_slot = semantic_ctx_embedded_world_zone_slot_name(ctx, root_name);
+
     semantic_error(ctx, site,
-        "Zone '%s' cannot be mutated via %s after it was embedded into a world value.\n"
+        "Zone '%s' cannot be mutated via %s after it was embedded into world '%s' slot '%s'.\n"
         "Reason:\n"
-        "- current world construction embeds zone state by value into the world value\n"
+        "- origin binding is '%s'\n"
+        "- derived embedding provenance points to world '%s' slot '%s'\n"
+        "- current world construction embeds zone state by value into the world-owned slot\n"
         "- mutating the old binding would diverge from the world-owned zone copy\n"
         "Fix:\n"
-        "- finish configuring '%s' before constructing the world\n"
-        "- or mutate it through the owning world after embedding",
-        root_name, op_name, root_name);
+        "- finish configuring '%s' before constructing world '%s'\n"
+        "- or mutate it through world '%s' slot '%s' after embedding",
+        root_name, op_name,
+        owner_world != NULL ? owner_world : "<world>",
+        owner_slot != NULL ? owner_slot : "<slot>",
+        root_name,
+        owner_world != NULL ? owner_world : "<world>",
+        owner_slot != NULL ? owner_slot : "<slot>",
+        root_name,
+        owner_world != NULL ? owner_world : "<world>",
+        owner_world != NULL ? owner_world : "<world>",
+        owner_slot != NULL ? owner_slot : "<slot>");
 }
 
 static void
@@ -488,7 +561,9 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                         ? arg->data.identifier.name : "<zone>");
                 arg_sym->embedded_in_world = true;
                 semantic_ctx_mark_embedded_world_zone_name(ctx,
-                    arg->data.identifier.name);
+                    arg->data.identifier.name,
+                    world_name,
+                    zone_slot->data.world_zone.slot_name);
                 matched_zone_slot = true;
             }
         }
@@ -521,7 +596,9 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                         ? arg->data.identifier.name : "<zone>");
                 arg_sym->embedded_in_world = true;
                 semantic_ctx_mark_embedded_world_zone_name(ctx,
-                    arg->data.identifier.name);
+                    arg->data.identifier.name,
+                    world_name,
+                    zone_slot->data.world_zone.slot_name);
                 break;
             }
         }
@@ -736,6 +813,16 @@ bool
 type_is_movable_resource_handle(const Type *type)
 {
     return type_is_qubit(type);
+}
+
+static bool
+type_is_subject_type(const Type *type, SemanticContext *ctx);
+
+static bool
+type_is_general_boundary_type(const Type *type, SemanticContext *ctx)
+{
+    return type_is_movable_resource_handle(type)
+        || type_is_subject_type(type, ctx);
 }
 
 bool
@@ -1810,7 +1897,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                                 : "<zone>");
                                         arg_sym->embedded_in_world = true;
                                         semantic_ctx_mark_embedded_world_zone_name(ctx,
-                                            expr->data.call.arguments[i]->data.identifier.name);
+                                            expr->data.call.arguments[i]->data.identifier.name,
+                                            display_name,
+                                            zone_slot->data.world_zone.slot_name);
                                         break;
                                     }
                                 }
@@ -1922,7 +2011,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             }
             if (pmode == PARAM_MODE_REF
                 && expr->data.call.arguments[i]->type == AST_IDENTIFIER
-                && identifier_is_borrowed_movable_param(expr->data.call.arguments[i], ctx)
+                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)
                 && callee_decl != NULL
                 && callee_decl->data.func_decl.body != NULL) {
                 unsigned callee_mask = slot_analyze_param_summary_in_program(
@@ -1955,7 +2044,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 }
             }
             if (pmode != PARAM_MODE_REF
-                && identifier_is_borrowed_movable_param(expr->data.call.arguments[i], ctx)) {
+                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
                 semantic_error(ctx, expr->data.call.arguments[i],
                     "Borrowed ref movable resource '%s' cannot escape through helper/function call.\n"
                     "Reason:\n"
@@ -1978,6 +2067,111 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (pmode == PARAM_MODE_REF)
                 continue;
             consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
+            continue;
+        }
+
+        if (type_is_subject_type(param_type, ctx)) {
+            ParamMode pmode = PARAM_MODE_DEFAULT;
+            ASTNode *callee_decl = NULL;
+            if (!type_is_subject_type(arg_type, ctx)) {
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Subject argument type mismatch: expected '%s', got '%s'.\n"
+                    "Reason:\n"
+                    "- subject boundary passing requires the caller value and callee contract to agree on the same subject type\n"
+                    "- ownership/borrow provenance cannot be preserved across mismatched subject types\n"
+                    "Fix:\n"
+                    "- pass a value of type '%s'\n"
+                    "- or change the callee contract to accept '%s'",
+                    type_name_or_unknown(param_type),
+                    type_name_or_unknown(arg_type),
+                    type_name_or_unknown(param_type),
+                    type_name_or_unknown(arg_type));
+                continue;
+            }
+            if (ctx->program_root != NULL) {
+                ASTNode *prog = ctx->program_root;
+                for (size_t si = 0; si < prog->data.program.count; si++) {
+                    ASTNode *stmt = prog->data.program.statements[si];
+                    if (stmt != NULL && stmt->type == AST_FUNC_DECL
+                        && stmt->data.func_decl.name != NULL
+                        && strcmp(stmt->data.func_decl.name, display_name) == 0
+                        && i < stmt->data.func_decl.param_count) {
+                        callee_decl = stmt;
+                        pmode = stmt->data.func_decl.params[i]->mode;
+                        break;
+                    }
+                }
+            }
+            if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
+                if (pmode == PARAM_MODE_DEFAULT)
+                    continue;
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Subject boundary arguments must use a named variable.\n"
+                    "Reason:\n"
+                    "- own/ref subject boundaries need one stable source binding for moved-here / borrowed-here provenance\n"
+                    "- unnamed subject expressions would make later ownership diagnostics ambiguous\n"
+                    "Fix:\n"
+                    "- bind the subject to a local variable first\n"
+                    "- then pass that named variable through the boundary");
+                continue;
+            }
+            if (pmode == PARAM_MODE_REF
+                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)
+                && callee_decl != NULL
+                && callee_decl->data.func_decl.body != NULL) {
+                unsigned callee_mask = slot_analyze_param_summary_in_program(
+                    callee_decl->data.func_decl.body,
+                    callee_decl->data.func_decl.params[i] != NULL
+                        ? callee_decl->data.func_decl.params[i]->name
+                        : NULL,
+                    ctx->program_root);
+                if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                                    | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
+                                    | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+                    semantic_error(ctx, expr->data.call.arguments[i],
+                        "Borrowed ref subject '%s' cannot escape through helper/function call.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' subject\n"
+                        "- callee '%s' derives a transitive call-escape path for its borrowed parameter\n"
+                        "- forwarding this borrow into that helper would let it escape beyond the current call boundary\n"
+                        "Fix:\n"
+                        "- perform the subject operation locally in this function\n"
+                        "- or change the current parameter to 'own' if transfer/forwarding is intended",
+                        expr->data.call.arguments[i]->data.identifier.name,
+                        ctx->current_function_decl != NULL
+                            && ctx->current_function_decl->data.func_decl.name != NULL
+                                ? ctx->current_function_decl->data.func_decl.name
+                                : "<anonymous>",
+                        expr->data.call.arguments[i]->data.identifier.name,
+                        display_name != NULL ? display_name : "<callee>");
+                    continue;
+                }
+            }
+            if (pmode != PARAM_MODE_REF
+                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Borrowed ref subject '%s' cannot escape through helper/function call.\n"
+                    "Reason:\n"
+                    "- consumer path is function '%s'\n"
+                    "- '%s' entered this function as a borrowed 'ref' subject\n"
+                    "- forwarding it to '%s' as '%s' would create a transitive transfer beyond the current call boundary\n"
+                    "Fix:\n"
+                    "- call a 'ref' helper instead\n"
+                    "- or change the current parameter to 'own' if forwarding/transfer is intended",
+                    expr->data.call.arguments[i]->data.identifier.name,
+                    ctx->current_function_decl != NULL
+                        && ctx->current_function_decl->data.func_decl.name != NULL
+                            ? ctx->current_function_decl->data.func_decl.name
+                            : "<anonymous>",
+                    expr->data.call.arguments[i]->data.identifier.name,
+                    display_name != NULL ? display_name : "<callee>",
+                    pmode == PARAM_MODE_OWN ? "own" : "default");
+                continue;
+            }
+            if (pmode == PARAM_MODE_OWN) {
+                consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
+            }
             continue;
         }
 
@@ -2242,7 +2436,9 @@ bool
 consume_qubit_value(ASTNode *expr, SemanticContext *ctx, const char *action)
 {
     Symbol *sym = lookup_identifier_symbol(expr, ctx);
-    if (sym == NULL || !type_is_qubit(sym->type))
+    if (sym == NULL
+        || (!type_is_qubit(sym->type)
+            && !type_is_subject_type(sym->type, ctx)))
         return false;
 
     if (sym->is_consumed) {

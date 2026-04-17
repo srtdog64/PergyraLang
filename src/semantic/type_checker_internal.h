@@ -19,6 +19,7 @@ void semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask);
 bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
                          const char *action);
 Type *type_check_qubit_use(ASTNode *expr, SemanticContext *ctx);
+bool identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx);
 
 /* Resource-handle compile-time state tracking.
  * Today the richer semantic state machine is QubitSlot-specific. */
