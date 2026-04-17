@@ -3321,6 +3321,148 @@
         lexer_destroy(lexer);
     }
 
+    TEST("generic function declaration rejects default type argument that violates where bound");
+    {
+        const char *source =
+            "func Identity<T = String>(value: T) -> T where T: Int {\n"
+            "    return value;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Default generic type argument 'String' does not satisfy constraint 'Int'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "function 'Identity' declares 'T = String'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class declaration rejects default type argument that violates where bound");
+    {
+        const char *source =
+            "class Box<T = String> where T: Int {\n"
+            "    let value: T;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Default generic type argument 'String' does not satisfy constraint 'Int'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "class 'Box' declares 'T = String'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic ability declaration rejects default type argument that violates where bound");
+    {
+        const char *source =
+            "ability Bufferable<T = String> where T: Int {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Default generic type argument 'String' does not satisfy constraint 'Int'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "ability 'Bufferable' declares 'T = String'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic role declaration rejects default type argument that violates where bound");
+    {
+        const char *source =
+            "subject Host { let hp: Int; }\n"
+            "role BufferRole<T = String> for Host where T: Int {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Default generic type argument 'String' does not satisfy constraint 'Int'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "role 'BufferRole' declares 'T = String'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic function declaration rejects non trailing default type parameter");
+    {
+        const char *source =
+            "func Pair<T = Int, U>(left: T, right: U) -> U {\n"
+            "    return right;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Non-trailing default generic parameter 'U' in function declaration"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "generic defaults are only closed for trailing parameters"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic ability declaration rejects non trailing default type parameter");
+    {
+        const char *source =
+            "ability Bufferable<T = Int, U> {\n"
+            "    func Put(left: T, right: U) -> Void;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Non-trailing default generic parameter 'U' in ability declaration"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("generic party declaration accepts default type argument");
     {
         const char *source =

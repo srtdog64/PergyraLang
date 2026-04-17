@@ -21,6 +21,15 @@
 
 즉 이 문서에서 `긴 버전 vs 압축 버전`을 설명할 때는 sketch 예제가 아니라 smoke-covered canonical pair를 우선 사용한다.
 
+예제 제시 규칙:
+
+- supporting declaration보다 **intent contract를 먼저 설명한다**
+- 그 다음 `world/zone` 경계를 설명한다
+- 마지막에 `subject/action/projection` 지원 구조를 설명한다
+
+즉 이 문서의 예제 독해 순서도 `intent -> world -> zone -> subject`로 고정한다.
+실제 `.pgy` 파일의 선언 순서가 이와 다를 수는 있지만, 문서가 가르치는 사고 순서는 이 규칙을 따라야 한다.
+
 ## 1. 현재 이미 구현된 압축
 
 ### 1.1 canonical pair: action contract reuse / transfer derivation
@@ -45,6 +54,8 @@
 긴 표면:
 
 ```pgy
+// 문서 독해 순서에서는 intent contract를 먼저 본다.
+// supporting action declaration은 실제 파일에서는 앞에 있을 수 있다.
 action Promote(self) -> Void
     requires Payable
     within PaymentZone
@@ -70,6 +81,8 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 목표 축약:
 
 ```pgy
+// supporting declaration이 위에 보이더라도,
+// 독자는 Checkout intent가 강제하는 계약을 먼저 읽어야 한다.
 action Promote(self) -> Void
     requires Payable
     within PaymentZone
@@ -87,6 +100,14 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
     }
 }
 ```
+
+이 pair를 설명할 때의 올바른 순서:
+
+1. `Checkout intent`가 어떤 실행 계약을 강제하는가
+2. `PaymentZone`이 어떤 경계인가
+3. `Buyer.Promote`가 어떤 supporting action contract인가
+
+즉 압축의 중심도 `subject`가 아니라 **intent contract surface**다.
 
 현재 구현 상태:
 

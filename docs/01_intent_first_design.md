@@ -25,16 +25,42 @@
 Pergyra는 순서를 뒤집는다:
 
 ```
-누가              → subject (2차)
-무엇을 위해       → intent (1차)
-어떤 조건에서     → requires/authorized by/guard
-어떤 경계를 넘으며 → zone/world
-무슨 결과를       → effect/success/failure
+무엇을 위해        → intent (1차)
+어떤 세계/장면에서 → world/zone
+누가 수행하는가    → subject (2차 host)
+어떤 조건에서      → requires/authorized by/guard
+무슨 결과를        → effect/success/failure
 ```
 
 이 순서가 다른 이유가 있다.
 
 **프로그래밍을 "계산"보다 "행위의 조직화"로 보기 때문이다.**
+
+## 예제를 보여 주는 순서도 intent-first여야 한다
+
+여기서 자주 생기는 오해가 있다.
+
+- `subject`가 core host라는 사실
+- `intent`가 설계의 1차 계약이라는 사실
+
+이 둘을 섞으면 예제가 다시 `subject-first`처럼 보인다.
+
+하지만 문서가 가르쳐야 하는 것은 다음이다.
+
+1. 먼저 `intent`를 본다
+2. 그 intent가 놓일 `world` / `zone` 경계를 본다
+3. 그 다음 그 계약을 실행할 `subject`를 본다
+
+즉:
+
+```text
+읽기/설계 순서: intent -> world -> zone -> subject
+구현/host 축:   subject-core
+```
+
+문서 예제는 이 두 축을 분리해서 보여 줘야 한다.
+`subject`를 먼저 소개하면 독자는 Pergyra를 `subject`부터 정의하는 언어로 배우게 되는데,
+그건 lowering/host 관점의 일부만 보여 주는 것이고 설계 관점의 학습 순서로는 틀리다.
 
 ---
 
@@ -96,9 +122,9 @@ intent SlayDragon(hero: Player, dragon: Monster)
 ```
 intent 정의
   ↓
+필요한 world/zone이 보임   → BattleZone, RaidWorld
 필요한 subject가 보임      → Player, Monster
 필요한 ability가 보임      → Combatable
-zone/world 경계가 보임     → BattleZone
 object/tobject이 보임     → PlayerView, BattleReport
 effect와 relation이 보임  → DamageEffect, AggroRelation
 rollback/compensate 지점  → Retreat()

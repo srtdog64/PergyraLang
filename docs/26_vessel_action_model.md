@@ -2,12 +2,13 @@
 
 ## 핵심 문제: God Subject 방지
 
-subject-first 철학을 그대로 밀면 가장 먼저 생기는 위험이 **god subject**다.
+subject-core host 모델을 설계 순서와 분리하지 않고 그대로 밀면 가장 먼저 생기는 위험이 **god subject**다.
 subject가 모든 상태, 모든 자원, 모든 메서드를 직접 들고 있으면 OOP의 god object와 같은 문제가 발생한다.
 
 해법:
 
-> **subject-first는 맞지만, subject-big가 되면 안 된다.**
+> **subject는 core host지만, 문서의 첫 축이 subject여서는 안 된다.**
+> **그리고 subject-big가 되면 안 된다.**
 
 ## 설계 원칙
 
@@ -425,5 +426,5 @@ role    = "어떤 자격으로 행동하는가" (행위 자격)
 - 2026-04-04: subject에 func 재허용 (실전 battle sim 구현 후 Anemic Domain Model 위험 확인)
 - 2026-04-04: subject 참조 전달 허용 (포인터 숨김, 언어가 자동 reference 처리)
 - 2026-04-04: vessel을 value-self로 확정 (순수 상태 묶음 + 읽기 전용 계산, mutation 없음)
-- 근거: god subject 방지, subject-first 유지, 포인터 은닉, 오케스트레이터 패턴
+- 근거: god subject 방지, subject-core host 유지, 포인터 은닉, 오케스트레이터 패턴
 - 구현 상태: core parser/semantic/C/LLVM surface 반영 완료. `vessel` 선언, subject-local `vessel` field, subject-only `action`, `requires/within/causes/authorized by` clause가 현재 구현에 연결되어 있고, `authorized by` subject-host 검증, `within` zone slot/authority 적합성, `causes` effect target/zone layer 적합성까지 semantic에 반영됨. 또한 zone method 안의 subject `action` call은 현재 C/LLVM에서 matching `effect slot` runtime activation과 embedded layer sync로 이어진다.

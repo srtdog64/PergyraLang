@@ -78,7 +78,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `authority`는 선언된 subject slot만 받을 수 있고, authority가 선언된 zone에서 mutable rule이 `by`를 생략하면 warning을 냄
 - `state` shorthand는 effect/relation kind mismatch를 semantic error로 보고함
 - `zone`은 subject-heavy shape에 대해 권장 기반 warning을 냄
-- 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
+- 장기 조립 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
+- 사용자-facing 설계 순서는 `intent -> world -> zone -> subject`로 따로 둔다
 - `subject`가 코어 identity-bearing host로 semantic에 고정되어 `role`, `subject slot`, `ToObject` / `ToTObject`, subject copy restriction 경로에 실제로 참여함
 - `subject`와 `class`는 parser AST에서 서로 다른 nominal declaration flavor로 기록되며, semantic도 둘을 구분함
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음

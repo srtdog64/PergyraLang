@@ -23,7 +23,9 @@
 ## 1. 기본 규칙
 
 - 문장 종료는 기본적으로 세미콜론 `;`
-- 블록은 `{ ... }` — **BSD (Allman) 스타일 기본**, K&R도 파서가 허용
+- 블록은 `{ ... }`
+- **정규/canonical 표기는 BSD (Allman) 스타일이다.**
+- 파서는 호환성 때문에 K&R도 읽지만, 문서/예제/formatter 출력은 BSD 기준으로 고정한다.
 - 키워드는 소문자
 - 타입과 내장 API는 PascalCase
 - 구조화된 주석 `/// @effects ...` 같은 doc comment를 파서가 읽는다
@@ -100,36 +102,64 @@ let (a, b, c) = Split("x y z", " ");
 - **action** -- subject 전용, zone/effect 연동 (공적 행위)
 
 ```pergyra
-func Add(a: Int, b: Int) -> Int { return a + b; }   // free func
+func Add(a: Int, b: Int) -> Int
+{
+    return a + b;
+}   // free func
 
-vessel HP {
-    func Percentage(self) -> Int { ... }              // hosted func
+vessel HP
+{
+    func Percentage(self) -> Int
+    {
+        ...
+    }              // hosted func
 }
 
-subject Fighter {
-    func IsAlive(self) -> Bool { return hp > 0; }     // general func
+subject Fighter
+{
+    func IsAlive(self) -> Bool
+    {
+        return hp > 0;
+    }     // general func
     action Attack(self, target: Fighter) -> Int        // action
         requires Combatable within BattleZone
-        causes DamageEffect { ... }
+        causes DamageEffect
+    {
+        ...
+    }
 }
 
-class Item {
+class Item
+{
     let name: String;
     let damage: Int;
-    func Description(self) -> String { return name; }
+    func Description(self) -> String
+    {
+        return name;
+    }
 }
 
-subject Ranger {
+subject Ranger
+{
     let weapon: Item;                                  // subject-owned class value
-    func Loadout(self) -> String { return weapon.Description(); }
+    func Loadout(self) -> String
+    {
+        return weapon.Description();
+    }
 }
 ```
 
 `->` 는 함수 반환 타입을 지정하는 문법이다.
 
 ```pergyra
-func Identity<T>(value: T) -> T { return value; }
-func Sort<T>(items: Array<T>) -> Array<T> where T: Comparable { return items; }
+func Identity<T>(value: T) -> T
+{
+    return value;
+}
+func Sort<T>(items: Array<T>) -> Array<T> where T: Comparable
+{
+    return items;
+}
 ```
 
 지원:
@@ -217,7 +247,10 @@ Purchase(hero, merchant);
 `->`는 함수/람다의 반환 타입을 지정한다.
 
 ```pergyra
-func Add(a: Int, b: Int) -> Int { ... }
+func Add(a: Int, b: Int) -> Int
+{
+    ...
+}
 ```
 
 람다 반환 타입 주석에도 사용된다:
@@ -357,8 +390,10 @@ enum Color { Red, Green, Blue }
 ```pergyra
 import "math.pgy";
 
-namespace Math {
-    export func Add(a: Int, b: Int) -> Int {
+namespace Math
+{
+    export func Add(a: Int, b: Int) -> Int
+    {
         return a + b;
     }
 }

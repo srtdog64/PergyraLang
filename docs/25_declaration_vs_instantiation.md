@@ -151,19 +151,42 @@ zone 내부:
 
 **개념 계층은 맞다. 코드에서는 "선언은 평탄하게, 조합은 slot으로"라는 원칙으로 구현한다.**
 
-## subject-first 원칙
+## intent-first 설계 순서 / subject-core host 축
 
-Pergyra는 **subject-first** 언어다. 프로그램 설계는 소설을 쓰는 것과 같다.
+Pergyra는 **사용자-facing 설계 순서**에서는 `intent-first`이고,
+**구현 호스트 축**에서는 `subject-core` 언어다.
 
-**스캐폴딩은 subject와 class의 구분부터 시작한다:**
+이 둘은 같은 말이 아니다.
+
+- **설계 순서**는 사용자가 프로그램을 어떤 계약부터 읽고 쓰는가를 말한다.
+- **host 축**은 컴파일러가 어떤 nominal host를 중심으로 action/method/self typing을 나누는가를 말한다.
+
+문서에서 이 둘을 섞으면 `subject-first`와 `intent-first`가 충돌해 보인다.
+실제 기준은 다음과 같이 분리하는 것이 맞다.
+
+### 사용자-facing 설계 순서
 
 ```
-1단계: 누가 움직이는가? → subject (행동 주체)
-2단계: 무엇을 쓰는가?  → class (도구/사물)
-3단계: 내부 상태는?    → vessel (피동 수용체)
-4단계: 뭘 보여주는가?  → object/tobject (투영)
-5단계: 어디서?         → zone/world (무대)
+1단계: 무엇을 하려는가?   → intent (강제 구현 계약)
+2단계: 어떤 세계에서?    → world (신뢰/실패/조립 경계)
+3단계: 어떤 장면에서?    → zone (활성 규칙/authority/projection 경계)
+4단계: 누가 움직이는가?  → subject (행동 주체)
+5단계: 무엇을 쓰는가?    → class / struct / vessel
+6단계: 무엇을 보여주는가? → object / tobject
 ```
+
+즉 **독해와 설계의 첫 축은 `intent -> world -> zone -> subject`** 다.
+`intent`는 단순 orchestration sugar가 아니라, 구현이 따라야 하는 **강제 계약**이다.
+
+### 구현 / nominal host 축
+
+반대로 host model은 여전히 `subject`가 중심이다.
+
+- `subject` = 상태와 identity를 가진 주체 타입
+- `action` = `subject` 위에 붙는 행위 surface
+- `class/value/object/tobject` = subject 주변의 도구/값/투영
+
+즉 **문법과 lowering 관점에서는 subject-core**, **사용자 설계 관점에서는 intent-first**가 맞다.
 
 ```
 subject  = 주인공 (의사결정, 오케스트레이션, 승인) — 참조 타입
@@ -186,20 +209,19 @@ zone     = 이야기의 무대/장(章) (전투, 교역, 탐험)
 world    = 소설 전체
 ```
 
-설계 순서는 이 서사를 따른다:
+설계 순서는 이제 이 서사를 따른다:
 
-0. **세계의 사물을 정의한다** -- `class Item { ... }`, `struct Vec2 { ... }`
-1. **주인공을 만든다** -- `subject Player { ... }`
-2. **주인공의 내면을 구성한다** -- `vessel HealthState { ... }`, `vessel Inventory { ... }`
-3. **주인공에게 자질을 부여한다** -- `ability Combatable { ... }`
-4. **자질을 구체적 역할로 발현한다** -- `role Warrior for Player impl Combatable { ... }`
-5. **주인공의 행동을 선언한다** -- `action Attack(self, target) requires Combatable within BattleZone { ... }`
-6. **주인공에게 시련과 관계를 부여한다** -- `effect Poisoned { ... }`, `relation Alliance { ... }`
-7. **주인공이 영향을 미치는 존재를 정의한다** -- `object PlayerView { ... }`
-8. **이야기의 무대를 연다** -- `zone BattleZone { subject slot player: Player; ... }`
-9. **소설을 완성한다** -- `world GameWorld { zone battle: BattleZone; ... }`
+0. **실행 계약을 먼저 선언한다** -- `intent ExecuteTrade(...) { ... }`
+1. **그 계약이 놓일 세계를 정한다** -- `world MarketWorld { ... }`
+2. **그 세계 안의 활성 장면을 정한다** -- `zone TradeZone { ... }`
+3. **그 장면에서 움직일 주체를 정의한다** -- `subject Trader { ... }`
+4. **주체의 내부와 도구를 채운다** -- `vessel Wallet { ... }`, `class Receipt { ... }`
+5. **자질과 역할을 연결한다** -- `ability Tradable { ... }`, `role Seller for Trader { ... }`
+6. **projection과 boundary를 만든다** -- `object TraderView { ... }`, `tobject TradePacket { ... }`
+7. **relation/effect/state를 붙여 계약을 완성한다**
 
-**world가 컨테이너이고 zone이 무대이지만, 이것들은 주인공(subject)의 이야기를 담기 위해 존재한다.** 무대 없는 주인공은 가능하지만, 주인공 없는 무대는 의미가 없다.
+**world와 zone은 단순 컨테이너가 아니라 intent contract가 실제로 닫히는 경계**다.
+`subject`는 여전히 핵심 host지만, 문서의 첫 줄에서 먼저 보여야 할 것은 `intent`와 그 실행 경계다.
 
 ## 이 설계의 장점
 
@@ -234,4 +256,4 @@ vessel-action 모델의 상세 설계는 [26_vessel_action_model.md](26_vessel_a
 - 선언 + 참조 모델 채택, 중첩 모델 비채택
 - 근거: 재사용성, 관심사 분리, 컴파일 타임 계약 검증
 - 비유: "타입은 종이고, slot은 개체다. zone은 서식지다."
-- 2026-04-04: vessel, action 키워드 채택 (god subject 방지, subject-first 유지)
+- 2026-04-04: vessel, action 키워드 채택 (god subject 방지, subject-core host 유지)

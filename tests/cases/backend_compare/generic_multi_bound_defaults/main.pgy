@@ -1,0 +1,41 @@
+ability Comparable { }
+ability Cloneable { }
+
+subject Item {
+    let value: Int;
+}
+
+role ItemComparable for Item {
+    impl ability Comparable { }
+}
+
+role ItemCloneable for Item {
+    impl ability Cloneable { }
+}
+
+ability Packable<T = Item> where T: Comparable + Cloneable {
+    func Accept(value: T) -> Void;
+}
+
+subject Bag {
+    let count: Int;
+
+    action Save(self) -> Void requires Packable {
+        Log("bag=" + ToString(count));
+        return;
+    }
+}
+
+role BagPackable for Bag {
+    impl ability Packable {
+        func Accept(value: Item) -> Void {
+            return;
+        }
+    }
+}
+
+func Main() -> Void {
+    let bag = Bag(4);
+    bag.Save();
+    Log("multi-bound-defaults");
+}

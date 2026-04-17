@@ -20,7 +20,9 @@
   예: `Int`, `String`, `ClaimSlot`, `Read`, `Write`, `Release`
 - 문장 종료는 세미콜론 `;` 이다.
 - 블록은 `{ ... }` 로 쓴다.
-- **중괄호 스타일은 BSD (Allman) 기본이다.** 여는 중괄호는 같은 줄에 쓸 수도 있고 다음 줄에 내릴 수도 있지만, 파서는 양쪽 모두 허용한다.
+- **중괄호 스타일의 canonical form은 BSD (Allman)이다.**
+- K&R 표기는 파서가 읽을 수는 있지만, 그것을 문서 표준으로 간주하지 않는다.
+- 문서, scaffold, formatter가 내놓는 기준 표기는 BSD로 고정한다.
 - 현재 구현 기준으로 “문서상 제안만 있고 미구현인 문법”은 이 문서에 실지 않는다.
 
 ### 1.1 참조 전달 규칙
@@ -163,26 +165,32 @@ Pergyra에는 `method` 키워드가 없다. 함수는 `func`와 `action` 두 가
 
 ```pergyra
 // free func
-func Add(a: Int, b: Int) -> Int {
+func Add(a: Int, b: Int) -> Int
+{
     return a + b;
 }
 
 // hosted func (vessel에 귀속)
-vessel HP {
-    func Percentage(self) -> Int {
+vessel HP
+{
+    func Percentage(self) -> Int
+    {
         return (current * 100) / max;
     }
 }
 
 // subject: general func (사적 판단) + action (공적 행위)
-subject Fighter {
-    func IsAlive(self) -> Bool {       // general func
+subject Fighter
+{
+    func IsAlive(self) -> Bool         // general func
+    {
         return hp > 0;
     }
     action Attack(self, target: Fighter) -> Int   // action
         requires Combatable
         within BattleZone
-        causes DamageEffect {
+        causes DamageEffect
+    {
         // ...
     }
 }
@@ -205,7 +213,8 @@ action Attack(self, target: Fighter) -> Int
     requires Combatable              // ability 자격
     within BattleZone                // zone 제약
     causes DamageEffect              // effect 선언
-    authorized by self, target {     // 승인 주체
+    authorized by self, target
+{
     // ...
 }
 ```
@@ -325,8 +334,10 @@ enum Shape {
 ```pergyra
 import "math.pgy";
 
-namespace Math {
-    export func Add(a: Int, b: Int) -> Int {
+namespace Math
+{
+    export func Add(a: Int, b: Int) -> Int
+    {
         return a + b;
     }
 }

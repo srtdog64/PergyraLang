@@ -286,8 +286,9 @@ world GameWorld {
 - party는 role slot에 subject를 배치한다
 - relation/effect/zone/world는 그 협력 위에 더 느슨한 규칙과 경계를 덧씌운다
 
-즉 최종 목표의 `world -> zone -> effect -> relation -> party -> role -> ability -> subject` 계층은
-사실상 subject를 중심으로 돌아간다.
+즉 조립을 거꾸로 읽으면 `world -> zone -> effect -> relation -> party -> role -> ability -> subject`가 되고,
+host 중심으로 보면 subject가 그 leaf가 아니라 실질적 실행 주체다.
+다만 사용자-facing 설계 순서는 이 역방향 계층도가 아니라 `intent -> world -> zone -> subject`로 읽어야 한다.
 반대로 `struct`는 이 계층의 leaf data로 쓰인다.
 
 ### Ability 레벨

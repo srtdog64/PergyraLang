@@ -688,6 +688,13 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     validate_where_clause_bounds(node->data.role_decl.where_clause, ctx, node);
+    validate_generic_param_default_bounds(
+        node->data.role_decl.generic_params,
+        node->data.role_decl.where_clause,
+        ctx,
+        node,
+        "role",
+        name);
 
     /* Check includes reference existing roles */
     for (size_t i = 0; i < node->data.role_decl.include_count; i++) {

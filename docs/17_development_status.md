@@ -36,7 +36,8 @@
 - LLVM이 기본 백엔드이며, C 백엔드는 reference/bootstrap/debug 경로로 유지됨.
 - `driver_run_pipeline_timed(...)`와 `test-abi-perf`가 들어가 phase별 compile timing(`module_load`, `semantic`, `HIR/DIR/RIR/MIR`, `backend`, `total`)을 직접 계측한다. backend는 다시 `codegen / native_compile / link`로 쪼개진다. CI에서는 hard upper bound를, 로컬 benchmark에서는 comparative metrics를 분리한다.
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
-- 최종 목표 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.
+- 최종 조립 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.
+- 사용자-facing 설계 순서는 별도로 `intent -> world -> zone -> subject`로 고정한다.
 - 최종 존재론은 `struct`와 `subject`를 분리하며, 현재 surface는 `subject`와 `class`를 별도 nominal declaration flavor로 기록하고 semantic/codegen도 점진적으로 분기함.
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음.
 - `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic에 연결됨.

@@ -153,11 +153,31 @@ static void
 validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
                                 ASTNode *owner, const char *kind_name)
 {
+    bool saw_default = false;
+
     if (gp == NULL || ctx == NULL)
         return;
 
     for (size_t i = 0; i < gp->count; i++) {
         GenericParam *param = gp->params[i];
+        if (param == NULL)
+            continue;
+        if (param->default_type != NULL) {
+            saw_default = true;
+        } else if (saw_default) {
+            semantic_error(ctx, owner != NULL ? owner : (ASTNode *)gp,
+                "Non-trailing default generic parameter '%s' in %s declaration.\n"
+                "Reason:\n"
+                "- a required generic parameter appears after a parameter with a default\n"
+                "- generic defaults are only closed for trailing parameters\n"
+                "Fix:\n"
+                "- move '%s' before all defaulted generic parameters\n"
+                "- or give '%s' a default type argument too",
+                param->name != NULL ? param->name : "<type-param>",
+                kind_name != NULL ? kind_name : "generic",
+                param->name != NULL ? param->name : "<type-param>",
+                param->name != NULL ? param->name : "<type-param>");
+        }
         if (param == NULL || param->default_type == NULL)
             continue;
         {
@@ -363,6 +383,76 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
     }
 
     return false;
+}
+
+static void
+validate_generic_param_default_bounds(GenericParams *gp,
+                                      WhereClause *wc,
+                                      SemanticContext *ctx,
+                                      ASTNode *owner,
+                                      const char *owner_kind,
+                                      const char *owner_name)
+{
+    if (gp == NULL || wc == NULL || ctx == NULL)
+        return;
+
+    for (size_t ci = 0; ci < wc->count; ci++) {
+        TypeConstraint *tc = wc->constraints[ci];
+        int param_index;
+        GenericParam *param;
+        Type *default_type;
+
+        if (tc == NULL || tc->type_param == NULL)
+            continue;
+
+        param_index = find_generic_param_index(gp, tc->type_param);
+        if (param_index < 0 || (size_t)param_index >= gp->count)
+            continue;
+
+        param = gp->params[param_index];
+        if (param == NULL || param->default_type == NULL)
+            continue;
+
+        default_type = resolve_type_node(param->default_type, ctx);
+        if (default_type == NULL || default_type == TYPE_UNKNOWN)
+            continue;
+
+        for (size_t bi = 0; bi < tc->bound_count; bi++) {
+            ASTNode *bound_node = tc->bounds[bi];
+            const char *bound_name =
+                (bound_node != NULL
+                 && bound_node->type == AST_TYPE
+                 && bound_node->data.type.name != NULL)
+                    ? bound_node->data.type.name
+                    : "<constraint>";
+
+            if (concrete_type_satisfies_bound(default_type, bound_node, ctx))
+                continue;
+
+            semantic_error(ctx, owner != NULL ? owner : param->default_type,
+                "Default generic type argument '%s' does not satisfy constraint '%s' for parameter '%s' in %s '%s'.\n"
+                "Reason:\n"
+                "- %s '%s' declares '%s = %s'\n"
+                "- where clause requires '%s: %s'\n"
+                "Fix:\n"
+                "- change the default type argument to satisfy '%s'\n"
+                "- or relax the where-clause on %s '%s'",
+                default_type->name != NULL ? default_type->name : "<type>",
+                bound_name,
+                tc->type_param,
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                tc->type_param,
+                default_type->name != NULL ? default_type->name : "<type>",
+                tc->type_param,
+                bound_name,
+                bound_name,
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>");
+        }
+    }
 }
 
 static void
@@ -2013,6 +2103,13 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     validate_where_clause_bounds(node->data.ability_decl.where_clause, ctx, node);
+    validate_generic_param_default_bounds(
+        node->data.ability_decl.generic_params,
+        node->data.ability_decl.where_clause,
+        ctx,
+        node,
+        "ability",
+        name);
     validate_ability_require_fields(node, ctx);
 
     /* Check method signatures */
@@ -2975,6 +3072,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         scope_exit(&ctx->scope);
 
     validate_where_clause_bounds(node->data.func_decl.where_clause, ctx, node);
+    validate_generic_param_default_bounds(
+        node->data.func_decl.generic_params,
+        node->data.func_decl.where_clause,
+        ctx,
+        node,
+        "function",
+        name);
 
     /* Check body in new function scope */
     scope_enter(&ctx->scope, SCOPE_FUNCTION);
@@ -3256,6 +3360,13 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         scope_exit(&ctx->scope);
 
     validate_where_clause_bounds(node->data.class_decl.where_clause, ctx, node);
+    validate_generic_param_default_bounds(
+        node->data.class_decl.generic_params,
+        node->data.class_decl.where_clause,
+        ctx,
+        node,
+        "class",
+        name);
 
     /* Check methods — type-check each in a temporary class scope,
      * then register the mangled name (ClassName_MethodName) in the

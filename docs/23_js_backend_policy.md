@@ -154,5 +154,5 @@ extern js func setTimeout(cb: JsFn, ms: Int) -> JsHandle;
 JS 백엔드는 필요하다.
 하지만 그 이유로 코어 언어에 inheritance나 부모 호출 표면을 넣을 필요는 없다.
 
-Pergyra는 계속 subject-first 언어로 남고,
+Pergyra는 계속 intent-first 설계 언어이자 subject-core host 언어로 남고,
 JS는 그 의미론을 구현하는 한 타겟일 뿐이다.

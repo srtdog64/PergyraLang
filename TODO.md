@@ -782,7 +782,9 @@
   - 남음: 더 정교한 effect lattice, call-site contract surface
 
 ### 상위 계층 모델
-- [x] **최종 문맥 계층 고정** — `ability -> role -> party -> relation -> effect -> zone -> world`
+- [x] **최종 문맥 계층 / 설계 순서 분리 고정**
+  - 조립 계층: `ability -> role -> party -> relation -> effect -> zone -> world`
+  - 사용자-facing 설계 순서: `intent -> world -> zone -> subject`
   - 완료: `world`를 최상위 실행/신뢰/실패 경계라는 목표 정의로 문서화
   - 완료: 상위 레이어로 갈수록 덜 구속적이라는 설계 원칙 문서화
   - 완료: `relation`, `effect`, `zone` declaration keyword와 최소 `subject slot` / `object slot` surface를 parser/semantic 표면에 연결
@@ -822,8 +824,9 @@
   - 남음: richer world-level runtime semantics, 더 깊은 cross-layer propagation policy
 
 ### 존재론 모델
-- [x] **subject-first 존재론 고정** — `struct` vs `subject`
-  - 완료: `subject = 상태와 identity를 가진 주체 타입`으로 문서화
+- [x] **intent-first 설계 축 / subject-core host 축 분리 고정**
+  - 완료: 사용자-facing 설계 순서는 `intent -> world -> zone -> subject`로 문서화
+  - 완료: `subject = 상태와 identity를 가진 주체 타입`은 host/naming/lowering 축으로 한정해 문서화
   - 완료: `subject`와 `class`를 서로 다른 nominal flavor로 분리하고 의미론도 1차 분기
   - 완료: legacy host-profile surface를 제거하고 `subject`/`object`/`intent` 중심으로 정리
   - 완료: `entity`는 코어 언어 존재론에 넣지 않고 프레임워크/도메인 용어로 남긴다고 문서화
@@ -836,7 +839,7 @@
   - 완료: `vessel` declaration과 `subject` 내부 `vessel` field surface 추가
   - 완료: `subject` 전용 `action` declaration과 최소 clause (`requires/within/causes/authorized by`) parser/semantic 연결
   - 완료: `subject` 안의 legacy `func` 제거, `action` only 정책으로 승격
-  - 완료: `role`/`party`/`authority`를 subject-first로 더 강하게 제한
+  - 완료: `role`/`party`/`authority`를 subject-core host 축으로 더 강하게 제한
   - 완료: C/LLVM method lowering에서 `subject=self-cell`, `class=value self` 1차 분기
   - 완료: legacy host-profile surface를 제거하고 관련 규칙을 `subject`에 통합
   - 완료: `subject` 단일 host surface로 통일
@@ -844,6 +847,15 @@
   - 완료: object를 effect/relation target으로 semantic/C/LLVM에 연결
   - 완료: domain-local `refresh` / `publish` source를 subject/object까지 확장하고 tobject source는 금지
   - 완료: relation/projection 중심 surface 고정
+
+### 문서 / 스타일 정렬
+- [ ] **BSD (Allman) canonical style 전면 고정**
+  - 문서/예제/scaffold/formatter 출력은 BSD 기준으로 통일
+  - K&R은 parser compatibility로만 남기고 canonical surface로는 취급하지 않음
+- [ ] **문서 예제 제시 순서 강제**
+  - 문서/튜토리얼/비전 예제의 독해 순서는 `intent -> world -> zone -> subject`로 고정
+  - `subject`는 core host로 설명하되, 설계의 첫 축으로 가르치지 않음
+  - compile-order와 teaching-order를 분리해서 명시
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
@@ -880,7 +892,7 @@
   - 완료: `class` scaffold kind 추가
   - 완료: `project/simulator` scaffold가 `subject`가 `class`를 소유하고 `object/tobject`로 투영하는 starter shape를 생성
   - 완료: `project` scaffold가 intent-first layout(`intents/`, `subjects/`, `zones/`, `world.pgy`, `main.pgy`)을 실제로 생성
-  - 완료: `pgy new`가 `subject-first` / `class-first` / `projection-first` starter를 선택하게 할지 검토
+  - 완료: `pgy new`가 `intent-first` / `class-first` / `projection-first` starter를 선택하게 할지 검토
   - 완료: `pgy new` / scaffold output에 ontology decision guide file 별도 생성 검토
   - 완료: intent-first project guide 문서도 scaffold output에 같이 생성할지 검토
     - `intents/`를 프로젝트 table-of-contents로 설명하는 guide 포함

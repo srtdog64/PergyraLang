@@ -19,7 +19,14 @@ Pergyra의 가장 큰 특징은 **Intent를 최상위 설계 축으로 둔다**�
 
 ### 1차 정체성 — 도메인 모델링 언어
 
-복잡한 도메인에서 **누가(subject), 어디서(zone), 왜(intent), 무슨 자격으로(ability), 무슨 결과로(effect)** 행동하는가를 선언하고 컴파일 타임에 검증하는 언어.
+복잡한 도메인에서 **왜(intent), 어떤 세계/장면에서(world/zone), 누가(subject), 무슨 자격으로(ability), 무슨 결과로(effect)** 행동하는가를 선언하고 컴파일 타임에 검증하는 언어.
+
+중요한 기준:
+
+- `subject`는 core host다
+- 하지만 **문서와 예제의 첫 축은 `intent`** 여야 한다
+- 독자는 예제를 `intent -> world -> zone -> subject` 순서로 읽어야 한다
+- supporting declaration은 그 계약을 닫기 위해 뒤따르는 구조다
 
 ### 2차 정체성 — A2M(Agent-to-Machine) 인터페이스 언어
 
@@ -74,6 +81,19 @@ intent StartProduction(operator: AIAgent)
 에이전트가 아무리 복잡한 intent를 발행해도, Pergyra의 계약(requires, authorized by, guard, compensate)이 안전 경계를 보장한다. 인간은 intent 선언을 읽어서 에이전트의 의도를 감사(audit)할 수 있다.
 
 **"인간도 잘 쓰면 좋고"** — Pergyra는 AI-first가 아니라 intent-first다. intent가 명확하면 발행자가 AI든 인간이든 상관없다.
+
+### 예제 제시 규칙
+
+비전 문서와 튜토리얼은 다음 규칙을 따른다.
+
+1. 먼저 `intent` 계약을 보여 준다
+2. 그 intent가 놓일 `world` / `zone` 경계를 보여 준다
+3. 마지막에 그 계약을 수행하는 `subject`와 supporting type을 보여 준다
+
+즉 **예제의 설명 순서**는 항상 `intent -> world -> zone -> subject`다.
+
+컴파일 가능한 파일의 선언 순서가 이와 다를 수는 있다.
+하지만 그것은 parser/normalization 제약일 뿐이고, 문서가 독자에게 가르쳐야 할 사고 순서와는 다르다.
 
 ---
 
