@@ -1539,9 +1539,16 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         fn = llvm_lookup_function(ctx,
             key_name != NULL && strcmp(key_name, "Int") == 0
                 ? "pgy_map_set_raw_i32_export"
-                : "pgy_map_set_raw_export");
+                : key_name != NULL && strcmp(key_name, "Long") == 0
+                    ? "pgy_map_set_raw_i64_export"
+                    : key_name != NULL && strcmp(key_name, "Bool") == 0
+                        ? "pgy_map_set_raw_bool_export"
+                        : "pgy_map_set_raw_export");
         if (fn != NULL) {
-            if (key_name != NULL && strcmp(key_name, "Int") == 0) {
+            if (key_name != NULL
+                && (strcmp(key_name, "Int") == 0
+                    || strcmp(key_name, "Long") == 0
+                    || strcmp(key_name, "Bool") == 0)) {
                 LLVMValueRef args[] = {
                     LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                     key,
@@ -1587,7 +1594,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         fn = llvm_lookup_function(ctx,
             key_name != NULL && strcmp(key_name, "Int") == 0
                 ? "pgy_map_get_raw_i32_export"
-                : "pgy_map_get_raw_export");
+                : key_name != NULL && strcmp(key_name, "Long") == 0
+                    ? "pgy_map_get_raw_i64_export"
+                    : key_name != NULL && strcmp(key_name, "Bool") == 0
+                        ? "pgy_map_get_raw_bool_export"
+                        : "pgy_map_get_raw_export");
         if (fn != NULL) {
             LLVMValueRef args[] = {
                 LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
@@ -1614,7 +1625,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         fn = llvm_lookup_function(ctx,
             key_name != NULL && strcmp(key_name, "Int") == 0
                 ? "pgy_map_has_raw_i32_export"
-                : "pgy_map_has_raw_export");
+                : key_name != NULL && strcmp(key_name, "Long") == 0
+                    ? "pgy_map_has_raw_i64_export"
+                    : key_name != NULL && strcmp(key_name, "Bool") == 0
+                        ? "pgy_map_has_raw_bool_export"
+                        : "pgy_map_has_raw_export");
         if (map_var == NULL || key == NULL || fn == NULL)
             return LLVMConstInt(ctx->type_i1, 0, 0);
         {
@@ -1646,7 +1661,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         fn = llvm_lookup_function(ctx,
             key_name != NULL && strcmp(key_name, "Int") == 0
                 ? "pgy_map_remove_raw_i32_export"
-                : "pgy_map_remove_raw_export");
+                : key_name != NULL && strcmp(key_name, "Long") == 0
+                    ? "pgy_map_remove_raw_i64_export"
+                    : key_name != NULL && strcmp(key_name, "Bool") == 0
+                        ? "pgy_map_remove_raw_bool_export"
+                        : "pgy_map_remove_raw_export");
         if (key == NULL || fn == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
         {
@@ -1691,7 +1710,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
         array_ty = (key_name != NULL && strcmp(key_name, "Int") == 0)
             ? ctx->array_type_Int
-            : ctx->array_type_String;
+            : (key_name != NULL && strcmp(key_name, "Long") == 0)
+                ? ctx->array_type_Long
+                : (key_name != NULL && strcmp(key_name, "Bool") == 0)
+                    ? ctx->array_type_Bool
+                    : ctx->array_type_String;
         if (map_var == NULL)
             return LLVMConstNull(array_ty);
         tmp = llvm_create_entry_alloca(ctx, array_ty, llvm_tmp_name(ctx));
@@ -1699,7 +1722,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         fn = llvm_lookup_function(ctx,
             key_name != NULL && strcmp(key_name, "Int") == 0
                 ? "pgy_map_keys_raw_i32_export"
-                : "pgy_map_keys_raw_export");
+                : key_name != NULL && strcmp(key_name, "Long") == 0
+                    ? "pgy_map_keys_raw_i64_export"
+                    : key_name != NULL && strcmp(key_name, "Bool") == 0
+                        ? "pgy_map_keys_raw_bool_export"
+                        : "pgy_map_keys_raw_export");
         if (fn != NULL) {
             LLVMValueRef args[] = {
                 LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),

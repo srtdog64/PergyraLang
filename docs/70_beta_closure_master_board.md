@@ -170,6 +170,7 @@ diagnostic 고정 규칙:
 - richer expected/actual/bound/consumer-path provenance diagnostics
 - cross-module consumer path에서도 generic contract가 동일하게 유지되도록 정렬
 - C/LLVM/test parity를 generic path 기준으로 확대
+- `Map<K, V>`는 현재 hardcoded stable key subset(`String | Int | Long | Bool`)까지 닫혔고, arbitrary `K` 일반화는 explicit debt로 남긴다
 
 최근 진전:
 
@@ -180,6 +181,8 @@ diagnostic 고정 규칙:
 - malformed impl ability generic arg가 있어도 뒤쪽 where/require-field 검증으로 partial 진행하던 경로를 차단했다
 - default generic bound validation에서 unknown parameter / unresolved default type도 structured error로 승격했다
 - generic function call-site where-clause validation도 missing/unresolved effective arg를 그냥 넘기지 않도록 hardening했다
+- collection generic surface도 stable key subset(`String | Int | Long | Bool`) 기준으로 semantic/C/LLVM/runtime/documentation을 다시 정렬했다
+- multi-bound generic mismatch diagnostics가 ability/class/function consumer path에서 `broken bound`뿐 아니라 `full bound set`까지 노출하도록 정렬됐다
 
 완료 기준:
 
@@ -194,6 +197,7 @@ diagnostic 고정 규칙:
   - `expected type args`
   - `actual type args`
   - `broken bound`
+  - `full bound set`
   - `consumer path`
   - `fix`
 - 진단 포맷은 `Reason:` / `Fix:` 구조로 고정한다

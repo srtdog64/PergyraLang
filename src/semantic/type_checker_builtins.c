@@ -1784,9 +1784,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             if (map_type->data.constructed.args[0] != NULL
                 && map_type->data.constructed.args[0]->name != NULL
                 && strcmp(map_type->data.constructed.args[0]->name, "String") != 0
-                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0) {
+                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Long") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Bool") != 0) {
                 semantic_error(ctx, expr->data.call.arguments[0],
-                    "MapSet currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    "MapSet currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
@@ -1811,9 +1813,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             if (map_type->data.constructed.args[0] != NULL
                 && map_type->data.constructed.args[0]->name != NULL
                 && strcmp(map_type->data.constructed.args[0]->name, "String") != 0
-                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0) {
+                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Long") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Bool") != 0) {
                 semantic_error(ctx, expr->data.call.arguments[0],
-                    "MapGet currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    "MapGet currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
             return map_type->data.constructed.args[1];
@@ -1840,9 +1844,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             if (map_type->data.constructed.args[0] != NULL
                 && map_type->data.constructed.args[0]->name != NULL
                 && strcmp(map_type->data.constructed.args[0]->name, "String") != 0
-                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0) {
+                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Long") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Bool") != 0) {
                 semantic_error(ctx, expr->data.call.arguments[0],
-                    "MapHas currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    "MapHas currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
@@ -1867,9 +1873,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             if (map_type->data.constructed.args[0] != NULL
                 && map_type->data.constructed.args[0]->name != NULL
                 && strcmp(map_type->data.constructed.args[0]->name, "String") != 0
-                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0) {
+                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Long") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Bool") != 0) {
                 semantic_error(ctx, expr->data.call.arguments[0],
-                    "MapRemove currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    "MapRemove currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
@@ -1905,9 +1913,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             if (key_type != NULL
                 && key_type->name != NULL
                 && strcmp(key_type->name, "String") != 0
-                && strcmp(key_type->name, "Int") != 0) {
+                && strcmp(key_type->name, "Int") != 0
+                && strcmp(key_type->name, "Long") != 0
+                && strcmp(key_type->name, "Bool") != 0) {
                 semantic_error(ctx, expr->data.call.arguments[0],
-                    "MapKeys currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    "MapKeys currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
             args[0] = key_type != NULL ? key_type : TYPE_UNKNOWN;

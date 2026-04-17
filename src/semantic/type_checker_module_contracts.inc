@@ -277,6 +277,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
 
         for (size_t bi = 0; bi < tc->bound_count; bi++) {
             ASTNode *bound_node = tc->bounds[bi];
+            char *bounds_text = format_type_constraint_bounds(tc);
             const char *bound_name =
                 (bound_node != NULL
                  && bound_node->type == AST_TYPE
@@ -290,6 +291,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     "Reason:\n"
                     "- consumer path is %s '%s'\n"
                     "- ability declaration '%s' requires '%s: %s'\n"
+                    "- full bound set is '%s: %s'\n"
                     "- generic subject is ability '%s'\n"
                     "- %s uses '%s'\n"
                     "- actual type argument is '%s'\n"
@@ -311,6 +313,8 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                         ? ability_decl->data.ability_decl.name : "<ability>",
                     tc->type_param,
                     bound_name,
+                    tc->type_param,
+                    bounds_text != NULL ? bounds_text : "<constraint>",
                     owner_label != NULL ? owner_label : "construct",
                     required_text != NULL ? required_text : "<ability>",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
@@ -319,10 +323,12 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     bound_name,
                     ability_decl->data.ability_decl.name != NULL
                         ? ability_decl->data.ability_decl.name : "<ability>");
+                free(bounds_text);
                 free(required_text);
                 free(effective_args);
                 return false;
             }
+            free(bounds_text);
         }
     }
 

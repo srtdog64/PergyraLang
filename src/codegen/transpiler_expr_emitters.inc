@@ -2668,7 +2668,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt(
                 strcmp(key, "Int") == 0 ? "pgy_map_set_i32_%s(&%s, %s, %s)"
-                                        : "pgy_map_set_%s(&%s, %s, %s)",
+                : strcmp(key, "Long") == 0 ? "pgy_map_set_i64_%s(&%s, %s, %s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_set_bool_%s(&%s, %s, %s)"
+                : "pgy_map_set_%s(&%s, %s, %s)",
                 collection_runtime_suffix(value), m, k, v);
             free(m); free(k); free(v);
             return result;
@@ -2690,7 +2692,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt(
                 strcmp(key, "Int") == 0 ? "pgy_map_get_i32_%s(&%s, %s)"
-                                        : "pgy_map_get_%s(&%s, %s)",
+                : strcmp(key, "Long") == 0 ? "pgy_map_get_i64_%s(&%s, %s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_get_bool_%s(&%s, %s)"
+                : "pgy_map_get_%s(&%s, %s)",
                 collection_runtime_suffix(value), m, k);
             free(m); free(k);
             return result;
@@ -2712,7 +2716,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt(
                 strcmp(key, "Int") == 0 ? "pgy_map_has_i32_%s(&%s, %s)"
-                                        : "pgy_map_has_%s(&%s, %s)",
+                : strcmp(key, "Long") == 0 ? "pgy_map_has_i64_%s(&%s, %s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_has_bool_%s(&%s, %s)"
+                : "pgy_map_has_%s(&%s, %s)",
                 collection_runtime_suffix(value), m, k);
             free(m); free(k);
             return result;
@@ -2734,7 +2740,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt(
                 strcmp(key, "Int") == 0 ? "pgy_map_remove_i32_%s(&%s, %s)"
-                                        : "pgy_map_remove_%s(&%s, %s)",
+                : strcmp(key, "Long") == 0 ? "pgy_map_remove_i64_%s(&%s, %s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_remove_bool_%s(&%s, %s)"
+                : "pgy_map_remove_%s(&%s, %s)",
                 collection_runtime_suffix(value), m, k);
             free(m); free(k);
             return result;
@@ -2766,9 +2774,10 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             }
             ensure_collection_specialization(ctx, "Map", value);
             char *result = strdup_fmt(
-                strcmp(key, "Int") == 0
-                    ? "pgy_map_keys_i32_%s(&%s)"
-                    : "pgy_map_keys_%s(&%s)",
+                strcmp(key, "Int") == 0 ? "pgy_map_keys_i32_%s(&%s)"
+                : strcmp(key, "Long") == 0 ? "pgy_map_keys_i64_%s(&%s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_keys_bool_%s(&%s)"
+                : "pgy_map_keys_%s(&%s)",
                 collection_runtime_suffix(value), m);
             free(m);
             return result;

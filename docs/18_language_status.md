@@ -154,7 +154,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
   - explicit reject: general own/ref on non-anchored/general movable value types
   - beta-out-of-scope: general ownership system
 - collections
-  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`
+  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds
   - beta-out-of-scope: arbitrary key-universal collection contracts
 - runtime observability

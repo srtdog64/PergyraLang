@@ -208,9 +208,9 @@
 
 ### 컬렉션 / 표면 신뢰
 
-- `Map<K, V>`는 현재 `String | Int` key만 stable surface
+- `Map<K, V>`는 현재 `String | Int | Long | Bool` key stable subset까지 올린다
 - 이것은 버그가 아니라 현재 contract
-- 나머지 key type을 지원하지 않으면 surface trust 문서에 명시적으로 남겨야 함
+- arbitrary key-universal map contract는 아직 generic closure debt로 남는다
 
 ### 툴링
 
@@ -267,7 +267,7 @@
 - [x] **Windows CI Fix** — `TOKEN_TYPE` → `PGY_TOKEN_TYPE`, `TokenType` → `PgyTokenType` (~20개 파일)
 - [x] **v2 Quantum Planning** — 양자 연산 미지원 명시, v2 계획 문서화
 - [x] **Documentation Index** — `docs/INDEX.md` 생성, 전체 문서 체계화
-- [x] **`HashMap<Int, V>` surface trust 정렬** — semantic annotation/builtins/runtime comment/test를 `String | Int` key 지원으로 일치시킴
+- [x] **`HashMap<K, V>` stable key subset surface trust 정렬** — semantic annotation/builtins/runtime comment/test를 `String | Int | Long | Bool` key 지원으로 일치시킴
 - [x] **mixed `ability + zone` module export 충돌 수정** — default-export `ability`가 sibling zone visibility를 깨뜨리던 정규화 버그 제거, module smoke 회귀 추가
 - [x] **nominal host receiver type 오염 수정** — C backend member-call emit 중 static type-name overwrite를 제거해 `Int_Advance`류 오발행 복구
 - [x] **MIR cleanup exceptional topology 회귀 복구** — cleanup/rollback/invalidation block edge materialization과 test expectation 정렬
@@ -472,7 +472,7 @@
   - explicit reject: general own/ref on non-anchored/general value types
   - beta-out-of-scope: general ownership system
 - collections
-  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`
+  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds
   - beta-out-of-scope: arbitrary key-universal collection contracts
 - runtime observability

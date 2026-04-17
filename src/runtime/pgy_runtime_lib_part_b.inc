@@ -630,6 +630,34 @@ pgy_map_i32_key_string_export(int32_t key)
     return buf;
 }
 
+static char *
+pgy_map_i64_key_string_export(int64_t key)
+{
+    char stack_buf[48];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%lld", (long long)key);
+    char *buf;
+
+    if (len < 0)
+        return NULL;
+    buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL)
+        return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+static char *
+pgy_map_bool_key_string_export(bool key)
+{
+    const char *src = key ? "true" : "false";
+    size_t len = strlen(src);
+    char *buf = (char *)malloc(len + 1);
+    if (buf == NULL)
+        return NULL;
+    memcpy(buf, src, len + 1);
+    return buf;
+}
+
 void
 pgy_map_set_raw_i32_export(void *map_ptr, int32_t key, void *value_ptr, int64_t value_size)
 {
@@ -653,6 +681,110 @@ pgy_map_get_raw_i32_export(void *map_ptr, int32_t key, void *out_ptr, int64_t va
         return;
     }
     pgy_map_get_raw_export(map_ptr, key_str, out_ptr, value_size);
+    free(key_str);
+}
+
+void
+pgy_map_set_raw_i64_export(void *map_ptr, int64_t key, void *value_ptr, int64_t value_size)
+{
+    char *key_str = pgy_map_i64_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_i64", "key formatting failed");
+        return;
+    }
+    pgy_map_set_raw_export(map_ptr, key_str, value_ptr, value_size);
+    free(key_str);
+}
+
+void
+pgy_map_get_raw_i64_export(void *map_ptr, int64_t key, void *out_ptr, int64_t value_size)
+{
+    char *key_str = pgy_map_i64_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get_i64", "key formatting failed");
+        if (out_ptr != NULL && value_size > 0)
+            memset(out_ptr, 0, (size_t)value_size);
+        return;
+    }
+    pgy_map_get_raw_export(map_ptr, key_str, out_ptr, value_size);
+    free(key_str);
+}
+
+bool
+pgy_map_has_raw_i64_export(void *map_ptr, int64_t key)
+{
+    bool result;
+    char *key_str = pgy_map_i64_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_has_i64", "key formatting failed");
+        return false;
+    }
+    result = pgy_map_has_raw_export(map_ptr, key_str);
+    free(key_str);
+    return result;
+}
+
+void
+pgy_map_remove_raw_i64_export(void *map_ptr, int64_t key, int64_t value_size)
+{
+    char *key_str = pgy_map_i64_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_remove_i64", "key formatting failed");
+        return;
+    }
+    pgy_map_remove_raw_export(map_ptr, key_str, value_size);
+    free(key_str);
+}
+
+void
+pgy_map_set_raw_bool_export(void *map_ptr, bool key, void *value_ptr, int64_t value_size)
+{
+    char *key_str = pgy_map_bool_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_bool", "key formatting failed");
+        return;
+    }
+    pgy_map_set_raw_export(map_ptr, key_str, value_ptr, value_size);
+    free(key_str);
+}
+
+void
+pgy_map_get_raw_bool_export(void *map_ptr, bool key, void *out_ptr, int64_t value_size)
+{
+    char *key_str = pgy_map_bool_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get_bool", "key formatting failed");
+        if (out_ptr != NULL && value_size > 0)
+            memset(out_ptr, 0, (size_t)value_size);
+        return;
+    }
+    pgy_map_get_raw_export(map_ptr, key_str, out_ptr, value_size);
+    free(key_str);
+}
+
+bool
+pgy_map_has_raw_bool_export(void *map_ptr, bool key)
+{
+    bool result;
+    char *key_str = pgy_map_bool_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_has_bool", "key formatting failed");
+        return false;
+    }
+    result = pgy_map_has_raw_export(map_ptr, key_str);
+    free(key_str);
+    return result;
+}
+
+void
+pgy_map_remove_raw_bool_export(void *map_ptr, bool key, int64_t value_size)
+{
+    char *key_str = pgy_map_bool_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_remove_bool", "key formatting failed");
+        return;
+    }
+    pgy_map_remove_raw_export(map_ptr, key_str, value_size);
     free(key_str);
 }
 
@@ -2607,6 +2739,76 @@ pgy_map_keys_raw_i32_export(void *map_ptr, void *out_array_ptr)
             continue;
         }
         pgy_array_push_Int(out, (int32_t)parsed);
+    }
+}
+
+void
+pgy_map_keys_raw_i64_export(void *map_ptr, void *out_array_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    PgyArray_Long *out = (PgyArray_Long *)out_array_ptr;
+
+    if (out == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_i64", "null output");
+        return;
+    }
+
+    *out = pgy_array_new_Long(map != NULL ? map->count : 0);
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_i64", "null map");
+        return;
+    }
+    if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
+        return;
+
+    for (size_t i = 0; i < map->capacity; i++) {
+        char *end = NULL;
+        long long parsed;
+
+        if (!map->occupied[i] || map->keys[i] == NULL)
+            continue;
+        parsed = strtoll(map->keys[i], &end, 10);
+        if (end == map->keys[i] || (end != NULL && *end != '\0')) {
+            pgy_runtime_warn_invalid_collection("map_keys_i64", "invalid stored long key");
+            continue;
+        }
+        pgy_array_push_Long(out, (int64_t)parsed);
+    }
+}
+
+void
+pgy_map_keys_raw_bool_export(void *map_ptr, void *out_array_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    PgyArray_Bool *out = (PgyArray_Bool *)out_array_ptr;
+
+    if (out == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_bool", "null output");
+        return;
+    }
+
+    *out = pgy_array_new_Bool(map != NULL ? map->count : 0);
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_bool", "null map");
+        return;
+    }
+    if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
+        return;
+
+    for (size_t i = 0; i < map->capacity; i++) {
+        bool parsed;
+
+        if (!map->occupied[i] || map->keys[i] == NULL)
+            continue;
+        if (strcmp(map->keys[i], "true") == 0) {
+            parsed = true;
+        } else if (strcmp(map->keys[i], "false") == 0) {
+            parsed = false;
+        } else {
+            pgy_runtime_warn_invalid_collection("map_keys_bool", "invalid stored bool key");
+            continue;
+        }
+        pgy_array_push_Bool(out, parsed);
     }
 }
 

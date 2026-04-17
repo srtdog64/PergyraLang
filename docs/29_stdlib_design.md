@@ -229,7 +229,7 @@ let has: Bool = MapHas(inventory, "shield");  // false
 
 현재 구현 메모:
 - `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`는 연결돼 있다.
-- `MapKeys`는 현재 `HashMap<String, T>` / `HashMap<Int, T>` stable subset에 대해 `Array<String>` / `Array<Int>`를 반환한다.
+- `MapKeys`는 현재 `HashMap<String, T>` / `HashMap<Int, T>` / `HashMap<Long, T>` / `HashMap<Bool, T>` stable subset에 대해 각각 `Array<String>` / `Array<Int>` / `Array<Long>` / `Array<Bool>`를 반환한다.
 
 ## List 설계
 

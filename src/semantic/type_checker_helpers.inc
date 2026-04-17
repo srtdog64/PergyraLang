@@ -2071,6 +2071,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     /* Check each bound */
                     for (size_t bi = 0; bi < tc->bound_count; bi++) {
                         Type *bound = resolve_type_node(tc->bounds[bi], ctx);
+                        char *bounds_text = format_type_constraint_bounds(tc);
                         const char *bound_name =
                             (tc->bounds[bi] != NULL
                              && tc->bounds[bi]->type == AST_TYPE
@@ -2101,6 +2102,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 "Reason:\n"
                                 "- generic subject is function '%s'\n"
                                 "- function '%s' requires '%s: %s'\n"
+                                "- full bound set is '%s: %s'\n"
                                 "- actual type argument is '%s'\n"
                                 "- consumer path is call site of '%s'\n"
                                 "- call-site derived type arguments do not satisfy bound '%s'\n"
@@ -2115,6 +2117,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 display_name,
                                 param_name,
                                 bound_name != NULL ? bound_name : "<constraint>",
+                                param_name,
+                                bounds_text != NULL ? bounds_text : "<constraint>",
                                 concrete_type->name != NULL ? concrete_type->name : "<type>",
                                 display_name,
                                 bound_name != NULL ? bound_name : "<constraint>",
@@ -2122,6 +2126,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 bound_name != NULL ? bound_name : "<constraint>",
                                 bound_name != NULL ? bound_name : "<constraint>");
                         }
+                        free(bounds_text);
                     }
                 }
                 free(effective_generic_types);

@@ -48,7 +48,7 @@ projection과 transfer는 언어의 강점이지만, 지금 표면은 wiring-hea
 
 대표 사례:
 
-- `HashMap<Int, V>`는 이제 정렬됐지만, 이런 종류의 mismatch는 한 번만 나와도 체감 신뢰도를 크게 깎는다
+- `HashMap<K, V>` stable key subset은 이제 정렬됐지만, 이런 종류의 mismatch는 한 번만 나와도 체감 신뢰도를 크게 깎는다
 - `party_system_demo`, `world_roster_city` 같은 예제는 현재도 design sketch인데 stable syntax reference처럼 읽히기 쉽다
 - compile-smoke covered example과 sketch example을 문서/헤더에서 같은 톤으로 다루면 사용자가 잘못 배운다
 

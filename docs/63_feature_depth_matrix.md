@@ -51,7 +51,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
   - explicit reject: general own/ref on non-anchored/general movable value types
   - beta-out-of-scope: general ownership system
 - collections
-  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`
+  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds
   - beta-out-of-scope: arbitrary key-universal collection contracts
 - runtime observability
@@ -114,7 +114,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 | `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | stable subset은 declaration/constructor, projection slot family, `refresh/publish/bind`, query family, incremental sync parity, 그리고 RIR projection/authority/handoff conservative merge helper까지 포함한다. 남은 것은 authority-resource-effect 통합과 deeper propagation이다 |
 | `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | MPMC+SPSC 런타임, send/recv/select 전부 동작 |
 | `Event` | ✅ | ✅ | ◐ | ✅ | ✅ | ◐ | ✅ | 중상 | declaration/subscribe/unsubscribe/invoke 시맨틱과 negative path, positive smoke까지 정렬됐다. invoke의 canonical surface는 parser상 `AST_CALL` 경로다 |
-| `Set/Map/List` | ✅ | ✅ | ◐ | ✅ | ✅ | ✅ | ✅ | 중상 | stable subset은 `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`로 닫혔고, 그 외 key 조합은 explicit error다 |
+| `Set/Map/List` | ✅ | ✅ | ◐ | ✅ | ✅ | ✅ | ✅ | 중상 | stable subset은 `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`로 닫혔고, 그 외 key 조합은 explicit error다 |
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |

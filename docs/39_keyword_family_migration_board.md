@@ -60,12 +60,12 @@
 이유:
 
 - 최근 실제 회귀는 "새 키워드 추가"보다 "이미 된다고 말한 표면을 끝까지 믿을 수 있게 만드는가"에서 더 자주 발생했다
-- mixed `ability + zone` module export, `HashMap<Int, V>`, MIR cleanup topology, host method receiver typing처럼 구현 depth보다 표면 신뢰도가 더 중요한 항목이 드러났다
+- mixed `ability + zone` module export, `HashMap<K, V>` stable key subset, MIR cleanup topology, host method receiver typing처럼 구현 depth보다 표면 신뢰도가 더 중요한 항목이 드러났다
 - 키워드 가족 작업도 이제는 개별 기능 확장보다 "문서/semantic/backend/examples가 같은 말을 하게 만드는 것"이 우선이다
 
 이번 주기에서 닫힌 대표 항목:
 
-- `HashMap<Int, V>` 표면을 semantic/runtime/test로 정렬
+- `HashMap<K, V>` stable key subset(`String | Int | Long | Bool`) 표면을 semantic/runtime/test로 정렬
 - default-export `ability`와 explicit export module 정책 충돌 제거
 - MIR cleanup/rollback/invalidation topology 회귀 복구
 - nominal host receiver type 오염으로 인한 C backend 오발행 복구

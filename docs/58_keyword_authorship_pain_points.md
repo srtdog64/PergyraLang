@@ -197,7 +197,7 @@ Pergyra의 현재 pain point를 정리한다.
 
 대표 사례:
 
-- `HashMap<Int, V>`는 예전에는 문서/표면에 비해 실제 지원이 약했지만 지금은 정렬됐다
+- `HashMap<K, V>` stable key subset(`String | Int | Long | Bool`)은 예전에는 문서/표면에 비해 실제 지원이 약했지만 지금은 정렬됐다
 - `party_system_demo`, `world_roster_city` 같은 예제는 여전히 설계 스케치인데 stable syntax reference처럼 읽히기 쉽다
 - `own/ref`는 단어만 보면 전체 ownership 시스템처럼 보이지만, 현재 닫힌 구현은 anchored subject-slot boundary subset이다
 

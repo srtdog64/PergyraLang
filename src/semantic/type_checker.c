@@ -218,6 +218,39 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
     }
 }
 
+static char *
+format_type_constraint_bounds(TypeConstraint *tc)
+{
+    char *result = NULL;
+
+    if (tc == NULL || tc->bound_count == 0)
+        return tc_strdup_fmt("<constraint>");
+
+    for (size_t i = 0; i < tc->bound_count; i++) {
+        ASTNode *bound = tc->bounds[i];
+        const char *bound_name =
+            (bound != NULL
+             && bound->type == AST_TYPE
+             && bound->data.type.name != NULL)
+                ? bound->data.type.name
+                : "<constraint>";
+        char *next;
+
+        if (result == NULL) {
+            result = tc_strdup_fmt("%s", bound_name);
+        } else {
+            next = tc_strdup_fmt("%s + %s", result, bound_name);
+            free(result);
+            result = next;
+        }
+
+        if (result == NULL)
+            return tc_strdup_fmt("<constraint>");
+    }
+
+    return result;
+}
+
 static size_t
 generic_params_required_count(GenericParams *params)
 {
@@ -498,6 +531,7 @@ validate_generic_param_default_bounds(GenericParams *gp,
 
         for (size_t bi = 0; bi < tc->bound_count; bi++) {
             ASTNode *bound_node = tc->bounds[bi];
+            char *bounds_text = format_type_constraint_bounds(tc);
             const char *bound_name =
                 (bound_node != NULL
                  && bound_node->type == AST_TYPE
@@ -505,14 +539,17 @@ validate_generic_param_default_bounds(GenericParams *gp,
                     ? bound_node->data.type.name
                     : "<constraint>";
 
-            if (concrete_type_satisfies_bound(default_type, bound_node, ctx))
+            if (concrete_type_satisfies_bound(default_type, bound_node, ctx)) {
+                free(bounds_text);
                 continue;
+            }
 
             semantic_error(ctx, owner != NULL ? owner : param->default_type,
                 "Default generic type argument '%s' does not satisfy constraint '%s' for parameter '%s' in %s '%s'.\n"
                 "Reason:\n"
                 "- %s '%s' declares '%s = %s'\n"
                 "- where clause requires '%s: %s'\n"
+                "- full bound set is '%s: %s'\n"
                 "Fix:\n"
                 "- change the default type argument to satisfy '%s'\n"
                 "- or relax the where-clause on %s '%s'",
@@ -527,9 +564,12 @@ validate_generic_param_default_bounds(GenericParams *gp,
                 default_type->name != NULL ? default_type->name : "<type>",
                 tc->type_param,
                 bound_name,
+                tc->type_param,
+                bounds_text != NULL ? bounds_text : "<constraint>",
                 bound_name,
                 owner_kind != NULL ? owner_kind : "declaration",
                 owner_name != NULL ? owner_name : "<anonymous>");
+            free(bounds_text);
         }
     }
 }
@@ -616,6 +656,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                     "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
                     "Reason:\n"
                     "- class '%s' requires '%s: %s'\n"
+                    "- full bound set is '%s: %s'\n"
                     "- instantiated type argument is '%s'\n"
                     "Fix:\n"
                     "- pass a type argument that satisfies '%s'\n"
@@ -629,11 +670,14 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                         ? class_decl->data.class_decl.name : "<class>",
                     tc->type_param,
                     bound_name,
+                    tc->type_param,
+                    bounds_text != NULL ? bounds_text : "<constraint>",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
                     bound_name,
                     class_decl->data.class_decl.name != NULL
                         ? class_decl->data.class_decl.name : "<class>");
             }
+            free(bounds_text);
         }
     }
 }
@@ -721,6 +765,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
         for (size_t bi = 0; bi < tc->bound_count; bi++) {
             ASTNode *bound_node = tc->bounds[bi];
+            char *bounds_text = format_type_constraint_bounds(tc);
             const char *bound_name =
                 (bound_node != NULL
                  && bound_node->type == AST_TYPE
@@ -733,6 +778,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                     "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
                     "Reason:\n"
                     "- class '%s' requires '%s: %s'\n"
+                    "- full bound set is '%s: %s'\n"
                     "- specialized type argument is '%s'\n"
                     "Fix:\n"
                     "- specialize '%s' with a type that satisfies '%s'\n"
@@ -746,6 +792,8 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                         ? class_decl->data.class_decl.name : "<class>",
                     tc->type_param,
                     bound_name,
+                    tc->type_param,
+                    bounds_text != NULL ? bounds_text : "<constraint>",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
                     class_decl->data.class_decl.name != NULL
                         ? class_decl->data.class_decl.name : "<class>",
@@ -753,6 +801,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                     class_decl->data.class_decl.name != NULL
                         ? class_decl->data.class_decl.name : "<class>");
             }
+            free(bounds_text);
         }
     }
 
@@ -933,9 +982,12 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
             node->data.type.generic_args->params[0], ctx, node);
         Type *value = resolve_generic_type_arg(
             node->data.type.generic_args->params[1], ctx, node);
-        if (!type_equals(key, TYPE_STRING) && !type_equals(key, TYPE_INT)) {
+        if (!type_equals(key, TYPE_STRING)
+            && !type_equals(key, TYPE_INT)
+            && !type_equals(key, TYPE_LONG)
+            && !type_equals(key, TYPE_BOOL)) {
             semantic_error(ctx, node,
-                "HashMap currently supports only String or Int keys");
+                "HashMap currently supports only String, Int, Long, or Bool keys");
             return TYPE_UNKNOWN;
         }
         Type *args[2] = { key, value };

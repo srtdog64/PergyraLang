@@ -83,13 +83,13 @@
 이미 닫힌 문제를 TODO에 계속 남겨두면 surface trust를 해친다.
 
 2026-04-11 기준 이 문서에서 분리해야 할 항목:
-- `HashMap<Int, V>`: resolved
+- `HashMap<K, V>` stable key subset (`String | Int | Long | Bool`): resolved
 - `intent with value: Type;` 값 파라미터: resolved
 - `ToString(Float)` LLVM parity: resolved
 - lambda / function value baseline: resolved
 
 반대로 아직 open인 항목:
-- collection key 지원 범위는 아직 `String` / `Int`까지만 닫힘
+- collection key 지원 범위는 아직 arbitrary `K` 전부로 닫히지 않았고 stable subset(`String` / `Int` / `Long` / `Bool`)까지만 정렬됨
 - collection combinator ergonomics (`.map/.filter` style stdlib surface)는 미완
 - intent step 반복 선언/authoring friction은 여전히 남음
 - `own/ref`는 일반 규칙이 아니라 anchored slot handle에 한정된 partial rule
@@ -103,13 +103,13 @@
 ### A. 범용 프로그래밍 기본기
 
 resolved:
-- `HashMap<Int, V>`
+- `HashMap<K, V>` stable key subset (`String | Int | Long | Bool`)
 - `intent with price: Int;`
 - lambda / function value baseline
 - `ToString(Float)` parity
 
 open:
-- `HashMap<K, V>`의 key 범위는 현재 `String` / `Int`로 제한
+- `HashMap<K, V>`의 stable key 범위는 현재 `String` / `Int` / `Long` / `Bool`로 제한되고, arbitrary `K` 일반화는 아직 debt다
 - stdlib-level collection combinator (`Map/Filter/Fold`)은 아직 부족
 - author-facing iterator / callable ergonomics는 더 다듬어야 함
 
@@ -133,7 +133,7 @@ open:
 - "컴파일되지만 실제로는 안 됨" surface를 허용하지 않는다.
 
 resolved:
-- `HashMap<Int, V>`는 이제 실제로 C/LLVM 경로가 있다
+- `HashMap<K, V>` stable key subset(`String | Int | Long | Bool`)은 이제 실제로 C/LLVM 경로가 있다
 - mixed `ability + zone` module의 explicit export 판정은 실제 import/module smoke까지 닫혔다
 - `order_analytics`는 이제 compile-smoke covered example로 승격되었다
 
@@ -239,7 +239,7 @@ post-beta / follow-up:
 - [ ] generic parameter validation
 - [ ] `.add/.push/.get/.set/.has/.remove/.size` 타입 체크
 - [ ] LLVM collection coercion/coverage 정리
-- [x] `HashMap<String, T>` / `HashMap<Int, T>` 외 key 조합은 명시 오류
+- [x] `HashMap<String, T>` / `HashMap<Int, T>` / `HashMap<Long, T>` / `HashMap<Bool, T>` stable subset 정렬, 그 외 key 조합은 명시 오류
 - [ ] C/LLVM positive smoke 추가
 - [ ] negative semantic test 추가
 
