@@ -79,6 +79,7 @@ typedef struct
     const char *alias;
     const char *subject_type_name;
     size_t      subject_type_node_id;
+    bool        is_value_binding;
 } DIRIntentParticipant;
 
 typedef struct

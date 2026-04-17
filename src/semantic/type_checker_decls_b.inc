@@ -3215,13 +3215,33 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
             semantic_error(ctx, apply,
-                "Zone apply references unknown effect slot '%s'",
-                effect_slot_name != NULL ? effect_slot_name : "<unknown>");
+                "Zone apply references unknown effect slot '%s'.\n"
+                "Reason:\n"
+                "- apply mutates an effect lifecycle and must target a declared zone effect slot\n"
+                "- zone '%s' does not declare effect slot '%s'\n"
+                "Fix:\n"
+                "- declare effect slot '%s' in zone '%s'\n"
+                "- or change this apply clause to an existing effect slot",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, target_slot_name) == NULL) {
             semantic_error(ctx, apply,
-                "Zone apply references unknown target slot '%s'",
-                target_slot_name != NULL ? target_slot_name : "<unknown>");
+                "Zone apply references unknown target slot '%s'.\n"
+                "Reason:\n"
+                "- apply must target a declared zone slot\n"
+                "- zone '%s' does not declare slot '%s'\n"
+                "Fix:\n"
+                "- declare slot '%s' in zone '%s'\n"
+                "- or change this apply clause to an existing target slot",
+                target_slot_name != NULL ? target_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                target_slot_name != NULL ? target_slot_name : "<unknown>",
+                target_slot_name != NULL ? target_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         type_check_zone_effect_contract(node, apply,
             effect_slot_name, target_slot_name, ctx, "apply");
@@ -3256,18 +3276,48 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
             semantic_error(ctx, link,
-                "Zone link references unknown relation slot '%s'",
-                relation_slot_name != NULL ? relation_slot_name : "<unknown>");
+                "Zone link references unknown relation slot '%s'.\n"
+                "Reason:\n"
+                "- link mutates a relation lifecycle and must target a declared zone relation slot\n"
+                "- zone '%s' does not declare relation slot '%s'\n"
+                "Fix:\n"
+                "- declare relation slot '%s' in zone '%s'\n"
+                "- or change this link clause to an existing relation slot",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, left_slot_name) == NULL) {
             semantic_error(ctx, link,
-                "Zone link references unknown left slot '%s'",
-                left_slot_name != NULL ? left_slot_name : "<unknown>");
+                "Zone link references unknown left slot '%s'.\n"
+                "Reason:\n"
+                "- link needs a declared left endpoint slot\n"
+                "- zone '%s' does not declare slot '%s'\n"
+                "Fix:\n"
+                "- declare slot '%s' in zone '%s'\n"
+                "- or change this link clause to an existing left endpoint",
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, right_slot_name) == NULL) {
             semantic_error(ctx, link,
-                "Zone link references unknown right slot '%s'",
-                right_slot_name != NULL ? right_slot_name : "<unknown>");
+                "Zone link references unknown right slot '%s'.\n"
+                "Reason:\n"
+                "- link needs a declared right endpoint slot\n"
+                "- zone '%s' does not declare slot '%s'\n"
+                "Fix:\n"
+                "- declare slot '%s' in zone '%s'\n"
+                "- or change this link clause to an existing right endpoint",
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         type_check_zone_relation_contract(node, link,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "link");
@@ -3300,13 +3350,33 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
             semantic_error(ctx, detach,
-                "Zone detach references unknown effect slot '%s'",
-                effect_slot_name != NULL ? effect_slot_name : "<unknown>");
+                "Zone detach references unknown effect slot '%s'.\n"
+                "Reason:\n"
+                "- detach mutates an effect lifecycle and must target a declared zone effect slot\n"
+                "- zone '%s' does not declare effect slot '%s'\n"
+                "Fix:\n"
+                "- declare effect slot '%s' in zone '%s'\n"
+                "- or change this detach clause to an existing effect slot",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, target_slot_name) == NULL) {
             semantic_error(ctx, detach,
-                "Zone detach references unknown target slot '%s'",
-                target_slot_name != NULL ? target_slot_name : "<unknown>");
+                "Zone detach references unknown target slot '%s'.\n"
+                "Reason:\n"
+                "- detach must target a declared zone slot\n"
+                "- zone '%s' does not declare slot '%s'\n"
+                "Fix:\n"
+                "- declare slot '%s' in zone '%s'\n"
+                "- or change this detach clause to an existing target slot",
+                target_slot_name != NULL ? target_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                target_slot_name != NULL ? target_slot_name : "<unknown>",
+                target_slot_name != NULL ? target_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         type_check_zone_effect_contract(node, detach,
             effect_slot_name, target_slot_name, ctx, "detach");
@@ -3341,18 +3411,48 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
             semantic_error(ctx, unlink,
-                "Zone unlink references unknown relation slot '%s'",
-                relation_slot_name != NULL ? relation_slot_name : "<unknown>");
+                "Zone unlink references unknown relation slot '%s'.\n"
+                "Reason:\n"
+                "- unlink mutates a relation lifecycle and must target a declared zone relation slot\n"
+                "- zone '%s' does not declare relation slot '%s'\n"
+                "Fix:\n"
+                "- declare relation slot '%s' in zone '%s'\n"
+                "- or change this unlink clause to an existing relation slot",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, left_slot_name) == NULL) {
             semantic_error(ctx, unlink,
-                "Zone unlink references unknown left slot '%s'",
-                left_slot_name != NULL ? left_slot_name : "<unknown>");
+                "Zone unlink references unknown left slot '%s'.\n"
+                "Reason:\n"
+                "- unlink needs a declared left endpoint slot\n"
+                "- zone '%s' does not declare slot '%s'\n"
+                "Fix:\n"
+                "- declare slot '%s' in zone '%s'\n"
+                "- or change this unlink clause to an existing left endpoint",
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, right_slot_name) == NULL) {
             semantic_error(ctx, unlink,
-                "Zone unlink references unknown right slot '%s'",
-                right_slot_name != NULL ? right_slot_name : "<unknown>");
+                "Zone unlink references unknown right slot '%s'.\n"
+                "Reason:\n"
+                "- unlink needs a declared right endpoint slot\n"
+                "- zone '%s' does not declare slot '%s'\n"
+                "Fix:\n"
+                "- declare slot '%s' in zone '%s'\n"
+                "- or change this unlink clause to an existing right endpoint",
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         type_check_zone_relation_contract(node, unlink,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "unlink");
@@ -3453,13 +3553,33 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *participant_slot_name = maintain->data.zone_maintain_effect.participant_slot_name;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
             semantic_error(ctx, maintain,
-                "Zone maintain references unknown effect slot '%s'",
-                effect_slot_name != NULL ? effect_slot_name : "<unknown>");
+                "Zone maintain references unknown effect slot '%s'.\n"
+                "Reason:\n"
+                "- maintain keeps an effect lifecycle active and must target a declared zone effect slot\n"
+                "- zone '%s' does not declare effect slot '%s'\n"
+                "Fix:\n"
+                "- declare effect slot '%s' in zone '%s'\n"
+                "- or change this maintain clause to an existing effect slot",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, target_slot_name) == NULL) {
             semantic_error(ctx, maintain,
-                "Zone maintain references unknown target slot '%s'",
-                target_slot_name != NULL ? target_slot_name : "<unknown>");
+                "Zone maintain references unknown target slot '%s'.\n"
+                "Reason:\n"
+                "- maintain must target a declared zone slot\n"
+                "- zone '%s' does not declare slot '%s'\n"
+                "Fix:\n"
+                "- declare slot '%s' in zone '%s'\n"
+                "- or change this maintain clause to an existing target slot",
+                target_slot_name != NULL ? target_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                target_slot_name != NULL ? target_slot_name : "<unknown>",
+                target_slot_name != NULL ? target_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         type_check_zone_effect_contract(node, maintain,
             effect_slot_name, target_slot_name, ctx, "maintain");
@@ -3535,18 +3655,48 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *participant_slot_name = maintain->data.zone_maintain_relation.participant_slot_name;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
             semantic_error(ctx, maintain,
-                "Zone maintain references unknown relation slot '%s'",
-                relation_slot_name != NULL ? relation_slot_name : "<unknown>");
+                "Zone maintain references unknown relation slot '%s'.\n"
+                "Reason:\n"
+                "- maintain keeps a relation lifecycle active and must target a declared zone relation slot\n"
+                "- zone '%s' does not declare relation slot '%s'\n"
+                "Fix:\n"
+                "- declare relation slot '%s' in zone '%s'\n"
+                "- or change this maintain clause to an existing relation slot",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, left_slot_name) == NULL) {
             semantic_error(ctx, maintain,
-                "Zone maintain references unknown left slot '%s'",
-                left_slot_name != NULL ? left_slot_name : "<unknown>");
+                "Zone maintain references unknown left slot '%s'.\n"
+                "Reason:\n"
+                "- maintain needs a declared left endpoint slot\n"
+                "- zone '%s' does not declare slot '%s'\n"
+                "Fix:\n"
+                "- declare slot '%s' in zone '%s'\n"
+                "- or change this maintain clause to an existing left endpoint",
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, right_slot_name) == NULL) {
             semantic_error(ctx, maintain,
-                "Zone maintain references unknown right slot '%s'",
-                right_slot_name != NULL ? right_slot_name : "<unknown>");
+                "Zone maintain references unknown right slot '%s'.\n"
+                "Reason:\n"
+                "- maintain needs a declared right endpoint slot\n"
+                "- zone '%s' does not declare slot '%s'\n"
+                "Fix:\n"
+                "- declare slot '%s' in zone '%s'\n"
+                "- or change this maintain clause to an existing right endpoint",
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         type_check_zone_relation_contract(node, maintain,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
@@ -3629,7 +3779,16 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         state = find_zone_state(node, state_name);
         if (state == NULL) {
             semantic_error(ctx, maintain,
-                "Zone maintain references unknown state '%s'",
+                "Zone maintain references unknown state '%s'.\n"
+                "Reason:\n"
+                "- maintain state aliases must reference a declared zone state\n"
+                "- zone '%s' does not declare state '%s'\n"
+                "Fix:\n"
+                "- declare state '%s' before this maintain clause\n"
+                "- or change maintain to an existing state alias",
+                state_name != NULL ? state_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                state_name != NULL ? state_name : "<unknown>",
                 state_name != NULL ? state_name : "<unknown>");
         } else if (state->data.zone_state.is_relation) {
             const char *relation_slot_name = state->data.zone_state.layer_slot_name;
@@ -3760,20 +3919,51 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             const char *right_slot_name = state->data.zone_state.right_slot_name;
             if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
                 semantic_error(ctx, state,
-                    "Zone state '%s' references unknown relation slot '%s'",
+                    "Zone state '%s' references unknown relation slot '%s'.\n"
+                    "Reason:\n"
+                    "- state '%s' is declared as a relation-backed lifecycle alias\n"
+                    "- zone '%s' does not declare relation slot '%s'\n"
+                    "Fix:\n"
+                    "- reference an existing relation slot in state '%s'\n"
+                    "- or declare relation slot '%s' before this state",
+                    state_name != NULL ? state_name : "<unknown>",
+                    relation_slot_name != NULL ? relation_slot_name : "<unknown>",
+                    state_name != NULL ? state_name : "<unknown>",
+                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    relation_slot_name != NULL ? relation_slot_name : "<unknown>",
                     state_name != NULL ? state_name : "<unknown>",
                     relation_slot_name != NULL ? relation_slot_name : "<unknown>");
             }
             if (find_zone_domain_slot(node, left_slot_name) == NULL) {
                 semantic_error(ctx, state,
-                    "Zone state '%s' references unknown left slot '%s'",
+                    "Zone state '%s' references unknown left slot '%s'.\n"
+                    "Reason:\n"
+                    "- relation state '%s' needs a declared left endpoint slot\n"
+                    "- zone '%s' does not declare slot '%s'\n"
+                    "Fix:\n"
+                    "- use an existing zone slot as the left endpoint\n"
+                    "- or declare slot '%s' before this state",
                     state_name != NULL ? state_name : "<unknown>",
+                    left_slot_name != NULL ? left_slot_name : "<unknown>",
+                    state_name != NULL ? state_name : "<unknown>",
+                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    left_slot_name != NULL ? left_slot_name : "<unknown>",
                     left_slot_name != NULL ? left_slot_name : "<unknown>");
             }
             if (find_zone_domain_slot(node, right_slot_name) == NULL) {
                 semantic_error(ctx, state,
-                    "Zone state '%s' references unknown right slot '%s'",
+                    "Zone state '%s' references unknown right slot '%s'.\n"
+                    "Reason:\n"
+                    "- relation state '%s' needs a declared right endpoint slot\n"
+                    "- zone '%s' does not declare slot '%s'\n"
+                    "Fix:\n"
+                    "- use an existing zone slot as the right endpoint\n"
+                    "- or declare slot '%s' before this state",
                     state_name != NULL ? state_name : "<unknown>",
+                    right_slot_name != NULL ? right_slot_name : "<unknown>",
+                    state_name != NULL ? state_name : "<unknown>",
+                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    right_slot_name != NULL ? right_slot_name : "<unknown>",
                     right_slot_name != NULL ? right_slot_name : "<unknown>");
             }
             type_check_zone_relation_contract(node, state,
@@ -3783,14 +3973,35 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             const char *target_slot_name = state->data.zone_state.left_or_target_slot_name;
             if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
                 semantic_error(ctx, state,
-                    "Zone state '%s' references unknown effect slot '%s'",
+                    "Zone state '%s' references unknown effect slot '%s'.\n"
+                    "Reason:\n"
+                    "- state '%s' is declared as an effect-backed lifecycle alias\n"
+                    "- zone '%s' does not declare effect slot '%s'\n"
+                    "Fix:\n"
+                    "- reference an existing effect slot in state '%s'\n"
+                    "- or declare effect slot '%s' before this state",
+                    state_name != NULL ? state_name : "<unknown>",
+                    effect_slot_name != NULL ? effect_slot_name : "<unknown>",
+                    state_name != NULL ? state_name : "<unknown>",
+                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    effect_slot_name != NULL ? effect_slot_name : "<unknown>",
                     state_name != NULL ? state_name : "<unknown>",
                     effect_slot_name != NULL ? effect_slot_name : "<unknown>");
             }
             if (find_zone_domain_slot(node, target_slot_name) == NULL) {
                 semantic_error(ctx, state,
-                    "Zone state '%s' references unknown target slot '%s'",
+                    "Zone state '%s' references unknown target slot '%s'.\n"
+                    "Reason:\n"
+                    "- effect state '%s' needs a declared target slot\n"
+                    "- zone '%s' does not declare slot '%s'\n"
+                    "Fix:\n"
+                    "- use an existing zone slot as the target\n"
+                    "- or declare slot '%s' before this state",
                     state_name != NULL ? state_name : "<unknown>",
+                    target_slot_name != NULL ? target_slot_name : "<unknown>",
+                    state_name != NULL ? state_name : "<unknown>",
+                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    target_slot_name != NULL ? target_slot_name : "<unknown>",
                     target_slot_name != NULL ? target_slot_name : "<unknown>");
             }
             type_check_zone_effect_contract(node, state,

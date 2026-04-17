@@ -3686,58 +3686,110 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 continue;
             if (param->mode != PARAM_MODE_REF)
                 continue;
-            if (!type_is_anchored_resource_handle(param_types[i]))
+            if (!type_is_anchored_resource_handle(param_types[i])
+                && !type_is_movable_resource_handle(param_types[i]))
                 continue;
 
             summary_mask = slot_analyze_param_summary_in_program(
                 node->data.func_decl.body, param->name, ctx->program_root);
             if ((summary_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
-                semantic_error(ctx, node,
-                    "Borrowed ref slot '%s' cannot escape via return.\n"
-                    "Reason:\n"
-                    "- consumer path is function '%s'\n"
-                    "- '%s' entered this function as a borrowed 'ref' handle\n"
-                    "- 'ref' is a non-owning borrow tied to the caller scope\n"
-                    "- returning it would let the borrow outlive the call boundary\n"
-                    "Fix:\n"
-                    "- return a projection/object/tobject/value instead\n"
-                    "- or change the parameter to 'own' if transfer is intended",
-                    param->name,
-                    node->data.func_decl.name != NULL
-                        ? node->data.func_decl.name : "<anonymous>",
-                    param->name);
+                if (type_is_movable_resource_handle(param_types[i])) {
+                    semantic_error(ctx, node,
+                        "Borrowed ref movable resource '%s' cannot escape via return.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                        "- slot/resource summary found a return-escape path for that borrowed symbol\n"
+                        "- returning it would let the borrow outlive the current call boundary\n"
+                        "Fix:\n"
+                        "- return a copied/projection/value result instead\n"
+                        "- or change the parameter to 'own' if transfer is intended",
+                        param->name,
+                        node->data.func_decl.name != NULL
+                            ? node->data.func_decl.name : "<anonymous>",
+                        param->name);
+                } else {
+                    semantic_error(ctx, node,
+                        "Borrowed ref slot '%s' cannot escape via return.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' handle\n"
+                        "- 'ref' is a non-owning borrow tied to the caller scope\n"
+                        "- returning it would let the borrow outlive the call boundary\n"
+                        "Fix:\n"
+                        "- return a projection/object/tobject/value instead\n"
+                        "- or change the parameter to 'own' if transfer is intended",
+                        param->name,
+                        node->data.func_decl.name != NULL
+                            ? node->data.func_decl.name : "<anonymous>",
+                        param->name);
+                }
             }
             if ((summary_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
-                semantic_error(ctx, node,
-                    "Borrowed ref slot '%s' cannot escape through channel send.\n"
-                    "Reason:\n"
-                    "- consumer path is function '%s'\n"
-                    "- '%s' entered this function as a borrowed 'ref' handle\n"
-                    "- 'ref' is a non-owning borrow tied to the current call\n"
-                    "- channel send would transfer the borrow beyond that boundary\n"
-                    "Fix:\n"
-                    "- send a projection/object/tobject/value snapshot instead\n"
-                    "- or take ownership with 'own' before transfer",
-                    param->name,
-                    node->data.func_decl.name != NULL
-                        ? node->data.func_decl.name : "<anonymous>",
-                    param->name);
+                if (type_is_movable_resource_handle(param_types[i])) {
+                    semantic_error(ctx, node,
+                        "Borrowed ref movable resource '%s' cannot escape through channel send.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                        "- slot/resource summary found a channel-escape path for that borrowed symbol\n"
+                        "- channel send would transfer the borrow beyond the current call boundary\n"
+                        "Fix:\n"
+                        "- send a copied/projection/value snapshot instead\n"
+                        "- or take ownership with 'own' before transfer",
+                        param->name,
+                        node->data.func_decl.name != NULL
+                            ? node->data.func_decl.name : "<anonymous>",
+                        param->name);
+                } else {
+                    semantic_error(ctx, node,
+                        "Borrowed ref slot '%s' cannot escape through channel send.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' handle\n"
+                        "- 'ref' is a non-owning borrow tied to the current call\n"
+                        "- channel send would transfer the borrow beyond that boundary\n"
+                        "Fix:\n"
+                        "- send a projection/object/tobject/value snapshot instead\n"
+                        "- or take ownership with 'own' before transfer",
+                        param->name,
+                        node->data.func_decl.name != NULL
+                            ? node->data.func_decl.name : "<anonymous>",
+                        param->name);
+                }
             }
             if ((summary_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
-                semantic_error(ctx, node,
-                    "Borrowed ref slot '%s' cannot escape through helper/function call.\n"
-                    "Reason:\n"
-                    "- consumer path is function '%s'\n"
-                    "- '%s' entered this function as a borrowed 'ref' handle\n"
-                    "- 'ref' is a non-owning borrow tied to the current call boundary\n"
-                    "- forwarding it to another call would create a transitive borrow the compiler does not yet track precisely\n"
-                    "Fix:\n"
-                    "- perform the slot operation locally in this function\n"
-                    "- or change the parameter to 'own' if transfer/forwarding is intended",
-                    param->name,
-                    node->data.func_decl.name != NULL
-                        ? node->data.func_decl.name : "<anonymous>",
-                    param->name);
+                if (type_is_movable_resource_handle(param_types[i])) {
+                    semantic_error(ctx, node,
+                        "Borrowed ref movable resource '%s' cannot escape through helper/function call.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                        "- slot/resource summary found a transitive call-escape path for that borrowed symbol\n"
+                        "- forwarding it to another call would create a transitive borrow the compiler cannot keep boundary-safe\n"
+                        "Fix:\n"
+                        "- perform the movable-resource operation locally in this function\n"
+                        "- or change the parameter to 'own' if transfer/forwarding is intended",
+                        param->name,
+                        node->data.func_decl.name != NULL
+                            ? node->data.func_decl.name : "<anonymous>",
+                        param->name);
+                } else {
+                    semantic_error(ctx, node,
+                        "Borrowed ref slot '%s' cannot escape through helper/function call.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' handle\n"
+                        "- 'ref' is a non-owning borrow tied to the current call boundary\n"
+                        "- forwarding it to another call would create a transitive borrow the compiler does not yet track precisely\n"
+                        "Fix:\n"
+                        "- perform the slot operation locally in this function\n"
+                        "- or change the parameter to 'own' if transfer/forwarding is intended",
+                        param->name,
+                        node->data.func_decl.name != NULL
+                            ? node->data.func_decl.name : "<anonymous>",
+                        param->name);
+                }
             }
         }
     }

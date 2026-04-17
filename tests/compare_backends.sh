@@ -69,11 +69,42 @@ PY
 }
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
-if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
-    PGY_BIN="${PGY_BIN}.exe"
+case "$(uname -s 2>/dev/null || echo unknown)" in
+    MINGW*|MSYS*|CYGWIN*)
+        TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
+        ;;
+    *)
+        TMP_BASE="${TMPDIR:-/tmp}"
+        ;;
+esac
+DEFAULT_PGY="$ROOT_DIR/bin/pgy"
+TMP_PGY="${TMP_BASE%/}/pgy-$(basename "$ROOT_DIR")-bin/pgy"
+if [[ -x "${DEFAULT_PGY}.exe" ]]; then
+    DEFAULT_PGY="${DEFAULT_PGY}.exe"
 fi
-TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
+if [[ -x "${TMP_PGY}.exe" ]]; then
+    TMP_PGY="${TMP_PGY}.exe"
+fi
+if [[ -n "${PGY_BIN:-}" ]]; then
+    PGY_BIN="$PGY_BIN"
+else
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            if [[ -x "$TMP_PGY" && ( ! -x "$DEFAULT_PGY" || "$TMP_PGY" -nt "$DEFAULT_PGY" ) ]]; then
+                PGY_BIN="$TMP_PGY"
+            else
+                PGY_BIN="$DEFAULT_PGY"
+            fi
+            ;;
+        *)
+            if [[ -x "$TMP_PGY" ]]; then
+                PGY_BIN="$TMP_PGY"
+            else
+                PGY_BIN="$DEFAULT_PGY"
+            fi
+            ;;
+    esac
+fi
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_backend_compare.XXXXXX")"
 
 add_path_if_dir() {

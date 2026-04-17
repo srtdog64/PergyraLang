@@ -343,6 +343,79 @@ test_dir_lowering(void)
         dir_destroy(dir);
     }
 
+    TEST("DIR captures intent value bindings alongside participants");
+    {
+        const char *src =
+            "subject Buyer { action Pay(self) -> Void { return; } }\n"
+            "zone CheckoutZone { subject slot buyer: Buyer }\n"
+            "intent Checkout(checkout: CheckoutZone, buyer: Buyer, price: Int, adjustments: Array<Int>) {\n"
+            "    step pay {\n"
+            "        where: CheckoutZone;\n"
+            "        using: checkout;\n"
+            "        who: buyer;\n"
+            "        guard: price > 0;\n"
+            "        expect: ArrayLength(adjustments) == 2;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        DIRProgram *dir = lower_dir_from_source(src);
+        bool has_price_edge = false;
+        bool has_adjustments_edge = false;
+        bool ok = false;
+
+        if (dir != NULL) {
+            for (size_t i = 0; i < dir->edge_count; i++) {
+                const DIREdge *edge = &dir->edges[i];
+                if (edge->kind == DIR_EDGE_INTENT_PARTICIPANT_TYPE
+                    && edge->label != NULL
+                    && strcmp(edge->label, "price") == 0
+                    && edge->target_name != NULL
+                    && strcmp(edge->target_name, "Int") == 0) {
+                    has_price_edge = true;
+                }
+                if (edge->kind == DIR_EDGE_INTENT_PARTICIPANT_TYPE
+                    && edge->label != NULL
+                    && strcmp(edge->label, "adjustments") == 0
+                    && edge->target_name != NULL
+                    && strcmp(edge->target_name, "Array<Int>") == 0) {
+                    has_adjustments_edge = true;
+                }
+            }
+        }
+
+        if (dir != NULL && dir->intent_count == 1) {
+            const DIRIntentInfo *intent = &dir->intents[0];
+            if (intent->participant_count == 4 && intent->step_count == 1) {
+                const DIRIntentParticipant *checkout = &intent->participants[0];
+                const DIRIntentParticipant *buyer = &intent->participants[1];
+                const DIRIntentParticipant *price = &intent->participants[2];
+                const DIRIntentParticipant *adjustments = &intent->participants[3];
+
+                ok = checkout->subject_type_name != NULL
+                     && strcmp(checkout->subject_type_name, "CheckoutZone") == 0
+                     && !checkout->is_value_binding
+                     && checkout->subject_type_node_id != SIZE_MAX
+                     && buyer->subject_type_name != NULL
+                     && strcmp(buyer->subject_type_name, "Buyer") == 0
+                     && !buyer->is_value_binding
+                     && buyer->subject_type_node_id != SIZE_MAX
+                     && price->subject_type_name != NULL
+                     && strcmp(price->subject_type_name, "Int") == 0
+                     && price->is_value_binding
+                     && price->subject_type_node_id == SIZE_MAX
+                     && adjustments->subject_type_name != NULL
+                     && strcmp(adjustments->subject_type_name, "Array<Int>") == 0
+                     && adjustments->is_value_binding
+                     && adjustments->subject_type_node_id == SIZE_MAX
+                     && has_price_edge
+                     && has_adjustments_edge;
+            }
+        }
+
+        EXPECT(ok && dir_validate(dir, NULL));
+        dir_destroy(dir);
+    }
+
     TEST("DIR reports missing ability methods on incomplete role impl");
     {
         const char *src =

@@ -391,14 +391,92 @@ dir_add_named_edge(DIRProgram *dir,
     return append_edge(&dir->edges, &dir->edge_count, edge);
 }
 
-static const char *
-type_name(ASTNode *type_node)
+static char *
+dir_render_type_name_dup(ASTNode *type_node)
 {
+    char *result = NULL;
+
     if (type_node == NULL)
         return NULL;
-    if (type_node->type == AST_TYPE)
-        return type_node->data.type.name;
+
+    switch (type_node->type) {
+    case AST_TYPE: {
+        const char *base_name = type_node->data.type.name != NULL
+            ? type_node->data.type.name
+            : "Int";
+        result = pergyra_strdup(base_name);
+        if (result == NULL)
+            return NULL;
+        if (type_node->data.type.generic_args != NULL
+            && type_node->data.type.generic_args->count > 0) {
+            char *next = dir_strdup_fmt("%s<", result);
+            free(result);
+            result = next;
+            if (result == NULL)
+                return NULL;
+            for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
+                GenericParam *param = type_node->data.type.generic_args->params[i];
+                char *arg_text = NULL;
+                if (param != NULL && param->constraint != NULL) {
+                    arg_text = dir_render_type_name_dup(param->constraint);
+                } else if (param != NULL && param->name != NULL) {
+                    arg_text = pergyra_strdup(param->name);
+                } else if (param != NULL && param->default_type != NULL) {
+                    arg_text = dir_render_type_name_dup(param->default_type);
+                } else {
+                    arg_text = pergyra_strdup("Int");
+                }
+                next = dir_strdup_fmt("%s%s%s",
+                                      result,
+                                      i > 0 ? ", " : "",
+                                      arg_text != NULL ? arg_text : "Int");
+                free(arg_text);
+                free(result);
+                result = next;
+                if (result == NULL)
+                    return NULL;
+            }
+            next = dir_strdup_fmt("%s>", result);
+            free(result);
+            result = next;
+        }
+        return result;
+    }
+    case AST_CHANNEL_TYPE: {
+        char *inner = dir_render_type_name_dup(type_node->data.channel_type.element_type);
+        result = dir_strdup_fmt("Channel<%s>", inner != NULL ? inner : "Int");
+        free(inner);
+        return result;
+    }
+    case AST_FUTURE_TYPE: {
+        char *inner = dir_render_type_name_dup(type_node->data.future_type.value_type);
+        result = dir_strdup_fmt("Future<%s>", inner != NULL ? inner : "Int");
+        free(inner);
+        return result;
+    }
+    default:
+        break;
+    }
+
     return NULL;
+}
+
+static const char *
+type_name(DIRProgram *dir, ASTNode *type_node)
+{
+    char *owned;
+
+    if (dir == NULL || type_node == NULL)
+        return NULL;
+
+    owned = dir_render_type_name_dup(type_node);
+    if (owned == NULL)
+        return NULL;
+    if (!dir_track_owned_name(dir, owned)) {
+        free(owned);
+        return NULL;
+    }
+    return owned;
 }
 
 static bool
@@ -553,7 +631,7 @@ dir_collect_nodes(DIRProgram *dir, ASTNode *program)
 static bool
 dir_collect_role_edges(DIRProgram *dir, ASTNode *program, size_t from_id, ASTNode *node)
 {
-    const char *for_type = type_name(node->data.role_decl.for_type);
+    const char *for_type = type_name(dir, node->data.role_decl.for_type);
     if (for_type != NULL) {
         ssize_t to = dir_find_type_node_by_name(dir, for_type);
         if (!dir_add_named_edge(dir, DIR_EDGE_ROLE_FOR_TYPE, from_id,
@@ -648,7 +726,7 @@ dir_collect_party_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
             return false;
         for (size_t j = 0; j < slot->data.role_slot.ability_count; j++) {
             ASTNode *ability = slot->data.role_slot.required_abilities[j];
-            const char *ability_name = type_name(ability);
+            const char *ability_name = type_name(dir, ability);
             ssize_t to = dir_find_ability_node_by_name(dir, ability_name);
             if (!dir_add_named_edge(dir, DIR_EDGE_PARTY_SLOT_ABILITY, from_id,
                                     to >= 0 ? (size_t)to : SIZE_MAX,
@@ -712,7 +790,7 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 {
     for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.slots[i];
-        const char *target = type_name(slot->data.domain_slot.type);
+        const char *target = type_name(dir, slot->data.domain_slot.type);
         ssize_t to = dir_find_type_node_by_name(dir, target);
         ssize_t slot_node_id;
         bool is_projection = dir_domain_slot_is_projection(slot);
@@ -854,7 +932,7 @@ dir_collect_relation_effect_slot_edges(DIRProgram *dir,
         DIRNodeKind slot_kind;
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
             continue;
-        target = type_name(slot->data.domain_slot.type);
+        target = type_name(dir, slot->data.domain_slot.type);
         to = dir_find_type_node_by_name(dir, target);
         is_projection = dir_domain_slot_is_projection(slot);
         slot_kind = is_projection ? DIR_NODE_PROJECTION_SLOT : DIR_NODE_ZONE_SLOT;
@@ -909,8 +987,30 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         ASTNode *inv = node->data.intent_decl.involves[i];
         DIRIntentParticipant participant;
+        memset(&participant, 0, sizeof(participant));
         participant.alias = inv->data.intent_involves.alias;
-        participant.subject_type_name = type_name(inv->data.intent_involves.subject_type);
+        participant.subject_type_name = type_name(dir, inv->data.intent_involves.subject_type);
+        {
+            ssize_t to = dir_find_any_node_by_name(dir, participant.subject_type_name);
+            participant.subject_type_node_id = to >= 0 ? (size_t)to : SIZE_MAX;
+        }
+        if (!append_intent_participant(&info.participants, &info.participant_count, participant))
+            goto oom;
+        if (!dir_add_named_edge(dir,
+                                DIR_EDGE_INTENT_PARTICIPANT_TYPE,
+                                from_id,
+                                participant.subject_type_node_id,
+                                participant.alias,
+                                participant.subject_type_name))
+            goto oom;
+    }
+    for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
+        ASTNode *value = node->data.intent_decl.values[i];
+        DIRIntentParticipant participant;
+        memset(&participant, 0, sizeof(participant));
+        participant.alias = value->data.intent_value.alias;
+        participant.subject_type_name = type_name(dir, value->data.intent_value.value_type);
+        participant.is_value_binding = true;
         {
             ssize_t to = dir_find_any_node_by_name(dir, participant.subject_type_name);
             participant.subject_type_node_id = to >= 0 ? (size_t)to : SIZE_MAX;
@@ -932,7 +1032,7 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         memset(&step, 0, sizeof(step));
         step.index = i;
         step.name = step_node->data.intent_step.name;
-        step.where_type_name = type_name(step_node->data.intent_step.where_type);
+        step.where_type_name = type_name(dir, step_node->data.intent_step.where_type);
         {
             ssize_t to = dir_find_zone_node_by_name(dir, step.where_type_name);
             step.where_type_node_id = to >= 0 ? (size_t)to : SIZE_MAX;
@@ -1268,8 +1368,9 @@ dir_validate(const DIRProgram *dir, char **error_message)
         }
         for (size_t j = 0; j < intent->participant_count; j++) {
             const DIRIntentParticipant *participant = &intent->participants[j];
-            if (participant->subject_type_node_id == SIZE_MAX
-                || participant->subject_type_node_id >= dir->node_count) {
+            if (!participant->is_value_binding
+                && (participant->subject_type_node_id == SIZE_MAX
+                    || participant->subject_type_node_id >= dir->node_count)) {
                 if (error_message != NULL) {
                     *error_message = dir_strdup_fmt(
                         "DIR intent[%zu] participant '%s' is unresolved",
@@ -1373,7 +1474,8 @@ dir_dump(const DIRProgram *dir, FILE *out)
                 intent->step_count);
         for (size_t j = 0; j < intent->participant_count; j++) {
             const DIRIntentParticipant *p = &intent->participants[j];
-            fprintf(out, "    participant %-12s type=%s resolved=",
+            fprintf(out, "    %s %-12s type=%s resolved=",
+                    p->is_value_binding ? "value      " : "participant",
                     p->alias != NULL ? p->alias : "-",
                     p->subject_type_name != NULL ? p->subject_type_name : "-");
             dir_dump_resolved_id(out, p->subject_type_node_id);

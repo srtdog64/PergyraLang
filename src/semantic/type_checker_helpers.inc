@@ -1891,6 +1891,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         if (type_is_movable_resource_handle(arg_type)
             || type_is_movable_resource_handle(param_type)) {
             ParamMode pmode = PARAM_MODE_DEFAULT;
+            ASTNode *callee_decl = NULL;
             if (!type_is_movable_resource_handle(arg_type)
                 || !type_is_movable_resource_handle(param_type)) {
                 semantic_error(ctx, expr->data.call.arguments[i],
@@ -1913,9 +1914,44 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         && stmt->data.func_decl.name != NULL
                         && strcmp(stmt->data.func_decl.name, display_name) == 0
                         && i < stmt->data.func_decl.param_count) {
+                        callee_decl = stmt;
                         pmode = stmt->data.func_decl.params[i]->mode;
                         break;
                     }
+                }
+            }
+            if (pmode == PARAM_MODE_REF
+                && expr->data.call.arguments[i]->type == AST_IDENTIFIER
+                && identifier_is_borrowed_movable_param(expr->data.call.arguments[i], ctx)
+                && callee_decl != NULL
+                && callee_decl->data.func_decl.body != NULL) {
+                unsigned callee_mask = slot_analyze_param_summary_in_program(
+                    callee_decl->data.func_decl.body,
+                    callee_decl->data.func_decl.params[i] != NULL
+                        ? callee_decl->data.func_decl.params[i]->name
+                        : NULL,
+                    ctx->program_root);
+                if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                                    | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
+                                    | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+                    semantic_error(ctx, expr->data.call.arguments[i],
+                        "Borrowed ref movable resource '%s' cannot escape through helper/function call.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                        "- callee '%s' derives a transitive call-escape path for its borrowed parameter\n"
+                        "- forwarding this borrow into that helper would let it escape beyond the current call boundary\n"
+                        "Fix:\n"
+                        "- perform the movable-resource operation locally in this function\n"
+                        "- or change the current parameter to 'own' if transfer/forwarding is intended",
+                        expr->data.call.arguments[i]->data.identifier.name,
+                        ctx->current_function_decl != NULL
+                            && ctx->current_function_decl->data.func_decl.name != NULL
+                                ? ctx->current_function_decl->data.func_decl.name
+                                : "<anonymous>",
+                        expr->data.call.arguments[i]->data.identifier.name,
+                        display_name != NULL ? display_name : "<callee>");
+                    continue;
                 }
             }
             if (pmode != PARAM_MODE_REF

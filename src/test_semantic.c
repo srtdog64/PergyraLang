@@ -1769,6 +1769,35 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("ref QubitSlot parameter cannot escape transitively through ref helper return");
+    {
+        const char *source =
+            "func ReturnBorrowed(ref q: QubitSlot) -> QubitSlot {\n"
+            "    return q;\n"
+            "}\n"
+            "func BorrowForward(ref q: QubitSlot) -> Void {\n"
+            "    ReturnBorrowed(q);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through helper/function call"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "transitive call-escape path"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "borrowed 'ref' movable resource"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ref QubitSlot parameter cannot escape into a new binding");
     {
         const char *source =
@@ -4308,6 +4337,99 @@ test_projection_contract_diagnostics(void)
             result, "each projection target field may be filled from exactly one source field"));
         EXPECT(ctx_has_diagnostic_substring_from_result(
             result, "keep a single mapping for 'hp'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone state reports unknown effect slot with structured diagnostic");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    shared damage: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    state poisoned: effect poison on player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "Zone state 'poisoned' references unknown effect slot 'poison'."));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "state 'poisoned' is declared as an effect-backed lifecycle alias"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "declare effect slot 'poison' before this state"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone apply reports unknown effect slot with structured diagnostic");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    apply poison to player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "Zone apply references unknown effect slot 'poison'."));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "apply mutates an effect lifecycle and must target a declared zone effect slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "declare effect slot 'poison' in zone 'BattleZone'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone maintain reports unknown state with structured diagnostic");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    maintain ghostState\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "Zone maintain references unknown state 'ghostState'."));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "maintain state aliases must reference a declared zone state"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "declare state 'ghostState' before this maintain clause"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

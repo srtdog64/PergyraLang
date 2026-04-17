@@ -116,26 +116,31 @@ transpiler_decl_methods_local(ASTNode *decl, ASTNode ***methods_out,
 static ASTNode *
 transpiler_current_host_decl_local(TranspilerCtx *ctx)
 {
+    ASTNode *decl = NULL;
+
     if (ctx == NULL)
         return NULL;
     if (ctx->current_host_decl != NULL)
         return ctx->current_host_decl;
-    if (ctx->current_relation_name != NULL)
-        return transpiler_find_decl_in_inventory_local(
+    if (ctx->current_relation_name != NULL) {
+        decl = transpiler_find_decl_in_inventory_local(
             ctx, AST_RELATION_DECL, ctx->current_relation_name);
-    if (ctx->current_effect_name != NULL)
-        return transpiler_find_decl_in_inventory_local(
+    } else if (ctx->current_effect_name != NULL) {
+        decl = transpiler_find_decl_in_inventory_local(
             ctx, AST_EFFECT_DECL, ctx->current_effect_name);
-    if (ctx->current_zone_name != NULL)
-        return transpiler_find_decl_in_inventory_local(
+    } else if (ctx->current_zone_name != NULL) {
+        decl = transpiler_find_decl_in_inventory_local(
             ctx, AST_ZONE_DECL, ctx->current_zone_name);
-    if (ctx->current_world_name != NULL)
-        return transpiler_find_decl_in_inventory_local(
+    } else if (ctx->current_world_name != NULL) {
+        decl = transpiler_find_decl_in_inventory_local(
             ctx, AST_WORLD_DECL, ctx->current_world_name);
-    if (ctx->current_class_name != NULL)
-        return transpiler_find_decl_in_inventory_local(
+    } else if (ctx->current_class_name != NULL) {
+        decl = transpiler_find_decl_in_inventory_local(
             ctx, AST_CLASS_DECL, ctx->current_class_name);
-    return NULL;
+    }
+    if (decl != NULL)
+        ctx->current_host_decl = decl;
+    return decl;
 }
 
 static ASTNode *

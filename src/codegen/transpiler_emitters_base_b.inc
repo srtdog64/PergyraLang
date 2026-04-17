@@ -76,8 +76,11 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
             ctx, AST_ZONE_DECL, owner_zone_name);
     } else if (owner_is_role) {
-        if (owner_role_subject_name != NULL)
+        if (owner_role_subject_name != NULL) {
             ctx->current_class_name = owner_role_subject_name;
+            ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
+                ctx, AST_CLASS_DECL, owner_role_subject_name);
+        }
     } else if (owner_is_relation) {
         ctx->current_relation_name = owner_name;
         ctx->current_host_decl = transpiler_find_decl_in_inventory_local(

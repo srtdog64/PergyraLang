@@ -834,9 +834,9 @@ current_zone_has_field(TranspilerCtx *ctx, const char *field_name)
     if (ctx == NULL || field_name == NULL)
         return false;
 
-    decl = (ctx->current_host_decl != NULL
-            && ctx->current_host_decl->type == AST_ZONE_DECL)
-        ? ctx->current_host_decl
+    decl = (transpiler_current_host_decl_local(ctx) != NULL
+            && transpiler_current_host_decl_local(ctx)->type == AST_ZONE_DECL)
+        ? transpiler_current_host_decl_local(ctx)
         : NULL;
     if (decl == NULL && ctx->current_zone_name != NULL)
         decl = find_zone_decl(ctx, ctx->current_zone_name);
@@ -876,9 +876,9 @@ current_relation_has_field(TranspilerCtx *ctx, const char *field_name)
     if (ctx == NULL || field_name == NULL)
         return false;
 
-    decl = (ctx->current_host_decl != NULL
-            && ctx->current_host_decl->type == AST_RELATION_DECL)
-        ? ctx->current_host_decl
+    decl = (transpiler_current_host_decl_local(ctx) != NULL
+            && transpiler_current_host_decl_local(ctx)->type == AST_RELATION_DECL)
+        ? transpiler_current_host_decl_local(ctx)
         : NULL;
     if (decl == NULL && ctx->current_relation_name != NULL)
         decl = find_relation_decl(ctx, ctx->current_relation_name);
@@ -911,9 +911,9 @@ current_effect_has_field(TranspilerCtx *ctx, const char *field_name)
     if (ctx == NULL || field_name == NULL)
         return false;
 
-    decl = (ctx->current_host_decl != NULL
-            && ctx->current_host_decl->type == AST_EFFECT_DECL)
-        ? ctx->current_host_decl
+    decl = (transpiler_current_host_decl_local(ctx) != NULL
+            && transpiler_current_host_decl_local(ctx)->type == AST_EFFECT_DECL)
+        ? transpiler_current_host_decl_local(ctx)
         : NULL;
     if (decl == NULL && ctx->current_effect_name != NULL)
         decl = find_effect_decl(ctx, ctx->current_effect_name);
@@ -1144,7 +1144,7 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
     if (ctx == NULL)
         return NULL;
 
-    decl = ctx->current_host_decl;
+    decl = transpiler_current_host_decl_local(ctx);
     if (decl != NULL && decl->type == AST_RELATION_DECL) {
         if (refresh_count_out != NULL)
             *refresh_count_out = decl->data.relation_decl.refresh_count;
@@ -1245,7 +1245,7 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
     if (ctx == NULL || slot_name == NULL)
         return NULL;
 
-    decl = ctx->current_host_decl;
+    decl = transpiler_current_host_decl_local(ctx);
     if (decl != NULL && decl->type == AST_RELATION_DECL) {
         for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
             ASTNode *slot = decl->data.relation_decl.slots[i];
@@ -1660,9 +1660,9 @@ current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     if (ctx == NULL || field_name == NULL)
         return false;
 
-    decl = (ctx->current_host_decl != NULL
-            && ctx->current_host_decl->type == AST_WORLD_DECL)
-        ? ctx->current_host_decl
+    decl = (transpiler_current_host_decl_local(ctx) != NULL
+            && transpiler_current_host_decl_local(ctx)->type == AST_WORLD_DECL)
+        ? transpiler_current_host_decl_local(ctx)
         : NULL;
     if (decl == NULL && ctx->current_world_name != NULL)
         decl = find_world_decl(ctx, ctx->current_world_name);
@@ -1802,9 +1802,9 @@ resolve_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
     if (ctx == NULL || receiver == NULL)
         return false;
 
-    zone_decl = (ctx->current_host_decl != NULL
-                 && ctx->current_host_decl->type == AST_ZONE_DECL)
-        ? ctx->current_host_decl
+    zone_decl = (transpiler_current_host_decl_local(ctx) != NULL
+                 && transpiler_current_host_decl_local(ctx)->type == AST_ZONE_DECL)
+        ? transpiler_current_host_decl_local(ctx)
         : find_zone_decl(ctx, ctx->current_zone_name);
     if (zone_decl == NULL)
         return false;
@@ -1884,9 +1884,9 @@ resolve_world_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
         return false;
     }
 
-    world_decl = (ctx->current_host_decl != NULL
-                  && ctx->current_host_decl->type == AST_WORLD_DECL)
-        ? ctx->current_host_decl
+    world_decl = (transpiler_current_host_decl_local(ctx) != NULL
+                  && transpiler_current_host_decl_local(ctx)->type == AST_WORLD_DECL)
+        ? transpiler_current_host_decl_local(ctx)
         : find_world_decl(ctx, ctx->current_world_name);
     if (world_decl == NULL)
         return false;
@@ -1929,9 +1929,9 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
         return;
     }
 
-    if (ctx->current_host_decl != NULL
-        && ctx->current_host_decl->type == AST_ZONE_DECL) {
-        active_zone_name = ctx->current_host_decl->data.zone_decl.name;
+    if (transpiler_current_host_decl_local(ctx) != NULL
+        && transpiler_current_host_decl_local(ctx)->type == AST_ZONE_DECL) {
+        active_zone_name = transpiler_current_host_decl_local(ctx)->data.zone_decl.name;
     }
     if (active_zone_name == NULL)
         active_zone_name = ctx->current_zone_name;
@@ -1962,9 +1962,9 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
         return;
     }
 
-    zone_decl = (ctx->current_host_decl != NULL
-                 && ctx->current_host_decl->type == AST_ZONE_DECL)
-        ? ctx->current_host_decl
+    zone_decl = (transpiler_current_host_decl_local(ctx) != NULL
+                 && transpiler_current_host_decl_local(ctx)->type == AST_ZONE_DECL)
+        ? transpiler_current_host_decl_local(ctx)
         : find_zone_decl(ctx, ctx->current_zone_name);
     if (zone_decl == NULL)
         return;
