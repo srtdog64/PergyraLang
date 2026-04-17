@@ -231,6 +231,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             FuncParam *p = method->data.func_decl.params[j];
             char *param_name = NULL;
             const char *pt = NULL;
+            bool pointer_param = false;
             char surface_desc[256];
             if (p == NULL)
                 continue;
@@ -238,6 +239,8 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
                 continue;
             if (p->type != NULL) {
                 param_name = render_type_name_with_bindings(ctx, p->type, bindings, binding_count);
+                pointer_param = param_name != NULL
+                    && is_pointer_self_host_type_name(ctx, param_name);
             }
             snprintf(surface_desc, sizeof(surface_desc),
                 "ability vtable parameter '%s.%s(%s)'",
@@ -251,7 +254,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
                 free(tag);
                 return;
             }
-            codebuf_write(target, ", %s %s", pt, p->name);
+            codebuf_write(target, ", %s%s %s", pt, pointer_param ? " *" : "", p->name);
             free(param_name);
         }
         codebuf_write(target, ");\n");
@@ -496,9 +499,11 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
+            char *param_name = NULL;
             if (strcmp(p->name, "self") == 0 && p->type == NULL)
                 continue;
             const char *pt = NULL;
+            bool pointer_param = false;
             char surface_desc[256];
             snprintf(surface_desc, sizeof(surface_desc),
                 "ability method parameter '%s.%s(%s)'",
@@ -508,7 +513,12 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
             pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
             if (pt == NULL)
                 return;
-            codebuf_write(ctx->out, ", %s %s", pt, p->name);
+            if (p != NULL && p->type != NULL)
+                param_name = render_type_name(p->type);
+            pointer_param = param_name != NULL
+                && is_pointer_self_host_type_name(ctx, param_name);
+            codebuf_write(ctx->out, ", %s%s %s", pt, pointer_param ? " *" : "", p->name);
+            free(param_name);
         }
         codebuf_write(ctx->out, ");\n");
     }

@@ -14,6 +14,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     int saved_typed_count = ctx->typed_var_count;
     CodeBuf *saved_out = ctx->out;
     TranspilerCtx *saved_render_ctx = g_type_render_ctx;
+    ASTNode *saved_host_decl = ctx->current_host_decl;
     const char *saved_zone_name = ctx->current_zone_name;
     const char *saved_class_name = ctx->current_class_name;
     const char *saved_relation_name = ctx->current_relation_name;
@@ -69,19 +70,30 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     ctx->out = buf;
     g_type_render_ctx = ctx;
+    ctx->current_host_decl = NULL;
     if (owner_is_zone) {
         ctx->current_zone_name = owner_zone_name;
+        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_ZONE_DECL, owner_zone_name);
     } else if (owner_is_role) {
         if (owner_role_subject_name != NULL)
             ctx->current_class_name = owner_role_subject_name;
     } else if (owner_is_relation) {
         ctx->current_relation_name = owner_name;
+        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_RELATION_DECL, owner_name);
     } else if (owner_is_effect) {
         ctx->current_effect_name = owner_name;
+        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_EFFECT_DECL, owner_name);
     } else if (owner_is_world) {
         ctx->current_world_name = owner_name;
+        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_WORLD_DECL, owner_name);
     } else if (owner_name != NULL) {
         ctx->current_class_name = owner_name;
+        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_CLASS_DECL, owner_name);
     }
     if (!owner_is_zone
         && owner_name == NULL
@@ -90,6 +102,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         && node->data.func_decl.within_zone != NULL
         && find_zone_decl(ctx, node->data.func_decl.within_zone) != NULL) {
         ctx->current_zone_name = node->data.func_decl.within_zone;
+        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_ZONE_DECL, node->data.func_decl.within_zone);
     }
     if (node != NULL && node->type == AST_FUNC_DECL)
         ctx->current_func_decl = node;
@@ -685,6 +699,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     ctx->typed_var_count = saved_typed_count;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
         "%s", saved_return_type);
+    ctx->current_host_decl = saved_host_decl;
     ctx->current_zone_name = saved_zone_name;
     ctx->current_class_name = saved_class_name;
     ctx->current_relation_name = saved_relation_name;

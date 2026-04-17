@@ -195,7 +195,8 @@ typedef struct
     AbilityVtableSpecEntry ability_vtable_specs[MAX_ABILITY_VTABLE_SPECIALIZATIONS];
     int                    ability_vtable_spec_count;
 
-    /* Current class method emission context for implicit self-field access. */
+    /* Current host emission context for implicit self-field access. */
+    ASTNode *current_host_decl;
     const char *current_class_name;
     const char *current_relation_name;
     const char *current_effect_name;

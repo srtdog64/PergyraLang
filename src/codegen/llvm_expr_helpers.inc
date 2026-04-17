@@ -631,7 +631,33 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 static const char *
 llvm_current_host_class_name(LLVMGenCtx *ctx)
 {
-    return ctx != NULL ? ctx->current_class_name : NULL;
+    ASTNode *host_decl;
+
+    if (ctx == NULL)
+        return NULL;
+    if (ctx->current_class_name == NULL)
+        return NULL;
+
+    host_decl = llvm_find_projection_nominal_decl(ctx, ctx->current_class_name);
+    if (host_decl == NULL)
+        return ctx->current_class_name;
+
+    switch (host_decl->type) {
+    case AST_CLASS_DECL:
+        return host_decl->data.class_decl.name;
+    case AST_RELATION_DECL:
+        return host_decl->data.relation_decl.name;
+    case AST_EFFECT_DECL:
+        return host_decl->data.effect_decl.name;
+    case AST_ZONE_DECL:
+        return host_decl->data.zone_decl.name;
+    case AST_WORLD_DECL:
+        return host_decl->data.world_decl.name;
+    default:
+        break;
+    }
+
+    return ctx->current_class_name;
 }
 
 static const char *
@@ -781,9 +807,12 @@ llvm_emit_projection_from_binding(LLVMGenCtx *ctx,
 static ASTNode *
 llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
 {
-    if (ctx == NULL || method_name == NULL || ctx->current_class_name == NULL)
+    const char *host_name;
+
+    host_name = llvm_current_host_class_name(ctx);
+    if (ctx == NULL || method_name == NULL || host_name == NULL)
         return NULL;
-    return llvm_find_nominal_host_method_decl(ctx, ctx->current_class_name,
+    return llvm_find_nominal_host_method_decl(ctx, host_name,
                                               method_name);
 }
 

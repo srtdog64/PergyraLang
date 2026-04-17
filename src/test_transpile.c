@@ -2289,6 +2289,43 @@ test_program_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("relation methods lower bare sibling calls through MIR host inventory");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "relation CombatLink {\n"
+            "    subject slot left: Player\n"
+            "    func Score(self) -> Int {\n"
+            "        return 7;\n"
+            "    }\n"
+            "    func Total(self) -> Int {\n"
+            "        return Score();\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "CombatLink_Total(CombatLink *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return CombatLink_Score(self);");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("vessel methods lower like passive pointer-self receivers");
     {
         const char *source =

@@ -1793,6 +1793,9 @@ transpiler_make_c_ssa_name(const char *versioned_name)
 static bool
 transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
 {
+    bool in_zone_context = false;
+    const char *class_host_name = NULL;
+
     if (ctx == NULL || base_name == NULL)
         return false;
     if (strcmp(base_name, "self") == 0)
@@ -1800,22 +1803,31 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
     if (ctx->current_func_decl != NULL
         && transpiler_has_explicit_local_binding(ctx->current_func_decl, base_name))
         return false;
-    if (ctx->current_class_name != NULL && current_class_has_field(ctx, base_name))
+    in_zone_context = (ctx->current_host_decl != NULL
+                       && ctx->current_host_decl->type == AST_ZONE_DECL)
+        || ctx->current_zone_name != NULL;
+    if (ctx->current_host_decl != NULL
+        && ctx->current_host_decl->type == AST_CLASS_DECL) {
+        class_host_name = ctx->current_host_decl->data.class_decl.name;
+    }
+    if (class_host_name == NULL)
+        class_host_name = ctx->current_class_name;
+    if (current_class_has_field(ctx, base_name))
         return true;
-    if (ctx->current_relation_name != NULL && current_relation_has_field(ctx, base_name))
+    if (current_relation_has_field(ctx, base_name))
         return true;
-    if (ctx->current_effect_name != NULL && current_effect_has_field(ctx, base_name))
+    if (current_effect_has_field(ctx, base_name))
         return true;
-    if (ctx->current_zone_name != NULL) {
+    if (in_zone_context) {
         if (current_zone_has_field(ctx, base_name))
             return true;
         if (lookup_typed_var(ctx, base_name) == NULL && !is_slot_var(ctx, base_name))
             return true;
     }
-    if (ctx->current_world_name != NULL && current_world_has_field(ctx, base_name))
+    if (current_world_has_field(ctx, base_name))
         return true;
-    if (ctx->current_zone_name == NULL && ctx->current_class_name != NULL) {
-        ASTNode *zone_decl = find_zone_decl(ctx, ctx->current_class_name);
+    if (!in_zone_context && class_host_name != NULL) {
+        ASTNode *zone_decl = find_zone_decl(ctx, class_host_name);
         if (zone_decl != NULL) {
             for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
                 ASTNode *slot = zone_decl->data.zone_decl.slots[i];
@@ -1840,9 +1852,9 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
             }
         }
         {
-            size_t name_len = strlen(ctx->current_class_name);
+            size_t name_len = strlen(class_host_name);
             if (name_len > 4
-                && strcmp(ctx->current_class_name + name_len - 4, "Zone") == 0
+                && strcmp(class_host_name + name_len - 4, "Zone") == 0
                 && lookup_typed_var(ctx, base_name) == NULL
                 && !is_slot_var(ctx, base_name)) {
                 return true;
@@ -1862,7 +1874,7 @@ transpiler_render_ssa_name(TranspilerCtx *ctx, const char *versioned_name)
         && versioned_name != NULL
         && transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version)
         && transpiler_is_implicit_field(ctx, base)) {
-        if (ctx->current_class_name != NULL && current_class_has_field(ctx, base)) {
+        if (current_class_has_field(ctx, base)) {
             return strdup_fmt(current_class_uses_self_cell(ctx)
                 ? "self->%s"
                 : "self.%s", base);
@@ -2335,9 +2347,38 @@ transpiler_lookup_current_owner_member_type_name(TranspilerCtx *ctx,
                                                  const char *member_name)
 {
     const char *member_type = NULL;
+    const char *host_name = NULL;
 
     if (ctx == NULL || member_name == NULL)
         return NULL;
+
+    if (ctx->current_host_decl != NULL) {
+        switch (ctx->current_host_decl->type) {
+        case AST_CLASS_DECL:
+            host_name = ctx->current_host_decl->data.class_decl.name;
+            break;
+        case AST_RELATION_DECL:
+            host_name = ctx->current_host_decl->data.relation_decl.name;
+            break;
+        case AST_EFFECT_DECL:
+            host_name = ctx->current_host_decl->data.effect_decl.name;
+            break;
+        case AST_ZONE_DECL:
+            host_name = ctx->current_host_decl->data.zone_decl.name;
+            break;
+        case AST_WORLD_DECL:
+            host_name = ctx->current_host_decl->data.world_decl.name;
+            break;
+        default:
+            break;
+        }
+        if (host_name != NULL) {
+            member_type = lookup_nominal_host_member_type_name(ctx,
+                host_name, member_name);
+            if (member_type != NULL)
+                return member_type;
+        }
+    }
 
     if (ctx->current_class_name != NULL) {
         member_type = lookup_nominal_host_member_type_name(ctx,
@@ -2825,38 +2866,28 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 continue;
             is_local_binding = transpiler_has_explicit_local_binding(func_decl, target_name);
             if (!is_local_binding) {
-                if (ctx->current_class_name != NULL
-                    && current_class_has_field(ctx, target_name))
+                if (current_class_has_field(ctx, target_name))
                     target_is_field = true;
-                if (ctx->current_relation_name != NULL
-                    && current_relation_has_field(ctx, target_name))
+                if (current_relation_has_field(ctx, target_name))
                     target_is_field = true;
-                if (ctx->current_effect_name != NULL
-                    && current_effect_has_field(ctx, target_name))
+                if (current_effect_has_field(ctx, target_name))
                     target_is_field = true;
-                if (ctx->current_zone_name != NULL
-                    && current_zone_has_field(ctx, target_name))
+                if (current_zone_has_field(ctx, target_name))
                     target_is_field = true;
-                if (ctx->current_world_name != NULL
-                    && current_world_has_field(ctx, target_name))
+                if (current_world_has_field(ctx, target_name))
                     target_is_field = true;
             }
             if (!target_is_field && inst->slot_anchor != NULL) {
                 const char *slot_anchor = inst->slot_anchor;
-                if (ctx->current_class_name != NULL
-                    && current_class_has_field(ctx, slot_anchor))
+                if (current_class_has_field(ctx, slot_anchor))
                     target_is_field = true;
-                if (ctx->current_relation_name != NULL
-                    && current_relation_has_field(ctx, slot_anchor))
+                if (current_relation_has_field(ctx, slot_anchor))
                     target_is_field = true;
-                if (ctx->current_effect_name != NULL
-                    && current_effect_has_field(ctx, slot_anchor))
+                if (current_effect_has_field(ctx, slot_anchor))
                     target_is_field = true;
-                if (ctx->current_zone_name != NULL
-                    && current_zone_has_field(ctx, slot_anchor))
+                if (current_zone_has_field(ctx, slot_anchor))
                     target_is_field = true;
-                if (ctx->current_world_name != NULL
-                    && current_world_has_field(ctx, slot_anchor))
+                if (current_world_has_field(ctx, slot_anchor))
                     target_is_field = true;
             }
             if (target_is_field) {

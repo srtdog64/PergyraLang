@@ -68,6 +68,21 @@ llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
                                               ctx->current_class_name);
 }
 
+static const char *
+llvm_decl_current_nominal_name(LLVMGenCtx *ctx)
+{
+    ASTNode *zone_decl;
+
+    if (ctx == NULL)
+        return NULL;
+
+    zone_decl = llvm_decl_find_current_zone_decl(ctx);
+    if (zone_decl != NULL)
+        return zone_decl->data.zone_decl.name;
+
+    return ctx->current_class_name;
+}
+
 static void
 llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
 {
@@ -82,8 +97,9 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
     LLVMTypeRef field_type;
     LLVMValueRef args[4];
     int field_index;
+    const char *zone_name;
 
-    if (ctx == NULL || ctx->current_class_name == NULL)
+    if (ctx == NULL)
         return;
 
     zone_decl = llvm_decl_find_current_zone_decl(ctx);
@@ -100,7 +116,8 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
         return;
     }
 
-    zone_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+    zone_name = zone_decl->data.zone_decl.name;
+    zone_cls = zone_name != NULL ? llvm_lookup_class(ctx, zone_name) : NULL;
     self_var = llvm_scope_lookup(ctx, "self");
     check_fn = llvm_lookup_function(ctx, "pgy_zone_authority_check_export");
     if (zone_cls == NULL || self_var == NULL || check_fn == NULL)
@@ -128,7 +145,7 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
         args[1] = LLVMBuildBitCast(ctx->builder, field_ptr, ctx->type_i8ptr,
             llvm_tmp_name(ctx));
     }
-    args[2] = LLVMBuildGlobalStringPtr(ctx->builder, ctx->current_class_name,
+    args[2] = LLVMBuildGlobalStringPtr(ctx->builder, zone_name,
         llvm_tmp_name(ctx));
     args[3] = LLVMBuildGlobalStringPtr(ctx->builder,
         authority->data.zone_authority.subject_slot_name, llvm_tmp_name(ctx));
@@ -240,8 +257,11 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
             : ctx->type_i32;
         /* For 'self' parameter in class methods, use the class struct pointer
          * type instead of the default i32. */
-        if (llvm_param_is_implicit_self(p) && ctx->current_class_name != NULL) {
-            LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+        if (llvm_param_is_implicit_self(p)) {
+            const char *host_name = llvm_decl_current_nominal_name(ctx);
+            LLVMClassTypeEntry *cls = host_name != NULL
+                ? llvm_lookup_class(ctx, host_name)
+                : NULL;
             if (cls != NULL) {
                 pt = cls->is_pointer_self_host
                     ? LLVMPointerType(cls->struct_type, 0)

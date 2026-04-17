@@ -1054,7 +1054,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 return strdup_fmt("self->__projection_ready_%s", slot_name);
             }
             if (slot_name != NULL
-                && (ctx->current_relation_name != NULL
+                && ((ctx->current_host_decl != NULL
+                        && (ctx->current_host_decl->type == AST_RELATION_DECL
+                            || ctx->current_host_decl->type == AST_EFFECT_DECL
+                            || ctx->current_host_decl->type == AST_ZONE_DECL))
+                    || ctx->current_relation_name != NULL
                     || ctx->current_effect_name != NULL
                     || ctx->current_zone_name != NULL)) {
                 return strdup_fmt("self->__projection_ready_%s", slot_name);
@@ -1064,133 +1068,197 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             "C backend: HasProjection requires active relation/effect/zone projection context");
         return pergyra_strdup("false");
     case BUILTIN_HAS_LAYER:
-        if (ctx->current_zone_name != NULL
+        {
+            ASTNode *zone_decl = NULL;
+            const char *zone_name = ctx->current_zone_name;
+            if (ctx->current_host_decl != NULL
+                && ctx->current_host_decl->type == AST_ZONE_DECL) {
+                zone_decl = ctx->current_host_decl;
+                zone_name = zone_decl->data.zone_decl.name;
+            }
+            if (zone_decl == NULL && zone_name != NULL)
+                zone_decl = find_zone_decl(ctx, zone_name);
+            if (zone_name != NULL
             && call->data.call.arg_count == 1
             && call->data.call.arguments[0] != NULL) {
-            const char *layer_name = NULL;
-            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                layer_name = call->data.call.arguments[0]->data.identifier.name;
-            else if (call->data.call.arguments[0]->type == AST_STRING)
-                layer_name = call->data.call.arguments[0]->data.string.value;
-            if (layer_name != NULL)
-                return strdup_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
-                    ctx->current_zone_name, layer_name);
+                const char *layer_name = NULL;
+                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                    layer_name = call->data.call.arguments[0]->data.identifier.name;
+                else if (call->data.call.arguments[0]->type == AST_STRING)
+                    layer_name = call->data.call.arguments[0]->data.string.value;
+                if (layer_name != NULL)
+                    return strdup_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
+                        zone_name, layer_name);
+            }
         }
         transpiler_set_backend_error(ctx,
             "C backend: HasLayer requires active zone context");
         return pergyra_strdup("false");
     case BUILTIN_HAS_STATE:
-        if (ctx->current_zone_name != NULL
+        {
+            ASTNode *zone_decl = NULL;
+            const char *zone_name = ctx->current_zone_name;
+            if (ctx->current_host_decl != NULL
+                && ctx->current_host_decl->type == AST_ZONE_DECL) {
+                zone_decl = ctx->current_host_decl;
+                zone_name = zone_decl->data.zone_decl.name;
+            }
+            if (zone_decl == NULL && zone_name != NULL)
+                zone_decl = find_zone_decl(ctx, zone_name);
+            if (zone_decl != NULL
             && call->data.call.arg_count >= 1
             && call->data.call.arguments[0] != NULL) {
-            ASTNode *zone_decl = find_zone_decl(ctx, ctx->current_zone_name);
-            const char *state_name = NULL;
-            ASTNode *state_decl;
-            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                state_name = call->data.call.arguments[0]->data.identifier.name;
-            else if (call->data.call.arguments[0]->type == AST_STRING)
-                state_name = call->data.call.arguments[0]->data.string.value;
-            state_decl = find_zone_state_decl(zone_decl, state_name);
-            if (state_decl != NULL && state_name != NULL)
-                return strdup_fmt("self->__state_%s", state_name);
+                const char *state_name = NULL;
+                ASTNode *state_decl;
+                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                    state_name = call->data.call.arguments[0]->data.identifier.name;
+                else if (call->data.call.arguments[0]->type == AST_STRING)
+                    state_name = call->data.call.arguments[0]->data.string.value;
+                state_decl = find_zone_state_decl(zone_decl, state_name);
+                if (state_decl != NULL && state_name != NULL)
+                    return strdup_fmt("self->__state_%s", state_name);
+            }
         }
         transpiler_set_backend_error(ctx,
             "C backend: HasState requires active zone context with matching state");
         return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE:
-        if (ctx->current_world_name != NULL
+        {
+            ASTNode *world_decl = NULL;
+            const char *world_name = ctx->current_world_name;
+            if (ctx->current_host_decl != NULL
+                && ctx->current_host_decl->type == AST_WORLD_DECL) {
+                world_decl = ctx->current_host_decl;
+                world_name = world_decl->data.world_decl.name;
+            }
+            if (world_decl == NULL && world_name != NULL)
+                world_decl = find_world_decl(ctx, world_name);
+            if (world_decl != NULL
             && call->data.call.arg_count >= 1
             && call->data.call.arguments[0] != NULL) {
-            ASTNode *world_decl = find_world_decl(ctx, ctx->current_world_name);
-            const char *name = NULL;
-            ASTNode *state_decl;
-            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                name = call->data.call.arguments[0]->data.identifier.name;
-            else if (call->data.call.arguments[0]->type == AST_STRING)
-                name = call->data.call.arguments[0]->data.string.value;
-            state_decl = find_world_state_decl(world_decl, name);
-            if (state_decl != NULL && name != NULL)
-                return strdup_fmt("self->__zone_state_%s", name);
-            if (world_has_zone_slot(world_decl, name))
-                return strdup_fmt("self->__zone_active_%s", name);
+                const char *name = NULL;
+                ASTNode *state_decl;
+                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                    name = call->data.call.arguments[0]->data.identifier.name;
+                else if (call->data.call.arguments[0]->type == AST_STRING)
+                    name = call->data.call.arguments[0]->data.string.value;
+                state_decl = find_world_state_decl(world_decl, name);
+                if (state_decl != NULL && name != NULL)
+                    return strdup_fmt("self->__zone_state_%s", name);
+                if (world_has_zone_slot(world_decl, name))
+                    return strdup_fmt("self->__zone_active_%s", name);
+            }
         }
         transpiler_set_backend_error(ctx,
             "C backend: HasZone requires active world context");
         return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE_PROJECTION:
-        if (ctx->current_world_name != NULL
+        {
+            ASTNode *world_decl = NULL;
+            const char *world_name = ctx->current_world_name;
+            if (ctx->current_host_decl != NULL
+                && ctx->current_host_decl->type == AST_WORLD_DECL) {
+                world_decl = ctx->current_host_decl;
+                world_name = world_decl->data.world_decl.name;
+            }
+            if (world_decl == NULL && world_name != NULL)
+                world_decl = find_world_decl(ctx, world_name);
+            if (world_decl != NULL
             && call->data.call.arg_count == 2
             && call->data.call.arguments[0] != NULL
             && call->data.call.arguments[1] != NULL) {
-            ASTNode *world_decl = find_world_decl(ctx, ctx->current_world_name);
-            const char *zone_name = NULL;
-            const char *slot_name = NULL;
-            ASTNode *zone_decl;
-            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                zone_name = call->data.call.arguments[0]->data.identifier.name;
-            else if (call->data.call.arguments[0]->type == AST_STRING)
-                zone_name = call->data.call.arguments[0]->data.string.value;
-            if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
-                slot_name = call->data.call.arguments[1]->data.identifier.name;
-            else if (call->data.call.arguments[1]->type == AST_STRING)
-                slot_name = call->data.call.arguments[1]->data.string.value;
-            zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
-            if (zone_decl != NULL && slot_name != NULL
-                && find_zone_domain_slot(zone_decl, slot_name) != NULL
-                && !find_zone_domain_slot(zone_decl, slot_name)->data.domain_slot.is_subject) {
-                return strdup_fmt("self->%s.__projection_ready_%s", zone_name, slot_name);
+                const char *zone_name = NULL;
+                const char *slot_name = NULL;
+                ASTNode *zone_decl;
+                ASTNode *slot_decl;
+                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                    zone_name = call->data.call.arguments[0]->data.identifier.name;
+                else if (call->data.call.arguments[0]->type == AST_STRING)
+                    zone_name = call->data.call.arguments[0]->data.string.value;
+                if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
+                    slot_name = call->data.call.arguments[1]->data.identifier.name;
+                else if (call->data.call.arguments[1]->type == AST_STRING)
+                    slot_name = call->data.call.arguments[1]->data.string.value;
+                zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
+                slot_decl = zone_decl != NULL && slot_name != NULL
+                    ? find_zone_domain_slot(zone_decl, slot_name)
+                    : NULL;
+                if (zone_decl != NULL && slot_decl != NULL
+                    && !slot_decl->data.domain_slot.is_subject) {
+                    return strdup_fmt("self->%s.__projection_ready_%s", zone_name, slot_name);
+                }
             }
         }
         transpiler_set_backend_error(ctx,
             "C backend: HasZoneProjection requires active world context with matching zone projection");
         return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE_LAYER:
-        if (ctx->current_world_name != NULL
+        {
+            ASTNode *world_decl = NULL;
+            const char *world_name = ctx->current_world_name;
+            if (ctx->current_host_decl != NULL
+                && ctx->current_host_decl->type == AST_WORLD_DECL) {
+                world_decl = ctx->current_host_decl;
+                world_name = world_decl->data.world_decl.name;
+            }
+            if (world_decl == NULL && world_name != NULL)
+                world_decl = find_world_decl(ctx, world_name);
+            if (world_decl != NULL
             && call->data.call.arg_count == 2
             && call->data.call.arguments[0] != NULL
             && call->data.call.arguments[1] != NULL) {
-            ASTNode *world_decl = find_world_decl(ctx, ctx->current_world_name);
-            const char *zone_name = NULL;
-            const char *layer_name = NULL;
-            ASTNode *zone_decl;
-            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                zone_name = call->data.call.arguments[0]->data.identifier.name;
-            else if (call->data.call.arguments[0]->type == AST_STRING)
-                zone_name = call->data.call.arguments[0]->data.string.value;
-            if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
-                layer_name = call->data.call.arguments[1]->data.identifier.name;
-            else if (call->data.call.arguments[1]->type == AST_STRING)
-                layer_name = call->data.call.arguments[1]->data.string.value;
-            zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
-            if (zone_decl != NULL && layer_name != NULL
-                && find_zone_layer_slot(zone_decl, layer_name) != NULL) {
-                return strdup_fmt("self->%s.__layer_active_%s", zone_name, layer_name);
+                const char *zone_name = NULL;
+                const char *layer_name = NULL;
+                ASTNode *zone_decl;
+                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                    zone_name = call->data.call.arguments[0]->data.identifier.name;
+                else if (call->data.call.arguments[0]->type == AST_STRING)
+                    zone_name = call->data.call.arguments[0]->data.string.value;
+                if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
+                    layer_name = call->data.call.arguments[1]->data.identifier.name;
+                else if (call->data.call.arguments[1]->type == AST_STRING)
+                    layer_name = call->data.call.arguments[1]->data.string.value;
+                zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
+                if (zone_decl != NULL && layer_name != NULL
+                    && find_zone_layer_slot(zone_decl, layer_name) != NULL) {
+                    return strdup_fmt("self->%s.__layer_active_%s", zone_name, layer_name);
+                }
             }
         }
         transpiler_set_backend_error(ctx,
             "C backend: HasZoneLayer requires active world context with matching zone layer");
         return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE_STATE:
-        if (ctx->current_world_name != NULL
+        {
+            ASTNode *world_decl = NULL;
+            const char *world_name = ctx->current_world_name;
+            if (ctx->current_host_decl != NULL
+                && ctx->current_host_decl->type == AST_WORLD_DECL) {
+                world_decl = ctx->current_host_decl;
+                world_name = world_decl->data.world_decl.name;
+            }
+            if (world_decl == NULL && world_name != NULL)
+                world_decl = find_world_decl(ctx, world_name);
+            if (world_decl != NULL
             && call->data.call.arg_count == 2
             && call->data.call.arguments[0] != NULL
             && call->data.call.arguments[1] != NULL) {
-            ASTNode *world_decl = find_world_decl(ctx, ctx->current_world_name);
-            const char *zone_name = NULL;
-            const char *state_name = NULL;
-            ASTNode *zone_decl;
-            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                zone_name = call->data.call.arguments[0]->data.identifier.name;
-            else if (call->data.call.arguments[0]->type == AST_STRING)
-                zone_name = call->data.call.arguments[0]->data.string.value;
-            if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
-                state_name = call->data.call.arguments[1]->data.identifier.name;
-            else if (call->data.call.arguments[1]->type == AST_STRING)
-                state_name = call->data.call.arguments[1]->data.string.value;
-            zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
-            if (zone_decl != NULL && state_name != NULL
-                && find_zone_state_decl(zone_decl, state_name) != NULL) {
-                return strdup_fmt("self->%s.__state_%s", zone_name, state_name);
+                const char *zone_name = NULL;
+                const char *state_name = NULL;
+                ASTNode *zone_decl;
+                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                    zone_name = call->data.call.arguments[0]->data.identifier.name;
+                else if (call->data.call.arguments[0]->type == AST_STRING)
+                    zone_name = call->data.call.arguments[0]->data.string.value;
+                if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
+                    state_name = call->data.call.arguments[1]->data.identifier.name;
+                else if (call->data.call.arguments[1]->type == AST_STRING)
+                    state_name = call->data.call.arguments[1]->data.string.value;
+                zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
+                if (zone_decl != NULL && state_name != NULL
+                    && find_zone_state_decl(zone_decl, state_name) != NULL) {
+                    return strdup_fmt("self->%s.__state_%s", zone_name, state_name);
+                }
             }
         }
         transpiler_set_backend_error(ctx,
@@ -3775,8 +3843,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     return strdup_fmt("(*_pctx->%s)", id_name);
             }
         }
-        if (ctx->current_class_name != NULL
-            && strcmp(id_name, "self") != 0
+        if (strcmp(id_name, "self") != 0
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_class_has_field(ctx, id_name)) {
@@ -3784,29 +3851,25 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 ? "self->%s"
                 : "self.%s", id_name);
         }
-        if (ctx->current_relation_name != NULL
-            && strcmp(id_name, "self") != 0
+        if (strcmp(id_name, "self") != 0
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_relation_has_field(ctx, id_name)) {
             return strdup_fmt("self->%s", id_name);
         }
-        if (ctx->current_effect_name != NULL
-            && strcmp(id_name, "self") != 0
+        if (strcmp(id_name, "self") != 0
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_effect_has_field(ctx, id_name)) {
             return strdup_fmt("self->%s", id_name);
         }
-        if (ctx->current_zone_name != NULL
-            && strcmp(id_name, "self") != 0
+        if (strcmp(id_name, "self") != 0
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_zone_has_field(ctx, id_name)) {
             return strdup_fmt("self->%s", id_name);
         }
-        if (ctx->current_world_name != NULL
-            && strcmp(id_name, "self") != 0
+        if (strcmp(id_name, "self") != 0
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_world_has_field(ctx, id_name)) {
@@ -3925,6 +3988,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         if (node->data.member.object->type == AST_IDENTIFIER
             && strcmp(node->data.member.object->data.identifier.name, "self") == 0) {
             bool self_is_pointer = current_class_uses_self_cell(ctx)
+                || (ctx->current_host_decl != NULL
+                    && (ctx->current_host_decl->type == AST_RELATION_DECL
+                        || ctx->current_host_decl->type == AST_EFFECT_DECL
+                        || ctx->current_host_decl->type == AST_ZONE_DECL
+                        || ctx->current_host_decl->type == AST_WORLD_DECL))
                 || ctx->current_relation_name != NULL
                 || ctx->current_effect_name != NULL
                 || ctx->current_zone_name != NULL

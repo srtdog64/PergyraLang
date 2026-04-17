@@ -396,6 +396,9 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message)
 bool
 llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 {
+    ASTNode **decl_items = NULL;
+    size_t decl_item_count = 0;
+
     if (mir == NULL || ctx == NULL)
         return false;
 
@@ -412,15 +415,12 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     llvm_pipeline_debug_stage("emit_program_from_mir:declare_runtime");
     llvm_declare_runtime(ctx);
 
+    llvm_active_nominal_inventory(ctx, &decl_items, &decl_item_count);
+
     llvm_pipeline_debug_stage("emit_program_from_mir:register_decl_items");
-    {
-        ASTNode **decl_items = NULL;
-        size_t decl_item_count = 0;
-        llvm_active_nominal_inventory(ctx, &decl_items, &decl_item_count);
-        for (size_t i = 0; i < decl_item_count; i++) {
-            ASTNode *stmt = decl_items[i];
-            llvm_register_nominal_decl(ctx, stmt);
-        }
+    for (size_t i = 0; i < decl_item_count; i++) {
+        ASTNode *stmt = decl_items[i];
+        llvm_register_nominal_decl(ctx, stmt);
     }
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_domain_passes");
     llvm_emit_domain_passes(ctx);
@@ -508,11 +508,8 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     }
 
     {
-        ASTNode **decl_items = NULL;
         ASTNode **methods = NULL;
-        size_t decl_item_count = 0;
         size_t method_count = 0;
-        llvm_active_nominal_inventory(ctx, &decl_items, &decl_item_count);
         for (size_t i = 0; i < decl_item_count; i++) {
             ASTNode *stmt = decl_items[i];
             if (stmt != NULL && stmt->type == AST_CLASS_DECL) {

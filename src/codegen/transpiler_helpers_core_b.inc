@@ -118,6 +118,8 @@ transpiler_current_host_decl_local(TranspilerCtx *ctx)
 {
     if (ctx == NULL)
         return NULL;
+    if (ctx->current_host_decl != NULL)
+        return ctx->current_host_decl;
     if (ctx->current_relation_name != NULL)
         return transpiler_find_decl_in_inventory_local(
             ctx, AST_RELATION_DECL, ctx->current_relation_name);
@@ -258,8 +260,13 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
 static const char *
 current_host_decl_name(TranspilerCtx *ctx)
 {
+    ASTNode *decl;
+
     if (ctx == NULL)
         return NULL;
+    decl = transpiler_current_host_decl_local(ctx);
+    if (decl != NULL)
+        return transpiler_decl_name_local(decl);
     if (ctx->current_relation_name != NULL)
         return ctx->current_relation_name;
     if (ctx->current_effect_name != NULL)
