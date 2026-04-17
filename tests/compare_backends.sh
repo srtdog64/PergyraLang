@@ -76,6 +76,41 @@ fi
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_backend_compare.XXXXXX")"
 
+add_path_if_dir() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 0
+    case ":${PATH}:" in
+        *":$dir:"*) ;;
+        *) PATH="$dir:$PATH" ;;
+    esac
+}
+
+add_windows_path_candidate() {
+    local dir="$1"
+    local posix_dir=""
+
+    [[ -n "$dir" ]] || return 0
+    add_path_if_dir "$dir"
+    if command -v cygpath >/dev/null 2>&1; then
+        posix_dir="$(cygpath -u "$dir" 2>/dev/null || true)"
+        add_path_if_dir "$posix_dir"
+    fi
+}
+
+setup_windows_llvm_runtime_path() {
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            add_windows_path_candidate "${LLVM_INSTALL:-}/bin"
+            add_path_if_dir "/c/Program Files/LLVM/bin"
+            add_path_if_dir "/c/LLVM/bin"
+            add_path_if_dir "/clang64/bin"
+            add_path_if_dir "/ucrt64/bin"
+            ;;
+    esac
+}
+
+setup_windows_llvm_runtime_path
+
 cleanup() {
     rm -rf "$WORK_DIR"
 }
@@ -99,9 +134,18 @@ if [[ "${PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS:-0}" != "0" ]]; then
         echo "backend-compare: missing ABI pipeline test binary: $ABI_PIPELINE_BIN" >&2
         exit 1
     fi
-    PGY_ABI_PIPELINE_SAME_PROCESS=1 \
-    PGY_ABI_PIPELINE_BACKEND=llvm \
-    "$ABI_PIPELINE_BIN"
+    if ! PGY_ABI_PIPELINE_SAME_PROCESS=1 \
+        PGY_ABI_PIPELINE_BACKEND=llvm \
+        "$ABI_PIPELINE_BIN"; then
+        abi_rc=$?
+        echo "backend-compare: ABI pipeline same-process precheck failed (exit=$abi_rc): $ABI_PIPELINE_BIN" >&2
+        case "$(uname -s 2>/dev/null || echo unknown):$abi_rc" in
+            MINGW*:126|MINGW*:127|MSYS*:126|MSYS*:127|CYGWIN*:126|CYGWIN*:127)
+                echo "backend-compare: Windows executable launch failed; verify LLVM runtime DLL directories are on PATH" >&2
+                ;;
+        esac
+        exit "$abi_rc"
+    fi
 fi
 
 resolve_native_bin() {
@@ -182,6 +226,12 @@ run_case() {
     else
         llvm_rc=$?
     fi
+
+    case "$(uname -s 2>/dev/null || echo unknown):$c_rc:$llvm_rc" in
+        MINGW*:126:*|MINGW*:127:*|MSYS*:126:*|MSYS*:127:*|CYGWIN*:126:*|CYGWIN*:127:*|MINGW*:*:126|MINGW*:*:127|MSYS*:*:126|MSYS*:*:127|CYGWIN*:*:126|CYGWIN*:*:127)
+            echo "backend-compare: Windows executable launch failed for $source_rel; verify LLVM runtime DLL directories are on PATH" >&2
+            ;;
+    esac
 
     if [[ "$c_rc" -ne "$llvm_rc" ]]; then
         echo "backend-compare: exit code mismatch for $source_rel (C=$c_rc LLVM=$llvm_rc)" >&2

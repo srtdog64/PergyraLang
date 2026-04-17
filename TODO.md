@@ -499,6 +499,16 @@
   - 회귀 기준:
     - LLVM/C backend helper duplication 감소
     - debt ledger와 TODO 표현 정렬
+  - 현황:
+    - role / party / roster / relation / effect / zone / world declaration method body의 AST fallback는 제거됨
+    - 남은 debt는 declaration inventory / naming helper / named-decl lookup의 구조 정리 쪽으로 축소됨
+    - 현재 inventory:
+      - `src/codegen/transpiler_helpers_core_b.inc`: `current_host_decl_name` 상태 자체와 일부 host naming helper 정리
+      - `src/codegen/llvm_pipeline.c`: AST-carried declaration inventory를 담는 `MIRProgram` bootstrap 경로
+      - 공통 과제: current_* name 상태와 ad-hoc named lookup를 MIR declaration metadata query로 치환
+    - 최근 정리:
+      - `current_field_type_name`, `current_host_method_decl`, `find_nominal_host_method_decl`는 active inventory 경유 lookup로 정렬됨
+      - 남은 핵심 debt는 LLVM pipeline의 AST-carried declaration inventory bootstrap와 current_* host naming state 축소
 
 - [x] **runtime observability baseline vs richer query 구분 고정**
   - 대상: `IntentLast* / IntentHistory* / IntentActive* / IntentRecent*`, zone/world inspection

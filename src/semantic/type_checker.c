@@ -1937,6 +1937,39 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     }
 
     if (type_is_resource_handle(target_type) || type_is_resource_handle(value_type)) {
+        if (expr->data.assignment.value != NULL
+            && expr->data.assignment.value->type == AST_IDENTIFIER
+            && identifier_is_borrowed_movable_param(expr->data.assignment.value, ctx)) {
+            const char *borrowed_name =
+                expr->data.assignment.value->data.identifier.name != NULL
+                    ? expr->data.assignment.value->data.identifier.name : "<value>";
+            const char *target_name =
+                expr->data.assignment.target != NULL
+                && expr->data.assignment.target->type == AST_IDENTIFIER
+                && expr->data.assignment.target->data.identifier.name != NULL
+                    ? expr->data.assignment.target->data.identifier.name
+                    : "<target>";
+            semantic_error(ctx, expr,
+                "Borrowed ref movable resource '%s' cannot escape through assignment rebind into '%s'.\n"
+                "Reason:\n"
+                "- consumer path is function '%s'\n"
+                "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                "- assignment would rebind that borrow into target '%s'\n"
+                "- the compiler treats this as an escaping ownership rewrite at the current call boundary\n"
+                "Fix:\n"
+                "- keep using '%s' directly without rebinding it\n"
+                "- or change the parameter to 'own' if transfer is intended",
+                borrowed_name,
+                target_name,
+                ctx->current_function_decl != NULL
+                    && ctx->current_function_decl->data.func_decl.name != NULL
+                        ? ctx->current_function_decl->data.func_decl.name
+                        : "<anonymous>",
+                borrowed_name,
+                target_name,
+                borrowed_name);
+            return target_type;
+        }
         semantic_error(ctx, expr,
             "Resource handle assignment is not allowed.\n"
             "Reason:\n"
@@ -2179,7 +2212,32 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     if (type_is_qubit(decl_type)) {
+        bool borrowed_movable_new_binding =
+            init != NULL
+            && init->type == AST_IDENTIFIER
+            && identifier_is_borrowed_movable_param(init, ctx);
         bool valid_qubit_init = false;
+        if (borrowed_movable_new_binding) {
+            semantic_error(ctx, node,
+                "Borrowed ref movable resource '%s' cannot escape into a new binding '%s'.\n"
+                "Reason:\n"
+                "- consumer path is function '%s'\n"
+                "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                "- binding it as '%s' would extend that borrow beyond its original boundary provenance\n"
+                "Fix:\n"
+                "- keep using '%s' directly within this function\n"
+                "- or change the parameter to 'own' if transfer is intended",
+                init->data.identifier.name != NULL ? init->data.identifier.name : "<value>",
+                name != NULL ? name : "<binding>",
+                ctx->current_function_decl != NULL
+                    && ctx->current_function_decl->data.func_decl.name != NULL
+                        ? ctx->current_function_decl->data.func_decl.name
+                        : "<anonymous>",
+                init->data.identifier.name != NULL ? init->data.identifier.name : "<value>",
+                name != NULL ? name : "<binding>",
+                init->data.identifier.name != NULL ? init->data.identifier.name : "<value>");
+            valid_qubit_init = true;
+        }
         if (init_type == TYPE_UNKNOWN) {
             valid_qubit_init = true;
         } else if (expr_is_qubit_claim(init)) {

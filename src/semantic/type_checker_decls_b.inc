@@ -2188,6 +2188,7 @@ type_check_projection_contract(ASTNode **slots,
         semantic_error(ctx, site,
             "%s %s target slot '%s' is not a projection slot.\n"
             "Reason:\n"
+            "- source slot '%s' is driving this %s path\n"
             "- %s only writes into object/tobject projection targets\n"
             "- subject/vessel slots are ownership anchors, not projection sinks\n"
             "- current owner surface is '%s'\n"
@@ -2196,6 +2197,8 @@ type_check_projection_contract(ASTNode **slots,
             "- or choose a tobject slot for boundary publication",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            action_name,
             action_name,
             owner_label);
         return true;
@@ -2209,6 +2212,7 @@ type_check_projection_contract(ASTNode **slots,
         semantic_error(ctx, site,
             "%s %s target slot '%s' must be a tobject slot.\n"
             "Reason:\n"
+            "- source slot '%s' is driving this %s path\n"
             "- publish writes a boundary transfer snapshot\n"
             "- object slots are local projections and cannot be published as transfer targets\n"
             "- current owner surface is '%s'\n"
@@ -2217,6 +2221,8 @@ type_check_projection_contract(ASTNode **slots,
             "- or use refresh/bind into an object slot instead",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            action_name,
             owner_label,
             object_slot_name != NULL ? object_slot_name : "<slot>");
         return true;
@@ -2233,6 +2239,7 @@ type_check_projection_contract(ASTNode **slots,
         semantic_error(ctx, site,
             "%s %s target slot '%s' does not use a projection declaration.\n"
             "Reason:\n"
+            "- source slot '%s' is driving this %s path\n"
             "- projection sync requires an object/tobject nominal target\n"
             "- '%s' is not an object/tobject declaration\n"
             "- target slot '%s' is declared on %s '%s'\n"
@@ -2241,6 +2248,8 @@ type_check_projection_contract(ASTNode **slots,
             "- or move this data through a plain assignment path instead",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            action_name,
             target_type->name != NULL ? target_type->name : "<unknown>",
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             owner_label,
@@ -2889,6 +2898,7 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
             "Reason:\n"
             "- relation contracts need a concrete endpoint surface to bind/link against\n"
             "- without an endpoint slot, relation and projection propagation stay underspecified\n"
+            "- branch/join or zone/world propagation cannot anchor a stable relation edge without at least one endpoint slot\n"
             "Fix:\n"
             "- use 'for name: Type'\n"
             "- or declare a bindable subject/object endpoint slot",
@@ -2975,6 +2985,7 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
             "Reason:\n"
             "- effect contracts need a concrete target surface to apply/maintain against\n"
             "- without a target slot, effect propagation and authority checks stay underspecified\n"
+            "- branch/join or zone/world propagation cannot preserve an effect target path without a bindable target slot\n"
             "Fix:\n"
             "- use 'for name: Type'\n"
             "- or declare a bindable subject/object target slot",

@@ -48,8 +48,16 @@ flow_record_branch_effect_conflict(SemanticContext *ctx, const ASTNode *node,
     flow_effect_mask_to_string(left_delta, left_buf, sizeof(left_buf));
     flow_effect_mask_to_string(right_delta, right_buf, sizeof(right_buf));
     semantic_warning(ctx, node,
-        "Control-flow branches combine currently conflicting effect classes (%s vs %s); consider splitting authority-sensitive and remote/resource-boundary work",
-        left_buf, right_buf);
+        "Control-flow branch/join combines conflicting effect classes (%s vs %s).\n"
+        "Reason:\n"
+        "- this control-flow join merges effect deltas from multiple paths\n"
+        "- left path contributes '%s'\n"
+        "- right path contributes '%s'\n"
+        "- authority-sensitive and remote/resource-boundary work currently converge at the same join edge\n"
+        "Fix:\n"
+        "- split secure/remote work into separate helper routines or branches\n"
+        "- or narrow the branch effects before they rejoin",
+        left_buf, right_buf, left_buf, right_buf);
 }
 
 static void

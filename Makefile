@@ -590,6 +590,7 @@ llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
+	LLVM_INSTALL="$(LLVM_INSTALL)" \
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
 	"$(BASH)" tests/compare_backends.sh
 

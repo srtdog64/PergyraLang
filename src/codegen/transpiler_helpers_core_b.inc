@@ -15,6 +15,155 @@ render_type_name_cached_local(ASTNode *type_node)
 }
 
 static const char *
+transpiler_decl_name_local(ASTNode *decl)
+{
+    if (decl == NULL)
+        return NULL;
+
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        return decl->data.class_decl.name;
+    case AST_ENUM_DECL:
+        return decl->data.enum_decl.name;
+    case AST_ROLE_DECL:
+        return decl->data.role_decl.name;
+    case AST_PARTY_DECL:
+        return decl->data.party_decl.name;
+    case AST_ROSTER_DECL:
+        return decl->data.roster_decl.name;
+    case AST_RELATION_DECL:
+        return decl->data.relation_decl.name;
+    case AST_EFFECT_DECL:
+        return decl->data.effect_decl.name;
+    case AST_ZONE_DECL:
+        return decl->data.zone_decl.name;
+    case AST_WORLD_DECL:
+        return decl->data.world_decl.name;
+    default:
+        return NULL;
+    }
+}
+
+static ASTNode *
+transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
+                                        ASTNodeType decl_type,
+                                        const char *name)
+{
+    ASTNode **decls = NULL;
+    size_t decl_count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
+    for (size_t i = 0; decls != NULL && i < decl_count; i++) {
+        ASTNode *decl = decls[i];
+        const char *decl_name = transpiler_decl_name_local(decl);
+        if (decl != NULL && decl->type == decl_type
+            && decl_name != NULL
+            && strcmp(decl_name, name) == 0) {
+            return decl;
+        }
+    }
+
+    return transpiler_find_named_decl_local(ctx, decl_type, name);
+}
+
+static void
+transpiler_decl_methods_local(ASTNode *decl, ASTNode ***methods_out,
+                              size_t *method_count_out)
+{
+    ASTNode **methods = NULL;
+    size_t method_count = 0;
+
+    if (decl != NULL) {
+        switch (decl->type) {
+        case AST_CLASS_DECL:
+            methods = decl->data.class_decl.methods;
+            method_count = decl->data.class_decl.method_count;
+            break;
+        case AST_ENUM_DECL:
+            methods = decl->data.enum_decl.methods;
+            method_count = decl->data.enum_decl.method_count;
+            break;
+        case AST_RELATION_DECL:
+            methods = decl->data.relation_decl.methods;
+            method_count = decl->data.relation_decl.method_count;
+            break;
+        case AST_EFFECT_DECL:
+            methods = decl->data.effect_decl.methods;
+            method_count = decl->data.effect_decl.method_count;
+            break;
+        case AST_ZONE_DECL:
+            methods = decl->data.zone_decl.methods;
+            method_count = decl->data.zone_decl.method_count;
+            break;
+        case AST_WORLD_DECL:
+            methods = decl->data.world_decl.methods;
+            method_count = decl->data.world_decl.method_count;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (methods_out != NULL)
+        *methods_out = methods;
+    if (method_count_out != NULL)
+        *method_count_out = method_count;
+}
+
+static ASTNode *
+transpiler_current_host_decl_local(TranspilerCtx *ctx)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (ctx->current_relation_name != NULL)
+        return transpiler_find_decl_in_inventory_local(
+            ctx, AST_RELATION_DECL, ctx->current_relation_name);
+    if (ctx->current_effect_name != NULL)
+        return transpiler_find_decl_in_inventory_local(
+            ctx, AST_EFFECT_DECL, ctx->current_effect_name);
+    if (ctx->current_zone_name != NULL)
+        return transpiler_find_decl_in_inventory_local(
+            ctx, AST_ZONE_DECL, ctx->current_zone_name);
+    if (ctx->current_world_name != NULL)
+        return transpiler_find_decl_in_inventory_local(
+            ctx, AST_WORLD_DECL, ctx->current_world_name);
+    if (ctx->current_class_name != NULL)
+        return transpiler_find_decl_in_inventory_local(
+            ctx, AST_CLASS_DECL, ctx->current_class_name);
+    return NULL;
+}
+
+static ASTNode *
+transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
+                                        const char *host_type_name)
+{
+    ASTNode *decl = NULL;
+
+    if (ctx == NULL || host_type_name == NULL)
+        return NULL;
+
+    decl = transpiler_find_decl_in_inventory_local(ctx, AST_RELATION_DECL, host_type_name);
+    if (decl != NULL)
+        return decl;
+    decl = transpiler_find_decl_in_inventory_local(ctx, AST_EFFECT_DECL, host_type_name);
+    if (decl != NULL)
+        return decl;
+    decl = transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL, host_type_name);
+    if (decl != NULL)
+        return decl;
+    decl = transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL, host_type_name);
+    if (decl != NULL)
+        return decl;
+    decl = transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL, host_type_name);
+    if (decl != NULL)
+        return decl;
+    return transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, host_type_name);
+}
+
+static const char *
 current_field_type_name(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
@@ -22,9 +171,9 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
     if (ctx == NULL || field_name == NULL)
         return NULL;
 
-    if (ctx->current_class_name != NULL) {
-        decl = find_class_decl(ctx, ctx->current_class_name);
-        if (decl != NULL && decl->type == AST_CLASS_DECL) {
+    decl = transpiler_current_host_decl_local(ctx);
+    if (decl != NULL) {
+        if (decl->type == AST_CLASS_DECL) {
             for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
                 ClassField *field = decl->data.class_decl.fields[i];
                 if (field != NULL && field->name != NULL
@@ -33,12 +182,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
                     return render_type_name_cached_local(field->type);
                 }
             }
-        }
-    }
-
-    if (ctx->current_zone_name != NULL) {
-        decl = find_zone_decl(ctx, ctx->current_zone_name);
-        if (decl != NULL && decl->type == AST_ZONE_DECL) {
+        } else if (decl->type == AST_ZONE_DECL) {
             ASTNode *slot = find_zone_domain_slot(decl, field_name);
             if (slot != NULL && slot->data.domain_slot.type != NULL
                 && slot->data.domain_slot.type->type == AST_TYPE) {
@@ -61,12 +205,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
                     return render_type_name_cached_local(shared->data.party_shared.type);
                 }
             }
-        }
-    }
-
-    if (ctx->current_relation_name != NULL) {
-        decl = find_relation_decl(ctx, ctx->current_relation_name);
-        if (decl != NULL && decl->type == AST_RELATION_DECL) {
+        } else if (decl->type == AST_RELATION_DECL) {
             for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
                 ASTNode *slot = decl->data.relation_decl.slots[i];
                 if (slot != NULL && slot->data.domain_slot.slot_name != NULL
@@ -76,12 +215,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
                     return render_type_name_cached_local(slot->data.domain_slot.type);
                 }
             }
-        }
-    }
-
-    if (ctx->current_effect_name != NULL) {
-        decl = find_effect_decl(ctx, ctx->current_effect_name);
-        if (decl != NULL && decl->type == AST_EFFECT_DECL) {
+        } else if (decl->type == AST_EFFECT_DECL) {
             for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
                 ASTNode *slot = decl->data.effect_decl.slots[i];
                 if (slot != NULL && slot->data.domain_slot.slot_name != NULL
@@ -91,12 +225,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
                     return render_type_name_cached_local(slot->data.domain_slot.type);
                 }
             }
-        }
-    }
-
-    if (ctx->current_world_name != NULL) {
-        decl = find_world_decl(ctx, ctx->current_world_name);
-        if (decl != NULL && decl->type == AST_WORLD_DECL) {
+        } else if (decl->type == AST_WORLD_DECL) {
             for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
                 ASTNode *slot = decl->data.world_decl.rosters[i];
                 if (slot != NULL && slot->data.world_roster.slot_name != NULL
@@ -152,37 +281,8 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
     if (ctx == NULL || method_name == NULL)
         return NULL;
 
-    if (ctx->current_relation_name != NULL) {
-        decl = find_relation_decl(ctx, ctx->current_relation_name);
-        if (decl != NULL) {
-            methods = decl->data.relation_decl.methods;
-            method_count = decl->data.relation_decl.method_count;
-        }
-    } else if (ctx->current_effect_name != NULL) {
-        decl = find_effect_decl(ctx, ctx->current_effect_name);
-        if (decl != NULL) {
-            methods = decl->data.effect_decl.methods;
-            method_count = decl->data.effect_decl.method_count;
-        }
-    } else if (ctx->current_zone_name != NULL) {
-        decl = find_zone_decl(ctx, ctx->current_zone_name);
-        if (decl != NULL) {
-            methods = decl->data.zone_decl.methods;
-            method_count = decl->data.zone_decl.method_count;
-        }
-    } else if (ctx->current_world_name != NULL) {
-        decl = find_world_decl(ctx, ctx->current_world_name);
-        if (decl != NULL) {
-            methods = decl->data.world_decl.methods;
-            method_count = decl->data.world_decl.method_count;
-        }
-    } else if (ctx->current_class_name != NULL) {
-        decl = find_class_decl(ctx, ctx->current_class_name);
-        if (decl != NULL && decl->type == AST_CLASS_DECL) {
-            methods = decl->data.class_decl.methods;
-            method_count = decl->data.class_decl.method_count;
-        }
-    }
+    decl = transpiler_current_host_decl_local(ctx);
+    transpiler_decl_methods_local(decl, &methods, &method_count);
 
     for (size_t i = 0; methods != NULL && i < method_count; i++) {
         ASTNode *method = methods[i];
@@ -207,41 +307,8 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
     if (ctx == NULL || host_type_name == NULL || method_name == NULL)
         return NULL;
 
-    decl = find_relation_decl(ctx, host_type_name);
-    if (decl != NULL) {
-        methods = decl->data.relation_decl.methods;
-        method_count = decl->data.relation_decl.method_count;
-    } else {
-        decl = find_effect_decl(ctx, host_type_name);
-        if (decl != NULL) {
-            methods = decl->data.effect_decl.methods;
-            method_count = decl->data.effect_decl.method_count;
-        } else {
-            decl = find_zone_decl(ctx, host_type_name);
-            if (decl != NULL) {
-                methods = decl->data.zone_decl.methods;
-                method_count = decl->data.zone_decl.method_count;
-            } else {
-                decl = find_world_decl(ctx, host_type_name);
-                if (decl != NULL) {
-                    methods = decl->data.world_decl.methods;
-                    method_count = decl->data.world_decl.method_count;
-                } else {
-                    decl = find_enum_decl(ctx, host_type_name);
-                    if (decl != NULL && decl->type == AST_ENUM_DECL) {
-                        methods = decl->data.enum_decl.methods;
-                        method_count = decl->data.enum_decl.method_count;
-                    } else {
-                        decl = find_class_decl(ctx, host_type_name);
-                        if (decl != NULL && decl->type == AST_CLASS_DECL) {
-                            methods = decl->data.class_decl.methods;
-                            method_count = decl->data.class_decl.method_count;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    decl = transpiler_find_nominal_host_decl_local(ctx, host_type_name);
+    transpiler_decl_methods_local(decl, &methods, &method_count);
 
     for (size_t i = 0; methods != NULL && i < method_count; i++) {
         ASTNode *method = methods[i];

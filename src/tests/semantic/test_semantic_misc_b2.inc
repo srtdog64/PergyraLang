@@ -1873,6 +1873,105 @@
         lexer_destroy(lexer);
     }
 
+    TEST("relation without endpoint reports propagation warning with reason and fix");
+    {
+        const char *source =
+            "relation Link { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Relation 'Link' should declare at least one endpoint slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "relation and projection propagation stay underspecified"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot anchor a stable relation edge"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect without target reports propagation warning with reason and fix");
+    {
+        const char *source =
+            "effect Guarded { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Effect 'Guarded' should declare at least one target slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "effect propagation and authority checks stay underspecified"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot preserve an effect target path"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("branch effect conflict warning reports branch join reason and fix");
+    {
+        const char *source =
+            "/// @effects secure\n"
+            "func SecureStep() -> Void { return; }\n"
+            "/// @effects remote\n"
+            "func RemoteStep() -> Void { return; }\n"
+            "func Main(flag: Bool) -> Void {\n"
+            "    if (flag) {\n"
+            "        SecureStep();\n"
+            "    } else {\n"
+            "        RemoteStep();\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Control-flow branch/join combines conflicting effect classes"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "this control-flow join merges effect deltas from multiple paths"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "left path contributes 'secure'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "right path contributes 'remote'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("zone projection diagnostic includes reason and fix");
     {
         const char *source =
@@ -1893,6 +1992,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "is not a projection slot"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "source slot 'player' is driving this bind path"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "ownership anchors, not projection sinks"));
@@ -1900,6 +2001,42 @@
             "Fix:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "choose an object slot for local projection sync"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone publish projection diagnostic includes source provenance reason and fix");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    publish playerView from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "target slot 'playerView' must be a tobject slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "source slot 'player' is driving this publish path"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "publish writes a boundary transfer snapshot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "change 'playerView' to a tobject slot"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3610,6 +3747,38 @@
         lexer_destroy(lexer);
     }
 
+    TEST("intent step requires may omit trailing generic default arguments");
+    {
+        const char *source =
+            "ability Bufferable<T = Int> { func Put(value: T) -> Void; }\n"
+            "subject Bag { action Save(self) -> Void { return; } }\n"
+            "zone StorageZone { subject slot bag: Bag }\n"
+            "role IntBuffer for Bag {\n"
+            "    impl ability Bufferable { func Put(value: Int) -> Void { return; } }\n"
+            "}\n"
+            "intent Persist(storage: StorageZone, bag: Bag) {\n"
+            "    step Save {\n"
+            "        where: StorageZone;\n"
+            "        using: storage;\n"
+            "        who: bag;\n"
+            "        requires: Bufferable;\n"
+            "        on: bag.Save();\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("zone authority may omit trailing generic default arguments");
     {
         const char *source =
@@ -3817,6 +3986,44 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "consumer path is action 'Save'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual type argument is 'String'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Int'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step requires rejects omitted trailing generic default arguments when default violates where bound");
+    {
+        const char *source =
+            "ability Bufferable<T = String> where T: Int { func Put(value: T) -> Void; }\n"
+            "subject Bag { action Save(self) -> Void { return; } }\n"
+            "zone StorageZone { subject slot bag: Bag }\n"
+            "role BadBuffer for Bag {\n"
+            "    impl ability Bufferable<String> { func Put(value: String) -> Void { return; } }\n"
+            "}\n"
+            "intent Persist(storage: StorageZone, bag: Bag) {\n"
+            "    step Save {\n"
+            "        where: StorageZone;\n"
+            "        using: storage;\n"
+            "        who: bag;\n"
+            "        requires: Bufferable;\n"
+            "        on: bag.Save();\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is Intent step 'Save'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "actual type argument is 'String'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,

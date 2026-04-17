@@ -267,7 +267,6 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
 {
     const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, role_name, method);
     const char *method_name = method->data.func_decl.name;
-    const char *ret_type = "void";
     if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
         transpiler_set_backend_error(
             ctx,
@@ -283,73 +282,11 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
         emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
         return;
     }
-    if (method->data.func_decl.return_type != NULL)
-        ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
-
-    /* Role methods use void *self for vtable compatibility, cast in body */
-    codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *_raw_self",
-                  ret_type, role_name, method_name);
-
-    for (size_t k = 0; k < method->data.func_decl.param_count; k++) {
-        FuncParam *p = method->data.func_decl.params[k];
-        if (strcmp(p->name, "self") == 0 && p->type == NULL)
-            continue;
-        const char *pt = NULL;
-        char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "role method parameter '%s.%s(%s)'",
-            role_name != NULL ? role_name : "(anonymous)",
-            method_name != NULL ? method_name : "(anonymous)",
-            p != NULL && p->name != NULL ? p->name : "(anonymous)");
-        pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-        if (pt == NULL)
-            return;
-        codebuf_write(ctx->out, ", %s %s", pt, p->name);
-    }
-    codebuf_write(ctx->out, ")\n{\n");
-
-    {
-        const char *saved_class = ctx->current_class_name;
-        int saved_typed = ctx->typed_var_count;
-        const char *subject_name = NULL;
-        /* Role methods operate on subject (pointer-self);
-         * find the role's target subject so bare field access uses -> */
-        ASTNode *role_node = find_role_decl(ctx, role_name);
-        const char *subject_c_type = NULL;
-        if (role_node != NULL
-            && role_node->data.role_decl.for_type != NULL
-            && role_node->data.role_decl.for_type->type == AST_TYPE
-            && role_node->data.role_decl.for_type->data.type.name != NULL) {
-            subject_name = role_node->data.role_decl.for_type->data.type.name;
-            subject_c_type = pergyra_type_to_c(subject_name);
-            ctx->current_class_name = subject_name;
-        }
-        /* Cast void *_raw_self to concrete subject type */
-        if (subject_name != NULL && is_pointer_self_host_type_name(ctx, subject_name)) {
-            codebuf_write(ctx->out, "    %s *self = (%s *)_raw_self;\n",
-                          subject_c_type != NULL ? subject_c_type : subject_name,
-                          subject_c_type != NULL ? subject_c_type : subject_name);
-            codebuf_write(ctx->out, "    (void)self;\n");
-        }
-        else if (subject_name != NULL) {
-            codebuf_write(ctx->out, "    %s self = *(%s *)_raw_self;\n",
-                          subject_c_type != NULL ? subject_c_type : subject_name,
-                          subject_c_type != NULL ? subject_c_type : subject_name);
-            codebuf_write(ctx->out, "    (void)self;\n");
-        }
-        else
-            codebuf_write(ctx->out, "    (void)_raw_self;\n");
-
-        ctx->indent++;
-        if (method->data.func_decl.body != NULL)
-            emit_block(method->data.func_decl.body, ctx);
-        ctx->indent--;
-
-        ctx->current_class_name = saved_class;
-        ctx->typed_var_count = saved_typed;
-    }
-
-    codebuf_write(ctx->out, "}\n");
+    transpiler_set_backend_error(
+        ctx,
+        "MIR-only C path missing routine for role method '%s.%s'",
+        role_name != NULL ? role_name : "(anonymous)",
+        method_name != NULL ? method_name : "(anonymous)");
 }
 
 static void
@@ -756,40 +693,14 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
             continue;
         }
-
-        const char *method_name = method->data.func_decl.name;
-        const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
-
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
-                      ret_type, name, method_name, name);
-
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
-            if (p != NULL && p->type == NULL && p->name != NULL
-                && strcmp(p->name, "self") == 0)
-                continue;
-            const char *pt = NULL;
-            char surface_desc[256];
-            snprintf(surface_desc, sizeof(surface_desc),
-                "party method parameter '%s.%s(%s)'",
-                name != NULL ? name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)",
-                p != NULL && p->name != NULL ? p->name : "(anonymous)");
-            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-            if (pt == NULL)
-                return;
-            codebuf_write(ctx->out, ", %s %s", pt, p->name);
-        }
-        codebuf_write(ctx->out, ")\n{\n");
-
-        ctx->indent++;
-        if (method->data.func_decl.body != NULL)
-            emit_block(method->data.func_decl.body, ctx);
-        ctx->indent--;
-
-        codebuf_write(ctx->out, "}\n");
+        transpiler_set_backend_error(
+            ctx,
+            "MIR-only C path missing routine for party method '%s.%s'",
+            name != NULL ? name : "(anonymous-party)",
+            method->data.func_decl.name != NULL
+                ? method->data.func_decl.name
+                : "(anonymous)");
+        return;
     }
 
     /* Emit bind helpers for dyn role slots */
@@ -901,37 +812,14 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
             emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
             continue;
         }
-
-        const char *method_name = method->data.func_decl.name;
-        const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
-
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
-                      ret_type, name, method_name, name);
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
-            if (p != NULL && p->type == NULL && p->name != NULL
-                && strcmp(p->name, "self") == 0)
-                continue;
-            const char *pt = NULL;
-            char surface_desc[256];
-            snprintf(surface_desc, sizeof(surface_desc),
-                "roster method parameter '%s.%s(%s)'",
-                name != NULL ? name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)",
-                p != NULL && p->name != NULL ? p->name : "(anonymous)");
-            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-            if (pt == NULL)
-                return;
-            codebuf_write(ctx->out, ", %s %s", pt, p->name);
-        }
-        codebuf_write(ctx->out, ")\n{\n");
-        ctx->indent++;
-        if (method->data.func_decl.body != NULL)
-            emit_block(method->data.func_decl.body, ctx);
-        ctx->indent--;
-        codebuf_write(ctx->out, "}\n");
+        transpiler_set_backend_error(
+            ctx,
+            "MIR-only C path missing routine for roster method '%s.%s'",
+            name != NULL ? name : "(anonymous-roster)",
+            method->data.func_decl.name != NULL
+                ? method->data.func_decl.name
+                : "(anonymous)");
+        return;
     }
 }
 
@@ -1126,45 +1014,14 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         codebuf_write(ctx->out, ")\n{\n");
-        ctx->indent++;
-        {
-            int saved_slot_count = ctx->slot_var_count;
-            int saved_typed_count = ctx->typed_var_count;
-            const char *saved_relation_name = ctx->current_relation_name;
-            ctx->current_relation_name = name;
-            register_typed_var(ctx, "self", name);
-            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                FuncParam *p = method->data.func_decl.params[j];
-                char *type_name;
-
-                if (p == NULL || p->name == NULL
-                    || strcmp(p->name, "self") == 0
-                    || p->type == NULL)
-                    continue;
-
-                type_name = render_type_name(p->type);
-                if (type_name != NULL) {
-                    register_typed_var(ctx, p->name, type_name);
-                    if (is_pointer_self_host_type_name(ctx, type_name)) {
-                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
-                        if (entry != NULL)
-                            entry->is_subject_ref = true;
-                    }
-                    free(type_name);
-                }
-            }
-            write_indent(ctx);
-            codebuf_write(ctx->out, "%s_sync(self);\n", name);
-            if (method->data.func_decl.body != NULL)
-                emit_block(method->data.func_decl.body, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "%s_sync(self);\n", name);
-            ctx->slot_var_count = saved_slot_count;
-            ctx->typed_var_count = saved_typed_count;
-            ctx->current_relation_name = saved_relation_name;
-        }
-        ctx->indent--;
-        codebuf_write(ctx->out, "}\n");
+        transpiler_set_backend_error(
+            ctx,
+            "MIR-only C path missing routine for relation method '%s.%s'",
+            name != NULL ? name : "(anonymous-relation)",
+            method->data.func_decl.name != NULL
+                ? method->data.func_decl.name
+                : "(anonymous)");
+        return;
     }
 }
 
@@ -1359,45 +1216,14 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         codebuf_write(ctx->out, ")\n{\n");
-        ctx->indent++;
-        {
-            int saved_slot_count = ctx->slot_var_count;
-            int saved_typed_count = ctx->typed_var_count;
-            const char *saved_effect_name = ctx->current_effect_name;
-            ctx->current_effect_name = name;
-            register_typed_var(ctx, "self", name);
-            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                FuncParam *p = method->data.func_decl.params[j];
-                char *type_name;
-
-                if (p == NULL || p->name == NULL
-                    || strcmp(p->name, "self") == 0
-                    || p->type == NULL)
-                    continue;
-
-                type_name = render_type_name(p->type);
-                if (type_name != NULL) {
-                    register_typed_var(ctx, p->name, type_name);
-                    if (is_pointer_self_host_type_name(ctx, type_name)) {
-                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
-                        if (entry != NULL)
-                            entry->is_subject_ref = true;
-                    }
-                    free(type_name);
-                }
-            }
-            write_indent(ctx);
-            codebuf_write(ctx->out, "%s_sync(self);\n", name);
-            if (method->data.func_decl.body != NULL)
-                emit_block(method->data.func_decl.body, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "%s_sync(self);\n", name);
-            ctx->slot_var_count = saved_slot_count;
-            ctx->typed_var_count = saved_typed_count;
-            ctx->current_effect_name = saved_effect_name;
-        }
-        ctx->indent--;
-        codebuf_write(ctx->out, "}\n");
+        transpiler_set_backend_error(
+            ctx,
+            "MIR-only C path missing routine for effect method '%s.%s'",
+            name != NULL ? name : "(anonymous-effect)",
+            method->data.func_decl.name != NULL
+                ? method->data.func_decl.name
+                : "(anonymous)");
+        return;
     }
 }
 
@@ -1927,47 +1753,14 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 free(participant_expr);
             }
         }
-        {
-            int saved_slot_count = ctx->slot_var_count;
-            int saved_typed_count = ctx->typed_var_count;
-            const char *saved_zone_name = ctx->current_zone_name;
-            ctx->current_zone_name = name;
-            register_typed_var(ctx, "self", name);
-            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                FuncParam *p = method->data.func_decl.params[j];
-                char *type_name;
-
-                if (p == NULL || p->name == NULL
-                    || strcmp(p->name, "self") == 0
-                    || p->type == NULL)
-                    continue;
-
-                type_name = render_type_name(p->type);
-                if (type_name != NULL) {
-                    register_typed_var(ctx, p->name, type_name);
-                    if (is_pointer_self_host_type_name(ctx, type_name)) {
-                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
-                        if (entry != NULL)
-                            entry->is_subject_ref = true;
-                    }
-                    free(type_name);
-                }
-            }
-            write_indent(ctx);
-            codebuf_write(ctx->out, "%s_sync(self);\n", name);
-            write_indent(ctx);
-            codebuf_write(ctx->out,
-                "uint32_t __attribute__((unused)) __pgy_zone_gen = self->__sync_generation;\n");
-            if (method->data.func_decl.body != NULL)
-                emit_block(method->data.func_decl.body, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "%s_sync(self);\n", name);
-            ctx->slot_var_count = saved_slot_count;
-            ctx->typed_var_count = saved_typed_count;
-            ctx->current_zone_name = saved_zone_name;
-        }
-        ctx->indent--;
-        codebuf_write(ctx->out, "}\n");
+        transpiler_set_backend_error(
+            ctx,
+            "MIR-only C path missing routine for zone method '%s.%s'",
+            name != NULL ? name : "(anonymous-zone)",
+            method->data.func_decl.name != NULL
+                ? method->data.func_decl.name
+                : "(anonymous)");
+        return;
     }
 }
 
@@ -2269,56 +2062,14 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out, ")\n{\n");
         ctx->indent++;
-        {
-            int saved_slot_count = ctx->slot_var_count;
-            int saved_typed_count = ctx->typed_var_count;
-            const char *saved_world_name = ctx->current_world_name;
-            ctx->current_world_name = name;
-            register_typed_var(ctx, "self", name);
-            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                FuncParam *p = method->data.func_decl.params[j];
-                char *type_name;
-
-                if (p == NULL || p->name == NULL
-                    || strcmp(p->name, "self") == 0
-                    || p->type == NULL)
-                    continue;
-
-                type_name = render_type_name(p->type);
-                if (type_name != NULL) {
-                    register_typed_var(ctx, p->name, type_name);
-                    if (is_pointer_self_host_type_name(ctx, type_name)) {
-                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
-                        if (entry != NULL)
-                            entry->is_subject_ref = true;
-                    }
-                    free(type_name);
-                }
-            }
-            write_indent(ctx);
-            codebuf_write(ctx->out, "%s_sync(self);\n", name);
-            if (method->data.func_decl.body != NULL)
-                emit_block(method->data.func_decl.body, ctx);
-            for (size_t j = 0; j < node->data.world_decl.zone_count; j++) {
-                ASTNode *zone = node->data.world_decl.zones[j];
-                const char *slot_name = zone != NULL
-                    ? zone->data.world_zone.slot_name
-                    : NULL;
-                if (slot_name == NULL)
-                    continue;
-                write_indent(ctx);
-                codebuf_write(ctx->out, "self->__zone_dirty_%s = true;\n", slot_name);
-            }
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__world_derived_dirty = true;\n");
-            write_indent(ctx);
-            codebuf_write(ctx->out, "%s_sync(self);\n", name);
-            ctx->slot_var_count = saved_slot_count;
-            ctx->typed_var_count = saved_typed_count;
-            ctx->current_world_name = saved_world_name;
-        }
-        ctx->indent--;
-        codebuf_write(ctx->out, "}\n");
+        transpiler_set_backend_error(
+            ctx,
+            "MIR-only C path missing routine for world method '%s.%s'",
+            name != NULL ? name : "(anonymous-world)",
+            method->data.func_decl.name != NULL
+                ? method->data.func_decl.name
+                : "(anonymous)");
+        return;
     }
 }
 

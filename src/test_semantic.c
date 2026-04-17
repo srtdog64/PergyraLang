@@ -1769,6 +1769,59 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("ref QubitSlot parameter cannot escape into a new binding");
+    {
+        const char *source =
+            "func BorrowAlias(ref q: QubitSlot) -> Void {\n"
+            "    let alias: QubitSlot = q;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape into a new binding"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "borrowed 'ref' movable resource"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref QubitSlot parameter cannot escape through assignment rebind");
+    {
+        const char *source =
+            "func BorrowAssign(ref q: QubitSlot) -> Void {\n"
+            "    let dst: QubitSlot = ClaimQubit();\n"
+            "    dst = q;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through assignment rebind"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "borrowed 'ref' movable resource"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("Slot<Int> parameter types remain rejected");
     {
         SemanticContext *ctx = semantic_context_create();
