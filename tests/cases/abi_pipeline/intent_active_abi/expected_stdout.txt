@@ -1,0 +1,8 @@
+true
+verify
+CheckoutZone
+buyer
+true
+true
+true
+1

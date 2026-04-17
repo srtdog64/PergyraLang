@@ -645,10 +645,16 @@ pgy_intent_recent_entry_by_index_export(int32_t index)
     return &pgy_intent_recent_ring[recent_index];
 }
 
+static inline PgyIntentActiveEntry *
+pgy_intent_active_entry_by_handle_export(int32_t handle)
+{
+    return pgy_intent_find_active_entry(handle);
+}
+
 static inline PgyIntentHistoryStep *
 pgy_intent_active_step_by_index_export(int32_t intent_index, int32_t step_index)
 {
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(intent_index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(intent_index);
     if (entry == NULL)
         return NULL;
     if (step_index < 0 || step_index >= entry->step_count) {
@@ -801,7 +807,7 @@ pgy_intent_active_name_export(int32_t index)
     char *result = "";
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL && entry->name != NULL)
         result = entry->name;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -827,7 +833,7 @@ pgy_intent_active_priority_export(int32_t index)
     int32_t result = 0;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL)
         result = entry->priority;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -840,7 +846,7 @@ pgy_intent_active_trace_id_export(int32_t index)
     int32_t result = 0;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL)
         result = entry->trace_id;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -853,7 +859,7 @@ pgy_intent_active_concurrent_export(int32_t index)
     bool result = false;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL)
         result = entry->is_concurrent;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -866,7 +872,7 @@ pgy_intent_active_trace_export(int32_t index)
     char *result = "";
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL && entry->trace != NULL)
         result = entry->trace;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -879,7 +885,7 @@ pgy_intent_active_parent_handle_export(int32_t index)
     int32_t result = 0;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL)
         result = entry->parent_handle;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -892,7 +898,7 @@ pgy_intent_active_subject_count_export(int32_t index)
     int32_t result = 0;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL)
         result = entry->subject_count;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -905,7 +911,7 @@ pgy_intent_active_step_count_export(int32_t index)
     int32_t result = 0;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL)
         result = entry->step_count;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -918,7 +924,7 @@ pgy_intent_active_failed_export(int32_t index)
     bool result = false;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL)
         result = entry->failed;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -931,7 +937,7 @@ pgy_intent_active_failure_export(int32_t index)
     char *result = "";
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
     if (entry != NULL && entry->failure_reason != NULL)
         result = entry->failure_reason;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);

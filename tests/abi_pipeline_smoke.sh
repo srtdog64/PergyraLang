@@ -166,6 +166,7 @@ CASES=(
     intent_trace_abi
     intent_value_params_abi
     intent_recent_abi
+    intent_active_abi
     intent_failure_abi
     world_clone_ownership_abi
     world_handoff_mutation_abi

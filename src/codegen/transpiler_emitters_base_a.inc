@@ -1,5 +1,6 @@
 static int transpiler_find_loop_label_depth(const TranspilerCtx *ctx,
                                             const char *label);
+static ASTNode *transpiler_current_host_decl_local(TranspilerCtx *ctx);
 static bool transpiler_is_implicit_field(TranspilerCtx *ctx,
                                          const char *base_name);
 static bool transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
@@ -1772,6 +1773,8 @@ transpiler_emit_mir_block_with_ssa_map(TranspilerSSANameMap *ssa_map,
 static char *
 transpiler_make_c_ssa_name(const char *versioned_name)
 {
+    ASTNode *host_decl = NULL;
+
     if (versioned_name == NULL)
         return NULL;
     char base[128];
@@ -1779,7 +1782,9 @@ transpiler_make_c_ssa_name(const char *versioned_name)
     if (!transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version))
         return pergyra_strdup(versioned_name);
     if (g_type_render_ctx != NULL && transpiler_is_implicit_field(g_type_render_ctx, base)) {
-        if (g_type_render_ctx->current_class_name != NULL
+        host_decl = transpiler_current_host_decl_local(g_type_render_ctx);
+        if (((host_decl != NULL && host_decl->type == AST_CLASS_DECL)
+             || g_type_render_ctx->current_class_name != NULL)
             && current_class_has_field(g_type_render_ctx, base)) {
             return strdup_fmt(current_class_uses_self_cell(g_type_render_ctx)
                 ? "self->%s"
@@ -1793,6 +1798,7 @@ transpiler_make_c_ssa_name(const char *versioned_name)
 static bool
 transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
 {
+    ASTNode *host_decl = NULL;
     bool in_zone_context = false;
     const char *class_host_name = NULL;
 
@@ -1803,13 +1809,11 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
     if (ctx->current_func_decl != NULL
         && transpiler_has_explicit_local_binding(ctx->current_func_decl, base_name))
         return false;
-    in_zone_context = (ctx->current_host_decl != NULL
-                       && ctx->current_host_decl->type == AST_ZONE_DECL)
+    host_decl = transpiler_current_host_decl_local(ctx);
+    in_zone_context = (host_decl != NULL && host_decl->type == AST_ZONE_DECL)
         || ctx->current_zone_name != NULL;
-    if (ctx->current_host_decl != NULL
-        && ctx->current_host_decl->type == AST_CLASS_DECL) {
-        class_host_name = ctx->current_host_decl->data.class_decl.name;
-    }
+    if (host_decl != NULL && host_decl->type == AST_CLASS_DECL)
+        class_host_name = host_decl->data.class_decl.name;
     if (class_host_name == NULL)
         class_host_name = ctx->current_class_name;
     if (current_class_has_field(ctx, base_name))
@@ -2378,37 +2382,6 @@ transpiler_lookup_current_owner_member_type_name(TranspilerCtx *ctx,
             if (member_type != NULL)
                 return member_type;
         }
-    }
-
-    if (ctx->current_class_name != NULL) {
-        member_type = lookup_nominal_host_member_type_name(ctx,
-            ctx->current_class_name, member_name);
-        if (member_type != NULL)
-            return member_type;
-    }
-    if (ctx->current_relation_name != NULL) {
-        member_type = lookup_nominal_host_member_type_name(ctx,
-            ctx->current_relation_name, member_name);
-        if (member_type != NULL)
-            return member_type;
-    }
-    if (ctx->current_effect_name != NULL) {
-        member_type = lookup_nominal_host_member_type_name(ctx,
-            ctx->current_effect_name, member_name);
-        if (member_type != NULL)
-            return member_type;
-    }
-    if (ctx->current_zone_name != NULL) {
-        member_type = lookup_nominal_host_member_type_name(ctx,
-            ctx->current_zone_name, member_name);
-        if (member_type != NULL)
-            return member_type;
-    }
-    if (ctx->current_world_name != NULL) {
-        member_type = lookup_nominal_host_member_type_name(ctx,
-            ctx->current_world_name, member_name);
-        if (member_type != NULL)
-            return member_type;
     }
 
     return NULL;

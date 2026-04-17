@@ -300,6 +300,16 @@ run_case() {
     case "$(uname -s 2>/dev/null || echo unknown):$c_rc:$llvm_rc" in
         MINGW*:126:*|MINGW*:127:*|MSYS*:126:*|MSYS*:127:*|CYGWIN*:126:*|CYGWIN*:127:*|MINGW*:*:126|MINGW*:*:127|MSYS*:*:126|MSYS*:*:127|CYGWIN*:*:126|CYGWIN*:*:127)
             echo "backend-compare: Windows executable launch failed for $source_rel; verify LLVM runtime DLL directories are on PATH" >&2
+            echo "backend-compare: resolved C binary: $c_bin" >&2
+            echo "backend-compare: resolved LLVM binary: $llvm_bin" >&2
+            echo "backend-compare: C stderr:" >&2
+            cat "$c_err" >&2 || true
+            echo "backend-compare: LLVM stderr:" >&2
+            cat "$llvm_err" >&2 || true
+            echo "backend-compare: C compile log:" >&2
+            cat "$c_compile_log" >&2 || true
+            echo "backend-compare: LLVM compile log:" >&2
+            cat "$llvm_compile_log" >&2 || true
             ;;
     esac
 

@@ -272,15 +272,7 @@ current_host_decl_name(TranspilerCtx *ctx)
     decl = transpiler_current_host_decl_local(ctx);
     if (decl != NULL)
         return transpiler_decl_name_local(decl);
-    if (ctx->current_relation_name != NULL)
-        return ctx->current_relation_name;
-    if (ctx->current_effect_name != NULL)
-        return ctx->current_effect_name;
-    if (ctx->current_zone_name != NULL)
-        return ctx->current_zone_name;
-    if (ctx->current_world_name != NULL)
-        return ctx->current_world_name;
-    return ctx->current_class_name;
+    return NULL;
 }
 
 static ASTNode *

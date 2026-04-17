@@ -75,6 +75,70 @@ ability_decl_signature_display(const char *ability_name, GenericParams *params)
     return result;
 }
 
+static char *
+ability_ref_effective_display(ASTNode *ability_decl, ASTNode *ability_ref)
+{
+    const char *ability_name;
+    GenericParams *decl_params;
+    GenericParams *provided_args;
+    char *result;
+
+    if (ability_ref == NULL || ability_ref->type != AST_TYPE)
+        return ability_ref_display(ability_ref);
+
+    ability_name = ability_ref->data.type.name;
+    if (ability_name == NULL)
+        return ability_ref_display(ability_ref);
+
+    if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
+        return ability_ref_display(ability_ref);
+
+    decl_params = ability_decl->data.ability_decl.generic_params;
+    if (decl_params == NULL || decl_params->count == 0)
+        return pergyra_strdup(ability_name);
+
+    provided_args = ability_ref->data.type.generic_args;
+    result = tc_strdup_fmt("%s<", ability_name);
+    if (result == NULL)
+        return pergyra_strdup(ability_name);
+
+    for (size_t i = 0; i < decl_params->count; i++) {
+        GenericParam *decl_gp = decl_params->params[i];
+        GenericParam *provided_gp =
+            (provided_args != NULL && i < provided_args->count)
+                ? provided_args->params[i]
+                : NULL;
+        ASTNode *arg_node =
+            provided_gp != NULL && provided_gp->constraint != NULL
+                ? provided_gp->constraint
+                : (decl_gp != NULL ? decl_gp->default_type : NULL);
+        char *arg_text = NULL;
+        char *next;
+
+        if (arg_node != NULL)
+            arg_text = ability_ref_display(arg_node);
+        if (arg_text == NULL && decl_gp != NULL && decl_gp->name != NULL)
+            arg_text = pergyra_strdup(decl_gp->name);
+        if (arg_text == NULL)
+            arg_text = pergyra_strdup("<type>");
+
+        if (i + 1 < decl_params->count) {
+            next = tc_strdup_fmt("%s%s, ", result,
+                                 arg_text != NULL ? arg_text : "<type>");
+        } else {
+            next = tc_strdup_fmt("%s%s>", result,
+                                 arg_text != NULL ? arg_text : "<type>");
+        }
+        free(arg_text);
+        free(result);
+        result = next;
+        if (result == NULL)
+            return pergyra_strdup(ability_name);
+    }
+
+    return result;
+}
+
 static ASTNode *
 subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
                                     const char *ability_name);
@@ -248,7 +312,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
     if (effective_args == NULL)
         return ctx != NULL ? !ctx->has_error : false;
 
-    required_text = ability_ref_display(ability_ref);
+    required_text = ability_ref_effective_display(ability_decl, ability_ref);
 
     for (size_t ci = 0; ci < wc->count; ci++) {
         TypeConstraint *tc = wc->constraints[ci];
@@ -511,6 +575,15 @@ resolve_required_ability_decl(ASTNode *ability_ref,
         return NULL;
     }
 
+    {
+        char *effective_required_text =
+            ability_ref_effective_display(ability_decl, ability_ref);
+        if (effective_required_text != NULL) {
+            free(required_text);
+            required_text = effective_required_text;
+        }
+    }
+
     site_module = (site != NULL && site->origin_path != NULL)
         ? site->origin_path
         : (ctx != NULL ? ctx->current_module_path : NULL);
@@ -731,6 +804,14 @@ validate_action_required_abilities(ASTNode *node,
         {
             free(required_text);
             continue;
+        }
+        {
+            char *effective_required_text =
+                ability_ref_effective_display(ability_decl, ability_ref);
+            if (effective_required_text != NULL) {
+                free(required_text);
+                required_text = effective_required_text;
+            }
         }
         if (ability_decl->type == AST_ABILITY_DECL
             && !explicit_type_reference_allowed(ability_decl, node, ctx)) {

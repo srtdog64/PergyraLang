@@ -788,6 +788,49 @@ main(void)
         "true\n"
         "1\n"
         "false\n";
+    static const char *intent_active_source =
+        "subject Buyer {\n"
+        "    let hp: Int;\n"
+        "    action Verify(self) -> Void {\n"
+        "        let current: Int = IntentCurrentHandle();\n"
+        "        Log(ToString(current >= 0));\n"
+        "        Log(IntentActiveStepName(current, 0));\n"
+        "        Log(IntentActiveStepZone(current, 0));\n"
+        "        Log(IntentActiveStepParticipant(current, 0));\n"
+        "        Log(ToString(StringLength(IntentActiveStepPhase(current, 0)) > 0));\n"
+        "        Log(ToString(StringLength(IntentActiveStepFailure(current, 0)) == 0));\n"
+        "        return;\n"
+        "    }\n"
+        "}\n"
+        "zone CheckoutZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "}\n"
+        "intent Charge(checkout: CheckoutZone, buyer: Buyer) {\n"
+        "    step verify {\n"
+        "        where: CheckoutZone;\n"
+        "        using: checkout;\n"
+        "        who: buyer;\n"
+        "        on: buyer.Verify();\n"
+        "        expect: true;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let buyer: Buyer = Buyer(1);\n"
+        "    let checkout: CheckoutZone = CheckoutZone(buyer);\n"
+        "    Log(Charge(checkout, buyer));\n"
+        "    Log(ToString(IntentHistoryCount()));\n"
+        "}\n";
+    static const char *intent_active_expected =
+        "true\n"
+        "verify\n"
+        "CheckoutZone\n"
+        "buyer\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "1\n";
     static const char *intent_failure_source =
         "subject Driver {\n"
         "    let started: Bool;\n"
@@ -1220,6 +1263,9 @@ main(void)
     run_pipeline_case("intent_recent_abi", intent_recent_source, intent_recent_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("intent_active_abi", intent_active_source, intent_active_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("intent_failure_abi", intent_failure_source, intent_failure_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
@@ -1268,6 +1314,9 @@ main(void)
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("intent_recent_abi", intent_recent_source, intent_recent_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("intent_active_abi", intent_active_source, intent_active_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("intent_failure_abi", intent_failure_source, intent_failure_expected,

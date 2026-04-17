@@ -43,8 +43,10 @@
 
 #ifdef _WIN32
 #define PGY_CFLAGS_THREAD_LIB "-lwinpthread"
+#define PGY_CFLAGS_THREAD_FLAG "-pthread"
 #else
 #define PGY_CFLAGS_THREAD_LIB "-lpthread"
+#define PGY_CFLAGS_THREAD_FLAG "-pthread"
 #endif
 
 /* -----------------------------------------------------------------
@@ -680,10 +682,10 @@ compiler_build_native(const CompilerIRBundle *bundle,
     const char *cc = pgy_detect_c_compiler();
     const char *cc_target = pgy_cc_extra_target_flag();
     {
-        const char *compile_argv[24];
+        const char *compile_argv[28];
         int ci = 0;
 #ifdef _WIN32
-        const char *link_argv[24];
+        const char *link_argv[28];
         int li = 0;
 #endif
         compile_argv[ci++] = cc;
@@ -695,6 +697,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
         compile_argv[ci++] = "-Wno-unused-value";
         compile_argv[ci++] = "-Wno-parentheses-equality";
         compile_argv[ci++] = "-Wno-c23-extensions";
+        compile_argv[ci++] = PGY_CFLAGS_THREAD_FLAG;
 #endif
         compile_argv[ci++] = opt_flag;
 #ifndef _WIN32
@@ -717,6 +720,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
         link_argv[li++] = "-std=c11";
         link_argv[li++] = "-Wall";
         link_argv[li++] = opt_flag;
+        link_argv[li++] = PGY_CFLAGS_THREAD_FLAG;
         link_argv[li++] = output_obj_path;
         link_argv[li++] = "-o";
         link_argv[li++] = output_binary_path;
@@ -986,6 +990,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     compile_runtime_argv[compile_runtime_argc++] = "-Wno-unused-value";
     compile_runtime_argv[compile_runtime_argc++] = "-Wno-parentheses-equality";
     compile_runtime_argv[compile_runtime_argc++] = "-Wno-c23-extensions";
+    compile_runtime_argv[compile_runtime_argc++] = PGY_CFLAGS_THREAD_FLAG;
     compile_runtime_argv[compile_runtime_argc++] = opt_flag;
     compile_runtime_argv[compile_runtime_argc++] = intent_observability_flag;
     compile_runtime_argv[compile_runtime_argc++] = "-DPGY_LLVM_ENABLED";
@@ -1049,13 +1054,14 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     int rc;
 #ifdef _WIN32
     {
-        const char *link_argv[18];
+        const char *link_argv[22];
         int link_argc = 0;
         link_argv[link_argc++] = cc;
         if (cc_target != NULL)
             link_argv[link_argc++] = cc_target;
         link_argv[link_argc++] = "-std=c11";
         link_argv[link_argc++] = opt_flag;
+        link_argv[link_argc++] = PGY_CFLAGS_THREAD_FLAG;
         link_argv[link_argc++] = "-mconsole";
         link_argv[link_argc++] = "-DPGY_LLVM_ENABLED";
         link_argv[link_argc++] = "-I";

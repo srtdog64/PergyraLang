@@ -1053,15 +1053,14 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 && !slot_decl->data.domain_slot.is_subject) {
                 return strdup_fmt("self->__projection_ready_%s", slot_name);
             }
-            if (slot_name != NULL
-                && ((ctx->current_host_decl != NULL
-                        && (ctx->current_host_decl->type == AST_RELATION_DECL
-                            || ctx->current_host_decl->type == AST_EFFECT_DECL
-                            || ctx->current_host_decl->type == AST_ZONE_DECL))
-                    || ctx->current_relation_name != NULL
-                    || ctx->current_effect_name != NULL
-                    || ctx->current_zone_name != NULL)) {
-                return strdup_fmt("self->__projection_ready_%s", slot_name);
+            if (slot_name != NULL) {
+                ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+                if (host_decl != NULL
+                    && (host_decl->type == AST_RELATION_DECL
+                        || host_decl->type == AST_EFFECT_DECL
+                        || host_decl->type == AST_ZONE_DECL)) {
+                    return strdup_fmt("self->__projection_ready_%s", slot_name);
+                }
             }
         }
         transpiler_set_backend_error(ctx,
@@ -1070,15 +1069,12 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_HAS_LAYER:
         {
             ASTNode *zone_decl = NULL;
-            const char *zone_name = ctx->current_zone_name;
-            if (ctx->current_host_decl != NULL
-                && ctx->current_host_decl->type == AST_ZONE_DECL) {
-                zone_decl = ctx->current_host_decl;
-                zone_name = zone_decl->data.zone_decl.name;
-            }
-            if (zone_decl == NULL && zone_name != NULL)
-                zone_decl = find_zone_decl(ctx, zone_name);
-            if (zone_name != NULL
+            ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+            if (host_decl != NULL && host_decl->type == AST_ZONE_DECL)
+                zone_decl = host_decl;
+            if (zone_decl == NULL && ctx->current_zone_name != NULL)
+                zone_decl = find_zone_decl(ctx, ctx->current_zone_name);
+            if (zone_decl != NULL
             && call->data.call.arg_count == 1
             && call->data.call.arguments[0] != NULL) {
                 const char *layer_name = NULL;
@@ -1088,7 +1084,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     layer_name = call->data.call.arguments[0]->data.string.value;
                 if (layer_name != NULL)
                     return strdup_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
-                        zone_name, layer_name);
+                        zone_decl->data.zone_decl.name, layer_name);
             }
         }
         transpiler_set_backend_error(ctx,
@@ -1097,14 +1093,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_HAS_STATE:
         {
             ASTNode *zone_decl = NULL;
-            const char *zone_name = ctx->current_zone_name;
-            if (ctx->current_host_decl != NULL
-                && ctx->current_host_decl->type == AST_ZONE_DECL) {
-                zone_decl = ctx->current_host_decl;
-                zone_name = zone_decl->data.zone_decl.name;
-            }
-            if (zone_decl == NULL && zone_name != NULL)
-                zone_decl = find_zone_decl(ctx, zone_name);
+            ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+            if (host_decl != NULL && host_decl->type == AST_ZONE_DECL)
+                zone_decl = host_decl;
+            if (zone_decl == NULL && ctx->current_zone_name != NULL)
+                zone_decl = find_zone_decl(ctx, ctx->current_zone_name);
             if (zone_decl != NULL
             && call->data.call.arg_count >= 1
             && call->data.call.arguments[0] != NULL) {
@@ -1125,14 +1118,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_HAS_ZONE:
         {
             ASTNode *world_decl = NULL;
-            const char *world_name = ctx->current_world_name;
-            if (ctx->current_host_decl != NULL
-                && ctx->current_host_decl->type == AST_WORLD_DECL) {
-                world_decl = ctx->current_host_decl;
-                world_name = world_decl->data.world_decl.name;
-            }
-            if (world_decl == NULL && world_name != NULL)
-                world_decl = find_world_decl(ctx, world_name);
+            ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+            if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
+                world_decl = host_decl;
+            if (world_decl == NULL && ctx->current_world_name != NULL)
+                world_decl = find_world_decl(ctx, ctx->current_world_name);
             if (world_decl != NULL
             && call->data.call.arg_count >= 1
             && call->data.call.arguments[0] != NULL) {
@@ -1155,14 +1145,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_HAS_ZONE_PROJECTION:
         {
             ASTNode *world_decl = NULL;
-            const char *world_name = ctx->current_world_name;
-            if (ctx->current_host_decl != NULL
-                && ctx->current_host_decl->type == AST_WORLD_DECL) {
-                world_decl = ctx->current_host_decl;
-                world_name = world_decl->data.world_decl.name;
-            }
-            if (world_decl == NULL && world_name != NULL)
-                world_decl = find_world_decl(ctx, world_name);
+            ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+            if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
+                world_decl = host_decl;
+            if (world_decl == NULL && ctx->current_world_name != NULL)
+                world_decl = find_world_decl(ctx, ctx->current_world_name);
             if (world_decl != NULL
             && call->data.call.arg_count == 2
             && call->data.call.arguments[0] != NULL
@@ -1195,14 +1182,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_HAS_ZONE_LAYER:
         {
             ASTNode *world_decl = NULL;
-            const char *world_name = ctx->current_world_name;
-            if (ctx->current_host_decl != NULL
-                && ctx->current_host_decl->type == AST_WORLD_DECL) {
-                world_decl = ctx->current_host_decl;
-                world_name = world_decl->data.world_decl.name;
-            }
-            if (world_decl == NULL && world_name != NULL)
-                world_decl = find_world_decl(ctx, world_name);
+            ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+            if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
+                world_decl = host_decl;
+            if (world_decl == NULL && ctx->current_world_name != NULL)
+                world_decl = find_world_decl(ctx, ctx->current_world_name);
             if (world_decl != NULL
             && call->data.call.arg_count == 2
             && call->data.call.arguments[0] != NULL
@@ -1231,14 +1215,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_HAS_ZONE_STATE:
         {
             ASTNode *world_decl = NULL;
-            const char *world_name = ctx->current_world_name;
-            if (ctx->current_host_decl != NULL
-                && ctx->current_host_decl->type == AST_WORLD_DECL) {
-                world_decl = ctx->current_host_decl;
-                world_name = world_decl->data.world_decl.name;
-            }
-            if (world_decl == NULL && world_name != NULL)
-                world_decl = find_world_decl(ctx, world_name);
+            ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+            if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
+                world_decl = host_decl;
+            if (world_decl == NULL && ctx->current_world_name != NULL)
+                world_decl = find_world_decl(ctx, ctx->current_world_name);
             if (world_decl != NULL
             && call->data.call.arg_count == 2
             && call->data.call.arguments[0] != NULL
@@ -3987,16 +3968,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         if (node->data.member.object->type == AST_IDENTIFIER
             && strcmp(node->data.member.object->data.identifier.name, "self") == 0) {
+            ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             bool self_is_pointer = current_class_uses_self_cell(ctx)
-                || (ctx->current_host_decl != NULL
-                    && (ctx->current_host_decl->type == AST_RELATION_DECL
-                        || ctx->current_host_decl->type == AST_EFFECT_DECL
-                        || ctx->current_host_decl->type == AST_ZONE_DECL
-                        || ctx->current_host_decl->type == AST_WORLD_DECL))
-                || ctx->current_relation_name != NULL
-                || ctx->current_effect_name != NULL
-                || ctx->current_zone_name != NULL
-                || ctx->current_world_name != NULL;
+                || (host_decl != NULL
+                    && (host_decl->type == AST_RELATION_DECL
+                        || host_decl->type == AST_EFFECT_DECL
+                        || host_decl->type == AST_ZONE_DECL
+                        || host_decl->type == AST_WORLD_DECL));
             char *result = strdup_fmt(self_is_pointer
                 ? "%s->%s"
                 : "%s.%s", obj, node->data.member.name);

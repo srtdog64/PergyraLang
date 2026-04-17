@@ -3315,18 +3315,47 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
                             zone_decl->data.zone_decl.slot_count, ctx, auth_type_name)) {
                         semantic_error(ctx, node,
-                            "action '%s' authorized subject '%s' has type '%s', but zone '%s' has no matching subject slot",
+                            "action '%s' authorized subject '%s' has type '%s', but zone '%s' has no matching subject slot.\n"
+                            "Reason:\n"
+                            "- action contract derives authority provenance from binding '%s'\n"
+                            "- binding '%s' has subject type '%s'\n"
+                            "- zone '%s' exposes no subject slot for that type\n"
+                            "Fix:\n"
+                            "- add a subject slot for '%s' to zone '%s'\n"
+                            "- or authorize this action by a subject already declared in zone '%s'",
                             name != NULL ? name : "<anonymous>",
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_type_name,
+                            node->data.func_decl.within_zone,
+                            auth_name != NULL ? auth_name : "<subject>",
+                            auth_name != NULL ? auth_name : "<subject>",
+                            auth_type_name,
+                            node->data.func_decl.within_zone,
+                            auth_type_name,
+                            node->data.func_decl.within_zone,
                             node->data.func_decl.within_zone);
                     } else if (!zone_has_authority_for_subject_type(zone_decl, ctx, auth_type_name)) {
                         semantic_error(ctx, node,
-                            "action '%s' authorized subject '%s' has type '%s', but zone '%s' declares no matching authority",
+                            "action '%s' authorized subject '%s' has type '%s', but zone '%s' declares no matching authority.\n"
+                            "Reason:\n"
+                            "- action contract derives authority provenance from binding '%s'\n"
+                            "- binding '%s' has subject type '%s'\n"
+                            "- zone '%s' has a subject slot for that type but no authority contract\n"
+                            "Fix:\n"
+                            "- declare authority for '%s' in zone '%s'\n"
+                            "- or change/remove 'authorized by %s' on action '%s'",
                             name != NULL ? name : "<anonymous>",
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_type_name,
-                            node->data.func_decl.within_zone);
+                            node->data.func_decl.within_zone,
+                            auth_name != NULL ? auth_name : "<subject>",
+                            auth_name != NULL ? auth_name : "<subject>",
+                            auth_type_name,
+                            node->data.func_decl.within_zone,
+                            auth_type_name,
+                            node->data.func_decl.within_zone,
+                            auth_name != NULL ? auth_name : "<subject>",
+                            name != NULL ? name : "<anonymous>");
                     }
                 }
             }
@@ -3820,8 +3849,16 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             effect_mask_to_string(func_type->data.function.effect_mask,
                                   derived_buf, sizeof(derived_buf));
             semantic_warning(ctx, node,
-                "Function '%s' combines effect classes that are currently treated as conflicting (%s); consider splitting authority-sensitive and remote/resource-boundary work",
+                "Function '%s' combines effect classes that are currently treated as conflicting (%s).\n"
+                "Reason:\n"
+                "- derived body effects joined into '%s'\n"
+                "- current partial order still treats part of that join as conflicting in one routine\n"
+                "- this usually means authority-sensitive work and boundary/resource work were merged in one flow\n"
+                "Fix:\n"
+                "- split the routine into smaller helpers so each helper owns one effect family\n"
+                "- or isolate the conflicting branch/handoff path behind an explicit boundary helper",
                 name != NULL ? name : "<anonymous>",
+                derived_buf,
                 derived_buf);
         }
 
@@ -3830,8 +3867,16 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             && type_effect_mask_requires_authority(func_type->data.function.effect_mask)
             && node->data.func_decl.authorized_by_count == 0) {
             semantic_error(ctx, node,
-                "secure action '%s' within zone '%s' must declare 'authorized by' so capability-bearing work stays inside an explicit authority flow",
+                "secure action '%s' within zone '%s' must declare 'authorized by'.\n"
+                "Reason:\n"
+                "- action body derives authority-sensitive effects from capability-bearing work\n"
+                "- zone '%s' makes this action part of an explicit authority boundary\n"
+                "- without 'authorized by', the approval provenance for that boundary is missing\n"
+                "Fix:\n"
+                "- add 'authorized by <subject-slot>' to the action contract\n"
+                "- or move the authority-sensitive work behind a helper that is called from an already-authorized action",
                 name != NULL ? name : "<anonymous>",
+                node->data.func_decl.within_zone,
                 node->data.func_decl.within_zone);
         }
         if (is_action
@@ -3839,8 +3884,17 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             && node->data.func_decl.causes_effect != NULL
             && node->data.func_decl.authorized_by_count == 0) {
             semantic_error(ctx, node,
-                "action '%s' causing effect '%s' within zone '%s' must declare 'authorized by' so authority-sensitive state changes stay explicit",
+                "action '%s' causing effect '%s' within zone '%s' must declare 'authorized by'.\n"
+                "Reason:\n"
+                "- action contract declares causes '%s'\n"
+                "- causing an effect inside zone '%s' is an authority-sensitive state change\n"
+                "- without 'authorized by', the approval provenance for that state change is missing\n"
+                "Fix:\n"
+                "- add 'authorized by <subject-slot>' to the action contract\n"
+                "- or remove/change the causes clause if this action should stay authority-free",
                 name != NULL ? name : "<anonymous>",
+                node->data.func_decl.causes_effect,
+                node->data.func_decl.within_zone,
                 node->data.func_decl.causes_effect,
                 node->data.func_decl.within_zone);
         }

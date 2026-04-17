@@ -111,10 +111,9 @@ test_channel_transfers_between_threads(void)
 
     ok1 = pgy_channel_recv_Int(&channel, &first);
     ok2 = pgy_channel_recv_Int(&channel, &second);
+    pgy_await_void(producer);
     closed = pgy_channel_closed_Int(&channel);
     remaining = pgy_channel_length_Int(&channel);
-
-    pgy_await_void(producer);
     pgy_channel_destroy_Int(&channel);
     pgy_pool_shutdown();
 
