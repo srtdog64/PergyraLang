@@ -49,13 +49,13 @@ examples such as the battle simulator and biome simulator.
   leak into later host methods and collapse `weapon.Summary()` to `0` on the
   LLVM path. Current lookup now prefers in-scope locals and then current host
   fields, so subject-owned class tools dispatch consistently on both C and LLVM.
-- LLVM nominal inference now follows unqualified host methods that return class
+- LLVM nominal resolution now follows unqualified host methods that return class
   values. Paths such as `let weapon = MemberWeapon(); weapon.Strain(...)` are
   now regression-covered and backend-equal instead of losing the returned class
   identity on the LLVM side.
 - `bind <slot> from <source>` now exists for `relation` / `effect` / `zone`.
   It keeps the explicit projection contract but removes the extra `refresh` vs
-  `publish` split from many scenario declarations by inferring `object` vs
+  `publish` split from many scenario declarations by deriving `object` vs
   `tobject` from the target slot kind.
 
 - `fsm_factory` no longer needs the old `ResetFactory()` workaround to seed

@@ -171,31 +171,67 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
             if (from_alias == NULL || to_alias == NULL) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' transfer clause requires both source and target zone aliases",
+                    "Intent step '%s' transfer clause requires both source and target zone aliases.\n"
+                    "Reason:\n"
+                    "- transfer declares a zone handoff contract\n"
+                    "- handoff materialization cannot proceed without both source and target bindings\n"
+                    "Fix:\n"
+                    "- provide 'transfer: <sourceZoneAlias> -> <targetZoneAlias>;'\n"
+                    "- or remove the incomplete transfer clause",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             }
             if (from_alias != NULL && from_involves == NULL) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' transfer source '%s' is not a declared intent binding",
+                    "Intent step '%s' transfer source '%s' is not a declared intent binding.\n"
+                    "Reason:\n"
+                    "- the handoff source must name an intent binding that participates in this orchestration\n"
+                    "- no declared binding named '%s' was found on the current intent\n"
+                    "Fix:\n"
+                    "- use a declared zone binding as the transfer source\n"
+                    "- or add '%s' as an intent binding before using it in transfer",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    from_alias,
+                    from_alias,
                     from_alias);
             }
             if (to_alias != NULL && to_involves == NULL) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' transfer target '%s' is not a declared intent binding or a unique zone type in this intent",
+                    "Intent step '%s' transfer target '%s' is not a declared intent binding or a unique zone type in this intent.\n"
+                    "Reason:\n"
+                    "- transfer target resolution first looks for an explicit binding alias\n"
+                    "- then it allows a unique zone-type shorthand only when that target is unambiguous\n"
+                    "- current intent provides no unique target for '%s'\n"
+                    "Fix:\n"
+                    "- use a declared zone binding alias as the transfer target\n"
+                    "- or make the target zone type unique within this intent",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    to_alias,
                     to_alias);
             }
             if (from_involves != NULL && from_zone_decl == NULL) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' transfer source '%s' must be a zone binding",
+                    "Intent step '%s' transfer source '%s' must be a zone binding.\n"
+                    "Reason:\n"
+                    "- transfer performs zone-to-zone handoff\n"
+                    "- source binding '%s' does not resolve to a zone declaration\n"
+                    "Fix:\n"
+                    "- use a zone binding as the transfer source\n"
+                    "- or move ordinary participant movement into 'who'/'on' instead of 'transfer'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    from_alias != NULL ? from_alias : "<source>",
                     from_alias != NULL ? from_alias : "<source>");
             }
             if (to_involves != NULL && to_zone_decl == NULL) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' transfer target '%s' must be a zone binding",
+                    "Intent step '%s' transfer target '%s' must be a zone binding.\n"
+                    "Reason:\n"
+                    "- transfer materializes handoff into a target zone\n"
+                    "- target binding '%s' does not resolve to a zone declaration\n"
+                    "Fix:\n"
+                    "- use a zone binding as the transfer target\n"
+                    "- or change the step contract so the handoff target is a declared zone",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    to_alias != NULL ? to_alias : "<target>",
                     to_alias != NULL ? to_alias : "<target>");
             }
             if (to_type != NULL && where_zone_type != NULL && !type_equals(to_type, where_zone_type)) {
@@ -508,9 +544,19 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         } else if (step->data.intent_step.causes_effect != NULL
             && zone_decl != NULL
             && !zone_has_effect_layer_type(zone_decl, step->data.intent_step.causes_effect)) {
-            semantic_warning(ctx, step,
-                "Intent step '%s' causes effect '%s', but zone '%s' has no matching effect slot",
+            semantic_error(ctx, step,
+                "Intent step '%s' causes effect '%s', but zone '%s' has no matching effect slot.\n"
+                "Reason:\n"
+                "- causes requires the current zone to materialize a matching effect layer\n"
+                "- zone '%s' does not declare any effect slot of type '%s'\n"
+                "Fix:\n"
+                "- add an effect slot of type '%s' to zone '%s'\n"
+                "- or remove/change the causes clause",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                step->data.intent_step.causes_effect,
+                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                step->data.intent_step.causes_effect,
                 step->data.intent_step.causes_effect,
                 zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
         }
@@ -914,10 +960,19 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             Symbol *sys = scope_lookup(ctx->scope,
                 ws->data.world_roster.roster_type);
             if (sys == NULL || sys->kind != SYMBOL_ROSTER) {
-                semantic_warning(ctx, ws,
-                    "Roster type '%s' not found for slot '%s'",
+                semantic_error(ctx, ws,
+                    "Roster type '%s' not found for slot '%s'.\n"
+                    "Reason:\n"
+                    "- world roster slot '%s' must reference a visible roster declaration\n"
+                    "- no roster named '%s' is visible at this point\n"
+                    "Fix:\n"
+                    "- declare roster '%s'\n"
+                    "- or import/export the module that defines it",
                     ws->data.world_roster.roster_type,
-                    ws->data.world_roster.slot_name);
+                    ws->data.world_roster.slot_name,
+                    ws->data.world_roster.slot_name,
+                    ws->data.world_roster.roster_type,
+                    ws->data.world_roster.roster_type);
             }
         }
     }
@@ -928,10 +983,19 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             Symbol *zone = scope_lookup(ctx->scope,
                 wz->data.world_zone.zone_type);
             if (zone == NULL || zone->kind != SYMBOL_ZONE) {
-                semantic_warning(ctx, wz,
-                    "Zone type '%s' not found for slot '%s'",
+                semantic_error(ctx, wz,
+                    "Zone type '%s' not found for slot '%s'.\n"
+                    "Reason:\n"
+                    "- world zone slot '%s' must reference a visible zone declaration\n"
+                    "- no zone named '%s' is visible at this point\n"
+                    "Fix:\n"
+                    "- declare zone '%s'\n"
+                    "- or import/export the module that defines it",
                     wz->data.world_zone.zone_type,
-                    wz->data.world_zone.slot_name);
+                    wz->data.world_zone.slot_name,
+                    wz->data.world_zone.slot_name,
+                    wz->data.world_zone.zone_type,
+                    wz->data.world_zone.zone_type);
             }
         }
     }
@@ -946,7 +1010,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             bool saw_state_input = false;
             if (state->data.world_state.input_count == 0) {
                 semantic_error(ctx, state,
-                    "Composed world state '%s' must reference at least one zone/state input",
+                    "Composed world state '%s' must reference at least one zone/state input.\n"
+                    "Reason:\n"
+                    "- `all`/`any` world-state composition needs at least one upstream zone/state contract\n"
+                    "- an empty composition cannot produce observable world state\n"
+                    "Fix:\n"
+                    "- add one or more world zone/state inputs to '%s'\n"
+                    "- or replace it with a plain zone/state alias",
+                    state->data.world_state.state_name != NULL
+                        ? state->data.world_state.state_name : "<unknown>",
                     state->data.world_state.state_name != NULL
                         ? state->data.world_state.state_name : "<unknown>");
             }
@@ -957,7 +1029,14 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 if (state->data.world_state.state_name != NULL
                     && strcmp(state->data.world_state.state_name, input_name) == 0) {
                     semantic_error(ctx, state,
-                        "Composed world state '%s' cannot reference itself",
+                        "Composed world state '%s' cannot reference itself.\n"
+                        "Reason:\n"
+                        "- world-state composition must depend on earlier zone/state inputs\n"
+                        "- self-reference would make the contract cyclic and under-specified\n"
+                        "Fix:\n"
+                        "- remove '%s' from its own input list\n"
+                        "- or split the state into earlier intermediate aliases",
+                        input_name,
                         input_name);
                     continue;
                 }
@@ -972,10 +1051,20 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     continue;
                 }
                 semantic_error(ctx, state,
-                    "Composed world state '%s' references unknown or later world zone/state '%s'",
+                    "Composed world state '%s' references unknown or later world zone/state '%s'.\n"
+                    "Reason:\n"
+                    "- composed world state inputs must name either a declared zone slot or an earlier world-state alias\n"
+                    "- '%s' is not visible as a prior input at this point\n"
+                    "Fix:\n"
+                    "- reference a declared world zone slot\n"
+                    "- or move the producer state before '%s'\n"
+                    "- or correct the input name",
                     state->data.world_state.state_name != NULL
                         ? state->data.world_state.state_name : "<unknown>",
-                    input_name);
+                    input_name,
+                    input_name,
+                    state->data.world_state.state_name != NULL
+                        ? state->data.world_state.state_name : "<unknown>");
             }
             for (size_t input_i = 0; input_i < state->data.world_state.input_count; input_i++) {
                 const char *input_name = state->data.world_state.input_names[input_i];
@@ -990,19 +1079,36 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                         continue;
                     if (strcmp(prev_name, input_name) == 0) {
                         semantic_warning(ctx, state,
-                            "Composed world state '%s' repeats input '%s'",
+                            "Composed world state '%s' repeats input '%s'.\n"
+                            "Reason:\n"
+                            "- the same upstream zone/state input appears more than once\n"
+                            "- duplicate inputs do not add meaning and make provenance noisier\n"
+                            "Fix:\n"
+                            "- keep a single '%s' input in world state '%s'\n"
+                            "- or collapse duplicate entries before composition",
                             state->data.world_state.state_name != NULL
                                 ? state->data.world_state.state_name : "<unknown>",
-                            input_name);
+                            input_name,
+                            input_name,
+                            state->data.world_state.state_name != NULL
+                                ? state->data.world_state.state_name : "<unknown>");
                         break;
                     }
                     prev_plain_zone = resolve_world_plain_zone_input_name(node, prev_name);
                     if (input_plain_zone != NULL && prev_plain_zone != NULL
                         && strcmp(input_plain_zone, prev_plain_zone) == 0) {
                         semantic_warning(ctx, state,
-                            "Composed world state '%s' redundantly mixes zone slot '%s' with plain alias/input '%s'",
+                            "Composed world state '%s' redundantly mixes zone slot '%s' with plain alias/input '%s'.\n"
+                            "Reason:\n"
+                            "- both inputs resolve to the same underlying zone source\n"
+                            "- mixing the raw zone slot and its plain alias duplicates provenance without changing semantics\n"
+                            "Fix:\n"
+                            "- keep either zone slot '%s' or alias/input '%s'\n"
+                            "- prefer one canonical upstream name per composed world state",
                             state->data.world_state.state_name != NULL
                                 ? state->data.world_state.state_name : "<unknown>",
+                            prev_name,
+                            input_name,
                             prev_name,
                             input_name);
                         break;
@@ -1010,16 +1116,29 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 }
                 if (find_world_zone_slot_local(node, input_name) != NULL) {
                     semantic_warning(ctx, state,
-                        "Composed world state '%s' directly references zone slot '%s'; prefer a plain 'state name: zone %s' alias so command and derived layers stay separate",
+                        "Composed world state '%s' directly references zone slot '%s'; prefer a plain 'state name: zone %s' alias so command and derived layers stay separate.\n"
+                        "Reason:\n"
+                        "- raw zone slots blur command-layer input with derived world-state composition\n"
+                        "- a plain alias keeps provenance and layering clearer\n"
+                        "Fix:\n"
+                        "- introduce 'state name: zone %s'\n"
+                        "- and compose from that alias instead of the raw zone slot",
                         state->data.world_state.state_name != NULL
                             ? state->data.world_state.state_name : "<unknown>",
+                        input_name,
                         input_name,
                         input_name);
                 }
             }
             if (saw_direct_zone_input && saw_state_input) {
                 semantic_warning(ctx, state,
-                    "Composed world state '%s' mixes direct zone-slot inputs with world-state inputs; prefer composing from world-state aliases only",
+                    "Composed world state '%s' mixes direct zone-slot inputs with world-state inputs; prefer composing from world-state aliases only.\n"
+                    "Reason:\n"
+                    "- mixing raw zone slots with world-state aliases makes composition provenance harder to read\n"
+                    "- world-state aliases are the preferred boundary between command and derived layers\n"
+                    "Fix:\n"
+                    "- compose from world-state aliases only\n"
+                    "- or keep the composition entirely in raw zone-slot space, but not both",
                     state->data.world_state.state_name != NULL
                         ? state->data.world_state.state_name : "<unknown>");
             }
@@ -1042,31 +1161,61 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 if (detail_decl == NULL
                     || detail_decl->data.domain_slot.is_subject) {
                     semantic_error(ctx, state,
-                        "World state '%s' references unknown object/tobject projection slot '%s' in zone '%s'",
+                        "World state '%s' references unknown object/tobject projection slot '%s' in zone '%s'.\n"
+                        "Reason:\n"
+                        "- world state projection visibility can only observe object/tobject projection slots\n"
+                        "- zone '%s' has no matching projection slot '%s'\n"
+                        "Fix:\n"
+                        "- reference a declared object/tobject projection slot from zone '%s'\n"
+                        "- or declare projection slot '%s' on that zone",
                         state->data.world_state.state_name != NULL
                             ? state->data.world_state.state_name : "<unknown>",
                         detail_name,
-                        zone_slot_name);
+                        zone_slot_name,
+                        zone_slot_name,
+                        detail_name,
+                        zone_slot_name,
+                        detail_name);
                 }
             } else if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_LAYER) {
                 detail_decl = find_zone_layer_slot_local(zone_decl, detail_name);
                 if (detail_decl == NULL) {
                     semantic_error(ctx, state,
-                        "World state '%s' references unknown layer slot '%s' in zone '%s'",
+                        "World state '%s' references unknown layer slot '%s' in zone '%s'.\n"
+                        "Reason:\n"
+                        "- world layer visibility expects a declared zone layer slot\n"
+                        "- zone '%s' has no layer slot named '%s'\n"
+                        "Fix:\n"
+                        "- reference a declared layer slot from zone '%s'\n"
+                        "- or declare layer slot '%s' on that zone",
                         state->data.world_state.state_name != NULL
                             ? state->data.world_state.state_name : "<unknown>",
                         detail_name,
-                        zone_slot_name);
+                        zone_slot_name,
+                        zone_slot_name,
+                        detail_name,
+                        zone_slot_name,
+                        detail_name);
                 }
             } else if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_STATE) {
                 detail_decl = find_zone_state_decl_local(zone_decl, detail_name);
                 if (detail_decl == NULL) {
                     semantic_error(ctx, state,
-                        "World state '%s' references unknown zone state '%s' in zone '%s'",
+                        "World state '%s' references unknown zone state '%s' in zone '%s'.\n"
+                        "Reason:\n"
+                        "- world state composition expects a declared zone state alias\n"
+                        "- zone '%s' has no state named '%s'\n"
+                        "Fix:\n"
+                        "- reference a declared zone state from zone '%s'\n"
+                        "- or declare zone state '%s' before composing it into the world",
                         state->data.world_state.state_name != NULL
                             ? state->data.world_state.state_name : "<unknown>",
                         detail_name,
-                        zone_slot_name);
+                        zone_slot_name,
+                        zone_slot_name,
+                        detail_name,
+                        zone_slot_name,
+                        detail_name);
                 }
             }
         }
@@ -1096,7 +1245,14 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
             semantic_error(ctx, activate,
-                "World activate references unknown zone slot '%s'",
+                "World activate references unknown zone slot '%s'.\n"
+                "Reason:\n"
+                "- activate needs a declared world zone slot or zone-state alias\n"
+                "- '%s' does not resolve to any visible world zone slot here\n"
+                "Fix:\n"
+                "- activate a declared world zone slot\n"
+                "- or correct the referenced zone/state alias",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
         for (size_t j = i + 1; j < node->data.world_decl.activate_count; j++) {
@@ -1110,8 +1266,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_slot_name != NULL && other_zone != NULL
                 && strcmp(zone_slot_name, other_zone) == 0) {
                 semantic_warning(ctx, other,
-                    "World '%s' activates zone '%s' more than once",
-                    node->data.world_decl.name, zone_slot_name);
+                    "World '%s' activates zone '%s' more than once.\n"
+                    "Reason:\n"
+                    "- the same world zone slot is activated by multiple lifecycle entries\n"
+                    "- repeated activation does not add meaning and obscures lifecycle intent\n"
+                    "Fix:\n"
+                    "- keep a single activate entry for zone '%s'\n"
+                    "- or collapse duplicates into one lifecycle rule",
+                    node->data.world_decl.name, zone_slot_name,
+                    zone_slot_name);
             }
         }
         for (size_t j = 0; j < node->data.world_decl.deactivate_count; j++) {
@@ -1125,8 +1288,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_slot_name != NULL && other_zone != NULL
                 && strcmp(zone_slot_name, other_zone) == 0) {
                 semantic_warning(ctx, activate,
-                    "World '%s' both activates and deactivates zone '%s'; choose one lifecycle direction",
-                    node->data.world_decl.name, zone_slot_name);
+                    "World '%s' both activates and deactivates zone '%s'; choose one lifecycle direction.\n"
+                    "Reason:\n"
+                    "- the same world zone slot appears in both activate and deactivate lifecycle paths\n"
+                    "- this makes the lifecycle contract contradictory\n"
+                    "Fix:\n"
+                    "- keep only activate or deactivate for zone '%s'\n"
+                    "- or split the behavior into separate world-state aliases",
+                    node->data.world_decl.name, zone_slot_name,
+                    zone_slot_name);
             }
         }
         for (size_t j = 0; j < node->data.world_decl.maintained_zone_count; j++) {
@@ -1140,8 +1310,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_slot_name != NULL && other_zone != NULL
                 && strcmp(zone_slot_name, other_zone) == 0) {
                 semantic_warning(ctx, activate,
-                    "World '%s' both activates and maintains zone '%s'; maintain already implies the continuing direction",
-                    node->data.world_decl.name, zone_slot_name);
+                    "World '%s' both activates and maintains zone '%s'; maintain already implies the continuing direction.\n"
+                    "Reason:\n"
+                    "- `maintain` already carries the continuing lifecycle direction for that zone\n"
+                    "- adding an explicit activate for the same zone makes the contract redundant\n"
+                    "Fix:\n"
+                    "- keep `maintain` for zone '%s'\n"
+                    "- or drop `maintain` and keep only the activate rule if that is the intended contract",
+                    node->data.world_decl.name, zone_slot_name,
+                    zone_slot_name);
             }
         }
     }
@@ -1158,7 +1335,14 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
             semantic_error(ctx, deactivate,
-                "World deactivate references unknown zone slot '%s'",
+                "World deactivate references unknown zone slot '%s'.\n"
+                "Reason:\n"
+                "- deactivate needs a declared world zone slot or zone-state alias\n"
+                "- '%s' does not resolve to any visible world zone slot here\n"
+                "Fix:\n"
+                "- deactivate a declared world zone slot\n"
+                "- or correct the referenced zone/state alias",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
         for (size_t j = i + 1; j < node->data.world_decl.deactivate_count; j++) {
@@ -1172,8 +1356,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_slot_name != NULL && other_zone != NULL
                 && strcmp(zone_slot_name, other_zone) == 0) {
                 semantic_warning(ctx, other,
-                    "World '%s' deactivates zone '%s' more than once",
-                    node->data.world_decl.name, zone_slot_name);
+                    "World '%s' deactivates zone '%s' more than once.\n"
+                    "Reason:\n"
+                    "- the same world zone slot is deactivated by multiple lifecycle entries\n"
+                    "- repeated deactivation does not add meaning and obscures lifecycle intent\n"
+                    "Fix:\n"
+                    "- keep a single deactivate entry for zone '%s'\n"
+                    "- or collapse duplicates into one lifecycle rule",
+                    node->data.world_decl.name, zone_slot_name,
+                    zone_slot_name);
             }
         }
     }
@@ -1190,7 +1381,14 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
             semantic_error(ctx, maintain,
-                "World maintain references unknown zone slot '%s'",
+                "World maintain references unknown zone slot '%s'.\n"
+                "Reason:\n"
+                "- maintain needs a declared world zone slot or zone-state alias\n"
+                "- '%s' does not resolve to any visible world zone slot here\n"
+                "Fix:\n"
+                "- maintain a declared world zone slot\n"
+                "- or correct the referenced zone/state alias",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
         for (size_t j = i + 1; j < node->data.world_decl.maintained_zone_count; j++) {
@@ -1203,8 +1401,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_slot_name != NULL && other_zone != NULL
                 && strcmp(zone_slot_name, other_zone) == 0) {
                 semantic_warning(ctx, other,
-                    "World '%s' maintains zone '%s' more than once",
-                    node->data.world_decl.name, zone_slot_name);
+                    "World '%s' maintains zone '%s' more than once.\n"
+                    "Reason:\n"
+                    "- the same world zone slot is maintained by multiple lifecycle entries\n"
+                    "- repeated maintain rules do not add meaning and obscure provenance\n"
+                    "Fix:\n"
+                    "- keep a single maintain entry for zone '%s'\n"
+                    "- or collapse duplicates into one lifecycle rule",
+                    node->data.world_decl.name, zone_slot_name,
+                    zone_slot_name);
             }
         }
         for (size_t j = 0; j < node->data.world_decl.deactivate_count; j++) {
@@ -1218,8 +1423,16 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_slot_name != NULL && other_zone != NULL
                 && strcmp(zone_slot_name, other_zone) == 0) {
                 semantic_warning(ctx, maintain,
-                    "World '%s' both maintains and deactivates zone '%s'; choose one lifecycle direction",
-                    node->data.world_decl.name, zone_slot_name);
+                    "World '%s' both maintains and deactivates zone '%s'; choose one lifecycle direction.\n"
+                    "Reason:\n"
+                    "- `maintain` keeps the zone active across the world lifecycle\n"
+                    "- `deactivate` closes that same lifecycle path\n"
+                    "- using both on the same zone makes the contract contradictory\n"
+                    "Fix:\n"
+                    "- keep only maintain or deactivate for zone '%s'\n"
+                    "- or split the behavior into separate world-state aliases",
+                    node->data.world_decl.name, zone_slot_name,
+                    zone_slot_name);
             }
         }
         for (size_t j = 0; j < node->data.world_decl.activate_count; j++) {
@@ -1233,8 +1446,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_slot_name != NULL && other_zone != NULL
                 && strcmp(zone_slot_name, other_zone) == 0) {
                 semantic_warning(ctx, maintain,
-                    "World '%s' both maintains and activates zone '%s'; maintain already implies the continuing direction",
-                    node->data.world_decl.name, zone_slot_name);
+                    "World '%s' both maintains and activates zone '%s'; maintain already implies the continuing direction.\n"
+                    "Reason:\n"
+                    "- `maintain` already expresses the continuing active lifecycle for that zone\n"
+                    "- adding activate for the same zone makes the contract redundant\n"
+                    "Fix:\n"
+                    "- keep `maintain` for zone '%s'\n"
+                    "- or drop `maintain` and keep only the activate rule if that is the intended contract",
+                    node->data.world_decl.name, zone_slot_name,
+                    zone_slot_name);
             }
         }
     }
@@ -2882,9 +3102,16 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 && other->data.zone_authority.subject_slot_name != NULL
                 && strcmp(authority->data.zone_authority.subject_slot_name,
                           other->data.zone_authority.subject_slot_name) == 0) {
-                semantic_warning(ctx, other,
-                    "Zone '%s' declares authority '%s' more than once",
+                semantic_error(ctx, other,
+                    "Zone '%s' declares authority '%s' more than once.\n"
+                    "Reason:\n"
+                    "- zone authority must be uniquely attributable per subject slot\n"
+                    "- duplicate authority declarations make provenance and diagnostics ambiguous\n"
+                    "Fix:\n"
+                    "- keep one authority declaration for '%s'\n"
+                    "- or merge the required ability list into a single authority clause",
                     node->data.zone_decl.name,
+                    authority->data.zone_authority.subject_slot_name,
                     authority->data.zone_authority.subject_slot_name);
             }
         }
@@ -2907,11 +3134,24 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             ? "relation"
             : "effect";
         if (sym == NULL || sym->kind != expected) {
-            semantic_warning(ctx, layer_slot,
-                "%s type '%s' not found for slot '%s'",
+            semantic_error(ctx, layer_slot,
+                "Zone layer slot '%s' references unknown %s type '%s'.\n"
+                "Reason:\n"
+                "- zone layer slots must bind to declared %s contracts before semantic closure\n"
+                "- unresolved layer types would force later lowering/runtime paths to guess the contract\n"
+                "Fix:\n"
+                "- declare %s '%s' before using it in zone '%s'\n"
+                "- or change the layer slot type to an existing %s declaration",
+                layer_slot->data.zone_layer_slot.slot_name != NULL
+                    ? layer_slot->data.zone_layer_slot.slot_name
+                    : "<slot>",
                 kind_name,
                 type_name != NULL ? type_name : "<unknown>",
-                layer_slot->data.zone_layer_slot.slot_name);
+                kind_name,
+                kind_name,
+                type_name != NULL ? type_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                kind_name);
         }
         if (layer_slot->data.zone_layer_slot.is_relation
             && layer_slot->data.zone_layer_slot.is_pool) {
@@ -2958,8 +3198,16 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_effect_contract(node, apply,
             effect_slot_name, target_slot_name, ctx, "apply");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_warning(ctx, apply,
-                "Zone apply should specify 'by <subjectSlot>' when authority is declared");
+            semantic_error(ctx, apply,
+                "Zone apply must specify 'by <subjectSlot>' when authority is declared.\n"
+                "Reason:\n"
+                "- zone '%s' declares authority and apply mutates effect state on '%s'\n"
+                "- without an approving subject slot, contract provenance becomes incomplete\n"
+                "Fix:\n"
+                "- add 'by <subjectSlot>' to this apply clause\n"
+                "- or remove zone authority if this rule is intentionally authority-free",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                target_slot_name != NULL ? target_slot_name : "<target>");
         }
         type_check_zone_participant_authority(node, apply, participant_slot_name, ctx, "apply");
     }
@@ -2996,8 +3244,15 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_relation_contract(node, link,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "link");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_warning(ctx, link,
-                "Zone link should specify 'by <subjectSlot>' when authority is declared");
+            semantic_error(ctx, link,
+                "Zone link must specify 'by <subjectSlot>' when authority is declared.\n"
+                "Reason:\n"
+                "- zone '%s' declares authority and link mutates relation state\n"
+                "- relation provenance must record the approving subject slot\n"
+                "Fix:\n"
+                "- add 'by <subjectSlot>' to this link clause\n"
+                "- or remove zone authority if this relation edge is intentionally authority-free",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         type_check_zone_participant_authority(node, link, participant_slot_name, ctx, "link");
     }
@@ -3028,8 +3283,16 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_effect_contract(node, detach,
             effect_slot_name, target_slot_name, ctx, "detach");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_warning(ctx, detach,
-                "Zone detach should specify 'by <subjectSlot>' when authority is declared");
+            semantic_error(ctx, detach,
+                "Zone detach must specify 'by <subjectSlot>' when authority is declared.\n"
+                "Reason:\n"
+                "- zone '%s' declares authority and detach mutates effect lifecycle on '%s'\n"
+                "- detachment provenance must record the approving subject slot\n"
+                "Fix:\n"
+                "- add 'by <subjectSlot>' to this detach clause\n"
+                "- or remove zone authority if this detach rule is intentionally authority-free",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                target_slot_name != NULL ? target_slot_name : "<target>");
         }
         type_check_zone_participant_authority(node, detach, participant_slot_name, ctx, "detach");
     }
@@ -3066,8 +3329,15 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_relation_contract(node, unlink,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "unlink");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_warning(ctx, unlink,
-                "Zone unlink should specify 'by <subjectSlot>' when authority is declared");
+            semantic_error(ctx, unlink,
+                "Zone unlink must specify 'by <subjectSlot>' when authority is declared.\n"
+                "Reason:\n"
+                "- zone '%s' declares authority and unlink mutates relation lifecycle\n"
+                "- unlink provenance must record the approving subject slot\n"
+                "Fix:\n"
+                "- add 'by <subjectSlot>' to this unlink clause\n"
+                "- or remove zone authority if this unlink rule is intentionally authority-free",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         type_check_zone_participant_authority(node, unlink, participant_slot_name, ctx, "unlink");
     }
@@ -3166,8 +3436,17 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_effect_contract(node, maintain,
             effect_slot_name, target_slot_name, ctx, "maintain");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_warning(ctx, maintain,
-                "Zone maintain should specify 'by <subjectSlot>' when authority is declared");
+            semantic_error(ctx, maintain,
+                "Zone maintain must specify 'by <subjectSlot>' when authority is declared.\n"
+                "Reason:\n"
+                "- zone '%s' declares authority and maintain keeps effect '%s' active on '%s'\n"
+                "- persistent lifecycle rules must record the approving subject slot\n"
+                "Fix:\n"
+                "- add 'by <subjectSlot>' to this maintain clause\n"
+                "- or remove zone authority if this maintenance rule is intentionally authority-free",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                effect_slot_name != NULL ? effect_slot_name : "<effect>",
+                target_slot_name != NULL ? target_slot_name : "<target>");
         }
         type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
 
@@ -3176,8 +3455,16 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             if (strcmp(effect_slot_name, other->data.zone_maintain_effect.effect_slot_name) == 0
                 && strcmp(target_slot_name, other->data.zone_maintain_effect.target_slot_name) == 0) {
                 semantic_warning(ctx, other,
-                    "Zone '%s' maintains effect '%s' on '%s' more than once",
+                    "Zone '%s' maintains effect '%s' on '%s' more than once.\n"
+                    "Reason:\n"
+                    "- duplicate maintain rules restate the same lifecycle contract\n"
+                    "- repeated clauses add noise without changing propagation semantics\n"
+                    "Fix:\n"
+                    "- keep one maintain rule for effect '%s' on '%s'\n"
+                    "- or split the contract if the lifecycle targets are actually different",
                     node->data.zone_decl.name,
+                    effect_slot_name,
+                    target_slot_name,
                     effect_slot_name,
                     target_slot_name);
             }
@@ -3196,8 +3483,16 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 && strcmp(effect_slot_name, detach_effect_slot_name) == 0
                 && strcmp(target_slot_name, detach_target_slot_name) == 0) {
                 semantic_warning(ctx, maintain,
-                    "Zone '%s' both maintains and detaches effect '%s' on '%s'; choose one lifecycle direction",
+                    "Zone '%s' both maintains and detaches effect '%s' on '%s'.\n"
+                    "Reason:\n"
+                    "- maintain keeps the lifecycle active, while detach removes the same lifecycle path\n"
+                    "- the current zone contract points in two different directions for one effect target pair\n"
+                    "Fix:\n"
+                    "- keep either maintain or detach for effect '%s' on '%s'\n"
+                    "- or split the rules so they target different slots/states",
                     node->data.zone_decl.name,
+                    effect_slot_name,
+                    target_slot_name,
                     effect_slot_name,
                     target_slot_name);
             }
@@ -3228,8 +3523,16 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_relation_contract(node, maintain,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_warning(ctx, maintain,
-                "Zone maintain should specify 'by <subjectSlot>' when authority is declared");
+            semantic_error(ctx, maintain,
+                "Zone maintain must specify 'by <subjectSlot>' when authority is declared.\n"
+                "Reason:\n"
+                "- zone '%s' declares authority and maintain keeps relation '%s' active\n"
+                "- persistent relation lifecycle rules must record the approving subject slot\n"
+                "Fix:\n"
+                "- add 'by <subjectSlot>' to this maintain clause\n"
+                "- or remove zone authority if this maintenance rule is intentionally authority-free",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                relation_slot_name != NULL ? relation_slot_name : "<relation>");
         }
         type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
 
@@ -3239,8 +3542,17 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 && strcmp(left_slot_name, other->data.zone_maintain_relation.left_slot_name) == 0
                 && strcmp(right_slot_name, other->data.zone_maintain_relation.right_slot_name) == 0) {
                 semantic_warning(ctx, other,
-                    "Zone '%s' maintains relation '%s' between '%s' and '%s' more than once",
+                    "Zone '%s' maintains relation '%s' between '%s' and '%s' more than once.\n"
+                    "Reason:\n"
+                    "- duplicate maintain rules restate the same relation lifecycle contract\n"
+                    "- repeated clauses add noise without changing propagation semantics\n"
+                    "Fix:\n"
+                    "- keep one maintain rule for relation '%s' between '%s' and '%s'\n"
+                    "- or split the contract if the relation endpoints are actually different",
                     node->data.zone_decl.name,
+                    relation_slot_name,
+                    left_slot_name,
+                    right_slot_name,
                     relation_slot_name,
                     left_slot_name,
                     right_slot_name);
@@ -3263,8 +3575,17 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 && strcmp(left_slot_name, unlink_left_slot_name) == 0
                 && strcmp(right_slot_name, unlink_right_slot_name) == 0) {
                 semantic_warning(ctx, maintain,
-                    "Zone '%s' both maintains and unlinks relation '%s' between '%s' and '%s'; choose one lifecycle direction",
+                    "Zone '%s' both maintains and unlinks relation '%s' between '%s' and '%s'.\n"
+                    "Reason:\n"
+                    "- maintain keeps the lifecycle active, while unlink removes the same relation path\n"
+                    "- the current zone contract points in two different directions for one relation edge\n"
+                    "Fix:\n"
+                    "- keep either maintain or unlink for relation '%s' between '%s' and '%s'\n"
+                    "- or split the rules so they target different relation states",
                     node->data.zone_decl.name,
+                    relation_slot_name,
+                    left_slot_name,
+                    right_slot_name,
                     relation_slot_name,
                     left_slot_name,
                     right_slot_name);
@@ -3294,8 +3615,15 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     && other->data.zone_maintain_state.state_name != NULL
                     && strcmp(state_name, other->data.zone_maintain_state.state_name) == 0) {
                     semantic_warning(ctx, other,
-                        "Zone '%s' maintains state '%s' more than once",
+                        "Zone '%s' maintains state '%s' more than once.\n"
+                        "Reason:\n"
+                        "- duplicate maintain rules restate the same named lifecycle contract\n"
+                        "- repeated clauses add noise without changing propagation semantics\n"
+                        "Fix:\n"
+                        "- keep one maintain rule for state '%s'\n"
+                        "- or split the contract if the state names should differ",
                         node->data.zone_decl.name,
+                        state_name,
                         state_name);
                 }
             }
@@ -3316,8 +3644,16 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     && strcmp(left_slot_name, unlink_left_slot_name) == 0
                     && strcmp(right_slot_name, unlink_right_slot_name) == 0) {
                     semantic_warning(ctx, maintain,
-                        "Zone '%s' both maintains and unlinks state '%s'; choose one lifecycle direction",
+                        "Zone '%s' both maintains and unlinks state '%s'.\n"
+                        "Reason:\n"
+                        "- maintain keeps the named relation-state active, while unlink removes the same underlying path\n"
+                        "- the current zone contract points in two different directions for state '%s'\n"
+                        "Fix:\n"
+                        "- keep either maintain or unlink for state '%s'\n"
+                        "- or split the rules so they target different states",
                         node->data.zone_decl.name,
+                        state_name,
+                        state_name,
                         state_name);
                 }
             }
@@ -3332,8 +3668,15 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     && other->data.zone_maintain_state.state_name != NULL
                     && strcmp(state_name, other->data.zone_maintain_state.state_name) == 0) {
                     semantic_warning(ctx, other,
-                        "Zone '%s' maintains state '%s' more than once",
+                        "Zone '%s' maintains state '%s' more than once.\n"
+                        "Reason:\n"
+                        "- duplicate maintain rules restate the same named lifecycle contract\n"
+                        "- repeated clauses add noise without changing propagation semantics\n"
+                        "Fix:\n"
+                        "- keep one maintain rule for state '%s'\n"
+                        "- or split the contract if the state names should differ",
                         node->data.zone_decl.name,
+                        state_name,
                         state_name);
                 }
             }
@@ -3351,15 +3694,31 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     && strcmp(effect_slot_name, detach_effect_slot_name) == 0
                     && strcmp(target_slot_name, detach_target_slot_name) == 0) {
                     semantic_warning(ctx, maintain,
-                        "Zone '%s' both maintains and detaches state '%s'; choose one lifecycle direction",
+                        "Zone '%s' both maintains and detaches state '%s'.\n"
+                        "Reason:\n"
+                        "- maintain keeps the named effect-state active, while detach removes the same underlying path\n"
+                        "- the current zone contract points in two different directions for state '%s'\n"
+                        "Fix:\n"
+                        "- keep either maintain or detach for state '%s'\n"
+                        "- or split the rules so they target different states",
                         node->data.zone_decl.name,
+                        state_name,
+                        state_name,
                         state_name);
                 }
             }
         }
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_warning(ctx, maintain,
-                "Zone maintain should specify 'by <subjectSlot>' when authority is declared");
+            semantic_error(ctx, maintain,
+                "Zone maintain must specify 'by <subjectSlot>' when authority is declared.\n"
+                "Reason:\n"
+                "- zone '%s' declares authority and maintain keeps named state '%s' active\n"
+                "- persistent named-state lifecycle rules must record the approving subject slot\n"
+                "Fix:\n"
+                "- add 'by <subjectSlot>' to this maintain clause\n"
+                "- or remove zone authority if this maintenance rule is intentionally authority-free",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                state_name != NULL ? state_name : "<state>");
         }
         type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
     }

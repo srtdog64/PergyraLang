@@ -62,7 +62,7 @@
 | `defer` | 75% | 표면 안정, deeper cleanup/debugger 연동은 남음 |
 | `unsafe` | 60% | explicit escape hatch 표면과 body type-check/transpile 회귀는 있으나 deeper safety contract 키워드로 키울 계획은 없음 |
 | `bind` | 85% | object/tobject projection contract 핵심 |
-| `secure` | 95% | SecureSlot 중심 capability 첫 단계 + runtime file I/O/root policy/fingerprint hardening + parallel context에서 secure-effect helper/메서드 호출 차단 + SecureSlot/Token<T> 파라미터 기반 secure effect 추론 + named paired token/정적 타입 pairing 검사 + channel transport 차단 + zone authority가 있는 boundary publish/bind는 explicit `by`를 강제 + authority-bearing intent/effect/helper/action flow는 explicit `authorized by`를 요구 |
+| `secure` | 95% | SecureSlot 중심 capability 첫 단계 + runtime file I/O/root policy/fingerprint hardening + parallel context에서 secure-effect helper/메서드 호출 차단 + SecureSlot/Token<T> 파라미터 기반 secure effect 파생 + named paired token/정적 타입 pairing 검사 + channel transport 차단 + zone authority가 있는 boundary publish/bind는 explicit `by`를 강제 + authority-bearing intent/effect/helper/action flow는 explicit `authorized by`를 요구 |
 | `slot` | 96% | universal resource anchor로 매우 중요, secure/runtime policy와도 정렬됨 |
 | `shared` | 80% | host-local contextual state 표면 안정 |
 | `dyn` | 45% | dyn role slot과 runtime vtable swap 표면은 존재하나 일반 dynamic dispatch 코어 축은 아님 |
@@ -93,7 +93,7 @@
 | `authorized` | 90% | authority-sensitive action/step/effect/secure flow에 explicit clause 강제가 연결되고 inherited-action diagnostics와 semantic 회귀가 존재함 |
 | `by` | 90% | `authorized by` 및 authority-bearing bind/publish/boundary flow tail로 실제 계약 의미를 가지며 parser/semantic/LSP 회귀가 정렬됨 |
 | `within` | 90% | action zone contract, lexical zone context, step/action/transfer 유도, inherited-zone diagnostics, semantic 회귀까지 연결됨 |
-| `causes` | 90% | action/step effect contract, authority-sensitive diagnostics, inferred/inherited explanation, semantic 회귀가 정렬됨 |
+| `causes` | 90% | action/step effect contract, authority-sensitive diagnostics, derived/inherited explanation, semantic 회귀가 정렬됨 |
 | `expect` | 80% | intent check MIR carrier 존재 |
 | `success` | 75% | intent contract 존재 |
 | `failure` | 75% | intent contract 존재 |

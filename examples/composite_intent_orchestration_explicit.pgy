@@ -1,3 +1,11 @@
+// composite_intent_orchestration_explicit.pgy
+//
+// Large canonical explicit orchestration example.
+// Read this file in this order:
+// 1. top-level orchestration intents
+// 2. OrderZone / PaymentZone / ShippingZone boundaries
+// 3. Clerk action support surface
+
 subject Clerk
 {
     let reserved: Int;

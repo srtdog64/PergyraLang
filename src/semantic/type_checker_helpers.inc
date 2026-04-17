@@ -471,7 +471,7 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
             ASTNode *zone_slot = world_decl->data.world_decl.zones[i];
             if (zone_slot != NULL && zone_slot->type == AST_WORLD_ZONE
                 && zone_slot->data.world_zone.zone_type != NULL) {
-                semantic_warning(ctx, arg,
+                semantic_error(ctx, arg,
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
                     "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
@@ -504,7 +504,7 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
             }
             if (arg_sym->type != NULL && arg_sym->type->name != NULL
                 && strcmp(arg_sym->type->name, zone_slot->data.world_zone.zone_type) == 0) {
-                semantic_warning(ctx, arg,
+                semantic_error(ctx, arg,
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
                     "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
@@ -1790,7 +1790,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     }
                                     if (strcmp(arg_type_name,
                                             zone_slot->data.world_zone.zone_type) == 0) {
-                                        semantic_warning(ctx, expr->data.call.arguments[i],
+                                        semantic_error(ctx, expr->data.call.arguments[i],
                                             "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                                             "Reason:\n"
                                             "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
@@ -1956,7 +1956,15 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT
                             && src_sym->slot_info.state == SLOT_STATE_RELEASED) {
                             semantic_error(ctx, expr->data.call.arguments[i],
-                                "Cannot borrow released slot '%s'", src);
+                                "Cannot borrow released slot '%s'.\n"
+                                "Reason:\n"
+                                "- slot '%s' was already released or invalidated earlier in this scope\n"
+                                "- a 'ref' borrow requires a live source handle\n"
+                                "Fix:\n"
+                                "- reacquire the slot before borrowing it\n"
+                                "- or remove the earlier release/invalidating transfer",
+                                src,
+                                src);
                         }
                     }
                     continue;
@@ -2026,11 +2034,40 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     param_index = find_generic_param_index(decl_gp, param_name);
                     if (param_index < 0
                         || (size_t)param_index >= decl_gp->count) {
+                        semantic_error(ctx, expr,
+                            "Call site of '%s' could not validate generic parameter '%s'.\n"
+                            "Reason:\n"
+                            "- function '%s' where-clause references '%s'\n"
+                            "- that parameter does not exist in the function generic parameter list\n"
+                            "Fix:\n"
+                            "- change the function where-clause to reference an existing generic parameter\n"
+                            "- or add generic parameter '%s' to function '%s'",
+                            display_name,
+                            param_name != NULL ? param_name : "<param>",
+                            display_name,
+                            param_name != NULL ? param_name : "<param>",
+                            param_name != NULL ? param_name : "<param>",
+                            display_name);
                         continue;
                     }
                     concrete_type = effective_generic_types[param_index];
-                    if (concrete_type == NULL)
+                    if (concrete_type == NULL) {
+                        semantic_error(ctx, expr,
+                            "Call site of '%s' could not materialize generic argument for '%s'.\n"
+                            "Reason:\n"
+                            "- function '%s' where-clause validation depends on an effective type argument for '%s'\n"
+                            "- neither explicit call-site evidence nor declaration defaults produced a concrete type\n"
+                            "Fix:\n"
+                            "- pass arguments that make '%s' concrete\n"
+                            "- or add/fix a default type argument for '%s'",
+                            display_name,
+                            param_name != NULL ? param_name : "<param>",
+                            display_name,
+                            param_name != NULL ? param_name : "<param>",
+                            param_name != NULL ? param_name : "<param>",
+                            param_name != NULL ? param_name : "<param>");
                         continue;
+                    }
                     /* Check each bound */
                     for (size_t bi = 0; bi < tc->bound_count; bi++) {
                         Type *bound = resolve_type_node(tc->bounds[bi], ctx);

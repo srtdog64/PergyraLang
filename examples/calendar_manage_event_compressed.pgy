@@ -7,6 +7,11 @@
 // Compression used here:
 // - action contract reuse for who/where/requires/authorized by/causes
 // - repeated step-local contract 제거
+//
+// Read this file in this order:
+// 1. intent ManageCalendarCompressed
+// 2. CalendarZone / EventEditZone boundary contract
+// 3. CalendarOwner action support surface
 
 ability CalendarOwnerCap {
     func CanManage() -> Bool;

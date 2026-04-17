@@ -98,7 +98,7 @@ struct Transform {
 초기 금지 범위:
 
 - higher-kinded type
-- 복잡한 암시적 추론
+- 복잡한 암시적 계약 파생
 - ability specialization
 
 기준 문법:

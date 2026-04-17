@@ -110,7 +110,7 @@
 2. ABI `type_layout` 실사용 강화
 - MIR에는 ABI table과 `type_layout`가 이미 있다.
 - 하지만 transpiler는 아직 이를 단일 진실 원천으로 끝까지 사용하지 않는다.
-- 문자열 추론/fallback을 줄이고 ABI-first emit로 옮겨야 한다.
+- 문자열 기반 추정/fallback을 줄이고 ABI-first emit로 옮겨야 한다.
 
 3. LLVM true PHI lowering
 - MIR validator는 이미 phi incoming과 predecessor 가용성을 검증한다.

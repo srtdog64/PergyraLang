@@ -11,14 +11,38 @@
 
 ### 최근 closure 진행 (2026-04-16)
 
+- explicit/compressed canonical pair examples를 intent-first 독해 규칙으로 다시 정렬
+  - large/composite pair source에 `intent -> world/zone -> subject` read order를 직접 명시
+- world embedding implicit copy를 warning이 아니라 hard contract로 승격 시작
+  - world constructor에 zone binding을 그대로 넘기면 explicit `Clone(...)`를 요구
+  - hidden copy semantics를 더 이상 benign warning으로 남기지 않음
 - generic contract consumer path를 한 단계 더 닫음
   - omitted trailing default type arg가 user-defined generic class specialization path에서도 effective arg 기준으로 검증되도록 정렬
   - role impl / action requires / zone authority / party role slot에서 `default arg omission + where-bound violation` negative regressions 추가
   - multi-bound / omitted-default / consumer provenance 조합 회귀를 semantic 기준으로 고정
+  - ability consumer path / class instantiation-specialization path에서 unresolved effective generic arg를 silent skip하지 않고 structured error로 승격
+  - role-side ability require-field type resolution에서도 unresolved effective generic arg를 silent skip하지 않고 structured error로 승격
+  - malformed impl ability generic arg가 있어도 뒤쪽 where/require-field 검증으로 partial 진행하던 경로를 차단
+  - default generic bound validation에서 unknown parameter / unresolved default type도 structured error로 승격
+  - generic function call-site where-clause validation에서도 missing/unresolved effective arg를 silent skip하지 않고 structured error로 승격
 - own/ref 첫 일반화 vertical slice 시작
   - existing movable resource value(`QubitSlot`)는 function boundary에서 explicit `own` transfer parameter를 허용
   - `ref QubitSlot`는 아직 미닫힘 subset으로 유지하되, 이유/consumer path/fix가 포함된 structured diagnostic으로 고정
   - 즉, `own/ref`는 여전히 전역 closure 전이지만, move semantics가 이미 있는 resource value에 대해서는 explicit transfer boundary가 부분적으로 열리기 시작함
+  - return/channel boundary ownership diagnostics도 `Reason:` / `Fix:` 구조로 정렬
+  - function signature anchored-return rejection도 `Reason:` / `Fix:` 구조로 정렬
+  - unnamed movable-resource channel send는 moved-here provenance를 설명하는 hard error로 고정
+  - local binding 단계에서도 `recv/await` unnamed boundary use, subject rebinding, released-slot move, anchored-handle rebinding을 `Reason:` / `Fix:` 구조로 정렬
+  - slot escape analyzer 경고도 return/helper-call/channel/unterminated local claim 경로에서 provenance형 `Reason:` / `Fix:` 구조로 정렬
+- relation/effect/projection contract를 더 하드하게 조였다
+  - `intent step causes`가 zone effect slot 없이 통과하던 경로를 hard error로 승격
+  - `action causes`도 zone effect slot 없이 남는 경로를 structured hard error로 승격
+  - authority-bearing `apply/link/detach/unlink/maintain`가 `by <subjectSlot>` 없이 남는 경로를 hard error로 승격
+  - duplicate authority, unknown layer relation/effect type도 더 이상 benign warning으로 남기지 않음
+  - maintain/detach/unlink duplicate/conflict diagnostics는 `Reason:` / `Fix:` 구조로 정렬
+- unresolved declaration entrypoint를 더 줄였다
+  - role include unknown role, roster slot unknown party, world roster/zone unknown type을 hard error로 승격
+  - generic where-clause consumer path에서 unresolved effective arg도 더 이상 silent skip하지 않음
 
 ### 최근 closure 진행 (2026-04-14)
 

@@ -135,7 +135,7 @@
 - `Option<T>` 표면: `Some/None`, `IsSome/IsNone`, `UnwrapOption`, `match` destructuring이 semantic/C/LLVM 경로에 연결됨
 - `match` 시맨틱: `Option/Result/tagged enum` destructuring 바인딩과 제한된 exhaustiveness check가 동작함
 - `match` 품질 진단: duplicate variant case와 redundant default를 warning으로 보고함
-- `with effects ...` / `/// @effects ...` 계약: 선언이 있으면 body inferred effect와 mismatch를 semantic error로 보고함
+- `with effects ...` / `/// @effects ...` 계약: 선언이 있으면 body-derived effect와 mismatch를 semantic error로 보고함
 - effect contract는 이제 최소 closure/subsumption과 join API를 가진다. 현재 `collapse`는 `nondeterministic`를 포함하는 것으로 취급되며, disjoint branch effect도 계약으로 합쳐진다.
 - `use module;` duplicate import는 semantic warning으로 보고하며, `use datetime;` exported stdlib surface 회귀가 존재한다.
 - ability `fields` 항목은 이제 선언 검증만이 아니라 role impl 시 bound subject host가 실제로 요구 필드를 만족하는지도 검사한다.

@@ -22,7 +22,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - spawned descendant가 부모 cancellation chain을 상속함
 - `match`의 제한된 exhaustiveness check가 `Option/Result/enum`에 반영됨
 - `match`의 redundant branch 경고가 `Option/Result/enum`에 반영됨
-- `with effects ...` / `/// @effects ...` 선언과 body inferred effect 사이의 mismatch 진단이 반영됨
+- `with effects ...` / `/// @effects ...` 선언과 body-derived effect 사이의 mismatch 진단이 반영됨
 - `Box<T>` explicit handle surface와 `Box<class>` object-handle 경로가 semantic/C backend에 반영됨
 - Role/Party/World 문법과 코드젠이 C/LLVM 양쪽에 존재
 - `relation`, `effect`, `zone` declaration keyword가 parser/semantic 표면에 반영됨

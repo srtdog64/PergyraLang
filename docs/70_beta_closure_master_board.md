@@ -37,8 +37,8 @@
 | 트랙 | 상태 | 진행률 | 베타 차단 여부 | 핵심 메모 |
 |------|------|--------|----------------|----------|
 | B0-1 Intent / Zone / World | 진행 중 | 82% | 차단 | observability baseline은 생겼지만 embedding/handoff/provenance depth가 남음 |
-| B0-2 relation / effect / projection | 진행 중 | 80% | 차단 | refresh/publish/bind baseline은 있으나 propagation/effect partial order 심화가 남음 |
-| B0-3 generic contract | 진행 중 | 78% | 차단 | default arg baseline은 복구됐지만 multi-bound/module-contract 전경로 closure가 남음 |
+| B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
+| B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
 | B0-4 own/ref | 진행 중 | 62% | 차단 | anchored subset는 닫혔지만 일반 movable type ownership은 아직 미완 |
 | MIR-only declaration debt | 진행 중 | 74% | 차단 | intent inventory는 많이 줄였지만 zone/world/relation/effect declaration fallback 잔여가 있음 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
@@ -112,6 +112,12 @@
 - runtime contract provenance를 edge path까지 일관화
 - helper-heavy edge path를 줄여 declaration/runtime/diagnostic/backend parity를 더 직접적으로 맞춘다
 
+최근 진전:
+
+- authority-bearing zone lifecycle clause(`apply/link/detach/unlink/maintain`)는 이제 `by <subjectSlot>` 없이 경고로 남지 않고 hard error로 승격되기 시작했다
+- `intent step causes`와 zone effect slot materialization mismatch도 hard error로 올려 surface trust를 강화했다
+- duplicate authority / unknown layer relation/effect type도 benign warning 대신 contract violation으로 다루기 시작했다
+
 직접 마감 항목:
 
 - authority-resource-effect ordering rule
@@ -165,6 +171,16 @@ diagnostic 고정 규칙:
 - cross-module consumer path에서도 generic contract가 동일하게 유지되도록 정렬
 - C/LLVM/test parity를 generic path 기준으로 확대
 
+최근 진전:
+
+- ability consumer path에서 unresolved effective generic arg를 더 이상 silent skip하지 않고 structured error로 승격했다
+- class instantiation/specialization where-clause도 unresolved effective arg를 그냥 넘기지 않도록 hardening했다
+- role include / roster party slot 같은 declaration entrypoint도 unresolved declaration이면 warning이 아니라 error로 승격되기 시작했다
+- role-side ability require-field type resolution도 unresolved effective generic arg를 그냥 넘기지 않도록 hardening했다
+- malformed impl ability generic arg가 있어도 뒤쪽 where/require-field 검증으로 partial 진행하던 경로를 차단했다
+- default generic bound validation에서 unknown parameter / unresolved default type도 structured error로 승격했다
+- generic function call-site where-clause validation도 missing/unresolved effective arg를 그냥 넘기지 않도록 hardening했다
+
 완료 기준:
 
 - parser가 받는 generic surface는 모두 semantic/backend/test closure를 가진다
@@ -204,6 +220,14 @@ diagnostic 고정 규칙:
 - copy vs move-only 분류 정리
 - assignment/call/return/channel/container/rebind 전경로 analysis
 - moved-here / borrowed-here / escaped-here provenance diagnostics
+
+최근 진전:
+
+- return/channel boundary ownership diagnostics는 `Reason:` / `Fix:` 구조로 정렬되기 시작했다
+- anchored handle return signature rejection도 provenance형 hard error로 정렬됐다
+- movable resource(`QubitSlot`)는 explicit `own` parameter transfer path를 부분적으로 열기 시작했다
+- local binding 단계에서도 unnamed `recv/await` use, subject rebinding, released-slot move, anchored-handle rebinding이 provenance형 hard error로 정렬되기 시작했다
+- slot escape analyzer도 return/helper-call/channel/unterminated local claim 경로를 provenance형 `Reason:` / `Fix:` 경고로 정렬하기 시작했다
 
 직접 마감 항목:
 

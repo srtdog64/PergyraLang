@@ -842,11 +842,11 @@ main(void)
                     else if (strcmp(word, "where") == 0)
                         hover_text = "**where** — Contract/location clause\n- in generics: type constraint surface\n- in intent steps: current zone contract surface";
                     else if (strcmp(word, "who") == 0)
-                        hover_text = "**who** — Intent step participant clause\n- names which intent participant performs the step\n- may be derived from a unique matching subject action";
+                        hover_text = "**who** — Intent step participant clause\n- names which intent participant performs the step\n- may be inherited from a unique matching subject action";
                     else if (strcmp(word, "using") == 0)
-                        hover_text = "**using** — Intent step bound-zone alias clause\n- binds the step to a specific zone participant alias\n- may be derived from `transfer` target";
+                        hover_text = "**using** — Intent step bound-zone alias clause\n- binds the step to a specific zone participant alias\n- may be derived from the `transfer` target contract";
                     else if (strcmp(word, "transfer") == 0)
-                        hover_text = "**transfer** — Cross-zone handoff clause\n- `transfer: from -> to` can derive the step `where` and `using` contract from the target zone\n- diagnostics should explain both current contract and derived target contract";
+                        hover_text = "**transfer** — Cross-zone handoff clause\n- `transfer: from -> to` can derive the step `where` and `using` contract from the target zone\n- diagnostics should explain both current contract and the derived target contract";
                     else if (strcmp(word, "authority") == 0)
                         hover_text = "**authority** — Zone mutation authority declaration\n- `authority subjectSlot requires Ability` declares which participant may mutate authority-bearing zone state\n- this often overlaps with action/step `requires`, so diagnostics should explain when the requirement was inherited rather than written twice";
                     else if (strcmp(word, "requires") == 0)

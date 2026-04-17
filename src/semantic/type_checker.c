@@ -456,16 +456,45 @@ validate_generic_param_default_bounds(GenericParams *gp,
             continue;
 
         param_index = find_generic_param_index(gp, tc->type_param);
-        if (param_index < 0 || (size_t)param_index >= gp->count)
+        if (param_index < 0 || (size_t)param_index >= gp->count) {
+            semantic_error(ctx, owner != NULL ? owner : (ASTNode *)wc,
+                "%s '%s' could not validate default generic bound for unknown parameter '%s'.\n"
+                "Reason:\n"
+                "- where clause references '%s'\n"
+                "- that parameter does not exist in the generic parameter list\n"
+                "Fix:\n"
+                "- change the where-clause to reference an existing generic parameter\n"
+                "- or add generic parameter '%s' to %s '%s'",
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                tc->type_param,
+                tc->type_param,
+                tc->type_param,
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>");
             continue;
+        }
 
         param = gp->params[param_index];
         if (param == NULL || param->default_type == NULL)
             continue;
 
         default_type = resolve_type_node(param->default_type, ctx);
-        if (default_type == NULL || default_type == TYPE_UNKNOWN)
+        if (default_type == NULL || default_type == TYPE_UNKNOWN) {
+            semantic_error(ctx, owner != NULL ? owner : param->default_type,
+                "Default generic type argument for parameter '%s' in %s '%s' could not be resolved.\n"
+                "Reason:\n"
+                "- default type argument participates in effective generic argument derivation\n"
+                "- unresolved defaults make where-clause validation partial\n"
+                "Fix:\n"
+                "- provide a resolvable default type argument for '%s'\n"
+                "- or remove the default and require the caller to pass the type argument explicitly",
+                tc->type_param,
+                owner_kind != NULL ? owner_kind : "declaration",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                tc->type_param);
             continue;
+        }
 
         for (size_t bi = 0; bi < tc->bound_count; bi++) {
             ASTNode *bound_node = tc->bounds[bi];
@@ -537,12 +566,41 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
         param_index = find_generic_param_index(gp, tc->type_param);
         if (param_index < 0
             || (size_t)param_index >= constructed_type->data.constructed.arg_count) {
+            semantic_error(ctx, site,
+                "Class '%s' could not validate where-clause parameter '%s' during instantiation.\n"
+                "Reason:\n"
+                "- instantiated type '%s' does not provide an effective type argument for '%s'\n"
+                "- class where-clause validation cannot be trusted when a generic parameter is unresolved\n"
+                "Fix:\n"
+                "- pass/supply a type argument for '%s'\n"
+                "- or fix the class generic parameter list/default arguments so '%s' is materialized",
+                class_decl->data.class_decl.name != NULL
+                    ? class_decl->data.class_decl.name : "<class>",
+                tc->type_param,
+                constructed_type->name != NULL ? constructed_type->name : "<constructed>",
+                tc->type_param,
+                tc->type_param,
+                tc->type_param);
             continue;
         }
 
         concrete_type = constructed_type->data.constructed.args[param_index];
-        if (concrete_type == NULL)
+        if (concrete_type == NULL) {
+            semantic_error(ctx, site,
+                "Class '%s' could not resolve instantiated type argument for '%s'.\n"
+                "Reason:\n"
+                "- where-clause validation reached instantiation with no concrete type for '%s'\n"
+                "- unresolved generic arguments make class specialization partial\n"
+                "Fix:\n"
+                "- pass a concrete type argument for '%s'\n"
+                "- or fix the default type argument / imported type so it resolves",
+                class_decl->data.class_decl.name != NULL
+                    ? class_decl->data.class_decl.name : "<class>",
+                tc->type_param,
+                tc->type_param,
+                tc->type_param);
             continue;
+        }
 
         for (size_t bi = 0; bi < tc->bound_count; bi++) {
             ASTNode *bound_node = tc->bounds[bi];
@@ -625,12 +683,41 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             continue;
 
         param_index = find_generic_param_index(decl_params, tc->type_param);
-        if (param_index < 0 || (size_t)param_index >= effective_count)
+        if (param_index < 0 || (size_t)param_index >= effective_count) {
+            semantic_error(ctx, site,
+                "Class '%s' could not validate where-clause parameter '%s' during specialization.\n"
+                "Reason:\n"
+                "- specialized type syntax did not materialize an effective type argument for '%s'\n"
+                "- class where-clause validation cannot be trusted when a generic parameter is unresolved\n"
+                "Fix:\n"
+                "- provide/supply a type argument for '%s'\n"
+                "- or fix the class generic parameter list/default arguments so '%s' is materialized",
+                class_decl->data.class_decl.name != NULL
+                    ? class_decl->data.class_decl.name : "<class>",
+                tc->type_param,
+                tc->type_param,
+                tc->type_param,
+                tc->type_param);
             continue;
+        }
 
         concrete_type = resolve_type_node(effective_args[param_index], ctx);
-        if (concrete_type == NULL)
+        if (concrete_type == NULL) {
+            semantic_error(ctx, site,
+                "Class '%s' could not resolve specialized type argument for '%s'.\n"
+                "Reason:\n"
+                "- where-clause validation reached specialization with no concrete type for '%s'\n"
+                "- unresolved generic arguments make specialization partial\n"
+                "Fix:\n"
+                "- pass a concrete type argument for '%s'\n"
+                "- or fix the default type argument / imported type so it resolves",
+                class_decl->data.class_decl.name != NULL
+                    ? class_decl->data.class_decl.name : "<class>",
+                tc->type_param,
+                tc->type_param,
+                tc->type_param);
             continue;
+        }
 
         for (size_t bi = 0; bi < tc->bound_count; bi++) {
             ASTNode *bound_node = tc->bounds[bi];
@@ -710,15 +797,31 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
         }
         if (!type_is_qubit(sym->type)) {
             semantic_error(ctx, expr,
-                "Expected a movable resource handle (currently QubitSlot), got '%s'",
+                "Expected a movable resource handle (currently QubitSlot), got '%s'.\n"
+                "Reason:\n"
+                "- this consumer path expects a move-only resource value\n"
+                "- value '%s' has type '%s', which is not part of the current movable-resource subset\n"
+                "Fix:\n"
+                "- pass a QubitSlot value instead\n"
+                "- or keep this value on the non-movable path",
+                sym->type->name,
+                expr->data.identifier.name != NULL ? expr->data.identifier.name : "<value>",
                 sym->type->name);
             return TYPE_UNKNOWN;
         }
         if (sym->is_consumed) {
             semantic_error(ctx, expr,
-                "%s '%s' was moved or released and cannot be used again; create a fresh value or keep ownership in one binding",
+                "%s '%s' was moved or released and cannot be used again.\n"
+                "Reason:\n"
+                "- value '%s' was already consumed by an ownership transfer or release path\n"
+                "- move-only values cannot be reused after consumption\n"
+                "Fix:\n"
+                "- create/acquire a fresh %s value\n"
+                "- or keep ownership in one binding and avoid the earlier move",
                 resource_handle_display_name(sym->type),
-                expr->data.identifier.name);
+                expr->data.identifier.name,
+                expr->data.identifier.name != NULL ? expr->data.identifier.name : "<value>",
+                resource_handle_display_name(sym->type));
             return TYPE_UNKNOWN;
         }
         sym->is_used = true;
@@ -727,7 +830,13 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
 
     if (expr_is_movable_resource_boundary(expr)) {
         semantic_error(ctx, expr,
-            "Movable resources from recv/await must first be bound to a named variable before use");
+            "Movable resources from recv/await must first be bound to a named variable before use.\n"
+            "Reason:\n"
+            "- transfer boundaries create a fresh move-only resource value\n"
+            "- the ownership checker needs a stable binding to track later moves and releases\n"
+            "Fix:\n"
+            "- assign the recv/await result to a local variable first\n"
+            "- then pass or consume that named binding");
         return TYPE_UNKNOWN;
     }
 
@@ -1065,9 +1174,17 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         if ((type_is_qubit(sym->type) || type_is_move_token(sym->type))
             && sym->is_consumed) {
             semantic_error(ctx, expr,
-                "%s '%s' was moved or released and cannot be used again; create a fresh value or keep ownership in one binding",
+                "%s '%s' was moved or released and cannot be used again.\n"
+                "Reason:\n"
+                "- value '%s' was already consumed by an ownership transfer or release path\n"
+                "- move-only values cannot be reused after consumption\n"
+                "Fix:\n"
+                "- create/acquire a fresh %s value\n"
+                "- or keep ownership in one binding and avoid the earlier move",
                 resource_handle_display_name(sym->type),
-                expr->data.identifier.name);
+                expr->data.identifier.name,
+                expr->data.identifier.name != NULL ? expr->data.identifier.name : "<value>",
+                resource_handle_display_name(sym->type));
             return TYPE_UNKNOWN;
         }
         sym->is_used = true;
@@ -1875,7 +1992,13 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         && !expr_is_class_constructor_call(init, ctx)
         && (init->type == AST_IDENTIFIER || init->type == AST_MEMBER_ACCESS)) {
         semantic_error(ctx, node,
-            "Subjects cannot be copied into a new binding. Construct a fresh subject or mutate the existing one");
+            "Subjects cannot be copied into a new binding.\n"
+            "Reason:\n"
+            "- subject values carry identity and anchored state semantics\n"
+            "- rebinding an existing subject value as a plain copy would duplicate that identity contract\n"
+            "Fix:\n"
+            "- construct a fresh subject value instead\n"
+            "- or mutate the existing subject through its current binding");
     }
 
     if (type_is_qubit(decl_type)) {
@@ -1894,7 +2017,14 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (!valid_qubit_init) {
             semantic_error(ctx, node,
-                "QubitSlot is a movable resource handle; it must come from ClaimQubit(), a moved QubitSlot value, or a transfer boundary such as recv/await. Plain copying is not allowed");
+                "QubitSlot is a movable resource handle and cannot be plain-copied into a new binding.\n"
+                "Reason:\n"
+                "- movable resource values must come from a fresh claim, an explicit move, or a transfer boundary\n"
+                "- current initializer does not preserve ownership provenance for QubitSlot\n"
+                "Fix:\n"
+                "- initialize from ClaimQubit()\n"
+                "- or move an existing QubitSlot identifier\n"
+                "- or use a transfer boundary such as recv/await");
         }
     }
 
@@ -1911,7 +2041,15 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
             if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
                 semantic_error(ctx, init,
-                    "Cannot move from released slot '%s'", src_name);
+                    "Cannot move from released slot '%s'.\n"
+                    "Reason:\n"
+                    "- slot '%s' was already released or invalidated earlier in this scope\n"
+                    "- ownership transfer requires a live source handle\n"
+                    "Fix:\n"
+                    "- reacquire the slot before moving it\n"
+                    "- or remove the earlier release/invalidating transfer",
+                    src_name,
+                    src_name);
             } else {
                 src_sym->slot_info.state = SLOT_STATE_RELEASED;
             }
@@ -1954,7 +2092,13 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (init_type != NULL && type_is_anchored_resource_handle(init_type)) {
             semantic_error(ctx, node,
-                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding; use a fresh claim or initialize from an inner value instead");
+                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding.\n"
+                "Reason:\n"
+                "- anchored handles are tied to one local ownership/runtime anchor\n"
+                "- rebinding them as plain values would duplicate that anchor contract\n"
+                "Fix:\n"
+                "- use a fresh claim\n"
+                "- or initialize from an inner/plain value instead");
         }
         char token_name_buf[256];
         const char *paired_token = NULL;
@@ -1983,7 +2127,13 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         bool is_fresh_claim = expr_is_device_slot_claim(init);
         if (!is_fresh_claim && init_type != NULL && type_is_anchored_resource_handle(init_type)) {
             semantic_error(ctx, node,
-                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding; keep the handle in one binding or reacquire it from its owning system");
+                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding.\n"
+                "Reason:\n"
+                "- anchored handles remain tied to one owning runtime anchor\n"
+                "- copying them into another binding would duplicate that anchor identity\n"
+                "Fix:\n"
+                "- keep the handle in one binding\n"
+                "- or reacquire it from the owning system");
         }
         semantic_record_effect(ctx, EFFECT_REMOTE);
     }
@@ -2034,7 +2184,13 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 
     if (type_is_anchored_resource_handle(ret_type)) {
         semantic_error(ctx, node,
-            "Returning anchored resource handles (Slot/SecureSlot/DeviceSlot) is not supported yet; return the inner value or a future/result token instead");
+            "Returning anchored resource handles (Slot/SecureSlot/DeviceSlot) is not supported yet.\n"
+            "Reason:\n"
+            "- return boundary would let an anchored handle escape its local ownership/runtime anchor\n"
+            "- anchored handles are still local-only at return boundaries in the closed subset\n"
+            "Fix:\n"
+            "- return the inner value instead\n"
+            "- or return a future/result token or other boundary-safe projection");
     }
 
     if (node->data.return_stmt.value != NULL
@@ -2220,14 +2376,26 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
     if (type_is_anchored_resource_handle(element_type)
         || type_is_anchored_resource_handle(value_type)) {
         semantic_error(ctx, expr->data.channel_send.value,
-            "Channels cannot transport anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; send the inner value or keep the handle local");
+            "Channels cannot transport anchored resource handles (Slot/SecureSlot/DeviceSlot) yet.\n"
+            "Reason:\n"
+            "- channel send would move an anchored handle outside its local ownership/runtime anchor\n"
+            "- anchored handles are still local-only at channel boundaries in the closed subset\n"
+            "Fix:\n"
+            "- send the inner value instead\n"
+            "- or keep the anchored handle local");
         return TYPE_VOID;
     }
 
     if (type_is_capability_bearing(element_type)
         || type_is_capability_bearing(value_type)) {
         semantic_error(ctx, expr->data.channel_send.value,
-            "Channels cannot transport capability-bearing values (SecureSlot/Token) yet; keep capability-bearing state local to the authorized flow");
+            "Channels cannot transport capability-bearing values (SecureSlot/Token) yet.\n"
+            "Reason:\n"
+            "- capability-bearing values would cross the channel boundary without a closed authority contract\n"
+            "- authorized flow must keep capability-bearing state local for now\n"
+            "Fix:\n"
+            "- keep capability-bearing state local to the authorized flow\n"
+            "- or send a plain projection/value instead");
         return TYPE_VOID;
     }
 
@@ -2236,14 +2404,30 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         if (!type_is_movable_resource_handle(element_type)
             || !type_is_movable_resource_handle(value_type)) {
             semantic_error(ctx, expr->data.channel_send.value,
-                "Channel send movable-resource mismatch: expected '%s', got '%s'",
+                "Channel send movable-resource mismatch: expected '%s', got '%s'.\n"
+                "Reason:\n"
+                "- channel element type and sent value must agree on the movable resource contract\n"
+                "- ownership transfer cannot be derived when the boundary expects '%s' but received '%s'\n"
+                "Fix:\n"
+                "- send a value of type '%s'\n"
+                "- or change the channel element type to match '%s'",
+                resource_handle_display_name(element_type),
+                resource_handle_display_name(value_type),
+                resource_handle_display_name(element_type),
+                resource_handle_display_name(value_type),
                 resource_handle_display_name(element_type),
                 resource_handle_display_name(value_type));
             return TYPE_VOID;
         }
         if (expr->data.channel_send.value->type != AST_IDENTIFIER) {
             semantic_error(ctx, expr->data.channel_send.value,
-                "Movable resource channel sends must transfer from a named variable; bind the value first, then send that variable");
+                "Movable resource channel sends must transfer from a named variable.\n"
+                "Reason:\n"
+                "- ownership transfer at a channel boundary must point to one concrete source binding\n"
+                "- unnamed expressions make moved-here provenance ambiguous\n"
+                "Fix:\n"
+                "- bind the movable resource to a local variable first\n"
+                "- then send that named variable");
             return TYPE_VOID;
         }
         consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
@@ -2271,13 +2455,25 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_anchored_resource_handle(channel_type->data.constructed.args[0])) {
         semantic_error(ctx, expr->data.channel_recv.channel,
-            "Channels cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; receive a plain value instead");
+            "Channels cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet.\n"
+            "Reason:\n"
+            "- receive would materialize an anchored handle beyond its local ownership/runtime anchor\n"
+            "- anchored handles are still local-only at channel boundaries in the closed subset\n"
+            "Fix:\n"
+            "- receive a plain value instead\n"
+            "- or keep the anchored handle local");
         return TYPE_UNKNOWN;
     }
 
     if (type_is_capability_bearing(channel_type->data.constructed.args[0])) {
         semantic_error(ctx, expr->data.channel_recv.channel,
-            "Channels cannot yield capability-bearing values (SecureSlot/Token) yet; receive a plain value instead");
+            "Channels cannot yield capability-bearing values (SecureSlot/Token) yet.\n"
+            "Reason:\n"
+            "- receive would materialize capability-bearing state outside the closed authority flow\n"
+            "- capability-bearing values are still local-only at channel boundaries in the closed subset\n"
+            "Fix:\n"
+            "- receive a plain value instead\n"
+            "- or keep capability-bearing state local");
         return TYPE_UNKNOWN;
     }
 
@@ -2914,11 +3110,22 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     node->data.func_decl.within_zone);
                 if (zone_decl != NULL
                     && !zone_has_effect_layer_type(zone_decl, node->data.func_decl.causes_effect)) {
-                    semantic_warning(ctx, node,
-                        "action '%s' causes effect '%s', but zone '%s' has no matching effect slot",
+                    semantic_error(ctx, node,
+                        "action '%s' causes effect '%s', but zone '%s' has no matching effect slot.\n"
+                        "Reason:\n"
+                        "- action contract declares causes '%s'\n"
+                        "- zone '%s' does not materialize any matching effect slot for that contract\n"
+                        "Fix:\n"
+                        "- add an effect slot of type '%s' to zone '%s'\n"
+                        "- or remove/change the causes clause on action '%s'",
                         name != NULL ? name : "<anonymous>",
                         node->data.func_decl.causes_effect,
-                        node->data.func_decl.within_zone);
+                        node->data.func_decl.within_zone,
+                        node->data.func_decl.causes_effect,
+                        node->data.func_decl.within_zone,
+                        node->data.func_decl.causes_effect,
+                        node->data.func_decl.within_zone,
+                        name != NULL ? name : "<anonymous>");
                 }
             }
         }
@@ -2970,7 +3177,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         return_type = resolve_type_node(node->data.func_decl.return_type, ctx);
     if (type_is_anchored_resource_handle(return_type)) {
         semantic_error(ctx, node->data.func_decl.return_type,
-            "Anchored resource handle return types (Slot/SecureSlot/DeviceSlot) are not supported yet");
+            "Anchored resource handle return types (Slot/SecureSlot/DeviceSlot) are not supported yet.\n"
+            "Reason:\n"
+            "- function return boundary would let an anchored handle escape its local ownership/runtime anchor\n"
+            "- anchored handles are still local-only at return boundaries in the closed subset\n"
+            "Fix:\n"
+            "- return the inner value instead\n"
+            "- or keep the anchored handle local and return a boundary-safe projection/result");
     }
     if (type_is_class_object_type(return_type, ctx)) {
         semantic_error(ctx, node->data.func_decl.return_type,

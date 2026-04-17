@@ -226,12 +226,54 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
             continue;
 
         param_index = ability_decl_generic_param_index(decl_params, tc->type_param);
-        if (param_index < 0 || (size_t)param_index >= effective_count)
-            continue;
+        if (param_index < 0 || (size_t)param_index >= effective_count) {
+            semantic_error(ctx, site,
+                "%s '%s' could not validate generic bound '%s' on ability '%s'.\n"
+                "Reason:\n"
+                "- consumer path is %s '%s'\n"
+                "- ability where-clause references type parameter '%s'\n"
+                "- effective generic arguments were not materialized for that parameter\n"
+                "Fix:\n"
+                "- pass/supply generic arguments for '%s'\n"
+                "- or fix the ability declaration so where-clause parameters match its generic parameter list",
+                owner_label != NULL ? owner_label : "construct",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                tc->type_param,
+                ability_decl->data.ability_decl.name != NULL
+                    ? ability_decl->data.ability_decl.name : "<ability>",
+                owner_label != NULL ? owner_label : "construct",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                tc->type_param,
+                ability_decl->data.ability_decl.name != NULL
+                    ? ability_decl->data.ability_decl.name : "<ability>");
+            free(required_text);
+            free(effective_args);
+            return false;
+        }
 
         concrete_type = resolve_type_node(effective_args[param_index], ctx);
-        if (concrete_type == NULL)
-            continue;
+        if (concrete_type == NULL) {
+            semantic_error(ctx, site,
+                "%s '%s' could not resolve generic argument for bound '%s' on ability '%s'.\n"
+                "Reason:\n"
+                "- consumer path is %s '%s'\n"
+                "- effective generic argument for '%s' did not resolve to a concrete type\n"
+                "Fix:\n"
+                "- provide a concrete type argument for '%s'\n"
+                "- or fix the default type argument / imported type so the generic argument resolves",
+                owner_label != NULL ? owner_label : "construct",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                tc->type_param,
+                ability_decl->data.ability_decl.name != NULL
+                    ? ability_decl->data.ability_decl.name : "<ability>",
+                owner_label != NULL ? owner_label : "construct",
+                owner_name != NULL ? owner_name : "<anonymous>",
+                tc->type_param,
+                tc->type_param);
+            free(required_text);
+            free(effective_args);
+            return false;
+        }
 
         for (size_t bi = 0; bi < tc->bound_count; bi++) {
             ASTNode *bound_node = tc->bounds[bi];

@@ -3,6 +3,14 @@
 // Large canonical explicit example.
 // The same workflow is also provided as a compressed companion example:
 // - calendar_manage_event_compressed.pgy
+//
+// Read this file in this order:
+// 1. intent ManageCalendarExplicit
+// 2. CalendarZone / EventEditZone boundary contract
+// 3. CalendarOwner action support surface
+//
+// Declaration order stays host-friendly for the compiler, but the design/read
+// order for users is intent-first.
 
 ability CalendarOwnerCap {
     func CanManage() -> Bool;

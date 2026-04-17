@@ -913,9 +913,14 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
             dummy.line   = sym->decl_line;
             dummy.column = sym->decl_col;
             semantic_warning(sa->ctx, &dummy,
-                "Slot '%s' claimed at line %u may not be released "
-                "before function returns",
-                sym->name, sym->decl_line);
+                "Slot '%s' claimed at line %u may not be released before function returns.\n"
+                "Reason:\n"
+                "- slot '%s' was introduced inside this function body\n"
+                "- the analyzer still sees it as live at function exit\n"
+                "Fix:\n"
+                "- release the slot on every exit path\n"
+                "- or transfer ownership explicitly before returning",
+                sym->name, sym->decl_line, sym->name);
         }
     }
 
@@ -928,18 +933,36 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
         dummy.column = sym->decl_col;
         if ((escapes[i].mask & SLOT_ESCAPE_RETURN) != 0) {
             semantic_warning(sa->ctx, &dummy,
-                "Slot '%s' escapes via return; non-escaping stack/local optimization is disabled",
-                sym->name);
+                "Slot '%s' escapes via return; non-escaping stack/local optimization is disabled.\n"
+                "Reason:\n"
+                "- slot '%s' leaves the current function through a return path\n"
+                "- escape analysis can no longer prove the handle stays local\n"
+                "Fix:\n"
+                "- keep the slot local to this function\n"
+                "- or accept heap/runtime-backed handling for this path",
+                sym->name, sym->name);
         }
         if ((escapes[i].mask & SLOT_ESCAPE_CALL) != 0) {
             semantic_warning(sa->ctx, &dummy,
-                "Slot '%s' may escape through helper/function call; escape analysis stays conservative",
-                sym->name);
+                "Slot '%s' may escape through helper/function call; escape analysis stays conservative.\n"
+                "Reason:\n"
+                "- slot '%s' is forwarded into another call boundary\n"
+                "- the current helper-call escape analysis cannot prove that the callee keeps it local\n"
+                "Fix:\n"
+                "- keep the slot in the current routine\n"
+                "- or accept conservative non-local handling for this call path",
+                sym->name, sym->name);
         }
         if ((escapes[i].mask & SLOT_ESCAPE_CHANNEL) != 0) {
             semantic_warning(sa->ctx, &dummy,
-                "Slot '%s' escapes through channel send; stack/local sinking is disabled",
-                sym->name);
+                "Slot '%s' escapes through channel send; stack/local sinking is disabled.\n"
+                "Reason:\n"
+                "- slot '%s' crosses an asynchronous/message boundary through channel send\n"
+                "- after that handoff the analyzer cannot treat it as function-local state\n"
+                "Fix:\n"
+                "- keep the slot local instead of sending it\n"
+                "- or accept non-local ownership/runtime handling for the channel path",
+                sym->name, sym->name);
         }
     }
 

@@ -38,7 +38,7 @@
 현재:
 
 - `Type.function.effect_mask`
-- declared/inferred mismatch 진단
+- declared/derived mismatch 진단
 - `with effects ...` 계약
 - `collapse -> nondeterministic` closure
 - 최소 subeffect/subsumption check
@@ -52,7 +52,7 @@
 
 현재 stable subset:
 
-- function-level declared/inferred effect contract
+- function-level declared/derived effect contract
 - join/meet/conflict API
 - branch-local join/conflict warning
 - `requires_authority` / `touches_resource_boundary` helper
@@ -77,7 +77,7 @@
 - `SecureSlot<T>` + token 기반 최소 capability
 - secure read/write/release builtin 규칙
 - named paired token identifier와 `Token<T>` 타입 pairing 정적 검사
-- `Token<T>` 시그니처 기반 secure effect 추론
+- `Token<T>` 시그니처 기반 secure effect 파생
 - capability-bearing 값(`SecureSlot` / `Token<T>`)의 channel transport 차단
 - authority가 선언된 zone의 boundary publish/bind에 explicit `by` 강제
 - authority-bearing intent step의 `causes` / `transfer` / secure-effect helper call에 `authorized by` 강제

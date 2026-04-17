@@ -10,6 +10,12 @@
 - 새 문법 실험이 아니라 현재 `stable / smoke-covered` surface만 사용한다
 - 각 pair는 같은 의미를 두 표면으로 보여준다
 - pain point 평가는 철학이 아니라 실제 작성량, 중복 계약, provenance 가독성 기준으로 한다
+- 모든 pair는 `intent -> world/zone -> subject` 순서로 읽는다
+
+읽기 규칙:
+- 먼저 intent contract가 무엇을 강제하는지 본다
+- 그 다음 world/zone 경계를 본다
+- 마지막에 subject/action/projection 지원 구조를 본다
 
 ## Pair 1. Intent contract 반복 vs action contract 재사용
 
@@ -54,6 +60,7 @@
 - 관찰 포인트:
   - 큰 intent에서 clause density가 실제로 얼마나 줄어드는지
   - 긴 워크플로에서도 compressed surface가 흐름 가독성을 유지하는지
+  - supporting subject/action declaration보다 intent contract가 먼저 읽히는지
 
 ## Pair 5. Composite orchestration explicit vs compressed
 
@@ -65,6 +72,7 @@
 - 관찰 포인트:
   - nested intent orchestration에서 반복 계약을 얼마나 덜 쓰게 되는지
   - compensate/post/success/failure가 compressed surface에서도 충분히 읽히는지
+  - reader가 subject/action보다 orchestration intent를 먼저 잡을 수 있는지
 
 ## Supplemental pair. Projection wiring 개별 선언 vs group surface
 

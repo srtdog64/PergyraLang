@@ -96,7 +96,7 @@
 
 목표:
 
-- type/layout/runtime function 판단을 backend의 ad-hoc 문자열 추론이 아니라 MIR ABI metadata에서 읽는다.
+- type/layout/runtime function 판단을 backend의 ad-hoc 문자열 추정이 아니라 MIR ABI metadata에서 읽는다.
 
 우선순위:
 

@@ -80,7 +80,7 @@ type SecurityToken<S: SecurityModel> =
 ### 3. Unified API with Compile-Time Security
 
 ```pergyra
-// Single claim function with security level inference
+// Single claim function with security level defaulting/selection
 func ClaimSlot<T, S: SecurityModel = ZeroCost>() -> Slot<T, S> {
     match S {
         ZeroCost => runtime.claim_fast<T>(),

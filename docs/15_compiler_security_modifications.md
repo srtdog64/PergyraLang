@@ -187,7 +187,7 @@ pergyra audit --security-report main.pgy
 ## Testing Strategy
 
 ### Unit Tests
-- Test security level inference
+- Test security level defaulting/selection
 - Test security constraint validation
 - Test error message generation
 

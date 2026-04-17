@@ -202,7 +202,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 ### 2.6 Intent
 
 최근 기준으로 intent는 "문법만 있는 기능"이 아니다.
-실제로 semantic inference와 codegen이 붙어 있다.
+실제로 semantic contract derivation/inheritance와 codegen이 붙어 있다.
 
 현재 강한 점:
 - orchestration surface 존재

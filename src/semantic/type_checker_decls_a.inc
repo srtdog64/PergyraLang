@@ -515,6 +515,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
     GenericParams *decl_params;
     ASTNode **effective_args = NULL;
     size_t effective_count = 0;
+    char *ability_text = NULL;
 
     if (out_type != NULL)
         *out_type = TYPE_UNKNOWN;
@@ -533,6 +534,8 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         return;
     }
 
+    ability_text = ability_ref_display(ability_ref);
+
     effective_args = collect_effective_generic_arg_nodes(
         decl_params,
         ability_ref->data.type.generic_args,
@@ -543,6 +546,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
             ? ability_decl->data.ability_decl.name : "<ability>",
         &effective_count);
     if (effective_args == NULL) {
+        free(ability_text);
         *out_type = TYPE_UNKNOWN;
         return;
     }
@@ -553,10 +557,52 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         Type *arg_type = NULL;
         Symbol *s = NULL;
 
-        if (param == NULL || param->name == NULL || effective_args[i] == NULL)
+        if (param == NULL || param->name == NULL)
             continue;
+        if (effective_args[i] == NULL) {
+            semantic_error(ctx, site != NULL ? site : type_node,
+                "Ability field contract '%s' could not materialize generic argument for '%s'.\n"
+                "Reason:\n"
+                "- require-field type resolution depends on effective type arguments from '%s'\n"
+                "- generic parameter '%s' has no effective argument on this consumer path\n"
+                "Fix:\n"
+                "- provide/supply a type argument for '%s'\n"
+                "- or fix the ability generic/default parameter list so '%s' is materialized",
+                ability_decl->data.ability_decl.name != NULL
+                    ? ability_decl->data.ability_decl.name : "<ability>",
+                param->name,
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
+                param->name,
+                param->name,
+                param->name);
+            continue;
+        }
 
         arg_type = resolve_type_node(effective_args[i], ctx);
+        if (arg_type == NULL) {
+            semantic_error(ctx, site != NULL ? site : type_node,
+                "Ability field contract '%s' could not resolve generic argument for '%s'.\n"
+                "Reason:\n"
+                "- require-field type resolution depends on effective type arguments from '%s'\n"
+                "- generic parameter '%s' did not resolve to a concrete type on this consumer path\n"
+                "Fix:\n"
+                "- provide a concrete type argument for '%s'\n"
+                "- or fix the default type argument / imported type so '%s' resolves",
+                ability_decl->data.ability_decl.name != NULL
+                    ? ability_decl->data.ability_decl.name : "<ability>",
+                param->name,
+                ability_text != NULL ? ability_text
+                                     : (ability_decl->data.ability_decl.name != NULL
+                                            ? ability_decl->data.ability_decl.name
+                                            : "<ability>"),
+                param->name,
+                param->name,
+                param->name);
+            continue;
+        }
         s = symbol_create_variable(param->name,
                                    arg_type != NULL ? arg_type : TYPE_UNKNOWN,
                                    site != NULL ? site->line : ability_decl->line,
@@ -569,6 +615,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
 
     *out_type = resolve_type_node(type_node, ctx);
     scope_exit(&ctx->scope);
+    free(ability_text);
     free(effective_args);
 }
 
@@ -764,8 +811,18 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
         const char *role_name = inc->data.include_stmt.role_name;
         Symbol *role_sym = scope_lookup(ctx->scope, role_name);
         if (role_sym == NULL) {
-            semantic_warning(ctx, inc,
-                "Included role '%s' not found in current scope", role_name);
+            semantic_error(ctx, inc,
+                "Role '%s' includes unknown role '%s'.\n"
+                "Reason:\n"
+                "- include contracts must reference a visible role declaration\n"
+                "- no role named '%s' is visible in the current module/scope\n"
+                "Fix:\n"
+                "- declare role '%s'\n"
+                "- or import/export the module that defines it",
+                name != NULL ? name : "<role>",
+                role_name != NULL ? role_name : "<role>",
+                role_name != NULL ? role_name : "<role>",
+                role_name != NULL ? role_name : "<role>");
         }
     }
 
@@ -831,6 +888,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         ? impl->data.impl_ability.ability_ref->data.type.generic_args->count : 0;
                     size_t param_count = ability_decl->data.ability_decl.generic_params != NULL
                         ? ability_decl->data.ability_decl.generic_params->count : 0;
+                    bool malformed_impl_args = false;
 
                     if (arg_count > 0 && param_count == 0) {
                         char *impl_text =
@@ -891,23 +949,26 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                                     impl_text != NULL ? impl_text : ability_name,
                                     ability_name);
                                 free(impl_text);
+                                malformed_impl_args = true;
                                 continue;
                             }
                             resolve_type_node(arg, ctx);
                         }
                     }
-                    validate_ability_decl_where_clause_reference(
-                        ability_decl,
-                        impl->data.impl_ability.ability_ref,
-                        impl,
-                        ctx,
-                        "role",
-                        name != NULL ? name : "<role>");
-                    validate_ability_require_fields_for_role(
-                        node,
-                        ability_decl,
-                        impl->data.impl_ability.ability_ref,
-                        ctx);
+                    if (!malformed_impl_args) {
+                        validate_ability_decl_where_clause_reference(
+                            ability_decl,
+                            impl->data.impl_ability.ability_ref,
+                            impl,
+                            ctx,
+                            "role",
+                            name != NULL ? name : "<role>");
+                        validate_ability_require_fields_for_role(
+                            node,
+                            ability_decl,
+                            impl->data.impl_ability.ability_ref,
+                            ctx);
+                    }
                 }
             }
 
@@ -1102,10 +1163,19 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
             Symbol *party = scope_lookup(ctx->scope,
                 ps->data.roster_slot.party_type);
             if (party == NULL || party->kind != SYMBOL_PARTY) {
-                semantic_warning(ctx, ps,
-                    "Party type '%s' not found for slot '%s'",
+                semantic_error(ctx, ps,
+                    "Party type '%s' not found for roster slot '%s'.\n"
+                    "Reason:\n"
+                    "- roster slot '%s' must reference a visible party declaration\n"
+                    "- no party named '%s' is visible at this point\n"
+                    "Fix:\n"
+                    "- declare party '%s'\n"
+                    "- or import/export the module that defines it",
                     ps->data.roster_slot.party_type,
-                    ps->data.roster_slot.slot_name);
+                    ps->data.roster_slot.slot_name,
+                    ps->data.roster_slot.slot_name,
+                    ps->data.roster_slot.party_type,
+                    ps->data.roster_slot.party_type);
             }
         }
     }

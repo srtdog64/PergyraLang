@@ -51,5 +51,5 @@
 ## 발견 경위
 
 - battle_sim.pgy: subject param 불가, vessel mutation 문제, string concat chain
-- space_station 멀티파일: event 키워드, nested vessel method, `!` 추론, struct 순서, role self
+- space_station 멀티파일: event 키워드, nested vessel method, `!` 해석, struct 순서, role self
 - biome_simulator 멀티파일: zone/world bare field access, deep nested string concat
