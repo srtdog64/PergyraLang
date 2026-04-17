@@ -5,6 +5,7 @@ static char *render_ability_ref_vtable_tag(ASTNode *ability_ref);
 static bool transpiler_can_forward_declare_type_early(TranspilerCtx *ctx, ASTNode *type_node);
 static bool transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func);
 static bool transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx, ASTNode *func);
+static ASTNode *transpiler_current_host_decl_local(TranspilerCtx *ctx);
 
 /* -----------------------------------------------------------------
  * CodeBuf
