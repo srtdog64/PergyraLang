@@ -3776,6 +3776,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     switch (node->type) {
     case AST_NUMBER:
+        if (node->data.number.is_long)
+            return strdup_fmt("%lldLL", (long long)(int64_t)node->data.number.value);
         if (node->data.number.value == (int64_t)node->data.number.value)
             return strdup_fmt("%lld", (long long)(int64_t)node->data.number.value);
         return strdup_fmt("%g", node->data.number.value);

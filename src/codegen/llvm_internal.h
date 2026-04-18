@@ -683,7 +683,20 @@ llvm_current_host_decl_name(const LLVMGenCtx *ctx)
 {
     ASTNode *decl = NULL;
 
-    if (ctx == NULL || ctx->current_class_name == NULL)
+    if (ctx == NULL)
+        return NULL;
+
+    if (ctx->current_func_decl != NULL
+        && ctx->current_func_decl->type == AST_FUNC_DECL
+        && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
+        decl = llvm_find_decl_in_active_inventory(
+            ctx, AST_ZONE_DECL, ctx->current_func_decl->data.func_decl.within_zone);
+        if (decl != NULL)
+            return decl->data.zone_decl.name;
+        return ctx->current_func_decl->data.func_decl.within_zone;
+    }
+
+    if (ctx->current_class_name == NULL)
         return NULL;
 
     decl = llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);

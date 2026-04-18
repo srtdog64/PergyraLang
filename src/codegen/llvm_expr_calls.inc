@@ -243,20 +243,21 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (strcmp(callee_name, "HasProjection") == 0 && node->data.call.arg_count == 1) {
+        const char *host_name = llvm_current_host_decl_name(ctx);
         ASTNode *decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL,
-            ctx->current_class_name);
-        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+            host_name);
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, host_name);
         const char *slot_name = NULL;
         int field_idx;
         LLVMValueRef base_ptr;
         LLVMValueRef gep;
         if (decl == NULL) {
             decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL,
-                ctx->current_class_name);
+                host_name);
         }
         if (decl == NULL) {
             decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
-                ctx->current_class_name);
+                host_name);
         }
         if (decl == NULL || cls == NULL)
             return LLVMConstInt(ctx->type_i1, 0, 0);
@@ -282,9 +283,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (strcmp(callee_name, "HasLayer") == 0 && node->data.call.arg_count == 1) {
+        const char *host_name = llvm_current_host_decl_name(ctx);
         ASTNode *zone_decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
-            ctx->current_class_name);
-        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+            host_name);
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, host_name);
         const char *layer_name = NULL;
         int field_idx;
         LLVMValueRef base_ptr;
@@ -313,9 +315,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (strcmp(callee_name, "HasState") == 0 && node->data.call.arg_count >= 1) {
+        const char *host_name = llvm_current_host_decl_name(ctx);
         ASTNode *zone_decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
-            ctx->current_class_name);
-        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+            host_name);
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, host_name);
         const char *state_name = NULL;
         ASTNode *state_decl;
         int field_idx;
@@ -346,9 +349,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (strcmp(callee_name, "HasZone") == 0 && node->data.call.arg_count == 1) {
+        const char *host_name = llvm_current_host_decl_name(ctx);
         ASTNode *world_decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL,
-            ctx->current_class_name);
-        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+            host_name);
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, host_name);
         const char *name = NULL;
         ASTNode *state_decl = NULL;
         int field_idx = -1;
@@ -420,9 +424,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
          || strcmp(callee_name, "HasZoneLayer") == 0
          || strcmp(callee_name, "HasZoneState") == 0)
         && node->data.call.arg_count == 2) {
+        const char *host_name = llvm_current_host_decl_name(ctx);
         ASTNode *world_decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL,
-            ctx->current_class_name);
-        LLVMClassTypeEntry *world_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+            host_name);
+        LLVMClassTypeEntry *world_cls = llvm_lookup_class(ctx, host_name);
         const char *zone_name = NULL;
         const char *detail_name = NULL;
         ASTNode *zone_decl;

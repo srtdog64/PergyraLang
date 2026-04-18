@@ -1240,6 +1240,25 @@ func Main() -> Void {
 EOF
 run_case "map_ops" "$TMPDIR/map_ops.pgy" "2" "true" "false" "2" "1" "false"
 
+cat > "$TMPDIR/map_ops_long_bool.pgy" <<'EOF'
+func Main() -> Void {
+    let longMap: HashMap<Long, Long> = MapNew();
+    MapSet(longMap, 7L, 70L);
+    MapSet(longMap, 9L, 90L);
+    Log(MapGet(longMap, 7L));
+    Log(MapHas(longMap, 9L));
+    Log(ArrayLength(MapKeys(longMap)));
+
+    let boolMap: HashMap<Bool, Int> = MapNew();
+    MapSet(boolMap, true, 11);
+    MapSet(boolMap, false, 22);
+    Log(MapGet(boolMap, true));
+    Log(MapHas(boolMap, false));
+    Log(ArrayLength(MapKeys(boolMap)));
+}
+EOF
+run_case "map_ops_long_bool" "$TMPDIR/map_ops_long_bool.pgy" "70" "true" "2" "11" "true" "2"
+
 # ---------------------------------------------------------------------------
 # Lambda expression
 # ---------------------------------------------------------------------------

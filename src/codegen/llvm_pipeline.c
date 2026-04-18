@@ -396,9 +396,6 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message)
 bool
 llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 {
-    ASTNode **decl_items = NULL;
-    size_t decl_item_count = 0;
-
     if (mir == NULL || ctx == NULL)
         return false;
 
@@ -415,11 +412,16 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     llvm_pipeline_debug_stage("emit_program_from_mir:declare_runtime");
     llvm_declare_runtime(ctx);
 
-    llvm_active_nominal_inventory(ctx, &decl_items, &decl_item_count);
-
     llvm_pipeline_debug_stage("emit_program_from_mir:register_decl_items");
-    for (size_t i = 0; i < decl_item_count; i++) {
-        ASTNode *stmt = decl_items[i];
+    for (size_t i = 0; i < mir->decl_header_count; i++) {
+        const MIRDeclHeader *decl_header = &mir->decl_headers[i];
+        ASTNode *stmt = decl_header != NULL ? decl_header->ast : NULL;
+        if (decl_header == NULL || stmt == NULL)
+            continue;
+        if (decl_header->ast_type != AST_CLASS_DECL
+            && decl_header->ast_type != AST_ENUM_DECL) {
+            continue;
+        }
         llvm_register_nominal_decl(ctx, stmt);
     }
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_domain_passes");
@@ -507,36 +509,38 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
         }
     }
 
-    {
-        ASTNode **methods = NULL;
-        size_t method_count = 0;
-        for (size_t i = 0; i < decl_item_count; i++) {
-            ASTNode *stmt = decl_items[i];
-            if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
-                const char *cls_name = stmt->data.class_decl.name;
-                llvm_find_host_decl_methods_in_context(ctx, cls_name, &methods, &method_count);
-                for (size_t j = 0; j < method_count; j++) {
-                    ASTNode *method = methods != NULL ? methods[j] : NULL;
-                    const MIRRoutine *mir_method;
-                    if (method == NULL || method->type != AST_FUNC_DECL)
-                        continue;
-                    mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
-                    if (mir_method != NULL) {
-                        llvm_emit_func_from_mir(mir_method, ctx);
-                        continue;
-                    }
-                    {
-                        char msg[384];
-                        snprintf(msg, sizeof(msg),
-                                 "MIR-only LLVM path missing routine for class method '%s.%s'",
-                                 cls_name != NULL ? cls_name : "(anonymous-class)",
-                                 method->data.func_decl.name != NULL
-                                     ? method->data.func_decl.name
-                                     : "(anonymous)");
-                        llvm_set_error(ctx, msg);
-                        return false;
-                    }
-                }
+    for (size_t i = 0; i < mir->decl_header_count; i++) {
+        const MIRDeclHeader *decl_header = &mir->decl_headers[i];
+        const char *cls_name;
+        ASTNode **methods;
+        size_t method_count;
+
+        if (decl_header == NULL || decl_header->ast_type != AST_CLASS_DECL)
+            continue;
+
+        cls_name = decl_header->name;
+        methods = decl_header->methods;
+        method_count = decl_header->method_count;
+        for (size_t j = 0; j < method_count; j++) {
+            ASTNode *method = methods != NULL ? methods[j] : NULL;
+            const MIRRoutine *mir_method;
+            if (method == NULL || method->type != AST_FUNC_DECL)
+                continue;
+            mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
+            if (mir_method != NULL) {
+                llvm_emit_func_from_mir(mir_method, ctx);
+                continue;
+            }
+            {
+                char msg[384];
+                snprintf(msg, sizeof(msg),
+                         "MIR-only LLVM path missing routine for class method '%s.%s'",
+                         cls_name != NULL ? cls_name : "(anonymous-class)",
+                         method->data.func_decl.name != NULL
+                             ? method->data.func_decl.name
+                             : "(anonymous)");
+                llvm_set_error(ctx, msg);
+                return false;
             }
         }
     }

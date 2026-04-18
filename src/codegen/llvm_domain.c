@@ -1246,6 +1246,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 void
 llvm_emit_domain_passes(LLVMGenCtx *ctx)
 {
+    LLVMDomainInventory inventory;
     ASTNode **abilities;
     ASTNode **relations;
     ASTNode **effects;
@@ -1265,27 +1266,28 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
     size_t role_count;
     size_t event_count;
 
-    if (ctx == NULL || ctx->mir == NULL)
+    if (ctx == NULL)
         return;
 
-    abilities = ctx->mir->abilities;
-    relations = ctx->mir->relations;
-    effects = ctx->mir->effects;
-    zones = ctx->mir->zones;
-    worlds = ctx->mir->worlds;
-    parties = ctx->mir->parties;
-    rosters = ctx->mir->rosters;
-    roles = ctx->mir->roles;
-    events = ctx->mir->events;
-    ability_count = ctx->mir->ability_count;
-    relation_count = ctx->mir->relation_count;
-    effect_count = ctx->mir->effect_count;
-    zone_count = ctx->mir->zone_count;
-    world_count = ctx->mir->world_count;
-    party_count = ctx->mir->party_count;
-    roster_count = ctx->mir->roster_count;
-    role_count = ctx->mir->role_count;
-    event_count = ctx->mir->event_count;
+    llvm_active_domain_inventory(ctx, &inventory);
+    abilities = inventory.abilities;
+    relations = inventory.relations;
+    effects = inventory.effects;
+    zones = inventory.zones;
+    worlds = inventory.worlds;
+    parties = inventory.parties;
+    rosters = inventory.rosters;
+    roles = inventory.roles;
+    events = inventory.events;
+    ability_count = inventory.ability_count;
+    relation_count = inventory.relation_count;
+    effect_count = inventory.effect_count;
+    zone_count = inventory.zone_count;
+    world_count = inventory.world_count;
+    party_count = inventory.party_count;
+    roster_count = inventory.roster_count;
+    role_count = inventory.role_count;
+    event_count = inventory.event_count;
 
     ASTNode **domain_groups[] = {
         relations,

@@ -4342,6 +4342,59 @@ test_engine_collections(void)
         lexer_destroy(lexer);
     }
 
+    TEST("HashMap<Long, Long> annotation resolves and builtins accept Long keys");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let table: HashMap<Long, Long> = MapNew();\n"
+            "    MapSet(table, 7L, 42L);\n"
+            "    let hp: Long = MapGet(table, 7L);\n"
+            "    let keys: Array<Long> = MapKeys(table);\n"
+            "    let first: Long = keys[0];\n"
+            "    Log(hp);\n"
+            "    Log(first);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HashMap<Bool, Int> annotation resolves and builtins accept Bool keys");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let table: HashMap<Bool, Int> = MapNew();\n"
+            "    MapSet(table, true, 1);\n"
+            "    MapSet(table, false, 2);\n"
+            "    let hit: Int = MapGet(table, true);\n"
+            "    let keys: Array<Bool> = MapKeys(table);\n"
+            "    let first: Bool = keys[0];\n"
+            "    Log(hit);\n"
+            "    Log(first);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ListPush rejects wrong element type");
     {
         const char *source =

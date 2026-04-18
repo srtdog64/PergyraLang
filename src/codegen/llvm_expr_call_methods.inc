@@ -536,7 +536,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         && method_name != NULL) {
         const char *field_name = obj_node->data.member.name;
         const char *class_name = llvm_current_field_class_name(ctx, field_name);
-        LLVMClassTypeEntry *parent_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+        LLVMClassTypeEntry *parent_cls =
+            llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
         LLVMClassTypeEntry *host_cls = class_name != NULL
             ? llvm_lookup_class(ctx, class_name) : NULL;
         int field_idx = parent_cls != NULL

@@ -1007,6 +1007,14 @@ ASTNode* ast_create_assignment(ASTNode* target, ASTNode* value) {
 // 숫자
 ASTNode* ast_create_number(const char* value) {
     ASTNode* node = ast_create_node(AST_NUMBER);
+    node->data.number.is_long = false;
+    if (value != NULL) {
+        size_t len = strlen(value);
+        if (len > 0 && value[len - 1] == 'L') {
+            node->data.number.is_long = true;
+            /* strtod stops at 'L' automatically, so no need to strip. */
+        }
+    }
     node->data.number.value = strtod(value, NULL);
     return node;
 }

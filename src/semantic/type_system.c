@@ -564,6 +564,8 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
 
     switch (expr->type) {
     case AST_NUMBER:
+        if (expr->data.number.is_long)
+            return TYPE_LONG;
         return expr->data.number.value == (int64_t)expr->data.number.value
             ? TYPE_INT
             : TYPE_FLOAT;

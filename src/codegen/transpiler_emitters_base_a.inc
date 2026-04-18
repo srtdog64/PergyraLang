@@ -1939,7 +1939,7 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
         return NULL;
     switch (expr->type) {
         case AST_NUMBER:
-            return "Int";
+            return expr->data.number.is_long ? "Long" : "Int";
         case AST_STRING:
             return "String";
         case AST_BOOLEAN:

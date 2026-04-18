@@ -477,6 +477,7 @@ struct ASTNode
         /* Literals */
         struct {
             double value;
+            bool is_long;   /* true if source had 'L' suffix (int64_t literal) */
         } number;
         
         struct {

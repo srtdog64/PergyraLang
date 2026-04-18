@@ -631,33 +631,7 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 static const char *
 llvm_current_host_class_name(LLVMGenCtx *ctx)
 {
-    ASTNode *host_decl;
-
-    if (ctx == NULL)
-        return NULL;
-    if (ctx->current_class_name == NULL)
-        return NULL;
-
-    host_decl = llvm_find_projection_nominal_decl(ctx, ctx->current_class_name);
-    if (host_decl == NULL)
-        return ctx->current_class_name;
-
-    switch (host_decl->type) {
-    case AST_CLASS_DECL:
-        return host_decl->data.class_decl.name;
-    case AST_RELATION_DECL:
-        return host_decl->data.relation_decl.name;
-    case AST_EFFECT_DECL:
-        return host_decl->data.effect_decl.name;
-    case AST_ZONE_DECL:
-        return host_decl->data.zone_decl.name;
-    case AST_WORLD_DECL:
-        return host_decl->data.world_decl.name;
-    default:
-        break;
-    }
-
-    return ctx->current_class_name;
+    return llvm_current_host_decl_name(ctx);
 }
 
 static const char *
@@ -1289,10 +1263,10 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
             }
             {
                 LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
-                if (fn == NULL && ctx->current_class_name != NULL) {
+                if (fn == NULL && llvm_current_host_decl_name(ctx) != NULL) {
                     char full_name[256];
                     snprintf(full_name, sizeof(full_name), "%s_%s",
-                        ctx->current_class_name, callee);
+                        llvm_current_host_decl_name(ctx), callee);
                     fn = llvm_lookup_function(ctx, full_name);
                 }
                 if (fn != NULL) {
@@ -1351,6 +1325,11 @@ static LLVMValueRef
 llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx)
 {
     double val = node->data.number.value;
+
+    /* Explicit 'L' suffix -> always i64 */
+    if (node->data.number.is_long) {
+        return LLVMConstInt(ctx->type_i64, (unsigned long long)(int64_t)val, 1);
+    }
 
     /* Check if integer fits in i32 */
     if (val == (int64_t)val && val >= -2147483648.0 && val <= 2147483647.0)
@@ -1789,8 +1768,9 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMBuildLoad2(ctx->builder, entry->type, entry->alloca,
                               llvm_tmp_name(ctx));
 
-    if (ctx->current_class_name != NULL && strcmp(name, "self") != 0) {
-        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+    if (llvm_current_host_decl_name(ctx) != NULL && strcmp(name, "self") != 0) {
+        LLVMClassTypeEntry *cls =
+            llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
         if (cls != NULL) {
             int field_idx = llvm_class_field_index(cls, name);
             if (field_idx >= 0) {

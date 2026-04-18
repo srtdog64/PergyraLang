@@ -5379,6 +5379,8 @@ static size_t g_resolve_type_node_calls = 0;
 static size_t g_resolve_type_node_unique_nodes = 0;
 static void **g_resolve_type_node_seen = NULL;
 static size_t g_resolve_type_node_seen_cap = 0;
+static size_t g_resolve_type_node_cache_hits = 0;
+static size_t g_resolve_type_node_cache_misses = 0;
 
 static void
 resolve_type_node_stats_record(ASTNode *node)
@@ -5399,10 +5401,82 @@ resolve_type_node_stats_record(ASTNode *node)
     g_resolve_type_node_seen[g_resolve_type_node_unique_nodes++] = node;
 }
 
+/* Forward-declare the actual implementation; resolve_type_node is a thin
+ * memoizing wrapper around it. Disabled when PGY_DISABLE_TYPE_CACHE is set. */
+static Type *resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx);
+
 Type *
 resolve_type_node(ASTNode *node, SemanticContext *ctx)
 {
     resolve_type_node_stats_record(node);
+    if (node == NULL)
+        return TYPE_VOID;
+
+    static int cache_disabled = -1;
+    if (cache_disabled < 0) {
+        const char *env = getenv("PGY_DISABLE_TYPE_CACHE");
+        cache_disabled = (env != NULL && env[0] != '\0' && env[0] != '0') ? 1 : 0;
+    }
+
+    if (!cache_disabled && ctx != NULL) {
+        for (size_t i = 0; i < ctx->resolve_type_cache.count; i++) {
+            if (ctx->resolve_type_cache.keys[i] == (void *)node) {
+                g_resolve_type_node_cache_hits++;
+                return (Type *)ctx->resolve_type_cache.values[i];
+            }
+        }
+    }
+
+    g_resolve_type_node_cache_misses++;
+    Type *result = resolve_type_node_uncached(node, ctx);
+
+    /* Conservative caching: only cache built-in primitive singletons whose
+     * resolution cannot vary by scope context. Generic params, user-defined
+     * classes, and constructed types (Slot<T>, Map<K,V>, etc.) may resolve
+     * differently under alias stacks, ability impl specialization, and
+     * where-bound substitution — we leave those paths untouched. Most of the
+     * measured re-visit rate (73% average, dnd_tavern 83%) is concentrated
+     * on Int/String/Void hubs, so this still captures the majority of the
+     * savings while staying safe. */
+    bool is_cacheable_primitive =
+        result == TYPE_INT || result == TYPE_LONG
+        || result == TYPE_FLOAT || result == TYPE_DOUBLE
+        || result == TYPE_BOOL || result == TYPE_STRING
+        || result == TYPE_VOID;
+    if (!cache_disabled && ctx != NULL && is_cacheable_primitive) {
+        if (ctx->resolve_type_cache.count == ctx->resolve_type_cache.capacity) {
+            size_t new_cap = ctx->resolve_type_cache.capacity == 0
+                ? 128 : ctx->resolve_type_cache.capacity * 2;
+            void **new_keys = malloc(new_cap * sizeof(void *));
+            void **new_values = malloc(new_cap * sizeof(void *));
+            if (new_keys == NULL || new_values == NULL) {
+                free(new_keys);
+                free(new_values);
+                return result;
+            }
+            if (ctx->resolve_type_cache.count > 0) {
+                memcpy(new_keys, ctx->resolve_type_cache.keys,
+                       ctx->resolve_type_cache.count * sizeof(void *));
+                memcpy(new_values, ctx->resolve_type_cache.values,
+                       ctx->resolve_type_cache.count * sizeof(void *));
+            }
+            free(ctx->resolve_type_cache.keys);
+            free(ctx->resolve_type_cache.values);
+            ctx->resolve_type_cache.keys = new_keys;
+            ctx->resolve_type_cache.values = new_values;
+            ctx->resolve_type_cache.capacity = new_cap;
+        }
+        ctx->resolve_type_cache.keys[ctx->resolve_type_cache.count] = (void *)node;
+        ctx->resolve_type_cache.values[ctx->resolve_type_cache.count] = result;
+        ctx->resolve_type_cache.count++;
+    }
+
+    return result;
+}
+
+static Type *
+resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
+{
     if (node == NULL)
         return TYPE_VOID;
 
@@ -5633,7 +5707,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
     switch (expr->type) {
     case AST_NUMBER:
-        return TYPE_INT;
+        return expr->data.number.is_long ? TYPE_LONG : TYPE_INT;
 
     case AST_STRING:
         return TYPE_STRING;
@@ -9227,6 +9301,15 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                         ? 100.0 * (double)(g_resolve_type_node_calls - g_resolve_type_node_unique_nodes)
                           / (double)g_resolve_type_node_calls
                         : 0.0);
+            {
+                size_t total = g_resolve_type_node_cache_hits + g_resolve_type_node_cache_misses;
+                fprintf(stderr, "[type-res-stats] cache: hits=%zu misses=%zu hit_rate=%.1f%%\n",
+                        g_resolve_type_node_cache_hits,
+                        g_resolve_type_node_cache_misses,
+                        total > 0
+                            ? 100.0 * (double)g_resolve_type_node_cache_hits / (double)total
+                            : 0.0);
+            }
             fprintf(stderr, "[type-res-stats] kind: TYPE_REF=%zu BUILTIN=%zu DECL=%zu ALIAS=%zu GENERIC_PARAM=%zu LOCAL_CONTRACT=%zu PROJECTION_PATH=%zu\n",
                     kind_counts[0], kind_counts[1], kind_counts[2],
                     kind_counts[3], kind_counts[4], kind_counts[5],

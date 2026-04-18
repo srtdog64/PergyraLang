@@ -41,8 +41,8 @@
 | B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
 | B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
 | B0-4 own/ref | 진행 중 | 62% | 차단 | anchored subset는 닫혔지만 일반 movable type ownership은 아직 미완 |
-| MIR-only declaration debt | 진행 중 | 75% | 차단 | intent inventory는 많이 줄였고 host context도 inventory-backed handle 쪽으로 이동 중이지만 zone/world/relation/effect declaration fallback 잔여가 있음 |
-| Type-resolution DAG | 진행 중 | 65% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
+| MIR-only declaration debt | 진행 중 | 77% | 차단 | intent inventory는 많이 줄였고 host context도 inventory-backed handle 쪽으로 이동했지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
+| Type-resolution DAG | 진행 중 | 66% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
 | surface trust docs | 진행 중 | 85% | 차단 | 주요 surface는 정렬됐지만 B0 잔여에 맞춘 최종 재분류가 남음 |
@@ -315,12 +315,17 @@ diagnostic 고정 규칙:
 - LLVM declaration helper도 current host lookup을 공용 active-inventory host helper로 접어 direct naming chain을 한 단계 줄였다
 - LLVM MIR/domain emission의 direct `current_class_name` save/restore도 공용 host-name bind/restore helper로 이동했다
 - LLVM expr/stmt hot path도 `llvm_current_host_decl_name(...)` helper를 통과하도록 정렬돼 raw host-name read가 더 줄었다
+- `HasProjection/HasLayer/HasState/HasZone*` 계열 builtin과 method/field helper도 raw host-name state 대신 host helper를 통과하도록 정렬됐다
+- LLVM pipeline의 nominal registration / class method emission도 nominal AST array보다 `mir->decl_headers`를 직접 순회하도록 정렬됐다
+- LLVM domain pass도 raw `ctx->mir->{relations,effects,zones,...}` 접근 대신 `llvm_active_domain_inventory(...)` helper를 통과하도록 정렬됐다
+- 최근 검증선: `test-transpile 529/0`, `test-abi 84/0`이 host-helper migration 이후에도 유지됐다
 
 남은 핵심 debt:
 
 - zone/world/relation/effect declaration emission의 HIR/AST inventory fallback 제거
 - executable/declaration inventory를 MIR entry metadata로 대체
 - naming helper와 owner/self typing fallback 제거
+- helper/restore layer 바깥의 raw host-name read를 더 제거하고 회귀로 고정
 - block emission failure를 comment/skip가 아니라 backend error로 승격
 - `Unknown` / `Int` / `int32_t` fallback emission 제거
 

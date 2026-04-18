@@ -297,20 +297,29 @@ static Token scan_identifier(Lexer* lexer) {
 /* Scan number literal */
 static Token scan_number(Lexer* lexer) {
     const char* start = lexer->current - 1;
-    
+    bool is_float = false;
+
     while (isdigit(peek(lexer))) {
         advance(lexer);
     }
-    
+
     // Look for decimal part
     if (peek(lexer) == '.' && isdigit(peek_next(lexer))) {
         advance(lexer); // consume '.'
-        
+        is_float = true;
+
         while (isdigit(peek(lexer))) {
             advance(lexer);
         }
     }
-    
+
+    // Optional type suffix: 'L' for Long (64-bit int).
+    // Floats currently have no suffix; Long suffix on float is rejected
+    // downstream via the existing "number literal malformed" path.
+    if (!is_float && peek(lexer) == 'L') {
+        advance(lexer);
+    }
+
     size_t length = lexer->current - start;
     return make_token(lexer, TOKEN_NUMBER, start, length);
 }

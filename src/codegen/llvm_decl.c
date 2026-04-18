@@ -62,6 +62,8 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
 static ASTNode *
 llvm_decl_find_current_host_decl(LLVMGenCtx *ctx)
 {
+    const char *host_name;
+
     if (ctx == NULL)
         return NULL;
 
@@ -74,10 +76,11 @@ llvm_decl_find_current_host_decl(LLVMGenCtx *ctx)
             return zone_decl;
     }
 
-    if (ctx->current_class_name == NULL)
+    host_name = llvm_current_host_decl_name(ctx);
+    if (host_name == NULL)
         return NULL;
 
-    return llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
+    return llvm_find_host_decl_in_active_inventory(ctx, host_name);
 }
 
 static ASTNode *
@@ -117,7 +120,7 @@ llvm_decl_current_nominal_name(LLVMGenCtx *ctx)
         }
     }
 
-    return ctx->current_class_name;
+    return llvm_current_host_decl_name(ctx);
 }
 
 static void

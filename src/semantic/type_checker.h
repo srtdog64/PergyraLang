@@ -117,6 +117,16 @@ struct SemanticContext
 
     TypeResolutionGraph type_resolution_graph;
 
+    /* Memoization cache for resolve_type_node (AST node pointer -> Type*).
+     * Populated after a successful resolution to skip re-work for identical
+     * AST nodes revisited within the same compilation. Cleared on destroy. */
+    struct {
+        void **keys;     /* ASTNode * pointers */
+        void **values;   /* Type * pointers */
+        size_t count;
+        size_t capacity;
+    } resolve_type_cache;
+
     bool         has_error;
 };
 

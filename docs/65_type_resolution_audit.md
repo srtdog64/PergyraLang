@@ -154,8 +154,10 @@
 
 ## 권장사항
 
-### 즉시 해야 할 것 (이번 세션 내)
-- **없음.** 데이터 수집만 완료하고 판정으로 충분.
+### 즉시 해야 할 것
+- `topo_order`를 declaration staged worklist와 더 직접적으로 연결
+- generic default / multi-bound / ability consumer가 이미 타는 staged DAG 경로를 broader declaration consumer까지 확대
+- AST 노드 단위 memoization 설계를 별도 debt가 아니라 DAG Phase D와 연결
 - 계측 코드(`PGY_TYPE_RES_STATS`)는 **코드에 남겨둠** — 미래 진단용.
 
 ### 베타 게이트 판정

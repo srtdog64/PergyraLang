@@ -727,7 +727,7 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                     const char *receiver_type = NULL;
                     ASTNode *method_decl = NULL;
                     if (strcmp(name, "self") == 0)
-                        receiver_type = ctx != NULL ? ctx->current_class_name : NULL;
+                        receiver_type = llvm_current_host_decl_name(ctx);
                     if (receiver_type == NULL)
                         receiver_type = llvm_lookup_var_class(ctx, name);
                     if (receiver_type != NULL) {

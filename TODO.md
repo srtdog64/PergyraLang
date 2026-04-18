@@ -19,6 +19,10 @@
   - LLVM declaration helper도 current host lookup을 공용 active-inventory host helper로 접어 naming chain을 축소
   - LLVM MIR/domain emission의 direct `current_class_name` save/restore도 host-name bind/restore helper로 접어 state 관리 중복을 줄임
   - LLVM expr/stmt hot path도 `llvm_current_host_decl_name(...)` 기준으로 정렬해 direct raw host-name read를 더 줄임
+  - `HasProjection/HasLayer/HasState/HasZone*` 및 method/field helper가 raw `current_class_name` 대신 host helper를 통과하도록 정리
+  - LLVM pipeline의 nominal registration / class method emission도 raw nominal AST array보다 `mir->decl_headers`를 직접 순회하도록 정렬
+  - LLVM domain pass도 raw `ctx->mir->{relations,effects,zones,...}` 직접 접근 대신 `llvm_active_domain_inventory(...)` helper를 통과하도록 정렬
+  - 즉, declaration-side debt는 이제 emitter 본문보다 inventory bootstrap + helper/restore layer 국소 부위로 더 압축됨
 - generic contract + type-resolution DAG 회귀를 더 넓힘
   - `role impl ability` 경로가 generic default/where-bound cycle provenance regression에 추가됨
   - 즉, action/intent-step/zone-authority/party-role-slot에 더해 role impl consumer도 staged DAG path 회귀 범위에 포함
@@ -27,6 +31,7 @@
   - `test-transpile`: `529 passed, 0 failed`
   - `test-abi`: `84 passed, 0 failed`
   - `ci-linux`: full green 유지
+  - LLVM expr/stmt host-helper 정리 이후에도 `test-transpile`, `test-abi` 재통과 확인
 
 ### 최근 closure 진행 (2026-04-16)
 
@@ -102,6 +107,7 @@
 - [ ] **declaration-side MIR-only를 구조적으로 닫기**
   - zone/world/relation/effect declaration/method emission에서 남은 AST/HIR-carried inventory dependency를 더 제거
   - `current_*_name` / host-name 추정 helper보다 inventory-backed host handle / metadata 소비를 우선하도록 정렬
+  - transpiler/LLVM 양쪽에서 raw host-name read를 helper/restore layer 밖으로 다시 새지 못하게 회귀로 고정
   - declaration emission failure는 comment/skip/fallback return이 아니라 explicit backend error로 승격
   - C/LLVM 둘 다 declaration-side path에서 `Unknown` / surface-trust-breaking fallback type emission을 계속 제거
   - 문서에서 `MIR-led / HIR-assisted`라고 남겨둔 debt를 실제 구현 기준으로 더 축소하고, 베타 시점 표현과 구현을 일치시킨다
@@ -540,7 +546,8 @@
 - own/ref
   - stable subset: anchored slot-handle boundary subset
   - explicit reject: general own/ref on non-anchored/general value types
-  - beta-out-of-scope: general ownership system
+  - beta-out-of-scope: arbitrary universal ownership lattice
+  - beta blocker: general movable ownership audit 자체는 계속 닫아야 함
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds
@@ -570,7 +577,10 @@
       - 공통 과제: current_* name 상태와 ad-hoc named lookup를 MIR declaration metadata query로 치환
     - 최근 정리:
       - `current_field_type_name`, `current_host_method_decl`, `find_nominal_host_method_decl`는 active inventory 경유 lookup로 정렬됨
-      - 남은 핵심 debt는 LLVM pipeline의 AST-carried declaration inventory bootstrap와 current_* host naming state 축소
+      - transpiler host context 복구는 `current_host_decl -> within_zone -> saved host-name inventory` 순으로 정렬됨
+      - transpiler emitter hot path의 direct `current_*_name` 참조는 helper/restore layer 위주로 축소됨
+      - LLVM declaration helper / MIR-domain emission / expr-call builtin path도 `llvm_current_host_decl_name(...)`와 bind/restore helper 쪽으로 이동함
+      - 남은 핵심 debt는 LLVM pipeline의 AST-carried declaration inventory bootstrap와 helper/restore layer 바깥의 raw host-name state 제거
 
 - [ ] **type-resolution DAG 엔진 도입**
   - 대상: semantic type resolution / generic consumer resolution / declaration dependency scheduling
@@ -623,8 +633,10 @@
 
 - [ ] **CI 하드닝** — Ubuntu + Windows 빌드 매트릭스 유지, AddressSanitizer/UBSan, 더 촘촘한 smoke coverage
 - [ ] **CodeQL + secret scanning 활성화** — C/C++ 분석 모드, push protection
-- [ ] **CHANGELOG.md + 버전 정책 수립** — SemVer, 릴리스 태깅 규칙
-- [ ] **SECURITY.md** — 보안 취약점 제보 채널, 책임 있는 공개 정책
+- [x] **CHANGELOG.md + 버전 정책 수립** — SemVer, 릴리스 태깅 규칙
+  - 완료: `CHANGELOG.md` 존재, Keep a Changelog 포맷, SemVer 명시
+- [x] **SECURITY.md** — 보안 취약점 제보 채널, 책임 있는 공개 정책
+  - 완료: `SECURITY.md` 생성 (2026-04-18). 지원 버전, 보고 채널, in/out scope, 공격 표면별 mitigation, advisory format 포함
 
 ## P1.5 — 언어/컴파일러 보강
 
@@ -835,8 +847,11 @@
   - 완료: lexer `TOKEN_PATTERN_OR`, parser 파싱, 시맨틱 검증
   - 완료: 리터럴 OR 패턴 지원 (`case 1 | 2 | 3:`)
   - 제한: variant destructuring OR 패턴은 아직 미지원 (`case .Some(v) | .None:`)
-- [ ] **enum 메서드** — `enum Direction { ... func Name(self) -> String }`
-- [ ] **labeled break/continue** — `outer: while { ... break outer; }`
+- [x] **enum 메서드** — `enum Direction { ... func Name(self) -> String }`
+  - 완료: enum body에서 `func` 선언 + `self` 파라미터로 match self 본문 가능, C 컴파일 검증
+- [x] **labeled break/continue** — `outer: while { ... break outer; }`
+  - 완료: 파서 (`parser.c:1270`), AST (`break_stmt.label`), 시맨틱 (`test_semantic.c:680,714,739`), C 코드젠 (`loop_break_labels[]` + `loop_continue_labels[]`)
+  - 검증: outer label break, 알 수 없는 label 거부, continue outer 모두 회귀 테스트 통과
 - [ ] **Custom error 타입** — `Result<T, E>` where E is user type (현재 String만)
 
 ### ability 차별화

@@ -161,6 +161,8 @@ semantic_context_destroy(SemanticContext *ctx)
     for (size_t i = 0; i < ctx->type_resolution_graph.edge_count; i++)
         free(ctx->type_resolution_graph.edges[i].reason);
     free(ctx->type_resolution_graph.edges);
+    free(ctx->resolve_type_cache.keys);
+    free(ctx->resolve_type_cache.values);
     free(ctx->diagnostics);
     free(ctx);
 }
