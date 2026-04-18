@@ -170,7 +170,7 @@
 ### 백엔드
 - C 백엔드: reference/fallback, 스모크와 트랜스파일 테스트로 유지
 - LLVM 백엔드: 기본 실행 경로, backend-compare 및 llvm-smoke로 회귀 체크
-- 두 backend 모두 `object borrow / tobject materialize` 첫 단계를 공유한다. 다만 LLVM은 여전히 HIR fallback debt가 남아 있고, transpiler의 ABI metadata 실사용도 더 강화해야 한다.
+- 두 backend 모두 `object borrow / tobject materialize` 첫 단계를 공유한다. 다만 LLVM은 아직 declaration/top-level inventory가 AST-carried metadata에 기대는 구조 debt가 남아 있고, transpiler의 ABI metadata 실사용도 더 강화해야 한다.
 
 ### 런타임
 - slot/secure slot/device slot/qubit slot 런타임

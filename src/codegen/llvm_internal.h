@@ -320,6 +320,43 @@ typedef struct
     const char  *type_name;   /* "Int" */
 } LLVMTypeSubst;
 
+/* Result<T, E> specialization cache — parity with C backend's
+ * ensure_result_specialization (transpiler_helpers_core_b.inc:1620).
+ * LLVM has no preprocessor, so each unique (T, E) gets a named struct
+ * {i32 tag, ok_ty value, err_ty err} created once and reused. */
+#define MAX_LLVM_RESULT_SPECS 32
+typedef struct
+{
+    char         suffix[128];   /* "Int_NetError" */
+    char         ok_name[64];   /* "Int" */
+    char         err_name[64];  /* "NetError" */
+    LLVMTypeRef  struct_ty;     /* named struct */
+    LLVMTypeRef  ok_ty;
+    LLVMTypeRef  err_ty;
+} LLVMResultSpecEntry;
+
+/* Result<T, E> context-aware suffix extractor.
+ * Inspects ctx->expected_type_name then the enclosing function's return
+ * type. On success fills suffix_out ("Int_NetError"), ok_out ("Int"),
+ * err_out ("NetError"). Returns false if no enclosing Result<T,E> type
+ * is visible from context. */
+bool llvm_result_suffix_from_context(LLVMGenCtx *ctx,
+                                     char *suffix_out, size_t suffix_n,
+                                     char *ok_out, size_t ok_n,
+                                     char *err_out, size_t err_n);
+
+/* Best-effort resolution of a source-level type name to an LLVM type.
+ * Handles primitives, classes/subjects, and enums (i32). Returns NULL
+ * on miss. */
+LLVMTypeRef llvm_resolve_source_type(LLVMGenCtx *ctx, const char *type_name);
+
+/* Fetch or create the cached {i32 tag, ok_ty, err_ty} named struct for
+ * Result<ok_name, err_name>. Calls llvm_set_error and returns NULL on
+ * cache overflow or type-resolution failure. */
+LLVMResultSpecEntry *llvm_ensure_result_type(LLVMGenCtx *ctx,
+                                             const char *ok_name,
+                                             const char *err_name);
+
 typedef struct LLVMGenCtx
 {
     const MIRProgram *mir;  /* MIR-based emission support */
@@ -480,6 +517,18 @@ typedef struct LLVMGenCtx
     /* Active type substitution map — small fixed size */
     LLVMTypeSubst   type_subst[MAX_TYPE_SUBST];
     int             type_subst_count;
+
+    /* Result<T, E> named-struct cache (parity with C backend's
+     * ensure_result_specialization). Used by Ok/Err/IsOk/IsErr/Unwrap and
+     * match destructuring. */
+    LLVMResultSpecEntry result_specs[MAX_LLVM_RESULT_SPECS];
+    int                 result_spec_count;
+
+    /* Source-level type name of the current let-binding annotation, if any.
+     * Scratch pointer: saved/restored around initializer emission in
+     * llvm_emit_let_decl. Consulted first by Result<T,E> suffix resolution
+     * before falling back to the enclosing function's return type. */
+    const char         *expected_type_name;
 
     /* Slot sugar: suppress auto-Read when emitting slot handle arguments */
     bool            suppress_slot_auto_read;

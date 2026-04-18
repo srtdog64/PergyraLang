@@ -2101,43 +2101,74 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         }
     }
 
-    /* Result<T> built-in functions: Ok, Err, IsOk, IsErr, Unwrap, UnwrapOr */
+    /* Result<T, E> built-in functions:
+     * - Ok/Err require explicit Result context from the surrounding type.
+     * - IsOk/IsErr/Unwrap/UnwrapOr may also derive suffix from their Result
+     *   operand when the surrounding expression context is not specific. */
     if (callee->type == AST_IDENTIFIER) {
         const char *fn = callee->data.identifier.name;
+        bool is_result_ctor = false;
+        bool is_result_consumer = false;
+        char result_suffix[128] = {0};
+        bool have_result_suffix = transpiler_result_suffix_from_context(
+            ctx, result_suffix, sizeof(result_suffix));
+        is_result_ctor = strcmp(fn, "Ok") == 0 || strcmp(fn, "Err") == 0;
+        is_result_consumer = strcmp(fn, "IsOk") == 0
+            || strcmp(fn, "IsErr") == 0
+            || strcmp(fn, "Unwrap") == 0
+            || strcmp(fn, "UnwrapOr") == 0;
+
+        if (!have_result_suffix && is_result_consumer
+            && call->data.call.arg_count >= 1
+            && call->data.call.arguments[0] != NULL) {
+            const char *arg_type = infer_expression_type_name(
+                ctx, call->data.call.arguments[0]);
+            have_result_suffix = transpiler_result_suffix_from_type_name(
+                arg_type, result_suffix, sizeof(result_suffix));
+        }
+
+        if ((is_result_ctor || is_result_consumer) && !have_result_suffix) {
+            transpiler_set_backend_error(
+                ctx,
+                "cannot derive Result<T, E> specialization for %s(); add explicit Result<T, E> type context",
+                fn);
+            return pergyra_strdup("0");
+        }
+
         if (strcmp(fn, "Ok") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("Ok_Int(%s)", arg);
+            char *result = strdup_fmt("Ok_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (strcmp(fn, "Err") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("Err_Int(%s)", arg);
+            char *result = strdup_fmt("Err_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (strcmp(fn, "IsOk") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("IsOk_Int(%s)", arg);
+            char *result = strdup_fmt("IsOk_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (strcmp(fn, "IsErr") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("IsErr_Int(%s)", arg);
+            char *result = strdup_fmt("IsErr_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (strcmp(fn, "Unwrap") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("Unwrap_Int(%s)", arg);
+            char *result = strdup_fmt("Unwrap_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (strcmp(fn, "UnwrapOr") == 0 && call->data.call.arg_count == 2) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
             char *fallback = emit_expression(call->data.call.arguments[1], ctx);
-            char *result = strdup_fmt("UnwrapOr_Int(%s, %s)", arg, fallback);
+            char *result = strdup_fmt("UnwrapOr_%s(%s, %s)", result_suffix, arg, fallback);
             free(arg);
             free(fallback);
             return result;

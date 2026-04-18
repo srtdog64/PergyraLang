@@ -1657,6 +1657,72 @@ test_statement_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("let Result<Int, NetError> = Ok(...) uses expected type specialization");
+    {
+        const char *source =
+            "enum NetError { Timeout, Refused, Unknown, }\n"
+            "func Main() -> Void {\n"
+            "    let r: Result<Int, NetError> = Ok(42);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        ctx = transpiler_ctx_create();
+
+        emit_program(ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PGY_RESULT_DEFINE(Int_NetError, int32_t, NetError)");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PgyResult_Int_NetError");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "Ok_Int_NetError(42)");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("let Result<Int, NetError> = Err(...) uses expected type specialization");
+    {
+        const char *source =
+            "enum NetError { Timeout, Refused, Unknown, }\n"
+            "func Main() -> Void {\n"
+            "    let r: Result<Int, NetError> = Err(NetError.Unknown);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        ctx = transpiler_ctx_create();
+
+        emit_program(ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PGY_RESULT_DEFINE(Int_NetError, int32_t, NetError)");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PgyResult_Int_NetError");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "Err_Int_NetError(NetError_Unknown)");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("let slot: Slot<Int> = ClaimSlot<Int>() → PgySlot_Int slot = pgy_claim_Int();");
     {
         ASTNode *args[0];
@@ -3508,7 +3574,8 @@ test_stdlib_and_enum_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_list_new_Player()");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_list_push_Player");
-        EXPECT_STR_CONTAINS(ctx->decls->data, "PGY_LIST_DEFINE(Player, Player)");
+        EXPECT(strstr(ctx->decls->data, "PGY_LIST_DEFINE(Player, Player)") != NULL
+            || strstr(ctx->out->data, "PGY_LIST_DEFINE(Player, Player)") != NULL);
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
@@ -3579,7 +3646,8 @@ test_stdlib_and_enum_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_queue_new_Weapon()");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_queue_push_Weapon");
-        EXPECT_STR_CONTAINS(ctx->decls->data, "PGY_QUEUE_DEFINE(Weapon, Weapon)");
+        EXPECT(strstr(ctx->decls->data, "PGY_QUEUE_DEFINE(Weapon, Weapon)") != NULL
+            || strstr(ctx->out->data, "PGY_QUEUE_DEFINE(Weapon, Weapon)") != NULL);
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
@@ -3676,7 +3744,8 @@ test_stdlib_and_enum_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_map_new_");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_map_set_Player");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_map_get_Player");
-        EXPECT_STR_CONTAINS(ctx->decls->data, "PGY_HASHMAP_DEFINE(Player, Player)");
+        EXPECT(strstr(ctx->decls->data, "PGY_HASHMAP_DEFINE(Player, Player)") != NULL
+            || strstr(ctx->out->data, "PGY_HASHMAP_DEFINE(Player, Player)") != NULL);
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

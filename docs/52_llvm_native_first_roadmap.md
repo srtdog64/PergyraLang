@@ -195,7 +195,8 @@
 
 이 로드맵이 성공했다고 보려면 다음이 만족돼야 한다.
 
-1. LLVM backend가 실질적으로 MIR-only
+1. LLVM backend가 `MIR routine + MIR-carried declaration inventory` 기준으로 동작하고,
+   dedicated declaration IR debt만 남는다
 2. C backend가 reference 역할로 안정화
 3. ABI contract가 단일 진실 원천으로 backend에 소비됨
 4. perf harness에서 LLVM/native-first가 기본 경로로 관리됨

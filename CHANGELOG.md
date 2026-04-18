@@ -19,14 +19,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   host plus chained class-method return dispatch in the same execution path.
 
 ### LLVM Backend MIR Transition (2026-04-09)
-- **codegen/llvm**: LLVM backend fully transitioned from HIR-based to MIR-based
-  code generation. `src/codegen/llvm_pipeline.c` and `src/codegen/llvm_mir_emit.c`
-  now drive LLVM IR emission directly from MIR routines via
-  `llvm_emit_func_from_mir()`.
+- **codegen/llvm**: LLVM backend entry transitioned from direct HIR-based code
+  generation to MIR-based routine emission. `src/codegen/llvm_pipeline.c` and
+  `src/codegen/llvm_mir_emit.c` now drive LLVM IR emission directly from MIR
+  routines via `llvm_emit_func_from_mir()`.
 - **codegen/llvm**: SSA locals, PHI nodes, branch terminators, and intent
   compensation blocks all supported in LLVM MIR path.
-- **architecture**: Both C and LLVM backends now share MIR as the common codegen
-  input, completing the IR pipeline investment (HIR → DIR → RIR → MIR → Backend).
+- **architecture**: Both C and LLVM backends now share MIR as the common
+  executable codegen input. Remaining debt is declaration/top-level inventory,
+  which is still carried as AST-backed metadata inside `MIRProgram` rather than
+  a dedicated declaration IR.
 
 ### ABI Unification Infrastructure (2026-04-08)
 - **runtime/abi**: Add `pgy_abi_spec.h` — explicit memory layout specification for

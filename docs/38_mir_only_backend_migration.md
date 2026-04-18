@@ -28,7 +28,8 @@
 
 한 줄로 고정하면:
 
-> backend는 MIR를 emit하고, HIR는 backend metadata lookup에만 보조적으로 참조된다.
+> backend는 MIR를 consume하고, HIR는 backend metadata lookup의 직접 입력이 아니라
+> lowering 근거로만 남는다.
 
 ## 2. 현재 상태 요약
 

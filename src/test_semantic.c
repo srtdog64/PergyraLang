@@ -3499,6 +3499,35 @@ test_match_stmt(void)
         lexer_destroy(lexer);
     }
 
+    TEST("Result<T, E> with enum error type accepts Ok/Err and match destructuring");
+    {
+        const char *source =
+            "enum NetError { Timeout, Refused, Unknown, }\n"
+            "func Connect(host: String) -> Result<Int, NetError> {\n"
+            "    if host == \"\" { return Err(NetError.Unknown); }\n"
+            "    return Ok(42);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let r: Result<Int, NetError> = Connect(\"a\");\n"
+            "    match r {\n"
+            "        case Ok(v): Log(ToString(v));\n"
+            "        case Err(e): Log(\"err\");\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("enum method call resolves return type");
     {
         const char *source =

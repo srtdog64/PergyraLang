@@ -108,4 +108,265 @@ pgy_kind_to_suffix(PgyTypeKind kind)
     }
 }
 
+/* ---------------------------------------------------------------
+ * Result<T, E> specialization helpers (C-backend parity).
+ *
+ * The C backend (transpiler_helpers_core_b.inc) uses PGY_RESULT_DEFINE
+ * macros to synthesize one struct typedef + helper functions per unique
+ * (T, E) pair. LLVM IR has no preprocessor, so these helpers maintain a
+ * per-module cache of named structs ({i32 tag, ok_ty value, err_ty err})
+ * and build them on first reference.
+ * ---------------------------------------------------------------- */
+
+/* Copy `in` into `out`, replacing C-identifier-unsafe chars with '_'.
+ * Collapses consecutive separators and strips trailing '_'. */
+static void
+pgy_sanitize_suffix(const char *in, char *out, size_t n)
+{
+    if (in == NULL || out == NULL || n == 0)
+        return;
+
+    size_t j = 0;
+    bool last_under = false;
+    for (size_t i = 0; in[i] != '\0' && j + 1 < n; i++) {
+        char c = in[i];
+        bool is_alnum = (c >= '0' && c <= '9')
+                     || (c >= 'A' && c <= 'Z')
+                     || (c >= 'a' && c <= 'z')
+                     || c == '_';
+        if (is_alnum) {
+            out[j++] = c;
+            last_under = (c == '_');
+        } else if (!last_under) {
+            out[j++] = '_';
+            last_under = true;
+        }
+    }
+    while (j > 0 && out[j - 1] == '_')
+        j--;
+    out[j] = '\0';
+}
+
+/* Split the inner args of `Result<T, E>` on the top-level comma.
+ * Tracks `<>` depth so nested generics (`Result<Array<Int>, E>`) parse
+ * correctly. Returns false if no top-level comma is found. */
+static bool
+pgy_split_result_args(const char *inner,
+                      char *ok_out, size_t ok_n,
+                      char *err_out, size_t err_n)
+{
+    if (inner == NULL || ok_out == NULL || err_out == NULL)
+        return false;
+    if (ok_n == 0 || err_n == 0)
+        return false;
+
+    int depth = 0;
+    const char *comma = NULL;
+    for (const char *p = inner; *p != '\0'; p++) {
+        if (*p == '<')
+            depth++;
+        else if (*p == '>') {
+            if (depth > 0)
+                depth--;
+        } else if (*p == ',' && depth == 0) {
+            comma = p;
+            break;
+        }
+    }
+    if (comma == NULL)
+        return false;
+
+    size_t ok_len = (size_t)(comma - inner);
+    while (ok_len > 0 && (inner[ok_len - 1] == ' ' || inner[ok_len - 1] == '\t'))
+        ok_len--;
+    if (ok_len >= ok_n)
+        ok_len = ok_n - 1;
+    memcpy(ok_out, inner, ok_len);
+    ok_out[ok_len] = '\0';
+
+    const char *err_start = comma + 1;
+    while (*err_start == ' ' || *err_start == '\t')
+        err_start++;
+    size_t err_len = strlen(err_start);
+    while (err_len > 0 && (err_start[err_len - 1] == ' '
+                           || err_start[err_len - 1] == '\t'))
+        err_len--;
+    if (err_len >= err_n)
+        err_len = err_n - 1;
+    memcpy(err_out, err_start, err_len);
+    err_out[err_len] = '\0';
+
+    return ok_len > 0 && err_len > 0;
+}
+
+/* Extract `Result<..>` inner section into a heap-free scratch. Returns
+ * false if `name` is not a Result type or is single-arg (legacy path). */
+static bool
+pgy_result_inner_args(const char *name,
+                      char *inner_out, size_t inner_n)
+{
+    if (name == NULL || inner_out == NULL || inner_n == 0)
+        return false;
+    if (strncmp(name, "Result<", 7) != 0)
+        return false;
+
+    const char *open  = name + 7;
+    const char *close = strrchr(name, '>');
+    if (close == NULL || close <= open)
+        return false;
+
+    size_t len = (size_t)(close - open);
+    if (len >= inner_n)
+        len = inner_n - 1;
+    memcpy(inner_out, open, len);
+    inner_out[len] = '\0';
+
+    /* Must contain a top-level comma to be a 2-arg Result. */
+    int depth = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (inner_out[i] == '<')
+            depth++;
+        else if (inner_out[i] == '>') {
+            if (depth > 0)
+                depth--;
+        } else if (inner_out[i] == ',' && depth == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+llvm_result_suffix_from_context(LLVMGenCtx *ctx,
+                                char *suffix_out, size_t suffix_n,
+                                char *ok_out, size_t ok_n,
+                                char *err_out, size_t err_n)
+{
+    if (ctx == NULL || suffix_out == NULL || ok_out == NULL || err_out == NULL)
+        return false;
+    if (suffix_n == 0 || ok_n == 0 || err_n == 0)
+        return false;
+
+    /* Candidate source-level type names, priority order:
+     * 1. let-binding annotation (expected_type_name)
+     * 2. enclosing function's declared return type */
+    const char *candidates[2];
+    candidates[0] = ctx->expected_type_name;
+    candidates[1] = NULL;
+    if (ctx->current_func_decl != NULL
+        && ctx->current_func_decl->type == AST_FUNC_DECL
+        && ctx->current_func_decl->data.func_decl.return_type != NULL
+        && ctx->current_func_decl->data.func_decl.return_type->type == AST_TYPE) {
+        candidates[1] =
+            ctx->current_func_decl->data.func_decl.return_type->data.type.name;
+    }
+
+    char inner[256];
+    const char *picked = NULL;
+    for (int i = 0; i < 2; i++) {
+        if (candidates[i] != NULL
+            && pgy_result_inner_args(candidates[i], inner, sizeof(inner))) {
+            picked = candidates[i];
+            break;
+        }
+    }
+    if (picked == NULL)
+        return false;
+
+    char ok_raw[128], err_raw[128];
+    if (!pgy_split_result_args(inner, ok_raw, sizeof(ok_raw),
+                               err_raw, sizeof(err_raw)))
+        return false;
+
+    if (strlen(ok_raw) >= ok_n || strlen(err_raw) >= err_n)
+        return false;
+    snprintf(ok_out, ok_n, "%s", ok_raw);
+    snprintf(err_out, err_n, "%s", err_raw);
+
+    char combined[260];
+    snprintf(combined, sizeof(combined), "%s_%s", ok_raw, err_raw);
+    pgy_sanitize_suffix(combined, suffix_out, suffix_n);
+    return suffix_out[0] != '\0';
+}
+
+/* Best-effort: resolve a source-level type name to an LLVM type.
+ * Handles primitives, user-defined classes/subjects (via llvm_lookup_class),
+ * and enums (represented as i32 in the LLVM backend). Returns NULL if the
+ * name cannot be resolved — callers should emit a diagnostic. */
+LLVMTypeRef
+llvm_resolve_source_type(LLVMGenCtx *ctx, const char *type_name)
+{
+    if (ctx == NULL || type_name == NULL || type_name[0] == '\0')
+        return NULL;
+
+    PgyTypeKind kind = pgy_classify_type(type_name);
+    LLVMTypeRef prim = pgy_kind_to_llvm(ctx, kind);
+    if (prim != NULL)
+        return prim;
+
+    LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, type_name);
+    if (cls != NULL && cls->struct_type != NULL)
+        return cls->struct_type;
+
+    /* Enum: name appears in enum_variants as enum_name. */
+    for (int i = 0; i < ctx->enum_variant_count; i++) {
+        if (ctx->enum_variants[i].enum_name != NULL
+            && strcmp(ctx->enum_variants[i].enum_name, type_name) == 0)
+            return ctx->type_i32;
+    }
+
+    return NULL;
+}
+
+LLVMResultSpecEntry *
+llvm_ensure_result_type(LLVMGenCtx *ctx,
+                        const char *ok_name, const char *err_name)
+{
+    if (ctx == NULL || ok_name == NULL || err_name == NULL)
+        return NULL;
+
+    char suffix[128];
+    char combined[260];
+    snprintf(combined, sizeof(combined), "%s_%s", ok_name, err_name);
+    pgy_sanitize_suffix(combined, suffix, sizeof(suffix));
+    if (suffix[0] == '\0')
+        return NULL;
+
+    for (int i = 0; i < ctx->result_spec_count; i++) {
+        if (strcmp(ctx->result_specs[i].suffix, suffix) == 0)
+            return &ctx->result_specs[i];
+    }
+
+    if (ctx->result_spec_count >= MAX_LLVM_RESULT_SPECS) {
+        llvm_set_error(ctx,
+            "Result<T,E> specialization limit (%d) exceeded at %s",
+            MAX_LLVM_RESULT_SPECS, suffix);
+        return NULL;
+    }
+
+    LLVMTypeRef ok_ty  = llvm_resolve_source_type(ctx, ok_name);
+    LLVMTypeRef err_ty = llvm_resolve_source_type(ctx, err_name);
+    if (ok_ty == NULL || err_ty == NULL) {
+        llvm_set_error(ctx,
+            "Result<%s, %s>: cannot resolve %s type",
+            ok_name, err_name, ok_ty == NULL ? ok_name : err_name);
+        return NULL;
+    }
+
+    char struct_name[160];
+    snprintf(struct_name, sizeof(struct_name), "PgyResult_%s", suffix);
+    LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, struct_name);
+    LLVMTypeRef fields[3] = { ctx->type_i32, ok_ty, err_ty };
+    LLVMStructSetBody(struct_ty, fields, 3, 0);
+
+    LLVMResultSpecEntry *entry = &ctx->result_specs[ctx->result_spec_count++];
+    snprintf(entry->suffix,   sizeof(entry->suffix),   "%s", suffix);
+    snprintf(entry->ok_name,  sizeof(entry->ok_name),  "%s", ok_name);
+    snprintf(entry->err_name, sizeof(entry->err_name), "%s", err_name);
+    entry->struct_ty = struct_ty;
+    entry->ok_ty     = ok_ty;
+    entry->err_ty    = err_ty;
+    return entry;
+}
+
 #endif

@@ -2423,11 +2423,11 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                 codebuf_write(ctx->out, "__typeof__(__match_%d.value) %s = __match_%d.value;\n",
                     tmp_id, binding, tmp_id);
             else if (strcmp(kind, "Ok") == 0)
-                codebuf_write(ctx->out, "int32_t %s = __match_%d.ok;\n",
-                    binding, tmp_id);
+                codebuf_write(ctx->out, "__typeof__(__match_%d.ok) %s = __match_%d.ok;\n",
+                    tmp_id, binding, tmp_id);
             else if (strcmp(kind, "Err") == 0)
-                codebuf_write(ctx->out, "PgyError %s = __match_%d.err;\n",
-                    binding, tmp_id);
+                codebuf_write(ctx->out, "__typeof__(__match_%d.err) %s = __match_%d.err;\n",
+                    tmp_id, binding, tmp_id);
         }
         /* Emit enum variant bindings: case Circle(r) → int32_t r = __match_N.Circle._0 */
         if (kind != NULL

@@ -1115,6 +1115,175 @@ slot_inner_type_name(const char *slot_type_name)
     return buf;
 }
 
+/*
+ * For multi-arg generics like Result<T, E>, split the inner body at the
+ * top-level comma and sanitize each piece into a C-identifier fragment.
+ * "Int, NetError"        → "Int_NetError"
+ * "Map<Int, String>, E"  → "Map_Int_String__E"  (handles nested generics)
+ *
+ * Commas / angle brackets / spaces collapse to single underscores.
+ * Returns a static buffer.
+ */
+static const char *
+generic_args_to_c_suffix(const char *inner_body)
+{
+    static char buf[256];
+    size_t pos = 0;
+    bool prev_was_sep = false;
+
+    if (inner_body == NULL) {
+        buf[0] = '\0';
+        return buf;
+    }
+
+    for (const char *p = inner_body; *p != '\0' && pos + 1 < sizeof(buf); p++) {
+        char c = *p;
+        bool is_sep = (c == ',' || c == '<' || c == '>' || c == ' ' || c == '\t');
+        if (is_sep) {
+            if (!prev_was_sep && pos > 0) {
+                buf[pos++] = '_';
+                prev_was_sep = true;
+            }
+        } else {
+            buf[pos++] = c;
+            prev_was_sep = false;
+        }
+    }
+    /* Strip trailing underscore(s) */
+    while (pos > 0 && buf[pos - 1] == '_')
+        pos--;
+    buf[pos] = '\0';
+    return buf;
+}
+
+static void
+copy_capped_string(char *dst, size_t dst_size, const char *src);
+
+static bool
+transpiler_result_suffix_from_type_name(const char *type_name,
+                                        char *out, size_t out_size)
+{
+    if (out == NULL || out_size == 0) {
+        return false;
+    }
+
+    out[0] = '\0';
+    if (type_name == NULL || strncmp(type_name, "Result<", 7) != 0) {
+        return false;
+    }
+
+    const char *open = type_name + 7;
+    const char *close = strrchr(type_name, '>');
+    if (close == NULL || close <= open) {
+        return false;
+    }
+
+    char inner[128];
+    size_t n = (size_t)(close - open);
+    if (n >= sizeof(inner))
+        n = sizeof(inner) - 1;
+    memcpy(inner, open, n);
+    inner[n] = '\0';
+
+    if (strchr(inner, ',') == NULL) {
+        copy_capped_string(out, out_size, inner);
+    } else {
+        const char *sanitized = generic_args_to_c_suffix(inner);
+        copy_capped_string(out, out_size, sanitized);
+    }
+
+    return out[0] != '\0';
+}
+
+static bool
+transpiler_result_suffix_from_context(TranspilerCtx *ctx,
+                                      char *out, size_t out_size)
+{
+    if (out == NULL || out_size == 0) {
+        return false;
+    }
+
+    out[0] = '\0';
+    if (ctx == NULL) {
+        return false;
+    }
+
+    if (ctx->expected_type != NULL
+        && transpiler_result_suffix_from_type_name(ctx->expected_type,
+                                                   out, out_size)) {
+        return true;
+    }
+
+    if (ctx->current_return_type[0] != '\0'
+        && transpiler_result_suffix_from_type_name(ctx->current_return_type,
+                                                   out, out_size)) {
+        return true;
+    }
+
+    return false;
+}
+
+static void
+ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
+                                const char *ok_type, const char *err_type);
+
+static void
+ensure_result_specialization_from_type_name_to(TranspilerCtx *ctx, CodeBuf *dst,
+                                               const char *type_name)
+{
+    if (ctx == NULL || dst == NULL || type_name == NULL
+        || strncmp(type_name, "Result<", 7) != 0) {
+        return;
+    }
+
+    const char *open = type_name + 7;
+    const char *close = strrchr(type_name, '>');
+    if (close == NULL || close <= open) {
+        return;
+    }
+
+    char inner[256];
+    size_t n = (size_t)(close - open);
+    if (n >= sizeof(inner))
+        n = sizeof(inner) - 1;
+    memcpy(inner, open, n);
+    inner[n] = '\0';
+
+    const char *comma = strchr(inner, ',');
+    if (comma == NULL) {
+        return;
+    }
+
+    char ok_type[128];
+    char err_type[128];
+    size_t ok_len = (size_t)(comma - inner);
+    while (ok_len > 0
+           && (inner[ok_len - 1] == ' ' || inner[ok_len - 1] == '\t')) {
+        ok_len--;
+    }
+    if (ok_len >= sizeof(ok_type))
+        ok_len = sizeof(ok_type) - 1;
+    memcpy(ok_type, inner, ok_len);
+    ok_type[ok_len] = '\0';
+
+    const char *err_start = comma + 1;
+    while (*err_start == ' ' || *err_start == '\t')
+        err_start++;
+    {
+        size_t err_len = strlen(err_start);
+        if (err_len >= sizeof(err_type))
+            err_len = sizeof(err_type) - 1;
+        memcpy(err_type, err_start, err_len);
+        err_type[err_len] = '\0';
+    }
+
+    if (ok_type[0] == '\0' || err_type[0] == '\0') {
+        return;
+    }
+
+    ensure_result_specialization_to(ctx, dst, ok_type, err_type);
+}
+
 static const char *
 channel_inner_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
@@ -1168,6 +1337,26 @@ sanitize_c_suffix(const char *type_name, char *buf, size_t buf_size)
         out += 2;
     }
     buf[out] = '\0';
+}
+
+static void
+copy_capped_string(char *dst, size_t dst_size, const char *src)
+{
+    size_t len;
+
+    if (dst == NULL || dst_size == 0)
+        return;
+
+    if (src == NULL) {
+        dst[0] = '\0';
+        return;
+    }
+
+    len = strlen(src);
+    if (len >= dst_size)
+        len = dst_size - 1;
+    memcpy(dst, src, len);
+    dst[len] = '\0';
 }
 
 static const char *
@@ -1372,9 +1561,19 @@ pergyra_type_to_c(const char *name)
         return buf;
     }
     if (strncmp(name, "Result<", 7) == 0) {
-        static char buf[128];
+        static char buf[256];
         const char *inner = slot_inner_type_name(name);
-        snprintf(buf, sizeof(buf), "PgyResult_%s", inner);
+        /* Result<T> = default error type (PgyError/String). Keep legacy
+         * PgyResult_<T> suffix so existing typedefs work. */
+        if (strchr(inner, ',') == NULL) {
+            snprintf(buf, sizeof(buf), "PgyResult_%s", inner);
+            return buf;
+        }
+        /* Result<T, E> = custom error. Sanitize "T, E" to "T_E". */
+        const char *suffix = generic_args_to_c_suffix(inner);
+        size_t prefix_len = strlen("PgyResult_");
+        memcpy(buf, "PgyResult_", prefix_len);
+        copy_capped_string(buf + prefix_len, sizeof(buf) - prefix_len, suffix);
         return buf;
     }
     if (strncmp(name, "Option<", 7) == 0) {
@@ -1495,6 +1694,99 @@ render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
     g_type_render_ctx = saved_render_ctx;
     ctx->generic_binding_count = saved_binding_count;
     return result;
+}
+
+/*
+ * Record a Result<T, E> specialization and emit PGY_RESULT_DEFINE(...)
+ * into `dst` if this (ok_type, err_type) pair has not been seen yet.
+ * Int/Bool/String with default PgyError are pre-instantiated in the
+ * runtime header, so they are skipped.
+ */
+static void
+ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
+                                const char *ok_type, const char *err_type)
+{
+    if (ctx == NULL || dst == NULL || ok_type == NULL || err_type == NULL)
+        return;
+
+    /* Built-in combinations already emitted in pgy_runtime_part_ba.inc. */
+    if (strcmp(err_type, "PgyError") == 0 || strcmp(err_type, "String") == 0) {
+        if (strcmp(ok_type, "Int") == 0
+            || strcmp(ok_type, "Bool") == 0
+            || strcmp(ok_type, "String") == 0) {
+            return;
+        }
+    }
+
+    char ok_suffix[128];
+    char err_suffix[128];
+    sanitize_c_suffix(ok_type, ok_suffix, sizeof(ok_suffix));
+    sanitize_c_suffix(err_type, err_suffix, sizeof(err_suffix));
+
+    char combined[256];
+    {
+        size_t ok_len = strlen(ok_suffix);
+        size_t err_len = strlen(err_suffix);
+        if (ok_len >= sizeof(combined))
+            ok_len = sizeof(combined) - 1;
+        memcpy(combined, ok_suffix, ok_len);
+        if (ok_len + 1 < sizeof(combined)) {
+            combined[ok_len++] = '_';
+        }
+        if (ok_len + err_len >= sizeof(combined))
+            err_len = sizeof(combined) - ok_len - 1;
+        memcpy(combined + ok_len, err_suffix, err_len);
+        combined[ok_len + err_len] = '\0';
+    }
+
+    for (int i = 0; i < ctx->result_spec_count; i++) {
+        if (strcmp(ctx->result_specs_suffix[i], combined) == 0)
+            return;
+    }
+
+    if (ctx->result_spec_count >= 32) {
+        transpiler_set_backend_error(
+            ctx,
+            "too many custom Result<T, E> specializations in one translation unit; limit is %d while lowering Result<%s, %s>",
+            32,
+            ok_type,
+            err_type);
+        return;
+    }
+
+    const char *ok_ctype = pergyra_type_to_c(ok_type);
+    const char *err_ctype = pergyra_type_to_c(err_type);
+    if (ok_ctype == NULL) ok_ctype = ok_type;
+    if (err_ctype == NULL) err_ctype = err_type;
+
+    copy_capped_string(ctx->result_specs_suffix[ctx->result_spec_count],
+                       sizeof(ctx->result_specs_suffix[0]), combined);
+    copy_capped_string(ctx->result_specs_ok_ctype[ctx->result_spec_count],
+                       sizeof(ctx->result_specs_ok_ctype[0]), ok_ctype);
+    copy_capped_string(ctx->result_specs_err_ctype[ctx->result_spec_count],
+                       sizeof(ctx->result_specs_err_ctype[0]), err_ctype);
+    ctx->result_spec_count++;
+
+    codebuf_write(dst,
+        "\n/* PGY_RESULT_%s */\n"
+        "#pragma GCC diagnostic push\n"
+        "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
+        "PGY_RESULT_DEFINE(%s, %s, %s)\n"
+        "#define Ok_%s(v)          pgy_result_ok_%s(v)\n"
+        "#define Err_%s(m)         pgy_result_err_%s(m)\n"
+        "#define IsOk_%s(r)        ((r).tag == PgyResultOk)\n"
+        "#define IsErr_%s(r)       ((r).tag == PgyResultErr)\n"
+        "#define Unwrap_%s(r)      pgy_result_unwrap_%s(&(PgyResult_%s){(r).tag, {.ok=(r).ok}})\n"
+        "#define UnwrapOr_%s(r, f) ((r).tag == PgyResultOk ? (r).ok : (f))\n"
+        "#pragma GCC diagnostic pop\n",
+        combined,
+        combined, ok_ctype, err_ctype,
+        combined, combined,
+        combined, combined,
+        combined,
+        combined,
+        combined, combined, combined,
+        combined);
 }
 
 static void
@@ -1637,6 +1929,25 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNod
         char *value = render_type_name(type_node->data.type.generic_args->params[1]->constraint);
         ensure_collection_specialization_to(ctx, dst, "Map", value);
         free(value);
+        return;
+    }
+
+    /* Result<T, E> with custom error type: emit PGY_RESULT_DEFINE(T_E, ...).
+     * Use ctx->out rather than the caller's dst so the typedef precedes any
+     * forward declarations that reference PgyResult_<T>_<E>. */
+    if (strcmp(type_node->data.type.name, "Result") == 0
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count == 2
+        && type_node->data.type.generic_args->params[0] != NULL
+        && type_node->data.type.generic_args->params[0]->constraint != NULL
+        && type_node->data.type.generic_args->params[1] != NULL
+        && type_node->data.type.generic_args->params[1]->constraint != NULL) {
+        char *ok_type  = render_type_name(type_node->data.type.generic_args->params[0]->constraint);
+        char *err_type = render_type_name(type_node->data.type.generic_args->params[1]->constraint);
+        ensure_result_specialization_to(ctx, ctx->out, ok_type, err_type);
+        (void)dst;
+        free(ok_type);
+        free(err_type);
         return;
     }
 }
@@ -2757,4 +3068,3 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     entry->emitting = false;
     return entry->specialized_name;
 }
-

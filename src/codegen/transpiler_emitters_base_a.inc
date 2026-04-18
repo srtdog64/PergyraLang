@@ -2778,8 +2778,22 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 continue;
             }
 
+            if (stmt->data.let_decl.type != NULL) {
+                ensure_type_specializations_from_ast_to(ctx, ctx->out,
+                                                        stmt->data.let_decl.type);
+            } else if (local_type_name_owned != NULL) {
+                ensure_result_specialization_from_type_name_to(ctx, ctx->out,
+                                                               local_type_name_owned);
+            }
+
             lhs = transpiler_render_ssa_name(ctx, inst->result_name);
-            rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer, ctx, ssa_map_out);
+            {
+                const char *saved_expected_type = ctx->expected_type;
+                ctx->expected_type = local_type_name_owned;
+                rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer,
+                                                   ctx, ssa_map_out);
+                ctx->expected_type = saved_expected_type;
+            }
             ctx->active_type_hint = saved_type_hint;
             free(rendered_type_hint);
 

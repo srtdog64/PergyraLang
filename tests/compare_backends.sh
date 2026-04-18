@@ -357,6 +357,7 @@ main() {
         "tests/cases/backend_compare/ownership_forwarding"
         "tests/cases/backend_compare/generic_default_contracts"
         "tests/cases/backend_compare/generic_multi_bound_defaults"
+        "tests/cases/backend_compare/result_custom_error"
         "tests/cases/backend_compare/intent_header_interleaved"
         "tests/cases/backend_compare/map_keys"
         "tests/cases/backend_compare/world_zone_projection_visibility"

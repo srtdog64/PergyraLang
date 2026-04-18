@@ -31,14 +31,15 @@ Pergyra is a compiled language with C and LLVM backends. It distinguishes **who 
 
 ```
 .pgy → Lexer → Parser → Semantic Typed AST → HIR → DIR → RIR → MIR
-                                                          ├→ LLVM Backend → Binary
-                                                          └→ C Backend    → GCC → Binary
+                                                                 ├→ LLVM Backend → Binary
+                                                                 └→ C Backend    → GCC → Binary
 ```
 
 - `HIR` normalizes language structure and pass-friendly program shape
 - `DIR` locks domain contracts such as role/ability, zone/world, intent-step relations
 - `RIR` locks slot/resource/projection/authority/lifecycle semantics
 - `MIR` locks CFG/SSA/cleanup/resource-flow before backend emission
+- Backends consume `MIR`, not `RIR`
 
 ## Quick Start
 

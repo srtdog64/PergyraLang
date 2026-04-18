@@ -1,0 +1,32 @@
+enum NetError {
+    Timeout,
+    Refused,
+    Unknown,
+}
+
+func Connect(host: String) -> Result<Int, NetError> {
+    if host == "" {
+        return Err(NetError.Unknown);
+    }
+    return Ok(42);
+}
+
+func Main() -> Void {
+    let ok: Result<Int, NetError> = Ok(7);
+    let err: Result<Int, NetError> = Err(NetError.Timeout);
+    let r: Result<Int, NetError> = Connect("a");
+
+    if IsOk(ok) {
+        Log(ToString(Unwrap(ok)));
+    }
+    if IsErr(err) {
+        Log("err");
+    }
+
+    match r {
+        case Ok(v):
+            Log(ToString(v));
+        case Err(e):
+            Log("bad");
+    }
+}

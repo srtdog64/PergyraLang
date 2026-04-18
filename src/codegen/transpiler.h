@@ -191,6 +191,14 @@ typedef struct
     CollectionSpecEntry collection_specs[MAX_COLLECTION_SPECIALIZATIONS];
     int                 collection_spec_count;
 
+    /* Result<T, E> specializations for user-defined error types.
+     * Each entry records a unique (T, E) pair seen during emission so the
+     * codegen can emit a matching PGY_RESULT_DEFINE(...) in the helpers buf. */
+    char   result_specs_suffix[32][128];  /* e.g. "Int_NetError" */
+    char   result_specs_ok_ctype[32][128]; /* e.g. "int32_t" */
+    char   result_specs_err_ctype[32][128]; /* e.g. "NetError" */
+    int    result_spec_count;
+
     /* Generic ability vtable specializations emitted on demand. */
     AbilityVtableSpecEntry ability_vtable_specs[MAX_ABILITY_VTABLE_SPECIALIZATIONS];
     int                    ability_vtable_spec_count;

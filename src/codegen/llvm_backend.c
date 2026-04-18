@@ -233,6 +233,8 @@ llvm_ctx_create(const char *module_name)
     ctx->enum_variant_count = 0;
     ctx->loop_depth = 0;
     ctx->current_ret_type = ctx->type_i32;
+    ctx->result_spec_count = 0;
+    ctx->expected_type_name = NULL;
 
     /* Slot struct types: { value_type, i1 (occupied) } */
     {
@@ -735,8 +737,39 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     /* Generic container types */
     switch (kind) {
     case PGY_TK_RESULT: {
-        LLVMTypeRef inner = llvm_resolve_inner_type(ctx, type_name);
-        LLVMTypeRef fields[] = { ctx->type_i32, inner, ctx->type_i8ptr };
+        /* llvm_constructed_arg_name_at returns a pointer into a static
+         * scratch buffer; copy each arg immediately before the next call
+         * clobbers it. */
+        char ok_name_buf[128]  = {0};
+        char err_name_buf[128] = {0};
+        const char *ok_tmp  = llvm_constructed_arg_name_at(type_name, 0);
+        if (ok_tmp != NULL)
+            snprintf(ok_name_buf, sizeof(ok_name_buf), "%s", ok_tmp);
+        const char *err_tmp = llvm_constructed_arg_name_at(type_name, 1);
+        if (err_tmp != NULL)
+            snprintf(err_name_buf, sizeof(err_name_buf), "%s", err_tmp);
+        const char *ok_name  = ok_name_buf[0]  != '\0' ? ok_name_buf  : NULL;
+        const char *err_name = err_name_buf[0] != '\0' ? err_name_buf : NULL;
+
+        /* Legacy single-arg Result<T> defaults err to PgyError (i8ptr).
+         * Two-arg Result<T, E> routes through the named-struct cache so
+         * Ok/Err builders and match destructuring share one layout. */
+        if (ok_name != NULL && err_name != NULL) {
+            LLVMResultSpecEntry *spec =
+                llvm_ensure_result_type(ctx, ok_name, err_name);
+            if (spec != NULL && spec->struct_ty != NULL)
+                return spec->struct_ty;
+            /* fall through to legacy anonymous layout if resolution fails */
+        }
+        LLVMTypeRef ok_ty  = pergyra_type_to_llvm(ctx,
+            ok_name  != NULL ? ok_name  : "Int");
+        LLVMTypeRef err_ty = pergyra_type_to_llvm(ctx,
+            err_name != NULL ? err_name : "PgyError");
+        LLVMTypeRef fields[] = {
+            ctx->type_i32,
+            ok_ty  != NULL ? ok_ty  : ctx->type_i32,
+            err_ty != NULL ? err_ty : ctx->type_i8ptr
+        };
         return LLVMStructTypeInContext(ctx->context, fields, 3, 0);
     }
     case PGY_TK_OPTION: {

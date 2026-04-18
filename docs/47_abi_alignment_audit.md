@@ -25,13 +25,13 @@
 
 ### 2.1 MIR-only backend 이행은 아직 완료가 아니다
 
-- LLVM backend는 여전히 HIR fallback을 가진다.
+- LLVM backend의 routine body 경로는 MIR 기준으로 많이 정렬됐지만,
+  declaration-side inventory는 아직 dedicated declaration IR가 아니다.
 - 현재 남아 있는 대표 debt:
-  - async ordinary function fallback
-  - intent emission fallback
-  - class method fallback
-  - main wrapper / top-level executable fallback
-- 따라서 “backend는 MIR만 읽는다”는 최종 계약은 아직 완료되지 않았다.
+  - declaration/top-level inventory가 AST-carried metadata에 기대는 구조 debt
+  - nominal/domain registration helper의 inventory bootstrap debt
+  - main wrapper / top-level executable metadata를 더 MIR entry 기준으로 밀어야 하는 debt
+- 따라서 “backend는 MIR routine + dedicated declaration IR만 읽는다”는 최종 계약은 아직 완료되지 않았다.
 
 ### 2.1.1 최근 닫힌 LLVM ABI 매핑 결함
 

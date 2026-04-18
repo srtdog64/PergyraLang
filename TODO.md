@@ -852,7 +852,10 @@
 - [x] **labeled break/continue** — `outer: while { ... break outer; }`
   - 완료: 파서 (`parser.c:1270`), AST (`break_stmt.label`), 시맨틱 (`test_semantic.c:680,714,739`), C 코드젠 (`loop_break_labels[]` + `loop_continue_labels[]`)
   - 검증: outer label break, 알 수 없는 label 거부, continue outer 모두 회귀 테스트 통과
-- [ ] **Custom error 타입** — `Result<T, E>` where E is user type (현재 String만)
+- [x] **Custom error 타입** — `Result<T, E>` where E is user type (현재 String만)
+  - 완료 (2026-04-18): 타입명 렌더 `PgyResult_Int_NetError` sanitize, `PGY_RESULT_DEFINE(Int_NetError, int32_t, NetError)` 자동 instantiation (`ensure_result_specialization_to` 신설), 편의 매크로 (`Ok_T_E`, `Err_T_E`, `IsOk_T_E`, `Unwrap_T_E`, `UnwrapOr_T_E`) 자동 생성, Ok/Err builtin이 `ctx->current_return_type`에서 suffix 추출, match pattern Ok/Err 바인딩 `__typeof__` 기반 타입 추론
+  - 파일: `src/codegen/transpiler_helpers_core_b.inc` (generic_args_to_c_suffix + ensure_result_specialization_to), `src/codegen/transpiler_expr_emitters.inc` (Ok/Err/Unwrap suffix), `src/codegen/transpiler_emitters_base_b.inc` (match __typeof__), `src/codegen/transpiler.h` (result_specs_*)
+  - 회귀: `src/test_semantic.c` "Result<T, E> with enum error type accepts Ok/Err and match destructuring"
 
 ### ability 차별화
 - [ ] **ability ≠ interface 문서화** — ability는 "협업 프로토콜의 자격 조건"이며 슬롯에 부착됨

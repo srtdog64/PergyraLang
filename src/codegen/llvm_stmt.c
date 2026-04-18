@@ -825,6 +825,33 @@ llvm_is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
     return false;
 }
 
+static bool
+llvm_is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
+{
+    *kind = NULL;
+    *binding = NULL;
+
+    if (pat == NULL || pat->type != AST_CALL
+        || pat->data.call.callee == NULL
+        || pat->data.call.callee->type != AST_IDENTIFIER)
+        return false;
+
+    const char *name = pat->data.call.callee->data.identifier.name;
+    if (name == NULL)
+        return false;
+
+    if ((strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0)
+        && pat->data.call.arg_count == 1) {
+        *kind = name;
+        if (pat->data.call.arguments[0] != NULL
+            && pat->data.call.arguments[0]->type == AST_IDENTIFIER)
+            *binding = pat->data.call.arguments[0]->data.identifier.name;
+        return true;
+    }
+
+    return false;
+}
+
 void
 llvm_defer_scope_push(LLVMGenCtx *ctx)
 {
@@ -1523,7 +1550,18 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Store initializer if present */
     if (init != NULL) {
+        LLVMTypeRef saved_expected_type = ctx->current_ret_type;
+        ctx->current_ret_type = var_type;
+        /* Propagate the source-level type annotation so Result<T,E>
+         * construction inside the initializer can recover T/E from the
+         * let binding context (parity with C backend's expected_type). */
+        const char *saved_expected_name = ctx->expected_type_name;
+        if (type_ann != NULL && type_ann->type == AST_TYPE
+            && type_ann->data.type.name != NULL)
+            ctx->expected_type_name = type_ann->data.type.name;
         LLVMValueRef val = llvm_emit_expression(init, ctx);
+        ctx->expected_type_name = saved_expected_name;
+        ctx->current_ret_type = saved_expected_type;
         if (val != NULL) {
             LLVMTypeRef val_type = LLVMTypeOf(val);
 
@@ -1754,14 +1792,14 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
             }
             LLVMBuildRet(ctx->builder, val);
         } else {
-            LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0));
+            LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->current_ret_type));
         }
     } else {
         if (ctx->current_ret_type == ctx->type_void)
             LLVMBuildRetVoid(ctx->builder);
         else
             LLVMBuildRet(ctx->builder,
-                          LLVMConstInt(ctx->current_ret_type, 0, 0));
+                         LLVMConstNull(ctx->current_ret_type));
     }
 }
 
@@ -2135,6 +2173,8 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
 
         const char *option_kind = NULL;
         const char *option_binding = NULL;
+        const char *result_kind = NULL;
+        const char *result_binding = NULL;
         LLVMValueRef cmp = NULL;
 
         if (mc->data.match_case.patterns != NULL
@@ -2161,6 +2201,14 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
             cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
                 LLVMConstInt(ctx->type_i32,
                     strcmp(option_kind, "Some") == 0 ? 0 : 1, 0),
+                llvm_tmp_name(ctx));
+        } else if (llvm_is_result_destructor(mc->data.match_case.pattern,
+                                      &result_kind, &result_binding)) {
+            LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, subject, 0,
+                llvm_tmp_name(ctx));
+            cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+                LLVMConstInt(ctx->type_i32,
+                    strcmp(result_kind, "Ok") == 0 ? 0 : 1, 0),
                 llvm_tmp_name(ctx));
         } else {
             LLVMValueRef pattern = llvm_emit_expression(mc->data.match_case.pattern,
@@ -2189,6 +2237,18 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
                 option_binding);
             LLVMBuildStore(ctx->builder, payload, payload_alloca);
             llvm_scope_declare(ctx, pergyra_strdup(option_binding),
+                payload_alloca, payload_ty);
+        }
+        if (result_binding != NULL) {
+            unsigned payload_index =
+                (result_kind != NULL && strcmp(result_kind, "Err") == 0) ? 2 : 1;
+            LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder, subject,
+                payload_index, llvm_tmp_name(ctx));
+            LLVMTypeRef payload_ty = LLVMTypeOf(payload);
+            LLVMValueRef payload_alloca = llvm_create_entry_alloca(ctx, payload_ty,
+                result_binding);
+            LLVMBuildStore(ctx->builder, payload, payload_alloca);
+            llvm_scope_declare(ctx, pergyra_strdup(result_binding),
                 payload_alloca, payload_ty);
         }
         if (mc->data.match_case.body != NULL)
