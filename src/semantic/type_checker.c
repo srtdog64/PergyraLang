@@ -1346,15 +1346,14 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             }
             return TYPE_UNKNOWN;
         }
-        if ((type_is_qubit(sym->type)
-             || type_is_move_token(sym->type)
-             || type_is_subject_type(sym->type, ctx))
+        if ((type_is_general_boundary_type(sym->type, ctx)
+             || type_is_move_token(sym->type))
             && sym->is_consumed) {
             semantic_error(ctx, expr,
                 "%s '%s' was moved or released and cannot be used again.\n"
                 "Reason:\n"
                 "- value '%s' was already consumed by an ownership transfer or release path\n"
-                "- move-only values cannot be reused after consumption\n"
+                "- ownership-bearing boundary values cannot be reused after consumption\n"
                 "Fix:\n"
                 "- create/acquire a fresh %s value\n"
                 "- or keep ownership in one binding and avoid the earlier move",
@@ -2061,6 +2060,42 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         return target_type;
     }
 
+    if (type_is_general_boundary_type(target_type, ctx)
+        && !type_is_subject_type(target_type, ctx)
+        && !type_is_movable_resource_handle(target_type)
+        && expr->data.assignment.value != NULL
+        && expr->data.assignment.value->type == AST_IDENTIFIER
+        && identifier_is_borrowed_boundary_param(expr->data.assignment.value, ctx)) {
+        const char *borrowed_name =
+            expr->data.assignment.value->data.identifier.name != NULL
+                ? expr->data.assignment.value->data.identifier.name : "<value>";
+        const char *target_name =
+            expr->data.assignment.target != NULL
+            && expr->data.assignment.target->type == AST_IDENTIFIER
+            && expr->data.assignment.target->data.identifier.name != NULL
+                ? expr->data.assignment.target->data.identifier.name
+                : "<target>";
+        semantic_error(ctx, expr,
+            "Borrowed ref boundary value '%s' cannot escape through assignment rebind into '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+            "- assigning it into '%s' would create a second boundary-visible binding for the same borrowed provenance\n"
+            "Fix:\n"
+            "- keep using '%s' directly without rebinding it\n"
+            "- or change the parameter to 'own' if transfer is intended",
+            borrowed_name,
+            target_name,
+            ctx->current_function_decl != NULL
+                && ctx->current_function_decl->data.func_decl.name != NULL
+                    ? ctx->current_function_decl->data.func_decl.name
+                    : "<anonymous>",
+            borrowed_name,
+            target_name,
+            borrowed_name);
+        return target_type;
+    }
+
     if (type_is_class_object_type(target_type, ctx)
         || type_is_class_object_type(value_type, ctx)) {
         semantic_error(ctx, expr,
@@ -2362,6 +2397,32 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    if (type_is_general_boundary_type(decl_type, ctx)
+        && !type_is_subject_type(decl_type, ctx)
+        && !type_is_movable_resource_handle(decl_type)
+        && init != NULL
+        && init->type == AST_IDENTIFIER
+        && identifier_is_borrowed_boundary_param(init, ctx)) {
+        semantic_error(ctx, node,
+            "Borrowed ref boundary value '%s' cannot escape into a new binding '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+            "- binding it as '%s' would extend that borrow beyond its original boundary provenance\n"
+            "Fix:\n"
+            "- keep using '%s' directly within this function\n"
+            "- or change the parameter to 'own' if transfer is intended",
+            init->data.identifier.name != NULL ? init->data.identifier.name : "<value>",
+            name != NULL ? name : "<binding>",
+            ctx->current_function_decl != NULL
+                && ctx->current_function_decl->data.func_decl.name != NULL
+                    ? ctx->current_function_decl->data.func_decl.name
+                    : "<anonymous>",
+            init->data.identifier.name != NULL ? init->data.identifier.name : "<value>",
+            name != NULL ? name : "<binding>",
+            init->data.identifier.name != NULL ? init->data.identifier.name : "<value>");
+    }
+
     /* Slot<T> move semantics: when assigning from another Slot variable,
      * consume (invalidate) the source.  ClaimSlot() creates fresh. */
     if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT
@@ -2558,6 +2619,28 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
             "- returning it would let the borrow outlive the current call boundary\n"
             "Fix:\n"
             "- return a copied/projection/value result instead\n"
+            "- or change the parameter to 'own' if transfer is intended",
+            node->data.return_stmt.value->data.identifier.name,
+            ctx->current_function_decl != NULL
+                && ctx->current_function_decl->data.func_decl.name != NULL
+                    ? ctx->current_function_decl->data.func_decl.name
+                    : "<anonymous>",
+            node->data.return_stmt.value->data.identifier.name);
+    }
+
+    if (node->data.return_stmt.value != NULL
+        && identifier_is_borrowed_boundary_param(node->data.return_stmt.value, ctx)
+        && type_is_general_boundary_type(ret_type, ctx)
+        && !type_is_subject_type(ret_type, ctx)
+        && !type_is_movable_resource_handle(ret_type)) {
+        semantic_error(ctx, node,
+            "Borrowed ref boundary value '%s' cannot escape via return.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+            "- returning it would let the borrow outlive the current call boundary\n"
+            "Fix:\n"
+            "- return a copied/value/projection result instead\n"
             "- or change the parameter to 'own' if transfer is intended",
             node->data.return_stmt.value->data.identifier.name,
             ctx->current_function_decl != NULL
@@ -2866,6 +2949,63 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 "- channel send would transfer that borrow beyond the current call boundary\n"
                 "Fix:\n"
                 "- send a copied/value/projection form instead\n"
+                "- or change the parameter to 'own' before transfer",
+                expr->data.channel_send.value->data.identifier.name,
+                ctx->current_function_decl != NULL
+                    && ctx->current_function_decl->data.func_decl.name != NULL
+                        ? ctx->current_function_decl->data.func_decl.name
+                        : "<anonymous>",
+                expr->data.channel_send.value->data.identifier.name);
+            return TYPE_VOID;
+        }
+        consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
+        return TYPE_VOID;
+    }
+
+    if (type_is_general_boundary_type(element_type, ctx)
+        || type_is_general_boundary_type(value_type, ctx)) {
+        if (!type_is_general_boundary_type(element_type, ctx)
+            || !type_is_general_boundary_type(value_type, ctx)
+            || type_is_subject_type(element_type, ctx)
+            || type_is_subject_type(value_type, ctx)
+            || type_is_movable_resource_handle(element_type)
+            || type_is_movable_resource_handle(value_type)) {
+            semantic_error(ctx, expr->data.channel_send.value,
+                "Channel send boundary value mismatch: expected '%s', got '%s'.\n"
+                "Reason:\n"
+                "- channel element type and sent value must agree on the same nominal boundary value contract\n"
+                "- ownership transfer cannot be derived when the boundary expects '%s' but received '%s'\n"
+                "Fix:\n"
+                "- send a value of type '%s'\n"
+                "- or change the channel element type to match '%s'",
+                type_name_or_unknown(element_type),
+                type_name_or_unknown(value_type),
+                type_name_or_unknown(element_type),
+                type_name_or_unknown(value_type),
+                type_name_or_unknown(element_type),
+                type_name_or_unknown(value_type));
+            return TYPE_VOID;
+        }
+        if (expr->data.channel_send.value->type != AST_IDENTIFIER) {
+            semantic_error(ctx, expr->data.channel_send.value,
+                "Boundary value channel sends must transfer from a named variable.\n"
+                "Reason:\n"
+                "- ownership transfer at a channel boundary must point to one concrete source binding\n"
+                "- unnamed expressions make moved-here provenance ambiguous\n"
+                "Fix:\n"
+                "- bind the value first in a local variable\n"
+                "- then send that named variable");
+            return TYPE_VOID;
+        }
+        if (identifier_is_borrowed_boundary_param(expr->data.channel_send.value, ctx)) {
+            semantic_error(ctx, expr->data.channel_send.value,
+                "Borrowed ref boundary value '%s' cannot escape through channel send.\n"
+                "Reason:\n"
+                "- consumer path is function '%s'\n"
+                "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                "- channel send would transfer that borrow beyond the current call boundary\n"
+                "Fix:\n"
+                "- send a copied/value/projection snapshot instead\n"
                 "- or change the parameter to 'own' before transfer",
                 expr->data.channel_send.value->data.identifier.name,
                 ctx->current_function_decl != NULL
@@ -3511,8 +3651,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         semantic_error(ctx, node,
                             "action '%s' authorized subject '%s' has type '%s', but zone '%s' declares no matching authority.\n"
                             "Reason:\n"
+                            "- within-zone contract comes from action clause 'within %s'\n"
                             "- action contract derives authority provenance from binding '%s'\n"
                             "- binding '%s' has subject type '%s'\n"
+                            "- authority check edge is action '%s' -> zone '%s' -> binding '%s'\n"
                             "- zone '%s' has a subject slot for that type but no authority contract\n"
                             "Fix:\n"
                             "- declare authority for '%s' in zone '%s'\n"
@@ -3521,9 +3663,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_type_name,
                             node->data.func_decl.within_zone,
+                            node->data.func_decl.within_zone,
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_type_name,
+                            name != NULL ? name : "<anonymous>",
+                            node->data.func_decl.within_zone,
+                            auth_name != NULL ? auth_name : "<subject>",
                             node->data.func_decl.within_zone,
                             auth_type_name,
                             node->data.func_decl.within_zone,
@@ -3715,7 +3861,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (!type_is_general_boundary_type(param_types[i], ctx)) {
                 semantic_error(ctx, node,
                     "'%s' parameter mode is currently a closed subset: only ref/own subject values, ref/own movable resources, "
-                    "ref/own Slot<subject-host>, and own SecureSlot<subject-host> are supported at function boundaries.\n"
+                    "ref/own nominal value boundaries, ref/own Slot<subject-host>, and own SecureSlot<subject-host> are supported at function boundaries.\n"
                     "Reason:\n"
                     "- value is parameter '%s'\n"
                     "- ownership mode is '%s'\n"
@@ -3724,7 +3870,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     "- the compiler does not yet enforce general own/ref rules for arbitrary value types at call boundaries\n"
                     "Fix:\n"
                     "- keep this value local to the function boundary\n"
-                    "- or pass a subject value, movable resource, Slot<subject-host>, or own SecureSlot<subject-host> instead",
+                    "- or pass a subject value, movable resource, nominal value boundary, Slot<subject-host>, or own SecureSlot<subject-host> instead",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
                     param->name != NULL ? param->name : "<param>",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
@@ -3925,6 +4071,21 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
                         param->name);
+                } else if (type_is_general_boundary_type(param_types[i], ctx)) {
+                    semantic_error(ctx, node,
+                        "Borrowed ref boundary value '%s' cannot escape via return.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                        "- slot/resource summary found a return-escape path for that borrowed symbol\n"
+                        "- returning it would let the borrow outlive the current call boundary\n"
+                        "Fix:\n"
+                        "- return a copied/value/projection result instead\n"
+                        "- or change the parameter to 'own' if transfer is intended",
+                        param->name,
+                        node->data.func_decl.name != NULL
+                            ? node->data.func_decl.name : "<anonymous>",
+                        param->name);
                 } else {
                     semantic_error(ctx, node,
                         "Borrowed ref slot '%s' cannot escape via return.\n"
@@ -3973,6 +4134,21 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
                         param->name);
+                } else if (type_is_general_boundary_type(param_types[i], ctx)) {
+                    semantic_error(ctx, node,
+                        "Borrowed ref boundary value '%s' cannot escape through channel send.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                        "- slot/resource summary found a channel-escape path for that borrowed symbol\n"
+                        "- channel send would transfer the borrow beyond the current call boundary\n"
+                        "Fix:\n"
+                        "- send a copied/value/projection snapshot instead\n"
+                        "- or take ownership with 'own' before transfer",
+                        param->name,
+                        node->data.func_decl.name != NULL
+                            ? node->data.func_decl.name : "<anonymous>",
+                        param->name);
                 } else {
                     semantic_error(ctx, node,
                         "Borrowed ref slot '%s' cannot escape through channel send.\n"
@@ -4016,6 +4192,21 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "- forwarding it to another call would create a transitive borrow the compiler cannot keep boundary-safe\n"
                         "Fix:\n"
                         "- perform the subject operation locally in this function\n"
+                        "- or change the parameter to 'own' if transfer/forwarding is intended",
+                        param->name,
+                        node->data.func_decl.name != NULL
+                            ? node->data.func_decl.name : "<anonymous>",
+                        param->name);
+                } else if (type_is_general_boundary_type(param_types[i], ctx)) {
+                    semantic_error(ctx, node,
+                        "Borrowed ref boundary value '%s' cannot escape through helper/function call.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                        "- slot/resource summary found a transitive call-escape path for that borrowed symbol\n"
+                        "- forwarding it to another call would create a transitive borrow the compiler cannot keep boundary-safe\n"
+                        "Fix:\n"
+                        "- perform the value operation locally in this function\n"
                         "- or change the parameter to 'own' if transfer/forwarding is intended",
                         param->name,
                         node->data.func_decl.name != NULL

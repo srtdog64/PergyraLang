@@ -522,10 +522,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                         continue;
                     mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
                     if (mir_method != NULL) {
-                        const char *saved_class_name = ctx->current_class_name;
-                        ctx->current_class_name = cls_name;
                         llvm_emit_func_from_mir(mir_method, ctx);
-                        ctx->current_class_name = saved_class_name;
                         continue;
                     }
                     {

@@ -114,6 +114,85 @@ transpiler_decl_methods_local(ASTNode *decl, ASTNode ***methods_out,
 }
 
 static ASTNode *
+transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
+                                           const char *owner_name,
+                                           ASTNodeType owner_ast_type)
+{
+    ASTNode *role_decl;
+
+    if (ctx == NULL || owner_name == NULL)
+        return NULL;
+
+    switch (owner_ast_type) {
+    case AST_ZONE_DECL:
+        return transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL, owner_name);
+    case AST_RELATION_DECL:
+        return transpiler_find_decl_in_inventory_local(ctx, AST_RELATION_DECL, owner_name);
+    case AST_EFFECT_DECL:
+        return transpiler_find_decl_in_inventory_local(ctx, AST_EFFECT_DECL, owner_name);
+    case AST_WORLD_DECL:
+        return transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL, owner_name);
+    case AST_ROLE_DECL:
+        role_decl = find_role_decl(ctx, owner_name);
+        if (role_decl != NULL
+            && role_decl->type == AST_ROLE_DECL
+            && role_decl->data.role_decl.for_type != NULL
+            && role_decl->data.role_decl.for_type->type == AST_TYPE
+            && role_decl->data.role_decl.for_type->data.type.name != NULL) {
+            return transpiler_find_decl_in_inventory_local(
+                ctx, AST_CLASS_DECL,
+                role_decl->data.role_decl.for_type->data.type.name);
+        }
+        return NULL;
+    case AST_ENUM_DECL:
+        return transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL, owner_name);
+    case AST_CLASS_DECL:
+    default:
+        return transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, owner_name);
+    }
+}
+
+static void
+transpiler_bind_current_host_decl_local(TranspilerCtx *ctx, ASTNode *decl)
+{
+    if (ctx == NULL)
+        return;
+
+    ctx->current_host_decl = decl;
+    ctx->current_relation_name = NULL;
+    ctx->current_effect_name = NULL;
+    ctx->current_zone_name = NULL;
+    ctx->current_world_name = NULL;
+    ctx->current_class_name = NULL;
+
+    if (decl == NULL)
+        return;
+
+    switch (decl->type) {
+    case AST_RELATION_DECL:
+        ctx->current_relation_name = decl->data.relation_decl.name;
+        break;
+    case AST_EFFECT_DECL:
+        ctx->current_effect_name = decl->data.effect_decl.name;
+        break;
+    case AST_ZONE_DECL:
+        ctx->current_zone_name = decl->data.zone_decl.name;
+        break;
+    case AST_WORLD_DECL:
+        ctx->current_world_name = decl->data.world_decl.name;
+        break;
+    case AST_CLASS_DECL:
+        ctx->current_class_name = decl->data.class_decl.name;
+        break;
+    case AST_ENUM_DECL:
+        ctx->current_class_name = decl->data.enum_decl.name;
+        break;
+    default:
+        break;
+    }
+}
+
+static ASTNode *
 transpiler_current_host_decl_local(TranspilerCtx *ctx)
 {
     ASTNode *decl = NULL;
@@ -122,24 +201,26 @@ transpiler_current_host_decl_local(TranspilerCtx *ctx)
         return NULL;
     if (ctx->current_host_decl != NULL)
         return ctx->current_host_decl;
-    if (ctx->current_relation_name != NULL) {
+    if (ctx->current_func_decl != NULL
+        && ctx->current_func_decl->type == AST_FUNC_DECL
+        && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
         decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_RELATION_DECL, ctx->current_relation_name);
-    } else if (ctx->current_effect_name != NULL) {
-        decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_EFFECT_DECL, ctx->current_effect_name);
-    } else if (ctx->current_zone_name != NULL) {
-        decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_ZONE_DECL, ctx->current_zone_name);
-    } else if (ctx->current_world_name != NULL) {
-        decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_WORLD_DECL, ctx->current_world_name);
-    } else if (ctx->current_class_name != NULL) {
+            ctx, AST_ZONE_DECL, ctx->current_func_decl->data.func_decl.within_zone);
+        if (decl != NULL) {
+            transpiler_bind_current_host_decl_local(ctx, decl);
+            return decl;
+        }
+    }
+    if (ctx->current_class_name != NULL) {
         decl = transpiler_find_decl_in_inventory_local(
             ctx, AST_CLASS_DECL, ctx->current_class_name);
+        if (decl == NULL) {
+            decl = transpiler_find_decl_in_inventory_local(
+                ctx, AST_ENUM_DECL, ctx->current_class_name);
+        }
     }
     if (decl != NULL)
-        ctx->current_host_decl = decl;
+        transpiler_bind_current_host_decl_local(ctx, decl);
     return decl;
 }
 

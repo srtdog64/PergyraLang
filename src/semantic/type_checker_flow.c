@@ -634,8 +634,10 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         else_effect_delta = EFFECT_NONE;
     }
 
-    flow_record_branch_effect_conflict(ctx, node,
-        then_effect_delta, else_effect_delta);
+    flow_record_branch_effect_conflict_labeled(ctx, node,
+        then_effect_delta, "then branch",
+        else_effect_delta,
+        node->data.if_stmt.else_branch != NULL ? "else branch" : "implicit fallthrough path");
     ctx->current_function_effects = type_effect_mask_join(
         effect_base,
         type_effect_mask_join(then_effect_delta, else_effect_delta));
@@ -689,11 +691,13 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
         case_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
         if (merged_effect_delta != EFFECT_NONE)
-            flow_record_branch_effect_conflict(ctx, mc,
-                merged_effect_delta, case_effect_delta);
+            flow_record_branch_effect_conflict_labeled(ctx, mc,
+                merged_effect_delta, "merged prior cases",
+                case_effect_delta, "current case");
         else if (have_previous_case_delta)
-            flow_record_branch_effect_conflict(ctx, mc,
-                previous_case_delta, case_effect_delta);
+            flow_record_branch_effect_conflict_labeled(ctx, mc,
+                previous_case_delta, "previous case",
+                case_effect_delta, "current case");
         merged_effect_delta =
             type_effect_mask_join(merged_effect_delta, case_effect_delta);
         previous_case_delta = case_effect_delta;
@@ -719,11 +723,13 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
         default_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
         if (merged_effect_delta != EFFECT_NONE)
-            flow_record_branch_effect_conflict(ctx, node,
-                merged_effect_delta, default_effect_delta);
+            flow_record_branch_effect_conflict_labeled(ctx, node,
+                merged_effect_delta, "merged explicit cases",
+                default_effect_delta, "default case");
         else if (have_previous_case_delta)
-            flow_record_branch_effect_conflict(ctx, node,
-                previous_case_delta, default_effect_delta);
+            flow_record_branch_effect_conflict_labeled(ctx, node,
+                previous_case_delta, "previous case",
+                default_effect_delta, "default case");
         merged_effect_delta =
             type_effect_mask_join(merged_effect_delta, default_effect_delta);
         flags |= (default_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));

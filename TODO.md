@@ -1,6 +1,6 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-17
+마지막 업데이트: 2026-04-18
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
@@ -73,6 +73,33 @@
   - B0 4축, declaration-side MIR-only debt, parity, runtime observability, surface trust를 한 장으로 고정
   - 베타 acceptance line과 exit rule을 명시
   - 앞으로 TODO의 개별 작업은 이 보드 기준으로 우선순위를 따른다
+
+### 베타 최종 관문 (2026-04-18)
+
+- [ ] **declaration-side MIR-only를 구조적으로 닫기**
+  - zone/world/relation/effect declaration/method emission에서 남은 AST/HIR-carried inventory dependency를 더 제거
+  - `current_*_name` / host-name 추정 helper보다 inventory-backed host handle / metadata 소비를 우선하도록 정렬
+  - declaration emission failure는 comment/skip/fallback return이 아니라 explicit backend error로 승격
+  - C/LLVM 둘 다 declaration-side path에서 `Unknown` / surface-trust-breaking fallback type emission을 계속 제거
+  - 문서에서 `MIR-led / HIR-assisted`라고 남겨둔 debt를 실제 구현 기준으로 더 축소하고, 베타 시점 표현과 구현을 일치시킨다
+
+- [ ] **own/ref 일반화와 generic contract 전경로 audit 마감**
+  - own/ref는 anchored subset 밖의 일반 movable type에도 assignment/call/return/channel/container/rebind 전경로 audit을 계속 확장
+  - borrowed value escape는 helper call / channel / return / container store뿐 아니라 broader assignment/member/store path까지 provenance 기준으로 점검
+  - generic contract는 `default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path를 마지막까지 audit
+  - 남은 generic consumer path가 없다는 것을 regression으로 증명하고, partial acceptance처럼 보이는 경로를 남기지 않는다
+
+- [ ] **Intent/Zone/World, relation/effect/projection 진단과 provenance 마감**
+  - intent/zone/world의 embedding / handoff / authority mismatch에서 contract source, derived zone/using, transfer edge provenance를 계속 강화
+  - relation/effect/projection은 propagation edge failure, contract mismatch, branch/join/handoff path에 `Reason:` / `Fix:`와 source/target provenance를 일관되게 부착
+  - runtime contract provenance와 diagnostic wording을 더 정렬해 “왜 실패했는지 + 계약이 어디서 왔는지 + 어떻게 고칠지”를 한 번에 보이게 한다
+  - helper-heavy edge path를 줄이고, compile-time contract 실패를 silent/best-effort runtime sync로 넘기지 않는다
+
+- [ ] **C/LLVM parity + full CI green을 베타 최종 관문으로 고정**
+  - Linux 기준 `parser / semantic / transpile / ABI / backend-compare / llvm smoke / ir-pipeline / example smoke`를 full green으로 유지
+  - Windows는 MSYS2/MinGW + LLVM 환경에서 `ci-windows` full green을 다시 고정
+  - backend compare는 domain semantics 기준 parity를 계속 확대하고, same-process ABI / launch / runtime environment 차이를 재발하지 않게 잡는다
+  - 베타 선언 전 acceptance line은 “부분 green”이 아니라 C/LLVM parity와 expected stdout/stderr/result parity까지 포함한 CI green으로 둔다
 
 실행 가능한 연구용 컴파일러 단계는 넘겼지만, 아직 베타라고 부를 수는 없다.
 

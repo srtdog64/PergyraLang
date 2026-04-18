@@ -186,9 +186,10 @@ static const char *g_current_test_name = NULL;
     do { \
         if (cond) { printf("✓\n"); g_pass++; } \
         else       { \
-            printf("✗  (%s @ line %d)\n", \
+            printf("✗  (%s @ line %d: %s)\n", \
                    g_current_test_name != NULL ? g_current_test_name : "<unnamed test>", \
-                   __LINE__); \
+                   __LINE__, \
+                   #cond); \
             g_fail++; \
         } \
     } while(0)

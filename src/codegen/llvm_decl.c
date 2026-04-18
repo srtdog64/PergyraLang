@@ -60,25 +60,85 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
 }
 
 static ASTNode *
+llvm_decl_find_current_host_decl(LLVMGenCtx *ctx)
+{
+    if (ctx == NULL)
+        return NULL;
+
+    if (ctx->current_func_decl != NULL
+        && ctx->current_func_decl->type == AST_FUNC_DECL
+        && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
+        ASTNode *zone_decl = llvm_find_decl_in_active_inventory(
+            ctx, AST_ZONE_DECL, ctx->current_func_decl->data.func_decl.within_zone);
+        if (zone_decl != NULL)
+            return zone_decl;
+    }
+
+    if (ctx->current_class_name == NULL)
+        return NULL;
+
+    {
+        ASTNode *decl = llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL,
+                                                           ctx->current_class_name);
+        if (decl != NULL)
+            return decl;
+        decl = llvm_find_decl_in_active_inventory(ctx, AST_RELATION_DECL,
+                                                  ctx->current_class_name);
+        if (decl != NULL)
+            return decl;
+        decl = llvm_find_decl_in_active_inventory(ctx, AST_EFFECT_DECL,
+                                                  ctx->current_class_name);
+        if (decl != NULL)
+            return decl;
+        decl = llvm_find_decl_in_active_inventory(ctx, AST_WORLD_DECL,
+                                                  ctx->current_class_name);
+        if (decl != NULL)
+            return decl;
+        decl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL,
+                                                  ctx->current_class_name);
+        if (decl != NULL)
+            return decl;
+        return llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL,
+                                                  ctx->current_class_name);
+    }
+}
+
+static ASTNode *
 llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
 {
-    if (ctx == NULL || ctx->current_class_name == NULL)
-        return NULL;
-    return llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL,
-                                              ctx->current_class_name);
+    ASTNode *decl = llvm_decl_find_current_host_decl(ctx);
+    if (decl != NULL && decl->type == AST_ZONE_DECL)
+        return decl;
+    return NULL;
 }
 
 static const char *
 llvm_decl_current_nominal_name(LLVMGenCtx *ctx)
 {
-    ASTNode *zone_decl;
+    ASTNode *decl;
 
     if (ctx == NULL)
         return NULL;
 
-    zone_decl = llvm_decl_find_current_zone_decl(ctx);
-    if (zone_decl != NULL)
-        return zone_decl->data.zone_decl.name;
+    decl = llvm_decl_find_current_host_decl(ctx);
+    if (decl != NULL) {
+        switch (decl->type) {
+        case AST_ZONE_DECL:
+            return decl->data.zone_decl.name;
+        case AST_RELATION_DECL:
+            return decl->data.relation_decl.name;
+        case AST_EFFECT_DECL:
+            return decl->data.effect_decl.name;
+        case AST_WORLD_DECL:
+            return decl->data.world_decl.name;
+        case AST_ENUM_DECL:
+            return decl->data.enum_decl.name;
+        case AST_CLASS_DECL:
+            return decl->data.class_decl.name;
+        default:
+            break;
+        }
+    }
 
     return ctx->current_class_name;
 }

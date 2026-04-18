@@ -292,7 +292,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = step_nodes[i];
-        const char *saved_zone_name = ctx->current_zone_name;
+        ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
         const char *saved_overlay_receiver = ctx->current_overlay_receiver_expr;
         const char *step_name = (mir_step_names != NULL) ? mir_step_names[i] : NULL;
         ASTNode *pre_expr = NULL;
@@ -408,8 +408,11 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 dispatch_alias_count = step->data.intent_step.who_count;
             }
         }
-        if (step_zone_name != NULL)
-            ctx->current_zone_name = step_zone_name;
+        if (step_zone_name != NULL) {
+            ASTNode *step_zone_decl = find_zone_decl(ctx, step_zone_name);
+            if (step_zone_decl != NULL)
+                transpiler_bind_current_host_decl_local(ctx, step_zone_decl);
+        }
         if (step_zone_alias != NULL)
             ctx->current_overlay_receiver_expr = step_zone_alias;
 
@@ -551,7 +554,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 emit_intent_step_restore_bound_zone_aliases(ctx->out, ctx, node, step, i);
             }
         }
-        ctx->current_zone_name = saved_zone_name;
+        transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
         ctx->current_overlay_receiver_expr = saved_overlay_receiver;
 
         if (has_compensate_steps) {

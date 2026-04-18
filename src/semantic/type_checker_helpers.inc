@@ -547,6 +547,8 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                 semantic_error(ctx, arg,
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
+                    "- origin binding is '%s'\n"
+                    "- embedding handoff edge is '%s' -> world '%s' slot '%s'\n"
                     "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
                     "- mutating the original binding afterwards would diverge from the embedded world state\n"
                     "Fix:\n"
@@ -555,6 +557,13 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                     world_name != NULL ? world_name : "<world>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
+                    zone_slot->data.world_zone.slot_name != NULL
+                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    arg->data.identifier.name != NULL
+                        ? arg->data.identifier.name : "<zone>",
+                    arg->data.identifier.name != NULL
+                        ? arg->data.identifier.name : "<zone>",
+                    world_name != NULL ? world_name : "<world>",
                     zone_slot->data.world_zone.slot_name != NULL
                         ? zone_slot->data.world_zone.slot_name : "<slot>",
                     arg->data.identifier.name != NULL
@@ -582,6 +591,8 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                 semantic_error(ctx, arg,
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
+                    "- origin binding is '%s'\n"
+                    "- embedding handoff edge is '%s' -> world '%s' slot '%s'\n"
                     "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
                     "- mutating the original binding afterwards would diverge from the embedded world state\n"
                     "Fix:\n"
@@ -590,6 +601,13 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                     world_name != NULL ? world_name : "<world>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
+                    zone_slot->data.world_zone.slot_name != NULL
+                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    arg->data.identifier.name != NULL
+                        ? arg->data.identifier.name : "<zone>",
+                    arg->data.identifier.name != NULL
+                        ? arg->data.identifier.name : "<zone>",
+                    world_name != NULL ? world_name : "<world>",
                     zone_slot->data.world_zone.slot_name != NULL
                         ? zone_slot->data.world_zone.slot_name : "<slot>",
                     arg->data.identifier.name != NULL
@@ -819,10 +837,14 @@ static bool
 type_is_subject_type(const Type *type, SemanticContext *ctx);
 
 static bool
+type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx);
+
+static bool
 type_is_general_boundary_type(const Type *type, SemanticContext *ctx)
 {
     return type_is_movable_resource_handle(type)
-        || type_is_subject_type(type, ctx);
+        || type_is_subject_type(type, ctx)
+        || type_is_value_nominal_boundary_type(type, ctx);
 }
 
 bool
@@ -1575,6 +1597,31 @@ domain_has_subject_slot_type(ASTNode **slots, size_t slot_count,
 }
 
 static bool
+type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx)
+{
+    ASTNode *decl;
+    TypeNominalFlavor flavor;
+
+    if (type == NULL || ctx == NULL || ctx->program_root == NULL)
+        return false;
+    if (type_is_subject_type(type, ctx))
+        return false;
+    if (type->kind != TYPE_KIND_CLASS || type->name == NULL)
+        return false;
+
+    decl = find_type_decl_by_name(ctx->program_root, type->name);
+    if (decl == NULL || decl->type != AST_CLASS_DECL)
+        return false;
+
+    flavor = nominal_flavor_from_decl(decl);
+    return flavor == TYPE_NOMINAL_CLASS
+        || flavor == TYPE_NOMINAL_STRUCT
+        || flavor == TYPE_NOMINAL_OBJECT
+        || flavor == TYPE_NOMINAL_TOBJECT
+        || flavor == TYPE_NOMINAL_VESSEL;
+}
+
+static bool
 zone_has_authority_for_subject_type(ASTNode *zone, SemanticContext *ctx,
                                     const char *type_name)
 {
@@ -1880,6 +1927,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                         semantic_error(ctx, expr->data.call.arguments[i],
                                             "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                                             "Reason:\n"
+                                            "- origin binding is '%s'\n"
+                                            "- embedding handoff edge is '%s' -> world '%s' slot '%s'\n"
                                             "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
                                             "- mutating the original binding afterwards would diverge from the embedded world state\n"
                                             "Fix:\n"
@@ -1889,6 +1938,16 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                             expr->data.call.arguments[i]->data.identifier.name != NULL
                                                 ? expr->data.call.arguments[i]->data.identifier.name
                                                 : "<zone>",
+                                            zone_slot->data.world_zone.slot_name != NULL
+                                                ? zone_slot->data.world_zone.slot_name
+                                                : "<slot>",
+                                            expr->data.call.arguments[i]->data.identifier.name != NULL
+                                                ? expr->data.call.arguments[i]->data.identifier.name
+                                                : "<zone>",
+                                            expr->data.call.arguments[i]->data.identifier.name != NULL
+                                                ? expr->data.call.arguments[i]->data.identifier.name
+                                                : "<zone>",
+                                            display_name != NULL ? display_name : "<world>",
                                             zone_slot->data.world_zone.slot_name != NULL
                                                 ? zone_slot->data.world_zone.slot_name
                                                 : "<slot>",
@@ -2175,6 +2234,117 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             continue;
         }
 
+        if (type_is_general_boundary_type(param_type, ctx)
+            && !type_is_subject_type(param_type, ctx)
+            && !type_is_movable_resource_handle(param_type)) {
+            ParamMode pmode = PARAM_MODE_DEFAULT;
+            ASTNode *callee_decl = NULL;
+            if (!type_is_general_boundary_type(arg_type, ctx)
+                || type_is_subject_type(arg_type, ctx)
+                || type_is_movable_resource_handle(arg_type)
+                || !type_is_assignable(arg_type, param_type)
+                || !type_is_assignable(param_type, arg_type)) {
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Boundary value argument type mismatch: expected '%s', got '%s'.\n"
+                    "Reason:\n"
+                    "- own/ref value boundaries require the caller value and callee contract to agree on the same nominal value type\n"
+                    "- provenance cannot be preserved across mismatched boundary value types\n"
+                    "Fix:\n"
+                    "- pass a value of type '%s'\n"
+                    "- or change the callee contract to accept '%s'",
+                    type_name_or_unknown(param_type),
+                    type_name_or_unknown(arg_type),
+                    type_name_or_unknown(param_type),
+                    type_name_or_unknown(arg_type));
+                continue;
+            }
+            if (ctx->program_root != NULL) {
+                ASTNode *prog = ctx->program_root;
+                for (size_t si = 0; si < prog->data.program.count; si++) {
+                    ASTNode *stmt = prog->data.program.statements[si];
+                    if (stmt != NULL && stmt->type == AST_FUNC_DECL
+                        && stmt->data.func_decl.name != NULL
+                        && strcmp(stmt->data.func_decl.name, display_name) == 0
+                        && i < stmt->data.func_decl.param_count) {
+                        callee_decl = stmt;
+                        pmode = stmt->data.func_decl.params[i]->mode;
+                        break;
+                    }
+                }
+            }
+            if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
+                if (pmode == PARAM_MODE_DEFAULT)
+                    continue;
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Value boundary arguments must use a named variable.\n"
+                    "Reason:\n"
+                    "- own/ref value boundaries need one stable source binding for moved-here / borrowed-here provenance\n"
+                    "- unnamed expressions would make later ownership diagnostics ambiguous\n"
+                    "Fix:\n"
+                    "- bind the value to a local variable first\n"
+                    "- then pass that named variable through the boundary");
+                continue;
+            }
+            if (pmode == PARAM_MODE_REF
+                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)
+                && callee_decl != NULL
+                && callee_decl->data.func_decl.body != NULL) {
+                unsigned callee_mask = slot_analyze_param_summary_in_program(
+                    callee_decl->data.func_decl.body,
+                    callee_decl->data.func_decl.params[i] != NULL
+                        ? callee_decl->data.func_decl.params[i]->name
+                        : NULL,
+                    ctx->program_root);
+                if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                                    | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
+                                    | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+                    semantic_error(ctx, expr->data.call.arguments[i],
+                        "Borrowed ref boundary value '%s' cannot escape through helper/function call.\n"
+                        "Reason:\n"
+                        "- consumer path is function '%s'\n"
+                        "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                        "- callee '%s' derives a transitive call-escape path for its borrowed parameter\n"
+                        "- forwarding this borrow into that helper would let it escape beyond the current call boundary\n"
+                        "Fix:\n"
+                        "- perform the value operation locally in this function\n"
+                        "- or change the current parameter to 'own' if transfer/forwarding is intended",
+                        expr->data.call.arguments[i]->data.identifier.name,
+                        ctx->current_function_decl != NULL
+                            && ctx->current_function_decl->data.func_decl.name != NULL
+                                ? ctx->current_function_decl->data.func_decl.name
+                                : "<anonymous>",
+                        expr->data.call.arguments[i]->data.identifier.name,
+                        display_name != NULL ? display_name : "<callee>");
+                    continue;
+                }
+            }
+            if (pmode != PARAM_MODE_REF
+                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Borrowed ref boundary value '%s' cannot escape through helper/function call.\n"
+                    "Reason:\n"
+                    "- consumer path is function '%s'\n"
+                    "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                    "- forwarding it to '%s' as '%s' would create a transitive transfer beyond the current call boundary\n"
+                    "Fix:\n"
+                    "- call a 'ref' helper instead\n"
+                    "- or change the current parameter to 'own' if forwarding/transfer is intended",
+                    expr->data.call.arguments[i]->data.identifier.name,
+                    ctx->current_function_decl != NULL
+                        && ctx->current_function_decl->data.func_decl.name != NULL
+                            ? ctx->current_function_decl->data.func_decl.name
+                            : "<anonymous>",
+                    expr->data.call.arguments[i]->data.identifier.name,
+                    display_name != NULL ? display_name : "<callee>",
+                    pmode == PARAM_MODE_OWN ? "own" : "default");
+                continue;
+            }
+            if (pmode == PARAM_MODE_OWN) {
+                consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
+            }
+            continue;
+        }
+
         if (type_is_anchored_resource_handle(arg_type)
             || type_is_anchored_resource_handle(param_type)) {
             if (!type_is_anchored_resource_handle(arg_type)
@@ -2437,8 +2607,7 @@ consume_qubit_value(ASTNode *expr, SemanticContext *ctx, const char *action)
 {
     Symbol *sym = lookup_identifier_symbol(expr, ctx);
     if (sym == NULL
-        || (!type_is_qubit(sym->type)
-            && !type_is_subject_type(sym->type, ctx)))
+        || !type_is_general_boundary_type(sym->type, ctx))
         return false;
 
     if (sym->is_consumed) {

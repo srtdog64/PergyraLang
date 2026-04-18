@@ -70,33 +70,18 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     ctx->out = buf;
     g_type_render_ctx = ctx;
-    ctx->current_host_decl = NULL;
-    if (owner_is_zone) {
-        ctx->current_zone_name = owner_zone_name;
-        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_ZONE_DECL, owner_zone_name);
-    } else if (owner_is_role) {
+    transpiler_bind_current_host_decl_local(ctx, NULL);
+    if (owner_is_role) {
         if (owner_role_subject_name != NULL) {
-            ctx->current_class_name = owner_role_subject_name;
-            ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
-                ctx, AST_CLASS_DECL, owner_role_subject_name);
+            transpiler_bind_current_host_decl_local(
+                ctx,
+                transpiler_find_decl_in_inventory_local(
+                    ctx, AST_CLASS_DECL, owner_role_subject_name));
         }
-    } else if (owner_is_relation) {
-        ctx->current_relation_name = owner_name;
-        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_RELATION_DECL, owner_name);
-    } else if (owner_is_effect) {
-        ctx->current_effect_name = owner_name;
-        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_EFFECT_DECL, owner_name);
-    } else if (owner_is_world) {
-        ctx->current_world_name = owner_name;
-        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_WORLD_DECL, owner_name);
     } else if (owner_name != NULL) {
-        ctx->current_class_name = owner_name;
-        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_CLASS_DECL, owner_name);
+        transpiler_bind_current_host_decl_local(
+            ctx,
+            transpiler_find_host_decl_from_owner_local(ctx, owner_name, owner_ast_type));
     }
     if (!owner_is_zone
         && owner_name == NULL
@@ -104,9 +89,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         && node->type == AST_FUNC_DECL
         && node->data.func_decl.within_zone != NULL
         && find_zone_decl(ctx, node->data.func_decl.within_zone) != NULL) {
-        ctx->current_zone_name = node->data.func_decl.within_zone;
-        ctx->current_host_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_ZONE_DECL, node->data.func_decl.within_zone);
+        transpiler_bind_current_host_decl_local(
+            ctx,
+            transpiler_find_decl_in_inventory_local(
+                ctx, AST_ZONE_DECL, node->data.func_decl.within_zone));
     }
     if (node != NULL && node->type == AST_FUNC_DECL)
         ctx->current_func_decl = node;
@@ -1169,10 +1155,11 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         {
             int saved_slot_count = ctx->slot_var_count;
             int saved_typed_count = ctx->typed_var_count;
+            ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
             const char *saved_class_name = ctx->current_class_name;
             CodeBuf *saved_out = ctx->out;
 
-            ctx->current_class_name = spec_name;
+            transpiler_bind_current_host_decl_local(ctx, class_decl);
             ctx->out = ctx->helpers;
             register_typed_var(ctx, "self", spec_name);
 
@@ -1197,6 +1184,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             ctx->out = saved_out;
             ctx->slot_var_count = saved_slot_count;
             ctx->typed_var_count = saved_typed_count;
+            transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
             ctx->current_class_name = saved_class_name;
         }
 
@@ -1340,9 +1328,12 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         {
             int saved_slot_count = ctx->slot_var_count;
             int saved_typed_count = ctx->typed_var_count;
+            ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
             const char *saved_class_name = ctx->current_class_name;
+            ASTNode *class_host_decl =
+                transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, name);
 
-            ctx->current_class_name = name;
+            transpiler_bind_current_host_decl_local(ctx, class_host_decl);
             register_typed_var(ctx, "self", name);
             for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
                 FuncParam *p = method->data.func_decl.params[j];
@@ -1370,6 +1361,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             ctx->indent--;
             ctx->slot_var_count = saved_slot_count;
             ctx->typed_var_count = saved_typed_count;
+            transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
             ctx->current_class_name = saved_class_name;
         }
 
@@ -2953,9 +2945,12 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             {
                 int saved_slot_count = ctx->slot_var_count;
                 int saved_typed_count = ctx->typed_var_count;
+                ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
                 const char *saved_class_name = ctx->current_class_name;
+                ASTNode *enum_host_decl =
+                    transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL, ename);
 
-                ctx->current_class_name = ename;
+                transpiler_bind_current_host_decl_local(ctx, enum_host_decl);
                 register_typed_var(ctx, "self", ename);
                 for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
                     FuncParam *p = method->data.func_decl.params[j];
@@ -2975,6 +2970,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                 ctx->indent--;
                 ctx->slot_var_count = saved_slot_count;
                 ctx->typed_var_count = saved_typed_count;
+                transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
                 ctx->current_class_name = saved_class_name;
             }
             codebuf_write(ctx->out, "}\n");

@@ -467,6 +467,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "implicitly copies zone binding 'battle'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "embedding handoff edge is 'battle' -> world 'GameWorld' slot 'battle'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot be mutated via assignment after it was embedded into world 'GameWorld' slot 'battle'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot be mutated via hosted func/action call after it was embedded into world 'GameWorld' slot 'battle'"));
@@ -1752,6 +1754,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "transfer target derivation would choose zone 'DeliveryZone'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "current zone contract provenance is"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "transfer handoff edge on step: load -> deliver"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "locally declared zone on step: LoadingZone"));
@@ -1863,6 +1867,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "derived using from transfer target: deliver"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "approval boundary provenance is"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "derived from transfer edge: load -> deliver"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "transfers zone state"));
@@ -1894,6 +1900,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "declaration propagation edge is relation 'Link' -> endpoint slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "relation and projection propagation stay underspecified"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot anchor a stable relation edge"));
@@ -1922,6 +1930,8 @@
             "Effect 'Guarded' should declare at least one target slot"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "declaration propagation edge is effect 'Guarded' -> target slot"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "effect propagation and authority checks stay underspecified"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -1964,9 +1974,9 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "this control-flow join merges effect deltas from multiple paths"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "left path contributes 'secure'"));
+            "then branch contributes 'secure'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "right path contributes 'remote'"));
+            "else branch contributes 'remote'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
 
@@ -3928,6 +3938,148 @@
             "zone StorageZone {\n"
             "    subject slot bag: Bag\n"
             "    authority bag requires Bufferable\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("cross-module action requires may omit trailing generic default arguments");
+    {
+        const char *module_path = "test_generic_default_contract_module_b.pgy";
+        const char *main_path = "test_generic_default_contract_main_b.pgy";
+        const char *module_source =
+            "ability Bufferable<T = Int> { func Put(value: T) -> Void; }\n";
+        const char *main_source =
+            "import \"test_generic_default_contract_module_b.pgy\";\n"
+            "subject Bag {\n"
+            "    let item: Int;\n"
+            "    action Store(self) -> Void requires Bufferable { return; }\n"
+            "}\n"
+            "role IntBuffer for Bag {\n"
+            "    impl ability Bufferable<Int> { func Put(value: Int) -> Void { return; } }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("cross-module intent step requires may omit trailing generic default arguments");
+    {
+        const char *module_path = "test_generic_default_contract_module_c.pgy";
+        const char *main_path = "test_generic_default_contract_main_c.pgy";
+        const char *module_source =
+            "ability Bufferable<T = Int> { func Put(value: T) -> Void; }\n";
+        const char *main_source =
+            "import \"test_generic_default_contract_module_c.pgy\";\n"
+            "subject Bag {\n"
+            "    let item: Int;\n"
+            "    action Store(self) -> Void { return; }\n"
+            "}\n"
+            "zone StorageZone { subject slot bag: Bag }\n"
+            "role IntBuffer for Bag {\n"
+            "    impl ability Bufferable<Int> { func Put(value: Int) -> Void { return; } }\n"
+            "}\n"
+            "intent Persist(storage: StorageZone, bag: Bag) {\n"
+            "    step store {\n"
+            "        where: StorageZone;\n"
+            "        using: storage;\n"
+            "        who: bag;\n"
+            "        requires: Bufferable;\n"
+            "        on: bag.Store();\n"
+            "    }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("cross-module role impl may omit trailing generic default arguments");
+    {
+        const char *module_path = "test_generic_default_contract_module_d.pgy";
+        const char *main_path = "test_generic_default_contract_main_d.pgy";
+        const char *module_source =
+            "ability Bufferable<T = Int> { func Put(value: T) -> Void; }\n";
+        const char *main_source =
+            "import \"test_generic_default_contract_module_d.pgy\";\n"
+            "subject Bag { let item: Int; }\n"
+            "role IntBuffer for Bag {\n"
+            "    impl ability Bufferable { func Put(value: Int) -> Void { return; } }\n"
             "}\n";
         FILE *module_file = fopen(module_path, "wb");
         FILE *main_file = fopen(main_path, "wb");

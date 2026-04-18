@@ -244,6 +244,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "- transfer target '%s' has zone type '%s'\n"
                     "- current step zone is '%s'\n"
                     "- transfer target derivation would choose zone '%s'\n"
+                    "%s- current zone contract provenance is:\n"
                     "%s%s"
                     "Fix:\n"
                     "- change the transfer target to a '%s' binding\n"
@@ -254,6 +255,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     to_type->name != NULL ? to_type->name : "<zone>",
                     where_zone_type->name != NULL ? where_zone_type->name : "<zone>",
                     to_type->name != NULL ? to_type->name : "<zone>",
+                    contract_summary[0] != '\0' ? "" : "- no additional step contract provenance was recorded\n",
                     contract_summary[0] != '\0' ? contract_summary : "",
                     contract_summary[0] != '\0' ? "\n" : "",
                     where_zone_type->name != NULL ? where_zone_type->name : "<zone>",
@@ -272,6 +274,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "- current using binding is '%s'\n"
                     "- transfer target binding is '%s'\n"
                     "- transfer target derivation would choose using '%s'\n"
+                    "%s- current handoff provenance is:\n"
                     "%s%s"
                     "Fix:\n"
                     "- change 'using' to '%s'\n"
@@ -282,6 +285,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     to_alias,
                     to_alias,
                     to_alias,
+                    contract_summary[0] != '\0' ? "" : "- no additional step contract provenance was recorded\n",
                     contract_summary[0] != '\0' ? contract_summary : "",
                     contract_summary[0] != '\0' ? "\n" : "",
                     step->data.intent_step.using_expr->data.identifier.name != NULL
@@ -590,6 +594,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                       "Reason:\n"
                       "%s\n"
                       "- zone '%s' was reused from the matching action contract\n"
+                      "%s- approval boundary provenance is:\n"
                       "%s%s"
                       "Fix:\n"
                       "- add 'authorized by: %s;' to the step\n"
@@ -599,6 +604,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                       "Reason:\n"
                       "%s\n"
                       "- zone '%s' declares authority, so explicit approval is required\n"
+                      "%s- approval boundary provenance is:\n"
                       "%s%s"
                       "Fix:\n"
                       "- add 'authorized by: %s;' to the step\n"
@@ -608,10 +614,12 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                 authority_reason,
                 zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                inherited_summary[0] != '\0' ? "" : "- no inherited or derived zone contract provenance was recorded\n",
                 inherited_summary[0] != '\0' ? inherited_summary : "",
                 inherited_summary[0] != '\0' ? "\n" : "",
                 suggested_authorizer != NULL ? suggested_authorizer : "<participant>",
                 authority_reason,
+                inherited_summary[0] != '\0' ? "" : "- no inherited or derived zone contract provenance was recorded\n",
                 inherited_summary[0] != '\0' ? inherited_summary : "",
                 inherited_summary[0] != '\0' ? "\n" : "");
         }
@@ -2478,7 +2486,33 @@ type_check_projection_contract(ASTNode **slots,
         }
 
         target_field_type = resolve_type_node(target_field->type, ctx);
-        require_assignable(source_field_type, target_field_type, site, ctx);
+        if (!type_is_assignable(source_field_type, target_field_type)) {
+            semantic_error(ctx, site,
+                "%s %s target field '%s' cannot accept source path '%s' from slot '%s'.\n"
+                "Reason:\n"
+                "- projection target slot '%s' expects field '%s' to have type '%s'\n"
+                "- resolved source path '%s' from slot '%s' has type '%s'\n"
+                "- projection sync cannot derive a safe coercion across this field boundary\n"
+                "Fix:\n"
+                "- change target field '%s' to type '%s'\n"
+                "- or map '%s' from a source field/path whose type matches '%s'",
+                owner_label, action_name,
+                target_field->name,
+                source_path != NULL ? source_path : source_field_name,
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                object_slot_name != NULL ? object_slot_name : "<unknown>",
+                target_field->name,
+                type_name_or_unknown(target_field_type),
+                source_path != NULL ? source_path : source_field_name,
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                type_name_or_unknown(source_field_type),
+                target_field->name,
+                type_name_or_unknown(source_field_type),
+                target_field->name,
+                type_name_or_unknown(target_field_type));
+            free(source_path);
+            continue;
+        }
         free(source_path);
     }
 
@@ -3084,12 +3118,14 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         semantic_warning(ctx, node,
             "Relation '%s' should declare at least one endpoint slot.\n"
             "Reason:\n"
+            "- declaration propagation edge is relation '%s' -> endpoint slot\n"
             "- relation contracts need a concrete endpoint surface to bind/link against\n"
             "- without an endpoint slot, relation and projection propagation stay underspecified\n"
             "- branch/join or zone/world propagation cannot anchor a stable relation edge without at least one endpoint slot\n"
             "Fix:\n"
             "- use 'for name: Type'\n"
             "- or declare a bindable subject/object endpoint slot",
+            node->data.relation_decl.name,
             node->data.relation_decl.name);
     } else if (endpoint_count > 2) {
         semantic_warning(ctx, node,
@@ -3171,12 +3207,14 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
         semantic_warning(ctx, node,
             "Effect '%s' should declare at least one target slot.\n"
             "Reason:\n"
+            "- declaration propagation edge is effect '%s' -> target slot\n"
             "- effect contracts need a concrete target surface to apply/maintain against\n"
             "- without a target slot, effect propagation and authority checks stay underspecified\n"
             "- branch/join or zone/world propagation cannot preserve an effect target path without a bindable target slot\n"
             "Fix:\n"
             "- use 'for name: Type'\n"
             "- or declare a bindable subject/object target slot",
+            node->data.effect_decl.name,
             node->data.effect_decl.name);
     } else if (target_count > 1) {
         semantic_warning(ctx, node,

@@ -69,6 +69,99 @@ mir_block_slice_contains(const char *output, const char *label, const char *need
     return hit != NULL && hit < end;
 }
 
+static ASTNode **
+test_active_inventory(MIRProgram *mir, ASTNodeType decl_type, size_t *count_out)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (mir != NULL) {
+        switch (decl_type) {
+        case AST_ABILITY_DECL: nodes = mir->abilities; count = mir->ability_count; break;
+        case AST_FUNC_DECL: nodes = mir->functions; count = mir->function_count; break;
+        case AST_INTENT_DECL: nodes = mir->intents; count = mir->intent_count; break;
+        case AST_ROLE_DECL: nodes = mir->roles; count = mir->role_count; break;
+        case AST_PARTY_DECL: nodes = mir->parties; count = mir->party_count; break;
+        case AST_ROSTER_DECL: nodes = mir->rosters; count = mir->roster_count; break;
+        case AST_WORLD_DECL: nodes = mir->worlds; count = mir->world_count; break;
+        case AST_RELATION_DECL: nodes = mir->relations; count = mir->relation_count; break;
+        case AST_EFFECT_DECL: nodes = mir->effects; count = mir->effect_count; break;
+        case AST_ZONE_DECL: nodes = mir->zones; count = mir->zone_count; break;
+        case AST_EVENT_DECL: nodes = mir->events; count = mir->event_count; break;
+        case AST_CLASS_DECL:
+        case AST_ENUM_DECL:
+        case AST_TYPE_ALIAS:
+            nodes = mir->types; count = mir->type_count; break;
+        default:
+            break;
+        }
+    }
+
+    if (count_out != NULL)
+        *count_out = count;
+    return nodes;
+}
+
+static const char *
+test_decl_name(ASTNode *decl)
+{
+    if (decl == NULL)
+        return NULL;
+
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        return decl->data.class_decl.name;
+    case AST_ENUM_DECL:
+        return decl->data.enum_decl.name;
+    case AST_ABILITY_DECL:
+        return decl->data.ability_decl.name;
+    case AST_FUNC_DECL:
+        return decl->data.func_decl.name;
+    case AST_INTENT_DECL:
+        return decl->data.intent_decl.name;
+    case AST_ROLE_DECL:
+        return decl->data.role_decl.name;
+    case AST_PARTY_DECL:
+        return decl->data.party_decl.name;
+    case AST_ROSTER_DECL:
+        return decl->data.roster_decl.name;
+    case AST_WORLD_DECL:
+        return decl->data.world_decl.name;
+    case AST_RELATION_DECL:
+        return decl->data.relation_decl.name;
+    case AST_EFFECT_DECL:
+        return decl->data.effect_decl.name;
+    case AST_ZONE_DECL:
+        return decl->data.zone_decl.name;
+    case AST_EVENT_DECL:
+        return decl->data.event_decl.name;
+    case AST_TYPE_ALIAS:
+        return decl->data.type_alias.name;
+    default:
+        return NULL;
+    }
+}
+
+static ASTNode *
+find_test_decl(MIRProgram *mir, ASTNodeType decl_type, const char *name)
+{
+    ASTNode **nodes;
+    size_t count = 0;
+
+    if (mir == NULL || name == NULL)
+        return NULL;
+
+    nodes = test_active_inventory(mir, decl_type, &count);
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *decl = nodes[i];
+        const char *decl_name = test_decl_name(decl);
+        if (decl_name != NULL && strcmp(decl_name, name) == 0)
+            return decl;
+    }
+
+    return NULL;
+}
+
 /* -----------------------------------------------------------------
  * Minimal AST node builders (same helpers as test_semantic.c)
  * ----------------------------------------------------------------- */
@@ -1200,25 +1293,25 @@ test_expression_emit(void)
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
-        ctx->current_relation_name = "TrustedLink";
+        ctx->current_host_decl = find_test_decl(mir, AST_RELATION_DECL, "TrustedLink");
         {
             ASTNode *args[1] = { make_identifier("playerView", 1) };
             result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
             EXPECT(strcmp(result, "self->__projection_ready_playerView") == 0);
             free(result);
         }
-        ctx->current_relation_name = NULL;
+        ctx->current_host_decl = NULL;
 
-        ctx->current_effect_name = "Poisoned";
+        ctx->current_host_decl = find_test_decl(mir, AST_EFFECT_DECL, "Poisoned");
         {
             ASTNode *args[1] = { make_identifier("snapshot", 1) };
             result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
             EXPECT(strcmp(result, "self->__projection_ready_snapshot") == 0);
             free(result);
         }
-        ctx->current_effect_name = NULL;
+        ctx->current_host_decl = NULL;
 
-        ctx->current_zone_name = "BattleZone";
+        ctx->current_host_decl = find_test_decl(mir, AST_ZONE_DECL, "BattleZone");
         {
             ASTNode *args[1] = { make_identifier("snapshot", 1) };
             result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
@@ -1315,7 +1408,7 @@ test_expression_emit(void)
 
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
-        ctx->current_zone_name = "BattleZone";
+        ctx->current_host_decl = find_test_decl(mir, AST_ZONE_DECL, "BattleZone");
 
         {
             ASTNode *args[1] = { make_identifier("poison", 1) };
@@ -1406,7 +1499,7 @@ test_expression_emit(void)
 
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
-        ctx->current_zone_name = "BattleZone";
+        ctx->current_host_decl = find_test_decl(mir, AST_ZONE_DECL, "BattleZone");
 
         {
             ASTNode *args[1] = { make_identifier("poisoned", 1) };
@@ -1452,7 +1545,7 @@ test_expression_emit(void)
 
         ctx = transpiler_ctx_create();
         ctx->mir = mir;
-        ctx->current_world_name = "GameWorld";
+        ctx->current_host_decl = find_test_decl(mir, AST_WORLD_DECL, "GameWorld");
 
         {
             ASTNode *args[1] = { make_identifier("liveBattle", 1) };

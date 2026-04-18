@@ -34,11 +34,17 @@ flow_effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
 }
 
 static void
-flow_record_branch_effect_conflict(SemanticContext *ctx, const ASTNode *node,
-                                   uint32_t left_delta, uint32_t right_delta)
+flow_record_branch_effect_conflict_labeled(SemanticContext *ctx,
+                                           const ASTNode *node,
+                                           uint32_t left_delta,
+                                           const char *left_label,
+                                           uint32_t right_delta,
+                                           const char *right_label)
 {
     char left_buf[128];
     char right_buf[128];
+    const char *lhs = left_label != NULL ? left_label : "left path";
+    const char *rhs = right_label != NULL ? right_label : "right path";
 
     if (ctx == NULL || node == NULL)
         return;
@@ -51,13 +57,21 @@ flow_record_branch_effect_conflict(SemanticContext *ctx, const ASTNode *node,
         "Control-flow branch/join combines conflicting effect classes (%s vs %s).\n"
         "Reason:\n"
         "- this control-flow join merges effect deltas from multiple paths\n"
-        "- left path contributes '%s'\n"
-        "- right path contributes '%s'\n"
+        "- %s contributes '%s'\n"
+        "- %s contributes '%s'\n"
         "- authority-sensitive and remote/resource-boundary work currently converge at the same join edge\n"
         "Fix:\n"
         "- split secure/remote work into separate helper routines or branches\n"
         "- or narrow the branch effects before they rejoin",
-        left_buf, right_buf, left_buf, right_buf);
+        left_buf, right_buf, lhs, left_buf, rhs, right_buf);
+}
+
+static void
+flow_record_branch_effect_conflict(SemanticContext *ctx, const ASTNode *node,
+                                   uint32_t left_delta, uint32_t right_delta)
+{
+    flow_record_branch_effect_conflict_labeled(
+        ctx, node, left_delta, "left path", right_delta, "right path");
 }
 
 static void

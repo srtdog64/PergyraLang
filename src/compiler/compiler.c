@@ -325,11 +325,17 @@ static const char *
 pgy_detect_c_compiler(void)
 {
     const char *env_cc;
+    const char *make_cc;
     if (pgy_cc_cached != NULL)
         return pgy_cc_cached;
     env_cc = getenv("PGY_CC");
     if (env_cc != NULL && env_cc[0] != '\0') {
         pgy_cc_cached = env_cc;
+        return pgy_cc_cached;
+    }
+    make_cc = getenv("CC");
+    if (make_cc != NULL && make_cc[0] != '\0') {
+        pgy_cc_cached = make_cc;
         return pgy_cc_cached;
     }
 #ifdef _WIN32

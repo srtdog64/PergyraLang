@@ -2514,10 +2514,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
 
             mir_method = llvm_find_mir_method_routine_local(ctx, decl_name, method);
             if (mir_method != NULL) {
-                const char *saved_class_name = ctx->current_class_name;
-                ctx->current_class_name = decl_name;
                 llvm_emit_func_from_mir(mir_method, ctx);
-                ctx->current_class_name = saved_class_name;
                 continue;
             }
             if (ctx->mir != NULL) {

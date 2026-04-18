@@ -1072,8 +1072,6 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             if (host_decl != NULL && host_decl->type == AST_ZONE_DECL)
                 zone_decl = host_decl;
-            if (zone_decl == NULL && ctx->current_zone_name != NULL)
-                zone_decl = find_zone_decl(ctx, ctx->current_zone_name);
             if (zone_decl != NULL
             && call->data.call.arg_count == 1
             && call->data.call.arguments[0] != NULL) {
@@ -1096,8 +1094,6 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             if (host_decl != NULL && host_decl->type == AST_ZONE_DECL)
                 zone_decl = host_decl;
-            if (zone_decl == NULL && ctx->current_zone_name != NULL)
-                zone_decl = find_zone_decl(ctx, ctx->current_zone_name);
             if (zone_decl != NULL
             && call->data.call.arg_count >= 1
             && call->data.call.arguments[0] != NULL) {
@@ -1121,8 +1117,6 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
                 world_decl = host_decl;
-            if (world_decl == NULL && ctx->current_world_name != NULL)
-                world_decl = find_world_decl(ctx, ctx->current_world_name);
             if (world_decl != NULL
             && call->data.call.arg_count >= 1
             && call->data.call.arguments[0] != NULL) {
@@ -1148,8 +1142,6 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
                 world_decl = host_decl;
-            if (world_decl == NULL && ctx->current_world_name != NULL)
-                world_decl = find_world_decl(ctx, ctx->current_world_name);
             if (world_decl != NULL
             && call->data.call.arg_count == 2
             && call->data.call.arguments[0] != NULL
@@ -1185,8 +1177,6 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
                 world_decl = host_decl;
-            if (world_decl == NULL && ctx->current_world_name != NULL)
-                world_decl = find_world_decl(ctx, ctx->current_world_name);
             if (world_decl != NULL
             && call->data.call.arg_count == 2
             && call->data.call.arguments[0] != NULL
@@ -1218,8 +1208,6 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
                 world_decl = host_decl;
-            if (world_decl == NULL && ctx->current_world_name != NULL)
-                world_decl = find_world_decl(ctx, ctx->current_world_name);
             if (world_decl != NULL
             && call->data.call.arg_count == 2
             && call->data.call.arguments[0] != NULL
@@ -3289,10 +3277,10 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     const char *source_slot_name =
                         assignment_target_root_slot_name(obj);
                     char *invalidation = NULL;
-                    const char *saved_zone_name = ctx->current_zone_name;
+                    ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
                     const char *saved_receiver_expr = ctx->current_overlay_receiver_expr;
 
-                    if (ctx->current_world_name != NULL) {
+                    if (saved_host_decl != NULL && saved_host_decl->type == AST_WORLD_DECL) {
                         const char *zone_slot_name = NULL;
                         const char *zone_type_name = NULL;
                         const char *zone_subject_slot_name = NULL;
@@ -3306,7 +3294,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                             && zone_subject_slot_name != NULL
                             && zone_subject_type_name != NULL
                             && strcmp(zone_subject_type_name, owned_type_name) == 0) {
-                            ctx->current_zone_name = zone_type_name;
+                            ASTNode *zone_decl = find_zone_decl(ctx, zone_type_name);
+                            if (zone_decl != NULL)
+                                transpiler_bind_current_host_decl_local(ctx, zone_decl);
                             ctx->current_overlay_receiver_expr =
                                 strdup_fmt("(&self->%s)", zone_slot_name);
                             source_slot_name = zone_subject_slot_name;
@@ -3321,7 +3311,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         free((char *)ctx->current_overlay_receiver_expr);
                     }
                     ctx->current_overlay_receiver_expr = saved_receiver_expr;
-                    ctx->current_zone_name = saved_zone_name;
+                    transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
                     codebuf_destroy(args_buf);
                     if (invalidation != NULL) {
                         char *ret_type_name = NULL;

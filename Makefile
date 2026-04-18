@@ -562,7 +562,7 @@ llvm-test-hir:
 
 llvm-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/llvm_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/llvm_smoke.sh
 
 llvm-test-abi-same-process: $(ABI_PIPELINE_TEST)
 	@echo "=== ABI Pipeline Same-Process LLVM Regression ==="
@@ -572,23 +572,24 @@ llvm-test-abi-same-process: $(ABI_PIPELINE_TEST)
 
 fmt-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/fmt_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/fmt_smoke.sh
 
 stdlib-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/stdlib_surface_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/stdlib_surface_smoke.sh
 
 module-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/module_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/module_smoke.sh
 
 ir-pipeline-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ir_pipeline_probe.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/ir_pipeline_probe.sh
 
 llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
+	PGY_CC="$(CC)" \
 	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
 	LLVM_INSTALL="$(LLVM_INSTALL)" \
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
@@ -596,7 +597,7 @@ llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
 
 example-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/example_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/example_contract_smoke.sh
 
 llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test

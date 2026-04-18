@@ -1810,8 +1810,7 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
         && transpiler_has_explicit_local_binding(ctx->current_func_decl, base_name))
         return false;
     host_decl = transpiler_current_host_decl_local(ctx);
-    in_zone_context = (host_decl != NULL && host_decl->type == AST_ZONE_DECL)
-        || ctx->current_zone_name != NULL;
+    in_zone_context = (host_decl != NULL && host_decl->type == AST_ZONE_DECL);
     if (host_decl != NULL && host_decl->type == AST_CLASS_DECL)
         class_host_name = host_decl->data.class_decl.name;
     if (class_host_name == NULL)
