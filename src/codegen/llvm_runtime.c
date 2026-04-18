@@ -329,6 +329,12 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           snprintf(fn_name, sizeof(fn_name), "pgy_array_push_%s", suffix);
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        { LLVMTypeRef params[] = { arr_ptr_ty, ctx->type_i64, ctx->type_i64 };
+          LLVMTypeRef ft = LLVMFunctionType(llvm_slice_struct_type(ctx, suffix), params, 3, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_array_slice_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+              llvm_slice_struct_type(ctx, suffix)); }
     }
 
     { LLVMTypeRef params[] = { ctx->type_i64 };

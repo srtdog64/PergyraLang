@@ -61,6 +61,7 @@ typedef struct
 {
     char name[64];         /* variable name, e.g. "msg"     */
     char inner_type[32];   /* Pergyra type, e.g. "String"   */
+    char token_name[64];   /* paired token local for secure slots */
     bool is_secure;        /* SecureSlot?                    */
     bool is_indirect;      /* passed/stored as slot pointer  */
     bool released;         /* explicit Release() was called  */
@@ -198,6 +199,15 @@ typedef struct
     char   result_specs_ok_ctype[32][128]; /* e.g. "int32_t" */
     char   result_specs_err_ctype[32][128]; /* e.g. "NetError" */
     int    result_spec_count;
+
+    /* Tuple type specializations. Each entry is a unique set of
+     * pergyra-element-type-names (strings), emitted as a C struct:
+     *   typedef struct { T0 f0; T1 f1; ... } PgyTuple_<suffix>_t;
+     * suffix is e.g. "Int_String". Element types stored space-separated. */
+    char   tuple_specs_suffix[32][256];   /* e.g. "Int_String" */
+    char   tuple_specs_elements[32][512]; /* e.g. "Int String" (space-separated pergyra names) */
+    int    tuple_specs_arity[32];
+    int    tuple_spec_count;
 
     /* Generic ability vtable specializations emitted on demand. */
     AbilityVtableSpecEntry ability_vtable_specs[MAX_ABILITY_VTABLE_SPECIALIZATIONS];

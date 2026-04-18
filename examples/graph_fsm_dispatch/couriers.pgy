@@ -23,41 +23,80 @@ vessel CourierCore
 subject Courier
 {
     let name: String;
-    let role: String;
+    let lane: String;
     vessel core: CourierCore;
 
     func ModeName(self) -> String
     {
-        if core.mode == 0 { return "idle"; }
-        if core.mode == 1 { return "loading"; }
-        if core.mode == 2 { return "routing"; }
-        if core.mode == 3 { return "delivering"; }
-        if core.mode == 4 { return "charging"; }
-        if core.mode == 5 { return "blocked"; }
+        if core.mode == 0
+        {
+            return "idle";
+        }
+        if core.mode == 1
+        {
+            return "loading";
+        }
+        if core.mode == 2
+        {
+            return "routing";
+        }
+        if core.mode == 3
+        {
+            return "delivering";
+        }
+        if core.mode == 4
+        {
+            return "charging";
+        }
+        if core.mode == 5
+        {
+            return "blocked";
+        }
         return "unknown";
     }
 
     func NodeName(self, id: Int) -> String
     {
-        if id == 0 { return "DEPOT"; }
-        if id == 1 { return "HUB"; }
-        if id == 2 { return "PORT"; }
-        if id == 3 { return "LAB"; }
+        if id == 0
+        {
+            return "DEPOT";
+        }
+        if id == 1
+        {
+            return "HUB";
+        }
+        if id == 2
+        {
+            return "PORT";
+        }
+        if id == 3
+        {
+            return "LAB";
+        }
         return "NODE?";
     }
 
     func PathName(self) -> String
     {
-        if core.lastPath == 0 { return "direct"; }
-        if core.lastPath == 1 { return "via-hub"; }
-        if core.lastPath == 2 { return "via-port"; }
+        if core.lastPath == 0
+        {
+            return "direct";
+        }
+        if core.lastPath == 1
+        {
+            return "via-hub";
+        }
+        if core.lastPath == 2
+        {
+            return "via-port";
+        }
         return "unset";
     }
 
     func StatusLine(self) -> String
     {
         return name
-            + " [" + role + "]"
+            + " [" + lane + "]"
             + " mode=" + ModeName()
             + " node=" + NodeName(core.node)
             + " target=" + NodeName(core.target)

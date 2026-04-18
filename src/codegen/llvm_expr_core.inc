@@ -267,8 +267,57 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         LLVMPositionBuilderAtEnd(ctx->builder, err_bb);
-        if (ctx->current_ret_type == result_ty) {
+        /* ctx->current_ret_type is clobbered by callers like let_decl
+         * (which temporarily sets it to the LHS var type as an initializer
+         * hint). Recover the enclosing function's actual return type from
+         * the AST declaration so `?` can propagate the Err correctly. */
+        LLVMTypeRef fn_ret_type = ctx->current_ret_type;
+        if (ctx->current_func_decl != NULL
+            && ctx->current_func_decl->type == AST_FUNC_DECL
+            && ctx->current_func_decl->data.func_decl.return_type != NULL) {
+            LLVMTypeRef declared = ast_type_to_llvm(ctx,
+                ctx->current_func_decl->data.func_decl.return_type);
+            if (declared != NULL)
+                fn_ret_type = declared;
+        }
+        if (fn_ret_type == result_ty) {
             LLVMBuildRet(ctx->builder, result);
+        } else if (fn_ret_type != NULL
+            && LLVMGetTypeKind(fn_ret_type) == LLVMStructTypeKind
+            && LLVMCountStructElementTypes(fn_ret_type) == 3) {
+            /* The enclosing function returns a Result<T, E> whose struct
+             * type is distinct from the operand's Result struct (common
+             * when the two Result types are built anonymously). Rebuild
+             * the Err value in the function's return layout: tag=1,
+             * value=undef, err=coerced(source_err). */
+            LLVMTypeRef ret_fields[3];
+            LLVMGetStructElementTypes(fn_ret_type, ret_fields);
+            LLVMValueRef err_val = LLVMBuildExtractValue(ctx->builder, result,
+                2, llvm_tmp_name(ctx));
+            if (LLVMTypeOf(err_val) != ret_fields[2]) {
+                LLVMTypeRef src_ty = LLVMTypeOf(err_val);
+                LLVMTypeRef dst_ty = ret_fields[2];
+                if (LLVMGetTypeKind(src_ty) == LLVMIntegerTypeKind
+                    && LLVMGetTypeKind(dst_ty) == LLVMIntegerTypeKind) {
+                    err_val = (LLVMGetIntTypeWidth(dst_ty) > LLVMGetIntTypeWidth(src_ty))
+                        ? LLVMBuildSExt(ctx->builder, err_val, dst_ty, llvm_tmp_name(ctx))
+                        : LLVMBuildTrunc(ctx->builder, err_val, dst_ty, llvm_tmp_name(ctx));
+                } else if (LLVMGetTypeKind(src_ty) == LLVMPointerTypeKind
+                           && LLVMGetTypeKind(dst_ty) == LLVMPointerTypeKind) {
+                    err_val = LLVMBuildBitCast(ctx->builder, err_val, dst_ty,
+                        llvm_tmp_name(ctx));
+                } else {
+                    err_val = LLVMConstNull(dst_ty);
+                }
+            }
+            LLVMValueRef rebuilt = LLVMGetUndef(fn_ret_type);
+            rebuilt = LLVMBuildInsertValue(ctx->builder, rebuilt,
+                LLVMConstInt(ctx->type_i32, 1, 0), 0, llvm_tmp_name(ctx));
+            rebuilt = LLVMBuildInsertValue(ctx->builder, rebuilt,
+                LLVMConstNull(ret_fields[1]), 1, llvm_tmp_name(ctx));
+            rebuilt = LLVMBuildInsertValue(ctx->builder, rebuilt,
+                err_val, 2, llvm_tmp_name(ctx));
+            LLVMBuildRet(ctx->builder, rebuilt);
         } else {
             LLVMBuildUnreachable(ctx->builder);
         }

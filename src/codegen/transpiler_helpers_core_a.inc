@@ -209,8 +209,28 @@ register_slot_var(TranspilerCtx *ctx, const char *name,
     e->name[sizeof(e->name) - 1] = '\0';
     strncpy(e->inner_type, inner_type, sizeof(e->inner_type) - 1);
     e->inner_type[sizeof(e->inner_type) - 1] = '\0';
+    if (is_secure) {
+        snprintf(e->token_name, sizeof(e->token_name), "%s_token", name);
+    } else {
+        e->token_name[0] = '\0';
+    }
     e->is_secure = is_secure;
     e->is_indirect = is_indirect;
+}
+
+static void
+set_slot_token_name(TranspilerCtx *ctx, const char *slot_name, const char *token_name)
+{
+    if (ctx == NULL || slot_name == NULL || token_name == NULL)
+        return;
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, slot_name) == 0) {
+            strncpy(ctx->slot_vars[i].token_name, token_name,
+                    sizeof(ctx->slot_vars[i].token_name) - 1);
+            ctx->slot_vars[i].token_name[sizeof(ctx->slot_vars[i].token_name) - 1] = '\0';
+            return;
+        }
+    }
 }
 
 static const char *
@@ -253,6 +273,19 @@ lookup_slot_is_secure(TranspilerCtx *ctx, const char *var_name)
             return ctx->slot_vars[i].is_secure;
     }
     return false;
+}
+
+static const char *
+lookup_slot_token_name(TranspilerCtx *ctx, const char *var_name)
+{
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            if (ctx->slot_vars[i].token_name[0] != '\0')
+                return ctx->slot_vars[i].token_name;
+            break;
+        }
+    }
+    return NULL;
 }
 
 static bool
@@ -1043,6 +1076,28 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
             layer_slot_name,
             target_slot->data.domain_slot.slot_name,
             target_slot_name);
+        for (size_t i = 0; i < effect_decl->data.effect_decl.refresh_count; i++) {
+            ASTNode *refresh = effect_decl->data.effect_decl.refreshes[i];
+            const char *projection_name;
+            const char *source_name;
+
+            if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+                continue;
+            projection_name = refresh->data.zone_refresh.object_slot_name;
+            source_name = refresh->data.zone_refresh.source_slot_name;
+            if (projection_name == NULL || source_name == NULL
+                || strcmp(source_name, target_slot->data.domain_slot.slot_name) != 0) {
+                continue;
+            }
+            write_indent(ctx);
+            codebuf_write(out,
+                "_pgy_%s_instance.__projection_dirty_%s = true;\n",
+                layer_slot_name, projection_name);
+            write_indent(ctx);
+            codebuf_write(out,
+                "_pgy_%s_instance.__projection_ready_%s = false;\n",
+                layer_slot_name, projection_name);
+        }
         write_indent(ctx);
         codebuf_write(out, "%s_sync(&_pgy_%s_instance);\n",
             effect_decl->data.effect_decl.name,
@@ -1066,6 +1121,28 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
         layer_slot_name,
         target_slot->data.domain_slot.slot_name,
         target_slot_name);
+    for (size_t i = 0; i < effect_decl->data.effect_decl.refresh_count; i++) {
+        ASTNode *refresh = effect_decl->data.effect_decl.refreshes[i];
+        const char *projection_name;
+        const char *source_name;
+
+        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+            continue;
+        projection_name = refresh->data.zone_refresh.object_slot_name;
+        source_name = refresh->data.zone_refresh.source_slot_name;
+        if (projection_name == NULL || source_name == NULL
+            || strcmp(source_name, target_slot->data.domain_slot.slot_name) != 0) {
+            continue;
+        }
+        write_indent(ctx);
+        codebuf_write(out,
+            "self->%s.__projection_dirty_%s = true;\n",
+            layer_slot_name, projection_name);
+        write_indent(ctx);
+        codebuf_write(out,
+            "self->%s.__projection_ready_%s = false;\n",
+            layer_slot_name, projection_name);
+    }
     write_indent(ctx);
     codebuf_write(out, "%s_sync(&self->%s);\n",
         effect_decl->data.effect_decl.name,

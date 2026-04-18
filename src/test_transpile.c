@@ -1781,6 +1781,280 @@ test_statement_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("function-return Array<String> destructuring preserves MIR local C types");
+    {
+        const char *source =
+            "func Words() -> Array<String> {\n"
+            "    return [\"hello\", \"world\", \"foo\"];\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let (first, second, third) = Words();\n"
+            "    Log(first);\n"
+            "    Log(second);\n"
+            "    Log(third);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        EXPECT(ok);
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "char* _pgy_ssa_first_1 = 0;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "char* _pgy_ssa_second_1 = 0;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "char* _pgy_ssa_third_1 = 0;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_ssa_first_1 = _pgy_destr_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_ssa_second_1 = _pgy_destr_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_ssa_third_1 = _pgy_destr_");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("let (slot, token) = ClaimSecureSlot<T>(lvl) emits paired claim + Write/Read/Release");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let (slot, token) = ClaimSecureSlot<Int>(1);\n"
+            "    Write(slot, 42, token);\n"
+            "    let v: Int = Read(slot, token);\n"
+            "    Log(ToString(v));\n"
+            "    Release(slot, token);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        EXPECT(ok);
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyToken_Int token;");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_write_Int(&slot, 42, &token);");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_read_Int(&slot, &token)");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_release_Int(&slot, &token);");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("class-body destructuring field emits targeted unsupported error");
+    {
+        const char *source =
+            "class Foo {\n"
+            "    private let (slot, token) = ClaimSecureSlot<Int>(1);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        /* Parser should reject with a targeted error, not the generic
+         * "Expected field name". */
+        EXPECT(!ok);
+
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("MIR secure slot identifier auto-read uses secure read for non-destructure claim");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>(1);\n"
+            "    Write(ss, 42, ss_token);\n"
+            "    Log(ss);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        EXPECT(ok);
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyToken_Int ss_token;");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PgySecureSlot_Int ss = pgy_claim_secure_Int(&ss_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_write_Int(&ss, 42, &ss_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_read_Int(&");
+        EXPECT_STR_CONTAINS(ctx->out->data, "&ss_token)");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("MIR secure slot identifier auto-read uses secure read after destructure claim");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let (slot, token) = ClaimSecureSlot<Int>(1);\n"
+            "    Write(slot, 42, token);\n"
+            "    Log(slot);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        EXPECT(ok);
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyToken_Int token;");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_write_Int(&slot, 42, &token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_read_Int(&");
+        EXPECT_STR_CONTAINS(ctx->out->data, "&token)");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("MIR secure slot methods use paired token for non-destructure claim");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>(1);\n"
+            "    ss.Write(42);\n"
+            "    Log(ss.Read());\n"
+            "    ss.Release();\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        EXPECT(ok);
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_write_Int(&ss, 42, &ss_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_read_Int(&ss, &ss_token)");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_release_Int(&ss, &ss_token);");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("MIR secure slot methods use paired token after destructure claim");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let (slot, token) = ClaimSecureSlot<Int>(1);\n"
+            "    slot.Write(42);\n"
+            "    Log(slot.Read());\n"
+            "    slot.Release();\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        EXPECT(ok);
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_write_Int(&slot, 42, &token);");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_read_Int(&slot, &token)");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_secure_release_Int(&slot, &token);");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("Array<T>.Slice(start, len) preserves Slice<T> typing in transpiled MIR");
+    {
+        const char *source =
+            "func Words() -> Array<String> {\n"
+            "    return [\"hello\", \"world\", \"foo\"];\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let view = Words().Slice(1, 2);\n"
+            "    let (second, third) = view;\n"
+            "    Log(second);\n"
+            "    Log(third);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        EXPECT(ok);
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgySlice_String");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_array_slice_String");
+        EXPECT_STR_CONTAINS(ctx->out->data, "char* _pgy_ssa_second_1 = 0;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "char* _pgy_ssa_third_1 = 0;");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
     TEST("let dst: Slot<Int> = mt materializes moved slot");
     {
         ctx = transpiler_ctx_create();
@@ -3966,6 +4240,87 @@ test_stdlib_and_enum_emit(void)
         hir_destroy(hir);
     }
 
+    TEST("operator overload dispatch keeps left-type suffix stable across nested inferred calls");
+    {
+        FuncParam opa, opb;
+        ASTNode *op_fn;
+        ASTNode *make_vec_fn;
+        ASTNode *make_count_fn;
+        ASTNode *main_fn;
+        ASTNode *main_body;
+        ASTNode *sum;
+        ASTNode *left_call;
+        ASTNode *right_call;
+        ASTNode *stmts[4];
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir;
+
+        memset(&opa, 0, sizeof(opa));
+        memset(&opb, 0, sizeof(opb));
+        opa.name = "a";
+        opa.type = make_type_node("Vec2");
+        opb.name = "b";
+        opb.type = make_type_node("Int");
+
+        op_fn = calloc(1, sizeof(ASTNode));
+        op_fn->type = AST_FUNC_DECL;
+        op_fn->data.func_decl.name = "operator_add_Vec2";
+        op_fn->data.func_decl.params = calloc(2, sizeof(FuncParam *));
+        op_fn->data.func_decl.params[0] = &opa;
+        op_fn->data.func_decl.params[1] = &opb;
+        op_fn->data.func_decl.param_count = 2;
+        op_fn->data.func_decl.return_type = make_type_node("Vec2");
+        op_fn->data.func_decl.body = ast_create_block();
+        ast_add_statement(op_fn->data.func_decl.body,
+            make_return(make_identifier("a", 1), 1));
+
+        make_vec_fn = calloc(1, sizeof(ASTNode));
+        make_vec_fn->type = AST_FUNC_DECL;
+        make_vec_fn->data.func_decl.name = "MakeVec";
+        make_vec_fn->data.func_decl.return_type = make_type_node("Vec2");
+        make_vec_fn->data.func_decl.body = ast_create_block();
+        ast_add_statement(make_vec_fn->data.func_decl.body,
+            make_return(make_identifier("seedVec", 2), 2));
+
+        make_count_fn = calloc(1, sizeof(ASTNode));
+        make_count_fn->type = AST_FUNC_DECL;
+        make_count_fn->data.func_decl.name = "MakeCount";
+        make_count_fn->data.func_decl.return_type = make_type_node("Int");
+        make_count_fn->data.func_decl.body = ast_create_block();
+        ast_add_statement(make_count_fn->data.func_decl.body,
+            make_return(make_number(7, 3), 3));
+
+        left_call = make_call("MakeVec", NULL, 0, 4);
+        right_call = make_call("MakeCount", NULL, 0, 4);
+        sum = ast_create_binary(left_call, (Token){ .type = TOKEN_PLUS }, right_call);
+
+        main_fn = calloc(1, sizeof(ASTNode));
+        main_fn->type = AST_FUNC_DECL;
+        main_fn->data.func_decl.name = "Main";
+        main_fn->data.func_decl.return_type = make_type_node("Vec2");
+        main_body = ast_create_block();
+        ast_add_statement(main_body, make_return(sum, 4));
+        main_fn->data.func_decl.body = main_body;
+
+        stmts[0] = op_fn;
+        stmts[1] = make_vec_fn;
+        stmts[2] = make_count_fn;
+        stmts[3] = main_fn;
+
+        mir = lower_program_to_mir(make_program(stmts, 4), &hir, &rir);
+        ctx = transpiler_ctx_create();
+        emit_program(ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "operator_add_Vec2(");
+        EXPECT_STR_NOT_CONTAINS(ctx->out->data, "operator_add_Int(");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("role ability Add emits operator_add_Type alias");
     {
         FuncParam rhs_param, a_param, b_param;
@@ -4032,6 +4387,66 @@ test_stdlib_and_enum_emit(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+    }
+}
+
+static void
+test_transpiler_reentry_stability(void)
+{
+    printf("\n[transpiler_reentry]\n");
+
+    TEST("same-process nested operator overload transpile stays semantically stable across repeated runs");
+    {
+        const char *source =
+            "struct Vec2 {\n"
+            "    x: Int;\n"
+            "    y: Int;\n"
+            "}\n"
+            "func operator_add_Vec2(a: Vec2, b: Int) -> Vec2 {\n"
+            "    return a;\n"
+            "}\n"
+            "func MakeVec() -> Vec2 {\n"
+            "    return Vec2(1, 2);\n"
+            "}\n"
+            "func MakeCount() -> Int {\n"
+            "    return 7;\n"
+            "}\n"
+            "func Main() -> Vec2 {\n"
+            "    return MakeVec() + MakeCount();\n"
+            "}\n";
+        bool stable = true;
+
+        for (int iteration = 0; iteration < 24; iteration++) {
+            ASTNode *program = NULL;
+            HIRProgram *hir = NULL;
+            RIRProgram *rir = NULL;
+            MIRProgram *mir = NULL;
+            TranspilerCtx *ctx = transpiler_ctx_create();
+            bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+            ctx->mir = mir;
+
+            emit_program(ctx);
+
+            if (!ok
+                || mir == NULL
+                || ctx->backend_error != NULL
+                || ctx->out == NULL
+                || ctx->out->data == NULL
+                || ctx->out->data[0] == '\0') {
+                stable = false;
+            }
+
+            transpiler_ctx_destroy(ctx);
+            mir_destroy(mir);
+            rir_destroy(rir);
+            hir_destroy(hir);
+            ast_destroy(program);
+
+            if (!stable)
+                break;
+        }
+
+        EXPECT(stable);
     }
 }
 
@@ -4164,6 +4579,50 @@ test_mir_vertical_slice_emit(void)
         ast_destroy(program);
     }
 
+    TEST("late SSA let in CFG does not re-emit plain local declaration");
+    {
+        const char *source =
+            "func Score(mode: Int, seed: Int) -> Int {\n"
+            "    if mode == 1 {\n"
+            "        return 7;\n"
+            "    }\n"
+            "    if mode == 2 {\n"
+            "        return 9;\n"
+            "    }\n"
+            "    let next = seed + 1;\n"
+            "    return next;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_late_let_slice.c");
+        const char *path = path_buf;
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok && output != NULL);
+        if (ok && output != NULL) {
+            EXPECT_STR_CONTAINS(output, "_pgy_ssa_next_1 = (seed + 1);");
+            EXPECT_STR_NOT_CONTAINS(output, "int32_t next = (seed + 1);");
+        }
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
     TEST("non-SSA statements in CFG blocks still emit from MIR");
     {
         const char *source =
@@ -4209,6 +4668,62 @@ test_mir_vertical_slice_emit(void)
             EXPECT(strstr(output, "return 3;") != NULL);
             if (routine != NULL)
                 EXPECT(routine->has_cleanup_block == false);
+        }
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("destructured MIR locals remain resolvable across later CFG blocks");
+    {
+        const char *source =
+            "func Flags() -> Array<Bool> {\n"
+            "    return [true, false];\n"
+            "}\n"
+            "func Score() -> Int {\n"
+            "    let (flag, other) = Flags();\n"
+            "    if flag {\n"
+            "        return 7;\n"
+            "    }\n"
+            "    if other {\n"
+            "        return 5;\n"
+            "    }\n"
+            "    return 3;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_destructure_cfg_slice.c");
+        const char *path = path_buf;
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            if (!check_function_mir_emitability(hir, mir, "Score"))
+                fprintf(stderr, "  ⚠ MIR emitability warning for Score(destructure-cfg): pipeline emitted with MIR fallback checks only\n");
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            if (res != NULL && !res->success && res->error_message != NULL)
+                fprintf(stderr, "  ⚠ destructure-cfg transpile error: %s\n", res->error_message);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok && output != NULL);
+        if (ok && output != NULL) {
+            EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
+            EXPECT(strstr(output, "_pgy_ssa_flag_1") != NULL);
+            EXPECT(strstr(output, "_pgy_ssa_other_1") != NULL);
+            EXPECT((strstr(output, "if (flag)") != NULL)
+                   || (strstr(output, "if (_pgy_ssa_flag_") != NULL));
+            EXPECT((strstr(output, "if (other)") != NULL)
+                   || (strstr(output, "if (_pgy_ssa_other_") != NULL));
         }
 
         free(output);
@@ -4592,6 +5107,7 @@ main(void)
     test_parallel_execution_emit();
     test_slot_sugar();
     test_stdlib_and_enum_emit();
+    test_transpiler_reentry_stability();
     test_mir_vertical_slice_emit();
     test_intent_observability_emit();
 

@@ -65,6 +65,12 @@ llvm_ast_uses_thread_pool(ASTNode *node)
                 return true;
         }
         return false;
+    case AST_TUPLE_LITERAL:
+        for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
+            if (llvm_ast_uses_thread_pool(node->data.tuple_literal.elements[i]))
+                return true;
+        }
+        return false;
     case AST_IF_STMT:
         return llvm_ast_uses_thread_pool(node->data.if_stmt.condition)
             || llvm_ast_uses_thread_pool(node->data.if_stmt.then_branch)

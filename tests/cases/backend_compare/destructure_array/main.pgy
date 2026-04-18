@@ -1,0 +1,16 @@
+func Words() -> Array<String> {
+    return ["hello", "world", "foo"];
+}
+
+func Main() -> Void {
+    let xs: Array<Int> = [10, 20, 30];
+    let (a, b, c) = xs;
+    Log(ToString(a));
+    Log(ToString(b));
+    Log(ToString(c));
+
+    let (first, second, third) = Words();
+    Log(first);
+    Log(second);
+    Log(third);
+}

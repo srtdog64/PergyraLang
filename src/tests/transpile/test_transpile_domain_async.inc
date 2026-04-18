@@ -425,6 +425,8 @@ test_roster_world_emit(void)
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Player_Attack(&self->player);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->poison.__projection_dirty_view = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->poison.__projection_ready_view = false;");
         EXPECT_STR_CONTAINS(ctx->out->data,
             "pgy_log(BattleZone_has_layer_poison(self, __pgy_zone_gen));");
 

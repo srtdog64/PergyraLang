@@ -3033,6 +3033,13 @@ semantic_stage_resolve_type_quiet(ASTNode *type_node,
     saved_error = ctx->has_error;
     resolved = resolve_type_node(type_node, ctx);
     if (ctx->diagnostic_count > saved_diag) {
+        for (size_t i = saved_diag; i < ctx->diagnostic_count; i++) {
+            if (ctx->diagnostics[i] != NULL) {
+                free(ctx->diagnostics[i]->message);
+                free(ctx->diagnostics[i]);
+                ctx->diagnostics[i] = NULL;
+            }
+        }
         ctx->diagnostic_count = saved_diag;
         ctx->has_error = saved_error;
         return TYPE_UNKNOWN;
@@ -5518,6 +5525,20 @@ resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
     if (node->type != AST_TYPE)
         return TYPE_UNKNOWN;
 
+    /* Tuple type: AST_TYPE with tuple_elements populated by parser */
+    if (node->data.type.tuple_elements != NULL
+        && node->data.type.tuple_element_count > 0) {
+        size_t n = node->data.type.tuple_element_count;
+        Type **elems = calloc(n, sizeof(Type *));
+        if (elems == NULL)
+            return TYPE_UNKNOWN;
+        for (size_t i = 0; i < n; i++)
+            elems[i] = resolve_type_node(node->data.type.tuple_elements[i], ctx);
+        Type *result = type_create_tuple(elems, n);
+        free(elems);
+        return result != NULL ? result : TYPE_UNKNOWN;
+    }
+
     const char *name = node->data.type.name;
 
     if (strcmp(name, "Slot") == 0 || strcmp(name, "SecureSlot") == 0
@@ -5838,6 +5859,24 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     case AST_ARRAY_LITERAL:
         return type_check_array_literal(expr, ctx);
 
+    case AST_TUPLE_LITERAL: {
+        size_t n = expr->data.tuple_literal.count;
+        if (n < 2) {
+            semantic_error(ctx, expr,
+                "Tuple literal requires at least 2 elements");
+            return TYPE_UNKNOWN;
+        }
+        Type **elems = calloc(n, sizeof(Type *));
+        if (elems == NULL)
+            return TYPE_UNKNOWN;
+        for (size_t i = 0; i < n; i++)
+            elems[i] = type_check_expression(
+                expr->data.tuple_literal.elements[i], ctx);
+        Type *tup = type_create_tuple(elems, n);
+        free(elems);
+        return tup != NULL ? tup : TYPE_UNKNOWN;
+    }
+
     case AST_ASSIGNMENT:
         return type_check_assignment(expr, ctx);
 
@@ -6031,6 +6070,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 size_t orig_argc = expr->data.call.arg_count;
                 bool inject_token = false;
                 char token_name_buf[256];
+                const char *token_name = NULL;
                 ASTNode token_arg;
                 ASTNode *synthetic_args[4];
                 ASTNode fake_call;
@@ -6042,8 +6082,17 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 if (slot_type->data.slot.is_secure
                     && object->type == AST_IDENTIFIER
                     && object->data.identifier.name != NULL) {
-                    snprintf(token_name_buf, sizeof(token_name_buf), "%s_token",
-                        object->data.identifier.name);
+                    Symbol *slot_sym =
+                        scope_lookup(ctx->scope, object->data.identifier.name);
+                    if (slot_sym != NULL
+                        && slot_sym->kind == SYMBOL_SLOT
+                        && slot_sym->slot_info.paired_token_name != NULL) {
+                        token_name = slot_sym->slot_info.paired_token_name;
+                    } else {
+                        snprintf(token_name_buf, sizeof(token_name_buf), "%s_token",
+                            object->data.identifier.name);
+                        token_name = token_name_buf;
+                    }
                     if ((strcmp(method_name, "Write") == 0 && orig_argc < 2)
                         || ((strcmp(method_name, "Read") == 0
                              || strcmp(method_name, "Release") == 0)
@@ -6051,7 +6100,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         inject_token = true;
                         new_argc++;
                         token_arg.type = AST_IDENTIFIER;
-                        token_arg.data.identifier.name = token_name_buf;
+                        token_arg.data.identifier.name = (char *)token_name;
                     }
                 }
 
@@ -6107,6 +6156,37 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             /* Resolve object type for normal method calls.
              * Namespace/static-style calls like Math.Add are lowered later. */
             Type *object_type = type_check_expression(object, ctx);
+            if (object_type != NULL
+                && method_name != NULL
+                && strcmp(method_name, "Slice") == 0
+                && (type_is_constructed_named(object_type, "Array")
+                    || type_is_constructed_named(object_type, "Slice"))) {
+                if (expr->data.call.arg_count != 2) {
+                    semantic_error(ctx, expr,
+                        "%s.%s(start, len) requires exactly two Int arguments",
+                        type_is_constructed_named(object_type, "Array")
+                            ? "Array<T>" : "Slice<T>",
+                        method_name);
+                    return TYPE_UNKNOWN;
+                }
+
+                require_assignable(
+                    type_check_expression(expr->data.call.arguments[0], ctx),
+                    TYPE_INT, expr->data.call.arguments[0], ctx);
+                require_assignable(
+                    type_check_expression(expr->data.call.arguments[1], ctx),
+                    TYPE_INT, expr->data.call.arguments[1], ctx);
+
+                if (object_type->kind == TYPE_KIND_CONSTRUCTED
+                    && object_type->data.constructed.arg_count >= 1
+                    && object_type->data.constructed.args[0] != NULL) {
+                    Type *slice_args[1] = {
+                        object_type->data.constructed.args[0]
+                    };
+                    return type_create_constructed(TYPE_SLICE, slice_args, 1);
+                }
+                return TYPE_UNKNOWN;
+            }
             if (object_type != NULL
                 && object_type->kind == TYPE_KIND_SLOT
                 && method_name != NULL) {
@@ -7763,7 +7843,107 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     {
         /* let (a, b, c) = expr; — destructure struct/array fields by position */
         ASTNode *init = node->data.let_destructure.initializer;
+
+        /* Special case: let (slot, token) = Claim(Secure)Slot<T>(...)
+         * registers a paired slot + token symbol rather than anonymous
+         * variables, so downstream Write/Read/Release still see the
+         * slot shape. Requires the generic `<T>` on the call and exactly
+         * two binding names. */
+        if (init != NULL
+            && init->type == AST_CALL
+            && init->data.call.callee != NULL
+            && init->data.call.callee->type == AST_IDENTIFIER
+            && init->data.call.callee->data.identifier.name != NULL
+            && init->data.call.generic_args != NULL
+            && init->data.call.generic_args->count >= 1) {
+            const char *callee_name =
+                init->data.call.callee->data.identifier.name;
+            bool is_claim_slot =
+                (strcmp(callee_name, "ClaimSlot") == 0);
+            bool is_claim_secure =
+                (strcmp(callee_name, "ClaimSecureSlot") == 0);
+            if (is_claim_slot || is_claim_secure) {
+                const char *inner_name =
+                    init->data.call.generic_args->params[0] != NULL
+                        ? init->data.call.generic_args->params[0]->name
+                        : NULL;
+                ASTNode *inner_node =
+                    init->data.call.generic_args->params[0] != NULL
+                        ? init->data.call.generic_args->params[0]->constraint
+                        : NULL;
+                Type *inner_type = NULL;
+                if (inner_node != NULL)
+                    inner_type = resolve_type_node(inner_node, ctx);
+                if (inner_type == NULL && inner_name != NULL) {
+                    ASTNode synth = {0};
+                    synth.type = AST_TYPE;
+                    synth.data.type.name = (char *)inner_name;
+                    inner_type = resolve_type_node(&synth, ctx);
+                }
+                if (inner_type == NULL)
+                    inner_type = TYPE_INT;
+
+                Type *slot_type = type_create_slot(inner_type, is_claim_secure);
+                if (is_claim_secure) {
+                    semantic_record_effect(ctx, EFFECT_SECURE);
+                }
+
+                if (is_claim_secure && node->data.let_destructure.name_count == 2) {
+                    const char *slot_name =
+                        node->data.let_destructure.names[0];
+                    const char *token_name =
+                        node->data.let_destructure.names[1];
+                    Symbol *slot_sym = symbol_create_slot(slot_name, slot_type,
+                        true, token_name, node->line, node->column);
+                    scope_declare(ctx->scope, slot_sym);
+                    Symbol *tok_sym = symbol_create_token(token_name,
+                        slot_name, node->line, node->column);
+                    if (tok_sym != NULL) {
+                        Type *token_args[1] = { inner_type };
+                        tok_sym->type = type_create_constructed(TYPE_TOKEN,
+                            token_args, 1);
+                    }
+                    if (!scope_declare(ctx->scope, tok_sym))
+                        symbol_destroy(tok_sym);
+                    scope_register_slot(ctx->scope, slot_sym);
+                    return true;
+                }
+                if (is_claim_slot && node->data.let_destructure.name_count == 1) {
+                    const char *slot_name =
+                        node->data.let_destructure.names[0];
+                    Symbol *slot_sym = symbol_create_slot(slot_name, slot_type,
+                        false, NULL, node->line, node->column);
+                    scope_declare(ctx->scope, slot_sym);
+                    scope_register_slot(ctx->scope, slot_sym);
+                    return true;
+                }
+                /* Name count mismatch for a slot-claim destructuring
+                 * falls through to the generic handling below; the
+                 * resulting symbols will be plain variables of UNKNOWN. */
+            }
+        }
+
         Type *init_type = init != NULL ? type_check_expression(init, ctx) : TYPE_UNKNOWN;
+        /* Tuple destructuring: arity must match, elements map positionally. */
+        if (type_is_tuple(init_type)) {
+            size_t arity = type_tuple_arity(init_type);
+            size_t binds = node->data.let_destructure.name_count;
+            if (arity != binds) {
+                semantic_error(ctx, node,
+                    "Tuple destructuring arity mismatch: binding %zu, tuple arity %zu",
+                    binds, arity);
+                return false;
+            }
+            for (size_t i = 0; i < binds; i++) {
+                Type *elem = type_tuple_get_element(init_type, i);
+                Symbol *s = symbol_create_variable(
+                    node->data.let_destructure.names[i],
+                    elem != NULL ? elem : TYPE_UNKNOWN,
+                    node->line, node->column);
+                scope_declare(ctx->scope, s);
+            }
+            return true;
+        }
         for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
             Type *elem_type = TYPE_UNKNOWN;
             /* Array destructuring: element type from Array<T> */

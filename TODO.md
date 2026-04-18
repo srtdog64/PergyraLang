@@ -769,7 +769,22 @@
 - [x] **Option<T> / None** — "상자가 비어있을 수 있다"를 타입으로 표현. `-1` sentinel 제거
   - 완료: `Option<T>` constructed type, `Some/None`, `IsSome/IsNone/UnwrapOption`, C/LLVM lowering
   - 완료: `match opt { case Some(v): ... case None: ... }` destructuring
-- [ ] **디스트럭처링** — `let (slot, token) = ClaimSecureSlot<Int>()` 등 패턴 기반 바인딩 확장
+- [x] **디스트럭처링 (SecureSlot)** — `let (slot, token) = ClaimSecureSlot<Int>(lvl)` 패턴 바인딩
+  - 완료 (2026-04-19): 파서 `ClaimSlot`/`ClaimSecureSlot` 뒤의 `<T>`를 더 이상 버리지 않고 `AST_CALL.generic_args`에 첨부 (일반 call-site 제네릭 인프라), 시맨틱이 destructuring에서 이 generic arg로 SYMBOL_SLOT + SYMBOL_TOKEN 쌍 등록, MIR emit이 `PgyToken_T token; PgySecureSlot_T slot = pgy_claim_secure_T(&token);` 출력, `transpiler_find_local_type_name_in_block`이 바인딩별 `SecureSlot<T>`/`Token<T>` 반환해 MIR header의 타입 예약 정리, SSA 맵에 self-mapping 등록으로 emission contract 통과
+  - 파일: `src/parser/ast.h`, `src/parser/ast.c`, `src/parser/parser.h`, `src/parser/parser_expr.c` (제네릭 인자 보존), `src/semantic/type_checker.c` (destructuring 시맨틱), `src/codegen/transpiler_emitters_base_a.inc` (MIR-level claim emit + ssa map 등록)
+  - 회귀: `src/test_transpile.c` "let (slot, token) = ClaimSecureSlot<T>(lvl) emits paired claim"
+  - SecureSlot MIR auto-Read + claim 토큰 emit 연관 버그 수정 (2026-04-19): (a) SSA-aware identifier 경로가 `suppress_slot_auto_read` 무시하던 버그로 `pgy_secure_write_Int(&pgy_read_Int(&slot),...)` 같은 잘못된 C 출력 — `!ctx->suppress_slot_auto_read` 가드 추가 + Secure 경로에서 `pgy_secure_read_*` 분기. (b) MIR DCE가 `AST_LET_DECL`을 부작용 없음으로 판정해 제거하던 버그 — `mir_stmt_has_side_effect`에 추가. (c) `transpiler_emit_mir_resource_op` Claim 룰이 SecureSlot에도 `pgy_claim_secure_T()`만 emit하고 토큰은 생략하던 버그 — `PgyToken_T anchor_token;` + `= pgy_claim_secure_T(&anchor_token)` 방식으로 수정. (d) `Token<T>`도 "claim shape"로 인식해 MIR header pre-decl 건너뛰도록 `transpiler_type_name_is_claim_shape` 도입 (slot-like와는 구별 — auto-Read는 여전히 Slot 전용). 결과: destructuring + 비-destructuring SecureSlot 모두 E2E 동작 (`Write/Read/Release` 포함)
+  - 파일: `src/compiler/mir.c` (DCE), `src/codegen/transpiler_expr_emitters.inc` (suppress 가드), `src/codegen/transpiler_emitters_base_a.inc` (claim_shape 분리), `src/codegen/transpiler_emitters_base_b.inc` (MIR header 체크), `src/codegen/transpiler_helpers.inc` (claim 토큰 emit), `src/parser/parser_decl.c` (class-body destructuring 에러 메시지)
+  - 미처리: LLVM 백엔드 SecureSlot destructuring (LLVM은 이미 "requires explicit annotation" 에러 — 별도 세션), class-body destructuring (`private let (slot, token) = ClaimSecureSlot()`는 명확한 에러 메시지로만 처리 — 별도 세션)
+- [x] **튜플 반환 타입 + 디스트럭처링** — `func f() -> (Int, String)` 및 `let (n, s) = f()` 지원
+  - 완료 (2026-04-19): Type 인프라에 `TYPE_KIND_TUPLE` 활성화 (union에 `tuple.elements/element_count` 필드 + `type_create_tuple`/`type_is_tuple`/`type_tuple_arity`/`type_tuple_get_element`), AST_TYPE에 `tuple_elements` 필드로 `(T, U, ...)` 표현, `AST_TUPLE_LITERAL` 신규 노드로 `(a, b, ...)` 표현식 지원
+  - 파서: `parse_type()`에 `LPAREN` 분기로 튜플 타입 구문 처리 (단일 `(T)`는 기존 `T`로 환원, 빈 `()`는 `Void`, 2개 이상일 때만 튜플), `parser_parse_primary`의 괄호 표현식 경로에 콤마 감지 시 튜플 리터럴로 분기
+  - 시맨틱: `resolve_type_node`에 tuple 분기 추가 → `type_create_tuple` 반환, `type_check_expression`에 `AST_TUPLE_LITERAL` 케이스로 요소 타입 수집, `AST_LET_DESTRUCTURE`에서 RHS가 tuple이면 arity 검증 + positional element 타입 할당
+  - C 백엔드: `append_type_name`이 튜플을 `(T, U)`로 렌더, `pergyra_type_to_c`가 `(Int, String)` → `PgyTuple_Int_String_t`로 매핑 (depth-tracking 파서), `ensure_tuple_specialization_to`가 `typedef struct { T0 f0; T1 f1; ... } PgyTuple_<suffix>_t;`를 ctx->out에 중복 없이 방출, `emit_expression(AST_TUPLE_LITERAL)`이 compound literal `((PgyTuple_T_U_t){.f0=..., .f1=...})` emit, AST_LET_DESTRUCTURE MIR 경로/기본 경로 둘 다 tuple 분기로 `.f0/.f1/...` 필드 추출
+  - LLVM 백엔드: `ast_type_to_llvm`이 tuple AST_TYPE → literal anonymous struct `{T0, T1, ...}`, `llvm_emit_expression(AST_TUPLE_LITERAL)`이 `LLVMGetUndef + InsertValue` 체인으로 집계값 구성, `llvm_emit_let_destructure`가 struct 필드 개수 + 첫 필드 비포인터 heuristic으로 tuple 판정 후 `ExtractValue` per-binding
+  - 회귀: `tests/cases/backend_compare/destructure_tuple_return/main.pgy` (C/LLVM 동일: `42/hello/7/11/true`), `compare_backends.sh` case 등록, `test-semantic 1653 passed`, `test-transpile 584 passed`
+  - 파일: `src/semantic/type_system.{h,c}`, `src/parser/ast.{h,c}`, `src/parser/parser_decl.c`, `src/parser/parser_expr.c`, `src/semantic/type_checker.{c,_helpers.inc}`, `src/codegen/transpiler.h`, `src/codegen/transpiler_helpers_core_b.inc`, `src/codegen/transpiler_expr_emitters.inc`, `src/codegen/transpiler_emitters_base_{a,b}.inc`, `src/codegen/llvm_backend.c`, `src/codegen/llvm_expr.c`, `src/codegen/llvm_stmt.c`, `src/codegen/llvm_pipeline.c`
+  - 후속 수정 (destructure + if 지원): `transpiler_register_with_alias_bindings_in_block`의 Claim-only 제한 제거 — 모든 destructuring 바인딩(array/slice/tuple/일반 call)의 이름을 self-mapping으로 precheck ssa_map에 등록. 실제 emit 경로는 여전히 `<name>.1` 버전드 이름을 MIR emit 시점에 ssa_map에 넣어서 사용 (self-map은 verifier 통과용 가드일 뿐). 결과: `let (a, b, flag) = f(); if flag { ... } else { ... }` 같은 패턴이 array/tuple 둘 다 C/LLVM에서 동작. 파일: `src/codegen/transpiler_emitters_base_a.inc` (register_with_alias_bindings_in_block)
 - [ ] **sealed ability** — 구현 가능한 role을 제한 (`sealed ability Combatable` → 같은 모듈 내 role만 impl 가능)
 - [x] **문자열 보간** — `f"값은 {x}"` → `StringConcat(...)` series로 lowering
   - 완료: lexer에서 `f"..."` → `TOKEN_INTERPOLATED_STRING`
@@ -779,6 +794,9 @@
 ### 에러 처리
 - [x] **`?` 연산자** — `Result<T>` 에러 자동 전파. `let val = riskyFunc()?;` → 에러 시 즉시 반환
   - 완료: 시맨틱 검증, C early-return lowering, LLVM `Result<T>` 레이아웃/unwrap/early-return lowering, `pipe_and_try.pgy` C/LLVM 실행 검증
+  - LLVM try.err 재구성 버그 수정 (2026-04-19): `let val = Validate(x)?;` 패턴에서 let_decl이 `current_ret_type`을 LHS var 타입(i32)으로 잠시 덮어쓰고 있어, `?`의 try.err 블록이 함수 return 타입 struct 대신 i32로 판정 → `unreachable` emit → 런타임 crash. `ctx->current_func_decl`에서 AST 반환 타입을 재조회해 복구 + Err 값 재구성 (src_err → dst_err 정수/포인터 강제 변환 포함)
+  - 파일: `src/codegen/llvm_expr_core.inc`
+  - 회귀: `tests/cases/backend_compare/try_operator_result/main.pgy` (C/LLVM 동일), `examples/pipe_and_try.pgy`
 
 ### 편의 문법
 - [x] **파이프 연산자** — `data |> Transform |> Validate |> Persist` 단방향 데이터 흐름
@@ -831,6 +849,10 @@
   - fn은 함수 이름 또는 람다 (C 함수 포인터로 lowering)
 - [x] **디스트럭처링** — `let (a, b, c) = expr` 배열/컬렉션 positional 바인딩
   - 완료: Array<T> → 인덱스 기반 추출 (`result.data[0]`, `result.data[1]`, ...)
+  - MIR 통합 (2026-04-19): MIR DCE가 `AST_LET_DESTRUCTURE` 문을 "부작용 없음"으로 판정해 제거하던 버그 수정 (`mir_stmt_has_side_effect`). 트랜스파일러 MIR emit 루프에서 destructuring을 SSA-renamed 타겟으로 emit, `transpiler_find_local_type_name_in_block`에 AST_LET_DESTRUCTURE 케이스 추가해 로컬 타입 해석 복구
+  - LLVM parity (2026-04-19): `llvm_emit_statement`의 AST_LET_DESTRUCTURE 케이스 추가 — 초기화식을 struct 값으로 평가, `ExtractValue(0)`으로 data pointer 추출, 각 바인딩마다 `GEP+Load`로 요소 추출 후 `alloca+store`+`llvm_scope_declare`로 로컬 등록. `llvm_lookup_array_var`로 elem_type 해석
+  - 파일: `src/compiler/mir.c`, `src/codegen/transpiler_emitters_base_a.inc` (C 백엔드), `src/codegen/llvm_stmt.c` (LLVM 백엔드)
+  - 회귀: `tests/cases/backend_compare/destructure_array/main.pgy` (C/LLVM 동일 출력), `examples/collection_ops.pgy` (hello/world/foo 출력)
 
 ### 메타프로그래밍 입장 (결정 완료)
 - [x] **TMP 비채택** — 제네릭 monomorphization + ability dispatch로 95% 커버. 문서: `docs/23_metaprogramming_position.md`

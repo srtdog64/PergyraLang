@@ -8,6 +8,22 @@
 #include <string.h>
 #include "type_checker_internal.h"
 
+static const char *
+builtin_type_name_or_unknown(const Type *type)
+{
+    return (type != NULL && type->name != NULL) ? type->name : "<unknown>";
+}
+
+static bool
+builtin_is_subject_boundary_type(const Type *type, SemanticContext *ctx)
+{
+    if (type == NULL || ctx == NULL)
+        return false;
+    if (type->kind != TYPE_KIND_CLASS)
+        return false;
+    return !type_requires_boundary_borrow_tracking(type, ctx);
+}
+
 static bool
 check_call_arity(ASTNode *expr, size_t expected, const char *name,
                  SemanticContext *ctx)
@@ -78,6 +94,13 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
                                          const char *container_name,
                                          SemanticContext *ctx)
 {
+    const char *value_name;
+    Symbol *value_sym;
+    const Type *value_type;
+    const char *value_label;
+    const char *snapshot_label;
+    const char *transfer_label;
+
     if (value_expr == NULL || ctx == NULL
         || value_expr->type != AST_IDENTIFIER
         || value_expr->data.identifier.name == NULL
@@ -85,20 +108,53 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
         return;
     }
 
+    value_name = value_expr->data.identifier.name;
+    value_sym = scope_lookup(ctx->scope, value_name);
+    value_type = value_sym != NULL ? value_sym->type : NULL;
+
+    if (value_type != NULL
+        && !type_is_movable_resource_handle(value_type)
+        && !builtin_is_subject_boundary_type(value_type, ctx)
+        && !type_requires_boundary_borrow_tracking(value_type, ctx)) {
+        return;
+    }
+
+    value_label = "boundary value";
+    snapshot_label = "copied/projection/value snapshot";
+    transfer_label = "transfer into";
+
+    if (type_is_movable_resource_handle(value_type)) {
+        value_label = "movable resource";
+        snapshot_label = "copied/value/projection form";
+        transfer_label = "transfer";
+    } else if (builtin_is_subject_boundary_type(value_type, ctx)) {
+        value_label = "subject";
+        snapshot_label = "projection/object/tobject/value snapshot";
+        transfer_label = "transfer";
+    }
+
     semantic_error(ctx, value_expr,
-        "Borrowed ref boundary value '%s' cannot escape through %s store.\n"
+        "Borrowed ref %s '%s' cannot escape through %s store.\n"
         "Reason:\n"
-        "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+        "- consumer path is function '%s'\n"
+        "- '%s' entered this function as a borrowed 'ref' %s\n"
         "- %s inserts values into %s state that may outlive the current call boundary\n"
         "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n"
         "Fix:\n"
-        "- store a copied/projection/value snapshot instead\n"
-        "- or change the current parameter to 'own' if transfer into %s is intended",
-        value_expr->data.identifier.name,
+        "- store a %s instead\n"
+        "- or change the current parameter to 'own' if %s %s is intended",
+        value_label,
+        value_name,
         container_kind != NULL ? container_kind : "container",
-        value_expr->data.identifier.name,
+        ctx->current_function_decl != NULL
+            && ctx->current_function_decl->data.func_decl.name != NULL
+                ? ctx->current_function_decl->data.func_decl.name
+                : "<anonymous>",
+        value_name,
+        value_label,
         container_name != NULL ? container_name : "<container store>",
-        container_kind != NULL ? container_kind : "container",
+        snapshot_label,
+        transfer_label,
         container_kind != NULL ? container_kind : "container");
 }
 
@@ -540,6 +596,116 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
             name);
         return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                : TYPE_BOOL;
+    }
+
+    if (builtin_is_subject_boundary_type(element_type, ctx)
+        || builtin_is_subject_boundary_type(value_type, ctx)) {
+        if (!builtin_is_subject_boundary_type(element_type, ctx)
+            || !builtin_is_subject_boundary_type(value_type, ctx)) {
+            semantic_error(ctx, expr->data.call.arguments[1],
+                "%s subject mismatch: expected '%s', got '%s'.\n"
+                "Reason:\n"
+                "- channel element type and sent value must agree on the same subject boundary contract\n"
+                "- ownership transfer cannot be derived when the boundary expects '%s' but received '%s'\n"
+                "Fix:\n"
+                "- send a value of type '%s'\n"
+                "- or change the channel element type to match '%s'",
+                name,
+                builtin_type_name_or_unknown(element_type),
+                builtin_type_name_or_unknown(value_type),
+                builtin_type_name_or_unknown(element_type),
+                builtin_type_name_or_unknown(value_type),
+                builtin_type_name_or_unknown(element_type),
+                builtin_type_name_or_unknown(value_type));
+            return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                                   : TYPE_BOOL;
+        }
+        if (expr->data.call.arguments[1] == NULL
+            || expr->data.call.arguments[1]->type != AST_IDENTIFIER) {
+            semantic_error(ctx, expr->data.call.arguments[1],
+                "%s subject sends must transfer from a named variable.\n"
+                "Reason:\n"
+                "- ownership transfer at a channel boundary must point to one concrete source binding\n"
+                "- unnamed expressions make moved-here provenance ambiguous\n"
+                "Fix:\n"
+                "- bind the subject first in a local variable\n"
+                "- then send that named variable",
+                name);
+            return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                                   : TYPE_BOOL;
+        }
+        if (identifier_is_borrowed_boundary_param(expr->data.call.arguments[1], ctx)) {
+            semantic_error(ctx, expr->data.call.arguments[1],
+                "Borrowed ref subject '%s' cannot escape through channel send.\n"
+                "Reason:\n"
+                "- consumer path is function '%s'\n"
+                "- '%s' entered this function as a borrowed 'ref' subject\n"
+                "- %s would transfer that borrow beyond the current call boundary\n"
+                "Fix:\n"
+                "- send a projection/object/tobject/value snapshot instead\n"
+                "- or change the parameter to 'own' before transfer",
+                expr->data.call.arguments[1]->data.identifier.name,
+                ctx->current_function_decl != NULL
+                    && ctx->current_function_decl->data.func_decl.name != NULL
+                        ? ctx->current_function_decl->data.func_decl.name
+                        : "<anonymous>",
+                expr->data.call.arguments[1]->data.identifier.name,
+                name);
+            return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                                   : TYPE_BOOL;
+        }
+        return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                               : TYPE_BOOL;
+    }
+
+    if (type_requires_boundary_borrow_tracking(element_type, ctx)
+        || type_requires_boundary_borrow_tracking(value_type, ctx)) {
+        if (!type_requires_boundary_borrow_tracking(element_type, ctx)
+            || !type_requires_boundary_borrow_tracking(value_type, ctx)
+            || builtin_is_subject_boundary_type(element_type, ctx)
+            || builtin_is_subject_boundary_type(value_type, ctx)
+            || type_is_movable_resource_handle(element_type)
+            || type_is_movable_resource_handle(value_type)) {
+            semantic_error(ctx, expr->data.call.arguments[1],
+                "%s boundary value mismatch: expected '%s', got '%s'.\n"
+                "Reason:\n"
+                "- channel element type and sent value must agree on the same boundary value contract\n"
+                "- ownership provenance cannot be preserved when the boundary expects '%s' but received '%s'\n"
+                "Fix:\n"
+                "- send a value of type '%s'\n"
+                "- or change the channel element type to match '%s'",
+                name,
+                builtin_type_name_or_unknown(element_type),
+                builtin_type_name_or_unknown(value_type),
+                builtin_type_name_or_unknown(element_type),
+                builtin_type_name_or_unknown(value_type),
+                builtin_type_name_or_unknown(element_type),
+                builtin_type_name_or_unknown(value_type));
+            return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                                   : TYPE_BOOL;
+        }
+        if (expr->data.call.arguments[1] != NULL
+            && expr->data.call.arguments[1]->type == AST_IDENTIFIER
+            && identifier_is_borrowed_boundary_param(expr->data.call.arguments[1], ctx)) {
+            semantic_error(ctx, expr->data.call.arguments[1],
+                "Borrowed ref boundary value '%s' cannot escape through channel send.\n"
+                "Reason:\n"
+                "- consumer path is function '%s'\n"
+                "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                "- %s would transfer that borrow beyond the current call boundary\n"
+                "Fix:\n"
+                "- send a copied/value/projection snapshot instead\n"
+                "- or change the parameter to 'own' before transfer",
+                expr->data.call.arguments[1]->data.identifier.name,
+                ctx->current_function_decl != NULL
+                    && ctx->current_function_decl->data.func_decl.name != NULL
+                        ? ctx->current_function_decl->data.func_decl.name
+                        : "<anonymous>",
+                expr->data.call.arguments[1]->data.identifier.name,
+                name);
+            return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                                   : TYPE_BOOL;
+        }
     }
 
     require_assignable(value_type, element_type, expr->data.call.arguments[1], ctx);

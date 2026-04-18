@@ -63,9 +63,15 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, value_expr, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
+        const char *token_name = lookup_slot_token_name(ctx, slot_name);
+        char fallback_token[96];
+        if (token_name == NULL) {
+            snprintf(fallback_token, sizeof(fallback_token), "%s_token", slot_name);
+            token_name = fallback_token;
+        }
         result = strdup_fmt(
-            "pgy_secure_write_%s(%s, %s, &%s_token)",
-            inner, slot_ref, value_expr, slot_name);
+            "pgy_secure_write_%s(%s, %s, &%s)",
+            inner, slot_ref, value_expr, token_name);
     } else {
         /* Plain slot: Write(slot, value) */
         result = strdup_fmt(
@@ -184,8 +190,14 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        result = strdup_fmt("pgy_secure_read_%s(%s, &%s_token)",
-            inner, slot_ref, slot_name);
+        const char *token_name = lookup_slot_token_name(ctx, slot_name);
+        char fallback_token[96];
+        if (token_name == NULL) {
+            snprintf(fallback_token, sizeof(fallback_token), "%s_token", slot_name);
+            token_name = fallback_token;
+        }
+        result = strdup_fmt("pgy_secure_read_%s(%s, &%s)",
+            inner, slot_ref, token_name);
     } else {
         result = strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
     }
@@ -225,8 +237,14 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        result = strdup_fmt("pgy_secure_release_%s(%s, &%s_token)",
-            inner, slot_ref, slot_name);
+        const char *token_name = lookup_slot_token_name(ctx, slot_name);
+        char fallback_token[96];
+        if (token_name == NULL) {
+            snprintf(fallback_token, sizeof(fallback_token), "%s_token", slot_name);
+            token_name = fallback_token;
+        }
+        result = strdup_fmt("pgy_secure_release_%s(%s, &%s)",
+            inner, slot_ref, token_name);
     } else {
         result = strdup_fmt("pgy_release_%s(%s)", inner, slot_ref);
     }
@@ -924,12 +942,23 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
 
     {
         const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
-        ASTNode *overload = find_operator_overload_decl(ctx, lt, expr->data.binary.op.type);
+        char lt_buf[128];
+        const char *stable_lt = lt;
+        ASTNode *overload;
+
+        if (lt != NULL) {
+            snprintf(lt_buf, sizeof(lt_buf), "%s", lt);
+            stable_lt = lt_buf;
+        }
+
+        overload = find_operator_overload_decl(ctx, stable_lt,
+            expr->data.binary.op.type);
         if (overload != NULL) {
             char *left  = emit_expression(expr->data.binary.left, ctx);
             char *right = emit_expression(expr->data.binary.right, ctx);
             const char *suffix = operator_overload_suffix(expr->data.binary.op.type);
-            char *result = strdup_fmt("operator_%s_%s(%s, %s)", suffix, lt, left, right);
+            char *result = strdup_fmt("operator_%s_%s(%s, %s)",
+                suffix, stable_lt, left, right);
             free(left);
             free(right);
             return result;
@@ -3404,9 +3433,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                                         inner, slot_ref, val_expr, tok);
                     free(tok);
                 } else if (is_secure) {
-                    result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s_token)",
-                                        inner, slot_ref, val_expr,
-                                        obj->data.identifier.name);
+                    const char *token_name =
+                        lookup_slot_token_name(ctx, obj->data.identifier.name);
+                    char fallback_token[96];
+                    if (token_name == NULL) {
+                        snprintf(fallback_token, sizeof(fallback_token),
+                                 "%s_token", obj->data.identifier.name);
+                        token_name = fallback_token;
+                    }
+                    result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
+                                        inner, slot_ref, val_expr, token_name);
                 } else {
                     result = strdup_fmt("pgy_write_%s(%s, %s)",
                                         inner, slot_ref, val_expr);
@@ -3418,8 +3454,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             } else if (strcmp(method, "Read") == 0) {
                 char *result;
                 if (is_secure) {
-                    result = strdup_fmt("pgy_secure_read_%s(%s, &%s_token)",
-                                        inner, slot_ref, obj->data.identifier.name);
+                    const char *token_name =
+                        lookup_slot_token_name(ctx, obj->data.identifier.name);
+                    char fallback_token[96];
+                    if (token_name == NULL) {
+                        snprintf(fallback_token, sizeof(fallback_token),
+                                 "%s_token", obj->data.identifier.name);
+                        token_name = fallback_token;
+                    }
+                    result = strdup_fmt("pgy_secure_read_%s(%s, &%s)",
+                                        inner, slot_ref, token_name);
                 } else {
                     result = strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
                 }
@@ -3429,8 +3473,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             } else if (strcmp(method, "Release") == 0) {
                 char *result;
                 if (is_secure) {
-                    result = strdup_fmt("pgy_secure_release_%s(%s, &%s_token)",
-                                        inner, slot_ref, obj->data.identifier.name);
+                    const char *token_name =
+                        lookup_slot_token_name(ctx, obj->data.identifier.name);
+                    char fallback_token[96];
+                    if (token_name == NULL) {
+                        snprintf(fallback_token, sizeof(fallback_token),
+                                 "%s_token", obj->data.identifier.name);
+                        token_name = fallback_token;
+                    }
+                    result = strdup_fmt("pgy_secure_release_%s(%s, &%s)",
+                                        inner, slot_ref, token_name);
                 } else {
                     result = strdup_fmt("pgy_release_%s(%s)", inner, slot_ref);
                 }
@@ -3448,6 +3500,54 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             }
             free(slot_ref);
             free(obj_expr);
+        }
+
+        {
+            const char *receiver_type = infer_expression_type_name(ctx, obj);
+            if (method != NULL
+                && strcmp(method, "Slice") == 0
+                && receiver_type != NULL
+                && (strncmp(receiver_type, "Array<", 6) == 0
+                    || strncmp(receiver_type, "Slice<", 6) == 0)
+                && call->data.call.arg_count == 2) {
+                const char *inner = slot_inner_type_name(receiver_type);
+                char *start_expr = emit_expression(call->data.call.arguments[0], ctx);
+                char *len_expr = emit_expression(call->data.call.arguments[1], ctx);
+                char *result = NULL;
+                int tmp_id = ++ctx->tmp_counter;
+
+                if (inner == NULL) {
+                    transpiler_set_backend_error(
+                        ctx,
+                        "cannot determine slice element type for receiver '%s'",
+                        receiver_type);
+                    free(start_expr);
+                    free(len_expr);
+                    return pergyra_strdup("0");
+                }
+
+                if (strncmp(receiver_type, "Array<", 6) == 0) {
+                    char *obj_expr = emit_expression(obj, ctx);
+                    result = strdup_fmt(
+                        "({ PgyArray_%s _pgy_arr_%d = %s; pgy_array_slice_%s(&_pgy_arr_%d, (size_t)(%s), (size_t)(%s)); })",
+                        inner, tmp_id, obj_expr, inner, tmp_id, start_expr, len_expr);
+                    free(obj_expr);
+                } else {
+                    char *obj_expr = emit_expression(obj, ctx);
+                    result = strdup_fmt(
+                        "({ PgySlice_%s _pgy_slice_%d = %s; size_t _pgy_start_%d = (size_t)(%s); size_t _pgy_len_%d = (size_t)(%s); if (_pgy_start_%d + _pgy_len_%d > _pgy_slice_%d.length) PGY_PANIC(\"Slice out of bounds\"); (PgySlice_%s){ _pgy_slice_%d.data + _pgy_start_%d, _pgy_len_%d }; })",
+                        inner, tmp_id, obj_expr,
+                        tmp_id, start_expr,
+                        tmp_id, len_expr,
+                        tmp_id, tmp_id, tmp_id,
+                        inner, tmp_id, tmp_id, tmp_id);
+                    free(obj_expr);
+                }
+
+                free(start_expr);
+                free(len_expr);
+                return result;
+            }
         }
     }
 
@@ -3889,9 +3989,22 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 if (transpiler_parse_versioned_name(id_name, base_name, sizeof(base_name), &version))
                     slot_type = lookup_typed_var(ctx, base_name);
             }
-            if (slot_type != NULL && transpiler_type_name_is_slot_like(slot_type)) {
+            if (slot_type != NULL && transpiler_type_name_is_slot_like(slot_type)
+                && !ctx->suppress_slot_auto_read) {
                 const char *inner = slot_inner_type_name(slot_type);
-                char *result = strdup_fmt("pgy_read_%s(&%s)", inner, c_ssa_name);
+                bool secure = strncmp(slot_type, "SecureSlot<", 11) == 0;
+                const char *token_name = secure
+                    ? lookup_slot_token_name(ctx, id_name)
+                    : NULL;
+                char fallback_token[96];
+                if (secure && token_name == NULL) {
+                    snprintf(fallback_token, sizeof(fallback_token), "%s_token", id_name);
+                    token_name = fallback_token;
+                }
+                char *result = secure
+                    ? strdup_fmt("pgy_secure_read_%s(&%s, &%s)",
+                                  inner, c_ssa_name, token_name)
+                    : strdup_fmt("pgy_read_%s(&%s)", inner, c_ssa_name);
                 free(c_ssa_name);
                 return result;
             }
@@ -3915,9 +4028,17 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 return pergyra_strdup("0");
             }
             char *slot_ref = slot_ref_expr(ctx, id_name, id_name);
+            const char *token_name = secure
+                ? lookup_slot_token_name(ctx, id_name)
+                : NULL;
+            char fallback_token[96];
+            if (secure && token_name == NULL) {
+                snprintf(fallback_token, sizeof(fallback_token), "%s_token", id_name);
+                token_name = fallback_token;
+            }
             char *result = secure
-                ? strdup_fmt("pgy_secure_read_%s(%s, &%s_token)",
-                              inner, slot_ref, id_name)
+                ? strdup_fmt("pgy_secure_read_%s(%s, &%s)",
+                              inner, slot_ref, token_name)
                 : strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
             free(slot_ref);
             return result;
@@ -4033,6 +4154,53 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return result;
     }
 
+    case AST_TUPLE_LITERAL: {
+        /* Determine tuple type name from context. Priority:
+         *   1) ctx->expected_type (let binding with annotation)
+         *   2) ctx->current_return_type (inside `return` in tuple-returning fn)
+         *   3) Build from element type names (best-effort fallback).
+         * All three must start with '(' for tuple classification. */
+        char tuple_name_buf[256];
+        const char *tuple_name = NULL;
+        if (ctx->expected_type != NULL && ctx->expected_type[0] == '(')
+            tuple_name = ctx->expected_type;
+        else if (ctx->current_return_type[0] == '(')
+            tuple_name = ctx->current_return_type;
+        if (tuple_name == NULL) {
+            size_t off = 0;
+            off += (size_t)snprintf(tuple_name_buf + off,
+                sizeof(tuple_name_buf) - off, "(");
+            for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
+                const char *et =
+                    infer_expression_type_name(ctx, node->data.tuple_literal.elements[i]);
+                if (et == NULL || et[0] == '\0') et = "Int";
+                if (i > 0) {
+                    off += (size_t)snprintf(tuple_name_buf + off,
+                        sizeof(tuple_name_buf) - off, ", ");
+                }
+                off += (size_t)snprintf(tuple_name_buf + off,
+                    sizeof(tuple_name_buf) - off, "%s", et);
+            }
+            (void)snprintf(tuple_name_buf + off,
+                sizeof(tuple_name_buf) - off, ")");
+            tuple_name = tuple_name_buf;
+        }
+        const char *ctype = pergyra_type_to_c(tuple_name);
+        CodeBuf *out = codebuf_create();
+        codebuf_write(out, "((%s){", ctype);
+        for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
+            char *v = emit_expression(node->data.tuple_literal.elements[i], ctx);
+            if (i > 0)
+                codebuf_write(out, ", ");
+            codebuf_write(out, ".f%zu = %s", i, v);
+            free(v);
+        }
+        codebuf_write(out, "})");
+        char *result = pergyra_strdup(out->data);
+        codebuf_destroy(out);
+        return result;
+    }
+
     case AST_ARRAY_LITERAL: {
         const char *array_type = infer_expression_type_name(ctx, node);
         const char *inner = slot_inner_type_name(array_type);
@@ -4070,8 +4238,15 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 char *slot_ref = slot_ref_expr(ctx, tgt_name, tgt_name);
                 char *result;
                 if (secure) {
-                    result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s_token)",
-                        inner, slot_ref, value, tgt_name);
+                    const char *token_name = lookup_slot_token_name(ctx, tgt_name);
+                    char fallback_token[96];
+                    if (token_name == NULL) {
+                        snprintf(fallback_token, sizeof(fallback_token),
+                                 "%s_token", tgt_name);
+                        token_name = fallback_token;
+                    }
+                    result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
+                        inner, slot_ref, value, token_name);
                 } else {
                     result = strdup_fmt("pgy_write_%s(%s, %s)",
                         inner, slot_ref, value);

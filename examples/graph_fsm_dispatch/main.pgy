@@ -12,10 +12,22 @@ zone NodeZone
 
     func Label(self) -> String
     {
-        if nodeId == 0 { return "DEPOT"; }
-        if nodeId == 1 { return "HUB"; }
-        if nodeId == 2 { return "PORT"; }
-        if nodeId == 3 { return "LAB"; }
+        if nodeId == 0
+        {
+            return "DEPOT";
+        }
+        if nodeId == 1
+        {
+            return "HUB";
+        }
+        if nodeId == 2
+        {
+            return "PORT";
+        }
+        if nodeId == 3
+        {
+            return "LAB";
+        }
         return "NODE?";
     }
 
@@ -129,11 +141,17 @@ world DispatchWorld
     {
         if targetNode == 2
         {
-            if PortDirectCost() <= PortViaHubCost() { return 0; }
+            if PortDirectCost() <= PortViaHubCost()
+            {
+                return 0;
+            }
             return 1;
         }
 
-        if LabViaHubCost() <= LabViaPortCost() { return 1; }
+        if LabViaHubCost() <= LabViaPortCost()
+        {
+            return 1;
+        }
         return 2;
     }
 
@@ -141,11 +159,17 @@ world DispatchWorld
     {
         if targetNode == 2
         {
-            if pathKind == 0 { return PortDirectCost(); }
+            if pathKind == 0
+            {
+                return PortDirectCost();
+            }
             return PortViaHubCost();
         }
 
-        if pathKind == 1 { return LabViaHubCost(); }
+        if pathKind == 1
+        {
+            return LabViaHubCost();
+        }
         return LabViaPortCost();
     }
 
@@ -153,11 +177,17 @@ world DispatchWorld
     {
         if targetNode == 2
         {
-            if pathKind == 0 { return 2; }
+            if pathKind == 0
+            {
+                return 2;
+            }
             return 1;
         }
 
-        if pathKind == 1 { return 1; }
+        if pathKind == 1
+        {
+            return 1;
+        }
         return 2;
     }
 
@@ -168,13 +198,19 @@ world DispatchWorld
 
     func DemandFor(self, targetNode: Int) -> Int
     {
-        if targetNode == 2 { return port.queue; }
+        if targetNode == 2
+        {
+            return port.queue;
+        }
         return lab.queue;
     }
 
     func DrainTarget(self, targetNode: Int, amount: Int) -> Int
     {
-        if targetNode == 2 { return port.Drain(amount); }
+        if targetNode == 2
+        {
+            return port.Drain(amount);
+        }
         return lab.Drain(amount);
     }
 
@@ -311,7 +347,10 @@ world DispatchWorld
     func SaveReport(self, path: String, atlas: Courier, nova: Courier, ember: Courier) -> Void
     {
         let fd = FileOpen(path, "w");
-        if fd < 0 { return; }
+        if fd < 0
+        {
+            return;
+        }
 
         FileWrite(fd, "=== GRAPH FSM REPORT ===\n");
         FileWrite(fd, "weather="); FileWrite(fd, ToString(weather)); FileWrite(fd, "\n");

@@ -888,6 +888,23 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
         return LLVMPointerType(fn_type, 0);
     }
 
+    /* Tuple type: anonymous struct { T0, T1, ... } */
+    if (type_node->type == AST_TYPE
+        && type_node->data.type.tuple_elements != NULL
+        && type_node->data.type.tuple_element_count > 0) {
+        size_t n = type_node->data.type.tuple_element_count;
+        LLVMTypeRef *fields = calloc(n, sizeof(LLVMTypeRef));
+        if (fields == NULL)
+            return ctx->type_i32;
+        for (size_t i = 0; i < n; i++)
+            fields[i] = ast_type_to_llvm(ctx,
+                type_node->data.type.tuple_elements[i]);
+        LLVMTypeRef result = LLVMStructTypeInContext(ctx->context, fields,
+            (unsigned)n, 0);
+        free(fields);
+        return result;
+    }
+
     if (type_node->type == AST_TYPE && type_node->data.type.name != NULL) {
         char *full_name = llvm_render_type_name(type_node);
         LLVMTypeRef resolved = pergyra_type_to_llvm(ctx, full_name);

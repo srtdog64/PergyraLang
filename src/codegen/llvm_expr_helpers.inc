@@ -631,6 +631,34 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 static const char *
 llvm_current_host_class_name(LLVMGenCtx *ctx)
 {
+    ASTNode *decl = NULL;
+
+    if (ctx == NULL)
+        return NULL;
+
+    if (ctx->current_class_name != NULL) {
+        decl = llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
+        if (decl == NULL)
+            return ctx->current_class_name;
+
+        switch (decl->type) {
+        case AST_CLASS_DECL:
+            return decl->data.class_decl.name;
+        case AST_ENUM_DECL:
+            return decl->data.enum_decl.name;
+        case AST_RELATION_DECL:
+            return decl->data.relation_decl.name;
+        case AST_EFFECT_DECL:
+            return decl->data.effect_decl.name;
+        case AST_ZONE_DECL:
+            return decl->data.zone_decl.name;
+        case AST_WORLD_DECL:
+            return decl->data.world_decl.name;
+        default:
+            return ctx->current_class_name;
+        }
+    }
+
     return llvm_current_host_decl_name(ctx);
 }
 
@@ -1768,9 +1796,9 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMBuildLoad2(ctx->builder, entry->type, entry->alloca,
                               llvm_tmp_name(ctx));
 
-    if (llvm_current_host_decl_name(ctx) != NULL && strcmp(name, "self") != 0) {
+    if (llvm_current_host_class_name(ctx) != NULL && strcmp(name, "self") != 0) {
         LLVMClassTypeEntry *cls =
-            llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
+            llvm_lookup_class(ctx, llvm_current_host_class_name(ctx));
         if (cls != NULL) {
             int field_idx = llvm_class_field_index(cls, name);
             if (field_idx >= 0) {

@@ -1160,6 +1160,15 @@ LLVMTypeRef   llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name);
 const char   *llvm_tmp_name(LLVMGenCtx *ctx);
 LLVMValueRef  llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
                                         const char *name);
+char         *llvm_stmt_render_type_arg(GenericParam *param);
+ASTNode      *llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx,
+                                                   const char *name);
+bool          llvm_mir_base_name_from_versioned(const char *mir_name,
+                                                char *base_out,
+                                                size_t base_out_size);
+LLVMTypeRef   llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
+LLVMTypeRef   llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
+                                                LLVMValueRef data_ptr);
 
 /* =================================================================
  * Generic monomorphization helpers (llvm_backend.c)

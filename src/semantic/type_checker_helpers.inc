@@ -1889,6 +1889,9 @@ type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx)
     if (type_is_subject_type(type, ctx))
         return false;
     switch (type->kind) {
+    case TYPE_KIND_PRIMITIVE:
+    case TYPE_KIND_ENUM:
+        return true;
     case TYPE_KIND_CONSTRUCTED:
         return !type_is_movable_resource_handle(type);
     case TYPE_KIND_CLASS:
@@ -2304,6 +2307,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
     size_t expected = sym->type->data.function.param_count;
     size_t provided = expr->data.call.arg_count;
+    ASTNode *callable_decl = NULL;
+    GenericParams *callable_generic_params = NULL;
+    Type **effective_generic_types = NULL;
     if (provided != expected) {
         char sig_buf[256];
         semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
@@ -2317,12 +2323,54 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
 
     Type **call_arg_types = calloc(provided > 0 ? provided : 1, sizeof(Type *));
+    if (ctx->program_root != NULL
+        && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
+        callable_decl = find_callable_decl_by_name(ctx->program_root, display_name);
+        if (callable_decl != NULL
+            && callable_decl->type == AST_FUNC_DECL
+            && callable_decl->data.func_decl.generic_params != NULL
+            && callable_decl->data.func_decl.generic_params->count > 0) {
+            callable_generic_params = callable_decl->data.func_decl.generic_params;
+            effective_generic_types = calloc(
+                callable_generic_params->count > 0
+                    ? callable_generic_params->count : 1,
+                sizeof(Type *));
+            if (effective_generic_types != NULL) {
+                for (size_t gi = 0; gi < callable_generic_params->count; gi++) {
+                    GenericParam *gp = callable_generic_params->params[gi];
+                    if (gp != NULL && gp->default_type != NULL)
+                        effective_generic_types[gi] =
+                            resolve_type_node(gp->default_type, ctx);
+                }
+            }
+        }
+    }
 
     for (size_t i = 0; i < provided; i++) {
         Type *param_type = sym->type->data.function.param_types[i];
         Type *arg_type = type_is_movable_resource_handle(param_type)
             ? type_check_qubit_use(expr->data.call.arguments[i], ctx)
             : type_check_expression(expr->data.call.arguments[i], ctx);
+        if (effective_generic_types != NULL
+            && callable_decl != NULL
+            && i < callable_decl->data.func_decl.param_count) {
+            FuncParam *fp = callable_decl->data.func_decl.params[i];
+            int param_index = -1;
+            if (fp != NULL && fp->type != NULL
+                && fp->type->type == AST_TYPE
+                && fp->type->data.type.name != NULL) {
+                param_index = find_generic_param_index(
+                    callable_generic_params,
+                    fp->type->data.type.name);
+            }
+            if (param_index >= 0
+                && (size_t)param_index < callable_generic_params->count) {
+                effective_generic_types[param_index] = arg_type;
+                if (arg_type != NULL) {
+                    param_type = arg_type;
+                }
+            }
+        }
         if (call_arg_types != NULL)
             call_arg_types[i] = arg_type;
 
@@ -2864,8 +2912,26 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
     }
 
+    Type *return_type = sym->type->data.function.return_type;
+    if (effective_generic_types != NULL
+        && callable_decl != NULL
+        && callable_decl->type == AST_FUNC_DECL
+        && callable_decl->data.func_decl.return_type != NULL
+        && callable_decl->data.func_decl.return_type->type == AST_TYPE
+        && callable_decl->data.func_decl.return_type->data.type.name != NULL) {
+        int return_index = find_generic_param_index(
+            callable_generic_params,
+            callable_decl->data.func_decl.return_type->data.type.name);
+        if (return_index >= 0
+            && (size_t)return_index < callable_generic_params->count
+            && effective_generic_types[return_index] != NULL) {
+            return_type = effective_generic_types[return_index];
+        }
+    }
+
+    free(effective_generic_types);
     free(call_arg_types);
-    return sym->type->data.function.return_type;
+    return return_type;
 }
 
 static Symbol *

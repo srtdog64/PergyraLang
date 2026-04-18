@@ -395,6 +395,14 @@ ASTNode* parser_parse_call(Parser* parser) {
 ASTNode* finish_call(Parser* parser, ASTNode* callee) {
     ASTNode* call = ast_create_call(callee);
 
+    /* Adopt generic args parsed by parser_parse_primary (e.g.
+     * ClaimSecureSlot<Int> left them on the parser). Consumed here so
+     * subsequent calls don't inherit them. */
+    if (parser->pending_call_generic_args != NULL) {
+        call->data.call.generic_args = parser->pending_call_generic_args;
+        parser->pending_call_generic_args = NULL;
+    }
+
     // 인자 파싱
     if (!parser_check(parser, TOKEN_RPAREN)) {
         do {
@@ -512,7 +520,10 @@ ASTNode* parser_parse_primary(Parser* parser) {
         if ((strcmp(name, "ClaimSlot") == 0 ||
              strcmp(name, "ClaimSecureSlot") == 0) &&
             parser_check(parser, TOKEN_LESS)) {
-            skip_generic_arguments(parser);
+            /* Parse and stash the `<T>` args so finish_call can attach
+             * them to the AST_CALL (needed for destructuring patterns
+             * where the LHS has no type annotation to recover T from). */
+            parser->pending_call_generic_args = parse_type_arguments(parser);
         }
 
         // 내장 함수 처리
@@ -545,11 +556,35 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return parse_lambda_expression(parser);
     }
 
-    // 괄호 표현식
+    // 괄호 표현식 / 튜플 리터럴
     if (parser_match(parser, TOKEN_LPAREN)) {
-        ASTNode* expr = parser_parse_expression(parser);
+        ASTNode* first = parser_parse_expression(parser);
+        if (parser_check(parser, TOKEN_COMMA)) {
+            /* Tuple literal: (a, b, ...) */
+            ASTNode *tuple = calloc(1, sizeof(ASTNode));
+            tuple->type = AST_TUPLE_LITERAL;
+            tuple->line = parser->previous_token.line;
+            size_t cap = 4;
+            tuple->data.tuple_literal.elements = calloc(cap, sizeof(ASTNode *));
+            tuple->data.tuple_literal.count = 0;
+            tuple->data.tuple_literal.elements[tuple->data.tuple_literal.count++] = first;
+            while (parser_match(parser, TOKEN_COMMA)) {
+                if (parser_check(parser, TOKEN_RPAREN))
+                    break; /* allow trailing comma */
+                ASTNode *elem = parser_parse_expression(parser);
+                if (tuple->data.tuple_literal.count >= cap) {
+                    cap *= 2;
+                    tuple->data.tuple_literal.elements = realloc(
+                        tuple->data.tuple_literal.elements,
+                        cap * sizeof(ASTNode *));
+                }
+                tuple->data.tuple_literal.elements[tuple->data.tuple_literal.count++] = elem;
+            }
+            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after tuple literal");
+            return tuple;
+        }
         parser_consume(parser, TOKEN_RPAREN, "Expected ')' after expression");
-        return expr;
+        return first;
     }
 
     parser_error(parser, "Unexpected token in expression");

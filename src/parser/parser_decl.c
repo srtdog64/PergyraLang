@@ -564,6 +564,43 @@ ASTNode* parse_type(Parser* parser) {
         return handler_type;
     }
 
+    /* Tuple type: (T, U, ...) — requires at least one comma.
+     * Single parenthesized (T) is treated as just T (no tuple). */
+    if (parser_check(parser, TOKEN_LPAREN)) {
+        parser_advance(parser); /* consume '(' */
+        ASTNode **elements = NULL;
+        size_t    element_count = 0;
+        size_t    element_cap   = 0;
+
+        while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
+            ASTNode *elem = parse_type(parser);
+            if (element_count == element_cap) {
+                element_cap = element_cap == 0 ? 4 : element_cap * 2;
+                elements = realloc(elements, element_cap * sizeof(ASTNode *));
+            }
+            elements[element_count++] = elem;
+            if (!parser_match(parser, TOKEN_COMMA))
+                break;
+        }
+        parser_consume(parser, TOKEN_RPAREN, "Expected ')' in tuple type");
+
+        if (element_count >= 2) {
+            ASTNode *tuple_node = ast_create_type("Tuple");
+            tuple_node->data.type.tuple_elements = elements;
+            tuple_node->data.type.tuple_element_count = element_count;
+            return tuple_node;
+        }
+        /* Single element: treat (T) as just T */
+        if (element_count == 1) {
+            ASTNode *single = elements[0];
+            free(elements);
+            return single;
+        }
+        /* Empty (): treat as Void */
+        free(elements);
+        return ast_create_type("Void");
+    }
+
     Token type_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type name");
     char *qualified_name = pergyra_strdup(type_name.text);
 
@@ -869,6 +906,18 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
 
             if (!has_let && !is_struct && !is_vessel_field) {
                 parser_error(parser, "Expected field or method declaration");
+                return class_decl;
+            }
+
+            /* Destructuring field declarations like
+             *     private let (slot, token) = ClaimSecureSlot<Int>(lvl);
+             * are not yet supported. Emit a targeted error with a fix hint
+             * instead of the generic "Expected field name". */
+            if (has_let && parser_check(parser, TOKEN_LPAREN)) {
+                parser_error(parser,
+                    "class-body destructuring field is not yet supported; "
+                    "declare each field separately and initialize them in a "
+                    "constructor/init method");
                 return class_decl;
             }
 

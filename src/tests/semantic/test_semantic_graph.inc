@@ -949,4 +949,83 @@ test_type_resolution_graph(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("graph-backed quiet resolution failure path stays stable across repeated semantic runs");
+    {
+        const char *source =
+            "type Left = Right;\n"
+            "type Right = Left;\n"
+            "ability Bufferable<T = Left> where T: Left {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n"
+            "subject Bag {\n"
+            "    let item: Int;\n"
+            "}\n"
+            "role BagBuffer for Bag {\n"
+            "    impl ability Bufferable {\n"
+            "        func Put(value: Int) -> Void { return; }\n"
+            "    }\n"
+            "}\n";
+        bool stable = true;
+
+        for (int iteration = 0; iteration < 32; iteration++) {
+            Lexer *lexer = lexer_create(source);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+
+            if (parser_has_error(parser)
+                || result == NULL
+                || result->error_count == 0
+                || !ctx_has_diagnostic_substring_from_result(
+                    result, "Type resolution dependency cycle detected")
+                || !ctx_has_diagnostic_substring_from_result(
+                    result, "cycle path:")
+                || !ctx_has_diagnostic_substring_from_result(
+                    result, "Fix:")) {
+                stable = false;
+            }
+
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+
+            if (!stable)
+                break;
+        }
+
+        EXPECT(stable);
+    }
+
+    TEST("parser failure cleanup stays stable across repeated same-process runs");
+    {
+        const char *source =
+            "subject Broken {\n"
+            "    let hp: Int\n"
+            "    func Main( -> Void {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n";
+        bool stable = true;
+
+        for (int iteration = 0; iteration < 64; iteration++) {
+            Lexer *lexer = lexer_create(source);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+
+            if (!parser_has_error(parser)) {
+                stable = false;
+            }
+
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+
+            if (!stable)
+                break;
+        }
+
+        EXPECT(stable);
+    }
 }

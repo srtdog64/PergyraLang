@@ -3946,6 +3946,77 @@ static inline int32_t pgy_queue_pop_int(PgyQueue_Int *q)
 static inline int32_t pgy_queue_size_int(PgyQueue_Int *q) { return (int32_t)q->count; }
 static inline bool pgy_queue_empty_int(PgyQueue_Int *q) { return q->count == 0; }
 
+typedef struct
+{
+    char   **data;
+    size_t   head;
+    size_t   tail;
+    size_t   count;
+    size_t   capacity;
+} PgyQueue_String;
+
+static inline PgyQueue_String pgy_queue_new_string(void)
+{
+    PgyQueue_String q;
+    q.capacity = 16;
+    q.count = q.head = q.tail = 0;
+    q.data = (char **)calloc(q.capacity, sizeof(char *));
+    if (q.data == NULL) {
+        q.capacity = 0;
+        pgy_runtime_warn_invalid_collection("queue_new_string", "allocation failed");
+    }
+    return q;
+}
+
+static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
+{
+    if (q == NULL || (q->data == NULL && q->capacity == 0)) {
+        pgy_runtime_warn_invalid_collection("queue_push_string", "queue is not initialized");
+        return;
+    }
+    if (q->count >= q->capacity) {
+        size_t nc = q->capacity == 0 ? 16 : q->capacity * 2;
+        char **nd = (char **)calloc(nc, sizeof(char *));
+        if (nd == NULL) {
+            pgy_runtime_warn_invalid_collection("queue_push_string", "growth allocation failed");
+            return;
+        }
+        for (size_t i = 0; i < q->count; i++)
+            nd[i] = q->data[(q->head + i) % q->capacity];
+        free(q->data);
+        q->data = nd;
+        q->head = 0;
+        q->tail = q->count;
+        q->capacity = nc;
+    }
+    q->data[q->tail] = (char *)val;
+    q->tail = (q->tail + 1) % q->capacity;
+    q->count++;
+}
+
+static inline char *pgy_queue_pop_string(PgyQueue_String *q)
+{
+    char *out = NULL;
+    if (q == NULL || q->count == 0) {
+        pgy_runtime_warn_invalid_collection("queue_pop_string", "queue is empty");
+        return NULL;
+    }
+    out = q->data[q->head];
+    q->head = (q->head + 1) % q->capacity;
+    q->count--;
+    return out;
+}
+
+static inline int32_t pgy_queue_size_string(PgyQueue_String *q)
+{
+    return q != NULL ? (int32_t)q->count : 0;
+}
+
+static inline bool pgy_queue_empty_string(PgyQueue_String *q)
+{
+    return q == NULL || q->count == 0;
+}
+
 /* =================================================================
  * Object Pool — fixed-capacity reusable slot pool
  * use pool;

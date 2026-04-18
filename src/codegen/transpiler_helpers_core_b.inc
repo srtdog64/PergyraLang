@@ -1582,6 +1582,47 @@ pergyra_type_to_c(const char *name)
         snprintf(buf, sizeof(buf), "PgyOption_%s", inner);
         return buf;
     }
+    /* Tuple type: "(T0, T1, ...)" → "PgyTuple_T0_T1_..._t" */
+    if (name[0] == '(') {
+        static char buf[256];
+        size_t off = 0;
+        off += (size_t)snprintf(buf + off, sizeof(buf) - off, "PgyTuple_");
+        size_t i = 1;
+        size_t n = strlen(name);
+        bool first = true;
+        while (i < n && name[i] != ')') {
+            /* skip whitespace */
+            while (i < n && (name[i] == ' ' || name[i] == '\t'))
+                i++;
+            /* read one element up to ',' or ')' (depth-tracking) */
+            char elem[96];
+            size_t eo = 0;
+            int depth = 0;
+            while (i < n && eo + 1 < sizeof(elem)) {
+                char c = name[i];
+                if (depth == 0 && (c == ',' || c == ')'))
+                    break;
+                if (c == '<' || c == '(') depth++;
+                if (c == '>' || c == ')') depth--;
+                elem[eo++] = c;
+                i++;
+            }
+            elem[eo] = '\0';
+            /* trim trailing space */
+            while (eo > 0 && (elem[eo-1] == ' ' || elem[eo-1] == '\t'))
+                elem[--eo] = '\0';
+            char sane[96];
+            sanitize_c_suffix(elem, sane, sizeof(sane));
+            if (!first) {
+                off += (size_t)snprintf(buf + off, sizeof(buf) - off, "_");
+            }
+            off += (size_t)snprintf(buf + off, sizeof(buf) - off, "%s", sane);
+            first = false;
+            if (i < n && name[i] == ',') i++;
+        }
+        snprintf(buf + off, sizeof(buf) - off, "_t");
+        return buf;
+    }
     return pergyra_primitive_to_c(name);
 }
 
@@ -1592,6 +1633,19 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
         || type_node->type != AST_TYPE
         || type_node->data.type.name == NULL) {
         codebuf_write(buf, "Int");
+        return;
+    }
+
+    /* Tuple type: (T0, T1, ...) */
+    if (type_node->data.type.tuple_elements != NULL
+        && type_node->data.type.tuple_element_count > 0) {
+        codebuf_write(buf, "(");
+        for (size_t i = 0; i < type_node->data.type.tuple_element_count; i++) {
+            if (i > 0)
+                codebuf_write(buf, ", ");
+            append_type_name(buf, type_node->data.type.tuple_elements[i]);
+        }
+        codebuf_write(buf, ")");
         return;
     }
 
@@ -1862,6 +1916,71 @@ ensure_collection_specialization(TranspilerCtx *ctx, const char *kind,
     ensure_collection_specialization_to(ctx, ctx->decls, kind, inner_type);
 }
 
+/* Register tuple specialization and emit typedef struct once per unique
+ * signature. Layout: typedef struct { T0 f0; T1 f1; ... } PgyTuple_<suffix>_t; */
+static void
+ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_type)
+{
+    if (ctx == NULL || dst == NULL || tuple_type == NULL)
+        return;
+    if (tuple_type->data.type.tuple_elements == NULL
+        || tuple_type->data.type.tuple_element_count == 0)
+        return;
+
+    size_t n = tuple_type->data.type.tuple_element_count;
+
+    /* Build suffix and element-name list */
+    char suffix[256];
+    size_t suffix_off = 0;
+    char elem_names[512];
+    size_t elem_off = 0;
+    suffix[0] = '\0';
+    elem_names[0] = '\0';
+    for (size_t i = 0; i < n; i++) {
+        char *elem = render_type_name(tuple_type->data.type.tuple_elements[i]);
+        char sane[96];
+        sanitize_c_suffix(elem, sane, sizeof(sane));
+        if (i > 0) {
+            suffix_off += (size_t)snprintf(suffix + suffix_off,
+                sizeof(suffix) - suffix_off, "_");
+            elem_off += (size_t)snprintf(elem_names + elem_off,
+                sizeof(elem_names) - elem_off, " ");
+        }
+        suffix_off += (size_t)snprintf(suffix + suffix_off,
+            sizeof(suffix) - suffix_off, "%s", sane);
+        elem_off += (size_t)snprintf(elem_names + elem_off,
+            sizeof(elem_names) - elem_off, "%s", elem);
+        free(elem);
+    }
+
+    for (int i = 0; i < ctx->tuple_spec_count; i++) {
+        if (strcmp(ctx->tuple_specs_suffix[i], suffix) == 0)
+            return;
+    }
+    if (ctx->tuple_spec_count >= 32) {
+        transpiler_set_backend_error(ctx,
+            "too many tuple specializations in one translation unit; limit is 32 while lowering (%s)",
+            elem_names);
+        return;
+    }
+    copy_capped_string(ctx->tuple_specs_suffix[ctx->tuple_spec_count],
+        sizeof(ctx->tuple_specs_suffix[0]), suffix);
+    copy_capped_string(ctx->tuple_specs_elements[ctx->tuple_spec_count],
+        sizeof(ctx->tuple_specs_elements[0]), elem_names);
+    ctx->tuple_specs_arity[ctx->tuple_spec_count] = (int)n;
+    ctx->tuple_spec_count++;
+
+    codebuf_write(dst, "\n/* PGY_TUPLE_%s */\n", suffix);
+    codebuf_write(dst, "typedef struct {\n");
+    for (size_t i = 0; i < n; i++) {
+        char *elem = render_type_name(tuple_type->data.type.tuple_elements[i]);
+        const char *ctype = pergyra_type_to_c(elem);
+        codebuf_write(dst, "    %s f%zu;\n", ctype != NULL ? ctype : elem, i);
+        free(elem);
+    }
+    codebuf_write(dst, "} PgyTuple_%s_t;\n", suffix);
+}
+
 static void
 ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *type_node)
 {
@@ -1881,6 +2000,18 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNod
 
     if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
         return;
+
+    /* Tuple type: recurse into each element then emit struct typedef once.
+     * Use ctx->out like Result so the typedef precedes forward declarations. */
+    if (type_node->data.type.tuple_elements != NULL
+        && type_node->data.type.tuple_element_count > 0) {
+        for (size_t i = 0; i < type_node->data.type.tuple_element_count; i++)
+            ensure_type_specializations_from_ast_to(ctx, dst,
+                type_node->data.type.tuple_elements[i]);
+        ensure_tuple_specialization_to(ctx, ctx->out, type_node);
+        (void)dst;
+        return;
+    }
 
     {
         ASTNode *alias_decl = find_type_alias_decl(ctx, type_node->data.type.name);
@@ -2199,6 +2330,15 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         || strcmp(method_name, "Release") == 0)) {
                     return "Void";
                 }
+                if ((strncmp(receiver_type, "Array<", 6) == 0
+                     || strncmp(receiver_type, "Slice<", 6) == 0)
+                    && strcmp(method_name, "Slice") == 0) {
+                    static char slice_buf[128];
+                    const char *inner = slot_inner_type_name(receiver_type);
+                    snprintf(slice_buf, sizeof(slice_buf), "Slice<%s>",
+                        inner != NULL ? inner : "Int");
+                    return slice_buf;
+                }
             }
             ASTNode *method_decl = NULL;
             receiver_type = resolve_nominal_host_expr_type_name(ctx, receiver);
@@ -2270,14 +2410,19 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return "Unknown";
             }
             if (strcmp(name, "MapKeys") == 0 && expr->data.call.arg_count >= 1) {
+                static char map_keys_buf[128];
                 const char *map_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
-                    const char *key_type = constructed_arg_name_at(map_type, 0);
-                    if (key_type != NULL)
-                        return strdup_fmt("Array<%s>", key_type);
+                    char key_buf[64];
+                    copy_constructed_arg_name_at(map_type, 0,
+                        key_buf, sizeof(key_buf));
+                    snprintf(map_keys_buf, sizeof(map_keys_buf), "Array<%s>",
+                        key_buf[0] != '\0' ? key_buf : "Int");
+                    return map_keys_buf;
                 }
-                return "Array<Int>";
+                snprintf(map_keys_buf, sizeof(map_keys_buf), "Array<Int>");
+                return map_keys_buf;
             }
             if (strcmp(name, "ToString") == 0)
                 return "String";

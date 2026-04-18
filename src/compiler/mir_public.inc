@@ -1284,6 +1284,11 @@ mir_dump(const MIRProgram *mir, FILE *out)
                     for (size_t m = 0; m < inst->use_count; m++)
                         fprintf(out, "%s%s", m == 0 ? "" : ",", inst->uses[m]);
                 }
+                if (inst->ast != NULL) {
+                    fprintf(out, " ast-type=%d line=%u",
+                            (int)inst->ast->type,
+                            inst->ast->line);
+                }
                 fprintf(out, "\n");
             }
         }

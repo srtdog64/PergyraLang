@@ -48,6 +48,11 @@
 #define PGY_EXEEXT ""
 #endif
 
+#ifndef _WIN32
+extern int setenv(const char *name, const char *value, int overwrite);
+extern int unsetenv(const char *name);
+#endif
+
 #include "compiler/driver_app.h"
 #include "compiler/compiler.h"
 
@@ -59,6 +64,38 @@ static const char *g_backend_filter = NULL;
 static const char *g_case_start = NULL;
 static const char *g_case_stop = NULL;
 static bool g_case_window_open = false;
+
+static char *
+pgy_strdup_local(const char *text)
+{
+    size_t len;
+    char *copy;
+
+    if (text == NULL)
+        return NULL;
+
+    len = strlen(text);
+    copy = (char *)malloc(len + 1);
+    if (copy == NULL)
+        return NULL;
+    memcpy(copy, text, len + 1);
+    return copy;
+}
+
+static void
+pgy_setenv_local(const char *name, const char *value)
+{
+    if (name == NULL || name[0] == '\0')
+        return;
+#ifdef _WIN32
+    SetEnvironmentVariableA(name, value);
+#else
+    if (value == NULL)
+        unsetenv(name);
+    else
+        setenv(name, value, 1);
+#endif
+}
 
 static void
 abi_expect(const char *name, bool cond)
@@ -599,6 +636,40 @@ run_pipeline_case(const char *case_name,
         && strcmp(g_case_stop, case_name) == 0) {
         g_case_window_open = false;
     }
+}
+
+static void
+run_same_process_repeat_case(const char *case_name_prefix,
+                             const char *source,
+                             const char *expected_output,
+                             const char *expected_compile_output,
+                             BackendKind backend,
+                             bool enforce_thresholds,
+                             double max_compile_seconds,
+                             double max_run_seconds,
+                             int repeat_count)
+{
+    char *saved_same_process;
+
+    if (repeat_count <= 0)
+        return;
+
+    saved_same_process = pgy_strdup_local(getenv("PGY_ABI_PIPELINE_SAME_PROCESS"));
+    pgy_setenv_local("PGY_ABI_PIPELINE_SAME_PROCESS", "1");
+
+    for (int i = 0; i < repeat_count; i++) {
+        char repeated_case_name[256];
+
+        snprintf(repeated_case_name, sizeof(repeated_case_name),
+                 "%s_same_process_%d", case_name_prefix, i + 1);
+        run_pipeline_case(repeated_case_name, source, expected_output,
+                          expected_compile_output, backend,
+                          enforce_thresholds, max_compile_seconds,
+                          max_run_seconds);
+    }
+
+    pgy_setenv_local("PGY_ABI_PIPELINE_SAME_PROCESS", saved_same_process);
+    free(saved_same_process);
 }
 
 int
@@ -1284,6 +1355,11 @@ main(void)
     run_pipeline_case("relation_effect_propagation_abi", relation_effect_propagation_source, relation_effect_propagation_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_same_process_repeat_case("relation_effect_propagation_reentry_abi",
+                                 relation_effect_propagation_source,
+                                 relation_effect_propagation_expected,
+                                 "0 error(s), 0 warning(s)",
+                                 BACKEND_C, !perf_mode, 30.0, 5.0, 3);
     run_pipeline_case("runtime_floor", loop_source, loop_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
@@ -1337,6 +1413,11 @@ main(void)
     run_pipeline_case("relation_effect_propagation_abi", relation_effect_propagation_source, relation_effect_propagation_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_same_process_repeat_case("relation_effect_propagation_reentry_abi",
+                                 relation_effect_propagation_source,
+                                 relation_effect_propagation_expected,
+                                 "0 error(s), 0 warning(s)",
+                                 BACKEND_LLVM, !perf_mode, 45.0, 5.0, 3);
     run_pipeline_case("runtime_floor", loop_source, loop_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);

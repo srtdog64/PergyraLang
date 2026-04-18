@@ -13,15 +13,26 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL) {
+            fprintf(stderr,
+                "[llvm inst] block=%zu inst=%zu kind=%d ast=%d result=%s\n",
+                mir_block->id, i, (int)inst->kind,
+                inst->ast != NULL ? (int)inst->ast->type : -1,
+                inst->result_name != NULL ? inst->result_name : "-");
+        }
         switch (inst->kind) {
         case MIR_INST_RESOURCE_OP:
             break;
         case MIR_INST_DEF:
             if (inst->ast != NULL && inst->result_name != NULL) {
                 if (inst->ast->type == AST_LET_DECL || inst->ast->type == AST_ASSIGNMENT) {
+                    if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+                        fprintf(stderr, "[llvm inst] emit_statement\n");
                     llvm_emit_statement(inst->ast, ctx);
                 } else {
                     LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
+                    if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+                        fprintf(stderr, "[llvm inst] emit_expression_store\n");
                     LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
                     if (val != NULL && alloca != NULL) {
                         LLVMBuildStore(ctx->builder, val, alloca);

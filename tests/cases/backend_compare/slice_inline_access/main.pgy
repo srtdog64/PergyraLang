@@ -1,0 +1,8 @@
+func Words() -> Array<String> {
+    return ["hello", "world", "foo"];
+}
+
+func Main() -> Void {
+    Log(Words().Slice(1, 2)[0]);
+    Log(Words().Slice(1, 2)[1]);
+}

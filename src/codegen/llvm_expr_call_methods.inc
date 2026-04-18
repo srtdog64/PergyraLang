@@ -225,6 +225,98 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    if (obj_node != NULL && method_name != NULL
+        && strcmp(method_name, "Slice") == 0
+        && node->data.call.arg_count == 2) {
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm slice] phase=begin\n");
+        LLVMValueRef receiver = llvm_emit_expression(obj_node, ctx);
+        LLVMValueRef start = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMValueRef len = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        const char *suffix = NULL;
+        LLVMTypeRef elem_type = NULL;
+        LLVMTypeRef slice_type = NULL;
+        LLVMValueRef data_ptr;
+        LLVMValueRef start64;
+        LLVMValueRef len64;
+        LLVMValueRef offset_ptr;
+        LLVMValueRef result;
+        LLVMTypeRef receiver_type;
+        unsigned field_count = 0;
+
+        if (receiver == NULL || start == NULL || len == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm slice] phase=operands-ready\n");
+
+        receiver_type = LLVMTypeOf(receiver);
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm slice] phase=receiver-type kind=%d\n",
+                (int)LLVMGetTypeKind(receiver_type));
+        if (LLVMGetTypeKind(receiver_type) == LLVMStructTypeKind)
+            field_count = LLVMCountStructElementTypes(receiver_type);
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm slice] phase=field-count count=%u\n", field_count);
+        data_ptr = llvm_array_data_ptr(ctx, receiver);
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm slice] phase=data-ptr\n");
+        if (LLVMGetTypeKind(LLVMTypeOf(data_ptr)) != LLVMPointerTypeKind)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        elem_type = llvm_stmt_resolve_array_elem_type(ctx, obj_node, data_ptr);
+        if (elem_type == NULL)
+            elem_type = ctx->type_i32;
+        suffix = llvm_type_to_suffix(ctx, elem_type);
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm slice] phase=elem ptr-kind=%d elem-kind=%d suffix=%s\n",
+                (int)LLVMGetTypeKind(LLVMTypeOf(data_ptr)),
+                elem_type != NULL ? (int)LLVMGetTypeKind(elem_type) : -1,
+                suffix != NULL ? suffix : "(null)");
+        if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
+            slice_type = llvm_slice_struct_type(ctx, suffix);
+        else
+            slice_type = LLVMStructTypeInContext(ctx->context,
+                (LLVMTypeRef[]){ LLVMPointerType(elem_type, 0), ctx->type_i64 }, 2, 0);
+        start64 = (LLVMTypeOf(start) == ctx->type_i64)
+            ? start
+            : LLVMBuildSExt(ctx->builder, start, ctx->type_i64, llvm_tmp_name(ctx));
+        len64 = (LLVMTypeOf(len) == ctx->type_i64)
+            ? len
+            : LLVMBuildSExt(ctx->builder, len, ctx->type_i64, llvm_tmp_name(ctx));
+
+        if (field_count == 4 && suffix != NULL && strcmp(suffix, "Unknown") != 0) {
+            char fn_name[64];
+            LLVMFuncEntry *fn;
+            LLVMValueRef receiver_alloca;
+            LLVMValueRef args[3];
+
+            snprintf(fn_name, sizeof(fn_name), "pgy_array_slice_%s", suffix);
+            fn = llvm_lookup_function(ctx, fn_name);
+            if (fn == NULL)
+                return LLVMConstInt(ctx->type_i32, 0, 0);
+            if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+                fprintf(stderr, "[llvm slice] phase=runtime-call fn=%s\n", fn_name);
+
+            receiver_alloca = llvm_create_entry_alloca(ctx, receiver_type, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, receiver, receiver_alloca);
+            args[0] = receiver_alloca;
+            args[1] = start64;
+            args[2] = len64;
+            if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+                fprintf(stderr, "[llvm slice] phase=runtime-call-dispatch\n");
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3,
+                llvm_tmp_name(ctx));
+        }
+
+        offset_ptr = LLVMBuildGEP2(ctx->builder, elem_type, data_ptr, &start64, 1,
+            llvm_tmp_name(ctx));
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm slice] phase=manual-emit\n");
+        result = LLVMGetUndef(slice_type);
+        result = LLVMBuildInsertValue(ctx->builder, result, offset_ptr, 0, llvm_tmp_name(ctx));
+        result = LLVMBuildInsertValue(ctx->builder, result, len64, 1, llvm_tmp_name(ctx));
+        return result;
+    }
+
     if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
         && method_name != NULL) {
         if (llvm_is_upper_ident(obj_node)) {
@@ -277,7 +369,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     : LLVMGetNamedFunction(ctx->module, full_name);
                 fn_type = fn != NULL
                     ? fn->fn_type
-                    : (fn_value != NULL ? LLVMGetElementType(LLVMTypeOf(fn_value)) : NULL);
+                    : (fn_value != NULL ? LLVMGlobalGetValueType(fn_value) : NULL);
                 ret_type = fn != NULL
                     ? fn->ret_type
                     : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);
@@ -391,7 +483,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     : LLVMGetNamedFunction(ctx->module, full_name);
                 LLVMTypeRef fn_type = fn != NULL
                     ? fn->fn_type
-                    : (fn_value != NULL ? LLVMGetElementType(LLVMTypeOf(fn_value)) : NULL);
+                    : (fn_value != NULL ? LLVMGlobalGetValueType(fn_value) : NULL);
                 LLVMTypeRef ret_type = fn != NULL
                     ? fn->ret_type
                     : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);
@@ -445,7 +537,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 : LLVMGetNamedFunction(ctx->module, full_name);
             fn_type = fn != NULL
                 ? fn->fn_type
-                : (fn_value != NULL ? LLVMGetElementType(LLVMTypeOf(fn_value)) : NULL);
+                : (fn_value != NULL ? LLVMGlobalGetValueType(fn_value) : NULL);
             ret_type = fn != NULL
                 ? fn->ret_type
                 : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);

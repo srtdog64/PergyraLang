@@ -18,6 +18,24 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
             if ((inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI)
                 && inst->result_name != NULL) {
                 LLVMTypeRef alloca_type = ctx->type_i32;
+                ASTNode *value_expr = inst->ast;
+                char base_name[128];
+                bool has_base_name = llvm_mir_base_name_from_versioned(
+                    inst->result_name, base_name, sizeof(base_name));
+
+                if (inst->ast != NULL) {
+                    if (inst->ast->type == AST_LET_DECL) {
+                        value_expr = inst->ast->data.let_decl.initializer;
+                        if (inst->ast->data.let_decl.type != NULL)
+                            alloca_type = llvm_mir_type_from_ast(
+                                ctx, inst->ast->data.let_decl.type);
+                        else if (inst->ast->data.let_decl.initializer != NULL)
+                            alloca_type = llvm_stmt_infer_expr_type(
+                                ctx, inst->ast->data.let_decl.initializer);
+                    } else {
+                        alloca_type = llvm_stmt_infer_expr_type(ctx, inst->ast);
+                    }
+                }
                 if (var_count >= var_capacity) {
                     var_capacity *= 2;
                     vars = realloc(vars, var_capacity * sizeof(LLVMMirVar));
@@ -26,6 +44,58 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 vars[var_count].type = alloca_type;
                 vars[var_count].alloca = llvm_create_entry_alloca(
                     ctx, alloca_type, inst->result_name);
+                if (has_base_name
+                    && value_expr != NULL
+                    && value_expr->type == AST_ARRAY_LITERAL) {
+                    LLVMTypeRef elem_type = ctx->type_i32;
+                    if (value_expr->data.array_literal.count > 0
+                        && value_expr->data.array_literal.elements != NULL
+                        && value_expr->data.array_literal.elements[0] != NULL) {
+                        elem_type = llvm_stmt_infer_expr_type(ctx,
+                            value_expr->data.array_literal.elements[0]);
+                    }
+                    llvm_register_array_var(ctx, pergyra_strdup(base_name),
+                        elem_type, (int64_t)value_expr->data.array_literal.count);
+                } else if (has_base_name
+                    && value_expr != NULL
+                    && value_expr->type == AST_CALL
+                    && value_expr->data.call.callee != NULL
+                    && value_expr->data.call.callee->type == AST_MEMBER_ACCESS
+                    && value_expr->data.call.callee->data.member.name != NULL
+                    && strcmp(value_expr->data.call.callee->data.member.name, "Slice") == 0) {
+                    ASTNode *receiver = value_expr->data.call.callee->data.member.object;
+                    LLVMTypeRef elem_type = ctx->type_i32;
+                    if (receiver != NULL
+                        && receiver->type == AST_IDENTIFIER
+                        && receiver->data.identifier.name != NULL) {
+                        LLVMArrayVarEntry *entry = llvm_lookup_array_var(
+                            ctx, receiver->data.identifier.name);
+                        if (entry != NULL && entry->elem_type != NULL)
+                            elem_type = entry->elem_type;
+                    } else if (receiver != NULL
+                        && receiver->type == AST_CALL
+                        && receiver->data.call.callee != NULL
+                        && receiver->data.call.callee->type == AST_IDENTIFIER
+                        && receiver->data.call.callee->data.identifier.name != NULL) {
+                        ASTNode *decl = llvm_stmt_find_function_decl_by_name(
+                            ctx, receiver->data.call.callee->data.identifier.name);
+                        if (decl != NULL
+                            && decl->type == AST_FUNC_DECL
+                            && decl->data.func_decl.return_type != NULL
+                            && decl->data.func_decl.return_type->type == AST_TYPE
+                            && decl->data.func_decl.return_type->data.type.generic_args != NULL
+                            && decl->data.func_decl.return_type->data.type.generic_args->count >= 1
+                            && decl->data.func_decl.return_type->data.type.generic_args->params[0] != NULL) {
+                            char *elem_name = llvm_stmt_render_type_arg(
+                                decl->data.func_decl.return_type->data.type.generic_args->params[0]);
+                            elem_type = pergyra_type_to_llvm(ctx,
+                                elem_name != NULL ? elem_name : "Int");
+                            free(elem_name);
+                        }
+                    }
+                    llvm_register_array_var(ctx, pergyra_strdup(base_name),
+                        elem_type, -1);
+                }
                 var_count++;
             }
         }

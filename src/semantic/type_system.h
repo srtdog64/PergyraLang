@@ -106,6 +106,13 @@ struct Type
             int security_level;
             SlotAccessMode access_mode;
         } slot;
+
+        /* Tuple type (T, U, V, ...) */
+        struct
+        {
+            Type** elements;
+            size_t element_count;
+        } tuple;
     } data;
 };
 
@@ -140,6 +147,10 @@ Type* type_create_primitive(const char* name, size_t size, bool is_signed);
 Type* type_create_generic(const char* param_name);
 Type* type_create_constructed(Type* constructor, Type** args, size_t arg_count);
 Type* type_create_function(Type** params, size_t param_count, Type* return_type);
+Type* type_create_tuple(Type** elements, size_t element_count);
+bool  type_is_tuple(const Type* t);
+size_t type_tuple_arity(const Type* t);
+Type* type_tuple_get_element(const Type* t, size_t index);
 Type* type_create_slot(Type* inner_type, bool is_secure);
 Type* type_create_slot_access(Type* inner_type, bool is_secure, SlotAccessMode access_mode);
 Type* type_create_read_view(Type* inner_type);

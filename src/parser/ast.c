@@ -975,6 +975,7 @@ ASTNode* ast_create_call(ASTNode* callee) {
     node->data.call.callee = callee;
     node->data.call.arguments = NULL;
     node->data.call.arg_count = 0;
+    node->data.call.generic_args = NULL;
     return node;
 }
 
@@ -1072,6 +1073,8 @@ ASTNode* ast_create_type(const char* name) {
     ASTNode* node = ast_create_node(AST_TYPE);
     node->data.type.name = pergyra_strdup(name);
     node->data.type.generic_args = NULL;
+    node->data.type.tuple_elements = NULL;
+    node->data.type.tuple_element_count = 0;
     return node;
 }
 
@@ -1091,6 +1094,15 @@ ast_clone(ASTNode* node)
             clone = ast_create_type(node->data.type.name);
             clone->data.type.generic_args =
                 ast_clone_generic_params(node->data.type.generic_args);
+            if (node->data.type.tuple_elements != NULL
+                && node->data.type.tuple_element_count > 0) {
+                size_t n = node->data.type.tuple_element_count;
+                clone->data.type.tuple_elements = calloc(n, sizeof(ASTNode *));
+                clone->data.type.tuple_element_count = n;
+                for (size_t i = 0; i < n; i++)
+                    clone->data.type.tuple_elements[i] =
+                        ast_clone(node->data.type.tuple_elements[i]);
+            }
             break;
         case AST_CHANNEL_TYPE:
             clone = ast_create_channel_type(
@@ -1524,6 +1536,7 @@ void ast_destroy(ASTNode* node) {
                 ast_destroy(node->data.call.arguments[i]);
             }
             free(node->data.call.arguments);
+            ast_destroy_generic_params(node->data.call.generic_args);
             break;
             
         case AST_MEMBER_ACCESS:
@@ -1540,7 +1553,13 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.assignment.target);
             ast_destroy(node->data.assignment.value);
             break;
-            
+
+        case AST_TUPLE_LITERAL:
+            for (size_t i = 0; i < node->data.tuple_literal.count; i++)
+                ast_destroy(node->data.tuple_literal.elements[i]);
+            free(node->data.tuple_literal.elements);
+            break;
+
         case AST_STRING:
             free(node->data.string.value);
             break;
@@ -1552,6 +1571,11 @@ void ast_destroy(ASTNode* node) {
         case AST_TYPE:
             free(node->data.type.name);
             ast_destroy_generic_params(node->data.type.generic_args);
+            if (node->data.type.tuple_elements != NULL) {
+                for (size_t i = 0; i < node->data.type.tuple_element_count; i++)
+                    ast_destroy(node->data.type.tuple_elements[i]);
+                free(node->data.type.tuple_elements);
+            }
             break;
 
         case AST_ASYNC_BLOCK:

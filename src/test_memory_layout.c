@@ -620,6 +620,83 @@ test_box_array_features(void)
         EXPECT(pgy_array_get_Int(arr, 1) == 20);
         pgy_box_array_drop_Int(&box);
     }
+
+    EXPECT_PANIC("BoxArray get after drop triggers panic", {
+        PgyBoxArray_Int box = pgy_box_array_new_Int(2, NULL);
+        pgy_box_array_drop_Int(&box);
+        (void)pgy_box_array_get_Int(&box);
+    });
+
+    TEST("BoxArray double drop is ignored safely");
+    {
+        PgyBoxArray_Int box = pgy_box_array_new_Int(2, NULL);
+        pgy_box_array_drop_Int(&box);
+        pgy_box_array_drop_Int(&box);
+        EXPECT(box.ptr == NULL);
+    }
+}
+
+static void
+test_pointer_lifetime_guards(void)
+{
+    printf("\n[pointer_lifetime_guards]\n");
+
+    TEST("Rc double drop is ignored safely");
+    {
+        PgyRc_Int rc = pgy_rc_new_Int(10);
+        pgy_rc_drop_Int(&rc);
+        pgy_rc_drop_Int(&rc);
+        EXPECT(rc.ctrl == NULL);
+    }
+
+    EXPECT_PANIC("Rc get after drop triggers panic", {
+        PgyRc_Int rc = pgy_rc_new_Int(11);
+        pgy_rc_drop_Int(&rc);
+        (void)pgy_rc_get_Int(&rc);
+    });
+
+    TEST("Weak double drop is ignored safely");
+    {
+        PgyRc_Int rc = pgy_rc_new_Int(12);
+        PgyWeak_Int weak = pgy_rc_downgrade_Int(rc);
+        pgy_weak_drop_Int(&weak);
+        pgy_weak_drop_Int(&weak);
+        EXPECT(weak.ctrl == NULL);
+        pgy_rc_drop_Int(&rc);
+    }
+
+    EXPECT_PANIC("Weak upgrade after drop triggers panic", {
+        PgyRc_Int rc = pgy_rc_new_Int(13);
+        PgyWeak_Int weak = pgy_rc_downgrade_Int(rc);
+        pgy_weak_drop_Int(&weak);
+        pgy_weak_upgrade_Int(weak);
+    });
+
+    TEST("Pool allocator destroy is idempotent");
+    {
+        PgyAllocator alloc = pgy_allocator_pool(128);
+        pgy_allocator_destroy(&alloc);
+        pgy_allocator_destroy(&alloc);
+        EXPECT(alloc.pool == NULL);
+    }
+
+    TEST("Channel destroy is idempotent");
+    {
+        PgyChannel_Int ch;
+        pgy_channel_init_Int(&ch, 4);
+        pgy_channel_destroy_Int(&ch);
+        pgy_channel_destroy_Int(&ch);
+        EXPECT(ch.buf == NULL && ch.cap == 0 && ch.count == 0);
+    }
+
+    TEST("Channel close after destroy is ignored safely");
+    {
+        PgyChannel_Int ch;
+        pgy_channel_init_Int(&ch, 4);
+        pgy_channel_destroy_Int(&ch);
+        pgy_channel_close_Int(&ch);
+        EXPECT(ch.buf == NULL && ch.cap == 0);
+    }
 }
 
 /* -----------------------------------------------------------------
@@ -645,6 +722,7 @@ main(void)
     test_allocator_features();
     test_rc_weak_features();
     test_box_array_features();
+    test_pointer_lifetime_guards();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
     return (g_fail > 0) ? 1 : 0;

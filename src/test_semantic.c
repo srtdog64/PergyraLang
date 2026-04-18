@@ -1651,873 +1651,7 @@ test_qubit_slot_semantics(void)
         ast_destroy(state_call);
     }
 
-    TEST("ref QubitSlot parameter is accepted as borrowed movable-resource boundary");
-    {
-        SemanticContext *ctx = semantic_context_create();
-        ASTNode *program = ast_create_program();
-
-        ASTNode *func = ast_create_function("BorrowQubit");
-        func->data.func_decl.return_type = ast_create_type("Void");
-        func->data.func_decl.body = ast_create_block();
-        func->data.func_decl.param_count = 1;
-        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
-        FuncParam *param = calloc(1, sizeof(FuncParam));
-        param->name = pergyra_strdup("q");
-        param->type = ast_create_type("QubitSlot");
-        param->mode = PARAM_MODE_REF;
-        func->data.func_decl.params[0] = param;
-        ast_add_statement(program, func);
-        ctx->program_root = program;
-        type_check_func_decl(func, ctx);
-
-        EXPECT(!ctx->has_error);
-
-        ASTNode *decl = ast_create_let_declaration("q");
-        decl->data.let_decl.type = ast_create_type("QubitSlot");
-        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 2);
-        type_check_let_decl(decl, ctx);
-
-        ASTNode *call_args[1] = { make_identifier("q", 3) };
-        ASTNode *call = make_call("BorrowQubit", call_args, 1, 3);
-        type_check_expression(call, ctx);
-        EXPECT(!ctx->has_error);
-
-        ASTNode *state_args[1] = { make_identifier("q", 4) };
-        ASTNode *state_call = make_call("QubitState", state_args, 1, 4);
-        type_check_expression(state_call, ctx);
-        EXPECT(!ctx->has_error);
-
-        semantic_context_destroy(ctx);
-        ast_destroy(program);
-        ast_destroy(decl);
-        ast_destroy(call);
-        ast_destroy(state_call);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape via return");
-    {
-        const char *source =
-            "func BorrowReturn(ref q: QubitSlot) -> QubitSlot {\n"
-            "    return q;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot escape via return"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "borrowed 'ref' movable resource"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through channel send");
-    {
-        const char *source =
-            "func BorrowSend(ref q: QubitSlot) -> Void {\n"
-            "    let ch: Channel<QubitSlot> = Channel(2);\n"
-            "    ch <- q;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot escape through channel send"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "borrowed 'ref' movable resource"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through helper/function call");
-    {
-        const char *source =
-            "func UseOwned(own q: QubitSlot) -> Void {\n"
-            "}\n"
-            "func BorrowForward(ref q: QubitSlot) -> Void {\n"
-            "    UseOwned(q);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot escape through helper/function call"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "call a 'ref' helper instead"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape transitively through ref helper return");
-    {
-        const char *source =
-            "func ReturnBorrowed(ref q: QubitSlot) -> QubitSlot {\n"
-            "    return q;\n"
-            "}\n"
-            "func BorrowForward(ref q: QubitSlot) -> Void {\n"
-            "    ReturnBorrowed(q);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot escape through helper/function call"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "transitive call-escape path"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "borrowed 'ref' movable resource"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape into a new binding");
-    {
-        const char *source =
-            "func BorrowAlias(ref q: QubitSlot) -> Void {\n"
-            "    let alias: QubitSlot = q;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot escape into a new binding"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "borrowed 'ref' movable resource"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Fix:"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through assignment rebind");
-    {
-        const char *source =
-            "func BorrowAssign(ref q: QubitSlot) -> Void {\n"
-            "    let dst: QubitSlot = ClaimQubit();\n"
-            "    dst = q;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot escape through assignment rebind"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "borrowed 'ref' movable resource"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Fix:"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through list store");
-    {
-        const char *source =
-            "func BorrowList(ref q: QubitSlot) -> Void {\n"
-            "    let items: List<QubitSlot> = ListNew();\n"
-            "    ListPush(items, q);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'q' cannot escape through list store"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "borrowed 'ref' boundary value"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through queue store");
-    {
-        const char *source =
-            "func BorrowQueue(ref q: QubitSlot) -> Void {\n"
-            "    let items: Queue<QubitSlot> = QueueNew();\n"
-            "    QueuePush(items, q);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'q' cannot escape through queue store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through array overwrite");
-    {
-        const char *source =
-            "func BorrowArraySet(ref q: QubitSlot) -> Void {\n"
-            "    let items: Array<QubitSlot> = [ClaimQubit()];\n"
-            "    ArraySet(items, 0, q);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'q' cannot escape through array store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through set store");
-    {
-        const char *source =
-            "func BorrowSet(ref q: QubitSlot) -> Void {\n"
-            "    let seen: Set<QubitSlot> = SetNew();\n"
-            "    SetAdd(seen, q);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'q' cannot escape through set store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through map store");
-    {
-        const char *source =
-            "func BorrowMap(ref q: QubitSlot) -> Void {\n"
-            "    let slots: HashMap<String, QubitSlot> = MapNew();\n"
-            "    MapSet(slots, \"lead\", q);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'q' cannot escape through map store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through array push");
-    {
-        const char *source =
-            "func BorrowArrayPush(ref q: QubitSlot) -> Void {\n"
-            "    let seed: QubitSlot = ClaimQubit();\n"
-            "    let items: Array<QubitSlot> = [seed];\n"
-            "    ArrayPush(items, q);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'q' cannot escape through array store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref QubitSlot parameter cannot escape through member assignment rebind");
-    {
-        const char *source =
-            "struct Lab {\n"
-            "    let current: QubitSlot;\n"
-            "}\n"
-            "func BorrowField(ref q: QubitSlot, lab: Lab) -> Void {\n"
-            "    lab.current = q;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through assignment rebind"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("own subject parameter is accepted as explicit transfer boundary");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func Take(own hero: Hero) -> Void {\n"
-            "    return;\n"
-            "}\n"
-            "func Main() -> Void {\n"
-            "    let hero: Hero = Hero(10);\n"
-            "    Take(hero);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref class parameter is accepted as borrowed value boundary");
-    {
-        const char *source =
-            "class Packet {\n"
-            "    let size: Int;\n"
-            "}\n"
-            "func Inspect(ref packet: Packet) -> Void {\n"
-            "    Log(packet.size);\n"
-            "}\n"
-            "func Main() -> Void {\n"
-            "    let packet: Packet = Packet(1);\n"
-            "    Inspect(packet);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref class parameter cannot escape into a new binding");
-    {
-        const char *source =
-            "class Packet {\n"
-            "    let size: Int;\n"
-            "}\n"
-            "func BorrowAlias(ref packet: Packet) -> Void {\n"
-            "    let alias: Packet = packet;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'packet' cannot escape into a new binding 'alias'"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref class parameter cannot escape through helper/function call");
-    {
-        const char *source =
-            "class Packet {\n"
-            "    let size: Int;\n"
-            "}\n"
-            "func UseOwned(own packet: Packet) -> Void {\n"
-            "    return;\n"
-            "}\n"
-            "func BorrowForward(ref packet: Packet) -> Void {\n"
-            "    UseOwned(packet);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'packet' cannot escape through helper/function call"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref class parameter cannot escape via return");
-    {
-        const char *source =
-            "class Packet {\n"
-            "    let size: Int;\n"
-            "}\n"
-            "func Echo(ref packet: Packet) -> Packet {\n"
-            "    return packet;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'packet' cannot escape via return"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref class parameter cannot escape through channel send");
-    {
-        const char *source =
-            "class Packet {\n"
-            "    let size: Int;\n"
-            "}\n"
-            "func Publish(ch: Channel<Packet>, ref packet: Packet) -> Void {\n"
-            "    ch <- packet;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'packet' cannot escape through channel send"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("own class parameter consumes the caller binding");
-    {
-        const char *source =
-            "class Packet {\n"
-            "    let size: Int;\n"
-            "}\n"
-            "func Take(own packet: Packet) -> Void {\n"
-            "    return;\n"
-            "}\n"
-            "func Main() -> Void {\n"
-            "    let packet: Packet = Packet(1);\n"
-            "    Take(packet);\n"
-            "    Log(packet.size);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "was moved or released and cannot be used again"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape via return");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowReturn(ref hero: Hero) -> Hero {\n"
-            "    return hero;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref subject 'hero' cannot escape via return"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through channel send");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowSend(ref hero: Hero) -> Void {\n"
-            "    let ch: Channel<Hero> = Channel(2);\n"
-            "    ch <- hero;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref subject 'hero' cannot escape through channel send"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through helper/function call");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func UseOwned(own hero: Hero) -> Void {\n"
-            "    return;\n"
-            "}\n"
-            "func BorrowForward(ref hero: Hero) -> Void {\n"
-            "    UseOwned(hero);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref subject 'hero' cannot escape through helper/function call"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape into a new binding");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowAlias(ref hero: Hero) -> Void {\n"
-            "    let alias: Hero = hero;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref subject 'hero' cannot escape into a new binding 'alias'"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through list store");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowList(ref hero: Hero) -> Void {\n"
-            "    let items: List<Hero> = ListNew();\n"
-            "    ListPush(items, hero);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'hero' cannot escape through list store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through set store");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowSet(ref hero: Hero) -> Void {\n"
-            "    let seen: Set<Hero> = SetNew();\n"
-            "    SetAdd(seen, hero);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'hero' cannot escape through set store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through map store");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowMap(ref hero: Hero) -> Void {\n"
-            "    let roster: HashMap<String, Hero> = MapNew();\n"
-            "    MapSet(roster, \"lead\", hero);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'hero' cannot escape through map store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through list overwrite");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowListSet(ref hero: Hero) -> Void {\n"
-            "    let items: List<Hero> = ListNew();\n"
-            "    ListPush(items, Hero());\n"
-            "    ListSet(items, 0, hero);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'hero' cannot escape through list store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through queue store");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowQueue(ref hero: Hero) -> Void {\n"
-            "    let q: Queue<Hero> = QueueNew();\n"
-            "    QueuePush(q, hero);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'hero' cannot escape through queue store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through array push");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowArrayPush(ref hero: Hero) -> Void {\n"
-            "    let items: Array<Hero> = [Hero(1)];\n"
-            "    ArrayPush(items, hero);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'hero' cannot escape through array store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through array overwrite");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "func BorrowArraySet(ref hero: Hero) -> Void {\n"
-            "    let items: Array<Hero> = [Hero()];\n"
-            "    ArraySet(items, 0, hero);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'hero' cannot escape through array store"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ref subject parameter cannot escape through member assignment rebind");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "struct Squad {\n"
-            "    let lead: Hero;\n"
-            "}\n"
-            "func BorrowField(ref hero: Hero, squad: Squad) -> Void {\n"
-            "    squad.lead = hero;\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref subject 'hero' cannot escape through assignment rebind"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
+    #include "tests/semantic/test_semantic_ownership_boundaries.inc"
 
     TEST("Slot<Int> parameter types remain rejected");
     {
@@ -2926,7 +2060,7 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ref Int parameter reports closed subset diagnostic");
+    TEST("ref Int parameter is accepted as value boundary");
     {
         const char *source =
             "func Borrow(ref value: Int) -> Void {\n"
@@ -2937,13 +2071,194 @@ test_qubit_slot_semantics(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "parameter mode is currently a closed subset"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "ownership mode is 'ref'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "consumer path is function 'Borrow'"));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("own Int parameter is accepted as value boundary");
+    {
+        const char *source =
+            "func Store(own value: Int) -> Void {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Int parameter may return copied boundary value");
+    {
+        const char *source =
+            "func Echo(ref value: Int) -> Int {\n"
+            "    return value;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Int parameter may be stored into list by copy");
+    {
+        const char *source =
+            "func Snapshot(ref value: Int) -> Void {\n"
+            "    let items: List<Int> = ListNew();\n"
+            "    ListPush(items, value);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Int parameter may be sent through channel by copy");
+    {
+        const char *source =
+            "func Publish(ch: Channel<Int>, ref value: Int) -> Void {\n"
+            "    ch <- value;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref enum parameter is accepted as copied value boundary");
+    {
+        const char *source =
+            "enum Mode { Idle, Active }\n"
+            "func Use(ref mode: Mode) -> Mode {\n"
+            "    return mode;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Int parameter may escape into a new binding by copy");
+    {
+        const char *source =
+            "func Snapshot(ref value: Int) -> Void {\n"
+            "    let alias: Int = value;\n"
+            "    Log(alias);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Int parameter may forward to own helper by copy");
+    {
+        const char *source =
+            "func Consume(own value: Int) -> Void {\n"
+            "}\n"
+            "func Forward(ref value: Int) -> Void {\n"
+            "    Consume(value);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref enum parameter may be stored into list by copy");
+    {
+        const char *source =
+            "enum Mode { Idle, Active }\n"
+            "func Snapshot(ref mode: Mode) -> Void {\n"
+            "    let states: List<Mode> = ListNew();\n"
+            "    ListPush(states, mode);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref enum parameter may be sent through channel by copy");
+    {
+        const char *source =
+            "enum Mode { Idle, Active }\n"
+            "func Publish(ch: Channel<Mode>, ref mode: Mode) -> Void {\n"
+            "    ch <- mode;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3069,6 +2384,160 @@ test_qubit_slot_semantics(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot escape through helper/function call"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter rejects ArrayPush escape");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Store(ref packet: Packet) -> Void {\n"
+            "    let items: Array<Packet> = [Packet(0)];\n"
+            "    ArrayPush(items, packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through array store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter rejects MapSet escape");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Store(ref packet: Packet) -> Void {\n"
+            "    let table: HashMap<String, Packet> = MapNew();\n"
+            "    MapSet(table, \"hp\", packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through map store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter rejects QueuePush escape");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Store(ref packet: Packet) -> Void {\n"
+            "    let items: Queue<Packet> = QueueNew();\n"
+            "    QueuePush(items, packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through queue store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter may pass copied snapshot into collection");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Store(ref packet: Packet) -> Void {\n"
+            "    let items: Array<Packet> = [Packet(0)];\n"
+            "    ArrayPush(items, Packet(packet.hp));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter rejects TrySend escape");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Store(ref packet: Packet) -> Void {\n"
+            "    let ch: Channel<Packet> = Channel(2);\n"
+            "    TrySend(ch, packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through channel send"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter rejects SendTimeout escape");
+    {
+        const char *source =
+            "subject Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Store(ref packet: Packet) -> Void {\n"
+            "    let ch: Channel<Packet> = Channel(2);\n"
+            "    SendTimeout(ch, packet, 1);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through channel send"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4835,7 +4304,7 @@ test_event_semantics(void)
         EXPECT(result != NULL
             && result->error_count > 0
             && ctx_has_diagnostic_substring_from_result(
-                result, "cannot assign"));
+                result, "Boundary value argument type mismatch"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4939,615 +4408,9 @@ test_event_semantics(void)
     }
 }
 
-static void
-test_projection_contract_diagnostics(void)
-{
-    printf("\n[projection_contract_diagnostics]\n");
-
-    TEST("zone refresh reports missing source field with structured diagnostic");
-    {
-        const char *source =
-            "subject Player {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "object PlayerView {\n"
-            "    hp: Int;\n"
-            "    mana: Int;\n"
-            "}\n"
-            "zone BattleZone {\n"
-            "    subject slot player: Player\n"
-            "    object slot playerView: PlayerView\n"
-            "    refresh playerView from player\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "target field 'mana' is missing from source slot 'player'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "projection target 'playerView' expects field 'mana'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "add field 'mana' to source declaration 'Player'"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("zone refresh reports typed source path mismatch with structured diagnostic");
-    {
-        const char *source =
-            "vessel Stats {\n"
-            "    let hp: String;\n"
-            "}\n"
-            "subject Player {\n"
-            "    vessel stats: Stats;\n"
-            "}\n"
-            "object PlayerView {\n"
-            "    hp: Int;\n"
-            "}\n"
-            "zone BattleZone {\n"
-            "    subject slot player: Player\n"
-            "    object slot playerView: PlayerView\n"
-            "    refresh playerView from player\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "target field 'hp' cannot accept source path 'stats.hp' from slot 'player'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "projection target slot 'playerView' expects field 'hp' to have type 'Int'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "resolved source path 'stats.hp' from slot 'player' has type 'String'"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("zone refresh reports ambiguous nested source field with structured diagnostic");
-    {
-        const char *source =
-            "vessel Stats {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "vessel Aura {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "subject Player {\n"
-            "    vessel stats: Stats;\n"
-            "    vessel aura: Aura;\n"
-            "}\n"
-            "object PlayerView {\n"
-            "    hp: Int;\n"
-            "}\n"
-            "zone BattleZone {\n"
-            "    subject slot player: Player\n"
-            "    object slot playerView: PlayerView\n"
-            "    refresh playerView from player\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "target field 'hp' is ambiguous in source slot 'player'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "multiple projection source paths match field 'hp'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "automatic projection cannot choose one path safely"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("zone refresh reports wrong projection kind with structured diagnostic");
-    {
-        const char *source =
-            "subject Player {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "tobject PlayerPacket {\n"
-            "    hp: Int;\n"
-            "}\n"
-            "zone BattleZone {\n"
-            "    subject slot player: Player\n"
-            "    tobject slot playerPacket: PlayerPacket\n"
-            "    refresh playerPacket from player\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "target slot 'playerPacket' uses the wrong projection kind"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "source slot 'player' is driving this refresh path"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "refresh requires target slot 'playerPacket' to use object declaration"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "actual target type 'PlayerPacket' uses a different projection kind"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("zone refresh reports duplicate field map with structured diagnostic");
-    {
-        const char *source =
-            "subject Player {\n"
-            "    let hp: Int;\n"
-            "    let mana: Int;\n"
-            "}\n"
-            "object PlayerView {\n"
-            "    hp: Int;\n"
-            "}\n"
-            "zone BattleZone {\n"
-            "    subject slot player: Player\n"
-            "    object slot playerView: PlayerView\n"
-            "    refresh playerView from player map {\n"
-            "        hp <- hp;\n"
-            "        hp <- mana;\n"
-            "    }\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "projection map duplicates target field 'hp'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "each projection target field may be filled from exactly one source field"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "keep a single mapping for 'hp'"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("zone state reports unknown effect slot with structured diagnostic");
-    {
-        const char *source =
-            "subject Player {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "effect Poisoned for bearer: Player {\n"
-            "    shared damage: Int;\n"
-            "}\n"
-            "zone BattleZone {\n"
-            "    subject slot player: Player\n"
-            "    state poisoned: effect poison on player\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "Zone state 'poisoned' references unknown effect slot 'poison'."));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "state 'poisoned' is declared as an effect-backed lifecycle alias"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "declare effect slot 'poison' before this state"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("zone apply reports unknown effect slot with structured diagnostic");
-    {
-        const char *source =
-            "subject Player {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "zone BattleZone {\n"
-            "    subject slot player: Player\n"
-            "    apply poison to player\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "Zone apply references unknown effect slot 'poison'."));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "apply mutates an effect lifecycle and must target a declared zone effect slot"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "declare effect slot 'poison' in zone 'BattleZone'"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("zone maintain reports unknown state with structured diagnostic");
-    {
-        const char *source =
-            "subject Player {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "zone BattleZone {\n"
-            "    subject slot player: Player\n"
-            "    maintain ghostState\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "Zone maintain references unknown state 'ghostState'."));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "maintain state aliases must reference a declared zone state"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "declare state 'ghostState' before this maintain clause"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-}
-
-static void
-test_intent_observability_semantics(void)
-{
-    printf("\n[intent_observability]\n");
-
-    TEST("intent observability builtins accept structured handle and step queries");
-    {
-        const char *source =
-            "func Main() -> Void {\n"
-            "    let current: Int = IntentCurrentHandle();\n"
-            "    let recent: Int = IntentRecentHandle(0);\n"
-            "    let trace: Int = IntentRecentTraceId(0);\n"
-            "    let steps: Int = IntentActiveStepCount(current);\n"
-            "    let name: String = IntentActiveStepName(recent, 0);\n"
-            "    let zone: String = IntentActiveStepZone(recent, 0);\n"
-            "    let phase: String = IntentActiveStepPhase(recent, 0);\n"
-            "    let participant: String = IntentActiveStepParticipant(recent, 0);\n"
-            "    let slot: String = IntentActiveStepSlot(recent, 0);\n"
-            "    let from_zone: String = IntentActiveStepFromZone(recent, 0);\n"
-            "    let from_slot: String = IntentActiveStepFromSlot(recent, 0);\n"
-            "    let to_zone: String = IntentActiveStepToZone(recent, 0);\n"
-            "    let to_slot: String = IntentActiveStepToSlot(recent, 0);\n"
-            "    let ok: Bool = IntentActiveStepOk(recent, 0);\n"
-            "    let failure: String = IntentActiveStepFailure(recent, 0);\n"
-            "    Log(ToString(current + recent + trace + steps));\n"
-            "    Log(name + zone + phase + participant + slot + from_zone + from_slot + to_zone + to_slot + failure);\n"
-            "    Log(ok);\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-}
-
-static void
-test_b0_provenance_closure_diagnostics(void)
-{
-    printf("\n[b0_provenance]\n");
-
-    TEST("branch effect conflict warning reports reason and fix");
-    {
-        const char *source =
-            "/// @effects secure, collapse\n"
-            "func Mix() -> Void {\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(result != NULL && result->warning_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "combines effect classes that are currently treated as conflicting"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Reason:"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Fix:"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "authority-sensitive work and boundary/resource work"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("if branch effect conflict warning reports branch provenance");
-    {
-        const char *source =
-            "/// @effects secure\n"
-            "func SecureWork() -> Void {\n"
-            "    return;\n"
-            "}\n"
-            "/// @effects remote\n"
-            "func RemoteWork() -> Void {\n"
-            "    return;\n"
-            "}\n"
-            "func Mix(flag: Bool) -> Void {\n"
-            "    if flag {\n"
-            "        SecureWork();\n"
-            "    } else {\n"
-            "        RemoteWork();\n"
-            "    }\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(result != NULL && result->warning_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "then branch contributes 'secure'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "else branch contributes 'remote'"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("action causes within zone missing authorized by reports reason and fix");
-    {
-        const char *source =
-            "subject Hero {\n"
-            "    let hp: Int;\n"
-            "    action Guard(self) -> Void\n"
-            "        causes Poisoned\n"
-            "        within BattleZone\n"
-            "    {\n"
-            "        return;\n"
-            "    }\n"
-            "}\n"
-            "effect Poisoned for bearer: Hero { }\n"
-            "zone BattleZone {\n"
-            "    subject slot hero: Hero\n"
-            "    effect slot poison: Poisoned\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "must declare 'authorized by'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "action contract declares causes 'Poisoned'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "approval provenance for that state change is missing"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Fix:"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("action requires default generic ability resolves to effective contract");
-    {
-        const char *source =
-            "ability Bufferable<T = Int> {\n"
-            "    func Put(value: T) -> Void;\n"
-            "}\n"
-            "subject Bag {\n"
-            "    let count: Int;\n"
-            "    action Save(self) -> Void requires Bufferable {\n"
-            "        return;\n"
-            "    }\n"
-            "}\n"
-            "role BagBuffer for Bag {\n"
-            "    impl ability Bufferable {\n"
-            "        func Put(value: Int) -> Void {\n"
-            "            return;\n"
-            "        }\n"
-            "    }\n"
-            "}\n"
-            "zone StorageZone {\n"
-            "    subject slot bag: Bag\n"
-            "    authority bag requires Bufferable\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("action requires generic mismatch reports effective expected and actual type args");
-    {
-        const char *source =
-            "ability Bufferable<T = Int> {\n"
-            "    func Put(value: T) -> Void;\n"
-            "}\n"
-            "subject Bag {\n"
-            "    action Save(self) -> Void requires Bufferable {\n"
-            "        return;\n"
-            "    }\n"
-            "}\n"
-            "role BagBuffer for Bag {\n"
-            "    impl ability Bufferable<String> {\n"
-            "        func Put(value: String) -> Void {\n"
-            "            return;\n"
-            "        }\n"
-            "    }\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "requires ability 'Bufferable<Int>'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual implementation is 'Bufferable<String>'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type args are 'Bufferable<String>'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Reason:"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Fix:"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("ability default generic multi-bound failure reports broken bound provenance");
-    {
-        const char *source =
-            "ability Comparable { }\n"
-            "ability Cloneable { }\n"
-            "subject Item {\n"
-            "    let value: Int;\n"
-            "}\n"
-            "role ItemComparable for Item {\n"
-            "    impl ability Comparable { }\n"
-            "}\n"
-            "ability Packable<T = Item> where T: Comparable + Cloneable {\n"
-            "    func Accept(value: T) -> Void;\n"
-            "}\n"
-            "subject Bag {\n"
-            "    action Save(self) -> Void requires Packable {\n"
-            "        return;\n"
-            "    }\n"
-            "}\n"
-            "role BagPackable for Bag {\n"
-            "    impl ability Packable {\n"
-            "        func Accept(value: Item) -> Void {\n"
-            "            return;\n"
-            "        }\n"
-            "    }\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "full bound set is 'T: Comparable + Cloneable'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'Item'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Fix:"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("action authorized by zone authority mismatch reports reason and fix");
-    {
-        const char *source =
-            "subject Healer {\n"
-            "    let hp: Int;\n"
-            "}\n"
-            "subject Guard {\n"
-            "    action Protect(self, healer: Healer) -> Void\n"
-            "        within BattleZone\n"
-            "        authorized by healer\n"
-            "    {\n"
-            "        return;\n"
-            "    }\n"
-            "}\n"
-            "zone BattleZone {\n"
-            "    subject slot guard: Guard\n"
-            "    subject slot healer: Healer\n"
-            "    authority guard\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "declares no matching authority"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "within-zone contract comes from action clause 'within BattleZone'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "derives authority provenance from binding 'healer'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "authority check edge is action 'Protect' -> zone 'BattleZone' -> binding 'healer'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "zone 'BattleZone' has a subject slot for that type but no authority contract"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Fix:"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-}
+#include "tests/semantic/test_semantic_projection_diagnostics.inc"
+#include "tests/semantic/test_semantic_intent_observability.inc"
+#include "tests/semantic/test_semantic_b0_provenance.inc"
 
 #include "tests/semantic/test_semantic_shared_domain.inc"
 #include "tests/semantic/test_semantic_parallel_family.inc"

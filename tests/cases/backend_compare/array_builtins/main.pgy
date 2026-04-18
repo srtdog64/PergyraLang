@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let values = [1, 2, 3];
+    Log(ArrayLength(values));
+    ArraySet(values, 1, 9);
+    Log(values[1]);
+    ArrayPop(values);
+    Log(ArrayLength(values));
+}

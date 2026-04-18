@@ -6,7 +6,7 @@
  * Statement emission
  * ================================================================= */
 
-static char *
+char *
 llvm_stmt_render_type_arg(GenericParam *param)
 {
     ASTNode *type = NULL;
@@ -79,7 +79,7 @@ llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
     return llvm_find_decl_in_active_inventory(ctx, AST_EFFECT_DECL, effect_name);
 }
 
-static ASTNode *
+ASTNode *
 llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx, const char *name)
 {
     if (ctx == NULL || name == NULL)
@@ -120,6 +120,27 @@ llvm_stmt_slot_can_sink_locally(LLVMGenCtx *ctx, const char *name)
                | SLOT_PARAM_SUMMARY_CALL_ESCAPE
                | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE))
         == 0;
+}
+
+bool
+llvm_mir_base_name_from_versioned(const char *mir_name, char *base_out, size_t base_out_size)
+{
+    const char *last_dot;
+    size_t len;
+
+    if (base_out != NULL && base_out_size > 0)
+        base_out[0] = '\0';
+    if (mir_name == NULL || base_out == NULL || base_out_size == 0)
+        return false;
+
+    last_dot = strrchr(mir_name, '.');
+    len = last_dot != NULL ? (size_t)(last_dot - mir_name) : strlen(mir_name);
+    if (len == 0 || len >= base_out_size)
+        return false;
+
+    memcpy(base_out, mir_name, len);
+    base_out[len] = '\0';
+    return true;
 }
 
 static int
@@ -286,7 +307,7 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
     return NULL;
 }
 
-static LLVMTypeRef
+LLVMTypeRef
 llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
 {
     const char *nominal_name;
@@ -307,6 +328,20 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return ctx->type_i1;
     case AST_NUMBER:
         return ctx->type_i32;
+    case AST_ARRAY_LITERAL: {
+        LLVMTypeRef elem_type = ctx->type_i32;
+        const char *suffix = "Int";
+        if (expr->data.array_literal.count > 0
+            && expr->data.array_literal.elements != NULL
+            && expr->data.array_literal.elements[0] != NULL) {
+            elem_type = llvm_stmt_infer_expr_type(ctx,
+                expr->data.array_literal.elements[0]);
+            suffix = llvm_type_to_suffix(ctx, elem_type);
+            if (suffix == NULL || strcmp(suffix, "Unknown") == 0)
+                suffix = "Int";
+        }
+        return llvm_array_struct_type(ctx, suffix);
+    }
     case AST_IDENTIFIER: {
         LLVMVarEntry *var = llvm_scope_lookup(ctx, expr->data.identifier.name);
         return var != NULL ? var->type : ctx->type_i32;
@@ -327,25 +362,61 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         if (expr->data.call.callee != NULL
             && expr->data.call.callee->type == AST_MEMBER_ACCESS
             && expr->data.call.callee->data.member.name != NULL
-            && expr->data.call.callee->data.member.object != NULL
-            && expr->data.call.callee->data.member.object->type == AST_IDENTIFIER) {
-            const char *receiver_name =
-                expr->data.call.callee->data.member.object->data.identifier.name;
+            && expr->data.call.callee->data.member.object != NULL) {
+            ASTNode *receiver = expr->data.call.callee->data.member.object;
             const char *method_name = expr->data.call.callee->data.member.name;
-            const char *inner = llvm_lookup_slot_inner(ctx, receiver_name);
+            const char *receiver_name = receiver->type == AST_IDENTIFIER
+                ? receiver->data.identifier.name : NULL;
+            const char *inner = receiver_name != NULL
+                ? llvm_lookup_slot_inner(ctx, receiver_name) : NULL;
             if (inner == NULL) {
-                LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, receiver_name);
+                LLVMViewVarEntry *view = receiver_name != NULL
+                    ? llvm_lookup_view_var(ctx, receiver_name) : NULL;
                 if (view != NULL)
                     inner = view->inner_type;
             }
             if (inner == NULL)
-                inner = llvm_lookup_device_slot_inner(ctx, receiver_name);
+                inner = receiver_name != NULL
+                    ? llvm_lookup_device_slot_inner(ctx, receiver_name) : NULL;
             if (inner != NULL && strcmp(method_name, "Read") == 0)
                 return pergyra_type_to_llvm(ctx, inner);
             if (inner != NULL
                 && (strcmp(method_name, "Write") == 0
                     || strcmp(method_name, "Release") == 0)) {
                 return ctx->type_void;
+            }
+            if (strcmp(method_name, "Slice") == 0 && receiver_name != NULL) {
+                LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, receiver_name);
+                if (entry != NULL) {
+                    const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+                    if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
+                        return llvm_slice_struct_type(ctx, suffix);
+                }
+            }
+            if (strcmp(method_name, "Slice") == 0
+                && receiver->type == AST_CALL
+                && receiver->data.call.callee != NULL
+                && receiver->data.call.callee->type == AST_IDENTIFIER
+                && receiver->data.call.callee->data.identifier.name != NULL) {
+                ASTNode *decl = llvm_stmt_find_function_decl_by_name(
+                    ctx, receiver->data.call.callee->data.identifier.name);
+                if (decl != NULL
+                    && decl->type == AST_FUNC_DECL
+                    && decl->data.func_decl.return_type != NULL
+                    && decl->data.func_decl.return_type->type == AST_TYPE
+                    && decl->data.func_decl.return_type->data.type.name != NULL
+                    && (strcmp(decl->data.func_decl.return_type->data.type.name, "Array") == 0
+                        || strcmp(decl->data.func_decl.return_type->data.type.name, "Slice") == 0)
+                    && decl->data.func_decl.return_type->data.type.generic_args != NULL
+                    && decl->data.func_decl.return_type->data.type.generic_args->count >= 1
+                    && decl->data.func_decl.return_type->data.type.generic_args->params[0] != NULL) {
+                    char *elem_name = llvm_stmt_render_type_arg(
+                        decl->data.func_decl.return_type->data.type.generic_args->params[0]);
+                    LLVMTypeRef slice_ty = llvm_slice_struct_type(ctx,
+                        elem_name != NULL ? elem_name : "Int");
+                    free(elem_name);
+                    return slice_ty;
+                }
             }
         }
         if (expr->data.call.callee != NULL
@@ -456,6 +527,114 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     default:
         return ctx->type_i32;
     }
+}
+
+LLVMTypeRef
+llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
+                                  LLVMValueRef data_ptr)
+{
+    LLVMTypeRef elem_type = ctx->type_i32;
+    (void)data_ptr;
+
+    if (expr == NULL)
+        return elem_type;
+
+    if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
+        LLVMArrayVarEntry *entry = llvm_lookup_array_var(
+            ctx, expr->data.identifier.name);
+        if (entry != NULL && entry->elem_type != NULL)
+            return entry->elem_type;
+    }
+
+    if (expr->type == AST_ARRAY_LITERAL
+        && expr->data.array_literal.count > 0
+        && expr->data.array_literal.elements != NULL
+        && expr->data.array_literal.elements[0] != NULL) {
+        LLVMTypeRef inferred = llvm_stmt_infer_expr_type(
+            ctx, expr->data.array_literal.elements[0]);
+        if (inferred != NULL)
+            return inferred;
+    }
+
+    if (expr->type == AST_CALL
+        && expr->data.call.callee != NULL
+        && expr->data.call.callee->type == AST_MEMBER_ACCESS
+        && expr->data.call.callee->data.member.name != NULL
+        && strcmp(expr->data.call.callee->data.member.name, "Slice") == 0
+        && expr->data.call.callee->data.member.object != NULL) {
+        ASTNode *receiver = expr->data.call.callee->data.member.object;
+        if (receiver->type == AST_IDENTIFIER && receiver->data.identifier.name != NULL) {
+            LLVMArrayVarEntry *entry = llvm_lookup_array_var(
+                ctx, receiver->data.identifier.name);
+            if (entry != NULL && entry->elem_type != NULL)
+                return entry->elem_type;
+        }
+        if (receiver->type == AST_CALL
+            && receiver->data.call.callee != NULL
+            && receiver->data.call.callee->type == AST_IDENTIFIER
+            && receiver->data.call.callee->data.identifier.name != NULL) {
+            ASTNode *decl = llvm_stmt_find_function_decl_by_name(
+                ctx, receiver->data.call.callee->data.identifier.name);
+            if (decl != NULL
+                && decl->type == AST_FUNC_DECL
+                && decl->data.func_decl.return_type != NULL
+                && decl->data.func_decl.return_type->type == AST_TYPE) {
+                ASTNode *ret = decl->data.func_decl.return_type;
+                if (ret->data.type.name != NULL
+                    && (strcmp(ret->data.type.name, "Array") == 0
+                        || strcmp(ret->data.type.name, "Slice") == 0)
+                    && ret->data.type.generic_args != NULL
+                    && ret->data.type.generic_args->count >= 1
+                    && ret->data.type.generic_args->params[0] != NULL) {
+                    char *elem_name = llvm_stmt_render_type_arg(
+                        ret->data.type.generic_args->params[0]);
+                    LLVMTypeRef declared = pergyra_type_to_llvm(
+                        ctx, elem_name != NULL ? elem_name : "Int");
+                    free(elem_name);
+                    if (declared != NULL)
+                        return declared;
+                }
+            }
+        }
+        return llvm_stmt_resolve_array_elem_type(
+            ctx, receiver, NULL);
+    }
+
+    if (expr->type == AST_CALL
+        && expr->data.call.callee != NULL
+        && expr->data.call.callee->type == AST_IDENTIFIER
+        && expr->data.call.callee->data.identifier.name != NULL) {
+        ASTNode *decl = llvm_stmt_find_function_decl_by_name(
+            ctx, expr->data.call.callee->data.identifier.name);
+        if (decl != NULL
+            && decl->type == AST_FUNC_DECL
+            && decl->data.func_decl.return_type != NULL
+            && decl->data.func_decl.return_type->type == AST_TYPE) {
+            ASTNode *ret = decl->data.func_decl.return_type;
+            if (ret->data.type.name != NULL
+                && (strcmp(ret->data.type.name, "Array") == 0
+                    || strcmp(ret->data.type.name, "Slice") == 0)
+                && ret->data.type.generic_args != NULL
+                && ret->data.type.generic_args->count >= 1
+                && ret->data.type.generic_args->params[0] != NULL) {
+                GenericParam *gp = ret->data.type.generic_args->params[0];
+                /* Prefer the simple type name ("String", "Int"); fall back
+                 * to the explicit constraint node if given. */
+                if (gp->name != NULL) {
+                    LLVMTypeRef declared = pergyra_type_to_llvm(ctx, gp->name);
+                    if (declared != NULL)
+                        return declared;
+                }
+                if (gp->constraint != NULL) {
+                    LLVMTypeRef declared = ast_type_to_llvm(ctx, gp->constraint);
+                    if (declared != NULL)
+                        return declared;
+                }
+            }
+        }
+    }
+
+    return elem_type;
 }
 
 static ASTNode *
@@ -1550,6 +1729,9 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Store initializer if present */
     if (init != NULL) {
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm let] name=%s phase=before-init type-kind=%d\n",
+                name != NULL ? name : "-", (int)LLVMGetTypeKind(var_type));
         LLVMTypeRef saved_expected_type = ctx->current_ret_type;
         ctx->current_ret_type = var_type;
         /* Propagate the source-level type annotation so Result<T,E>
@@ -1560,10 +1742,19 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             && type_ann->data.type.name != NULL)
             ctx->expected_type_name = type_ann->data.type.name;
         LLVMValueRef val = llvm_emit_expression(init, ctx);
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm let] name=%s phase=after-init val=%p\n",
+                name != NULL ? name : "-", (void *)val);
         ctx->expected_type_name = saved_expected_name;
         ctx->current_ret_type = saved_expected_type;
         if (val != NULL) {
             LLVMTypeRef val_type = LLVMTypeOf(val);
+            if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+                fprintf(stderr,
+                    "[llvm let] name=%s phase=before-store var-kind=%d val-kind=%d\n",
+                    name != NULL ? name : "-",
+                    (int)LLVMGetTypeKind(var_type),
+                    (int)LLVMGetTypeKind(val_type));
 
             /* Type coercion between numeric types */
             if (var_type != val_type) {
@@ -1589,10 +1780,16 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             }
 
             LLVMBuildStore(ctx->builder, val, alloca);
+            if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+                fprintf(stderr, "[llvm let] name=%s phase=after-store\n",
+                    name != NULL ? name : "-");
         }
     }
 
     llvm_scope_declare(ctx, name, alloca, var_type);
+    if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        fprintf(stderr, "[llvm let] name=%s phase=after-scope-declare\n",
+            name != NULL ? name : "-");
 
     if (type_ann != NULL && type_ann->type == AST_EVENT_HANDLER_TYPE) {
         llvm_register_callable_var(ctx, name, type_ann);
@@ -1677,6 +1874,19 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
         llvm_register_array_var(ctx, name, elem_type, -1);
         free(elem_name);
+    } else if (init != NULL
+        && init->type == AST_CALL
+        && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_MEMBER_ACCESS
+        && init->data.call.callee->data.member.name != NULL
+        && strcmp(init->data.call.callee->data.member.name, "Slice") == 0
+        && init->data.call.callee->data.member.object != NULL) {
+        LLVMTypeRef elem_type = llvm_stmt_resolve_array_elem_type(
+            ctx, init->data.call.callee->data.member.object, NULL);
+        llvm_register_array_var(ctx, name, elem_type, -1);
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm let] name=%s phase=after-slice-register\n",
+                name != NULL ? name : "-");
     }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
@@ -2935,6 +3145,72 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_LET_DECL:
         llvm_emit_let_decl(node, ctx);
         break;
+
+    case AST_LET_DESTRUCTURE: {
+        /* let (a, b, c) = expr;
+         * Two shapes supported:
+         *   1) Tuple: struct { T0, T1, ... } — ExtractValue per field.
+         *   2) Array-like: struct { T* data, i64 size, i64 cap } — GEP + load. */
+        ASTNode *init = node->data.let_destructure.initializer;
+        if (init == NULL)
+            break;
+        LLVMValueRef rhs_val = llvm_emit_expression(init, ctx);
+        if (rhs_val == NULL)
+            break;
+        LLVMTypeRef rhs_ty = LLVMTypeOf(rhs_val);
+        if (LLVMGetTypeKind(rhs_ty) != LLVMStructTypeKind) {
+            llvm_set_error(ctx,
+                "destructuring requires an Array-like or tuple struct initializer");
+            break;
+        }
+
+        /* Heuristic: tuple if struct field count equals the binding count
+         * AND the first field is not a pointer (array-like has pointer as
+         * the first field for `data`). */
+        unsigned field_count = LLVMCountStructElementTypes(rhs_ty);
+        bool is_tuple = false;
+        if (field_count == (unsigned)node->data.let_destructure.name_count) {
+            LLVMTypeRef f0 = LLVMStructGetTypeAtIndex(rhs_ty, 0);
+            if (f0 != NULL && LLVMGetTypeKind(f0) != LLVMPointerTypeKind)
+                is_tuple = true;
+        }
+
+        if (is_tuple) {
+            for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
+                const char *bname = node->data.let_destructure.names[i];
+                if (bname == NULL) continue;
+                LLVMTypeRef ft = LLVMStructGetTypeAtIndex(rhs_ty, (unsigned)i);
+                LLVMValueRef v = LLVMBuildExtractValue(ctx->builder, rhs_val,
+                    (unsigned)i, llvm_tmp_name(ctx));
+                LLVMValueRef alloca = llvm_create_entry_alloca(ctx, ft, bname);
+                LLVMBuildStore(ctx->builder, v, alloca);
+                llvm_scope_declare(ctx, pergyra_strdup(bname), alloca, ft);
+            }
+            break;
+        }
+
+        /* Array-like path (unchanged) */
+        LLVMValueRef data_ptr = LLVMBuildExtractValue(ctx->builder,
+            rhs_val, 0, llvm_tmp_name(ctx));
+        LLVMTypeRef elem_type = llvm_stmt_resolve_array_elem_type(
+            ctx, init, data_ptr);
+        for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
+            const char *bname = node->data.let_destructure.names[i];
+            if (bname == NULL)
+                continue;
+            LLVMValueRef idx = LLVMConstInt(ctx->type_i64,
+                (unsigned long long)i, 0);
+            LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
+                elem_type, data_ptr, &idx, 1, llvm_tmp_name(ctx));
+            LLVMValueRef val = LLVMBuildLoad2(ctx->builder, elem_type,
+                gep, llvm_tmp_name(ctx));
+            LLVMValueRef alloca = llvm_create_entry_alloca(
+                ctx, elem_type, bname);
+            LLVMBuildStore(ctx->builder, val, alloca);
+            llvm_scope_declare(ctx, pergyra_strdup(bname), alloca, elem_type);
+        }
+        break;
+    }
 
     case AST_RETURN:
         llvm_emit_return_stmt(node, ctx);

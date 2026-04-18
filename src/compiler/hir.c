@@ -2185,10 +2185,10 @@ hir_dump(const HIRProgram *hir, FILE *out)
                 for (size_t j = 0; j < routine->cfg.block_count; j++) {
                     const HIRBasicBlock *block = &routine->cfg.blocks[j];
                     fprintf(out,
-                            "           block[%02zu] preds=%zu df=%zu succ=%s%s%s loop=%s depth=%zu reach=%s rpo=%zu idom=%s%zu stmts=%zu\n",
-                            j,
-                            block->predecessor_count,
-                            block->dominance_frontier_count,
+                        "           block[%02zu] preds=%zu df=%zu succ=%s%s%s loop=%s depth=%zu reach=%s rpo=%zu idom=%s%zu stmts=%zu\n",
+                        j,
+                        block->predecessor_count,
+                        block->dominance_frontier_count,
                             block->has_succ_true ? "T" : "",
                             block->has_succ_false ? "F" : "",
                             (!block->has_succ_true && !block->has_succ_false) ? "-" : "",
@@ -2196,9 +2196,17 @@ hir_dump(const HIRProgram *hir, FILE *out)
                             block->loop_depth,
                             block->is_reachable ? "true" : "false",
                             block->rpo_index,
-                            block->has_immediate_dominator ? "" : "-",
-                            block->has_immediate_dominator ? block->immediate_dominator : 0,
-                            block->statement_count);
+                        block->has_immediate_dominator ? "" : "-",
+                        block->has_immediate_dominator ? block->immediate_dominator : 0,
+                        block->statement_count);
+                    for (size_t s = 0; s < block->statement_count; s++) {
+                        ASTNode *stmt = block->statements[s];
+                        fprintf(out,
+                            "             stmt[%02zu] type=%d line=%u\n",
+                            s,
+                            stmt != NULL ? (int)stmt->type : -1,
+                            stmt != NULL ? stmt->line : 0);
+                    }
                 }
             }
         }

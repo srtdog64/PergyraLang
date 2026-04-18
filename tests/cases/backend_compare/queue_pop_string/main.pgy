@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let jobs: Queue<String> = QueueNew();
+    QueuePush(jobs, "alpha");
+    QueuePush(jobs, "beta");
+    Log(QueuePop(jobs));
+}

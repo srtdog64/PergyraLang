@@ -1,0 +1,8 @@
+func Words() -> Array<String> {
+    return ["hello", "world", "foo"];
+}
+
+func Main() -> Void {
+    Log(Words()[0]);
+    Log(Words()[2]);
+}

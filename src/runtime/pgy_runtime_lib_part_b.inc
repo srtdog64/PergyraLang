@@ -2645,6 +2645,11 @@ typedef struct {                                                                
     void   *allocator;                                                           \
 } PgyArray_##Suffix;                                                             \
                                                                                  \
+typedef struct {                                                                 \
+    CType  *data;                                                                \
+    size_t  length;                                                              \
+} PgySlice_##Suffix;                                                             \
+                                                                                 \
 PgyArray_##Suffix pgy_array_new_##Suffix(size_t capacity)                        \
 {                                                                                \
     PgyArray_##Suffix arr;                                                       \
@@ -2672,6 +2677,24 @@ void pgy_array_push_##Suffix(PgyArray_##Suffix *arr, CType value)               
         arr->capacity = next;                                                    \
     }                                                                            \
     arr->data[arr->length++] = value;                                            \
+}                                                                                \
+                                                                                 \
+PgySlice_##Suffix pgy_array_slice_##Suffix(PgyArray_##Suffix *arr,               \
+                                           size_t start, size_t len)             \
+{                                                                                \
+    PgySlice_##Suffix slice;                                                     \
+    slice.data = NULL;                                                           \
+    slice.length = 0;                                                            \
+    if (arr == NULL)                                                             \
+        return slice;                                                            \
+    if (start + len > arr->length) {                                             \
+        pgy_runtime_warn_invalid_collection("array_slice",                       \
+            "slice out of bounds");                                              \
+        return slice;                                                            \
+    }                                                                            \
+    slice.data = arr->data + start;                                              \
+    slice.length = len;                                                          \
+    return slice;                                                                \
 }
 
 PGY_DEFINE_ARRAY_EXPORTS(Int, int32_t)

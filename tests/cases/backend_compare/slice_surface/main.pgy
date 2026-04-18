@@ -1,0 +1,10 @@
+func Words() -> Array<String> {
+    return ["hello", "world", "foo"];
+}
+
+func Main() -> Void {
+    let view = Words().Slice(1, 2);
+    let (second, third) = view;
+    Log(second);
+    Log(third);
+}

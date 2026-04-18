@@ -60,6 +60,11 @@ typedef struct
     NominalDeclKind *decl_hint_nominal_kinds;
     size_t   decl_hint_count;
     size_t   decl_hint_capacity;
+    /* Transient generic-arg slot: set by parser_parse_primary when it
+     * consumes `<T, U>` on a builtin callee (e.g. ClaimSecureSlot<Int>).
+     * Consumed by finish_call to attach to the AST_CALL node. Always
+     * NULL outside a single parse step. */
+    GenericParams *pending_call_generic_args;
 } Parser;
 
 /*

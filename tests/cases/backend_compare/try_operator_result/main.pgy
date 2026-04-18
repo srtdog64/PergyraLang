@@ -1,0 +1,24 @@
+func Validate(x: Int) -> Result<Int> {
+    if x > 100 {
+        return Err("too large");
+    }
+    return Ok(x);
+}
+
+func Process(x: Int) -> Result<Int> {
+    let doubled: Int = x * 2;
+    let validated: Int = Validate(doubled)?;
+    return Ok(validated + 10);
+}
+
+func Main() -> Void {
+    let r1: Result<Int> = Process(10);
+    if IsOk(r1) {
+        Log(ToString(Unwrap(r1)));
+    }
+
+    let r2: Result<Int> = Process(60);
+    if IsErr(r2) {
+        Log("err-propagated");
+    }
+}

@@ -125,6 +125,7 @@ typedef enum
     AST_MEMBER_ACCESS,
     AST_ARRAY_ACCESS,
     AST_ARRAY_LITERAL,
+    AST_TUPLE_LITERAL,     /* (a, b, c) — tuple construction */
     AST_ASSIGNMENT,
     AST_AWAIT_EXPR,
     AST_CHANNEL_SEND,
@@ -433,9 +434,10 @@ struct ASTNode
         
         /* Function call */
         struct {
-            ASTNode*  callee;
-            ASTNode** arguments;
-            size_t    arg_count;
+            ASTNode*       callee;
+            ASTNode**      arguments;
+            size_t         arg_count;
+            GenericParams* generic_args; /* optional: callee<T, U> type args */
         } call;
         
         /* Member access */
@@ -455,6 +457,12 @@ struct ASTNode
             ASTNode** elements;
             size_t    count;
         } array_literal;
+
+        /* Tuple literal (a, b, c) */
+        struct {
+            ASTNode** elements;
+            size_t    count;
+        } tuple_literal;
 
         /* enum Color { Red, Green, Blue }
          * enum Shape { Circle(Int), Rect(Int, Int), None }  — tagged union */
@@ -497,6 +505,10 @@ struct ASTNode
         struct {
             char*          name;
             GenericParams* generic_args;
+            /* Non-NULL when this AST_TYPE represents a tuple type (T, U, V).
+             * In that case `name` is set to "Tuple" as a sentinel marker. */
+            ASTNode**      tuple_elements;
+            size_t         tuple_element_count;
         } type;
         
         /* Async function declaration */

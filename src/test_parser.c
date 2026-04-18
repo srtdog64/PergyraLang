@@ -742,6 +742,91 @@ cleanup:
 }
 
 static int
+run_parser_reentry_cleanup_test(void)
+{
+    const char *valid_code =
+        "struct Vec2 {\n"
+        "    x: Int;\n"
+        "    y: Int;\n"
+        "}\n"
+        "func Main() -> Vec2 {\n"
+        "    return Vec2(1, 2);\n"
+        "}\n";
+    const char *invalid_code =
+        "func Main( -> Void {\n"
+        "    return;\n"
+        "}\n";
+    int failed = 0;
+
+    printf("\n=== Test: Parser Reentry Cleanup ===\n");
+
+    for (int i = 0; i < 64; i++) {
+        Lexer *lexer = lexer_create(valid_code);
+        Parser *parser = NULL;
+        ASTNode *ast = NULL;
+
+        if (lexer == NULL) {
+            printf("[FAIL] Failed to create lexer for valid reentry iteration %d\n", i);
+            return 1;
+        }
+
+        parser = parser_create(lexer);
+        if (parser == NULL) {
+            printf("[FAIL] Failed to create parser for valid reentry iteration %d\n", i);
+            lexer_destroy(lexer);
+            return 1;
+        }
+
+        ast = parser_parse_program(parser);
+        if (parser_has_error(parser) || ast == NULL || ast->type != AST_PROGRAM) {
+            printf("[FAIL] Valid parser reentry iteration %d failed\n", i);
+            failed = 1;
+        }
+
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+
+        if (failed)
+            return failed;
+    }
+
+    for (int i = 0; i < 64; i++) {
+        Lexer *lexer = lexer_create(invalid_code);
+        Parser *parser = NULL;
+        ASTNode *ast = NULL;
+
+        if (lexer == NULL) {
+            printf("[FAIL] Failed to create lexer for invalid reentry iteration %d\n", i);
+            return 1;
+        }
+
+        parser = parser_create(lexer);
+        if (parser == NULL) {
+            printf("[FAIL] Failed to create parser for invalid reentry iteration %d\n", i);
+            lexer_destroy(lexer);
+            return 1;
+        }
+
+        ast = parser_parse_program(parser);
+        if (!parser_has_error(parser) || parser_get_error(parser) == NULL) {
+            printf("[FAIL] Invalid parser reentry iteration %d unexpectedly succeeded\n", i);
+            failed = 1;
+        }
+
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+
+        if (failed)
+            return failed;
+    }
+
+    printf("Parser success/error cleanup stays stable across repeated same-process runs!\n");
+    return 0;
+}
+
+static int
 run_intent_step_using_derivation_ast_print_test(void)
 {
     const char *code =
@@ -2262,6 +2347,8 @@ main(void)
     failures += run_vessel_keyword_alias_test();
     printf("\n");
     failures += run_lexical_zone_context_test();
+    printf("\n");
+    failures += run_parser_reentry_cleanup_test();
     printf("\n");
 
     printf("\n=== All tests completed ===\n");

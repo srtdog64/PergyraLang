@@ -1,0 +1,18 @@
+func Pair() -> (Int, String) {
+    return (42, "hello");
+}
+
+func Triple() -> (Int, Int, Bool) {
+    return (7, 11, true);
+}
+
+func Main() -> Void {
+    let (n, s) = Pair();
+    Log(ToString(n));
+    Log(s);
+
+    let (a, b, flag) = Triple();
+    Log(ToString(a));
+    Log(ToString(b));
+    Log(ToString(flag));
+}

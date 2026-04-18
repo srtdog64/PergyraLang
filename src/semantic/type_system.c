@@ -271,6 +271,86 @@ type_function_effects(const Type *type)
     return type->data.function.effect_mask;
 }
 
+Type *
+type_create_tuple(Type **elements, size_t element_count)
+{
+    Type *t = calloc(1, sizeof(Type));
+    if (t == NULL)
+        return NULL;
+
+    t->kind = TYPE_KIND_TUPLE;
+
+    /* Name: "(T0, T1, T2)" */
+    size_t name_len = 3; /* "()" + '\0' */
+    for (size_t i = 0; i < element_count; i++) {
+        const char *en = (elements[i] != NULL && elements[i]->name != NULL)
+                            ? elements[i]->name : "?";
+        name_len += strlen(en);
+        if (i + 1 < element_count)
+            name_len += 2; /* ", " */
+    }
+
+    t->name = malloc(name_len);
+    if (t->name == NULL) {
+        free(t);
+        return NULL;
+    }
+    {
+        size_t offset = 0;
+        t->name[offset++] = '(';
+        for (size_t i = 0; i < element_count; i++) {
+            const char *en = (elements[i] != NULL && elements[i]->name != NULL)
+                                ? elements[i]->name : "?";
+            size_t elen = strlen(en);
+            memcpy(t->name + offset, en, elen);
+            offset += elen;
+            if (i + 1 < element_count) {
+                t->name[offset++] = ',';
+                t->name[offset++] = ' ';
+            }
+        }
+        t->name[offset++] = ')';
+        t->name[offset] = '\0';
+    }
+
+    t->data.tuple.element_count = element_count;
+    t->data.tuple.elements = (element_count > 0)
+        ? calloc(element_count, sizeof(Type *))
+        : NULL;
+    if (element_count > 0 && t->data.tuple.elements == NULL) {
+        free(t->name);
+        free(t);
+        return NULL;
+    }
+    if (element_count > 0 && elements != NULL)
+        memcpy(t->data.tuple.elements, elements, element_count * sizeof(Type *));
+    return t;
+}
+
+bool
+type_is_tuple(const Type *t)
+{
+    return t != NULL && t->kind == TYPE_KIND_TUPLE;
+}
+
+size_t
+type_tuple_arity(const Type *t)
+{
+    if (!type_is_tuple(t))
+        return 0;
+    return t->data.tuple.element_count;
+}
+
+Type *
+type_tuple_get_element(const Type *t, size_t index)
+{
+    if (!type_is_tuple(t))
+        return NULL;
+    if (index >= t->data.tuple.element_count)
+        return NULL;
+    return t->data.tuple.elements[index];
+}
+
 uint32_t
 type_effect_mask_closure(uint32_t mask)
 {
@@ -460,6 +540,18 @@ type_equals(const Type *a, const Type *b)
     if (a->kind == TYPE_KIND_GENERIC)
         return strcmp(a->data.generic.param_name,
                       b->data.generic.param_name) == 0;
+
+    /* Tuple: compare arity + elementwise */
+    if (a->kind == TYPE_KIND_TUPLE) {
+        if (a->data.tuple.element_count != b->data.tuple.element_count)
+            return false;
+        for (size_t i = 0; i < a->data.tuple.element_count; i++) {
+            if (!type_equals(a->data.tuple.elements[i],
+                             b->data.tuple.elements[i]))
+                return false;
+        }
+        return true;
+    }
 
     /* Function: compare params + return */
     if (a->kind == TYPE_KIND_FUNCTION) {
@@ -664,6 +756,22 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
     }
 
     case AST_CALL:
+        if (expr->data.call.callee != NULL
+            && expr->data.call.callee->type == AST_MEMBER_ACCESS
+            && expr->data.call.callee->data.member.object != NULL
+            && expr->data.call.callee->data.member.name != NULL
+            && strcmp(expr->data.call.callee->data.member.name, "Slice") == 0) {
+            Type *receiver = type_infer_expression(
+                expr->data.call.callee->data.member.object, env);
+            if (receiver != NULL
+                && receiver->kind == TYPE_KIND_CONSTRUCTED
+                && receiver->data.constructed.arg_count >= 1
+                && (type_equals(receiver->data.constructed.constructor, TYPE_ARRAY)
+                    || type_equals(receiver->data.constructed.constructor, TYPE_SLICE))) {
+                return type_create_constructed(TYPE_SLICE,
+                    receiver->data.constructed.args, 1);
+            }
+        }
         if (expr->data.call.callee != NULL
             && expr->data.call.callee->type == AST_IDENTIFIER) {
             const char *callee = expr->data.call.callee->data.identifier.name;

@@ -36,6 +36,32 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_CALL:          return llvm_emit_call(node, ctx);
     case AST_ASSIGNMENT:    return llvm_emit_assignment(node, ctx);
     case AST_MEMBER_ACCESS: return llvm_emit_member_access(node, ctx);
+    case AST_TUPLE_LITERAL: {
+        size_t n = node->data.tuple_literal.count;
+        if (n == 0)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        LLVMValueRef *vals = calloc(n, sizeof(LLVMValueRef));
+        LLVMTypeRef  *tys  = calloc(n, sizeof(LLVMTypeRef));
+        if (vals == NULL || tys == NULL) {
+            free(vals); free(tys);
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        }
+        for (size_t i = 0; i < n; i++) {
+            vals[i] = llvm_emit_expression(node->data.tuple_literal.elements[i], ctx);
+            if (vals[i] == NULL)
+                vals[i] = LLVMConstInt(ctx->type_i32, 0, 0);
+            tys[i] = LLVMTypeOf(vals[i]);
+        }
+        LLVMTypeRef tup_ty = LLVMStructTypeInContext(ctx->context, tys,
+            (unsigned)n, 0);
+        LLVMValueRef agg = LLVMGetUndef(tup_ty);
+        for (size_t i = 0; i < n; i++)
+            agg = LLVMBuildInsertValue(ctx->builder, agg, vals[i],
+                (unsigned)i, llvm_tmp_name(ctx));
+        free(vals); free(tys);
+        return agg;
+    }
+
     case AST_ARRAY_LITERAL: {
         size_t count = node->data.array_literal.count;
         const char *inner_name = "Int";
@@ -107,13 +133,10 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 
         if (LLVMGetTypeKind(arr_ty) == LLVMStructTypeKind) {
             LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, arr);
-            LLVMTypeRef elem_ty = ctx->type_i32;
-            if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
-                LLVMArrayVarEntry *entry = llvm_lookup_array_var(
-                    ctx, array_node->data.identifier.name);
-                if (entry != NULL)
-                    elem_ty = entry->elem_type;
-            }
+            LLVMTypeRef elem_ty = llvm_stmt_resolve_array_elem_type(
+                ctx, array_node, data_ptr);
+            if (elem_ty == NULL)
+                elem_ty = ctx->type_i32;
             LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
                 elem_ty, data_ptr, &idx, 1, llvm_tmp_name(ctx));
             return LLVMBuildLoad2(ctx->builder, elem_ty,

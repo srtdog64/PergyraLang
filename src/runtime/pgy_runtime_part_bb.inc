@@ -54,6 +54,8 @@ pgy_channel_init_##SuffixName(PgyChannel_##SuffixName *ch, size_t capacity) \
 static inline void \
 pgy_channel_close_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
+        return; \
     pthread_mutex_lock(&ch->mutex); \
     ch->closed = true; \
     pthread_cond_broadcast(&ch->cond_not_full); \
@@ -64,11 +66,18 @@ pgy_channel_close_##SuffixName(PgyChannel_##SuffixName *ch) \
 static inline void \
 pgy_channel_destroy_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
+        return; \
     pthread_mutex_destroy(&ch->mutex); \
     pthread_cond_destroy(&ch->cond_not_full); \
     pthread_cond_destroy(&ch->cond_not_empty); \
     free(ch->buf); \
     ch->buf = NULL; \
+    ch->cap = 0; \
+    ch->head = 0; \
+    ch->tail = 0; \
+    ch->count = 0; \
+    ch->closed = true; \
 } \
 \
 /* Blocking send. Returns false if channel closed. */ \

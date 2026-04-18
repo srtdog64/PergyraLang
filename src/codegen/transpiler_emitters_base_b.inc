@@ -429,7 +429,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             if (transpiler_is_implicit_field(ctx, base))
                 continue;
             type_name = transpiler_find_local_type_name(ctx, node, base);
-            if (transpiler_type_name_is_slot_like(type_name))
+            if (transpiler_type_name_is_claim_shape(type_name))
                 continue;
             type_ast = transpiler_find_local_type_ast(ctx, node, base);
             if (type_ast != NULL && type_ast->type == AST_EVENT_HANDLER_TYPE) {
@@ -2551,7 +2551,75 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *init = node->data.let_destructure.initializer;
         char *init_expr = emit_expression(init, ctx);
         const char *init_type = infer_expression_type_name(ctx, init);
+        if ((init_type == NULL || strcmp(init_type, "Unknown") == 0)
+            && init != NULL
+            && init->type == AST_IDENTIFIER
+            && init->data.identifier.name != NULL
+            && ctx->current_func_decl != NULL) {
+            const char *resolved =
+                transpiler_find_local_type_name(ctx, ctx->current_func_decl,
+                    init->data.identifier.name);
+            if (resolved != NULL)
+                init_type = resolved;
+        }
         const char *c_init_type = pergyra_type_to_c(init_type);
+
+        /* Tuple destructuring: let (a, b, ...) = tuple_expr */
+        if (init_type != NULL && init_type[0] == '(') {
+            /* Element type names: "(Int, String, Bool)" → {"Int","String","Bool"} */
+            char elem_names[8][64];
+            size_t arity = 0;
+            {
+                size_t i = 1;
+                size_t n = strlen(init_type);
+                while (i < n && init_type[i] != ')' && arity < 8) {
+                    while (i < n && (init_type[i] == ' ' || init_type[i] == '\t'))
+                        i++;
+                    size_t eo = 0;
+                    int depth = 0;
+                    while (i < n && eo + 1 < sizeof(elem_names[0])) {
+                        char c = init_type[i];
+                        if (depth == 0 && (c == ',' || c == ')'))
+                            break;
+                        if (c == '<' || c == '(') depth++;
+                        if (c == '>' || c == ')') depth--;
+                        elem_names[arity][eo++] = c;
+                        i++;
+                    }
+                    elem_names[arity][eo] = '\0';
+                    while (eo > 0 && (elem_names[arity][eo-1] == ' '
+                                   || elem_names[arity][eo-1] == '\t'))
+                        elem_names[arity][--eo] = '\0';
+                    arity++;
+                    if (i < n && init_type[i] == ',') i++;
+                }
+            }
+            if (arity != node->data.let_destructure.name_count) {
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "tuple destructuring arity mismatch: binding %zu, tuple arity %zu",
+                        node->data.let_destructure.name_count, arity);
+                }
+                free(init_expr);
+                return;
+            }
+            int tmp_id = ++ctx->tmp_counter;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s _pgy_destr_%d = %s;\n",
+                c_init_type, tmp_id, init_expr);
+            for (size_t i = 0; i < arity; i++) {
+                const char *e_ctype = pergyra_type_to_c(elem_names[i]);
+                write_indent(ctx);
+                codebuf_write(ctx->out, "%s %s = _pgy_destr_%d.f%zu;\n",
+                    e_ctype != NULL ? e_ctype : elem_names[i],
+                    node->data.let_destructure.names[i], tmp_id, i);
+                register_typed_var(ctx, node->data.let_destructure.names[i],
+                    elem_names[i]);
+            }
+            free(init_expr);
+            break;
+        }
+
         const char *elem_c_type = NULL;
         const char *inner = NULL;
         if (init_type != NULL

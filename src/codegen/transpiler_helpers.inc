@@ -156,6 +156,13 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
         fn = effective_layout->runtime_fn;
         suffix = transpiler_extract_type_suffix_from_fn(fn);
+        if (strncmp(fn, "pgy_claim_secure_", 17) == 0
+            || strncmp(fn, "pgy_secure_", 11) == 0) {
+            is_secure_slot = true;
+        } else if (strncmp(fn, "pgy_claim_device_", 17) == 0
+                   || strncmp(fn, "pgy_device_", 11) == 0) {
+            is_device_slot = true;
+        }
     }
 
     if (fn == NULL && ctx != NULL && slot_anchor != NULL) {
@@ -252,7 +259,9 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
 
     if (op_name != NULL && strcmp(op_name, "Claim") == 0) {
         /* Rule 1: Slot Claim
-         * C: PgySlot_<T> <anchor> = pgy_claim_<T>();
+         * Plain:  PgySlot_<T> <anchor> = pgy_claim_<T>();
+         * Secure: PgyToken_<T> <anchor>_token;
+         *         PgySecureSlot_<T> <anchor> = pgy_claim_secure_<T>(&<anchor>_token);
          */
         char c_type_buf[64];
         if (suffix == NULL)
@@ -265,8 +274,16 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             snprintf(c_type_buf, sizeof(c_type_buf), "PgySlot_%s", suffix);
 
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
-        write_indent_to(out, indent);
-        codebuf_write(out, "%s %s = %s();\n", c_type_buf, anchor, fn);
+        if (is_secure_slot) {
+            write_indent_to(out, indent);
+            codebuf_write(out, "PgyToken_%s %s_token;\n", suffix, anchor);
+            write_indent_to(out, indent);
+            codebuf_write(out, "%s %s = %s(&%s_token);\n",
+                c_type_buf, anchor, fn, anchor);
+        } else {
+            write_indent_to(out, indent);
+            codebuf_write(out, "%s %s = %s();\n", c_type_buf, anchor, fn);
+        }
         write_indent_to(out, indent);
         codebuf_write(out, "(void)%s;\n", anchor);
     }
