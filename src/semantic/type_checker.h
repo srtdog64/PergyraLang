@@ -16,6 +16,9 @@
 /* Forward declarations */
 typedef struct SemanticContext SemanticContext;
 typedef struct Diagnostic      Diagnostic;
+typedef struct TypeResolutionNode TypeResolutionNode;
+typedef struct TypeResolutionEdge TypeResolutionEdge;
+typedef struct TypeResolutionGraph TypeResolutionGraph;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
@@ -37,6 +40,42 @@ struct Diagnostic
     uint32_t        line;
     uint32_t        col;
     char*           message;
+};
+
+typedef enum
+{
+    TYPE_RES_NODE_TYPE_REF,
+    TYPE_RES_NODE_BUILTIN,
+    TYPE_RES_NODE_DECL,
+    TYPE_RES_NODE_ALIAS,
+    TYPE_RES_NODE_GENERIC_PARAM,
+    TYPE_RES_NODE_LOCAL_CONTRACT,
+    TYPE_RES_NODE_PROJECTION_PATH
+} TypeResolutionNodeKind;
+
+struct TypeResolutionNode
+{
+    TypeResolutionNodeKind kind;
+    const ASTNode         *site;
+    char                  *label;
+};
+
+struct TypeResolutionEdge
+{
+    size_t from;
+    size_t to;
+    char  *reason;
+};
+
+struct TypeResolutionGraph
+{
+    TypeResolutionNode *nodes;
+    size_t              node_count;
+    size_t              node_capacity;
+
+    TypeResolutionEdge *edges;
+    size_t              edge_count;
+    size_t              edge_capacity;
 };
 
 /*
@@ -71,6 +110,12 @@ struct SemanticContext
     char**       embedded_world_zone_slot_names;
     size_t       embedded_world_zone_count;
     size_t       embedded_world_zone_capacity;
+
+    char**       alias_resolution_stack;
+    size_t       alias_resolution_count;
+    size_t       alias_resolution_capacity;
+
+    TypeResolutionGraph type_resolution_graph;
 
     bool         has_error;
 };

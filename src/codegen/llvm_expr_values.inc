@@ -113,8 +113,9 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
     LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
-    if (var == NULL && ctx->current_class_name != NULL) {
-        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+    if (var == NULL && llvm_current_host_decl_name(ctx) != NULL) {
+        LLVMClassTypeEntry *cls =
+            llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
         LLVMVarEntry *self_var = llvm_scope_lookup(ctx, "self");
         if (cls != NULL && self_var != NULL) {
             int field_idx = llvm_class_field_index(cls, name);

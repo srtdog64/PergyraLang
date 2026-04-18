@@ -192,6 +192,29 @@ transpiler_bind_current_host_decl_local(TranspilerCtx *ctx, ASTNode *decl)
     }
 }
 
+static void
+transpiler_restore_host_context_local(TranspilerCtx *ctx,
+                                      ASTNode *saved_host_decl,
+                                      const char *saved_zone_name,
+                                      const char *saved_class_name,
+                                      const char *saved_relation_name,
+                                      const char *saved_effect_name,
+                                      const char *saved_world_name)
+{
+    if (ctx == NULL)
+        return;
+
+    transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
+    if (saved_host_decl != NULL)
+        return;
+
+    ctx->current_zone_name = saved_zone_name;
+    ctx->current_class_name = saved_class_name;
+    ctx->current_relation_name = saved_relation_name;
+    ctx->current_effect_name = saved_effect_name;
+    ctx->current_world_name = saved_world_name;
+}
+
 static ASTNode *
 transpiler_current_host_decl_local(TranspilerCtx *ctx)
 {
@@ -211,9 +234,27 @@ transpiler_current_host_decl_local(TranspilerCtx *ctx)
             return decl;
         }
     }
-    if (ctx->current_class_name != NULL) {
+    if (ctx->current_zone_name != NULL) {
         decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_CLASS_DECL, ctx->current_class_name);
+            ctx, AST_ZONE_DECL, ctx->current_zone_name);
+    }
+    if (decl == NULL && ctx->current_relation_name != NULL) {
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_RELATION_DECL, ctx->current_relation_name);
+    }
+    if (decl == NULL && ctx->current_effect_name != NULL) {
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_EFFECT_DECL, ctx->current_effect_name);
+    }
+    if (decl == NULL && ctx->current_world_name != NULL) {
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_WORLD_DECL, ctx->current_world_name);
+    }
+    if (ctx->current_class_name != NULL) {
+        if (decl == NULL) {
+            decl = transpiler_find_decl_in_inventory_local(
+                ctx, AST_CLASS_DECL, ctx->current_class_name);
+        }
         if (decl == NULL) {
             decl = transpiler_find_decl_in_inventory_local(
                 ctx, AST_ENUM_DECL, ctx->current_class_name);

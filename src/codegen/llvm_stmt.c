@@ -206,8 +206,9 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
             if (tracked != NULL)
                 return tracked;
         }
-        if (ctx->current_class_name != NULL && strcmp(name, "self") != 0) {
-            LLVMClassTypeEntry *host_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+        if (llvm_current_host_decl_name(ctx) != NULL && strcmp(name, "self") != 0) {
+            LLVMClassTypeEntry *host_cls =
+                llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
             if (host_cls != NULL) {
                 int field_idx = llvm_class_field_index(host_cls, name);
                 if (field_idx >= 0) {
@@ -250,10 +251,10 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
             return name;
         {
             LLVMFuncEntry *callee_fn = llvm_lookup_function(ctx, name);
-            if (callee_fn == NULL && ctx->current_class_name != NULL) {
+            if (callee_fn == NULL && llvm_current_host_decl_name(ctx) != NULL) {
                 char full_name[256];
                 snprintf(full_name, sizeof(full_name), "%s_%s",
-                    ctx->current_class_name, name);
+                    llvm_current_host_decl_name(ctx), name);
                 callee_fn = llvm_lookup_function(ctx, full_name);
             }
             LLVMClassTypeEntry *ret_cls = callee_fn != NULL
@@ -373,10 +374,10 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return ctx->type_void;
             }
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
-            if (fn == NULL && ctx->current_class_name != NULL) {
+            if (fn == NULL && llvm_current_host_decl_name(ctx) != NULL) {
                 char full_name[256];
                 snprintf(full_name, sizeof(full_name), "%s_%s",
-                    ctx->current_class_name, callee);
+                    llvm_current_host_decl_name(ctx), callee);
                 fn = llvm_lookup_function(ctx, full_name);
             }
             if (fn != NULL)
@@ -511,10 +512,10 @@ llvm_stmt_resolve_zone_subject_receiver(LLVMGenCtx *ctx, ASTNode *receiver,
     if (type_name_out != NULL)
         *type_name_out = NULL;
 
-    if (ctx == NULL || ctx->current_class_name == NULL || receiver == NULL)
+    if (ctx == NULL || llvm_current_host_decl_name(ctx) == NULL || receiver == NULL)
         return false;
 
-    zone_decl = llvm_stmt_find_zone_decl(ctx, ctx->current_class_name);
+    zone_decl = llvm_stmt_find_zone_decl(ctx, llvm_current_host_decl_name(ctx));
     if (zone_decl == NULL)
         return false;
 
@@ -563,12 +564,12 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     const char *receiver_type_name = NULL;
     const char *effect_name;
 
-    if (ctx == NULL || ctx->current_class_name == NULL || call == NULL
+    if (ctx == NULL || llvm_current_host_decl_name(ctx) == NULL || call == NULL
         || call->type != AST_CALL) {
         return;
     }
 
-    zone_decl = llvm_stmt_find_zone_decl(ctx, ctx->current_class_name);
+    zone_decl = llvm_stmt_find_zone_decl(ctx, llvm_current_host_decl_name(ctx));
     if (zone_decl == NULL)
         return;
 
@@ -593,13 +594,14 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         || !method_decl->data.func_decl.is_action
         || method_decl->data.func_decl.within_zone == NULL
         || method_decl->data.func_decl.causes_effect == NULL
-        || strcmp(method_decl->data.func_decl.within_zone, ctx->current_class_name) != 0) {
+        || strcmp(method_decl->data.func_decl.within_zone,
+                  llvm_current_host_decl_name(ctx)) != 0) {
         return;
     }
 
     effect_name = method_decl->data.func_decl.causes_effect;
     effect_decl = llvm_stmt_find_effect_decl(ctx, effect_name);
-    zone_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+    zone_cls = llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
     effect_cls = llvm_lookup_class(ctx, effect_name);
     self_var = llvm_scope_lookup(ctx, "self");
     if (effect_decl == NULL || zone_cls == NULL || effect_cls == NULL || self_var == NULL)

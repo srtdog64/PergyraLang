@@ -2716,7 +2716,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (node->data.call.callee->type == AST_IDENTIFIER) {
-        const char *host_name = ctx->current_class_name;
+        const char *host_name = llvm_current_host_decl_name(ctx);
         ASTNode *host_method = llvm_current_host_method_decl(ctx, callee_name);
         if (host_name != NULL && host_method != NULL) {
             char full_name[256];
@@ -2829,8 +2829,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                     arg_var->alloca, llvm_tmp_name(ctx));
                             else
                                 args[i] = arg_var->alloca;
-                        } else if (ctx->current_class_name != NULL) {
-                            LLVMClassTypeEntry *host_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+                        } else if (llvm_current_host_decl_name(ctx) != NULL) {
+                            LLVMClassTypeEntry *host_cls =
+                                llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
                             if (host_cls != NULL) {
                                 int field_idx = llvm_class_field_index(host_cls, arg_name);
                                 if (field_idx >= 0) {

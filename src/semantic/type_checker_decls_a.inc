@@ -827,6 +827,12 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check for_type exists */
     if (node->data.role_decl.for_type != NULL) {
+        semantic_type_resolution_record_type_ref_dependency(
+            ctx,
+            node,
+            name != NULL ? name : "<role>",
+            node->data.role_decl.for_type,
+            "role host-type lookup");
         Type *bound_type = resolve_type_node(node->data.role_decl.for_type, ctx);
         if (bound_type != NULL
             && node->data.role_decl.for_type->type == AST_TYPE
@@ -855,6 +861,14 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < node->data.role_decl.include_count; i++) {
         ASTNode *inc = node->data.role_decl.includes[i];
         const char *role_name = inc->data.include_stmt.role_name;
+        semantic_type_resolution_record_named_dependency(
+            ctx,
+            inc,
+            name != NULL ? name : "<role>",
+            TYPE_RES_NODE_DECL,
+            NULL,
+            role_name,
+            "role include lookup");
         Symbol *role_sym = scope_lookup(ctx->scope, role_name);
         if (role_sym == NULL) {
             semantic_error(ctx, inc,
@@ -869,6 +883,97 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 role_name != NULL ? role_name : "<role>",
                 role_name != NULL ? role_name : "<role>",
                 role_name != NULL ? role_name : "<role>");
+        } else if (ctx->program_root != NULL && role_name != NULL) {
+            ASTNode *included_role_decl = NULL;
+            if (ctx->program_root->type == AST_PROGRAM) {
+                for (size_t ri = 0; ri < ctx->program_root->data.program.count; ri++) {
+                    ASTNode *candidate = ctx->program_root->data.program.statements[ri];
+                    if (candidate != NULL
+                        && candidate->type == AST_ROLE_DECL
+                        && candidate->data.role_decl.name != NULL
+                        && strcmp(candidate->data.role_decl.name, role_name) == 0) {
+                        included_role_decl = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (included_role_decl != NULL
+                && included_role_decl->data.role_decl.generic_params != NULL
+                && included_role_decl->data.role_decl.generic_params->count > 0) {
+                size_t effective_count = 0;
+                ASTNode **effective_args = collect_effective_generic_arg_nodes(
+                    included_role_decl->data.role_decl.generic_params,
+                    inc->data.include_stmt.type_args,
+                    inc,
+                    ctx,
+                    "role include",
+                    role_name,
+                    &effective_count);
+                if (effective_args != NULL
+                    && included_role_decl->data.role_decl.where_clause != NULL) {
+                    char *expected_text = format_generic_subject_signature(
+                        role_name,
+                        included_role_decl->data.role_decl.generic_params);
+                    WhereClause *wc = included_role_decl->data.role_decl.where_clause;
+                    for (size_t ci = 0; ci < wc->count; ci++) {
+                        TypeConstraint *tc = wc->constraints[ci];
+                        int param_index;
+                        Type *concrete_type;
+                        if (tc == NULL || tc->type_param == NULL)
+                            continue;
+                        param_index = find_generic_param_index(
+                            included_role_decl->data.role_decl.generic_params,
+                            tc->type_param);
+                        if (param_index < 0 || (size_t)param_index >= effective_count)
+                            continue;
+                        concrete_type = resolve_type_node(effective_args[param_index], ctx);
+                        if (concrete_type == NULL)
+                            continue;
+                        for (size_t bi = 0; bi < tc->bound_count; bi++) {
+                            ASTNode *bound_node = tc->bounds[bi];
+                            char *bounds_text = format_type_constraint_bounds(tc);
+                            const char *bound_name =
+                                (bound_node != NULL
+                                 && bound_node->type == AST_TYPE
+                                 && bound_node->data.type.name != NULL)
+                                    ? bound_node->data.type.name
+                                    : "<constraint>";
+                            if (!concrete_type_satisfies_bound(
+                                    concrete_type, bound_node, ctx)) {
+                                semantic_error(ctx, inc,
+                                    "Role '%s' includes role '%s' with generic argument '%s' that does not satisfy bound '%s'.\n"
+                                    "Reason:\n"
+                                    "- include consumer path is role '%s'\n"
+                                    "- included role '%s' requires '%s: %s'\n"
+                                    "- full bound set is '%s: %s'\n"
+                                    "- expected type args are '%s'\n"
+                                    "- actual type args are specialized through include '%s'\n"
+                                    "Fix:\n"
+                                    "- include role '%s' with a type that satisfies '%s'\n"
+                                    "- or relax the included role where-clause",
+                                    name != NULL ? name : "<role>",
+                                    role_name,
+                                    concrete_type->name != NULL ? concrete_type->name : "<type>",
+                                    bound_name,
+                                    name != NULL ? name : "<role>",
+                                    role_name,
+                                    tc->type_param,
+                                    bound_name,
+                                    tc->type_param,
+                                    bounds_text != NULL ? bounds_text : "<constraint>",
+                                    expected_text != NULL ? expected_text : role_name,
+                                    role_name,
+                                    role_name,
+                                    bound_name);
+                            }
+                            free(bounds_text);
+                        }
+                    }
+                    free(expected_text);
+                }
+                free(effective_args);
+            }
         }
     }
 
@@ -878,6 +983,12 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *impl = node->data.role_decl.impl_abilities[i];
 
         if (impl->type == AST_IMPL_ABILITY) {
+            semantic_type_resolution_record_type_ref_dependency(
+                ctx,
+                impl,
+                name != NULL ? name : "<role>",
+                impl->data.impl_ability.ability_ref,
+                "role impl ability lookup");
             /* Check that the ability exists */
             if (impl->data.impl_ability.ability_ref != NULL
                 && impl->data.impl_ability.ability_ref->type == AST_TYPE
@@ -1121,6 +1232,13 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
             if (ab_type != NULL && ab_type->data.type.name != NULL) {
                 const char *ability_name = ab_type->data.type.name;
                 char *required_text = ability_ref_display(ab_type);
+                semantic_type_resolution_record_type_ref_dependency(
+                    ctx,
+                    rs,
+                    rs->data.role_slot.slot_name != NULL
+                        ? rs->data.role_slot.slot_name : "<role-slot>",
+                    ab_type,
+                    "party role slot ability consumer lookup");
                 if (ctx->program_root != NULL) {
                     ASTNode *ability_decl = resolve_required_ability_decl(
                         ab_type, rs, ctx, "party role slot",

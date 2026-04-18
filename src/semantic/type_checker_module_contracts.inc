@@ -249,11 +249,11 @@ ability_generic_arg_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
         return false;
 
     bound_type = resolve_type_node(bound_node, ctx);
-    if (bound_type == NULL || bound_type == TYPE_UNKNOWN)
-        return false;
-
-    if (type_satisfies_constraint(concrete_type, bound_type))
+    if (bound_type != NULL
+        && bound_type != TYPE_UNKNOWN
+        && type_satisfies_constraint(concrete_type, bound_type)) {
         return true;
+    }
 
     if (ctx->program_root == NULL
         || bound_node->type != AST_TYPE
@@ -263,7 +263,10 @@ ability_generic_arg_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
     }
 
     bound_sym = scope_lookup(ctx->scope, bound_node->data.type.name);
-    if (bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY) {
+    if ((bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY)
+        || (ctx->program_root != NULL
+            && find_ability_decl_by_name(ctx->program_root,
+                                         bound_node->data.type.name) != NULL)) {
         return subject_type_has_ability(ctx->program_root,
                                         concrete_type->name,
                                         bound_node);
@@ -291,6 +294,13 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
         || ctx == NULL) {
         return true;
     }
+
+    semantic_type_resolution_record_type_ref_dependency(
+        ctx,
+        site != NULL ? site : ability_ref,
+        owner_name != NULL ? owner_name : "<consumer>",
+        ability_ref,
+        "ability consumer lookup");
 
     decl_params = ability_decl->data.ability_decl.generic_params;
     wc = ability_decl->data.ability_decl.where_clause;
@@ -539,6 +549,13 @@ resolve_required_ability_decl(ASTNode *ability_ref,
     ASTNode *ability_decl;
     char *required_text = ability_ref_display(ability_ref);
     const char *site_module = NULL;
+
+    semantic_type_resolution_record_type_ref_dependency(
+        ctx,
+        site != NULL ? site : ability_ref,
+        owner_name != NULL ? owner_name : "<consumer>",
+        ability_ref,
+        "required ability resolution");
 
     resolve_type_node(ability_ref, ctx);
     if (ability == NULL) {
@@ -798,6 +815,12 @@ validate_action_required_abilities(ASTNode *node,
         ASTNode *ability_ref = node->data.func_decl.required_abilities[i];
         const char *ability = ability_ref_name(ability_ref);
         char *required_text = ability_ref_display(ability_ref);
+        semantic_type_resolution_record_type_ref_dependency(
+            ctx,
+            node,
+            name != NULL ? name : "<action>",
+            ability_ref,
+            "action ability consumer lookup");
         ASTNode *ability_decl = resolve_required_ability_decl(
             ability_ref, node, ctx, "action", name);
         if (ability_decl == NULL)

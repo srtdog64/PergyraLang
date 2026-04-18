@@ -302,7 +302,7 @@ test_effect_inference(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot assign 'Token<Bot>' to 'Token<Int>'"));
+            "expected 'Token<Int>', got 'Token<Bot>'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

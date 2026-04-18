@@ -491,6 +491,26 @@ typedef struct LLVMGenCtx
     uint32_t        error_column;
 } LLVMGenCtx;
 
+static inline const char *
+llvm_bind_current_host_name(LLVMGenCtx *ctx, const char *host_name)
+{
+    const char *saved_name = NULL;
+
+    if (ctx == NULL)
+        return NULL;
+    saved_name = ctx->current_class_name;
+    ctx->current_class_name = host_name;
+    return saved_name;
+}
+
+static inline void
+llvm_restore_current_host_name(LLVMGenCtx *ctx, const char *saved_name)
+{
+    if (ctx == NULL)
+        return;
+    ctx->current_class_name = saved_name;
+}
+
 static inline void
 llvm_active_inventory(const LLVMGenCtx *ctx,
                       ASTNodeType decl_type,
@@ -656,6 +676,36 @@ llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
     if (decl != NULL)
         return decl;
     return llvm_find_decl_in_active_inventory(ctx, AST_WORLD_DECL, name);
+}
+
+static inline const char *
+llvm_current_host_decl_name(const LLVMGenCtx *ctx)
+{
+    ASTNode *decl = NULL;
+
+    if (ctx == NULL || ctx->current_class_name == NULL)
+        return NULL;
+
+    decl = llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
+    if (decl == NULL)
+        return ctx->current_class_name;
+
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        return decl->data.class_decl.name;
+    case AST_ENUM_DECL:
+        return decl->data.enum_decl.name;
+    case AST_RELATION_DECL:
+        return decl->data.relation_decl.name;
+    case AST_EFFECT_DECL:
+        return decl->data.effect_decl.name;
+    case AST_ZONE_DECL:
+        return decl->data.zone_decl.name;
+    case AST_WORLD_DECL:
+        return decl->data.world_decl.name;
+    default:
+        return ctx->current_class_name;
+    }
 }
 
 static inline void

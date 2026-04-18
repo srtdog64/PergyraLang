@@ -77,30 +77,7 @@ llvm_decl_find_current_host_decl(LLVMGenCtx *ctx)
     if (ctx->current_class_name == NULL)
         return NULL;
 
-    {
-        ASTNode *decl = llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL,
-                                                           ctx->current_class_name);
-        if (decl != NULL)
-            return decl;
-        decl = llvm_find_decl_in_active_inventory(ctx, AST_RELATION_DECL,
-                                                  ctx->current_class_name);
-        if (decl != NULL)
-            return decl;
-        decl = llvm_find_decl_in_active_inventory(ctx, AST_EFFECT_DECL,
-                                                  ctx->current_class_name);
-        if (decl != NULL)
-            return decl;
-        decl = llvm_find_decl_in_active_inventory(ctx, AST_WORLD_DECL,
-                                                  ctx->current_class_name);
-        if (decl != NULL)
-            return decl;
-        decl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL,
-                                                  ctx->current_class_name);
-        if (decl != NULL)
-            return decl;
-        return llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL,
-                                                  ctx->current_class_name);
-    }
+    return llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
 }
 
 static ASTNode *

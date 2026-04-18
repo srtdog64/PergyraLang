@@ -5472,6 +5472,7 @@ test_b0_provenance_closure_diagnostics(void)
 #include "tests/semantic/test_semantic_parallel_context.inc"
 #include "tests/semantic/test_semantic_async.inc"
 #include "tests/semantic/test_semantic_effects.inc"
+#include "tests/semantic/test_semantic_graph.inc"
 #include "tests/semantic/test_semantic_misc.inc"
 
 /* -----------------------------------------------------------------
@@ -5511,6 +5512,7 @@ main(void)
     test_parallel_context_semantics();
     test_parallel_execution_semantics();
     test_effect_inference();
+    test_type_resolution_graph();
     test_misc_grammar_edges();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);

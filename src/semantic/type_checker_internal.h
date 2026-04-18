@@ -14,6 +14,7 @@ bool type_is_resource_handle(const Type *type);
 bool type_is_anchored_resource_handle(const Type *type);
 bool type_is_movable_resource_handle(const Type *type);
 bool type_is_capability_bearing(const Type *type);
+bool type_requires_boundary_borrow_tracking(const Type *type, SemanticContext *ctx);
 void semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask);
 
 bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,

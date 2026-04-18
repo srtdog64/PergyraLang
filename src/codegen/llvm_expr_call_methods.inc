@@ -250,10 +250,11 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMClassTypeEntry *parent_cls = NULL;
         int field_idx = -1;
 
-        if (var == NULL && ctx->current_class_name != NULL) {
+        if (var == NULL && llvm_current_host_decl_name(ctx) != NULL) {
+            const char *host_name = llvm_current_host_decl_name(ctx);
             class_name = llvm_current_field_class_name(ctx, var_name);
             if (class_name != NULL) {
-                parent_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+                parent_cls = llvm_lookup_class(ctx, host_name);
                 if (parent_cls != NULL)
                     field_idx = llvm_class_field_index(parent_cls, var_name);
             }

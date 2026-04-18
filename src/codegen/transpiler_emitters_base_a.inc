@@ -1773,8 +1773,6 @@ transpiler_emit_mir_block_with_ssa_map(TranspilerSSANameMap *ssa_map,
 static char *
 transpiler_make_c_ssa_name(const char *versioned_name)
 {
-    ASTNode *host_decl = NULL;
-
     if (versioned_name == NULL)
         return NULL;
     char base[128];
@@ -1782,10 +1780,7 @@ transpiler_make_c_ssa_name(const char *versioned_name)
     if (!transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version))
         return pergyra_strdup(versioned_name);
     if (g_type_render_ctx != NULL && transpiler_is_implicit_field(g_type_render_ctx, base)) {
-        host_decl = transpiler_current_host_decl_local(g_type_render_ctx);
-        if (((host_decl != NULL && host_decl->type == AST_CLASS_DECL)
-             || g_type_render_ctx->current_class_name != NULL)
-            && current_class_has_field(g_type_render_ctx, base)) {
+        if (current_class_has_field(g_type_render_ctx, base)) {
             return strdup_fmt(current_class_uses_self_cell(g_type_render_ctx)
                 ? "self->%s"
                 : "self.%s", base);
@@ -1800,7 +1795,7 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
 {
     ASTNode *host_decl = NULL;
     bool in_zone_context = false;
-    const char *class_host_name = NULL;
+    const char *host_name = NULL;
 
     if (ctx == NULL || base_name == NULL)
         return false;
@@ -1811,10 +1806,7 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
         return false;
     host_decl = transpiler_current_host_decl_local(ctx);
     in_zone_context = (host_decl != NULL && host_decl->type == AST_ZONE_DECL);
-    if (host_decl != NULL && host_decl->type == AST_CLASS_DECL)
-        class_host_name = host_decl->data.class_decl.name;
-    if (class_host_name == NULL)
-        class_host_name = ctx->current_class_name;
+    host_name = current_host_decl_name(ctx);
     if (current_class_has_field(ctx, base_name))
         return true;
     if (current_relation_has_field(ctx, base_name))
@@ -1829,8 +1821,8 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
     }
     if (current_world_has_field(ctx, base_name))
         return true;
-    if (!in_zone_context && class_host_name != NULL) {
-        ASTNode *zone_decl = find_zone_decl(ctx, class_host_name);
+    if (!in_zone_context && host_name != NULL) {
+        ASTNode *zone_decl = find_zone_decl(ctx, host_name);
         if (zone_decl != NULL) {
             for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
                 ASTNode *slot = zone_decl->data.zone_decl.slots[i];
@@ -1854,10 +1846,10 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
                 }
             }
         }
-        {
-            size_t name_len = strlen(class_host_name);
+        if (host_name != NULL) {
+            size_t name_len = strlen(host_name);
             if (name_len > 4
-                && strcmp(class_host_name + name_len - 4, "Zone") == 0
+                && strcmp(host_name + name_len - 4, "Zone") == 0
                 && lookup_typed_var(ctx, base_name) == NULL
                 && !is_slot_var(ctx, base_name)) {
                 return true;
@@ -2351,26 +2343,28 @@ transpiler_lookup_current_owner_member_type_name(TranspilerCtx *ctx,
 {
     const char *member_type = NULL;
     const char *host_name = NULL;
+    ASTNode *host_decl = NULL;
 
     if (ctx == NULL || member_name == NULL)
         return NULL;
 
-    if (ctx->current_host_decl != NULL) {
-        switch (ctx->current_host_decl->type) {
+    host_decl = transpiler_current_host_decl_local(ctx);
+    if (host_decl != NULL) {
+        switch (host_decl->type) {
         case AST_CLASS_DECL:
-            host_name = ctx->current_host_decl->data.class_decl.name;
+            host_name = host_decl->data.class_decl.name;
             break;
         case AST_RELATION_DECL:
-            host_name = ctx->current_host_decl->data.relation_decl.name;
+            host_name = host_decl->data.relation_decl.name;
             break;
         case AST_EFFECT_DECL:
-            host_name = ctx->current_host_decl->data.effect_decl.name;
+            host_name = host_decl->data.effect_decl.name;
             break;
         case AST_ZONE_DECL:
-            host_name = ctx->current_host_decl->data.zone_decl.name;
+            host_name = host_decl->data.zone_decl.name;
             break;
         case AST_WORLD_DECL:
-            host_name = ctx->current_host_decl->data.world_decl.name;
+            host_name = host_decl->data.world_decl.name;
             break;
         default:
             break;

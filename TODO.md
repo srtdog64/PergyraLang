@@ -9,8 +9,31 @@
 - 베타 진행률 추정: 약 `86-87%`
 - 현재 표현: `late-stage alpha / beta-closure sprint`
 
+### 최근 closure 진행 (2026-04-18)
+
+- declaration-side MIR-only host context를 더 정리
+  - transpiler host context가 `current_host_decl -> within_zone -> saved host-name inventory` 순으로 복원되도록 정렬
+  - class/zone/relation/effect/world field query helper가 raw host-name state보다 inventory-backed host handle을 우선 사용
+  - direct `current_*_name` restore chain 일부를 `transpiler_restore_host_context_local(...)` helper로 접어 산발적 context 복구 코드를 축소
+  - emitter hot path의 direct `current_*_name` 참조는 대부분 걷어내고, 남은 사용처를 helper/restore layer로 국소화
+  - LLVM declaration helper도 current host lookup을 공용 active-inventory host helper로 접어 naming chain을 축소
+  - LLVM MIR/domain emission의 direct `current_class_name` save/restore도 host-name bind/restore helper로 접어 state 관리 중복을 줄임
+  - LLVM expr/stmt hot path도 `llvm_current_host_decl_name(...)` 기준으로 정렬해 direct raw host-name read를 더 줄임
+- generic contract + type-resolution DAG 회귀를 더 넓힘
+  - `role impl ability` 경로가 generic default/where-bound cycle provenance regression에 추가됨
+  - 즉, action/intent-step/zone-authority/party-role-slot에 더해 role impl consumer도 staged DAG path 회귀 범위에 포함
+- 현재 검증선
+  - `test-semantic`: `1617 passed, 0 failed`
+  - `test-transpile`: `529 passed, 0 failed`
+  - `test-abi`: `84 passed, 0 failed`
+  - `ci-linux`: full green 유지
+
 ### 최근 closure 진행 (2026-04-16)
 
+- declaration-side host context를 inventory-backed handle 쪽으로 한 단계 더 정렬
+  - transpiler host lookup이 `current_host_decl -> within_zone -> saved host-name inventory` 순으로 복원되도록 조정
+  - zone/relation/effect/world field query helper가 raw `current_*_name` 분기보다 inventory-backed `current_host_decl`를 우선 소비
+  - 즉, declaration-side C backend context 복원에서 string name state는 점점 restore hint로만 남고, 실제 host truth는 active inventory 기반 handle로 수렴 중
 - explicit/compressed canonical pair examples를 intent-first 독해 규칙으로 다시 정렬
   - large/composite pair source에 `intent -> world/zone -> subject` read order를 직접 명시
 - world embedding implicit copy를 warning이 아니라 hard contract로 승격 시작
@@ -82,6 +105,18 @@
   - declaration emission failure는 comment/skip/fallback return이 아니라 explicit backend error로 승격
   - C/LLVM 둘 다 declaration-side path에서 `Unknown` / surface-trust-breaking fallback type emission을 계속 제거
   - 문서에서 `MIR-led / HIR-assisted`라고 남겨둔 debt를 실제 구현 기준으로 더 축소하고, 베타 시점 표현과 구현을 일치시킨다
+
+- [ ] **type-resolution DAG를 beta blocker로 포함**
+  - import resolver와 별개로 semantic type dependency graph를 beta acceptance line에 포함
+  - generic default / multi-bound / role impl / action / intent step / party role slot / zone authority / module contract consumer를 같은 graph inventory로 추적
+  - alias depth limit / ad-hoc recursive failure보다 path-aware cycle diagnostic을 우선 기준으로 끌어올림
+  - 1단계 진행: `topo_order`를 버리지 않고 declaration staged worklist에 연결 시작
+  - 1단계 진행: `world/zone` local contract와 `refresh` projection path를 synthetic graph node로 올리기 시작
+  - 1단계 진행: topo worklist가 `LOCAL_CONTRACT` / `PROJECTION_PATH` synthetic node도 다시 소비하기 시작
+  - 1단계 진행: synthetic node 소비를 host 전체 재실행이 아니라 label별 narrow handler로 축소
+  - 1단계 진행: role impl consumer까지 cycle provenance 회귀를 추가해 ability consumer family를 더 완성
+  - 남은 일: staged declaration prepass 범위를 넓히고 graph-backed evaluator를 semantic source-of-truth로 승격
+  - ecosystem 확장(`stdlib/pkg/tooling`)은 이 DAG closure 이후 단계로 미룸
 
 - [ ] **own/ref 일반화와 generic contract 전경로 audit 마감**
   - own/ref는 anchored subset 밖의 일반 movable type에도 assignment/call/return/channel/container/rebind 전경로 audit을 계속 확장
@@ -536,6 +571,36 @@
     - 최근 정리:
       - `current_field_type_name`, `current_host_method_decl`, `find_nominal_host_method_decl`는 active inventory 경유 lookup로 정렬됨
       - 남은 핵심 debt는 LLVM pipeline의 AST-carried declaration inventory bootstrap와 current_* host naming state 축소
+
+- [ ] **type-resolution DAG 엔진 도입**
+  - 대상: semantic type resolution / generic consumer resolution / declaration dependency scheduling
+  - 문제: 현재는 `resolve_type_node(...)` 중심의 재귀 해석 + scope lookup + ad-hoc validation이 주축이라, module import graph는 분명하지만 type dependency 자체는 compiler-wide DAG로 관리되지 않는다
+  - 최근 진행:
+    - `TypeResolutionGraph` inventory + cycle diagnostic + topo derivation은 실제 활성 상태
+    - staged worklist는 provider-first 역순 topo 순회로 고정됨
+    - local contract / projection synthetic node는 label별 narrow handler로 소비됨
+    - generic `default_type` / generic constraint / `where` bound는 staged DAG resolver 경로에 편입됨
+    - graph regression은 world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / action-intent-zone-party ability consumer provenance까지 포함
+  - 목표:
+    - import graph와 별개로 `type provider -> type consumer` 그래프를 분리 구축한다
+    - declaration / alias / generic default / where-bound / ability consumer / zone authority consumer를 DAG node/edge로 승격한다
+    - namespace-only reference나 declaration inventory 조회가 불필요한 concrete type materialization을 강제하지 않게 한다
+    - cycle는 generic/alias/type consumer path 기준으로 path-aware diagnostic으로 보고한다
+    - incremental compile 시 invalidation 범위를 declaration/type dependency 단위로 줄인다
+  - 1차 구현 원칙:
+    - 기존 `resolve_type_node(...)`를 한 번에 폐기하지 않는다
+    - 먼저 graph inventory + topo scheduling + cycle diagnostic을 추가하고, 그 다음 recursive resolver를 graph-backed evaluator로 치환한다
+    - import/module loader의 DFS cycle detection과 type-resolution DAG를 혼합하지 않는다
+  - 단계:
+    - Phase A: declaration/type provider inventory와 consumer edge 수집
+    - Phase B: topo evaluation + SCC/cycle diagnostic 고정
+    - Phase C: generic default arg / multi-bound / ability consumer / zone authority를 DAG consumer로 편입
+    - Phase D: incremental invalidation / cache / backend-facing resolved metadata 재사용
+  - 회귀 기준:
+    - dependency loop diagnostic에 cycle path/provenance가 나온다
+    - namespace-only reference는 불필요한 full type materialization을 유발하지 않는다
+    - generic consumer/default/bound resolution이 graph-backed evaluation에서도 기존 semantic 계약과 같은 결과를 낸다
+    - C/LLVM compile path가 동일한 resolved-type metadata를 재사용한다
 
 - [x] **runtime observability baseline vs richer query 구분 고정**
   - 대상: `IntentLast* / IntentHistory* / IntentActive* / IntentRecent*`, zone/world inspection

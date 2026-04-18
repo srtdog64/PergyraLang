@@ -464,6 +464,13 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             ASTNode *ability_ref = step->data.intent_step.required_abilities[j];
             const char *ability = ability_ref_name(ability_ref);
             char *required_text = ability_ref_display(ability_ref);
+            semantic_type_resolution_record_type_ref_dependency(
+                ctx,
+                step,
+                step->data.intent_step.name != NULL
+                    ? step->data.intent_step.name : "<step>",
+                ability_ref,
+                "intent step ability consumer lookup");
             if (resolve_required_ability_decl(
                     ability_ref, step, ctx, "Intent step",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>") == NULL) {
@@ -3315,6 +3322,13 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             ASTNode *ability_ref = authority->data.zone_authority.required_abilities[j];
             const char *ability_name = ability_ref_name(ability_ref);
             char *required_text = ability_ref_display(ability_ref);
+            semantic_type_resolution_record_type_ref_dependency(
+                ctx,
+                authority,
+                authority->data.zone_authority.subject_slot_name != NULL
+                    ? authority->data.zone_authority.subject_slot_name : "<authority>",
+                ability_ref,
+                "zone authority ability consumer lookup");
             if (resolve_required_ability_decl(
                     ability_ref, authority, ctx, "Zone authority",
                     authority->data.zone_authority.subject_slot_name) == NULL) {

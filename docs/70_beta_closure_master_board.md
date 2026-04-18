@@ -1,6 +1,6 @@
 # Pergyra Beta Closure Master Board
 
-마지막 업데이트: 2026-04-15
+마지막 업데이트: 2026-04-18
 
 ## 목적
 
@@ -19,7 +19,7 @@
 - 베타 진행률 추정: `약 84%`
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
-  - 베타 차단축은 키워드 수가 아니라 B0 의미론과 declaration-side MIR-only debt다
+  - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure`다
 
 ## Beta Acceptance Line
 
@@ -29,8 +29,9 @@
 2. declaration-side MIR emission이 HIR/AST fallback 없이 의미적으로 충분해진다
 3. C/LLVM이 domain semantics 기준 parity를 유지한다
 4. runtime observability가 디버깅 가능한 structured state를 제공한다
-5. Linux/Windows CI가 parser/semantic/transpile/abi/backend-compare/example-smoke까지 녹색이다
-6. 문서가 구현보다 앞서가지 않는다
+5. semantic type resolution이 ad-hoc recursive lookup만이 아니라 graph inventory / cycle diagnostic 기준으로 닫히기 시작한다
+6. Linux/Windows CI가 parser/semantic/transpile/abi/backend-compare/example-smoke까지 녹색이다
+7. 문서가 구현보다 앞서가지 않는다
 
 ## Master Status Board
 
@@ -40,10 +41,46 @@
 | B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
 | B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
 | B0-4 own/ref | 진행 중 | 62% | 차단 | anchored subset는 닫혔지만 일반 movable type ownership은 아직 미완 |
-| MIR-only declaration debt | 진행 중 | 74% | 차단 | intent inventory는 많이 줄였지만 zone/world/relation/effect declaration fallback 잔여가 있음 |
+| MIR-only declaration debt | 진행 중 | 75% | 차단 | intent inventory는 많이 줄였고 host context도 inventory-backed handle 쪽으로 이동 중이지만 zone/world/relation/effect declaration fallback 잔여가 있음 |
+| Type-resolution DAG | 진행 중 | 65% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
 | surface trust docs | 진행 중 | 85% | 차단 | 주요 surface는 정렬됐지만 B0 잔여에 맞춘 최종 재분류가 남음 |
+
+## Structural Closure — Type-resolution DAG
+
+판정:
+
+- module import graph는 이미 존재하지만, type resolution 자체는 아직 `resolve_type_node(...)` 중심의 recursive evaluator가 주축이다
+- beta는 이제 generic contract / module contract / authority consumer까지 포함한 type dependency graph closure를 목표로 삼는다
+- 즉, ecosystem 확장 전의 beta 기준에는 `type-resolution DAG inventory + cycle diagnostic + graph-backed migration entrypoint`가 포함된다
+
+닫힌 것:
+
+- import resolver의 canonical path + cycle detection baseline
+- semantic named-type lookup baseline
+- generic default / where-bound / alias target / ability consumer / class specialization 일부 consumer가 graph inventory에 올라오기 시작함
+- provider-first topo-driven staged resolution worklist가 실제로 활성화되어 top-level declaration inventory와 local/projection synthetic node를 소비함
+- generic `default_type` / generic constraint / `where` bound가 staged DAG resolver 경로를 통과하며 semantic 회귀와 Linux CI에서 검증됨
+- role impl / action / intent step / zone authority / party role slot ability consumer가 provider pre-stage와 cycle provenance 회귀를 통해 같은 DAG 경로로 정렬됨
+- graph regression이 world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / role-action-intent-zone-party ability consumer provenance까지 확장됨
+
+남은 것:
+
+- provider/consumer inventory를 generic/module/authority/party 경로까지 더 확장
+- world/zone local contract와 projection path도 graph vocabulary로 계속 끌어올림
+- SCC/cycle diagnostic을 alias depth fallback보다 신뢰 가능한 기준으로 승격
+- topo scheduling과 staged declaration worklist를 top-level decl에서 local/projection synthetic node, ability/authority/party consumer를 넘어 더 넓게 연결
+- graph-backed evaluator entrypoint를 declaration prepass에서 semantic source-of-truth로 승격
+- namespace-only lookup과 full concrete materialization을 분리
+- backend가 resolved-type metadata를 재사용할 수 있게 inventory를 정렬
+
+완료 기준:
+
+- type dependency cycle이 path-aware diagnostic으로 보고된다
+- generic default / multi-bound / ability consumer / zone authority consumer가 같은 graph vocabulary로 추적된다
+- `topo_order`가 declaration staged worklist를 실제로 구동한다
+- recursive resolver가 남아도 graph-backed inventory가 source-of-truth가 되기 시작한다
 
 ## B0 Closure Board
 
@@ -272,6 +309,12 @@ diagnostic 고정 규칙:
 
 - routine emission은 MIR 중심으로 정렬 중이다
 - declaration-side intent inventory는 explicit MIR metadata를 더 많이 사용하도록 이동 중이다
+- transpiler host context 복원이 `current_host_decl -> within_zone -> saved host-name inventory` 순으로 정렬되어 active inventory-backed host handle 비중이 더 커졌다
+- transpiler declaration/method emission의 direct `current_*_name` restore chain 일부가 공용 host-context restore helper로 접혔다
+- C backend의 direct `current_*_name` 사용은 emitter hot path보다 helper/restore layer에 더 집중되도록 정리됐다
+- LLVM declaration helper도 current host lookup을 공용 active-inventory host helper로 접어 direct naming chain을 한 단계 줄였다
+- LLVM MIR/domain emission의 direct `current_class_name` save/restore도 공용 host-name bind/restore helper로 이동했다
+- LLVM expr/stmt hot path도 `llvm_current_host_decl_name(...)` helper를 통과하도록 정렬돼 raw host-name read가 더 줄었다
 
 남은 핵심 debt:
 

@@ -279,12 +279,12 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     int saved_queue_var_count = ctx->queue_var_count;
     int saved_map_var_count = ctx->map_var_count;
     int saved_callable_var_count = ctx->callable_var_count;
-    const char *saved_class_name = ctx->current_class_name;
+    const char *saved_class_name = NULL;
     ctx->current_function = fn;
     ctx->current_ret_type = ret_type;
     ctx->current_func_decl = func_decl;
     if (is_method)
-        ctx->current_class_name = owner_name;
+        saved_class_name = llvm_bind_current_host_name(ctx, owner_name);
 
     size_t var_capacity = 64;
     LLVMMirVar *vars = calloc(var_capacity, sizeof(LLVMMirVar));
@@ -386,7 +386,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
     ctx->current_func_decl = saved_func_decl;
-    ctx->current_class_name = saved_class_name;
+    if (is_method)
+        llvm_restore_current_host_name(ctx, saved_class_name);
     free(vars);
     free(llvm_blocks);
     llvm_mir_debug_stage("emit_func_from_mir:return", routine);

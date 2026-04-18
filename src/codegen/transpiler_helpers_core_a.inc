@@ -9,6 +9,7 @@ static ASTNode *transpiler_current_host_decl_local(TranspilerCtx *ctx);
 static ASTNode *transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
                                                         ASTNodeType decl_type,
                                                         const char *name);
+static const char *current_host_decl_name(TranspilerCtx *ctx);
 
 /* -----------------------------------------------------------------
  * CodeBuf
@@ -786,7 +787,7 @@ current_class_uses_self_cell(TranspilerCtx *ctx)
     if (host_decl != NULL && host_decl->type == AST_CLASS_DECL)
         class_name = host_decl->data.class_decl.name;
     if (class_name == NULL)
-        class_name = ctx->current_class_name;
+        class_name = current_host_decl_name(ctx);
     return ctx != NULL
         && class_name != NULL
         && is_pointer_self_host_type_name(ctx, class_name);
@@ -796,21 +797,22 @@ static bool
 current_class_has_field(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
+    const char *host_name = NULL;
 
     if (ctx == NULL || field_name == NULL)
         return false;
 
-    decl = (ctx->current_host_decl != NULL
-            && ctx->current_host_decl->type == AST_CLASS_DECL)
-        ? ctx->current_host_decl
-        : NULL;
-    if (decl == NULL && ctx->current_class_name != NULL)
-        decl = find_class_decl(ctx, ctx->current_class_name);
+    decl = transpiler_current_host_decl_local(ctx);
+    host_name = current_host_decl_name(ctx);
+    if (decl != NULL && decl->type != AST_CLASS_DECL)
+        decl = NULL;
+    if (decl == NULL && host_name != NULL)
+        decl = find_class_decl(ctx, host_name);
     /* For monomorphized generic classes, look up the original class decl */
-    if (decl == NULL && ctx->current_class_name != NULL) {
+    if (decl == NULL && host_name != NULL) {
         for (int gi = 0; gi < ctx->generic_class_spec_count; gi++) {
             if (strcmp(ctx->generic_class_specs[gi].specialized_name,
-                       ctx->current_class_name) == 0) {
+                       host_name) == 0) {
                 decl = (ASTNode *)ctx->generic_class_specs[gi].class_decl;
                 break;
             }
@@ -838,10 +840,9 @@ current_zone_has_field(TranspilerCtx *ctx, const char *field_name)
     if (ctx == NULL || field_name == NULL)
         return false;
 
-    decl = (transpiler_current_host_decl_local(ctx) != NULL
-            && transpiler_current_host_decl_local(ctx)->type == AST_ZONE_DECL)
-        ? transpiler_current_host_decl_local(ctx)
-        : NULL;
+    decl = transpiler_current_host_decl_local(ctx);
+    if (decl != NULL && decl->type != AST_ZONE_DECL)
+        decl = NULL;
     if (decl == NULL)
         return false;
 
@@ -878,10 +879,9 @@ current_relation_has_field(TranspilerCtx *ctx, const char *field_name)
     if (ctx == NULL || field_name == NULL)
         return false;
 
-    decl = (transpiler_current_host_decl_local(ctx) != NULL
-            && transpiler_current_host_decl_local(ctx)->type == AST_RELATION_DECL)
-        ? transpiler_current_host_decl_local(ctx)
-        : NULL;
+    decl = transpiler_current_host_decl_local(ctx);
+    if (decl != NULL && decl->type != AST_RELATION_DECL)
+        decl = NULL;
     if (decl == NULL)
         return false;
 
@@ -911,10 +911,9 @@ current_effect_has_field(TranspilerCtx *ctx, const char *field_name)
     if (ctx == NULL || field_name == NULL)
         return false;
 
-    decl = (transpiler_current_host_decl_local(ctx) != NULL
-            && transpiler_current_host_decl_local(ctx)->type == AST_EFFECT_DECL)
-        ? transpiler_current_host_decl_local(ctx)
-        : NULL;
+    decl = transpiler_current_host_decl_local(ctx);
+    if (decl != NULL && decl->type != AST_EFFECT_DECL)
+        decl = NULL;
     if (decl == NULL)
         return false;
 
@@ -1597,10 +1596,9 @@ current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     if (ctx == NULL || field_name == NULL)
         return false;
 
-    decl = (transpiler_current_host_decl_local(ctx) != NULL
-            && transpiler_current_host_decl_local(ctx)->type == AST_WORLD_DECL)
-        ? transpiler_current_host_decl_local(ctx)
-        : NULL;
+    decl = transpiler_current_host_decl_local(ctx);
+    if (decl != NULL && decl->type != AST_WORLD_DECL)
+        decl = NULL;
     if (decl == NULL)
         return false;
 

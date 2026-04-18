@@ -919,12 +919,11 @@ llvm_emit_domain_projection_sync(ASTNode *stmt,
 
     saved_fn = ctx->current_function;
     saved_ret = ctx->current_ret_type;
-    saved_class_name = ctx->current_class_name;
+    saved_class_name = llvm_bind_current_host_name(ctx, decl_name);
     bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "entry");
     LLVMPositionBuilderAtEnd(ctx->builder, bb);
     ctx->current_function = sync_fn;
     ctx->current_ret_type = ctx->type_void;
-    ctx->current_class_name = decl_name;
 
     llvm_scope_push(ctx);
     {
@@ -941,7 +940,7 @@ llvm_emit_domain_projection_sync(ASTNode *stmt,
     llvm_scope_pop(ctx);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
-    ctx->current_class_name = saved_class_name;
+    llvm_restore_current_host_name(ctx, saved_class_name);
 
     if (saved_fn != NULL) {
         LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);

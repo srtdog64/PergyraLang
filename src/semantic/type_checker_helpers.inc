@@ -152,6 +152,15 @@ semantic_context_destroy(SemanticContext *ctx)
     for (size_t i = 0; i < ctx->embedded_world_zone_count; i++)
         free(ctx->embedded_world_zone_slot_names[i]);
     free(ctx->embedded_world_zone_slot_names);
+    for (size_t i = 0; i < ctx->alias_resolution_count; i++)
+        free(ctx->alias_resolution_stack[i]);
+    free(ctx->alias_resolution_stack);
+    for (size_t i = 0; i < ctx->type_resolution_graph.node_count; i++)
+        free(ctx->type_resolution_graph.nodes[i].label);
+    free(ctx->type_resolution_graph.nodes);
+    for (size_t i = 0; i < ctx->type_resolution_graph.edge_count; i++)
+        free(ctx->type_resolution_graph.edges[i].reason);
+    free(ctx->type_resolution_graph.edges);
     free(ctx->diagnostics);
     free(ctx);
 }
@@ -276,11 +285,121 @@ find_type_alias_decl(ASTNode *program, const char *name)
     return NULL;
 }
 
+static int
+semantic_ctx_alias_resolution_index(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return -1;
+
+    for (size_t i = 0; i < ctx->alias_resolution_count; i++) {
+        if (ctx->alias_resolution_stack[i] != NULL
+            && strcmp(ctx->alias_resolution_stack[i], name) == 0) {
+            return (int)i;
+        }
+    }
+
+    return -1;
+}
+
+static bool
+semantic_ctx_alias_resolution_push(SemanticContext *ctx, const char *name)
+{
+    char **grown;
+
+    if (ctx == NULL || name == NULL)
+        return false;
+
+    if (ctx->alias_resolution_count >= ctx->alias_resolution_capacity) {
+        size_t new_cap = ctx->alias_resolution_capacity == 0
+            ? 8 : ctx->alias_resolution_capacity * 2;
+        grown = realloc(ctx->alias_resolution_stack, new_cap * sizeof(char *));
+        if (grown == NULL)
+            return false;
+        ctx->alias_resolution_stack = grown;
+        ctx->alias_resolution_capacity = new_cap;
+    }
+
+    ctx->alias_resolution_stack[ctx->alias_resolution_count] = pergyra_strdup(name);
+    if (ctx->alias_resolution_stack[ctx->alias_resolution_count] == NULL)
+        return false;
+    ctx->alias_resolution_count++;
+    return true;
+}
+
+static void
+semantic_ctx_alias_resolution_pop(SemanticContext *ctx)
+{
+    if (ctx == NULL || ctx->alias_resolution_count == 0)
+        return;
+
+    free(ctx->alias_resolution_stack[ctx->alias_resolution_count - 1]);
+    ctx->alias_resolution_stack[ctx->alias_resolution_count - 1] = NULL;
+    ctx->alias_resolution_count--;
+}
+
+static char *
+semantic_ctx_alias_resolution_cycle_text(SemanticContext *ctx,
+                                         size_t start_index,
+                                         const char *closing_name)
+{
+    char *result = NULL;
+
+    if (ctx == NULL || start_index >= ctx->alias_resolution_count)
+        return tc_strdup_fmt("<cycle>");
+
+    for (size_t i = start_index; i < ctx->alias_resolution_count; i++) {
+        const char *label = ctx->alias_resolution_stack[i] != NULL
+            ? ctx->alias_resolution_stack[i] : "<alias>";
+        char *next = result == NULL
+            ? tc_strdup_fmt("%s", label)
+            : tc_strdup_fmt("%s -> %s", result, label);
+        free(result);
+        result = next;
+        if (result == NULL)
+            return tc_strdup_fmt("<cycle>");
+    }
+
+    {
+        char *next = tc_strdup_fmt("%s -> %s",
+                                   result != NULL ? result : "<cycle>",
+                                   closing_name != NULL ? closing_name : "<alias>");
+        free(result);
+        result = next;
+    }
+
+    return result != NULL ? result : tc_strdup_fmt("<cycle>");
+}
+
 static Type *
 resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned depth)
 {
+    const char *alias_name;
+    int cycle_index;
+
     if (alias_decl == NULL || alias_decl->type != AST_TYPE_ALIAS)
         return TYPE_UNKNOWN;
+
+    alias_name = alias_decl->data.type_alias.name != NULL
+        ? alias_decl->data.type_alias.name : "<alias>";
+
+    cycle_index = semantic_ctx_alias_resolution_index(ctx, alias_name);
+    if (cycle_index >= 0) {
+        char *cycle_text = semantic_ctx_alias_resolution_cycle_text(
+            ctx, (size_t)cycle_index, alias_name);
+        semantic_error(ctx, alias_decl,
+            "Type resolution dependency cycle detected around alias '%s'.\n"
+            "Reason:\n"
+            "- alias resolution re-entered '%s' before the current alias chain completed\n"
+            "- cycle path: %s\n"
+            "Fix:\n"
+            "- break the alias loop so one alias resolves to a concrete type first\n"
+            "- or replace one side of the cycle with a non-alias type declaration",
+            alias_name,
+            alias_name,
+            cycle_text != NULL ? cycle_text : "<cycle>");
+        free(cycle_text);
+        return TYPE_UNKNOWN;
+    }
 
     if (depth > 32) {
         semantic_error(ctx, alias_decl,
@@ -293,7 +412,136 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
     if (alias_decl->data.type_alias.target_type == NULL)
         return TYPE_UNKNOWN;
 
-    return resolve_type_node(alias_decl->data.type_alias.target_type, ctx);
+    semantic_type_resolution_record_type_ref_dependency(
+        ctx,
+        alias_decl,
+        alias_decl->data.type_alias.name != NULL
+            ? alias_decl->data.type_alias.name : "<alias>",
+        alias_decl->data.type_alias.target_type,
+        "type-alias target lookup");
+
+    if (!semantic_ctx_alias_resolution_push(ctx, alias_name)) {
+        semantic_error(ctx, alias_decl,
+            "Out of memory while tracking type alias resolution for '%s'.",
+            alias_name);
+        return TYPE_UNKNOWN;
+    }
+
+    {
+        Type *resolved = resolve_type_node(alias_decl->data.type_alias.target_type, ctx);
+        semantic_ctx_alias_resolution_pop(ctx);
+        return resolved;
+    }
+}
+
+static ASTNode *
+find_type_decl_by_name(ASTNode *program, const char *type_name);
+
+static bool
+type_name_is_builtin_provider(const char *name)
+{
+    return name != NULL
+        && (strcmp(name, "Int") == 0
+            || strcmp(name, "Long") == 0
+            || strcmp(name, "Float") == 0
+            || strcmp(name, "Double") == 0
+            || strcmp(name, "Bool") == 0
+            || strcmp(name, "String") == 0
+            || strcmp(name, "QubitSlot") == 0
+            || strcmp(name, "Void") == 0
+            || strcmp(name, "Array") == 0
+            || strcmp(name, "Slice") == 0
+            || strcmp(name, "List") == 0
+            || strcmp(name, "Queue") == 0
+            || strcmp(name, "HashMap") == 0
+            || strcmp(name, "Set") == 0
+            || strcmp(name, "Box") == 0
+            || strcmp(name, "Rc") == 0
+            || strcmp(name, "Weak") == 0
+            || strcmp(name, "RemoteFuture") == 0
+            || strcmp(name, "DeviceSlot") == 0
+            || strcmp(name, "Allocator") == 0
+            || strcmp(name, "Option") == 0);
+}
+
+static void
+semantic_type_resolution_record_type_ref_dependency(SemanticContext *ctx,
+                                                    const ASTNode *consumer_site,
+                                                    const char *consumer_name,
+                                                    const ASTNode *provider_type_ref,
+                                                    const char *reason)
+{
+    const char *provider_name;
+    ASTNode *alias_decl;
+    ASTNode *decl;
+
+    if (ctx == NULL || provider_type_ref == NULL)
+        return;
+
+    if (provider_type_ref->type != AST_TYPE
+        || provider_type_ref->data.type.name == NULL) {
+        semantic_type_resolution_record_named_dependency(
+            ctx,
+            consumer_site,
+            consumer_name,
+            TYPE_RES_NODE_TYPE_REF,
+            provider_type_ref,
+            "<type>",
+            reason);
+        return;
+    }
+
+    provider_name = provider_type_ref->data.type.name;
+    if (type_name_is_builtin_provider(provider_name)) {
+        semantic_type_resolution_record_named_dependency(
+            ctx,
+            consumer_site,
+            consumer_name,
+            TYPE_RES_NODE_BUILTIN,
+            NULL,
+            provider_name,
+            reason);
+        return;
+    }
+
+    alias_decl = (ctx->program_root != NULL)
+        ? find_type_alias_decl(ctx->program_root, provider_name)
+        : NULL;
+    if (alias_decl != NULL) {
+        semantic_type_resolution_record_named_dependency(
+            ctx,
+            consumer_site,
+            consumer_name,
+            TYPE_RES_NODE_ALIAS,
+            alias_decl,
+            provider_name,
+            reason);
+        return;
+    }
+
+    decl = (ctx->program_root != NULL)
+        ? find_type_decl_by_name(ctx->program_root, provider_name)
+        : NULL;
+    if (decl != NULL) {
+        semantic_type_resolution_record_named_dependency(
+            ctx,
+            consumer_site,
+            consumer_name,
+            TYPE_RES_NODE_DECL,
+            decl,
+            provider_name,
+            reason);
+        return;
+    }
+
+    semantic_type_resolution_record_named_dependency(
+        ctx,
+        consumer_site,
+        consumer_name,
+        TYPE_RES_NODE_TYPE_REF,
+        provider_type_ref,
+        provider_name,
+        reason);
 }
 
 static Type *
@@ -301,36 +549,51 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
 {
     Symbol *sym = scope_lookup(ctx->scope, name);
     if (sym != NULL && sym->kind == SYMBOL_CLASS && sym->type != TYPE_UNKNOWN)
+    {
+        ASTNode *decl = (ctx != NULL && ctx->program_root != NULL)
+            ? find_type_decl_by_name(ctx->program_root, name)
+            : NULL;
+        semantic_type_resolution_record_named_dependency(
+            ctx, site, name, TYPE_RES_NODE_DECL, decl, name, "named-type lookup");
         return sym->type;
+    }
 
-    if (strcmp(name, "Int")    == 0) return TYPE_INT;
-    if (strcmp(name, "Long")   == 0) return TYPE_LONG;
-    if (strcmp(name, "Float")  == 0) return TYPE_FLOAT;
-    if (strcmp(name, "Double") == 0) return TYPE_DOUBLE;
-    if (strcmp(name, "Bool")   == 0) return TYPE_BOOL;
-    if (strcmp(name, "String") == 0) return TYPE_STRING;
-    if (strcmp(name, "QubitSlot") == 0) return TYPE_QUBIT;
-    if (strcmp(name, "Void")   == 0) return TYPE_VOID;
-    if (strcmp(name, "Array")  == 0) return TYPE_ARRAY;
-    if (strcmp(name, "Slice")  == 0) return TYPE_SLICE;
-    if (strcmp(name, "List")   == 0) return TYPE_LIST;
-    if (strcmp(name, "Queue")  == 0) return TYPE_QUEUE;
-    if (strcmp(name, "HashMap")== 0) return TYPE_HASHMAP;
-    if (strcmp(name, "Set")    == 0) return TYPE_SET;
-    if (strcmp(name, "Box")    == 0) return TYPE_BOX;
-    if (strcmp(name, "Rc")     == 0) return TYPE_RC;
-    if (strcmp(name, "Weak")   == 0) return TYPE_WEAK;
-    if (strcmp(name, "RemoteFuture") == 0) return TYPE_REMOTE_FUTURE;
-    if (strcmp(name, "DeviceSlot") == 0) return TYPE_DEVICE_SLOT;
-    if (strcmp(name, "Allocator") == 0) return TYPE_ALLOCATOR;
-    if (strcmp(name, "Option") == 0) return TYPE_OPTION;
+    if (strcmp(name, "Int")    == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Int", "builtin-type lookup"); return TYPE_INT; }
+    if (strcmp(name, "Long")   == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Long", "builtin-type lookup"); return TYPE_LONG; }
+    if (strcmp(name, "Float")  == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Float", "builtin-type lookup"); return TYPE_FLOAT; }
+    if (strcmp(name, "Double") == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Double", "builtin-type lookup"); return TYPE_DOUBLE; }
+    if (strcmp(name, "Bool")   == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Bool", "builtin-type lookup"); return TYPE_BOOL; }
+    if (strcmp(name, "String") == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "String", "builtin-type lookup"); return TYPE_STRING; }
+    if (strcmp(name, "QubitSlot") == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "QubitSlot", "builtin-type lookup"); return TYPE_QUBIT; }
+    if (strcmp(name, "Void")   == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Void", "builtin-type lookup"); return TYPE_VOID; }
+    if (strcmp(name, "Array")  == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Array", "builtin-type lookup"); return TYPE_ARRAY; }
+    if (strcmp(name, "Slice")  == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Slice", "builtin-type lookup"); return TYPE_SLICE; }
+    if (strcmp(name, "List")   == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "List", "builtin-type lookup"); return TYPE_LIST; }
+    if (strcmp(name, "Queue")  == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Queue", "builtin-type lookup"); return TYPE_QUEUE; }
+    if (strcmp(name, "HashMap")== 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "HashMap", "builtin-type lookup"); return TYPE_HASHMAP; }
+    if (strcmp(name, "Set")    == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Set", "builtin-type lookup"); return TYPE_SET; }
+    if (strcmp(name, "Box")    == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Box", "builtin-type lookup"); return TYPE_BOX; }
+    if (strcmp(name, "Rc")     == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Rc", "builtin-type lookup"); return TYPE_RC; }
+    if (strcmp(name, "Weak")   == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Weak", "builtin-type lookup"); return TYPE_WEAK; }
+    if (strcmp(name, "RemoteFuture") == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "RemoteFuture", "builtin-type lookup"); return TYPE_REMOTE_FUTURE; }
+    if (strcmp(name, "DeviceSlot") == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "DeviceSlot", "builtin-type lookup"); return TYPE_DEVICE_SLOT; }
+    if (strcmp(name, "Allocator") == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Allocator", "builtin-type lookup"); return TYPE_ALLOCATOR; }
+    if (strcmp(name, "Option") == 0) { semantic_type_resolution_record_named_dependency(ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, "Option", "builtin-type lookup"); return TYPE_OPTION; }
 
     if (sym != NULL && sym->type != TYPE_UNKNOWN)
+    {
+        semantic_type_resolution_record_named_dependency(
+            ctx, site, name,
+            sym->kind == SYMBOL_TYPE_PARAM ? TYPE_RES_NODE_GENERIC_PARAM : TYPE_RES_NODE_DECL,
+            NULL, name, "scope-type lookup");
         return sym->type;
+    }
 
     if (ctx != NULL && ctx->program_root != NULL) {
         ASTNode *alias_decl = find_type_alias_decl(ctx->program_root, name);
         if (alias_decl != NULL) {
+            semantic_type_resolution_record_named_dependency(
+                ctx, site, name, TYPE_RES_NODE_ALIAS, alias_decl, name, "type-alias lookup");
             Type *resolved = resolve_type_alias_decl(alias_decl, ctx, 0);
             if (sym != NULL && resolved != NULL)
                 sym->type = resolved;
@@ -845,6 +1108,23 @@ type_is_general_boundary_type(const Type *type, SemanticContext *ctx)
     return type_is_movable_resource_handle(type)
         || type_is_subject_type(type, ctx)
         || type_is_value_nominal_boundary_type(type, ctx);
+}
+
+bool
+type_requires_boundary_borrow_tracking(const Type *type, SemanticContext *ctx)
+{
+    if (type == NULL || !type_is_general_boundary_type(type, ctx))
+        return false;
+    if (type_is_subject_type(type, ctx) || type_is_movable_resource_handle(type))
+        return false;
+
+    switch (type->kind) {
+    case TYPE_KIND_PRIMITIVE:
+    case TYPE_KIND_ENUM:
+        return false;
+    default:
+        return true;
+    }
 }
 
 bool
@@ -1606,7 +1886,15 @@ type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx)
         return false;
     if (type_is_subject_type(type, ctx))
         return false;
-    if (type->kind != TYPE_KIND_CLASS || type->name == NULL)
+    switch (type->kind) {
+    case TYPE_KIND_CONSTRUCTED:
+        return !type_is_movable_resource_handle(type);
+    case TYPE_KIND_CLASS:
+        break;
+    default:
+        return false;
+    }
+    if (type->name == NULL)
         return false;
 
     decl = find_type_decl_by_name(ctx->program_root, type->name);
@@ -2247,7 +2535,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 semantic_error(ctx, expr->data.call.arguments[i],
                     "Boundary value argument type mismatch: expected '%s', got '%s'.\n"
                     "Reason:\n"
-                    "- own/ref value boundaries require the caller value and callee contract to agree on the same nominal value type\n"
+                    "- own/ref value boundaries require the caller value and callee contract to agree on the same boundary value type\n"
                     "- provenance cannot be preserved across mismatched boundary value types\n"
                     "Fix:\n"
                     "- pass a value of type '%s'\n"
@@ -2287,6 +2575,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             }
             if (pmode == PARAM_MODE_REF
                 && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)
+                && type_requires_boundary_borrow_tracking(param_type, ctx)
                 && callee_decl != NULL
                 && callee_decl->data.func_decl.body != NULL) {
                 unsigned callee_mask = slot_analyze_param_summary_in_program(
@@ -2320,6 +2609,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             }
             if (pmode != PARAM_MODE_REF
                 && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
+                if (!type_requires_boundary_borrow_tracking(param_type, ctx))
+                    continue;
                 semantic_error(ctx, expr->data.call.arguments[i],
                     "Borrowed ref boundary value '%s' cannot escape through helper/function call.\n"
                     "Reason:\n"
@@ -2517,7 +2808,6 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     }
                     /* Check each bound */
                     for (size_t bi = 0; bi < tc->bound_count; bi++) {
-                        Type *bound = resolve_type_node(tc->bounds[bi], ctx);
                         char *bounds_text = format_type_constraint_bounds(tc);
                         const char *bound_name =
                             (tc->bounds[bi] != NULL
@@ -2525,25 +2815,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                              && tc->bounds[bi]->data.type.name != NULL)
                                 ? tc->bounds[bi]->data.type.name
                                 : NULL;
-                        bool satisfies = false;
-                        if (bound != NULL) {
-                            satisfies = type_satisfies_constraint(concrete_type, bound);
-                            if (!satisfies
-                                && ctx->program_root != NULL
-                                && bound_name != NULL) {
-                                Symbol *bound_sym = scope_lookup(ctx->scope, bound_name);
-                                if (bound_sym != NULL
-                                    && bound_sym->kind == SYMBOL_ABILITY
-                                    && concrete_type != NULL
-                                    && concrete_type->name != NULL) {
-                                    satisfies = subject_type_has_ability(
-                                        ctx->program_root,
-                                        concrete_type->name,
-                                        tc->bounds[bi]);
-                                }
-                            }
-                        }
-                        if (bound != NULL && !satisfies) {
+                        bool satisfies = concrete_type_satisfies_bound(
+                            concrete_type, tc->bounds[bi], ctx);
+                        if (!satisfies) {
                             semantic_error(ctx, expr,
                                 "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'.\n"
                                 "Reason:\n"
