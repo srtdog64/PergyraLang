@@ -720,7 +720,23 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                                      && node->data.func_decl.name != NULL)
                 ? node->data.func_decl.name
                 : "(anonymous)";
-            ctx->backend_error = strdup_fmt(
+            /* Classify the failure by inspecting the reason prefix so AI
+             * consumers can route on a stable code. The reason text itself
+             * is preserved as the human-readable message. */
+            const char *reason_code = NULL;
+            if (strstr(reason, "unresolved identifier") != NULL) {
+                reason_code = "PGY_MIR_UNRESOLVED_LOCAL";
+            } else if (strstr(reason, "topology") != NULL
+                       || strstr(reason, "no routine") != NULL
+                       || strstr(reason, "no declaration AST") != NULL) {
+                reason_code = "PGY_MIR_TOPOLOGY_INVALID";
+            } else if (strstr(reason, "unsupported MIR signature") != NULL
+                       || strstr(reason, "wrong MIR kind") != NULL) {
+                reason_code = "PGY_MIR_SIGNATURE_UNSUPPORTED";
+            } else if (strstr(reason, "too many MIR SSA locals") != NULL) {
+                reason_code = "PGY_MIR_SSA_LIMIT";
+            }
+            transpiler_set_backend_error_with_code(ctx, reason_code,
                 "MIR-only C path missing routine for function '%s': %s",
                 func_name,
                 reason[0] != '\0' ? reason : "unknown reason");

@@ -46,4 +46,17 @@ SemanticResult* semantic_analyze(ASTNode* ast);
 void            semantic_result_destroy(SemanticResult* result);
 void            semantic_result_print(const SemanticResult* result);
 
+/*
+ * Emit diagnostics as a JSON array to stderr.
+ * Each entry: {
+ *   "severity": "error" | "warning",
+ *   "stage": "semantic",
+ *   "location": {"line": N, "column": M},
+ *   "message": "..."
+ * }
+ * Trailing newline appended. Produces an empty array ("[]") if there are
+ * no diagnostics. Safe for AI consumers to parse with any JSON library.
+ */
+void            semantic_result_print_json(const SemanticResult* result);
+
 #endif /* PERGYRA_SEMANTIC_H */

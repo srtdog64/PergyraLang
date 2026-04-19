@@ -5118,9 +5118,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                     expected_text != NULL ? expected_text : "<class>",
                     constructed_type->name != NULL ? constructed_type->name : "<constructed>",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
-                    bound_name,
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name : "<class>");
+                    bound_name);
             }
             free(bounds_text);
         }
@@ -5275,9 +5273,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
                     class_decl->data.class_decl.name != NULL
                         ? class_decl->data.class_decl.name : "<class>",
-                    bound_name,
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name : "<class>");
+                    bound_name);
             }
             free(bounds_text);
         }
@@ -5313,11 +5309,11 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
         Symbol *sym = lookup_identifier_symbol(expr, ctx);
         if (sym == NULL) {
             if (name_looks_qualified(expr->data.identifier.name)) {
-                semantic_error(ctx, expr,
+                semantic_error_code(ctx, "PGY_SEM_UNDEFINED_SYMBOL", expr,
                     "Undefined symbol '%s' (check namespace spelling or export visibility)",
                     expr->data.identifier.name);
             } else {
-                semantic_error(ctx, expr,
+                semantic_error_code(ctx, "PGY_SEM_UNDEFINED_SYMBOL", expr,
                     "Undefined symbol '%s'",
                     expr->data.identifier.name);
             }
@@ -5705,7 +5701,7 @@ require_assignable(Type *from, Type *to,
         && type_is_assignable(from, to->data.slot.inner_type))
         return true;
 
-    semantic_error(ctx, site,
+    semantic_error_code(ctx, "PGY_SEM_TYPE_MISMATCH", site,
         "Type mismatch: cannot assign '%s' to '%s'",
         from->name, to->name);
     return false;
@@ -5806,11 +5802,11 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             if (field_type != NULL)
                 return field_type;
             if (name_looks_qualified(expr->data.identifier.name)) {
-                semantic_error(ctx, expr,
+                semantic_error_code(ctx, "PGY_SEM_UNDEFINED_SYMBOL", expr,
                     "Undefined symbol '%s' (check namespace spelling or export visibility)",
                     expr->data.identifier.name);
             } else {
-                semantic_error(ctx, expr,
+                semantic_error_code(ctx, "PGY_SEM_UNDEFINED_SYMBOL", expr,
                     "Undefined symbol '%s'",
                     expr->data.identifier.name);
             }
@@ -5969,7 +5965,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
 
     /* Arithmetic: both operands must match */
     if (!type_equals(left, right)) {
-        semantic_error(ctx, expr,
+        semantic_error_code(ctx, "PGY_SEM_BINOP_TYPE_MISMATCH", expr,
             "Type mismatch in binary operation: '%s' and '%s'",
             left->name, right->name);
         return TYPE_UNKNOWN;
@@ -6202,12 +6198,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         return TYPE_UNKNOWN;
                     }
                     if (type_is_read_view(object_type)) {
-                        semantic_error(ctx, object,
+                        semantic_error_code(ctx, "PGY_SEM_VIEW_KIND_MISMATCH", object,
                             "Cannot write through ReadView<T>; create a WriteView(slot) or keep the owning Slot<T>");
                         return TYPE_UNKNOWN;
                     }
                     if (type_is_move_token(object_type)) {
-                        semantic_error(ctx, object,
+                        semantic_error_code(ctx, "PGY_SEM_MOVE_TOKEN_MISUSE", object,
                             "Cannot write through MoveToken<T>");
                         return TYPE_UNKNOWN;
                     }
@@ -6215,7 +6211,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         semantic_record_effect(ctx, EFFECT_SECURE);
                     if (sym != NULL && sym->kind == SYMBOL_SLOT) {
                         if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-                            semantic_error(ctx, object,
+                            semantic_error_code(ctx, "PGY_SEM_SLOT_RELEASED", object,
                                 "Cannot write to released slot '%s'",
                                 sym->name);
                             return TYPE_UNKNOWN;
@@ -6224,7 +6220,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                && sym->slot_info.paired_slot_name != NULL) {
                         owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
                         if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
-                            semantic_error(ctx, object,
+                            semantic_error_code(ctx, "PGY_SEM_SLOT_RELEASED", object,
                                 "Cannot write through WriteView '%s' because source slot '%s' was released",
                                 sym->name, owner->name);
                             return TYPE_UNKNOWN;
@@ -6241,12 +6237,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
                 if (strcmp(method_name, "Read") == 0) {
                     if (type_is_write_view(object_type)) {
-                        semantic_error(ctx, object,
+                        semantic_error_code(ctx, "PGY_SEM_VIEW_KIND_MISMATCH", object,
                             "Cannot read through WriteView<T>; create a ReadView(slot) or keep the owning Slot<T>");
                         return TYPE_UNKNOWN;
                     }
                     if (type_is_move_token(object_type)) {
-                        semantic_error(ctx, object,
+                        semantic_error_code(ctx, "PGY_SEM_MOVE_TOKEN_MISUSE", object,
                             "Cannot read through MoveToken<T>");
                         return TYPE_UNKNOWN;
                     }
@@ -6254,7 +6250,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         semantic_record_effect(ctx, EFFECT_SECURE);
                     if (sym != NULL && sym->kind == SYMBOL_SLOT) {
                         if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-                            semantic_error(ctx, object,
+                            semantic_error_code(ctx, "PGY_SEM_SLOT_RELEASED", object,
                                 "Cannot read from released slot '%s'",
                                 sym->name);
                             return TYPE_UNKNOWN;
@@ -6263,7 +6259,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                && sym->slot_info.paired_slot_name != NULL) {
                         owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
                         if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
-                            semantic_error(ctx, object,
+                            semantic_error_code(ctx, "PGY_SEM_SLOT_RELEASED", object,
                                 "Cannot read through ReadView '%s' because source slot '%s' was released",
                                 sym->name, owner->name);
                             return TYPE_UNKNOWN;
@@ -6276,12 +6272,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
                 if (strcmp(method_name, "Release") == 0) {
                     if (object->type != AST_IDENTIFIER || sym == NULL || sym->kind != SYMBOL_SLOT) {
-                        semantic_error(ctx, object,
+                        semantic_error_code(ctx, "PGY_SEM_RELEASE_REQUIRES_OWNER", object,
                             "slot.Release() requires an owning slot identifier");
                         return TYPE_UNKNOWN;
                     }
                     if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-                        semantic_error(ctx, object,
+                        semantic_error_code(ctx, "PGY_SEM_SLOT_DOUBLE_RELEASE", object,
                             "Slot '%s' has already been released", sym->name);
                         return TYPE_UNKNOWN;
                     }
@@ -6366,7 +6362,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
             free(display_name);
             return sym->type;
         }
-        semantic_error(ctx, expr,
+        semantic_error_code(ctx, "PGY_SEM_UNDEFINED_SYMBOL", expr,
             "Undefined symbol '%s' (check namespace spelling or export visibility)",
             display_name != NULL ? display_name : "<member>");
         free(flat_name);
@@ -6810,7 +6806,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                     || strcmp(callee_name, "SetNew") == 0
                     || strcmp(callee_name, "MapNew") == 0
                     || strcmp(callee_name, "QueueNew") == 0)) {
-                semantic_error(ctx, init,
+                semantic_error_code(ctx, "PGY_SEM_INFER_COLLECTION", init,
                     "Cannot infer collection type from '%s()' without an explicit annotation; write 'let value: %s<...> = %s()'",
                     callee_name,
                     strcmp(callee_name, "MapNew") == 0 ? "HashMap" :
@@ -6820,18 +6816,18 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                 decl_type = TYPE_UNKNOWN;
             }
         }
-        
-        /* For generic types like Box<T>, Array<T>, Result<T,E>, 
+
+        /* For generic types like Box<T>, Array<T>, Result<T,E>,
            ensure the inferred type is concrete */
         if (init_type->kind == TYPE_KIND_GENERIC) {
-            semantic_error(ctx, init, 
+            semantic_error_code(ctx, "PGY_SEM_INFER_GENERIC", init,
                 "Cannot infer type: generic parameter '%s' is ambiguous. "
                 "Please provide a type annotation.", init_type->name);
             decl_type = TYPE_UNKNOWN;
         }
     } else {
         /* No annotation and no initializer */
-        semantic_error(ctx, node,
+        semantic_error_code(ctx, "PGY_SEM_INFER_REQUIRED", node,
             "Cannot infer type: provide a type annotation or initializer");
         decl_type = TYPE_UNKNOWN;
     }
@@ -6960,7 +6956,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         Symbol *src_sym = scope_lookup(ctx->scope, src_name);
         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
             if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error(ctx, init,
+                semantic_error_code(ctx, "PGY_SEM_MOVE_FROM_RELEASED", init,
                     "Cannot move from released slot '%s'.\n"
                     "Reason:\n"
                     "- slot '%s' was already released or invalidated earlier in this scope\n"
@@ -8882,7 +8878,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                                        func_type->data.function.effect_mask)) {
             effect_mask_to_string(func_type->data.function.effect_mask,
                                   derived_buf, sizeof(derived_buf));
-            semantic_warning(ctx, node,
+            semantic_warning_code(ctx, "PGY_SEM_EFFECT_CONFLICT", node,
                 "Function '%s' combines effect classes that are currently treated as conflicting (%s).\n"
                 "Reason:\n"
                 "- derived body effects joined into '%s'\n"

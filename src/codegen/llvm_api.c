@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "../common/string_compat.h"
 
 static void
 llvm_debug_stage(const char *stage)
@@ -30,7 +31,10 @@ llvm_result_from_ctx_error(LLVMGenCtx *ctx)
     } else {
         snprintf(msg, sizeof(msg), "%s", ctx->error_msg);
     }
-    return llvm_result_error(msg);
+    LLVMGenResult *res = llvm_result_error(msg);
+    if (res != NULL && ctx->error_code != NULL)
+        res->error_code = pergyra_strdup(ctx->error_code);
+    return res;
 }
 
 static LLVMGenResult *
@@ -366,6 +370,7 @@ llvm_gen_result_destroy(LLVMGenResult *res)
         return;
 
     free(res->error_message);
+    free(res->error_code);
     free(res->ir_text);
     free(res);
 }

@@ -492,53 +492,59 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     char contract_summary[512];
                     intent_step_format_contract_source_summary(
                         node, step, ctx, contract_summary, sizeof(contract_summary));
-                    semantic_error(ctx, step,
-                        actual_impl != NULL
-                            ? "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' implements '%s' instead.\n"
-                              "Reason:\n"
-                              "- participant type '%s' does not satisfy required ability '%s'\n"
-                              "- actual implementation is '%s'\n"
-                              "%s%s"
-                              "Fix:\n"
-                              "- implement '%s' for subject type '%s'\n"
-                              "- or choose a participant whose subject type satisfies the contract\n"
-                              "- or override/remove the inherited step requirement"
-                            : "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it.\n"
-                              "Reason:\n"
-                              "- participant type '%s' does not satisfy required ability '%s'\n"
-                              "- no matching implementation was found for '%s'\n"
-                              "%s%s"
-                              "Fix:\n"
-                              "- implement '%s' for subject type '%s'\n"
-                              "- or choose a participant whose subject type satisfies the contract\n"
-                              "- or override/remove the inherited step requirement",
-                        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                        required_text != NULL ? required_text
-                                              : (ability != NULL ? ability : "<ability>"),
-                        alias != NULL ? alias : "<participant>",
-                        participant_type_name,
-                        actual_text != NULL ? actual_text : NULL,
-                        participant_type_name,
-                        required_text != NULL ? required_text
-                                              : (ability != NULL ? ability : "<ability>"),
-                        actual_text != NULL ? actual_text
-                                            : (required_text != NULL ? required_text
-                                                                     : (ability != NULL ? ability : "<ability>")),
-                        contract_summary[0] != '\0' ? contract_summary : "",
-                        contract_summary[0] != '\0' ? "\n" : "",
-                        required_text != NULL ? required_text
-                                              : (ability != NULL ? ability : "<ability>"),
-                        participant_type_name,
-                        participant_type_name,
-                        required_text != NULL ? required_text
-                                              : (ability != NULL ? ability : "<ability>"),
-                        required_text != NULL ? required_text
-                                              : (ability != NULL ? ability : "<ability>"),
-                        contract_summary[0] != '\0' ? contract_summary : "",
-                        contract_summary[0] != '\0' ? "\n" : "",
-                        required_text != NULL ? required_text
-                                              : (ability != NULL ? ability : "<ability>"),
-                        participant_type_name);
+                    if (actual_impl != NULL) {
+                        semantic_error(ctx, step,
+                            "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' implements '%s' instead.\n"
+                            "Reason:\n"
+                            "- participant type '%s' does not satisfy required ability '%s'\n"
+                            "- actual implementation is '%s'\n"
+                            "%s%s"
+                            "Fix:\n"
+                            "- implement '%s' for subject type '%s'\n"
+                            "- or choose a participant whose subject type satisfies the contract\n"
+                            "- or override/remove the inherited step requirement",
+                            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                            required_text != NULL ? required_text
+                                                  : (ability != NULL ? ability : "<ability>"),
+                            alias != NULL ? alias : "<participant>",
+                            participant_type_name,
+                            actual_text,
+                            participant_type_name,
+                            required_text != NULL ? required_text
+                                                  : (ability != NULL ? ability : "<ability>"),
+                            actual_text,
+                            contract_summary[0] != '\0' ? contract_summary : "",
+                            contract_summary[0] != '\0' ? "\n" : "",
+                            required_text != NULL ? required_text
+                                                  : (ability != NULL ? ability : "<ability>"),
+                            participant_type_name);
+                    } else {
+                        semantic_error(ctx, step,
+                            "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it.\n"
+                            "Reason:\n"
+                            "- participant type '%s' does not satisfy required ability '%s'\n"
+                            "- no matching implementation was found for '%s'\n"
+                            "%s%s"
+                            "Fix:\n"
+                            "- implement '%s' for subject type '%s'\n"
+                            "- or choose a participant whose subject type satisfies the contract\n"
+                            "- or override/remove the inherited step requirement",
+                            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                            required_text != NULL ? required_text
+                                                  : (ability != NULL ? ability : "<ability>"),
+                            alias != NULL ? alias : "<participant>",
+                            participant_type_name,
+                            participant_type_name,
+                            required_text != NULL ? required_text
+                                                  : (ability != NULL ? ability : "<ability>"),
+                            required_text != NULL ? required_text
+                                                  : (ability != NULL ? ability : "<ability>"),
+                            contract_summary[0] != '\0' ? contract_summary : "",
+                            contract_summary[0] != '\0' ? "\n" : "",
+                            required_text != NULL ? required_text
+                                                  : (ability != NULL ? ability : "<ability>"),
+                            participant_type_name);
+                    }
                     free(actual_text);
                 }
             }
@@ -595,40 +601,47 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     : "- zone authority requires explicit approval even for declarative steps in this zone";
             intent_step_format_contract_source_summary(
                 node, step, ctx, inherited_summary, sizeof(inherited_summary));
-            semantic_error(ctx, step,
-                step->data.intent_step.inherited_where_from_action
-                    ? "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
-                      "Reason:\n"
-                      "%s\n"
-                      "- zone '%s' was reused from the matching action contract\n"
-                      "%s- approval boundary provenance is:\n"
-                      "%s%s"
-                      "Fix:\n"
-                      "- add 'authorized by: %s;' to the step\n"
-                      "- or move the step to a non-authority zone\n"
-                      "- or change the action contract that this step reuses"
-                    : "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
-                      "Reason:\n"
-                      "%s\n"
-                      "- zone '%s' declares authority, so explicit approval is required\n"
-                      "%s- approval boundary provenance is:\n"
-                      "%s%s"
-                      "Fix:\n"
-                      "- add 'authorized by: %s;' to the step\n"
-                      "- or move the step to a non-authority zone\n"
-                      "- or remove the authority-sensitive operation from this step",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                authority_reason,
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                inherited_summary[0] != '\0' ? "" : "- no inherited or derived zone contract provenance was recorded\n",
-                inherited_summary[0] != '\0' ? inherited_summary : "",
-                inherited_summary[0] != '\0' ? "\n" : "",
-                suggested_authorizer != NULL ? suggested_authorizer : "<participant>",
-                authority_reason,
-                inherited_summary[0] != '\0' ? "" : "- no inherited or derived zone contract provenance was recorded\n",
-                inherited_summary[0] != '\0' ? inherited_summary : "",
-                inherited_summary[0] != '\0' ? "\n" : "");
+            if (step->data.intent_step.inherited_where_from_action) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
+                    "Reason:\n"
+                    "%s\n"
+                    "- zone '%s' was reused from the matching action contract\n"
+                    "%s- approval boundary provenance is:\n"
+                    "%s%s"
+                    "Fix:\n"
+                    "- add 'authorized by: %s;' to the step\n"
+                    "- or move the step to a non-authority zone\n"
+                    "- or change the action contract that this step reuses",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                    authority_reason,
+                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                    inherited_summary[0] != '\0' ? "" : "- no inherited or derived zone contract provenance was recorded\n",
+                    inherited_summary[0] != '\0' ? inherited_summary : "",
+                    inherited_summary[0] != '\0' ? "\n" : "",
+                    suggested_authorizer != NULL ? suggested_authorizer : "<participant>");
+            } else {
+                semantic_error(ctx, step,
+                    "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
+                    "Reason:\n"
+                    "%s\n"
+                    "- zone '%s' declares authority, so explicit approval is required\n"
+                    "%s- approval boundary provenance is:\n"
+                    "%s%s"
+                    "Fix:\n"
+                    "- add 'authorized by: %s;' to the step\n"
+                    "- or move the step to a non-authority zone\n"
+                    "- or remove the authority-sensitive operation from this step",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                    authority_reason,
+                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                    inherited_summary[0] != '\0' ? "" : "- no inherited or derived zone contract provenance was recorded\n",
+                    inherited_summary[0] != '\0' ? inherited_summary : "",
+                    inherited_summary[0] != '\0' ? "\n" : "",
+                    suggested_authorizer != NULL ? suggested_authorizer : "<participant>");
+            }
         }
 
         for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {
@@ -3731,6 +3744,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- or change %s to an existing projection target slot",
                 action_name,
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
+                object_slot_name != NULL ? object_slot_name : "<slot>",
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
                 object_slot_name != NULL ? object_slot_name : "<slot>",
                 action_name);
@@ -3746,6 +3760,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- or change %s to an existing source slot",
                 action_name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
+                source_slot_name != NULL ? source_slot_name : "<slot>",
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
                 source_slot_name != NULL ? source_slot_name : "<slot>",
                 action_name);

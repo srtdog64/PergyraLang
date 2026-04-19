@@ -173,7 +173,8 @@ semantic_context_destroy(SemanticContext *ctx)
 
 static void
 emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
-                 const ASTNode *node, const char *fmt, va_list ap)
+                 const char *code, const ASTNode *node,
+                 const char *fmt, va_list ap)
 {
     char *message = NULL;
     va_list ap_copy;
@@ -199,6 +200,9 @@ emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
             continue;
         }
         if (existing->message != NULL && strcmp(existing->message, message) == 0) {
+            /* Upgrade legacy entry's code if we now have one to attach. */
+            if (existing->code == NULL && code != NULL)
+                existing->code = code;
             free(message);
             return;
         }
@@ -222,6 +226,7 @@ emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
     d->line  = node ? node->line   : 0;
     d->col   = node ? node->column : 0;
     d->message = message;
+    d->code    = code;  /* non-owning; points to static string or NULL */
 
     ctx->diagnostics[ctx->diagnostic_count++] = d;
 
@@ -235,7 +240,17 @@ semantic_error(SemanticContext *ctx, const ASTNode *node,
 {
     va_list ap;
     va_start(ap, fmt);
-    emit_diagnostic(ctx, DIAG_ERROR, node, fmt, ap);
+    emit_diagnostic(ctx, DIAG_ERROR, NULL, node, fmt, ap);
+    va_end(ap);
+}
+
+void
+semantic_error_code(SemanticContext *ctx, const char *code,
+                    const ASTNode *node, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    emit_diagnostic(ctx, DIAG_ERROR, code, node, fmt, ap);
     va_end(ap);
 }
 
@@ -245,7 +260,17 @@ semantic_warning(SemanticContext *ctx, const ASTNode *node,
 {
     va_list ap;
     va_start(ap, fmt);
-    emit_diagnostic(ctx, DIAG_WARNING, node, fmt, ap);
+    emit_diagnostic(ctx, DIAG_WARNING, NULL, node, fmt, ap);
+    va_end(ap);
+}
+
+void
+semantic_warning_code(SemanticContext *ctx, const char *code,
+                      const ASTNode *node, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    emit_diagnostic(ctx, DIAG_WARNING, code, node, fmt, ap);
     va_end(ap);
 }
 
@@ -603,7 +628,8 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
         }
     }
 
-    semantic_error(ctx, site, "Unknown type '%s'", name);
+    semantic_error_code(ctx, "PGY_SEM_UNKNOWN_TYPE", site,
+                        "Unknown type '%s'", name);
     return TYPE_UNKNOWN;
 }
 
@@ -1892,6 +1918,8 @@ type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx)
     case TYPE_KIND_PRIMITIVE:
     case TYPE_KIND_ENUM:
         return true;
+    case TYPE_KIND_TUPLE:
+        return true;
     case TYPE_KIND_CONSTRUCTED:
         return !type_is_movable_resource_handle(type);
     case TYPE_KIND_CLASS:
@@ -2421,7 +2449,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
                                     | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
                     semantic_error(ctx, expr->data.call.arguments[i],
-                        "Borrowed ref movable resource '%s' cannot escape through helper/function call.\n"
+                        "Borrowed ref movable resource '%s' cannot escape through helper/function call to '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' movable resource\n"
@@ -2431,6 +2459,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "- perform the movable-resource operation locally in this function\n"
                         "- or change the current parameter to 'own' if transfer/forwarding is intended",
                         expr->data.call.arguments[i]->data.identifier.name,
+                        display_name != NULL ? display_name : "<callee>",
                         ctx->current_function_decl != NULL
                             && ctx->current_function_decl->data.func_decl.name != NULL
                                 ? ctx->current_function_decl->data.func_decl.name
@@ -2442,8 +2471,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             }
             if (pmode != PARAM_MODE_REF
                 && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
-                semantic_error(ctx, expr->data.call.arguments[i],
-                    "Borrowed ref movable resource '%s' cannot escape through helper/function call.\n"
+                    semantic_error(ctx, expr->data.call.arguments[i],
+                    "Borrowed ref movable resource '%s' cannot escape through helper/function call to '%s'.\n"
                     "Reason:\n"
                     "- consumer path is function '%s'\n"
                     "- '%s' entered this function as a borrowed 'ref' movable resource\n"
@@ -2452,6 +2481,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     "- call a 'ref' helper instead\n"
                     "- or change the current parameter to 'own' if forwarding/transfer is intended",
                     expr->data.call.arguments[i]->data.identifier.name,
+                    display_name != NULL ? display_name : "<callee>",
                     ctx->current_function_decl != NULL
                         && ctx->current_function_decl->data.func_decl.name != NULL
                             ? ctx->current_function_decl->data.func_decl.name
@@ -2526,7 +2556,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
                                     | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
                     semantic_error(ctx, expr->data.call.arguments[i],
-                        "Borrowed ref subject '%s' cannot escape through helper/function call.\n"
+                        "Borrowed ref subject '%s' cannot escape through helper/function call to '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' subject\n"
@@ -2536,6 +2566,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "- perform the subject operation locally in this function\n"
                         "- or change the current parameter to 'own' if transfer/forwarding is intended",
                         expr->data.call.arguments[i]->data.identifier.name,
+                        display_name != NULL ? display_name : "<callee>",
                         ctx->current_function_decl != NULL
                             && ctx->current_function_decl->data.func_decl.name != NULL
                                 ? ctx->current_function_decl->data.func_decl.name
@@ -2548,7 +2579,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (pmode != PARAM_MODE_REF
                 && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
                 semantic_error(ctx, expr->data.call.arguments[i],
-                    "Borrowed ref subject '%s' cannot escape through helper/function call.\n"
+                    "Borrowed ref subject '%s' cannot escape through helper/function call to '%s'.\n"
                     "Reason:\n"
                     "- consumer path is function '%s'\n"
                     "- '%s' entered this function as a borrowed 'ref' subject\n"
@@ -2557,6 +2588,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     "- call a 'ref' helper instead\n"
                     "- or change the current parameter to 'own' if forwarding/transfer is intended",
                     expr->data.call.arguments[i]->data.identifier.name,
+                    display_name != NULL ? display_name : "<callee>",
                     ctx->current_function_decl != NULL
                         && ctx->current_function_decl->data.func_decl.name != NULL
                             ? ctx->current_function_decl->data.func_decl.name
@@ -2638,7 +2670,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
                                     | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
                     semantic_error(ctx, expr->data.call.arguments[i],
-                        "Borrowed ref boundary value '%s' cannot escape through helper/function call.\n"
+                        "Borrowed ref boundary value '%s' cannot escape through helper/function call to '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' boundary value\n"
@@ -2648,6 +2680,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "- perform the value operation locally in this function\n"
                         "- or change the current parameter to 'own' if transfer/forwarding is intended",
                         expr->data.call.arguments[i]->data.identifier.name,
+                        display_name != NULL ? display_name : "<callee>",
                         ctx->current_function_decl != NULL
                             && ctx->current_function_decl->data.func_decl.name != NULL
                                 ? ctx->current_function_decl->data.func_decl.name
@@ -2662,7 +2695,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 if (!type_requires_boundary_borrow_tracking(param_type, ctx))
                     continue;
                 semantic_error(ctx, expr->data.call.arguments[i],
-                    "Borrowed ref boundary value '%s' cannot escape through helper/function call.\n"
+                    "Borrowed ref boundary value '%s' cannot escape through helper/function call to '%s'.\n"
                     "Reason:\n"
                     "- consumer path is function '%s'\n"
                     "- '%s' entered this function as a borrowed 'ref' boundary value\n"
@@ -2671,6 +2704,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     "- call a 'ref' helper instead\n"
                     "- or change the current parameter to 'own' if forwarding/transfer is intended",
                     expr->data.call.arguments[i]->data.identifier.name,
+                    display_name != NULL ? display_name : "<callee>",
                     ctx->current_function_decl != NULL
                         && ctx->current_function_decl->data.func_decl.name != NULL
                             ? ctx->current_function_decl->data.func_decl.name
@@ -2719,7 +2753,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         Symbol *src_sym = scope_lookup(ctx->scope, src);
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
                             if (src_sym->slot_info.state == SLOT_STATE_RELEASED)
-                                semantic_error(ctx, expr->data.call.arguments[i],
+                                semantic_error_code(ctx, "PGY_SEM_MOVE_FROM_RELEASED",
+                                    expr->data.call.arguments[i],
                                     "Cannot move from released slot '%s'", src);
                             else
                                 src_sym->slot_info.state = SLOT_STATE_RELEASED;

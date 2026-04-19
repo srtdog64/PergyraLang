@@ -13,6 +13,13 @@
 #include "../semantic/type_system.h"
 #include "../semantic/symbol_table.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#define PGY_PRINTF_LIKE(fmt_index, first_arg) \
+    __attribute__((format(printf, fmt_index, first_arg)))
+#else
+#define PGY_PRINTF_LIKE(fmt_index, first_arg)
+#endif
+
 /* Forward declarations */
 typedef struct SemanticContext SemanticContext;
 typedef struct Diagnostic      Diagnostic;
@@ -32,7 +39,14 @@ typedef enum
 } DiagnosticLevel;
 
 /*
- * One compiler message
+ * One compiler message.
+ *
+ * `code` is a stable identifier for AI/tooling error routing
+ * (e.g. "PGY_SEM_TYPE_MISMATCH"). It points to a string literal
+ * owned by the compiler text segment — NOT freed by diagnostic
+ * destruction. NULL means the site has not yet been assigned a
+ * stable code (legacy path). Once assigned, a code's meaning
+ * does not change across versions.
  */
 struct Diagnostic
 {
@@ -40,6 +54,7 @@ struct Diagnostic
     uint32_t        line;
     uint32_t        col;
     char*           message;
+    const char*     code;   /* non-owning pointer to static string */
 };
 
 typedef enum
@@ -142,10 +157,21 @@ void             semantic_context_destroy(SemanticContext* ctx);
  * ----------------------------------------------------------------- */
 
 void semantic_error(SemanticContext* ctx, const ASTNode* node,
-                    const char* fmt, ...);
+                    const char* fmt, ...) PGY_PRINTF_LIKE(3, 4);
+
+/* Emit an error with a stable diagnostic code for AI/tooling consumers.
+ * `code` must be a string literal (e.g. "PGY_SEM_TYPE_MISMATCH") — its
+ * lifetime is assumed to be static. Meaning is frozen once shipped. */
+void semantic_error_code(SemanticContext* ctx, const char* code,
+                         const ASTNode* node, const char* fmt, ...)
+    PGY_PRINTF_LIKE(4, 5);
 
 void semantic_warning(SemanticContext* ctx, const ASTNode* node,
-                      const char* fmt, ...);
+                      const char* fmt, ...) PGY_PRINTF_LIKE(3, 4);
+
+void semantic_warning_code(SemanticContext* ctx, const char* code,
+                           const ASTNode* node, const char* fmt, ...)
+    PGY_PRINTF_LIKE(4, 5);
 
 void semantic_print_diagnostics(SemanticContext* ctx);
 

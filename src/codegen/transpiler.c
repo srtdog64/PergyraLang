@@ -552,6 +552,8 @@ transpile_mir_only(const MIRProgram *mir, const char *output_path)
     if (ctx->backend_error != NULL) {
         result->success = false;
         result->error_message = pergyra_strdup(ctx->backend_error);
+        if (ctx->backend_error_code != NULL)
+            result->error_code = pergyra_strdup(ctx->backend_error_code);
         transpiler_ctx_destroy(ctx);
         return result;
     }
@@ -599,6 +601,7 @@ transpile_result_destroy(TranspileResult *res)
     if (res == NULL)
         return;
     free(res->error_message);
+    free(res->error_code);
     free(res);
 }
 

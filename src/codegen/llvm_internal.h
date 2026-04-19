@@ -538,6 +538,11 @@ typedef struct LLVMGenCtx
     char            error_msg[512];
     uint32_t        error_line;    /* 0 = no location info */
     uint32_t        error_column;
+    /* Stable diagnostic code attached to error_msg. non-owning — must be
+     * a string literal (e.g. "PGY_LLVM_SPEC_LIMIT"). NULL when the failing
+     * site has not been assigned a code. Propagated to CompilerResult.error_code
+     * when the LLVM pipeline rolls up its result. */
+    const char     *error_code;
 } LLVMGenCtx;
 
 static inline const char *
@@ -735,6 +740,12 @@ llvm_current_host_decl(const LLVMGenCtx *ctx)
     if (ctx == NULL)
         return NULL;
 
+    if (ctx->current_class_name != NULL) {
+        decl = llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
+        if (decl != NULL)
+            return decl;
+    }
+
     if (ctx->current_func_decl != NULL
         && ctx->current_func_decl->type == AST_FUNC_DECL
         && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
@@ -744,10 +755,7 @@ llvm_current_host_decl(const LLVMGenCtx *ctx)
             return decl;
     }
 
-    if (ctx->current_class_name == NULL)
-        return NULL;
-
-    return llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
+    return NULL;
 }
 
 static inline const char *
@@ -1202,6 +1210,14 @@ const char *llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty);
  * ================================================================= */
 void llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...);
 void llvm_set_error_at(LLVMGenCtx *ctx, ASTNode *node, const char *fmt, ...);
+
+/* Error setters that attach a stable diagnostic code (e.g. "PGY_LLVM_SPEC_LIMIT")
+ * for AI/tooling routing. `code` must be a string literal (non-owning).
+ * Passing NULL is equivalent to calling the legacy setter. */
+void llvm_set_error_with_code(LLVMGenCtx *ctx, const char *code,
+                              const char *fmt, ...);
+void llvm_set_error_at_with_code(LLVMGenCtx *ctx, ASTNode *node,
+                                  const char *code, const char *fmt, ...);
 
 /* =================================================================
  * Result helpers (llvm_backend.c)

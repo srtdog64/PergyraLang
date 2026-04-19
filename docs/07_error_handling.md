@@ -24,6 +24,86 @@ Pergyra는 모든 실패를 같은 방식으로 처리하지 않는다.
 - `Result<T>`는 recoverable path의 기본 수단이다
 - `Unwrap(...)`는 recoverable failure를 조용히 삼키는 API가 아니라 panic 성격의 sharp tool이다
 
+## 0.1 현재 failure class inventory
+
+현재 구현/테스트/문서 기준의 inventory는 아래처럼 읽는다.
+
+### recoverable failure
+
+값 또는 queryable runtime state로 노출해야 하는 실패:
+
+- `Result<T>` / postfix `?`
+- `RemoteFuture<T> -> await -> Result<T>`
+- channel timeout / non-blocking / closed-state surface
+  - `TryRecv`
+  - `RecvTimeout`
+  - `TrySend`
+  - `SendTimeout`
+  - `TrySendStatus`
+  - `SendTimeoutStatus`
+- world roster timeout
+- intent observability surface
+  - `IntentLast*`
+  - `IntentHistoryStep*`
+  - `IntentActive*`
+  - `IntentRecent*`
+
+### contract violation
+
+semantic에서 막는 것이 원칙이고, 런타임까지 오면 hard-fail로 남는 축:
+
+- released slot / secure slot access
+- invalid token
+- token permission mismatch
+- ownership-boundary misuse
+- `Unwrap(result)` on `Err`
+- option unwrap on `None`
+- array / slice bounds violation
+
+### internal bug / invariant break
+
+사용자 도메인 실패가 아니라 런타임/컴파일러 불변식 파손으로 읽는 축:
+
+- allocator invariant break
+- box / rc / weak misuse
+- null self / null participant 같은 runtime guard failure
+- compiler internal invariant break
+
+### 아직 downshift 대상인 것
+
+아래는 장기적으로 `recoverable failure + observability`로 더 내려가야 하는 축이다.
+
+- real runtime authority rejection
+- intent boundary mismatch provenance at runtime
+- richer intent/zone/world failure reason surface
+
+중요:
+
+- 현재 `pgy_zone_authority_check_export(...)` 계열 guard는 real authority rejection이 아니라 invariant guard로 읽는다
+- 따라서 지금은 `recoverable authority failure`가 아니라 hard-fail/invariant guard 쪽에 둔다
+
+## 0.2 hard-fail boundary
+
+아래는 베타 기준에서도 계속 panic / hard-fail territory로 남긴다.
+
+- released slot / secure slot read, write, release misuse
+- invalid token / token permission mismatch
+- ownership invariant break
+- `Unwrap(result)` on `Err`
+- `UnwrapOption(option)` on `None`
+- array / slice bounds violation
+- allocator / box / rc / weak invariant corruption
+- runtime invariant guard failure
+  - 예: `null self`, `null participant`, corrupted runtime handle
+
+이 경계는 의도적으로 `recoverable failure`로 낮추지 않는다.
+
+이유:
+
+- 이 축은 사용자 도메인 실패가 아니라 계약 위반 또는 invariant break다
+- 값을 돌려주는 순간 정상 제어 흐름처럼 오해될 수 있다
+- 따라서 현재 정책은 panic / internal error를 유지하고, diagnostics와 test가 그 경계를 명시적으로 보여 주는 쪽이다
+
 ## 1. 현재 구현 중심
 
 현재 코드와 테스트가 실제로 보장하는 축은 다음이다.

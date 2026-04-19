@@ -112,11 +112,14 @@
   - C/LLVM 둘 다 declaration-side path에서 `Unknown` / surface-trust-breaking fallback type emission을 계속 제거
   - 문서에서 `MIR-led / HIR-assisted`라고 남겨둔 debt를 실제 구현 기준으로 더 축소하고, 베타 시점 표현과 구현을 일치시킨다
 
-- [ ] **type-resolution DAG를 beta blocker로 포함**
+- [x] **type-resolution DAG를 beta blocker로 포함**
   - import resolver와 별개로 semantic type dependency graph를 beta acceptance line에 포함
   - generic default / multi-bound / role impl / action / intent step / party role slot / zone authority / module contract consumer를 같은 graph inventory로 추적
   - alias depth limit / ad-hoc recursive failure보다 path-aware cycle diagnostic을 우선 기준으로 끌어올림
   - 1단계 진행: `topo_order`를 버리지 않고 declaration staged worklist에 연결 시작
+  - 반영 문서:
+    - `docs/70_beta_closure_master_board.md`
+    - `docs/63_feature_depth_matrix.md`
   - 1단계 진행: `world/zone` local contract와 `refresh` projection path를 synthetic graph node로 올리기 시작
   - 1단계 진행: topo worklist가 `LOCAL_CONTRACT` / `PROJECTION_PATH` synthetic node도 다시 소비하기 시작
   - 1단계 진행: synthetic node 소비를 host 전체 재실행이 아니라 label별 narrow handler로 축소
@@ -390,8 +393,10 @@
 
 ### B1 — 베타 신뢰도 필수
 
-- [ ] **surface trust 문서 재분류**
-  - alpha-complete / experimental / removed 기준으로 전면 재정리
+- [x] **surface trust 문서 재분류**
+  - 완료: `docs/18_language_status.md`, `docs/63_feature_depth_matrix.md`, `README.md`에서 `stable subset / explicit reject / beta-out-of-scope` 기준으로 정렬
+  - 규칙: "컴파일은 되지만 partial"인 표면을 stable처럼 쓰지 않고, 어디까지를 닫힌 계약으로 약속하는지 먼저 명시
+  - 규칙: broader generalization, arbitrary key support, general ownership, richer observability query 같은 항목은 `beta-out-of-scope`로 분리
 - [ ] **stable example / smoke source of truth 확대**
   - canonical examples와 closure examples를 smoke에 직접 연결
   - explicit surface vs compressed surface를 같은 의미로 보여주는 pair example 최소 4쌍 고정
@@ -472,7 +477,10 @@
   - `examples/transfer_move_typed_minimal.pgy`
   - `examples/zone_context_minimal.pgy`
 
-- [ ] **contract provenance vocabulary 고정**
+- [x] **contract provenance vocabulary 고정**
+  - 완료: beta closure 문서에 contract provenance 표준어를 `derived / inherited`로 고정
+  - 규칙: contract source 설명에서는 `inferred`를 쓰지 않고, action에서 재사용된 step clause는 `inherited`, `using/transfer` 등 현재 step에서 계산된 clause는 `derived`로 부른다
+  - 규칙: diagnostics / AST print / docs가 같은 용어를 쓰도록 맞추고, `inferred`는 일반 타입 계산이나 non-contract internal analysis 문맥에만 남긴다
   - 대상: contract provenance 잔여 표현, contract source wording, docs/example terminology
   - 문제: compiler type/effect inference와 domain contract 상속/파생이 같은 단어로 섞이면 설명력이 무너짐
   - 고정 기준:
@@ -483,9 +491,10 @@
 
 ### P0.5 — recoverable failure 분류/고정
 
-- [ ] **failure class inventory 정리**
-  - intent/zone/world/runtime API를 `recoverable failure / contract violation / internal bug`로 분류
-  - 현재 panic인 경로 중 recoverable이어야 하는 것을 표로 정리
+- [x] **failure class inventory 정리**
+  - 완료: `docs/07_error_handling.md`, `docs/18_language_status.md`, `README.md` 기준으로 `recoverable failure / contract violation / internal bug` inventory를 정리
+  - 완료: 현재 recoverable 유지 항목, hard-fail 유지 항목, 후속 downshift 대상(authority rejection 등)을 구분
+  - 규칙: runtime invariant guard와 real domain rejection을 같은 실패 층으로 섞지 않음
 - 현재 inventory baseline:
   - recoverable 유지:
     - `Result<T>` / `?`
@@ -510,9 +519,10 @@
   - 현재 `pgy_zone_authority_check_export(...)`는 null self/null participant invariant guard다
   - 이 guard 자체는 hard-fail 유지
   - 별도 real authority rejection runtime path가 생기면 그쪽을 `recoverable authority failure` 경로로 설계
-- [ ] **hard-fail boundary 명시**
-  - released slot, invalid token, invariant corruption은 계속 panic이라는 점을 문서와 테스트에 명시
-    - docs wording search 기준 고정
+- [x] **hard-fail boundary 명시**
+  - 완료: `README.md`와 `docs/07_error_handling.md`에 hard-fail boundary를 명시
+  - 고정 내용: released slot, invalid token, ownership invariant break, unwrap misuse, bounds violation, runtime invariant guard는 계속 panic / hard-fail territory로 둔다
+  - 고정 내용: recoverable authority rejection과 invariant guard를 같은 층으로 섞지 않는다는 점을 문서 wording으로 못박음
 
 - [ ] **projection contract diagnostics 고정**
   - 대상: `refresh/publish/bind` source/target/path/field-map 실패
@@ -530,13 +540,18 @@
 - semantic regression
   - `src/test_semantic.c:test_projection_contract_diagnostics`
 
-- [ ] **surface trust subset 분류 고정**
+- [x] **surface trust subset 분류 고정**
   - 대상: generics, own/ref, collections, runtime observability
   - 문제: 되는 것처럼 보이는데 실제로는 subset만 되는 surface가 가장 큰 신뢰 손상 지점
   - 고정 기준:
     - `stable subset / explicit reject / beta-out-of-scope`를 TODO/docs/diagnostic에서 같은 말로 쓴다
   - 회귀 기준:
     - semantic tests와 depth docs가 같은 subset을 가리킴
+  - 현재 기준 문서:
+    - `README.md`의 `Surface trust policy`
+    - `docs/18_language_status.md`
+    - `docs/63_feature_depth_matrix.md`
+    - `docs/64_depth_filling_roadmap.md`
 
 현재 고정하려는 baseline:
 - generics
@@ -880,7 +895,10 @@
   - 회귀: `src/test_semantic.c` "Result<T, E> with enum error type accepts Ok/Err and match destructuring"
 
 ### ability 차별화
-- [ ] **ability ≠ interface 문서화** — ability는 "협업 프로토콜의 자격 조건"이며 슬롯에 부착됨
+- [x] **ability ≠ interface 문서화** — ability는 "협업 프로토콜의 자격 조건"이며 슬롯에 부착됨
+  - 완료: `docs/24_visibility_model.md`에 `ability ≠ interface` 섹션 추가
+  - 정리 내용: ability는 nominal object의 메서드 집합을 직접 모델링하는 interface가 아니라, `requires Ability`, `dyn role slot: Ability`, `zone authority requires Ability`처럼 협업 계약/자격 조건으로 소비되는 surface임을 고정
+  - 정리 내용: ability는 subject/role/slot/orchestration contract와 결합되며, 구현 담당은 role impl이고 ability 자체는 "무엇을 구현하라"보다 "어떤 자격으로 참여하라"를 표현한다는 점을 명시
 
 ## P1.6 — 자원/오케스트레이션 방향 고정
 
@@ -1026,10 +1044,11 @@
 - [ ] **BSD (Allman) canonical style 전면 고정**
   - 문서/예제/scaffold/formatter 출력은 BSD 기준으로 통일
   - K&R은 parser compatibility로만 남기고 canonical surface로는 취급하지 않음
-- [ ] **문서 예제 제시 순서 강제**
-  - 문서/튜토리얼/비전 예제의 독해 순서는 `intent -> world -> zone -> subject`로 고정
-  - `subject`는 core host로 설명하되, 설계의 첫 축으로 가르치지 않음
-  - compile-order와 teaching-order를 분리해서 명시
+- [x] **문서 예제 제시 순서 강제**
+  - 완료: README entrypoint와 핵심 설계 문서에서 예제 독해 순서를 `intent -> world -> zone -> subject`로 명시
+  - 기준 문서: `README.md`, `docs/00_vision.md`, `docs/01_intent_first_design.md`, `docs/22_class_object_model.md`
+  - 규칙: `subject`는 core host로 설명하되, 설계의 첫 축으로 가르치지 않음
+  - 규칙: compile-order와 teaching-order를 분리해서 명시
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
@@ -1186,7 +1205,7 @@
   - 형태: 단일 파일 (~2000-5000줄), in-context로 한 번에 로드 가능
   - 목적: "Claude가 Pergyra 코드를 새 세션에서 생성할 때 reference로 인용 가능" 수준
   - 현재 `docs/`와 다른 점: 일지는 "왜 이렇게 결정했는가", spec은 "현재 언어가 무엇을 보장하는가"
-- [ ] **AI-parseable 구조화 에러 메시지** — 현재 진단은 내부자 표현. AI용은 기계 판독 가능한 구조화 필드 필요
+- [~] **AI-parseable 구조화 에러 메시지** — 현재 진단은 내부자 표현. AI용은 기계 판독 가능한 구조화 필드 필요
   - 현재: `MIR contract breach in Main at line 0: unresolved identifier 'flag' (expected SSA-mapped local)`
   - 목표 형태 (예시):
     ```json
@@ -1203,6 +1222,68 @@
     ```
   - `--error-format=json` 플래그로 토글, 인간용은 기존 형식 유지
   - 대상: compile, semantic, MIR/LLVM IR 단계 전체
+  - 1차 증분 완료 (2026-04-19):
+    - `DriverFlags.diag_format` + `--error-format=json|text` CLI 플래그 추가 (`src/pgy_driver.c`, `src/compiler/driver_app.h`)
+    - `semantic_result_print_json` — semantic 진단을 JSON 배열로 방출 (severity/stage/location/message 필드, RFC 8259 준수 이스케이프)
+    - `driver_emit_single_diag_json` — 단일 에러 JSON 방출 헬퍼 (module_load / backend_c_emit / backend_c_native / backend_llvm_emit / backend_llvm_native 단계 커버)
+    - stage 태그: `semantic` / `module_load` / `backend_c_emit` / `backend_c_native` / `backend_llvm_emit` / `backend_llvm_native`
+    - 성공 시 `[]` (빈 배열), 실패 시 `[{...}]` — 호출자는 항상 JSON 기대 가능
+    - 회귀: `tests/diagnostics_json_smoke.sh` (Python 파서로 shape 검증, 3 케이스: semantic / parse / success)
+    - 검증: PowerShell로 3 케이스 모두 정상 동작 확인 (1668 semantic + 601 transpile 회귀 pass)
+  - 2차 증분 완료 (2026-04-19):
+    - `Diagnostic` 구조체에 `code` 필드 추가 (non-owning `const char*`, 정적 문자열 리터럴 보관) — `src/semantic/type_checker.h`
+    - `semantic_error_code` / `semantic_warning_code` 신규 variant — 코드 인자 받아 diagnostic에 실어줌 (레거시 `semantic_error` 는 그대로 NULL 코드로 동작, 단 동일 사이트 중복 emit 시 코드가 있으면 업그레이드)
+    - JSON 출력에 `"code"` 필드 선택적 포함 (NULL이면 생략 — 호환성 유지)
+    - parser stage 분리: module_load msg가 `"parse error in"`으로 시작하면 `"stage":"parse"`, 그 외 `"module_load"`
+    - 초기 코드 부여 사이트 (6종):
+      - `PGY_SEM_TYPE_MISMATCH` (assignment)
+      - `PGY_SEM_BINOP_TYPE_MISMATCH`
+      - `PGY_SEM_UNKNOWN_TYPE`
+      - `PGY_SEM_UNDEFINED_SYMBOL` (identifier / member 3 사이트)
+      - `PGY_SEM_INFER_COLLECTION` / `PGY_SEM_INFER_GENERIC` / `PGY_SEM_INFER_REQUIRED`
+    - smoke test 확장: `code == "PGY_SEM_TYPE_MISMATCH"` 검증 + `stage == "parse"` 검증 (`tests/diagnostics_json_smoke.sh`)
+    - 회귀: 1688 semantic + 601 transpile, 0 failed
+  - 3차 증분 완료 (2026-04-19):
+    - Slot/ownership/parallel/effect 계열 코드 9종 추가:
+      - `PGY_SEM_SLOT_RELEASED` (method dispatch 4 사이트 + builtin Read/Write 2 사이트)
+      - `PGY_SEM_RELEASE_REQUIRES_OWNER`
+      - `PGY_SEM_SLOT_DOUBLE_RELEASE` (method + builtin Release 2 사이트)
+      - `PGY_SEM_VIEW_KIND_MISMATCH` (ReadView write / WriteView read)
+      - `PGY_SEM_MOVE_TOKEN_MISUSE` (read/write through MoveToken)
+      - `PGY_SEM_MOVE_FROM_RELEASED` (let/call/builtin 3 사이트)
+      - `PGY_SEM_PARALLEL_SLOT_CONFLICT` (error: mutate-mutate across tasks)
+      - `PGY_SEM_PARALLEL_SLOT_RACE_RISK` (warning: read-mutate across tasks)
+      - `PGY_SEM_EFFECT_CONFLICT` (warning: effect class 충돌)
+    - `docs/72_diagnostic_codes.md` 카탈로그 문서 신규 — 16개 코드 의미/원인/교정 방법, AI 라우팅 가이드, 향후 확장 필드 문서화
+    - smoke test 확장: `PGY_SEM_SLOT_RELEASED` 감지 케이스 추가
+    - 사용자 기여: `semantic_error_code` / `semantic_warning_code` 선언에 `PGY_PRINTF_LIKE` 속성 추가 (clang/gcc format 경고 체크)
+    - 회귀: 1694 semantic + 601 transpile, 0 failed
+    - 현재 총 16개 안정 코드, ~25 사이트 커버. 나머지 ~460 사이트는 4차+ 증분 대상
+  - 4차 증분 완료 (2026-04-19):
+    - `CompilerResult.error_code` / `TranspileResult.error_code` / `LLVMGenResult.error_code` 필드 추가 (모두 owning strdup, destroy에서 free)
+    - `TranspilerCtx.backend_error_code` / `LLVMGenCtx.error_code` non-owning `const char *` (정적 literal만)
+    - 신규 setter variants: `transpiler_set_backend_error_with_code` / `llvm_set_error_with_code` / `llvm_set_error_at_with_code` (레거시 setter는 code=NULL 경로로 유지)
+    - `driver_emit_single_diag_json_with_code(stage, code, message)` — JSON에 code 필드 선택적 포함
+    - `driver_route_stage(default_stage, code)` — prefix whitelist (`PGY_SEM_`/`PGY_MIR_`/`PGY_LLVM_`/`PGY_PARSE_`). 모르는 prefix는 default_stage 유지
+    - Runner 업데이트: `c_runner.c` (2 사이트) + `llvm_runner.c` (2 사이트) — 기존 호출을 `_with_code` + `driver_route_stage`로 교체
+    - MIR/LLVM 코드 5종 신규:
+      - `PGY_MIR_UNRESOLVED_LOCAL` — branch terminator의 identifier가 SSA 매핑 없음
+      - `PGY_MIR_TOPOLOGY_INVALID` — MIR routine 누락 / kind 불일치 / AST 없음
+      - `PGY_MIR_SIGNATURE_UNSUPPORTED` — 지원 안되는 함수 시그니처
+      - `PGY_MIR_SSA_LIMIT` — SSA local 4096 초과
+      - `PGY_MIR_INTENT_CARRIER_MISSING` — intent step metadata 누락 (C/LLVM 공통, 21 사이트 일괄 업그레이드)
+      - `PGY_LLVM_SPEC_LIMIT` — Result\<T,E\> 특수화 한도(MAX_LLVM_RESULT_SPECS=32) 초과
+    - 카탈로그 확장: `docs/72_diagnostic_codes.md`에 "MIR Contract" 섹션 5개 엔트리 + "LLVM Backend" 섹션 1개 엔트리
+    - smoke test 확장: 33개 Result\<Int, E*\> 특수화로 `PGY_LLVM_SPEC_LIMIT` + `stage=llvm_codegen` 검증 (`tests/diagnostics_json_smoke.sh`)
+    - 검증: `[{"severity":"error","stage":"llvm_codegen","code":"PGY_LLVM_SPEC_LIMIT",...}]` end-to-end 확인
+    - 회귀: 1694 semantic + 601 transpile, 0 failed (레거시 경로 무손상)
+    - 현재 총 22개 안정 코드 (`PGY_SEM_*` 16 + `PGY_MIR_*` 5 + `PGY_LLVM_*` 1), ~50 사이트 커버. `mir_validation` / `llvm_codegen` stage 가 기존 `backend_*_native`와 분리됨
+  - 남은 작업 (5차 증분 후보):
+    - intent/zone/world / class/ability 관련 `PGY_SEM_*` 코드 점진적 부여 (나머지 ~460 semantic 사이트)
+    - LLVM 추가 코드: `PGY_LLVM_TYPE_UNSUPPORTED`, `PGY_LLVM_RUNTIME_MISSING`, `PGY_LLVM_OOM` (개별 사이트 업그레이드)
+    - `cause_ir` / `fix_source` 필드 — 현재 message만. MIR/IR 레벨 원인 + 소스 레벨 교정 포인트 분리해 AI가 구분 가능하게
+    - parser 레벨 코드 (`PGY_PARSE_*` prefix 예약됨) — parser error 누적형 리팩터 필요
+    - `related_rules` 필드 — Language Reference Spec 이후 연결
 - [ ] **In-context example corpus 큐레이션** — GitHub에 Pergyra 코드 0개. 훈련 데이터 부재를 in-context examples로 보완
   - `docs/ai_prompt_bundle/` 디렉토리에 몇 개 레벨의 번들 준비:
     - `minimal.md` — 언어 핵심만 (~20KB)

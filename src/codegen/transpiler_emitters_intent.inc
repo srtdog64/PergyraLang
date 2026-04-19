@@ -907,56 +907,56 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     return;
 
 mir_step_missing_pre:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent pre check carrier");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent pre check carrier");
     goto intent_emit_fail;
 mir_step_missing_guard:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent guard check carrier");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent guard check carrier");
     goto intent_emit_fail;
 mir_step_missing_post:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent post check carrier");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent post check carrier");
     goto intent_emit_fail;
 mir_step_missing_expect:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent expect check carrier");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent expect check carrier");
     goto intent_emit_fail;
 mir_step_missing_invariant:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent invariant check carrier");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent invariant check carrier");
     goto intent_emit_fail;
 mir_step_missing_subintent:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent subintent eval carrier");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent subintent eval carrier");
     goto intent_emit_fail;
 mir_step_missing_on:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent on-eval carrier");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent on-eval carrier");
     goto intent_emit_fail;
 mir_step_missing_zone_where:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent zone where metadata");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent zone where metadata");
     goto intent_emit_fail;
 mir_step_missing_zone_alias:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent zone alias metadata");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent zone alias metadata");
     goto intent_emit_fail;
 mir_step_missing_zone_from:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent transfer-from metadata");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent transfer-from metadata");
     goto intent_emit_fail;
 mir_step_missing_who:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent who metadata");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent who metadata");
     goto intent_emit_fail;
 mir_step_missing_dispatch:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent dispatch carrier");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent dispatch carrier");
     goto intent_emit_fail;
 mir_step_missing_compensate:
-    if (ctx->backend_error == NULL)
-        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent compensate eval carrier");
+    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+        "MIR-only C path missing intent compensate eval carrier");
     goto intent_emit_fail;
 
 intent_emit_fail:

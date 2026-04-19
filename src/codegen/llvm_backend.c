@@ -1087,6 +1087,7 @@ LLVMGenResult *llvm_codegen_to_object_from_mir(const void *mir, const char *modu
 void llvm_gen_result_destroy(LLVMGenResult *res) {
     if (res) {
         free(res->error_message);
+        free(res->error_code);
         free(res->ir_text);
         free(res);
     }

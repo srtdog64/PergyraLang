@@ -587,6 +587,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             owner_label != NULL ? owner_label : "construct",
             owner_name != NULL ? owner_name : "<anonymous>",
             ability,
+            ability,
             ability);
         free(required_text);
         return NULL;

@@ -2454,6 +2454,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                         || strcmp(stmt_name, def_name) != 0) {
                         bool owned_by_later_def =
                             stmt_name != NULL
+                            && stmt != NULL
+                            && stmt->type == AST_LET_DECL
                             && mir_routine_has_def_for_name(routine, stmt_name);
 
                         def_cursor = saved_cursor;
@@ -2485,6 +2487,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                      * Emit the let/assignment as a regular STMT so it still
                      * generates code. */
                     if (stmt_name != NULL
+                        && stmt != NULL
+                        && stmt->type == AST_LET_DECL
                         && mir_routine_has_def_for_name(routine, stmt_name)) {
                         def_cursor = saved_cursor;
                         continue;

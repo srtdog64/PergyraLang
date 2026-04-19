@@ -74,6 +74,10 @@ parse_args(int argc, char *argv[])
             f.repl = true;
         } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
             f.verbose = true;
+        } else if (strcmp(argv[i], "--error-format=json") == 0) {
+            f.diag_format = DIAG_FORMAT_JSON;
+        } else if (strcmp(argv[i], "--error-format=text") == 0) {
+            f.diag_format = DIAG_FORMAT_TEXT;
         } else if (strcmp(argv[i], "-o") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "pgy: -o requires an argument\n");

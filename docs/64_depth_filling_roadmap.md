@@ -1,6 +1,6 @@
 # Depth Filling Roadmap
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-19
 
 이 문서는 [63_feature_depth_matrix.md](63_feature_depth_matrix.md)의 빈 칸을 실제 구현 작업으로 바꾼 로드맵이다.
 핵심은 "새 surface를 더하는 것"이 아니라 "이미 선언한 surface를 끝까지 닫는 것"이다.
@@ -263,13 +263,41 @@ post-beta / follow-up:
 3. intent/zone/world inspection surface를 최소 조회 가능 형태로 정리한다.
 4. "지금은 구현 안 됨" 경로는 성공처럼 보이지 않게 정리한다.
 
+판정 기준:
+- `warning`
+  - 실행은 계속 가능하지만 policy drift, stale state, redundant declaration, discouraged surface 사용을 알려야 하는 경우
+- `hard-fail`
+  - contract trust나 runtime invariant를 깨뜨리므로 계속 실행시키면 안 되는 경우
+- `recoverable value path`
+  - 도메인 실패나 운영 상태를 값/조회 surface로 노출하는 것이 맞는 경우
+
+현재 문서 기준의 예:
+- warning
+  - duplicate/redundant lifecycle directive
+  - stale/pressure observation
+  - 더 권장되는 alias/state form이 있는데 raw surface를 쓴 경우
+- hard-fail
+  - released slot / invalid token / ownership misuse
+  - 필수 authority contract가 빠진 mutation path
+  - unsupported path를 조용히 성공처럼 통과시키는 placeholder
+- recoverable value path
+  - `Result<T>`
+  - channel timeout / closed / non-blocking state
+  - remote failure
+  - intent observability query
+
+원칙:
+- runtime invariant guard는 recoverable domain failure로 낮추지 않는다
+- placeholder가 성공처럼 보이면 warning으로는 부족하고, explicit error 또는 diagnosable placeholder여야 한다
+- benign wording이어도 surface trust를 깨면 hard-fail로 올린다
+
 완료 기준:
 - placeholder가 있더라도 침묵하지 않는다.
 - intent/zone/world 상태를 디버거 없이도 최소 추적할 수 있다.
 
 체크리스트:
 - [ ] exported runtime의 `NULL/0/false` 조용한 반환 전수 점검
-- [ ] warning vs hard-fail 기준 문서화
+- [x] warning vs hard-fail 기준 문서화
 - [ ] no-op placeholder를 진단 가능 상태로 교체
 - [ ] intent/zone/world inspection surface 정리
 
@@ -287,15 +315,40 @@ post-beta / follow-up:
 2. world/domain 경로의 inventory-backed declaration debt를 debt ledger와 연결한다.
 3. 필요 시 file split은 구조 정리 수단으로만 사용한다.
 
+구조 debt 분류:
+- `inventory-backed declaration 경로`는 기능 미구현이 아니라 representation debt다.
+- 구체적으로는 `MIRDeclHeader`가 AST/method array를 함께 운반하는 declaration inventory representation과,
+  일부 domain/intention edge path가 dedicated decl IR 대신 AST-carried shape를 읽는 비용이 남아 있는 상태다.
+- 이 분류는 다음 문서와 같은 기준을 따른다:
+  - [docs/62_llvm_backend_debt_ledger.md](62_llvm_backend_debt_ledger.md)
+  - [docs/70_beta_closure_master_board.md](70_beta_closure_master_board.md)
+
 완료 기준:
 - "world LLVM 미구현" 같은 잘못된 문장이 더 이상 문서에 남지 않는다.
 - debt ledger가 기능 누락과 구조 debt를 구분한다.
 - world embedding copy semantics가 문서와 진단에서 같은 말로 설명된다
 
+현재 근거:
+- world는 "문서상 예정" 상태가 아니라 이미 smoke/compare 근거를 가진다.
+  - `llvm_smoke`의 world query/runtime 케이스:
+    - [tests/llvm_smoke.sh](../tests/llvm_smoke.sh)
+  - world/zone query ABI 경로:
+    - [tests/cases/abi_pipeline/world_zone_query_abi/main.pgy](../tests/cases/abi_pipeline/world_zone_query_abi/main.pgy)
+  - C/LLVM backend compare 경로:
+    - [tests/cases/backend_compare/world_zone_projection_visibility/main.pgy](../tests/cases/backend_compare/world_zone_projection_visibility/main.pgy)
+  - 현재 분류는 "기능 미구현"이 아니라 structure/declaration/runtime observability debt 쪽:
+    - [docs/62_llvm_backend_debt_ledger.md](62_llvm_backend_debt_ledger.md)
+    - [docs/63_feature_depth_matrix.md](63_feature_depth_matrix.md)
+    - [docs/18_language_status.md](18_language_status.md)
+
+표현 고정:
+- `world` / embedded zone query / derived state의 LLVM 경로는 이미 smoke/ABI/backend-compare 근거를 가진다.
+- 남은 debt는 `world LLVM 미구현`이 아니라 `declaration-side MIR-only`, `inventory-backed helper 경로`, `runtime observability/provenance` 정리다.
+
 체크리스트:
-- [ ] world smoke 근거를 depth 문서에 반영
-- [ ] debt ledger와 depth matrix 표현 정렬
-- [ ] inventory-backed declaration 경로를 구조 debt로 분류
+- [x] world smoke 근거를 depth 문서에 반영
+- [x] debt ledger와 depth matrix 표현 정렬
+- [x] inventory-backed declaration 경로를 구조 debt로 분류
 
 ### 2.4 Silent fallback 제거
 
@@ -307,10 +360,45 @@ post-beta / follow-up:
 - secure memory unsupported platform은 더 이상 성공을 가장하지 않는다.
 - channel/intent 일부 경로는 최소 진단을 남긴다.
 
+최근 실교체된 항목:
+- explicit `Clone(...)` world embedding surface
+  - hidden copy semantics를 warning/권장 surface로 끌어올린 기준 문서:
+    - [docs/22_ownership_model.md](22_ownership_model.md)
+    - [docs/61_surface_compression_examples.md](61_surface_compression_examples.md)
+- secure memory unsupported platform explicit failure
+  - 더 이상 성공처럼 통과시키지 않고 `SECURITY_ERROR_UNSUPPORTED_PLATFORM`로 정리:
+    - [docs/17_development_status.md](17_development_status.md)
+    - [docs/50_language_completion_board.md](50_language_completion_board.md)
+- intent observability recent/active baseline
+  - `IntentRecent*`, `IntentCurrentHandle()`, `IntentRecentHandle()`, `IntentRecentTraceId()`, `IntentActiveStep*()` 연결:
+    - [docs/18_language_status.md](18_language_status.md)
+    - [docs/66_semantic_implementation_map.md](66_semantic_implementation_map.md)
+- embedded world/zone query baseline
+  - `HasZoneProjection`, `HasZoneLayer`, `HasZoneState` baseline 정리:
+    - [docs/18_language_status.md](18_language_status.md)
+    - [docs/13_world_roster_architecture.md](13_world_roster_architecture.md)
+- stable collection key subset explicit error
+  - `HashMap<String|Int|Long|Bool, T>`까지만 stable subset으로 고정:
+    - [docs/63_feature_depth_matrix.md](63_feature_depth_matrix.md)
+    - [docs/29_stdlib_design.md](29_stdlib_design.md)
+
 남은 작업:
 1. `NULL/0/false`를 조용히 반환하는 exported runtime path를 전수 점검한다.
 2. runtime warning과 hard contract failure의 경계를 문서화한다.
 3. "지금은 구현 안 됨" 경로는 성공처럼 보이지 않게 정리한다.
+
+판정 기준:
+- `warning`
+  - 실행은 계속 가능하지만 상태 해석이나 정책 선택을 바꿔 읽어야 하는 경우
+- `hard-fail`
+  - contract trust / runtime invariant를 깨므로 즉시 중단하거나 compile/backend error로 승격해야 하는 경우
+- `recoverable value path`
+  - 값/상태 surface로 드러내는 편이 맞는 도메인 실패인 경우
+
+원칙:
+- invariant guard는 recoverable authority rejection으로 위장하지 않는다
+- unsupported / unimplemented path는 warning만 남기고 성공처럼 통과시키지 않는다
+- runtime warning은 "계속 실행 가능하지만 상태를 다르게 해석해야 함"을 알리는 층에만 남긴다
 
 완료 기준:
 - placeholder가 있더라도 침묵하지 않는다.
@@ -318,9 +406,9 @@ post-beta / follow-up:
 
 체크리스트:
 - [ ] exported runtime의 `NULL/0/false` 조용한 반환 전수 점검
-- [ ] warning vs hard-fail 기준 문서화
+- [x] warning vs hard-fail 기준 문서화
 - [ ] no-op placeholder를 진단 가능 상태로 교체
-- [ ] 최근 실교체된 항목을 문서에 연결
+- [x] 최근 실교체된 항목을 문서에 연결
 
 ---
 

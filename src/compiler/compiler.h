@@ -25,6 +25,10 @@ typedef struct
     bool  success;
     int   exit_code;
     char *error_message;
+    /* Stable diagnostic code (owning, e.g. "PGY_MIR_UNRESOLVED_LOCAL").
+     * NULL when the failing site has not been assigned a code. Propagated
+     * from TranspilerCtx.backend_error_code / LLVMGenCtx.error_code. */
+    char *error_code;
     char *c_output_path;
     char *binary_path;
     CompilerBackendTimings backend_timings;

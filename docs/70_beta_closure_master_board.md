@@ -472,3 +472,37 @@ diagnostic 고정 규칙:
 - C/LLVM 중 하나만 되는 domain semantics
 - runtime observability가 얇아서 failure provenance를 설명하지 못하는 것
 - 문서가 stable이라고 주장하지만 실제 구현은 partial인 것
+
+## Contract provenance vocabulary
+
+베타 문서/진단/AST print에서 contract provenance 표준어는 아래 둘로 고정한다.
+
+- `inherited`
+  - action contract, 상위 declaration contract, 이미 선언된 zone/world contract에서 그대로 재사용된 clause
+  - 예: `who/where/requires/causes/authorized by`가 action에서 intent step으로 재사용될 때
+- `derived`
+  - 현재 step/zone/world 문맥에서 `using`, `transfer`, local binding, contract wiring으로 계산된 clause
+  - 예: `where`가 `using`에서 계산되거나, `using/where`가 transfer edge에서 계산될 때
+
+규칙:
+
+- contract source 설명에서는 `inferred`를 쓰지 않는다
+- `inferred`는 일반 타입 계산, internal analysis, backend-local helper naming 같은 non-contract 문맥에만 남긴다
+- 사용자-facing wording은 항상
+  - `inherited contract`
+  - `derived contract`
+  - `contract provenance`
+  로 통일한다
+
+독해 규칙:
+
+- `inherited`는 "이미 있던 계약을 가져왔다"
+- `derived`는 "현재 문맥에서 계산했다"
+
+즉, contract failure를 설명할 때는
+
+- 어디서 `inherited` 되었는지
+- 무엇이 현재 문맥에서 `derived` 되었는지
+- 그 결과 왜 충돌했는지
+
+를 같은 vocabulary로 보여줘야 한다.

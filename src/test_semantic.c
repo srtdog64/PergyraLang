@@ -2223,6 +2223,210 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("ref tuple parameter is accepted as boundary value");
+    {
+        const char *source =
+            "func Borrow(ref pair: (Int, Int)) -> Void {\n"
+            "    return;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref tuple parameter rejects channel-send escape");
+    {
+        const char *source =
+            "func Publish(ch: Channel<(Int, Int)>, ref pair: (Int, Int)) -> Void {\n"
+            "    ch <- pair;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'pair' cannot escape through channel send"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref tuple parameter rejects new-binding escape");
+    {
+        const char *source =
+            "func Alias(ref pair: (Int, Int)) -> Void {\n"
+            "    let alias: (Int, Int) = pair;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'pair' cannot escape into a new binding 'alias'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref tuple parameter rejects assignment rebind escape");
+    {
+        const char *source =
+            "func Rebind(ref pair: (Int, Int)) -> Void {\n"
+            "    let dst: (Int, Int) = (0, 0);\n"
+            "    dst = pair;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'pair' cannot escape through assignment rebind into 'dst'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref tuple parameter rejects return escape");
+    {
+        const char *source =
+            "func Echo(ref pair: (Int, Int)) -> (Int, Int) {\n"
+            "    return pair;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'pair' cannot escape via return"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref tuple parameter rejects helper forwarding");
+    {
+        const char *source =
+            "func Take(own pair: (Int, Int)) -> Void {\n"
+            "    return;\n"
+            "}\n"
+            "func Forward(ref pair: (Int, Int)) -> Void {\n"
+            "    Take(pair);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'pair' cannot escape through helper/function call"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Array<Int> parameter rejects new-binding escape");
+    {
+        const char *source =
+            "func Alias(ref items: Array<Int>) -> Void {\n"
+            "    let copy: Array<Int> = items;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'items' cannot escape into a new binding 'copy'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Array<Int> parameter rejects assignment rebind escape");
+    {
+        const char *source =
+            "func Rebind(ref items: Array<Int>) -> Void {\n"
+            "    let dst: Array<Int> = [0];\n"
+            "    dst = items;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'items' cannot escape through assignment rebind into 'dst'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Array<Int> parameter rejects helper forwarding");
+    {
+        const char *source =
+            "func Take(own items: Array<Int>) -> Void {\n"
+            "    return;\n"
+            "}\n"
+            "func Forward(ref items: Array<Int>) -> Void {\n"
+            "    Take(items);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'items' cannot escape through helper/function call"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ref enum parameter may be stored into list by copy");
     {
         const char *source =

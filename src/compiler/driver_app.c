@@ -56,6 +56,121 @@ driver_debug_stage(const char *stage)
         fprintf(stderr, "[driver stage] %s\n", stage);
 }
 
+/* Emit a JSON-escaped string including surrounding quotes. Handles ASCII
+ * control characters, backslash, and double-quote; non-ASCII bytes pass
+ * through unchanged (source assumed UTF-8). */
+static void
+driver_json_emit_string(FILE *out, const char *s)
+{
+    fputc('"', out);
+    if (s == NULL) {
+        fputc('"', out);
+        return;
+    }
+    for (const unsigned char *p = (const unsigned char *)s; *p != '\0'; p++) {
+        unsigned char c = *p;
+        switch (c) {
+        case '"':  fputs("\\\"", out); break;
+        case '\\': fputs("\\\\", out); break;
+        case '\b': fputs("\\b", out);  break;
+        case '\f': fputs("\\f", out);  break;
+        case '\n': fputs("\\n", out);  break;
+        case '\r': fputs("\\r", out);  break;
+        case '\t': fputs("\\t", out);  break;
+        default:
+            if (c < 0x20)
+                fprintf(out, "\\u%04x", c);
+            else
+                fputc((int)c, out);
+        }
+    }
+    fputc('"', out);
+}
+
+/* Attempt to pull "line N, column M" or "line N" out of a message string
+ * for best-effort structured location. Returns true on match and fills out
+ * *line / *column. Column is 0 when not present. Unchanged when no match. */
+static bool
+driver_extract_line_col(const char *s, unsigned *line, unsigned *column)
+{
+    if (s == NULL || line == NULL)
+        return false;
+    const char *p = strstr(s, "line ");
+    if (p == NULL)
+        return false;
+    p += 5;
+    char *endp = NULL;
+    unsigned long l = strtoul(p, &endp, 10);
+    if (endp == p)
+        return false;
+    *line = (unsigned)l;
+    if (column != NULL) {
+        *column = 0;
+        const char *q = strstr(endp, "column ");
+        if (q != NULL) {
+            q += 7;
+            unsigned long c = strtoul(q, &endp, 10);
+            if (endp != q)
+                *column = (unsigned)c;
+        }
+    }
+    return true;
+}
+
+/* Emit a single-entry JSON diagnostic array to stderr. Used for error sites
+ * that occur outside the SemanticResult accumulator (module loader, parser
+ * wrapper, backend codegen, linker). Severity defaults to "error".
+ * `stage` is a short tag like "module_load", "parse", "backend_c",
+ * "backend_llvm", "link". Location is best-effort extracted from the
+ * message text (parser errors include "at line N, column M"). */
+void
+driver_emit_single_diag_json_with_code(const char *stage, const char *code,
+                                        const char *message)
+{
+    FILE *out = stderr;
+    unsigned line = 0, column = 0;
+    bool have_loc = driver_extract_line_col(message, &line, &column);
+
+    fputs("[{\"severity\":\"error\",\"stage\":", out);
+    driver_json_emit_string(out, stage != NULL ? stage : "unknown");
+    if (code != NULL) {
+        fputs(",\"code\":", out);
+        driver_json_emit_string(out, code);
+    }
+    if (have_loc) {
+        fprintf(out, ",\"location\":{\"line\":%u,\"column\":%u}", line, column);
+    } else {
+        fputs(",\"location\":null", out);
+    }
+    fputs(",\"message\":", out);
+    driver_json_emit_string(out, message != NULL ? message : "");
+    fputs("}]\n", out);
+}
+
+void
+driver_emit_single_diag_json(const char *stage, const char *message)
+{
+    driver_emit_single_diag_json_with_code(stage, NULL, message);
+}
+
+const char *
+driver_route_stage(const char *default_stage, const char *code)
+{
+    if (code == NULL)
+        return default_stage;
+    if (strncmp(code, "PGY_MIR_", 8) == 0)
+        return "mir_validation";
+    if (strncmp(code, "PGY_LLVM_", 9) == 0)
+        return "llvm_codegen";
+    if (strncmp(code, "PGY_SEM_", 8) == 0)
+        return "semantic";
+    if (strncmp(code, "PGY_PARSE_", 10) == 0)
+        return "parse";
+    /* Unknown prefix: runner's default_stage wins — avoids silent mis-routing
+     * if prefix taxonomy is extended later. */
+    return default_stage;
+}
+
 static int
 run_token_dump(const char *source, const char *path)
 {
@@ -918,8 +1033,18 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->module_load = driver_now_seconds() - phase_start;
     if (ast == NULL) {
-        fprintf(stderr, "pgy: %s\n",
-                load_error != NULL ? load_error : "module loading failed");
+        const char *msg = load_error != NULL ? load_error : "module loading failed";
+        if (flags->diag_format == DIAG_FORMAT_JSON) {
+            /* Distinguish parse errors from other module-load failures so AI
+             * consumers can route syntax vs I/O vs resolution issues. Module
+             * loader prefixes parse errors with "parse error in '<path>':". */
+            const char *stage =
+                (strncmp(msg, "parse error in", 14) == 0) ? "parse"
+                                                          : "module_load";
+            driver_emit_single_diag_json(stage, msg);
+        } else {
+            fprintf(stderr, "pgy: %s\n", msg);
+        }
         goto cleanup;
     }
 
@@ -942,9 +1067,15 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
-    semantic_result_print(sem);
+    if (flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {
+        semantic_result_print_json(sem);
+    } else {
+        semantic_result_print(sem);
+    }
     if (!sem->success) {
-        fprintf(stderr, "pgy: %zu error(s) — aborting\n", sem->error_count);
+        if (flags == NULL || flags->diag_format != DIAG_FORMAT_JSON) {
+            fprintf(stderr, "pgy: %zu error(s) — aborting\n", sem->error_count);
+        }
         goto cleanup;
     }
 
@@ -1132,6 +1263,7 @@ driver_print_usage(void)
 #endif
         "  pgy <source.pgy> --run        compile + run\n"
         "  pgy <source.pgy> --opt=dev|release   (default: release)\n"
+        "  pgy <source.pgy> --error-format=json|text  (default: text; json for AI/tooling)\n"
         "  pgy scaffold <kind> <target> create starter files\n"
         "  pgy new <project-dir>         scaffold a starter project\n"
         "\n"

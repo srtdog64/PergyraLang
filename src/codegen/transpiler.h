@@ -232,6 +232,11 @@ typedef struct
     const char *expected_type;
 
     char *backend_error;
+    /* Stable diagnostic code attached to backend_error. non-owning — must
+     * be a string literal (e.g. "PGY_MIR_UNRESOLVED_LOCAL"). NULL when
+     * the failing site has not been assigned a code. Propagated to
+     * CompilerResult.error_code at transpiler.c:552. */
+    const char *backend_error_code;
 } TranspilerCtx;
 
 static inline void
@@ -347,6 +352,10 @@ typedef struct
 {
     bool  success;
     char *error_message;  /* NULL on success */
+    /* Stable diagnostic code (owning) attached to error_message.
+     * NULL when the failing site has not been assigned a code.
+     * Propagated from TranspilerCtx.backend_error_code. */
+    char *error_code;
     bool  uses_intent_observability;
 } TranspileResult;
 

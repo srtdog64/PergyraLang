@@ -15,6 +15,12 @@ typedef enum
     BACKEND_LLVM
 } BackendKind;
 
+typedef enum
+{
+    DIAG_FORMAT_TEXT,   /* Default: human-readable "[ERROR] line:col - msg" */
+    DIAG_FORMAT_JSON    /* Machine-readable: JSON array of diagnostic objects */
+} DiagnosticFormat;
+
 typedef struct
 {
     double module_load;
@@ -53,6 +59,7 @@ typedef struct
     bool        repl;
     BackendKind backend;
     PgyOptProfile opt_profile;
+    DiagnosticFormat diag_format;  /* --error-format=text|json (default text) */
 } DriverFlags;
 
 int  driver_run_pipeline(const DriverFlags *flags);
@@ -60,5 +67,30 @@ int  driver_run_pipeline_timed(const DriverFlags *flags,
                                DriverPhaseTimings *timings);
 int  driver_run_scaffold_command(int argc, char *argv[]);
 void driver_print_usage(void);
+
+/* Emit a single diagnostic as a JSON array to stderr. For error sites
+ * outside the SemanticResult accumulator (module loader, backend codegen,
+ * linker). `stage` is a short tag; location is best-effort extracted from
+ * the message if it contains "line N[, column M]". */
+void driver_emit_single_diag_json(const char *stage, const char *message);
+
+/* Variant that attaches a stable diagnostic code (e.g. "PGY_MIR_UNRESOLVED_LOCAL").
+ * If `code` is NULL, the emitted JSON omits the "code" field (legacy shape).
+ * Otherwise the JSON includes "code": "<code>". */
+void driver_emit_single_diag_json_with_code(const char *stage,
+                                             const char *code,
+                                             const char *message);
+
+/* Pick the effective stage tag for a diagnostic given the default (what the
+ * runner knows about where it was invoked) and the code prefix (what the
+ * failing site knows about why). Hybrid routing:
+ *   PGY_MIR_*   → "mir_validation"
+ *   PGY_LLVM_*  → "llvm_codegen"
+ *   PGY_SEM_*   → "semantic"
+ *   PGY_PARSE_* → "parse"
+ *   else        → default_stage
+ * Unknown prefixes fall through to default_stage, so future prefix churn
+ * cannot silently mis-route. */
+const char *driver_route_stage(const char *default_stage, const char *code);
 
 #endif /* PGY_DRIVER_APP_H */

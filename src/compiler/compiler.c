@@ -1,6 +1,7 @@
 #include "compiler.h"
 #include "path_utils.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -320,6 +321,104 @@ pgy_exec_probe_argv(const char *const argv[])
  * ----------------------------------------------------------------- */
 static const char *pgy_cc_cached = NULL;
 static const char *pgy_cc_target_flag = NULL; /* e.g. "--target=x86_64-w64-mingw32" */
+static char pgy_cc_cached_storage[512];
+static char pgy_cc_target_storage[256];
+
+static bool
+pgy_cache_compiler_command(const char *command)
+{
+    const char *cursor = command;
+    const char *token_start;
+    const char *token_end;
+    size_t token_len;
+    char quote = '\0';
+
+    if (command == NULL)
+        return false;
+
+    while (*cursor != '\0' && isspace((unsigned char)*cursor))
+        cursor++;
+    if (*cursor == '\0')
+        return false;
+
+    token_start = cursor;
+    if (*cursor == '"' || *cursor == '\'') {
+        quote = *cursor++;
+        token_start = cursor;
+        while (*cursor != '\0' && *cursor != quote)
+            cursor++;
+        token_end = cursor;
+        if (*cursor == quote)
+            cursor++;
+    } else {
+        while (*cursor != '\0' && !isspace((unsigned char)*cursor))
+            cursor++;
+        token_end = cursor;
+    }
+
+    token_len = (size_t)(token_end - token_start);
+    if (token_len == 0 || token_len >= sizeof(pgy_cc_cached_storage))
+        return false;
+
+    memcpy(pgy_cc_cached_storage, token_start, token_len);
+    pgy_cc_cached_storage[token_len] = '\0';
+    pgy_cc_cached = pgy_cc_cached_storage;
+    pgy_cc_target_flag = NULL;
+
+    while (*cursor != '\0') {
+        const char *flag = cursor;
+        const char *value = NULL;
+        const char *flag_end;
+        size_t flag_len;
+
+        while (*flag != '\0' && isspace((unsigned char)*flag))
+            flag++;
+        if (*flag == '\0')
+            break;
+
+        flag_end = flag;
+        while (*flag_end != '\0' && !isspace((unsigned char)*flag_end))
+            flag_end++;
+        flag_len = (size_t)(flag_end - flag);
+
+        if (flag_len > strlen("--target=")
+            && strncmp(flag, "--target=", strlen("--target=")) == 0) {
+            if (flag_len >= sizeof(pgy_cc_target_storage))
+                return false;
+            memcpy(pgy_cc_target_storage, flag, flag_len);
+            pgy_cc_target_storage[flag_len] = '\0';
+            pgy_cc_target_flag = pgy_cc_target_storage;
+            break;
+        }
+
+        if (flag_len == strlen("--target")
+            && strncmp(flag, "--target", flag_len) == 0) {
+            value = flag_end;
+            while (*value != '\0' && isspace((unsigned char)*value))
+                value++;
+            if (*value == '\0')
+                return false;
+
+            flag_end = value;
+            while (*flag_end != '\0' && !isspace((unsigned char)*flag_end))
+                flag_end++;
+            flag_len = (size_t)(flag_end - value);
+            if (flag_len == 0
+                || flag_len + strlen("--target=") >= sizeof(pgy_cc_target_storage)) {
+                return false;
+            }
+            memcpy(pgy_cc_target_storage, "--target=", strlen("--target="));
+            memcpy(pgy_cc_target_storage + strlen("--target="), value, flag_len);
+            pgy_cc_target_storage[strlen("--target=") + flag_len] = '\0';
+            pgy_cc_target_flag = pgy_cc_target_storage;
+            break;
+        }
+
+        cursor = flag_end;
+    }
+
+    return true;
+}
 
 static const char *
 pgy_detect_c_compiler(void)
@@ -330,13 +429,13 @@ pgy_detect_c_compiler(void)
         return pgy_cc_cached;
     env_cc = getenv("PGY_CC");
     if (env_cc != NULL && env_cc[0] != '\0') {
-        pgy_cc_cached = env_cc;
-        return pgy_cc_cached;
+        if (pgy_cache_compiler_command(env_cc))
+            return pgy_cc_cached;
     }
     make_cc = getenv("CC");
     if (make_cc != NULL && make_cc[0] != '\0') {
-        pgy_cc_cached = make_cc;
-        return pgy_cc_cached;
+        if (pgy_cache_compiler_command(make_cc))
+            return pgy_cc_cached;
     }
 #ifdef _WIN32
     /* Try clang with mingw target first (MSVC-default clang lacks pthread.h,
@@ -577,6 +676,21 @@ compiler_error(const char *message)
     return result;
 }
 
+/* Variant that attaches a stable diagnostic code (e.g. "PGY_LLVM_SPEC_LIMIT").
+ * `code` ownership transfers: caller must pass either NULL or a heap-allocated
+ * string (typically `pergyra_strdup` of the source ctx code). `code == NULL`
+ * is equivalent to `compiler_error(message)`. */
+static CompilerResult *
+compiler_error_with_code(const char *message, const char *code)
+{
+    CompilerResult *result = compiler_error(message);
+    if (result == NULL)
+        return NULL;
+    if (code != NULL)
+        result->error_code = pergyra_strdup(code);
+    return result;
+}
+
 static CompilerResult *
 compiler_success(const char *output_c_path, const char *output_binary_path)
 {
@@ -594,9 +708,12 @@ static int
 invoke_c_backend(const CompilerIRBundle *bundle,
                  const char *output_c_path,
                  char **error_message,
+                 char **error_code,
                  bool *uses_intent_observability)
 {
     TranspileResult *transpile_result;
+    if (error_code != NULL)
+        *error_code = NULL;
     if (error_message != NULL)
         *error_message = NULL;
     if (uses_intent_observability != NULL)
@@ -618,6 +735,8 @@ invoke_c_backend(const CompilerIRBundle *bundle,
         *error_message = transpile_result->error_message != NULL
             ? pergyra_strdup(transpile_result->error_message)
             : pergyra_strdup("C backend failed");
+        if (error_code != NULL && transpile_result->error_code != NULL)
+            *error_code = pergyra_strdup(transpile_result->error_code);
         transpile_result_destroy(transpile_result);
         return 1;
     }
@@ -633,12 +752,15 @@ CompilerResult *
 compiler_emit_c(const CompilerIRBundle *bundle, const char *output_c_path)
 {
     char *error_message = NULL;
-    int rc = invoke_c_backend(bundle, output_c_path, &error_message, NULL);
+    char *error_code = NULL;
+    int rc = invoke_c_backend(bundle, output_c_path, &error_message,
+                              &error_code, NULL);
     if (rc != 0) {
-        CompilerResult *result = compiler_error(error_message != NULL
-            ? error_message
-            : "C backend failed");
+        CompilerResult *result = compiler_error_with_code(
+            error_message != NULL ? error_message : "C backend failed",
+            error_code);
         free(error_message);
+        free(error_code);
         return result;
     }
 
@@ -653,18 +775,20 @@ compiler_build_native(const CompilerIRBundle *bundle,
                       PgyOptProfile opt_profile)
 {
     char *error_message = NULL;
+    char *error_code = NULL;
     char *output_obj_path = NULL;
     double phase_start = compiler_now_seconds();
     bool uses_intent_observability = false;
     int rc = invoke_c_backend(bundle, output_c_path, &error_message,
-                              &uses_intent_observability);
+                              &error_code, &uses_intent_observability);
     if (rc != 0) {
-        CompilerResult *result = compiler_error(error_message != NULL
-            ? error_message
-            : "C backend failed");
+        CompilerResult *result = compiler_error_with_code(
+            error_message != NULL ? error_message : "C backend failed",
+            error_code);
         if (result != NULL)
             result->backend_timings.codegen = compiler_now_seconds() - phase_start;
         free(error_message);
+        free(error_code);
         return result;
     }
 
@@ -853,9 +977,11 @@ compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name)
         return compiler_error("Out of memory");
 
     if (!gen->success) {
-        CompilerResult *result = compiler_error(gen->error_message != NULL
-            ? gen->error_message
-            : "LLVM codegen failed");
+        CompilerResult *result = compiler_error_with_code(
+            gen->error_message != NULL
+                ? gen->error_message
+                : "LLVM codegen failed",
+            gen->error_code);
         llvm_gen_result_destroy(gen);
         return result;
     }
@@ -885,9 +1011,11 @@ compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
         return compiler_error("Out of memory");
 
     if (!gen->success) {
-        CompilerResult *result = compiler_error(gen->error_message != NULL
-            ? gen->error_message
-            : "LLVM codegen failed");
+        CompilerResult *result = compiler_error_with_code(
+            gen->error_message != NULL
+                ? gen->error_message
+                : "LLVM codegen failed",
+            gen->error_code);
         llvm_gen_result_destroy(gen);
         return result;
     }
@@ -937,9 +1065,11 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         return compiler_error("Out of memory");
 
     if (!gen->success) {
-        CompilerResult *error_result = compiler_error(gen->error_message != NULL
-            ? gen->error_message
-            : "LLVM codegen failed");
+        CompilerResult *error_result = compiler_error_with_code(
+            gen->error_message != NULL
+                ? gen->error_message
+                : "LLVM codegen failed",
+            gen->error_code);
         if (error_result != NULL)
             error_result->backend_timings.codegen = compiler_now_seconds() - phase_start;
         llvm_gen_result_destroy(gen);
@@ -1178,6 +1308,7 @@ compiler_result_destroy(CompilerResult *result)
         return;
 
     free(result->error_message);
+    free(result->error_code);
     free(result->c_output_path);
     free(result->binary_path);
     free(result);

@@ -1100,11 +1100,11 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
                     bool right_read = (right & SLOT_ACCESS_READ) != 0;
 
                     if (left_mut && right_mut) {
-                        semantic_error(sa->ctx, parallel,
+                        semantic_error_code(sa->ctx, "PGY_SEM_PARALLEL_SLOT_CONFLICT", parallel,
                             "Parallel context slot conflict on '%s': multiple tasks mutate or release the same slot",
                             task_accesses[i][ai].name);
                     } else if ((left_mut && right_read) || (right_mut && left_read)) {
-                        semantic_warning(sa->ctx, parallel,
+                        semantic_warning_code(sa->ctx, "PGY_SEM_PARALLEL_SLOT_RACE_RISK", parallel,
                             "Parallel context race risk on '%s': one task reads while another mutates or releases the same slot",
                             task_accesses[i][ai].name);
                     }

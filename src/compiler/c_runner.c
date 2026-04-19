@@ -18,6 +18,7 @@
 
 #include "../common/string_compat.h"
 #include "compiler.h"
+#include "driver_app.h"
 #include "path_utils.h"
 
 int
@@ -44,8 +45,14 @@ CompilerResult *result;
 
         result = compiler_emit_c(bundle, output_c);
         if (result == NULL || !result->success) {
-            fprintf(stderr, "pgy: C generation failed: %s\n",
-                    result != NULL ? result->error_message : "out of memory");
+            const char *msg = result != NULL ? result->error_message : "out of memory";
+            const char *code = result != NULL ? result->error_code : NULL;
+            if (flags->diag_format == DIAG_FORMAT_JSON) {
+                const char *stage = driver_route_stage("backend_c_emit", code);
+                driver_emit_single_diag_json_with_code(stage, code, msg);
+            } else {
+                fprintf(stderr, "pgy: C generation failed: %s\n", msg);
+            }
             compiler_result_destroy(result);
             free(output_c);
             return 1;
@@ -109,8 +116,14 @@ CompilerResult *result;
     remove(tmp_c);
 
     if (result == NULL || !result->success) {
-        fprintf(stderr, "pgy: compile failed: %s\n",
-                result != NULL ? result->error_message : "out of memory");
+        const char *msg = result != NULL ? result->error_message : "out of memory";
+        const char *code = result != NULL ? result->error_code : NULL;
+        if (flags->diag_format == DIAG_FORMAT_JSON) {
+            const char *stage = driver_route_stage("backend_c_native", code);
+            driver_emit_single_diag_json_with_code(stage, code, msg);
+        } else {
+            fprintf(stderr, "pgy: compile failed: %s\n", msg);
+        }
         if (backend_timings != NULL && result != NULL)
             *backend_timings = result->backend_timings;
         compiler_result_destroy(result);

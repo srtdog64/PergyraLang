@@ -25,6 +25,36 @@
 
 ---
 
+## Surface trust policy
+
+Pergyra documents every major surface with one of these labels:
+
+- `stable subset`
+  - implemented end-to-end enough to be part of the beta contract
+- `explicit reject`
+  - parser may accept nearby syntax, but unsupported semantic combinations must fail explicitly
+- `beta-out-of-scope`
+  - a real future direction, but not promised as part of beta closure
+
+Current classification snapshot:
+
+- generics
+  - stable subset: exact/ability/multi-bound baseline plus implemented default type argument resolution on supported declaration/call/module-consumer paths
+  - beta-out-of-scope: broader generic generalization
+- own/ref
+  - stable subset: anchored slot-handle boundaries
+  - explicit reject: general own/ref on non-anchored general value types
+  - beta-out-of-scope: full general ownership system
+- collections
+  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
+  - explicit reject: unsupported map key kinds
+  - beta-out-of-scope: arbitrary key-universal collection contracts
+- runtime observability
+  - stable subset: `last / history / active / recent`
+  - beta-out-of-scope: richer multi-instance timeline and deeper provenance query surface
+
+This policy exists to prevent partial surfaces from being described as complete.
+
 ## What is Pergyra?
 
 Pergyra is a compiled language with C and LLVM backends. It distinguishes **who acts**, **where they act**, and **what qualifies them** at the language level.
@@ -40,6 +70,29 @@ Pergyra is a compiled language with C and LLVM backends. It distinguishes **who 
 - `RIR` locks slot/resource/projection/authority/lifecycle semantics
 - `MIR` locks CFG/SSA/cleanup/resource-flow before backend emission
 - Backends consume `MIR`, not `RIR`
+
+## How to read Pergyra examples
+
+Pergyra is intent-first in teaching order, even though `subject` remains the core host in lowering/runtime terms.
+
+Use this reading order for docs, tutorials, and canonical examples:
+
+```text
+teaching / reading order: intent -> world -> zone -> subject
+host / lowering order:    subject-core
+```
+
+Rules:
+
+- read the `intent` first: what contract is being executed
+- then read the `world` and `zone`: where the contract is allowed to run
+- only then read the `subject`: who carries the host state and actions
+
+This distinction is deliberate:
+
+- compile-order and host semantics are not the same as teaching-order
+- if examples start from `subject`, readers mislearn Pergyra as a subject-first authoring language
+- canonical docs therefore explain the system from `intent` outward, then show the supporting declarations
 
 ## Quick Start
 
@@ -84,6 +137,14 @@ Failure policy snapshot:
 - recoverable failure: intent/authority/boundary/timeout/remote failures should surface as `Bool`, `Result<T>`, or queryable runtime state
 - contract violation: released slot, invalid token, ownership-boundary misuse, and similar invariant breaks remain hard-fail territory
 - internal compiler/runtime bug: immediate internal error or panic, never presented as a normal user-code failure
+
+Hard-fail boundary snapshot:
+
+- released slot / invalid token / ownership invariant misuse
+- `Unwrap(result)` on `Err`
+- `UnwrapOption(option)` on `None`
+- array / slice bounds violation
+- runtime invariant guard failure such as null self / null participant
 
 Recent backend hygiene snapshot:
 

@@ -33,6 +33,10 @@ typedef struct
 {
     bool  success;
     char *error_message;  /* NULL on success                  */
+    /* Stable diagnostic code attached to error_message (owning, e.g.
+     * "PGY_LLVM_SPEC_LIMIT"). NULL when the failing site has not been
+     * assigned a code. Propagated from LLVMGenCtx.error_code. */
+    char *error_code;
     char *ir_text;        /* LLVM IR text (--emit-llvm mode)  */
     bool  uses_intent_observability;
 } LLVMGenResult;

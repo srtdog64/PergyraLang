@@ -164,9 +164,9 @@ static TranspilerCtx *g_type_render_ctx = NULL;
 static char *strdup_fmt(const char *fmt, ...);
 
 static void
-transpiler_set_backend_error(TranspilerCtx *ctx, const char *fmt, ...)
+transpiler_set_backend_error_v(TranspilerCtx *ctx, const char *code,
+                               const char *fmt, va_list ap)
 {
-    va_list ap;
     va_list ap2;
     int needed;
     char *msg;
@@ -174,24 +174,44 @@ transpiler_set_backend_error(TranspilerCtx *ctx, const char *fmt, ...)
     if (ctx == NULL || fmt == NULL || ctx->backend_error != NULL)
         return;
 
-    va_start(ap, fmt);
     va_copy(ap2, ap);
     needed = vsnprintf(NULL, 0, fmt, ap2);
     va_end(ap2);
-    if (needed < 0) {
-        va_end(ap);
+    if (needed < 0)
         return;
-    }
 
     msg = malloc((size_t)needed + 1);
-    if (msg == NULL) {
-        va_end(ap);
+    if (msg == NULL)
         return;
-    }
 
     vsnprintf(msg, (size_t)needed + 1, fmt, ap);
-    va_end(ap);
     ctx->backend_error = msg;
+    /* `code` must be a string literal (non-owning). NULL preserves the
+     * legacy path — emit the error without a stable code. */
+    if (code != NULL && ctx->backend_error_code == NULL)
+        ctx->backend_error_code = code;
+}
+
+static void
+transpiler_set_backend_error(TranspilerCtx *ctx, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    transpiler_set_backend_error_v(ctx, NULL, fmt, ap);
+    va_end(ap);
+}
+
+/* Attach a stable diagnostic code (e.g. "PGY_MIR_UNRESOLVED_LOCAL") to the
+ * emitted error. `code` must have static lifetime (string literal). If ctx
+ * already has a recorded error, this call is a no-op — first error wins. */
+static void
+transpiler_set_backend_error_with_code(TranspilerCtx *ctx, const char *code,
+                                        const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    transpiler_set_backend_error_v(ctx, code, fmt, ap);
+    va_end(ap);
 }
 
 /* -----------------------------------------------------------------
