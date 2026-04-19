@@ -44,12 +44,12 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 {
     if (sym == NULL) {
         if (name_looks_qualified(display_name)) {
-            semantic_error(ctx, expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
                 "Undefined function '%s' (expected a callable symbol). "
                 "Check namespace spelling/export visibility or define/import a callable declaration before use.",
                 display_name);
         } else {
-            semantic_error(ctx, expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
                 "Undefined function '%s' (expected a callable symbol in current scope). "
                 "Declare '%s' first, or use a qualified name for a namespaced declaration.",
                 display_name, display_name);
@@ -68,7 +68,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             bool decl_is_generic = false;
             if (decl != NULL
                 && !explicit_type_reference_allowed(decl, expr, ctx)) {
-                semantic_error(ctx, expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
                     "Constructor '%s' is not accessible across the current visibility boundary",
                     display_name);
                 return TYPE_UNKNOWN;
@@ -92,7 +92,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                  * generic params (T, U) aren't in scope at the call site.
                  * Type safety is handled by the let-annotation type. */
                 if (provided > field_count) {
-                    semantic_error(ctx, expr,
+                    semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
                         "Constructor '%s' accepts at most %zu positional field argument(s), got %zu",
                         display_name, field_count, provided);
                 } else if (!decl_is_generic) {
@@ -114,7 +114,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
                         if (field_type != NULL && arg_type != NULL
                             && !type_is_assignable(arg_type, field_type)) {
-                            semantic_error(ctx, expr->data.call.arguments[i],
+                            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr->data.call.arguments[i],
                                 "Constructor '%s' argument %zu initializes field '%s' of type '%s', got '%s'",
                                 display_name, i + 1,
                                 field_name != NULL ? field_name : "<field>",
@@ -141,18 +141,18 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
                             if (borrowed_name != NULL
                                 && type_is_movable_resource_handle(field_type)) {
-                                semantic_error(ctx, expr->data.call.arguments[i],
+                                semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[i],
                                     "Borrowed ref movable resource '%s' cannot escape through constructor field store '%s.%s' from '%s'.\n"
                                     "Reason:\n"
                                     "- consumer path is function '%s'\n"
                                     "- '%s' entered this function as a borrowed 'ref' movable resource\n"
                                     "- '%s' is derived from that borrowed movable-resource provenance\n"
                                     "- constructor '%s' would store it into field '%s'\n"
-                                    "- constructor field storage is treated as a boundary-visible escaping store\n"
+                                    "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n"
                                     "Fix:\n"
                                     "- keep using '%s' directly within this function\n"
-                                    "- or construct the field from a copied/value/projection result\n"
-                                    "- or change the parameter to 'own' if transfer is intended",
+                                    "- or construct the field from a copied/value/projection result instead\n"
+                                    "- or change the current parameter to 'own' if transfer is intended",
                                     borrowed_name,
                                     constructor_name,
                                     constructor_field,
@@ -165,7 +165,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     source_path != NULL ? source_path : borrowed_name);
                             } else if (borrowed_name != NULL
                                        && type_is_subject_type(field_type, ctx)) {
-                                semantic_error(ctx, expr->data.call.arguments[i],
+                                semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[i],
                                     "Borrowed ref subject '%s' cannot escape through constructor field store '%s.%s' from '%s'.\n"
                                     "Reason:\n"
                                     "- consumer path is function '%s'\n"
@@ -176,7 +176,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     "Fix:\n"
                                     "- keep mutating '%s' through its original binding\n"
                                     "- or construct the field from a projection/object/tobject/value result\n"
-                                    "- or change the parameter to 'own' if transfer is intended",
+                                    "- or change the current parameter to 'own' if transfer is intended",
                                     borrowed_name,
                                     constructor_name,
                                     constructor_field,
@@ -189,18 +189,18 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     source_path != NULL ? source_path : borrowed_name);
                             } else if (borrowed_name != NULL
                                        && type_requires_boundary_borrow_tracking(field_type, ctx)) {
-                                semantic_error(ctx, expr->data.call.arguments[i],
+                                semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[i],
                                     "Borrowed ref boundary value '%s' cannot escape through constructor field store '%s.%s' from '%s'.\n"
                                     "Reason:\n"
                                     "- consumer path is function '%s'\n"
                                     "- '%s' entered this function as a borrowed 'ref' boundary value\n"
                                     "- '%s' is derived from that borrowed boundary provenance\n"
                                     "- constructor '%s' would store it into field '%s'\n"
-                                    "- constructor field storage is treated as a boundary-visible escaping store for borrowed provenance\n"
+                                    "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n"
                                     "Fix:\n"
                                     "- keep using '%s' directly within this function\n"
-                                    "- or construct the field from a copied/value/projection snapshot\n"
-                                    "- or change the parameter to 'own' if transfer is intended",
+                                    "- or construct the field from a copied/value/projection snapshot instead\n"
+                                    "- or change the current parameter to 'own' if transfer is intended",
                                     borrowed_name,
                                     constructor_name,
                                     constructor_field,
@@ -330,7 +330,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     semantic_record_effect(ctx, type_function_effects(sym->type));
     if (ctx->in_parallel
         && type_effect_mask_has(type_function_effects(sym->type), EFFECT_SECURE)) {
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "semantic:parallel:secure_in_task", "serialize-outside-parallel", expr,
             "Parallel context does not permit calling secure-effect function '%s'; serialize capability-bearing operations outside the parallel block",
             display_name);
         return sym->type->data.function.return_type;
@@ -346,7 +346,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
         if (sig_buf[0] == '\0')
             snprintf(sig_buf, sizeof(sig_buf), "fn(<signature unavailable>)");
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
             "'%s' expects %zu argument(s), got %zu. Declared signature: %s. "
             "Adjust caller arguments to satisfy the declaration.",
             display_name, expected, provided, sig_buf);
@@ -417,7 +417,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     resource_handle_display_name(arg_type));
                 continue;
             }
-            if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
+            if (expr->data.call.arguments[i]->type != AST_IDENTIFIER
+                && semantic_borrowed_boundary_root_name(
+                       expr->data.call.arguments[i], ctx) == NULL) {
                 semantic_error(ctx, expr->data.call.arguments[i],
                     "%s arguments must be moved from a named variable; bind the value first, then pass that variable",
                     resource_handle_display_name(param_type));
@@ -438,22 +440,24 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 }
             }
             if (pmode == PARAM_MODE_REF
-                && expr->data.call.arguments[i]->type == AST_IDENTIFIER
-                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)
                 && callee_decl != NULL
                 && callee_decl->data.func_decl.body != NULL) {
+                const char *borrowed_name =
+                    semantic_borrowed_boundary_root_name(
+                        expr->data.call.arguments[i], ctx);
                 unsigned callee_mask = slot_analyze_param_summary_in_program(
                     callee_decl->data.func_decl.body,
                     callee_decl->data.func_decl.params[i] != NULL
                         ? callee_decl->data.func_decl.params[i]->name
                         : NULL,
                     ctx->program_root);
-                if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
-                                    | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
-                                    | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+                if (borrowed_name != NULL
+                    && (callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                                       | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
+                                       | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
                     char *source_path = semantic_assignment_target_path(
                         expr->data.call.arguments[i]);
-                    semantic_error(ctx, expr->data.call.arguments[i],
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[i],
                         "Borrowed ref movable resource '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -464,29 +468,33 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "Fix:\n"
                         "- perform the movable-resource operation locally in this function\n"
                         "- or change the current parameter to 'own' if transfer/forwarding is intended",
-                        expr->data.call.arguments[i]->data.identifier.name,
+                        borrowed_name,
                         display_name != NULL ? display_name : "<callee>",
                         source_path != NULL
                             ? source_path
-                            : expr->data.call.arguments[i]->data.identifier.name,
+                            : borrowed_name,
                         ctx->current_function_decl != NULL
                             && ctx->current_function_decl->data.func_decl.name != NULL
                                 ? ctx->current_function_decl->data.func_decl.name
                                 : "<anonymous>",
-                        expr->data.call.arguments[i]->data.identifier.name,
+                        borrowed_name,
                         source_path != NULL
                             ? source_path
-                            : expr->data.call.arguments[i]->data.identifier.name,
+                            : borrowed_name,
                         display_name != NULL ? display_name : "<callee>");
                     free(source_path);
                     continue;
                 }
             }
-            if (pmode != PARAM_MODE_REF
-                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
+            if (pmode != PARAM_MODE_REF) {
+                const char *borrowed_name =
+                    semantic_borrowed_boundary_root_name(
+                        expr->data.call.arguments[i], ctx);
+                if (borrowed_name == NULL)
+                    goto type_check_call_movable_done;
                 char *source_path = semantic_assignment_target_path(
                     expr->data.call.arguments[i]);
-                semantic_error(ctx, expr->data.call.arguments[i],
+                semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[i],
                     "Borrowed ref movable resource '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                     "Reason:\n"
                     "- consumer path is function '%s'\n"
@@ -496,24 +504,25 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     "Fix:\n"
                     "- call a 'ref' helper instead\n"
                     "- or change the current parameter to 'own' if forwarding/transfer is intended",
-                    expr->data.call.arguments[i]->data.identifier.name,
+                    borrowed_name,
                     display_name != NULL ? display_name : "<callee>",
                     source_path != NULL
                         ? source_path
-                        : expr->data.call.arguments[i]->data.identifier.name,
+                        : borrowed_name,
                     ctx->current_function_decl != NULL
                         && ctx->current_function_decl->data.func_decl.name != NULL
                             ? ctx->current_function_decl->data.func_decl.name
                             : "<anonymous>",
-                    expr->data.call.arguments[i]->data.identifier.name,
+                    borrowed_name,
                     source_path != NULL
                         ? source_path
-                        : expr->data.call.arguments[i]->data.identifier.name,
+                        : borrowed_name,
                     display_name != NULL ? display_name : "<callee>",
                     pmode == PARAM_MODE_OWN ? "own" : "default");
                 free(source_path);
                 continue;
             }
+type_check_call_movable_done:
             if (pmode == PARAM_MODE_REF)
                 continue;
             consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
@@ -553,12 +562,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 }
             }
             if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
+                const char *borrowed_root_name =
+                    semantic_borrowed_boundary_root_name(
+                        expr->data.call.arguments[i], ctx);
                 if (pmode == PARAM_MODE_DEFAULT)
                     continue;
+                if (borrowed_root_name != NULL)
+                    goto subject_helper_borrowed_argument;
                 {
-                    const char *borrowed_root_name =
-                        semantic_borrowed_boundary_root_name(
-                            expr->data.call.arguments[i], ctx);
                     char *source_path = semantic_assignment_target_path(
                         expr->data.call.arguments[i]);
                     char *borrowed_line = borrowed_root_name != NULL
@@ -585,22 +596,26 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 }
                 continue;
             }
+subject_helper_borrowed_argument:
             if (pmode == PARAM_MODE_REF
-                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)
                 && callee_decl != NULL
                 && callee_decl->data.func_decl.body != NULL) {
+                const char *borrowed_name =
+                    semantic_borrowed_boundary_root_name(
+                        expr->data.call.arguments[i], ctx);
                 unsigned callee_mask = slot_analyze_param_summary_in_program(
                     callee_decl->data.func_decl.body,
                     callee_decl->data.func_decl.params[i] != NULL
                         ? callee_decl->data.func_decl.params[i]->name
                         : NULL,
                     ctx->program_root);
-                if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
-                                    | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
-                                    | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+                if (borrowed_name != NULL
+                    && (callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                                       | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
+                                       | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
                     char *source_path = semantic_assignment_target_path(
                         expr->data.call.arguments[i]);
-                    semantic_error(ctx, expr->data.call.arguments[i],
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[i],
                         "Borrowed ref subject '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -611,29 +626,33 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "Fix:\n"
                         "- perform the subject operation locally in this function\n"
                         "- or change the current parameter to 'own' if transfer/forwarding is intended",
-                        expr->data.call.arguments[i]->data.identifier.name,
+                        borrowed_name,
                         display_name != NULL ? display_name : "<callee>",
                         source_path != NULL
                             ? source_path
-                            : expr->data.call.arguments[i]->data.identifier.name,
+                            : borrowed_name,
                         ctx->current_function_decl != NULL
                             && ctx->current_function_decl->data.func_decl.name != NULL
                                 ? ctx->current_function_decl->data.func_decl.name
                                 : "<anonymous>",
-                        expr->data.call.arguments[i]->data.identifier.name,
+                        borrowed_name,
                         source_path != NULL
                             ? source_path
-                            : expr->data.call.arguments[i]->data.identifier.name,
+                            : borrowed_name,
                         display_name != NULL ? display_name : "<callee>");
                     free(source_path);
                     continue;
                 }
             }
-            if (pmode != PARAM_MODE_REF
-                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
+            if (pmode != PARAM_MODE_REF) {
+                const char *borrowed_name =
+                    semantic_borrowed_boundary_root_name(
+                        expr->data.call.arguments[i], ctx);
+                if (borrowed_name == NULL)
+                    goto type_check_call_subject_done;
                 char *source_path = semantic_assignment_target_path(
                     expr->data.call.arguments[i]);
-                semantic_error(ctx, expr->data.call.arguments[i],
+                semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[i],
                     "Borrowed ref subject '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                     "Reason:\n"
                     "- consumer path is function '%s'\n"
@@ -643,24 +662,25 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     "Fix:\n"
                     "- call a 'ref' helper instead\n"
                     "- or change the current parameter to 'own' if forwarding/transfer is intended",
-                    expr->data.call.arguments[i]->data.identifier.name,
+                    borrowed_name,
                     display_name != NULL ? display_name : "<callee>",
                     source_path != NULL
                         ? source_path
-                        : expr->data.call.arguments[i]->data.identifier.name,
+                        : borrowed_name,
                     ctx->current_function_decl != NULL
                         && ctx->current_function_decl->data.func_decl.name != NULL
                             ? ctx->current_function_decl->data.func_decl.name
                             : "<anonymous>",
-                    expr->data.call.arguments[i]->data.identifier.name,
+                    borrowed_name,
                     source_path != NULL
                         ? source_path
-                        : expr->data.call.arguments[i]->data.identifier.name,
+                        : borrowed_name,
                     display_name != NULL ? display_name : "<callee>",
                     pmode == PARAM_MODE_OWN ? "own" : "default");
                 free(source_path);
                 continue;
             }
+type_check_call_subject_done:
             if (pmode == PARAM_MODE_OWN) {
                 consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
             }
@@ -706,12 +726,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 }
             }
             if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
+                const char *borrowed_root_name =
+                    semantic_borrowed_boundary_root_name(
+                        expr->data.call.arguments[i], ctx);
                 if (pmode == PARAM_MODE_DEFAULT)
                     continue;
+                if (borrowed_root_name != NULL)
+                    goto boundary_helper_borrowed_argument;
                 {
-                    const char *borrowed_root_name =
-                        semantic_borrowed_boundary_root_name(
-                            expr->data.call.arguments[i], ctx);
                     char *source_path = semantic_assignment_target_path(
                         expr->data.call.arguments[i]);
                     char *borrowed_line = borrowed_root_name != NULL
@@ -738,23 +760,27 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 }
                 continue;
             }
+boundary_helper_borrowed_argument:
             if (pmode == PARAM_MODE_REF
-                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)
                 && type_requires_boundary_borrow_tracking(param_type, ctx)
                 && callee_decl != NULL
                 && callee_decl->data.func_decl.body != NULL) {
+                const char *borrowed_name =
+                    semantic_borrowed_boundary_root_name(
+                        expr->data.call.arguments[i], ctx);
                 unsigned callee_mask = slot_analyze_param_summary_in_program(
                     callee_decl->data.func_decl.body,
                     callee_decl->data.func_decl.params[i] != NULL
                         ? callee_decl->data.func_decl.params[i]->name
                         : NULL,
                     ctx->program_root);
-                if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
-                                    | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
-                                    | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+                if (borrowed_name != NULL
+                    && (callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                                       | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
+                                       | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
                     char *source_path = semantic_assignment_target_path(
                         expr->data.call.arguments[i]);
-                    semantic_error(ctx, expr->data.call.arguments[i],
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[i],
                         "Borrowed ref boundary value '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -765,31 +791,35 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "Fix:\n"
                         "- perform the value operation locally in this function\n"
                         "- or change the current parameter to 'own' if transfer/forwarding is intended",
-                        expr->data.call.arguments[i]->data.identifier.name,
+                        borrowed_name,
                         display_name != NULL ? display_name : "<callee>",
                         source_path != NULL
                             ? source_path
-                            : expr->data.call.arguments[i]->data.identifier.name,
+                            : borrowed_name,
                         ctx->current_function_decl != NULL
                             && ctx->current_function_decl->data.func_decl.name != NULL
                                 ? ctx->current_function_decl->data.func_decl.name
                                 : "<anonymous>",
-                        expr->data.call.arguments[i]->data.identifier.name,
+                        borrowed_name,
                         source_path != NULL
                             ? source_path
-                            : expr->data.call.arguments[i]->data.identifier.name,
+                            : borrowed_name,
                         display_name != NULL ? display_name : "<callee>");
                     free(source_path);
                     continue;
                 }
             }
-            if (pmode != PARAM_MODE_REF
-                && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
+            if (pmode != PARAM_MODE_REF) {
+                const char *borrowed_name =
+                    semantic_borrowed_boundary_root_name(
+                        expr->data.call.arguments[i], ctx);
+                if (borrowed_name == NULL)
+                    goto type_check_call_boundary_done;
                 if (!type_requires_boundary_borrow_tracking(param_type, ctx))
                     continue;
                 char *source_path = semantic_assignment_target_path(
                     expr->data.call.arguments[i]);
-                semantic_error(ctx, expr->data.call.arguments[i],
+                semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[i],
                     "Borrowed ref boundary value '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                     "Reason:\n"
                     "- consumer path is function '%s'\n"
@@ -799,24 +829,25 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     "Fix:\n"
                     "- call a 'ref' helper instead\n"
                     "- or change the current parameter to 'own' if forwarding/transfer is intended",
-                    expr->data.call.arguments[i]->data.identifier.name,
+                    borrowed_name,
                     display_name != NULL ? display_name : "<callee>",
                     source_path != NULL
                         ? source_path
-                        : expr->data.call.arguments[i]->data.identifier.name,
+                        : borrowed_name,
                     ctx->current_function_decl != NULL
                         && ctx->current_function_decl->data.func_decl.name != NULL
                             ? ctx->current_function_decl->data.func_decl.name
                             : "<anonymous>",
-                    expr->data.call.arguments[i]->data.identifier.name,
+                    borrowed_name,
                     source_path != NULL
                         ? source_path
-                        : expr->data.call.arguments[i]->data.identifier.name,
+                        : borrowed_name,
                     display_name != NULL ? display_name : "<callee>",
                     pmode == PARAM_MODE_OWN ? "own" : "default");
                 free(source_path);
                 continue;
             }
+type_check_call_boundary_done:
             if (pmode == PARAM_MODE_OWN) {
                 consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
             }
@@ -856,8 +887,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         Symbol *src_sym = scope_lookup(ctx->scope, src);
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
                             if (src_sym->slot_info.state == SLOT_STATE_RELEASED)
-                                semantic_error_code(ctx, "PGY_SEM_MOVE_FROM_RELEASED",
-                                    expr->data.call.arguments[i],
+                                semantic_error_with_hints(ctx, "PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released", "reclaim-or-trace-earlier-move", expr->data.call.arguments[i],
                                     "Cannot move from released slot '%s'", src);
                             else
                                 src_sym->slot_info.state = SLOT_STATE_RELEASED;
@@ -958,7 +988,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     param_index = find_generic_param_index(decl_gp, param_name);
                     if (param_index < 0
                         || (size_t)param_index >= decl_gp->count) {
-                        semantic_error(ctx, expr,
+                        semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
                             "Call site of '%s' could not validate generic parameter '%s'.\n"
                             "Reason:\n"
                             "- function '%s' where-clause references '%s'\n"
@@ -977,7 +1007,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     }
                     concrete_type = effective_generic_types[param_index];
                     if (concrete_type == NULL) {
-                        semantic_error(ctx, expr,
+                        semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
                             "Call site of '%s' could not materialize generic argument for '%s'.\n"
                             "Reason:\n"
                             "- function '%s' where-clause validation depends on an effective type argument for '%s'\n"
@@ -1006,7 +1036,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         bool satisfies = concrete_type_satisfies_bound(
                             concrete_type, tc->bounds[bi], ctx);
                         if (!satisfies) {
-                            semantic_error(ctx, expr,
+                            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
                                 "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'.\n"
                                 "Reason:\n"
                                 "- generic subject is function '%s'\n"

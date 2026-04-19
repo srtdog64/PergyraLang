@@ -171,7 +171,7 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
 
         if (strcmp(variant, "Some") == 0) {
             if (arg_count != 1) {
-                semantic_error(ctx, pat,
+                semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID", "semantic:match:pattern_shape", "align-pattern-arity-or-kind", pat,
                     "Some pattern requires exactly one binding");
                 return false;
             }
@@ -179,14 +179,14 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
         }
         if (strcmp(variant, "None") == 0) {
             if (arg_count != 0) {
-                semantic_error(ctx, pat,
+                semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID", "semantic:match:pattern_shape", "align-pattern-arity-or-kind", pat,
                     "None pattern does not take payload bindings");
                 return false;
             }
             return true;
         }
 
-        semantic_error(ctx, pat,
+        semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID", "semantic:match:pattern_shape", "align-pattern-arity-or-kind", pat,
             "Option<T> match only supports Some(...) and None patterns");
         return false;
     }
@@ -234,7 +234,7 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
                 continue;
 
             if (arg_count != param_count) {
-                semantic_error(ctx, pat,
+                semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID", "semantic:match:pattern_shape", "align-pattern-arity-or-kind", pat,
                     "Enum variant '%s' expects %zu payload bindings, got %zu",
                     variant, param_count, arg_count);
                 return false;
@@ -246,7 +246,7 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
             variant_sym = scope_lookup(ctx->scope, variant);
             if (variant_sym == NULL || variant_sym->type == NULL
                 || variant_sym->type->kind != TYPE_KIND_FUNCTION) {
-                semantic_error(ctx, pat,
+                semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID", "semantic:match:pattern_shape", "align-pattern-arity-or-kind", pat,
                     "Enum variant '%s' is missing constructor type information",
                     variant);
                 return false;
@@ -540,7 +540,7 @@ check_match_exhaustiveness(ASTNode *node, Type *subj_type, SemanticContext *ctx)
     }
 
     if (found_missing) {
-        semantic_error(ctx, node,
+        semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID", "semantic:match:pattern_shape", "align-pattern-arity-or-kind", node,
             "Non-exhaustive match for '%s'; missing cases: %s",
             subj_type->name != NULL ? subj_type->name : "<unknown>",
             missing);
@@ -839,7 +839,7 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return FLOW_RETURN;
     case AST_BREAK:
         if (ctx->loop_depth <= 0) {
-            semantic_error(ctx, node, "'break' used outside of loop");
+            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node, "'break' used outside of loop");
             return FLOW_NONE;
         }
         if (node->data.break_stmt.label != NULL) {
@@ -852,7 +852,7 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
                 }
             }
             if (!found) {
-                semantic_error(ctx, node, "Unknown loop label '%s' in break",
+                semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node, "Unknown loop label '%s' in break",
                     node->data.break_stmt.label);
                 return FLOW_NONE;
             }
@@ -868,7 +868,7 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return FLOW_BREAK;
     case AST_CONTINUE:
         if (ctx->loop_depth <= 0) {
-            semantic_error(ctx, node, "'continue' used outside of loop");
+            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node, "'continue' used outside of loop");
             return FLOW_NONE;
         }
         if (node->data.continue_stmt.label != NULL) {
@@ -881,7 +881,7 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
                 }
             }
             if (!found) {
-                semantic_error(ctx, node, "Unknown loop label '%s' in continue",
+                semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node, "Unknown loop label '%s' in continue",
                     node->data.continue_stmt.label);
                 return FLOW_NONE;
             }

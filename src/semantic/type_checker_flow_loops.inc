@@ -273,7 +273,11 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
         ctx->current_function_effects = effect_base;
         Type *cond = type_check_expression(node->data.while_loop.condition, ctx);
         if (!type_equals(cond, TYPE_BOOL)) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx,
+                "PGY_SEM_TYPE_MISMATCH",
+                "semantic:condition:non_bool",
+                "convert-condition-to-bool",
+                node,
                 "While condition must be Bool, got '%s'", cond->name);
         }
 

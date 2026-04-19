@@ -350,8 +350,7 @@ llvm_ensure_result_type(LLVMGenCtx *ctx,
     LLVMTypeRef ok_ty  = llvm_resolve_source_type(ctx, ok_name);
     LLVMTypeRef err_ty = llvm_resolve_source_type(ctx, err_name);
     if (ok_ty == NULL || err_ty == NULL) {
-        llvm_set_error(ctx,
-            "Result<%s, %s>: cannot resolve %s type",
+        llvm_set_error_with_hints(ctx, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:type:unsupported_or_unknown", "annotate-concrete-type", "Result<%s, %s>: cannot resolve %s type",
             ok_name, err_name, ok_ty == NULL ? ok_name : err_name);
         return NULL;
     }

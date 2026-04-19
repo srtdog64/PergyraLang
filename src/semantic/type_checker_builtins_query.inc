@@ -32,7 +32,7 @@ check_call_arity(ASTNode *expr, size_t expected, const char *name,
                  SemanticContext *ctx)
 {
     if (expr->data.call.arg_count != expected) {
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
             "'%s' expects %zu argument(s), got %zu",
             name, expected, expr->data.call.arg_count);
         return false;
@@ -55,7 +55,7 @@ validate_secure_token_arg(ASTNode *token_arg, Symbol *slot_sym, Type *slot_type,
     }
 
     if (token_arg->type != AST_IDENTIFIER || token_arg->data.identifier.name == NULL) {
-        semantic_error(ctx, token_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", token_arg,
             "SecureSlot '%s' requires a named paired token identifier",
             slot_sym->name != NULL ? slot_sym->name : "<slot>");
         return false;
@@ -72,7 +72,7 @@ validate_secure_token_arg(ASTNode *token_arg, Symbol *slot_sym, Type *slot_type,
 
     if (slot_sym->slot_info.paired_token_name == NULL
         || strcmp(slot_sym->slot_info.paired_token_name, token_name) != 0) {
-        semantic_error(ctx, token_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", token_arg,
             "Token '%s' is not paired with slot '%s'",
             token_name, slot_sym->name);
         return false;
@@ -82,7 +82,7 @@ validate_secure_token_arg(ASTNode *token_arg, Symbol *slot_sym, Type *slot_type,
     expected_token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
     if (token_sym->type != NULL && expected_token_type != NULL
         && !type_equals(token_sym->type, expected_token_type)) {
-        semantic_error(ctx, token_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", token_arg,
             "Token '%s' does not match SecureSlot '%s' capability type",
             token_name, slot_sym->name);
         return false;
@@ -121,6 +121,7 @@ static char *
 builtin_expr_source_path(ASTNode *value_expr)
 {
     char path_buf[512];
+    char *base = NULL;
 
     if (value_expr == NULL) {
         return NULL;
@@ -133,42 +134,40 @@ builtin_expr_source_path(ASTNode *value_expr)
 
     if (value_expr->type == AST_MEMBER_ACCESS
         && value_expr->data.member.name != NULL) {
-        ASTNode *obj = value_expr->data.member.object;
-        if (obj != NULL
-            && obj->type == AST_IDENTIFIER
-            && obj->data.identifier.name != NULL) {
+        base = builtin_expr_source_path(value_expr->data.member.object);
+        if (base != NULL) {
             snprintf(path_buf, sizeof(path_buf), "%s.%s",
-                     obj->data.identifier.name,
-                     value_expr->data.member.name);
+                     base, value_expr->data.member.name);
+            free(base);
             return pergyra_strdup(path_buf);
         }
     }
 
     if (value_expr->type == AST_ARRAY_ACCESS) {
-        ASTNode *arr = value_expr->data.array_access.array;
         ASTNode *idx = value_expr->data.array_access.index;
-        if (arr != NULL
-            && arr->type == AST_IDENTIFIER
-            && arr->data.identifier.name != NULL) {
+        base = builtin_expr_source_path(value_expr->data.array_access.array);
+        if (base != NULL) {
             if (idx != NULL && idx->type == AST_NUMBER) {
                 snprintf(path_buf, sizeof(path_buf), "%s[%g]",
-                         arr->data.identifier.name,
-                         idx->data.number.value);
+                         base, idx->data.number.value);
+                free(base);
                 return pergyra_strdup(path_buf);
             }
             if (idx != NULL
                 && idx->type == AST_IDENTIFIER
                 && idx->data.identifier.name != NULL) {
                 snprintf(path_buf, sizeof(path_buf), "%s[%s]",
-                         arr->data.identifier.name,
-                         idx->data.identifier.name);
+                         base, idx->data.identifier.name);
+                free(base);
                 return pergyra_strdup(path_buf);
             }
+            free(base);
         }
     }
 
     return NULL;
 }
+
 
 static void
 reject_borrowed_boundary_container_store(ASTNode *value_expr,
@@ -206,22 +205,22 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
 
     value_label = "boundary value";
     provenance_label = "boundary provenance";
-    snapshot_label = "copied/projection/value snapshot";
+    snapshot_label = "copied/value/projection result";
     transfer_label = "transfer into";
 
     if (type_is_movable_resource_handle(value_type)) {
         value_label = "movable resource";
         provenance_label = "movable-resource provenance";
-        snapshot_label = "copied/value/projection form";
+        snapshot_label = "copied/value/projection result";
         transfer_label = "transfer";
     } else if (builtin_is_subject_boundary_type(value_type, ctx)) {
         value_label = "subject";
         provenance_label = "subject provenance";
-        snapshot_label = "projection/object/tobject/value snapshot";
+        snapshot_label = "projection/object/tobject/value result";
         transfer_label = "transfer";
     }
 
-    semantic_error(ctx, value_expr,
+    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", value_expr,
         "Borrowed ref %s '%s' cannot escape through %s store%s%s%s.\n"
         "Reason:\n"
         "- consumer path is function '%s'\n"
@@ -231,7 +230,7 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
         "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n"
         "Fix:\n"
         "- store a %s instead\n"
-        "- or change the current parameter to 'own' if %s %s is intended",
+        "- or change the current parameter to 'own' if %s into %s is intended",
         value_label,
         value_name,
         container_kind != NULL ? container_kind : "container",
@@ -274,7 +273,7 @@ channel_builtin_recv_result(Type *element_type, const char *name,
                             ASTNode *site, SemanticContext *ctx)
 {
     if (type_is_anchored_resource_handle(element_type)) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY", "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding", site,
             "%s cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; receive a plain value instead",
             name);
         return TYPE_UNKNOWN;
@@ -721,7 +720,8 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                                    : TYPE_BOOL;
         }
         if (expr->data.call.arguments[1] == NULL
-            || expr->data.call.arguments[1]->type != AST_IDENTIFIER) {
+            || (expr->data.call.arguments[1]->type != AST_IDENTIFIER
+                && borrowed_root_name == NULL)) {
             char *reason_line = NULL;
             if (borrowed_root_name != NULL) {
                 const char *rendered_path =
@@ -753,8 +753,8 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                    : TYPE_BOOL;
         }
-        if (identifier_is_borrowed_boundary_param(expr->data.call.arguments[1], ctx)) {
-            semantic_error(ctx, expr->data.call.arguments[1],
+        if (borrowed_root_name != NULL) {
+            semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[1],
                 "Borrowed ref subject '%s' cannot escape through channel send from '%s'.\n"
                 "Reason:\n"
                 "- consumer path is function '%s'\n"
@@ -763,19 +763,19 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                 "- %s would transfer that borrow beyond the current call boundary\n"
                 "Fix:\n"
                 "- send a projection/object/tobject/value snapshot instead\n"
-                "- or change the parameter to 'own' before transfer",
-                expr->data.call.arguments[1]->data.identifier.name,
+                "- or change the current parameter to 'own' if transfer is intended",
+                borrowed_root_name,
                 source_path != NULL
                     ? source_path
-                    : expr->data.call.arguments[1]->data.identifier.name,
+                    : borrowed_root_name,
                 ctx->current_function_decl != NULL
                     && ctx->current_function_decl->data.func_decl.name != NULL
                         ? ctx->current_function_decl->data.func_decl.name
                         : "<anonymous>",
-                expr->data.call.arguments[1]->data.identifier.name,
+                borrowed_root_name,
                 source_path != NULL
                     ? source_path
-                    : expr->data.call.arguments[1]->data.identifier.name,
+                    : borrowed_root_name,
                 name);
             free(source_path);
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
@@ -817,7 +817,8 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                                    : TYPE_BOOL;
         }
         if (expr->data.call.arguments[1] == NULL
-            || expr->data.call.arguments[1]->type != AST_IDENTIFIER) {
+            || (expr->data.call.arguments[1]->type != AST_IDENTIFIER
+                && borrowed_root_name == NULL)) {
             char *reason_line = NULL;
             if (borrowed_root_name != NULL) {
                 const char *rendered_path =
@@ -849,10 +850,8 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                    : TYPE_BOOL;
         }
-        if (expr->data.call.arguments[1] != NULL
-            && expr->data.call.arguments[1]->type == AST_IDENTIFIER
-            && identifier_is_borrowed_boundary_param(expr->data.call.arguments[1], ctx)) {
-            semantic_error(ctx, expr->data.call.arguments[1],
+        if (borrowed_root_name != NULL) {
+            semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", expr->data.call.arguments[1],
                 "Borrowed ref boundary value '%s' cannot escape through channel send from '%s'.\n"
                 "Reason:\n"
                 "- consumer path is function '%s'\n"
@@ -861,19 +860,19 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                 "- %s would transfer that borrow beyond the current call boundary\n"
                 "Fix:\n"
                 "- send a copied/value/projection snapshot instead\n"
-                "- or change the parameter to 'own' before transfer",
-                expr->data.call.arguments[1]->data.identifier.name,
+                "- or change the current parameter to 'own' if transfer is intended",
+                borrowed_root_name,
                 source_path != NULL
                     ? source_path
-                    : expr->data.call.arguments[1]->data.identifier.name,
+                    : borrowed_root_name,
                 ctx->current_function_decl != NULL
                     && ctx->current_function_decl->data.func_decl.name != NULL
                         ? ctx->current_function_decl->data.func_decl.name
                         : "<anonymous>",
-                expr->data.call.arguments[1]->data.identifier.name,
+                borrowed_root_name,
                 source_path != NULL
                     ? source_path
-                    : expr->data.call.arguments[1]->data.identifier.name,
+                    : borrowed_root_name,
                 name);
             free(source_path);
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
@@ -901,7 +900,7 @@ type_check_channel_recv_builtin(ASTNode *expr, const char *name,
             TYPE_INT, expr->data.call.arguments[1], ctx);
     }
     if (type_is_capability_bearing(element_type)) {
-        semantic_error(ctx, expr->data.call.arguments[0],
+        semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY", "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding", expr->data.call.arguments[0],
             "%s cannot yield capability-bearing values (SecureSlot/Token) yet; receive a plain value instead",
             name);
         return TYPE_UNKNOWN;
@@ -924,7 +923,7 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
     ASTNode *slot;
 
     if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
             "'HasProjection' expects exactly 1 argument, got %zu",
             call->data.call.arg_count);
         return TYPE_BOOL;
@@ -932,7 +931,7 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
 
     host = current_projection_host_decl(ctx, &label, &slots, &slot_count);
     if (host == NULL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "HasProjection(...) is only available inside relation/effect/zone declarations and methods.\n"
             "Reason:\n"
             "- projection slots only exist on relation/effect/zone surfaces\n"
@@ -955,7 +954,7 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
 
     arg = call->data.call.arguments[0];
     if (arg == NULL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "HasProjection(...) requires an object/tobject slot name");
         return TYPE_BOOL;
     }
@@ -965,13 +964,13 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
     } else if (arg->type == AST_STRING) {
         slot_name = arg->data.string.value;
     } else {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "HasProjection(...) expects an object/tobject slot identifier or string literal");
         return TYPE_BOOL;
     }
 
     if (slot_name == NULL) {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "HasProjection(...) requires a valid object/tobject slot name");
         return TYPE_BOOL;
     }
@@ -979,7 +978,7 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
     slot = find_domain_projection_slot_local(slots, slot_count,
         refreshes, refresh_count, slot_name);
     if (slot == NULL) {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "Unknown %s projection slot '%s' in HasProjection(...).\n"
             "Reason:\n"
             "- HasProjection(...) only accepts object/tobject slots declared on the current %s\n"
@@ -1007,7 +1006,7 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
     ASTNode *layer_slot;
 
     if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "'HasLayer' expects exactly 1 argument, got %zu",
             call->data.call.arg_count);
         return TYPE_BOOL;
@@ -1015,7 +1014,7 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
 
     zone = ctx->current_zone;
     if (zone == NULL || zone->type != AST_ZONE_DECL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "HasLayer(...) is only available inside zone declarations and zone methods.\n"
             "Reason:\n"
             "- relation/effect layer slots are zone-local\n"
@@ -1028,7 +1027,7 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
 
     arg = call->data.call.arguments[0];
     if (arg == NULL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "HasLayer(...) requires a relation/effect slot name");
         return TYPE_BOOL;
     }
@@ -1038,20 +1037,20 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
     } else if (arg->type == AST_STRING) {
         slot_name = arg->data.string.value;
     } else {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "HasLayer(...) expects a layer-slot identifier or string literal");
         return TYPE_BOOL;
     }
 
     if (slot_name == NULL) {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "HasLayer(...) requires a valid relation/effect slot name");
         return TYPE_BOOL;
     }
 
     layer_slot = find_zone_layer_slot_local(zone, slot_name);
     if (layer_slot == NULL) {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "Unknown zone layer slot '%s' in HasLayer(...).\n"
             "Reason:\n"
             "- '%s' is not a declared relation/effect slot in the current zone\n"
@@ -1085,7 +1084,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
 
     zone = ctx->current_zone;
     if (zone == NULL || zone->type != AST_ZONE_DECL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "HasState(...) is only available inside zone declarations and zone methods.\n"
             "Reason:\n"
             "- zone state contracts are scoped to a zone body\n"
@@ -1098,7 +1097,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
 
     arg = call->data.call.arguments[0];
     if (arg == NULL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "HasState(...) requires a zone state name");
         return TYPE_BOOL;
     }
@@ -1108,13 +1107,13 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     } else if (arg->type == AST_STRING) {
         state_name = arg->data.string.value;
     } else {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "HasState(...) expects a state identifier or string literal");
         return TYPE_BOOL;
     }
 
     if (state_name == NULL) {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "HasState(...) requires a valid zone state name");
         return TYPE_BOOL;
     }
@@ -1131,7 +1130,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     }
 
     if (state == NULL) {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "Unknown zone state '%s' in HasState(...).\n"
             "Reason:\n"
             "- '%s' is not a declared state in the current zone\n"
@@ -1148,7 +1147,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     if (call->data.call.arguments[1] == NULL
         || call->data.call.arguments[1]->type != AST_IDENTIFIER
         || call->data.call.arguments[1]->data.identifier.name == NULL) {
-        semantic_error(ctx, call->data.call.arguments[1],
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call->data.call.arguments[1],
             "HasState(...) slot arguments must be zone slot identifiers");
         return TYPE_BOOL;
     }
@@ -1163,7 +1162,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     if (!state->data.zone_state.is_relation) {
         slot_name = call->data.call.arguments[1]->data.identifier.name;
         if (call->data.call.arg_count != 2) {
-            semantic_error(ctx, call,
+            semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
                 "Effect state '%s' in HasState(...) accepts at most one zone slot target",
                 state_name);
             return TYPE_BOOL;
@@ -1179,7 +1178,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     }
 
     if (call->data.call.arg_count != 3) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "Relation state '%s' in HasState(...) requires exactly two endpoint slots",
             state_name);
         return TYPE_BOOL;
@@ -1188,7 +1187,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     if (call->data.call.arguments[2] == NULL
         || call->data.call.arguments[2]->type != AST_IDENTIFIER
         || call->data.call.arguments[2]->data.identifier.name == NULL) {
-        semantic_error(ctx, call->data.call.arguments[2],
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call->data.call.arguments[2],
             "HasState(...) relation endpoint arguments must be zone slot identifiers");
         return TYPE_BOOL;
     }
@@ -1223,7 +1222,7 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     const char *name = NULL;
 
     if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
             "'HasZone' expects exactly 1 argument, got %zu.\n"
             "Reason:\n"
             "- world zone/state observability requires a single zone-slot or world-state name\n"
@@ -1236,7 +1235,7 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
 
     world = ctx->current_world;
     if (world == NULL || world->type != AST_WORLD_DECL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "HasZone(...) is only available inside world declarations and world methods.\n"
             "Reason:\n"
             "- zone/state observability is anchored to the current world context\n"
@@ -1249,7 +1248,7 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
 
     arg = call->data.call.arguments[0];
     if (arg == NULL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", call,
             "HasZone(...) requires a zone slot or world state name.\n"
             "Reason:\n"
             "- the query cannot resolve an empty zone/state reference\n"
@@ -1264,7 +1263,7 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     } else if (arg->type == AST_STRING) {
         name = arg->data.string.value;
     } else {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "HasZone(...) expects a zone/state identifier or string literal.\n"
             "Reason:\n"
             "- world observability queries resolve names, not arbitrary expressions\n"
@@ -1275,7 +1274,7 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     }
 
     if (name == NULL) {
-        semantic_error(ctx, arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", arg,
             "HasZone(...) requires a valid zone/state name.\n"
             "Reason:\n"
             "- the provided identifier/string did not contain a usable name\n"
@@ -1303,7 +1302,7 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
         }
     }
 
-    semantic_error(ctx, arg,
+    semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", arg,
         "Unknown world zone/state '%s' in HasZone(...).\n"
         "Reason:\n"
         "- current world '%s' does not declare a zone slot or state named '%s'\n"
@@ -1332,7 +1331,7 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
     ASTNode *detail_decl;
 
     if (call->data.call.arg_count != 2) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
             "'%s' expects exactly 2 argument(s), got %zu.\n"
             "Reason:\n"
             "- %s needs a world zone slot and a zone %s name\n"
@@ -1378,7 +1377,7 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
     else if (zone_arg->type == AST_STRING)
         zone_slot_name = zone_arg->data.string.value;
     else {
-        semantic_error(ctx, zone_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", zone_arg,
             "%s(...) expects a world zone-slot identifier or string literal as the first argument.\n"
             "Reason:\n"
             "- the first argument names the embedded zone slot inside the current world\n"
@@ -1394,7 +1393,7 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
     else if (detail_arg->type == AST_STRING)
         detail_name = detail_arg->data.string.value;
     else {
-        semantic_error(ctx, detail_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", detail_arg,
             "%s(...) expects a zone %s identifier or string literal as the second argument.\n"
             "Reason:\n"
             "- the second argument names the zone-local %s being queried\n"
@@ -1419,7 +1418,7 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
 
     zone_decl = resolve_world_zone_decl_local(ctx, world, zone_slot_name);
     if (zone_decl == NULL) {
-        semantic_error(ctx, zone_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", zone_arg,
             "Unknown world zone slot '%s' in %s(...).\n"
             "Reason:\n"
             "- current world '%s' does not declare a zone slot named '%s'\n"
@@ -1435,7 +1434,7 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
 
     detail_decl = resolver(zone_decl, detail_name);
     if (detail_decl == NULL) {
-        semantic_error(ctx, detail_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PREDICATE_ARGS_INVALID", "semantic:predicate:args", "match-predicate-signature-in-host", detail_arg,
             "Unknown zone %s '%s' in %s(%s, ...).\n"
             "Reason:\n"
             "- zone '%s' does not declare a %s named '%s'\n"

@@ -696,9 +696,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (c_type == NULL) {
-        transpiler_set_backend_error(
-            ctx,
-            "cannot determine C type for let binding '%s'; explicit annotation or resolvable initializer type is required",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine C type for let binding '%s'; explicit annotation or resolvable initializer type is required",
             name != NULL ? name : "<binding>");
         free(ann_type_name);
         return;

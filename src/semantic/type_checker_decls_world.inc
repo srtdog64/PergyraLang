@@ -142,14 +142,14 @@ resolve_world_zone_state(ASTNode *world, ASTNode *site, const char *state_name,
         }
     }
     if (state == NULL) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", site,
             "World %s references unknown zone/state '%s'",
             action_name, state_name != NULL ? state_name : "<unknown>");
         return false;
     }
 
     if (state->data.world_state.source_kind != WORLD_STATE_SOURCE_ZONE) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", site,
             "World %s cannot target derived state '%s'; use the underlying zone slot or a plain 'state name: zone slot' alias",
             action_name, state_name != NULL ? state_name : "<unknown>");
         return false;
@@ -180,7 +180,11 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             existing->type = create_overlay_nominal_type(name);
         symbol_destroy(sym);
     } else if (existing != NULL) {
-        semantic_error(ctx, node, "Redeclaration of world '%s'", name);
+        semantic_error_with_hints(ctx,
+            "PGY_SEM_REDECLARATION",
+            "semantic:world:duplicate_name",
+            "rename-or-remove-duplicate",
+            node, "Redeclaration of world '%s'", name);
         symbol_destroy(sym);
         return false;
     } else {
@@ -224,7 +228,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 && !(zone_decl != NULL
                      && zone_decl->type == AST_ZONE_DECL
                      && explicit_type_reference_allowed(zone_decl, node, ctx))) {
-                semantic_error(ctx, wz,
+                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", wz,
                     "Zone type '%s' not found for slot '%s'.\n"
                     "Reason:\n"
                     "- world zone slot '%s' must reference a visible zone declaration\n"
@@ -250,7 +254,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             bool saw_direct_zone_input = false;
             bool saw_state_input = false;
             if (state->data.world_state.input_count == 0) {
-                semantic_error(ctx, state,
+                semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", state,
                     "Composed world state '%s' must reference at least one zone/state input.\n"
                     "Reason:\n"
                     "- `all`/`any` world-state composition needs at least one upstream zone/state contract\n"
@@ -269,7 +273,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     continue;
                 if (state->data.world_state.state_name != NULL
                     && strcmp(state->data.world_state.state_name, input_name) == 0) {
-                    semantic_error(ctx, state,
+                    semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", state,
                         "Composed world state '%s' cannot reference itself.\n"
                         "Reason:\n"
                         "- world-state composition must depend on earlier zone/state inputs\n"
@@ -291,7 +295,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     saw_state_input = true;
                     continue;
                 }
-                semantic_error(ctx, state,
+                semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", state,
                     "Composed world state '%s' references unknown or later world zone/state '%s'.\n"
                     "Reason:\n"
                     "- composed world state inputs must name either a declared zone slot or an earlier world-state alias\n"
@@ -384,7 +388,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                         ? state->data.world_state.state_name : "<unknown>");
             }
         } else if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
-            semantic_error(ctx, state,
+            semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", state,
                 "World state '%s' references unknown zone slot '%s'",
                 state->data.world_state.state_name != NULL
                     ? state->data.world_state.state_name : "<unknown>",
@@ -401,7 +405,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 detail_decl = find_zone_domain_slot(zone_decl, detail_name);
                 if (detail_decl == NULL
                     || detail_decl->data.domain_slot.is_subject) {
-                    semantic_error(ctx, state,
+                    semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", state,
                         "World state '%s' references unknown object/tobject projection slot '%s' in zone '%s'.\n"
                         "Reason:\n"
                         "- world state projection visibility can only observe object/tobject projection slots\n"
@@ -421,7 +425,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             } else if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_LAYER) {
                 detail_decl = find_zone_layer_slot_local(zone_decl, detail_name);
                 if (detail_decl == NULL) {
-                    semantic_error(ctx, state,
+                    semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", state,
                         "World state '%s' references unknown layer slot '%s' in zone '%s'.\n"
                         "Reason:\n"
                         "- world layer visibility expects a declared zone layer slot\n"
@@ -441,7 +445,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             } else if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_STATE) {
                 detail_decl = find_zone_state_decl_local(zone_decl, detail_name);
                 if (detail_decl == NULL) {
-                    semantic_error(ctx, state,
+                    semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", state,
                         "World state '%s' references unknown zone state '%s' in zone '%s'.\n"
                         "Reason:\n"
                         "- world state composition expects a declared zone state alias\n"
@@ -467,7 +471,11 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 && state->data.world_state.state_name != NULL
                 && strcmp(other->data.world_state.state_name,
                           state->data.world_state.state_name) == 0) {
-                semantic_error(ctx, other,
+                semantic_error_with_hints(ctx,
+                    "PGY_SEM_REDECLARATION",
+                    "semantic:world_state:duplicate_name",
+                    "rename-or-remove-duplicate",
+                    other,
                     "Redeclaration of world state '%s'",
                     state->data.world_state.state_name);
             }
@@ -485,7 +493,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
         if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
-            semantic_error(ctx, activate,
+            semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", activate,
                 "World activate references unknown zone slot '%s'.\n"
                 "Reason:\n"
                 "- activate needs a declared world zone slot or zone-state alias\n"
@@ -575,7 +583,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
         if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
-            semantic_error(ctx, deactivate,
+            semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", deactivate,
                 "World deactivate references unknown zone slot '%s'.\n"
                 "Reason:\n"
                 "- deactivate needs a declared world zone slot or zone-state alias\n"
@@ -621,7 +629,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
         if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
-            semantic_error(ctx, maintain,
+            semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", maintain,
                 "World maintain references unknown zone slot '%s'.\n"
                 "Reason:\n"
                 "- maintain needs a declared world zone slot or zone-state alias\n"
@@ -731,7 +739,7 @@ type_check_domain_slots(ASTNode **slots,
         Type *slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
         if (slot->data.domain_slot.is_subject
             && !type_is_subject_type(slot_type, ctx)) {
-            semantic_error(ctx, slot,
+            semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", slot,
                 "%s subject slot '%s' requires a subject type",
                 kind_name,
                 slot->data.domain_slot.slot_name);
@@ -793,7 +801,11 @@ type_check_domain_slot_initializers(ASTNode **slots,
                 symbol_destroy(sym);
                 continue;
             }
-            semantic_error(ctx, slot,
+            semantic_error_with_hints(ctx,
+                "PGY_SEM_REDECLARATION",
+                "semantic:domain_slot:duplicate_name",
+                "rename-or-remove-duplicate",
+                slot,
                 "Redeclaration of %s slot '%s'",
                 kind_name,
                 slot->data.domain_slot.slot_name);

@@ -390,14 +390,14 @@ resolve_zone_effect_state(ASTNode *zone,
         *target_slot_name = NULL;
 
     if (state == NULL) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "Zone %s references unknown state '%s'",
             action_name,
             state_name != NULL ? state_name : "<unknown>");
         return false;
     }
     if (state->data.zone_state.is_relation) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "Zone %s state '%s' is a relation state and cannot be used as an effect state",
             action_name,
             state_name != NULL ? state_name : "<unknown>");
@@ -431,14 +431,14 @@ resolve_zone_relation_state(ASTNode *zone,
         *right_slot_name = NULL;
 
     if (state == NULL) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "Zone %s references unknown state '%s'",
             action_name,
             state_name != NULL ? state_name : "<unknown>");
         return false;
     }
     if (!state->data.zone_state.is_relation) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "Zone %s state '%s' is an effect state and cannot be used as a relation state",
             action_name,
             state_name != NULL ? state_name : "<unknown>");
@@ -469,14 +469,14 @@ type_check_zone_participant_authority(ASTNode *zone,
 
     participant_slot = find_zone_domain_slot(zone, participant_slot_name);
     if (participant_slot == NULL) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "Zone %s references unknown authority subject slot '%s'",
             action_name, participant_slot_name);
         return true;
     }
 
     if (!participant_slot->data.domain_slot.is_subject) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "Zone %s authority '%s' must be a subject slot",
             action_name, participant_slot_name);
         return true;
@@ -484,7 +484,7 @@ type_check_zone_participant_authority(ASTNode *zone,
 
     authority = find_zone_authority(zone, participant_slot_name);
     if (zone->data.zone_decl.authority_count > 0 && authority == NULL) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "Zone %s participant '%s' is not declared in zone authority set",
             action_name, participant_slot_name);
         return true;
@@ -594,7 +594,7 @@ type_check_projection_contract(ASTNode **slots,
 
     if (object_slot->data.domain_slot.is_subject
         || object_slot->data.domain_slot.is_vessel) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "%s %s target slot '%s' is not a projection slot.\n"
             "Reason:\n"
             "- source slot '%s' is driving this %s path\n"
@@ -618,7 +618,7 @@ type_check_projection_contract(ASTNode **slots,
             ? object_slot->data.domain_slot.is_tobject
             : site->data.zone_refresh.requires_dto);
     if (requires_dto && !object_slot->data.domain_slot.is_tobject) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "%s %s target slot '%s' must be a tobject slot.\n"
             "Reason:\n"
             "- source slot '%s' is driving this %s path\n"
@@ -645,7 +645,7 @@ type_check_projection_contract(ASTNode **slots,
 
     target_decl = find_named_class_decl_local(ctx->program_root, target_type->name);
     if (target_decl == NULL || !target_decl->data.class_decl.is_struct) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "%s %s target slot '%s' does not use a projection declaration.\n"
             "Reason:\n"
             "- source slot '%s' is driving this %s path\n"
@@ -672,7 +672,7 @@ type_check_projection_contract(ASTNode **slots,
             requires_dto ? "tobject" : "object";
 
         if (target_decl->data.class_decl.nominal_kind != expected_kind) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                 "%s %s target slot '%s' uses the wrong projection kind.\n"
                 "Reason:\n"
                 "- source slot '%s' is driving this %s path\n"
@@ -698,7 +698,7 @@ type_check_projection_contract(ASTNode **slots,
     }
 
     if (source_slot->data.domain_slot.is_tobject) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "%s %s source slot '%s' cannot be a tobject slot.\n"
             "Reason:\n"
             "- tobject is already a boundary snapshot\n"
@@ -720,7 +720,7 @@ type_check_projection_contract(ASTNode **slots,
     if (!decl_is_projection_source(source_decl))
         source_decl = find_named_class_decl_local(ctx->program_root, source_type->name);
     if (!decl_is_projection_source(source_decl)) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "%s %s source slot '%s' is not a valid projection source.\n"
             "Reason:\n"
             "- projection sync reads fields from a subject/object declaration\n"
@@ -744,7 +744,7 @@ type_check_projection_contract(ASTNode **slots,
                 site->data.zone_refresh.mapped_target_fields[i];
 
             if (!projection_target_decl_has_field(target_decl, mapped_target)) {
-                semantic_error(ctx, site,
+                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                     "%s %s projection map refers to unknown target field '%s' in slot '%s'.\n"
                     "Reason:\n"
                     "- target projection declaration '%s' does not declare field '%s'\n"
@@ -777,7 +777,7 @@ type_check_projection_contract(ASTNode **slots,
                     site->data.zone_refresh.mapped_target_fields[j];
                 if (mapped_target != NULL && other_target != NULL
                     && strcmp(mapped_target, other_target) == 0) {
-                    semantic_error(ctx, site,
+                    semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                         "%s %s projection map duplicates target field '%s'.\n"
                         "Reason:\n"
                         "- each projection target field may be filled from exactly one source field\n"
@@ -813,7 +813,7 @@ type_check_projection_contract(ASTNode **slots,
             ctx->program_root, source_decl, source_field_name, ctx,
             &source_path, &source_field_type);
         if (source_status == 2) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                 "%s %s target field '%s' is ambiguous in source slot '%s'.\n"
                 "Reason:\n"
                 "- multiple projection source paths match field '%s'\n"
@@ -834,7 +834,7 @@ type_check_projection_contract(ASTNode **slots,
         if (source_status == 0 || source_field_type == NULL) {
             if (source_field_name != NULL
                 && strcmp(source_field_name, target_field->name) != 0) {
-                semantic_error(ctx, site,
+                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                     "%s %s target field '%s' maps from missing source field '%s' in slot '%s'.\n"
                     "Reason:\n"
                     "- field map explicitly requests '%s <- %s'\n"
@@ -861,7 +861,7 @@ type_check_projection_contract(ASTNode **slots,
                         ? source_type->name
                         : "<unknown>");
             } else {
-                semantic_error(ctx, site,
+                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                     "%s %s target field '%s' is missing from source slot '%s'.\n"
                     "Reason:\n"
                     "- projection target '%s' expects field '%s'\n"
@@ -888,7 +888,7 @@ type_check_projection_contract(ASTNode **slots,
 
         target_field_type = resolve_type_node(target_field->type, ctx);
         if (!type_is_assignable(source_field_type, target_field_type)) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                 "%s %s target field '%s' cannot accept source path '%s' from slot '%s'.\n"
                 "Reason:\n"
                 "- projection target slot '%s' expects field '%s' to have type '%s'\n"
@@ -985,7 +985,7 @@ type_check_zone_effect_contract(ASTNode *zone,
         effect_decl->data.effect_decl.refreshes,
         effect_decl->data.effect_decl.refresh_count);
     if (target_count != 1) {
-        semantic_error(ctx, apply_like,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", apply_like,
             "Zone %s requires effect '%s' to declare exactly one bindable target slot, found %zu.\n"
             "Reason:\n"
             "- zone effect slot '%s' binds effect '%s'\n"
@@ -1020,7 +1020,7 @@ type_check_zone_effect_contract(ASTNode *zone,
     target_type = resolve_type_node(target_slot->data.domain_slot.type, ctx);
     decl_target_type = resolve_type_node(decl_target->data.domain_slot.type, ctx);
     if (!type_is_assignable(target_type, decl_target_type)) {
-        semantic_error(ctx, apply_like,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", apply_like,
             "Zone %s target slot '%s' has type '%s' but effect '%s' expects target type '%s'.\n"
             "Reason:\n"
             "- zone slot '%s' is bound to effect slot '%s'\n"
@@ -1171,7 +1171,7 @@ type_check_zone_relation_contract(ASTNode *zone,
     if (between_left_kind != RELATION_ENDPOINT_NAMED || between_right_kind != RELATION_ENDPOINT_NAMED
         || between_left_type != NULL || between_right_type != NULL) {
         if (!relation_slot_matches_between_kind(left_slot, left_type, between_left_kind, between_left_type, ctx)) {
-            semantic_error(ctx, link_like,
+            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link_like,
                 "Zone %s left slot '%s' does not satisfy relation '%s' left-endpoint contract.\n"
                 "Reason:\n"
                 "- zone relation slot '%s' binds declaration '%s'\n"
@@ -1205,7 +1205,7 @@ type_check_zone_relation_contract(ASTNode *zone,
         }
 
         if (!relation_slot_matches_between_kind(right_slot, right_type, between_right_kind, between_right_type, ctx)) {
-            semantic_error(ctx, link_like,
+            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link_like,
                 "Zone %s right slot '%s' does not satisfy relation '%s' right-endpoint contract.\n"
                 "Reason:\n"
                 "- zone relation slot '%s' binds declaration '%s'\n"
@@ -1245,7 +1245,7 @@ type_check_zone_relation_contract(ASTNode *zone,
         relation_decl->data.relation_decl.refreshes,
         relation_decl->data.relation_decl.refresh_count);
     if (endpoint_count != 2) {
-        semantic_error(ctx, link_like,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link_like,
             "Zone %s requires relation '%s' to declare exactly two bindable endpoint slots, found %zu.\n"
             "Reason:\n"
             "- zone relation slot '%s' binds declaration '%s'\n"
@@ -1285,7 +1285,7 @@ type_check_zone_relation_contract(ASTNode *zone,
     decl_right_type = resolve_type_node(decl_right->data.domain_slot.type, ctx);
 
     if (!type_is_assignable(left_type, decl_left_type)) {
-        semantic_error(ctx, link_like,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link_like,
             "Zone %s left slot '%s' has type '%s' but relation '%s' expects left endpoint type '%s'.\n"
             "Reason:\n"
             "- zone relation slot '%s' binds declaration '%s'\n"
@@ -1330,7 +1330,7 @@ type_check_zone_relation_contract(ASTNode *zone,
     }
 
     if (!type_is_assignable(right_type, decl_right_type)) {
-        semantic_error(ctx, link_like,
+        semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link_like,
             "Zone %s right slot '%s' has type '%s' but relation '%s' expects right endpoint type '%s'.\n"
             "Reason:\n"
             "- zone relation slot '%s' binds declaration '%s'\n"
@@ -1405,7 +1405,11 @@ type_check_overlay_decl_common(ASTNode *node,
             existing->type = create_overlay_nominal_type(name);
         symbol_destroy(sym);
     } else if (existing != NULL) {
-        semantic_error(ctx, node, "Redeclaration of %s '%s'", kind_name, name);
+        semantic_error_with_hints(ctx,
+            "PGY_SEM_REDECLARATION",
+            "semantic:overlay:duplicate_name",
+            "rename-or-remove-duplicate",
+            node, "Redeclaration of %s '%s'", kind_name, name);
         symbol_destroy(sym);
         return false;
     } else {

@@ -198,6 +198,8 @@ driver_route_stage(const char *default_stage, const char *code)
         return default_stage;
     if (strncmp(code, "PGY_MIR_", 8) == 0)
         return "mir_validation";
+    if (strncmp(code, "PGY_C_", 6) == 0)
+        return "c_codegen";
     if (strncmp(code, "PGY_LLVM_", 9) == 0)
         return "llvm_codegen";
     if (strncmp(code, "PGY_SEM_", 8) == 0)

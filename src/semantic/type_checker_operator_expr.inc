@@ -222,7 +222,7 @@ reject_borrowed_array_literal_store(ASTNode *value_expr,
             : "<anonymous>";
     value_label = "boundary value";
     provenance_label = "boundary provenance";
-    snapshot_label = "copied/value/projection snapshot";
+    snapshot_label = "copied/value/projection result";
     transfer_label = "transfer";
 
     if (type_is_movable_resource_handle(stored_value_type)) {
@@ -232,13 +232,13 @@ reject_borrowed_array_literal_store(ASTNode *value_expr,
     } else if (type_is_subject_type(stored_value_type, ctx)) {
         value_label = "subject";
         provenance_label = "subject provenance";
-        snapshot_label = "projection/object/tobject/value snapshot";
+        snapshot_label = "projection/object/tobject/value result";
     } else if (!type_requires_boundary_borrow_tracking(stored_value_type, ctx)) {
         free(source_path);
         return;
     }
 
-    semantic_error(ctx, value_expr,
+    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", value_expr,
         "Borrowed ref %s '%s' cannot escape through array literal store%s%s%s.\n"
         "Reason:\n"
         "- consumer path is function '%s'\n"

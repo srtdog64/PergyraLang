@@ -1190,8 +1190,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                     inner = type_ann->data.type.generic_args->params[0]->name;
             }
             if (inner == NULL) {
-                llvm_set_error_at(ctx, node,
-                    "LLVM %s let-binding for '%s' requires an explicit %s<T> annotation",
+                llvm_set_error_at_with_code(ctx, node, "PGY_LLVM_TYPE_UNSUPPORTED", "LLVM %s let-binding for '%s' requires an explicit %s<T> annotation",
                     callee,
                     name != NULL ? name : "<slot>",
                     is_secure ? "SecureSlot" : "Slot");
@@ -1260,8 +1259,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 inner = type_ann->data.type.generic_args->params[0]->name;
             }
             if (inner == NULL) {
-                llvm_set_error_at(ctx, node,
-                    "LLVM ClaimDeviceSlot let-binding for '%s' requires an explicit DeviceSlot<T> annotation",
+                llvm_set_error_at_with_code(ctx, node, "PGY_LLVM_TYPE_UNSUPPORTED", "LLVM ClaimDeviceSlot let-binding for '%s' requires an explicit DeviceSlot<T> annotation",
                     name != NULL ? name : "<slot>");
                 return;
             }
@@ -3203,8 +3201,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
             break;
         LLVMTypeRef rhs_ty = LLVMTypeOf(rhs_val);
         if (LLVMGetTypeKind(rhs_ty) != LLVMStructTypeKind) {
-            llvm_set_error(ctx,
-                "destructuring requires an Array-like or tuple struct initializer");
+            llvm_set_error_with_hints(ctx, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:type:unsupported_or_unknown", "annotate-concrete-type", "destructuring requires an Array-like or tuple struct initializer");
             break;
         }
 

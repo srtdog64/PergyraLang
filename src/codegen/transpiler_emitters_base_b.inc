@@ -1953,9 +1953,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         if (party_type == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "cannot resolve party type for bind statement '%s.%s = %s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot resolve party type for bind statement '%s.%s = %s'",
                 pvar != NULL ? pvar : "<party>",
                 slot != NULL ? slot : "<slot>",
                 role != NULL ? role : "<role>");
@@ -1971,9 +1969,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         {
             ASTNode *it = find_party_decl(ctx, party_type);
             if (it == NULL) {
-                transpiler_set_backend_error(
-                    ctx,
-                    "cannot resolve party declaration '%s' while emitting bind statement '%s.%s = %s'",
+                transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot resolve party declaration '%s' while emitting bind statement '%s.%s = %s'",
                     party_type,
                     pvar != NULL ? pvar : "<party>",
                     slot != NULL ? slot : "<slot>",
@@ -1993,9 +1989,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         if (ability_name == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "cannot resolve required ability tag for party slot '%s.%s' while emitting bind statement",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot resolve required ability tag for party slot '%s.%s' while emitting bind statement",
                 party_type,
                 slot != NULL ? slot : "<slot>");
             free(ability_tag);

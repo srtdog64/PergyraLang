@@ -34,7 +34,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (node->data.func_decl.within_zone != NULL
             && find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 node->data.func_decl.within_zone) == NULL) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                 "action '%s' references unknown zone '%s'",
                 name != NULL ? name : "<anonymous>",
                 node->data.func_decl.within_zone);
@@ -44,7 +44,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.func_decl.within_zone);
             if (zone_decl != NULL
                 && !explicit_type_reference_allowed(zone_decl, node, ctx)) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                     "action '%s' cannot reference non-exported zone '%s' from another module",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.within_zone);
@@ -52,7 +52,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_decl != NULL
                 && !zone_decl->is_exported
                 && callable_contract_is_externally_visible(node, ctx)) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                     "action '%s' cannot reference non-exported zone '%s' in an externally visible contract",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.within_zone);
@@ -62,7 +62,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (node->data.func_decl.causes_effect != NULL
             && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
                 node->data.func_decl.causes_effect) == NULL) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                 "action '%s' references unknown effect '%s'",
                 name != NULL ? name : "<anonymous>",
                 node->data.func_decl.causes_effect);
@@ -72,7 +72,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.func_decl.causes_effect);
             if (effect_decl != NULL
                 && !explicit_type_reference_allowed(effect_decl, node, ctx)) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                     "action '%s' cannot reference non-exported effect '%s' from another module",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.causes_effect);
@@ -80,7 +80,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (effect_decl != NULL
                 && !effect_decl->is_exported
                 && callable_contract_is_externally_visible(node, ctx)) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                     "action '%s' cannot reference non-exported effect '%s' in an externally visible contract",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.causes_effect);
@@ -101,7 +101,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             }
 
             if (!found) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                     "action '%s' authorized subject '%s' must be 'self' or one of the action parameters",
                     name != NULL ? name : "<anonymous>",
                     auth_name != NULL ? auth_name : "<subject>");
@@ -111,7 +111,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             auth_type_name = find_action_binding_type_name(
                 node, enclosing_nominal, ctx, auth_name);
             if (auth_type_name == NULL) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                     "action '%s' authorized subject '%s' must be a subject host",
                     name != NULL ? name : "<anonymous>",
                     auth_name != NULL ? auth_name : "<subject>");
@@ -124,7 +124,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_decl != NULL && subject_name != NULL
                 && !domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
                     zone_decl->data.zone_decl.slot_count, ctx, subject_name)) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                     "action '%s' references zone '%s', but that zone has no subject slot for '%s'",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.within_zone,
@@ -141,7 +141,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     }
                     if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
                             zone_decl->data.zone_decl.slot_count, ctx, auth_type_name)) {
-                        semantic_error(ctx, node,
+                        semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                             "action '%s' authorized subject '%s' has type '%s', but zone '%s' has no matching subject slot.\n"
                             "Reason:\n"
                             "- action contract derives authority provenance from binding '%s'\n"
@@ -162,7 +162,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                             node->data.func_decl.within_zone,
                             node->data.func_decl.within_zone);
                     } else if (!zone_has_authority_for_subject_type(zone_decl, ctx, auth_type_name)) {
-                        semantic_error(ctx, node,
+                        semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                             "action '%s' authorized subject '%s' has type '%s', but zone '%s' declares no matching authority.\n"
                             "Reason:\n"
                             "- within-zone contract comes from action clause 'within %s'\n"
@@ -231,7 +231,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     }
 
                     if (!matched) {
-                        semantic_error(ctx, node,
+                        semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                             "action '%s' causes effect '%s', but no self/parameter matches effect target type '%s'",
                             name != NULL ? name : "<anonymous>",
                             node->data.func_decl.causes_effect,
@@ -245,7 +245,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     node->data.func_decl.within_zone);
                 if (zone_decl != NULL
                     && !zone_has_effect_layer_type(zone_decl, node->data.func_decl.causes_effect)) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                         "action '%s' causes effect '%s', but zone '%s' has no matching effect slot.\n"
                         "Reason:\n"
                         "- action contract declares causes '%s'\n"
@@ -442,7 +442,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         existing->type = func_type;
         symbol_destroy(func_sym);
     } else if (!scope_declare(ctx->scope, func_sym)) {
-        semantic_error(ctx, node, "Redeclaration of function '%s'", name);
+        semantic_error_with_hints(ctx,
+            "PGY_SEM_REDECLARATION",
+            "semantic:function:duplicate_name",
+            "rename-or-remove-duplicate",
+            node, "Redeclaration of function '%s'", name);
         symbol_destroy(func_sym);
         return false;
     }
@@ -558,7 +562,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.func_decl.body, param->name, ctx->program_root);
             if ((summary_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
                 if (type_is_movable_resource_handle(param_types[i])) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref movable resource '%s' cannot escape via return from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -576,7 +580,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         param->name);
                 } else if (type_is_subject_type(param_types[i], ctx)) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref subject '%s' cannot escape via return from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -594,7 +598,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         param->name);
                 } else if (type_requires_boundary_borrow_tracking(param_types[i], ctx)) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref boundary value '%s' cannot escape via return from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -612,7 +616,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         param->name);
                 } else {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref slot '%s' cannot escape via return from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -633,7 +637,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             }
             if ((summary_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
                 if (type_is_movable_resource_handle(param_types[i])) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref movable resource '%s' cannot escape through channel send from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -651,7 +655,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         param->name);
                 } else if (type_is_subject_type(param_types[i], ctx)) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref subject '%s' cannot escape through channel send from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -669,7 +673,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         param->name);
                 } else if (type_requires_boundary_borrow_tracking(param_types[i], ctx)) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref boundary value '%s' cannot escape through channel send from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -687,7 +691,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         param->name);
                 } else {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref slot '%s' cannot escape through channel send from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -708,7 +712,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             }
             if ((summary_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
                 if (type_is_movable_resource_handle(param_types[i])) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref movable resource '%s' cannot escape through helper/function call from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -726,7 +730,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         param->name);
                 } else if (type_is_subject_type(param_types[i], ctx)) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref subject '%s' cannot escape through helper/function call from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -744,7 +748,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         param->name);
                 } else if (type_requires_boundary_borrow_tracking(param_types[i], ctx)) {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref boundary value '%s' cannot escape through helper/function call from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -762,7 +766,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         param->name);
                 } else {
-                    semantic_error(ctx, node,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
                         "Borrowed ref slot '%s' cannot escape through helper/function call from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
@@ -796,7 +800,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             effect_mask_to_string(derived_effects, derived_buf, sizeof(derived_buf));
             effect_mask_to_string(missing_effects, missing_buf, sizeof(missing_buf));
             effect_mask_to_string(declared_effects, declared_buf, sizeof(declared_buf));
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_EFFECT_CONFLICT", "semantic:effect:incompatible_combo", "split-effect-families", node,
                 "Function '%s' is missing declared effects: %s (declared: %s, derived from body: %s)",
                 name != NULL ? name : "<anonymous>",
                 missing_buf, declared_buf, derived_buf);
@@ -827,7 +831,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             && node->data.func_decl.within_zone != NULL
             && type_effect_mask_requires_authority(func_type->data.function.effect_mask)
             && node->data.func_decl.authorized_by_count == 0) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                 "secure action '%s' within zone '%s' must declare 'authorized by'.\n"
                 "Reason:\n"
                 "- action body derives authority-sensitive effects from capability-bearing work\n"
@@ -846,7 +850,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             && node->data.func_decl.within_zone != NULL
             && node->data.func_decl.causes_effect != NULL
             && node->data.func_decl.authorized_by_count == 0) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                 "action '%s' causing effect '%s' within zone '%s' must declare 'authorized by'.\n"
                 "Reason:\n"
                 "- action contract declares causes '%s'\n"
@@ -938,7 +942,11 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             existing->type = class_type;
             symbol_destroy(class_sym);
         } else if (!scope_declare(ctx->scope, class_sym)) {
-            semantic_error(ctx, node, "Redeclaration of class '%s'", name);
+            semantic_error_with_hints(ctx,
+                "PGY_SEM_REDECLARATION",
+                "semantic:class:duplicate_name",
+                "rename-or-remove-duplicate",
+                node, "Redeclaration of class '%s'", name);
             symbol_destroy(class_sym);
             ctx->scope = saved;
             if (has_generics) scope_exit(&ctx->scope);
@@ -1017,7 +1025,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     /* struct declarations cannot have methods — use class or object */
     if (node->data.class_decl.nominal_kind == NOMINAL_DECL_STRUCT
         && node->data.class_decl.method_count > 0) {
-        semantic_error(ctx, node,
+        semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", node,
             "struct '%s' cannot have methods; use 'class', 'subject', or 'object' instead",
             name != NULL ? name : "<struct>");
     }
@@ -1339,7 +1347,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     if (!type_resolution_build_topo_order(&ctx->type_resolution_graph,
                                           &topo_order,
                                           &topo_count)) {
-        semantic_error(ctx, program,
+        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_DEPENDENCY_CYCLE", "semantic:type_resolution:cycle", "break-cycle-via-indirection", program,
             "Type resolution topological ordering could not be constructed.\n"
             "Reason:\n"
             "- the semantic type dependency graph is not acyclic or not fully materialized\n"

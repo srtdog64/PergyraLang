@@ -7,8 +7,9 @@ Stable identifiers for compiler diagnostics. Once a code is shipped, its **meani
 All codes follow `PGY_<STAGE>_<REASON>`:
 
 - `PGY_SEM_*` — semantic analyzer (type checker, slot analyzer, effect inference)
-- `PGY_MIR_*` — MIR contract/validation (reserved, not yet assigned)
-- `PGY_LLVM_*` — LLVM backend codegen (reserved, not yet assigned)
+- `PGY_MIR_*` — MIR contract/validation (shared by both backends)
+- `PGY_C_*` — C backend codegen (transpiler lowering MIR → C)
+- `PGY_LLVM_*` — LLVM backend codegen (MIR → LLVM IR → object)
 - `PGY_PARSE_*` — parser-level syntax errors (reserved — currently parse errors surface via `"stage":"parse"` without a code)
 
 JSON output structure when `--error-format=json`:
@@ -157,6 +158,180 @@ Function body joins effect classes that the current partial-order treats as inco
 - **Reason**: effect mask closure on the body produces a combination that the lattice flags as authority-sensitive work mixed with boundary/resource work.
 - **Fix**: split the routine so each helper owns one effect family; isolate the conflicting branch behind an explicit boundary helper.
 
+#### `PGY_SEM_PARALLEL_SECURE_FORBIDDEN`
+
+A capability-bearing operation (SecureSlot read/write/release, DeviceSlot access, or a secure-effect-tagged function/method call) appears inside a `parallel` block. Capability scheduling requires a serialized call-site so the capability identity is not aliased across tasks.
+
+- **Reason**: secure/device operations carry implicit capability state that is not safe to interleave at task-level granularity.
+- **Fix**: hoist the operation to before/after the parallel block, or narrow the parallel block so it excludes the capability-bearing step.
+
+### Declaration Uniqueness
+
+#### `PGY_SEM_REDECLARATION`
+
+A symbol (variable, function, class, ability, role, party, roster, world, world state, zone state, domain slot, intent, etc.) is declared twice in the same scope.
+
+- **Reason**: scope permits only one definition per name; a second declaration is ambiguous.
+- **Fix**: rename one of the declarations, or remove the earlier/later one if it was unintended.
+
+### Borrow / Escape
+
+#### `PGY_SEM_BORROW_ESCAPE`
+
+A value bound as a `ref` parameter (borrowed boundary value / subject / movable resource / slot) attempts to escape the current function through a path that would outlive or alias the borrow: new `let` binding, `return`, assignment rebind, array literal, channel send, constructor field store, or downstream helper call.
+
+- **Reason**: borrowed references do not transfer ownership; allowing them to leave through a storing/forwarding path would create a second observable binding for the same identity.
+- **Fix**: (a) change the parameter to `own` if transfer is actually intended, (b) project/clone into a fresh value before the escaping store, or (c) keep the mutation local and move the store before/after the borrow.
+
+### Domain Contracts
+
+#### `PGY_SEM_INTENT_STEP_INVALID`
+
+Intent step declaration violates one or more contract requirements: missing `where: <Zone>` when no zone is inferable; transfer clauses referencing unknown aliases; `who` participants that do not bind to a subject type or a matching zone slot; required abilities unsatisfied by the participant's role impl; effects not declared in the zone contract; authority requirements violated (missing `authorized by`, unknown authorized participant, wrong type); forbidden control-flow in contract clauses.
+
+- **Reason**: intent step is over-constrained by the combined zone / action / participant / effect contracts and the declaration is inconsistent with that combination.
+- **Fix**: cross-check the zone's subject slots, ability impls, effect slots, and authority rules; align the step's `where`/`using`/`who`/`authorized by`/`causes` clauses accordingly, or adjust the matching action contract.
+
+#### `PGY_SEM_ACTION_CONTRACT_INVALID`
+
+`action` declaration references undeclared or non-exported zone/effect/subject; `authorized by` refers to a non-`self`/non-parameter name; authorized subject type has no matching slot in the target zone; causes an effect with no matching effect slot; or declares a zone-bound effect without `authorized by`.
+
+- **Reason**: action contract surface must be consistent with every zone/effect it is visible from; any cross-reference must be exportable.
+- **Fix**: import/export the referenced declarations; align subject/effect types with the zone's slots; add `authorized by` when the action causes authority-sensitive effects.
+
+#### `PGY_SEM_ABILITY_CONTRACT_INVALID`
+
+`ability` declaration or `requires`/`impl` site uses wrong generic arity, invalid generic argument, duplicate or non-exported `fields` entries.
+
+- **Reason**: ability is part of a role's public contract; its surface must be well-formed so implementers and consumers can type-check without ambiguity.
+- **Fix**: adjust the generic arity/bounds, remove duplicate `fields`, export referenced types, or drop the clause if not needed.
+
+#### `PGY_SEM_ROLE_CONTRACT_INVALID`
+
+`role` declaration cannot implement a required ability because the subject is missing a required field or has an incompatible field type; includes an unknown role; references a non-exported ability from another module; fails generic bound on an included role.
+
+- **Reason**: role-based dispatch relies on the subject + role combination exposing the exact signature the ability prescribes.
+- **Fix**: add/rename the missing field, align the field type, import the referenced role/ability, or relax the generic bound.
+
+#### `PGY_SEM_CLASS_CONTRACT_INVALID`
+
+`class` declaration or instantiation site cannot validate a `where`-clause or resolve a generic argument (either at instantiation or specialization time).
+
+- **Reason**: class generic bounds are part of the type; an unsatisfied bound makes the specialization unsound.
+- **Fix**: provide a type argument that satisfies the bound, or widen the bound if the original constraint was overly tight.
+
+#### `PGY_SEM_ZONE_CONTRACT_INVALID`
+
+`zone` / `world` declaration or site violates one of the zone surface contracts: authority references unknown/non-subject slot; authority declared twice for one slot; layer/state/apply/link/detach/unlink/maintain clause refers to missing slot or wrong kind; zone projection misses required target field; zone-state transition is malformed; etc.
+
+- **Reason**: zone is a capability boundary; every clause inside it must point to a slot/state the zone declares, otherwise routing and authority checks cannot be validated.
+- **Fix**: check slot/state naming and kinds; import/export referenced zones; align the authority ability set with the subject's role; remove or repair the offending clause.
+
+#### `PGY_SEM_WORLD_CONTRACT_INVALID`
+
+`world` declaration or composed-world state contract references unknown or forward-defined zone/state; world state pulls from derived state where only zone sources are allowed; world activate/deactivate/maintain references unknown zone slot; world constructor implicit-copies a zone binding that should be moved/cloned; `HasZone(...)` predicate on unknown zone.
+
+- **Reason**: world is a composition of zones and their states; every name in a clause must resolve to a slot/state the world already declares at that point.
+- **Fix**: declare or reorder the referenced zones/states; switch to the underlying zone slot instead of a derived alias; make the copy explicit via `Clone(...)` where unavoidable.
+
+### Loop Control
+
+#### `PGY_SEM_LOOP_CONTROL_INVALID`
+
+`break` or `continue` used outside a loop, or targets a label that does not name an enclosing loop.
+
+- **Reason**: loop control needs an enclosing loop for scope; unknown labels cannot be resolved.
+- **Fix**: move the statement inside a loop, or fix the label to match an enclosing labeled loop.
+
+### Builtins
+
+#### `PGY_SEM_BUILTIN_ARGS_INVALID`
+
+A built-in intrinsic (`Rc*`, `Weak*`, `Box*`, `Move`, `Clone`, `BoxArray`, ...) was called with the wrong number or kind of arguments: wrong arity, argument is not the expected generic handle type, non-owning binding where an owning slot is required.
+
+- **Reason**: built-in intrinsics have fixed signatures and cannot accept overloads; their arguments must match exactly.
+- **Fix**: match the documented intrinsic signature; construct the expected wrapper type (`Rc<T>`, `Weak<T>`, `Box<T>`, owning `Slot<T>`) before the call.
+
+#### `PGY_SEM_PREDICATE_ARGS_INVALID`
+
+`HasState`, `HasProjection`, `HasZone`, `HasLayer` (or zone-layered variants) called with wrong argument shape, in the wrong host scope (e.g. `HasState` outside a zone body), or with an identifier/literal that does not resolve to a declared name.
+
+- **Reason**: these predicates are compiled against the enclosing host's declared slots; they must be used inside a host that has those slots, with a name that matches one of them.
+- **Fix**: move the call into the right host scope (zone/world/relation/effect); check the slot/state name; use a string literal or identifier that the host declares.
+
+### Event / Remote / Anchored
+
+#### `PGY_SEM_EVENT_CONTRACT_INVALID`
+
+`event` declaration parameter is missing a type annotation, or an `event` invoke site passes the wrong argument count.
+
+- **Reason**: event signatures bridge publisher and subscriber; both sides must agree on types and arity.
+- **Fix**: add explicit parameter types on the declaration; align invoke-site argument count with the signature.
+
+#### `PGY_SEM_REMOTE_FUTURE_MISUSE`
+
+`Write(...)`, `Read(...)`, or `Release(...)` called on a `RemoteFuture<T>`. Remote resources are not accessible in place — they are consumed by `await`.
+
+- **Reason**: `RemoteFuture<T>` is a one-shot result, not a slot; direct access does not have a well-defined semantic.
+- **Fix**: `await` the future to obtain the `Result<T, E>` and operate on that.
+
+#### `PGY_SEM_ANCHORED_HANDLE_COPY`
+
+An anchored resource handle (`Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`) was bound into a new `let` without moving; the handle identity would now be duplicated.
+
+- **Reason**: anchored handles are unique per resource; copying them creates two observable bindings for the same resource.
+- **Fix**: use `Move(slot)` to transfer, or keep the original binding and work through it.
+
+### Type Resolution
+
+#### `PGY_SEM_TYPE_DEPENDENCY_CYCLE`
+
+A type, alias, or domain-decl forms a resolution cycle — the graph has an edge A → B → ... → A where each step is a type-usage dependency.
+
+- **Reason**: resolving the cycle would require knowing one of its members before it is itself resolved; nominal types cannot be computed that way.
+- **Fix**: break the cycle by introducing an indirection (boxing via `Rc<T>` / `Box<T>`, or a named alias that does not participate in the cycle), or restructure the types so that one is expressed in terms of another without the back-reference.
+
+### Match / Select
+
+#### `PGY_SEM_MATCH_PATTERN_INVALID`
+
+A `match` pattern is malformed: `None` pattern carries a payload binding, enum variant payload arity mismatches the variant's declared fields, or the matched variant has no usable constructor type.
+
+- **Reason**: pattern bindings must line up exactly with the value's shape; a mismatch would bind the wrong slot or leave bindings unresolved.
+- **Fix**: remove extra payload bindings on `None`, align enum payload arity with the declaration, or import/declare the enum before matching on it.
+
+#### `PGY_SEM_SELECT_CASE_INVALID`
+
+A `select { case ... : ... }` arm does not start with a channel-receive pattern.
+
+- **Reason**: `select` multiplexes channel readiness; each case must anchor on a `<-channel` receive or a named bind of one.
+- **Fix**: rewrite the case to begin with `let v = <- ch` (or the bare receive for discard), or move the non-channel work out of the `select`.
+
+### Operators
+
+#### `PGY_SEM_UNOP_TYPE_MISMATCH`
+
+Unary operator applied to an operand whose type does not satisfy the operator's domain: `!` on a non-`Bool`; unary `-` on a non-numeric type.
+
+- **Reason**: unary operators have fixed domains; applying them to the wrong type would change the observable behavior silently.
+- **Fix**: coerce or restructure to a value of the expected operand type, or use a different operator / builtin for the intent.
+
+### Visibility / Immutability
+
+#### `PGY_SEM_VISIBILITY_BOUNDARY`
+
+A member access (`obj.field` or `obj.method`) crosses a `public`/`module-private`/`pub(zone)` visibility boundary the call site is not allowed to cross.
+
+- **Reason**: visibility modifiers are enforced at semantic check time; the current module/zone/world is not in the set the member is exported to.
+- **Fix**: widen the member's visibility, move the caller into the permitted scope, or expose a public accessor the outside caller is allowed to use.
+
+#### `PGY_SEM_IMMUTABLE_FIELD_WRITE`
+
+Assignment target is an immutable field: `object` field after construction; `tobject` field (always immutable); a bare slot-like resource handle that requires `Write(slot, ...)` instead of a reassignment.
+
+- **Reason**: `object` and `tobject` host kinds freeze field values at construction; mutation would invalidate the identity/snapshot semantics those kinds carry.
+- **Fix**: construct a fresh `object`/`tobject` with the updated field, or switch to a `subject`/`class`/`vessel` host if ongoing mutation is intended; for resource handles, use the `Write(...)` builtin.
+
 ## MIR Contract (`stage: "mir_validation"`)
 
 These codes fire before C or LLVM codegen reaches the native compiler; they indicate the MIR-level emission contract was violated or a required MIR artifact is missing. JSON stage is always `"mir_validation"`.
@@ -196,6 +371,17 @@ An `intent` step emission reached the codegen layer missing a required metadata 
 - **Reason**: HIR → MIR intent lowering did not materialize the expected instruction for this step kind.
 - **Fix**: verify the intent step parses correctly; ensure the DIR → MIR intent lowering produces the matching carrier instruction.
 
+## C Backend (`stage: "c_codegen"`)
+
+These codes fire inside the C transpiler (MIR → C source) before the native C compiler is invoked. JSON stage is always `"c_codegen"`.
+
+#### `PGY_C_TYPE_UNSUPPORTED`
+
+The C transpiler does not yet lower the type / builtin / nominal shape encountered at this site. Covers "C backend: unsupported X", "cannot render ability/party/role", "cannot determine slot/lambda/element/parameter type", "cannot resolve included role / party / ability", "cannot derive Result<T, E> specialization", "too many tuple specializations".
+
+- **Reason**: the C backend's lowering library has not been extended to cover this MIR/domain shape. LLVM backend may support it (the two backends are not perfectly symmetric).
+- **Fix**: prefer `--backend=llvm` for the affected program, or add the missing lowering path to the C transpiler (if extending pergyra itself).
+
 ## LLVM Backend (`stage: "llvm_codegen"`)
 
 These codes fire inside the LLVM backend before the native compiler (clang/gcc) is invoked. JSON stage is always `"llvm_codegen"`.
@@ -207,6 +393,34 @@ Too many distinct `Result<T, E>` specializations in one translation unit (intern
 - **Reason**: either real fan-out across many error types, or accidental re-specialization due to type name normalization drift.
 - **Fix**: collapse error types (reuse a shared enum), raise the limit, or audit `llvm_ensure_result_spec` for duplicate-detection regressions.
 
+#### `PGY_LLVM_TYPE_UNSUPPORTED`
+
+The LLVM backend cannot emit the requested type/operation: `Result<...>` inner type resolution failed; standalone `let` for a slot-like type lacks a concrete annotation; `DeviceWrite`/`DeviceRead`/`ReleaseDeviceSlot`/`SubmitDeviceRead` on a slot whose inner type is not concrete; destructure source is not Array-like/tuple; `ClaimDeviceSlot` let without `DeviceSlot<T>` annotation.
+
+- **Reason**: LLVM monomorphization requires a known concrete type at emission time; type inference could not pin it down from annotations.
+- **Fix**: add an explicit `let x: <Type> = ...` annotation, or restructure the source so the type is derivable from context.
+
+#### `PGY_LLVM_MIR_ROUTINE_MISSING`
+
+MIR-only path expected a routine or top-level wrapper that was not emitted: e.g. the `__pgy_top_level_exec` wrapper needed to execute the program entry.
+
+- **Reason**: MIR lowering dropped a required function-level artifact; the LLVM walker cannot proceed without it.
+- **Fix**: inspect the MIR inventory for the missing routine; verify the HIR → MIR pipeline emitted it.
+
+#### `PGY_LLVM_SCOPE_LIMIT`
+
+LLVM's per-module scope/variable registry exceeded an internal capacity: scope depth > max, or too many variables in one scope.
+
+- **Reason**: the current function/module uses more nested scopes or local variables than the static buffer handles.
+- **Fix**: refactor the function into helpers, or raise the limit in `llvm_registry.c`.
+
+#### `PGY_LLVM_OOM`
+
+Heap allocation failed while growing an internal LLVM-backend data structure (e.g. `generic_templates`).
+
+- **Reason**: runtime memory exhaustion.
+- **Fix**: reduce the translation unit size, or run on a machine with more memory.
+
 ## Routing Guidance for AI Consumers
 
 - Check `code` first; fall back to `stage` + message pattern if `code` is absent.
@@ -216,6 +430,6 @@ Too many distinct `Result<T, E>` specializations in one translation unit (intern
 
 ## Future Extensions
 
-- `cause_ir` field (MIR/IR-level origin) and `fix_source` field (source-level patch hint) are planned but not yet wired. Catalog entries above describe the semantic fix; when those fields are added they will give AI a separate machine-parseable "what to change" channel.
-- `PGY_MIR_*` and `PGY_LLVM_*` prefixes are reserved. MIR contract breaches (e.g. "unresolved SSA local at branch terminator") are the next priority once they are routed through the JSON sink.
+- `cause_ir` and `fix_source` fields are wired (see field reference at the top). Coverage is partial: a handful of representative sites carry them today (type mismatch, slot lifecycle, view-through, LLVM spec limit). Remaining sites can be upgraded incrementally via `semantic_error_with_hints` / `llvm_set_error_with_hints`.
+- `PGY_PARSE_*` prefix is reserved. Parser-layer errors currently surface via `"stage":"parse"` without a code because the parser does not accumulate diagnostics into `SemanticContext`; routing them through the JSON sink requires a parser refactor.
 - `related_rules` field will link each code to the language reference spec once that document exists.

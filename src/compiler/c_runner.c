@@ -45,11 +45,13 @@ CompilerResult *result;
 
         result = compiler_emit_c(bundle, output_c);
         if (result == NULL || !result->success) {
-            const char *msg = result != NULL ? result->error_message : "out of memory";
-            const char *code = result != NULL ? result->error_code : NULL;
+            const char *msg   = result != NULL ? result->error_message : "out of memory";
+            const char *code  = result != NULL ? result->error_code : NULL;
+            const char *cause = result != NULL ? result->error_cause_ir : NULL;
+            const char *fix   = result != NULL ? result->error_fix_source : NULL;
             if (flags->diag_format == DIAG_FORMAT_JSON) {
                 const char *stage = driver_route_stage("backend_c_emit", code);
-                driver_emit_single_diag_json_with_code(stage, code, msg);
+                driver_emit_single_diag_json_full(stage, code, cause, fix, msg);
             } else {
                 fprintf(stderr, "pgy: C generation failed: %s\n", msg);
             }
@@ -116,11 +118,13 @@ CompilerResult *result;
     remove(tmp_c);
 
     if (result == NULL || !result->success) {
-        const char *msg = result != NULL ? result->error_message : "out of memory";
-        const char *code = result != NULL ? result->error_code : NULL;
+        const char *msg   = result != NULL ? result->error_message : "out of memory";
+        const char *code  = result != NULL ? result->error_code : NULL;
+        const char *cause = result != NULL ? result->error_cause_ir : NULL;
+        const char *fix   = result != NULL ? result->error_fix_source : NULL;
         if (flags->diag_format == DIAG_FORMAT_JSON) {
             const char *stage = driver_route_stage("backend_c_native", code);
-            driver_emit_single_diag_json_with_code(stage, code, msg);
+            driver_emit_single_diag_json_full(stage, code, cause, fix, msg);
         } else {
             fprintf(stderr, "pgy: compile failed: %s\n", msg);
         }

@@ -214,6 +214,27 @@ transpiler_set_backend_error_with_code(TranspilerCtx *ctx, const char *code,
     va_end(ap);
 }
 
+/* Full variant that records `cause_ir` + `fix_source` tags alongside the
+ * code. All three must be non-owning string literals; NULL is allowed
+ * per-field to omit. First error wins (matches legacy setter). */
+static void
+transpiler_set_backend_error_with_hints(TranspilerCtx *ctx, const char *code,
+                                         const char *cause_ir,
+                                         const char *fix_source,
+                                         const char *fmt, ...)
+{
+    va_list ap;
+    if (ctx == NULL || fmt == NULL || ctx->backend_error != NULL)
+        return;
+    if (cause_ir != NULL)
+        ctx->backend_error_cause_ir = cause_ir;
+    if (fix_source != NULL)
+        ctx->backend_error_fix_source = fix_source;
+    va_start(ap, fmt);
+    transpiler_set_backend_error_v(ctx, code, fmt, ap);
+    va_end(ap);
+}
+
 /* -----------------------------------------------------------------
  * Slot variable tracking
  * ----------------------------------------------------------------- */

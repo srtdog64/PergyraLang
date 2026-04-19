@@ -3,7 +3,11 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
     const char *name = node->data.intent_decl.name;
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL && existing->kind != SYMBOL_INTENT) {
-        semantic_error(ctx, node, "Redeclaration of intent '%s'", name);
+        semantic_error_with_hints(ctx,
+            "PGY_SEM_REDECLARATION",
+            "semantic:intent:duplicate_name",
+            "rename-or-remove-duplicate",
+            node, "Redeclaration of intent '%s'", name);
         return false;
     }
     if (existing != NULL && existing->kind == SYMBOL_INTENT) {
@@ -100,7 +104,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             char contract_summary[512];
             intent_step_format_contract_source_summary(
                 node, step, ctx, contract_summary, sizeof(contract_summary));
-            semantic_error(ctx, step,
+            semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                 "Intent step '%s' requires a where zone type.\n"
                 "Reason:\n"
                 "- no local, reused, or derived zone contract is available for this step\n"
@@ -117,7 +121,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 zone_type != NULL ? zone_type->name : NULL);
             if (step->data.intent_step.where_type != NULL && zone_decl == NULL) {
-                semantic_error(ctx, step->data.intent_step.where_type,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step->data.intent_step.where_type,
                     "Intent step '%s' refers to unknown zone '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     zone_type != NULL ? zone_type->name : "<zone>");
@@ -131,19 +135,19 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             intent_clause_rejects_control_transfer(step->data.intent_step.using_expr, ctx,
                 step->data.intent_step.name, "using");
             if (step->data.intent_step.using_expr->type != AST_IDENTIFIER) {
-                semantic_error(ctx, step->data.intent_step.using_expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step->data.intent_step.using_expr,
                     "Intent step '%s' using clause must reference an intent parameter alias",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             } else if (find_intent_involves_local(node,
                     step->data.intent_step.using_expr->data.identifier.name) == NULL) {
-                semantic_error(ctx, step->data.intent_step.using_expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step->data.intent_step.using_expr,
                     "Intent step '%s' using clause refers to unknown binding '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     step->data.intent_step.using_expr->data.identifier.name != NULL
                         ? step->data.intent_step.using_expr->data.identifier.name : "<binding>");
             }
             if (using_type != NULL && zone_type != NULL && !type_equals(using_type, zone_type)) {
-                semantic_error(ctx, step->data.intent_step.using_expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step->data.intent_step.using_expr,
                     "Intent step '%s' using binding must match zone type '%s', got '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     zone_type->name != NULL ? zone_type->name : "<zone>",
@@ -170,7 +174,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 ? resolve_type_node(step->data.intent_step.where_type, ctx) : NULL;
 
             if (from_alias == NULL || to_alias == NULL) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' transfer clause requires both source and target zone aliases.\n"
                     "Reason:\n"
                     "- transfer declares a zone handoff contract\n"
@@ -182,7 +186,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             }
             if (from_alias != NULL && from_involves == NULL) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' transfer source '%s' is not a declared intent binding.\n"
                     "Reason:\n"
                     "- contract source is transfer handoff edge '%s' -> '%s'\n"
@@ -199,7 +203,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     from_alias);
             }
             if (to_alias != NULL && to_involves == NULL) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' transfer target '%s' is not a declared intent binding or a unique zone type in this intent.\n"
                     "Reason:\n"
                     "- contract source is transfer handoff edge '%s' -> '%s'\n"
@@ -216,7 +220,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     to_alias);
             }
             if (from_involves != NULL && from_zone_decl == NULL) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' transfer source '%s' must be a zone binding.\n"
                     "Reason:\n"
                     "- contract source is transfer handoff edge '%s' -> '%s'\n"
@@ -232,7 +236,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     from_alias != NULL ? from_alias : "<source>");
             }
             if (to_involves != NULL && to_zone_decl == NULL) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' transfer target '%s' must be a zone binding.\n"
                     "Reason:\n"
                     "- contract source is transfer handoff edge '%s' -> '%s'\n"
@@ -251,7 +255,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 char contract_summary[512];
                 intent_step_format_contract_source_summary(
                     node, step, ctx, contract_summary, sizeof(contract_summary));
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' transfer target '%s' does not match the current zone contract.\n"
                     "Reason:\n"
                     "- contract source is the transfer handoff edge '%s' -> '%s'\n"
@@ -284,7 +288,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 char contract_summary[512];
                 intent_step_format_contract_source_summary(
                     node, step, ctx, contract_summary, sizeof(contract_summary));
-                semantic_error(ctx, step->data.intent_step.using_expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step->data.intent_step.using_expr,
                     "Intent step '%s' using binding does not match the transfer target.\n"
                     "Reason:\n"
                     "- contract source is the transfer handoff edge '%s' -> '%s'\n"
@@ -313,7 +317,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         if (step->data.intent_step.who_count == 0 && !has_subintent) {
-            semantic_error(ctx, step, "Intent step '%s' requires at least one who participant",
+            semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step, "Intent step '%s' requires at least one who participant",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
         }
 
@@ -325,7 +329,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             if (step->data.intent_step.intent_expr->type != AST_CALL
                 || step->data.intent_step.intent_expr->data.call.callee == NULL
                 || step->data.intent_step.intent_expr->data.call.callee->type != AST_IDENTIFIER) {
-                semantic_error(ctx, step->data.intent_step.intent_expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step->data.intent_step.intent_expr,
                     "Intent step '%s' intent clause must call a named intent before lowering to Bool-gated orchestration",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             } else {
@@ -336,7 +340,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     ? scope_lookup(ctx->scope, callee_name)
                     : NULL;
                 if (intent_sym == NULL || intent_sym->kind != SYMBOL_INTENT) {
-                    semantic_error(ctx, step->data.intent_step.intent_expr,
+                    semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step->data.intent_step.intent_expr,
                         "Intent step '%s' intent clause target '%s' is not a declared intent (resolved kind: %s). "
                         "Boolean-gated orchestration requires a declared intent that returns Bool. "
                         "Declare '%s' as an intent or replace this clause with a Bool-compatible predicate.",
@@ -349,14 +353,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 }
             }
             if (intent_type != NULL && !type_equals(intent_type, TYPE_BOOL)) {
-                semantic_error(ctx, step->data.intent_step.intent_expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step->data.intent_step.intent_expr,
                     "Intent step '%s' intent clause must return Bool for boolean-orchestration, got '%s'. "
                     "Expected `Bool`; adjust the callee '%s' return type to Bool or wrap with a Bool predicate.",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     intent_type->name != NULL ? intent_type->name : "<type>",
                     callee_name != NULL ? callee_name : "<callee>");
             } else if (intent_type == NULL) {
-                semantic_error(ctx, step->data.intent_step.intent_expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step->data.intent_step.intent_expr,
                     "Intent step '%s' intent clause type could not be resolved as Bool. "
                     "Boolean-gated orchestration requires the called clause to evaluate to Bool; "
                     "make '%s' return Bool or wrap it in a Bool predicate.",
@@ -424,7 +428,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             ASTNode *involves = find_intent_involves_local(node, alias);
             const char *participant_type_name = NULL;
             if (involves == NULL) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' refers to unknown participant '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     alias != NULL ? alias : "<participant>");
@@ -433,7 +437,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
             participant_type_name = intent_involves_type_name(involves);
             if (!intent_involves_is_subject_host(ctx->program_root, involves)) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' who participant '%s' must bind to a subject type",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     alias != NULL ? alias : "<participant>");
@@ -442,7 +446,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_decl != NULL && participant_type_name != NULL
                 && !domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
                     zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' binds participant '%s' of type '%s', but zone '%s' has no matching subject slot",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     alias != NULL ? alias : "<participant>",
@@ -459,7 +463,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 if (from_zone_decl != NULL
                     && !domain_has_subject_slot_type(from_zone_decl->data.zone_decl.slots,
                         from_zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
-                    semantic_error(ctx, step,
+                    semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                         "Intent step '%s' transfer source zone '%s' has no matching subject slot for participant '%s' of type '%s'.\n"
                         "Reason:\n"
                         "- contract source is transfer handoff edge '%s' -> '%s'\n"
@@ -536,7 +540,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     intent_step_format_contract_source_summary(
                         node, step, ctx, contract_summary, sizeof(contract_summary));
                     if (actual_impl != NULL) {
-                        semantic_error(ctx, step,
+                        semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                             "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' implements '%s' instead.\n"
                             "Reason:\n"
                             "- participant type '%s' does not satisfy required ability '%s'\n"
@@ -562,7 +566,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                                                   : (ability != NULL ? ability : "<ability>"),
                             participant_type_name);
                     } else {
-                        semantic_error(ctx, step,
+                        semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                             "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it.\n"
                             "Reason:\n"
                             "- participant type '%s' does not satisfy required ability '%s'\n"
@@ -597,14 +601,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         if (step->data.intent_step.causes_effect != NULL
             && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
                 step->data.intent_step.causes_effect) == NULL) {
-            semantic_error(ctx, step,
+            semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                 "Intent step '%s' causes unknown effect '%s'",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 step->data.intent_step.causes_effect);
         } else if (step->data.intent_step.causes_effect != NULL
             && zone_decl != NULL
             && !zone_has_effect_layer_type(zone_decl, step->data.intent_step.causes_effect)) {
-            semantic_error(ctx, step,
+            semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                 "Intent step '%s' causes effect '%s', but zone '%s' has no matching effect slot.\n"
                 "Reason:\n"
                 "- causes requires the current zone to materialize a matching effect layer\n"
@@ -645,7 +649,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             intent_step_format_contract_source_summary(
                 node, step, ctx, inherited_summary, sizeof(inherited_summary));
             if (step->data.intent_step.inherited_where_from_action) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
                     "Reason:\n"
                     "%s\n"
@@ -666,7 +670,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     inherited_summary[0] != '\0' ? "\n" : "",
                     suggested_authorizer != NULL ? suggested_authorizer : "<participant>");
             } else {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
                     "Reason:\n"
                     "%s\n"
@@ -697,7 +701,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             intent_step_format_contract_source_summary(
                 node, step, ctx, contract_summary, sizeof(contract_summary));
             if (involves == NULL) {
-                semantic_error(ctx, step,
+                semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                     "Intent step '%s' authorizes unknown participant '%s'.\n"
                     "Reason:\n"
                     "- the authorized-by clause references a participant alias that is not declared on the intent\n"
@@ -716,7 +720,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
             if (zone_decl != NULL && participant_type_name != NULL) {
                 if (!intent_involves_is_subject_host(ctx->program_root, involves)) {
-                    semantic_error(ctx, step,
+                    semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                         "Intent step '%s' authorized participant '%s' must bind to a subject type.\n"
                         "Reason:\n"
                         "- only subject participants can satisfy zone authority contracts\n"
@@ -736,7 +740,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 }
                 if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
                         zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
-                    semantic_error(ctx, step,
+                    semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                         "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' has no matching subject slot.\n"
                         "Reason:\n"
                         "- authorized participants must map to a subject slot inside the current zone\n"
@@ -760,7 +764,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
                 } else if (zone_decl->data.zone_decl.authority_count > 0
                     && !zone_has_authority_for_subject_type(zone_decl, ctx, participant_type_name)) {
-                    semantic_error(ctx, step,
+                    semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", step,
                         "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' declares no matching authority.\n"
                         "Reason:\n"
                         "- contract source is authority-bearing zone '%s' with authorized participant '%s'\n"

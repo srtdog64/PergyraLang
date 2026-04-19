@@ -161,7 +161,7 @@ report_subject_ability_requirement_mismatch(SemanticContext *ctx,
         return;
 
     if (actual_text != NULL) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
             "%s '%s' requires ability '%s', but %s '%s' implements '%s' instead.\n"
             "Reason:\n"
             "- consumer path is %s '%s'\n"
@@ -193,7 +193,7 @@ report_subject_ability_requirement_mismatch(SemanticContext *ctx,
         return;
     }
 
-    semantic_error(ctx, site,
+    semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
         "%s '%s' requires ability '%s', but %s '%s' has no matching role impl.\n"
         "Reason:\n"
         "- consumer path is %s '%s'\n"
@@ -559,7 +559,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
 
     resolve_type_node(ability_ref, ctx);
     if (ability == NULL) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
             "%s '%s' requires a valid ability type reference.\n"
             "Reason:\n"
             "- this contract path expects an ability type\n"
@@ -577,7 +577,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
 
     ability_decl = find_ability_decl_by_name(ctx->program_root, ability);
     if (ability_decl == NULL) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
             "%s '%s' requires unknown ability '%s'.\n"
             "Reason:\n"
             "- no visible ability declaration named '%s' was found\n"
@@ -645,7 +645,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             ability, ability_decl->data.ability_decl.generic_params);
 
         if (arg_count > 0 && param_count == 0) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
                 "Ability '%s' does not accept generic type arguments in requires clauses.\n"
                 "Reason:\n"
                 "- consumer path is %s '%s'\n"
@@ -677,7 +677,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
                 ability_decl->data.ability_decl.generic_params)) {
             size_t required_count = generic_params_required_count(
                 ability_decl->data.ability_decl.generic_params);
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
                 "Ability '%s' requires between %zu and %zu generic argument(s) in requires clauses, got %zu.\n"
                 "Reason:\n"
                 "- consumer path is %s '%s'\n"
@@ -703,7 +703,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             GenericParam *gp = ability_ref->data.type.generic_args->params[i];
             ASTNode *arg = gp != NULL ? gp->constraint : NULL;
             if (arg == NULL) {
-                semantic_error(ctx, site,
+                semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
                     "Ability '%s' has an invalid generic argument in requires clause.\n"
                     "Reason:\n"
                     "- consumer path is %s '%s'\n"
@@ -754,7 +754,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
         ASTNode *req = node->data.ability_decl.require_fields[i];
         if (req == NULL || req->data.require_field.name == NULL
             || req->data.require_field.type == NULL) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", node,
                 "Ability '%s' has an invalid fields declaration",
                 name != NULL ? name : "<ability>");
             continue;
@@ -764,7 +764,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
             if (prev != NULL && prev->data.require_field.name != NULL
                 && strcmp(prev->data.require_field.name,
                           req->data.require_field.name) == 0) {
-                semantic_error(ctx, req,
+                semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", req,
                     "Ability '%s' declares duplicate field '%s' in fields",
                     name != NULL ? name : "<ability>",
                     req->data.require_field.name);
@@ -779,7 +779,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
                 ctx->program_root, req->data.require_field.type->data.type.name);
             if (type_decl != NULL
                 && !explicit_type_reference_allowed(type_decl, node, ctx)) {
-                semantic_error(ctx, req,
+                semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", req,
                     "Ability '%s' cannot declare field '%s' in fields with non-exported type '%s' from another module",
                     name != NULL ? name : "<ability>",
                     req->data.require_field.name,
@@ -805,7 +805,7 @@ validate_action_required_abilities(ASTNode *node,
     if (enclosing_nominal == NULL
         || enclosing_nominal->type != AST_CLASS_DECL
         || enclosing_nominal->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
-        semantic_error(ctx, node,
+        semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
             "action '%s' is only supported inside subject declarations",
             name != NULL ? name : "<anonymous>");
     } else {
@@ -839,7 +839,7 @@ validate_action_required_abilities(ASTNode *node,
         }
         if (ability_decl->type == AST_ABILITY_DECL
             && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
                 "action '%s' cannot require non-exported ability '%s' from another module",
                 name != NULL ? name : "<anonymous>",
                 ability != NULL ? ability : "<ability>");

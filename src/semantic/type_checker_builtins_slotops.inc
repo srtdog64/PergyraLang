@@ -131,7 +131,7 @@ Type *
 type_check_claim_slot(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 0) {
-        semantic_error(ctx, call, "ClaimSlot takes no arguments");
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "ClaimSlot takes no arguments");
         return TYPE_UNKNOWN;
     }
 
@@ -187,7 +187,7 @@ type_check_move_token(ASTNode *call, SemanticContext *ctx)
 
     ASTNode *slot_arg = call->data.call.arguments[0];
     if (slot_arg == NULL || slot_arg->type != AST_IDENTIFIER) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
             "Move requires a named owning Slot<T>/SecureSlot<T> binding");
         return TYPE_UNKNOWN;
     }
@@ -195,18 +195,18 @@ type_check_move_token(ASTNode *call, SemanticContext *ctx)
     Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
     Type *slot_type = type_check_expression(slot_arg, ctx);
     if (!type_is_owned_slot_handle(slot_type)) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", slot_arg,
             "Move requires owning Slot<T>/SecureSlot<T>, got '%s'",
             slot_type != NULL ? slot_type->name : "<null>");
         return TYPE_UNKNOWN;
     }
     if (sym == NULL || sym->kind != SYMBOL_SLOT) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", slot_arg,
             "Move requires an owning slot binding");
         return TYPE_UNKNOWN;
     }
     if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-        semantic_error_code(ctx, "PGY_SEM_MOVE_FROM_RELEASED", slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released", "reclaim-or-trace-earlier-move", slot_arg,
             "Cannot move released slot '%s'",
             sym->name);
         return TYPE_UNKNOWN;
@@ -223,7 +223,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     size_t arg_count = call->data.call.arg_count;
 
     if (arg_count < 2) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
             "Write requires at least 2 arguments: Write(slot, value)");
         return false;
     }
@@ -232,24 +232,24 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     Type *slot_type = type_check_expression(slot_arg, ctx);
 
     if (type_is_constructed_named(slot_type, "RemoteFuture")) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_REMOTE_FUTURE_MISUSE", "semantic:remote_future:direct_access", "await-future", slot_arg,
             "RemoteFuture does not support Write(); remote resources are "
             "read-only via 'await'. Use Channel to send data to remote World");
         return false;
     }
     if (slot_type->kind != TYPE_KIND_SLOT) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", slot_arg,
             "First argument to Write must be a Slot, got '%s'",
             slot_type->name);
         return false;
     }
     if (type_is_read_view(slot_type)) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_VIEW_KIND_MISMATCH", "semantic:view_kind:op_mismatch", "acquire-matching-view-or-use-slot", slot_arg,
             "Cannot write through ReadView<T>; create a WriteView(slot) or keep the owning Slot<T>");
         return false;
     }
     if (type_is_move_token(slot_type)) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_MOVE_TOKEN_MISUSE", "semantic:move_token:direct_access", "materialize-token-to-slot", slot_arg,
             "Cannot write through MoveToken<T>");
         return false;
     }
@@ -258,7 +258,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_SECURE);
 
     if (ctx->in_parallel && slot_type->data.slot.is_secure) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "semantic:parallel:secure_in_task", "serialize-outside-parallel", slot_arg,
             "Parallel context does not permit SecureSlot access yet; serialize capability-bearing slot reads/writes/releases outside the parallel block");
         return false;
     }
@@ -297,7 +297,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
                    && sym->slot_info.paired_slot_name != NULL) {
             Symbol *owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
             if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error(ctx, slot_arg,
+                semantic_error_with_hints(ctx, "PGY_SEM_SLOT_RELEASED", "semantic:slot_view:write_through_released_owner", "reclaim-source-or-drop-view", slot_arg,
                     "Cannot write through WriteView '%s' because source slot '%s' was released",
                     sym->name, owner->name);
                 return false;
@@ -327,7 +327,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
     size_t arg_count = call->data.call.arg_count;
 
     if (arg_count < 1) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
             "Read requires at least 1 argument: Read(slot)");
         return TYPE_UNKNOWN;
     }
@@ -336,24 +336,24 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
     Type *slot_type = type_check_expression(slot_arg, ctx);
 
     if (type_is_constructed_named(slot_type, "RemoteFuture")) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_REMOTE_FUTURE_MISUSE", "semantic:remote_future:direct_access", "await-future", slot_arg,
             "RemoteFuture does not support Read(); use 'await' to obtain "
             "Result<T>, then Unwrap() or '?' to extract the value");
         return TYPE_UNKNOWN;
     }
     if (slot_type->kind != TYPE_KIND_SLOT) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", slot_arg,
             "First argument to Read must be a Slot, got '%s'",
             slot_type->name);
         return TYPE_UNKNOWN;
     }
     if (type_is_write_view(slot_type)) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_VIEW_KIND_MISMATCH", "semantic:view_kind:op_mismatch", "acquire-matching-view-or-use-slot", slot_arg,
             "Cannot read through WriteView<T>; create a ReadView(slot) or keep the owning Slot<T>");
         return TYPE_UNKNOWN;
     }
     if (type_is_move_token(slot_type)) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_MOVE_TOKEN_MISUSE", "semantic:move_token:direct_access", "materialize-token-to-slot", slot_arg,
             "Cannot read through MoveToken<T>");
         return TYPE_UNKNOWN;
     }
@@ -362,7 +362,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_SECURE);
 
     if (ctx->in_parallel && slot_type->data.slot.is_secure) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "semantic:parallel:secure_in_task", "serialize-outside-parallel", slot_arg,
             "Parallel context does not permit SecureSlot access yet; serialize capability-bearing slot reads/writes/releases outside the parallel block");
         return TYPE_UNKNOWN;
     }
@@ -383,7 +383,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
 
             if (sym->slot_info.is_secure) {
                 if (arg_count < 2) {
-                    semantic_error(ctx, call,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
                         "Read from SecureSlot '%s' requires a token argument",
                         sym->name);
                     return TYPE_UNKNOWN;
@@ -396,7 +396,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
                    && sym->slot_info.paired_slot_name != NULL) {
             Symbol *owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
             if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error(ctx, slot_arg,
+                semantic_error_with_hints(ctx, "PGY_SEM_SLOT_RELEASED", "semantic:slot_view:read_through_released_owner", "reclaim-source-or-drop-view", slot_arg,
                     "Cannot read through ReadView '%s' because source slot '%s' was released",
                     sym->name, owner->name);
                 return TYPE_UNKNOWN;
@@ -425,7 +425,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         Symbol *rsym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
         if (rsym != NULL && rsym->type != NULL
             && type_is_constructed_named(rsym->type, "RemoteFuture")) {
-            semantic_error(ctx, slot_arg,
+            semantic_error_with_hints(ctx, "PGY_SEM_REMOTE_FUTURE_MISUSE", "semantic:remote_future:direct_access", "await-future", slot_arg,
                 "RemoteFuture does not support Release(); it is consumed by "
                 "'await' and returns Result<T>");
             return false;
@@ -433,7 +433,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     if (slot_arg->type != AST_IDENTIFIER) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", slot_arg,
             "Argument to Release must be a slot identifier");
         return false;
     }
@@ -443,7 +443,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
 
     if (sym == NULL || sym->kind != SYMBOL_SLOT) {
         if (sym != NULL && sym->type != NULL && sym->type->kind == TYPE_KIND_SLOT) {
-            semantic_error(ctx, slot_arg,
+            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", slot_arg,
                 "Only owning Slot<T>/SecureSlot<T> values can be released; views are non-owning and move tokens are transfer-only");
         } else {
             semantic_error(ctx, slot_arg,
@@ -456,13 +456,13 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_SECURE);
 
     if (ctx->in_parallel && sym->slot_info.is_secure) {
-        semantic_error(ctx, slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "semantic:parallel:secure_in_task", "serialize-outside-parallel", slot_arg,
             "Parallel context does not permit SecureSlot access yet; serialize capability-bearing slot reads/writes/releases outside the parallel block");
         return false;
     }
 
     if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-        semantic_error_code(ctx, "PGY_SEM_SLOT_DOUBLE_RELEASE", slot_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_SLOT_DOUBLE_RELEASE", "semantic:release:double", "remove-redundant-release", slot_arg,
             "Slot '%s' has already been released", slot_name);
         return false;
     }
@@ -506,7 +506,7 @@ type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
         if (!allow_released
             && sym != NULL
             && sym->slot_info.state == SLOT_STATE_RELEASED) {
-            semantic_error(ctx, expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_SLOT_RELEASED", "semantic:device_slot:use_after_release", "reclaim-before-use", expr,
                 "Cannot use released DeviceSlot '%s' in %s",
                 expr->data.identifier.name, builtin_name);
             return TYPE_UNKNOWN;
@@ -514,7 +514,7 @@ type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
     }
 
     if (ctx->in_parallel) {
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "semantic:parallel:secure_in_task", "serialize-outside-parallel", expr,
             "Parallel context does not permit DeviceSlot operations yet; keep device access serialized outside the parallel block");
         return TYPE_UNKNOWN;
     }

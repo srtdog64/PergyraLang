@@ -632,8 +632,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     /* Built-in: ClaimSlot<T>() — handled mostly in let_decl, but standalone */
     if (strcmp(callee_name, "ClaimSlot") == 0
         || strcmp(callee_name, "ClaimSecureSlot") == 0) {
-        llvm_set_error_at(ctx, node,
-            "LLVM standalone %s requires an explicitly typed binding; use 'let value: %s<T> = %s()'",
+        llvm_set_error_at_with_code(ctx, node, "PGY_LLVM_TYPE_UNSUPPORTED", "LLVM standalone %s requires an explicitly typed binding; use 'let value: %s<T> = %s()'",
             callee_name,
             strcmp(callee_name, "ClaimSecureSlot") == 0 ? "SecureSlot" : "Slot",
             callee_name);
@@ -791,8 +790,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
-            llvm_set_error_at(ctx, slot_arg,
-                "LLVM DeviceWrite on '%s' requires a concrete DeviceSlot<T> inner type",
+            llvm_set_error_at_with_code(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "LLVM DeviceWrite on '%s' requires a concrete DeviceSlot<T> inner type",
                 slot_arg->data.identifier.name);
             return NULL;
         }
@@ -821,8 +819,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
-            llvm_set_error_at(ctx, slot_arg,
-                "LLVM DeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
+            llvm_set_error_at_with_code(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "LLVM DeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
                 slot_arg->data.identifier.name);
             return NULL;
         }
@@ -850,8 +847,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
-            llvm_set_error_at(ctx, slot_arg,
-                "LLVM ReleaseDeviceSlot on '%s' requires a concrete DeviceSlot<T> inner type",
+            llvm_set_error_at_with_code(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "LLVM ReleaseDeviceSlot on '%s' requires a concrete DeviceSlot<T> inner type",
                 slot_arg->data.identifier.name);
             return NULL;
         }
@@ -881,8 +877,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
-            llvm_set_error_at(ctx, slot_arg,
-                "LLVM SubmitDeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
+            llvm_set_error_at_with_code(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "LLVM SubmitDeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
                 slot_arg->data.identifier.name);
             return NULL;
         }

@@ -449,7 +449,7 @@ type_resolution_validate_graph(SemanticContext *ctx)
             ASTNode *site = (ASTNode *)graph->nodes[closing_node].site;
             char *cycle_text = type_resolution_format_cycle(
                 graph, cycle_path, cycle_len, closing_node);
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_DEPENDENCY_CYCLE", "semantic:type_resolution:cycle", "break-cycle-via-indirection", site,
                 "Type resolution dependency cycle detected in the semantic graph around '%s'.\n"
                 "Reason:\n"
                 "- provider/consumer resolution formed a closed dependency loop\n"

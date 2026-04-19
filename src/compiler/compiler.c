@@ -727,11 +727,17 @@ invoke_c_backend(const CompilerIRBundle *bundle,
                  const char *output_c_path,
                  char **error_message,
                  char **error_code,
+                 char **error_cause_ir,
+                 char **error_fix_source,
                  bool *uses_intent_observability)
 {
     TranspileResult *transpile_result;
     if (error_code != NULL)
         *error_code = NULL;
+    if (error_cause_ir != NULL)
+        *error_cause_ir = NULL;
+    if (error_fix_source != NULL)
+        *error_fix_source = NULL;
     if (error_message != NULL)
         *error_message = NULL;
     if (uses_intent_observability != NULL)
@@ -755,6 +761,10 @@ invoke_c_backend(const CompilerIRBundle *bundle,
             : pergyra_strdup("C backend failed");
         if (error_code != NULL && transpile_result->error_code != NULL)
             *error_code = pergyra_strdup(transpile_result->error_code);
+        if (error_cause_ir != NULL && transpile_result->error_cause_ir != NULL)
+            *error_cause_ir = pergyra_strdup(transpile_result->error_cause_ir);
+        if (error_fix_source != NULL && transpile_result->error_fix_source != NULL)
+            *error_fix_source = pergyra_strdup(transpile_result->error_fix_source);
         transpile_result_destroy(transpile_result);
         return 1;
     }
@@ -771,14 +781,19 @@ compiler_emit_c(const CompilerIRBundle *bundle, const char *output_c_path)
 {
     char *error_message = NULL;
     char *error_code = NULL;
+    char *error_cause_ir = NULL;
+    char *error_fix_source = NULL;
     int rc = invoke_c_backend(bundle, output_c_path, &error_message,
-                              &error_code, NULL);
+                              &error_code, &error_cause_ir,
+                              &error_fix_source, NULL);
     if (rc != 0) {
-        CompilerResult *result = compiler_error_with_code(
+        CompilerResult *result = compiler_error_full(
             error_message != NULL ? error_message : "C backend failed",
-            error_code);
+            error_code, error_cause_ir, error_fix_source);
         free(error_message);
         free(error_code);
+        free(error_cause_ir);
+        free(error_fix_source);
         return result;
     }
 
@@ -794,19 +809,24 @@ compiler_build_native(const CompilerIRBundle *bundle,
 {
     char *error_message = NULL;
     char *error_code = NULL;
+    char *error_cause_ir = NULL;
+    char *error_fix_source = NULL;
     char *output_obj_path = NULL;
     double phase_start = compiler_now_seconds();
     bool uses_intent_observability = false;
     int rc = invoke_c_backend(bundle, output_c_path, &error_message,
-                              &error_code, &uses_intent_observability);
+                              &error_code, &error_cause_ir,
+                              &error_fix_source, &uses_intent_observability);
     if (rc != 0) {
-        CompilerResult *result = compiler_error_with_code(
+        CompilerResult *result = compiler_error_full(
             error_message != NULL ? error_message : "C backend failed",
-            error_code);
+            error_code, error_cause_ir, error_fix_source);
         if (result != NULL)
             result->backend_timings.codegen = compiler_now_seconds() - phase_start;
         free(error_message);
         free(error_code);
+        free(error_cause_ir);
+        free(error_fix_source);
         return result;
     }
 

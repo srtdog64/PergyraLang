@@ -20,9 +20,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
         if (pt == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "cannot determine parameter type for forward declaration '%s' at argument %zu",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine parameter type for forward declaration '%s' at argument %zu",
                 name != NULL ? name : "<function>",
                 i);
             if (params_sig != NULL)

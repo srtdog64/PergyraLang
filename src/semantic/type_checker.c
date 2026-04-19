@@ -35,6 +35,15 @@ semantic_assignment_target_path(ASTNode *expr);
 static const char *
 semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx);
 static void
+semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
+                                                  ASTNode *target_expr,
+                                                  ASTNode *source_expr,
+                                                  SemanticContext *ctx,
+                                                  const char *borrowed_name,
+                                                  const char *value_label,
+                                                  const char *provenance_label,
+                                                  const char *rebind_label);
+static void
 semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
                                                  const ASTNode *consumer_site,
                                                  const char *consumer_name,
@@ -353,7 +362,7 @@ semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
                     path,
                     path_len,
                     from);
-                semantic_error(ctx, consumer_site,
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_DEPENDENCY_CYCLE", "semantic:type_resolution:cycle", "break-cycle-via-indirection", consumer_site,
                     "Type resolution dependency cycle detected around '%s'.\n"
                     "Reason:\n"
                     "- resolving '%s' would feed back into itself through the current dependency graph\n"
@@ -861,7 +870,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
         param_index = find_generic_param_index(gp, tc->type_param);
         if (param_index < 0
             || (size_t)param_index >= constructed_type->data.constructed.arg_count) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
                 "Class '%s' could not validate where-clause parameter '%s' during instantiation.\n"
                 "Reason:\n"
                 "- instantiated type '%s' does not provide an effective type argument for '%s'\n"
@@ -881,7 +890,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
 
         concrete_type = constructed_type->data.constructed.args[param_index];
         if (concrete_type == NULL) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
                 "Class '%s' could not resolve instantiated type argument for '%s'.\n"
                 "Reason:\n"
                 "- where-clause validation reached instantiation with no concrete type for '%s'\n"
@@ -918,7 +927,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
             }
 
             if (!concrete_type_satisfies_bound(concrete_type, bound_node, ctx)) {
-                semantic_error(ctx, site,
+                semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
                     "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
                     "Reason:\n"
                     "- class '%s' requires '%s: %s'\n"
@@ -1014,7 +1023,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
         param_index = find_generic_param_index(decl_params, tc->type_param);
         if (param_index < 0 || (size_t)param_index >= effective_count) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
                 "Class '%s' could not validate where-clause parameter '%s' during specialization.\n"
                 "Reason:\n"
                 "- specialized type syntax did not materialize an effective type argument for '%s'\n"
@@ -1033,7 +1042,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
         concrete_type = resolve_type_node(effective_args[param_index], ctx);
         if (concrete_type == NULL) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
                 "Class '%s' could not resolve specialized type argument for '%s'.\n"
                 "Reason:\n"
                 "- where-clause validation reached specialization with no concrete type for '%s'\n"
@@ -1070,7 +1079,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             }
 
             if (!concrete_type_satisfies_bound(concrete_type, bound_node, ctx)) {
-                semantic_error(ctx, site,
+                semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
                     "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
                     "Reason:\n"
                     "- class '%s' requires '%s: %s'\n"
@@ -1134,11 +1143,11 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
         Symbol *sym = lookup_identifier_symbol(expr, ctx);
         if (sym == NULL) {
             if (name_looks_qualified(expr->data.identifier.name)) {
-                semantic_error_code(ctx, "PGY_SEM_UNDEFINED_SYMBOL", expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
                     "Undefined symbol '%s' (check namespace spelling or export visibility)",
                     expr->data.identifier.name);
             } else {
-                semantic_error_code(ctx, "PGY_SEM_UNDEFINED_SYMBOL", expr,
+                semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
                     "Undefined symbol '%s'",
                     expr->data.identifier.name);
             }
@@ -1178,7 +1187,7 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
     }
 
     if (expr_is_movable_resource_boundary(expr)) {
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_MOVE_TOKEN_MISUSE", "semantic:move_token:direct_access", "materialize-token-to-slot", expr,
             "Movable resources from recv/await must first be bound to a named variable before use.\n"
             "Reason:\n"
             "- transfer boundaries create a fresh move-only resource value\n"
@@ -1203,549 +1212,8 @@ type_get_constructed_arg(const Type *type, size_t index)
 }
 
 #include "type_checker_expr.inc"
-bool
-type_check_let_decl(ASTNode *node, SemanticContext *ctx)
-{
-    const char *name = node->data.let_decl.name;
-    ASTNode    *init = node->data.let_decl.initializer;
-    ASTNode    *ann  = node->data.let_decl.type;
+#include "type_checker_ownership_boundaries.inc"
 
-    /* Check for duplicate in current scope */
-    if (scope_lookup_current(ctx->scope, name) != NULL) {
-        semantic_error(ctx, node,
-            "Redeclaration of '%s' in the same scope", name);
-        return false;
-    }
-
-    /*
-     * Detect ClaimSlot / ClaimSecureSlot calls so we can register
-     * a SYMBOL_SLOT with proper metadata.
-     */
-    bool is_slot_decl = false;
-    if (init != NULL && init->type == AST_CALL
-        && init->data.call.callee->type == AST_IDENTIFIER) {
-        const char *callee_name =
-            init->data.call.callee->data.identifier.name;
-        BuiltinKind bk = builtin_resolve(callee_name);
-
-        if (bk == BUILTIN_CLAIM_SLOT || bk == BUILTIN_CLAIM_SECURE_SLOT) {
-            is_slot_decl = true;
-            bool is_secure = (bk == BUILTIN_CLAIM_SECURE_SLOT);
-            if (is_secure)
-                semantic_record_effect(ctx, EFFECT_SECURE);
-
-            /* Resolve inner type from annotation if present.
-             * If the annotation is already a Slot type (e.g. Slot<String>),
-             * use it directly instead of double-wrapping. */
-            Type *slot_type = NULL;
-            if (ann != NULL) {
-                Type *ann_type = resolve_type_node(ann, ctx);
-                if (ann_type->kind == TYPE_KIND_SLOT) {
-                    slot_type = ann_type;
-                    is_secure = ann_type->data.slot.is_secure;
-                } else {
-                    slot_type = type_create_slot(ann_type, is_secure);
-                }
-            } else {
-                slot_type = type_create_slot(TYPE_INT, is_secure);
-            }
-            char token_name_buf[256];
-            const char *paired_token = NULL;
-            if (is_secure) {
-                snprintf(token_name_buf, sizeof(token_name_buf), "%s_token", name);
-                paired_token = token_name_buf;
-            }
-            Symbol *sym       = symbol_create_slot(name, slot_type,
-                                                    is_secure, paired_token,
-                                                    node->line, node->column);
-            scope_declare(ctx->scope, sym);
-            if (is_secure) {
-                Symbol *tok = symbol_create_token(paired_token, name,
-                                                  node->line, node->column);
-                if (tok != NULL && slot_type != NULL && slot_type->kind == TYPE_KIND_SLOT) {
-                    Type *token_args[1] = { slot_type->data.slot.inner_type };
-                    tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
-                }
-                if (!scope_declare(ctx->scope, tok))
-                    symbol_destroy(tok);
-            }
-            scope_register_slot(ctx->scope, sym);
-            return true;
-        }
-    }
-
-    /* Normal variable declaration with type inference */
-    Type *init_type = (init != NULL)
-                      ? type_check_expression(init, ctx)
-                      : TYPE_VOID;
-    if (init != NULL)
-        mark_world_embedded_zone_arguments(init, ctx);
-
-    Type *decl_type;
-    
-    /* Type inference: if no annotation, infer from initializer */
-    if (ann != NULL) {
-        /* Explicit type annotation */
-        decl_type = resolve_type_node(ann, ctx);
-        if (ctx->program_root != NULL
-            && ann->type == AST_TYPE
-            && ann->data.type.name != NULL) {
-            ASTNode *class_decl = find_type_decl_by_name(ctx->program_root,
-                                                         ann->data.type.name);
-            if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
-                validate_class_where_clause_specialization_ast(class_decl,
-                                                               ann,
-                                                               ann,
-                                                               ctx);
-            }
-        }
-        if (init != NULL) {
-            if (init->type == AST_CALL
-                && init->data.call.callee->type == AST_IDENTIFIER
-                && strcmp(init->data.call.callee->data.identifier.name,
-                          "BoxArray") == 0) {
-                init_type = decl_type;
-            } else if (init->type == AST_CALL
-                       && init->data.call.callee != NULL
-                       && init->data.call.callee->type == AST_IDENTIFIER
-                       && ann->type == AST_TYPE
-                       && ann->data.type.name != NULL
-                       && strcmp(init->data.call.callee->data.identifier.name,
-                                 ann->data.type.name) == 0
-                       && decl_type != NULL
-                       && decl_type->kind == TYPE_KIND_CONSTRUCTED) {
-                init_type = decl_type;
-            }
-            if (!slot_transfer_compatible(init_type, decl_type))
-                require_assignable(init_type, decl_type, init, ctx);
-        }
-    } else if (init != NULL) {
-        /* Infer type from initializer */
-        decl_type = init_type;
-
-        if (init->type == AST_CALL
-            && init->data.call.callee != NULL
-            && init->data.call.callee->type == AST_IDENTIFIER
-            && init_type == TYPE_UNKNOWN) {
-            const char *callee_name = init->data.call.callee->data.identifier.name;
-            if (callee_name != NULL
-                && (strcmp(callee_name, "ListNew") == 0
-                    || strcmp(callee_name, "SetNew") == 0
-                    || strcmp(callee_name, "MapNew") == 0
-                    || strcmp(callee_name, "QueueNew") == 0)) {
-                semantic_error_code(ctx, "PGY_SEM_INFER_COLLECTION", init,
-                    "Cannot infer collection type from '%s()' without an explicit annotation; write 'let value: %s<...> = %s()'",
-                    callee_name,
-                    strcmp(callee_name, "MapNew") == 0 ? "HashMap" :
-                    (strcmp(callee_name, "QueueNew") == 0 ? "Queue" :
-                    (strcmp(callee_name, "SetNew") == 0 ? "Set" : "List")),
-                    callee_name);
-                decl_type = TYPE_UNKNOWN;
-            }
-        }
-
-        /* For generic types like Box<T>, Array<T>, Result<T,E>,
-           ensure the inferred type is concrete */
-        if (init_type->kind == TYPE_KIND_GENERIC) {
-            semantic_error_code(ctx, "PGY_SEM_INFER_GENERIC", init,
-                "Cannot infer type: generic parameter '%s' is ambiguous. "
-                "Please provide a type annotation.", init_type->name);
-            decl_type = TYPE_UNKNOWN;
-        }
-    } else {
-        /* No annotation and no initializer */
-        semantic_error_code(ctx, "PGY_SEM_INFER_REQUIRED", node,
-            "Cannot infer type: provide a type annotation or initializer");
-        decl_type = TYPE_UNKNOWN;
-    }
-
-    if (type_is_class_object_type(decl_type, ctx)
-        && init != NULL
-        && type_is_class_object_type(init_type, ctx)
-        && !expr_is_class_constructor_call(init, ctx)
-        && (init->type == AST_IDENTIFIER || init->type == AST_MEMBER_ACCESS)) {
-        const char *borrowed_root_name =
-            semantic_borrowed_boundary_root_name(init, ctx);
-        if (borrowed_root_name != NULL) {
-            char *source_path = semantic_assignment_target_path(init);
-            semantic_error(ctx, node,
-                "Borrowed ref subject '%s' cannot escape into a new binding '%s' from '%s'.\n"
-                "Reason:\n"
-                "- consumer path is function '%s'\n"
-                "- '%s' entered this function as a borrowed 'ref' subject\n"
-                "- '%s' is derived from that borrowed subject provenance\n"
-                "- binding it as '%s' would extend that borrow beyond its original boundary provenance\n"
-                "Fix:\n"
-                "- keep using '%s' directly within this function\n"
-                "- or change the parameter to 'own' if transfer is intended",
-                borrowed_root_name,
-                name != NULL ? name : "<binding>",
-                source_path != NULL ? source_path : "<value>",
-                ctx->current_function_decl != NULL
-                    && ctx->current_function_decl->data.func_decl.name != NULL
-                        ? ctx->current_function_decl->data.func_decl.name
-                        : "<anonymous>",
-                borrowed_root_name,
-                source_path != NULL ? source_path : "<value>",
-                name != NULL ? name : "<binding>",
-                source_path != NULL ? source_path : borrowed_root_name);
-            free(source_path);
-        }
-        semantic_error(ctx, node,
-            "Subjects cannot be copied into a new binding.\n"
-            "Reason:\n"
-            "- subject values carry identity and anchored state semantics\n"
-            "- rebinding an existing subject value as a plain copy would duplicate that identity contract\n"
-            "Fix:\n"
-            "- construct a fresh subject value instead\n"
-            "- or mutate the existing subject through its current binding");
-    }
-
-    if (type_is_qubit(decl_type)) {
-        const char *borrowed_movable_root =
-            init != NULL ? semantic_borrowed_boundary_root_name(init, ctx) : NULL;
-        bool borrowed_movable_new_binding =
-            init != NULL && borrowed_movable_root != NULL;
-        bool valid_qubit_init = false;
-        if (borrowed_movable_new_binding) {
-            char *source_path = semantic_assignment_target_path(init);
-            semantic_error(ctx, node,
-                "Borrowed ref movable resource '%s' cannot escape into a new binding '%s' from '%s'.\n"
-                "Reason:\n"
-                "- consumer path is function '%s'\n"
-                "- '%s' entered this function as a borrowed 'ref' movable resource\n"
-                "- '%s' is derived from that borrowed movable-resource provenance\n"
-                "- binding it as '%s' would extend that borrow beyond its original boundary provenance\n"
-                "Fix:\n"
-                "- keep using '%s' directly within this function\n"
-                "- or change the parameter to 'own' if transfer is intended",
-                borrowed_movable_root,
-                name != NULL ? name : "<binding>",
-                source_path != NULL ? source_path : borrowed_movable_root,
-                ctx->current_function_decl != NULL
-                    && ctx->current_function_decl->data.func_decl.name != NULL
-                        ? ctx->current_function_decl->data.func_decl.name
-                        : "<anonymous>",
-                borrowed_movable_root,
-                source_path != NULL ? source_path : borrowed_movable_root,
-                name != NULL ? name : "<binding>",
-                source_path != NULL ? source_path : borrowed_movable_root);
-            free(source_path);
-            valid_qubit_init = true;
-        }
-        if (init_type == TYPE_UNKNOWN) {
-            valid_qubit_init = true;
-        } else if (expr_is_qubit_claim(init)) {
-            valid_qubit_init = true;
-        } else if (init != NULL && init_type != NULL && type_is_qubit(init_type)) {
-            if (init->type == AST_IDENTIFIER) {
-                valid_qubit_init = true;
-                consume_qubit_value(init, ctx, "moved");
-            } else if (expr_is_movable_resource_transfer_source(init)) {
-                valid_qubit_init = true;
-            }
-        }
-        if (!valid_qubit_init) {
-            semantic_error(ctx, node,
-                "QubitSlot is a movable resource handle and cannot be plain-copied into a new binding.\n"
-                "Reason:\n"
-                "- movable resource values must come from a fresh claim, an explicit move, or a transfer boundary\n"
-                "- current initializer does not preserve ownership provenance for QubitSlot\n"
-                "Fix:\n"
-                "- initialize from ClaimQubit()\n"
-                "- or move an existing QubitSlot identifier\n"
-                "- or use a transfer boundary such as recv/await");
-        }
-    }
-
-    if (type_requires_boundary_borrow_tracking(decl_type, ctx)
-        && init != NULL) {
-        const char *borrowed_root_name =
-            semantic_borrowed_boundary_root_name(init, ctx);
-        if (borrowed_root_name != NULL) {
-            char *source_path = semantic_assignment_target_path(init);
-        semantic_error(ctx, node,
-            "Borrowed ref boundary value '%s' cannot escape into a new binding '%s' from '%s'.\n"
-            "Reason:\n"
-            "- consumer path is function '%s'\n"
-            "- '%s' entered this function as a borrowed 'ref' boundary value\n"
-            "- '%s' is derived from that borrowed boundary provenance\n"
-            "- binding it as '%s' would extend that borrow beyond its original boundary provenance\n"
-            "Fix:\n"
-            "- keep using '%s' directly within this function\n"
-            "- or change the parameter to 'own' if transfer is intended",
-            borrowed_root_name,
-            name != NULL ? name : "<binding>",
-            source_path != NULL ? source_path : "<value>",
-            ctx->current_function_decl != NULL
-                && ctx->current_function_decl->data.func_decl.name != NULL
-                    ? ctx->current_function_decl->data.func_decl.name
-                    : "<anonymous>",
-            borrowed_root_name,
-            source_path != NULL ? source_path : "<value>",
-            name != NULL ? name : "<binding>",
-            source_path != NULL ? source_path : borrowed_root_name);
-            free(source_path);
-        }
-    }
-
-    /* Slot<T> move semantics: when assigning from another Slot variable,
-     * consume (invalidate) the source.  ClaimSlot() creates fresh. */
-    if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT
-        && decl_type->data.slot.access_mode == SLOT_ACCESS_OWNED
-        && init != NULL && init->type == AST_IDENTIFIER
-        && init_type != NULL && init_type->kind == TYPE_KIND_SLOT
-        && init_type->data.slot.access_mode == SLOT_ACCESS_OWNED) {
-        /* Move: source Slot becomes invalid after this point */
-        const char *src_name = init->data.identifier.name;
-        Symbol *src_sym = scope_lookup(ctx->scope, src_name);
-        if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
-            if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error_code(ctx, "PGY_SEM_MOVE_FROM_RELEASED", init,
-                    "Cannot move from released slot '%s'.\n"
-                    "Reason:\n"
-                    "- slot '%s' was already released or invalidated earlier in this scope\n"
-                    "- ownership transfer requires a live source handle\n"
-                    "Fix:\n"
-                    "- reacquire the slot before moving it\n"
-                    "- or remove the earlier release/invalidating transfer",
-                    src_name,
-                    src_name);
-            } else {
-                src_sym->slot_info.state = SLOT_STATE_RELEASED;
-            }
-        }
-    }
-
-    if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT
-        && decl_type->data.slot.access_mode != SLOT_ACCESS_OWNED) {
-        const char *source_slot = NULL;
-        if (init != NULL && init->type == AST_CALL
-            && init->data.call.callee != NULL
-            && init->data.call.callee->type == AST_IDENTIFIER
-            && init->data.call.arg_count >= 1
-            && init->data.call.arguments[0] != NULL
-            && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            const char *callee_name = init->data.call.callee->data.identifier.name;
-            if (callee_name != NULL
-                && (strcmp(callee_name, "ViewRead") == 0
-                    || strcmp(callee_name, "ViewWrite") == 0
-                    || strcmp(callee_name, "Move") == 0)) {
-                source_slot = init->data.call.arguments[0]->data.identifier.name;
-            }
-        }
-
-        Symbol *sym = symbol_create_view(name, decl_type, source_slot,
-            node->line, node->column);
-        scope_declare(ctx->scope, sym);
-        return !ctx->has_error;
-    }
-
-    if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT) {
-        if (decl_type->data.slot.is_secure)
-            semantic_record_effect(ctx, EFFECT_SECURE);
-        if (slot_transfer_compatible(init_type, decl_type)) {
-            if (init != NULL && init->type == AST_IDENTIFIER) {
-                Symbol *move_sym = scope_lookup(ctx->scope, init->data.identifier.name);
-                if (move_sym != NULL)
-                    move_sym->is_consumed = true;
-            }
-        }
-        if (init_type != NULL && type_is_anchored_resource_handle(init_type)) {
-            semantic_error(ctx, node,
-                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding.\n"
-                "Reason:\n"
-                "- anchored handles are tied to one local ownership/runtime anchor\n"
-                "- rebinding them as plain values would duplicate that anchor contract\n"
-                "Fix:\n"
-                "- use a fresh claim\n"
-                "- or initialize from an inner/plain value instead");
-        }
-        char token_name_buf[256];
-        const char *paired_token = NULL;
-        if (decl_type->data.slot.is_secure) {
-            snprintf(token_name_buf, sizeof(token_name_buf), "%s_token", name);
-            paired_token = token_name_buf;
-        }
-        Symbol *sym = symbol_create_slot(name, decl_type,
-            decl_type->data.slot.is_secure, paired_token, node->line, node->column);
-        scope_declare(ctx->scope, sym);
-        if (decl_type->data.slot.is_secure) {
-            Symbol *tok = symbol_create_token(paired_token, name,
-                                              node->line, node->column);
-            if (tok != NULL) {
-                Type *token_args[1] = { decl_type->data.slot.inner_type };
-                tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
-            }
-            if (!scope_declare(ctx->scope, tok))
-                symbol_destroy(tok);
-        }
-        scope_register_slot(ctx->scope, sym);
-        return !ctx->has_error;
-    }
-
-    if (type_is_anchored_resource_handle(decl_type)) {
-        bool is_fresh_claim = expr_is_device_slot_claim(init);
-        if (!is_fresh_claim && init_type != NULL && type_is_anchored_resource_handle(init_type)) {
-            semantic_error(ctx, node,
-                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding.\n"
-                "Reason:\n"
-                "- anchored handles remain tied to one owning runtime anchor\n"
-                "- copying them into another binding would duplicate that anchor identity\n"
-                "Fix:\n"
-                "- keep the handle in one binding\n"
-                "- or reacquire it from the owning system");
-        }
-        semantic_record_effect(ctx, EFFECT_REMOTE);
-    }
-
-    Symbol *sym = symbol_create_variable(name, decl_type,
-                                          node->line, node->column);
-
-    if (type_is_constructed_named(decl_type, "DeviceSlot"))
-        sym->slot_info.state = SLOT_STATE_CLAIMED;
-
-    /* Set qubit semantic state for QubitSlot variables */
-    if (type_is_qubit(decl_type)) {
-        if (expr_is_qubit_claim(init)) {
-            sym->qubit_info.semantic_state = QUBIT_STATE_SUPERPOSITION;
-        } else if (init != NULL && init->type == AST_IDENTIFIER) {
-            /* Move: copy source qubit's semantic state */
-            Symbol *src = lookup_identifier_symbol(init, ctx);
-            if (src != NULL)
-                sym->qubit_info.semantic_state = src->qubit_info.semantic_state;
-            else
-                sym->qubit_info.semantic_state = QUBIT_STATE_NONE;
-        } else if (init != NULL && init->type == AST_CALL) {
-            /* Function returning QubitSlot */
-            sym->qubit_info.semantic_state = QUBIT_STATE_SUPERPOSITION;
-        } else if (init != NULL
-                   && (init->type == AST_CHANNEL_RECV
-                       || init->type == AST_AWAIT_EXPR)) {
-            /* Transfer from orchestration boundary; precise state is unknown. */
-            sym->qubit_info.semantic_state = QUBIT_STATE_NONE;
-        }
-    }
-
-    if (!is_slot_decl)
-        scope_declare(ctx->scope, sym);
-
-    return !ctx->has_error;
-}
-
-bool
-type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
-{
-    Type *ret_type = TYPE_VOID;
-    if (node->data.return_stmt.value != NULL)
-        ret_type = type_check_expression(node->data.return_stmt.value, ctx);
-
-    if (ctx->current_return != NULL)
-        require_assignable(ret_type, ctx->current_return, node, ctx);
-
-    if (type_is_anchored_resource_handle(ret_type)) {
-        semantic_error(ctx, node,
-            "Returning anchored resource handles (Slot/SecureSlot/DeviceSlot) is not supported yet.\n"
-            "Reason:\n"
-            "- return boundary would let an anchored handle escape its local ownership/runtime anchor\n"
-            "- anchored handles are still local-only at return boundaries in the closed subset\n"
-            "Fix:\n"
-            "- return the inner value instead\n"
-            "- or return a future/result token or other boundary-safe projection");
-    }
-
-    if (node->data.return_stmt.value != NULL
-        && semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx) != NULL
-        && type_is_subject_type(ret_type, ctx)) {
-        const char *borrowed_name =
-            semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx);
-        char *source_path = semantic_assignment_target_path(
-            node->data.return_stmt.value);
-        semantic_error(ctx, node,
-            "Borrowed ref subject '%s' cannot escape via return from '%s'.\n"
-            "Reason:\n"
-            "- consumer path is function '%s'\n"
-            "- '%s' entered this function as a borrowed 'ref' subject\n"
-            "- '%s' is derived from that borrowed subject provenance\n"
-            "- returning it would let the borrow outlive the current call boundary\n"
-            "Fix:\n"
-            "- return a projection/object/tobject/value result instead\n"
-            "- or change the parameter to 'own' if transfer is intended",
-            borrowed_name,
-            source_path != NULL ? source_path : borrowed_name,
-            ctx->current_function_decl != NULL
-                && ctx->current_function_decl->data.func_decl.name != NULL
-                    ? ctx->current_function_decl->data.func_decl.name
-                    : "<anonymous>",
-            borrowed_name,
-            source_path != NULL ? source_path : borrowed_name);
-        free(source_path);
-    }
-
-    if (node->data.return_stmt.value != NULL
-        && semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx) != NULL
-        && type_is_movable_resource_handle(ret_type)) {
-        const char *borrowed_name =
-            semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx);
-        char *source_path = semantic_assignment_target_path(
-            node->data.return_stmt.value);
-        semantic_error(ctx, node,
-            "Borrowed ref movable resource '%s' cannot escape via return from '%s'.\n"
-            "Reason:\n"
-            "- consumer path is function '%s'\n"
-            "- '%s' entered this function as a borrowed 'ref' movable resource\n"
-            "- '%s' is derived from that borrowed movable-resource provenance\n"
-            "- returning it would let the borrow outlive the current call boundary\n"
-            "Fix:\n"
-            "- return a copied/projection/value result instead\n"
-            "- or change the parameter to 'own' if transfer is intended",
-            borrowed_name,
-            source_path != NULL ? source_path : borrowed_name,
-            ctx->current_function_decl != NULL
-                && ctx->current_function_decl->data.func_decl.name != NULL
-                    ? ctx->current_function_decl->data.func_decl.name
-                    : "<anonymous>",
-            borrowed_name,
-            source_path != NULL ? source_path : borrowed_name);
-        free(source_path);
-    }
-
-    if (node->data.return_stmt.value != NULL
-        && semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx) != NULL
-        && type_requires_boundary_borrow_tracking(ret_type, ctx)) {
-        const char *borrowed_name =
-            semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx);
-        char *source_path = semantic_assignment_target_path(
-            node->data.return_stmt.value);
-        semantic_error(ctx, node,
-            "Borrowed ref boundary value '%s' cannot escape via return from '%s'.\n"
-            "Reason:\n"
-            "- consumer path is function '%s'\n"
-            "- '%s' entered this function as a borrowed 'ref' boundary value\n"
-            "- '%s' is derived from that borrowed boundary provenance\n"
-            "- returning it would let the borrow outlive the current call boundary\n"
-            "Fix:\n"
-            "- return a copied/value/projection result instead\n"
-            "- or change the parameter to 'own' if transfer is intended",
-            borrowed_name,
-            source_path != NULL ? source_path : borrowed_name,
-            ctx->current_function_decl != NULL
-                && ctx->current_function_decl->data.func_decl.name != NULL
-                    ? ctx->current_function_decl->data.func_decl.name
-                    : "<anonymous>",
-            borrowed_name,
-            source_path != NULL ? source_path : borrowed_name);
-        free(source_path);
-    }
-
-    if (node->data.return_stmt.value != NULL
-        && type_is_qubit(ret_type)
-        && node->data.return_stmt.value->type == AST_IDENTIFIER) {
-        consume_qubit_value(node->data.return_stmt.value, ctx, "returned");
-    }
-
-    return !ctx->has_error;
-}
 
 bool
 type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
@@ -1825,7 +1293,11 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL) {
-        semantic_error(ctx, node, "Redeclaration of ability '%s'", name);
+        semantic_error_with_hints(ctx,
+            "PGY_SEM_REDECLARATION",
+            "semantic:ability:duplicate_name",
+            "rename-or-remove-duplicate",
+            node, "Redeclaration of ability '%s'", name);
         symbol_destroy(sym);
         return false;
     }
@@ -1899,6 +1371,74 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
     return type_create_constructed(TYPE_FUTURE, args, 1);
 }
 
+static bool
+semantic_check_channel_send_borrowed_transfer(ASTNode *value_expr,
+                                              SemanticContext *ctx,
+                                              const char *value_label,
+                                              const char *provenance_label,
+                                              const char *snapshot_label,
+                                              const char *named_binding_fix)
+{
+    const char *borrowed_root_name;
+
+    if (value_expr == NULL || ctx == NULL) {
+        return false;
+    }
+
+    borrowed_root_name = semantic_borrowed_boundary_root_name(value_expr, ctx);
+
+    if (value_expr->type != AST_IDENTIFIER
+        && borrowed_root_name == NULL) {
+        char *source_path = semantic_assignment_target_path(value_expr);
+        semantic_error(ctx, value_expr,
+            "%s channel sends must transfer from a named variable%s%s%s.\n"
+            "Reason:\n"
+            "- ownership transfer at a channel boundary must point to one concrete source binding\n"
+            "- unnamed expressions make moved-here provenance ambiguous\n"
+            "Fix:\n"
+            "- %s\n"
+            "- then send that named variable",
+            value_label != NULL ? value_label : "Boundary value",
+            source_path != NULL ? " instead of '" : "",
+            source_path != NULL ? source_path : "",
+            source_path != NULL ? "'" : "",
+            named_binding_fix != NULL ? named_binding_fix
+                                      : "bind the value first in a local variable");
+        free(source_path);
+        return true;
+    }
+
+    if (borrowed_root_name != NULL) {
+        char *source_path = semantic_assignment_target_path(value_expr);
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape",
+            value_expr,
+            "Borrowed ref %s '%s' cannot escape through channel send from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' %s\n"
+            "- '%s' is derived from that borrowed %s\n"
+            "- channel send would transfer that borrow beyond the current call boundary\n"
+            "Fix:\n"
+            "- send a %s instead\n"
+            "- or change the current parameter to 'own' if transfer is intended",
+            value_label != NULL ? value_label : "boundary value",
+            borrowed_root_name,
+            source_path != NULL ? source_path : borrowed_root_name,
+            semantic_current_consumer_name(ctx),
+            borrowed_root_name,
+            value_label != NULL ? value_label : "boundary value",
+            source_path != NULL ? source_path : borrowed_root_name,
+            provenance_label != NULL ? provenance_label : "boundary provenance",
+            snapshot_label != NULL ? snapshot_label
+                                   : "copied/value/projection result");
+        free(source_path);
+        return true;
+    }
+
+    return false;
+}
+
 Type *
 type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
 {
@@ -1964,60 +1504,12 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 type_name_or_unknown(value_type));
             return TYPE_VOID;
         }
-        if (expr->data.channel_send.value->type != AST_IDENTIFIER) {
-            const char *borrowed_root_name =
-                semantic_borrowed_boundary_root_name(
-                    expr->data.channel_send.value, ctx);
-            char *source_path = semantic_assignment_target_path(
-                expr->data.channel_send.value);
-            char *borrowed_line = borrowed_root_name != NULL
-                ? tc_strdup_fmt("- '%s' is derived from borrowed source '%s'\n",
-                                source_path != NULL ? source_path : "<value>",
-                                borrowed_root_name)
-                : NULL;
-            semantic_error(ctx, expr->data.channel_send.value,
-                "Subject channel sends must transfer from a named variable%s%s%s.\n"
-                "Reason:\n"
-                "- ownership transfer at a channel boundary must point to one concrete source binding\n"
-                "%s"
-                "- unnamed expressions make moved-here provenance ambiguous\n"
-                "Fix:\n"
-                "- bind the subject first in a local variable\n"
-                "- then send that named variable",
-                source_path != NULL ? " instead of '" : "",
-                source_path != NULL ? source_path : "",
-                source_path != NULL ? "'" : "",
-                borrowed_line != NULL ? borrowed_line : "");
-            free(borrowed_line);
-            free(source_path);
-            return TYPE_VOID;
-        }
-        if (identifier_is_borrowed_boundary_param(expr->data.channel_send.value, ctx)) {
-            char *source_path = semantic_assignment_target_path(
-                expr->data.channel_send.value);
-            semantic_error(ctx, expr->data.channel_send.value,
-                "Borrowed ref subject '%s' cannot escape through channel send from '%s'.\n"
-                "Reason:\n"
-                "- consumer path is function '%s'\n"
-                "- '%s' entered this function as a borrowed 'ref' subject\n"
-                "- '%s' is derived from that borrowed subject provenance\n"
-                "- channel send would transfer that borrow beyond the current call boundary\n"
-                "Fix:\n"
-                "- send a projection/object/tobject/value snapshot instead\n"
-                "- or change the parameter to 'own' before transfer",
-                expr->data.channel_send.value->data.identifier.name,
-                source_path != NULL
-                    ? source_path
-                    : expr->data.channel_send.value->data.identifier.name,
-                ctx->current_function_decl != NULL
-                    && ctx->current_function_decl->data.func_decl.name != NULL
-                        ? ctx->current_function_decl->data.func_decl.name
-                        : "<anonymous>",
-                expr->data.channel_send.value->data.identifier.name,
-                source_path != NULL
-                    ? source_path
-                    : expr->data.channel_send.value->data.identifier.name);
-            free(source_path);
+        if (semantic_check_channel_send_borrowed_transfer(
+                expr->data.channel_send.value, ctx,
+                "subject",
+                "subject provenance",
+                "projection/object/tobject/value result",
+                "bind the subject first in a local variable")) {
             return TYPE_VOID;
         }
         consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
@@ -2044,60 +1536,12 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 resource_handle_display_name(value_type));
             return TYPE_VOID;
         }
-        if (expr->data.channel_send.value->type != AST_IDENTIFIER) {
-            const char *borrowed_root_name =
-                semantic_borrowed_boundary_root_name(
-                    expr->data.channel_send.value, ctx);
-            char *source_path = semantic_assignment_target_path(
-                expr->data.channel_send.value);
-            char *borrowed_line = borrowed_root_name != NULL
-                ? tc_strdup_fmt("- '%s' is derived from borrowed source '%s'\n",
-                                source_path != NULL ? source_path : "<value>",
-                                borrowed_root_name)
-                : NULL;
-            semantic_error(ctx, expr->data.channel_send.value,
-                "Movable resource channel sends must transfer from a named variable%s%s%s.\n"
-                "Reason:\n"
-                "- ownership transfer at a channel boundary must point to one concrete source binding\n"
-                "%s"
-                "- unnamed expressions make moved-here provenance ambiguous\n"
-                "Fix:\n"
-                "- bind the value first by storing the movable resource in a local variable\n"
-                "- then send that named variable",
-                source_path != NULL ? " instead of '" : "",
-                source_path != NULL ? source_path : "",
-                source_path != NULL ? "'" : "",
-                borrowed_line != NULL ? borrowed_line : "");
-            free(borrowed_line);
-            free(source_path);
-            return TYPE_VOID;
-        }
-        if (identifier_is_borrowed_boundary_param(expr->data.channel_send.value, ctx)) {
-            char *source_path = semantic_assignment_target_path(
-                expr->data.channel_send.value);
-            semantic_error(ctx, expr->data.channel_send.value,
-                "Borrowed ref movable resource '%s' cannot escape through channel send from '%s'.\n"
-                "Reason:\n"
-                "- consumer path is function '%s'\n"
-                "- '%s' entered this function as a borrowed 'ref' movable resource\n"
-                "- '%s' is derived from that borrowed movable-resource provenance\n"
-                "- channel send would transfer that borrow beyond the current call boundary\n"
-                "Fix:\n"
-                "- send a copied/value/projection form instead\n"
-                "- or change the parameter to 'own' before transfer",
-                expr->data.channel_send.value->data.identifier.name,
-                source_path != NULL
-                    ? source_path
-                    : expr->data.channel_send.value->data.identifier.name,
-                ctx->current_function_decl != NULL
-                    && ctx->current_function_decl->data.func_decl.name != NULL
-                        ? ctx->current_function_decl->data.func_decl.name
-                        : "<anonymous>",
-                expr->data.channel_send.value->data.identifier.name,
-                source_path != NULL
-                    ? source_path
-                    : expr->data.channel_send.value->data.identifier.name);
-            free(source_path);
+        if (semantic_check_channel_send_borrowed_transfer(
+                expr->data.channel_send.value, ctx,
+                "movable resource",
+                "movable-resource provenance",
+                "copied/value/projection result",
+                "bind the value first by storing the movable resource in a local variable")) {
             return TYPE_VOID;
         }
         consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
@@ -2128,60 +1572,12 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 type_name_or_unknown(value_type));
             return TYPE_VOID;
         }
-        if (expr->data.channel_send.value->type != AST_IDENTIFIER) {
-            const char *borrowed_root_name =
-                semantic_borrowed_boundary_root_name(
-                    expr->data.channel_send.value, ctx);
-            char *source_path = semantic_assignment_target_path(
-                expr->data.channel_send.value);
-            char *borrowed_line = borrowed_root_name != NULL
-                ? tc_strdup_fmt("- '%s' is derived from borrowed source '%s'\n",
-                                source_path != NULL ? source_path : "<value>",
-                                borrowed_root_name)
-                : NULL;
-            semantic_error(ctx, expr->data.channel_send.value,
-                "Boundary value channel sends must transfer from a named variable%s%s%s.\n"
-                "Reason:\n"
-                "- ownership transfer at a channel boundary must point to one concrete source binding\n"
-                "%s"
-                "- unnamed expressions make moved-here provenance ambiguous\n"
-                "Fix:\n"
-                "- bind the value first in a local variable\n"
-                "- then send that named variable",
-                source_path != NULL ? " instead of '" : "",
-                source_path != NULL ? source_path : "",
-                source_path != NULL ? "'" : "",
-                borrowed_line != NULL ? borrowed_line : "");
-            free(borrowed_line);
-            free(source_path);
-            return TYPE_VOID;
-        }
-        if (identifier_is_borrowed_boundary_param(expr->data.channel_send.value, ctx)) {
-            char *source_path = semantic_assignment_target_path(
-                expr->data.channel_send.value);
-            semantic_error(ctx, expr->data.channel_send.value,
-                "Borrowed ref boundary value '%s' cannot escape through channel send from '%s'.\n"
-                "Reason:\n"
-                "- consumer path is function '%s'\n"
-                "- '%s' entered this function as a borrowed 'ref' boundary value\n"
-                "- '%s' is derived from that borrowed boundary provenance\n"
-                "- channel send would transfer that borrow beyond the current call boundary\n"
-                "Fix:\n"
-                "- send a copied/value/projection snapshot instead\n"
-                "- or change the parameter to 'own' before transfer",
-                expr->data.channel_send.value->data.identifier.name,
-                source_path != NULL
-                    ? source_path
-                    : expr->data.channel_send.value->data.identifier.name,
-                ctx->current_function_decl != NULL
-                    && ctx->current_function_decl->data.func_decl.name != NULL
-                        ? ctx->current_function_decl->data.func_decl.name
-                        : "<anonymous>",
-                expr->data.channel_send.value->data.identifier.name,
-                source_path != NULL
-                    ? source_path
-                    : expr->data.channel_send.value->data.identifier.name);
-            free(source_path);
+        if (semantic_check_channel_send_borrowed_transfer(
+                expr->data.channel_send.value, ctx,
+                "boundary value",
+                "boundary provenance",
+                "copied/value/projection result",
+                "bind the value first in a local variable")) {
             return TYPE_VOID;
         }
         consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
@@ -2248,7 +1644,7 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
             continue;
 
         if (param->type != AST_LET_DECL) {
-            semantic_error(ctx, param,
+            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", param,
                 "Event '%s' parameter %zu must be a typed binding",
                 node->data.event_decl.name != NULL
                     ? node->data.event_decl.name : "<event>",
@@ -2258,7 +1654,7 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         if (param->data.let_decl.type == NULL) {
-            semantic_error(ctx, param,
+            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", param,
                 "Event '%s' parameter '%s' requires an explicit type",
                 node->data.event_decl.name != NULL
                     ? node->data.event_decl.name : "<event>",
@@ -2275,7 +1671,7 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.event_decl.return_type != NULL) {
         Type *return_type = resolve_type_node(node->data.event_decl.return_type, ctx);
         if (return_type != NULL && !type_equals(return_type, TYPE_VOID)) {
-            semantic_error(ctx, node->data.event_decl.return_type,
+            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", node->data.event_decl.return_type,
                 "Event '%s' must return Void, got '%s'",
                 node->data.event_decl.name != NULL
                     ? node->data.event_decl.name : "<event>",
@@ -2438,7 +1834,7 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
 
     if (event_type->data.function.return_type != NULL
         && !type_equals(event_type->data.function.return_type, TYPE_VOID)) {
-        semantic_error(ctx, node->data.event_op.event,
+        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", node->data.event_op.event,
             "Event '%s' must return Void to support %s",
             event_name, op_name != NULL ? op_name : "subscription");
         ok = false;
@@ -2518,7 +1914,7 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
     }
 
     if (event_type->data.function.param_count != node->data.event_invoke.arg_count) {
-        semantic_error(ctx, node,
+        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", node,
             "Event '%s' invoke argument count mismatch: expected %zu, got %zu",
             event_name,
             event_type->data.function.param_count,
@@ -2536,7 +1932,7 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
         }
 
         if (!type_is_assignable(actual, expected)) {
-            semantic_error(ctx, node->data.event_invoke.arguments[i],
+            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", node->data.event_invoke.arguments[i],
                 "Event '%s' invoke argument %zu mismatch: expected '%s', got '%s'",
                 event_name,
                 i + 1,
@@ -2701,13 +2097,13 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_return_stmt(node, ctx);
     case AST_BREAK:
         if (ctx->loop_depth <= 0) {
-            semantic_error(ctx, node, "'break' used outside of loop");
+            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node, "'break' used outside of loop");
             return false;
         }
         if (node->data.break_stmt.label != NULL
             && semantic_find_labeled_loop_depth(ctx,
                 node->data.break_stmt.label) < 0) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node,
                 "Unknown loop label '%s' in break",
                 node->data.break_stmt.label);
             return false;
@@ -2715,13 +2111,13 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return true;
     case AST_CONTINUE:
         if (ctx->loop_depth <= 0) {
-            semantic_error(ctx, node, "'continue' used outside of loop");
+            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node, "'continue' used outside of loop");
             return false;
         }
         if (node->data.continue_stmt.label != NULL
             && semantic_find_labeled_loop_depth(ctx,
                 node->data.continue_stmt.label) < 0) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node,
                 "Unknown loop label '%s' in continue",
                 node->data.continue_stmt.label);
             return false;

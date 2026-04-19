@@ -75,7 +75,7 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         bool left_is_subject = (blk == RELATION_ENDPOINT_SUBJECT);
         bool right_is_subject = (brk == RELATION_ENDPOINT_SUBJECT);
         if (!left_is_subject && !right_is_subject) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", node,
                 "Relation '%s' must declare at least one subject endpoint in 'between'.\n"
                 "Reason:\n"
                 "- relation edges are anchored around at least one active subject endpoint\n"

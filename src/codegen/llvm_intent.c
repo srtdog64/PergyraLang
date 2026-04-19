@@ -1939,56 +1939,43 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     return;
 
 mir_step_missing_pre:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent pre check carrier");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent pre check carrier");
     goto intent_emit_fail;
 mir_step_missing_guard:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent guard check carrier");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent guard check carrier");
     goto intent_emit_fail;
 mir_step_missing_post:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent post check carrier");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent post check carrier");
     goto intent_emit_fail;
 mir_step_missing_expect:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent expect check carrier");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent expect check carrier");
     goto intent_emit_fail;
 mir_step_missing_invariant:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent invariant check carrier");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent invariant check carrier");
     goto intent_emit_fail;
 mir_step_missing_subintent:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent subintent eval carrier");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent subintent eval carrier");
     goto intent_emit_fail;
 mir_step_missing_on:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent on-eval carrier");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent on-eval carrier");
     goto intent_emit_fail;
 mir_step_missing_zone_where:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent zone where metadata");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent zone where metadata");
     goto intent_emit_fail;
 mir_step_missing_zone_alias:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent zone alias metadata");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent zone alias metadata");
     goto intent_emit_fail;
 mir_step_missing_zone_from:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent transfer-from metadata");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent transfer-from metadata");
     goto intent_emit_fail;
 mir_step_missing_who:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent who metadata");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent who metadata");
     goto intent_emit_fail;
 mir_step_missing_dispatch:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent dispatch carrier");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent dispatch carrier");
     goto intent_emit_fail;
 mir_step_missing_compensate:
-    llvm_set_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
-        "MIR-only LLVM path missing intent compensate eval carrier");
+    llvm_set_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering", "MIR-only LLVM path missing intent compensate eval carrier");
     goto intent_emit_fail;
 
 intent_emit_fail:

@@ -163,7 +163,7 @@ resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
         || strcmp(name, "MoveToken") == 0) {
         if (node->data.type.generic_args == NULL
             || node->data.type.generic_args->count != 1) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", node,
                 "%s requires exactly one type argument", name);
             return TYPE_UNKNOWN;
         }
@@ -196,7 +196,7 @@ resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
             && !type_equals(key, TYPE_INT)
             && !type_equals(key, TYPE_LONG)
             && !type_equals(key, TYPE_BOOL)) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", node,
                 "HashMap currently supports only String, Int, Long, or Bool keys");
             return TYPE_UNKNOWN;
         }

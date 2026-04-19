@@ -252,7 +252,7 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
     declared_effects = declared_effects_from_function_node(method, ctx, NULL);
     semantic_record_effect(ctx, declared_effects);
     if (ctx->in_parallel && type_effect_mask_has(declared_effects, EFFECT_SECURE)) {
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "semantic:parallel:secure_in_task", "serialize-outside-parallel", expr,
             "Parallel context does not permit calling secure-effect method '%s'; serialize capability-bearing operations outside the parallel block",
             method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>");
         if (method->data.func_decl.return_type != NULL)
@@ -271,7 +271,7 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
     expected = method->data.func_decl.param_count - implicit_self;
     provided = expr->data.call.arg_count;
     if (provided != expected) {
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
             "'%s' expects %zu argument(s), got %zu",
             method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>",
             expected, provided);

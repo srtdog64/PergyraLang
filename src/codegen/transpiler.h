@@ -234,6 +234,11 @@ typedef struct
      * the failing site has not been assigned a code. Propagated to
      * CompilerResult.error_code at transpiler.c:552. */
     const char *backend_error_code;
+    /* Optional hint tags alongside backend_error_code. Both non-owning
+     * string literals; NULL when the failing site did not provide them.
+     * Propagated to CompilerResult.error_cause_ir / error_fix_source. */
+    const char *backend_error_cause_ir;
+    const char *backend_error_fix_source;
 } TranspilerCtx;
 
 static inline void
@@ -353,6 +358,10 @@ typedef struct
      * NULL when the failing site has not been assigned a code.
      * Propagated from TranspilerCtx.backend_error_code. */
     char *error_code;
+    /* Owning strdups of hint tags from TranspilerCtx.backend_error_*.
+     * Both NULL when the failing site did not provide them. */
+    char *error_cause_ir;
+    char *error_fix_source;
     bool  uses_intent_observability;
 } TranspileResult;
 

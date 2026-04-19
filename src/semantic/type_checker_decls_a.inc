@@ -736,7 +736,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
             ctx->program_root, bound_decl, req->data.require_field.name,
             &container_field_name);
         if (field == NULL) {
-            semantic_error(ctx, role_decl,
+            semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", role_decl,
                 "Role '%s' cannot implement ability '%s' because subject '%s' is missing required field '%s'.\n"
                 "Reason:\n"
                 "- impl contract is '%s'\n"
@@ -780,7 +780,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
         field_type = resolve_type_node(field->type, ctx);
         if (required_type != NULL && field_type != NULL
             && !type_is_assignable(field_type, required_type)) {
-            semantic_error(ctx, role_decl,
+            semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", role_decl,
                 "Role '%s' cannot implement ability '%s' because subject field '%s.%s%s%s' has incompatible type.\n"
                 "Reason:\n"
                 "- impl contract is '%s'\n"
@@ -842,7 +842,11 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL) {
-        semantic_error(ctx, node, "Redeclaration of role '%s'", name);
+        semantic_error_with_hints(ctx,
+            "PGY_SEM_REDECLARATION",
+            "semantic:role:duplicate_name",
+            "rename-or-remove-duplicate",
+            node, "Redeclaration of role '%s'", name);
         symbol_destroy(sym);
         return false;
     }
@@ -869,7 +873,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
             ASTNode *type_decl = find_type_decl_by_name(
                 ctx->program_root, node->data.role_decl.for_type->data.type.name);
             if (type_decl != NULL && !decl_is_subject_host(type_decl)) {
-                semantic_error(ctx, node->data.role_decl.for_type,
+                semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", node->data.role_decl.for_type,
                     "Role '%s' must be bound to a subject or primitive domain; '%s' is not a subject",
                     name,
                     node->data.role_decl.for_type->data.type.name);
@@ -900,7 +904,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
             "role include lookup");
         Symbol *role_sym = scope_lookup(ctx->scope, role_name);
         if (role_sym == NULL) {
-            semantic_error(ctx, inc,
+            semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", inc,
                 "Role '%s' includes unknown role '%s'.\n"
                 "Reason:\n"
                 "- include contracts must reference a visible role declaration\n"
@@ -970,7 +974,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                                     : "<constraint>";
                             if (!concrete_type_satisfies_bound(
                                     concrete_type, bound_node, ctx)) {
-                                semantic_error(ctx, inc,
+                                semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", inc,
                                     "Role '%s' includes role '%s' with generic argument '%s' that does not satisfy bound '%s'.\n"
                                     "Reason:\n"
                                     "- include consumer path is role '%s'\n"
@@ -1030,7 +1034,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 if (ability_decl != NULL
                            && ability_decl->type == AST_ABILITY_DECL
                            && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
-                    semantic_error(ctx, impl,
+                    semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", impl,
                         "Role '%s' cannot implement non-exported ability '%s' from another module.\n"
                         "Reason:\n"
                         "- impl block references ability '%s'\n"
@@ -1045,7 +1049,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         ability_name,
                         name != NULL ? name : "<role>");
                 } else if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
-                    semantic_error(ctx, impl,
+                    semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", impl,
                         "Role '%s' implements unknown ability '%s'.\n"
                         "Reason:\n"
                         "- impl block references '%s'\n"
@@ -1065,7 +1069,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                            && node->origin_path != NULL
                            && strcmp(ability_decl->origin_path,
                                      node->origin_path) != 0) {
-                    semantic_error(ctx, impl,
+                    semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", impl,
                         "innate ability '%s' cannot be implemented outside its declaring module",
                         ability_name);
                 } else if (ability_decl != NULL
@@ -1083,7 +1087,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             ability_decl_signature_display(
                                 ability_name,
                                 ability_decl->data.ability_decl.generic_params);
-                        semantic_error(ctx, impl,
+                        semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", impl,
                             "Ability '%s' does not accept generic type arguments in impl clauses.\n"
                             "Reason:\n"
                             "- consumer path is impl ability '%s'\n"
@@ -1117,7 +1121,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             ability_decl_signature_display(
                                 ability_name,
                                 ability_decl->data.ability_decl.generic_params);
-                        semantic_error(ctx, impl,
+                        semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", impl,
                             "Ability '%s' requires between %zu and %zu generic argument(s) in impl clauses, got %zu.\n"
                             "Reason:\n"
                             "- consumer path is impl ability '%s'\n"
@@ -1147,7 +1151,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                                     ability_decl_signature_display(
                                         ability_name,
                                         ability_decl->data.ability_decl.generic_params);
-                                semantic_error(ctx, impl,
+                                semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", impl,
                                     "Ability '%s' has an invalid generic argument in impl clause.\n"
                                     "Reason:\n"
                                     "- consumer path is impl ability '%s'\n"
@@ -1230,7 +1234,11 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
             existing->type = create_overlay_nominal_type(name);
         symbol_destroy(sym);
     } else if (existing != NULL) {
-        semantic_error(ctx, node, "Redeclaration of party '%s'", name);
+        semantic_error_with_hints(ctx,
+            "PGY_SEM_REDECLARATION",
+            "semantic:party:duplicate_name",
+            "rename-or-remove-duplicate",
+            node, "Redeclaration of party '%s'", name);
         symbol_destroy(sym);
         ctx->current_module_path = prev_module_path;
         return false;
@@ -1251,7 +1259,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
         /* dyn slots require at least one ability for vtable dispatch */
         if (rs->data.role_slot.is_dynamic &&
             rs->data.role_slot.ability_count == 0) {
-            semantic_error(ctx, rs,
+            semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", rs,
                 "Dynamic role slot '%s' requires at least one ability type",
                 rs->data.role_slot.slot_name);
         }
@@ -1285,7 +1293,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                     char *actual_text = actual_impl != NULL
                         ? ability_ref_display(actual_impl) : NULL;
                     if (actual_text != NULL) {
-                        semantic_error(ctx, rs,
+                        semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", rs,
                             "Party role slot '%s' requires ability '%s', but subject-bound roles implement '%s' instead.\n"
                             "Reason:\n"
                             "- consumer path is party role slot '%s'\n"
@@ -1306,7 +1314,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                             actual_text,
                             required_text != NULL ? required_text : ability_name);
                     } else {
-                        semantic_error(ctx, rs,
+                        semantic_error_with_hints(ctx, "PGY_SEM_ROLE_CONTRACT_INVALID", "semantic:role_contract", "align-role-impl-with-ability", rs,
                             "Party role slot '%s' requires ability '%s', but no subject-bound role implements it.\n"
                             "Reason:\n"
                             "- consumer path is party role slot '%s'\n"
@@ -1370,7 +1378,11 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
             existing->type = create_overlay_nominal_type(name);
         symbol_destroy(sym);
     } else if (existing != NULL) {
-        semantic_error(ctx, node, "Redeclaration of roster '%s'", name);
+        semantic_error_with_hints(ctx,
+            "PGY_SEM_REDECLARATION",
+            "semantic:roster:duplicate_name",
+            "rename-or-remove-duplicate",
+            node, "Redeclaration of roster '%s'", name);
         symbol_destroy(sym);
         return false;
     } else {
@@ -1655,7 +1667,7 @@ intent_clause_rejects_control_transfer(ASTNode *expr,
     if (construct == NULL)
         return true;
 
-    semantic_error(ctx, expr,
+    semantic_error_with_hints(ctx, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step", "align-step-with-zone-action-contracts", expr,
         "Intent step '%s' %s clause cannot contain '%s'. "
         "Keep control-transfer constructs out of intent clauses and run them in surrounding intent/action code.",
         step_name != NULL ? step_name : "<step>",

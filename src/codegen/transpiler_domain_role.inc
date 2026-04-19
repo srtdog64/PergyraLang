@@ -44,9 +44,7 @@ build_ability_ref_bindings(ASTNode *ability_decl,
 
         rendered = render_type_name(actual_type);
         if (rendered == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "cannot render generic ability binding '%s' for ability '%s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot render generic ability binding '%s' for ability '%s'",
                 formal->name != NULL ? formal->name : "<param>",
                 ability_decl->data.ability_decl.name != NULL
                     ? ability_decl->data.ability_decl.name
@@ -135,9 +133,7 @@ ability_ref_vtable_typedef_name(ASTNode *ability_ref,
         ability_decl = find_ability_decl(ctx, ability_ref->data.type.name);
     tag = render_effective_ability_ref_vtable_tag(ability_decl, ability_ref, ctx);
     if (tag == NULL) {
-        transpiler_set_backend_error(
-            ctx,
-            "cannot render ability vtable tag for ability reference");
+        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot render ability vtable tag for ability reference");
         return false;
     }
     snprintf(buf, buf_size, "%s_vtable", tag);
@@ -175,9 +171,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
 
     tag = render_effective_ability_ref_vtable_tag(ability_decl, ability_ref, ctx);
     if (tag == NULL) {
-        transpiler_set_backend_error(
-            ctx,
-            "cannot render ability vtable tag for ability '%s'",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot render ability vtable tag for ability '%s'",
             ability_name != NULL ? ability_name : "<ability>");
         return;
     }
@@ -271,9 +265,7 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
     const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, role_name, method);
     const char *method_name = method->data.func_decl.name;
     if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-        transpiler_set_backend_error(
-            ctx,
-            "MIR-only C path missing routine for role method '%s.%s'",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for role method '%s.%s'",
             role_name != NULL ? role_name : "(anonymous)",
             method_name != NULL ? method_name : "(anonymous)");
         return;
@@ -285,9 +277,7 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
         emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
         return;
     }
-    transpiler_set_backend_error(
-        ctx,
-        "MIR-only C path missing routine for role method '%s.%s'",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for role method '%s.%s'",
         role_name != NULL ? role_name : "(anonymous)",
         method_name != NULL ? method_name : "(anonymous)");
 }
@@ -313,9 +303,7 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
         impl->data.impl_ability.ability_ref,
         ctx);
     if (vtable_tag == NULL) {
-        transpiler_set_backend_error(
-            ctx,
-            "cannot render ability vtable tag for role '%s' impl ability '%s'",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot render ability vtable tag for role '%s' impl ability '%s'",
             role_name != NULL ? role_name : "<role>",
             ability_name != NULL ? ability_name : "<ability>");
         return;
@@ -431,9 +419,7 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
         ASTNode *included_role = find_role_decl(ctx, include_stmt->data.include_stmt.role_name);
 
         if (included_role == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "cannot resolve included role '%s' while emitting role '%s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot resolve included role '%s' while emitting role '%s'",
                 include_stmt->data.include_stmt.role_name != NULL
                     ? include_stmt->data.include_stmt.role_name
                     : "<role>",
@@ -631,9 +617,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
                     return;
                 }
                 if (vtable_tag == NULL) {
-                    transpiler_set_backend_error(
-                        ctx,
-                        "cannot render ability vtable tag for party '%s' slot '%s'",
+                    transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot render ability vtable tag for party '%s' slot '%s'",
                         name != NULL ? name : "<party>",
                         slot_name != NULL ? slot_name : "<slot>");
                     return;
@@ -687,9 +671,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         if (method->type != AST_FUNC_DECL)
             continue;
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "MIR-only C path missing routine for party method '%s.%s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for party method '%s.%s'",
                 name != NULL ? name : "(anonymous-party)",
                 method->data.func_decl.name != NULL
                     ? method->data.func_decl.name
@@ -703,9 +685,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
             continue;
         }
-        transpiler_set_backend_error(
-            ctx,
-            "MIR-only C path missing routine for party method '%s.%s'",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for party method '%s.%s'",
             name != NULL ? name : "(anonymous-party)",
             method->data.func_decl.name != NULL
                 ? method->data.func_decl.name
@@ -731,9 +711,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
                 return;
             }
             if (vtable_tag == NULL) {
-                transpiler_set_backend_error(
-                    ctx,
-                    "cannot render ability vtable tag for party '%s' bind helper slot '%s'",
+                transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot render ability vtable tag for party '%s' bind helper slot '%s'",
                     name != NULL ? name : "<party>",
                     slot_name != NULL ? slot_name : "<slot>");
                 return;
@@ -806,9 +784,7 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "MIR-only C path missing routine for roster method '%s.%s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for roster method '%s.%s'",
                 name != NULL ? name : "(anonymous-roster)",
                 method->data.func_decl.name != NULL
                     ? method->data.func_decl.name
@@ -822,9 +798,7 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
             emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
             continue;
         }
-        transpiler_set_backend_error(
-            ctx,
-            "MIR-only C path missing routine for roster method '%s.%s'",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for roster method '%s.%s'",
             name != NULL ? name : "(anonymous-roster)",
             method->data.func_decl.name != NULL
                 ? method->data.func_decl.name
@@ -974,9 +948,7 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "MIR-only C path missing routine for relation method '%s.%s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for relation method '%s.%s'",
                 name != NULL ? name : "(anonymous-relation)",
                 method->data.func_decl.name != NULL
                     ? method->data.func_decl.name
@@ -1024,9 +996,7 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         codebuf_write(ctx->out, ")\n{\n");
-        transpiler_set_backend_error(
-            ctx,
-            "MIR-only C path missing routine for relation method '%s.%s'",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for relation method '%s.%s'",
             name != NULL ? name : "(anonymous-relation)",
             method->data.func_decl.name != NULL
                 ? method->data.func_decl.name
@@ -1176,9 +1146,7 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "MIR-only C path missing routine for effect method '%s.%s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for effect method '%s.%s'",
                 name != NULL ? name : "(anonymous-effect)",
                 method->data.func_decl.name != NULL
                     ? method->data.func_decl.name
@@ -1226,9 +1194,7 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         codebuf_write(ctx->out, ")\n{\n");
-        transpiler_set_backend_error(
-            ctx,
-            "MIR-only C path missing routine for effect method '%s.%s'",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for effect method '%s.%s'",
             name != NULL ? name : "(anonymous-effect)",
             method->data.func_decl.name != NULL
                 ? method->data.func_decl.name
@@ -1697,9 +1663,7 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "MIR-only C path missing routine for zone method '%s.%s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for zone method '%s.%s'",
                 name != NULL ? name : "(anonymous-zone)",
                 method->data.func_decl.name != NULL
                     ? method->data.func_decl.name
@@ -1763,9 +1727,7 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 free(participant_expr);
             }
         }
-        transpiler_set_backend_error(
-            ctx,
-            "MIR-only C path missing routine for zone method '%s.%s'",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for zone method '%s.%s'",
             name != NULL ? name : "(anonymous-zone)",
             method->data.func_decl.name != NULL
                 ? method->data.func_decl.name
@@ -2021,9 +1983,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "MIR-only C path missing routine for world method '%s.%s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for world method '%s.%s'",
                 name != NULL ? name : "(anonymous-world)",
                 method->data.func_decl.name != NULL
                     ? method->data.func_decl.name
@@ -2072,9 +2032,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out, ")\n{\n");
         ctx->indent++;
-        transpiler_set_backend_error(
-            ctx,
-            "MIR-only C path missing routine for world method '%s.%s'",
+        transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_TOPOLOGY_INVALID", "mir:topology:routine_missing_or_malformed", "inspect-hir-to-mir-lowering", "MIR-only C path missing routine for world method '%s.%s'",
             name != NULL ? name : "(anonymous-world)",
             method->data.func_decl.name != NULL
                 ? method->data.func_decl.name
@@ -2120,9 +2078,7 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 inner = slot_inner_type_name(type_name);
         }
         if (inner == NULL) {
-            transpiler_set_backend_error(
-                ctx,
-                "cannot derive receive type for select case channel '%s'",
+            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot derive receive type for select case channel '%s'",
                 channel->data.identifier.name != NULL
                     ? channel->data.identifier.name
                     : "(anonymous)");
@@ -2167,9 +2123,7 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 }
                 if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER
                     && inner == NULL) {
-                    transpiler_set_backend_error(
-                        ctx,
-                        "cannot derive receive type for select case channel '%s'",
+                    transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot derive receive type for select case channel '%s'",
                         channel->data.identifier.name != NULL
                             ? channel->data.identifier.name
                             : "(anonymous)");

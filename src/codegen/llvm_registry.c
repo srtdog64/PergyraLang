@@ -23,7 +23,7 @@ void
 llvm_scope_push(LLVMGenCtx *ctx)
 {
     if (ctx->scope_depth >= MAX_SCOPE_DEPTH) {
-        llvm_set_error(ctx, "Scope depth overflow (max %d)", MAX_SCOPE_DEPTH);
+        llvm_set_error_with_hints(ctx, "PGY_LLVM_SCOPE_LIMIT", "llvm:scope:capacity_exceeded", "refactor-or-raise-limit", "Scope depth overflow (max %d)", MAX_SCOPE_DEPTH);
         return;
     }
     ctx->scopes[ctx->scope_depth].count = 0;
@@ -46,7 +46,7 @@ llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
 
     LLVMScopeFrame *frame = &ctx->scopes[ctx->scope_depth - 1];
     if (frame->count >= MAX_SCOPE_VARS) {
-        llvm_set_error(ctx, "Too many variables in scope (max %d)", MAX_SCOPE_VARS);
+        llvm_set_error_with_hints(ctx, "PGY_LLVM_SCOPE_LIMIT", "llvm:scope:capacity_exceeded", "refactor-or-raise-limit", "Too many variables in scope (max %d)", MAX_SCOPE_VARS);
         return;
     }
 
