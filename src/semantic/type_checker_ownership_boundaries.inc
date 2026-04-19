@@ -116,6 +116,149 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
     free(source_path);
 }
 
+static void
+semantic_report_named_boundary_argument_required(ASTNode *site,
+                                                 ASTNode *source_expr,
+                                                 SemanticContext *ctx,
+                                                 const char *value_label_cap,
+                                                 const char *value_label_lower,
+                                                 const char *bind_fix)
+{
+    char *source_path = semantic_assignment_target_path(source_expr);
+    semantic_error(ctx, site,
+        "%s boundary arguments must use a named variable%s%s%s.\n"
+        "Reason:\n"
+        "- own/ref %s boundaries need one stable source binding for moved-here / borrowed-here provenance\n"
+        "- unnamed %s expressions would make later ownership diagnostics ambiguous\n"
+        "Fix:\n"
+        "- %s\n"
+        "- then pass that named variable through the boundary",
+        value_label_cap != NULL ? value_label_cap : "Value",
+        source_path != NULL ? " instead of '" : "",
+        source_path != NULL ? source_path : "",
+        source_path != NULL ? "'" : "",
+        value_label_lower != NULL ? value_label_lower : "value",
+        value_label_lower != NULL ? value_label_lower : "value",
+        bind_fix != NULL ? bind_fix : "bind the value to a local variable first");
+    free(source_path);
+}
+
+static void
+semantic_report_borrowed_helper_call_escape(ASTNode *site,
+                                            ASTNode *source_expr,
+                                            SemanticContext *ctx,
+                                            const char *borrowed_name,
+                                            const char *value_label,
+                                            const char *provenance_label,
+                                            const char *callee_name,
+                                            bool transitive_ref_escape,
+                                            const char *mode_label,
+                                            const char *local_fix_label)
+{
+    char *source_path = semantic_assignment_target_path(source_expr);
+
+    if (transitive_ref_escape) {
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+            "Borrowed ref %s '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' %s\n"
+            "- '%s' is derived from that borrowed %s\n"
+            "- callee '%s' derives a transitive call-escape path for its borrowed parameter\n"
+            "- forwarding this borrow into that helper would let it escape beyond the current call boundary\n"
+            "Fix:\n"
+            "- perform the %s operation locally in this function\n"
+            "- or change the current parameter to 'own' if transfer/forwarding is intended",
+            value_label != NULL ? value_label : "boundary value",
+            borrowed_name,
+            callee_name != NULL ? callee_name : "<callee>",
+            source_path != NULL ? source_path : borrowed_name,
+            semantic_current_consumer_name(ctx),
+            borrowed_name,
+            value_label != NULL ? value_label : "boundary value",
+            source_path != NULL ? source_path : borrowed_name,
+            provenance_label != NULL ? provenance_label : "boundary provenance",
+            callee_name != NULL ? callee_name : "<callee>",
+            local_fix_label != NULL ? local_fix_label : "value");
+    } else {
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+            "Borrowed ref %s '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' %s\n"
+            "- '%s' is derived from that borrowed %s\n"
+            "- forwarding it to '%s' as '%s' would create a transitive transfer beyond the current call boundary\n"
+            "Fix:\n"
+            "- call a 'ref' helper instead\n"
+            "- or change the current parameter to 'own' if forwarding/transfer is intended",
+            value_label != NULL ? value_label : "boundary value",
+            borrowed_name,
+            callee_name != NULL ? callee_name : "<callee>",
+            source_path != NULL ? source_path : borrowed_name,
+            semantic_current_consumer_name(ctx),
+            borrowed_name,
+            value_label != NULL ? value_label : "boundary value",
+            source_path != NULL ? source_path : borrowed_name,
+            provenance_label != NULL ? provenance_label : "boundary provenance",
+            callee_name != NULL ? callee_name : "<callee>",
+            mode_label != NULL ? mode_label : "default");
+    }
+
+    free(source_path);
+}
+
+static void
+semantic_report_borrowed_constructor_field_escape(ASTNode *site,
+                                                  ASTNode *source_expr,
+                                                  SemanticContext *ctx,
+                                                  const char *borrowed_name,
+                                                  const char *value_label,
+                                                  const char *provenance_label,
+                                                  const char *constructor_name,
+                                                  const char *constructor_field,
+                                                  const char *snapshot_label,
+                                                  bool identity_binding)
+{
+    char *source_path = semantic_assignment_target_path(source_expr);
+
+    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+        "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        "Borrowed ref %s '%s' cannot escape through constructor field store '%s.%s' from '%s'.\n"
+        "Reason:\n"
+        "- consumer path is function '%s'\n"
+        "- '%s' entered this function as a borrowed 'ref' %s\n"
+        "- '%s' is derived from that borrowed %s\n"
+        "- constructor '%s' would store it into field '%s'\n"
+        "%s"
+        "Fix:\n"
+        "- %s\n"
+        "- or construct the field from %s instead\n"
+        "- or change the current parameter to 'own' if transfer is intended",
+        value_label != NULL ? value_label : "boundary value",
+        borrowed_name,
+        constructor_name != NULL ? constructor_name : "<constructor>",
+        constructor_field != NULL ? constructor_field : "<field>",
+        source_path != NULL ? source_path : borrowed_name,
+        semantic_current_consumer_name(ctx),
+        borrowed_name,
+        value_label != NULL ? value_label : "boundary value",
+        source_path != NULL ? source_path : borrowed_name,
+        provenance_label != NULL ? provenance_label : "boundary provenance",
+        constructor_name != NULL ? constructor_name : "<constructor>",
+        constructor_field != NULL ? constructor_field : "<field>",
+        identity_binding
+            ? "- constructor field storage would create a second boundary-visible binding for the borrowed identity\n"
+            : "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n",
+        identity_binding
+            ? "keep mutating the original value through its existing binding"
+            : "keep using the borrowed value directly within this function",
+        snapshot_label != NULL ? snapshot_label : "a copied/value/projection result");
+
+    free(source_path);
+}
+
 #include "type_checker_ownership_let.inc"
 
 #include "type_checker_ownership_return.inc"
