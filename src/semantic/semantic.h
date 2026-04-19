@@ -55,7 +55,7 @@ void            semantic_result_print(const SemanticResult* result);
  *   "message": "..."
  * }
  * Trailing newline appended. Produces an empty array ("[]") if there are
- * no diagnostics. Safe for AI consumers to parse with any JSON library.
+ * no diagnostics. Parseable with any standard JSON library.
  */
 void            semantic_result_print_json(const SemanticResult* result);
 

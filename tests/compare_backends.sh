@@ -382,9 +382,32 @@ main() {
         cases=("$@")
     fi
 
+    local -a failed=()
+    local passed=0
+
     for source_rel in "${cases[@]}"; do
-        run_case "$source_rel"
+        # Run each case with failure-tolerance so one broken backend
+        # parity doesn't mask the rest of the suite. `run_case` already
+        # prints PASS/diff to stdout/stderr; we just track the tally.
+        if run_case "$source_rel"; then
+            passed=$((passed + 1))
+        else
+            failed+=("$source_rel")
+        fi
     done
+
+    local total=${#cases[@]}
+    local fail_count=${#failed[@]}
+    echo ""
+    echo "backend-compare: summary — ${passed}/${total} passed, ${fail_count} failed"
+    if (( fail_count > 0 )); then
+        echo "backend-compare: failures:"
+        for f in "${failed[@]}"; do
+            echo "  - $f"
+        done
+        return 1
+    fi
+    return 0
 }
 
 main "$@"

@@ -241,7 +241,6 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef len64;
         LLVMValueRef offset_ptr;
         LLVMValueRef result;
-        LLVMTypeRef receiver_type;
         unsigned field_count = 0;
 
         if (receiver == NULL || start == NULL || len == NULL)
@@ -249,12 +248,11 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm slice] phase=operands-ready\n");
 
-        receiver_type = LLVMTypeOf(receiver);
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm slice] phase=receiver-type kind=%d\n",
-                (int)LLVMGetTypeKind(receiver_type));
-        if (LLVMGetTypeKind(receiver_type) == LLVMStructTypeKind)
-            field_count = LLVMCountStructElementTypes(receiver_type);
+                (int)LLVMGetTypeKind(LLVMTypeOf(receiver)));
+        if (LLVMGetTypeKind(LLVMTypeOf(receiver)) == LLVMStructTypeKind)
+            field_count = LLVMCountStructElementTypes(LLVMTypeOf(receiver));
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm slice] phase=field-count count=%u\n", field_count);
         data_ptr = llvm_array_data_ptr(ctx, receiver);
@@ -283,30 +281,11 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             ? len
             : LLVMBuildSExt(ctx->builder, len, ctx->type_i64, llvm_tmp_name(ctx));
 
-        if (field_count == 4 && suffix != NULL && strcmp(suffix, "Unknown") != 0) {
-            char fn_name[64];
-            LLVMFuncEntry *fn;
-            LLVMValueRef receiver_alloca;
-            LLVMValueRef args[3];
-
-            snprintf(fn_name, sizeof(fn_name), "pgy_array_slice_%s", suffix);
-            fn = llvm_lookup_function(ctx, fn_name);
-            if (fn == NULL)
-                return LLVMConstInt(ctx->type_i32, 0, 0);
-            if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
-                fprintf(stderr, "[llvm slice] phase=runtime-call fn=%s\n", fn_name);
-
-            receiver_alloca = llvm_create_entry_alloca(ctx, receiver_type, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, receiver, receiver_alloca);
-            args[0] = receiver_alloca;
-            args[1] = start64;
-            args[2] = len64;
-            if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
-                fprintf(stderr, "[llvm slice] phase=runtime-call-dispatch\n");
-            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3,
-                llvm_tmp_name(ctx));
-        }
-
+        /* Emit slices directly in LLVM IR instead of calling the runtime
+         * aggregate-return helper. This keeps Array<T>.Slice(...) and
+         * Slice<T>.Slice(...) on the same lowering path and avoids Windows-
+         * specific ABI sensitivity around returning PgySlice_* structs from
+         * external C helpers. */
         offset_ptr = LLVMBuildGEP2(ctx->builder, elem_type, data_ptr, &start64, 1,
             llvm_tmp_name(ctx));
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)

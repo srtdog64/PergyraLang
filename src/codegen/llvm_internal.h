@@ -543,6 +543,12 @@ typedef struct LLVMGenCtx
      * site has not been assigned a code. Propagated to CompilerResult.error_code
      * when the LLVM pipeline rolls up its result. */
     const char     *error_code;
+    /* Optional hint tags attached alongside error_code. Both non-owning
+     * static literals, NULL-or-set together with `error_code`. Propagated
+     * through LLVMGenResult and CompilerResult into the runner's JSON
+     * emit (see type_checker.h::Diagnostic for field semantics). */
+    const char     *error_cause_ir;
+    const char     *error_fix_source;
 } LLVMGenCtx;
 
 static inline const char *
@@ -1212,12 +1218,21 @@ void llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...);
 void llvm_set_error_at(LLVMGenCtx *ctx, ASTNode *node, const char *fmt, ...);
 
 /* Error setters that attach a stable diagnostic code (e.g. "PGY_LLVM_SPEC_LIMIT")
- * for AI/tooling routing. `code` must be a string literal (non-owning).
+ * for downstream routing. `code` must be a string literal (non-owning).
  * Passing NULL is equivalent to calling the legacy setter. */
 void llvm_set_error_with_code(LLVMGenCtx *ctx, const char *code,
                               const char *fmt, ...);
 void llvm_set_error_at_with_code(LLVMGenCtx *ctx, ASTNode *node,
                                   const char *code, const char *fmt, ...);
+/* Full variant that also records the `cause_ir` + `fix_source` routing
+ * tags. All three of {code, cause_ir, fix_source} must be non-owning
+ * string literals; NULL is allowed per-field to omit. First call wins
+ * (subsequent errors in the same pass are dropped, matching legacy
+ * setter behavior). */
+void llvm_set_error_with_hints(LLVMGenCtx *ctx, const char *code,
+                                const char *cause_ir,
+                                const char *fix_source,
+                                const char *fmt, ...);
 
 /* =================================================================
  * Result helpers (llvm_backend.c)

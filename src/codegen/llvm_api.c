@@ -32,8 +32,14 @@ llvm_result_from_ctx_error(LLVMGenCtx *ctx)
         snprintf(msg, sizeof(msg), "%s", ctx->error_msg);
     }
     LLVMGenResult *res = llvm_result_error(msg);
-    if (res != NULL && ctx->error_code != NULL)
-        res->error_code = pergyra_strdup(ctx->error_code);
+    if (res != NULL) {
+        if (ctx->error_code != NULL)
+            res->error_code = pergyra_strdup(ctx->error_code);
+        if (ctx->error_cause_ir != NULL)
+            res->error_cause_ir = pergyra_strdup(ctx->error_cause_ir);
+        if (ctx->error_fix_source != NULL)
+            res->error_fix_source = pergyra_strdup(ctx->error_fix_source);
+    }
     return res;
 }
 
@@ -371,6 +377,8 @@ llvm_gen_result_destroy(LLVMGenResult *res)
 
     free(res->error_message);
     free(res->error_code);
+    free(res->error_cause_ir);
+    free(res->error_fix_source);
     free(res->ir_text);
     free(res);
 }

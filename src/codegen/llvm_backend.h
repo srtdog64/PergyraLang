@@ -37,6 +37,13 @@ typedef struct
      * "PGY_LLVM_SPEC_LIMIT"). NULL when the failing site has not been
      * assigned a code. Propagated from LLVMGenCtx.error_code. */
     char *error_code;
+    /* Optional hint tags (owning strdups). cause_ir tags the IR-level
+     * origin (e.g. "llvm:result_spec:capacity_exceeded"); fix_source tags
+     * the source-level repair action (e.g. "reuse-shared-error-enum").
+     * Both NULL when the failing site did not provide them. Propagated
+     * from LLVMGenCtx into CompilerResult and the runner's JSON emit. */
+    char *error_cause_ir;
+    char *error_fix_source;
     char *ir_text;        /* LLVM IR text (--emit-llvm mode)  */
     bool  uses_intent_observability;
 } LLVMGenResult;

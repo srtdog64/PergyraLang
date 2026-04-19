@@ -1088,6 +1088,8 @@ void llvm_gen_result_destroy(LLVMGenResult *res) {
     if (res) {
         free(res->error_message);
         free(res->error_code);
+        free(res->error_cause_ir);
+        free(res->error_fix_source);
         free(res->ir_text);
         free(res);
     }

@@ -78,20 +78,10 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 
         LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);
         LLVMValueRef tmp = llvm_create_entry_alloca(ctx, array_type, llvm_tmp_name(ctx));
-        char new_fn_name[64];
         char push_fn_name[64];
-        snprintf(new_fn_name, sizeof(new_fn_name), "pgy_array_new_%s", inner_name);
         snprintf(push_fn_name, sizeof(push_fn_name), "pgy_array_push_%s", inner_name);
-        LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, new_fn_name);
         LLVMFuncEntry *push_fn = llvm_lookup_function(ctx, push_fn_name);
-        if (new_fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMConstInt(ctx->type_i64, (unsigned long long)count, 0)
-            };
-            LLVMValueRef arr_val = LLVMBuildCall2(ctx->builder, new_fn->fn_type,
-                new_fn->fn, args, 1, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, arr_val, tmp);
-        }
+        LLVMBuildStore(ctx->builder, LLVMConstNull(array_type), tmp);
         for (size_t i = 0; i < count; i++) {
             LLVMValueRef elem = llvm_emit_expression(node->data.array_literal.elements[i], ctx);
             if (push_fn != NULL && elem != NULL) {

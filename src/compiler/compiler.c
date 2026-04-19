@@ -691,6 +691,24 @@ compiler_error_with_code(const char *message, const char *code)
     return result;
 }
 
+/* Full variant that also propagates the `cause_ir` and `fix_source`
+ * routing tags. All three hint strings are optional; passing NULL omits
+ * the corresponding field. Strings are strdup'd into owning storage —
+ * the backend error ctx holds non-owning static literals. */
+static CompilerResult *
+compiler_error_full(const char *message, const char *code,
+                    const char *cause_ir, const char *fix_source)
+{
+    CompilerResult *result = compiler_error_with_code(message, code);
+    if (result == NULL)
+        return NULL;
+    if (cause_ir != NULL)
+        result->error_cause_ir = pergyra_strdup(cause_ir);
+    if (fix_source != NULL)
+        result->error_fix_source = pergyra_strdup(fix_source);
+    return result;
+}
+
 static CompilerResult *
 compiler_success(const char *output_c_path, const char *output_binary_path)
 {
@@ -977,11 +995,13 @@ compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name)
         return compiler_error("Out of memory");
 
     if (!gen->success) {
-        CompilerResult *result = compiler_error_with_code(
+        CompilerResult *result = compiler_error_full(
             gen->error_message != NULL
                 ? gen->error_message
                 : "LLVM codegen failed",
-            gen->error_code);
+            gen->error_code,
+            gen->error_cause_ir,
+            gen->error_fix_source);
         llvm_gen_result_destroy(gen);
         return result;
     }
@@ -1011,11 +1031,13 @@ compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
         return compiler_error("Out of memory");
 
     if (!gen->success) {
-        CompilerResult *result = compiler_error_with_code(
+        CompilerResult *result = compiler_error_full(
             gen->error_message != NULL
                 ? gen->error_message
                 : "LLVM codegen failed",
-            gen->error_code);
+            gen->error_code,
+            gen->error_cause_ir,
+            gen->error_fix_source);
         llvm_gen_result_destroy(gen);
         return result;
     }
@@ -1065,11 +1087,13 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         return compiler_error("Out of memory");
 
     if (!gen->success) {
-        CompilerResult *error_result = compiler_error_with_code(
+        CompilerResult *error_result = compiler_error_full(
             gen->error_message != NULL
                 ? gen->error_message
                 : "LLVM codegen failed",
-            gen->error_code);
+            gen->error_code,
+            gen->error_cause_ir,
+            gen->error_fix_source);
         if (error_result != NULL)
             error_result->backend_timings.codegen = compiler_now_seconds() - phase_start;
         llvm_gen_result_destroy(gen);
@@ -1309,6 +1333,8 @@ compiler_result_destroy(CompilerResult *result)
 
     free(result->error_message);
     free(result->error_code);
+    free(result->error_cause_ir);
+    free(result->error_fix_source);
     free(result->c_output_path);
     free(result->binary_path);
     free(result);

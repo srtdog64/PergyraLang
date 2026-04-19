@@ -172,14 +172,15 @@ builtin_expr_source_path(ASTNode *value_expr)
 
 static void
 reject_borrowed_boundary_container_store(ASTNode *value_expr,
+                                         const Type *stored_value_type,
                                          const char *container_kind,
                                          const char *container_name,
                                          SemanticContext *ctx)
 {
     const char *value_name;
-    Symbol *value_sym;
     const Type *value_type;
     const char *value_label;
+    const char *provenance_label;
     const char *snapshot_label;
     const char *transfer_label;
     char *source_path = NULL;
@@ -194,8 +195,7 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
     source_path = builtin_expr_source_path(value_expr);
 
     value_name = borrowed_root_name;
-    value_sym = scope_lookup(ctx->scope, value_name);
-    value_type = value_sym != NULL ? value_sym->type : NULL;
+    value_type = stored_value_type;
 
     if (value_type != NULL
         && !type_is_movable_resource_handle(value_type)
@@ -205,15 +205,18 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
     }
 
     value_label = "boundary value";
+    provenance_label = "boundary provenance";
     snapshot_label = "copied/projection/value snapshot";
     transfer_label = "transfer into";
 
     if (type_is_movable_resource_handle(value_type)) {
         value_label = "movable resource";
+        provenance_label = "movable-resource provenance";
         snapshot_label = "copied/value/projection form";
         transfer_label = "transfer";
     } else if (builtin_is_subject_boundary_type(value_type, ctx)) {
         value_label = "subject";
+        provenance_label = "subject provenance";
         snapshot_label = "projection/object/tobject/value snapshot";
         transfer_label = "transfer";
     }
@@ -223,7 +226,7 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
         "Reason:\n"
         "- consumer path is function '%s'\n"
         "- '%s' entered this function as a borrowed 'ref' %s\n"
-        "- '%s' is derived from that borrowed provenance\n"
+        "- '%s' is derived from that borrowed %s\n"
         "- %s inserts values into %s state that may outlive the current call boundary\n"
         "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n"
         "Fix:\n"
@@ -242,6 +245,7 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
         value_name,
         value_label,
         source_path != NULL ? source_path : value_name,
+        provenance_label,
         container_kind != NULL ? container_kind : "container",
         container_name != NULL ? container_name : "<container store>",
         snapshot_label,

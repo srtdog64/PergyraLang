@@ -81,6 +81,17 @@ void driver_emit_single_diag_json_with_code(const char *stage,
                                              const char *code,
                                              const char *message);
 
+/* Full variant that also attaches the optional routing tags `cause_ir`
+ * (IR-level origin) and `fix_source` (source-level repair action). Any
+ * of {code, cause_ir, fix_source} may be NULL — omitted fields are
+ * dropped from the JSON. All string inputs must be valid UTF-8 and live
+ * at least until this call returns. */
+void driver_emit_single_diag_json_full(const char *stage,
+                                        const char *code,
+                                        const char *cause_ir,
+                                        const char *fix_source,
+                                        const char *message);
+
 /* Pick the effective stage tag for a diagnostic given the default (what the
  * runner knows about where it was invoked) and the code prefix (what the
  * failing site knows about why). Hybrid routing:

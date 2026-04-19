@@ -338,7 +338,10 @@ llvm_ensure_result_type(LLVMGenCtx *ctx,
     }
 
     if (ctx->result_spec_count >= MAX_LLVM_RESULT_SPECS) {
-        llvm_set_error_with_code(ctx, "PGY_LLVM_SPEC_LIMIT",
+        llvm_set_error_with_hints(ctx,
+            "PGY_LLVM_SPEC_LIMIT",
+            "llvm:result_spec:capacity_exceeded",
+            "reuse-shared-error-enum",
             "Result<T,E> specialization limit (%d) exceeded at %s",
             MAX_LLVM_RESULT_SPECS, suffix);
         return NULL;

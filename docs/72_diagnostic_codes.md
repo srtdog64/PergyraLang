@@ -1,6 +1,6 @@
 # Pergyra Diagnostic Codes
 
-Stable identifiers for compiler diagnostics. Designed for AI/tooling consumers: once a code is shipped, its **meaning** is frozen — message text may be refined, but the semantic condition it reports does not change.
+Stable identifiers for compiler diagnostics. Once a code is shipped, its **meaning** is frozen — message text may be refined, but the semantic condition it reports does not change.
 
 ## Format
 
@@ -18,12 +18,22 @@ JSON output structure when `--error-format=json`:
   "severity": "error" | "warning",
   "stage": "semantic",
   "code": "PGY_SEM_TYPE_MISMATCH",
+  "cause_ir": "semantic:assignability_check",
+  "fix_source": "annotate-or-convert",
   "location": {"line": 7, "column": 8},
   "message": "Type mismatch: cannot assign 'String' to 'Int'"
 }
 ```
 
-`code` is optional — legacy sites emit diagnostics without it. Downstream tooling should treat a missing `code` as "not yet routable" and fall back to message-text matching.
+`code`, `cause_ir`, and `fix_source` are all optional. Legacy sites emit diagnostics without them. Consumers should treat a missing `code` as "not yet routable" and fall back to message-text matching.
+
+### `cause_ir` — IR-level origin tag
+
+Identifies **where inside the compiler pipeline** the diagnostic was raised. Format is `<stage>:<subsystem>:<condition>`, e.g. `semantic:assignability_check`, `semantic:slot_lifecycle:write_after_release`, `llvm:result_spec:capacity_exceeded`. Stable across versions. Useful when the same `code` fires from multiple IR paths — `cause_ir` disambiguates which IR layer reported the breach.
+
+### `fix_source` — source-level repair action tag
+
+Compact, stable token describing **what to change at the source level**, e.g. `annotate-or-convert`, `reuse-shared-error-enum`, `reclaim-before-use`, `reclaim-source-or-drop-view`. Distinct from the free-text `message` because message wording can be refined while `fix_source` remains stable. One `code` may map to multiple `fix_source` values when the same semantic condition admits different concrete repairs (e.g. `PGY_SEM_SLOT_RELEASED` uses `reclaim-before-use` for direct slot misuse and `reclaim-source-or-drop-view` when the release is upstream of a view).
 
 ## Catalog
 

@@ -322,7 +322,11 @@ require_assignable(Type *from, Type *to,
         && type_is_assignable(from, to->data.slot.inner_type))
         return true;
 
-    semantic_error_code(ctx, "PGY_SEM_TYPE_MISMATCH", site,
+    semantic_error_with_hints(ctx,
+        "PGY_SEM_TYPE_MISMATCH",
+        "semantic:assignability_check",
+        "annotate-or-convert",
+        site,
         "Type mismatch: cannot assign '%s' to '%s'",
         from->name, to->name);
     return false;

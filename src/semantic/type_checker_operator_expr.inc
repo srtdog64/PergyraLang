@@ -194,6 +194,76 @@ type_check_operator_overload(ASTNode *expr, SemanticContext *ctx,
     return sym->type->data.function.return_type;
 }
 
+static void
+reject_borrowed_array_literal_store(ASTNode *value_expr,
+                                    const Type *stored_value_type,
+                                    SemanticContext *ctx)
+{
+    const char *borrowed_name;
+    char *source_path;
+    const char *consumer_name;
+    const char *value_label;
+    const char *provenance_label;
+    const char *snapshot_label;
+    const char *transfer_label;
+
+    if (value_expr == NULL || stored_value_type == NULL || ctx == NULL)
+        return;
+
+    borrowed_name = semantic_borrowed_boundary_root_name(value_expr, ctx);
+    if (borrowed_name == NULL)
+        return;
+
+    source_path = semantic_assignment_target_path(value_expr);
+    consumer_name =
+        ctx->current_function_decl != NULL
+        && ctx->current_function_decl->data.func_decl.name != NULL
+            ? ctx->current_function_decl->data.func_decl.name
+            : "<anonymous>";
+    value_label = "boundary value";
+    provenance_label = "boundary provenance";
+    snapshot_label = "copied/value/projection snapshot";
+    transfer_label = "transfer";
+
+    if (type_is_movable_resource_handle(stored_value_type)) {
+        value_label = "movable resource";
+        provenance_label = "movable-resource provenance";
+        snapshot_label = "copied/value/projection result";
+    } else if (type_is_subject_type(stored_value_type, ctx)) {
+        value_label = "subject";
+        provenance_label = "subject provenance";
+        snapshot_label = "projection/object/tobject/value snapshot";
+    } else if (!type_requires_boundary_borrow_tracking(stored_value_type, ctx)) {
+        free(source_path);
+        return;
+    }
+
+    semantic_error(ctx, value_expr,
+        "Borrowed ref %s '%s' cannot escape through array literal store%s%s%s.\n"
+        "Reason:\n"
+        "- consumer path is function '%s'\n"
+        "- '%s' entered this function as a borrowed 'ref' %s\n"
+        "- '%s' is derived from that borrowed %s\n"
+        "- array literal storage inserts values into array state that may outlive the current call boundary\n"
+        "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n"
+        "Fix:\n"
+        "- store a %s instead\n"
+        "- or change the current parameter to 'own' if %s into array storage is intended",
+        value_label,
+        borrowed_name,
+        source_path != NULL ? " from '" : "",
+        source_path != NULL ? source_path : "",
+        source_path != NULL ? "'" : "",
+        consumer_name,
+        borrowed_name,
+        value_label,
+        source_path != NULL ? source_path : borrowed_name,
+        provenance_label,
+        snapshot_label,
+        transfer_label);
+    free(source_path);
+}
+
 static Type *
 type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 {
@@ -201,115 +271,15 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
         return wrap_constructed(TYPE_ARRAY, TYPE_INT);
 
     Type *elem_type = type_check_expression(expr->data.array_literal.elements[0], ctx);
-    if (expr->data.array_literal.elements[0] != NULL
-        && expr->data.array_literal.elements[0]->type == AST_IDENTIFIER
-        && identifier_is_borrowed_boundary_param(
-            expr->data.array_literal.elements[0], ctx)) {
-        const char *borrowed_name =
-            expr->data.array_literal.elements[0]->data.identifier.name != NULL
-                ? expr->data.array_literal.elements[0]->data.identifier.name
-                : "<value>";
-        const char *consumer_name =
-            ctx->current_function_decl != NULL
-            && ctx->current_function_decl->data.func_decl.name != NULL
-                ? ctx->current_function_decl->data.func_decl.name
-                : "<anonymous>";
-
-        if (type_is_movable_resource_handle(elem_type)) {
-            semantic_error(ctx, expr->data.array_literal.elements[0],
-                "Borrowed ref movable resource '%s' cannot escape through array literal store.\n"
-                "Reason:\n"
-                "- consumer path is function '%s'\n"
-                "- '%s' entered this function as a borrowed 'ref' movable resource\n"
-                "- array literal storage is treated as a boundary-visible escaping store\n"
-                "Fix:\n"
-                "- keep using '%s' directly within this function\n"
-                "- or store a copied/value/projection result instead\n"
-                "- or change the parameter to 'own' if transfer is intended",
-                borrowed_name, consumer_name, borrowed_name, borrowed_name);
-        } else if (type_is_subject_type(elem_type, ctx)) {
-            semantic_error(ctx, expr->data.array_literal.elements[0],
-                "Borrowed ref subject '%s' cannot escape through array literal store.\n"
-                "Reason:\n"
-                "- consumer path is function '%s'\n"
-                "- '%s' entered this function as a borrowed 'ref' subject\n"
-                "- array literal storage would create a second boundary-visible binding for the borrowed identity\n"
-                "Fix:\n"
-                "- keep mutating '%s' through its original binding\n"
-                "- or store a projection/object/tobject/value snapshot instead\n"
-                "- or change the parameter to 'own' if transfer is intended",
-                borrowed_name, consumer_name, borrowed_name, borrowed_name);
-        } else if (type_requires_boundary_borrow_tracking(elem_type, ctx)) {
-            semantic_error(ctx, expr->data.array_literal.elements[0],
-                "Borrowed ref boundary value '%s' cannot escape through array literal store.\n"
-                "Reason:\n"
-                "- consumer path is function '%s'\n"
-                "- '%s' entered this function as a borrowed 'ref' boundary value\n"
-                "- array literal storage is treated as a boundary-visible escaping store for borrowed provenance\n"
-                "Fix:\n"
-                "- keep using '%s' directly within this function\n"
-                "- or store a copied/value/projection snapshot instead\n"
-                "- or change the parameter to 'own' if transfer is intended",
-                borrowed_name, consumer_name, borrowed_name, borrowed_name);
-        }
-    }
+    reject_borrowed_array_literal_store(
+        expr->data.array_literal.elements[0], elem_type, ctx);
     if (elem_type == NULL)
         elem_type = TYPE_UNKNOWN;
 
     for (size_t i = 1; i < expr->data.array_literal.count; i++) {
         Type *next = type_check_expression(expr->data.array_literal.elements[i], ctx);
-        if (expr->data.array_literal.elements[i] != NULL
-            && expr->data.array_literal.elements[i]->type == AST_IDENTIFIER
-            && identifier_is_borrowed_boundary_param(
-                expr->data.array_literal.elements[i], ctx)) {
-            const char *borrowed_name =
-                expr->data.array_literal.elements[i]->data.identifier.name != NULL
-                    ? expr->data.array_literal.elements[i]->data.identifier.name
-                    : "<value>";
-            const char *consumer_name =
-                ctx->current_function_decl != NULL
-                && ctx->current_function_decl->data.func_decl.name != NULL
-                    ? ctx->current_function_decl->data.func_decl.name
-                    : "<anonymous>";
-
-            if (type_is_movable_resource_handle(next)) {
-                semantic_error(ctx, expr->data.array_literal.elements[i],
-                    "Borrowed ref movable resource '%s' cannot escape through array literal store.\n"
-                    "Reason:\n"
-                    "- consumer path is function '%s'\n"
-                    "- '%s' entered this function as a borrowed 'ref' movable resource\n"
-                    "- array literal storage is treated as a boundary-visible escaping store\n"
-                    "Fix:\n"
-                    "- keep using '%s' directly within this function\n"
-                    "- or store a copied/value/projection result instead\n"
-                    "- or change the parameter to 'own' if transfer is intended",
-                    borrowed_name, consumer_name, borrowed_name, borrowed_name);
-            } else if (type_is_subject_type(next, ctx)) {
-                semantic_error(ctx, expr->data.array_literal.elements[i],
-                    "Borrowed ref subject '%s' cannot escape through array literal store.\n"
-                    "Reason:\n"
-                    "- consumer path is function '%s'\n"
-                    "- '%s' entered this function as a borrowed 'ref' subject\n"
-                    "- array literal storage would create a second boundary-visible binding for the borrowed identity\n"
-                    "Fix:\n"
-                    "- keep mutating '%s' through its original binding\n"
-                    "- or store a projection/object/tobject/value snapshot instead\n"
-                    "- or change the parameter to 'own' if transfer is intended",
-                    borrowed_name, consumer_name, borrowed_name, borrowed_name);
-            } else if (type_requires_boundary_borrow_tracking(next, ctx)) {
-                semantic_error(ctx, expr->data.array_literal.elements[i],
-                    "Borrowed ref boundary value '%s' cannot escape through array literal store.\n"
-                    "Reason:\n"
-                    "- consumer path is function '%s'\n"
-                    "- '%s' entered this function as a borrowed 'ref' boundary value\n"
-                    "- array literal storage is treated as a boundary-visible escaping store for borrowed provenance\n"
-                    "Fix:\n"
-                    "- keep using '%s' directly within this function\n"
-                    "- or store a copied/value/projection snapshot instead\n"
-                    "- or change the parameter to 'own' if transfer is intended",
-                    borrowed_name, consumer_name, borrowed_name, borrowed_name);
-            }
-        }
+        reject_borrowed_array_literal_store(
+            expr->data.array_literal.elements[i], next, ctx);
         if (!type_is_assignable(next, elem_type) && !type_is_assignable(elem_type, next)) {
             semantic_error(ctx, expr->data.array_literal.elements[i],
                 "Array literal element type mismatch: expected '%s', got '%s'",

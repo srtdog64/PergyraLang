@@ -172,9 +172,10 @@ semantic_context_destroy(SemanticContext *ctx)
  * ----------------------------------------------------------------- */
 
 static void
-emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
-                 const char *code, const ASTNode *node,
-                 const char *fmt, va_list ap)
+emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
+                      const char *code, const char *cause_ir,
+                      const char *fix_source, const ASTNode *node,
+                      const char *fmt, va_list ap)
 {
     char *message = NULL;
     va_list ap_copy;
@@ -200,9 +201,15 @@ emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
             continue;
         }
         if (existing->message != NULL && strcmp(existing->message, message) == 0) {
-            /* Upgrade legacy entry's code if we now have one to attach. */
+            /* Upgrade legacy entry's metadata if the new call provides
+             * fields the existing entry lacks. Keeps richer routing info
+             * when a plain semantic_error hits the same site first. */
             if (existing->code == NULL && code != NULL)
                 existing->code = code;
+            if (existing->cause_ir == NULL && cause_ir != NULL)
+                existing->cause_ir = cause_ir;
+            if (existing->fix_source == NULL && fix_source != NULL)
+                existing->fix_source = fix_source;
             free(message);
             return;
         }
@@ -222,16 +229,26 @@ emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
     if (d == NULL)
         return;
 
-    d->level = level;
-    d->line  = node ? node->line   : 0;
-    d->col   = node ? node->column : 0;
-    d->message = message;
-    d->code    = code;  /* non-owning; points to static string or NULL */
+    d->level      = level;
+    d->line       = node ? node->line   : 0;
+    d->col        = node ? node->column : 0;
+    d->message    = message;
+    d->code       = code;        /* non-owning; static literal or NULL */
+    d->cause_ir   = cause_ir;    /* non-owning; static literal or NULL */
+    d->fix_source = fix_source;  /* non-owning; static literal or NULL */
 
     ctx->diagnostics[ctx->diagnostic_count++] = d;
 
     if (level == DIAG_ERROR)
         ctx->has_error = true;
+}
+
+static void
+emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
+                 const char *code, const ASTNode *node,
+                 const char *fmt, va_list ap)
+{
+    emit_diagnostic_full(ctx, level, code, NULL, NULL, node, fmt, ap);
 }
 
 void
@@ -271,6 +288,36 @@ semantic_warning_code(SemanticContext *ctx, const char *code,
     va_list ap;
     va_start(ap, fmt);
     emit_diagnostic(ctx, DIAG_WARNING, code, node, fmt, ap);
+    va_end(ap);
+}
+
+void
+semantic_error_with_hints(SemanticContext *ctx,
+                          const char *code,
+                          const char *cause_ir,
+                          const char *fix_source,
+                          const ASTNode *node,
+                          const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    emit_diagnostic_full(ctx, DIAG_ERROR, code, cause_ir, fix_source,
+                          node, fmt, ap);
+    va_end(ap);
+}
+
+void
+semantic_warning_with_hints(SemanticContext *ctx,
+                            const char *code,
+                            const char *cause_ir,
+                            const char *fix_source,
+                            const ASTNode *node,
+                            const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    emit_diagnostic_full(ctx, DIAG_WARNING, code, cause_ir, fix_source,
+                          node, fmt, ap);
     va_end(ap);
 }
 

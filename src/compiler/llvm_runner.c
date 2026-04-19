@@ -64,11 +64,13 @@ llvm_runner_execute(const DriverFlags *flags,
             ? compiler_emit_llvm_ir_to_file(bundle, "pergyra_module", flags->output_path)
             : compiler_emit_llvm_ir(bundle, "pergyra_module");
         if (result == NULL || !result->success) {
-            const char *msg = result != NULL ? result->error_message : "out of memory";
+            const char *msg  = result != NULL ? result->error_message : "out of memory";
             const char *code = result != NULL ? result->error_code : NULL;
+            const char *cause = result != NULL ? result->error_cause_ir : NULL;
+            const char *fix   = result != NULL ? result->error_fix_source : NULL;
             if (flags->diag_format == DIAG_FORMAT_JSON) {
                 const char *stage = driver_route_stage("backend_llvm_emit", code);
-                driver_emit_single_diag_json_with_code(stage, code, msg);
+                driver_emit_single_diag_json_full(stage, code, cause, fix, msg);
             } else {
                 fprintf(stderr, "pgy: LLVM IR generation failed: %s\n", msg);
             }
@@ -110,11 +112,13 @@ llvm_runner_execute(const DriverFlags *flags,
     result = compiler_build_native_llvm(bundle, obj_path, runnable_bin_path, flags->verbose,
                                         flags->opt_profile);
     if (result == NULL || !result->success) {
-        const char *msg = result != NULL ? result->error_message : "out of memory";
-        const char *code = result != NULL ? result->error_code : NULL;
+        const char *msg   = result != NULL ? result->error_message : "out of memory";
+        const char *code  = result != NULL ? result->error_code : NULL;
+        const char *cause = result != NULL ? result->error_cause_ir : NULL;
+        const char *fix   = result != NULL ? result->error_fix_source : NULL;
         if (flags->diag_format == DIAG_FORMAT_JSON) {
             const char *stage = driver_route_stage("backend_llvm_native", code);
-            driver_emit_single_diag_json_with_code(stage, code, msg);
+            driver_emit_single_diag_json_full(stage, code, cause, fix, msg);
         } else {
             fprintf(stderr, "pgy: LLVM compile failed: %s\n", msg);
         }

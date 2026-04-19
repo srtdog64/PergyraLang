@@ -267,7 +267,11 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
         Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
         if (sym != NULL && sym->kind == SYMBOL_SLOT) {
             if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error_code(ctx, "PGY_SEM_SLOT_RELEASED", slot_arg,
+                semantic_error_with_hints(ctx,
+                    "PGY_SEM_SLOT_RELEASED",
+                    "semantic:slot_lifecycle:write_after_release",
+                    "reclaim-before-use",
+                    slot_arg,
                     "Cannot write to released slot '%s'",
                     sym->name);
                 return false;
@@ -367,7 +371,11 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
         Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
         if (sym != NULL && sym->kind == SYMBOL_SLOT) {
             if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error_code(ctx, "PGY_SEM_SLOT_RELEASED", slot_arg,
+                semantic_error_with_hints(ctx,
+                    "PGY_SEM_SLOT_RELEASED",
+                    "semantic:slot_lifecycle:read_after_release",
+                    "reclaim-before-use",
+                    slot_arg,
                     "Cannot read from released slot '%s'",
                     sym->name);
                 return TYPE_UNKNOWN;

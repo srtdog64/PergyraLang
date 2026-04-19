@@ -7,9 +7,9 @@
 #   (2) parse error    → stage="module_load"
 #   (3) success path   → empty array "[]"
 #
-# AI-first positioning relies on this being parseable without falling back
-# to regex on free-text messages. Shape is tight; breaking it should fail
-# this smoke test.
+# Structured-tooling consumers rely on this being parseable without
+# falling back to regex on free-text messages. Shape is tight; breaking
+# it should fail this smoke test.
 
 set -euo pipefail
 
@@ -96,9 +96,13 @@ if "$PGY" "$SEM_SRC" --backend=c --error-format=json 2>"$SEM_ERR"; then
 fi
 check_json "semantic" "$SEM_ERR" \
   'isinstance(data, list) and len(data) >= 1 and data[0].get("severity") == "error" and data[0].get("stage") == "semantic" and "location" in data[0] and "message" in data[0]'
-# Type-mismatch sites now carry a stable PGY_SEM_* code — AI consumers route on this.
+# Type-mismatch sites now carry a stable PGY_SEM_* code — tooling routes on this.
 check_json "semantic-code" "$SEM_ERR" \
   'isinstance(data, list) and data[0].get("code") == "PGY_SEM_TYPE_MISMATCH"'
+# Routing hints — cause_ir (IR-level origin) + fix_source (source-level
+# repair action token). Stable across versions; meaning frozen once shipped.
+check_json "semantic-hints" "$SEM_ERR" \
+  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:assignability_check" and data[0].get("fix_source") == "annotate-or-convert"'
 
 # --- case 2: parse error (module_load stage) ---
 PARSE_SRC="$WORK_DIR/parse.pgy"
@@ -158,6 +162,10 @@ if "$PGY" "$SPEC_SRC" --backend=llvm --error-format=json -o "$SPEC_OBJ" \
 else
     check_json "spec-limit" "$SPEC_ERR" \
       'isinstance(data, list) and any(d.get("code") == "PGY_LLVM_SPEC_LIMIT" and d.get("stage") == "llvm_codegen" for d in data)'
+    # Backend hints propagate through LLVMGenCtx → LLVMGenResult →
+    # CompilerResult → driver_emit_single_diag_json_full.
+    check_json "spec-limit-hints" "$SPEC_ERR" \
+      'isinstance(data, list) and any(d.get("cause_ir") == "llvm:result_spec:capacity_exceeded" and d.get("fix_source") == "reuse-shared-error-enum" for d in data)'
 fi
 
 # --- case 3: success path emits [] ---

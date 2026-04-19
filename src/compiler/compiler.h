@@ -29,6 +29,13 @@ typedef struct
      * NULL when the failing site has not been assigned a code. Propagated
      * from TranspilerCtx.backend_error_code / LLVMGenCtx.error_code. */
     char *error_code;
+    /* Optional hint tags (owning strdups). cause_ir = IR-level origin
+     * (e.g. "llvm:result_spec:capacity_exceeded"); fix_source =
+     * source-level repair action token (e.g. "reuse-shared-error-enum").
+     * Both NULL when the failing site did not provide them. Propagated
+     * from TranspilerCtx / LLVMGenCtx hint fields. */
+    char *error_cause_ir;
+    char *error_fix_source;
     char *c_output_path;
     char *binary_path;
     CompilerBackendTimings backend_timings;

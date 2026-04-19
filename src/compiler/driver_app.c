@@ -121,11 +121,15 @@ driver_extract_line_col(const char *s, unsigned *line, unsigned *column)
  * that occur outside the SemanticResult accumulator (module loader, parser
  * wrapper, backend codegen, linker). Severity defaults to "error".
  * `stage` is a short tag like "module_load", "parse", "backend_c",
- * "backend_llvm", "link". Location is best-effort extracted from the
- * message text (parser errors include "at line N, column M"). */
+ * "backend_llvm", "link". `code`, `cause_ir`, and `fix_source` are all
+ * optional routing tags and omitted from the JSON when NULL. Location is
+ * best-effort extracted from the message text (parser errors include
+ * "at line N, column M"). */
 void
-driver_emit_single_diag_json_with_code(const char *stage, const char *code,
-                                        const char *message)
+driver_emit_single_diag_json_full(const char *stage, const char *code,
+                                   const char *cause_ir,
+                                   const char *fix_source,
+                                   const char *message)
 {
     FILE *out = stderr;
     unsigned line = 0, column = 0;
@@ -136,6 +140,14 @@ driver_emit_single_diag_json_with_code(const char *stage, const char *code,
     if (code != NULL) {
         fputs(",\"code\":", out);
         driver_json_emit_string(out, code);
+    }
+    if (cause_ir != NULL) {
+        fputs(",\"cause_ir\":", out);
+        driver_json_emit_string(out, cause_ir);
+    }
+    if (fix_source != NULL) {
+        fputs(",\"fix_source\":", out);
+        driver_json_emit_string(out, fix_source);
     }
     if (have_loc) {
         fprintf(out, ",\"location\":{\"line\":%u,\"column\":%u}", line, column);
@@ -148,9 +160,35 @@ driver_emit_single_diag_json_with_code(const char *stage, const char *code,
 }
 
 void
+driver_emit_single_diag_json_with_code(const char *stage, const char *code,
+                                        const char *message)
+{
+    driver_emit_single_diag_json_full(stage, code, NULL, NULL, message);
+}
+
+void
 driver_emit_single_diag_json(const char *stage, const char *message)
 {
-    driver_emit_single_diag_json_with_code(stage, NULL, message);
+    driver_emit_single_diag_json_full(stage, NULL, NULL, NULL, message);
+}
+
+/* Mid-pipeline stage failure helper. Routes to JSON when --error-format=json
+ * is active (so downstream consumers get a parseable array for HIR/DIR/
+ * RIR/MIR lowering/validation failures), otherwise keeps the legacy
+ * free-text line. `stage` is the JSON stage tag ("hir_lower", "mir_
+ * validate", ...); `description` is the human-readable prefix used in
+ * text mode ("HIR lowering failed"); `detail` is the underlying error
+ * string (may be NULL → treated as "out of memory"). */
+static void
+driver_emit_stage_fail(const DriverFlags *flags, const char *stage,
+                       const char *description, const char *detail)
+{
+    const char *msg = (detail != NULL) ? detail : "out of memory";
+    if (flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {
+        driver_emit_single_diag_json(stage, msg);
+    } else {
+        fprintf(stderr, "pgy: %s: %s\n", description, msg);
+    }
 }
 
 const char *
@@ -1067,13 +1105,18 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
-    if (flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {
-        semantic_result_print_json(sem);
-    } else {
+    /* Text mode: print diagnostics now (legacy UX preserves mid-run warnings).
+     * JSON mode: defer so exactly one JSON array lands on stderr per run.
+     * Backend runners emit their own error array on failure; we emit the
+     * semantic array only at terminal points (semantic-fail here, or the
+     * pipeline-success site near the end of this function). */
+    if (flags == NULL || flags->diag_format != DIAG_FORMAT_JSON) {
         semantic_result_print(sem);
     }
     if (!sem->success) {
-        if (flags == NULL || flags->diag_format != DIAG_FORMAT_JSON) {
+        if (flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {
+            semantic_result_print_json(sem);  /* terminal: error array */
+        } else {
             fprintf(stderr, "pgy: %zu error(s) — aborting\n", sem->error_count);
         }
         goto cleanup;
@@ -1085,8 +1128,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->hir_lower = driver_now_seconds() - phase_start;
     if (hir == NULL) {
-        fprintf(stderr, "pgy: HIR lowering failed: %s\n",
-                hir_error != NULL ? hir_error : "out of memory");
+        driver_emit_stage_fail(flags, "hir_lower",
+            "HIR lowering failed", hir_error);
         goto cleanup;
     }
 
@@ -1096,8 +1139,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->dir_lower = driver_now_seconds() - phase_start;
     if (dir == NULL) {
-        fprintf(stderr, "pgy: DIR lowering failed: %s\n",
-                hir_error != NULL ? hir_error : "out of memory");
+        driver_emit_stage_fail(flags, "dir_lower",
+            "DIR lowering failed", hir_error);
         goto cleanup;
     }
     driver_debug_stage("dir_validate");
@@ -1105,8 +1148,9 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (!dir_validate(dir, &hir_error)) {
         if (timings != NULL)
             timings->dir_validate = driver_now_seconds() - phase_start;
-        fprintf(stderr, "pgy: DIR validation failed: %s\n",
-                hir_error != NULL ? hir_error : "invalid DIR");
+        driver_emit_stage_fail(flags, "dir_validate",
+            "DIR validation failed",
+            hir_error != NULL ? hir_error : "invalid DIR");
         goto cleanup;
     }
     if (timings != NULL)
@@ -1118,8 +1162,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->rir_lower = driver_now_seconds() - phase_start;
     if (rir == NULL) {
-        fprintf(stderr, "pgy: RIR lowering failed: %s\n",
-                hir_error != NULL ? hir_error : "out of memory");
+        driver_emit_stage_fail(flags, "rir_lower",
+            "RIR lowering failed", hir_error);
         goto cleanup;
     }
     driver_debug_stage("rir_enrich");
@@ -1127,8 +1171,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (!rir_enrich_with_hir_flow(rir, hir, &hir_error)) {
         if (timings != NULL)
             timings->rir_enrich = driver_now_seconds() - phase_start;
-        fprintf(stderr, "pgy: RIR flow enrichment failed: %s\n",
-                hir_error != NULL ? hir_error : "out of memory");
+        driver_emit_stage_fail(flags, "rir_enrich",
+            "RIR flow enrichment failed", hir_error);
         goto cleanup;
     }
     if (timings != NULL)
@@ -1138,8 +1182,9 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (!rir_validate(rir, &hir_error)) {
         if (timings != NULL)
             timings->rir_validate = driver_now_seconds() - phase_start;
-        fprintf(stderr, "pgy: RIR validation failed: %s\n",
-                hir_error != NULL ? hir_error : "invalid RIR");
+        driver_emit_stage_fail(flags, "rir_validate",
+            "RIR validation failed",
+            hir_error != NULL ? hir_error : "invalid RIR");
         goto cleanup;
     }
     if (timings != NULL)
@@ -1149,8 +1194,9 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (!rir_validate_against_dir(rir, dir, &hir_error)) {
         if (timings != NULL)
             timings->rir_dir_validate = driver_now_seconds() - phase_start;
-        fprintf(stderr, "pgy: RIR/DIR validation failed: %s\n",
-                hir_error != NULL ? hir_error : "invalid RIR/DIR contract");
+        driver_emit_stage_fail(flags, "rir_dir_validate",
+            "RIR/DIR validation failed",
+            hir_error != NULL ? hir_error : "invalid RIR/DIR contract");
         goto cleanup;
     }
     if (timings != NULL)
@@ -1162,8 +1208,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->mir_lower = driver_now_seconds() - phase_start;
     if (mir == NULL) {
-        fprintf(stderr, "pgy: MIR lowering failed: %s\n",
-                hir_error != NULL ? hir_error : "out of memory");
+        driver_emit_stage_fail(flags, "mir_lower",
+            "MIR lowering failed", hir_error);
         goto cleanup;
     }
     driver_debug_stage("mir_validate");
@@ -1171,8 +1217,9 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (!mir_validate(mir, &hir_error)) {
         if (timings != NULL)
             timings->mir_validate = driver_now_seconds() - phase_start;
-        fprintf(stderr, "pgy: MIR validation failed: %s\n",
-                hir_error != NULL ? hir_error : "invalid MIR");
+        driver_emit_stage_fail(flags, "mir_validate",
+            "MIR validation failed",
+            hir_error != NULL ? hir_error : "invalid MIR");
         goto cleanup;
     }
     if (timings != NULL)
@@ -1234,6 +1281,17 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->backend = driver_now_seconds() - phase_start;
 
+    /* Terminal semantic-JSON emit for the "full success" path. Backend
+     * runners emit their own error array on failure (exit_code != 0) and
+     * we skip here to avoid a second JSON array on stderr. HIR/DIR/RIR/MIR
+     * mid-pipeline failures also keep exit_code == 1 (initial value) so
+     * this guard correctly suppresses emit for those too — they are a
+     * separate pre-existing gap tracked outside this fix. */
+    if (sem != NULL && exit_code == 0
+        && flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {
+        semantic_result_print_json(sem);
+    }
+
 cleanup:
     if (timings != NULL)
         timings->total = driver_now_seconds() - total_start;
@@ -1263,7 +1321,7 @@ driver_print_usage(void)
 #endif
         "  pgy <source.pgy> --run        compile + run\n"
         "  pgy <source.pgy> --opt=dev|release   (default: release)\n"
-        "  pgy <source.pgy> --error-format=json|text  (default: text; json for AI/tooling)\n"
+        "  pgy <source.pgy> --error-format=json|text  (default: text; json for structured tooling)\n"
         "  pgy scaffold <kind> <target> create starter files\n"
         "  pgy new <project-dir>         scaffold a starter project\n"
         "\n"

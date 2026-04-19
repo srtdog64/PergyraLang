@@ -169,7 +169,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         key_type = type_check_expression(expr->data.call.arguments[1], ctx);
         value_type = type_check_expression(expr->data.call.arguments[2], ctx);
         reject_borrowed_boundary_container_store(
-            expr->data.call.arguments[2], "map", "MapSet", ctx);
+            expr->data.call.arguments[2], value_type, "map", "MapSet", ctx);
         if (type_is_constructed_named(map_type, "HashMap")
             && map_type->data.constructed.arg_count == 2) {
             require_assignable(key_type,
@@ -341,7 +341,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         list_type = type_check_expression(expr->data.call.arguments[0], ctx);
         value_type = type_check_expression(expr->data.call.arguments[1], ctx);
         reject_borrowed_boundary_container_store(
-            expr->data.call.arguments[1], "list", "ListPush", ctx);
+            expr->data.call.arguments[1], value_type, "list", "ListPush", ctx);
         if (type_is_constructed_named(list_type, "List")
             && list_type->data.constructed.arg_count == 1) {
             require_assignable(value_type,
@@ -383,7 +383,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         index_type = type_check_expression(expr->data.call.arguments[1], ctx);
         value_type = type_check_expression(expr->data.call.arguments[2], ctx);
         reject_borrowed_boundary_container_store(
-            expr->data.call.arguments[2], "list", "ListSet", ctx);
+            expr->data.call.arguments[2], value_type, "list", "ListSet", ctx);
         require_assignable(index_type, TYPE_INT, expr->data.call.arguments[1], ctx);
         if (type_is_constructed_named(list_type, "List")
             && list_type->data.constructed.arg_count == 1) {
@@ -441,7 +441,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         value_type = type_check_expression(expr->data.call.arguments[1], ctx);
         if (strcmp(name, "SetAdd") == 0) {
             reject_borrowed_boundary_container_store(
-                expr->data.call.arguments[1], "set", "SetAdd", ctx);
+                expr->data.call.arguments[1], value_type, "set", "SetAdd", ctx);
         }
         if (type_is_constructed_named(set_type, "Set")
             && set_type->data.constructed.arg_count == 1) {
@@ -502,7 +502,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         queue_type = type_check_expression(expr->data.call.arguments[0], ctx);
         value_type = type_check_expression(expr->data.call.arguments[1], ctx);
         reject_borrowed_boundary_container_store(
-            expr->data.call.arguments[1], "queue", "QueuePush", ctx);
+            expr->data.call.arguments[1], value_type, "queue", "QueuePush", ctx);
         if (type_is_constructed_named(queue_type, "Queue")
             && queue_type->data.constructed.arg_count == 1) {
             require_assignable(value_type,
@@ -648,7 +648,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
         Type *val = type_check_expression(expr->data.call.arguments[1], ctx);
         reject_borrowed_boundary_container_store(
-            expr->data.call.arguments[1], "array", "ArrayPush", ctx);
+            expr->data.call.arguments[1], val, "array", "ArrayPush", ctx);
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error(ctx, expr->data.call.arguments[0],
                 "ArrayPush requires Array<T>, got '%s'", arr->name);
@@ -668,7 +668,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             TYPE_INT, expr->data.call.arguments[1], ctx);
         Type *val = type_check_expression(expr->data.call.arguments[2], ctx);
         reject_borrowed_boundary_container_store(
-            expr->data.call.arguments[2], "array", "ArraySet", ctx);
+            expr->data.call.arguments[2], val, "array", "ArraySet", ctx);
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error(ctx, expr->data.call.arguments[0],
                 "ArraySet requires Array<T>, got '%s'", arr->name);

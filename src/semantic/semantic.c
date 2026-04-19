@@ -265,6 +265,14 @@ semantic_result_print_json(const SemanticResult *result)
             fputs(",\"code\":", out);
             json_emit_string(out, d->code);
         }
+        if (d->cause_ir != NULL) {
+            fputs(",\"cause_ir\":", out);
+            json_emit_string(out, d->cause_ir);
+        }
+        if (d->fix_source != NULL) {
+            fputs(",\"fix_source\":", out);
+            json_emit_string(out, d->fix_source);
+        }
         fputs(",\"location\":{\"line\":", out);
         fprintf(out, "%u,\"column\":%u}", d->line, d->col);
         fputs(",\"message\":", out);

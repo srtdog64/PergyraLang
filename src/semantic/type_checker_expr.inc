@@ -505,7 +505,11 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                && sym->slot_info.paired_slot_name != NULL) {
                         owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
                         if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
-                            semantic_error_code(ctx, "PGY_SEM_SLOT_RELEASED", object,
+                            semantic_error_with_hints(ctx,
+                                "PGY_SEM_SLOT_RELEASED",
+                                "semantic:slot_view:write_through_released_owner",
+                                "reclaim-source-or-drop-view",
+                                object,
                                 "Cannot write through WriteView '%s' because source slot '%s' was released",
                                 sym->name, owner->name);
                             return TYPE_UNKNOWN;

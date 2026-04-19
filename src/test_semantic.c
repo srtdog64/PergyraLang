@@ -2911,6 +2911,81 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("ref movable-resource parameter rejects assignment rebind escape");
+    {
+        const char *source =
+            "func Store(ref items: Array<QubitSlot>) -> Void {\n"
+            "    let dst: QubitSlot = ClaimQubit();\n"
+            "    dst = items[0];\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref movable resource 'items' cannot escape through assignment rebind into 'dst' from 'items[0]'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'items[0]' is derived from that borrowed movable-resource provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref movable-resource parameter rejects QueuePush escape with array provenance");
+    {
+        const char *source =
+            "func Store(ref items: Array<QubitSlot>) -> Void {\n"
+            "    let queue: Queue<QubitSlot> = QueueNew();\n"
+            "    QueuePush(queue, items[0]);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref movable resource 'items' cannot escape through queue store from 'items[0]'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'items[0]' is derived from that borrowed movable-resource provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref movable-resource parameter rejects MapSet escape with array provenance");
+    {
+        const char *source =
+            "func Store(ref items: Array<QubitSlot>) -> Void {\n"
+            "    let table: HashMap<String, QubitSlot> = MapNew();\n"
+            "    MapSet(table, \"slot\", items[0]);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref movable resource 'items' cannot escape through map store from 'items[0]'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'items[0]' is derived from that borrowed movable-resource provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ref boundary value parameter reports member source path on constructor field store");
     {
         const char *source =
@@ -3018,6 +3093,57 @@ test_qubit_slot_semantics(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot escape through array literal store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter reports array source path on array literal store");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Store(ref items: Array<Packet>) -> Void {\n"
+            "    let copies: Array<Packet> = [items[0]];\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'items' cannot escape through array literal store from 'items[0]'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'items[0]' is derived from that borrowed boundary provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref movable-resource parameter reports array source path on array literal store");
+    {
+        const char *source =
+            "func Store(ref items: Array<QubitSlot>) -> Void {\n"
+            "    let copies: Array<QubitSlot> = [items[0]];\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref movable resource 'items' cannot escape through array literal store from 'items[0]'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'items[0]' is derived from that borrowed movable-resource provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
