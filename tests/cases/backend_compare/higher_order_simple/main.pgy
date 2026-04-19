@@ -1,0 +1,17 @@
+// Higher-order function: lambda stored in local variable and passed as
+// an argument to a regular function, which invokes it via function-pointer
+// indirection. Verifies lambda AST → function-pointer codegen parity
+// across C and LLVM backends.
+
+func Apply(f: func(Int) -> Int, x: Int) -> Int {
+    return f(x);
+}
+
+func Main() -> Void {
+    let double: func(Int) -> Int = (x: Int) => x * 2;
+    let inc: func(Int) -> Int = (x: Int) => x + 1;
+
+    Log(Apply(double, 21));
+    Log(Apply(inc, 41));
+    Log(Apply(double, Apply(inc, 20)));
+}

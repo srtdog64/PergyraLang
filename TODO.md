@@ -130,7 +130,15 @@
 - [ ] **own/ref 일반화와 generic contract 전경로 audit 마감**
   - own/ref는 anchored subset 밖의 일반 movable type에도 assignment/call/return/channel/container/rebind 전경로 audit을 계속 확장
   - borrowed value escape는 helper call / channel / return / container store뿐 아니라 broader assignment/member/store path까지 provenance 기준으로 점검
+  - 진행: constructor field store(`Holder(packet)` 같은 boundary-visible store)를 borrowed escape 경로로 승격하고 semantic regression 추가
+  - 진행: array literal store(`[packet]`)도 borrowed escape 경로로 승격하고 semantic regression 추가
+  - 진행: member assignment / array overwrite 진단이 identifier-only가 아니라 `holder.packet`, `items[0]` 같은 target path provenance를 직접 보고하도록 정렬
+  - 진행: new-binding escape도 identifier-only가 아니라 borrowed member/aggregate source path provenance(`packet.view`, `items[0]`)까지 추적하도록 확장
+  - 진행: new-binding escape regression도 member source path(`packet.items`)와 array source path(`items[0]`)를 fixture로 고정
+  - 진행: container store(`ArrayPush`/`ListPush`/`SetAdd`/`QueuePush`/`MapSet`)도 borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
+  - 진행: helper forwarding / builtin channel send(`Send`/`TrySend`/`SendTimeout`/status variants)도 unnamed borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
   - generic contract는 `default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path를 마지막까지 audit
+  - 진행: `party role slot` generic mismatch consumer도 actual/expected type arg + consumer path provenance regression으로 고정
   - 남은 generic consumer path가 없다는 것을 regression으로 증명하고, partial acceptance처럼 보이는 경로를 남기지 않는다
 
 - [ ] **Intent/Zone/World, relation/effect/projection 진단과 provenance 마감**
@@ -138,6 +146,8 @@
   - relation/effect/projection은 propagation edge failure, contract mismatch, branch/join/handoff path에 `Reason:` / `Fix:`와 source/target provenance를 일관되게 부착
   - runtime contract provenance와 diagnostic wording을 더 정렬해 “왜 실패했는지 + 계약이 어디서 왔는지 + 어떻게 고칠지”를 한 번에 보이게 한다
   - helper-heavy edge path를 줄이고, compile-time contract 실패를 silent/best-effort runtime sync로 넘기지 않는다
+  - 진행: intent step contract-source summary가 `authorized by`, transfer handoff, derived transfer zone provenance를 더 직접적으로 설명하도록 정렬
+  - 진행: zone-within action authority mismatch가 `within` / `causes` header를 contract source로 직접 보고하도록 정렬
 
 - [ ] **C/LLVM parity + full CI green을 베타 최종 관문으로 고정**
   - Linux 기준 `parser / semantic / transpile / ABI / backend-compare / llvm smoke / ir-pipeline / example smoke`를 full green으로 유지
@@ -380,6 +390,7 @@
   - `default type arg` actual resolution, `where T: A + B` 전경로 enforcement, `ability<T>` mismatch provenance, instantiation-path parity까지 닫는다
   - 완료: default type arg declaration acceptance / omitted trailing default resolution / generic ability impl-reference omission / arity diagnostics provenance
   - 이미 존재: `ability<T>` baseline, default type arg baseline, omitted trailing default resolution, generic mismatch provenance baseline
+  - 진행: `party role slot` generic mismatch도 `consumer path / expected type args / actual type args` vocabulary 회귀로 고정
   - 남음: multi-bound 전경로 enforcement, module-contract propagation, instantiation-path parity, richer mismatch diagnostics, wider C/LLVM regression 확대
   - generic mismatch는 `generic subject / expected type args / actual type args / broken bound / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
   - generic은 partial acceptance를 beta에 올리지 않는다
@@ -388,6 +399,9 @@
   - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫는다
   - 이미 존재: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
   - 남음: movable vs copy type rule, assignment/call/return/channel/container/rebind ownership, wider movable-type generalization, ownership provenance diagnostics, wider C/LLVM regression 확대
+  - 진행: constructor field store escape 경로를 boundary-visible store로 고정하고 회귀 추가
+  - 진행: array literal store escape 경로를 boundary-visible store로 고정하고 회귀 추가
+  - 진행: assignment rebind escape diagnostic이 member/aggregate target path(`holder.packet`, `items[0]`) provenance를 직접 보고하도록 정렬
   - ownership diagnostics는 `value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
   - anchored subset만 stable이라고 보고 넘기지 않는다
 
@@ -586,6 +600,9 @@
   - 현황:
     - role / party / roster / relation / effect / zone / world declaration method body의 AST fallback는 제거됨
     - 남은 debt는 declaration inventory / naming helper / named-decl lookup의 구조 정리 쪽으로 축소됨
+    - 진행: `emit_func_decl_from_mir_named(...)`가 outer host restore에서 raw saved host-name fallback보다 `saved_host_decl + current_func_decl`를 우선 쓰도록 정렬
+    - 진행: host restore/current-host lookup이 inventory에서 host decl을 못 찾으면 raw `current_*_name` 상태를 유지하지 않고 host handle을 비우도록 정렬
+    - 진행: `transpiler_restore_host_context_local(...)` 시그니처도 `saved_host_decl` 중심으로 축소해 decl-side restore에서 raw name 인자를 제거
     - 현재 inventory:
       - `src/codegen/transpiler_helpers_core_b.inc`: `current_host_decl_name` 상태 자체와 일부 host naming helper 정리
       - `src/codegen/llvm_pipeline.c`: AST-carried declaration inventory를 담는 `MIRProgram` bootstrap 경로

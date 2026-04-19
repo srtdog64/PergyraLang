@@ -192,23 +192,6 @@ transpiler_bind_current_host_decl_local(TranspilerCtx *ctx, ASTNode *decl)
     }
 }
 
-static void
-transpiler_restore_host_name_fallback_local(TranspilerCtx *ctx,
-                                            const char *saved_zone_name,
-                                            const char *saved_class_name,
-                                            const char *saved_relation_name,
-                                            const char *saved_effect_name,
-                                            const char *saved_world_name)
-{
-    if (ctx == NULL)
-        return;
-    ctx->current_zone_name = saved_zone_name;
-    ctx->current_class_name = saved_class_name;
-    ctx->current_relation_name = saved_relation_name;
-    ctx->current_effect_name = saved_effect_name;
-    ctx->current_world_name = saved_world_name;
-}
-
 static ASTNode *
 transpiler_resolve_host_decl_from_saved_names_local(TranspilerCtx *ctx,
                                                     const char *saved_zone_name,
@@ -248,45 +231,6 @@ transpiler_resolve_host_decl_from_saved_names_local(TranspilerCtx *ctx,
     return resolved_decl;
 }
 
-static void
-transpiler_restore_host_context_local(TranspilerCtx *ctx,
-                                      ASTNode *saved_host_decl,
-                                      const char *saved_zone_name,
-                                      const char *saved_class_name,
-                                      const char *saved_relation_name,
-                                      const char *saved_effect_name,
-                                      const char *saved_world_name)
-{
-    ASTNode *resolved_decl = NULL;
-
-    if (ctx == NULL)
-        return;
-
-    transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
-    if (saved_host_decl != NULL)
-        return;
-
-    resolved_decl = transpiler_resolve_host_decl_from_saved_names_local(
-        ctx,
-        saved_zone_name,
-        saved_class_name,
-        saved_relation_name,
-        saved_effect_name,
-        saved_world_name);
-    if (resolved_decl != NULL) {
-        transpiler_bind_current_host_decl_local(ctx, resolved_decl);
-        return;
-    }
-
-    transpiler_restore_host_name_fallback_local(
-        ctx,
-        saved_zone_name,
-        saved_class_name,
-        saved_relation_name,
-        saved_effect_name,
-        saved_world_name);
-}
-
 static ASTNode *
 transpiler_current_host_decl_local(TranspilerCtx *ctx)
 {
@@ -313,8 +257,11 @@ transpiler_current_host_decl_local(TranspilerCtx *ctx)
         ctx->current_relation_name,
         ctx->current_effect_name,
         ctx->current_world_name);
-    if (decl != NULL)
+    if (decl != NULL) {
         transpiler_bind_current_host_decl_local(ctx, decl);
+    } else {
+        transpiler_bind_current_host_decl_local(ctx, NULL);
+    }
     return decl;
 }
 
@@ -2352,6 +2299,16 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL
             || op == TOKEN_AND || op == TOKEN_OR) {
             return "Bool";
+        }
+        if (op == TOKEN_MINUS || op == TOKEN_STAR
+            || op == TOKEN_SLASH || op == TOKEN_PERCENT) {
+            if ((left_type != NULL && strcmp(left_type, "Float") == 0)
+                || (right_type != NULL && strcmp(right_type, "Float") == 0))
+                return "Float";
+            if ((left_type != NULL && strcmp(left_type, "Long") == 0)
+                || (right_type != NULL && strcmp(right_type, "Long") == 0))
+                return "Long";
+            return "Int";
         }
         return "Unknown";
     }

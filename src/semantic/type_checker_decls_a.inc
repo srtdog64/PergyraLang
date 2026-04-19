@@ -324,7 +324,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     if (step->data.intent_step.authorized_by_count > 0
         && !step->data.intent_step.inherited_authorized_by_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- locally declared authorized by on step",
+            "%s- locally declared authorized by on step (step-local approval source)",
             has_any ? "\n" : "");
         has_any = true;
     }
@@ -341,7 +341,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     if (step->data.intent_step.transfer_from_alias != NULL
         && step->data.intent_step.transfer_to_alias != NULL) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- transfer handoff edge on step: %s -> %s",
+            "%s- transfer handoff edge on step: %s -> %s (embedding/handoff contract source)",
             has_any ? "\n" : "",
             step->data.intent_step.transfer_from_alias,
             step->data.intent_step.transfer_to_alias);
@@ -395,7 +395,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
     if (step->data.intent_step.inherited_authorized_by_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- reused authorized by from matching action contract",
+            "%s- reused authorized by from matching action contract (approval source comes from the action header)",
             has_any ? "\n" : "");
         has_any = true;
     }
@@ -407,7 +407,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 ? step->data.intent_step.where_type->data.type.name
                 : "<zone>";
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- derived zone from transfer target: %s",
+            "%s- derived zone from transfer target handoff: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }

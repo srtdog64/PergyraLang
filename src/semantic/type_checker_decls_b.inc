@@ -241,6 +241,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 semantic_error(ctx, step,
                     "Intent step '%s' transfer target '%s' does not match the current zone contract.\n"
                     "Reason:\n"
+                    "- contract source is the transfer handoff edge '%s' -> '%s'\n"
                     "- transfer target '%s' has zone type '%s'\n"
                     "- current step zone is '%s'\n"
                     "- transfer target derivation would choose zone '%s'\n"
@@ -250,6 +251,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "- change the transfer target to a '%s' binding\n"
                     "- or override the step zone to '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    to_alias != NULL ? to_alias : "<target>",
+                    from_alias != NULL ? from_alias : "<source>",
                     to_alias != NULL ? to_alias : "<target>",
                     to_alias != NULL ? to_alias : "<target>",
                     to_type->name != NULL ? to_type->name : "<zone>",
@@ -271,6 +274,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 semantic_error(ctx, step->data.intent_step.using_expr,
                     "Intent step '%s' using binding does not match the transfer target.\n"
                     "Reason:\n"
+                    "- contract source is the transfer handoff edge '%s' -> '%s'\n"
                     "- current using binding is '%s'\n"
                     "- transfer target binding is '%s'\n"
                     "- transfer target derivation would choose using '%s'\n"
@@ -280,6 +284,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "- change 'using' to '%s'\n"
                     "- or change the transfer target to '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    from_alias != NULL ? from_alias : "<source>",
+                    to_alias != NULL ? to_alias : "<target>",
                     step->data.intent_step.using_expr->data.identifier.name != NULL
                         ? step->data.intent_step.using_expr->data.identifier.name : "<binding>",
                     to_alias,
@@ -607,6 +613,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "Reason:\n"
                     "%s\n"
                     "- zone '%s' was reused from the matching action contract\n"
+                    "- contract source is the inherited/derived zone provenance listed below\n"
                     "%s- approval boundary provenance is:\n"
                     "%s%s"
                     "Fix:\n"
@@ -627,6 +634,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "Reason:\n"
                     "%s\n"
                     "- zone '%s' declares authority, so explicit approval is required\n"
+                    "- contract source is the inherited/derived zone provenance listed below\n"
                     "%s- approval boundary provenance is:\n"
                     "%s%s"
                     "Fix:\n"

@@ -1863,7 +1863,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "derived zone from transfer target: DeliveryZone"));
+            "derived zone from transfer target handoff: DeliveryZone"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "derived using from transfer target: deliver"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,

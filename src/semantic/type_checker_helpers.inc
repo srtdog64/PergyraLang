@@ -2217,6 +2217,86 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 field_type->name != NULL ? field_type->name : "<type>",
                                 arg_type->name != NULL ? arg_type->name : "<type>");
                         }
+                        if (expr->data.call.arguments[i] != NULL
+                            && expr->data.call.arguments[i]->type == AST_IDENTIFIER
+                            && identifier_is_borrowed_boundary_param(
+                                expr->data.call.arguments[i], ctx)) {
+                            const char *borrowed_name =
+                                expr->data.call.arguments[i]->data.identifier.name != NULL
+                                    ? expr->data.call.arguments[i]->data.identifier.name
+                                    : "<value>";
+                            const char *constructor_name =
+                                display_name != NULL ? display_name : "<constructor>";
+                            const char *constructor_field =
+                                field_name != NULL ? field_name : "<field>";
+                            const char *consumer_name =
+                                ctx->current_function_decl != NULL
+                                && ctx->current_function_decl->data.func_decl.name != NULL
+                                    ? ctx->current_function_decl->data.func_decl.name
+                                    : "<anonymous>";
+
+                            if (type_is_movable_resource_handle(field_type)) {
+                                semantic_error(ctx, expr->data.call.arguments[i],
+                                    "Borrowed ref movable resource '%s' cannot escape through constructor field store '%s.%s'.\n"
+                                    "Reason:\n"
+                                    "- consumer path is function '%s'\n"
+                                    "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                                    "- constructor '%s' would store it into field '%s'\n"
+                                    "- constructor field storage is treated as a boundary-visible escaping store\n"
+                                    "Fix:\n"
+                                    "- keep using '%s' directly within this function\n"
+                                    "- or construct the field from a copied/value/projection result\n"
+                                    "- or change the parameter to 'own' if transfer is intended",
+                                    borrowed_name,
+                                    constructor_name,
+                                    constructor_field,
+                                    consumer_name,
+                                    borrowed_name,
+                                    constructor_name,
+                                    constructor_field,
+                                    borrowed_name);
+                            } else if (type_is_subject_type(field_type, ctx)) {
+                                semantic_error(ctx, expr->data.call.arguments[i],
+                                    "Borrowed ref subject '%s' cannot escape through constructor field store '%s.%s'.\n"
+                                    "Reason:\n"
+                                    "- consumer path is function '%s'\n"
+                                    "- '%s' entered this function as a borrowed 'ref' subject\n"
+                                    "- constructor '%s' would store it into field '%s'\n"
+                                    "- constructor field storage would create a second boundary-visible binding for the borrowed identity\n"
+                                    "Fix:\n"
+                                    "- keep mutating '%s' through its original binding\n"
+                                    "- or construct the field from a projection/object/tobject/value result\n"
+                                    "- or change the parameter to 'own' if transfer is intended",
+                                    borrowed_name,
+                                    constructor_name,
+                                    constructor_field,
+                                    consumer_name,
+                                    borrowed_name,
+                                    constructor_name,
+                                    constructor_field,
+                                    borrowed_name);
+                            } else if (type_requires_boundary_borrow_tracking(field_type, ctx)) {
+                                semantic_error(ctx, expr->data.call.arguments[i],
+                                    "Borrowed ref boundary value '%s' cannot escape through constructor field store '%s.%s'.\n"
+                                    "Reason:\n"
+                                    "- consumer path is function '%s'\n"
+                                    "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                                    "- constructor '%s' would store it into field '%s'\n"
+                                    "- constructor field storage is treated as a boundary-visible escaping store for borrowed provenance\n"
+                                    "Fix:\n"
+                                    "- keep using '%s' directly within this function\n"
+                                    "- or construct the field from a copied/value/projection snapshot\n"
+                                    "- or change the parameter to 'own' if transfer is intended",
+                                    borrowed_name,
+                                    constructor_name,
+                                    constructor_field,
+                                    consumer_name,
+                                    borrowed_name,
+                                    constructor_name,
+                                    constructor_field,
+                                    borrowed_name);
+                            }
+                        }
                         if (sym->kind == SYMBOL_WORLD
                             && decl->type == AST_WORLD_DECL
                             && expr->data.call.arguments[i] != NULL
@@ -2645,14 +2725,34 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
                 if (pmode == PARAM_MODE_DEFAULT)
                     continue;
+                {
+                    const char *borrowed_root_name =
+                        semantic_borrowed_boundary_root_name(
+                            expr->data.call.arguments[i], ctx);
+                    char *source_path = semantic_assignment_target_path(
+                        expr->data.call.arguments[i]);
+                    char *borrowed_line = borrowed_root_name != NULL
+                        ? tc_strdup_fmt(
+                            "- '%s' is derived from borrowed source '%s'\n",
+                            source_path != NULL ? source_path : "<value>",
+                            borrowed_root_name)
+                        : NULL;
                 semantic_error(ctx, expr->data.call.arguments[i],
-                    "Value boundary arguments must use a named variable.\n"
+                    "Value boundary arguments must use a named variable%s%s%s.\n"
                     "Reason:\n"
                     "- own/ref value boundaries need one stable source binding for moved-here / borrowed-here provenance\n"
+                    "%s"
                     "- unnamed expressions would make later ownership diagnostics ambiguous\n"
                     "Fix:\n"
                     "- bind the value to a local variable first\n"
-                    "- then pass that named variable through the boundary");
+                    "- then pass that named variable through the boundary",
+                    source_path != NULL ? " instead of '" : "",
+                    source_path != NULL ? source_path : "",
+                    source_path != NULL ? "'" : "",
+                    borrowed_line != NULL ? borrowed_line : "");
+                    free(borrowed_line);
+                    free(source_path);
+                }
                 continue;
             }
             if (pmode == PARAM_MODE_REF

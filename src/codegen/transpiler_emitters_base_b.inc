@@ -15,11 +15,6 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     CodeBuf *saved_out = ctx->out;
     TranspilerCtx *saved_render_ctx = g_type_render_ctx;
     ASTNode *saved_host_decl = ctx->current_host_decl;
-    const char *saved_zone_name = ctx->current_zone_name;
-    const char *saved_class_name = ctx->current_class_name;
-    const char *saved_relation_name = ctx->current_relation_name;
-    const char *saved_effect_name = ctx->current_effect_name;
-    const char *saved_world_name = ctx->current_world_name;
     const ASTNode *saved_func_decl = ctx->current_func_decl;
     char saved_return_type[128];
     CodeBuf *params_sig = codebuf_create();
@@ -691,15 +686,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     ctx->typed_var_count = saved_typed_count;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
         "%s", saved_return_type);
-    transpiler_restore_host_context_local(
-        ctx,
-        saved_host_decl,
-        saved_zone_name,
-        saved_class_name,
-        saved_relation_name,
-        saved_effect_name,
-        saved_world_name);
     ctx->current_func_decl = saved_func_decl;
+    transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
     g_type_render_ctx = saved_render_ctx;
     ctx->out = saved_out;
 }
@@ -1177,7 +1165,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             int saved_slot_count = ctx->slot_var_count;
             int saved_typed_count = ctx->typed_var_count;
             ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
-            const char *saved_class_name = ctx->current_class_name;
             CodeBuf *saved_out = ctx->out;
 
             transpiler_bind_current_host_decl_local(ctx, class_decl);
@@ -1205,8 +1192,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             ctx->out = saved_out;
             ctx->slot_var_count = saved_slot_count;
             ctx->typed_var_count = saved_typed_count;
-            transpiler_restore_host_context_local(
-                ctx, saved_host_decl, NULL, saved_class_name, NULL, NULL, NULL);
+            transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
         }
 
         codebuf_write(ctx->helpers, "}\n");
@@ -1350,7 +1336,6 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             int saved_slot_count = ctx->slot_var_count;
             int saved_typed_count = ctx->typed_var_count;
             ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
-            const char *saved_class_name = ctx->current_class_name;
             ASTNode *class_host_decl =
                 transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, name);
 
@@ -1382,8 +1367,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             ctx->indent--;
             ctx->slot_var_count = saved_slot_count;
             ctx->typed_var_count = saved_typed_count;
-            transpiler_restore_host_context_local(
-                ctx, saved_host_decl, NULL, saved_class_name, NULL, NULL, NULL);
+            transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
         }
 
         codebuf_write(ctx->out, "}\n");
@@ -3077,7 +3061,6 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                 int saved_slot_count = ctx->slot_var_count;
                 int saved_typed_count = ctx->typed_var_count;
                 ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
-                const char *saved_class_name = ctx->current_class_name;
                 ASTNode *enum_host_decl =
                     transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL, ename);
 
@@ -3101,8 +3084,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                 ctx->indent--;
                 ctx->slot_var_count = saved_slot_count;
                 ctx->typed_var_count = saved_typed_count;
-                transpiler_restore_host_context_local(
-                    ctx, saved_host_decl, NULL, saved_class_name, NULL, NULL, NULL);
+                transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
             }
             codebuf_write(ctx->out, "}\n");
         }

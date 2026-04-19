@@ -1,0 +1,22 @@
+// Function composition: a function that returns a composed function via
+// indirect double-dispatch. Exercises (a) lambda return of a binary result,
+// (b) higher-order parameter passed through two layers, (c) direct lambda
+// invocation on a bound variable.
+
+func ApplyTwice(f: func(Int) -> Int, x: Int) -> Int {
+    return f(f(x));
+}
+
+func SumVia(f: func(Int) -> Int, g: func(Int) -> Int, x: Int) -> Int {
+    return f(x) + g(x);
+}
+
+func Main() -> Void {
+    let square: func(Int) -> Int = (x: Int) => x * x;
+    let plus10: func(Int) -> Int = (x: Int) => x + 10;
+
+    Log(ApplyTwice(square, 3));
+    Log(ApplyTwice(plus10, 5));
+    Log(SumVia(square, plus10, 4));
+    Log(square(7));
+}

@@ -33,14 +33,22 @@ CC_MACHINE := $(CC_DUMP_MACHINE)
 ifeq ($(or $(findstring mingw,$(CC_DUMP_MACHINE)),$(MSYSTEM)),)
 OPENMP_FLAGS = -fopenmp
 THREAD_LINK_LIB = -lpthread
+PLATFORM_CFLAGS =
 else
 OPENMP_FLAGS =
 THREAD_LINK_LIB = -lwinpthread
+# MinGW gcc links the MSVCRT printf by default, which rejects the C99
+# %zu / %ju / %jd / %td specifiers. Defining __USE_MINGW_ANSI_STDIO=1
+# routes printf/fprintf/sprintf/snprintf through MinGW's C99-conformant
+# __mingw_vfprintf wrapper so diagnostic messages (e.g. "expects %zu
+# argument(s), got %zu") print correctly and -Wformat validation passes.
+# This is MinGW's own documented opt-in — no effect on Linux/macOS.
+PLATFORM_CFLAGS = -D__USE_MINGW_ANSI_STDIO=1
 endif
 TMPDIR ?= /tmp
 export TMPDIR
 TMPDIR_CI := $(subst \,/,$(TMPDIR))
-CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) -I$(SRC_DIR)
+CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) $(PLATFORM_CFLAGS) -I$(SRC_DIR)
 DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)

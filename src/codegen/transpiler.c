@@ -657,6 +657,29 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
 {
     int lambda_id = ++ctx->tmp_counter;
     const char *return_type = NULL;
+    int saved_typed_var_count = ctx->typed_var_count;
+
+    /* Expose lambda parameters to typed-var lookup so body-side type
+     * inference (infer_expression_type_name) can resolve them. Scope is
+     * unwound via saved_typed_var_count at end-of-function. */
+    for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {
+        ASTNode *param = node->data.lambda_expr.params[i];
+        const char *param_name = NULL;
+        char *param_type_name = NULL;
+
+        if (param == NULL)
+            continue;
+        if (param->type == AST_LET_DECL) {
+            param_name = param->data.let_decl.name;
+            if (param->data.let_decl.type != NULL)
+                param_type_name = render_type_name(param->data.let_decl.type);
+        } else if (param->type == AST_IDENTIFIER) {
+            param_name = param->data.identifier.name;
+        }
+        if (param_name != NULL && param_type_name != NULL)
+            register_typed_var(ctx, param_name, param_type_name);
+        free(param_type_name);
+    }
 
     if (node->data.lambda_expr.return_type != NULL) {
         return_type = pergyra_ast_type_to_c(node->data.lambda_expr.return_type);
@@ -753,6 +776,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     codebuf_write(ctx->helpers, "}\n");
+    ctx->typed_var_count = saved_typed_var_count;
     return lambda_name;
 }
 

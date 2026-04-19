@@ -5,7 +5,10 @@
  * Type Checker built-in dispatch and stdlib helpers
  */
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include "../common/string_compat.h"
 #include "type_checker_internal.h"
 
 static const char *
@@ -88,6 +91,85 @@ validate_secure_token_arg(ASTNode *token_arg, Symbol *slot_sym, Type *slot_type,
     return true;
 }
 
+static const char *
+builtin_borrowed_boundary_root_name(ASTNode *value_expr,
+                                    SemanticContext *ctx)
+{
+    ASTNode *cursor = value_expr;
+
+    while (cursor != NULL) {
+        if (cursor->type == AST_IDENTIFIER
+            && cursor->data.identifier.name != NULL
+            && identifier_is_borrowed_boundary_param(cursor, ctx)) {
+            return cursor->data.identifier.name;
+        }
+        if (cursor->type == AST_MEMBER_ACCESS) {
+            cursor = cursor->data.member.object;
+            continue;
+        }
+        if (cursor->type == AST_ARRAY_ACCESS) {
+            cursor = cursor->data.array_access.array;
+            continue;
+        }
+        break;
+    }
+
+    return NULL;
+}
+
+static char *
+builtin_expr_source_path(ASTNode *value_expr)
+{
+    char path_buf[512];
+
+    if (value_expr == NULL) {
+        return NULL;
+    }
+
+    if (value_expr->type == AST_IDENTIFIER
+        && value_expr->data.identifier.name != NULL) {
+        return pergyra_strdup(value_expr->data.identifier.name);
+    }
+
+    if (value_expr->type == AST_MEMBER_ACCESS
+        && value_expr->data.member.name != NULL) {
+        ASTNode *obj = value_expr->data.member.object;
+        if (obj != NULL
+            && obj->type == AST_IDENTIFIER
+            && obj->data.identifier.name != NULL) {
+            snprintf(path_buf, sizeof(path_buf), "%s.%s",
+                     obj->data.identifier.name,
+                     value_expr->data.member.name);
+            return pergyra_strdup(path_buf);
+        }
+    }
+
+    if (value_expr->type == AST_ARRAY_ACCESS) {
+        ASTNode *arr = value_expr->data.array_access.array;
+        ASTNode *idx = value_expr->data.array_access.index;
+        if (arr != NULL
+            && arr->type == AST_IDENTIFIER
+            && arr->data.identifier.name != NULL) {
+            if (idx != NULL && idx->type == AST_NUMBER) {
+                snprintf(path_buf, sizeof(path_buf), "%s[%g]",
+                         arr->data.identifier.name,
+                         idx->data.number.value);
+                return pergyra_strdup(path_buf);
+            }
+            if (idx != NULL
+                && idx->type == AST_IDENTIFIER
+                && idx->data.identifier.name != NULL) {
+                snprintf(path_buf, sizeof(path_buf), "%s[%s]",
+                         arr->data.identifier.name,
+                         idx->data.identifier.name);
+                return pergyra_strdup(path_buf);
+            }
+        }
+    }
+
+    return NULL;
+}
+
 static void
 reject_borrowed_boundary_container_store(ASTNode *value_expr,
                                          const char *container_kind,
@@ -100,15 +182,18 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
     const char *value_label;
     const char *snapshot_label;
     const char *transfer_label;
+    char *source_path = NULL;
+    const char *borrowed_root_name =
+        builtin_borrowed_boundary_root_name(value_expr, ctx);
 
     if (value_expr == NULL || ctx == NULL
-        || value_expr->type != AST_IDENTIFIER
-        || value_expr->data.identifier.name == NULL
-        || !identifier_is_borrowed_boundary_param(value_expr, ctx)) {
+        || borrowed_root_name == NULL) {
         return;
     }
 
-    value_name = value_expr->data.identifier.name;
+    source_path = builtin_expr_source_path(value_expr);
+
+    value_name = borrowed_root_name;
     value_sym = scope_lookup(ctx->scope, value_name);
     value_type = value_sym != NULL ? value_sym->type : NULL;
 
@@ -134,10 +219,11 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
     }
 
     semantic_error(ctx, value_expr,
-        "Borrowed ref %s '%s' cannot escape through %s store.\n"
+        "Borrowed ref %s '%s' cannot escape through %s store%s%s%s.\n"
         "Reason:\n"
         "- consumer path is function '%s'\n"
         "- '%s' entered this function as a borrowed 'ref' %s\n"
+        "- '%s' is derived from that borrowed provenance\n"
         "- %s inserts values into %s state that may outlive the current call boundary\n"
         "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n"
         "Fix:\n"
@@ -146,16 +232,22 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
         value_label,
         value_name,
         container_kind != NULL ? container_kind : "container",
+        source_path != NULL ? " from '" : "",
+        source_path != NULL ? source_path : "",
+        source_path != NULL ? "'" : "",
         ctx->current_function_decl != NULL
             && ctx->current_function_decl->data.func_decl.name != NULL
                 ? ctx->current_function_decl->data.func_decl.name
                 : "<anonymous>",
         value_name,
         value_label,
+        source_path != NULL ? source_path : value_name,
+        container_kind != NULL ? container_kind : "container",
         container_name != NULL ? container_name : "<container store>",
         snapshot_label,
         transfer_label,
         container_kind != NULL ? container_kind : "container");
+    free(source_path);
 }
 
 static Type *
@@ -600,6 +692,9 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
 
     if (builtin_is_subject_boundary_type(element_type, ctx)
         || builtin_is_subject_boundary_type(value_type, ctx)) {
+        char *source_path = builtin_expr_source_path(expr->data.call.arguments[1]);
+        const char *borrowed_root_name =
+            builtin_borrowed_boundary_root_name(expr->data.call.arguments[1], ctx);
         if (!builtin_is_subject_boundary_type(element_type, ctx)
             || !builtin_is_subject_boundary_type(value_type, ctx)) {
             semantic_error(ctx, expr->data.call.arguments[1],
@@ -617,20 +712,33 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                 builtin_type_name_or_unknown(value_type),
                 builtin_type_name_or_unknown(element_type),
                 builtin_type_name_or_unknown(value_type));
+            free(source_path);
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                    : TYPE_BOOL;
         }
         if (expr->data.call.arguments[1] == NULL
             || expr->data.call.arguments[1]->type != AST_IDENTIFIER) {
+            char *reason_line = NULL;
+            if (borrowed_root_name != NULL) {
+                reason_line = tc_strdup_fmt(
+                    "- '%s' is derived from borrowed source '%s'\n",
+                    source_path != NULL ? source_path : "<expression>",
+                    borrowed_root_name);
+            }
             semantic_error(ctx, expr->data.call.arguments[1],
-                "%s subject sends must transfer from a named variable.\n"
+                "%s subject sends must transfer from a named variable instead of '%s'.\n"
                 "Reason:\n"
                 "- ownership transfer at a channel boundary must point to one concrete source binding\n"
                 "- unnamed expressions make moved-here provenance ambiguous\n"
+                "%s"
                 "Fix:\n"
                 "- bind the subject first in a local variable\n"
                 "- then send that named variable",
-                name);
+                name,
+                source_path != NULL ? source_path : "<expression>",
+                reason_line != NULL ? reason_line : "");
+            free(reason_line);
+            free(source_path);
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                    : TYPE_BOOL;
         }
@@ -651,15 +759,20 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                         : "<anonymous>",
                 expr->data.call.arguments[1]->data.identifier.name,
                 name);
+            free(source_path);
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                    : TYPE_BOOL;
         }
+        free(source_path);
         return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                : TYPE_BOOL;
     }
 
     if (type_requires_boundary_borrow_tracking(element_type, ctx)
         || type_requires_boundary_borrow_tracking(value_type, ctx)) {
+        char *source_path = builtin_expr_source_path(expr->data.call.arguments[1]);
+        const char *borrowed_root_name =
+            builtin_borrowed_boundary_root_name(expr->data.call.arguments[1], ctx);
         if (!type_requires_boundary_borrow_tracking(element_type, ctx)
             || !type_requires_boundary_borrow_tracking(value_type, ctx)
             || builtin_is_subject_boundary_type(element_type, ctx)
@@ -681,6 +794,33 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                 builtin_type_name_or_unknown(value_type),
                 builtin_type_name_or_unknown(element_type),
                 builtin_type_name_or_unknown(value_type));
+            free(source_path);
+            return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                                   : TYPE_BOOL;
+        }
+        if (expr->data.call.arguments[1] == NULL
+            || expr->data.call.arguments[1]->type != AST_IDENTIFIER) {
+            char *reason_line = NULL;
+            if (borrowed_root_name != NULL) {
+                reason_line = tc_strdup_fmt(
+                    "- '%s' is derived from borrowed source '%s'\n",
+                    source_path != NULL ? source_path : "<expression>",
+                    borrowed_root_name);
+            }
+            semantic_error(ctx, expr->data.call.arguments[1],
+                "%s boundary value channel sends must transfer from a named variable instead of '%s'.\n"
+                "Reason:\n"
+                "- ownership transfer at a channel boundary must point to one concrete source binding\n"
+                "- unnamed expressions make moved-here provenance ambiguous\n"
+                "%s"
+                "Fix:\n"
+                "- bind the boundary value first in a local variable\n"
+                "- then send that named variable",
+                name,
+                source_path != NULL ? source_path : "<expression>",
+                reason_line != NULL ? reason_line : "");
+            free(reason_line);
+            free(source_path);
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                    : TYPE_BOOL;
         }
@@ -703,9 +843,11 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                         : "<anonymous>",
                 expr->data.call.arguments[1]->data.identifier.name,
                 name);
+            free(source_path);
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                    : TYPE_BOOL;
         }
+        free(source_path);
     }
 
     require_assignable(value_type, element_type, expr->data.call.arguments[1], ctx);

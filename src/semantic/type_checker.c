@@ -30,6 +30,10 @@ static char *
 format_generic_subject_signature(const char *name, GenericParams *params);
 static char *
 format_effective_generic_type_list(const char *name, Type **types, size_t count);
+static char *
+semantic_assignment_target_path(ASTNode *expr);
+static const char *
+semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx);
 static void
 semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
                                                  const ASTNode *consumer_site,
@@ -138,6 +142,8 @@ static char *
 semantic_type_resolution_projection_slot_field_label(ASTNode *zone_decl,
                                                      const char *slot_name,
                                                      const char *field_path);
+static char *
+semantic_assignment_target_path(ASTNode *expr);
 static ASTNode *
 semantic_type_resolution_projection_source_decl(ASTNode *zone_decl,
                                                 const char *slot_name,
@@ -6504,37 +6510,38 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     }
 
     if (type_is_resource_handle(target_type) || type_is_resource_handle(value_type)) {
-        if (expr->data.assignment.value != NULL
-            && expr->data.assignment.value->type == AST_IDENTIFIER
-            && identifier_is_borrowed_boundary_param(expr->data.assignment.value, ctx)) {
-            const char *borrowed_name =
-                expr->data.assignment.value->data.identifier.name != NULL
-                    ? expr->data.assignment.value->data.identifier.name : "<value>";
-            const char *target_name =
-                expr->data.assignment.target != NULL
-                && expr->data.assignment.target->type == AST_IDENTIFIER
-                && expr->data.assignment.target->data.identifier.name != NULL
-                    ? expr->data.assignment.target->data.identifier.name
-                    : "<target>";
+        const char *borrowed_name =
+            semantic_borrowed_boundary_root_name(
+                expr->data.assignment.value, ctx);
+        if (borrowed_name != NULL) {
+            char *target_name = semantic_assignment_target_path(
+                expr->data.assignment.target);
+            char *source_path = semantic_assignment_target_path(
+                expr->data.assignment.value);
             semantic_error(ctx, expr,
-                "Borrowed ref movable resource '%s' cannot escape through assignment rebind into '%s'.\n"
+                "Borrowed ref movable resource '%s' cannot escape through assignment rebind into '%s' from '%s'.\n"
                 "Reason:\n"
                 "- consumer path is function '%s'\n"
                 "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                "- '%s' is derived from that borrowed movable-resource provenance\n"
                 "- assignment would rebind that borrow into target '%s'\n"
                 "- the compiler treats this as an escaping ownership rewrite at the current call boundary\n"
                 "Fix:\n"
                 "- keep using '%s' directly without rebinding it\n"
                 "- or change the parameter to 'own' if transfer is intended",
                 borrowed_name,
-                target_name,
+                target_name != NULL ? target_name : "<target>",
+                source_path != NULL ? source_path : borrowed_name,
                 ctx->current_function_decl != NULL
                     && ctx->current_function_decl->data.func_decl.name != NULL
                         ? ctx->current_function_decl->data.func_decl.name
                         : "<anonymous>",
                 borrowed_name,
-                target_name,
+                source_path != NULL ? source_path : borrowed_name,
+                target_name != NULL ? target_name : "<target>",
                 borrowed_name);
+            free(target_name);
+            free(source_path);
             return target_type;
         }
         semantic_error(ctx, expr,
@@ -6552,70 +6559,74 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 
     if ((type_is_class_object_type(target_type, ctx)
          || type_is_class_object_type(value_type, ctx))
-        && expr->data.assignment.value != NULL
-        && expr->data.assignment.value->type == AST_IDENTIFIER
-        && identifier_is_borrowed_boundary_param(expr->data.assignment.value, ctx)) {
+        && semantic_borrowed_boundary_root_name(
+               expr->data.assignment.value, ctx) != NULL) {
         const char *borrowed_name =
-            expr->data.assignment.value->data.identifier.name != NULL
-                ? expr->data.assignment.value->data.identifier.name : "<subject>";
-        const char *target_name =
-            expr->data.assignment.target != NULL
-            && expr->data.assignment.target->type == AST_IDENTIFIER
-            && expr->data.assignment.target->data.identifier.name != NULL
-                ? expr->data.assignment.target->data.identifier.name
-                : "<target>";
+            semantic_borrowed_boundary_root_name(
+                expr->data.assignment.value, ctx);
+        char *target_name = semantic_assignment_target_path(
+            expr->data.assignment.target);
+        char *source_path = semantic_assignment_target_path(
+            expr->data.assignment.value);
         semantic_error(ctx, expr,
-            "Borrowed ref subject '%s' cannot escape through assignment rebind into '%s'.\n"
+            "Borrowed ref subject '%s' cannot escape through assignment rebind into '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' subject\n"
+            "- '%s' is derived from that borrowed subject provenance\n"
             "- assigning it into '%s' would create a second boundary-visible binding for the same borrowed identity\n"
             "Fix:\n"
             "- keep mutating '%s' through its original binding\n"
             "- or change the parameter to 'own' if transfer is intended",
             borrowed_name,
-            target_name,
+            target_name != NULL ? target_name : "<target>",
+            source_path != NULL ? source_path : borrowed_name,
             ctx->current_function_decl != NULL
                 && ctx->current_function_decl->data.func_decl.name != NULL
                     ? ctx->current_function_decl->data.func_decl.name
                     : "<anonymous>",
             borrowed_name,
-            target_name,
+            source_path != NULL ? source_path : borrowed_name,
+            target_name != NULL ? target_name : "<target>",
             borrowed_name);
+        free(target_name);
+        free(source_path);
         return target_type;
     }
 
     if (type_requires_boundary_borrow_tracking(target_type, ctx)
-        && expr->data.assignment.value != NULL
-        && expr->data.assignment.value->type == AST_IDENTIFIER
-        && identifier_is_borrowed_boundary_param(expr->data.assignment.value, ctx)) {
+        && semantic_borrowed_boundary_root_name(
+               expr->data.assignment.value, ctx) != NULL) {
         const char *borrowed_name =
-            expr->data.assignment.value->data.identifier.name != NULL
-                ? expr->data.assignment.value->data.identifier.name : "<value>";
-        const char *target_name =
-            expr->data.assignment.target != NULL
-            && expr->data.assignment.target->type == AST_IDENTIFIER
-            && expr->data.assignment.target->data.identifier.name != NULL
-                ? expr->data.assignment.target->data.identifier.name
-                : "<target>";
+            semantic_borrowed_boundary_root_name(
+                expr->data.assignment.value, ctx);
+        char *target_name = semantic_assignment_target_path(
+            expr->data.assignment.target);
+        char *source_path = semantic_assignment_target_path(
+            expr->data.assignment.value);
         semantic_error(ctx, expr,
-            "Borrowed ref boundary value '%s' cannot escape through assignment rebind into '%s'.\n"
+            "Borrowed ref boundary value '%s' cannot escape through assignment rebind into '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+            "- '%s' is derived from that borrowed boundary provenance\n"
             "- assigning it into '%s' would create a second boundary-visible binding for the same borrowed provenance\n"
             "Fix:\n"
             "- keep using '%s' directly without rebinding it\n"
             "- or change the parameter to 'own' if transfer is intended",
             borrowed_name,
-            target_name,
+            target_name != NULL ? target_name : "<target>",
+            source_path != NULL ? source_path : borrowed_name,
             ctx->current_function_decl != NULL
                 && ctx->current_function_decl->data.func_decl.name != NULL
                     ? ctx->current_function_decl->data.func_decl.name
                     : "<anonymous>",
             borrowed_name,
-            target_name,
+            source_path != NULL ? source_path : borrowed_name,
+            target_name != NULL ? target_name : "<target>",
             borrowed_name);
+        free(target_name);
+        free(source_path);
         return target_type;
     }
 
@@ -6837,26 +6848,32 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         && type_is_class_object_type(init_type, ctx)
         && !expr_is_class_constructor_call(init, ctx)
         && (init->type == AST_IDENTIFIER || init->type == AST_MEMBER_ACCESS)) {
-        if (init->type == AST_IDENTIFIER
-            && identifier_is_borrowed_boundary_param(init, ctx)) {
+        const char *borrowed_root_name =
+            semantic_borrowed_boundary_root_name(init, ctx);
+        if (borrowed_root_name != NULL) {
+            char *source_path = semantic_assignment_target_path(init);
             semantic_error(ctx, node,
-                "Borrowed ref subject '%s' cannot escape into a new binding '%s'.\n"
+                "Borrowed ref subject '%s' cannot escape into a new binding '%s' from '%s'.\n"
                 "Reason:\n"
                 "- consumer path is function '%s'\n"
                 "- '%s' entered this function as a borrowed 'ref' subject\n"
+                "- '%s' is derived from that borrowed subject provenance\n"
                 "- binding it as '%s' would extend that borrow beyond its original boundary provenance\n"
                 "Fix:\n"
                 "- keep using '%s' directly within this function\n"
                 "- or change the parameter to 'own' if transfer is intended",
-                init->data.identifier.name != NULL ? init->data.identifier.name : "<value>",
+                borrowed_root_name,
                 name != NULL ? name : "<binding>",
+                source_path != NULL ? source_path : "<value>",
                 ctx->current_function_decl != NULL
                     && ctx->current_function_decl->data.func_decl.name != NULL
                         ? ctx->current_function_decl->data.func_decl.name
                         : "<anonymous>",
-                init->data.identifier.name != NULL ? init->data.identifier.name : "<value>",
+                borrowed_root_name,
+                source_path != NULL ? source_path : "<value>",
                 name != NULL ? name : "<binding>",
-                init->data.identifier.name != NULL ? init->data.identifier.name : "<value>");
+                source_path != NULL ? source_path : borrowed_root_name);
+            free(source_path);
         }
         semantic_error(ctx, node,
             "Subjects cannot be copied into a new binding.\n"
@@ -6921,27 +6938,34 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     if (type_requires_boundary_borrow_tracking(decl_type, ctx)
-        && init != NULL
-        && init->type == AST_IDENTIFIER
-        && identifier_is_borrowed_boundary_param(init, ctx)) {
+        && init != NULL) {
+        const char *borrowed_root_name =
+            semantic_borrowed_boundary_root_name(init, ctx);
+        if (borrowed_root_name != NULL) {
+            char *source_path = semantic_assignment_target_path(init);
         semantic_error(ctx, node,
-            "Borrowed ref boundary value '%s' cannot escape into a new binding '%s'.\n"
+            "Borrowed ref boundary value '%s' cannot escape into a new binding '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+            "- '%s' is derived from that borrowed boundary provenance\n"
             "- binding it as '%s' would extend that borrow beyond its original boundary provenance\n"
             "Fix:\n"
             "- keep using '%s' directly within this function\n"
             "- or change the parameter to 'own' if transfer is intended",
-            init->data.identifier.name != NULL ? init->data.identifier.name : "<value>",
+            borrowed_root_name,
             name != NULL ? name : "<binding>",
+            source_path != NULL ? source_path : "<value>",
             ctx->current_function_decl != NULL
                 && ctx->current_function_decl->data.func_decl.name != NULL
                     ? ctx->current_function_decl->data.func_decl.name
                     : "<anonymous>",
-            init->data.identifier.name != NULL ? init->data.identifier.name : "<value>",
+            borrowed_root_name,
+            source_path != NULL ? source_path : "<value>",
             name != NULL ? name : "<binding>",
-            init->data.identifier.name != NULL ? init->data.identifier.name : "<value>");
+            source_path != NULL ? source_path : borrowed_root_name);
+            free(source_path);
+        }
     }
 
     /* Slot<T> move semantics: when assigning from another Slot variable,
@@ -7396,14 +7420,31 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
             return TYPE_VOID;
         }
         if (expr->data.channel_send.value->type != AST_IDENTIFIER) {
+            const char *borrowed_root_name =
+                semantic_borrowed_boundary_root_name(
+                    expr->data.channel_send.value, ctx);
+            char *source_path = semantic_assignment_target_path(
+                expr->data.channel_send.value);
+            char *borrowed_line = borrowed_root_name != NULL
+                ? tc_strdup_fmt("- '%s' is derived from borrowed source '%s'\n",
+                                source_path != NULL ? source_path : "<value>",
+                                borrowed_root_name)
+                : NULL;
             semantic_error(ctx, expr->data.channel_send.value,
-                "Subject channel sends must transfer from a named variable.\n"
+                "Subject channel sends must transfer from a named variable%s%s%s.\n"
                 "Reason:\n"
                 "- ownership transfer at a channel boundary must point to one concrete source binding\n"
+                "%s"
                 "- unnamed expressions make moved-here provenance ambiguous\n"
                 "Fix:\n"
                 "- bind the subject first in a local variable\n"
-                "- then send that named variable");
+                "- then send that named variable",
+                source_path != NULL ? " instead of '" : "",
+                source_path != NULL ? source_path : "",
+                source_path != NULL ? "'" : "",
+                borrowed_line != NULL ? borrowed_line : "");
+            free(borrowed_line);
+            free(source_path);
             return TYPE_VOID;
         }
         if (identifier_is_borrowed_boundary_param(expr->data.channel_send.value, ctx)) {
@@ -7449,14 +7490,31 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
             return TYPE_VOID;
         }
         if (expr->data.channel_send.value->type != AST_IDENTIFIER) {
+            const char *borrowed_root_name =
+                semantic_borrowed_boundary_root_name(
+                    expr->data.channel_send.value, ctx);
+            char *source_path = semantic_assignment_target_path(
+                expr->data.channel_send.value);
+            char *borrowed_line = borrowed_root_name != NULL
+                ? tc_strdup_fmt("- '%s' is derived from borrowed source '%s'\n",
+                                source_path != NULL ? source_path : "<value>",
+                                borrowed_root_name)
+                : NULL;
             semantic_error(ctx, expr->data.channel_send.value,
-                "Movable resource channel sends must transfer from a named variable.\n"
+                "Movable resource channel sends must transfer from a named variable%s%s%s.\n"
                 "Reason:\n"
                 "- ownership transfer at a channel boundary must point to one concrete source binding\n"
+                "%s"
                 "- unnamed expressions make moved-here provenance ambiguous\n"
                 "Fix:\n"
                 "- bind the value first by storing the movable resource in a local variable\n"
-                "- then send that named variable");
+                "- then send that named variable",
+                source_path != NULL ? " instead of '" : "",
+                source_path != NULL ? source_path : "",
+                source_path != NULL ? "'" : "",
+                borrowed_line != NULL ? borrowed_line : "");
+            free(borrowed_line);
+            free(source_path);
             return TYPE_VOID;
         }
         if (identifier_is_borrowed_boundary_param(expr->data.channel_send.value, ctx)) {
@@ -7506,14 +7564,31 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
             return TYPE_VOID;
         }
         if (expr->data.channel_send.value->type != AST_IDENTIFIER) {
+            const char *borrowed_root_name =
+                semantic_borrowed_boundary_root_name(
+                    expr->data.channel_send.value, ctx);
+            char *source_path = semantic_assignment_target_path(
+                expr->data.channel_send.value);
+            char *borrowed_line = borrowed_root_name != NULL
+                ? tc_strdup_fmt("- '%s' is derived from borrowed source '%s'\n",
+                                source_path != NULL ? source_path : "<value>",
+                                borrowed_root_name)
+                : NULL;
             semantic_error(ctx, expr->data.channel_send.value,
-                "Boundary value channel sends must transfer from a named variable.\n"
+                "Boundary value channel sends must transfer from a named variable%s%s%s.\n"
                 "Reason:\n"
                 "- ownership transfer at a channel boundary must point to one concrete source binding\n"
+                "%s"
                 "- unnamed expressions make moved-here provenance ambiguous\n"
                 "Fix:\n"
                 "- bind the value first in a local variable\n"
-                "- then send that named variable");
+                "- then send that named variable",
+                source_path != NULL ? " instead of '" : "",
+                source_path != NULL ? source_path : "",
+                source_path != NULL ? "'" : "",
+                borrowed_line != NULL ? borrowed_line : "");
+            free(borrowed_line);
+            free(source_path);
             return TYPE_VOID;
         }
         if (identifier_is_borrowed_boundary_param(expr->data.channel_send.value, ctx)) {
@@ -7647,6 +7722,79 @@ semantic_event_expr_name(ASTNode *expr)
     if (expr->type == AST_MEMBER_ACCESS && expr->data.member.name != NULL)
         return expr->data.member.name;
     return "<event>";
+}
+
+static char *
+semantic_assignment_target_path(ASTNode *expr)
+{
+    char *base = NULL;
+    char index_buf[32];
+
+    if (expr == NULL)
+        return pergyra_strdup("<target>");
+
+    switch (expr->type) {
+    case AST_IDENTIFIER:
+        return expr->data.identifier.name != NULL
+            ? pergyra_strdup(expr->data.identifier.name)
+            : pergyra_strdup("<target>");
+    case AST_MEMBER_ACCESS:
+        if (expr->data.member.name == NULL)
+            return pergyra_strdup("<target>");
+        base = semantic_assignment_target_path(expr->data.member.object);
+        if (base == NULL)
+            return tc_strdup_fmt("<target>.%s", expr->data.member.name);
+        {
+            char *result = tc_strdup_fmt("%s.%s", base, expr->data.member.name);
+            free(base);
+            return result != NULL ? result : pergyra_strdup("<target>");
+        }
+    case AST_ARRAY_ACCESS:
+        base = semantic_assignment_target_path(expr->data.array_access.array);
+        if (expr->data.array_access.index != NULL
+            && expr->data.array_access.index->type == AST_NUMBER) {
+            snprintf(index_buf, sizeof(index_buf), "%g",
+                expr->data.array_access.index->data.number.value);
+        } else if (expr->data.array_access.index != NULL
+                   && expr->data.array_access.index->type == AST_IDENTIFIER
+                   && expr->data.array_access.index->data.identifier.name != NULL) {
+            snprintf(index_buf, sizeof(index_buf), "%s",
+                expr->data.array_access.index->data.identifier.name);
+        } else {
+            snprintf(index_buf, sizeof(index_buf), "?");
+        }
+        if (base == NULL)
+            return tc_strdup_fmt("<target>[%s]", index_buf);
+        {
+            char *result = tc_strdup_fmt("%s[%s]", base, index_buf);
+            free(base);
+            return result != NULL ? result : pergyra_strdup("<target>");
+        }
+    default:
+        return pergyra_strdup("<target>");
+    }
+}
+
+static const char *
+semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx)
+{
+    if (expr == NULL || ctx == NULL)
+        return NULL;
+
+    switch (expr->type) {
+    case AST_IDENTIFIER:
+        return identifier_is_borrowed_boundary_param(expr, ctx)
+            ? expr->data.identifier.name
+            : NULL;
+    case AST_MEMBER_ACCESS:
+        return semantic_borrowed_boundary_root_name(
+            expr->data.member.object, ctx);
+    case AST_ARRAY_ACCESS:
+        return semantic_borrowed_boundary_root_name(
+            expr->data.array_access.array, ctx);
+    default:
+        return NULL;
+    }
 }
 
 static Type *
@@ -8901,11 +9049,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- action body derives authority-sensitive effects from capability-bearing work\n"
                 "- zone '%s' makes this action part of an explicit authority boundary\n"
+                "- contract source is the action header 'within %s' plus the derived authority-sensitive effect path inside the body\n"
                 "- without 'authorized by', the approval provenance for that boundary is missing\n"
                 "Fix:\n"
                 "- add 'authorized by <subject-slot>' to the action contract\n"
                 "- or move the authority-sensitive work behind a helper that is called from an already-authorized action",
                 name != NULL ? name : "<anonymous>",
+                node->data.func_decl.within_zone,
                 node->data.func_decl.within_zone,
                 node->data.func_decl.within_zone);
         }
@@ -8918,11 +9068,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- action contract declares causes '%s'\n"
                 "- causing an effect inside zone '%s' is an authority-sensitive state change\n"
+                "- contract source is the action header 'causes %s' together with 'within %s'\n"
                 "- without 'authorized by', the approval provenance for that state change is missing\n"
                 "Fix:\n"
                 "- add 'authorized by <subject-slot>' to the action contract\n"
                 "- or remove/change the causes clause if this action should stay authority-free",
                 name != NULL ? name : "<anonymous>",
+                node->data.func_decl.causes_effect,
+                node->data.func_decl.within_zone,
                 node->data.func_decl.causes_effect,
                 node->data.func_decl.within_zone,
                 node->data.func_decl.causes_effect,
