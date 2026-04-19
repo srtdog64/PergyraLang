@@ -143,6 +143,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     const char *typed_name = NULL;
     const char *inner_name = NULL;
     const char *inner_c = NULL;
+    bool anchor_is_indirect = false;
     bool is_secure_slot = false;
     bool is_device_slot = false;
 
@@ -167,6 +168,12 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
 
     if (fn == NULL && ctx != NULL && slot_anchor != NULL) {
         typed_name = lookup_typed_var(ctx, slot_anchor);
+        for (int i = 0; i < ctx->slot_var_count; i++) {
+            if (strcmp(ctx->slot_vars[i].name, slot_anchor) == 0) {
+                anchor_is_indirect = ctx->slot_vars[i].is_indirect;
+                break;
+            }
+        }
         if (typed_name != NULL) {
             if (strncmp(typed_name, "SecureSlot<", 11) == 0) {
                 is_secure_slot = true;
@@ -203,8 +210,10 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                         }
                     } else if (strcmp(op, "Read") == 0) {
                         if (is_secure_slot) {
-                            /* Secure slots require tokens; keep hard error. */
-                            return false;
+                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
+                                "pgy_secure_read_%s", inner_name);
+                            fn = runtime_fn_buf;
+                            suffix = inner_name;
                         } else if (is_device_slot) {
                             snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
                                 "pgy_device_read_%s", inner_name);
@@ -218,8 +227,10 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                         }
                     } else if (strcmp(op, "Write") == 0) {
                         if (is_secure_slot) {
-                            /* Secure slots require tokens; keep hard error. */
-                            return false;
+                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
+                                "pgy_secure_write_%s", inner_name);
+                            fn = runtime_fn_buf;
+                            suffix = inner_name;
                         } else if (is_device_slot) {
                             snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
                                 "pgy_device_write_%s", inner_name);
@@ -233,8 +244,10 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                         }
                     } else if (strcmp(op, "Release") == 0) {
                         if (is_secure_slot) {
-                            /* Secure slots require tokens; keep hard error. */
-                            return false;
+                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
+                                "pgy_secure_release_%s", inner_name);
+                            fn = runtime_fn_buf;
+                            suffix = inner_name;
                         } else if (is_device_slot) {
                             snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
                                 "pgy_release_device_%s", inner_name);
@@ -256,6 +269,17 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         return false;
 
     const char *op_name = inst->name;  /* "Claim", "Read", "Write", "Release", etc. */
+    char anchor_expr_buf[128];
+    const char *anchor_expr = NULL;
+
+    if (slot_anchor == NULL)
+        slot_anchor = inst->slot_anchor;
+    if (slot_anchor == NULL)
+        slot_anchor = "slot";
+    snprintf(anchor_expr_buf, sizeof(anchor_expr_buf), "%s%s",
+             anchor_is_indirect ? "" : "&",
+             slot_anchor);
+    anchor_expr = anchor_expr_buf;
 
     if (op_name != NULL && strcmp(op_name, "Claim") == 0) {
         /* Rule 1: Slot Claim
@@ -298,29 +322,122 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             return false;
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         const char *result = ssa_result_name != NULL ? ssa_result_name : "tmp";
+        char local_anchor_expr_buf[128];
+        const char *local_anchor_expr = anchor_expr;
+        const char *token_name = NULL;
+
+        if (anchor != NULL && strcmp(anchor, slot_anchor) != 0) {
+            snprintf(local_anchor_expr_buf, sizeof(local_anchor_expr_buf), "&%s", anchor);
+            local_anchor_expr = local_anchor_expr_buf;
+        }
+
+        if (is_secure_slot) {
+            token_name = lookup_slot_token_name(ctx, anchor);
+            if (token_name == NULL || token_name[0] == '\0')
+                return false;
+        }
 
         write_indent_to(out, indent);
-        codebuf_write(out, "%s %s = %s(&%s);\n", read_inner_c, result, fn, anchor);
+        if (is_secure_slot) {
+            codebuf_write(out, "%s %s = %s(%s, &%s);\n", read_inner_c, result, fn,
+                          local_anchor_expr, token_name);
+        } else {
+            codebuf_write(out, "%s %s = %s(%s);\n", read_inner_c, result, fn,
+                          local_anchor_expr);
+        }
     }
     else if (op_name != NULL && strcmp(op_name, "Write") == 0) {
         /* Rule 5a: Slot Write
          * C: pgy_write_<T>(&<anchor>, <value>);
          */
-        const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         const char *value = inst->arg1 != NULL ? inst->arg1
             : (inst->arg0 != NULL ? inst->arg0 : "0");
+        char value_expr_buf[160];
+        char *ast_value_expr = NULL;
+        const char *token_name = NULL;
+        if (ctx != NULL && ctx->active_ssa_map != NULL && value != NULL) {
+            const char *mapped = transpiler_resolve_ssa_name(
+                (const TranspilerSSANameMap *)ctx->active_ssa_map, value);
+            if (mapped != NULL)
+                value = mapped;
+        }
+        if ((value == NULL
+             || (slot_anchor != NULL && strcmp(value, slot_anchor) == 0))
+            && inst->ast != NULL
+            && inst->ast->type == AST_CALL) {
+            ASTNode *callee = inst->ast->data.call.callee;
+            ASTNode *value_node = NULL;
+            if (callee != NULL && callee->type == AST_IDENTIFIER
+                && callee->data.identifier.name != NULL
+                && strcmp(callee->data.identifier.name, "Write") == 0
+                && inst->ast->data.call.arg_count >= 2) {
+                value_node = inst->ast->data.call.arguments[1];
+            } else if (callee != NULL && callee->type == AST_MEMBER_ACCESS
+                       && callee->data.member.name != NULL
+                       && strcmp(callee->data.member.name, "Write") == 0
+                       && inst->ast->data.call.arg_count >= 1) {
+                value_node = inst->ast->data.call.arguments[0];
+            }
+            if (value_node != NULL) {
+                ast_value_expr = emit_expression(value_node, ctx);
+                if (ast_value_expr != NULL && ast_value_expr[0] != '\0')
+                    value = ast_value_expr;
+            }
+        }
+        if (value != NULL) {
+            char version_base[128];
+            size_t version = 0;
+            bool looks_like_plain_ssa = true;
+            for (const char *p = value; *p != '\0'; p++) {
+                if (!( (*p >= 'a' && *p <= 'z')
+                    || (*p >= 'A' && *p <= 'Z')
+                    || (*p >= '0' && *p <= '9')
+                    || *p == '_'
+                    || *p == '.')) {
+                    looks_like_plain_ssa = false;
+                    break;
+                }
+            }
+            if (looks_like_plain_ssa
+                && transpiler_parse_versioned_name(value,
+                                                version_base,
+                                                sizeof(version_base),
+                                                &version)) {
+                snprintf(value_expr_buf, sizeof(value_expr_buf), "_pgy_ssa_%s_%zu",
+                         version_base, version);
+                value = value_expr_buf;
+            }
+        }
+        if (is_secure_slot) {
+            token_name = lookup_slot_token_name(ctx, slot_anchor);
+            if (token_name == NULL || token_name[0] == '\0')
+                return false;
+        }
 
         write_indent_to(out, indent);
-        codebuf_write(out, "%s(&%s, %s);\n", fn, anchor, value);
+        if (is_secure_slot) {
+            codebuf_write(out, "%s(%s, %s, &%s);\n", fn, anchor_expr, value, token_name);
+        } else {
+            codebuf_write(out, "%s(%s, %s);\n", fn, anchor_expr, value);
+        }
+        free(ast_value_expr);
     }
     else if (op_name != NULL && strcmp(op_name, "Release") == 0) {
         /* Rule 5b: Slot Release
          * C: pgy_release_<T>(&<anchor>);
          */
-        const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
-
+        const char *token_name = NULL;
+        if (is_secure_slot) {
+            token_name = lookup_slot_token_name(ctx, slot_anchor);
+            if (token_name == NULL || token_name[0] == '\0')
+                return false;
+        }
         write_indent_to(out, indent);
-        codebuf_write(out, "%s(&%s);\n", fn, anchor);
+        if (is_secure_slot) {
+            codebuf_write(out, "%s(%s, &%s);\n", fn, anchor_expr, token_name);
+        } else {
+            codebuf_write(out, "%s(%s);\n", fn, anchor_expr);
+        }
     }
     else if (op_name != NULL && strcmp(op_name, "Move") == 0) {
         /* Rule 6: Ownership Move
@@ -328,6 +445,16 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
          */
         const char *src = inst->arg0 != NULL ? inst->arg0 : "src";
         const char *dst = inst->arg1 != NULL ? inst->arg1 : "dst";
+        if (ctx != NULL && ctx->active_ssa_map != NULL) {
+            const char *mapped_src = transpiler_resolve_ssa_name(
+                (const TranspilerSSANameMap *)ctx->active_ssa_map, src);
+            const char *mapped_dst = transpiler_resolve_ssa_name(
+                (const TranspilerSSANameMap *)ctx->active_ssa_map, dst);
+            if (mapped_src != NULL)
+                src = mapped_src;
+            if (mapped_dst != NULL)
+                dst = mapped_dst;
+        }
 
         write_indent_to(out, indent);
         codebuf_write(out, "%s = %s;\n", dst, src);

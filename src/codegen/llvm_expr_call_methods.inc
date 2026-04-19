@@ -342,10 +342,11 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMClassTypeEntry *parent_cls = NULL;
         int field_idx = -1;
 
-        if (var == NULL && llvm_current_host_decl_name(ctx) != NULL) {
-            const char *host_name = llvm_current_host_decl_name(ctx);
+        if (var == NULL) {
+            ASTNode *host_decl = llvm_current_host_decl(ctx);
+            const char *host_name = llvm_decl_node_name(host_decl);
             class_name = llvm_current_field_class_name(ctx, var_name);
-            if (class_name != NULL) {
+            if (class_name != NULL && host_name != NULL) {
                 parent_cls = llvm_lookup_class(ctx, host_name);
                 if (parent_cls != NULL)
                     field_idx = llvm_class_field_index(parent_cls, var_name);
@@ -626,10 +627,12 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         && strcmp(obj_node->data.member.object->data.identifier.name, "self") == 0
         && obj_node->data.member.name != NULL
         && method_name != NULL) {
+        ASTNode *host_decl = llvm_current_host_decl(ctx);
+        const char *host_name = llvm_decl_node_name(host_decl);
         const char *field_name = obj_node->data.member.name;
         const char *class_name = llvm_current_field_class_name(ctx, field_name);
-        LLVMClassTypeEntry *parent_cls =
-            llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
+        LLVMClassTypeEntry *parent_cls = host_name != NULL
+            ? llvm_lookup_class(ctx, host_name) : NULL;
         LLVMClassTypeEntry *host_cls = class_name != NULL
             ? llvm_lookup_class(ctx, class_name) : NULL;
         int field_idx = parent_cls != NULL

@@ -636,11 +636,8 @@ llvm_current_host_class_name(LLVMGenCtx *ctx)
     if (ctx == NULL)
         return NULL;
 
-    if (ctx->current_class_name != NULL) {
-        decl = llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
-        if (decl == NULL)
-            return ctx->current_class_name;
-
+    decl = llvm_current_host_decl(ctx);
+    if (decl != NULL) {
         switch (decl->type) {
         case AST_CLASS_DECL:
             return decl->data.class_decl.name;
@@ -655,11 +652,11 @@ llvm_current_host_class_name(LLVMGenCtx *ctx)
         case AST_WORLD_DECL:
             return decl->data.world_decl.name;
         default:
-            return ctx->current_class_name;
+            break;
         }
     }
 
-    return llvm_current_host_decl_name(ctx);
+    return NULL;
 }
 
 static const char *
@@ -1291,10 +1288,12 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
             }
             {
                 LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
-                if (fn == NULL && llvm_current_host_decl_name(ctx) != NULL) {
+                ASTNode *host_decl = llvm_current_host_decl(ctx);
+                const char *host_name = llvm_decl_node_name(host_decl);
+                if (fn == NULL && host_name != NULL) {
                     char full_name[256];
                     snprintf(full_name, sizeof(full_name), "%s_%s",
-                        llvm_current_host_decl_name(ctx), callee);
+                        host_name, callee);
                     fn = llvm_lookup_function(ctx, full_name);
                 }
                 if (fn != NULL) {

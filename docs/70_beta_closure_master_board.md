@@ -40,7 +40,7 @@
 | B0-1 Intent / Zone / World | 진행 중 | 82% | 차단 | observability baseline은 생겼지만 embedding/handoff/provenance depth가 남음 |
 | B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
 | B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
-| B0-4 own/ref | 진행 중 | 62% | 차단 | anchored subset는 닫혔지만 일반 movable type ownership은 아직 미완 |
+| B0-4 own/ref | 진행 중 | 74% | 차단 | boundary subset는 실구현 기준으로 넓어졌지만 arbitrary value/anchored handle 전체 ownership은 아직 미완 |
 | MIR-only declaration debt | 진행 중 | 77% | 차단 | intent inventory는 많이 줄였고 host context도 inventory-backed handle 쪽으로 이동했지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
 | Type-resolution DAG | 진행 중 | 66% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
@@ -247,20 +247,20 @@ diagnostic 고정 규칙:
 
 판정:
 
-- anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment은 이미 존재한다
-- 남은 일은 일반 movable type ownership model, copy vs move-only 분류, assignment/call/return/channel/container/rebind 전경로 analysis, richer provenance diagnostics를 닫는 것이다
+- boundary subset(subject/class-object boundary value, movable resource, subject-slot anchored handle), diagnostics baseline, regression alignment은 이미 존재한다
+- 남은 일은 arbitrary value/anchored handle ownership model, copy vs move-only 분류, assignment/call/return/channel/container/rebind 전경로 analysis, richer provenance diagnostics를 닫는 것이다
 - own/ref는 지금 beta-quality 기준에서 다시 활성 blocker로 본다
-- anchored subset만 stable이라고 보고 넘어가면 language ownership story 자체가 partial acceptance로 남는다
+- current boundary subset만 stable이라고 보고 넘어가면 language ownership story 자체가 partial acceptance로 남는다
 
 닫힌 것:
 
-- anchored slot subset
-- anchored diagnostics baseline
-- anchored regression and docs alignment
+- boundary subset
+- diagnostics baseline
+- regression and docs alignment
 
 남은 것:
 
-- 일반 movable type ownership 모델 확장
+- arbitrary value / anchored handle ownership 모델 확장
 - copy vs move-only 분류 정리
 - assignment/call/return/channel/container/rebind 전경로 analysis
 - moved-here / borrowed-here / escaped-here provenance diagnostics
@@ -298,7 +298,7 @@ diagnostic 고정 규칙:
 
 완료 기준:
 
-- anchored subset이 아니라 general movable ownership contract가 존재한다
+- boundary subset이 아니라 broader arbitrary value / anchored handle ownership contract가 존재한다
 - runtime 보정이 아니라 semantic 단계에서 대부분의 위반을 차단한다
 - channel/return/helper call escape path가 회귀로 고정된다
 - ownership diagnostics가 `value/mode/provenance/consumer-path/fix`를 포함하고 `Reason:` / `Fix:` 포맷을 유지한다

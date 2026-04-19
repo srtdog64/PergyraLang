@@ -98,6 +98,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         ctx->current_func_decl = node;
     snprintf(saved_return_type, sizeof(saved_return_type), "%s",
         ctx->current_return_type);
+
+    ensure_collection_specializations_from_stmt_to(ctx, ctx->decls, node);
+
     if (node->data.func_decl.return_type != NULL) {
         char *rendered = render_type_name(node->data.func_decl.return_type);
         snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
@@ -1486,11 +1489,41 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
     }
 
     if (lookup_typed_entry(ctx, name) != NULL) {
+        const char *type_name = lookup_typed_var(ctx, name);
+        if ((type_name == NULL || strcmp(type_name, "Unknown") == 0)
+            && ctx->current_func_decl != NULL) {
+            type_name = transpiler_find_local_type_name(ctx,
+                                                        ctx->current_func_decl,
+                                                        name);
+            if (type_name != NULL && type_name[0] != '\0'
+                && strcmp(type_name, "Unknown") != 0) {
+                register_typed_var(ctx, name, type_name);
+            }
+        }
         if (!transpiler_parallel_capture_has_name(slot_names,
                 slot_count != NULL ? *slot_count : 0, name)
             && !transpiler_parallel_capture_has_name(typed_names,
                 typed_count != NULL ? *typed_count : 0, name)
             && typed_count != NULL && *typed_count < MAX_SLOT_VARS) {
+            strncpy(typed_names[*typed_count], name, sizeof(typed_names[*typed_count]) - 1);
+            typed_names[*typed_count][sizeof(typed_names[*typed_count]) - 1] = '\0';
+            (*typed_count)++;
+        }
+    } else {
+        const char *type_name = NULL;
+        if (ctx->current_func_decl != NULL) {
+            type_name = transpiler_find_local_type_name(ctx,
+                                                        ctx->current_func_decl,
+                                                        name);
+        }
+        if (type_name != NULL && type_name[0] != '\0'
+            && strcmp(type_name, "Unknown") != 0
+            && !transpiler_parallel_capture_has_name(slot_names,
+                    slot_count != NULL ? *slot_count : 0, name)
+            && !transpiler_parallel_capture_has_name(typed_names,
+                    typed_count != NULL ? *typed_count : 0, name)
+            && typed_count != NULL && *typed_count < MAX_SLOT_VARS) {
+            register_typed_var(ctx, name, type_name);
             strncpy(typed_names[*typed_count], name, sizeof(typed_names[*typed_count]) - 1);
             typed_names[*typed_count][sizeof(typed_names[*typed_count]) - 1] = '\0';
             (*typed_count)++;
@@ -1659,12 +1692,24 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
             char surface_desc[256];
             const char *c_type;
+            const char *type_name = entry != NULL ? entry->type_name : NULL;
+            if ((type_name == NULL || strcmp(type_name, "Unknown") == 0)
+                && ctx->current_func_decl != NULL) {
+                type_name = transpiler_find_local_type_name(ctx,
+                                                            ctx->current_func_decl,
+                                                            capture_typed_names[i]);
+                if (type_name != NULL && type_name[0] != '\0'
+                    && strcmp(type_name, "Unknown") != 0) {
+                    register_typed_var(ctx, capture_typed_names[i], type_name);
+                    entry = lookup_typed_entry(ctx, capture_typed_names[i]);
+                }
+            }
             snprintf(surface_desc, sizeof(surface_desc),
                 "parallel capture '%.220s'",
                 capture_typed_names[i]);
             c_type = transpiler_require_type_name_c_type(
                 ctx,
-                entry != NULL ? entry->type_name : NULL,
+                type_name,
                 surface_desc);
             if (c_type == NULL)
                 return;

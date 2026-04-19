@@ -2,10 +2,42 @@ static bool
 rir_walk_call(RIRScope *scope, ASTNode *node)
 {
     const char *name;
+    bool member_slot_op_handled = false;
     if (node == NULL || node->type != AST_CALL)
         return true;
 
-    name = call_name(node);
+    if (node->data.call.callee != NULL
+        && node->data.call.callee->type == AST_MEMBER_ACCESS) {
+        ASTNode *member = node->data.call.callee;
+        ASTNode *receiver = member->data.member.object;
+        const char *method = member->data.member.name;
+        const char *receiver_name = expr_name(receiver);
+
+        if (receiver_name != NULL && method != NULL) {
+            if (strcmp(method, "Read") == 0) {
+                if (!add_op(scope, RIR_OP_READ, receiver_name, NULL, NULL, node))
+                    return false;
+                member_slot_op_handled = true;
+            } else if (strcmp(method, "Write") == 0) {
+                const char *value_name = node->data.call.arg_count >= 1
+                    ? expr_name(node->data.call.arguments[0])
+                    : NULL;
+                if (!add_op(scope, RIR_OP_WRITE, receiver_name, value_name, NULL, node))
+                    return false;
+                member_slot_op_handled = true;
+            } else if (strcmp(method, "Release") == 0) {
+                if (!add_op(scope, RIR_OP_RELEASE, receiver_name, NULL, NULL, node))
+                    return false;
+                member_slot_op_handled = true;
+            } else if (strcmp(method, "Move") == 0) {
+                if (!add_op(scope, RIR_OP_MOVE, receiver_name, NULL, NULL, node))
+                    return false;
+                member_slot_op_handled = true;
+            }
+        }
+    }
+
+    name = member_slot_op_handled ? NULL : call_name(node);
     if (name != NULL) {
         ASTNode **args = node->data.call.arguments;
         size_t argc = node->data.call.arg_count;

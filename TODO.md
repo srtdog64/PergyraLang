@@ -1169,6 +1169,56 @@
   - 남음: Android 전용 Kotlin backend는 공통 UI IR + web/native backend 검증 뒤 필요성을 재평가
 - [ ] **WebAssembly 타겟** — LLVM wasm32 backend 활용
 
+## P1.9 — AI-first 인프라 (2026-04-19 positioning 확정)
+
+**맥락**: 경쟁 대상은 C#/Java ↔ Rust 사이 니치이고, 1차 사용자는 frontier LLM(Claude 등)이 주도 + 인간이 리뷰/수정하는 워크플로. "AI가 생성 → 컴파일러/테스트가 검증 → 인간이 리뷰"의 loop이 타이트하게 돌아가는 것이 positioning 핵심.
+
+현재 의도치 않게 갖춰진 AI-friendly 인프라:
+- backend-compare 회귀 (C/LLVM 출력 대조) — AI self-verification loop 하네스
+- 2000+ test suite + 스모크 체인 — 생성물 즉시 검증 가능한 규모
+- Result-first + throw 금지 — AI가 stack trace보다 ErrorCode enum 분기가 쉬움
+- 구조화 주석 (WHAT/WHY/ALT/NEXT/EFFECTS/INVARIANTS/RETURNS/THROWS) — prompt-as-code, 의도 보존
+
+부족하고 채워야 할 것:
+
+- [ ] **Language Reference Spec 문서** — 현재 `docs/`는 설계 일지(의사결정 흐름 기록). AI에게 정확한 의미론 제공하려면 "이 언어의 보장"이 한 문서에 정리돼야 함
+  - 내용: 타입 시스템 규칙 / Slot 소유권 계약 / effect subsumption / intent rollback 의미 / Result 전파 규칙 / MIR 계약
+  - 형태: 단일 파일 (~2000-5000줄), in-context로 한 번에 로드 가능
+  - 목적: "Claude가 Pergyra 코드를 새 세션에서 생성할 때 reference로 인용 가능" 수준
+  - 현재 `docs/`와 다른 점: 일지는 "왜 이렇게 결정했는가", spec은 "현재 언어가 무엇을 보장하는가"
+- [ ] **AI-parseable 구조화 에러 메시지** — 현재 진단은 내부자 표현. AI용은 기계 판독 가능한 구조화 필드 필요
+  - 현재: `MIR contract breach in Main at line 0: unresolved identifier 'flag' (expected SSA-mapped local)`
+  - 목표 형태 (예시):
+    ```json
+    {
+      "severity": "error",
+      "stage": "MIR_validation",
+      "code": "PGY_MIR_UNRESOLVED_IDENT",
+      "location": {"file": "main.pgy", "line": 7, "column": 8},
+      "summary": "destructuring binding 'flag' is not SSA-mapped at use site",
+      "cause_ir": "a.1 DEF is emitted in block 0 but not propagated to branch-consumer block via ssa_entry_values",
+      "fix_source": "ensure destructure binding is referenced within the same block as the destructure, or use let_decl with explicit type to trigger SSA renaming",
+      "related_rules": ["MIR.SSA.entry_values", "destructure.binding"]
+    }
+    ```
+  - `--error-format=json` 플래그로 토글, 인간용은 기존 형식 유지
+  - 대상: compile, semantic, MIR/LLVM IR 단계 전체
+- [ ] **In-context example corpus 큐레이션** — GitHub에 Pergyra 코드 0개. 훈련 데이터 부재를 in-context examples로 보완
+  - `docs/ai_prompt_bundle/` 디렉토리에 몇 개 레벨의 번들 준비:
+    - `minimal.md` — 언어 핵심만 (~20KB)
+    - `standard.md` — core + stdlib + 5개 패턴 예제 (~100KB)
+    - `complete.md` — 위 + 전체 examples + reference spec (~500KB-1MB)
+  - 각 번들은 "이 번들만으로 새 세션에서 AI가 Pergyra 코드를 신뢰성 있게 생성 가능한가"를 검증 기준으로
+  - 전략적 결정: 1차 audience는 frontier 모델(Claude Opus, Sonnet) 사용자. 소형/저가 모델은 2차
+- [ ] **AI iteration-friendly 빌드 툴체인** — 빠른 컴파일 + 기계 판독 출력 + LSP 진단
+  - 증분 컴파일 — 현재 단일 TU로 전체 빌드. module 단위 증분으로 전환
+  - 테스트 결과 JSON 출력 — 현재 stdout ✓/✗ 형식. AI가 파싱해 다음 액션 결정할 수 있는 JSON 모드
+  - LSP 진단 기계 판독 가능 — 위의 구조화 에러 메시지와 공유 포맷
+  - backend-compare 실패 시 diff를 구조화 — 현재 unified diff. AI가 "어느 함수의 몇 번째 stdout 라인이 다름"을 바로 인지 가능한 포맷
+  - 일부 기반 있음 (`src/lsp/` 디렉토리, `tests/compare_backends.sh` 구조)
+
+**성공 기준**: Frontier 모델이 Pergyra spec bundle을 in-context로 들고, 비자명한 비즈니스 로직 (예: 결제 + 멱등성 + 재시도 정책) 구현을 one-shot에 가깝게 생성할 수 있음. 컴파일/테스트 실패 시 구조화 에러로부터 자기 교정 루프가 ~3회 이내 수렴.
+
 ## P2 — 배포 시작 시
 
 - [ ] **문서-구현 동기화** — 테스트 수/기능 범위 일치

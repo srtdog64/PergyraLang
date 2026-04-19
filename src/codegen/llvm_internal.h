@@ -727,8 +727,8 @@ llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
     return llvm_find_decl_in_active_inventory(ctx, AST_WORLD_DECL, name);
 }
 
-static inline const char *
-llvm_current_host_decl_name(const LLVMGenCtx *ctx)
+static inline ASTNode *
+llvm_current_host_decl(const LLVMGenCtx *ctx)
 {
     ASTNode *decl = NULL;
 
@@ -741,16 +741,32 @@ llvm_current_host_decl_name(const LLVMGenCtx *ctx)
         decl = llvm_find_decl_in_active_inventory(
             ctx, AST_ZONE_DECL, ctx->current_func_decl->data.func_decl.within_zone);
         if (decl != NULL)
-            return decl->data.zone_decl.name;
-        return ctx->current_func_decl->data.func_decl.within_zone;
+            return decl;
     }
 
     if (ctx->current_class_name == NULL)
         return NULL;
 
-    decl = llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
-    if (decl == NULL)
+    return llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
+}
+
+static inline const char *
+llvm_current_host_decl_name(const LLVMGenCtx *ctx)
+{
+    ASTNode *decl = NULL;
+
+    if (ctx == NULL)
+        return NULL;
+
+    decl = llvm_current_host_decl(ctx);
+    if (decl == NULL) {
+        if (ctx->current_func_decl != NULL
+            && ctx->current_func_decl->type == AST_FUNC_DECL
+            && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
+            return ctx->current_func_decl->data.func_decl.within_zone;
+        }
         return ctx->current_class_name;
+    }
 
     switch (decl->type) {
     case AST_CLASS_DECL:

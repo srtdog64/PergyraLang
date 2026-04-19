@@ -19,7 +19,7 @@ Pergyra는 이종 자원(메모리, GPU, 네트워크, 양자)을 같은 Slot �
 ## 현재 구현에서 먼저 믿어도 되는 규칙
 
 `own/ref`는 장기적으로는 더 넓은 ownership vocabulary를 지향하지만,
-**현재 컴파일러에서 실사용 가능하게 닫힌 범위는 더 좁다.**
+**현재 컴파일러에서 실사용 가능하게 닫힌 범위는 general-purpose ownership 전체가 아니라 boundary-focused subset이다.**
 
 오늘 기준으로 안정적으로 믿어도 되는 표면은 다음이다.
 
@@ -51,7 +51,7 @@ strict beta-quality closure track에서 다시 열리는 범위:
 - region-based 또는 multi-level alias summary ownership model
 
 즉 현재 문서 기준 `own/ref`는 아직 "완료된 범용 시스템"이 아니라
-**anchored boundary ownership subset**으로 읽어야 한다.
+**boundary-focused ownership subset**으로 읽어야 한다.
 
 ## 기본 규칙
 
@@ -119,8 +119,8 @@ Release(s);     // 자원 반환 — 항상 소유자가 직접 호출
 
 | 수식자 | 의미 | 호출 후 원본 |
 |--------|------|-------------|
-| `own` | 현재는 `SecureSlot<subject-host>` 경계 이전에 대해 닫힘 | **무효** |
-| `ref` | 현재는 `Slot<subject-host>` 경계 borrow에 대해 닫힘 | 유효 |
+| `own` | subject/class-object boundary value, movable resource, `own SecureSlot<subject-host>` 경계에서 닫힘 | **무효** |
+| `ref` | subject/class-object boundary value, movable resource, `ref Slot<subject-host>` 경계에서 닫힘 | 유효 |
 | (없음) | 일반 값/로컬 anchored handle 규칙 | 타입에 따라 |
 
 ```pergyra
@@ -154,12 +154,13 @@ func Forward(own session: SecureSlot<Session>) -> Void { ... }
 | **`Clone()`** | 명시적 값 복사 |
 
 `own`/`ref`는 현재 View 시스템의 함수 경계 확장 중에서도
-**subject-host anchored slot boundary에 대해 닫힌 subset**이다.
+**subject/class-object boundary value + movable resource + subject-host anchored slot boundary**에 대해 닫힌 subset이다.
 
 - `ref Slot<subject-host>`는 borrowed anchored handle처럼 동작한다
 - `own SecureSlot<subject-host>`는 moved secure anchored handle처럼 동작한다
 - return escape / channel send / rebinding / aliasing은 모두 보수적으로 차단된다
-- 일반 `Slot<T>` 전반이나 `DeviceSlot<T>` / `QubitSlot` 전체에 대해 같은 규칙이 열린 것은 아니다
+- 일반 `Slot<T>` 전반이나 `DeviceSlot<T>` 전체에 대해 같은 규칙이 열린 것은 아니다
+- `QubitSlot`은 현재 열린 movable resource subset에 포함되지만, 전체 quantum ownership semantics 자체는 아직 v2/partial 범위다
 
 ---
 
@@ -210,5 +211,5 @@ Python에서는 모든 게 참조인데 뭐가 공유되는지 안 보인다.
 더 정확한 표현은 이렇다:
 
 - Pergyra는 `own` / `ref`를 boundary vocabulary로 채택했다
-- 하지만 현재 완전히 닫힌 규칙은 `Slot<subject-host>` / `SecureSlot<subject-host>` 경계 subset이다
+- 현재 닫힌 규칙은 subject/class-object boundary value, movable resource, `Slot<subject-host>` / `SecureSlot<subject-host>` 경계 subset이다
 - 나머지 자원 축은 동일 vocabulary로 넓혀 가는 중이다

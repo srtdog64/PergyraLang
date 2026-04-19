@@ -62,25 +62,7 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
 static ASTNode *
 llvm_decl_find_current_host_decl(LLVMGenCtx *ctx)
 {
-    const char *host_name;
-
-    if (ctx == NULL)
-        return NULL;
-
-    if (ctx->current_func_decl != NULL
-        && ctx->current_func_decl->type == AST_FUNC_DECL
-        && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
-        ASTNode *zone_decl = llvm_find_decl_in_active_inventory(
-            ctx, AST_ZONE_DECL, ctx->current_func_decl->data.func_decl.within_zone);
-        if (zone_decl != NULL)
-            return zone_decl;
-    }
-
-    host_name = llvm_current_host_decl_name(ctx);
-    if (host_name == NULL)
-        return NULL;
-
-    return llvm_find_host_decl_in_active_inventory(ctx, host_name);
+    return llvm_current_host_decl(ctx);
 }
 
 static ASTNode *
@@ -120,7 +102,7 @@ llvm_decl_current_nominal_name(LLVMGenCtx *ctx)
         }
     }
 
-    return llvm_current_host_decl_name(ctx);
+    return NULL;
 }
 
 static void

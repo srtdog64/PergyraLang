@@ -64,14 +64,6 @@ llvm_stmt_render_type_arg(GenericParam *param)
 }
 
 static ASTNode *
-llvm_stmt_find_zone_decl(LLVMGenCtx *ctx, const char *zone_name)
-{
-    if (ctx == NULL || zone_name == NULL)
-        return NULL;
-    return llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL, zone_name);
-}
-
-static ASTNode *
 llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
 {
     if (ctx == NULL || effect_name == NULL)
@@ -227,9 +219,11 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
             if (tracked != NULL)
                 return tracked;
         }
-        if (llvm_current_host_decl_name(ctx) != NULL && strcmp(name, "self") != 0) {
+        if (strcmp(name, "self") != 0) {
+            ASTNode *host_decl = llvm_current_host_decl(ctx);
+            const char *host_name = llvm_decl_node_name(host_decl);
             LLVMClassTypeEntry *host_cls =
-                llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
+                host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
             if (host_cls != NULL) {
                 int field_idx = llvm_class_field_index(host_cls, name);
                 if (field_idx >= 0) {
@@ -272,11 +266,15 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
             return name;
         {
             LLVMFuncEntry *callee_fn = llvm_lookup_function(ctx, name);
-            if (callee_fn == NULL && llvm_current_host_decl_name(ctx) != NULL) {
+            if (callee_fn == NULL) {
+                ASTNode *host_decl = llvm_current_host_decl(ctx);
+                const char *host_name = llvm_decl_node_name(host_decl);
                 char full_name[256];
-                snprintf(full_name, sizeof(full_name), "%s_%s",
-                    llvm_current_host_decl_name(ctx), name);
-                callee_fn = llvm_lookup_function(ctx, full_name);
+                if (host_name != NULL) {
+                    snprintf(full_name, sizeof(full_name), "%s_%s",
+                        host_name, name);
+                    callee_fn = llvm_lookup_function(ctx, full_name);
+                }
             }
             LLVMClassTypeEntry *ret_cls = callee_fn != NULL
                 ? llvm_stmt_lookup_class_by_type(ctx, callee_fn->ret_type)
@@ -445,10 +443,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return ctx->type_void;
             }
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
-            if (fn == NULL && llvm_current_host_decl_name(ctx) != NULL) {
+            ASTNode *host_decl = llvm_current_host_decl(ctx);
+            const char *host_name = llvm_decl_node_name(host_decl);
+            if (fn == NULL && host_name != NULL) {
                 char full_name[256];
                 snprintf(full_name, sizeof(full_name), "%s_%s",
-                    llvm_current_host_decl_name(ctx), callee);
+                    host_name, callee);
                 fn = llvm_lookup_function(ctx, full_name);
             }
             if (fn != NULL)
@@ -691,11 +691,11 @@ llvm_stmt_resolve_zone_subject_receiver(LLVMGenCtx *ctx, ASTNode *receiver,
     if (type_name_out != NULL)
         *type_name_out = NULL;
 
-    if (ctx == NULL || llvm_current_host_decl_name(ctx) == NULL || receiver == NULL)
+    if (ctx == NULL || receiver == NULL)
         return false;
 
-    zone_decl = llvm_stmt_find_zone_decl(ctx, llvm_current_host_decl_name(ctx));
-    if (zone_decl == NULL)
+    zone_decl = llvm_current_host_decl(ctx);
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return false;
 
     if (receiver->type == AST_IDENTIFIER && receiver->data.identifier.name != NULL) {
@@ -743,13 +743,13 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     const char *receiver_type_name = NULL;
     const char *effect_name;
 
-    if (ctx == NULL || llvm_current_host_decl_name(ctx) == NULL || call == NULL
+    if (ctx == NULL || call == NULL
         || call->type != AST_CALL) {
         return;
     }
 
-    zone_decl = llvm_stmt_find_zone_decl(ctx, llvm_current_host_decl_name(ctx));
-    if (zone_decl == NULL)
+    zone_decl = llvm_current_host_decl(ctx);
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return;
 
     callee = call->data.call.callee;
@@ -774,13 +774,13 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         || method_decl->data.func_decl.within_zone == NULL
         || method_decl->data.func_decl.causes_effect == NULL
         || strcmp(method_decl->data.func_decl.within_zone,
-                  llvm_current_host_decl_name(ctx)) != 0) {
+                  zone_decl->data.zone_decl.name) != 0) {
         return;
     }
 
     effect_name = method_decl->data.func_decl.causes_effect;
     effect_decl = llvm_stmt_find_effect_decl(ctx, effect_name);
-    zone_cls = llvm_lookup_class(ctx, llvm_current_host_decl_name(ctx));
+    zone_cls = llvm_lookup_class(ctx, zone_decl->data.zone_decl.name);
     effect_cls = llvm_lookup_class(ctx, effect_name);
     self_var = llvm_scope_lookup(ctx, "self");
     if (effect_decl == NULL || zone_cls == NULL || effect_cls == NULL || self_var == NULL)
@@ -905,8 +905,10 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                 {
                     const char *receiver_type = NULL;
                     ASTNode *method_decl = NULL;
-                    if (strcmp(name, "self") == 0)
-                        receiver_type = llvm_current_host_decl_name(ctx);
+                    if (strcmp(name, "self") == 0) {
+                        ASTNode *host_decl = llvm_current_host_decl(ctx);
+                        receiver_type = llvm_decl_node_name(host_decl);
+                    }
                     if (receiver_type == NULL)
                         receiver_type = llvm_lookup_var_class(ctx, name);
                     if (receiver_type != NULL) {
