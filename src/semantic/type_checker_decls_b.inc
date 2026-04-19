@@ -174,6 +174,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "Intent step '%s' transfer clause requires both source and target zone aliases.\n"
                     "Reason:\n"
                     "- transfer declares a zone handoff contract\n"
+                    "- contract source is the step-local transfer clause itself\n"
                     "- handoff materialization cannot proceed without both source and target bindings\n"
                     "Fix:\n"
                     "- provide 'transfer: <sourceZoneAlias> -> <targetZoneAlias>;'\n"
@@ -184,6 +185,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 semantic_error(ctx, step,
                     "Intent step '%s' transfer source '%s' is not a declared intent binding.\n"
                     "Reason:\n"
+                    "- contract source is transfer handoff edge '%s' -> '%s'\n"
                     "- the handoff source must name an intent binding that participates in this orchestration\n"
                     "- no declared binding named '%s' was found on the current intent\n"
                     "Fix:\n"
@@ -192,12 +194,15 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     from_alias,
                     from_alias,
+                    to_alias != NULL ? to_alias : "<target>",
+                    from_alias,
                     from_alias);
             }
             if (to_alias != NULL && to_involves == NULL) {
                 semantic_error(ctx, step,
                     "Intent step '%s' transfer target '%s' is not a declared intent binding or a unique zone type in this intent.\n"
                     "Reason:\n"
+                    "- contract source is transfer handoff edge '%s' -> '%s'\n"
                     "- transfer target resolution first looks for an explicit binding alias\n"
                     "- then it allows a unique zone-type shorthand only when that target is unambiguous\n"
                     "- current intent provides no unique target for '%s'\n"
@@ -206,12 +211,15 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "- or make the target zone type unique within this intent",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     to_alias,
+                    from_alias != NULL ? from_alias : "<source>",
+                    to_alias,
                     to_alias);
             }
             if (from_involves != NULL && from_zone_decl == NULL) {
                 semantic_error(ctx, step,
                     "Intent step '%s' transfer source '%s' must be a zone binding.\n"
                     "Reason:\n"
+                    "- contract source is transfer handoff edge '%s' -> '%s'\n"
                     "- transfer performs zone-to-zone handoff\n"
                     "- source binding '%s' does not resolve to a zone declaration\n"
                     "Fix:\n"
@@ -219,18 +227,23 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "- or move ordinary participant movement into 'who'/'on' instead of 'transfer'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     from_alias != NULL ? from_alias : "<source>",
+                    from_alias != NULL ? from_alias : "<source>",
+                    to_alias != NULL ? to_alias : "<target>",
                     from_alias != NULL ? from_alias : "<source>");
             }
             if (to_involves != NULL && to_zone_decl == NULL) {
                 semantic_error(ctx, step,
                     "Intent step '%s' transfer target '%s' must be a zone binding.\n"
                     "Reason:\n"
+                    "- contract source is transfer handoff edge '%s' -> '%s'\n"
                     "- transfer materializes handoff into a target zone\n"
                     "- target binding '%s' does not resolve to a zone declaration\n"
                     "Fix:\n"
                     "- use a zone binding as the transfer target\n"
                     "- or change the step contract so the handoff target is a declared zone",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    to_alias != NULL ? to_alias : "<target>",
+                    from_alias != NULL ? from_alias : "<source>",
                     to_alias != NULL ? to_alias : "<target>",
                     to_alias != NULL ? to_alias : "<target>");
             }
@@ -664,6 +677,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "Intent step '%s' authorizes unknown participant '%s'.\n"
                     "Reason:\n"
                     "- the authorized-by clause references a participant alias that is not declared on the intent\n"
+                    "- contract source is the authority-bearing zone/step approval requirement summarized below\n"
                     "%s%s"
                     "Fix:\n"
                     "- add 'involves %s: <Subject>' to the intent\n"
@@ -683,6 +697,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- only subject participants can satisfy zone authority contracts\n"
                         "- participant '%s' is not a subject host\n"
+                        "- contract source is the authority-bearing zone/step approval requirement summarized below\n"
                         "%s%s"
                         "Fix:\n"
                         "- authorize a subject participant instead\n"

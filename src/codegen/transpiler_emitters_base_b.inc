@@ -1450,6 +1450,33 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
  * Parallel block
  * ----------------------------------------------------------------- */
 
+/* Walk a function body looking for a top-level-or-nested `let NAME: T = ...`
+ * matching base_name, and return the AST type node T (or NULL). Used by
+ * parallel-capture emission to detect function-typed locals so the context
+ * struct field can be declared as pointer-to-function-pointer instead of
+ * plain `type *name`. */
+static ASTNode *
+transpiler_find_local_let_type_node(ASTNode *body, const char *base_name)
+{
+    if (body == NULL || base_name == NULL)
+        return NULL;
+    if (body->type == AST_BLOCK) {
+        for (size_t i = 0; i < body->data.block.count; i++) {
+            ASTNode *found = transpiler_find_local_let_type_node(
+                body->data.block.statements[i], base_name);
+            if (found != NULL)
+                return found;
+        }
+        return NULL;
+    }
+    if (body->type == AST_LET_DECL
+        && body->data.let_decl.name != NULL
+        && strcmp(body->data.let_decl.name, base_name) == 0) {
+        return body->data.let_decl.type;
+    }
+    return NULL;
+}
+
 static bool
 transpiler_parallel_capture_has_name(char names[MAX_SLOT_VARS][64],
                                      int count,
@@ -1707,6 +1734,29 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             snprintf(surface_desc, sizeof(surface_desc),
                 "parallel capture '%.220s'",
                 capture_typed_names[i]);
+
+            /* Function-typed locals need a pointer-to-function-pointer
+             * declarator so `(*_pctx->name)` inside the wrapper yields the
+             * function pointer (not a primitive deref). */
+            ASTNode *local_type_node = ctx->current_func_decl != NULL
+                ? transpiler_find_local_let_type_node(
+                      ctx->current_func_decl->data.func_decl.body,
+                      capture_typed_names[i])
+                : NULL;
+            if (local_type_node != NULL
+                && local_type_node->type == AST_EVENT_HANDLER_TYPE) {
+                char ptr_name[72];
+                snprintf(ptr_name, sizeof(ptr_name), "*%s",
+                         capture_typed_names[i]);
+                char *decl = pergyra_ast_typed_declarator(
+                    local_type_node, ptr_name);
+                if (decl != NULL) {
+                    codebuf_write(ctx->helpers, "    %s;\n", decl);
+                    free(decl);
+                    continue;
+                }
+            }
+
             c_type = transpiler_require_type_name_c_type(
                 ctx,
                 type_name,
@@ -1785,12 +1835,30 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         bool first = true;
         for (int i = 0; i < capture_slot_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            codebuf_write(ctx->out, "&%s", capture_slot_names[i]);
+            const char *ssa_name = transpiler_resolve_active_ssa_name(
+                ctx, capture_slot_names[i]);
+            if (ssa_name != NULL) {
+                char *c_name = transpiler_make_c_ssa_name(ssa_name);
+                codebuf_write(ctx->out, "&%s",
+                    c_name != NULL ? c_name : capture_slot_names[i]);
+                free(c_name);
+            } else {
+                codebuf_write(ctx->out, "&%s", capture_slot_names[i]);
+            }
             first = false;
         }
         for (int i = 0; i < capture_typed_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            codebuf_write(ctx->out, "&%s", capture_typed_names[i]);
+            const char *ssa_name = transpiler_resolve_active_ssa_name(
+                ctx, capture_typed_names[i]);
+            if (ssa_name != NULL) {
+                char *c_name = transpiler_make_c_ssa_name(ssa_name);
+                codebuf_write(ctx->out, "&%s",
+                    c_name != NULL ? c_name : capture_typed_names[i]);
+                free(c_name);
+            } else {
+                codebuf_write(ctx->out, "&%s", capture_typed_names[i]);
+            }
             first = false;
         }
         codebuf_write(ctx->out, " };\n");

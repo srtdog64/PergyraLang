@@ -720,10 +720,17 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
             || expr->data.call.arguments[1]->type != AST_IDENTIFIER) {
             char *reason_line = NULL;
             if (borrowed_root_name != NULL) {
-                reason_line = tc_strdup_fmt(
+                const char *rendered_path =
+                    source_path != NULL ? source_path : "<expression>";
+                size_t needed = snprintf(NULL, 0,
                     "- '%s' is derived from borrowed source '%s'\n",
-                    source_path != NULL ? source_path : "<expression>",
-                    borrowed_root_name);
+                    rendered_path, borrowed_root_name);
+                reason_line = malloc(needed + 1);
+                if (reason_line != NULL) {
+                    snprintf(reason_line, needed + 1,
+                        "- '%s' is derived from borrowed source '%s'\n",
+                        rendered_path, borrowed_root_name);
+                }
             }
             semantic_error(ctx, expr->data.call.arguments[1],
                 "%s subject sends must transfer from a named variable instead of '%s'.\n"
@@ -802,10 +809,17 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
             || expr->data.call.arguments[1]->type != AST_IDENTIFIER) {
             char *reason_line = NULL;
             if (borrowed_root_name != NULL) {
-                reason_line = tc_strdup_fmt(
+                const char *rendered_path =
+                    source_path != NULL ? source_path : "<expression>";
+                size_t needed = snprintf(NULL, 0,
                     "- '%s' is derived from borrowed source '%s'\n",
-                    source_path != NULL ? source_path : "<expression>",
-                    borrowed_root_name);
+                    rendered_path, borrowed_root_name);
+                reason_line = malloc(needed + 1);
+                if (reason_line != NULL) {
+                    snprintf(reason_line, needed + 1,
+                        "- '%s' is derived from borrowed source '%s'\n",
+                        rendered_path, borrowed_root_name);
+                }
             }
             semantic_error(ctx, expr->data.call.arguments[1],
                 "%s boundary value channel sends must transfer from a named variable instead of '%s'.\n"

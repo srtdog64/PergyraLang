@@ -1,0 +1,47 @@
+// Triple-paradigm integration: OOP + FP + DOP in one program.
+//
+// OOP — `class Worker` with stateful field + self-method.
+// FP  — lambda literal bound to a `func(Int) -> Int` local, invoked via
+//       a higher-order `Apply` (function-pointer parameter).
+// DOP — `parallel { ... }` block with four tasks, each sending into a
+//       shared `Channel<Int>`; the sequential consumer drains and sums.
+//
+// Exercises (a) parallel-capture SSA rename (class/lambda locals), (b)
+// function-pointer field layout in the parallel context struct
+// (`Ret (**name)(Args)`), (c) lambda invocation inside a parallel task,
+// (d) class-method dispatch inside a parallel task.
+//
+// Output is kept deterministic across scheduling orders by summing
+// (commutative) — 20 + 30 + 10 + 40 = 100 regardless of task interleave.
+
+class Worker {
+    let factor: Int;
+
+    func Scale(self, x: Int) -> Int {
+        return x * factor;
+    }
+}
+
+func Apply(f: func(Int) -> Int, x: Int) -> Int {
+    return f(x);
+}
+
+func Main() -> Void {
+    let w1: Worker = Worker(2);
+    let w2: Worker = Worker(5);
+    let addOne: func(Int) -> Int = (x: Int) => x + 1;
+    let ch: Channel<Int> = Channel(4);
+
+    parallel {
+        ch <- w1.Scale(10);
+        ch <- w2.Scale(6);
+        ch <- Apply(addOne, 9);
+        ch <- w1.Scale(20);
+    }
+
+    let a: Int = <- ch;
+    let b: Int = <- ch;
+    let c: Int = <- ch;
+    let d: Int = <- ch;
+    Log(a + b + c + d);
+}

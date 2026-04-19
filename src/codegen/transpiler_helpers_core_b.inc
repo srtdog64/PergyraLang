@@ -159,76 +159,6 @@ transpiler_bind_current_host_decl_local(TranspilerCtx *ctx, ASTNode *decl)
         return;
 
     ctx->current_host_decl = decl;
-    ctx->current_relation_name = NULL;
-    ctx->current_effect_name = NULL;
-    ctx->current_zone_name = NULL;
-    ctx->current_world_name = NULL;
-    ctx->current_class_name = NULL;
-
-    if (decl == NULL)
-        return;
-
-    switch (decl->type) {
-    case AST_RELATION_DECL:
-        ctx->current_relation_name = decl->data.relation_decl.name;
-        break;
-    case AST_EFFECT_DECL:
-        ctx->current_effect_name = decl->data.effect_decl.name;
-        break;
-    case AST_ZONE_DECL:
-        ctx->current_zone_name = decl->data.zone_decl.name;
-        break;
-    case AST_WORLD_DECL:
-        ctx->current_world_name = decl->data.world_decl.name;
-        break;
-    case AST_CLASS_DECL:
-        ctx->current_class_name = decl->data.class_decl.name;
-        break;
-    case AST_ENUM_DECL:
-        ctx->current_class_name = decl->data.enum_decl.name;
-        break;
-    default:
-        break;
-    }
-}
-
-static ASTNode *
-transpiler_resolve_host_decl_from_saved_names_local(TranspilerCtx *ctx,
-                                                    const char *saved_zone_name,
-                                                    const char *saved_class_name,
-                                                    const char *saved_relation_name,
-                                                    const char *saved_effect_name,
-                                                    const char *saved_world_name)
-{
-    ASTNode *resolved_decl = NULL;
-
-    if (ctx == NULL)
-        return NULL;
-    if (saved_zone_name != NULL) {
-        resolved_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_ZONE_DECL, saved_zone_name);
-    }
-    if (resolved_decl == NULL && saved_relation_name != NULL) {
-        resolved_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_RELATION_DECL, saved_relation_name);
-    }
-    if (resolved_decl == NULL && saved_effect_name != NULL) {
-        resolved_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_EFFECT_DECL, saved_effect_name);
-    }
-    if (resolved_decl == NULL && saved_world_name != NULL) {
-        resolved_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_WORLD_DECL, saved_world_name);
-    }
-    if (resolved_decl == NULL && saved_class_name != NULL) {
-        resolved_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_CLASS_DECL, saved_class_name);
-        if (resolved_decl == NULL) {
-            resolved_decl = transpiler_find_decl_in_inventory_local(
-                ctx, AST_ENUM_DECL, saved_class_name);
-        }
-    }
-    return resolved_decl;
 }
 
 static ASTNode *
@@ -250,19 +180,8 @@ transpiler_current_host_decl_local(TranspilerCtx *ctx)
             return decl;
         }
     }
-    decl = transpiler_resolve_host_decl_from_saved_names_local(
-        ctx,
-        ctx->current_zone_name,
-        ctx->current_class_name,
-        ctx->current_relation_name,
-        ctx->current_effect_name,
-        ctx->current_world_name);
-    if (decl != NULL) {
-        transpiler_bind_current_host_decl_local(ctx, decl);
-    } else {
-        transpiler_bind_current_host_decl_local(ctx, NULL);
-    }
-    return decl;
+    transpiler_bind_current_host_decl_local(ctx, NULL);
+    return NULL;
 }
 
 static ASTNode *

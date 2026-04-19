@@ -213,13 +213,10 @@ typedef struct
     AbilityVtableSpecEntry ability_vtable_specs[MAX_ABILITY_VTABLE_SPECIALIZATIONS];
     int                    ability_vtable_spec_count;
 
-    /* Current host emission context for implicit self-field access. */
+    /* Current host emission context for implicit self-field access.
+     * Declaration-side MIR-only lowering should flow through the active
+     * host declaration rather than mirrored name shadow state. */
     ASTNode *current_host_decl;
-    const char *current_class_name;
-    const char *current_relation_name;
-    const char *current_effect_name;
-    const char *current_zone_name;
-    const char *current_world_name;
     const ASTNode *current_func_decl;
     const char *current_overlay_receiver_expr;
     bool uses_intent_observability;

@@ -780,7 +780,9 @@ reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
         "Zone '%s' cannot be mutated via %s after it was embedded into world '%s' slot '%s'.\n"
         "Reason:\n"
         "- origin binding is '%s'\n"
+        "- contract source is world '%s' zone slot '%s'\n"
         "- derived embedding provenance points to world '%s' slot '%s'\n"
+        "- ownership/authority now flows through the world-owned slot rather than the old local binding\n"
         "- current world construction embeds zone state by value into the world-owned slot\n"
         "- mutating the old binding would diverge from the world-owned zone copy\n"
         "Fix:\n"
@@ -790,6 +792,8 @@ reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
         owner_world != NULL ? owner_world : "<world>",
         owner_slot != NULL ? owner_slot : "<slot>",
         root_name,
+        owner_world != NULL ? owner_world : "<world>",
+        owner_slot != NULL ? owner_slot : "<slot>",
         owner_world != NULL ? owner_world : "<world>",
         owner_slot != NULL ? owner_slot : "<slot>",
         root_name,
@@ -839,7 +843,9 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
                     "- origin binding is '%s'\n"
+                    "- contract source is world '%s' zone slot '%s'\n"
                     "- embedding handoff edge is '%s' -> world '%s' slot '%s'\n"
+                    "- ownership/authority after construction belongs to the world-owned slot, not the origin binding\n"
                     "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
                     "- mutating the original binding afterwards would diverge from the embedded world state\n"
                     "Fix:\n"
@@ -852,6 +858,9 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                         ? zone_slot->data.world_zone.slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
+                    world_name != NULL ? world_name : "<world>",
+                    zone_slot->data.world_zone.slot_name != NULL
+                        ? zone_slot->data.world_zone.slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
@@ -883,7 +892,9 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
                     "- origin binding is '%s'\n"
+                    "- contract source is world '%s' zone slot '%s'\n"
                     "- embedding handoff edge is '%s' -> world '%s' slot '%s'\n"
+                    "- ownership/authority after construction belongs to the world-owned slot, not the origin binding\n"
                     "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
                     "- mutating the original binding afterwards would diverge from the embedded world state\n"
                     "Fix:\n"
@@ -896,6 +907,9 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                         ? zone_slot->data.world_zone.slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
+                    world_name != NULL ? world_name : "<world>",
+                    zone_slot->data.world_zone.slot_name != NULL
+                        ? zone_slot->data.world_zone.slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
@@ -2329,7 +2343,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                             "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                                             "Reason:\n"
                                             "- origin binding is '%s'\n"
+                                            "- contract source is world '%s' zone slot '%s'\n"
                                             "- embedding handoff edge is '%s' -> world '%s' slot '%s'\n"
+                                            "- ownership/authority after construction belongs to the world-owned slot, not the origin binding\n"
                                             "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
                                             "- mutating the original binding afterwards would diverge from the embedded world state\n"
                                             "Fix:\n"
@@ -2345,6 +2361,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                             expr->data.call.arguments[i]->data.identifier.name != NULL
                                                 ? expr->data.call.arguments[i]->data.identifier.name
                                                 : "<zone>",
+                                            display_name != NULL ? display_name : "<world>",
+                                            zone_slot->data.world_zone.slot_name != NULL
+                                                ? zone_slot->data.world_zone.slot_name
+                                                : "<slot>",
                                             expr->data.call.arguments[i]->data.identifier.name != NULL
                                                 ? expr->data.call.arguments[i]->data.identifier.name
                                                 : "<zone>",
@@ -2612,14 +2632,34 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
                 if (pmode == PARAM_MODE_DEFAULT)
                     continue;
-                semantic_error(ctx, expr->data.call.arguments[i],
-                    "Subject boundary arguments must use a named variable.\n"
-                    "Reason:\n"
-                    "- own/ref subject boundaries need one stable source binding for moved-here / borrowed-here provenance\n"
-                    "- unnamed subject expressions would make later ownership diagnostics ambiguous\n"
-                    "Fix:\n"
-                    "- bind the subject to a local variable first\n"
-                    "- then pass that named variable through the boundary");
+                {
+                    const char *borrowed_root_name =
+                        semantic_borrowed_boundary_root_name(
+                            expr->data.call.arguments[i], ctx);
+                    char *source_path = semantic_assignment_target_path(
+                        expr->data.call.arguments[i]);
+                    char *borrowed_line = borrowed_root_name != NULL
+                        ? tc_strdup_fmt(
+                            "- '%s' is derived from borrowed source '%s'\n",
+                            source_path != NULL ? source_path : "<subject>",
+                            borrowed_root_name)
+                        : NULL;
+                    semantic_error(ctx, expr->data.call.arguments[i],
+                        "Subject boundary arguments must use a named variable%s%s%s.\n"
+                        "Reason:\n"
+                        "- own/ref subject boundaries need one stable source binding for moved-here / borrowed-here provenance\n"
+                        "%s"
+                        "- unnamed subject expressions would make later ownership diagnostics ambiguous\n"
+                        "Fix:\n"
+                        "- bind the subject to a local variable first\n"
+                        "- then pass that named variable through the boundary",
+                        source_path != NULL ? " instead of '" : "",
+                        source_path != NULL ? source_path : "",
+                        source_path != NULL ? "'" : "",
+                        borrowed_line != NULL ? borrowed_line : "");
+                    free(borrowed_line);
+                    free(source_path);
+                }
                 continue;
             }
             if (pmode == PARAM_MODE_REF

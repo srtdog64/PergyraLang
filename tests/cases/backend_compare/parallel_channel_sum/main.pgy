@@ -1,0 +1,20 @@
+// Parallel block produces four values into a buffered Channel, then a
+// sequential consumer drains the channel and aggregates. Output is kept
+// deterministic across task scheduling orders by summing (commutative)
+// inside the consumer. Verifies parallel+Channel integration on both
+// backends: task-pool spawn/join + channel send/recv codegen parity.
+
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    parallel {
+        ch <- 10;
+        ch <- 20;
+        ch <- 30;
+        ch <- 40;
+    }
+    let a: Int = <- ch;
+    let b: Int = <- ch;
+    let c: Int = <- ch;
+    let d: Int = <- ch;
+    Log(a + b + c + d);
+}

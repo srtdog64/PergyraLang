@@ -7134,63 +7134,87 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
     }
 
     if (node->data.return_stmt.value != NULL
-        && identifier_is_borrowed_boundary_param(node->data.return_stmt.value, ctx)
+        && semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx) != NULL
         && type_is_subject_type(ret_type, ctx)) {
+        const char *borrowed_name =
+            semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx);
+        char *source_path = semantic_assignment_target_path(
+            node->data.return_stmt.value);
         semantic_error(ctx, node,
-            "Borrowed ref subject '%s' cannot escape via return.\n"
+            "Borrowed ref subject '%s' cannot escape via return from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' subject\n"
+            "- '%s' is derived from that borrowed subject provenance\n"
             "- returning it would let the borrow outlive the current call boundary\n"
             "Fix:\n"
             "- return a projection/object/tobject/value result instead\n"
             "- or change the parameter to 'own' if transfer is intended",
-            node->data.return_stmt.value->data.identifier.name,
+            borrowed_name,
+            source_path != NULL ? source_path : borrowed_name,
             ctx->current_function_decl != NULL
                 && ctx->current_function_decl->data.func_decl.name != NULL
                     ? ctx->current_function_decl->data.func_decl.name
                     : "<anonymous>",
-            node->data.return_stmt.value->data.identifier.name);
+            borrowed_name,
+            source_path != NULL ? source_path : borrowed_name);
+        free(source_path);
     }
 
     if (node->data.return_stmt.value != NULL
-        && identifier_is_borrowed_boundary_param(node->data.return_stmt.value, ctx)
+        && semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx) != NULL
         && type_is_movable_resource_handle(ret_type)) {
+        const char *borrowed_name =
+            semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx);
+        char *source_path = semantic_assignment_target_path(
+            node->data.return_stmt.value);
         semantic_error(ctx, node,
-            "Borrowed ref movable resource '%s' cannot escape via return.\n"
+            "Borrowed ref movable resource '%s' cannot escape via return from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+            "- '%s' is derived from that borrowed movable-resource provenance\n"
             "- returning it would let the borrow outlive the current call boundary\n"
             "Fix:\n"
             "- return a copied/projection/value result instead\n"
             "- or change the parameter to 'own' if transfer is intended",
-            node->data.return_stmt.value->data.identifier.name,
+            borrowed_name,
+            source_path != NULL ? source_path : borrowed_name,
             ctx->current_function_decl != NULL
                 && ctx->current_function_decl->data.func_decl.name != NULL
                     ? ctx->current_function_decl->data.func_decl.name
                     : "<anonymous>",
-            node->data.return_stmt.value->data.identifier.name);
+            borrowed_name,
+            source_path != NULL ? source_path : borrowed_name);
+        free(source_path);
     }
 
     if (node->data.return_stmt.value != NULL
-        && identifier_is_borrowed_boundary_param(node->data.return_stmt.value, ctx)
+        && semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx) != NULL
         && type_requires_boundary_borrow_tracking(ret_type, ctx)) {
+        const char *borrowed_name =
+            semantic_borrowed_boundary_root_name(node->data.return_stmt.value, ctx);
+        char *source_path = semantic_assignment_target_path(
+            node->data.return_stmt.value);
         semantic_error(ctx, node,
-            "Borrowed ref boundary value '%s' cannot escape via return.\n"
+            "Borrowed ref boundary value '%s' cannot escape via return from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+            "- '%s' is derived from that borrowed boundary provenance\n"
             "- returning it would let the borrow outlive the current call boundary\n"
             "Fix:\n"
             "- return a copied/value/projection result instead\n"
             "- or change the parameter to 'own' if transfer is intended",
-            node->data.return_stmt.value->data.identifier.name,
+            borrowed_name,
+            source_path != NULL ? source_path : borrowed_name,
             ctx->current_function_decl != NULL
                 && ctx->current_function_decl->data.func_decl.name != NULL
                     ? ctx->current_function_decl->data.func_decl.name
                     : "<anonymous>",
-            node->data.return_stmt.value->data.identifier.name);
+            borrowed_name,
+            source_path != NULL ? source_path : borrowed_name);
+        free(source_path);
     }
 
     if (node->data.return_stmt.value != NULL
@@ -8816,6 +8840,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                        "- summary provenance root is '%s'\n"
                         "- slot/resource summary found a return-escape path for that borrowed symbol\n"
                         "- returning it would let the borrow outlive the current call boundary\n"
                         "Fix:\n"
@@ -8824,6 +8849,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 } else if (type_is_subject_type(param_types[i], ctx)) {
                     semantic_error(ctx, node,
@@ -8831,6 +8857,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' subject\n"
+                        "- summary provenance root is '%s'\n"
                         "- slot/resource summary found a return-escape path for that borrowed symbol\n"
                         "- returning it would let the borrow outlive the current call boundary\n"
                         "Fix:\n"
@@ -8839,6 +8866,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 } else if (type_requires_boundary_borrow_tracking(param_types[i], ctx)) {
                     semantic_error(ctx, node,
@@ -8846,6 +8874,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                        "- summary provenance root is '%s'\n"
                         "- slot/resource summary found a return-escape path for that borrowed symbol\n"
                         "- returning it would let the borrow outlive the current call boundary\n"
                         "Fix:\n"
@@ -8854,6 +8883,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 } else {
                     semantic_error(ctx, node,
@@ -8861,6 +8891,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' handle\n"
+                        "- summary provenance root is '%s'\n"
                         "- 'ref' is a non-owning borrow tied to the caller scope\n"
                         "- returning it would let the borrow outlive the call boundary\n"
                         "Fix:\n"
@@ -8869,6 +8900,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 }
             }
@@ -8879,6 +8911,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                        "- summary provenance root is '%s'\n"
                         "- slot/resource summary found a channel-escape path for that borrowed symbol\n"
                         "- channel send would transfer the borrow beyond the current call boundary\n"
                         "Fix:\n"
@@ -8887,6 +8920,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 } else if (type_is_subject_type(param_types[i], ctx)) {
                     semantic_error(ctx, node,
@@ -8894,6 +8928,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' subject\n"
+                        "- summary provenance root is '%s'\n"
                         "- slot/resource summary found a channel-escape path for that borrowed symbol\n"
                         "- channel send would transfer the borrow beyond the current call boundary\n"
                         "Fix:\n"
@@ -8902,6 +8937,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 } else if (type_requires_boundary_borrow_tracking(param_types[i], ctx)) {
                     semantic_error(ctx, node,
@@ -8909,6 +8945,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                        "- summary provenance root is '%s'\n"
                         "- slot/resource summary found a channel-escape path for that borrowed symbol\n"
                         "- channel send would transfer the borrow beyond the current call boundary\n"
                         "Fix:\n"
@@ -8917,6 +8954,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 } else {
                     semantic_error(ctx, node,
@@ -8924,6 +8962,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' handle\n"
+                        "- summary provenance root is '%s'\n"
                         "- 'ref' is a non-owning borrow tied to the current call\n"
                         "- channel send would transfer the borrow beyond that boundary\n"
                         "Fix:\n"
@@ -8932,6 +8971,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 }
             }
@@ -8942,6 +8982,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                        "- summary provenance root is '%s'\n"
                         "- slot/resource summary found a transitive call-escape path for that borrowed symbol\n"
                         "- forwarding it to another call would create a transitive borrow the compiler cannot keep boundary-safe\n"
                         "Fix:\n"
@@ -8950,6 +8991,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 } else if (type_is_subject_type(param_types[i], ctx)) {
                     semantic_error(ctx, node,
@@ -8957,6 +8999,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' subject\n"
+                        "- summary provenance root is '%s'\n"
                         "- slot/resource summary found a transitive call-escape path for that borrowed symbol\n"
                         "- forwarding it to another call would create a transitive borrow the compiler cannot keep boundary-safe\n"
                         "Fix:\n"
@@ -8965,6 +9008,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 } else if (type_requires_boundary_borrow_tracking(param_types[i], ctx)) {
                     semantic_error(ctx, node,
@@ -8972,6 +9016,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                        "- summary provenance root is '%s'\n"
                         "- slot/resource summary found a transitive call-escape path for that borrowed symbol\n"
                         "- forwarding it to another call would create a transitive borrow the compiler cannot keep boundary-safe\n"
                         "Fix:\n"
@@ -8980,6 +9025,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 } else {
                     semantic_error(ctx, node,
@@ -8987,6 +9033,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' handle\n"
+                        "- summary provenance root is '%s'\n"
                         "- 'ref' is a non-owning borrow tied to the current call boundary\n"
                         "- forwarding it to another call would create a transitive borrow the compiler does not yet track precisely\n"
                         "Fix:\n"
@@ -8995,6 +9042,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         param->name,
                         node->data.func_decl.name != NULL
                             ? node->data.func_decl.name : "<anonymous>",
+                        param->name,
                         param->name);
                 }
             }

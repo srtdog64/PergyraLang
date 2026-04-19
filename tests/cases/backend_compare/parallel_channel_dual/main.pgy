@@ -1,0 +1,22 @@
+// Two independent buffered Channels sharing a single parallel block.
+// Verifies that (a) multiple channel identifiers are correctly routed in
+// the MIR/codegen layer, (b) aggregated output across channels is
+// deterministic when each per-channel aggregation is commutative.
+
+func Main() -> Void {
+    let ch1: Channel<Int> = Channel(2);
+    let ch2: Channel<Int> = Channel(2);
+    parallel {
+        ch1 <- 10;
+        ch1 <- 20;
+        ch2 <- 100;
+        ch2 <- 200;
+    }
+    let a1: Int = <- ch1;
+    let a2: Int = <- ch1;
+    let b1: Int = <- ch2;
+    let b2: Int = <- ch2;
+    Log(a1 + a2);
+    Log(b1 + b2);
+    Log((a1 + a2) + (b1 + b2));
+}

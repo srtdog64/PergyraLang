@@ -373,6 +373,9 @@ main() {
         "tests/cases/backend_compare/relation_effect_propagation"
         "tests/cases/backend_compare/higher_order_simple"
         "tests/cases/backend_compare/higher_order_compose"
+        "tests/cases/backend_compare/parallel_channel_sum"
+        "tests/cases/backend_compare/parallel_channel_dual"
+        "tests/cases/backend_compare/triple_paradigm"
     )
 
     if [[ "$#" -gt 0 ]]; then

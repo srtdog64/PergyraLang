@@ -137,6 +137,8 @@
   - 진행: new-binding escape regression도 member source path(`packet.items`)와 array source path(`items[0]`)를 fixture로 고정
   - 진행: container store(`ArrayPush`/`ListPush`/`SetAdd`/`QueuePush`/`MapSet`)도 borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
   - 진행: helper forwarding / builtin channel send(`Send`/`TrySend`/`SendTimeout`/status variants)도 unnamed borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
+  - 진행: direct `return` escape도 borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)를 직접 보고하도록 정렬
+  - 진행: slot/resource summary 기반 `return/channel/helper` diagnostics도 `summary provenance root` vocabulary로 direct semantic wording에 더 가깝게 정렬
   - generic contract는 `default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path를 마지막까지 audit
   - 진행: `party role slot` generic mismatch consumer도 actual/expected type arg + consumer path provenance regression으로 고정
   - 남은 generic consumer path가 없다는 것을 regression으로 증명하고, partial acceptance처럼 보이는 경로를 남기지 않는다
@@ -148,6 +150,7 @@
   - helper-heavy edge path를 줄이고, compile-time contract 실패를 silent/best-effort runtime sync로 넘기지 않는다
   - 진행: intent step contract-source summary가 `authorized by`, transfer handoff, derived transfer zone provenance를 더 직접적으로 설명하도록 정렬
   - 진행: zone-within action authority mismatch가 `within` / `causes` header를 contract source로 직접 보고하도록 정렬
+  - 진행: world embedding / post-embedding mutation diagnostics가 `world <name> zone slot <slot>` contract source와 world-owned authority/handoff destination을 직접 보고하도록 정렬
 
 - [ ] **C/LLVM parity + full CI green을 베타 최종 관문으로 고정**
   - Linux 기준 `parser / semantic / transpile / ABI / backend-compare / llvm smoke / ir-pipeline / example smoke`를 full green으로 유지

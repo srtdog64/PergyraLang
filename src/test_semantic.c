@@ -2504,7 +2504,7 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ref boundary value parameter reports member source path on channel send");
+    TEST("ref boundary value parameter reports member source path on TrySend");
     {
         const char *source =
             "object Packet {\n"
@@ -2514,7 +2514,7 @@ test_qubit_slot_semantics(void)
             "    let packet: Packet;\n"
             "}\n"
             "func Forward(ref holder: Holder, ch: Channel<Packet>) -> Void {\n"
-            "    Send(ch, holder.packet);\n"
+            "    TrySend(ch, holder.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -2524,7 +2524,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Boundary value channel sends must transfer from a named variable instead of 'holder.packet'"));
+            "TrySend boundary value channel sends must transfer from a named variable instead of 'holder.packet'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "'holder.packet' is derived from borrowed source 'holder'"));
 
@@ -3120,6 +3120,66 @@ test_qubit_slot_semantics(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot escape through channel send"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter reports member source path on return");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "object Holder {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "func Leak(ref holder: Holder) -> Packet {\n"
+            "    return holder.packet;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape via return from 'holder.packet'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'holder.packet' is derived from that borrowed boundary provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world embedding diagnostic reports explicit contract source");
+    {
+        const char *source =
+            "zone BattleZone {\n"
+            "}\n"
+            "world Arena {\n"
+            "    zone battle: BattleZone\n"
+            "}\n"
+            "func Build() -> Void {\n"
+            "    let battle = BattleZone();\n"
+            "    let arena = Arena(battle);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "contract source is world 'Arena' zone slot 'battle'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "ownership/authority after construction belongs to the world-owned slot"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
