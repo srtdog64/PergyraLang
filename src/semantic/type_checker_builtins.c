@@ -751,20 +751,27 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
         }
         if (identifier_is_borrowed_boundary_param(expr->data.call.arguments[1], ctx)) {
             semantic_error(ctx, expr->data.call.arguments[1],
-                "Borrowed ref subject '%s' cannot escape through channel send.\n"
+                "Borrowed ref subject '%s' cannot escape through channel send from '%s'.\n"
                 "Reason:\n"
                 "- consumer path is function '%s'\n"
                 "- '%s' entered this function as a borrowed 'ref' subject\n"
+                "- '%s' is derived from that borrowed subject provenance\n"
                 "- %s would transfer that borrow beyond the current call boundary\n"
                 "Fix:\n"
                 "- send a projection/object/tobject/value snapshot instead\n"
                 "- or change the parameter to 'own' before transfer",
                 expr->data.call.arguments[1]->data.identifier.name,
+                source_path != NULL
+                    ? source_path
+                    : expr->data.call.arguments[1]->data.identifier.name,
                 ctx->current_function_decl != NULL
                     && ctx->current_function_decl->data.func_decl.name != NULL
                         ? ctx->current_function_decl->data.func_decl.name
                         : "<anonymous>",
                 expr->data.call.arguments[1]->data.identifier.name,
+                source_path != NULL
+                    ? source_path
+                    : expr->data.call.arguments[1]->data.identifier.name,
                 name);
             free(source_path);
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
@@ -842,20 +849,27 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
             && expr->data.call.arguments[1]->type == AST_IDENTIFIER
             && identifier_is_borrowed_boundary_param(expr->data.call.arguments[1], ctx)) {
             semantic_error(ctx, expr->data.call.arguments[1],
-                "Borrowed ref boundary value '%s' cannot escape through channel send.\n"
+                "Borrowed ref boundary value '%s' cannot escape through channel send from '%s'.\n"
                 "Reason:\n"
                 "- consumer path is function '%s'\n"
                 "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                "- '%s' is derived from that borrowed boundary provenance\n"
                 "- %s would transfer that borrow beyond the current call boundary\n"
                 "Fix:\n"
                 "- send a copied/value/projection snapshot instead\n"
                 "- or change the parameter to 'own' before transfer",
                 expr->data.call.arguments[1]->data.identifier.name,
+                source_path != NULL
+                    ? source_path
+                    : expr->data.call.arguments[1]->data.identifier.name,
                 ctx->current_function_decl != NULL
                     && ctx->current_function_decl->data.func_decl.name != NULL
                         ? ctx->current_function_decl->data.func_decl.name
                         : "<anonymous>",
                 expr->data.call.arguments[1]->data.identifier.name,
+                source_path != NULL
+                    ? source_path
+                    : expr->data.call.arguments[1]->data.identifier.name,
                 name);
             free(source_path);
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)

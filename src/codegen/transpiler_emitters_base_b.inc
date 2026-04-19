@@ -5,6 +5,74 @@ static void transpiler_write_condition_head(TranspilerCtx *ctx,
                                             const char *suffix);
 
 static void
+transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
+                                       const char *self_type_name,
+                                       ASTNode *method, CodeBuf *body_out,
+                                       bool mark_subject_ref_params)
+{
+    int saved_slot_count;
+    int saved_typed_count;
+    ASTNode *saved_host_decl;
+    CodeBuf *saved_out;
+
+    if (ctx == NULL || method == NULL || self_type_name == NULL)
+        return;
+
+    if (host_decl == NULL) {
+        if (ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "MIR-only transpiler missing declaration inventory for host-scoped method '%s.%s'",
+                self_type_name,
+                method->type == AST_FUNC_DECL && method->data.func_decl.name != NULL
+                    ? method->data.func_decl.name : "<method>");
+        }
+        return;
+    }
+
+    saved_slot_count = ctx->slot_var_count;
+    saved_typed_count = ctx->typed_var_count;
+    saved_host_decl = transpiler_current_host_decl_local(ctx);
+    saved_out = ctx->out;
+
+    transpiler_bind_current_host_decl_local(ctx, host_decl);
+    if (body_out != NULL)
+        ctx->out = body_out;
+    register_typed_var(ctx, "self", self_type_name);
+
+    for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+        FuncParam *p = method->data.func_decl.params[j];
+        char *type_name;
+
+        if (p == NULL || p->name == NULL
+            || strcmp(p->name, "self") == 0
+            || p->type == NULL)
+            continue;
+
+        type_name = render_type_name(p->type);
+        if (type_name != NULL) {
+            register_typed_var(ctx, p->name, type_name);
+            if (mark_subject_ref_params
+                && is_pointer_self_host_type_name(ctx, type_name)) {
+                TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
+                if (entry != NULL)
+                    entry->is_subject_ref = true;
+            }
+            free(type_name);
+        }
+    }
+
+    ctx->indent++;
+    if (method->data.func_decl.body != NULL)
+        emit_block(method->data.func_decl.body, ctx);
+    ctx->indent--;
+
+    ctx->out = saved_out;
+    ctx->slot_var_count = saved_slot_count;
+    ctx->typed_var_count = saved_typed_count;
+    transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
+}
+
+static void
 emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                               const char *emitted_name, CodeBuf *buf,
                               TranspilerCtx *ctx)
@@ -14,7 +82,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     int saved_typed_count = ctx->typed_var_count;
     CodeBuf *saved_out = ctx->out;
     TranspilerCtx *saved_render_ctx = g_type_render_ctx;
-    ASTNode *saved_host_decl = ctx->current_host_decl;
+    ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
     const ASTNode *saved_func_decl = ctx->current_func_decl;
     char saved_return_type[128];
     CodeBuf *params_sig = codebuf_create();
@@ -32,6 +100,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     bool owner_is_effect = owner_ast_type == AST_EFFECT_DECL;
     bool owner_is_world = owner_ast_type == AST_WORLD_DECL;
     bool pointer_self = false;
+    ASTNode *resolved_host_decl = NULL;
 
     if (is_method && owner_name == NULL) {
         if (ctx->backend_error == NULL) {
@@ -63,32 +132,37 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
 
-    ctx->out = buf;
-    g_type_render_ctx = ctx;
-    transpiler_bind_current_host_decl_local(ctx, NULL);
     if (owner_is_role) {
         if (owner_role_subject_name != NULL) {
-            transpiler_bind_current_host_decl_local(
-                ctx,
-                transpiler_find_decl_in_inventory_local(
-                    ctx, AST_CLASS_DECL, owner_role_subject_name));
+            resolved_host_decl = transpiler_find_decl_in_inventory_local(
+                ctx, AST_CLASS_DECL, owner_role_subject_name);
         }
     } else if (owner_name != NULL) {
-        transpiler_bind_current_host_decl_local(
-            ctx,
-            transpiler_find_host_decl_from_owner_local(ctx, owner_name, owner_ast_type));
+        resolved_host_decl = transpiler_find_host_decl_from_owner_local(
+            ctx, owner_name, owner_ast_type);
+    } else if (!owner_is_zone
+               && node != NULL
+               && node->type == AST_FUNC_DECL
+               && node->data.func_decl.within_zone != NULL
+               && find_zone_decl(ctx, node->data.func_decl.within_zone) != NULL) {
+        resolved_host_decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_ZONE_DECL, node->data.func_decl.within_zone);
     }
-    if (!owner_is_zone
-        && owner_name == NULL
-        && node != NULL
-        && node->type == AST_FUNC_DECL
-        && node->data.func_decl.within_zone != NULL
-        && find_zone_decl(ctx, node->data.func_decl.within_zone) != NULL) {
-        transpiler_bind_current_host_decl_local(
-            ctx,
-            transpiler_find_decl_in_inventory_local(
-                ctx, AST_ZONE_DECL, node->data.func_decl.within_zone));
+
+    if (owner_name != NULL && !owner_is_role && resolved_host_decl == NULL) {
+        if (ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "MIR-only transpiler missing declaration inventory for host '%s' of method '%s'",
+                owner_name,
+                name != NULL ? name : "<method>");
+        }
+        codebuf_destroy(params_sig);
+        return;
     }
+
+    ctx->out = buf;
+    g_type_render_ctx = ctx;
+    transpiler_bind_current_host_decl_local(ctx, resolved_host_decl);
     if (node != NULL && node->type == AST_FUNC_DECL)
         ctx->current_func_decl = node;
     snprintf(saved_return_type, sizeof(saved_return_type), "%s",
@@ -1161,39 +1235,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         }
         codebuf_write(ctx->helpers, ")\n{\n");
 
-        {
-            int saved_slot_count = ctx->slot_var_count;
-            int saved_typed_count = ctx->typed_var_count;
-            ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
-            CodeBuf *saved_out = ctx->out;
-
-            transpiler_bind_current_host_decl_local(ctx, class_decl);
-            ctx->out = ctx->helpers;
-            register_typed_var(ctx, "self", spec_name);
-
-            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                FuncParam *p = method->data.func_decl.params[j];
-                char *tn;
-                if (p == NULL || p->name == NULL
-                    || strcmp(p->name, "self") == 0 || p->type == NULL)
-                    continue;
-                tn = render_type_name(p->type);
-                if (tn != NULL) {
-                    register_typed_var(ctx, p->name, tn);
-                    free(tn);
-                }
-            }
-
-            ctx->indent++;
-            if (method->data.func_decl.body != NULL)
-                emit_block(method->data.func_decl.body, ctx);
-            ctx->indent--;
-
-            ctx->out = saved_out;
-            ctx->slot_var_count = saved_slot_count;
-            ctx->typed_var_count = saved_typed_count;
-            transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
-        }
+        transpiler_emit_host_method_body_local(
+            ctx, class_decl, spec_name, method, ctx->helpers, false);
 
         codebuf_write(ctx->helpers, "}\n");
     }
@@ -1332,43 +1375,13 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out, ")\n{\n");
 
-        {
-            int saved_slot_count = ctx->slot_var_count;
-            int saved_typed_count = ctx->typed_var_count;
-            ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
-            ASTNode *class_host_decl =
-                transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, name);
-
-            transpiler_bind_current_host_decl_local(ctx, class_host_decl);
-            register_typed_var(ctx, "self", name);
-            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                FuncParam *p = method->data.func_decl.params[j];
-                char *type_name;
-
-                if (p == NULL || p->name == NULL
-                    || strcmp(p->name, "self") == 0
-                    || p->type == NULL)
-                    continue;
-
-                type_name = render_type_name(p->type);
-                if (type_name != NULL) {
-                    register_typed_var(ctx, p->name, type_name);
-                    if (is_pointer_self_host_type_name(ctx, type_name)) {
-                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
-                        if (entry != NULL)
-                            entry->is_subject_ref = true;
-                    }
-                    free(type_name);
-                }
-            }
-            ctx->indent++;
-            if (method->data.func_decl.body != NULL)
-                emit_block(method->data.func_decl.body, ctx);
-            ctx->indent--;
-            ctx->slot_var_count = saved_slot_count;
-            ctx->typed_var_count = saved_typed_count;
-            transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
-        }
+        transpiler_emit_host_method_body_local(
+            ctx,
+            transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, name),
+            name,
+            method,
+            NULL,
+            true);
 
         codebuf_write(ctx->out, "}\n");
     }
@@ -3125,35 +3138,13 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                 codebuf_write(ctx->out, ", %s %s", pt, p->name);
             }
             codebuf_write(ctx->out, ")\n{\n");
-            {
-                int saved_slot_count = ctx->slot_var_count;
-                int saved_typed_count = ctx->typed_var_count;
-                ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
-                ASTNode *enum_host_decl =
-                    transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL, ename);
-
-                transpiler_bind_current_host_decl_local(ctx, enum_host_decl);
-                register_typed_var(ctx, "self", ename);
-                for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                    FuncParam *p = method->data.func_decl.params[j];
-                    char *tn;
-                    if (p == NULL || p->name == NULL
-                        || strcmp(p->name, "self") == 0 || p->type == NULL)
-                        continue;
-                    tn = render_type_name(p->type);
-                    if (tn != NULL) {
-                        register_typed_var(ctx, p->name, tn);
-                        free(tn);
-                    }
-                }
-                ctx->indent++;
-                if (method->data.func_decl.body != NULL)
-                    emit_block(method->data.func_decl.body, ctx);
-                ctx->indent--;
-                ctx->slot_var_count = saved_slot_count;
-                ctx->typed_var_count = saved_typed_count;
-                transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
-            }
+            transpiler_emit_host_method_body_local(
+                ctx,
+                transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL, ename),
+                ename,
+                method,
+                NULL,
+                false);
             codebuf_write(ctx->out, "}\n");
         }
         break;

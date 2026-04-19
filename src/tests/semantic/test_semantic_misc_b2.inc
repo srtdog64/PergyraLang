@@ -1676,6 +1676,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "has no matching subject slot"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "contract source is authority-bearing zone 'CockpitZone' with authorized participant 'passenger'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
@@ -2202,6 +2204,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "zone slot 'monster' is bound to effect slot 'poison'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "propagation edge is effect slot 'poison' -> target slot 'monster'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "bind effect 'Poison' to a zone slot of type 'Hero'"));
@@ -2240,6 +2244,8 @@
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "zone relation slot 'rivalry' binds declaration 'Rivalry'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "propagation edge is relation slot 'rivalry' -> right endpoint 'villain'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,

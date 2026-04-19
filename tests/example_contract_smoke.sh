@@ -323,7 +323,7 @@ run_stable_examples() {
     run_expect_lines "six_item_alignment_demo" "$backend" \
         "$ROOT_DIR/examples/six_item_alignment_demo.pgy" "six item alignment demo" "Mina" "1" "paid"
     run_expect_lines "ownership_forwarding_probe" "$backend" \
-        "$ROOT_DIR/examples/ownership_forwarding_probe" "ownership forwarding probe" "inner-ref" "middle-ref" "plain-consumed" "secure-consumed" "secure-relay" "done"
+        "$ROOT_DIR/examples/ownership_forwarding_probe/main.pgy" "ownership forwarding probe" "inner-ref" "middle-ref" "plain-consumed" "secure-consumed" "secure-relay" "done"
     run_expect_lines "order_analytics" "$backend" \
         "$ROOT_DIR/examples/order_analytics" \
         "=== Order Analytics ===" \

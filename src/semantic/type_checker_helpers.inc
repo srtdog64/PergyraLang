@@ -781,6 +781,7 @@ reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
         "Reason:\n"
         "- origin binding is '%s'\n"
         "- contract source is world '%s' zone slot '%s'\n"
+        "- embedding handoff edge is '%s' -> world '%s' slot '%s'\n"
         "- derived embedding provenance points to world '%s' slot '%s'\n"
         "- ownership/authority now flows through the world-owned slot rather than the old local binding\n"
         "- current world construction embeds zone state by value into the world-owned slot\n"
@@ -789,6 +790,9 @@ reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
         "- finish configuring '%s' before constructing world '%s'\n"
         "- or mutate it through world '%s' slot '%s' after embedding",
         root_name, op_name,
+        owner_world != NULL ? owner_world : "<world>",
+        owner_slot != NULL ? owner_slot : "<slot>",
+        root_name,
         owner_world != NULL ? owner_world : "<world>",
         owner_slot != NULL ? owner_slot : "<slot>",
         root_name,
@@ -2231,14 +2235,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 field_type->name != NULL ? field_type->name : "<type>",
                                 arg_type->name != NULL ? arg_type->name : "<type>");
                         }
-                        if (expr->data.call.arguments[i] != NULL
-                            && expr->data.call.arguments[i]->type == AST_IDENTIFIER
-                            && identifier_is_borrowed_boundary_param(
-                                expr->data.call.arguments[i], ctx)) {
+                        if (expr->data.call.arguments[i] != NULL) {
                             const char *borrowed_name =
-                                expr->data.call.arguments[i]->data.identifier.name != NULL
-                                    ? expr->data.call.arguments[i]->data.identifier.name
-                                    : "<value>";
+                                semantic_borrowed_boundary_root_name(
+                                    expr->data.call.arguments[i], ctx);
+                            char *source_path = borrowed_name != NULL
+                                ? semantic_assignment_target_path(
+                                    expr->data.call.arguments[i])
+                                : NULL;
                             const char *constructor_name =
                                 display_name != NULL ? display_name : "<constructor>";
                             const char *constructor_field =
@@ -2249,12 +2253,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     ? ctx->current_function_decl->data.func_decl.name
                                     : "<anonymous>";
 
-                            if (type_is_movable_resource_handle(field_type)) {
+                            if (borrowed_name != NULL
+                                && type_is_movable_resource_handle(field_type)) {
                                 semantic_error(ctx, expr->data.call.arguments[i],
-                                    "Borrowed ref movable resource '%s' cannot escape through constructor field store '%s.%s'.\n"
+                                    "Borrowed ref movable resource '%s' cannot escape through constructor field store '%s.%s' from '%s'.\n"
                                     "Reason:\n"
                                     "- consumer path is function '%s'\n"
                                     "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                                    "- '%s' is derived from that borrowed movable-resource provenance\n"
                                     "- constructor '%s' would store it into field '%s'\n"
                                     "- constructor field storage is treated as a boundary-visible escaping store\n"
                                     "Fix:\n"
@@ -2264,17 +2270,21 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     borrowed_name,
                                     constructor_name,
                                     constructor_field,
+                                    source_path != NULL ? source_path : borrowed_name,
                                     consumer_name,
                                     borrowed_name,
+                                    source_path != NULL ? source_path : borrowed_name,
                                     constructor_name,
                                     constructor_field,
-                                    borrowed_name);
-                            } else if (type_is_subject_type(field_type, ctx)) {
+                                    source_path != NULL ? source_path : borrowed_name);
+                            } else if (borrowed_name != NULL
+                                       && type_is_subject_type(field_type, ctx)) {
                                 semantic_error(ctx, expr->data.call.arguments[i],
-                                    "Borrowed ref subject '%s' cannot escape through constructor field store '%s.%s'.\n"
+                                    "Borrowed ref subject '%s' cannot escape through constructor field store '%s.%s' from '%s'.\n"
                                     "Reason:\n"
                                     "- consumer path is function '%s'\n"
                                     "- '%s' entered this function as a borrowed 'ref' subject\n"
+                                    "- '%s' is derived from that borrowed subject provenance\n"
                                     "- constructor '%s' would store it into field '%s'\n"
                                     "- constructor field storage would create a second boundary-visible binding for the borrowed identity\n"
                                     "Fix:\n"
@@ -2284,17 +2294,21 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     borrowed_name,
                                     constructor_name,
                                     constructor_field,
+                                    source_path != NULL ? source_path : borrowed_name,
                                     consumer_name,
                                     borrowed_name,
+                                    source_path != NULL ? source_path : borrowed_name,
                                     constructor_name,
                                     constructor_field,
-                                    borrowed_name);
-                            } else if (type_requires_boundary_borrow_tracking(field_type, ctx)) {
+                                    source_path != NULL ? source_path : borrowed_name);
+                            } else if (borrowed_name != NULL
+                                       && type_requires_boundary_borrow_tracking(field_type, ctx)) {
                                 semantic_error(ctx, expr->data.call.arguments[i],
-                                    "Borrowed ref boundary value '%s' cannot escape through constructor field store '%s.%s'.\n"
+                                    "Borrowed ref boundary value '%s' cannot escape through constructor field store '%s.%s' from '%s'.\n"
                                     "Reason:\n"
                                     "- consumer path is function '%s'\n"
                                     "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                                    "- '%s' is derived from that borrowed boundary provenance\n"
                                     "- constructor '%s' would store it into field '%s'\n"
                                     "- constructor field storage is treated as a boundary-visible escaping store for borrowed provenance\n"
                                     "Fix:\n"
@@ -2304,12 +2318,15 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     borrowed_name,
                                     constructor_name,
                                     constructor_field,
+                                    source_path != NULL ? source_path : borrowed_name,
                                     consumer_name,
                                     borrowed_name,
+                                    source_path != NULL ? source_path : borrowed_name,
                                     constructor_name,
                                     constructor_field,
-                                    borrowed_name);
+                                    source_path != NULL ? source_path : borrowed_name);
                             }
+                            free(source_path);
                         }
                         if (sym->kind == SYMBOL_WORLD
                             && decl->type == AST_WORLD_DECL
@@ -2548,11 +2565,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
                                     | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
                                     | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+                    char *source_path = semantic_assignment_target_path(
+                        expr->data.call.arguments[i]);
                     semantic_error(ctx, expr->data.call.arguments[i],
-                        "Borrowed ref movable resource '%s' cannot escape through helper/function call to '%s'.\n"
+                        "Borrowed ref movable resource '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                        "- '%s' is derived from that borrowed movable-resource provenance\n"
                         "- callee '%s' derives a transitive call-escape path for its borrowed parameter\n"
                         "- forwarding this borrow into that helper would let it escape beyond the current call boundary\n"
                         "Fix:\n"
@@ -2560,35 +2580,52 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "- or change the current parameter to 'own' if transfer/forwarding is intended",
                         expr->data.call.arguments[i]->data.identifier.name,
                         display_name != NULL ? display_name : "<callee>",
+                        source_path != NULL
+                            ? source_path
+                            : expr->data.call.arguments[i]->data.identifier.name,
                         ctx->current_function_decl != NULL
                             && ctx->current_function_decl->data.func_decl.name != NULL
                                 ? ctx->current_function_decl->data.func_decl.name
                                 : "<anonymous>",
                         expr->data.call.arguments[i]->data.identifier.name,
+                        source_path != NULL
+                            ? source_path
+                            : expr->data.call.arguments[i]->data.identifier.name,
                         display_name != NULL ? display_name : "<callee>");
+                    free(source_path);
                     continue;
                 }
             }
             if (pmode != PARAM_MODE_REF
                 && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
-                    semantic_error(ctx, expr->data.call.arguments[i],
-                    "Borrowed ref movable resource '%s' cannot escape through helper/function call to '%s'.\n"
+                char *source_path = semantic_assignment_target_path(
+                    expr->data.call.arguments[i]);
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Borrowed ref movable resource '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                     "Reason:\n"
                     "- consumer path is function '%s'\n"
                     "- '%s' entered this function as a borrowed 'ref' movable resource\n"
+                    "- '%s' is derived from that borrowed movable-resource provenance\n"
                     "- forwarding it to '%s' as '%s' would create a transitive transfer beyond the current call boundary\n"
                     "Fix:\n"
                     "- call a 'ref' helper instead\n"
                     "- or change the current parameter to 'own' if forwarding/transfer is intended",
                     expr->data.call.arguments[i]->data.identifier.name,
                     display_name != NULL ? display_name : "<callee>",
+                    source_path != NULL
+                        ? source_path
+                        : expr->data.call.arguments[i]->data.identifier.name,
                     ctx->current_function_decl != NULL
                         && ctx->current_function_decl->data.func_decl.name != NULL
                             ? ctx->current_function_decl->data.func_decl.name
                             : "<anonymous>",
                     expr->data.call.arguments[i]->data.identifier.name,
+                    source_path != NULL
+                        ? source_path
+                        : expr->data.call.arguments[i]->data.identifier.name,
                     display_name != NULL ? display_name : "<callee>",
                     pmode == PARAM_MODE_OWN ? "own" : "default");
+                free(source_path);
                 continue;
             }
             if (pmode == PARAM_MODE_REF)
@@ -2675,11 +2712,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
                                     | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
                                     | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+                    char *source_path = semantic_assignment_target_path(
+                        expr->data.call.arguments[i]);
                     semantic_error(ctx, expr->data.call.arguments[i],
-                        "Borrowed ref subject '%s' cannot escape through helper/function call to '%s'.\n"
+                        "Borrowed ref subject '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' subject\n"
+                        "- '%s' is derived from that borrowed subject provenance\n"
                         "- callee '%s' derives a transitive call-escape path for its borrowed parameter\n"
                         "- forwarding this borrow into that helper would let it escape beyond the current call boundary\n"
                         "Fix:\n"
@@ -2687,35 +2727,52 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "- or change the current parameter to 'own' if transfer/forwarding is intended",
                         expr->data.call.arguments[i]->data.identifier.name,
                         display_name != NULL ? display_name : "<callee>",
+                        source_path != NULL
+                            ? source_path
+                            : expr->data.call.arguments[i]->data.identifier.name,
                         ctx->current_function_decl != NULL
                             && ctx->current_function_decl->data.func_decl.name != NULL
                                 ? ctx->current_function_decl->data.func_decl.name
                                 : "<anonymous>",
                         expr->data.call.arguments[i]->data.identifier.name,
+                        source_path != NULL
+                            ? source_path
+                            : expr->data.call.arguments[i]->data.identifier.name,
                         display_name != NULL ? display_name : "<callee>");
+                    free(source_path);
                     continue;
                 }
             }
             if (pmode != PARAM_MODE_REF
                 && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
+                char *source_path = semantic_assignment_target_path(
+                    expr->data.call.arguments[i]);
                 semantic_error(ctx, expr->data.call.arguments[i],
-                    "Borrowed ref subject '%s' cannot escape through helper/function call to '%s'.\n"
+                    "Borrowed ref subject '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                     "Reason:\n"
                     "- consumer path is function '%s'\n"
                     "- '%s' entered this function as a borrowed 'ref' subject\n"
+                    "- '%s' is derived from that borrowed subject provenance\n"
                     "- forwarding it to '%s' as '%s' would create a transitive transfer beyond the current call boundary\n"
                     "Fix:\n"
                     "- call a 'ref' helper instead\n"
                     "- or change the current parameter to 'own' if forwarding/transfer is intended",
                     expr->data.call.arguments[i]->data.identifier.name,
                     display_name != NULL ? display_name : "<callee>",
+                    source_path != NULL
+                        ? source_path
+                        : expr->data.call.arguments[i]->data.identifier.name,
                     ctx->current_function_decl != NULL
                         && ctx->current_function_decl->data.func_decl.name != NULL
                             ? ctx->current_function_decl->data.func_decl.name
                             : "<anonymous>",
                     expr->data.call.arguments[i]->data.identifier.name,
+                    source_path != NULL
+                        ? source_path
+                        : expr->data.call.arguments[i]->data.identifier.name,
                     display_name != NULL ? display_name : "<callee>",
                     pmode == PARAM_MODE_OWN ? "own" : "default");
+                free(source_path);
                 continue;
             }
             if (pmode == PARAM_MODE_OWN) {
@@ -2809,11 +2866,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
                                     | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
                                     | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+                    char *source_path = semantic_assignment_target_path(
+                        expr->data.call.arguments[i]);
                     semantic_error(ctx, expr->data.call.arguments[i],
-                        "Borrowed ref boundary value '%s' cannot escape through helper/function call to '%s'.\n"
+                        "Borrowed ref boundary value '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                         "Reason:\n"
                         "- consumer path is function '%s'\n"
                         "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                        "- '%s' is derived from that borrowed boundary provenance\n"
                         "- callee '%s' derives a transitive call-escape path for its borrowed parameter\n"
                         "- forwarding this borrow into that helper would let it escape beyond the current call boundary\n"
                         "Fix:\n"
@@ -2821,12 +2881,19 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "- or change the current parameter to 'own' if transfer/forwarding is intended",
                         expr->data.call.arguments[i]->data.identifier.name,
                         display_name != NULL ? display_name : "<callee>",
+                        source_path != NULL
+                            ? source_path
+                            : expr->data.call.arguments[i]->data.identifier.name,
                         ctx->current_function_decl != NULL
                             && ctx->current_function_decl->data.func_decl.name != NULL
                                 ? ctx->current_function_decl->data.func_decl.name
                                 : "<anonymous>",
                         expr->data.call.arguments[i]->data.identifier.name,
+                        source_path != NULL
+                            ? source_path
+                            : expr->data.call.arguments[i]->data.identifier.name,
                         display_name != NULL ? display_name : "<callee>");
+                    free(source_path);
                     continue;
                 }
             }
@@ -2834,24 +2901,34 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 && identifier_is_borrowed_boundary_param(expr->data.call.arguments[i], ctx)) {
                 if (!type_requires_boundary_borrow_tracking(param_type, ctx))
                     continue;
+                char *source_path = semantic_assignment_target_path(
+                    expr->data.call.arguments[i]);
                 semantic_error(ctx, expr->data.call.arguments[i],
-                    "Borrowed ref boundary value '%s' cannot escape through helper/function call to '%s'.\n"
+                    "Borrowed ref boundary value '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
                     "Reason:\n"
                     "- consumer path is function '%s'\n"
                     "- '%s' entered this function as a borrowed 'ref' boundary value\n"
+                    "- '%s' is derived from that borrowed boundary provenance\n"
                     "- forwarding it to '%s' as '%s' would create a transitive transfer beyond the current call boundary\n"
                     "Fix:\n"
                     "- call a 'ref' helper instead\n"
                     "- or change the current parameter to 'own' if forwarding/transfer is intended",
                     expr->data.call.arguments[i]->data.identifier.name,
                     display_name != NULL ? display_name : "<callee>",
+                    source_path != NULL
+                        ? source_path
+                        : expr->data.call.arguments[i]->data.identifier.name,
                     ctx->current_function_decl != NULL
                         && ctx->current_function_decl->data.func_decl.name != NULL
                             ? ctx->current_function_decl->data.func_decl.name
                             : "<anonymous>",
                     expr->data.call.arguments[i]->data.identifier.name,
+                    source_path != NULL
+                        ? source_path
+                        : expr->data.call.arguments[i]->data.identifier.name,
                     display_name != NULL ? display_name : "<callee>",
                     pmode == PARAM_MODE_OWN ? "own" : "default");
+                free(source_path);
                 continue;
             }
             if (pmode == PARAM_MODE_OWN) {

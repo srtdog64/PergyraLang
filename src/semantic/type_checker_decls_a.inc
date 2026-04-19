@@ -243,6 +243,35 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
 }
 
 static void
+intent_step_summary_append(char *buffer, size_t buffer_size, size_t *used,
+                           const char *fmt, ...)
+{
+    va_list args;
+    int written;
+    size_t remaining;
+
+    if (buffer == NULL || used == NULL || fmt == NULL || buffer_size == 0
+        || *used >= buffer_size) {
+        return;
+    }
+
+    remaining = buffer_size - *used;
+    va_start(args, fmt);
+    written = vsnprintf(buffer + *used, remaining, fmt, args);
+    va_end(args);
+    if (written <= 0) {
+        return;
+    }
+
+    if ((size_t)written >= remaining) {
+        *used = buffer_size - 1;
+        return;
+    }
+
+    *used += (size_t)written;
+}
+
+static void
 intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                                            const ASTNode *step,
                                            SemanticContext *ctx,
@@ -273,14 +302,14 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 matched_action->type == AST_FUNC_DECL
                     ? matched_action->data.func_decl.name
                     : NULL;
-            used += (size_t)snprintf(buffer + used, buffer_size - used,
+            intent_step_summary_append(buffer, buffer_size, &used,
                 "%s- matching action contract: %s.%s",
                 has_any ? "\n" : "",
                 subject_name != NULL ? subject_name : "<subject>",
                 action_name != NULL ? action_name : "<action>");
             has_any = true;
         } else if (step->data.intent_step.who_count > 0) {
-            used += (size_t)snprintf(buffer + used, buffer_size - used,
+            intent_step_summary_append(buffer, buffer_size, &used,
                 "%s- no unique matching action contract was found for this step name across current who participants",
                 has_any ? "\n" : "");
             has_any = true;
@@ -289,7 +318,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
 
     if (step->data.intent_step.who_count > 0
         && !step->data.intent_step.inherited_who_from_action) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared who on step",
             has_any ? "\n" : "");
         has_any = true;
@@ -300,7 +329,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         && !step->data.intent_step.derived_where_from_transfer
         && step->data.intent_step.where_type->type == AST_TYPE
         && step->data.intent_step.where_type->data.type.name != NULL) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared zone on step: %s",
             has_any ? "\n" : "",
             step->data.intent_step.where_type->data.type.name);
@@ -308,14 +337,14 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
     if (step->data.intent_step.required_ability_count > 0
         && !step->data.intent_step.inherited_requires_from_action) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared requires on step",
             has_any ? "\n" : "");
         has_any = true;
     }
     if (step->data.intent_step.causes_effect != NULL
         && !step->data.intent_step.inherited_causes_from_action) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared causes on step: %s",
             has_any ? "\n" : "",
             step->data.intent_step.causes_effect);
@@ -323,7 +352,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
     if (step->data.intent_step.authorized_by_count > 0
         && !step->data.intent_step.inherited_authorized_by_from_action) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared authorized by on step (step-local approval source)",
             has_any ? "\n" : "");
         has_any = true;
@@ -332,7 +361,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         && !step->data.intent_step.derived_using_from_transfer
         && step->data.intent_step.using_expr->type == AST_IDENTIFIER
         && step->data.intent_step.using_expr->data.identifier.name != NULL) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared using on step: %s",
             has_any ? "\n" : "",
             step->data.intent_step.using_expr->data.identifier.name);
@@ -340,7 +369,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
     if (step->data.intent_step.transfer_from_alias != NULL
         && step->data.intent_step.transfer_to_alias != NULL) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- transfer handoff edge on step: %s -> %s (embedding/handoff contract source)",
             has_any ? "\n" : "",
             step->data.intent_step.transfer_from_alias,
@@ -349,11 +378,11 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
 
     if (step->data.intent_step.inherited_who_from_action) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused who from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
@@ -361,7 +390,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                || step->data.intent_step.inherited_requires_from_action
                || step->data.intent_step.inherited_causes_from_action
                || step->data.intent_step.inherited_authorized_by_from_action) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
@@ -373,19 +402,19 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
              && step->data.intent_step.where_type->data.type.name != NULL)
                 ? step->data.intent_step.where_type->data.type.name
                 : "<zone>";
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused zone from matching action contract: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }
     if (step->data.intent_step.inherited_requires_from_action) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused requires from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
     if (step->data.intent_step.inherited_causes_from_action) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused causes from matching action contract: %s",
             has_any ? "\n" : "",
             step->data.intent_step.causes_effect != NULL
@@ -394,7 +423,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         has_any = true;
     }
     if (step->data.intent_step.inherited_authorized_by_from_action) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused authorized by from matching action contract (approval source comes from the action header)",
             has_any ? "\n" : "");
         has_any = true;
@@ -406,7 +435,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
              && step->data.intent_step.where_type->data.type.name != NULL)
                 ? step->data.intent_step.where_type->data.type.name
                 : "<zone>";
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived zone from transfer target handoff: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
@@ -418,7 +447,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
              && step->data.intent_step.where_type->data.type.name != NULL)
                 ? step->data.intent_step.where_type->data.type.name
                 : "<zone>";
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived zone from using binding: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
@@ -430,7 +459,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
              && step->data.intent_step.using_expr->data.identifier.name != NULL)
                 ? step->data.intent_step.using_expr->data.identifier.name
                 : "<binding>";
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived using from transfer target: %s",
             has_any ? "\n" : "", using_name);
         has_any = true;
@@ -439,7 +468,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
          || step->data.intent_step.derived_using_from_transfer)
         && step->data.intent_step.transfer_from_alias != NULL
         && step->data.intent_step.transfer_to_alias != NULL) {
-        used += (size_t)snprintf(buffer + used, buffer_size - used,
+        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived from transfer edge: %s -> %s",
             has_any ? "\n" : "",
             step->data.intent_step.transfer_from_alias,

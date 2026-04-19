@@ -2887,6 +2887,93 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("ref movable-resource parameter reports array source path on new-binding escape");
+    {
+        const char *source =
+            "func Alias(ref items: Array<QubitSlot>) -> Void {\n"
+            "    let copy: QubitSlot = items[0];\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref movable resource 'items' cannot escape into a new binding 'copy' from 'items[0]'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'items[0]' is derived from that borrowed movable-resource provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter reports member source path on constructor field store");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "object HolderView {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "class Envelope {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "func Store(ref holder: HolderView) -> Void {\n"
+            "    let env = Envelope(holder.packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through constructor field store 'Envelope.packet' from 'holder.packet'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'holder.packet' is derived from that borrowed boundary provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter reports array source path on constructor field store");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "class Envelope {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "func Store(ref items: Array<Packet>) -> Void {\n"
+            "    let env = Envelope(items[0]);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through constructor field store 'Envelope.packet' from 'items[0]'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'items[0]' is derived from that borrowed boundary provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ref boundary value parameter may pass copied snapshot into constructor field");
     {
         const char *source =
