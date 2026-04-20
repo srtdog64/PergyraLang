@@ -74,6 +74,22 @@ semantic_validate_borrowed_escape(ASTNode *site,
                                   const char *mode_label,
                                   const char *local_fix_label);
 static void
+semantic_report_borrowed_new_binding_escape(ASTNode *site,
+                                            ASTNode *source_expr,
+                                            SemanticContext *ctx,
+                                            const char *borrowed_name,
+                                            const char *binding_name,
+                                            const char *value_label,
+                                            const char *provenance_label);
+static void
+semantic_report_borrowed_return_escape(ASTNode *site,
+                                       ASTNode *source_expr,
+                                       SemanticContext *ctx,
+                                       const char *borrowed_name,
+                                       const char *value_label,
+                                       const char *provenance_label,
+                                       const char *replacement_label);
+static void
 semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
                                                   ASTNode *target_expr,
                                                   ASTNode *source_expr,

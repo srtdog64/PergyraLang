@@ -716,7 +716,7 @@ type_check_projection_contract(ASTNode **slots,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             owner_label != NULL ? owner_label : "<owner>",
-            owner_name != NULL ? owner_name : "<owner>",
+            owner_label != NULL ? owner_label : "<owner>",
             source_type != NULL && source_type->name != NULL
                 ? source_type->name
                 : "<unknown>");
