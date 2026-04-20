@@ -112,7 +112,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("ref QubitSlot parameter cannot escape into a new binding");
+    TEST("ref QubitSlot parameter cannot escape into new binding");
     {
         const char *source =
             "func BorrowAlias(ref q: QubitSlot) -> Void {\n"
@@ -126,7 +126,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot escape into a new binding"));
+            "cannot escape into new binding"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "borrowed 'ref' slot handle (movable)"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -345,7 +345,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'items' cannot escape into a new binding 'first'"));
+            "Borrowed ref boundary value 'items' cannot escape into new binding 'first'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -407,7 +407,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("ref class parameter cannot escape into a new binding");
+    TEST("ref class parameter cannot escape into new binding");
     {
         const char *source =
             "class Packet {\n"
@@ -424,7 +424,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'packet' cannot escape into a new binding 'alias'"));
+            "Borrowed ref boundary value 'packet' cannot escape into new binding 'alias'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -645,7 +645,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("ref subject parameter cannot escape into a new binding");
+    TEST("ref subject parameter cannot escape into new binding");
     {
         const char *source =
             "subject Hero {\n"
@@ -662,7 +662,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref subject 'hero' cannot escape into a new binding"));
+            "Borrowed ref subject 'hero' cannot escape into new binding"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
