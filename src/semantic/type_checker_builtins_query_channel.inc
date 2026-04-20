@@ -5,9 +5,9 @@ channel_builtin_element_type(ASTNode *expr, size_t channel_arg_index,
     Type *ch_type = type_check_expression(
         expr->data.call.arguments[channel_arg_index], ctx);
     if (!type_is_constructed_named(ch_type, "Channel")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
-            "semantic:channel:transport_rule_violation",
-            "align-channel-element-type",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
+            PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
+            PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
             expr->data.call.arguments[channel_arg_index],
             "%s requires Channel<T>, got '%s'", name,
             ch_type != NULL ? ch_type->name : "<null>");
@@ -27,12 +27,12 @@ channel_builtin_recv_result(Type *element_type, const char *name,
         char message[256];
         char fix[256];
         snprintf(message, sizeof(message),
-            "%s does not support movable resource channels yet", name);
+            "%s does not support slot handle (movable) channels yet", name);
         snprintf(fix, sizeof(fix),
             "use blocking '<-' receive and bind the result first");
         semantic_report_channel_transport_policy(
             site, ctx, message,
-            "movable resource receive remains restricted on this builtin channel surface",
+            "slot handle (movable) receive remains restricted on this builtin channel surface",
             fix);
         return TYPE_UNKNOWN;
     }
@@ -93,10 +93,10 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
         || value_ownership == OWNERSHIP_TYPE_MOVE_ONLY) {
         char message[256];
         snprintf(message, sizeof(message),
-            "%s does not support movable resource sends yet", name);
+            "%s does not support slot handle (movable) sends yet", name);
         semantic_report_channel_transport_policy(
             expr->data.call.arguments[1], ctx, message,
-            "movable resource transfer on this builtin channel surface is still restricted",
+            "slot handle (movable) transfer on this builtin channel surface is still restricted",
             "use blocking 'ch <- value' so ownership transfer stays explicit");
         return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                : TYPE_BOOL;
@@ -148,8 +148,8 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                 "anchored-handle",
                 builtin_type_name_or_unknown(element_type),
                 builtin_type_name_or_unknown(value_type),
-                "anchored handle",
-                "bind the anchored handle first in a local variable")) {
+                "slot handle (anchored)",
+                "bind the slot handle (anchored) first in a local variable")) {
             return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                    : TYPE_BOOL;
         }
@@ -173,12 +173,8 @@ type_check_channel_recv_builtin(ASTNode *expr, const char *name,
         require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
             TYPE_INT, expr->data.call.arguments[1], ctx);
     }
-    if (type_is_constructed_named(element_type, "Token")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY", "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding", expr->data.call.arguments[0],
-            "%s cannot yield Token values yet; receive a plain value instead",
-            name);
-        return TYPE_UNKNOWN;
-    }
+    /* Token / movable / anchored / capability rejection lives in
+     * channel_builtin_recv_result so the rule lives in one place. */
     return channel_builtin_recv_result(
         element_type, name, expr->data.call.arguments[0], ctx);
 }

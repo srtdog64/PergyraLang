@@ -1,4 +1,19 @@
-static bool
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Type checker visibility / access-control helpers (implementation).
+ *
+ * Lifted out of type_checker_visibility.inc as the first axis of the
+ * P1 .inc-split roadmap.  All functions previously `static` are now
+ * non-static so they link against the rest of the type checker.
+ */
+
+#include <string.h>
+
+#include "type_checker_visibility.h"
+
+bool
 nominal_decl_matches_runtime_type(ASTNode *decl, Type *object_type)
 {
     return decl != NULL
@@ -10,7 +25,7 @@ nominal_decl_matches_runtime_type(ASTNode *decl, Type *object_type)
         && strcmp(decl->data.class_decl.name, object_type->name) == 0;
 }
 
-static bool
+bool
 private_member_access_allowed(ASTNode *decl, Type *object_type, SemanticContext *ctx)
 {
     ASTNode *host;
@@ -30,13 +45,13 @@ private_member_access_allowed(ASTNode *decl, Type *object_type, SemanticContext 
         && strcmp(host->data.class_decl.name, decl->data.class_decl.name) == 0;
 }
 
-static bool
+bool
 same_module_origin(const char *left, const char *right)
 {
     return left != NULL && right != NULL && strcmp(left, right) == 0;
 }
 
-static bool
+bool
 cross_module_member_access(ASTNode *decl, SemanticContext *ctx)
 {
     if (decl == NULL || ctx == NULL)
@@ -46,7 +61,7 @@ cross_module_member_access(ASTNode *decl, SemanticContext *ctx)
     return !same_module_origin(ctx->current_module_path, decl->origin_path);
 }
 
-static bool
+bool
 explicit_member_access_allowed(ASTNode *decl,
                                Type *object_type,
                                AccessModifier access,
@@ -67,7 +82,7 @@ explicit_member_access_allowed(ASTNode *decl,
     return true;
 }
 
-static bool
+bool
 explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx)
 {
     const char *site_module = NULL;

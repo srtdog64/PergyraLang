@@ -1,7 +1,7 @@
 type_check_rc_new(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "RcNew requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcNew requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
     return wrap_constructed(TYPE_RC,
@@ -12,12 +12,12 @@ static Type *
 type_check_rc_clone(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "RcClone requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcClone requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
     Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_constructed_named(rc_type, "Rc")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "RcClone requires Rc<T>, got '%s'", rc_type->name);
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcClone requires Rc<T>, got '%s'", rc_type->name);
         return TYPE_UNKNOWN;
     }
     return rc_type;
@@ -27,12 +27,12 @@ static Type *
 type_check_rc_get(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "RcGet requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcGet requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
     Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_constructed_named(rc_type, "Rc")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "RcGet requires Rc<T>, got '%s'", rc_type->name);
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcGet requires Rc<T>, got '%s'", rc_type->name);
         return TYPE_UNKNOWN;
     }
     return type_get_constructed_arg(rc_type, 0);
@@ -42,12 +42,12 @@ static Type *
 type_check_rc_downgrade(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "RcDowngrade requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcDowngrade requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
     Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_constructed_named(rc_type, "Rc")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "RcDowngrade requires Rc<T>, got '%s'", rc_type->name);
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcDowngrade requires Rc<T>, got '%s'", rc_type->name);
         return TYPE_UNKNOWN;
     }
     return wrap_constructed(TYPE_WEAK, type_get_constructed_arg(rc_type, 0));
@@ -57,12 +57,12 @@ static Type *
 type_check_weak_upgrade(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "WeakUpgrade requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakUpgrade requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
     Type *weak_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_constructed_named(weak_type, "Weak")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "WeakUpgrade requires Weak<T>, got '%s'",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakUpgrade requires Weak<T>, got '%s'",
             weak_type->name);
         return TYPE_UNKNOWN;
     }
@@ -73,12 +73,12 @@ static Type *
 type_check_weak_drop(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "WeakDrop requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakDrop requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
     Type *weak_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_constructed_named(weak_type, "Weak")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "WeakDrop requires Weak<T>, got '%s'", weak_type->name);
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakDrop requires Weak<T>, got '%s'", weak_type->name);
         return TYPE_UNKNOWN;
     }
     return TYPE_VOID;
@@ -90,8 +90,8 @@ type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx,
 {
     if ((!requires_capacity && call->data.call.arg_count != 0)
         || (requires_capacity && call->data.call.arg_count != 1)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
-            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             call,
             requires_capacity
                 ? "AllocatorPool requires exactly 1 capacity argument"
@@ -102,8 +102,8 @@ type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx,
     if (requires_capacity) {
         Type *cap_type = type_check_expression(call->data.call.arguments[0], ctx);
         if (!type_equals(cap_type, TYPE_INT) && !type_equals(cap_type, TYPE_LONG)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                "semantic:builtin:capacity_non_integer", "use-int-or-long-capacity",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_BUILTIN_CAPACITY_NON_INTEGER, PGY_FIX_USE_INT_OR_LONG_CAPACITY,
                 call->data.call.arguments[0],
                 "AllocatorPool capacity must be Int or Long, got '%s'",
                 cap_type->name);
@@ -118,7 +118,7 @@ static Type *
 type_check_box_builtin(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "Box requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "Box requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
     return wrap_constructed(TYPE_BOX,
@@ -129,13 +129,13 @@ static Type *
 type_check_box_get(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "BoxGet requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxGet requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
 
     Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_constructed_named(box_type, "Box")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "BoxGet requires Box<T>, got '%s'",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxGet requires Box<T>, got '%s'",
             box_type != NULL ? box_type->name : "<null>");
         return TYPE_UNKNOWN;
     }
@@ -146,13 +146,13 @@ static Type *
 type_check_box_set(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 2) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "BoxSet requires exactly 2 arguments");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxSet requires exactly 2 arguments");
         return TYPE_UNKNOWN;
     }
 
     Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_constructed_named(box_type, "Box")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "BoxSet requires Box<T>, got '%s'",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxSet requires Box<T>, got '%s'",
             box_type != NULL ? box_type->name : "<null>");
         return TYPE_UNKNOWN;
     }
@@ -167,13 +167,13 @@ static Type *
 type_check_box_drop(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "BoxDrop requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxDrop requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
 
     Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_constructed_named(box_type, "Box")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "BoxDrop requires Box<T>, got '%s'",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxDrop requires Box<T>, got '%s'",
             box_type != NULL ? box_type->name : "<null>");
         return TYPE_UNKNOWN;
     }
@@ -184,13 +184,13 @@ static Type *
 type_check_box_is_valid(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "BoxIsValid requires exactly 1 argument");
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxIsValid requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
 
     Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_constructed_named(box_type, "Box")) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call, "BoxIsValid requires Box<T>, got '%s'",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxIsValid requires Box<T>, got '%s'",
             box_type != NULL ? box_type->name : "<null>");
         return TYPE_UNKNOWN;
     }
@@ -201,14 +201,14 @@ static Type *
 type_check_box_array_builtin(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count < 1 || call->data.call.arg_count > 2) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
             "BoxArray requires capacity and optional allocator");
         return TYPE_UNKNOWN;
     }
 
     Type *cap_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_equals(cap_type, TYPE_INT) && !type_equals(cap_type, TYPE_LONG)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call->data.call.arguments[0],
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call->data.call.arguments[0],
             "BoxArray capacity must be Int or Long, got '%s'", cap_type->name);
         return TYPE_UNKNOWN;
     }
@@ -216,7 +216,7 @@ type_check_box_array_builtin(ASTNode *call, SemanticContext *ctx)
     if (call->data.call.arg_count == 2) {
         Type *alloc_type = type_check_expression(call->data.call.arguments[1], ctx);
         if (!type_equals(alloc_type, TYPE_ALLOCATOR)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call->data.call.arguments[1],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call->data.call.arguments[1],
                 "BoxArray allocator must be Allocator, got '%s'", alloc_type->name);
             return TYPE_UNKNOWN;
         }
@@ -255,8 +255,8 @@ type_check_projection_call(ASTNode *call,
 
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
         || target_arg->data.identifier.name == NULL) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
-            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             call,
             "%s requires the first argument to be a %s type name",
             builtin_name, expected_label);
@@ -265,8 +265,8 @@ type_check_projection_call(ASTNode *call,
 
     if (source_arg == NULL || source_arg->type != AST_IDENTIFIER
         || source_arg->data.identifier.name == NULL) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
-            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             call,
             "%s currently requires a named subject binding as the source",
             builtin_name);
@@ -278,8 +278,8 @@ type_check_projection_call(ASTNode *call,
     if (target_decl == NULL
         || !target_decl->data.class_decl.is_struct
         || target_decl->data.class_decl.nominal_kind != expected_kind) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
-            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             target_arg,
             "%s target '%s' must be a %s declaration",
             builtin_name,
@@ -290,8 +290,8 @@ type_check_projection_call(ASTNode *call,
 
     target_sym = scope_lookup(ctx->scope, target_arg->data.identifier.name);
     if (target_sym == NULL || target_sym->type == NULL) {
-        semantic_error_with_hints(ctx, "PGY_SEM_UNKNOWN_TYPE",
-            "semantic:type:unknown", "declare-or-import-type",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
+            PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_DECLARE_OR_IMPORT_TYPE,
             target_arg,
             "Unknown %s type '%s'",
             expected_label,
@@ -304,7 +304,7 @@ type_check_projection_call(ASTNode *call,
         return TYPE_UNKNOWN;
 
     if (source_type->kind != TYPE_KIND_CLASS || source_type->name == NULL) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", source_arg,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, source_arg,
             "%s source must be a subject binding, got '%s'",
             builtin_name,
             source_type->name != NULL ? source_type->name : "<unknown>");
@@ -313,7 +313,7 @@ type_check_projection_call(ASTNode *call,
 
         source_decl = find_named_class_decl(ctx->program_root, source_type->name);
     if (!decl_is_subject_nominal(source_decl)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", source_arg,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, source_arg,
             "%s source '%s' must be a subject declaration",
             builtin_name,
             source_type->name != NULL ? source_type->name : "<unknown>");
@@ -334,7 +334,7 @@ type_check_projection_call(ASTNode *call,
         source_status = resolve_projection_source_field_type_rec(
             ctx->program_root, source_decl, target_field->name, 0, ctx, &source_field_type);
         if (source_status == 2) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
                 "%s target field '%s' is ambiguous in source subject '%s'.\n"
                 "Reason:\n"
                 "- multiple projection source paths match field '%s'\n"
@@ -349,7 +349,7 @@ type_check_projection_call(ASTNode *call,
             continue;
         }
         if (source_status == 0 || source_field_type == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
                 "%s target field '%s' is missing from source subject '%s'",
                 builtin_name,
                 target_field->name,
@@ -545,7 +545,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     case BUILTIN_INPUT:
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
         if (call->data.call.arg_count > 1) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
                 "'Input' expects at most 1 argument, got %llu",
                 (unsigned long long) call->data.call.arg_count);
             return TYPE_STRING;

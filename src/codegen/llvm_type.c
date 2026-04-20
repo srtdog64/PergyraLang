@@ -339,9 +339,9 @@ llvm_ensure_result_type(LLVMGenCtx *ctx,
 
     if (ctx->result_spec_count >= MAX_LLVM_RESULT_SPECS) {
         llvm_set_error_with_hints(ctx,
-            "PGY_LLVM_SPEC_LIMIT",
-            "llvm:result_spec:capacity_exceeded",
-            "reuse-shared-error-enum",
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_RESULT_SPEC_CAPACITY,
+            PGY_FIX_REUSE_SHARED_ERROR_ENUM,
             "Result<T,E> specialization limit (%d) exceeded at %s",
             MAX_LLVM_RESULT_SPECS, suffix);
         return NULL;
@@ -350,7 +350,7 @@ llvm_ensure_result_type(LLVMGenCtx *ctx,
     LLVMTypeRef ok_ty  = llvm_resolve_source_type(ctx, ok_name);
     LLVMTypeRef err_ty = llvm_resolve_source_type(ctx, err_name);
     if (ok_ty == NULL || err_ty == NULL) {
-        llvm_set_error_with_hints(ctx, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:type:unsupported_or_unknown", "annotate-concrete-type", "Result<%s, %s>: cannot resolve %s type",
+        llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_TYPE_UNSUPPORTED, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "Result<%s, %s>: cannot resolve %s type",
             ok_name, err_name, ok_ty == NULL ? ok_name : err_name);
         return NULL;
     }

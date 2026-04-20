@@ -213,9 +213,9 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
         reject_borrowed_array_literal_store(
             expr->data.array_literal.elements[i], next, ctx);
         if (!type_is_assignable(next, elem_type) && !type_is_assignable(elem_type, next)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                "semantic:array_literal:element_type_mismatch",
-                "align-array-element-types",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
+                PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES,
                 expr->data.array_literal.elements[i],
                 "Array literal element type mismatch: expected '%s', got '%s'",
                 elem_type->name, next->name);

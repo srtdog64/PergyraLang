@@ -321,6 +321,26 @@ semantic_warning_with_hints(SemanticContext *ctx,
     va_end(ap);
 }
 
+/* DiagPayload renderer (P5 seed).  Caller fills the payload via named
+ * fields, then we delegate to emit_diagnostic_full so routing tags and
+ * dedupe behavior match every other diagnostic site.  fmt may reference
+ * payload fields positionally (the renderer doesn't substitute by
+ * name); structured-aware renderers can be added later without
+ * touching call sites. */
+void
+semantic_emit_payload(SemanticContext *ctx,
+                      const DiagPayload *p,
+                      const char *fmt, ...)
+{
+    va_list ap;
+    if (ctx == NULL || p == NULL || fmt == NULL)
+        return;
+    va_start(ap, fmt);
+    emit_diagnostic_full(ctx, DIAG_ERROR, p->code, p->cause_ir,
+                          p->fix_source, p->site, fmt, ap);
+    va_end(ap);
+}
+
 void
 semantic_print_diagnostics(SemanticContext *ctx)
 {

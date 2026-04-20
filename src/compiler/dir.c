@@ -1349,12 +1349,12 @@ dir_validate(const DIRProgram *dir, char **error_message)
         const DIREdge *edge = &dir->edges[i];
         if (edge->from_node_id >= dir->node_count) {
             if (error_message != NULL)
-                *error_message = dir_strdup_fmt("DIR edge[%zu] has invalid from_node_id", i);
+                *error_message = dir_strdup_fmt("DIR edge[%llu] has invalid from_node_id", (unsigned long long) i);
             return false;
         }
         if (edge->to_node_id != SIZE_MAX && edge->to_node_id >= dir->node_count) {
             if (error_message != NULL)
-                *error_message = dir_strdup_fmt("DIR edge[%zu] has invalid to_node_id", i);
+                *error_message = dir_strdup_fmt("DIR edge[%llu] has invalid to_node_id", (unsigned long long) i);
             return false;
         }
     }
@@ -1363,7 +1363,7 @@ dir_validate(const DIRProgram *dir, char **error_message)
         const DIRIntentInfo *intent = &dir->intents[i];
         if (intent->node_id >= dir->node_count) {
             if (error_message != NULL)
-                *error_message = dir_strdup_fmt("DIR intent[%zu] has invalid node id", i);
+                *error_message = dir_strdup_fmt("DIR intent[%llu] has invalid node id", (unsigned long long) i);
             return false;
         }
         for (size_t j = 0; j < intent->participant_count; j++) {
@@ -1373,8 +1373,8 @@ dir_validate(const DIRProgram *dir, char **error_message)
                     || participant->subject_type_node_id >= dir->node_count)) {
                 if (error_message != NULL) {
                     *error_message = dir_strdup_fmt(
-                        "DIR intent[%zu] participant '%s' is unresolved",
-                        i,
+                        "DIR intent[%llu] participant '%s' is unresolved",
+                        (unsigned long long) i,
                         participant->alias != NULL ? participant->alias : "-");
                 }
                 return false;
@@ -1384,7 +1384,7 @@ dir_validate(const DIRProgram *dir, char **error_message)
             const DIRIntentStep *step = &intent->steps[j];
             if (step->index != j) {
                 if (error_message != NULL)
-                    *error_message = dir_strdup_fmt("DIR intent[%zu] step[%zu] has unstable index", i, j);
+                    *error_message = dir_strdup_fmt("DIR intent[%llu] step[%llu] has unstable index", (unsigned long long) i, (unsigned long long) j);
                 return false;
             }
             if (step->where_type_name != NULL
@@ -1392,8 +1392,8 @@ dir_validate(const DIRProgram *dir, char **error_message)
                     || step->where_type_node_id >= dir->node_count)) {
                 if (error_message != NULL) {
                     *error_message = dir_strdup_fmt(
-                        "DIR intent[%zu] step '%s' has unresolved where zone",
-                        i,
+                        "DIR intent[%llu] step '%s' has unresolved where zone",
+                        (unsigned long long) i,
                         step->name != NULL ? step->name : "-");
                 }
                 return false;
@@ -1401,8 +1401,8 @@ dir_validate(const DIRProgram *dir, char **error_message)
             if (step->predecessor_step_name != NULL && j == 0) {
                 if (error_message != NULL) {
                     *error_message = dir_strdup_fmt(
-                        "DIR intent[%zu] first step '%s' cannot have predecessor",
-                        i,
+                        "DIR intent[%llu] first step '%s' cannot have predecessor",
+                        (unsigned long long) i,
                         step->name != NULL ? step->name : "-");
                 }
                 return false;
@@ -1411,8 +1411,8 @@ dir_validate(const DIRProgram *dir, char **error_message)
                 && step->predecessor_step_index >= j) {
                 if (error_message != NULL) {
                     *error_message = dir_strdup_fmt(
-                        "DIR intent[%zu] step '%s' has invalid predecessor index",
-                        i,
+                        "DIR intent[%llu] step '%s' has invalid predecessor index",
+                        (unsigned long long) i,
                         step->name != NULL ? step->name : "-");
                 }
                 return false;

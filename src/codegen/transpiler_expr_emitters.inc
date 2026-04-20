@@ -17,7 +17,7 @@ emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
      * If encountered standalone, emit a comment.
      */
     (void)call;
-    transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: standalone ClaimSlot expression is unsupported; ClaimSlot<T>() must lower through let binding");
+    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: standalone ClaimSlot expression is unsupported; ClaimSlot<T>() must lower through let binding");
     return pergyra_strdup("0");
 }
 
@@ -25,7 +25,7 @@ static char *
 emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
     (void)call;
-    transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: standalone ClaimDeviceSlot expression is unsupported; ClaimDeviceSlot<T>() must lower through let binding");
+    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: standalone ClaimDeviceSlot expression is unsupported; ClaimDeviceSlot<T>() must lower through let binding");
     return pergyra_strdup("pgy_claim_device_Int()");
 }
 
@@ -33,7 +33,7 @@ char *
 emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
 {
     if (call->data.call.arg_count < 2) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: Write requires slot and value");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Write requires slot and value");
         return pergyra_strdup("0");
     }
 
@@ -86,7 +86,7 @@ static char *
 emit_builtin_view(ASTNode *call, TranspilerCtx *ctx)
 {
     if (call->data.call.arg_count < 1) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: View requires source slot");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: View requires source slot");
         return pergyra_strdup("0");
     }
 
@@ -141,7 +141,7 @@ resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
     }
 
     if (inner == NULL) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine slot payload type for '%s'",
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for '%s'",
             slot_name != NULL ? slot_name : "<slot>");
         return false;
     }
@@ -158,7 +158,7 @@ char *
 emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (call->data.call.arg_count < 1) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: Read requires slot");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Read requires slot");
         return pergyra_strdup("0");
     }
 
@@ -204,7 +204,7 @@ char *
 emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
 {
     if (call->data.call.arg_count < 1) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: Release requires slot");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Release requires slot");
         return pergyra_strdup("0");
     }
 
@@ -556,7 +556,7 @@ char *
 emit_builtin_log_banner(ASTNode *call, TranspilerCtx *ctx)
 {
     if (call->data.call.arg_count < 1 || call->data.call.arguments[0] == NULL) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: LogBanner requires one argument");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: LogBanner requires one argument");
         return pergyra_strdup("0");
     }
 
@@ -605,7 +605,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     switch (kind) {
     case BUILTIN_RC_NEW:
         if (call->data.call.arg_count != 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: RcNew requires exactly one argument");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: RcNew requires exactly one argument");
             return pergyra_strdup("0");
         }
         if (arg->type == AST_NUMBER) inner = "Int";
@@ -680,7 +680,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         return result;
     }
 
-    transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: unsupported Rc builtin kind %d", (int)kind);
+    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: unsupported Rc builtin kind %d", (int)kind);
     return pergyra_strdup("0");
 }
 
@@ -693,7 +693,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     switch (kind) {
     case BUILTIN_BOX:
         if (call->data.call.arg_count != 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: Box requires exactly one argument");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Box requires exactly one argument");
             return pergyra_strdup("0");
         }
         if (arg->type == AST_NUMBER) inner = "Int";
@@ -731,7 +731,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     case BUILTIN_BOX_ARRAY:
         /* BoxArray(arr) → Box<Array<T>> wrapper around an existing array */
         if (call->data.call.arg_count < 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: BoxArray requires an array argument");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: BoxArray requires an array argument");
             return pergyra_strdup("0");
         }
         {
@@ -786,7 +786,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     if (kind == BUILTIN_BOX_ARRAY) {
         /* BoxArray(arr) → pgy_box_new_Array_T(arr) — wraps array in a box */
         if (call->data.call.arg_count < 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: BoxArray requires an array argument");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: BoxArray requires an array argument");
             return pergyra_strdup("0");
         }
         char *arr_expr = emit_expression(call->data.call.arguments[0], ctx);
@@ -797,7 +797,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         return result;
     }
 
-    transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: unsupported Box builtin kind %d", (int)kind);
+    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: unsupported Box builtin kind %d", (int)kind);
     return pergyra_strdup("0");
 }
 
@@ -813,7 +813,7 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         return pergyra_strdup("pgy_allocator_debug()");
     case BUILTIN_ALLOCATOR_POOL:
         if (call->data.call.arg_count != 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: AllocatorPool requires exactly one capacity argument");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: AllocatorPool requires exactly one capacity argument");
             return pergyra_strdup("0");
         }
         {
@@ -823,7 +823,7 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             return result;
         }
     default:
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: unsupported allocator builtin kind %d", (int)kind);
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: unsupported allocator builtin kind %d", (int)kind);
         return pergyra_strdup("0");
     }
 }
@@ -1075,7 +1075,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 }
             }
         }
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: HasProjection requires active relation/effect/zone projection context");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: HasProjection requires active relation/effect/zone projection context");
         return pergyra_strdup("false");
     case BUILTIN_HAS_LAYER:
         {
@@ -1096,7 +1096,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         zone_decl->data.zone_decl.name, layer_name);
             }
         }
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: HasLayer requires active zone context");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: HasLayer requires active zone context");
         return pergyra_strdup("false");
     case BUILTIN_HAS_STATE:
         {
@@ -1118,7 +1118,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     return strdup_fmt("self->__state_%s", state_name);
             }
         }
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: HasState requires active zone context with matching state");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: HasState requires active zone context with matching state");
         return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE:
         {
@@ -1142,7 +1142,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     return strdup_fmt("self->__zone_active_%s", name);
             }
         }
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: HasZone requires active world context");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: HasZone requires active world context");
         return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE_PROJECTION:
         {
@@ -1176,7 +1176,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 }
             }
         }
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: HasZoneProjection requires active world context with matching zone projection");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: HasZoneProjection requires active world context with matching zone projection");
         return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE_LAYER:
         {
@@ -1206,7 +1206,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 }
             }
         }
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: HasZoneLayer requires active world context with matching zone layer");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: HasZoneLayer requires active world context with matching zone layer");
         return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE_STATE:
         {
@@ -1236,7 +1236,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 }
             }
         }
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: HasZoneState requires active world context with matching zone state");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: HasZoneState requires active world context with matching zone state");
         return pergyra_strdup("false");
     case BUILTIN_ALLOCATOR_SYSTEM:
     case BUILTIN_ALLOCATOR_TRACING:
@@ -1247,7 +1247,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_FILE_OPEN: {
         /* FileOpen(path, mode) → pgy_file_open(path, mode) */
         if (call->data.call.arg_count < 2) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: FileOpen requires path and mode");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: FileOpen requires path and mode");
             return pergyra_strdup("0");
         }
         char *path = emit_expression(call->data.call.arguments[0], ctx);
@@ -1259,7 +1259,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_FILE_READ: {
         /* FileRead(fd) → pgy_file_read(fd) */
         if (call->data.call.arg_count < 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: FileRead requires file descriptor");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: FileRead requires file descriptor");
             return pergyra_strdup("0");
         }
         char *fd = emit_expression(call->data.call.arguments[0], ctx);
@@ -1270,7 +1270,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_FILE_WRITE: {
         /* FileWrite(fd, data) → pgy_file_write(fd, data) */
         if (call->data.call.arg_count < 2) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: FileWrite requires file descriptor and data");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: FileWrite requires file descriptor and data");
             return pergyra_strdup("0");
         }
         char *fd   = emit_expression(call->data.call.arguments[0], ctx);
@@ -1282,7 +1282,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_FILE_CLOSE: {
         /* FileClose(fd) → pgy_file_close(fd) */
         if (call->data.call.arg_count < 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: FileClose requires file descriptor");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: FileClose requires file descriptor");
             return pergyra_strdup("0");
         }
         char *fd = emit_expression(call->data.call.arguments[0], ctx);
@@ -1293,7 +1293,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_READ_FILE: {
         /* ReadFile(path) → pgy_read_file(path) */
         if (call->data.call.arg_count < 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: ReadFile requires path");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: ReadFile requires path");
             return pergyra_strdup("0");
         }
         char *path = emit_expression(call->data.call.arguments[0], ctx);
@@ -1304,7 +1304,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_WRITE_FILE: {
         /* WriteFile(path, data) → pgy_write_file(path, data) */
         if (call->data.call.arg_count < 2) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: WriteFile requires path and data");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: WriteFile requires path and data");
             return pergyra_strdup("0");
         }
         char *path = emit_expression(call->data.call.arguments[0], ctx);
@@ -1325,7 +1325,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_PRINT: {
         /* Print(msg) → pgy_print(msg) */
         if (call->data.call.arg_count < 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: Print requires message");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Print requires message");
             return pergyra_strdup("0");
         }
         char *msg = emit_expression(call->data.call.arguments[0], ctx);
@@ -1339,7 +1339,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return pergyra_strdup("pgy_now_ms()");
     case BUILTIN_SLEEP: {
         if (call->data.call.arg_count < 1) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: Sleep requires milliseconds");
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Sleep requires milliseconds");
             return pergyra_strdup("0");
         }
         char *ms = emit_expression(call->data.call.arguments[0], ctx);
@@ -2125,7 +2125,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         }
 
         if ((is_result_ctor || is_result_consumer) && !have_result_suffix) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot derive Result<T, E> specialization for %s(); add explicit Result<T, E> type context",
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot derive Result<T, E> specialization for %s(); add explicit Result<T, E> type context",
                 fn);
             return pergyra_strdup("0");
         }
@@ -2490,7 +2490,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 c_type = pergyra_type_to_c(inner);
             }
             if (inner == NULL || c_type == NULL) {
-                transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine element type for ArrayReverse; explicit concrete Array<T> input is required");
+                transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine element type for ArrayReverse; explicit concrete Array<T> input is required");
                 free(arr);
                 return pergyra_strdup("0");
             }
@@ -3377,7 +3377,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *obj_expr = emit_expression(obj, ctx);
             ctx->suppress_slot_auto_read = saved_suppress;
             if (inner == NULL) {
-                transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine slot payload type for method call on '%s'",
+                transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for method call on '%s'",
                     obj->data.identifier.name != NULL
                         ? obj->data.identifier.name
                         : "<slot>");
@@ -3479,7 +3479,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 int tmp_id = ++ctx->tmp_counter;
 
                 if (inner == NULL) {
-                    transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine slice element type for receiver '%s'",
+                    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slice element type for receiver '%s'",
                         receiver_type);
                     free(start_expr);
                     free(len_expr);
@@ -3692,7 +3692,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         free(wrapper_name);
         free(return_type_name);
         free(return_c_type);
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: unsupported spawn target at line %d", target->line);
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: unsupported spawn target at line %d", target->line);
         return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
     }
 
@@ -3728,9 +3728,9 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     ctx, call->data.call.arguments[i]));
             }
             if (arg_type == NULL) {
-                transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine spawn wrapper argument type for call '%s' at argument %zu",
+                transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine spawn wrapper argument type for call '%s' at argument %llu",
                     function_name != NULL ? function_name : "<function>",
-                    i);
+                    (unsigned long long) i);
                 free(args_type_name);
                 return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
             }
@@ -3978,7 +3978,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             const char *inner = lookup_slot_type(ctx, id_name);
             bool secure = lookup_slot_is_secure(ctx, id_name);
             if (inner == NULL) {
-                transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine slot payload type for auto-read of '%s'",
+                transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for auto-read of '%s'",
                     id_name != NULL ? id_name : "<slot>");
                 return pergyra_strdup("0");
             }
@@ -4183,7 +4183,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 const char *inner = lookup_slot_type(ctx, tgt_name);
                 bool secure = lookup_slot_is_secure(ctx, tgt_name);
                 if (inner == NULL) {
-                    transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine slot payload type for assignment to '%s'",
+                    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for assignment to '%s'",
                         tgt_name != NULL ? tgt_name : "<slot>");
                     return pergyra_strdup("0");
                 }
@@ -4307,7 +4307,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return emit_lambda_expr(node, ctx);
 
     default:
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "C backend: unsupported expression node type %d at line %d",
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: unsupported expression node type %d at line %d",
             (int)node->type, node->line);
         return pergyra_strdup("0");
     }

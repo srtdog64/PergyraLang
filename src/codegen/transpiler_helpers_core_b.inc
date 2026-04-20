@@ -1229,7 +1229,7 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
             return;
     }
     if (ctx->tuple_spec_count >= 32) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "too many tuple specializations in one translation unit; limit is 32 while lowering (%s)",
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "too many tuple specializations in one translation unit; limit is 32 while lowering (%s)",
             elem_names);
         return;
     }

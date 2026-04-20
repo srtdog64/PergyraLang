@@ -117,7 +117,7 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
     if (cycle_index >= 0) {
         char *cycle_text = semantic_ctx_alias_resolution_cycle_text(
             ctx, (size_t)cycle_index, alias_name);
-        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_DEPENDENCY_CYCLE", "semantic:type_resolution:cycle", "break-cycle-via-indirection", alias_decl,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, alias_decl,
             "Type resolution dependency cycle detected around alias '%s'.\n"
             "Reason:\n"
             "- alias resolution re-entered '%s' before the current alias chain completed\n"
@@ -133,7 +133,7 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
     }
 
     if (depth > 32) {
-        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_DEPENDENCY_CYCLE", "semantic:type_resolution:cycle", "break-cycle-via-indirection", alias_decl,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, alias_decl,
             "Type alias resolution exceeded maximum depth near '%s'",
             alias_decl->data.type_alias.name != NULL
                 ? alias_decl->data.type_alias.name : "<alias>");
@@ -152,8 +152,8 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
         "type-alias target lookup");
 
     if (!semantic_ctx_alias_resolution_push(ctx, alias_name)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_UNKNOWN_TYPE",
-            "semantic:resolution:oom", "reduce-scope-or-retry",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
+            PGY_CAUSE_RESOLUTION_OOM, PGY_FIX_REDUCE_SCOPE_OR_RETRY,
             alias_decl,
             "Out of memory while tracking type alias resolution for '%s'.",
             alias_name);
@@ -334,7 +334,7 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
         }
     }
 
-    semantic_error_with_hints(ctx, "PGY_SEM_UNKNOWN_TYPE", "semantic:type:unknown", "import-or-declare-type", site,
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE, PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_IMPORT_OR_DECLARE_TYPE, site,
                         "Unknown type '%s'", name);
     return TYPE_UNKNOWN;
 }
@@ -482,7 +482,7 @@ reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
     owner_world = semantic_ctx_embedded_world_zone_world_name(ctx, root_name);
     owner_slot = semantic_ctx_embedded_world_zone_slot_name(ctx, root_name);
 
-    semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
         "Zone '%s' cannot be mutated via %s after it was embedded into world '%s' slot '%s'.\n"
         "Reason:\n"
         "- origin binding is '%s'\n"

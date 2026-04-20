@@ -2031,7 +2031,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref anchored handle 's' cannot escape through channel send"));
+            "Borrowed ref slot handle (anchored) 's' cannot escape through channel send"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2687,7 +2687,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Resource handle assignment is not allowed"));
+            "Anchored handle assignment is not allowed"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2977,9 +2977,9 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'items' cannot escape into a new binding 'copy' from 'items[0]'"));
+            "Borrowed ref slot handle (movable) 'items' cannot escape into a new binding 'copy' from 'items[0]'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'items[0]' is derived from that borrowed movable-resource provenance"));
+            "'items[0]' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3002,9 +3002,9 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'items' cannot escape through assignment rebind into 'dst' from 'items[0]'"));
+            "Borrowed ref slot handle (movable) 'items' cannot escape through assignment rebind into 'dst' from 'items[0]'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'items[0]' is derived from that borrowed movable-resource provenance"));
+            "'items[0]' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3027,9 +3027,9 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'items' cannot escape through queue store from 'items[0]'"));
+            "Borrowed ref slot handle (movable) 'items' cannot escape through queue store from 'items[0]'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'items[0]' is derived from that borrowed movable-resource provenance"));
+            "'items[0]' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3052,9 +3052,9 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'items' cannot escape through map store from 'items[0]'"));
+            "Borrowed ref slot handle (movable) 'items' cannot escape through map store from 'items[0]'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'items[0]' is derived from that borrowed movable-resource provenance"));
+            "'items[0]' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3142,9 +3142,9 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'items' cannot escape through helper/function call to 'Consume' from 'items[0]'"));
+            "Borrowed ref slot handle (movable) 'items' cannot escape through helper/function call to 'Consume' from 'items[0]'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'items[0]' is derived from that borrowed movable-resource provenance"));
+            "'items[0]' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3206,9 +3206,9 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'items' cannot escape through helper/function call to 'Proxy' from 'items[0]'"));
+            "Borrowed ref slot handle (movable) 'items' cannot escape through helper/function call to 'Proxy' from 'items[0]'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'items[0]' is derived from that borrowed movable-resource provenance"));
+            "'items[0]' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3272,9 +3272,9 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'items' cannot escape through constructor field store 'Capsule.q' from 'items[0]'"));
+            "Borrowed ref slot handle (movable) 'items' cannot escape through constructor field store 'Capsule.q' from 'items[0]'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'items[0]' is derived from that borrowed movable-resource provenance"));
+            "'items[0]' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3374,9 +3374,9 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'items' cannot escape through array literal store from 'items[0]'"));
+            "Borrowed ref slot handle (movable) 'items' cannot escape through array literal store from 'items[0]'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'items[0]' is derived from that borrowed movable-resource provenance"));
+            "'items[0]' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3520,9 +3520,52 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'wrapper' cannot escape through assignment rebind into 'state.capsule.q' from 'wrapper.holder.q'"));
+            "Borrowed ref slot handle (movable) 'wrapper' cannot escape through assignment rebind into 'state.capsule.q' from 'wrapper.holder.q'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'wrapper.holder.q' is derived from that borrowed movable-resource provenance"));
+            "'wrapper.holder.q' is derived from that borrowed slot-handle (movable) provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref movable-resource parameter reports nested projection path on transitive helper member rebind");
+    {
+        const char *source =
+            "object Holder {\n"
+            "    let q: QubitSlot;\n"
+            "}\n"
+            "object Wrapper {\n"
+            "    let holder: Holder;\n"
+            "}\n"
+            "func Escape(ref q: QubitSlot) -> QubitSlot {\n"
+            "    return q;\n"
+            "}\n"
+            "func Proxy(ref q: QubitSlot) -> QubitSlot {\n"
+            "    return Escape(q);\n"
+            "}\n"
+            "class Capsule {\n"
+            "    let q: QubitSlot;\n"
+            "}\n"
+            "class State {\n"
+            "    let capsule: Capsule;\n"
+            "}\n"
+            "func Store(ref wrapper: Wrapper) -> Void {\n"
+            "    let state = State(Capsule(ClaimQubit()));\n"
+            "    state.capsule.q = Proxy(wrapper.holder.q);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref slot handle (movable) 'wrapper' cannot escape through helper/function call to 'Proxy' from 'wrapper.holder.q'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'wrapper.holder.q' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3550,6 +3593,46 @@ test_qubit_slot_semantics(void)
             "}\n"
             "func Store(ref wrapper: Wrapper) -> Packet {\n"
             "    return Proxy(wrapper.holder.packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'wrapper' cannot escape through helper/function call to 'Proxy' from 'wrapper.holder.packet'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'wrapper.holder.packet' is derived from that borrowed boundary provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter reports nested projection path on transitive helper array overwrite");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "object Holder {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "object Wrapper {\n"
+            "    let holder: Holder;\n"
+            "}\n"
+            "func Escape(ref packet: Packet) -> Packet {\n"
+            "    return packet;\n"
+            "}\n"
+            "func Proxy(ref packet: Packet) -> Packet {\n"
+            "    return Escape(packet);\n"
+            "}\n"
+            "func Store(ref wrapper: Wrapper) -> Void {\n"
+            "    let packets: Array<Packet> = [Packet(0)];\n"
+            "    packets[0] = Proxy(wrapper.holder.packet);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -3651,6 +3734,46 @@ test_qubit_slot_semantics(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Borrowed ref boundary value 'wrapper' cannot escape through assignment rebind into 'packets[0]' from 'wrapper.holder.packet'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'wrapper.holder.packet' is derived from that borrowed boundary provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary value parameter reports nested projection path on transitive helper member rebind into array element");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "object Holder {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "object Wrapper {\n"
+            "    let holder: Holder;\n"
+            "}\n"
+            "func Escape(ref packet: Packet) -> Packet {\n"
+            "    return packet;\n"
+            "}\n"
+            "func Proxy(ref packet: Packet) -> Packet {\n"
+            "    return Escape(packet);\n"
+            "}\n"
+            "func Store(ref wrapper: Wrapper) -> Void {\n"
+            "    let packets: Array<Packet> = [Packet(0)];\n"
+            "    packets[0] = Proxy(wrapper.holder.packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'wrapper' cannot escape through helper/function call to 'Proxy' from 'wrapper.holder.packet'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "'wrapper.holder.packet' is derived from that borrowed boundary provenance"));
 
@@ -3973,9 +4096,9 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'items' cannot escape through channel send from 'items[0]'"));
+            "Borrowed ref slot handle (movable) 'items' cannot escape through channel send from 'items[0]'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'items[0]' is derived from that borrowed movable-resource provenance"));
+            "'items[0]' is derived from that borrowed slot-handle (movable) provenance"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -5798,10 +5921,11 @@ test_event_semantics(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL
-            && result->error_count > 0
-            && ctx_has_diagnostic_substring_from_result(
-                result, "Boundary value argument type mismatch"));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "Type mismatch"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "cannot assign 'String' to 'Int'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

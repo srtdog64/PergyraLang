@@ -1403,7 +1403,7 @@ test_parallel_execution_semantics(void)
         type_check_expression(call, ctx);
         EXPECT(ctx->has_error
             && ctx_has_diagnostic_substring(ctx,
-                "TrySend does not support movable resource sends yet"));
+                "TrySend does not support slot handle (movable) sends yet"));
 
         semantic_context_destroy(ctx);
         ast_destroy(decl);

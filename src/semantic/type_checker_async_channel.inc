@@ -135,9 +135,9 @@ semantic_report_channel_transport_policy(ASTNode *site,
                                          const char *why_text,
                                          const char *fix_text)
 {
-    semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
-        "semantic:channel:transport_rule_violation",
-        "keep-handle-local-or-send-inner-value",
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
+        PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
+        PGY_FIX_KEEP_HANDLE_LOCAL_OR_SEND_INNER_VALUE,
         site,
         "%s.\n"
         "Reason:\n"
@@ -157,9 +157,9 @@ semantic_report_channel_transport_mismatch(ASTNode *site,
                                            const char *expected_name,
                                            const char *actual_name)
 {
-    semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
-        "semantic:channel:transport_rule_violation",
-        "align-channel-element-type",
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
+        PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
+        PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
         site,
         "%s %s mismatch: expected '%s', got '%s'.\n"
         "Reason:\n"
@@ -196,9 +196,9 @@ semantic_report_named_channel_transfer_required(ASTNode *site,
                                                 const char *source_path,
                                                 const char *bind_fix)
 {
-    semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
-        "semantic:channel:transport_rule_violation",
-        "bind-to-named-variable-before-send",
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
+        PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
+        PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_SEND,
         site,
         "%s %s must transfer from a named variable%s%s%s.\n"
         "Reason:\n"
@@ -233,9 +233,9 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         || channel_type->kind != TYPE_KIND_CONSTRUCTED
         || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
         || channel_type->data.constructed.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
-            "semantic:channel:transport_rule_violation",
-            "align-channel-element-type",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
+            PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
+            PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
             expr->data.channel_send.channel,
             "Channel send requires Channel<T>, got '%s'",
             channel_type != NULL ? channel_type->name : "<null>");
@@ -282,13 +282,13 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         || value_ownership == OWNERSHIP_TYPE_MOVE_ONLY) {
         if (element_ownership != OWNERSHIP_TYPE_MOVE_ONLY
             || value_ownership != OWNERSHIP_TYPE_MOVE_ONLY) {
-            semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
-                "semantic:channel:transport_rule_violation",
-                "align-channel-element-type",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
+                PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
+                PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
                 expr->data.channel_send.value,
                 "Channel send movable-resource mismatch: expected '%s', got '%s'.\n"
                 "Reason:\n"
-                "- channel element type and sent value must agree on the movable resource contract\n"
+                "- channel element type and sent value must agree on the slot handle (movable) contract\n"
                 "- ownership transfer cannot be derived when the boundary expects '%s' but received '%s'\n"
                 "Fix:\n"
                 "- send a value of type '%s'\n"
@@ -303,10 +303,10 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         }
         if (semantic_check_channel_send_borrowed_transfer(
                 expr->data.channel_send.value, ctx,
-                "movable resource",
-                "movable-resource provenance",
+                "slot handle (movable)",
+                "slot-handle (movable) provenance",
                 "copied/value/projection result",
-                "bind the value first by storing the movable resource in a local variable")) {
+                "bind the value first by storing the slot handle (movable) in a local variable")) {
             return TYPE_VOID;
         }
         consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
@@ -323,8 +323,8 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 "anchored-handle",
                 resource_handle_display_name(element_type),
                 resource_handle_display_name(value_type),
-                "anchored handle",
-                "bind the anchored handle first in a local variable")) {
+                "slot handle (anchored)",
+                "bind the slot handle (anchored) first in a local variable")) {
             return TYPE_VOID;
         }
         return TYPE_VOID;
@@ -361,9 +361,9 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
         || channel_type->kind != TYPE_KIND_CONSTRUCTED
         || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
         || channel_type->data.constructed.arg_count != 1) {
-        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
-            "semantic:channel:transport_rule_violation",
-            "align-channel-element-type",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
+            PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
+            PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
             expr->data.channel_recv.channel,
             "Channel recv requires Channel<T>, got '%s'",
             channel_type != NULL ? channel_type->name : "<null>");

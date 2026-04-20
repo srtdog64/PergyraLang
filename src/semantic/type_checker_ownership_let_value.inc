@@ -1,13 +1,13 @@
     if (type_is_anchored_resource_handle(decl_type)) {
         bool is_fresh_claim = expr_is_device_slot_claim(init);
         if (!is_fresh_claim && init_type != NULL && type_is_anchored_resource_handle(init_type)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY", "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY, PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, node,
                 "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding.\n"
                 "Reason:\n"
-                "- anchored handles remain tied to one owning runtime anchor and transfer contract\n"
+                "- slot handles (anchored) remain tied to one owning runtime anchor and transfer contract\n"
                 "- copying them into another binding would duplicate that contract across a second boundary-visible handle name\n"
                 "Fix:\n"
-                "- keep using the current anchored handle binding directly\n"
+                "- keep using the current slot handle (anchored) binding directly\n"
                 "- or reacquire/transfer it through an explicit ownership boundary");
         }
         semantic_record_effect(ctx, EFFECT_REMOTE);

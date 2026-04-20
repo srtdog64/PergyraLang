@@ -32,7 +32,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape via return"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape via return"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -54,7 +54,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through channel send"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through channel send"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -79,7 +79,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through helper/function call"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through helper/function call"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -104,7 +104,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through helper/function call"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through helper/function call"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -128,7 +128,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot escape into a new binding"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "borrowed 'ref' movable resource"));
+            "borrowed 'ref' slot handle (movable)"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
 
@@ -155,7 +155,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot escape through assignment rebind"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "borrowed 'ref' movable resource"));
+            "borrowed 'ref' slot handle (movable)"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
 
@@ -180,9 +180,9 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through list store"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through list store"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "borrowed 'ref' movable resource"));
+            "borrowed 'ref' slot handle (movable)"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -205,7 +205,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through queue store"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through queue store"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -228,7 +228,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through array store"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through array store"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -251,7 +251,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through set store"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through set store"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -274,7 +274,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through map store"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through map store"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -298,7 +298,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through array store"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through array store"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -323,7 +323,29 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref movable resource 'q' cannot escape through assignment rebind"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through assignment rebind"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref array parameter cannot escape through destructure binding");
+    {
+        const char *source =
+            "func BorrowDestructure(ref items: Array<QubitSlot>) -> Void {\n"
+            "    let (first) = items;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'items' cannot escape into a new binding 'first'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

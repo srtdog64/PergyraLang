@@ -14,6 +14,7 @@
 #include "llvm_backend.h"
 #include "../common/string_compat.h"
 #include "../compiler/mir.h"
+#include "../semantic/diag_codes.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -757,12 +758,6 @@ llvm_current_host_decl(const LLVMGenCtx *ctx)
     if (ctx->current_host_decl != NULL)
         return ctx->current_host_decl;
 
-    if (ctx->current_class_name != NULL) {
-        decl = llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
-        if (decl != NULL)
-            return decl;
-    }
-
     if (ctx->current_func_decl != NULL
         && ctx->current_func_decl->type == AST_FUNC_DECL
         && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
@@ -790,7 +785,7 @@ llvm_current_host_decl_name(const LLVMGenCtx *ctx)
             && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
             return ctx->current_func_decl->data.func_decl.within_zone;
         }
-        return ctx->current_class_name;
+        return NULL;
     }
 
     switch (decl->type) {
@@ -807,7 +802,7 @@ llvm_current_host_decl_name(const LLVMGenCtx *ctx)
     case AST_WORLD_DECL:
         return decl->data.world_decl.name;
     default:
-        return ctx->current_class_name;
+        return NULL;
     }
 }
 

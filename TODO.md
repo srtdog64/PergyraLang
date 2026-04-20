@@ -743,10 +743,10 @@
   - stable subset extension: default type argument actual resolution on implemented declaration/call/module-consumer paths
   - beta-out-of-scope: broader generic generalization
 - own/ref
-  - stable subset: anchored slot-handle boundary subset
-  - explicit reject: general own/ref on non-anchored/general value types
-  - beta-out-of-scope: arbitrary universal ownership lattice
-  - beta blocker: general movable ownership audit 자체는 계속 닫아야 함
+  - stable subset: general own/ref surface on copy values + boundary-visible aggregates + slot handles
+  - explicit reject: authority-bearing `Token<T>` escape/transport and 아직 닫히지 않은 일부 transitive ownership corner
+  - beta-out-of-scope: arbitrary universal ownership lattice beyond current classifier/summary model
+  - beta blocker: broader assignment/container/rebind/helper-chain audit와 wording/provenance 최종 정렬
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds
@@ -782,7 +782,25 @@
       - transpiler host context 복구는 `current_host_decl -> within_zone -> saved host-name inventory` 순으로 정렬됨
       - transpiler emitter hot path의 direct `current_*_name` 참조는 helper/restore layer 위주로 축소됨
       - LLVM declaration helper / MIR-domain emission / expr-call builtin path도 `llvm_current_host_decl_name(...)`와 bind/restore helper 쪽으로 이동함
+      - LLVM `llvm_current_host_decl(...)`는 더 이상 `current_class_name` 재조회 fallback에 의존하지 않고 bound host handle / `within_zone`만을 truth로 사용함
       - 남은 핵심 debt는 LLVM pipeline의 AST-carried declaration inventory bootstrap와 helper/restore layer 바깥의 raw host-name state 제거
+
+- [x] **ownership vocabulary / payload cleanup 1차 고정**
+  - 대상: semantic ownership diagnostics / payload helper family / wording drift
+  - 완료:
+    - `src/semantic/type_checker_ownership_boundaries.inc`의 ownership helper 9종이 `DiagPayload`/`semantic_emit_payload(...)` 패턴으로 정렬됨
+    - semantic direct `semantic_error_with_hints(...)` 호출은 ownership-boundary helper 내부에서 제거됨
+    - vocabulary 1차 정리:
+      - `anchored handle` → `slot handle (anchored)`
+      - `movable resource handle` / `movable resource` → `slot handle (movable)`
+      - `capability-bearing` → `authority-bearing` (ownership/domain wording 기준)
+    - semantic 회귀는 현재 wording 기준으로 다시 고정됨
+  - 검증:
+    - `make test-semantic` → `1872 passed, 0 failed`
+    - `make test-transpile` → `601 passed, 0 failed`
+  - 남은 것:
+    - P3 잔여 세분류(`boundary value (subject)` 등) 추가 압축
+    - payload/helper family를 ownership 바깥 semantic diagnostics로 더 확장
 
 - [ ] **type-resolution DAG 엔진 도입**
   - 대상: semantic type resolution / generic consumer resolution / declaration dependency scheduling

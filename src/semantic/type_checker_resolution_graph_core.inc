@@ -39,8 +39,8 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
                                    tc->bounds[b]->data.type.name) != NULL)) {
                         continue;
                     }
-                    semantic_error_with_hints(ctx, "PGY_SEM_UNKNOWN_TYPE",
-                        "semantic:type:unknown", "declare-or-import-type",
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
+                        PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_DECLARE_OR_IMPORT_TYPE,
                         owner != NULL ? owner : tc->bounds[b],
                         "Unknown constraint type '%s' in where clause.\n"
                         "Reason:\n"
@@ -73,9 +73,9 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
         if (param->default_type != NULL) {
             saw_default = true;
         } else if (saw_default) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:non_trailing_default",
-                "move-defaults-to-trailing",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_NON_TRAILING_DEFAULT,
+                PGY_FIX_MOVE_DEFAULTS_TO_TRAILING,
                 owner != NULL ? owner : (ASTNode *)gp,
                 "Non-trailing default generic parameter '%s' in %s declaration.\n"
                 "Reason:\n"
@@ -105,9 +105,9 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
                 || ctx->diagnostic_count > saved_diag) {
                 ctx->diagnostic_count = saved_diag;
                 ctx->has_error = saved_err;
-                semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                    "semantic:generic:default_unresolved",
-                    "align-generic-arg-list",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                    PGY_CAUSE_GENERIC_DEFAULT_UNRESOLVED,
+                    PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                     owner != NULL ? owner : param->default_type,
                     "Invalid default generic type argument '%s' in %s declaration (parameter '%s').\n"
                     "Reason:\n"
@@ -457,7 +457,7 @@ type_resolution_validate_graph(SemanticContext *ctx)
             ASTNode *site = (ASTNode *)graph->nodes[closing_node].site;
             char *cycle_text = type_resolution_format_cycle(
                 graph, cycle_path, cycle_len, closing_node);
-            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_DEPENDENCY_CYCLE", "semantic:type_resolution:cycle", "break-cycle-via-indirection", site,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, site,
                 "Type resolution dependency cycle detected in the semantic graph around '%s'.\n"
                 "Reason:\n"
                 "- provider/consumer resolution formed a closed dependency loop\n"

@@ -48,8 +48,8 @@ semantic_report_function_generic_bound_failure(SemanticContext *ctx,
                                                const char *actual_sig,
                                                const char *concrete_name)
 {
-    semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID",
-        "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
+        PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
         "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'.\n"
         "Reason:\n"
         "- generic subject is function '%s'\n"
@@ -136,12 +136,12 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 {
     if (sym == NULL) {
         if (name_looks_qualified(display_name)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                 "Undefined function '%s' (expected a callable symbol). "
                 "Check namespace spelling/export visibility or define/import a callable declaration before use.",
                 display_name);
         } else {
-            semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                 "Undefined function '%s' (expected a callable symbol in current scope). "
                 "Declare '%s' first, or use a qualified name for a namespaced declaration.",
                 display_name, display_name);
@@ -160,7 +160,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             bool decl_is_generic = false;
             if (decl != NULL
                 && !explicit_type_reference_allowed(decl, expr, ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
                     "Constructor '%s' is not accessible across the current visibility boundary",
                     display_name);
                 return TYPE_UNKNOWN;
@@ -184,9 +184,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                  * generic params (T, U) aren't in scope at the call site.
                  * Type safety is handled by the let-annotation type. */
                 if (provided > field_count) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
-                        "Constructor '%s' accepts at most %zu positional field argument(s), got %zu",
-                        display_name, field_count, provided);
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
+                        "Constructor '%s' accepts at most %llu positional field argument(s), got %llu",
+                        display_name, (unsigned long long) field_count, (unsigned long long) provided);
                 } else if (!decl_is_generic) {
                     for (size_t i = 0; i < provided; i++) {
                         const char *field_name = NULL;
@@ -206,9 +206,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
                         if (field_type != NULL && arg_type != NULL
                             && !type_is_assignable(arg_type, field_type)) {
-                            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr->data.call.arguments[i],
-                                "Constructor '%s' argument %zu initializes field '%s' of type '%s', got '%s'",
-                                display_name, i + 1,
+                            semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr->data.call.arguments[i],
+                                "Constructor '%s' argument %llu initializes field '%s' of type '%s', got '%s'",
+                                display_name, (unsigned long long) (i + 1),
                                 field_name != NULL ? field_name : "<field>",
                                 field_type->name != NULL ? field_type->name : "<type>",
                                 arg_type->name != NULL ? arg_type->name : "<type>");
@@ -267,9 +267,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     if (strcmp(arg_type_name,
                                             zone_slot->data.world_zone.zone_type) == 0) {
                                         semantic_error_with_hints(ctx,
-                                            "PGY_SEM_ANCHORED_HANDLE_COPY",
-                                            "semantic:anchored_handle:copy_attempt",
-                                            "use-move-or-retain-binding",
+                                            PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+                                            PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
+                                            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                                             expr->data.call.arguments[i],
                                             "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                                             "Reason:\n"
@@ -334,8 +334,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
         if (sig_buf[0] == '\0')
             snprintf(sig_buf, sizeof(sig_buf), "fn(<signature unavailable>)");
-        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-            "semantic:call:not_callable", "use-callable-declaration",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION,
             expr,
             "'%s' resolves to a %s '%s' of type '%s', but function calls require a callable declaration. "
             "Expected a function signature matching %s. Use a function name, a callable variable, "
@@ -351,8 +351,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
         ASTNode *decl = find_callable_decl_by_name(ctx->program_root, display_name);
         if (decl != NULL && !explicit_type_reference_allowed(decl, expr, ctx)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_VISIBILITY_BOUNDARY",
-                "semantic:visibility:boundary_cross", "widen-visibility-or-move-caller",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY,
+                PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER,
                 expr,
                 "Callable '%s' is not accessible across the current visibility boundary",
                 display_name);
@@ -363,8 +363,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     semantic_record_effect(ctx, type_function_effects(sym->type));
     if (ctx->in_parallel
         && type_effect_mask_has(type_function_effects(sym->type), EFFECT_SECURE)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "semantic:parallel:secure_in_task", "serialize-outside-parallel", expr,
-            "Parallel context does not permit calling secure-effect function '%s'; serialize capability-bearing operations outside the parallel block",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
+            "Parallel context does not permit calling secure-effect function '%s'; serialize authority-bearing operations outside the parallel block",
             display_name);
         return sym->type->data.function.return_type;
     }
@@ -379,10 +379,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
         if (sig_buf[0] == '\0')
             snprintf(sig_buf, sizeof(sig_buf), "fn(<signature unavailable>)");
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
-            "'%s' expects %zu argument(s), got %zu. Declared signature: %s. "
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
+            "'%s' expects %llu argument(s), got %llu. Declared signature: %s. "
             "Adjust caller arguments to satisfy the declaration.",
-            display_name, expected, provided, sig_buf);
+            display_name, (unsigned long long) expected, (unsigned long long) provided, sig_buf);
         return sym->type->data.function.return_type;
     }
 
@@ -412,7 +412,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
     for (size_t i = 0; i < provided; i++) {
         Type *param_type = sym->type->data.function.param_types[i];
-        Type *arg_type = type_is_movable_resource_handle(param_type)
+        OwnershipTypeClass declared_param_ownership =
+            semantic_classify_ownership_type(param_type, ctx);
+        Type *arg_type = declared_param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
             ? type_check_qubit_use(expr->data.call.arguments[i], ctx)
             : type_check_expression(expr->data.call.arguments[i], ctx);
         if (effective_generic_types != NULL
@@ -438,11 +440,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         if (call_arg_types != NULL)
             call_arg_types[i] = arg_type;
 
-        {
-            OwnershipTypeClass param_ownership =
-                semantic_classify_ownership_type(param_type, ctx);
-            OwnershipTypeClass arg_ownership =
-                semantic_classify_ownership_type(arg_type, ctx);
+        OwnershipTypeClass param_ownership =
+            semantic_classify_ownership_type(param_type, ctx);
+        OwnershipTypeClass arg_ownership =
+            semantic_classify_ownership_type(arg_type, ctx);
 
         if (param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
             || arg_ownership == OWNERSHIP_TYPE_MOVE_ONLY) {
@@ -450,8 +451,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             ASTNode *callee_decl = NULL;
             if (arg_ownership != OWNERSHIP_TYPE_MOVE_ONLY
                 || param_ownership != OWNERSHIP_TYPE_MOVE_ONLY) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:type:movable_handle_required", "provide-movable-handle",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_TYPE_MOVABLE_HANDLE_REQUIRED, PGY_FIX_PROVIDE_MOVABLE_HANDLE,
                     expr->data.call.arguments[i],
                     "Movable resource argument type mismatch: expected '%s', got '%s'",
                     resource_handle_display_name(param_type),
@@ -461,8 +462,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (expr->data.call.arguments[i]->type != AST_IDENTIFIER
                 && semantic_borrowed_boundary_root_name(
                        expr->data.call.arguments[i], ctx) == NULL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:move:source_not_named", "bind-to-named-variable-before-move",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_MOVE_SOURCE_NOT_NAMED, PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
                     expr->data.call.arguments[i],
                     "%s arguments must be moved from a named variable; bind the value first, then pass that variable",
                     resource_handle_display_name(param_type));
@@ -530,8 +531,8 @@ type_check_call_movable_done:
             ParamMode pmode = PARAM_MODE_DEFAULT;
             ASTNode *callee_decl = NULL;
             if (arg_ownership != OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:type:subject_arg_mismatch", "align-subject-arg-type",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_TYPE_SUBJECT_ARG_MISMATCH, PGY_FIX_ALIGN_SUBJECT_ARG_TYPE,
                     expr->data.call.arguments[i],
                     "Subject argument type mismatch: expected '%s', got '%s'.\n"
                     "Reason:\n"
@@ -566,22 +567,17 @@ type_check_call_movable_done:
             continue;
         }
 
-        if (param_ownership == OWNERSHIP_TYPE_BORROW_TRACKED
-            || (param_ownership == OWNERSHIP_TYPE_COPY_ONLY
-                && type_is_general_boundary_type(param_type, ctx)
-                && !type_is_subject_type(param_type, ctx)
-                && !type_is_movable_resource_handle(param_type))) {
+        if (param_ownership == OWNERSHIP_TYPE_BORROW_TRACKED) {
             ParamMode pmode = PARAM_MODE_DEFAULT;
             ASTNode *callee_decl = NULL;
-            bool track_boundary_borrow =
-                (param_ownership == OWNERSHIP_TYPE_BORROW_TRACKED);
+            bool track_boundary_borrow = true;
             if (!type_is_general_boundary_type(arg_type, ctx)
                 || arg_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY
                 || arg_ownership == OWNERSHIP_TYPE_MOVE_ONLY
                 || !type_is_assignable(arg_type, param_type)
                 || !type_is_assignable(param_type, arg_type)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:type:boundary_arg_mismatch", "align-boundary-arg-type",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_TYPE_BOUNDARY_ARG_MISMATCH, PGY_FIX_ALIGN_BOUNDARY_ARG_TYPE,
                     expr->data.call.arguments[i],
                     "Boundary value argument type mismatch: expected '%s', got '%s'.\n"
                     "Reason:\n"
@@ -619,14 +615,13 @@ type_check_call_movable_done:
             }
             continue;
         }
-        }
 
-        if (type_is_anchored_resource_handle(arg_type)
-            || type_is_anchored_resource_handle(param_type)) {
-            if (!type_is_anchored_resource_handle(arg_type)
-                || !type_is_anchored_resource_handle(param_type)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:type:resource_handle_arg_mismatch", "align-resource-handle-arg",
+        if (param_ownership == OWNERSHIP_TYPE_ANCHORED_HANDLE
+            || arg_ownership == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
+            if (arg_ownership != OWNERSHIP_TYPE_ANCHORED_HANDLE
+                || param_ownership != OWNERSHIP_TYPE_ANCHORED_HANDLE) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_TYPE_RESOURCE_HANDLE_ARG_MISMATCH, PGY_FIX_ALIGN_RESOURCE_HANDLE_ARG,
                     expr->data.call.arguments[i],
                     "Resource handle argument type mismatch: expected '%s', got '%s'",
                     resource_handle_display_name(param_type),
@@ -638,9 +633,9 @@ type_check_call_movable_done:
                 ASTNode *callee_decl = lookup_function_param_contract_local(
                     ctx, display_name, i, &pmode);
                 if (pmode == PARAM_MODE_DEFAULT) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                        "semantic:slot_param:qualifier_missing",
-                        "annotate-slot-param-qualifier",
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                        PGY_CAUSE_SLOT_PARAM_QUALIFIER_MISSING,
+                        PGY_FIX_ANNOTATE_SLOT_PARAM_QUALIFIER,
                         expr->data.call.arguments[i],
                         "Anchored handle arguments require 'own' or 'ref' in the callee signature.\n"
                         "Reason:\n"
@@ -669,7 +664,7 @@ type_check_call_movable_done:
                     if (pmode == PARAM_MODE_OWN) {
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
                             if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
-                                semantic_error_with_hints(ctx, "PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released", "reclaim-or-trace-earlier-move", expr->data.call.arguments[i],
+                                semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED, PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, expr->data.call.arguments[i],
                                     "Cannot move from released slot '%s'", src);
                             } else {
                                 src_sym->slot_info.state = SLOT_STATE_RELEASED;
@@ -680,9 +675,9 @@ type_check_call_movable_done:
                     } else if (pmode == PARAM_MODE_REF) {
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT
                             && src_sym->slot_info.state == SLOT_STATE_RELEASED) {
-                            semantic_error_with_hints(ctx, "PGY_SEM_SLOT_RELEASED",
-                                "semantic:slot:borrow_released",
-                                "reclaim-source-or-trace-earlier-release",
+                            semantic_error_with_hints(ctx, PGY_CODE_SEM_SLOT_RELEASED,
+                                PGY_CAUSE_SLOT_BORROW_RELEASED,
+                                PGY_FIX_RECLAIM_SOURCE_OR_TRACE_EARLIER_RELEASE,
                                 expr->data.call.arguments[i],
                                 "Cannot borrow released slot '%s'.\n"
                                 "Reason:\n"
@@ -765,7 +760,7 @@ type_check_call_movable_done:
                     param_index = find_generic_param_index(decl_gp, param_name);
                     if (param_index < 0
                         || (size_t)param_index >= decl_gp->count) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
                             "Call site of '%s' could not validate generic parameter '%s'.\n"
                             "Reason:\n"
                             "- function '%s' where-clause references '%s'\n"
@@ -784,7 +779,7 @@ type_check_call_movable_done:
                     }
                     concrete_type = effective_generic_types[param_index];
                     if (concrete_type == NULL) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
                             "Call site of '%s' could not materialize generic argument for '%s'.\n"
                             "Reason:\n"
                             "- function '%s' where-clause validation depends on an effective type argument for '%s'\n"

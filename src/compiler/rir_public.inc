@@ -229,9 +229,9 @@ rir_validate(const RIRProgram *rir, char **error_message)
             if (summary->name == NULL || summary->resource_kind == RIR_RESOURCE_UNKNOWN) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
-                        "RIR scope '%s' has incomplete state summary[%zu]",
+                        "RIR scope '%s' has incomplete state summary[%llu]",
                         scope->name != NULL ? scope->name : "(anonymous)",
-                        j);
+                        (unsigned long long) j);
                 }
                 return false;
             }
@@ -378,9 +378,9 @@ rir_validate(const RIRProgram *rir, char **error_message)
             if (block->fact_count > 0 && block->facts == NULL) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
-                        "RIR scope '%s' flow-block[%zu] has missing fact storage",
+                        "RIR scope '%s' flow-block[%llu] has missing fact storage",
                         scope->name != NULL ? scope->name : "(anonymous)",
-                        block->block_id);
+                        (unsigned long long) block->block_id);
                 }
                 return false;
             }
@@ -388,18 +388,18 @@ rir_validate(const RIRProgram *rir, char **error_message)
                 if (block->facts[k].name == NULL) {
                     if (error_message != NULL) {
                         *error_message = rir_strdup_fmt(
-                            "RIR scope '%s' flow-block[%zu] has unnamed fact",
+                            "RIR scope '%s' flow-block[%llu] has unnamed fact",
                             scope->name != NULL ? scope->name : "(anonymous)",
-                            block->block_id);
+                            (unsigned long long) block->block_id);
                     }
                     return false;
                 }
                 if (block->facts[k].slot_anchor == NULL) {
                     if (error_message != NULL) {
                         *error_message = rir_strdup_fmt(
-                            "RIR scope '%s' flow-block[%zu] fact '%s' is missing slot anchor",
+                            "RIR scope '%s' flow-block[%llu] fact '%s' is missing slot anchor",
                             scope->name != NULL ? scope->name : "(anonymous)",
-                            block->block_id,
+                            (unsigned long long) block->block_id,
                             block->facts[k].name != NULL ? block->facts[k].name : "(unnamed)");
                     }
                     return false;

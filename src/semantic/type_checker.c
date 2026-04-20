@@ -12,6 +12,9 @@
 #include <ctype.h>
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
+#include "type_checker_visibility.h"
+#include "diag_payload.h"
+#include "diag_codes.h"
 #include "type_checker_generic_diag_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_diag_internal.h"
@@ -22,8 +25,6 @@
 
 #define INITIAL_DIAG_CAPACITY 16
 
-static bool
-explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx);
 static bool
 semantic_is_known_stdlib_use_module(const char *module_name);
 static bool
@@ -175,7 +176,8 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
 
 /* Local printf-to-heap helper (same as transpiler's strdup_fmt) */
 #include "type_checker_helpers.inc"
-#include "type_checker_visibility.inc"
+/* type_checker_visibility.inc was promoted to type_checker_visibility.{h,c}
+ * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
 #include "type_checker_module_contracts.inc"
 
 const char *
@@ -355,7 +357,7 @@ semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
                     path,
                     path_len,
                     from);
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_DEPENDENCY_CYCLE", "semantic:type_resolution:cycle", "break-cycle-via-indirection", consumer_site,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, consumer_site,
                     "Type resolution dependency cycle detected around '%s'.\n"
                     "Reason:\n"
                     "- resolving '%s' would feed back into itself through the current dependency graph\n"
@@ -512,8 +514,8 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
         if (provided_count == 0)
             return NULL;
         if (ctx != NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:args_invalid", "align-generic-arg-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 site,
                 "%s '%s' does not accept generic type arguments.\n"
                 "Reason:\n"
@@ -532,10 +534,10 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
 
     if (provided_count > decl_count) {
         if (ctx != NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:args_invalid", "align-generic-arg-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 site,
-                "%s '%s' accepts at most %zu generic argument(s), got %zu.\n"
+                "%s '%s' accepts at most %llu generic argument(s), got %llu.\n"
                 "Reason:\n"
                 "- more type arguments were supplied than there are generic parameters\n"
                 "- effective generic argument derivation cannot match extras safely\n"
@@ -544,7 +546,7 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                 "- or add matching generic parameters to %s '%s'",
                 owner_kind != NULL ? owner_kind : "declaration",
                 owner_name != NULL ? owner_name : "<anonymous>",
-                decl_count, provided_count,
+                (unsigned long long) decl_count, (unsigned long long) provided_count,
                 owner_kind != NULL ? owner_kind : "declaration",
                 owner_name != NULL ? owner_name : "<anonymous>");
         }
@@ -553,10 +555,10 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
 
     if (provided_count < required_count) {
         if (ctx != NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:args_invalid", "align-generic-arg-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 site,
-                "%s '%s' requires at least %zu generic argument(s), got %zu.\n"
+                "%s '%s' requires at least %llu generic argument(s), got %llu.\n"
                 "Reason:\n"
                 "- some generic parameters have no default type argument\n"
                 "- effective generic argument derivation therefore cannot close the contract\n"
@@ -565,7 +567,7 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                 "- or declare trailing default type arguments on %s '%s'",
                 owner_kind != NULL ? owner_kind : "declaration",
                 owner_name != NULL ? owner_name : "<anonymous>",
-                required_count, provided_count,
+                (unsigned long long) required_count, (unsigned long long) provided_count,
                 owner_kind != NULL ? owner_kind : "declaration",
                 owner_name != NULL ? owner_name : "<anonymous>");
         }
@@ -605,8 +607,8 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                     decl_params->params[i] != NULL && decl_params->params[i]->name != NULL
                         ? decl_params->params[i]->name
                         : "<type-param>";
-                semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                    "semantic:generic:args_invalid", "align-generic-arg-list",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                    PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                     site,
                     "%s '%s' is missing generic argument for parameter '%s'.\n"
                     "Reason:\n"
@@ -724,8 +726,8 @@ semantic_report_class_generic_bound_failure(SemanticContext *ctx,
                                             const char *concrete_name,
                                             const char *site_label)
 {
-    semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID",
-        "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
+        PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
         "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
         "Reason:\n"
         "- class '%s' requires '%s: %s'\n"
@@ -774,8 +776,8 @@ validate_generic_param_default_bounds(GenericParams *gp,
 
         param_index = find_generic_param_index(gp, tc->type_param);
         if (param_index < 0 || (size_t)param_index >= gp->count) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:args_invalid", "align-generic-arg-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 owner != NULL ? owner : (ASTNode *)wc,
                 "%s '%s' could not validate default generic bound for unknown parameter '%s'.\n"
                 "Reason:\n"
@@ -807,8 +809,8 @@ validate_generic_param_default_bounds(GenericParams *gp,
 
         default_type = resolve_type_node(param->default_type, ctx);
         if (default_type == NULL || default_type == TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:args_invalid", "align-generic-arg-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 owner != NULL ? owner : param->default_type,
                 "Default generic type argument for parameter '%s' in %s '%s' could not be resolved.\n"
                 "Reason:\n"
@@ -848,8 +850,8 @@ validate_generic_param_default_bounds(GenericParams *gp,
                 continue;
             }
 
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:args_invalid", "align-generic-arg-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 owner != NULL ? owner : param->default_type,
                 "Default generic type argument '%s' does not satisfy constraint '%s' for parameter '%s' in %s '%s'.\n"
                 "Reason:\n"
@@ -917,7 +919,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
         param_index = find_generic_param_index(gp, tc->type_param);
         if (param_index < 0
             || (size_t)param_index >= constructed_type->data.constructed.arg_count) {
-            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
                 "Class '%s' could not validate where-clause parameter '%s' during instantiation.\n"
                 "Reason:\n"
                 "- instantiated type '%s' does not provide an effective type argument for '%s'\n"
@@ -937,7 +939,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
 
         concrete_type = constructed_type->data.constructed.args[param_index];
         if (concrete_type == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
                 "Class '%s' could not resolve instantiated type argument for '%s'.\n"
                 "Reason:\n"
                 "- where-clause validation reached instantiation with no concrete type for '%s'\n"
@@ -1058,7 +1060,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
         param_index = find_generic_param_index(decl_params, tc->type_param);
         if (param_index < 0 || (size_t)param_index >= effective_count) {
-            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
                 "Class '%s' could not validate where-clause parameter '%s' during specialization.\n"
                 "Reason:\n"
                 "- specialized type syntax did not materialize an effective type argument for '%s'\n"
@@ -1077,7 +1079,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
         concrete_type = resolve_type_node(effective_args[param_index], ctx);
         if (concrete_type == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
                 "Class '%s' could not resolve specialized type argument for '%s'.\n"
                 "Reason:\n"
                 "- where-clause validation reached specialization with no concrete type for '%s'\n"
@@ -1163,21 +1165,21 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
         Symbol *sym = lookup_identifier_symbol(expr, ctx);
         if (sym == NULL) {
             if (name_looks_qualified(expr->data.identifier.name)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                     "Undefined symbol '%s' (check namespace spelling or export visibility)",
                     expr->data.identifier.name);
             } else {
-                semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                     "Undefined symbol '%s'",
                     expr->data.identifier.name);
             }
             return TYPE_UNKNOWN;
         }
         if (!type_is_qubit(sym->type)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                "semantic:type:movable_handle_required", "provide-movable-handle",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_TYPE_MOVABLE_HANDLE_REQUIRED, PGY_FIX_PROVIDE_MOVABLE_HANDLE,
                 expr,
-                "Expected a movable resource handle (currently QubitSlot), got '%s'.\n"
+                "Expected a slot handle (movable) (currently QubitSlot), got '%s'.\n"
                 "Reason:\n"
                 "- this consumer path expects a move-only resource value\n"
                 "- value '%s' has type '%s', which is not part of the current movable-resource subset\n"
@@ -1190,8 +1192,8 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         }
         if (sym->is_consumed) {
-            semantic_error_with_hints(ctx, "PGY_SEM_MOVE_FROM_RELEASED",
-                "semantic:move:from_released", "reclaim-or-trace-earlier-move",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED,
+                PGY_CAUSE_MOVE_FROM_RELEASED, PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE,
                 expr,
                 "%s '%s' was moved or released and cannot be used again.\n"
                 "Reason:\n"
@@ -1211,7 +1213,7 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
     }
 
     if (expr_is_movable_resource_boundary(expr)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_MOVE_TOKEN_MISUSE", "semantic:move_token:direct_access", "materialize-token-to-slot", expr,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_TOKEN_MISUSE, PGY_CAUSE_MOVE_TOKEN_DIRECT_ACCESS, PGY_FIX_MATERIALIZE_TOKEN_TO_SLOT, expr,
             "Movable resources from recv/await must first be bound to a named variable before use.\n"
             "Reason:\n"
             "- transfer boundaries create a fresh move-only resource value\n"
@@ -1319,9 +1321,9 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL) {
         semantic_error_with_hints(ctx,
-            "PGY_SEM_REDECLARATION",
-            "semantic:ability:duplicate_name",
-            "rename-or-remove-duplicate",
+            PGY_CODE_SEM_REDECLARATION,
+            PGY_CAUSE_ABILITY_DUPLICATE_NAME,
+            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
             node, "Redeclaration of ability '%s'", name);
         symbol_destroy(sym);
         return false;
@@ -1402,17 +1404,17 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
             continue;
 
         if (param->type != AST_LET_DECL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", param,
-                "Event '%s' parameter %zu must be a typed binding",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID, PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, param,
+                "Event '%s' parameter %llu must be a typed binding",
                 node->data.event_decl.name != NULL
                     ? node->data.event_decl.name : "<event>",
-                i + 1);
+                (unsigned long long) (i + 1));
             ok = false;
             continue;
         }
 
         if (param->data.let_decl.type == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", param,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID, PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, param,
                 "Event '%s' parameter '%s' requires an explicit type",
                 node->data.event_decl.name != NULL
                     ? node->data.event_decl.name : "<event>",
@@ -1429,7 +1431,7 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.event_decl.return_type != NULL) {
         Type *return_type = resolve_type_node(node->data.event_decl.return_type, ctx);
         if (return_type != NULL && !type_equals(return_type, TYPE_VOID)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", node->data.event_decl.return_type,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID, PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, node->data.event_decl.return_type,
                 "Event '%s' must return Void, got '%s'",
                 node->data.event_decl.name != NULL
                     ? node->data.event_decl.name : "<event>",
@@ -1583,8 +1585,8 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
     event_name = semantic_event_expr_name(node->data.event_op.event);
 
     if (event_type == NULL || event_type->kind != TYPE_KIND_FUNCTION) {
-        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
-            "semantic:event:signature", "align-event-signature",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
+            PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
             node->data.event_op.event,
             "Event %s target '%s' must be an event-compatible callable",
             op_name != NULL ? op_name : "operation",
@@ -1594,15 +1596,15 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
 
     if (event_type->data.function.return_type != NULL
         && !type_equals(event_type->data.function.return_type, TYPE_VOID)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", node->data.event_op.event,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID, PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, node->data.event_op.event,
             "Event '%s' must return Void to support %s",
             event_name, op_name != NULL ? op_name : "subscription");
         ok = false;
     }
 
     if (handler_type == NULL || handler_type->kind != TYPE_KIND_FUNCTION) {
-        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
-            "semantic:event:signature", "align-event-signature",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
+            PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
             node->data.event_op.handler,
             "Event %s handler for '%s' must be a function or typed lambda",
             op_name != NULL ? op_name : "operation",
@@ -1612,8 +1614,8 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
 
     if (handler_type->data.function.return_type != NULL
         && !type_equals(handler_type->data.function.return_type, TYPE_VOID)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
-            "semantic:event:signature", "align-event-signature",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
+            PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
             node->data.event_op.handler,
             "Event %s handler for '%s' must return Void, got '%s'",
             op_name != NULL ? op_name : "operation",
@@ -1624,14 +1626,14 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
     }
 
     if (event_type->data.function.param_count != handler_type->data.function.param_count) {
-        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
-            "semantic:event:signature", "align-event-signature",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
+            PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
             node->data.event_op.handler,
-            "Event %s handler for '%s' has parameter count mismatch: expected %zu, got %zu",
+            "Event %s handler for '%s' has parameter count mismatch: expected %llu, got %llu",
             op_name != NULL ? op_name : "operation",
             event_name,
-            event_type->data.function.param_count,
-            handler_type->data.function.param_count);
+            (unsigned long long) event_type->data.function.param_count,
+            (unsigned long long) handler_type->data.function.param_count);
         return false;
     }
 
@@ -1645,13 +1647,13 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
         }
 
         if (!type_equals(expected, actual)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
-                "semantic:event:signature", "align-event-signature",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
+                PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
                 node->data.event_op.handler,
-                "Event %s handler for '%s' parameter %zu mismatch: expected '%s', got '%s'",
+                "Event %s handler for '%s' parameter %llu mismatch: expected '%s', got '%s'",
                 op_name != NULL ? op_name : "operation",
                 event_name,
-                i + 1,
+                (unsigned long long) (i + 1),
                 expected->name != NULL ? expected->name : "<type>",
                 actual->name != NULL ? actual->name : "<type>");
             ok = false;
@@ -1675,8 +1677,8 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
     event_name = semantic_event_expr_name(node->data.event_invoke.event);
 
     if (event_type == NULL || event_type->kind != TYPE_KIND_FUNCTION) {
-        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
-            "semantic:event:signature", "align-event-signature",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
+            PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
             node->data.event_invoke.event,
             "Event invoke target '%s' must be an event-compatible callable",
             event_name);
@@ -1684,11 +1686,11 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
     }
 
     if (event_type->data.function.param_count != node->data.event_invoke.arg_count) {
-        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", node,
-            "Event '%s' invoke argument count mismatch: expected %zu, got %zu",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID, PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, node,
+            "Event '%s' invoke argument count mismatch: expected %llu, got %llu",
             event_name,
-            event_type->data.function.param_count,
-            node->data.event_invoke.arg_count);
+            (unsigned long long) event_type->data.function.param_count,
+            (unsigned long long) node->data.event_invoke.arg_count);
         return false;
     }
 
@@ -1702,10 +1704,10 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
         }
 
         if (!type_is_assignable(actual, expected)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID", "semantic:event:signature", "align-event-signature", node->data.event_invoke.arguments[i],
-                "Event '%s' invoke argument %zu mismatch: expected '%s', got '%s'",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID, PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, node->data.event_invoke.arguments[i],
+                "Event '%s' invoke argument %llu mismatch: expected '%s', got '%s'",
                 event_name,
-                i + 1,
+                (unsigned long long) (i + 1),
                 expected->name != NULL ? expected->name : "<type>",
                 actual->name != NULL ? actual->name : "<type>");
             ok = false;
@@ -1814,15 +1816,22 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
             size_t arity = type_tuple_arity(init_type);
             size_t binds = node->data.let_destructure.name_count;
             if (arity != binds) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:destructuring:arity_mismatch", "align-destructuring-arity",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_DESTRUCTURING_ARITY_MISMATCH, PGY_FIX_ALIGN_DESTRUCTURING_ARITY,
                     node,
-                    "Tuple destructuring arity mismatch: binding %zu, tuple arity %zu",
-                    binds, arity);
+                    "Tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
+                    (unsigned long long) binds, (unsigned long long) arity);
                 return false;
             }
             for (size_t i = 0; i < binds; i++) {
                 Type *elem = type_tuple_get_element(init_type, i);
+                if (init != NULL) {
+                    semantic_validate_borrowed_escape(
+                        node, init, ctx, init_type, NULL,
+                        OWNERSHIP_CONSUMER_NEW_BINDING, NULL,
+                        node->data.let_destructure.names[i], NULL,
+                        false, NULL, NULL);
+                }
                 Symbol *s = symbol_create_variable(
                     node->data.let_destructure.names[i],
                     elem != NULL ? elem : TYPE_UNKNOWN,
@@ -1838,6 +1847,13 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
                 || type_is_constructed_named(init_type, "Slice"))
                 elem_type = type_get_constructed_arg(init_type, 0);
             /* CLASS/struct: field type by position (future — for now use UNKNOWN) */
+            if (init != NULL) {
+                semantic_validate_borrowed_escape(
+                    node, init, ctx, init_type, NULL,
+                    OWNERSHIP_CONSUMER_NEW_BINDING, NULL,
+                    node->data.let_destructure.names[i], NULL,
+                    false, NULL, NULL);
+            }
             Symbol *s = symbol_create_variable(
                 node->data.let_destructure.names[i], elem_type,
                 node->line, node->column);
@@ -1869,13 +1885,13 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_return_stmt(node, ctx);
     case AST_BREAK:
         if (ctx->loop_depth <= 0) {
-            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node, "'break' used outside of loop");
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "'break' used outside of loop");
             return false;
         }
         if (node->data.break_stmt.label != NULL
             && semantic_find_labeled_loop_depth(ctx,
                 node->data.break_stmt.label) < 0) {
-            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node,
                 "Unknown loop label '%s' in break",
                 node->data.break_stmt.label);
             return false;
@@ -1883,13 +1899,13 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return true;
     case AST_CONTINUE:
         if (ctx->loop_depth <= 0) {
-            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node, "'continue' used outside of loop");
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "'continue' used outside of loop");
             return false;
         }
         if (node->data.continue_stmt.label != NULL
             && semantic_find_labeled_loop_depth(ctx,
                 node->data.continue_stmt.label) < 0) {
-            semantic_error_with_hints(ctx, "PGY_SEM_LOOP_CONTROL_INVALID", "semantic:loop_control", "move-into-loop-or-fix-label", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node,
                 "Unknown loop label '%s' in continue",
                 node->data.continue_stmt.label);
             return false;

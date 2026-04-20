@@ -532,7 +532,11 @@ make test-all                  # All tests
 make test-semantic             # Semantic analysis
 make test-transpile            # C backend
 make llvm-test-backend-compare # C/LLVM parity
+make rebuild                   # Force clean + full rebuild (use when stale)
 ```
+
+If a build looks stale ("Nothing to be done" while sources changed), see
+[Build Troubleshooting](docs/91_build_troubleshooting.md).
 
 ## Documentation
 

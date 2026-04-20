@@ -2271,7 +2271,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     continue;
                 }
                 if (ctx->mir != NULL) {
-                    llvm_set_error_with_hints(ctx, "PGY_LLVM_MIR_ROUTINE_MISSING", "llvm:mir:routine_missing", "inspect-mir-inventory", "MIR-only LLVM path missing routine for "
+                    llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_MIR_ROUTINE_MISSING, PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING, PGY_FIX_INSPECT_MIR_INVENTORY, "MIR-only LLVM path missing routine for "
                                    "domain method '%s.%s'",
                                    role_name, method->data.func_decl.name);
                     return;

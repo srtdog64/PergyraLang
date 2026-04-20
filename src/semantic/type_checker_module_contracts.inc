@@ -54,9 +54,9 @@ semantic_report_ability_generic_bound_failure(SemanticContext *ctx,
                                               const char *required_text,
                                               const char *concrete_name)
 {
-    semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-        "semantic:generic:bound_validation_failed",
-        "align-generic-bound-or-annotate",
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+        PGY_CAUSE_GENERIC_BOUND_VALIDATION_FAILED,
+        PGY_FIX_ALIGN_GENERIC_BOUND_OR_ANNOTATE,
         site,
         "%s '%s' uses ability '%s' with generic argument '%s' that does not satisfy bound '%s'.\n"
         "Reason:\n"
@@ -209,7 +209,7 @@ report_subject_ability_requirement_mismatch(SemanticContext *ctx,
         return;
 
     if (actual_text != NULL) {
-        semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
             "%s '%s' requires ability '%s', but %s '%s' implements '%s' instead.\n"
             "Reason:\n"
             "- consumer path is %s '%s'\n"
@@ -241,7 +241,7 @@ report_subject_ability_requirement_mismatch(SemanticContext *ctx,
         return;
     }
 
-    semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
         "%s '%s' requires ability '%s', but %s '%s' has no matching role impl.\n"
         "Reason:\n"
         "- consumer path is %s '%s'\n"
@@ -382,9 +382,9 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
 
         param_index = ability_decl_generic_param_index(decl_params, tc->type_param);
         if (param_index < 0 || (size_t)param_index >= effective_count) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:bound_validation_failed",
-                "align-generic-bound-or-annotate",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_BOUND_VALIDATION_FAILED,
+                PGY_FIX_ALIGN_GENERIC_BOUND_OR_ANNOTATE,
                 site,
                 "%s '%s' could not validate generic bound '%s' on ability '%s'.\n"
                 "Reason:\n"
@@ -411,8 +411,8 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
 
         concrete_type = resolve_type_node(effective_args[param_index], ctx);
         if (concrete_type == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:args_invalid", "align-generic-arg-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 site,
                 "%s '%s' could not resolve generic argument for bound '%s' on ability '%s'.\n"
                 "Reason:\n"
@@ -587,7 +587,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
 
     resolve_type_node(ability_ref, ctx);
     if (ability == NULL) {
-        semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
             "%s '%s' requires a valid ability type reference.\n"
             "Reason:\n"
             "- this contract path expects an ability type\n"
@@ -605,7 +605,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
 
     ability_decl = find_ability_decl_by_name(ctx->program_root, ability);
     if (ability_decl == NULL) {
-        semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
             "%s '%s' requires unknown ability '%s'.\n"
             "Reason:\n"
             "- no visible ability declaration named '%s' was found\n"
@@ -643,8 +643,8 @@ resolve_required_ability_decl(ASTNode *ability_ref,
                 || !same_module_origin(site_module, ability_decl->origin_path))
                 && ability_decl->data.ability_decl.has_explicit_access
                 && ability_decl->data.ability_decl.access != ACCESS_PUBLIC))) {
-        semantic_error_with_hints(ctx, "PGY_SEM_VISIBILITY_BOUNDARY",
-            "semantic:visibility:boundary_cross", "widen-visibility-or-move-caller",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY,
+            PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER,
             site,
             "%s '%s' cannot require non-exported ability '%s' from another module.\n"
             "Reason:\n"
@@ -675,7 +675,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             ability, ability_decl->data.ability_decl.generic_params);
 
         if (arg_count > 0 && param_count == 0) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
                 "Ability '%s' does not accept generic type arguments in requires clauses.\n"
                 "Reason:\n"
                 "- consumer path is %s '%s'\n"
@@ -707,8 +707,8 @@ resolve_required_ability_decl(ASTNode *ability_ref,
                 ability_decl->data.ability_decl.generic_params)) {
             size_t required_count = generic_params_required_count(
                 ability_decl->data.ability_decl.generic_params);
-            semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
-                "Ability '%s' requires between %zu and %zu generic argument(s) in requires clauses, got %zu.\n"
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
+                "Ability '%s' requires between %llu and %llu generic argument(s) in requires clauses, got %llu.\n"
                 "Reason:\n"
                 "- consumer path is %s '%s'\n"
                 "- requires uses '%s'\n"
@@ -718,7 +718,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
                 "- or rely on declaration defaults for trailing parameters only\n"
                 "- or change the ability declaration to match the intended arity",
                 ability,
-                required_count, param_count, arg_count,
+                (unsigned long long) required_count, (unsigned long long) param_count, (unsigned long long) arg_count,
                 owner_label != NULL ? owner_label : "construct",
                 owner_name != NULL ? owner_name : "<anonymous>",
                 required_text != NULL ? required_text : ability,
@@ -733,12 +733,12 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             GenericParam *gp = ability_ref->data.type.generic_args->params[i];
             ASTNode *arg = gp != NULL ? gp->constraint : NULL;
             if (arg == NULL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", site,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
                     "Ability '%s' has an invalid generic argument in requires clause.\n"
                     "Reason:\n"
                     "- consumer path is %s '%s'\n"
                     "- generic subject is ability '%s'\n"
-                    "- generic argument %zu in '%s' is missing or malformed\n"
+                    "- generic argument %llu in '%s' is missing or malformed\n"
                     "- expected type args are '%s'\n"
                     "- actual type args are '%s'\n"
                     "Fix:\n"
@@ -746,7 +746,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
                     ability,
                     owner_label != NULL ? owner_label : "construct",
                     owner_name != NULL ? owner_name : "<anonymous>",
-                    ability, i + 1,
+                    ability, (unsigned long long) (i + 1),
                     required_text != NULL ? required_text : ability,
                     expected_text != NULL ? expected_text : ability,
                     required_text != NULL ? required_text : ability);
@@ -784,7 +784,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
         ASTNode *req = node->data.ability_decl.require_fields[i];
         if (req == NULL || req->data.require_field.name == NULL
             || req->data.require_field.type == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, node,
                 "Ability '%s' has an invalid fields declaration",
                 name != NULL ? name : "<ability>");
             continue;
@@ -794,7 +794,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
             if (prev != NULL && prev->data.require_field.name != NULL
                 && strcmp(prev->data.require_field.name,
                           req->data.require_field.name) == 0) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", req,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, req,
                     "Ability '%s' declares duplicate field '%s' in fields",
                     name != NULL ? name : "<ability>",
                     req->data.require_field.name);
@@ -809,7 +809,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
                 ctx->program_root, req->data.require_field.type->data.type.name);
             if (type_decl != NULL
                 && !explicit_type_reference_allowed(type_decl, node, ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ABILITY_CONTRACT_INVALID", "semantic:ability_contract", "align-ability-generics-or-fields", req,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, req,
                     "Ability '%s' cannot declare field '%s' in fields with non-exported type '%s' from another module",
                     name != NULL ? name : "<ability>",
                     req->data.require_field.name,
@@ -835,7 +835,7 @@ validate_action_required_abilities(ASTNode *node,
     if (enclosing_nominal == NULL
         || enclosing_nominal->type != AST_CLASS_DECL
         || enclosing_nominal->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
-        semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
             "action '%s' is only supported inside subject declarations",
             name != NULL ? name : "<anonymous>");
     } else {
@@ -869,7 +869,7 @@ validate_action_required_abilities(ASTNode *node,
         }
         if (ability_decl->type == AST_ABILITY_DECL
             && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "action '%s' cannot require non-exported ability '%s' from another module",
                 name != NULL ? name : "<anonymous>",
                 ability != NULL ? ability : "<ability>");
@@ -903,8 +903,8 @@ validate_stdlib_use_decl(ASTNode *stmt, SemanticContext *ctx)
     }
 
     if (!semantic_is_known_stdlib_use_module(stmt->data.use_decl.module_name)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL",
-            "semantic:symbol:undefined", "import-or-declare-symbol",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
+            PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
             stmt,
             "Unknown stdlib use '%s'; expected one of datetime, device_adapter, http, ledger, money, obligation, page, spray, storage, timer, versioning",
             stmt->data.use_decl.module_name);

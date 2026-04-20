@@ -696,7 +696,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (c_type == NULL) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine C type for let binding '%s'; explicit annotation or resolvable initializer type is required",
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine C type for let binding '%s'; explicit annotation or resolvable initializer type is required",
             name != NULL ? name : "<binding>");
         free(ann_type_name);
         return;
@@ -1001,8 +1001,8 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                 free(rhs);
                 if (reason != NULL && reason_cap > 0) {
                     snprintf(reason, reason_cap,
-                             "MIR block %zu emission failed: unable to materialize pending value '%s'",
-                             block->id, base);
+                             "MIR block %llu emission failed: unable to materialize pending value '%s'",
+                             (unsigned long long) block->id, base);
                 }
                 return false;
             }
@@ -1059,8 +1059,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     if (!transpiler_emit_mir_block_with_ssa_map(ssa_map_out, block)) {
         if (reason != NULL && reason_cap > 0)
             snprintf(reason, reason_cap,
-                     "MIR emission failed for block %zu in %s: missing SSA entry map",
-                     block->id, func_decl->type == AST_FUNC_DECL
+                     "MIR emission failed for block %llu in %s: missing SSA entry map",
+                     (unsigned long long) block->id, func_decl->type == AST_FUNC_DECL
                      ? func_decl->data.func_decl.name
                      : func_decl->data.intent_decl.name);
         return false;
@@ -1095,8 +1095,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             ctx->active_ssa_map = saved_active_ssa_map;
             if (reason != NULL && reason_cap > 0) {
                 snprintf(reason, reason_cap,
-                         "MIR block %zu emission failed: unable to allocate source-order schedule",
-                         block->id);
+                         "MIR block %llu emission failed: unable to allocate source-order schedule",
+                         (unsigned long long) block->id);
             }
             return false;
         }
@@ -1149,7 +1149,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
             if (reason != NULL && reason_cap > 0) {
                 snprintf(reason, reason_cap,
-                         "MIR block %zu emission failed: unable to emit claim op for '%s'",
+                         "MIR block %llu emission failed: unable to emit claim op for '%s'",
                          block->id,
                          inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
             }
@@ -1234,8 +1234,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
                 if (reason != NULL && reason_cap > 0) {
                     snprintf(reason, reason_cap,
-                             "MIR block %zu emission failed: unable to emit resource op '%s'",
-                             block->id,
+                             "MIR block %llu emission failed: unable to emit resource op '%s'",
+                             (unsigned long long) block->id,
                              inst->name != NULL ? inst->name : "<op>");
                 }
                 ok = false;
@@ -1317,8 +1317,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 free(local_type_name_owned);
                 if (reason != NULL && reason_cap > 0) {
                     snprintf(reason, reason_cap,
-                             "MIR block %zu emission failed: unable to render initializer for '%s'",
-                             block->id,
+                             "MIR block %llu emission failed: unable to render initializer for '%s'",
+                             (unsigned long long) block->id,
                              stmt->data.let_decl.name != NULL
                                  ? stmt->data.let_decl.name
                                  : "<binding>");
@@ -1412,8 +1412,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     free(field_rhs);
                     if (reason != NULL && reason_cap > 0) {
                         snprintf(reason, reason_cap,
-                                 "MIR block %zu emission failed: unable to render field assignment to '%s'",
-                                 block->id,
+                                 "MIR block %llu emission failed: unable to render field assignment to '%s'",
+                                 (unsigned long long) block->id,
                                  target_name != NULL ? target_name : "<field>");
                     }
                     ok = false;
@@ -1440,8 +1440,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 free(lhs);
                 if (reason != NULL && reason_cap > 0) {
                     snprintf(reason, reason_cap,
-                             "MIR block %zu emission failed: unable to render assignment to '%s'",
-                             block->id, target_name != NULL ? target_name : "<target>");
+                             "MIR block %llu emission failed: unable to render assignment to '%s'",
+                             (unsigned long long) block->id, target_name != NULL ? target_name : "<target>");
                 }
                 ok = false;
                 break;
@@ -1494,8 +1494,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 free(rhs);
                 if (reason != NULL && reason_cap > 0) {
                     snprintf(reason, reason_cap,
-                             "MIR block %zu emission failed: unable to render DEF for '%s'",
-                             block->id,
+                             "MIR block %llu emission failed: unable to render DEF for '%s'",
+                             (unsigned long long) block->id,
                              binding_name != NULL ? binding_name : inst->result_name);
                 }
                 ok = false;
@@ -1596,8 +1596,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     free(rhs);
                     if (reason != NULL && reason_cap > 0) {
                         snprintf(reason, reason_cap,
-                                 "MIR block %zu emission failed: unable to render local assignment to '%s'",
-                                 block->id,
+                                 "MIR block %llu emission failed: unable to render local assignment to '%s'",
+                                 (unsigned long long) block->id,
                                  target_name);
                     }
                     ok = false;
@@ -1622,8 +1622,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 free(expr);
                 if (reason != NULL && reason_cap > 0) {
                     snprintf(reason, reason_cap,
-                             "MIR block %zu emission failed: unable to render call statement with SSA mapping",
-                             block->id);
+                             "MIR block %llu emission failed: unable to render call statement with SSA mapping",
+                             (unsigned long long) block->id);
                 }
                 ok = false;
                 break;
@@ -1763,8 +1763,9 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 if (arity != stmt->data.let_destructure.name_count) {
                     if (ctx->backend_error == NULL) {
                         ctx->backend_error = strdup_fmt(
-                            "tuple destructuring arity mismatch: binding %zu, tuple arity %zu",
-                            stmt->data.let_destructure.name_count, arity);
+                            "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
+                            (unsigned long long) stmt->data.let_destructure.name_count,
+                            (unsigned long long) arity);
                     }
                     ok = false;
                     break;
@@ -1835,8 +1836,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             if (rhs == NULL) {
                 if (reason != NULL && reason_cap > 0) {
                     snprintf(reason, reason_cap,
-                             "MIR block %zu emission failed: unable to render destructuring initializer",
-                             block->id);
+                             "MIR block %llu emission failed: unable to render destructuring initializer",
+                             (unsigned long long) block->id);
                 }
                 ok = false;
                 break;
@@ -1941,7 +1942,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     free(rendered_type);
                     if (reason != NULL && reason_cap > 0) {
                         snprintf(reason, reason_cap,
-                                 "MIR block %zu emission failed: unable to materialize preserved let-binding '%s'",
+                                 "MIR block %llu emission failed: unable to materialize preserved let-binding '%s'",
                                  block->id,
                                  stmt->data.let_decl.name);
                     }
@@ -2407,32 +2408,32 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
 
         if (block->has_succ_true && block->succ_true >= routine->block_count) {
             if (reason != NULL && reason_cap > 0)
-                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad true successor",
-                         routine_name, block->id);
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad true successor",
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
         if (block->has_succ_false && block->succ_false >= routine->block_count) {
             if (reason != NULL && reason_cap > 0)
-                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad false successor",
-                         routine_name, block->id);
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad false successor",
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
         if (block->has_cleanup_succ && block->cleanup_succ >= routine->block_count) {
             if (reason != NULL && reason_cap > 0)
-                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad cleanup successor",
-                         routine_name, block->id);
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad cleanup successor",
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
         if (block->has_rollback_succ && block->rollback_succ >= routine->block_count) {
             if (reason != NULL && reason_cap > 0)
-                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad rollback successor",
-                         routine_name, block->id);
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad rollback successor",
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
         if (block->has_invalidation_succ && block->invalidation_succ >= routine->block_count) {
             if (reason != NULL && reason_cap > 0)
-                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad invalidation successor",
-                         routine_name, block->id);
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad invalidation successor",
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
 
@@ -2443,16 +2444,16 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
                 && kind != MIR_INST_PHI && kind != MIR_INST_DEF
                 && kind != MIR_INST_STMT) {
                 if (reason != NULL && reason_cap > 0)
-                    snprintf(reason, reason_cap, "MIR contract invalid for %s: unsupported instruction kind %d in block %zu",
-                             routine_name, (int)kind, block->id);
+                    snprintf(reason, reason_cap, "MIR contract invalid for %s: unsupported instruction kind %d in block %llu",
+                             routine_name, (int)kind, (unsigned long long) block->id);
                 return false;
             }
             if ((kind == MIR_INST_BRANCH || kind == MIR_INST_RETURN)
                 && require_cleanup_blocks && block->is_cleanup) {
                 if (reason != NULL && reason_cap > 0)
                     snprintf(reason, reason_cap,
-                             "MIR contract invalid for %s: cleanup block %zu has terminal instruction",
-                             routine_name, block->id);
+                             "MIR contract invalid for %s: cleanup block %llu has terminal instruction",
+                             routine_name, (unsigned long long) block->id);
                 return false;
             }
         }
@@ -2492,8 +2493,8 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             branch_count++;
             if (inst->ast == NULL && (reason != NULL && reason_cap > 0)) {
                 snprintf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %zu branch instruction misses condition AST",
-                         routine_name, block->id);
+                         "MIR contract invalid for %s: block %llu branch instruction misses condition AST",
+                         routine_name, (unsigned long long) block->id);
                 return false;
             }
         } else if (inst->kind == MIR_INST_RETURN) {
@@ -2515,8 +2516,8 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             && inst->kind != MIR_INST_CLEANUP_EDGE) {
             if (reason != NULL && reason_cap > 0)
                 snprintf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %zu has non-trailing instructions after terminal",
-                         routine_name, block->id);
+                         "MIR contract invalid for %s: block %llu has non-trailing instructions after terminal",
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
     }
@@ -2524,8 +2525,11 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
     if (branch_count > 1 || return_count > 1 || (has_branch && has_return)) {
         if (reason != NULL && reason_cap > 0)
             snprintf(reason, reason_cap,
-                     "MIR contract invalid for %s: block %zu has %zu branch(es), %zu return(s)",
-                     routine_name, block->id, branch_count, return_count);
+                     "MIR contract invalid for %s: block %llu has %llu branch(es), %llu return(s)",
+                     routine_name,
+                     (unsigned long long) block->id,
+                     (unsigned long long) branch_count,
+                     (unsigned long long) return_count);
         return false;
     }
 
@@ -2533,16 +2537,16 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
         if (!block->has_succ_true || !block->has_succ_false) {
             if (reason != NULL && reason_cap > 0)
                 snprintf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %zu has branch without both true/false successors",
-                         routine_name, block->id);
+                         "MIR contract invalid for %s: block %llu has branch without both true/false successors",
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
         if (block->has_cleanup_succ || block->has_rollback_succ || block->has_invalidation_succ) {
             if (!require_cleanup) {
                 if (reason != NULL && reason_cap > 0)
                     snprintf(reason, reason_cap,
-                             "MIR contract invalid for %s: block %zu has branch plus exceptional successor",
-                             routine_name, block->id);
+                             "MIR contract invalid for %s: block %llu has branch plus exceptional successor",
+                             routine_name, (unsigned long long) block->id);
                 return false;
             }
         }
@@ -2553,8 +2557,8 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
         if (block->has_succ_true || block->has_succ_false) {
             if (reason != NULL && reason_cap > 0)
                 snprintf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %zu return has explicit successors",
-                         routine_name, block->id);
+                         "MIR contract invalid for %s: block %llu return has explicit successors",
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
         if (!require_cleanup
@@ -2562,9 +2566,9 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
                 || block->has_invalidation_succ)) {
             if (reason != NULL && reason_cap > 0)
                 snprintf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %zu return has exceptional successor"
+                         "MIR contract invalid for %s: block %llu return has exceptional successor"
                          " without cleanup-capable routine",
-                         routine_name, block->id);
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
         return true;
@@ -2573,8 +2577,8 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
     if (block->has_succ_false) {
         if (reason != NULL && reason_cap > 0)
             snprintf(reason, reason_cap,
-                     "MIR contract invalid for %s: block %zu has false successor without branch",
-                     routine_name, block->id);
+                     "MIR contract invalid for %s: block %llu has false successor without branch",
+                     routine_name, (unsigned long long) block->id);
         return false;
     }
 
@@ -2582,8 +2586,8 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
         if (!require_cleanup) {
             if (reason != NULL && reason_cap > 0)
                 snprintf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %zu has exceptional successor without cleanup-capable routine",
-                         routine_name, block->id);
+                         "MIR contract invalid for %s: block %llu has exceptional successor without cleanup-capable routine",
+                         routine_name, (unsigned long long) block->id);
             return false;
         }
     }
@@ -2677,7 +2681,7 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
         reason[0] = '\0';
     if (routine == NULL || intent_decl == NULL || intent_decl->type != AST_INTENT_DECL) {
         if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "intent cannot lower to MIR: no matching MIR routine (found %zu routines)", ctx != NULL && ctx->mir != NULL ? ctx->mir->routine_count : 0);
+            snprintf(reason, reason_cap, "intent cannot lower to MIR: no matching MIR routine (found %llu routines)", (unsigned long long) (ctx != NULL && ctx->mir != NULL ? ctx->mir->routine_count : 0));
         return false;
     }
     if (routine->kind != MIR_SCOPE_INTENT

@@ -15,6 +15,7 @@
 #include "transpiler.h"
 #include "../common/string_compat.h"
 #include "../semantic/type_checker.h"
+#include "../semantic/diag_codes.h"
 
 /* Forward declarations for emitters defined later */
 void emit_ability_decl(ASTNode *node, TranspilerCtx *ctx);
@@ -701,7 +702,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
             return_type = pergyra_type_to_c(inferred_return_type);
     }
     if (return_type == NULL) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine lambda return type; explicit return type is required for non-block lambda bodies");
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine lambda return type; explicit return type is required for non-block lambda bodies");
         return pergyra_strdup("0");
     }
 
@@ -724,9 +725,9 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
             param_type = transpiler_infer_lambda_param_c_type(node, param);
         }
         if (param_type == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine lambda parameter type for '%s' at argument %zu",
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine lambda parameter type for '%s' at argument %llu",
                 lambda_name,
-                i);
+                (unsigned long long) i);
             free(lambda_name);
             return pergyra_strdup("0");
         }
@@ -751,9 +752,9 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
             param_type = transpiler_infer_lambda_param_c_type(node, param);
         }
         if (param_type == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot determine lambda parameter type for '%s' at argument %zu",
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine lambda parameter type for '%s' at argument %llu",
                 lambda_name,
-                i);
+                (unsigned long long) i);
             free(lambda_name);
             return pergyra_strdup("0");
         }
@@ -789,7 +790,7 @@ emit_include_stmt(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->out, "/* include %s */\n", included_role);
     if (find_role_decl(ctx, included_role) == NULL) {
-        transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot resolve included role '%s' while emitting include statement",
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve included role '%s' while emitting include statement",
             included_role != NULL ? included_role : "<role>");
     }
 }

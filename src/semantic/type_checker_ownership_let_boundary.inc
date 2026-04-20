@@ -9,9 +9,9 @@
             node, init, ctx, init_type, NULL,
             OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
             false, NULL, NULL);
-        semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
-            "semantic:anchored_handle:copy_attempt",
-            "use-move-or-retain-binding",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+            PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
             node,
             "Subjects cannot be copied into a new binding.\n"
             "Reason:\n"
@@ -48,13 +48,13 @@
             }
         }
         if (!valid_qubit_init) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
-                "semantic:movable_handle:copy_attempt",
-                "use-move-or-retain-binding",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+                PGY_CAUSE_MOVABLE_HANDLE_COPY_ATTEMPT,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
                 node,
-                "QubitSlot is a movable resource handle and cannot be plain-copied into a new binding.\n"
+                "QubitSlot is a slot handle (movable) and cannot be plain-copied into a new binding.\n"
                 "Reason:\n"
-                "- movable resource values must come from a fresh claim, an explicit move, or a transfer boundary\n"
+                "- slot handle (movable) values must come from a fresh claim, an explicit move, or a transfer boundary\n"
                 "- current initializer does not preserve ownership provenance for QubitSlot\n"
                 "Fix:\n"
                 "- initialize from ClaimQubit()\n"

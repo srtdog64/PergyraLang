@@ -1709,7 +1709,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Returning subjects by value is not supported yet"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "subject values are zone/world anchored handles"));
+            "subject values are zone/world slot handles (anchored)"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "return a struct/class/object/tobject projection instead"));
 

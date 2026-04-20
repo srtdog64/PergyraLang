@@ -163,7 +163,7 @@ resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
         || strcmp(name, "MoveToken") == 0) {
         if (node->data.type.generic_args == NULL
             || node->data.type.generic_args->count != 1) {
-            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, node,
                 "%s requires exactly one type argument", name);
             return TYPE_UNKNOWN;
         }
@@ -183,8 +183,8 @@ resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
     if (strcmp(name, "HashMap") == 0) {
         if (node->data.type.generic_args == NULL
             || node->data.type.generic_args->count != 2) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:args_invalid", "align-generic-arg-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 node,
                 "HashMap requires exactly two type arguments");
             return TYPE_UNKNOWN;
@@ -198,7 +198,7 @@ resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
             && !type_equals(key, TYPE_INT)
             && !type_equals(key, TYPE_LONG)
             && !type_equals(key, TYPE_BOOL)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, node,
                 "HashMap currently supports only String, Int, Long, or Bool keys");
             return TYPE_UNKNOWN;
         }
@@ -235,8 +235,8 @@ resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
         if (node->data.type.generic_args == NULL
             || provided < expected_min
             || provided > expected_max) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                "semantic:generic:args_invalid", "align-generic-arg-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
+                PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 node,
                 strcmp(name, "Result") == 0
                     ? "Result requires one or two type arguments"
@@ -327,9 +327,9 @@ require_assignable(Type *from, Type *to,
         return true;
 
     semantic_error_with_hints(ctx,
-        "PGY_SEM_TYPE_MISMATCH",
-        "semantic:assignability_check",
-        "annotate-or-convert",
+        PGY_CODE_SEM_TYPE_MISMATCH,
+        PGY_CAUSE_ASSIGNABILITY_CHECK,
+        PGY_FIX_ANNOTATE_OR_CONVERT,
         site,
         "Type mismatch: cannot assign '%s' to '%s'",
         from->name, to->name);

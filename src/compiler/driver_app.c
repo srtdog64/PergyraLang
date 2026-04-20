@@ -1103,7 +1103,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->semantic = driver_now_seconds() - phase_start;
     if (sem == NULL) {
-        fprintf(stderr, "pgy: out of memory during semantic analysis\n");
+        driver_emit_stage_fail(flags, "semantic",
+            "semantic analysis failed", "out of memory during semantic analysis");
         goto cleanup;
     }
 

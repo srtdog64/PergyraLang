@@ -57,7 +57,7 @@
                     || strcmp(callee_name, "SetNew") == 0
                     || strcmp(callee_name, "MapNew") == 0
                     || strcmp(callee_name, "QueueNew") == 0)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_INFER_COLLECTION", "semantic:infer:collection_needs_annotation", "annotate-collection-element-type", init,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_COLLECTION, PGY_CAUSE_INFER_COLLECTION_NEEDS_ANNOTATION, PGY_FIX_ANNOTATE_COLLECTION_ELEMENT_TYPE, init,
                     "Cannot infer collection type from '%s()' without an explicit annotation; write 'let value: %s<...> = %s()'",
                     callee_name,
                     strcmp(callee_name, "MapNew") == 0 ? "HashMap" :
@@ -71,14 +71,14 @@
         /* For generic types like Box<T>, Array<T>, Result<T,E>,
            ensure the inferred type is concrete */
         if (init_type->kind == TYPE_KIND_GENERIC) {
-            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC", "semantic:infer:unbound_generic", "annotate-binding-type", init,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC, PGY_CAUSE_INFER_UNBOUND_GENERIC, PGY_FIX_ANNOTATE_BINDING_TYPE, init,
                 "Cannot infer type: generic parameter '%s' is ambiguous. "
                 "Please provide a type annotation.", init_type->name);
             decl_type = TYPE_UNKNOWN;
         }
     } else {
         /* No annotation and no initializer */
-        semantic_error_with_hints(ctx, "PGY_SEM_INFER_REQUIRED", "semantic:infer:no_source", "add-annotation-or-initializer", node,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_REQUIRED, PGY_CAUSE_INFER_NO_SOURCE, PGY_FIX_ADD_ANNOTATION_OR_INITIALIZER, node,
             "Cannot infer type: provide a type annotation or initializer");
         decl_type = TYPE_UNKNOWN;
     }

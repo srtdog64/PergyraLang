@@ -1,9 +1,9 @@
     /* Check for duplicate in current scope */
     if (scope_lookup_current(ctx->scope, name) != NULL) {
         semantic_error_with_hints(ctx,
-            "PGY_SEM_REDECLARATION",
-            "semantic:scope:duplicate_symbol",
-            "rename-or-remove-duplicate",
+            PGY_CODE_SEM_REDECLARATION,
+            PGY_CAUSE_SCOPE_DUPLICATE_SYMBOL,
+            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
             node,
             "Redeclaration of '%s' in the same scope", name);
         return false;

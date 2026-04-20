@@ -87,11 +87,11 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             if (field_type != NULL)
                 return field_type;
             if (name_looks_qualified(expr->data.identifier.name)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                     "Undefined symbol '%s' (check namespace spelling or export visibility)",
                     expr->data.identifier.name);
             } else {
-                semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                     "Undefined symbol '%s'",
                     expr->data.identifier.name);
             }
@@ -100,8 +100,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         if ((type_is_general_boundary_type(sym->type, ctx)
              || type_is_move_token(sym->type))
             && sym->is_consumed) {
-            semantic_error_with_hints(ctx, "PGY_SEM_MOVE_FROM_RELEASED",
-                "semantic:move:from_released", "reclaim-or-trace-earlier-move",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED,
+                PGY_CAUSE_MOVE_FROM_RELEASED, PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE,
                 expr,
                 "%s '%s' was moved or released and cannot be used again.\n"
                 "Reason:\n"
@@ -145,7 +145,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     case AST_TUPLE_LITERAL: {
         size_t n = expr->data.tuple_literal.count;
         if (n < 2) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                 "Tuple literal requires at least 2 elements");
             return TYPE_UNKNOWN;
         }
@@ -165,8 +165,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
     case AST_AWAIT_EXPR:
         if (!ctx->in_async_func) {
-            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                "semantic:async:context_required", "move-into-async-function",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_ASYNC_CONTEXT_REQUIRED, PGY_FIX_MOVE_INTO_ASYNC_FUNCTION,
                 expr,
                 "'await' used outside of async function");
         }
@@ -188,8 +188,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                 }
                 return inner;
             }
-            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                "semantic:await:non_future", "await-future-type",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_AWAIT_NON_FUTURE, PGY_FIX_AWAIT_FUTURE_TYPE,
                 expr->data.await_expr.expression,
                 "'await' requires Future<T> or RemoteFuture<T>");
             return TYPE_UNKNOWN;
@@ -242,7 +242,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
         || op == TOKEN_LESS     || op == TOKEN_LESS_EQUAL
         || op == TOKEN_GREATER  || op == TOKEN_GREATER_EQUAL) {
         if (!type_equals(left, right)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BINOP_TYPE_MISMATCH", "semantic:binop:operand_types", "align-operand-types-or-overload", expr,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BINOP_TYPE_MISMATCH, PGY_CAUSE_BINOP_OPERAND_TYPES, PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD, expr,
                 "Cannot compare '%s' and '%s'",
                 left->name, right->name);
         }
@@ -251,7 +251,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
 
     /* Arithmetic: both operands must match */
     if (!type_equals(left, right)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BINOP_TYPE_MISMATCH", "semantic:binop:operand_types", "align-operand-types-or-overload", expr,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BINOP_TYPE_MISMATCH, PGY_CAUSE_BINOP_OPERAND_TYPES, PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD, expr,
             "Type mismatch in binary operation: '%s' and '%s'",
             left->name, right->name);
         return TYPE_UNKNOWN;
@@ -268,7 +268,7 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
     PgyTokenType op = expr->data.unary.op.type;
     if (op == TOKEN_NOT) {
         if (!type_equals(operand, TYPE_BOOL)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_UNOP_TYPE_MISMATCH", "semantic:unary_operator:operand", "align-operand-type", expr,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_UNOP_TYPE_MISMATCH, PGY_CAUSE_UNARY_OPERATOR_OPERAND, PGY_FIX_ALIGN_OPERAND_TYPE, expr,
                 "'!' operator requires Bool, got '%s'", operand->name);
         }
         return TYPE_BOOL;
@@ -277,7 +277,7 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
     if (op == TOKEN_MINUS) {
         if (!type_equals(operand, TYPE_INT)
             && !type_equals(operand, TYPE_FLOAT)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_UNOP_TYPE_MISMATCH", "semantic:unary_operator:operand", "align-operand-type", expr,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_UNOP_TYPE_MISMATCH, PGY_CAUSE_UNARY_OPERATOR_OPERAND, PGY_FIX_ALIGN_OPERAND_TYPE, expr,
                 "Unary '-' requires numeric type, got '%s'",
                 operand->name);
         }
@@ -287,8 +287,8 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
     /* Postfix ?: try/propagate — unwrap Result<T> to T, propagate error */
     if (op == TOKEN_QUESTION) {
         if (!type_is_constructed_named(operand, "Result")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_UNOP_TYPE_MISMATCH",
-                "semantic:unary_operator:operand", "align-operand-type",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_UNOP_TYPE_MISMATCH,
+                PGY_CAUSE_UNARY_OPERATOR_OPERAND, PGY_FIX_ALIGN_OPERAND_TYPE,
                 expr,
                 "'?' operator requires Result<T> or Result<T, E>, got '%s'",
                 operand->name);
@@ -446,7 +446,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 && (type_is_constructed_named(object_type, "Array")
                     || type_is_constructed_named(object_type, "Slice"))) {
                 if (expr->data.call.arg_count != 2) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                         "%s.%s(start, len) requires exactly two Int arguments",
                         type_is_constructed_named(object_type, "Array")
                             ? "Array<T>" : "Slice<T>",
@@ -481,17 +481,17 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
                 if (strcmp(method_name, "Write") == 0) {
                     if (expr->data.call.arg_count < 1) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                             "slot.Write(value) requires a value argument");
                         return TYPE_UNKNOWN;
                     }
                     if (type_is_read_view(object_type)) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_VIEW_KIND_MISMATCH", "semantic:view_kind:op_mismatch", "acquire-matching-view-or-use-slot", object,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_VIEW_KIND_MISMATCH, PGY_CAUSE_VIEW_KIND_OP_MISMATCH, PGY_FIX_ACQUIRE_MATCHING_VIEW_OR_USE_SLOT, object,
                             "Cannot write through ReadView<T>; create a WriteView(slot) or keep the owning Slot<T>");
                         return TYPE_UNKNOWN;
                     }
                     if (type_is_move_token(object_type)) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_MOVE_TOKEN_MISUSE", "semantic:move_token:direct_access", "materialize-token-to-slot", object,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_TOKEN_MISUSE, PGY_CAUSE_MOVE_TOKEN_DIRECT_ACCESS, PGY_FIX_MATERIALIZE_TOKEN_TO_SLOT, object,
                             "Cannot write through MoveToken<T>");
                         return TYPE_UNKNOWN;
                     }
@@ -500,9 +500,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     if (sym != NULL && sym->kind == SYMBOL_SLOT) {
                         if (sym->slot_info.state == SLOT_STATE_RELEASED) {
                             semantic_error_with_hints(ctx,
-                                "PGY_SEM_SLOT_RELEASED",
-                                "semantic:slot_lifecycle:write_after_release",
-                                "reclaim-before-use",
+                                PGY_CODE_SEM_SLOT_RELEASED,
+                                PGY_CAUSE_SLOT_LIFECYCLE_WRITE_AFTER_RELEASE,
+                                PGY_FIX_RECLAIM_BEFORE_USE,
                                 object,
                                 "Cannot write to released slot '%s'",
                                 sym->name);
@@ -513,9 +513,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
                         if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
                             semantic_error_with_hints(ctx,
-                                "PGY_SEM_SLOT_RELEASED",
-                                "semantic:slot_view:write_through_released_owner",
-                                "reclaim-source-or-drop-view",
+                                PGY_CODE_SEM_SLOT_RELEASED,
+                                PGY_CAUSE_SLOT_VIEW_WRITE_THROUGH_RELEASED_OWNER,
+                                PGY_FIX_RECLAIM_SOURCE_OR_DROP_VIEW,
                                 object,
                                 "Cannot write through WriteView '%s' because source slot '%s' was released",
                                 sym->name, owner->name);
@@ -533,12 +533,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
                 if (strcmp(method_name, "Read") == 0) {
                     if (type_is_write_view(object_type)) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_VIEW_KIND_MISMATCH", "semantic:view_kind:op_mismatch", "acquire-matching-view-or-use-slot", object,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_VIEW_KIND_MISMATCH, PGY_CAUSE_VIEW_KIND_OP_MISMATCH, PGY_FIX_ACQUIRE_MATCHING_VIEW_OR_USE_SLOT, object,
                             "Cannot read through WriteView<T>; create a ReadView(slot) or keep the owning Slot<T>");
                         return TYPE_UNKNOWN;
                     }
                     if (type_is_move_token(object_type)) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_MOVE_TOKEN_MISUSE", "semantic:move_token:direct_access", "materialize-token-to-slot", object,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_TOKEN_MISUSE, PGY_CAUSE_MOVE_TOKEN_DIRECT_ACCESS, PGY_FIX_MATERIALIZE_TOKEN_TO_SLOT, object,
                             "Cannot read through MoveToken<T>");
                         return TYPE_UNKNOWN;
                     }
@@ -547,9 +547,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     if (sym != NULL && sym->kind == SYMBOL_SLOT) {
                         if (sym->slot_info.state == SLOT_STATE_RELEASED) {
                             semantic_error_with_hints(ctx,
-                                "PGY_SEM_SLOT_RELEASED",
-                                "semantic:slot_lifecycle:read_after_release",
-                                "reclaim-before-use",
+                                PGY_CODE_SEM_SLOT_RELEASED,
+                                PGY_CAUSE_SLOT_LIFECYCLE_READ_AFTER_RELEASE,
+                                PGY_FIX_RECLAIM_BEFORE_USE,
                                 object,
                                 "Cannot read from released slot '%s'",
                                 sym->name);
@@ -560,9 +560,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
                         if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
                             semantic_error_with_hints(ctx,
-                                "PGY_SEM_SLOT_RELEASED",
-                                "semantic:slot_view:read_through_released_owner",
-                                "reclaim-source-or-drop-view",
+                                PGY_CODE_SEM_SLOT_RELEASED,
+                                PGY_CAUSE_SLOT_VIEW_READ_THROUGH_RELEASED_OWNER,
+                                PGY_FIX_RECLAIM_SOURCE_OR_DROP_VIEW,
                                 object,
                                 "Cannot read through ReadView '%s' because source slot '%s' was released",
                                 sym->name, owner->name);
@@ -576,12 +576,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
                 if (strcmp(method_name, "Release") == 0) {
                     if (object->type != AST_IDENTIFIER || sym == NULL || sym->kind != SYMBOL_SLOT) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_RELEASE_REQUIRES_OWNER", "semantic:release:non_owning_receiver", "release-owning-slot-not-view", object,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_RELEASE_REQUIRES_OWNER, PGY_CAUSE_RELEASE_NON_OWNING_RECEIVER, PGY_FIX_RELEASE_OWNING_SLOT_NOT_VIEW, object,
                             "slot.Release() requires an owning slot identifier");
                         return TYPE_UNKNOWN;
                     }
                     if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_SLOT_DOUBLE_RELEASE", "semantic:release:double", "remove-redundant-release", object,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_SLOT_DOUBLE_RELEASE, PGY_CAUSE_RELEASE_DOUBLE, PGY_FIX_REMOVE_REDUNDANT_RELEASE, object,
                             "Slot '%s' has already been released", sym->name);
                         return TYPE_UNKNOWN;
                     }
@@ -621,7 +621,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                     method->data.func_decl.access,
                                     method->data.func_decl.has_explicit_access,
                                     ctx)) {
-                                semantic_error_with_hints(ctx, "PGY_SEM_VISIBILITY_BOUNDARY", "semantic:visibility:boundary_cross", "widen-visibility-or-move-caller", expr,
+                                semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY, PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER, expr,
                                     "Member '%s.%s' is not accessible across the current visibility boundary",
                                     object_type->name,
                                     method_name);
@@ -630,8 +630,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                             semantic_record_effect(ctx, method_effects);
                             if (ctx->in_parallel
                                 && type_effect_mask_has(method_effects, EFFECT_SECURE)) {
-                                semantic_error_with_hints(ctx, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "semantic:parallel:secure_in_task", "serialize-outside-parallel", expr,
-                                    "Parallel context does not permit calling secure-effect method '%s.%s'; serialize capability-bearing operations outside the parallel block",
+                                semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
+                                    "Parallel context does not permit calling secure-effect method '%s.%s'; serialize authority-bearing operations outside the parallel block",
                                     object_type->name,
                                     method_name);
                                 return TYPE_UNKNOWN;
@@ -666,7 +666,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
             free(display_name);
             return sym->type;
         }
-        semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL", "semantic:symbol:undefined", "import-or-declare-symbol", expr,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
             "Undefined symbol '%s' (check namespace spelling or export visibility)",
             display_name != NULL ? display_name : "<member>");
         free(flat_name);
@@ -716,7 +716,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
                             cf->access,
                             cf->has_explicit_access,
                             ctx)) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_VISIBILITY_BOUNDARY", "semantic:visibility:boundary_cross", "widen-visibility-or-move-caller", expr,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY, PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER, expr,
                             "Member '%s.%s' is not accessible across the current visibility boundary",
                             object_type->name,
                             field_name);
@@ -776,8 +776,8 @@ type_check_array_access(ASTNode *expr, SemanticContext *ctx)
     Type *index_type  = type_check_expression(expr->data.array_access.index, ctx);
 
     if (!type_equals(index_type, TYPE_INT)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-            "semantic:array_access:index_non_int", "use-int-index",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ARRAY_ACCESS_INDEX_NON_INT, PGY_FIX_USE_INT_INDEX,
             expr->data.array_access.index,
             "Array index must be Int, got '%s'", index_type->name);
         return TYPE_UNKNOWN;
@@ -788,8 +788,8 @@ type_check_array_access(ASTNode *expr, SemanticContext *ctx)
         return type_get_constructed_arg(object_type, 0);
     }
 
-    semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-        "semantic:array_access:target_not_indexable", "use-array-or-slice",
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+        PGY_CAUSE_ARRAY_ACCESS_TARGET_NOT_INDEXABLE, PGY_FIX_USE_ARRAY_OR_SLICE,
         expr->data.array_access.array,
         "Index access requires Array<T> or Slice<T>, got '%s'",
         object_type->name);
@@ -820,9 +820,9 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_class_object_type(target_type, ctx)
         || type_is_class_object_type(value_type, ctx)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_IMMUTABLE_FIELD_WRITE",
-            "semantic:subject:rebind_forbidden",
-            "mutate-field-or-use-method",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
+            PGY_CAUSE_SUBJECT_REBIND_FORBIDDEN,
+            PGY_FIX_MUTATE_FIELD_OR_USE_METHOD,
             expr,
             "Subject assignment is not allowed; subjects are identity-bearing active hosts. Mutate fields or methods on the existing subject instead of rebinding it with '='");
         return target_type;
@@ -845,7 +845,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                 if (decl != NULL && decl->type == AST_CLASS_DECL) {
                     NominalDeclKind nk = decl->data.class_decl.nominal_kind;
                     if (nk == NOMINAL_DECL_OBJECT) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_IMMUTABLE_FIELD_WRITE", "semantic:immutable_field:write", "reconstruct-or-change-host-kind", expr,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE, PGY_CAUSE_IMMUTABLE_FIELD_WRITE, PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, expr,
                             "object '%s' fields are read-only after construction.\n"
                             "Reason:\n"
                             "- object is an internal projection contract\n"
@@ -855,7 +855,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                             "- or construct a new object projection",
                             var_name);
                     } else if (nk == NOMINAL_DECL_TOBJECT) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_IMMUTABLE_FIELD_WRITE", "semantic:immutable_field:write", "reconstruct-or-change-host-kind", expr,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE, PGY_CAUSE_IMMUTABLE_FIELD_WRITE, PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, expr,
                             "tobject '%s' fields are immutable.\n"
                             "Reason:\n"
                             "- tobject is a boundary transfer contract\n"

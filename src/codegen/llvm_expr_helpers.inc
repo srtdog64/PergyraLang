@@ -1726,11 +1726,11 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
     }
 
     if (source_name == NULL) {
-        llvm_set_error_at_with_hints(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:slot:binding_missing", "use-slot-bound-identifier", "LLVM slot operation requires an identifier/view/move source with a known slot binding");
+        llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_BINDING_MISSING, PGY_FIX_USE_SLOT_BOUND_IDENTIFIER, "LLVM slot operation requires an identifier/view/move source with a known slot binding");
         return NULL;
     }
     if (inner == NULL) {
-        llvm_set_error_at_with_hints(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:slot:inner_type_missing", "annotate-concrete-type", "LLVM slot operation on '%s' requires a concrete slot inner type; silent Int fallback is no longer allowed",
+        llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM slot operation on '%s' requires a concrete slot inner type; silent Int fallback is no longer allowed",
             source_name);
         return NULL;
     }

@@ -122,7 +122,7 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 current_host_decl(SemanticContext *ctx)
 {
     if (ctx == NULL)
@@ -252,8 +252,8 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
     declared_effects = declared_effects_from_function_node(method, ctx, NULL);
     semantic_record_effect(ctx, declared_effects);
     if (ctx->in_parallel && type_effect_mask_has(declared_effects, EFFECT_SECURE)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "semantic:parallel:secure_in_task", "serialize-outside-parallel", expr,
-            "Parallel context does not permit calling secure-effect method '%s'; serialize capability-bearing operations outside the parallel block",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
+            "Parallel context does not permit calling secure-effect method '%s'; serialize authority-bearing operations outside the parallel block",
             method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>");
         if (method->data.func_decl.return_type != NULL)
             return resolve_type_node(method->data.func_decl.return_type, ctx);
@@ -271,10 +271,10 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
     expected = method->data.func_decl.param_count - implicit_self;
     provided = expr->data.call.arg_count;
     if (provided != expected) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
-            "'%s' expects %zu argument(s), got %zu",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
+            "'%s' expects %llu argument(s), got %llu",
             method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>",
-            expected, provided);
+            (unsigned long long) expected, (unsigned long long) provided);
         if (method->data.func_decl.return_type != NULL)
             return resolve_type_node(method->data.func_decl.return_type, ctx);
         return TYPE_VOID;
@@ -288,11 +288,11 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
         Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
         if (param_type != NULL && arg_type != NULL
             && !type_is_assignable(arg_type, param_type)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                "semantic:call:arg_type_mismatch", "align-arg-type",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_CALL_ARG_TYPE_MISMATCH, PGY_FIX_ALIGN_ARG_TYPE,
                 expr->data.call.arguments[i],
-                "Argument %zu for '%s' expects '%s', got '%s'",
-                i + 1,
+                "Argument %llu for '%s' expects '%s', got '%s'",
+                (unsigned long long) (i + 1),
                 method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>",
                 param_type->name != NULL ? param_type->name : "<type>",
                 arg_type->name != NULL ? arg_type->name : "<type>");

@@ -1,6 +1,6 @@
 # Pergyra Beta Closure Master Board
 
-마지막 업데이트: 2026-04-18
+마지막 업데이트: 2026-04-20
 
 ## 목적
 
@@ -16,7 +16,7 @@
 ## 현재 판정
 
 - 현재 단계: `late-stage alpha / beta-closure sprint`
-- 베타 진행률 추정: `약 84%`
+- 베타 진행률 추정: `약 86%`
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
   - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure`다
@@ -40,12 +40,22 @@
 | B0-1 Intent / Zone / World | 진행 중 | 84% | 차단 | observability baseline은 생겼고 embedding/handoff 핵심 진단은 `Contract source` 구조로 올라왔지만 authority/provenance depth가 더 남음 |
 | B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
 | B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
-| B0-4 own/ref | 진행 중 | 76% | 차단 | boundary subset는 실구현 기준으로 넓어졌고 anchored-handle wording/consumer family 정렬도 전진했지만 arbitrary value/anchored handle 전체 ownership은 아직 미완 |
+| B0-4 own/ref | 진행 중 | 81% | 차단 | copy-value/general aggregate/slot-handle surface는 semantic에서 실제로 넓게 닫혔고 ownership wording/payload cleanup도 끝났지만 broader assignment/container/rebind/helper-chain audit와 남은 transitive edge 정렬이 남음 |
 | MIR-only declaration debt | 진행 중 | 80% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
 | Type-resolution DAG | 진행 중 | 66% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
-| surface trust docs | 진행 중 | 85% | 차단 | 주요 surface는 정렬됐지만 B0 잔여에 맞춘 최종 재분류가 남음 |
+| surface trust docs | 진행 중 | 87% | 차단 | 주요 surface는 정렬됐고 own/ref baseline도 넓어졌지만 B0 잔여에 맞춘 최종 재분류와 acceptance wording 고정이 남음 |
+
+최근 고정:
+
+- ownership diagnostics helper 9종이 `DiagPayload` 패턴으로 정렬됨
+- ownership vocabulary 1차 sweep 완료:
+  - `slot handle (anchored)`
+  - `slot handle (movable)`
+  - `authority-bearing`
+- semantic regression은 현재 기준으로 `1872 passed, 0 failed`
+- transpile regression은 현재 기준으로 `601 passed, 0 failed`
 
 ## Structural Closure — Type-resolution DAG
 

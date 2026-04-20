@@ -32,13 +32,13 @@ semantic_ownership_value_label(OwnershipTypeClass klass)
 {
     switch (klass) {
     case OWNERSHIP_TYPE_MOVE_ONLY:
-        return "movable resource";
+        return "slot handle (movable)";
     case OWNERSHIP_TYPE_SUBJECT_IDENTITY:
         return "subject";
     case OWNERSHIP_TYPE_BORROW_TRACKED:
         return "boundary value";
     case OWNERSHIP_TYPE_ANCHORED_HANDLE:
-        return "anchored handle";
+        return "slot handle (anchored)";
     case OWNERSHIP_TYPE_COPY_ONLY:
     default:
         return "value";
@@ -50,13 +50,13 @@ semantic_ownership_provenance_label(OwnershipTypeClass klass)
 {
     switch (klass) {
     case OWNERSHIP_TYPE_MOVE_ONLY:
-        return "movable-resource provenance";
+        return "slot-handle (movable) provenance";
     case OWNERSHIP_TYPE_SUBJECT_IDENTITY:
         return "subject provenance";
     case OWNERSHIP_TYPE_BORROW_TRACKED:
         return "boundary provenance";
     case OWNERSHIP_TYPE_ANCHORED_HANDLE:
-        return "anchored-handle provenance";
+        return "slot-handle (anchored) provenance";
     case OWNERSHIP_TYPE_COPY_ONLY:
     default:
         return "value provenance";
@@ -211,6 +211,10 @@ semantic_validate_borrowed_escape(ASTNode *site,
     }
 }
 
+/* DiagPayload pattern proof (P5): caller signature is unchanged but the
+ * diagnostic is emitted through the payload renderer.  Future renderers
+ * (LSP quick-fix, AI-router structured output) can consume the payload
+ * fields directly without re-parsing the rendered message. */
 static void
 semantic_report_borrowed_new_binding_escape(ASTNode *site,
                                             ASTNode *source_expr,
@@ -221,7 +225,19 @@ semantic_report_borrowed_new_binding_escape(ASTNode *site,
                                             const char *provenance_label)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
-    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+    DiagPayload payload;
+    diag_payload_init(&payload);
+    payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
+    payload.cause_ir = PGY_CAUSE_BORROW_ESCAPE;
+    payload.fix_source = PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE;
+    payload.site = site;
+    payload.value_label = value_label;
+    payload.provenance_label = provenance_label;
+    payload.borrowed_name = borrowed_name;
+    payload.consumer_name = semantic_current_consumer_name(ctx);
+    payload.secondary_name = binding_name;
+
+    semantic_emit_payload(ctx, &payload,
         "Borrowed ref %s '%s' cannot escape into a new binding '%s' from '%s'.\n"
         "Reason:\n"
         "- consumer path is function '%s'\n"
@@ -256,8 +272,20 @@ semantic_report_borrowed_return_escape(ASTNode *site,
                                        bool summary_only)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
+    DiagPayload payload;
+    diag_payload_init(&payload);
+    payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
+    payload.cause_ir = PGY_CAUSE_BORROW_ESCAPE;
+    payload.fix_source = PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE;
+    payload.site = site;
+    payload.value_label = value_label;
+    payload.provenance_label = provenance_label;
+    payload.replacement_label = replacement_label;
+    payload.borrowed_name = borrowed_name;
+    payload.consumer_name = semantic_current_consumer_name(ctx);
+
     if (summary_only) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        semantic_emit_payload(ctx, &payload,
             "Borrowed ref %s '%s' cannot escape through return summary in '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
@@ -278,7 +306,7 @@ semantic_report_borrowed_return_escape(ASTNode *site,
             provenance_label,
             replacement_label != NULL ? replacement_label : "a value result");
     } else {
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        semantic_emit_payload(ctx, &payload,
             "Borrowed ref %s '%s' cannot escape via return from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
@@ -313,7 +341,20 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
 {
     char *target_name = semantic_assignment_target_path(target_expr);
     char *source_path = semantic_assignment_target_path(source_expr);
-    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+    DiagPayload payload;
+    diag_payload_init(&payload);
+    payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
+    payload.cause_ir = PGY_CAUSE_BORROW_ESCAPE;
+    payload.fix_source = PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE;
+    payload.site = site;
+    payload.value_label = value_label;
+    payload.provenance_label = provenance_label;
+    payload.borrowed_name = borrowed_name;
+    payload.consumer_name = semantic_current_consumer_name(ctx);
+    payload.secondary_name = target_name;
+    payload.extra = rebind_label;
+
+    semantic_emit_payload(ctx, &payload,
         "Borrowed ref %s '%s' cannot escape through assignment rebind into '%s' from '%s'.\n"
         "Reason:\n"
         "- consumer path is function '%s'\n"
@@ -340,6 +381,9 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
     free(source_path);
 }
 
+/* P5 payload pattern: 10-param helper now carries structured fields via
+ * DiagPayload so future renderers can read container_kind/transfer_label
+ * etc. without parsing the rendered message. */
 static void
 semantic_report_borrowed_container_store_escape(ASTNode *site,
                                                 ASTNode *source_expr,
@@ -353,8 +397,22 @@ semantic_report_borrowed_container_store_escape(ASTNode *site,
                                                 const char *transfer_label)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
-    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-        "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+    DiagPayload payload;
+    diag_payload_init(&payload);
+    payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
+    payload.cause_ir = PGY_CAUSE_BORROW_ESCAPE;
+    payload.fix_source = PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE;
+    payload.site = site;
+    payload.value_label = value_label;
+    payload.provenance_label = provenance_label;
+    payload.replacement_label = replacement_label;
+    payload.transfer_label = transfer_label;
+    payload.borrowed_name = borrowed_name;
+    payload.consumer_name = semantic_current_consumer_name(ctx);
+    payload.secondary_name = container_name;
+    payload.kind_label = container_kind;
+
+    semantic_emit_payload(ctx, &payload,
         "Borrowed ref %s '%s' cannot escape through %s store%s%s%s.\n"
         "Reason:\n"
         "- consumer path is function '%s'\n"
@@ -396,9 +454,20 @@ semantic_report_borrowed_channel_send_escape(ASTNode *site,
                                              bool summary_only)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
+    DiagPayload payload;
+    diag_payload_init(&payload);
+    payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
+    payload.cause_ir = PGY_CAUSE_BORROW_ESCAPE;
+    payload.fix_source = PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE;
+    payload.site = site;
+    payload.value_label = value_label;
+    payload.provenance_label = provenance_label;
+    payload.replacement_label = replacement_label;
+    payload.borrowed_name = borrowed_name;
+    payload.consumer_name = semantic_current_consumer_name(ctx);
+
     if (summary_only) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        semantic_emit_payload(ctx, &payload,
             "Borrowed ref %s '%s' cannot escape through channel summary in '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
@@ -422,8 +491,7 @@ semantic_report_borrowed_channel_send_escape(ASTNode *site,
             replacement_label != NULL ? replacement_label
                                       : "copied/value/projection result");
     } else {
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        semantic_emit_payload(ctx, &payload,
             "Borrowed ref %s '%s' cannot escape through channel send from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
@@ -461,16 +529,28 @@ semantic_report_borrowed_slot_handle_escape(ASTNode *site,
                                             bool summary_only)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
+    DiagPayload payload;
+    diag_payload_init(&payload);
+    payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
+    payload.cause_ir = PGY_CAUSE_BORROW_ESCAPE;
+    payload.fix_source = PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE;
+    payload.site = site;
+    payload.replacement_label = replacement_label;
+    payload.borrowed_name = borrowed_name;
+    payload.consumer_name = semantic_current_consumer_name(ctx);
+    payload.kind_label = escape_kind;
+    payload.extra = secondary_fix;
+    (void)detail_line;
+
     if (summary_only) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
-            "Borrowed ref anchored handle '%s' cannot escape %s summary in '%s' from '%s'.\n"
+        semantic_emit_payload(ctx, &payload,
+            "Borrowed ref slot handle (anchored) '%s' cannot escape %s summary in '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
-            "- '%s' entered this function as a borrowed 'ref' anchored handle\n"
-            "- '%s' is derived from anchored-handle provenance rooted at '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' slot handle (anchored)\n"
+            "- '%s' is derived from slot-handle (anchored) provenance rooted at '%s'\n"
             "- 'ref' is a non-owning borrow tied to the current call boundary\n"
-            "- summary analysis proves a %s path can let this anchored handle outlive that boundary\n"
+            "- summary analysis proves a %s path can let this slot handle (anchored) outlive that boundary\n"
             "Fix:\n"
             "- %s\n"
             "- %s",
@@ -490,13 +570,12 @@ semantic_report_borrowed_slot_handle_escape(ASTNode *site,
             secondary_fix != NULL ? secondary_fix
                                   : "or change the parameter to 'own' if transfer is intended");
     } else {
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
-            "Borrowed ref anchored handle '%s' cannot escape %s from '%s'.\n"
+        semantic_emit_payload(ctx, &payload,
+            "Borrowed ref slot handle (anchored) '%s' cannot escape %s from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
-            "- '%s' entered this function as a borrowed 'ref' anchored handle\n"
-            "- '%s' is derived from anchored-handle provenance rooted at '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' slot handle (anchored)\n"
+            "- '%s' is derived from slot-handle (anchored) provenance rooted at '%s'\n"
             "- 'ref' is a non-owning borrow tied to the current call boundary\n"
             "%s"
             "Fix:\n"
@@ -530,10 +609,18 @@ semantic_report_named_boundary_argument_required(ASTNode *site,
                                                  const char *bind_fix)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
-    semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-        "semantic:move:source_not_named",
-        "bind-to-named-variable-before-move",
-        site,
+    DiagPayload payload;
+    diag_payload_init(&payload);
+    payload.code = PGY_CODE_SEM_TYPE_MISMATCH;
+    payload.cause_ir = PGY_CAUSE_MOVE_SOURCE_NOT_NAMED;
+    payload.fix_source = PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE;
+    payload.site = site;
+    payload.value_label = value_label_lower;
+    payload.consumer_name = semantic_current_consumer_name(ctx);
+    payload.extra = bind_fix;
+    (void)value_label_cap;
+
+    semantic_emit_payload(ctx, &payload,
         "%s boundary arguments must use a named variable%s%s%s.\n"
         "Reason:\n"
         "- own/ref %s boundaries need one stable source binding for moved-here / borrowed-here provenance\n"
@@ -568,10 +655,23 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
     bool summary_only_escape = transitive_ref_escape
         && callee_name != NULL
         && strcmp(callee_name, consumer_name) == 0;
+    DiagPayload payload;
+    diag_payload_init(&payload);
+    payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
+    payload.cause_ir = PGY_CAUSE_BORROW_ESCAPE;
+    payload.fix_source = PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE;
+    payload.site = site;
+    payload.value_label = value_label;
+    payload.provenance_label = provenance_label;
+    payload.borrowed_name = borrowed_name;
+    payload.consumer_name = consumer_name;
+    payload.secondary_name = callee_name;
+    payload.kind_label = mode_label;
+    payload.extra = local_fix_label;
+    (void)mode_label;
 
     if (summary_only_escape) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        semantic_emit_payload(ctx, &payload,
             "Borrowed ref %s '%s' cannot escape through helper/function summary in '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
@@ -592,8 +692,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
             provenance_label != NULL ? provenance_label : "boundary provenance",
             local_fix_label != NULL ? local_fix_label : "value");
     } else if (transitive_ref_escape) {
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        semantic_emit_payload(ctx, &payload,
             "Borrowed ref %s '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
@@ -616,8 +715,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
             callee_name != NULL ? callee_name : "<callee>",
             local_fix_label != NULL ? local_fix_label : "value");
     } else {
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        semantic_emit_payload(ctx, &payload,
             "Borrowed ref %s '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
@@ -656,9 +754,21 @@ semantic_report_borrowed_constructor_field_escape(ASTNode *site,
                                                   bool identity_binding)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
+    DiagPayload payload;
+    diag_payload_init(&payload);
+    payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
+    payload.cause_ir = PGY_CAUSE_BORROW_ESCAPE;
+    payload.fix_source = PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE;
+    payload.site = site;
+    payload.value_label = value_label;
+    payload.provenance_label = provenance_label;
+    payload.replacement_label = snapshot_label;
+    payload.borrowed_name = borrowed_name;
+    payload.consumer_name = semantic_current_consumer_name(ctx);
+    payload.secondary_name = constructor_name;
+    payload.kind_label = constructor_field;
 
-    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-        "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+    semantic_emit_payload(ctx, &payload,
         "Borrowed ref %s '%s' cannot escape through constructor field store '%s.%s' from '%s'.\n"
         "Reason:\n"
         "- consumer path is function '%s'\n"

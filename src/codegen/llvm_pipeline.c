@@ -211,7 +211,7 @@ llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
             realloc(ctx->generic_templates,
                     (size_t)new_capacity * sizeof(LLVMGenericTemplate));
         if (new_templates == NULL) {
-            llvm_set_error_with_hints(ctx, "PGY_LLVM_OOM", "llvm:memory:exhausted", "reduce-unit-size-or-raise-limit", "out of memory growing generic_templates");
+            llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_OOM, PGY_CAUSE_LLVM_MEMORY_EXHAUSTED, PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT, "out of memory growing generic_templates");
             return false;
         }
         memset(new_templates + ctx->generic_template_capacity, 0,
@@ -330,7 +330,7 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
             LLVMBuildCall2(ctx->builder, top_level_entry->fn_type,
                            top_level_entry->fn, NULL, 0, "");
         } else {
-            llvm_set_error_with_hints(ctx, "PGY_LLVM_MIR_ROUTINE_MISSING", "llvm:mir:routine_missing", "inspect-mir-inventory", "MIR-only LLVM path missing emitted top-level executable wrapper '__pgy_top_level_exec'");
+            llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_MIR_ROUTINE_MISSING, PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING, PGY_FIX_INSPECT_MIR_INVENTORY, "MIR-only LLVM path missing emitted top-level executable wrapper '__pgy_top_level_exec'");
             llvm_scope_pop(ctx);
             return;
         }

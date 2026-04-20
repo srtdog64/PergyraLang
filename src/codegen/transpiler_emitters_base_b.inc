@@ -141,12 +141,14 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     } else if (owner_name != NULL) {
         resolved_host_decl = transpiler_find_host_decl_from_owner_local(
             ctx, owner_name, owner_ast_type);
-    } else if (!owner_is_zone
-               && node != NULL
-               && node->type == AST_FUNC_DECL
-               && node->data.func_decl.within_zone != NULL) {
-        resolved_host_decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_ZONE_DECL, node->data.func_decl.within_zone);
+    } else if (saved_host_decl != NULL
+               && (saved_host_decl->type == AST_ZONE_DECL
+                   || saved_host_decl->type == AST_WORLD_DECL
+                   || saved_host_decl->type == AST_RELATION_DECL
+                   || saved_host_decl->type == AST_EFFECT_DECL
+                   || saved_host_decl->type == AST_CLASS_DECL
+                   || saved_host_decl->type == AST_ROLE_DECL)) {
+        resolved_host_decl = saved_host_decl;
     }
 
     if (owner_name != NULL && !owner_is_role && resolved_host_decl == NULL) {
@@ -215,9 +217,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         if (pt == NULL) {
             if (ctx->backend_error == NULL) {
                 ctx->backend_error = strdup_fmt(
-                    "cannot determine parameter type for MIR-emitted function '%s' at argument %zu",
+                    "cannot determine parameter type for MIR-emitted function '%s' at argument %llu",
                     name != NULL ? name : "<function>",
-                    i);
+                    (unsigned long long) i);
             }
             codebuf_destroy(params_sig);
             free(header_decl);
@@ -626,9 +628,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             transpiler_ssa_map_clear(&block_ssa_map);
             if (ctx->backend_error == NULL) {
                 ctx->backend_error = strdup_fmt(
-                    "MIR block emission failed in function '%s' at block %zu: %s",
+                    "MIR block emission failed in function '%s' at block %llu: %s",
                     name != NULL ? name : "<function>",
-                    block->id,
+                    (unsigned long long) block->id,
                     block_reason[0] != '\0' ? block_reason : "unknown reason");
             }
             ctx->slot_var_count = saved_slot_count;
@@ -792,24 +794,24 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
             const char *reason_cause = NULL;
             const char *reason_fix   = NULL;
             if (strstr(reason, "unresolved identifier") != NULL) {
-                reason_code  = "PGY_MIR_UNRESOLVED_LOCAL";
-                reason_cause = "mir:local:unresolved";
-                reason_fix   = "report-compiler-bug";
+                reason_code  = PGY_CODE_MIR_UNRESOLVED_LOCAL;
+                reason_cause = PGY_CAUSE_MIR_LOCAL_UNRESOLVED;
+                reason_fix   = PGY_FIX_REPORT_COMPILER_BUG;
             } else if (strstr(reason, "topology") != NULL
                        || strstr(reason, "no routine") != NULL
                        || strstr(reason, "no declaration AST") != NULL) {
-                reason_code  = "PGY_MIR_TOPOLOGY_INVALID";
-                reason_cause = "mir:topology:invalid";
-                reason_fix   = "report-compiler-bug";
+                reason_code  = PGY_CODE_MIR_TOPOLOGY_INVALID;
+                reason_cause = PGY_CAUSE_MIR_TOPOLOGY_INVALID;
+                reason_fix   = PGY_FIX_REPORT_COMPILER_BUG;
             } else if (strstr(reason, "unsupported MIR signature") != NULL
                        || strstr(reason, "wrong MIR kind") != NULL) {
-                reason_code  = "PGY_MIR_SIGNATURE_UNSUPPORTED";
-                reason_cause = "mir:signature:unsupported";
-                reason_fix   = "simplify-function-signature";
+                reason_code  = PGY_CODE_MIR_SIGNATURE_UNSUPPORTED;
+                reason_cause = PGY_CAUSE_MIR_SIGNATURE_UNSUPPORTED;
+                reason_fix   = PGY_FIX_SIMPLIFY_FUNCTION_SIGNATURE;
             } else if (strstr(reason, "too many MIR SSA locals") != NULL) {
-                reason_code  = "PGY_MIR_SSA_LIMIT";
-                reason_cause = "mir:ssa:capacity_exceeded";
-                reason_fix   = "refactor-or-raise-limit";
+                reason_code  = PGY_CODE_MIR_SSA_LIMIT;
+                reason_cause = PGY_CAUSE_MIR_SSA_CAPACITY_EXCEEDED;
+                reason_fix   = PGY_FIX_REFACTOR_OR_RAISE_LIMIT;
             }
             transpiler_set_backend_error_with_hints(ctx, reason_code,
                 reason_cause, reason_fix,
@@ -1839,8 +1841,9 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             if (arity != node->data.let_destructure.name_count) {
                 if (ctx->backend_error == NULL) {
                     ctx->backend_error = strdup_fmt(
-                        "tuple destructuring arity mismatch: binding %zu, tuple arity %zu",
-                        node->data.let_destructure.name_count, arity);
+                        "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
+                        (unsigned long long) node->data.let_destructure.name_count,
+                        (unsigned long long) arity);
                 }
                 free(init_expr);
                 return;
@@ -1968,7 +1971,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         if (party_type == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot resolve party type for bind statement '%s.%s = %s'",
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve party type for bind statement '%s.%s = %s'",
                 pvar != NULL ? pvar : "<party>",
                 slot != NULL ? slot : "<slot>",
                 role != NULL ? role : "<role>");
@@ -1984,7 +1987,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         {
             ASTNode *it = find_party_decl(ctx, party_type);
             if (it == NULL) {
-                transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot resolve party declaration '%s' while emitting bind statement '%s.%s = %s'",
+                transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve party declaration '%s' while emitting bind statement '%s.%s = %s'",
                     party_type,
                     pvar != NULL ? pvar : "<party>",
                     slot != NULL ? slot : "<slot>",
@@ -2004,7 +2007,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         if (ability_name == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, "PGY_C_TYPE_UNSUPPORTED", "c_codegen:type:unsupported", "use-llvm-backend-or-extend-transpiler", "cannot resolve required ability tag for party slot '%s.%s' while emitting bind statement",
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve required ability tag for party slot '%s.%s' while emitting bind statement",
                 party_type,
                 slot != NULL ? slot : "<slot>");
             free(ability_tag);

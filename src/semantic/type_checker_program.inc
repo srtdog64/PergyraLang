@@ -34,7 +34,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (node->data.func_decl.within_zone != NULL
             && find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 node->data.func_decl.within_zone) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "action '%s' references unknown zone '%s'",
                 name != NULL ? name : "<anonymous>",
                 node->data.func_decl.within_zone);
@@ -44,7 +44,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.func_decl.within_zone);
             if (zone_decl != NULL
                 && !explicit_type_reference_allowed(zone_decl, node, ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' cannot reference non-exported zone '%s' from another module",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.within_zone);
@@ -52,7 +52,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_decl != NULL
                 && !zone_decl->is_exported
                 && callable_contract_is_externally_visible(node, ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' cannot reference non-exported zone '%s' in an externally visible contract",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.within_zone);
@@ -62,7 +62,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (node->data.func_decl.causes_effect != NULL
             && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
                 node->data.func_decl.causes_effect) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "action '%s' references unknown effect '%s'",
                 name != NULL ? name : "<anonymous>",
                 node->data.func_decl.causes_effect);
@@ -72,7 +72,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.func_decl.causes_effect);
             if (effect_decl != NULL
                 && !explicit_type_reference_allowed(effect_decl, node, ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' cannot reference non-exported effect '%s' from another module",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.causes_effect);
@@ -80,7 +80,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (effect_decl != NULL
                 && !effect_decl->is_exported
                 && callable_contract_is_externally_visible(node, ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' cannot reference non-exported effect '%s' in an externally visible contract",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.causes_effect);
@@ -101,7 +101,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             }
 
             if (!found) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' authorized subject '%s' must be 'self' or one of the action parameters",
                     name != NULL ? name : "<anonymous>",
                     auth_name != NULL ? auth_name : "<subject>");
@@ -111,7 +111,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             auth_type_name = find_action_binding_type_name(
                 node, enclosing_nominal, ctx, auth_name);
             if (auth_type_name == NULL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' authorized subject '%s' must be a subject host",
                     name != NULL ? name : "<anonymous>",
                     auth_name != NULL ? auth_name : "<subject>");
@@ -124,7 +124,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_decl != NULL && subject_name != NULL
                 && !domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
                     zone_decl->data.zone_decl.slot_count, ctx, subject_name)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' references zone '%s', but that zone has no subject slot for '%s'",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.within_zone,
@@ -141,7 +141,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     }
                     if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
                             zone_decl->data.zone_decl.slot_count, ctx, auth_type_name)) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                             "action '%s' authorized subject '%s' has type '%s', but zone '%s' has no matching subject slot.\n"
                             "Reason:\n"
                             "- action contract derives authority provenance from binding '%s'\n"
@@ -162,7 +162,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                             node->data.func_decl.within_zone,
                             node->data.func_decl.within_zone);
                     } else if (!zone_has_authority_for_subject_type(zone_decl, ctx, auth_type_name)) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                             "action '%s' authorized subject '%s' has type '%s', but zone '%s' declares no matching authority.\n"
                             "Reason:\n"
                             "- within-zone contract comes from action clause 'within %s'\n"
@@ -231,7 +231,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     }
 
                     if (!matched) {
-                        semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                             "action '%s' causes effect '%s', but no self/parameter matches effect target type '%s'",
                             name != NULL ? name : "<anonymous>",
                             node->data.func_decl.causes_effect,
@@ -245,7 +245,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     node->data.func_decl.within_zone);
                 if (zone_decl != NULL
                     && !zone_has_effect_layer_type(zone_decl, node->data.func_decl.causes_effect)) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                         "action '%s' causes effect '%s', but zone '%s' has no matching effect slot.\n"
                         "Reason:\n"
                         "- action contract declares causes '%s'\n"
@@ -311,13 +311,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.func_decl.return_type != NULL)
         return_type = resolve_type_node(node->data.func_decl.return_type, ctx);
     if (type_is_class_object_type(return_type, ctx)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
-            "semantic:anchored_handle:return_boundary",
-            "return-projection-or-keep-local",
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+            PGY_CAUSE_ANCHORED_HANDLE_RETURN_BOUNDARY,
+            PGY_FIX_RETURN_PROJECTION_OR_KEEP_LOCAL,
             node->data.func_decl.return_type,
             "Returning subjects by value is not supported yet.\n"
             "Reason:\n"
-            "- return type '%s' is a subject, and subject values are zone/world anchored handles\n"
+            "- return type '%s' is a subject, and subject values are zone/world slot handles (anchored)\n"
             "Fix:\n"
             "- return a struct/class/object/tobject projection instead\n"
             "- keep the subject local to its owning zone/world\n"
@@ -366,20 +366,20 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (param->mode != PARAM_MODE_DEFAULT
             && !type_is_anchored_resource_handle(param_types[i])) {
             if (!type_is_general_boundary_type(param_types[i], ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:param_mode:unsupported_boundary_type",
-                    "use-boundary-visible-type-or-drop-qualifier",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_PARAM_MODE_UNSUPPORTED_BOUNDARY_TYPE,
+                    PGY_FIX_USE_BOUNDARY_VISIBLE_TYPE_OR_DROP_QUALIFIER,
                     node,
                     "'%s' parameter mode requires a boundary-visible type at function boundaries.\n"
                     "Reason:\n"
                     "- value is parameter '%s'\n"
                     "- ownership mode is '%s'\n"
                     "- consumer path is function '%s'\n"
-                    "- type '%s' is not a copy-visible value, boundary-tracked aggregate, subject identity, or movable resource\n"
+                    "- type '%s' is not a copy-visible value, boundary-tracked aggregate, subject identity, or slot handle (movable)\n"
                     "- own/ref only changes boundary semantics when the parameter carries ownership-relevant state across the call\n"
                     "Fix:\n"
                     "- remove '%s' and pass it as an ordinary value\n"
-                    "- or change the parameter type to a boundary-visible value / subject / movable resource",
+                    "- or change the parameter type to a boundary-visible value / subject / slot handle (movable)",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
                     param->name != NULL ? param->name : "<param>",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
@@ -391,13 +391,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (type_is_anchored_resource_handle(param_types[i])) {
             if (param->mode == PARAM_MODE_DEFAULT) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:slot_param:qualifier_missing",
-                    "annotate-slot-param-qualifier",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_SLOT_PARAM_QUALIFIER_MISSING,
+                    PGY_FIX_ANNOTATE_SLOT_PARAM_QUALIFIER,
                     node,
                     "Anchored handle parameters require explicit 'own' or 'ref'.\n"
                     "Reason:\n"
-                    "- anchored handles must declare whether the boundary borrows or transfers ownership\n"
+                    "- slot handles (anchored) must declare whether the boundary borrows or transfers ownership\n"
                     "- implicit parameter passing would hide that boundary contract\n"
                     "Fix:\n"
                     "- mark the parameter as 'ref' for borrowing\n"
@@ -422,9 +422,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         symbol_destroy(func_sym);
     } else if (!scope_declare(ctx->scope, func_sym)) {
         semantic_error_with_hints(ctx,
-            "PGY_SEM_REDECLARATION",
-            "semantic:function:duplicate_name",
-            "rename-or-remove-duplicate",
+            PGY_CODE_SEM_REDECLARATION,
+            PGY_CAUSE_FUNCTION_DUPLICATE_NAME,
+            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
             node, "Redeclaration of function '%s'", name);
         symbol_destroy(func_sym);
         return false;
@@ -536,7 +536,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             effect_mask_to_string(derived_effects, derived_buf, sizeof(derived_buf));
             effect_mask_to_string(missing_effects, missing_buf, sizeof(missing_buf));
             effect_mask_to_string(declared_effects, declared_buf, sizeof(declared_buf));
-            semantic_error_with_hints(ctx, "PGY_SEM_EFFECT_CONFLICT", "semantic:effect:incompatible_combo", "split-effect-families", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_EFFECT_CONFLICT, PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO, PGY_FIX_SPLIT_EFFECT_FAMILIES, node,
                 "Function '%s' is missing declared effects: %s (declared: %s, derived from body: %s)",
                 name != NULL ? name : "<anonymous>",
                 missing_buf, declared_buf, derived_buf);
@@ -549,7 +549,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                                        func_type->data.function.effect_mask)) {
             effect_mask_to_string(func_type->data.function.effect_mask,
                                   derived_buf, sizeof(derived_buf));
-            semantic_warning_code(ctx, "PGY_SEM_EFFECT_CONFLICT", node,
+            semantic_warning_code(ctx, PGY_CODE_SEM_EFFECT_CONFLICT, node,
                 "Function '%s' combines effect classes that are currently treated as conflicting (%s).\n"
                 "Reason:\n"
                 "- derived body effects joined into '%s'\n"
@@ -567,10 +567,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             && node->data.func_decl.within_zone != NULL
             && type_effect_mask_requires_authority(func_type->data.function.effect_mask)
             && node->data.func_decl.authorized_by_count == 0) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "secure action '%s' within zone '%s' must declare 'authorized by'.\n"
                 "Reason:\n"
-                "- action body derives authority-sensitive effects from capability-bearing work\n"
+                "- action body derives authority-sensitive effects from authority-bearing work\n"
                 "- zone '%s' makes this action part of an explicit authority boundary\n"
                 "Contract source:\n"
                 "- action header 'within %s' plus the derived authority-sensitive effect path inside the body\n"
@@ -587,7 +587,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             && node->data.func_decl.within_zone != NULL
             && node->data.func_decl.causes_effect != NULL
             && node->data.func_decl.authorized_by_count == 0) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ACTION_CONTRACT_INVALID", "semantic:action_contract", "align-action-surface-with-zone", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "action '%s' causing effect '%s' within zone '%s' must declare 'authorized by'.\n"
                 "Reason:\n"
                 "- action contract declares causes '%s'\n"
@@ -681,9 +681,9 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             symbol_destroy(class_sym);
         } else if (!scope_declare(ctx->scope, class_sym)) {
             semantic_error_with_hints(ctx,
-                "PGY_SEM_REDECLARATION",
-                "semantic:class:duplicate_name",
-                "rename-or-remove-duplicate",
+                PGY_CODE_SEM_REDECLARATION,
+                PGY_CAUSE_CLASS_DUPLICATE_NAME,
+                PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
                 node, "Redeclaration of class '%s'", name);
             symbol_destroy(class_sym);
             ctx->scope = saved;
@@ -750,9 +750,9 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             }
             if (field_decl == NULL
                 || field_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:domain:vessel_required",
-                    "declare-vessel-type",
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_DOMAIN_VESSEL_REQUIRED,
+                    PGY_FIX_DECLARE_VESSEL_TYPE,
                     field->type,
                     "subject vessel field '%s' must reference a vessel type",
                     field->name != NULL ? field->name : "<field>");
@@ -766,7 +766,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     /* struct declarations cannot have methods — use class or object */
     if (node->data.class_decl.nominal_kind == NOMINAL_DECL_STRUCT
         && node->data.class_decl.method_count > 0) {
-        semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", node,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, node,
             "struct '%s' cannot have methods; use 'class', 'subject', or 'object' instead",
             name != NULL ? name : "<struct>");
     }
@@ -1088,7 +1088,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     if (!type_resolution_build_topo_order(&ctx->type_resolution_graph,
                                           &topo_order,
                                           &topo_count)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_DEPENDENCY_CYCLE", "semantic:type_resolution:cycle", "break-cycle-via-indirection", program,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, program,
             "Type resolution topological ordering could not be constructed.\n"
             "Reason:\n"
             "- the semantic type dependency graph is not acyclic or not fully materialized\n"
@@ -1153,28 +1153,28 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 topo_ok = type_resolution_build_topo_order(g, &topo, &topo_count);
             }
 
-            fprintf(stderr, "[type-res-stats] nodes=%zu edges=%zu duplicate_labels=%zu topo_ok=%d topo_produced=%zu/%zu\n",
-                    g->node_count, g->edge_count, name_dup,
-                    topo_ok ? 1 : 0, topo_count, g->node_count);
-            fprintf(stderr, "[type-res-stats] resolve_type_node: calls=%zu unique_nodes=%zu revisit_rate=%.1f%%\n",
-                    g_resolve_type_node_calls, g_resolve_type_node_unique_nodes,
+            fprintf(stderr, "[type-res-stats] nodes=%llu edges=%llu duplicate_labels=%llu topo_ok=%d topo_produced=%llu/%llu\n",
+                    (unsigned long long) g->node_count, (unsigned long long) g->edge_count, (unsigned long long) name_dup,
+                    topo_ok ? 1 : 0, (unsigned long long) topo_count, (unsigned long long) g->node_count);
+            fprintf(stderr, "[type-res-stats] resolve_type_node: calls=%llu unique_nodes=%llu revisit_rate=%.1f%%\n",
+                    (unsigned long long) g_resolve_type_node_calls, (unsigned long long) g_resolve_type_node_unique_nodes,
                     g_resolve_type_node_calls > 0
                         ? 100.0 * (double)(g_resolve_type_node_calls - g_resolve_type_node_unique_nodes)
                           / (double)g_resolve_type_node_calls
                         : 0.0);
             {
                 size_t total = g_resolve_type_node_cache_hits + g_resolve_type_node_cache_misses;
-                fprintf(stderr, "[type-res-stats] cache: hits=%zu misses=%zu hit_rate=%.1f%%\n",
-                        g_resolve_type_node_cache_hits,
-                        g_resolve_type_node_cache_misses,
+                fprintf(stderr, "[type-res-stats] cache: hits=%llu misses=%llu hit_rate=%.1f%%\n",
+                        (unsigned long long) g_resolve_type_node_cache_hits,
+                        (unsigned long long) g_resolve_type_node_cache_misses,
                         total > 0
                             ? 100.0 * (double)g_resolve_type_node_cache_hits / (double)total
                             : 0.0);
             }
-            fprintf(stderr, "[type-res-stats] kind: TYPE_REF=%zu BUILTIN=%zu DECL=%zu ALIAS=%zu GENERIC_PARAM=%zu LOCAL_CONTRACT=%zu PROJECTION_PATH=%zu\n",
-                    kind_counts[0], kind_counts[1], kind_counts[2],
-                    kind_counts[3], kind_counts[4], kind_counts[5],
-                    kind_counts[6]);
+            fprintf(stderr, "[type-res-stats] kind: TYPE_REF=%llu BUILTIN=%llu DECL=%llu ALIAS=%llu GENERIC_PARAM=%llu LOCAL_CONTRACT=%llu PROJECTION_PATH=%llu\n",
+                    (unsigned long long) kind_counts[0], (unsigned long long) kind_counts[1], (unsigned long long) kind_counts[2],
+                    (unsigned long long) kind_counts[3], (unsigned long long) kind_counts[4], (unsigned long long) kind_counts[5],
+                    (unsigned long long) kind_counts[6]);
 
             /* Top 5 in-degree nodes */
             if (indeg != NULL && g->node_count > 0) {
@@ -1188,10 +1188,10 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                         }
                     }
                     if (!found || best_val == 0) break;
-                    fprintf(stderr, "[type-res-stats] top-indeg[%d] %s (in=%zu)\n",
+                    fprintf(stderr, "[type-res-stats] top-indeg[%d] %s (in=%llu)\n",
                             rank,
                             g->nodes[best].label != NULL ? g->nodes[best].label : "<?>",
-                            best_val);
+                            (unsigned long long) best_val);
                     indeg[best] = 0;
                 }
             }

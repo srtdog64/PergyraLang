@@ -31,9 +31,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 
     if (subject_count > 4) {
         semantic_warning(ctx, node,
-            "Zone '%s' declares %zu subject slots; prefer keeping active subjects to 4 or fewer and model supporting state as objects",
+            "Zone '%s' declares %llu subject slots; prefer keeping active subjects to 4 or fewer and model supporting state as objects",
             node->data.zone_decl.name,
-            subject_count);
+            (unsigned long long) subject_count);
     }
 
     if (subject_count > 1 && object_count == 0) {
@@ -68,13 +68,13 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         slot = find_zone_domain_slot(node, authority->data.zone_authority.subject_slot_name);
         if (slot == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", authority,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, authority,
                 "Zone authority references unknown subject slot '%s'",
                 authority->data.zone_authority.subject_slot_name);
             continue;
         }
         if (!slot->data.domain_slot.is_subject) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", authority,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, authority,
                 "Zone authority '%s' must reference a subject slot",
                 authority->data.zone_authority.subject_slot_name);
         }
@@ -122,7 +122,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 && other->data.zone_authority.subject_slot_name != NULL
                 && strcmp(authority->data.zone_authority.subject_slot_name,
                           other->data.zone_authority.subject_slot_name) == 0) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", other,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, other,
                     "Zone '%s' declares authority '%s' more than once.\n"
                     "Reason:\n"
                     "- zone authority must be uniquely attributable per subject slot\n"
@@ -163,7 +163,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             && !(decl != NULL
                  && decl->type == decl_type
                  && explicit_type_reference_allowed(decl, node, ctx))) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", layer_slot,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, layer_slot,
                 "Zone layer slot '%s' references unknown %s type '%s'.\n"
                 "Reason:\n"
                 "- zone layer slots must bind to declared %s contracts before semantic closure\n"
@@ -184,7 +184,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (layer_slot->data.zone_layer_slot.is_relation
             && layer_slot->data.zone_layer_slot.is_pool) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", layer_slot,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, layer_slot,
                 "Zone relation pool '%s' is not supported yet",
                 layer_slot->data.zone_layer_slot.slot_name != NULL
                     ? layer_slot->data.zone_layer_slot.slot_name
@@ -193,7 +193,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         if (!layer_slot->data.zone_layer_slot.is_relation
             && layer_slot->data.zone_layer_slot.is_pool
             && layer_slot->data.zone_layer_slot.pool_capacity <= 0) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", layer_slot,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, layer_slot,
                 "Zone effect pool '%s' must declare a positive capacity",
                 layer_slot->data.zone_layer_slot.slot_name != NULL
                     ? layer_slot->data.zone_layer_slot.slot_name
@@ -215,7 +215,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         if (!state_ok)
             continue;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", apply,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, apply,
                 "Zone apply references unknown effect slot '%s'.\n"
                 "Reason:\n"
                 "- apply mutates an effect lifecycle and must target a declared zone effect slot\n"
@@ -230,7 +230,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, target_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", apply,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, apply,
                 "Zone apply references unknown target slot '%s'.\n"
                 "Reason:\n"
                 "- apply must target a declared zone slot\n"
@@ -247,7 +247,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_effect_contract(node, apply,
             effect_slot_name, target_slot_name, ctx, "apply");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", apply,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, apply,
                 "Zone apply must specify 'by <subjectSlot>' when authority is declared.\n"
                 "Reason:\n"
                 "- zone '%s' declares authority and apply mutates effect state on '%s'\n"
@@ -276,7 +276,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         if (!state_ok)
             continue;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, link,
                 "Zone link references unknown relation slot '%s'.\n"
                 "Reason:\n"
                 "- link mutates a relation lifecycle and must target a declared zone relation slot\n"
@@ -291,7 +291,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, left_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, link,
                 "Zone link references unknown left slot '%s'.\n"
                 "Reason:\n"
                 "- link needs a declared left endpoint slot\n"
@@ -306,7 +306,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, right_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, link,
                 "Zone link references unknown right slot '%s'.\n"
                 "Reason:\n"
                 "- link needs a declared right endpoint slot\n"
@@ -323,7 +323,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_relation_contract(node, link,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "link");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, link,
                 "Zone link must specify 'by <subjectSlot>' when authority is declared.\n"
                 "Reason:\n"
                 "- zone '%s' declares authority and link mutates relation state\n"
@@ -350,7 +350,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         if (!state_ok)
             continue;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", detach,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, detach,
                 "Zone detach references unknown effect slot '%s'.\n"
                 "Reason:\n"
                 "- detach mutates an effect lifecycle and must target a declared zone effect slot\n"
@@ -365,7 +365,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, target_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", detach,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, detach,
                 "Zone detach references unknown target slot '%s'.\n"
                 "Reason:\n"
                 "- detach must target a declared zone slot\n"
@@ -382,7 +382,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_effect_contract(node, detach,
             effect_slot_name, target_slot_name, ctx, "detach");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", detach,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, detach,
                 "Zone detach must specify 'by <subjectSlot>' when authority is declared.\n"
                 "Reason:\n"
                 "- zone '%s' declares authority and detach mutates effect lifecycle on '%s'\n"
@@ -411,7 +411,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         if (!state_ok)
             continue;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", unlink,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, unlink,
                 "Zone unlink references unknown relation slot '%s'.\n"
                 "Reason:\n"
                 "- unlink mutates a relation lifecycle and must target a declared zone relation slot\n"
@@ -426,7 +426,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, left_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", unlink,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, unlink,
                 "Zone unlink references unknown left slot '%s'.\n"
                 "Reason:\n"
                 "- unlink needs a declared left endpoint slot\n"
@@ -441,7 +441,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, right_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", unlink,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, unlink,
                 "Zone unlink references unknown right slot '%s'.\n"
                 "Reason:\n"
                 "- unlink needs a declared right endpoint slot\n"
@@ -458,7 +458,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_relation_contract(node, unlink,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "unlink");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", unlink,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, unlink,
                 "Zone unlink must specify 'by <subjectSlot>' when authority is declared.\n"
                 "Reason:\n"
                 "- zone '%s' declares authority and unlink mutates relation lifecycle\n"
@@ -482,7 +482,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             refresh->data.zone_refresh.derive_target_kind ? "bind"
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
         if (find_zone_domain_slot(node, object_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", refresh,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, refresh,
                 "Zone %s references unknown target slot '%s'.\n"
                 "Reason:\n"
                 "- the projection target must already be declared in the zone\n"
@@ -498,7 +498,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 action_name);
         }
         if (find_zone_domain_slot(node, source_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", refresh,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, refresh,
                 "Zone %s references unknown source slot '%s'.\n"
                 "Reason:\n"
                 "- projection sync must read from a declared zone slot\n"
@@ -521,7 +521,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             object_slot_name, source_slot_name, ctx, action_name);
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             if (boundary_projection) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", refresh,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, refresh,
                     "Zone %s to boundary target '%s' must specify 'by <subjectSlot>' when authority is declared.\n"
                     "Reason:\n"
                     "- boundary projection publishes authority-bearing state across the zone edge\n"
@@ -534,7 +534,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
                     action_name);
             } else {
-                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", refresh,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, refresh,
                     "Zone %s must specify 'by <subjectSlot>' when authority is declared.\n"
                     "Reason:\n"
                     "- the zone declares authority and this projection mutates local derived state\n"
@@ -555,7 +555,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *target_slot_name = maintain->data.zone_maintain_effect.target_slot_name;
         const char *participant_slot_name = maintain->data.zone_maintain_effect.participant_slot_name;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", maintain,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain references unknown effect slot '%s'.\n"
                 "Reason:\n"
                 "- maintain keeps an effect lifecycle active and must target a declared zone effect slot\n"
@@ -570,7 +570,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, target_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", maintain,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain references unknown target slot '%s'.\n"
                 "Reason:\n"
                 "- maintain must target a declared zone slot\n"
@@ -587,7 +587,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_effect_contract(node, maintain,
             effect_slot_name, target_slot_name, ctx, "maintain");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", maintain,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain must specify 'by <subjectSlot>' when authority is declared.\n"
                 "Reason:\n"
                 "- zone '%s' declares authority and maintain keeps effect '%s' active on '%s'\n"
@@ -657,7 +657,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *right_slot_name = maintain->data.zone_maintain_relation.right_slot_name;
         const char *participant_slot_name = maintain->data.zone_maintain_relation.participant_slot_name;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", maintain,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain references unknown relation slot '%s'.\n"
                 "Reason:\n"
                 "- maintain keeps a relation lifecycle active and must target a declared zone relation slot\n"
@@ -672,7 +672,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, left_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", maintain,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain references unknown left slot '%s'.\n"
                 "Reason:\n"
                 "- maintain needs a declared left endpoint slot\n"
@@ -687,7 +687,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
         }
         if (find_zone_domain_slot(node, right_slot_name) == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", maintain,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain references unknown right slot '%s'.\n"
                 "Reason:\n"
                 "- maintain needs a declared right endpoint slot\n"
@@ -704,7 +704,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_relation_contract(node, maintain,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", maintain,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain must specify 'by <subjectSlot>' when authority is declared.\n"
                 "Reason:\n"
                 "- zone '%s' declares authority and maintain keeps relation '%s' active\n"
@@ -781,7 +781,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *participant_slot_name = maintain->data.zone_maintain_state.participant_slot_name;
         state = find_zone_state(node, state_name);
         if (state == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", maintain,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain references unknown state '%s'.\n"
                 "Reason:\n"
                 "- maintain state aliases must reference a declared zone state\n"
@@ -899,7 +899,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", maintain,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain must specify 'by <subjectSlot>' when authority is declared.\n"
                 "Reason:\n"
                 "- zone '%s' declares authority and maintain keeps named state '%s' active\n"
@@ -921,7 +921,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             const char *left_slot_name = state->data.zone_state.left_or_target_slot_name;
             const char *right_slot_name = state->data.zone_state.right_slot_name;
             if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", state,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, state,
                     "Zone state '%s' references unknown relation slot '%s'.\n"
                     "Reason:\n"
                     "- state '%s' is declared as a relation-backed lifecycle alias\n"
@@ -938,7 +938,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     relation_slot_name != NULL ? relation_slot_name : "<unknown>");
             }
             if (find_zone_domain_slot(node, left_slot_name) == NULL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", state,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, state,
                     "Zone state '%s' references unknown left slot '%s'.\n"
                     "Reason:\n"
                     "- relation state '%s' needs a declared left endpoint slot\n"
@@ -954,7 +954,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     left_slot_name != NULL ? left_slot_name : "<unknown>");
             }
             if (find_zone_domain_slot(node, right_slot_name) == NULL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", state,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, state,
                     "Zone state '%s' references unknown right slot '%s'.\n"
                     "Reason:\n"
                     "- relation state '%s' needs a declared right endpoint slot\n"
@@ -975,7 +975,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             const char *effect_slot_name = state->data.zone_state.layer_slot_name;
             const char *target_slot_name = state->data.zone_state.left_or_target_slot_name;
             if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", state,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, state,
                     "Zone state '%s' references unknown effect slot '%s'.\n"
                     "Reason:\n"
                     "- state '%s' is declared as an effect-backed lifecycle alias\n"
@@ -992,7 +992,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     effect_slot_name != NULL ? effect_slot_name : "<unknown>");
             }
             if (find_zone_domain_slot(node, target_slot_name) == NULL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", state,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, state,
                     "Zone state '%s' references unknown target slot '%s'.\n"
                     "Reason:\n"
                     "- effect state '%s' needs a declared target slot\n"
@@ -1018,9 +1018,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 && other->data.zone_state.state_name != NULL
                 && strcmp(state_name, other->data.zone_state.state_name) == 0) {
                 semantic_error_with_hints(ctx,
-                    "PGY_SEM_REDECLARATION",
-                    "semantic:zone_state:duplicate_name",
-                    "rename-or-remove-duplicate",
+                    PGY_CODE_SEM_REDECLARATION,
+                    PGY_CAUSE_ZONE_STATE_DUPLICATE_NAME,
+                    PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
                     other,
                     "Redeclaration of zone state '%s'",
                     state_name);

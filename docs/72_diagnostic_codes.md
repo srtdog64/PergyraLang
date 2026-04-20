@@ -28,6 +28,13 @@ JSON output structure when `--error-format=json`:
 
 `code`, `cause_ir`, and `fix_source` are all optional. Legacy sites emit diagnostics without them. Consumers should treat a missing `code` as "not yet routable" and fall back to message-text matching.
 
+> **Source of truth**: All `code`, `cause_ir`, and `fix_source` literals are
+> `#define`d in [`src/semantic/diag_codes.h`](../src/semantic/diag_codes.h).
+> New diagnostic sites MUST reference the macros from that header rather than
+> using bare string literals. Adding a new literal requires updating both
+> `diag_codes.h` and this document. Existing call sites that still use bare
+> literals are migrating incrementally.
+
 ### `cause_ir` — IR-level origin tag
 
 Identifies **where inside the compiler pipeline** the diagnostic was raised. Format is `<stage>:<subsystem>:<condition>`, e.g. `semantic:assignability_check`, `semantic:slot_lifecycle:write_after_release`, `llvm:result_spec:capacity_exceeded`. Stable across versions. Useful when the same `code` fires from multiple IR paths — `cause_ir` disambiguates which IR layer reported the breach.

@@ -34,7 +34,7 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
             ASTNode *zone_slot = world_decl->data.world_decl.zones[i];
             if (zone_slot != NULL && zone_slot->type == AST_WORLD_ZONE
                 && zone_slot->data.world_zone.zone_type != NULL) {
-                semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", arg,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_WORLD_CONTRACT_INVALID, PGY_CAUSE_WORLD_CONTRACT, PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION, arg,
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
                     "- origin binding is '%s'\n"
@@ -84,7 +84,7 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
             }
             if (arg_sym->type != NULL && arg_sym->type->name != NULL
                 && strcmp(arg_sym->type->name, zone_slot->data.world_zone.zone_type) == 0) {
-                semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", arg,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_WORLD_CONTRACT_INVALID, PGY_CAUSE_WORLD_CONTRACT, PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION, arg,
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
                     "- origin binding is '%s'\n"

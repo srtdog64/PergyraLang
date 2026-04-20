@@ -632,7 +632,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     /* Built-in: ClaimSlot<T>() — handled mostly in let_decl, but standalone */
     if (strcmp(callee_name, "ClaimSlot") == 0
         || strcmp(callee_name, "ClaimSecureSlot") == 0) {
-        llvm_set_error_at_with_hints(ctx, node, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:slot:inner_type_missing", "annotate-concrete-type", "LLVM standalone %s requires an explicitly typed binding; use 'let value: %s<T> = %s()'",
+        llvm_set_error_at_with_hints(ctx, node, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM standalone %s requires an explicitly typed binding; use 'let value: %s<T> = %s()'",
             callee_name,
             strcmp(callee_name, "ClaimSecureSlot") == 0 ? "SecureSlot" : "Slot",
             callee_name);
@@ -790,7 +790,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
-            llvm_set_error_at_with_hints(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:slot:inner_type_missing", "annotate-concrete-type", "LLVM DeviceWrite on '%s' requires a concrete DeviceSlot<T> inner type",
+            llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM DeviceWrite on '%s' requires a concrete DeviceSlot<T> inner type",
                 slot_arg->data.identifier.name);
             return NULL;
         }
@@ -819,7 +819,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
-            llvm_set_error_at_with_hints(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:slot:inner_type_missing", "annotate-concrete-type", "LLVM DeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
+            llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM DeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
                 slot_arg->data.identifier.name);
             return NULL;
         }
@@ -847,7 +847,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
-            llvm_set_error_at_with_hints(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:slot:inner_type_missing", "annotate-concrete-type", "LLVM ReleaseDeviceSlot on '%s' requires a concrete DeviceSlot<T> inner type",
+            llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM ReleaseDeviceSlot on '%s' requires a concrete DeviceSlot<T> inner type",
                 slot_arg->data.identifier.name);
             return NULL;
         }
@@ -877,7 +877,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
-            llvm_set_error_at_with_hints(ctx, slot_arg, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:slot:inner_type_missing", "annotate-concrete-type", "LLVM SubmitDeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
+            llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM SubmitDeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
                 slot_arg->data.identifier.name);
             return NULL;
         }

@@ -82,7 +82,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         Type *arr_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(arr_type, "Array")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "StringJoin requires Array<String> as first argument");
         }
         require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
@@ -184,12 +184,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0
                 && strcmp(map_type->data.constructed.args[0]->name, "Long") != 0
                 && strcmp(map_type->data.constructed.args[0]->name, "Bool") != 0) {
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                     "MapSet currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "MapSet expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
@@ -213,14 +213,14 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0
                 && strcmp(map_type->data.constructed.args[0]->name, "Long") != 0
                 && strcmp(map_type->data.constructed.args[0]->name, "Bool") != 0) {
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                     "MapGet currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
             return map_type->data.constructed.args[1];
         }
         if (map_type != NULL && map_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "MapGet expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
@@ -244,12 +244,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0
                 && strcmp(map_type->data.constructed.args[0]->name, "Long") != 0
                 && strcmp(map_type->data.constructed.args[0]->name, "Bool") != 0) {
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                     "MapHas currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "MapHas expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
@@ -273,12 +273,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0
                 && strcmp(map_type->data.constructed.args[0]->name, "Long") != 0
                 && strcmp(map_type->data.constructed.args[0]->name, "Bool") != 0) {
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                     "MapRemove currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "MapRemove expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
@@ -291,7 +291,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         map_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (map_type != NULL && map_type != TYPE_UNKNOWN
             && !type_is_constructed_named(map_type, "HashMap")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "MapSize expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
@@ -313,7 +313,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 && strcmp(key_type->name, "Int") != 0
                 && strcmp(key_type->name, "Long") != 0
                 && strcmp(key_type->name, "Bool") != 0) {
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                     "MapKeys currently supports only HashMap<String, T>, HashMap<Int, T>, HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
                     map_type->name != NULL ? map_type->name : "<type>");
             }
@@ -321,7 +321,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return type_create_constructed(TYPE_ARRAY, args, 1);
         }
         if (map_type != NULL && map_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "MapKeys expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
@@ -348,7 +348,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 list_type->data.constructed.args[0],
                 expr->data.call.arguments[1], ctx);
         } else if (list_type != NULL && list_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ListPush expects List<T> as first argument, got '%s'",
                 list_type->name != NULL ? list_type->name : "<type>");
         }
@@ -367,7 +367,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return list_type->data.constructed.args[0];
         }
         if (list_type != NULL && list_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ListGet expects List<T> as first argument, got '%s'",
                 list_type->name != NULL ? list_type->name : "<type>");
         }
@@ -391,7 +391,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 list_type->data.constructed.args[0],
                 expr->data.call.arguments[2], ctx);
         } else if (list_type != NULL && list_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ListSet expects List<T> as first argument, got '%s'",
                 list_type->name != NULL ? list_type->name : "<type>");
         }
@@ -404,7 +404,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         list_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (list_type != NULL && list_type != TYPE_UNKNOWN
             && !type_is_constructed_named(list_type, "List")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ListSize expects List<T> as first argument, got '%s'",
                 list_type->name != NULL ? list_type->name : "<type>");
         }
@@ -420,7 +420,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         require_assignable(index_type, TYPE_INT, expr->data.call.arguments[1], ctx);
         if (list_type != NULL && list_type != TYPE_UNKNOWN
             && !type_is_constructed_named(list_type, "List")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ListRemove expects List<T> as first argument, got '%s'",
                 list_type->name != NULL ? list_type->name : "<type>");
         }
@@ -449,7 +449,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 set_type->data.constructed.args[0],
                 expr->data.call.arguments[1], ctx);
         } else if (set_type != NULL && set_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "%s expects Set<T> as first argument, got '%s'",
                 name,
                 set_type->name != NULL ? set_type->name : "<type>");
@@ -469,7 +469,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 set_type->data.constructed.args[0],
                 expr->data.call.arguments[1], ctx);
         } else if (set_type != NULL && set_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "SetHas expects Set<T> as first argument, got '%s'",
                 set_type->name != NULL ? set_type->name : "<type>");
         }
@@ -482,7 +482,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         set_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (set_type != NULL && set_type != TYPE_UNKNOWN
             && !type_is_constructed_named(set_type, "Set")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "SetSize expects Set<T> as first argument, got '%s'",
                 set_type->name != NULL ? set_type->name : "<type>");
         }
@@ -509,7 +509,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 queue_type->data.constructed.args[0],
                 expr->data.call.arguments[1], ctx);
         } else if (queue_type != NULL && queue_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "QueuePush expects Queue<T> as first argument, got '%s'",
                 queue_type->name != NULL ? queue_type->name : "<type>");
         }
@@ -525,7 +525,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return queue_type->data.constructed.args[0];
         }
         if (queue_type != NULL && queue_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "QueuePop expects Queue<T> as first argument, got '%s'",
                 queue_type->name != NULL ? queue_type->name : "<type>");
         }
@@ -538,7 +538,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         queue_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (queue_type != NULL && queue_type != TYPE_UNKNOWN
             && !type_is_constructed_named(queue_type, "Queue")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "QueueSize expects Queue<T> as first argument, got '%s'",
                 queue_type->name != NULL ? queue_type->name : "<type>");
         }
@@ -551,7 +551,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         queue_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (queue_type != NULL && queue_type != TYPE_UNKNOWN
             && !type_is_constructed_named(queue_type, "Queue")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "QueueEmpty expects Queue<T> as first argument, got '%s'",
                 queue_type->name != NULL ? queue_type->name : "<type>");
         }
@@ -636,7 +636,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         Type *arg = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(arg, "Array")
             && !type_is_constructed_named(arg, "Slice")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ArrayLength requires Array<T> or Slice<T>, got '%s'",
                 arg->name);
         }
@@ -650,7 +650,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         reject_borrowed_boundary_container_store(
             expr->data.call.arguments[1], val, "array", "ArrayPush", ctx);
         if (!type_is_constructed_named(arr, "Array"))
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ArrayPush requires Array<T>, got '%s'", arr->name);
         else {
             Type *inner = type_get_constructed_arg(arr, 0);
@@ -670,7 +670,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         reject_borrowed_boundary_container_store(
             expr->data.call.arguments[2], val, "array", "ArraySet", ctx);
         if (!type_is_constructed_named(arr, "Array"))
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ArraySet requires Array<T>, got '%s'", arr->name);
         else {
             Type *inner = type_get_constructed_arg(arr, 0);
@@ -684,7 +684,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(arr, "Array"))
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ArrayPop requires Array<T>, got '%s'", arr->name);
         return TYPE_VOID;
     }
@@ -693,7 +693,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(arr, "Array"))
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ArraySort requires Array<T>, got '%s'", arr->name);
         return arr;
     }
@@ -702,7 +702,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(arr, "Array"))
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ArrayMap requires Array<T> as first argument, got '%s'", arr->name);
         /* Second arg is a function — type-check it but allow any callable */
         type_check_expression(expr->data.call.arguments[1], ctx);
@@ -714,7 +714,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(arr, "Array"))
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ArrayFilter requires Array<T> as first argument, got '%s'", arr->name);
         /* Second arg is a predicate function */
         type_check_expression(expr->data.call.arguments[1], ctx);
@@ -725,7 +725,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(arr, "Array"))
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ArrayReverse requires Array<T>, got '%s'", arr->name);
         return arr;
     }
@@ -796,14 +796,14 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (slot_type == TYPE_UNKNOWN)
             return TYPE_UNKNOWN;
         if (slot_arg->type != AST_IDENTIFIER) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", slot_arg,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
                 "ReleaseDeviceSlot requires a DeviceSlot identifier");
             return TYPE_UNKNOWN;
         }
         {
             Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
             if (sym != NULL && sym->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", slot_arg,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
                     "DeviceSlot '%s' has already been released",
                     slot_arg->data.identifier.name);
                 return TYPE_UNKNOWN;
@@ -856,7 +856,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         ot = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(ot, "Option")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "%s requires Option<T>, got '%s'", name,
                 ot != NULL ? ot->name : "<null>");
             return TYPE_UNKNOWN;
@@ -870,7 +870,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         ot = type_check_expression(expr->data.call.arguments[0], ctx);
         if (type_is_constructed_named(ot, "Option"))
             return type_get_constructed_arg(ot, 0);
-        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
             "UnwrapOption requires Option<T>, got '%s'",
             ot != NULL ? ot->name : "<null>");
         return TYPE_UNKNOWN;
@@ -921,7 +921,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_REMOTE);
         Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(ch_type, "Channel")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "%s requires Channel<T>, got '%s'",
                 name,
                 ch_type != NULL ? ch_type->name : "<null>");
@@ -935,7 +935,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_REMOTE);
         Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(ch_type, "Channel")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ChannelClosed requires Channel<T>, got '%s'",
                 ch_type != NULL ? ch_type->name : "<null>");
             return TYPE_UNKNOWN;
@@ -948,7 +948,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_REMOTE);
         Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(ch_type, "Channel")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ChannelClose requires Channel<T>, got '%s'",
                 ch_type != NULL ? ch_type->name : "<null>");
             return TYPE_UNKNOWN;
@@ -961,7 +961,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_REMOTE);
         Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(ch_type, "Channel")) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ChannelReady requires Channel<T>, got '%s'",
                 ch_type != NULL ? ch_type->name : "<null>");
             return TYPE_UNKNOWN;
@@ -974,7 +974,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_REMOTE);
         Type *task_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_future_like(task_type)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "Cancel requires Future<T> or RemoteFuture<T>, got '%s'",
                 task_type != NULL ? task_type->name : "<null>");
             return TYPE_UNKNOWN;
@@ -999,7 +999,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             QubitSemanticState qs = get_qubit_semantic_state(
                 expr->data.call.arguments[0], ctx);
             if (qs == QUBIT_STATE_CLASSICAL)
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                     "Cannot Measure() a qubit in CLASSICAL state "
                     "(already converted via IntoClassical)");
         }
@@ -1028,11 +1028,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             QubitSemanticState sb = get_qubit_semantic_state(
                 expr->data.call.arguments[1], ctx);
             if (sa == QUBIT_STATE_COLLAPSED || sa == QUBIT_STATE_CLASSICAL)
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                     "Cannot Entangle() a qubit in %s state",
                     qubit_state_name(sa));
             if (sb == QUBIT_STATE_COLLAPSED || sb == QUBIT_STATE_CLASSICAL)
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                     "Cannot Entangle() a qubit in %s state",
                     qubit_state_name(sb));
         }
@@ -1095,7 +1095,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             QubitSemanticState qs = get_qubit_semantic_state(
                 expr->data.call.arguments[0], ctx);
             if (qs == QUBIT_STATE_CLASSICAL)
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                     "Cannot apply H() to a qubit in CLASSICAL state "
                     "(already converted via IntoClassical)");
         }
@@ -1114,7 +1114,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             QubitSemanticState qs = get_qubit_semantic_state(
                 expr->data.call.arguments[0], ctx);
             if (qs != QUBIT_STATE_COLLAPSED)
-                semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                     "IntoClassical() requires a COLLAPSED qubit (after Measure) "
                     "got %s", qubit_state_name(qs));
         }

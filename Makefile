@@ -164,6 +164,7 @@ RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/symbol_table.c \
                    $(SEMANTIC_DIR)/type_checker.c \
+                   $(SEMANTIC_DIR)/type_checker_visibility.c \
                    $(SEMANTIC_DIR)/type_checker_builtins.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \
                    $(SEMANTIC_DIR)/slot_analyzer.c \
@@ -707,6 +708,12 @@ clean:
 clean-objects:
 	find $(BUILD_DIR) -name "*.o" -delete 2>/dev/null || true
 
+# Force a full rebuild from scratch.  Use when source edits aren't
+# reflected (stale .o, broken .d, CONFIG_STAMP mismatch, etc).
+# See docs/91_build_troubleshooting.md.
+rebuild: clean
+	$(MAKE) all
+
 debug: CFLAGS += -DDEBUG -g3 -O0
 debug: $(PGY)
 
@@ -724,7 +731,7 @@ memcheck: debug
 
 lsp: $(PGY_LSP)
 
-.PHONY: all clean clean-objects debug release analyze format memcheck \
+.PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-rir test-mir test-hir test-all \
         llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp

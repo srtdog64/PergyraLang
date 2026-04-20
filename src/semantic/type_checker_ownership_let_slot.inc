@@ -10,7 +10,7 @@
         Symbol *src_sym = scope_lookup(ctx->scope, src_name);
         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
             if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error_with_hints(ctx, "PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released", "reclaim-or-trace-earlier-move", init,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED, PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, init,
                     "Cannot move from released slot '%s'.\n"
                     "Reason:\n"
                     "- slot '%s' was already released or invalidated earlier in this scope\n"
@@ -61,13 +61,13 @@
             }
         }
         if (init_type != NULL && type_is_anchored_resource_handle(init_type)) {
-            semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY", "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding", node,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY, PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, node,
                 "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding.\n"
                 "Reason:\n"
-                "- anchored handles are tied to one ownership/runtime anchor and transfer contract\n"
+                "- slot handles (anchored) are tied to one ownership/runtime anchor and transfer contract\n"
                 "- creating a new binding would duplicate that anchor contract across a second boundary-visible handle name\n"
                 "Fix:\n"
-                "- keep using the current anchored handle binding directly\n"
+                "- keep using the current slot handle (anchored) binding directly\n"
                 "- or use a fresh claim\n"
                 "- or initialize from an inner/plain value\n"
                 "- or pass the handle through an explicit ownership boundary");

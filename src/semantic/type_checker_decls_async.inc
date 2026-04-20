@@ -39,7 +39,7 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                 }
 
                 if (!valid_case) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_SELECT_CASE_INVALID", "semantic:select:case_shape", "start-with-channel-recv", c,
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_SELECT_CASE_INVALID, PGY_CAUSE_SELECT_CASE_SHAPE, PGY_FIX_START_WITH_CHANNEL_RECV, c,
                         "select case must begin with a channel receive pattern");
                     type_check_statement(c, ctx);
                     continue;
@@ -58,7 +58,7 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                     type_check_statement(c->data.block.statements[j], ctx);
                 scope_exit(&ctx->scope);
             } else {
-                semantic_error_with_hints(ctx, "PGY_SEM_SELECT_CASE_INVALID", "semantic:select:case_shape", "start-with-channel-recv", c,
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_SELECT_CASE_INVALID, PGY_CAUSE_SELECT_CASE_SHAPE, PGY_FIX_START_WITH_CHANNEL_RECV, c,
                     "select case must begin with a channel receive pattern");
                 type_check_statement(c, ctx);
             }

@@ -22,6 +22,12 @@ bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
 Type *type_check_qubit_use(ASTNode *expr, SemanticContext *ctx);
 bool identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx);
 
+/* Currently-resolved nominal host (class/zone/world/relation/effect)
+ * declaration for `ctx`.  Promoted to extern so visibility/access
+ * helpers in type_checker_visibility.c can reach it without depending
+ * on the .inc include order. */
+ASTNode *current_host_decl(SemanticContext *ctx);
+
 /* Resource-handle compile-time state tracking.
  * Today the richer semantic state machine is QubitSlot-specific. */
 QubitSemanticState get_qubit_semantic_state(ASTNode *expr, SemanticContext *ctx);

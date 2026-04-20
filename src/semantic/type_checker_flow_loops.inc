@@ -145,8 +145,8 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
             || type_is_constructed_named(coll_type, "List")) {
             var_type = type_get_constructed_arg(coll_type, 0);
         } else if (coll_type != NULL && coll_type != TYPE_UNKNOWN) {
-            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                "semantic:for_in:non_iterable", "use-array-slice-or-list",
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_FOR_IN_NON_ITERABLE, PGY_FIX_USE_ARRAY_SLICE_OR_LIST,
                 node->data.for_loop.iterable,
                 "for-in requires Array<T>, Slice<T>, or List<T>, got '%s'",
                 coll_type->name != NULL ? coll_type->name : "<unknown>");
@@ -276,9 +276,9 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
         Type *cond = type_check_expression(node->data.while_loop.condition, ctx);
         if (!type_equals(cond, TYPE_BOOL)) {
             semantic_error_with_hints(ctx,
-                "PGY_SEM_TYPE_MISMATCH",
-                "semantic:condition:non_bool",
-                "convert-condition-to-bool",
+                PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_CONDITION_NON_BOOL,
+                PGY_FIX_CONVERT_CONDITION_TO_BOOL,
                 node,
                 "While condition must be Bool, got '%s'", cond->name);
         }
