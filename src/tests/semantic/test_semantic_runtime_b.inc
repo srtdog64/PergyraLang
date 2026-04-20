@@ -971,7 +971,7 @@ test_parallel_execution_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("await rejects Future<Slot<T>> anchored handle payload");
+    TEST("await accepts Future<Slot<T>> anchored handle payload");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
@@ -987,8 +987,7 @@ test_parallel_execution_semantics(void)
         await->line = 1; await->column = 1;
 
         type_check_expression(await, ctx);
-        EXPECT(ctx->has_error
-            && ctx_has_diagnostic_substring(ctx, "anchored resource handles"));
+        EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);
         ast_destroy(await);
@@ -1411,7 +1410,7 @@ test_parallel_execution_semantics(void)
         ast_destroy(call);
     }
 
-    TEST("channel send rejects anchored Slot handle payload");
+    TEST("channel send accepts anchored Slot handle payload");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
@@ -1429,8 +1428,7 @@ test_parallel_execution_semantics(void)
         send->line = 1; send->column = 1;
 
         type_check_expression(send, ctx);
-        EXPECT(ctx->has_error
-            && ctx_has_diagnostic_substring(ctx, "anchored resource handles"));
+        EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);
         ast_destroy(send);

@@ -508,7 +508,6 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 node->data.world_decl.name != NULL ? node->data.world_decl.name : "<world>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
-                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
         for (size_t j = i + 1; j < node->data.world_decl.activate_count; j++) {
@@ -603,7 +602,6 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 node->data.world_decl.name != NULL ? node->data.world_decl.name : "<world>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
-                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
         for (size_t j = i + 1; j < node->data.world_decl.deactivate_count; j++) {
@@ -653,7 +651,6 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 "- or correct the referenced zone/state alias",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 node->data.world_decl.name != NULL ? node->data.world_decl.name : "<world>",
-                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }

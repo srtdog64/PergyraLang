@@ -546,8 +546,8 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
         if (call->data.call.arg_count > 1) {
             semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
-                "'Input' expects at most 1 argument, got %zu",
-                call->data.call.arg_count);
+                "'Input' expects at most 1 argument, got %llu",
+                (unsigned long long) call->data.call.arg_count);
             return TYPE_STRING;
         }
         if (call->data.call.arg_count == 1) {

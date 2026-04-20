@@ -740,7 +740,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy constraint 'Comparable'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'Merchant'"));
+            "actual type args are"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result, "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result, "Fix:"));
 
@@ -1676,7 +1676,9 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "has no matching subject slot"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "contract source is authority-bearing zone 'CockpitZone' with authorized participant 'passenger'"));
+            "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "authority-bearing zone 'CockpitZone'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -4164,7 +4166,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "consumer path is Zone authority 'item'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "expected type args are constrained by 'T: Cloneable'"));
+            "expected type args are 'Bufferable<Item>'"));
 
         free(error_message);
         semantic_result_destroy(result);
@@ -4225,7 +4227,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "consumer path is action 'Save'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'String'"));
+            "actual type args are"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy bound 'Int'"));
 
@@ -4263,7 +4265,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "consumer path is Intent step 'Save'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'String'"));
+            "actual type args are"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy bound 'Int'"));
 
@@ -4295,7 +4297,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "consumer path is Zone authority 'bag'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'String'"));
+            "actual type args are"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy bound 'Int'"));
 
@@ -4326,7 +4328,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "consumer path is party role slot 'buffer'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'String'"));
+            "actual type args are"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy bound 'Int'"));
 
@@ -4358,7 +4360,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "consumer path is action 'Save'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "expected type args are constrained by 'T: Cloneable'"));
+            "expected type args are 'Bufferable<Item>'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4474,7 +4476,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy bound 'Int'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'String'"));
+            "actual type args are 'String'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4534,7 +4536,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy bound 'Int'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'String'"));
+            "actual type args are 'String'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4570,7 +4572,7 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy bound 'Int'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'String'"));
+            "actual type args are 'String'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

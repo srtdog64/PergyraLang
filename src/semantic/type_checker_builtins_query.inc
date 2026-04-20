@@ -18,23 +18,15 @@ builtin_type_name_or_unknown(const Type *type)
 }
 
 static bool
-builtin_is_subject_boundary_type(const Type *type, SemanticContext *ctx)
-{
-    if (type == NULL || ctx == NULL)
-        return false;
-    if (type->kind != TYPE_KIND_CLASS)
-        return false;
-    return !type_requires_boundary_borrow_tracking(type, ctx);
-}
-
-static bool
 check_call_arity(ASTNode *expr, size_t expected, const char *name,
                  SemanticContext *ctx)
 {
     if (expr->data.call.arg_count != expected) {
         semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", expr,
-            "'%s' expects %zu argument(s), got %zu",
-            name, expected, expr->data.call.arg_count);
+            "'%s' expects %llu argument(s), got %llu",
+            name,
+            (unsigned long long) expected,
+            (unsigned long long) expr->data.call.arg_count);
         return false;
     }
     return true;
@@ -686,13 +678,13 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
 
     if (call->data.call.arg_count != 2) {
         semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", call,
-            "'%s' expects exactly 2 argument(s), got %zu.\n"
+            "'%s' expects exactly 2 argument(s), got %llu.\n"
             "Reason:\n"
             "- %s needs a world zone slot and a zone %s name\n"
             "Fix:\n"
             "- call %s(zoneSlot, %sName)\n"
             "- or remove the extra argument(s)",
-            builtin_name, call->data.call.arg_count,
+            builtin_name, (unsigned long long) call->data.call.arg_count,
             builtin_name, detail_label,
             builtin_name, detail_label);
         return TYPE_BOOL;

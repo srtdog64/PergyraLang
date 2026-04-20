@@ -32,6 +32,27 @@ typedef enum OwnershipConsumerKind {
 static char *
 builtin_expr_source_path(ASTNode *value_expr);
 
+bool
+semantic_validate_channel_transport_ownership(ASTNode *value_expr,
+                                              Type *value_type,
+                                              SemanticContext *ctx,
+                                              const char *transport_name,
+                                              OwnershipTypeClass expected_class,
+                                              OwnershipTypeClass element_ownership,
+                                              OwnershipTypeClass value_ownership,
+                                              const char *contract_label,
+                                              const char *expected_name,
+                                              const char *actual_name,
+                                              const char *value_label,
+                                              const char *named_binding_fix);
+
+void
+semantic_report_channel_transport_policy(ASTNode *site,
+                                         SemanticContext *ctx,
+                                         const char *transport_name,
+                                         const char *why_text,
+                                         const char *fix_text);
+
 static bool
 builtin_type_is_subject_type(const Type *type, SemanticContext *ctx)
 {

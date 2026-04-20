@@ -223,7 +223,7 @@ test_b0_provenance_closure_diagnostics(void)
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "full bound set is 'T: Comparable + Cloneable'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'Item'"));
+            "actual type args are"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
 
@@ -304,7 +304,7 @@ test_b0_provenance_closure_diagnostics(void)
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "full bound set is 'T: Comparable + Cloneable'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "actual type argument is 'Item'"));
+            "actual type args are"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,

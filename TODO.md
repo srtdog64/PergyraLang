@@ -86,7 +86,9 @@
   - 단일 공식 빌드 경로를 정하고 나머지는 document-only 또는 best-effort로 내린다
   - stale artifact 회피를 위해 강제 재빌드 경로를 공식화
 - 준비 작업:
-  - [ ] 공식 Windows 빌드 경로 1개로 문서화
+  - [x] 공식 Windows 빌드 경로 1개로 문서화
+    - 기준: GitHub Actions `windows-latest` + `msys2/setup-msys2` native MinGW/MSYS2 runtime
+    - plain Linux-hosted `gcc`는 `ci-windows` acceptance line이 아님
   - [ ] `clean && build` 강제 wrapper / recommended entrypoint 정의
   - [ ] stale `.o` / `.d` 진단 가이드와 강제 재빌드 옵션 정리
 
@@ -177,6 +179,14 @@
   - declaration-side MIR-only 남은 host/inventory helper debt 제거
   - own/ref 일반화의 broader assignment / container / rebind / summary path closure
   - intent/zone/world 및 relation/effect/projection provenance 마지막 심화
+- Windows-native compile hygiene를 추가 정리
+  - `type_checker_builtins_query.inc`, `type_checker_builtins_nominal.inc`의 `%zu` / extra-arg formatting drift를 제거
+  - `type_checker_decls_world.inc`의 world lifecycle diagnostics placeholder-arg mismatch를 제거
+  - `type_checker_builtins.c`는 ownership/channel helper를 full internal header include 대신 최소 forward declaration으로 고정해 enum/static helper 재선언 충돌을 피함
+  - 현재 기준선:
+    - `test-semantic`: `1855 passed, 0 failed`
+    - `test-transpile`: `601 passed, 0 failed`
+  - 남은 Windows blocker는 semantic compile 단계가 아니라 native MSYS2/MinGW 실행 환경에서의 backend/runtime parity 확인 축으로 이동
 
 ### 최근 closure 진행 (2026-04-16)
 

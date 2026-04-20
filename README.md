@@ -132,6 +132,15 @@ Current CI support matrix:
 - Linux: C backend + LLVM backend regression coverage
 - Windows: C backend regression coverage always; LLVM smoke + backend compare run when the Windows LLVM toolchain is present (`make ci-windows` now capability-detects LLVM instead of forcing `LLVM_ENABLED=0`)
 
+Official build/runtime paths:
+
+- Linux
+  - official path: native Linux toolchain via `make ci-linux`
+- Windows
+  - official path: GitHub Actions `windows-latest` + `msys2/setup-msys2` with a native MSYS2/MinGW runtime
+  - `make ci-windows` intentionally rejects plain Linux-hosted `gcc`
+  - local non-MSYS2 / non-MinGW setups are best-effort only, not the release acceptance line
+
 Failure policy snapshot:
 
 - recoverable failure: intent/authority/boundary/timeout/remote failures should surface as `Bool`, `Result<T>`, or queryable runtime state
@@ -150,6 +159,7 @@ Recent backend hygiene snapshot:
 
 - LLVM declaration-side helper cleanup now shares implicit-self detection, host decl/method lookup, and pointer-self classification instead of repeating the same logic across declaration/intent/MIR-expression paths
 - negative-path memory tests now suppress expected panic/tracing stderr so CI logs reflect regressions instead of deliberate failure probes
+- semantic builtin diagnostics were tightened to remove Windows-native MinGW format-string drift
 
 Stable example guidance:
 
