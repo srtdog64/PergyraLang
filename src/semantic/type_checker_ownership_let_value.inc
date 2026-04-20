@@ -4,11 +4,11 @@
             semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY", "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding", node,
                 "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding.\n"
                 "Reason:\n"
-                "- anchored handles remain tied to one owning runtime anchor\n"
-                "- copying them into another binding would duplicate that anchor identity\n"
+                "- anchored handles remain tied to one owning runtime anchor and transfer contract\n"
+                "- copying them into another binding would duplicate that contract across a second boundary-visible handle name\n"
                 "Fix:\n"
-                "- keep the handle in one binding\n"
-                "- or reacquire it from the owning system");
+                "- keep using the current anchored handle binding directly\n"
+                "- or reacquire/transfer it through an explicit ownership boundary");
         }
         semantic_record_effect(ctx, EFFECT_REMOTE);
     }

@@ -2031,7 +2031,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "anchored resource handles"));
+            "Borrowed ref anchored handle 's' cannot escape through channel send"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2039,7 +2039,7 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("own Slot<Int> parameter reports closed subset diagnostic");
+    TEST("own Slot<Int> parameter is accepted as explicit anchored-handle transfer boundary");
     {
         const char *source =
             "func Store(own s: Slot<Int>) -> Void {\n"
@@ -2050,9 +2050,7 @@ test_qubit_slot_semantics(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "currently closed to ref/own Slot<subject-host> / own SecureSlot<subject-host>"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2600,7 +2598,7 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("own DeviceSlot<Int> parameter reports anchored handle local-only diagnostic");
+    TEST("own DeviceSlot<Int> parameter is accepted as explicit anchored-handle transfer boundary");
     {
         const char *source =
             "func Submit(own device: DeviceSlot<Int>) -> Void {\n"
@@ -2611,9 +2609,7 @@ test_qubit_slot_semantics(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "other anchored handles remain local-only"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2621,7 +2617,7 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("Slot<subject> parameter without own/ref reports anchored subject-slot boundary diagnostic");
+    TEST("Slot<subject> parameter without own/ref requires explicit anchored-handle qualifier");
     {
         const char *source =
             "subject Vec2 {\n"
@@ -2638,7 +2634,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "anchored subject-slot boundary"));
+            "Anchored handle parameters require explicit 'own' or 'ref'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3451,6 +3447,89 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("ref boundary value parameter reports nested projection path on transitive helper member rebind");
+    {
+        const char *source =
+            "object Packet {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "object Holder {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "object Wrapper {\n"
+            "    let holder: Holder;\n"
+            "}\n"
+            "func Escape(ref packet: Packet) -> Packet {\n"
+            "    return packet;\n"
+            "}\n"
+            "func Proxy(ref packet: Packet) -> Packet {\n"
+            "    return Escape(packet);\n"
+            "}\n"
+            "class Envelope {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "class State {\n"
+            "    let envelope: Envelope;\n"
+            "}\n"
+            "func Store(ref wrapper: Wrapper) -> Void {\n"
+            "    let state = State(Envelope(Packet(0)));\n"
+            "    state.envelope.packet = Proxy(wrapper.holder.packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'wrapper' cannot escape through helper/function call to 'Proxy' from 'wrapper.holder.packet'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'wrapper.holder.packet' is derived from that borrowed boundary provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref movable-resource parameter reports nested member source path on member rebind");
+    {
+        const char *source =
+            "object Holder {\n"
+            "    let q: QubitSlot;\n"
+            "}\n"
+            "object Wrapper {\n"
+            "    let holder: Holder;\n"
+            "}\n"
+            "class Capsule {\n"
+            "    let q: QubitSlot;\n"
+            "}\n"
+            "class State {\n"
+            "    let capsule: Capsule;\n"
+            "}\n"
+            "func Store(ref wrapper: Wrapper) -> Void {\n"
+            "    let state = State(Capsule(ClaimQubit()));\n"
+            "    state.capsule.q = wrapper.holder.q;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref movable resource 'wrapper' cannot escape through assignment rebind into 'state.capsule.q' from 'wrapper.holder.q'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'wrapper.holder.q' is derived from that borrowed movable-resource provenance"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ref boundary value parameter reports nested projection path on transitive helper forwarding");
     {
         const char *source =
@@ -3924,7 +4003,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "contract source is world 'Arena' zone slot 'battle'"));
+            "Contract source:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "ownership/authority after construction belongs to the world-owned slot"));
 
@@ -4045,7 +4124,7 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("own SecureSlot<subject> return stays blocked by slot return rule");
+    TEST("own SecureSlot<subject> return is accepted as explicit anchored-handle transfer boundary");
     {
         const char *source =
             "subject Vec2 {\n"
@@ -4061,9 +4140,7 @@ test_qubit_slot_semantics(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Anchored resource handle return types (Slot/SecureSlot/DeviceSlot) are not supported yet"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4071,7 +4148,7 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("own SecureSlot<subject> channel send stays blocked by anchored-handle rule");
+    TEST("own SecureSlot<subject> channel send is accepted as explicit anchored-handle transfer boundary");
     {
         const char *source =
             "subject Vec2 {\n"
@@ -4088,9 +4165,7 @@ test_qubit_slot_semantics(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "anchored resource handles"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4098,7 +4173,7 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
-    TEST("Slot return types are rejected for now");
+    TEST("Slot return types are accepted when the boundary is explicit");
     {
         SemanticContext *ctx = semantic_context_create();
 
@@ -4107,7 +4182,7 @@ test_qubit_slot_semantics(void)
         func->data.func_decl.body = ast_create_block();
 
         type_check_func_decl(func, ctx);
-        EXPECT(ctx->has_error);
+        EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);
         ast_destroy(func);

@@ -20,8 +20,8 @@
 </p>
 
 > **Current Status**: Executable experimental alpha, currently in a **late-stage alpha / beta-closure sprint**. The remaining beta work is not about widening the language surface; it is about freezing a narrower stable subset and aligning `syntax -> semantic -> runtime -> C -> LLVM -> diagnostics -> regression -> docs` on that subset.
-> **Stable subset being frozen for beta**: generics (`exact/ability/multi-bound` plus implemented default type argument actual resolution), `own/ref` anchored slot-handle boundaries, collections (`List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`), and runtime observability (`last / history / active / recent`).
-> **Explicit reject / beta-out-of-scope**: general ownership on non-anchored value types, unsupported map key kinds, broader generic generalization, richer multi-instance observability queries, and the full quantum resource model. `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` remain a partial `v2 / experimental` surface.
+> **Stable subset being frozen for beta**: generics (`exact/ability/multi-bound` plus implemented default type argument actual resolution), `own/ref` anchored slot-handle boundaries with generalized provenance/escape diagnostics, collections (`List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`), and runtime observability (`last / history / active / recent`).
+> **Explicit reject / beta-out-of-scope**: unsupported map key kinds, broader generic generalization, richer multi-instance observability queries, the full quantum resource model, and any ownership combination that still escapes the current semantic contract. `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` remain a partial `v2 / experimental` surface.
 
 ---
 
@@ -42,9 +42,9 @@ Current classification snapshot:
   - stable subset: exact/ability/multi-bound baseline plus implemented default type argument resolution on supported declaration/call/module-consumer paths
   - beta-out-of-scope: broader generic generalization
 - own/ref
-  - stable subset: anchored slot-handle boundaries
-  - explicit reject: general own/ref on non-anchored general value types
-  - beta-out-of-scope: full general ownership system
+  - stable subset: anchored slot-handle boundaries plus generalized provenance/escape diagnostics on the currently-closed consumer paths
+  - explicit reject: any general own/ref combination that still falls outside the current semantic contract
+  - beta-out-of-scope: full universal ownership system
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds

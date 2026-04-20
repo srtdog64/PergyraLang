@@ -37,6 +37,47 @@ static uint32_t
 declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
                                     bool *has_contract_out);
 
+void
+semantic_report_function_generic_bound_failure(SemanticContext *ctx,
+                                               ASTNode *site,
+                                               const char *function_name,
+                                               const char *param_name,
+                                               const char *bound_name,
+                                               const char *bounds_text,
+                                               const char *expected_sig,
+                                               const char *actual_sig,
+                                               const char *concrete_name)
+{
+    semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID",
+        "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
+        "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'.\n"
+        "Reason:\n"
+        "- generic subject is function '%s'\n"
+        "- function '%s' requires '%s: %s'\n"
+        "- full bound set is '%s: %s'\n"
+        "- expected type args are '%s'\n"
+        "- actual type args are '%s'\n"
+        "- consumer path is call site of '%s'\n"
+        "- broken bound is '%s'\n"
+        "Fix:\n"
+        "- pass an argument whose type satisfies '%s'\n"
+        "- or relax the function where-clause",
+        concrete_name != NULL ? concrete_name : "<type>",
+        bound_name != NULL ? bound_name : "<constraint>",
+        param_name != NULL ? param_name : "<type-param>",
+        function_name != NULL ? function_name : "<function>",
+        function_name != NULL ? function_name : "<function>",
+        param_name != NULL ? param_name : "<type-param>",
+        bound_name != NULL ? bound_name : "<constraint>",
+        param_name != NULL ? param_name : "<type-param>",
+        bounds_text != NULL ? bounds_text : "<constraint>",
+        expected_sig != NULL ? expected_sig : "<function>",
+        actual_sig != NULL ? actual_sig : "<actual>",
+        function_name != NULL ? function_name : "<function>",
+        bound_name != NULL ? bound_name : "<constraint>",
+        bound_name != NULL ? bound_name : "<constraint>");
+}
+
 static ASTNode *
 lookup_function_param_contract_local(SemanticContext *ctx,
                                      const char *display_name,
@@ -186,7 +227,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     expr->data.call.arguments[i],
                                     expr->data.call.arguments[i],
                                     ctx,
-                                    field_type,
+                                    arg_type,
                                     borrowed_name,
                                     OWNERSHIP_CONSUMER_CONSTRUCTOR_FIELD_STORE,
                                     NULL,
@@ -233,11 +274,12 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                             "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                                             "Reason:\n"
                                             "- origin binding is '%s'\n"
-                                            "- contract source is world '%s' zone slot '%s'\n"
+                                            "Contract source:\n"
+                                            "- world '%s' zone slot '%s'\n"
                                             "- embedding handoff edge is '%s' -> world '%s' slot '%s'\n"
                                             "- ownership/authority after construction belongs to the world-owned slot, not the origin binding\n"
-                                            "- world embedding currently snapshots the zone binding into a world-owned zone slot\n"
-                                            "- mutating the original binding afterwards would diverge from the embedded world state\n"
+                                            "- owned embedding hands authority-bearing visibility to the world-owned zone slot\n"
+                                            "- mutating the original binding afterwards would diverge from the world-owned handoff destination\n"
                                             "Fix:\n"
                                             "- use Clone(%s) for an explicit copy\n"
                                             "- or construct the zone inline / mutate it through the owning world after embedding",
@@ -591,30 +633,51 @@ type_check_call_movable_done:
                     resource_handle_display_name(arg_type));
                 continue;
             }
-            /* Check own/ref qualifier from function declaration AST */
             {
                 ParamMode pmode = PARAM_MODE_DEFAULT;
-                lookup_function_param_contract_local(
+                ASTNode *callee_decl = lookup_function_param_contract_local(
                     ctx, display_name, i, &pmode);
-                if (pmode == PARAM_MODE_OWN) {
-                    /* own: move — consume the source slot */
-                    if (expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
-                        const char *src = expr->data.call.arguments[i]->data.identifier.name;
-                        Symbol *src_sym = scope_lookup(ctx->scope, src);
+                if (pmode == PARAM_MODE_DEFAULT) {
+                    semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                        "semantic:slot_param:qualifier_missing",
+                        "annotate-slot-param-qualifier",
+                        expr->data.call.arguments[i],
+                        "Anchored handle arguments require 'own' or 'ref' in the callee signature.\n"
+                        "Reason:\n"
+                        "- anchored-handle boundaries must declare whether the call borrows or transfers ownership\n"
+                        "- implicit handle passing would hide that boundary contract\n"
+                        "Fix:\n"
+                        "- use 'own' in the callee signature to transfer the handle\n"
+                        "- or use 'ref' to borrow it");
+                    continue;
+                }
+                if (!semantic_validate_borrowed_boundary_call_argument(
+                        expr->data.call.arguments[i],
+                        ctx,
+                        callee_decl,
+                        display_name,
+                        i,
+                        pmode,
+                        arg_type,
+                        "anchored-handle",
+                        true)) {
+                    continue;
+                }
+                if (expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                    const char *src = expr->data.call.arguments[i]->data.identifier.name;
+                    Symbol *src_sym = scope_lookup(ctx->scope, src);
+                    if (pmode == PARAM_MODE_OWN) {
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
-                            if (src_sym->slot_info.state == SLOT_STATE_RELEASED)
+                            if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
                                 semantic_error_with_hints(ctx, "PGY_SEM_MOVE_FROM_RELEASED", "semantic:move:from_released", "reclaim-or-trace-earlier-move", expr->data.call.arguments[i],
                                     "Cannot move from released slot '%s'", src);
-                            else
+                            } else {
                                 src_sym->slot_info.state = SLOT_STATE_RELEASED;
+                            }
+                        } else if (src_sym != NULL) {
+                            src_sym->is_consumed = true;
                         }
-                    }
-                    continue;
-                } else if (pmode == PARAM_MODE_REF) {
-                    /* ref: borrow — source remains valid */
-                    if (expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
-                        const char *src = expr->data.call.arguments[i]->data.identifier.name;
-                        Symbol *src_sym = scope_lookup(ctx->scope, src);
+                    } else if (pmode == PARAM_MODE_REF) {
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT
                             && src_sym->slot_info.state == SLOT_STATE_RELEASED) {
                             semantic_error_with_hints(ctx, "PGY_SEM_SLOT_RELEASED",
@@ -632,17 +695,9 @@ type_check_call_movable_done:
                                 src);
                         }
                     }
-                    continue;
                 }
+                continue;
             }
-            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                "semantic:slot_param:qualifier_missing",
-                "annotate-slot-param-qualifier",
-                expr->data.call.arguments[i],
-                "Slot arguments require 'own' or 'ref' qualifier in function signature; "
-                "use 'func F(own s: Slot<T>)' to take ownership or "
-                "'func F(ref s: Slot<T>)' to borrow");
-            continue;
         }
 
         require_assignable(arg_type, param_type, expr->data.call.arguments[i], ctx);
@@ -758,38 +813,16 @@ type_check_call_movable_done:
                         bool satisfies = concrete_type_satisfies_bound(
                             concrete_type, tc->bounds[bi], ctx);
                         if (!satisfies) {
-                            semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", expr,
-                                "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'.\n"
-                                "Reason:\n"
-                                "- generic subject is function '%s'\n"
-                                "- function '%s' requires '%s: %s'\n"
-                                "- full bound set is '%s: %s'\n"
-                                "- expected type args are '%s'\n"
-                                "- actual type args are '%s'\n"
-                                "- actual type argument is '%s'\n"
-                                "- consumer path is call site of '%s'\n"
-                                "- call-site derived type arguments do not satisfy bound '%s'\n"
-                                "- expected type args are constrained by '%s: %s'\n"
-                                "Fix:\n"
-                                "- pass an argument whose type satisfies '%s'\n"
-                                "- or relax the function where-clause",
-                                concrete_type->name != NULL ? concrete_type->name : "<type>",
-                                bound_name != NULL ? bound_name : "<constraint>",
-                                param_name,
-                                display_name,
+                            semantic_report_function_generic_bound_failure(
+                                ctx,
+                                expr,
                                 display_name,
                                 param_name,
                                 bound_name != NULL ? bound_name : "<constraint>",
-                                param_name,
-                                bounds_text != NULL ? bounds_text : "<constraint>",
+                                bounds_text,
                                 expected_sig != NULL ? expected_sig : display_name,
                                 actual_sig != NULL ? actual_sig : display_name,
-                                concrete_type->name != NULL ? concrete_type->name : "<type>",
-                                display_name,
-                                bound_name != NULL ? bound_name : "<constraint>",
-                                param_name,
-                                bound_name != NULL ? bound_name : "<constraint>",
-                                bound_name != NULL ? bound_name : "<constraint>");
+                                concrete_type->name != NULL ? concrete_type->name : "<type>");
                         }
                         free(bounds_text);
                     }

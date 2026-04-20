@@ -37,11 +37,11 @@
 
 | 트랙 | 상태 | 진행률 | 베타 차단 여부 | 핵심 메모 |
 |------|------|--------|----------------|----------|
-| B0-1 Intent / Zone / World | 진행 중 | 82% | 차단 | observability baseline은 생겼지만 embedding/handoff/provenance depth가 남음 |
+| B0-1 Intent / Zone / World | 진행 중 | 84% | 차단 | observability baseline은 생겼고 embedding/handoff 핵심 진단은 `Contract source` 구조로 올라왔지만 authority/provenance depth가 더 남음 |
 | B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
 | B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
-| B0-4 own/ref | 진행 중 | 74% | 차단 | boundary subset는 실구현 기준으로 넓어졌지만 arbitrary value/anchored handle 전체 ownership은 아직 미완 |
-| MIR-only declaration debt | 진행 중 | 77% | 차단 | intent inventory는 많이 줄였고 host context도 inventory-backed handle 쪽으로 이동했지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
+| B0-4 own/ref | 진행 중 | 76% | 차단 | boundary subset는 실구현 기준으로 넓어졌고 anchored-handle wording/consumer family 정렬도 전진했지만 arbitrary value/anchored handle 전체 ownership은 아직 미완 |
+| MIR-only declaration debt | 진행 중 | 80% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
 | Type-resolution DAG | 진행 중 | 66% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
@@ -309,7 +309,7 @@ diagnostic 고정 규칙:
 
 - routine emission은 MIR 중심으로 정렬 중이다
 - declaration-side intent inventory는 explicit MIR metadata를 더 많이 사용하도록 이동 중이다
-- transpiler host context 복원이 `current_host_decl -> within_zone -> saved host-name inventory` 순으로 정렬되어 active inventory-backed host handle 비중이 더 커졌다
+- transpiler host context 복원은 `current_host_decl`를 우선 truth로 두고, 남은 fallback도 inventory lookup 쪽으로 더 밀려서 role-owner direct AST lookup이 빠졌다
 - transpiler declaration/method emission의 direct `current_*_name` restore chain 일부가 공용 host-context restore helper로 접혔다
 - C backend의 direct `current_*_name` 사용은 emitter hot path보다 helper/restore layer에 더 집중되도록 정리됐다
 - LLVM declaration helper도 current host lookup을 공용 active-inventory host helper로 접어 direct naming chain을 한 단계 줄였다

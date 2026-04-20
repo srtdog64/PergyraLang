@@ -64,11 +64,13 @@
             semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY", "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding", node,
                 "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding.\n"
                 "Reason:\n"
-                "- anchored handles are tied to one local ownership/runtime anchor\n"
-                "- rebinding them as plain values would duplicate that anchor contract\n"
+                "- anchored handles are tied to one ownership/runtime anchor and transfer contract\n"
+                "- creating a new binding would duplicate that anchor contract across a second boundary-visible handle name\n"
                 "Fix:\n"
-                "- use a fresh claim\n"
-                "- or initialize from an inner/plain value instead");
+                "- keep using the current anchored handle binding directly\n"
+                "- or use a fresh claim\n"
+                "- or initialize from an inner/plain value\n"
+                "- or pass the handle through an explicit ownership boundary");
         }
         char token_name_buf[256];
         const char *paired_token = NULL;

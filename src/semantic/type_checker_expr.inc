@@ -179,14 +179,6 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                     || type_equals(future_type->data.constructed.constructor, TYPE_REMOTE_FUTURE))
                 && future_type->data.constructed.arg_count == 1) {
                 Type *inner = future_type->data.constructed.args[0];
-                if (type_is_anchored_resource_handle(inner)) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
-                        "semantic:anchored_handle:copy_attempt",
-                        "use-move-or-retain-binding",
-                        expr->data.await_expr.expression,
-                        "'await' cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; await a plain value or movable transfer result instead");
-                    return TYPE_UNKNOWN;
-                }
                 /* RemoteFuture<T> → Result<T>: remote operations can fail
                  * (network partition, timeout, etc.) so the result must be
                  * explicitly handled.  Local Future<T> → T as before. */

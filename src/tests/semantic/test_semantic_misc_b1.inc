@@ -452,7 +452,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("ref SecureSlot<subject-host> parameter is rejected outside closed subset");
+    TEST("ref SecureSlot<subject-host> parameter is accepted as explicit anchored-handle borrow boundary");
     {
         const char *source =
             "subject Session { let id: Int; }\n"
@@ -465,9 +465,7 @@
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "SecureSlot<subject-host> parameters currently support only 'own'"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

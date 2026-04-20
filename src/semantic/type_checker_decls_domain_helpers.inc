@@ -747,7 +747,7 @@ type_check_projection_contract(ASTNode **slots,
                 : "<unknown>",
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             owner_label != NULL ? owner_label : "<owner>",
-            owner_name != NULL ? owner_name : "<owner>");
+            owner_label != NULL ? owner_label : "<owner>");
         return true;
     }
 
@@ -1326,6 +1326,9 @@ type_check_zone_relation_contract(ASTNode *zone,
     if (!type_is_assignable(left_type, decl_left_type)) {
         semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link_like,
             "Zone %s left slot '%s' has type '%s' but relation '%s' expects left endpoint type '%s'.\n"
+            "Contract source:\n"
+            "- relation slot '%s' in zone contract '%s'\n"
+            "- endpoint edge: left '%s' -> relation '%s'\n"
             "Reason:\n"
             "- zone relation slot '%s' binds declaration '%s'\n"
             "- relation '%s' declares left endpoint slot '%s' with required type '%s'\n"
@@ -1341,6 +1344,12 @@ type_check_zone_relation_contract(ASTNode *zone,
                 : "<unknown>",
             decl_left_type != NULL && decl_left_type->name != NULL
                 ? decl_left_type->name
+                : "<unknown>",
+            relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
+            zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
+            left_slot_name != NULL ? left_slot_name : "<left-slot>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
                 : "<unknown>",
             relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
             relation_decl->data.relation_decl.name != NULL
@@ -1371,6 +1380,9 @@ type_check_zone_relation_contract(ASTNode *zone,
     if (!type_is_assignable(right_type, decl_right_type)) {
         semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", link_like,
             "Zone %s right slot '%s' has type '%s' but relation '%s' expects right endpoint type '%s'.\n"
+            "Contract source:\n"
+            "- relation slot '%s' in zone contract '%s'\n"
+            "- endpoint edge: relation '%s' -> right '%s'\n"
             "Reason:\n"
             "- zone relation slot '%s' binds declaration '%s'\n"
             "- propagation edge is relation slot '%s' -> right endpoint '%s'\n"
@@ -1388,6 +1400,12 @@ type_check_zone_relation_contract(ASTNode *zone,
             decl_right_type != NULL && decl_right_type->name != NULL
                 ? decl_right_type->name
                 : "<unknown>",
+            relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
+            zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            right_slot_name != NULL ? right_slot_name : "<right-slot>",
             relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
             relation_decl->data.relation_decl.name != NULL
                 ? relation_decl->data.relation_decl.name

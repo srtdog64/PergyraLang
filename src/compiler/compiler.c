@@ -438,8 +438,34 @@ pgy_detect_c_compiler(void)
             return pgy_cc_cached;
     }
 #ifdef _WIN32
-    /* Try clang with mingw target first (MSVC-default clang lacks pthread.h,
-     * and gcc on Windows frequently crashes via cc1.exe) */
+    /* Prefer an actual MinGW GCC driver on Windows.
+     *
+     * The native backend and LLVM object-link path both rely on the same
+     * thread/runtime model as the rest of the MinGW toolchain. Picking
+     * clang --target=x86_64-w64-mingw32 here looks attractive, but in
+     * practice it can drift into a different runtime/thread model and leave
+     * libgcc_eh/emutls unresolved against pthread_* during final link.
+     *
+     * The repository already builds pgy itself through MinGW GCC on Windows,
+     * so use the same driver first for emitted program builds as well.
+     */
+    {
+        const char *mingw_gcc_ver[] = { "x86_64-w64-mingw32-gcc", "--version", NULL };
+        if (pgy_exec_probe_argv_silent(mingw_gcc_ver) == 0) {
+            pgy_cc_cached = "x86_64-w64-mingw32-gcc";
+            pgy_cc_target_flag = NULL;
+            return pgy_cc_cached;
+        }
+    }
+    {
+        const char *gcc_ver[] = { "gcc", "--version", NULL };
+        if (pgy_exec_probe_argv_silent(gcc_ver) == 0) {
+            pgy_cc_cached = "gcc";
+            pgy_cc_target_flag = NULL;
+            return pgy_cc_cached;
+        }
+    }
+    /* Fallback: clang with explicit MinGW target. */
     {
         const char *clang_mingw[] = { "clang", "--target=x86_64-w64-mingw32", "--version", NULL };
         if (pgy_exec_probe_argv_silent(clang_mingw) == 0) {
@@ -448,18 +474,14 @@ pgy_detect_c_compiler(void)
             return pgy_cc_cached;
         }
     }
-    /* Try gcc (mingw gcc has pthread.h built-in, but cc1 may crash) */
-    {
-        const char *gcc_ver[] = { "gcc", "--version", NULL };
-        if (pgy_exec_probe_argv_silent(gcc_ver) == 0) {
-            pgy_cc_cached = "gcc"; return pgy_cc_cached;
-        }
-    }
-    /* Fallback: plain clang without mingw target */
+    /* Last fallback: plain clang. */
     {
         const char *clang_ver[] = { "clang", "--version", NULL };
         if (pgy_exec_probe_argv_silent(clang_ver) == 0) {
-            pgy_cc_cached = "clang"; return pgy_cc_cached; }
+            pgy_cc_cached = "clang";
+            pgy_cc_target_flag = NULL;
+            return pgy_cc_cached;
+        }
     }
 #else
     {

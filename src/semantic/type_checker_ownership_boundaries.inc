@@ -11,7 +11,7 @@ semantic_current_consumer_name(SemanticContext *ctx)
     return "<anonymous>";
 }
 
-static OwnershipTypeClass
+OwnershipTypeClass
 semantic_classify_ownership_type(const Type *type, SemanticContext *ctx)
 {
     if (type == NULL || ctx == NULL)
@@ -27,7 +27,7 @@ semantic_classify_ownership_type(const Type *type, SemanticContext *ctx)
     return OWNERSHIP_TYPE_COPY_ONLY;
 }
 
-static const char *
+const char *
 semantic_ownership_value_label(OwnershipTypeClass klass)
 {
     switch (klass) {
@@ -38,14 +38,14 @@ semantic_ownership_value_label(OwnershipTypeClass klass)
     case OWNERSHIP_TYPE_BORROW_TRACKED:
         return "boundary value";
     case OWNERSHIP_TYPE_ANCHORED_HANDLE:
-        return "slot";
+        return "anchored handle";
     case OWNERSHIP_TYPE_COPY_ONLY:
     default:
         return "value";
     }
 }
 
-static const char *
+const char *
 semantic_ownership_provenance_label(OwnershipTypeClass klass)
 {
     switch (klass) {
@@ -56,14 +56,14 @@ semantic_ownership_provenance_label(OwnershipTypeClass klass)
     case OWNERSHIP_TYPE_BORROW_TRACKED:
         return "boundary provenance";
     case OWNERSHIP_TYPE_ANCHORED_HANDLE:
-        return "slot provenance";
+        return "anchored-handle provenance";
     case OWNERSHIP_TYPE_COPY_ONLY:
     default:
         return "value provenance";
     }
 }
 
-static const char *
+const char *
 semantic_ownership_replacement_label(OwnershipTypeClass klass)
 {
     switch (klass) {
@@ -74,14 +74,14 @@ semantic_ownership_replacement_label(OwnershipTypeClass klass)
     case OWNERSHIP_TYPE_BORROW_TRACKED:
         return "a copied/value/projection result";
     case OWNERSHIP_TYPE_ANCHORED_HANDLE:
-        return "a projection/object/tobject/value instead";
+        return "a projection/value result";
     case OWNERSHIP_TYPE_COPY_ONLY:
     default:
         return "a value result";
     }
 }
 
-static bool
+bool
 semantic_validate_borrowed_escape(ASTNode *site,
                                   ASTNode *source_expr,
                                   SemanticContext *ctx,
@@ -137,7 +137,8 @@ semantic_validate_borrowed_escape(ASTNode *site,
                 "through container store",
                 "- storing it would let the borrowed slot handle outlive the current call boundary\n",
                 "keep the slot operation local to this function",
-                "or change the parameter to 'own' if transfer is intended");
+                "or change the parameter to 'own' if transfer is intended",
+                false);
             return true;
         }
         semantic_report_borrowed_container_store_escape(
@@ -155,12 +156,14 @@ semantic_validate_borrowed_escape(ASTNode *site,
                 "via return",
                 "- returning it would let the borrow outlive the call boundary\n",
                 "return a projection/object/tobject/value instead",
-                "or change the parameter to 'own' if transfer is intended");
+                "or change the parameter to 'own' if transfer is intended",
+                site != NULL && site->type == AST_FUNC_DECL);
             return true;
         }
         semantic_report_borrowed_return_escape(
             site, source_expr, ctx, borrowed_name, value_label,
-            provenance_label, semantic_ownership_replacement_label(klass));
+            provenance_label, semantic_ownership_replacement_label(klass),
+            site != NULL && site->type == AST_FUNC_DECL);
         return true;
     case OWNERSHIP_CONSUMER_CHANNEL_SEND:
         if (klass == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
@@ -169,12 +172,14 @@ semantic_validate_borrowed_escape(ASTNode *site,
                 "through channel send",
                 "- channel send would transfer the borrow beyond that boundary\n",
                 "send a projection/object/tobject/value result instead",
-                "or take ownership with 'own' before transfer");
+                "or take ownership with 'own' before transfer",
+                site != NULL && site->type == AST_FUNC_DECL);
             return true;
         }
         semantic_report_borrowed_channel_send_escape(
             site, source_expr, ctx, borrowed_name, value_label,
-            provenance_label, semantic_ownership_replacement_label(klass));
+            provenance_label, semantic_ownership_replacement_label(klass),
+            site != NULL && site->type == AST_FUNC_DECL);
         return true;
     case OWNERSHIP_CONSUMER_HELPER_CALL:
         if (klass == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
@@ -183,7 +188,8 @@ semantic_validate_borrowed_escape(ASTNode *site,
                 "through helper/function call",
                 "- forwarding it to another call would create a transitive borrow the compiler does not yet track precisely\n",
                 "perform the slot operation locally in this function",
-                "or change the parameter to 'own' if transfer/forwarding is intended");
+                "or change the parameter to 'own' if transfer/forwarding is intended",
+                site != NULL && site->type == AST_FUNC_DECL);
             return true;
         }
         semantic_report_borrowed_helper_call_escape(
@@ -246,28 +252,52 @@ semantic_report_borrowed_return_escape(ASTNode *site,
                                        const char *borrowed_name,
                                        const char *value_label,
                                        const char *provenance_label,
-                                       const char *replacement_label)
+                                       const char *replacement_label,
+                                       bool summary_only)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
-    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
-        "Borrowed ref %s '%s' cannot escape via return from '%s'.\n"
-        "Reason:\n"
-        "- consumer path is function '%s'\n"
-        "- '%s' entered this function as a borrowed 'ref' %s\n"
-        "- '%s' is derived from that borrowed %s\n"
-        "- returning it would let the borrow outlive the current call boundary\n"
-        "Fix:\n"
-        "- return %s instead\n"
-        "- or change the current parameter to 'own' if transfer is intended",
-        value_label,
-        borrowed_name,
-        source_path != NULL ? source_path : borrowed_name,
-        semantic_current_consumer_name(ctx),
-        borrowed_name,
-        value_label,
-        source_path != NULL ? source_path : borrowed_name,
-        provenance_label,
-        replacement_label != NULL ? replacement_label : "a value result");
+    if (summary_only) {
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+            "Borrowed ref %s '%s' cannot escape through return summary in '%s' from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' %s\n"
+            "- '%s' is derived from that borrowed %s\n"
+            "- summary analysis proves a return path can let this borrow outlive the current call boundary\n"
+            "Fix:\n"
+            "- return %s instead\n"
+            "- or change the current parameter to 'own' if transfer is intended",
+            value_label,
+            borrowed_name,
+            semantic_current_consumer_name(ctx),
+            source_path != NULL ? source_path : borrowed_name,
+            semantic_current_consumer_name(ctx),
+            borrowed_name,
+            value_label,
+            source_path != NULL ? source_path : borrowed_name,
+            provenance_label,
+            replacement_label != NULL ? replacement_label : "a value result");
+    } else {
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+            "Borrowed ref %s '%s' cannot escape via return from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' %s\n"
+            "- '%s' is derived from that borrowed %s\n"
+            "- returning it would let the borrow outlive the current call boundary\n"
+            "Fix:\n"
+            "- return %s instead\n"
+            "- or change the current parameter to 'own' if transfer is intended",
+            value_label,
+            borrowed_name,
+            source_path != NULL ? source_path : borrowed_name,
+            semantic_current_consumer_name(ctx),
+            borrowed_name,
+            value_label,
+            source_path != NULL ? source_path : borrowed_name,
+            provenance_label,
+            replacement_label != NULL ? replacement_label : "a value result");
+    }
     free(source_path);
 }
 
@@ -362,32 +392,60 @@ semantic_report_borrowed_channel_send_escape(ASTNode *site,
                                              const char *borrowed_name,
                                              const char *value_label,
                                              const char *provenance_label,
-                                             const char *replacement_label)
+                                             const char *replacement_label,
+                                             bool summary_only)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
-    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-        "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
-        "Borrowed ref %s '%s' cannot escape through channel send from '%s'.\n"
-        "Reason:\n"
-        "- consumer path is function '%s'\n"
-        "- '%s' entered this function as a borrowed 'ref' %s\n"
-        "- '%s' is derived from that borrowed %s\n"
-        "- channel send would transfer that borrow beyond the current call boundary\n"
-        "Fix:\n"
-        "- send a %s instead\n"
-        "- or change the current parameter to 'own' if transfer is intended",
-        value_label != NULL ? value_label : "boundary value",
-        borrowed_name != NULL ? borrowed_name : "<value>",
-        source_path != NULL ? source_path
-                            : (borrowed_name != NULL ? borrowed_name : "<value>"),
-        semantic_current_consumer_name(ctx),
-        borrowed_name != NULL ? borrowed_name : "<value>",
-        value_label != NULL ? value_label : "boundary value",
-        source_path != NULL ? source_path
-                            : (borrowed_name != NULL ? borrowed_name : "<value>"),
-        provenance_label != NULL ? provenance_label : "boundary provenance",
-        replacement_label != NULL ? replacement_label
-                                  : "copied/value/projection result");
+    if (summary_only) {
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+            "Borrowed ref %s '%s' cannot escape through channel summary in '%s' from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' %s\n"
+            "- '%s' is derived from that borrowed %s\n"
+            "- summary analysis proves a channel-send path can transfer that borrow beyond the current call boundary\n"
+            "Fix:\n"
+            "- send a %s instead\n"
+            "- or change the current parameter to 'own' if transfer is intended",
+            value_label != NULL ? value_label : "boundary value",
+            borrowed_name != NULL ? borrowed_name : "<value>",
+            semantic_current_consumer_name(ctx),
+            source_path != NULL ? source_path
+                                : (borrowed_name != NULL ? borrowed_name : "<value>"),
+            semantic_current_consumer_name(ctx),
+            borrowed_name != NULL ? borrowed_name : "<value>",
+            value_label != NULL ? value_label : "boundary value",
+            source_path != NULL ? source_path
+                                : (borrowed_name != NULL ? borrowed_name : "<value>"),
+            provenance_label != NULL ? provenance_label : "boundary provenance",
+            replacement_label != NULL ? replacement_label
+                                      : "copied/value/projection result");
+    } else {
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+            "Borrowed ref %s '%s' cannot escape through channel send from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' %s\n"
+            "- '%s' is derived from that borrowed %s\n"
+            "- channel send would transfer that borrow beyond the current call boundary\n"
+            "Fix:\n"
+            "- send a %s instead\n"
+            "- or change the current parameter to 'own' if transfer is intended",
+            value_label != NULL ? value_label : "boundary value",
+            borrowed_name != NULL ? borrowed_name : "<value>",
+            source_path != NULL ? source_path
+                                : (borrowed_name != NULL ? borrowed_name : "<value>"),
+            semantic_current_consumer_name(ctx),
+            borrowed_name != NULL ? borrowed_name : "<value>",
+            value_label != NULL ? value_label : "boundary value",
+            source_path != NULL ? source_path
+                                : (borrowed_name != NULL ? borrowed_name : "<value>"),
+            provenance_label != NULL ? provenance_label : "boundary provenance",
+            replacement_label != NULL ? replacement_label
+                                      : "copied/value/projection result");
+    }
     free(source_path);
 }
 
@@ -399,34 +457,67 @@ semantic_report_borrowed_slot_handle_escape(ASTNode *site,
                                             const char *escape_kind,
                                             const char *detail_line,
                                             const char *replacement_label,
-                                            const char *secondary_fix)
+                                            const char *secondary_fix,
+                                            bool summary_only)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
-    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-        "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
-        "Borrowed ref slot '%s' cannot escape %s from '%s'.\n"
-        "Reason:\n"
-        "- consumer path is function '%s'\n"
-        "- '%s' entered this function as a borrowed 'ref' handle\n"
-        "- summary provenance root is '%s'\n"
-        "- 'ref' is a non-owning borrow tied to the current call boundary\n"
-        "%s"
-        "Fix:\n"
-        "- %s\n"
-        "- %s",
-        borrowed_name != NULL ? borrowed_name : "<slot>",
-        escape_kind != NULL ? escape_kind : "through an ownership boundary",
-        source_path != NULL ? source_path
-                            : (borrowed_name != NULL ? borrowed_name : "<slot>"),
-        semantic_current_consumer_name(ctx),
-        borrowed_name != NULL ? borrowed_name : "<slot>",
-        borrowed_name != NULL ? borrowed_name : "<slot>",
-        detail_line != NULL ? detail_line
-                            : "- this borrow cannot outlive the current call boundary\n",
-        replacement_label != NULL ? replacement_label
-                                  : "keep the slot operation local to this function",
-        secondary_fix != NULL ? secondary_fix
-                              : "or change the parameter to 'own' if transfer is intended");
+    if (summary_only) {
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+            "Borrowed ref anchored handle '%s' cannot escape %s summary in '%s' from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' anchored handle\n"
+            "- '%s' is derived from anchored-handle provenance rooted at '%s'\n"
+            "- 'ref' is a non-owning borrow tied to the current call boundary\n"
+            "- summary analysis proves a %s path can let this anchored handle outlive that boundary\n"
+            "Fix:\n"
+            "- %s\n"
+            "- %s",
+            borrowed_name != NULL ? borrowed_name : "<slot>",
+            escape_kind != NULL ? escape_kind : "ownership-boundary",
+            semantic_current_consumer_name(ctx),
+            source_path != NULL ? source_path
+                                : (borrowed_name != NULL ? borrowed_name : "<slot>"),
+            semantic_current_consumer_name(ctx),
+            borrowed_name != NULL ? borrowed_name : "<slot>",
+            source_path != NULL ? source_path
+                                : (borrowed_name != NULL ? borrowed_name : "<slot>"),
+            borrowed_name != NULL ? borrowed_name : "<slot>",
+            escape_kind != NULL ? escape_kind : "ownership-boundary",
+            replacement_label != NULL ? replacement_label
+                                      : "keep the slot operation local to this function",
+            secondary_fix != NULL ? secondary_fix
+                                  : "or change the parameter to 'own' if transfer is intended");
+    } else {
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+            "Borrowed ref anchored handle '%s' cannot escape %s from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' anchored handle\n"
+            "- '%s' is derived from anchored-handle provenance rooted at '%s'\n"
+            "- 'ref' is a non-owning borrow tied to the current call boundary\n"
+            "%s"
+            "Fix:\n"
+            "- %s\n"
+            "- %s",
+            borrowed_name != NULL ? borrowed_name : "<slot>",
+            escape_kind != NULL ? escape_kind : "through an ownership boundary",
+            source_path != NULL ? source_path
+                                : (borrowed_name != NULL ? borrowed_name : "<slot>"),
+            semantic_current_consumer_name(ctx),
+            borrowed_name != NULL ? borrowed_name : "<slot>",
+            source_path != NULL ? source_path
+                                : (borrowed_name != NULL ? borrowed_name : "<slot>"),
+            borrowed_name != NULL ? borrowed_name : "<slot>",
+            detail_line != NULL ? detail_line
+                                : "- this borrow cannot outlive the current call boundary\n",
+            replacement_label != NULL ? replacement_label
+                                      : "keep the slot operation local to this function",
+            secondary_fix != NULL ? secondary_fix
+                                  : "or change the parameter to 'own' if transfer is intended");
+    }
     free(source_path);
 }
 
@@ -473,8 +564,34 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
                                             const char *local_fix_label)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
+    const char *consumer_name = semantic_current_consumer_name(ctx);
+    bool summary_only_escape = transitive_ref_escape
+        && callee_name != NULL
+        && strcmp(callee_name, consumer_name) == 0;
 
-    if (transitive_ref_escape) {
+    if (summary_only_escape) {
+        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+            "Borrowed ref %s '%s' cannot escape through helper/function summary in '%s' from '%s'.\n"
+            "Reason:\n"
+            "- consumer path is function '%s'\n"
+            "- '%s' entered this function as a borrowed 'ref' %s\n"
+            "- '%s' is derived from that borrowed %s\n"
+            "- summary analysis proves a helper/function path can let this borrow escape beyond the current call boundary\n"
+            "Fix:\n"
+            "- perform the %s operation locally in this function\n"
+            "- or change the current parameter to 'own' if transfer/forwarding is intended",
+            value_label != NULL ? value_label : "boundary value",
+            borrowed_name,
+            consumer_name,
+            source_path != NULL ? source_path : borrowed_name,
+            consumer_name,
+            borrowed_name,
+            value_label != NULL ? value_label : "boundary value",
+            source_path != NULL ? source_path : borrowed_name,
+            provenance_label != NULL ? provenance_label : "boundary provenance",
+            local_fix_label != NULL ? local_fix_label : "value");
+    } else if (transitive_ref_escape) {
         semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
             "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
             "Borrowed ref %s '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
@@ -491,7 +608,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
             borrowed_name,
             callee_name != NULL ? callee_name : "<callee>",
             source_path != NULL ? source_path : borrowed_name,
-            semantic_current_consumer_name(ctx),
+            consumer_name,
             borrowed_name,
             value_label != NULL ? value_label : "boundary value",
             source_path != NULL ? source_path : borrowed_name,
@@ -514,7 +631,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
             borrowed_name,
             callee_name != NULL ? callee_name : "<callee>",
             source_path != NULL ? source_path : borrowed_name,
-            semantic_current_consumer_name(ctx),
+            consumer_name,
             borrowed_name,
             value_label != NULL ? value_label : "boundary value",
             source_path != NULL ? source_path : borrowed_name,

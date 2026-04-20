@@ -9,6 +9,132 @@
 - 베타 진행률 추정: 약 `86-87%`
 - 현재 표현: `late-stage alpha / beta-closure sprint`
 
+## 구조/운영 폐인 포인트 보드 (2026-04-20)
+
+이 섹션은 기능 backlog가 아니라, 실제 작업 효율과 베타 신뢰도를 계속 깎는 구조 debt / 운영 pain point를 고정한다.
+
+우선순위 제안:
+- `P1`: `.inc` 분할을 실제 `.c`/`.h` 모듈로 전환
+- `P2`: hint namespace (`code` / `cause_ir` / `fix_source`)를 레지스트리 기반으로 고정
+- `P3`: type-category vocabulary를 2-3층으로 압축
+- `P4`: 빌드/샌드박스/중간-stage JSON/artifact 문제를 공식 경로 기준으로 정리
+
+### P1. `.inc` 스파게티를 실제 모듈로 절단
+
+- 문제:
+  - 현재 `type_checker.c` 및 transpiler/LLVM 일부는 “모듈화”가 아니라 “파일 분할된 단일 translation unit”에 가깝다
+  - IDE jump/symbol lookup/forward decl 순서 관리가 모두 수동
+  - formatter/linter/외부 edit가 include 순서/파일 갱신 타이밍에 민감하게 깨진다
+- 영향:
+  - 대형 수정 시 edit conflict / implicit declaration / include ordering failure가 반복됨
+  - ownership/generic/provenance 같은 횡단 작업이 불필요하게 느려진다
+- 기본 방침:
+  - 우선 `semantic/type_checker_*`에서 ownership / generic / module-contract / diagnostics 축부터 실제 `.c`/`.h` export 구조로 절단
+  - declaration-side MIR-only hot path도 helper family를 `.c` 경계로 분리
+- 준비 작업:
+  - [ ] `type_checker`를 최소 4축으로 절단
+    - ownership classification
+    - ownership diagnostics/consumers
+    - generic consumer pipeline
+    - module contract / authority consumer
+  - 진행: ownership 공용 enum/entrypoint를 `type_checker_ownership_internal.h`로 분리 시작
+  - 진행: ownership diagnostics forward declaration도 `type_checker_ownership_diag_internal.h`로 분리 시작
+  - 진행: ownership support helper(`semantic_assignment_target_path`, `semantic_borrowed_boundary_root_name`)도 `type_checker_ownership_support_internal.h`로 분리 시작
+  - 진행: ownership consumer seam(`return` / `assign` / `call`)도 `type_checker_ownership_consumers_internal.h`로 분리 시작
+  - 진행: `param_summary`도 raw include block이 아니라 `semantic_check_param_summary_escapes(...)` consumer helper로 승격
+  - 진행: channel transport seam도 `type_checker_channel_transport_internal.h`로 분리 시작
+  - 진행: high-arity generic mismatch helper도 `type_checker_generic_diag_internal.h`로 분리 시작
+  - [ ] `.inc` 내부 static helper 중 교차 참조 심한 심볼 목록 작성
+  - [ ] include-order에 의존하는 implicit declaration 경로 제거
+
+### P2. hint namespace 레지스트리화
+
+- 문제:
+  - `cause_ir` / `fix_source` literal이 세션 단위로 계속 늘어나는데 중앙 레지스트리가 없다
+  - `docs/72`류 문서는 `code` 위주고, `cause_ir` / `fix_source` variant drift를 강제하지 못한다
+- 영향:
+  - downstream이 diagnostic routing에 이 값을 쓰기 시작하면 오타/drift가 즉시 breaking change가 된다
+- 기본 방침:
+  - `code`, `cause_ir`, `fix_source`를 모두 registry/enum-like literal set으로 관리
+  - 문서와 코드 리뷰 기준에서 “새 literal 추가 시 registry + docs 동시 갱신”을 강제
+- 준비 작업:
+  - [ ] diagnostic literal registry 초안 추가
+  - [ ] `cause_ir` / `fix_source` 네이밍 규칙 문서화
+  - [ ] free-form 문자열 신규 추가 지점에 TODO/grep gate 마련
+
+### P3. 타입/ownership 용어 압축
+
+- 문제:
+  - anchored handle / movable resource / subject / subject-host / boundary value / capability-bearing / move token 등 용어가 과다
+  - 같은 semantic family가 메시지마다 다른 이름으로 노출된다
+- 영향:
+  - 사용자도 헷갈리고, 구현자도 메시지/문서/테스트 정렬 시 drift가 난다
+- 기본 방침:
+  - 사용자-facing 핵심 용어를 2-3층으로 압축
+  - 세부 분류는 “X의 하위분류”로만 노출
+- 준비 작업:
+  - [ ] user-facing canonical vocabulary 정리
+  - [ ] diagnostics/README/docs 용어 매핑표 작성
+  - [ ] old wording grep inventory 후 치환 계획 수립
+
+### P4. 빌드/샌드박스 경로 단순화
+
+- 문제:
+  - bash / PowerShell / cmd / MSYS2 / stale object / path rewrite / sed 기반 stamp가 서로 다른 방식으로 깨진다
+  - “Nothing to be done” + stale artifact 같은 회귀가 생산성을 크게 깎는다
+- 기본 방침:
+  - 단일 공식 빌드 경로를 정하고 나머지는 document-only 또는 best-effort로 내린다
+  - stale artifact 회피를 위해 강제 재빌드 경로를 공식화
+- 준비 작업:
+  - [ ] 공식 Windows 빌드 경로 1개로 문서화
+  - [ ] `clean && build` 강제 wrapper / recommended entrypoint 정의
+  - [ ] stale `.o` / `.d` 진단 가이드와 강제 재빌드 옵션 정리
+
+### P5. printf-style 진단 포맷팅 축소
+
+- 문제:
+  - 일부 semantic diagnostic helper는 인자 개수가 매우 많고, placeholder drift에 취약하다
+  - 현재 구조는 `fmt 하드코딩 + structured tags(code/cause/fix)`가 이중으로 공존한다
+- 기본 방침:
+  - 진단 payload를 struct로 모으고, human-readable render는 renderer/helper layer가 담당
+  - 최소한 고인자 helper부터 payload-builder 패턴으로 전환
+- 준비 작업:
+  - [ ] high-arity diagnostic helper inventory 작성
+  - [ ] generic mismatch / authority mismatch / ownership escape에서 payload struct 시범 도입
+
+### P6. channel transport 규칙 공통 validator 수렴
+
+- 문제:
+  - `type_checker_async_channel.inc`와 builtin/send-query 계열이 ownership/channel transport 규칙을 중복 구현한다
+- 기본 방침:
+  - channel transport는 공통 validator 하나로 수렴
+  - builtin/send wrappers는 surface adapter만 담당
+- 준비 작업:
+  - [ ] send/try-send/send-timeout/status variants 공통 validator 추출
+  - [ ] subject / movable / anchored / boundary mismatch wording 통일
+  - 진행: named-transfer requirement와 subject/boundary/anchored borrowed-send/mismatch는 `semantic_channel_transfer_requires_named_binding(...)`, `semantic_report_named_channel_transfer_required(...)`, `semantic_validate_channel_transport_ownership(...)` helper로 1차 수렴
+  - 진행: token / move-only send-recv restriction wording도 `semantic_report_channel_transport_policy(...)` helper로 정렬 시작
+
+### P7. 중간 stage JSON routing closure
+
+- 문제:
+  - HIR/DIR/RIR/MIR 실패 경로 일부가 여전히 plain text 중심이라 `단일 JSON 배열` 계약을 깨뜨린다
+- 기본 방침:
+  - frontend/backend 끝단뿐 아니라 중간 stage 실패도 structured output 계약에 들어오게 한다
+- 준비 작업:
+  - [ ] HIR/DIR/RIR/MIR failure emitter inventory 작성
+  - [ ] plain-text fallback 제거 우선순위 수립
+
+### P8. stale binary / artifact 회귀 고정
+
+- 문제:
+  - stale object/dependency 파일 때문에 소스 수정이 반영되지 않는 경우가 있다
+- 기본 방침:
+  - “빠른 증분 빌드”보다 “신뢰 가능한 재빌드” 경로를 우선
+- 준비 작업:
+  - [ ] stale artifact 재현 조건 문서화
+  - [ ] 권장 빌드 진입점에서 clean rebuild 선택지를 기본 노출
+
 ### 최근 closure 진행 (2026-04-18)
 
 - declaration-side MIR-only host context를 더 정리
@@ -159,7 +285,14 @@
   - 진행: helper forwarding / builtin channel send(`Send`/`TrySend`/`SendTimeout`/status variants)도 unnamed borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
   - 진행: direct `return` escape도 borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)를 직접 보고하도록 정렬
   - 진행: slot/resource summary 기반 `return/channel/helper` diagnostics도 `summary provenance root` vocabulary로 direct semantic wording에 더 가깝게 정렬
+  - 진행: summary-based helper escape는 direct callee wording 대신 `helper/function summary in '<fn>'` 경로로 분리해 drift를 줄임
+  - 진행: summary-based return/channel escape도 direct consumer wording 대신 `return summary in '<fn>'` / `channel summary in '<fn>'` 경로로 분리해 drift를 줄임
+  - 진행: anchored-handle summary escape도 direct `return/channel/helper` wording 대신 summary wording으로 분리해 own/ref bridge 문구를 정렬
   - 진행: helper-call / container-store / array-literal-store / semantic channel-send diagnostic family를 공용 helper로 통합
+  - 진행: nested projection + transitive helper + member rebind 조합도 semantic regression fixture로 추가
+  - 진행: movable-resource + nested member source + member rebind target 조합도 semantic regression fixture로 추가
+  - 진행: declaration-side MIR-only host truth는 `current_host_decl` / inventory 기준으로 더 좁혔고, `within_zone`를 따라가는 transpiler host recovery fallback과 role-owner direct AST lookup을 제거
+  - 진행: own/ref anchored-handle wording을 assignment / let-binding / return / channel / helper family에 맞춰 `boundary-visible handle binding` / `anchored-handle provenance` 기준으로 정렬
   - 남은 own/ref line: `type_checker_program.inc`의 summary-based `return/channel/helper` diagnostics를 공용 helper family로 더 접고, broader assignment / container / rebind audit에서 nested projection + transitive helper 경로를 계속 닫음
   - generic contract는 `default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path를 마지막까지 audit
   - 진행: `party role slot` generic mismatch consumer도 actual/expected type arg + consumer path provenance regression으로 고정
@@ -168,6 +301,7 @@
 - [ ] **Intent/Zone/World, relation/effect/projection 진단과 provenance 마감**
   - intent/zone/world의 embedding / handoff / authority mismatch에서 contract source, derived zone/using, transfer edge provenance를 계속 강화
   - relation/effect/projection은 propagation edge failure, contract mismatch, branch/join/handoff path에 `Reason:` / `Fix:`와 source/target provenance를 일관되게 부착
+  - 진행: world embedding/handoff와 intent transfer/authority mismatch의 핵심 경로를 `Contract source:` / `Reason:` / `Fix:` 구조로 재정렬
   - runtime contract provenance와 diagnostic wording을 더 정렬해 “왜 실패했는지 + 계약이 어디서 왔는지 + 어떻게 고칠지”를 한 번에 보이게 한다
   - helper-heavy edge path를 줄이고, compile-time contract 실패를 silent/best-effort runtime sync로 넘기지 않는다
   - 진행: intent step contract-source summary가 `authorized by`, transfer handoff, derived transfer zone provenance를 더 직접적으로 설명하도록 정렬

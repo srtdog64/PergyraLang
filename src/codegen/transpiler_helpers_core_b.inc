@@ -133,7 +133,8 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
     case AST_WORLD_DECL:
         return transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL, owner_name);
     case AST_ROLE_DECL:
-        role_decl = find_role_decl(ctx, owner_name);
+        role_decl = transpiler_find_decl_in_inventory_local(
+            ctx, AST_ROLE_DECL, owner_name);
         if (role_decl != NULL
             && role_decl->type == AST_ROLE_DECL
             && role_decl->data.role_decl.for_type != NULL
@@ -164,24 +165,9 @@ transpiler_bind_current_host_decl_local(TranspilerCtx *ctx, ASTNode *decl)
 static ASTNode *
 transpiler_current_host_decl_local(TranspilerCtx *ctx)
 {
-    ASTNode *decl = NULL;
-
     if (ctx == NULL)
         return NULL;
-    if (ctx->current_host_decl != NULL)
-        return ctx->current_host_decl;
-    if (ctx->current_func_decl != NULL
-        && ctx->current_func_decl->type == AST_FUNC_DECL
-        && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
-        decl = transpiler_find_decl_in_inventory_local(
-            ctx, AST_ZONE_DECL, ctx->current_func_decl->data.func_decl.within_zone);
-        if (decl != NULL) {
-            transpiler_bind_current_host_decl_local(ctx, decl);
-            return decl;
-        }
-    }
-    transpiler_bind_current_host_decl_local(ctx, NULL);
-    return NULL;
+    return ctx->current_host_decl;
 }
 
 static ASTNode *

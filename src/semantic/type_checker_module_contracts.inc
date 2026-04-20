@@ -42,6 +42,54 @@ ability_ref_display(ASTNode *ability_ref)
     return result;
 }
 
+void
+semantic_report_ability_generic_bound_failure(SemanticContext *ctx,
+                                              const ASTNode *site,
+                                              const char *owner_label,
+                                              const char *owner_name,
+                                              const char *ability_name,
+                                              const char *param_name,
+                                              const char *bound_name,
+                                              const char *bounds_text,
+                                              const char *required_text,
+                                              const char *concrete_name)
+{
+    semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+        "semantic:generic:bound_validation_failed",
+        "align-generic-bound-or-annotate",
+        site,
+        "%s '%s' uses ability '%s' with generic argument '%s' that does not satisfy bound '%s'.\n"
+        "Reason:\n"
+        "- consumer path is %s '%s'\n"
+        "- generic subject is ability '%s'\n"
+        "- ability declaration '%s' requires '%s: %s'\n"
+        "- full bound set is '%s: %s'\n"
+        "- expected type args are '%s'\n"
+        "- actual type args are '%s'\n"
+        "- broken bound is '%s'\n"
+        "Fix:\n"
+        "- pass a type argument that satisfies '%s'\n"
+        "- or relax the bound on ability '%s'",
+        owner_label != NULL ? owner_label : "construct",
+        owner_name != NULL ? owner_name : "<anonymous>",
+        ability_name != NULL ? ability_name : "<ability>",
+        concrete_name != NULL ? concrete_name : "<type>",
+        bound_name != NULL ? bound_name : "<constraint>",
+        owner_label != NULL ? owner_label : "construct",
+        owner_name != NULL ? owner_name : "<anonymous>",
+        ability_name != NULL ? ability_name : "<ability>",
+        ability_name != NULL ? ability_name : "<ability>",
+        param_name != NULL ? param_name : "<type-param>",
+        bound_name != NULL ? bound_name : "<constraint>",
+        param_name != NULL ? param_name : "<type-param>",
+        bounds_text != NULL ? bounds_text : "<constraint>",
+        required_text != NULL ? required_text : "<ability>",
+        concrete_name != NULL ? concrete_name : "<type>",
+        bound_name != NULL ? bound_name : "<constraint>",
+        bound_name != NULL ? bound_name : "<constraint>",
+        ability_name != NULL ? ability_name : "<ability>");
+}
+
 static char *
 ability_decl_signature_display(const char *ability_name, GenericParams *params)
 {
@@ -398,46 +446,18 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     : "<constraint>";
 
             if (!ability_generic_arg_satisfies_bound(concrete_type, bound_node, ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
-                    "semantic:generic:bound_validation_failed",
-                    "align-generic-bound-or-annotate",
+                semantic_report_ability_generic_bound_failure(
+                    ctx,
                     site,
-                    "%s '%s' uses ability '%s' with generic argument '%s' that does not satisfy bound '%s'.\n"
-                    "Reason:\n"
-                    "- consumer path is %s '%s'\n"
-                    "- ability declaration '%s' requires '%s: %s'\n"
-                    "- full bound set is '%s: %s'\n"
-                    "- generic subject is ability '%s'\n"
-                    "- %s uses '%s'\n"
-                    "- actual type argument is '%s'\n"
-                    "- expected type args are constrained by '%s: %s'\n"
-                    "Fix:\n"
-                    "- pass a type argument that satisfies '%s'\n"
-                    "- or relax the bound on ability '%s'",
-                    owner_label != NULL ? owner_label : "construct",
-                    owner_name != NULL ? owner_name : "<anonymous>",
-                    ability_decl->data.ability_decl.name != NULL
-                        ? ability_decl->data.ability_decl.name : "<ability>",
-                    concrete_type->name != NULL ? concrete_type->name : "<type>",
-                    bound_name,
-                    owner_label != NULL ? owner_label : "construct",
-                    owner_name != NULL ? owner_name : "<anonymous>",
-                    ability_decl->data.ability_decl.name != NULL
-                        ? ability_decl->data.ability_decl.name : "<ability>",
+                    owner_label,
+                    owner_name,
                     ability_decl->data.ability_decl.name != NULL
                         ? ability_decl->data.ability_decl.name : "<ability>",
                     tc->type_param,
                     bound_name,
-                    tc->type_param,
-                    bounds_text != NULL ? bounds_text : "<constraint>",
-                    owner_label != NULL ? owner_label : "construct",
-                    required_text != NULL ? required_text : "<ability>",
-                    concrete_type->name != NULL ? concrete_type->name : "<type>",
-                    tc->type_param,
-                    bound_name,
-                    bound_name,
-                    ability_decl->data.ability_decl.name != NULL
-                        ? ability_decl->data.ability_decl.name : "<ability>");
+                    bounds_text,
+                    required_text,
+                    concrete_type->name != NULL ? concrete_type->name : "<type>");
                 free(bounds_text);
                 free(required_text);
                 free(effective_args);

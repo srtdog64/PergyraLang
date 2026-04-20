@@ -47,8 +47,8 @@ subset surface는 아래 세 분류를 같이 써야 한다.
   - strict closure target: richer mismatch provenance와 broader instantiation-path parity
   - beta-out-of-scope: broader generic generalization
 - own/ref
-  - stable subset: anchored slot-handle boundary subset
-  - explicit reject: general own/ref on non-anchored/general movable value types
+  - stable subset: anchored slot-handle boundary subset plus generalized provenance/escape diagnostics on the currently-closed consumer paths
+  - explicit reject: any general own/ref combination that still falls outside the current semantic contract
   - beta-out-of-scope: general ownership system
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`

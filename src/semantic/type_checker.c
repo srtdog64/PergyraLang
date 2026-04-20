@@ -12,27 +12,15 @@
 #include <ctype.h>
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
+#include "type_checker_generic_diag_internal.h"
+#include "type_checker_ownership_internal.h"
+#include "type_checker_ownership_diag_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
+#include "type_checker_channel_transport_internal.h"
+#include "type_checker_ownership_support_internal.h"
 #include "slot_analyzer.h"
 
 #define INITIAL_DIAG_CAPACITY 16
-
-typedef enum OwnershipTypeClass {
-    OWNERSHIP_TYPE_COPY_ONLY = 0,
-    OWNERSHIP_TYPE_MOVE_ONLY,
-    OWNERSHIP_TYPE_BORROW_TRACKED,
-    OWNERSHIP_TYPE_SUBJECT_IDENTITY,
-    OWNERSHIP_TYPE_ANCHORED_HANDLE
-} OwnershipTypeClass;
-
-typedef enum OwnershipConsumerKind {
-    OWNERSHIP_CONSUMER_NEW_BINDING = 0,
-    OWNERSHIP_CONSUMER_ASSIGNMENT_REBIND,
-    OWNERSHIP_CONSUMER_CONTAINER_STORE,
-    OWNERSHIP_CONSUMER_RETURN,
-    OWNERSHIP_CONSUMER_CHANNEL_SEND,
-    OWNERSHIP_CONSUMER_HELPER_CALL,
-    OWNERSHIP_CONSUMER_CONSTRUCTOR_FIELD_STORE
-} OwnershipConsumerKind;
 
 static bool
 explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx);
@@ -48,113 +36,6 @@ static char *
 format_generic_subject_signature(const char *name, GenericParams *params);
 static char *
 format_effective_generic_type_list(const char *name, Type **types, size_t count);
-static char *
-semantic_assignment_target_path(ASTNode *expr);
-static const char *
-semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx);
-static OwnershipTypeClass
-semantic_classify_ownership_type(const Type *type, SemanticContext *ctx);
-static const char *
-semantic_ownership_value_label(OwnershipTypeClass klass);
-static const char *
-semantic_ownership_provenance_label(OwnershipTypeClass klass);
-static const char *
-semantic_ownership_replacement_label(OwnershipTypeClass klass);
-static bool
-semantic_validate_borrowed_escape(ASTNode *site,
-                                  ASTNode *source_expr,
-                                  SemanticContext *ctx,
-                                  const Type *value_type,
-                                  const char *borrowed_name_override,
-                                  OwnershipConsumerKind consumer_kind,
-                                  ASTNode *target_expr,
-                                  const char *dest_name,
-                                  const char *secondary_name,
-                                  bool transitive_call,
-                                  const char *mode_label,
-                                  const char *local_fix_label);
-static void
-semantic_report_borrowed_new_binding_escape(ASTNode *site,
-                                            ASTNode *source_expr,
-                                            SemanticContext *ctx,
-                                            const char *borrowed_name,
-                                            const char *binding_name,
-                                            const char *value_label,
-                                            const char *provenance_label);
-static void
-semantic_report_borrowed_return_escape(ASTNode *site,
-                                       ASTNode *source_expr,
-                                       SemanticContext *ctx,
-                                       const char *borrowed_name,
-                                       const char *value_label,
-                                       const char *provenance_label,
-                                       const char *replacement_label);
-static void
-semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
-                                                  ASTNode *target_expr,
-                                                  ASTNode *source_expr,
-                                                  SemanticContext *ctx,
-                                                  const char *borrowed_name,
-                                                  const char *value_label,
-                                                  const char *provenance_label,
-                                                  const char *rebind_label);
-static void
-semantic_report_borrowed_container_store_escape(ASTNode *site,
-                                                ASTNode *source_expr,
-                                                SemanticContext *ctx,
-                                                const char *borrowed_name,
-                                                const char *value_label,
-                                                const char *provenance_label,
-                                                const char *container_kind,
-                                                const char *container_name,
-                                                const char *replacement_label,
-                                                const char *transfer_label);
-static void
-semantic_report_borrowed_channel_send_escape(ASTNode *site,
-                                             ASTNode *source_expr,
-                                             SemanticContext *ctx,
-                                             const char *borrowed_name,
-                                             const char *value_label,
-                                             const char *provenance_label,
-                                             const char *replacement_label);
-static void
-semantic_report_borrowed_slot_handle_escape(ASTNode *site,
-                                            ASTNode *source_expr,
-                                            SemanticContext *ctx,
-                                            const char *borrowed_name,
-                                            const char *escape_kind,
-                                            const char *detail_line,
-                                            const char *replacement_label,
-                                            const char *secondary_fix);
-static void
-semantic_report_named_boundary_argument_required(ASTNode *site,
-                                                 ASTNode *source_expr,
-                                                 SemanticContext *ctx,
-                                                 const char *value_label_cap,
-                                                 const char *value_label_lower,
-                                                 const char *bind_fix);
-static void
-semantic_report_borrowed_helper_call_escape(ASTNode *site,
-                                            ASTNode *source_expr,
-                                            SemanticContext *ctx,
-                                            const char *borrowed_name,
-                                            const char *value_label,
-                                            const char *provenance_label,
-                                            const char *callee_name,
-                                            bool transitive_ref_escape,
-                                            const char *mode_label,
-                                            const char *local_fix_label);
-static void
-semantic_report_borrowed_constructor_field_escape(ASTNode *site,
-                                                  ASTNode *source_expr,
-                                                  SemanticContext *ctx,
-                                                  const char *borrowed_name,
-                                                  const char *value_label,
-                                                  const char *provenance_label,
-                                                  const char *constructor_name,
-                                                  const char *constructor_field,
-                                                  const char *snapshot_label,
-                                                  bool identity_binding);
 static void
 semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
                                                  const ASTNode *consumer_site,
@@ -263,7 +144,7 @@ static char *
 semantic_type_resolution_projection_slot_field_label(ASTNode *zone_decl,
                                                      const char *slot_name,
                                                      const char *field_path);
-static char *
+char *
 semantic_assignment_target_path(ASTNode *expr);
 static ASTNode *
 semantic_type_resolution_projection_source_decl(ASTNode *zone_decl,
@@ -832,6 +713,46 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
 }
 
 static void
+semantic_report_class_generic_bound_failure(SemanticContext *ctx,
+                                            ASTNode *site,
+                                            const char *class_name,
+                                            const char *param_name,
+                                            const char *bound_name,
+                                            const char *bounds_text,
+                                            const char *expected_text,
+                                            const char *actual_text,
+                                            const char *concrete_name,
+                                            const char *site_label)
+{
+    semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID",
+        "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
+        "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
+        "Reason:\n"
+        "- class '%s' requires '%s: %s'\n"
+        "- full bound set is '%s: %s'\n"
+        "- expected type args are '%s'\n"
+        "- actual type args are '%s'\n"
+        "- %s type argument is '%s'\n"
+        "Fix:\n"
+        "- pass/specialize with a type that satisfies '%s'\n"
+        "- or relax the class where-clause",
+        concrete_name != NULL ? concrete_name : "<type>",
+        bound_name != NULL ? bound_name : "<constraint>",
+        param_name != NULL ? param_name : "<type-param>",
+        class_name != NULL ? class_name : "<class>",
+        class_name != NULL ? class_name : "<class>",
+        param_name != NULL ? param_name : "<type-param>",
+        bound_name != NULL ? bound_name : "<constraint>",
+        param_name != NULL ? param_name : "<type-param>",
+        bounds_text != NULL ? bounds_text : "<constraint>",
+        expected_text != NULL ? expected_text : "<class>",
+        actual_text != NULL ? actual_text : "<actual>",
+        site_label != NULL ? site_label : "effective",
+        concrete_name != NULL ? concrete_name : "<type>",
+        bound_name != NULL ? bound_name : "<constraint>");
+}
+
+static void
 validate_generic_param_default_bounds(GenericParams *gp,
                                       WhereClause *wc,
                                       SemanticContext *ctx,
@@ -892,7 +813,7 @@ validate_generic_param_default_bounds(GenericParams *gp,
                 "Default generic type argument for parameter '%s' in %s '%s' could not be resolved.\n"
                 "Reason:\n"
                 "- default type argument participates in effective generic argument derivation\n"
-                "- unresolved defaults make where-clause validation partial\n"
+                "- where-clause validation cannot proceed until that default materializes\n"
                 "Fix:\n"
                 "- provide a resolvable default type argument for '%s'\n"
                 "- or remove the default and require the caller to pass the type argument explicitly",
@@ -1000,7 +921,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                 "Class '%s' could not validate where-clause parameter '%s' during instantiation.\n"
                 "Reason:\n"
                 "- instantiated type '%s' does not provide an effective type argument for '%s'\n"
-                "- class where-clause validation cannot be trusted when a generic parameter is unresolved\n"
+                "- class where-clause validation cannot continue until every effective type argument resolves\n"
                 "Fix:\n"
                 "- pass/supply a type argument for '%s'\n"
                 "- or fix the class generic parameter list/default arguments so '%s' is materialized",
@@ -1020,7 +941,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                 "Class '%s' could not resolve instantiated type argument for '%s'.\n"
                 "Reason:\n"
                 "- where-clause validation reached instantiation with no concrete type for '%s'\n"
-                "- unresolved generic arguments make class specialization partial\n"
+                "- class specialization cannot be validated until every effective type argument resolves\n"
                 "Fix:\n"
                 "- pass a concrete type argument for '%s'\n"
                 "- or fix the default type argument / imported type so it resolves",
@@ -1053,32 +974,20 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
             }
 
             if (!concrete_type_satisfies_bound(concrete_type, bound_node, ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
-                    "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
-                    "Reason:\n"
-                    "- class '%s' requires '%s: %s'\n"
-                    "- full bound set is '%s: %s'\n"
-                    "- expected type args are '%s'\n"
-                    "- actual type args are '%s'\n"
-                    "- instantiated type argument is '%s'\n"
-                    "Fix:\n"
-                    "- pass a type argument that satisfies '%s'\n"
-                    "- or relax the class where-clause",
-                    concrete_type->name != NULL ? concrete_type->name : "<type>",
-                    bound_name,
-                    tc->type_param,
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name : "<class>",
+                semantic_report_class_generic_bound_failure(
+                    ctx,
+                    site,
                     class_decl->data.class_decl.name != NULL
                         ? class_decl->data.class_decl.name : "<class>",
                     tc->type_param,
                     bound_name,
-                    tc->type_param,
-                    bounds_text != NULL ? bounds_text : "<constraint>",
-                    expected_text != NULL ? expected_text : "<class>",
-                    constructed_type->name != NULL ? constructed_type->name : "<constructed>",
-                    concrete_type->name != NULL ? concrete_type->name : "<type>",
-                    bound_name);
+                    bounds_text,
+                    expected_text,
+                    constructed_type->name != NULL
+                        ? constructed_type->name : "<constructed>",
+                    concrete_type->name != NULL
+                        ? concrete_type->name : "<type>",
+                    "instantiated");
             }
             free(bounds_text);
         }
@@ -1153,7 +1062,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                 "Class '%s' could not validate where-clause parameter '%s' during specialization.\n"
                 "Reason:\n"
                 "- specialized type syntax did not materialize an effective type argument for '%s'\n"
-                "- class where-clause validation cannot be trusted when a generic parameter is unresolved\n"
+                "- class where-clause validation cannot continue until every effective type argument resolves\n"
                 "Fix:\n"
                 "- provide/supply a type argument for '%s'\n"
                 "- or fix the class generic parameter list/default arguments so '%s' is materialized",
@@ -1172,7 +1081,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                 "Class '%s' could not resolve specialized type argument for '%s'.\n"
                 "Reason:\n"
                 "- where-clause validation reached specialization with no concrete type for '%s'\n"
-                "- unresolved generic arguments make specialization partial\n"
+                "- specialization cannot be validated until every effective type argument resolves\n"
                 "Fix:\n"
                 "- pass a concrete type argument for '%s'\n"
                 "- or fix the default type argument / imported type so it resolves",
@@ -1205,35 +1114,20 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             }
 
             if (!concrete_type_satisfies_bound(concrete_type, bound_node, ctx)) {
-                semantic_error_with_hints(ctx, "PGY_SEM_CLASS_CONTRACT_INVALID", "semantic:class_contract", "satisfy-generic-bound-or-widen", site,
-                    "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
-                    "Reason:\n"
-                    "- class '%s' requires '%s: %s'\n"
-                    "- full bound set is '%s: %s'\n"
-                    "- expected type args are '%s'\n"
-                    "- actual type args are '%s'\n"
-                    "- specialized type argument is '%s'\n"
-                    "Fix:\n"
-                    "- specialize '%s' with a type that satisfies '%s'\n"
-                    "- or relax the class where-clause",
-                    concrete_type->name != NULL ? concrete_type->name : "<type>",
-                    bound_name,
-                    tc->type_param,
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name : "<class>",
+                semantic_report_class_generic_bound_failure(
+                    ctx,
+                    site,
                     class_decl->data.class_decl.name != NULL
                         ? class_decl->data.class_decl.name : "<class>",
                     tc->type_param,
                     bound_name,
-                    tc->type_param,
-                    bounds_text != NULL ? bounds_text : "<constraint>",
-                    expected_text != NULL ? expected_text : "<class>",
+                    bounds_text,
+                    expected_text,
                     specialized_type->data.type.name != NULL
                         ? specialized_type->data.type.name : "<specialized>",
-                    concrete_type->name != NULL ? concrete_type->name : "<type>",
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name : "<class>",
-                    bound_name);
+                    concrete_type->name != NULL
+                        ? concrete_type->name : "<type>",
+                    "specialized");
             }
             free(bounds_text);
         }
@@ -1343,6 +1237,7 @@ type_get_constructed_arg(const Type *type, size_t index)
 
 #include "type_checker_expr.inc"
 #include "type_checker_ownership_boundaries.inc"
+#include "type_checker_ownership_param_summary.inc"
 
 
 bool
@@ -1558,7 +1453,7 @@ semantic_event_expr_name(ASTNode *expr)
     return "<event>";
 }
 
-static char *
+char *
 semantic_assignment_target_path(ASTNode *expr)
 {
     char *base = NULL;
@@ -1609,7 +1504,7 @@ semantic_assignment_target_path(ASTNode *expr)
     }
 }
 
-static const char *
+const char *
 semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx)
 {
     if (expr == NULL || ctx == NULL)

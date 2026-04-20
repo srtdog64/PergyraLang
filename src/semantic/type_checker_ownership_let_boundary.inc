@@ -6,7 +6,7 @@
             || init->type == AST_MEMBER_ACCESS
             || init->type == AST_ARRAY_ACCESS)) {
         semantic_validate_borrowed_escape(
-            node, init, ctx, decl_type, NULL,
+            node, init, ctx, init_type, NULL,
             OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
             false, NULL, NULL);
         semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
@@ -30,7 +30,7 @@
         bool valid_qubit_init = false;
         if (borrowed_movable_new_binding) {
             semantic_validate_borrowed_escape(
-                node, init, ctx, decl_type, borrowed_movable_root,
+                node, init, ctx, init_type, borrowed_movable_root,
                 OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
                 false, NULL, NULL);
             valid_qubit_init = true;
@@ -65,7 +65,7 @@
 
     if (init != NULL) {
         semantic_validate_borrowed_escape(
-            node, init, ctx, decl_type, NULL,
+            node, init, ctx, init_type, NULL,
             OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
             false, NULL, NULL);
     }

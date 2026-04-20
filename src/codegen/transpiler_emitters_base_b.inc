@@ -118,7 +118,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
         owner_is_zone = owner_zone_name != NULL;
         if (owner_is_role) {
-            ASTNode *role_decl = find_role_decl(ctx, owner_name);
+            ASTNode *role_decl = transpiler_find_decl_in_inventory_local(
+                ctx, AST_ROLE_DECL, owner_name);
             if (role_decl != NULL
                 && role_decl->type == AST_ROLE_DECL
                 && role_decl->data.role_decl.for_type != NULL
@@ -143,8 +144,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     } else if (!owner_is_zone
                && node != NULL
                && node->type == AST_FUNC_DECL
-               && node->data.func_decl.within_zone != NULL
-               && find_zone_decl(ctx, node->data.func_decl.within_zone) != NULL) {
+               && node->data.func_decl.within_zone != NULL) {
         resolved_host_decl = transpiler_find_decl_in_inventory_local(
             ctx, AST_ZONE_DECL, node->data.func_decl.within_zone);
     }
@@ -300,7 +300,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         if (!owner_is_role
             && (owner_is_zone || owner_is_relation || owner_is_effect || owner_is_world)) {
             if (owner_is_zone) {
-                ASTNode *zone_decl = find_zone_decl(ctx, owner_zone_name);
+                ASTNode *zone_decl = (resolved_host_decl != NULL
+                    && resolved_host_decl->type == AST_ZONE_DECL)
+                    ? resolved_host_decl
+                    : NULL;
                 if (zone_decl != NULL
                     && zone_decl->data.zone_decl.authority_count > 0
                     && zone_decl->data.zone_decl.authorities != NULL
@@ -921,6 +924,8 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     }
     if (node->data.func_decl.body != NULL)
         emit_block(node->data.func_decl.body, ctx);
+    if (ctx->backend_error != NULL)
+        goto emit_func_decl_named_fail;
 
     /* If the function returns a non-void type and the body does not end
      * with an explicit return (e.g. ends with a match/if/while), emit a
@@ -1501,6 +1506,14 @@ transpiler_find_local_let_type_node(ASTNode *body, const char *base_name)
     return NULL;
 }
 
+static const char *
+transpiler_current_local_type_name(TranspilerCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL || ctx->current_func_decl == NULL)
+        return NULL;
+    return transpiler_find_local_type_name(ctx, ctx->current_func_decl, name);
+}
+
 static bool
 transpiler_parallel_capture_has_name(char names[MAX_SLOT_VARS][64],
                                      int count,
@@ -1542,10 +1555,8 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
     if (lookup_typed_entry(ctx, name) != NULL) {
         const char *type_name = lookup_typed_var(ctx, name);
         if ((type_name == NULL || strcmp(type_name, "Unknown") == 0)
-            && ctx->current_func_decl != NULL) {
-            type_name = transpiler_find_local_type_name(ctx,
-                                                        ctx->current_func_decl,
-                                                        name);
+            ) {
+            type_name = transpiler_current_local_type_name(ctx, name);
             if (type_name != NULL && type_name[0] != '\0'
                 && strcmp(type_name, "Unknown") != 0) {
                 register_typed_var(ctx, name, type_name);
@@ -1561,12 +1572,7 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
             (*typed_count)++;
         }
     } else {
-        const char *type_name = NULL;
-        if (ctx->current_func_decl != NULL) {
-            type_name = transpiler_find_local_type_name(ctx,
-                                                        ctx->current_func_decl,
-                                                        name);
-        }
+        const char *type_name = transpiler_current_local_type_name(ctx, name);
         if (type_name != NULL && type_name[0] != '\0'
             && strcmp(type_name, "Unknown") != 0
             && !transpiler_parallel_capture_has_name(slot_names,
@@ -1792,11 +1798,9 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         if ((init_type == NULL || strcmp(init_type, "Unknown") == 0)
             && init != NULL
             && init->type == AST_IDENTIFIER
-            && init->data.identifier.name != NULL
-            && ctx->current_func_decl != NULL) {
+            && init->data.identifier.name != NULL) {
             const char *resolved =
-                transpiler_find_local_type_name(ctx, ctx->current_func_decl,
-                    init->data.identifier.name);
+                transpiler_current_local_type_name(ctx, init->data.identifier.name);
             if (resolved != NULL)
                 init_type = resolved;
         }
@@ -2215,7 +2219,7 @@ find_subject_action_decl(TranspilerCtx *ctx, const char *subject_name, const cha
 static ASTNode *
 find_zone_decl_in_program_view(TranspilerCtx *ctx, const char *zone_name)
 {
-    return find_zone_decl(ctx, zone_name);
+    return transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL, zone_name);
 }
 
 static const char *

@@ -497,12 +497,17 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
             semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", activate,
                 "World activate references unknown zone slot '%s'.\n"
+                "Contract source:\n"
+                "- world '%s' activate edge -> '%s'\n"
                 "Reason:\n"
                 "- activate needs a declared world zone slot or zone-state alias\n"
                 "- '%s' does not resolve to any visible world zone slot here\n"
                 "Fix:\n"
                 "- activate a declared world zone slot\n"
                 "- or correct the referenced zone/state alias",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
+                node->data.world_decl.name != NULL ? node->data.world_decl.name : "<world>",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
@@ -587,12 +592,17 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
             semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", deactivate,
                 "World deactivate references unknown zone slot '%s'.\n"
+                "Contract source:\n"
+                "- world '%s' deactivate edge -> '%s'\n"
                 "Reason:\n"
                 "- deactivate needs a declared world zone slot or zone-state alias\n"
                 "- '%s' does not resolve to any visible world zone slot here\n"
                 "Fix:\n"
                 "- deactivate a declared world zone slot\n"
                 "- or correct the referenced zone/state alias",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
+                node->data.world_decl.name != NULL ? node->data.world_decl.name : "<world>",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
@@ -633,12 +643,17 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
             semantic_error_with_hints(ctx, "PGY_SEM_WORLD_CONTRACT_INVALID", "semantic:world_contract", "align-world-zone-state-composition", maintain,
                 "World maintain references unknown zone slot '%s'.\n"
+                "Contract source:\n"
+                "- world '%s' maintain edge -> '%s'\n"
                 "Reason:\n"
                 "- maintain needs a declared world zone slot or zone-state alias\n"
                 "- '%s' does not resolve to any visible world zone slot here\n"
                 "Fix:\n"
                 "- maintain a declared world zone slot\n"
                 "- or correct the referenced zone/state alias",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
+                node->data.world_decl.name != NULL ? node->data.world_decl.name : "<world>",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }

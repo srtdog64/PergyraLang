@@ -310,19 +310,6 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     Type *return_type = TYPE_VOID;
     if (node->data.func_decl.return_type != NULL)
         return_type = resolve_type_node(node->data.func_decl.return_type, ctx);
-    if (type_is_anchored_resource_handle(return_type)) {
-        semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
-            "semantic:anchored_handle:return_boundary",
-            "return-inner-value-or-keep-local",
-            node->data.func_decl.return_type,
-            "Anchored resource handle return types (Slot/SecureSlot/DeviceSlot) are not supported yet.\n"
-            "Reason:\n"
-            "- function return boundary would let an anchored handle escape its local ownership/runtime anchor\n"
-            "- anchored handles are still local-only at return boundaries in the closed subset\n"
-            "Fix:\n"
-            "- return the inner value instead\n"
-            "- or keep the anchored handle local and return a boundary-safe projection/result");
-    }
     if (type_is_class_object_type(return_type, ctx)) {
         semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
             "semantic:anchored_handle:return_boundary",
@@ -380,67 +367,41 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             && !type_is_anchored_resource_handle(param_types[i])) {
             if (!type_is_general_boundary_type(param_types[i], ctx)) {
                 semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:param_mode:closed_subset",
-                    "use-supported-param-type",
+                    "semantic:param_mode:unsupported_boundary_type",
+                    "use-boundary-visible-type-or-drop-qualifier",
                     node,
-                    "'%s' parameter mode is currently a closed subset: only ref/own subject values, ref/own movable resources, "
-                    "ref/own boundary values, ref/own Slot<subject-host>, and own SecureSlot<subject-host> are supported at function boundaries.\n"
+                    "'%s' parameter mode requires a boundary-visible type at function boundaries.\n"
                     "Reason:\n"
                     "- value is parameter '%s'\n"
                     "- ownership mode is '%s'\n"
                     "- consumer path is function '%s'\n"
-                    "- this parameter type is not part of the current move/borrow boundary subset\n"
-                    "- the compiler does not yet enforce general own/ref rules for arbitrary value types at call boundaries\n"
+                    "- type '%s' is not a copy-visible value, boundary-tracked aggregate, subject identity, or movable resource\n"
+                    "- own/ref only changes boundary semantics when the parameter carries ownership-relevant state across the call\n"
                     "Fix:\n"
-                    "- keep this value local to the function boundary\n"
-                    "- or pass a subject value, movable resource, boundary value, Slot<subject-host>, or own SecureSlot<subject-host> instead",
+                    "- remove '%s' and pass it as an ordinary value\n"
+                    "- or change the parameter type to a boundary-visible value / subject / movable resource",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
                     param->name != NULL ? param->name : "<param>",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
-                    node->data.func_decl.name != NULL ? node->data.func_decl.name : "<anonymous>");
+                    node->data.func_decl.name != NULL ? node->data.func_decl.name : "<anonymous>",
+                    param_types[i] != NULL && param_types[i]->name != NULL
+                        ? param_types[i]->name : "<type>",
+                    param->mode == PARAM_MODE_OWN ? "own" : "ref");
             }
         }
         if (type_is_anchored_resource_handle(param_types[i])) {
-            bool allowed_subject_slot = type_is_subject_host_slot_handle(param_types[i], ctx);
-            if (!allowed_subject_slot) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:param_mode:anchored_handle_closed",
-                    "keep-handle-local-or-project",
-                    node,
-                    "Anchored handle parameters are currently closed to ref/own Slot<subject-host> / "
-                    "own SecureSlot<subject-host>; other anchored handles remain local-only.\n"
-                    "Reason:\n"
-                    "- this anchored handle kind is not part of the stable boundary subset\n"
-                    "- passing it across the function boundary would require a stronger ownership contract than the compiler currently guarantees\n"
-                    "Fix:\n"
-                    "- keep this anchored handle local to the current scope\n"
-                    "- or convert it to a projection/value/boundary-safe result before the call");
-            } else if (param->mode == PARAM_MODE_DEFAULT) {
+            if (param->mode == PARAM_MODE_DEFAULT) {
                 semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
                     "semantic:slot_param:qualifier_missing",
                     "annotate-slot-param-qualifier",
                     node,
-                    "Slot<subject-host>/SecureSlot<subject-host> parameters are part of the anchored "
-                    "subject-slot boundary and require explicit 'own' or 'ref'.\n"
+                    "Anchored handle parameters require explicit 'own' or 'ref'.\n"
                     "Reason:\n"
-                    "- anchored subject-slot handles must declare whether the boundary borrows or transfers ownership\n"
+                    "- anchored handles must declare whether the boundary borrows or transfers ownership\n"
                     "- implicit parameter passing would hide that boundary contract\n"
                     "Fix:\n"
                     "- mark the parameter as 'ref' for borrowing\n"
                     "- or mark it as 'own' for transfer");
-            } else if (param_types[i]->data.slot.is_secure
-                       && param->mode != PARAM_MODE_OWN) {
-                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
-                    "semantic:slot_param:secure_own_required",
-                    "use-own-secure-slot",
-                    node,
-                    "SecureSlot<subject-host> parameters currently support only 'own' at function boundaries.\n"
-                    "Reason:\n"
-                    "- secure anchored handles carry capability-bearing ownership across the boundary\n"
-                    "- borrowed secure forwarding is not part of the closed subset yet\n"
-                    "Fix:\n"
-                    "- change the parameter to 'own SecureSlot<subject-host>'\n"
-                    "- or keep the SecureSlot local and pass a projection/value instead");
             }
         }
         /* Subject parameters are passed by reference (pointer) internally.
@@ -561,7 +522,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.func_decl.body != NULL)
         type_check_block(node->data.func_decl.body, ctx);
 
-    #include "type_checker_ownership_param_summary.inc"
+    semantic_check_param_summary_escapes(node, param_count, param_types, ctx);
 
     {
         uint32_t derived_effects = type_effect_mask_closure(ctx->current_function_effects);
@@ -611,7 +572,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- action body derives authority-sensitive effects from capability-bearing work\n"
                 "- zone '%s' makes this action part of an explicit authority boundary\n"
-                "- contract source is the action header 'within %s' plus the derived authority-sensitive effect path inside the body\n"
+                "Contract source:\n"
+                "- action header 'within %s' plus the derived authority-sensitive effect path inside the body\n"
                 "- without 'authorized by', the approval provenance for that boundary is missing\n"
                 "Fix:\n"
                 "- add 'authorized by <subject-slot>' to the action contract\n"
@@ -630,7 +592,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- action contract declares causes '%s'\n"
                 "- causing an effect inside zone '%s' is an authority-sensitive state change\n"
-                "- contract source is the action header 'causes %s' together with 'within %s'\n"
+                "Contract source:\n"
+                "- action header 'causes %s' together with 'within %s'\n"
                 "- without 'authorized by', the approval provenance for that state change is missing\n"
                 "Fix:\n"
                 "- add 'authorized by <subject-slot>' to the action contract\n"

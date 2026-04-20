@@ -1,4 +1,4 @@
-static bool
+bool
 semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
                                                   SemanticContext *ctx,
                                                   ASTNode *callee_decl,
@@ -31,9 +31,9 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
         bind_fix = "bind the subject to a local variable first";
         break;
     case OWNERSHIP_TYPE_ANCHORED_HANDLE:
-        named_value_cap = "Handle";
-        named_value_lower = "handle";
-        bind_fix = "bind the handle to a local variable first";
+        named_value_cap = "Anchored handle";
+        named_value_lower = "anchored handle";
+        bind_fix = "bind the anchored handle to a local variable first";
         break;
     case OWNERSHIP_TYPE_BORROW_TRACKED:
     case OWNERSHIP_TYPE_COPY_ONLY:

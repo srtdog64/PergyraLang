@@ -371,6 +371,7 @@ typedef struct LLVMGenCtx
     LLVMValueRef    current_function;
     LLVMTypeRef     current_ret_type;
     ASTNode        *current_func_decl;
+    ASTNode        *current_host_decl;
     const char     *current_class_name;
     bool            uses_intent_observability;
 
@@ -552,23 +553,30 @@ typedef struct LLVMGenCtx
 } LLVMGenCtx;
 
 static inline const char *
-llvm_bind_current_host_name(LLVMGenCtx *ctx, const char *host_name)
+llvm_decl_node_name(ASTNode *node);
+
+static inline ASTNode *
+llvm_bind_current_host_decl(LLVMGenCtx *ctx, ASTNode *host_decl)
 {
-    const char *saved_name = NULL;
+    ASTNode *saved_decl = NULL;
 
     if (ctx == NULL)
         return NULL;
-    saved_name = ctx->current_class_name;
-    ctx->current_class_name = host_name;
-    return saved_name;
+    saved_decl = ctx->current_host_decl;
+    ctx->current_host_decl = host_decl;
+    ctx->current_class_name =
+        host_decl != NULL ? llvm_decl_node_name(host_decl) : NULL;
+    return saved_decl;
 }
 
 static inline void
-llvm_restore_current_host_name(LLVMGenCtx *ctx, const char *saved_name)
+llvm_restore_current_host_decl(LLVMGenCtx *ctx, ASTNode *saved_decl)
 {
     if (ctx == NULL)
         return;
-    ctx->current_class_name = saved_name;
+    ctx->current_host_decl = saved_decl;
+    ctx->current_class_name =
+        saved_decl != NULL ? llvm_decl_node_name(saved_decl) : NULL;
 }
 
 static inline void
@@ -745,6 +753,9 @@ llvm_current_host_decl(const LLVMGenCtx *ctx)
 
     if (ctx == NULL)
         return NULL;
+
+    if (ctx->current_host_decl != NULL)
+        return ctx->current_host_decl;
 
     if (ctx->current_class_name != NULL) {
         decl = llvm_find_host_decl_in_active_inventory(ctx, ctx->current_class_name);
