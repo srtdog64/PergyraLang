@@ -323,7 +323,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref slot handle (movable) 'q' cannot escape through assignment rebind"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through member assignment rebind"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -873,7 +873,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref subject 'hero' cannot escape through assignment rebind"));
+            "Borrowed ref subject 'hero' cannot escape through member assignment rebind"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

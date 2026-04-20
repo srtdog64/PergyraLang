@@ -349,7 +349,16 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
 {
     char *target_name = semantic_assignment_target_path(target_expr);
     char *source_path = semantic_assignment_target_path(source_expr);
+    const char *consumer_label = "assignment rebind";
     DiagPayload payload;
+
+    if (target_expr != NULL) {
+        if (target_expr->type == AST_MEMBER_ACCESS)
+            consumer_label = "member assignment rebind";
+        else if (target_expr->type == AST_ARRAY_ACCESS)
+            consumer_label = "array element rebind";
+    }
+
     diag_payload_init(&payload);
     payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
     payload.cause_ir = PGY_CAUSE_BORROW_ESCAPE;
@@ -363,7 +372,7 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
     payload.extra = rebind_label;
 
     semantic_emit_payload(ctx, &payload,
-        "Borrowed ref %s '%s' cannot escape through assignment rebind into '%s' from '%s'.\n"
+        "Borrowed ref %s '%s' cannot escape through %s into '%s' from '%s'.\n"
         "Reason:\n"
         "- consumer path is function '%s'\n"
         "- '%s' entered this function as a borrowed 'ref' %s\n"
@@ -374,6 +383,7 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
         "- or change the current parameter to 'own' if transfer is intended",
         value_label,
         borrowed_name,
+        consumer_label,
         target_name != NULL ? target_name : "<target>",
         source_path != NULL ? source_path : borrowed_name,
         semantic_current_consumer_name(ctx),
@@ -685,7 +695,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' %s\n"
             "- '%s' is derived from that borrowed %s\n"
-            "- summary analysis proves a helper/function path can let this borrow escape beyond the current call boundary\n"
+            "- summary analysis proves a transitive helper path can let this borrow escape beyond the current call boundary\n"
             "Fix:\n"
             "- perform the %s operation locally in this function\n"
             "- or change the current parameter to 'own' if transfer/forwarding is intended",
@@ -706,7 +716,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' %s\n"
             "- '%s' is derived from that borrowed %s\n"
-            "- callee '%s' derives a transitive call-escape path for its borrowed parameter\n"
+            "- callee '%s' derives a transitive helper-escape path for its borrowed parameter\n"
             "- forwarding this borrow into that helper would let it escape beyond the current call boundary\n"
             "Fix:\n"
             "- perform the %s operation locally in this function\n"
@@ -729,7 +739,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' %s\n"
             "- '%s' is derived from that borrowed %s\n"
-            "- forwarding it to '%s' as '%s' would create a transitive transfer beyond the current call boundary\n"
+            "- forwarding it to '%s' as '%s' would create a transitive helper transfer beyond the current call boundary\n"
             "Fix:\n"
             "- call a 'ref' helper instead\n"
             "- or change the current parameter to 'own' if forwarding/transfer is intended",
