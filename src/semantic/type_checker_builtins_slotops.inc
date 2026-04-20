@@ -155,7 +155,9 @@ type_check_view_read(ASTNode *call, SemanticContext *ctx)
 
     Type *slot_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_owned_slot_handle(slot_type)) {
-        semantic_error(ctx, call->data.call.arguments[0],
+        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+            "semantic:builtin:slot_type_required", "pass-owning-slot",
+            call->data.call.arguments[0],
             "ViewRead requires owning Slot<T>, got '%s'",
             slot_type != NULL ? slot_type->name : "<null>");
         return TYPE_UNKNOWN;
@@ -171,7 +173,9 @@ type_check_view_write(ASTNode *call, SemanticContext *ctx)
 
     Type *slot_type = type_check_expression(call->data.call.arguments[0], ctx);
     if (!type_is_owned_slot_handle(slot_type)) {
-        semantic_error(ctx, call->data.call.arguments[0],
+        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+            "semantic:builtin:slot_type_required", "pass-owning-slot",
+            call->data.call.arguments[0],
             "ViewWrite requires owning Slot<T>, got '%s'",
             slot_type != NULL ? slot_type->name : "<null>");
         return TYPE_UNKNOWN;
@@ -279,7 +283,10 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
 
             if (sym->slot_info.is_secure) {
                 if (arg_count < 3) {
-                    semantic_error(ctx, call,
+                    semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
+                        "semantic:builtin:signature_mismatch",
+                        "match-builtin-signature",
+                        call,
                         "Write to SecureSlot '%s' requires a token argument",
                         sym->name);
                     return false;
@@ -312,7 +319,10 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     Type *inner_type = slot_type->data.slot.inner_type;
 
     if (!type_is_assignable(value_type, inner_type)) {
-        semantic_error(ctx, value_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+            "semantic:slot_write:value_type_mismatch",
+            "align-value-to-slot-inner",
+            value_arg,
             "Cannot write '%s' to %s (expected '%s')",
             value_type->name, slot_type->name, inner_type->name);
         return false;
@@ -413,7 +423,9 @@ bool
 type_check_release_slot(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count < 1) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
+            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+            call,
             "Release requires at least 1 argument: Release(slot)");
         return false;
     }
@@ -446,7 +458,9 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
             semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID", "semantic:builtin:signature_mismatch", "match-builtin-signature", slot_arg,
                 "Only owning Slot<T>/SecureSlot<T> values can be released; views are non-owning and move tokens are transfer-only");
         } else {
-            semantic_error(ctx, slot_arg,
+            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                "semantic:builtin:slot_type_required", "pass-owning-slot",
+                slot_arg,
                 "'%s' is not a slot", slot_name);
         }
         return false;
@@ -468,7 +482,9 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     if (sym->slot_info.is_secure && call->data.call.arg_count < 2) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
+            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+            call,
             "Release of SecureSlot '%s' requires a token argument",
             slot_name);
         return false;
@@ -495,7 +511,9 @@ type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
 
     slot_type = type_check_expression(expr, ctx);
     if (!type_is_constructed_named(slot_type, "DeviceSlot")) {
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+            "semantic:builtin:slot_type_required", "pass-device-slot",
+            expr,
             "%s requires DeviceSlot<T>, got '%s'",
             builtin_name, slot_type->name);
         return TYPE_UNKNOWN;

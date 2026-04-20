@@ -1233,6 +1233,12 @@ void llvm_set_error_with_hints(LLVMGenCtx *ctx, const char *code,
                                 const char *cause_ir,
                                 const char *fix_source,
                                 const char *fmt, ...);
+/* Source-location-carrying sibling of llvm_set_error_with_hints. */
+void llvm_set_error_at_with_hints(LLVMGenCtx *ctx, ASTNode *node,
+                                   const char *code,
+                                   const char *cause_ir,
+                                   const char *fix_source,
+                                   const char *fmt, ...);
 
 /* =================================================================
  * Result helpers (llvm_backend.c)

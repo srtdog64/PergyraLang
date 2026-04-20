@@ -907,55 +907,55 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     return;
 
 mir_step_missing_pre:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent pre check carrier");
     goto intent_emit_fail;
 mir_step_missing_guard:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent guard check carrier");
     goto intent_emit_fail;
 mir_step_missing_post:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent post check carrier");
     goto intent_emit_fail;
 mir_step_missing_expect:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent expect check carrier");
     goto intent_emit_fail;
 mir_step_missing_invariant:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent invariant check carrier");
     goto intent_emit_fail;
 mir_step_missing_subintent:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent subintent eval carrier");
     goto intent_emit_fail;
 mir_step_missing_on:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent on-eval carrier");
     goto intent_emit_fail;
 mir_step_missing_zone_where:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent zone where metadata");
     goto intent_emit_fail;
 mir_step_missing_zone_alias:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent zone alias metadata");
     goto intent_emit_fail;
 mir_step_missing_zone_from:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent transfer-from metadata");
     goto intent_emit_fail;
 mir_step_missing_who:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent who metadata");
     goto intent_emit_fail;
 mir_step_missing_dispatch:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent dispatch carrier");
     goto intent_emit_fail;
 mir_step_missing_compensate:
-    transpiler_set_backend_error_with_code(ctx, "PGY_MIR_INTENT_CARRIER_MISSING",
+    transpiler_set_backend_error_with_hints(ctx, "PGY_MIR_INTENT_CARRIER_MISSING", "mir:intent:carrier_missing", "check-intent-step-lowering",
         "MIR-only C path missing intent compensate eval carrier");
     goto intent_emit_fail;
 

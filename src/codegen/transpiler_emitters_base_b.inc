@@ -782,23 +782,34 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                                      && node->data.func_decl.name != NULL)
                 ? node->data.func_decl.name
                 : "(anonymous)";
-            /* Classify the failure by inspecting the reason prefix so AI
-             * consumers can route on a stable code. The reason text itself
-             * is preserved as the human-readable message. */
-            const char *reason_code = NULL;
+            /* Classify the failure by inspecting the reason prefix so
+             * downstream consumers can route on a stable code. The reason
+             * text itself is preserved as the human-readable message. */
+            const char *reason_code  = NULL;
+            const char *reason_cause = NULL;
+            const char *reason_fix   = NULL;
             if (strstr(reason, "unresolved identifier") != NULL) {
-                reason_code = "PGY_MIR_UNRESOLVED_LOCAL";
+                reason_code  = "PGY_MIR_UNRESOLVED_LOCAL";
+                reason_cause = "mir:local:unresolved";
+                reason_fix   = "report-compiler-bug";
             } else if (strstr(reason, "topology") != NULL
                        || strstr(reason, "no routine") != NULL
                        || strstr(reason, "no declaration AST") != NULL) {
-                reason_code = "PGY_MIR_TOPOLOGY_INVALID";
+                reason_code  = "PGY_MIR_TOPOLOGY_INVALID";
+                reason_cause = "mir:topology:invalid";
+                reason_fix   = "report-compiler-bug";
             } else if (strstr(reason, "unsupported MIR signature") != NULL
                        || strstr(reason, "wrong MIR kind") != NULL) {
-                reason_code = "PGY_MIR_SIGNATURE_UNSUPPORTED";
+                reason_code  = "PGY_MIR_SIGNATURE_UNSUPPORTED";
+                reason_cause = "mir:signature:unsupported";
+                reason_fix   = "simplify-function-signature";
             } else if (strstr(reason, "too many MIR SSA locals") != NULL) {
-                reason_code = "PGY_MIR_SSA_LIMIT";
+                reason_code  = "PGY_MIR_SSA_LIMIT";
+                reason_cause = "mir:ssa:capacity_exceeded";
+                reason_fix   = "refactor-or-raise-limit";
             }
-            transpiler_set_backend_error_with_code(ctx, reason_code,
+            transpiler_set_backend_error_with_hints(ctx, reason_code,
+                reason_cause, reason_fix,
                 "MIR-only C path missing routine for function '%s': %s",
                 func_name,
                 reason[0] != '\0' ? reason : "unknown reason");

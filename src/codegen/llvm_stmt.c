@@ -1190,7 +1190,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                     inner = type_ann->data.type.generic_args->params[0]->name;
             }
             if (inner == NULL) {
-                llvm_set_error_at_with_code(ctx, node, "PGY_LLVM_TYPE_UNSUPPORTED", "LLVM %s let-binding for '%s' requires an explicit %s<T> annotation",
+                llvm_set_error_at_with_hints(ctx, node, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:slot:inner_type_missing", "annotate-concrete-type", "LLVM %s let-binding for '%s' requires an explicit %s<T> annotation",
                     callee,
                     name != NULL ? name : "<slot>",
                     is_secure ? "SecureSlot" : "Slot");
@@ -1259,7 +1259,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 inner = type_ann->data.type.generic_args->params[0]->name;
             }
             if (inner == NULL) {
-                llvm_set_error_at_with_code(ctx, node, "PGY_LLVM_TYPE_UNSUPPORTED", "LLVM ClaimDeviceSlot let-binding for '%s' requires an explicit DeviceSlot<T> annotation",
+                llvm_set_error_at_with_hints(ctx, node, "PGY_LLVM_TYPE_UNSUPPORTED", "llvm:slot:inner_type_missing", "annotate-concrete-type", "LLVM ClaimDeviceSlot let-binding for '%s' requires an explicit DeviceSlot<T> annotation",
                     name != NULL ? name : "<slot>");
                 return;
             }

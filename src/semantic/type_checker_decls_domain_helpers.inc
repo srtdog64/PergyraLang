@@ -701,15 +701,22 @@ type_check_projection_contract(ASTNode **slots,
         semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "%s %s source slot '%s' cannot be a tobject slot.\n"
             "Reason:\n"
+            "- projection consumer path is target slot '%s' <- source slot '%s'\n"
             "- tobject is already a boundary snapshot\n"
             "- projection sync must read from a subject/object source, not from a transfer snapshot\n"
             "- source slot '%s' currently resolves to tobject '%s'\n"
+            "- projection contract originates from target slot '%s' on %s '%s'\n"
             "Fix:\n"
             "- use the original subject/object slot as the source\n"
             "- or materialize a new object/tobject from the original source instead",
             owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
             source_slot_name != NULL ? source_slot_name : "<unknown>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label != NULL ? owner_label : "<owner>",
+            owner_name != NULL ? owner_name : "<owner>",
             source_type != NULL && source_type->name != NULL
                 ? source_type->name
                 : "<unknown>");
@@ -723,17 +730,24 @@ type_check_projection_contract(ASTNode **slots,
         semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
             "%s %s source slot '%s' is not a valid projection source.\n"
             "Reason:\n"
+            "- projection consumer path is target slot '%s' <- source slot '%s'\n"
             "- projection sync reads fields from a subject/object declaration\n"
             "- this slot does not point at a subject/object source host\n"
             "- resolved source type is '%s'\n"
+            "- projection contract originates from target slot '%s' on %s '%s'\n"
             "Fix:\n"
             "- use a subject slot as the source\n"
             "- or use an object slot that mirrors the desired fields",
             owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_type != NULL && source_type->name != NULL
                 ? source_type->name
-                : "<unknown>");
+                : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label != NULL ? owner_label : "<owner>",
+            owner_name != NULL ? owner_name : "<owner>");
         return true;
     }
 
@@ -747,6 +761,8 @@ type_check_projection_contract(ASTNode **slots,
                 semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                     "%s %s projection map refers to unknown target field '%s' in slot '%s'.\n"
                     "Reason:\n"
+                    "- projection consumer path is target slot '%s' <- source slot '%s'\n"
+                    "- explicit field map entry is '%s <- %s'\n"
                     "- target projection declaration '%s' does not declare field '%s'\n"
                     "- %s cannot write source slot '%s' into a field that does not exist\n"
                     "- target contract comes from projection type '%s'\n"
@@ -756,6 +772,12 @@ type_check_projection_contract(ASTNode **slots,
                     owner_label, action_name,
                     mapped_target != NULL ? mapped_target : "<field>",
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    mapped_target != NULL ? mapped_target : "<field>",
+                    projection_refresh_source_field_name(site, mapped_target) != NULL
+                        ? projection_refresh_source_field_name(site, mapped_target)
+                        : "<source-field>",
                     target_type != NULL && target_type->name != NULL
                         ? target_type->name
                         : "<unknown>",
@@ -780,6 +802,7 @@ type_check_projection_contract(ASTNode **slots,
                     semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                         "%s %s projection map duplicates target field '%s'.\n"
                         "Reason:\n"
+                        "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                         "- each projection target field may be filled from exactly one source field\n"
                         "- duplicate map entries make the projection source ambiguous\n"
                         "- target projection slot is '%s'\n"
@@ -787,6 +810,8 @@ type_check_projection_contract(ASTNode **slots,
                         "- keep a single mapping for '%s'\n"
                         "- or split the target into distinct projection fields",
                         owner_label, action_name, mapped_target,
+                        object_slot_name != NULL ? object_slot_name : "<unknown>",
+                        source_slot_name != NULL ? source_slot_name : "<unknown>",
                         object_slot_name != NULL ? object_slot_name : "<unknown>",
                         mapped_target);
                 }
@@ -816,6 +841,8 @@ type_check_projection_contract(ASTNode **slots,
             semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                 "%s %s target field '%s' is ambiguous in source slot '%s'.\n"
                 "Reason:\n"
+                "- projection consumer path is target slot '%s' <- source slot '%s'\n"
+                "- requested source field/path is '%s'\n"
                 "- multiple projection source paths match field '%s'\n"
                 "- automatic projection cannot choose one path safely\n"
                 "- source declaration '%s' exposes overlapping candidate paths\n"
@@ -825,6 +852,9 @@ type_check_projection_contract(ASTNode **slots,
                 owner_label, action_name,
                 target_field->name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
+                object_slot_name != NULL ? object_slot_name : "<unknown>",
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                source_field_name != NULL ? source_field_name : target_field->name,
                 source_field_name != NULL ? source_field_name : target_field->name,
                 source_type != NULL && source_type->name != NULL
                     ? source_type->name
@@ -837,6 +867,7 @@ type_check_projection_contract(ASTNode **slots,
                 semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                     "%s %s target field '%s' maps from missing source field '%s' in slot '%s'.\n"
                     "Reason:\n"
+                    "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                     "- field map explicitly requests '%s <- %s'\n"
                     "- source declaration '%s' does not expose '%s'\n"
                     "- target projection declaration is '%s'\n"
@@ -846,6 +877,8 @@ type_check_projection_contract(ASTNode **slots,
                     owner_label, action_name,
                     target_field->name,
                     source_field_name,
+                    source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
                     target_field->name,
                     source_field_name,
@@ -864,6 +897,7 @@ type_check_projection_contract(ASTNode **slots,
                 semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                     "%s %s target field '%s' is missing from source slot '%s'.\n"
                     "Reason:\n"
+                    "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                     "- projection target '%s' expects field '%s'\n"
                     "- source declaration '%s' does not expose a matching field\n"
                     "- automatic field matching therefore cannot derive a safe source path\n"
@@ -872,6 +906,8 @@ type_check_projection_contract(ASTNode **slots,
                     "- or add an explicit field map to a different existing source field",
                     owner_label, action_name,
                     target_field->name,
+                    source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
                     target_field->name,
@@ -891,6 +927,7 @@ type_check_projection_contract(ASTNode **slots,
             semantic_error_with_hints(ctx, "PGY_SEM_ZONE_CONTRACT_INVALID", "semantic:zone_contract", "align-zone-slot-or-state-naming", site,
                 "%s %s target field '%s' cannot accept source path '%s' from slot '%s'.\n"
                 "Reason:\n"
+                "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                 "- projection target slot '%s' expects field '%s' to have type '%s'\n"
                 "- resolved source path '%s' from slot '%s' has type '%s'\n"
                 "- projection sync cannot derive a safe coercion across this field boundary\n"
@@ -900,6 +937,8 @@ type_check_projection_contract(ASTNode **slots,
                 owner_label, action_name,
                 target_field->name,
                 source_path != NULL ? source_path : source_field_name,
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                object_slot_name != NULL ? object_slot_name : "<unknown>",
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
                 target_field->name,

@@ -2,7 +2,6 @@ bool
 type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 {
     Type *ret_type = TYPE_VOID;
-    const char *borrowed_name = NULL;
 
     if (node->data.return_stmt.value != NULL)
         ret_type = type_check_expression(node->data.return_stmt.value, ctx);
@@ -22,35 +21,10 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
     }
 
     if (node->data.return_stmt.value != NULL) {
-        borrowed_name = semantic_borrowed_boundary_root_name(
-            node->data.return_stmt.value, ctx);
-    }
-
-    if (node->data.return_stmt.value != NULL
-        && borrowed_name != NULL
-        && type_is_subject_type(ret_type, ctx)) {
-        semantic_report_borrowed_return_escape(
-            node, node->data.return_stmt.value, ctx, borrowed_name,
-            "subject", "subject provenance",
-            "a projection/object/tobject/value result");
-    }
-
-    if (node->data.return_stmt.value != NULL
-        && borrowed_name != NULL
-        && type_is_movable_resource_handle(ret_type)) {
-        semantic_report_borrowed_return_escape(
-            node, node->data.return_stmt.value, ctx, borrowed_name,
-            "movable resource", "movable-resource provenance",
-            "a copied/projection/value result");
-    }
-
-    if (node->data.return_stmt.value != NULL
-        && borrowed_name != NULL
-        && type_requires_boundary_borrow_tracking(ret_type, ctx)) {
-        semantic_report_borrowed_return_escape(
-            node, node->data.return_stmt.value, ctx, borrowed_name,
-            "boundary value", "boundary provenance",
-            "a copied/value/projection result");
+        semantic_validate_borrowed_escape(
+            node, node->data.return_stmt.value, ctx, ret_type, NULL,
+            OWNERSHIP_CONSUMER_RETURN, NULL, NULL, NULL,
+            false, NULL, NULL);
     }
 
     if (node->data.return_stmt.value != NULL

@@ -39,7 +39,9 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
                                    tc->bounds[b]->data.type.name) != NULL)) {
                         continue;
                     }
-                    semantic_error(ctx, owner != NULL ? owner : tc->bounds[b],
+                    semantic_error_with_hints(ctx, "PGY_SEM_UNKNOWN_TYPE",
+                        "semantic:type:unknown", "declare-or-import-type",
+                        owner != NULL ? owner : tc->bounds[b],
                         "Unknown constraint type '%s' in where clause.\n"
                         "Reason:\n"
                         "- generic where-clause validation could not resolve this bound\n"
@@ -71,7 +73,10 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
         if (param->default_type != NULL) {
             saw_default = true;
         } else if (saw_default) {
-            semantic_error(ctx, owner != NULL ? owner : (ASTNode *)gp,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:non_trailing_default",
+                "move-defaults-to-trailing",
+                owner != NULL ? owner : (ASTNode *)gp,
                 "Non-trailing default generic parameter '%s' in %s declaration.\n"
                 "Reason:\n"
                 "- a required generic parameter appears after a parameter with a default\n"
@@ -100,7 +105,10 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
                 || ctx->diagnostic_count > saved_diag) {
                 ctx->diagnostic_count = saved_diag;
                 ctx->has_error = saved_err;
-                semantic_error(ctx, owner != NULL ? owner : param->default_type,
+                semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                    "semantic:generic:default_unresolved",
+                    "align-generic-arg-list",
+                    owner != NULL ? owner : param->default_type,
                     "Invalid default generic type argument '%s' in %s declaration (parameter '%s').\n"
                     "Reason:\n"
                     "- the declared default type could not be resolved as a valid concrete type\n"

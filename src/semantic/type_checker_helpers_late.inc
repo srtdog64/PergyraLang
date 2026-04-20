@@ -37,6 +37,57 @@ static uint32_t
 declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
                                     bool *has_contract_out);
 
+static ASTNode *
+lookup_function_param_contract_local(SemanticContext *ctx,
+                                     const char *display_name,
+                                     size_t arg_index,
+                                     ParamMode *mode_out)
+{
+    if (mode_out != NULL)
+        *mode_out = PARAM_MODE_DEFAULT;
+
+    if (ctx == NULL || ctx->program_root == NULL || display_name == NULL)
+        return NULL;
+
+    ASTNode *prog = ctx->program_root;
+    for (size_t si = 0; si < prog->data.program.count; si++) {
+        ASTNode *stmt = prog->data.program.statements[si];
+        if (stmt == NULL || stmt->type != AST_FUNC_DECL
+            || stmt->data.func_decl.name == NULL
+            || strcmp(stmt->data.func_decl.name, display_name) != 0
+            || arg_index >= stmt->data.func_decl.param_count) {
+            continue;
+        }
+        if (mode_out != NULL && stmt->data.func_decl.params[arg_index] != NULL)
+            *mode_out = stmt->data.func_decl.params[arg_index]->mode;
+        return stmt;
+    }
+
+    return NULL;
+}
+
+static unsigned
+callable_param_escape_summary_local(ASTNode *callee_decl,
+                                    size_t arg_index,
+                                    SemanticContext *ctx)
+{
+    if (callee_decl == NULL
+        || callee_decl->type != AST_FUNC_DECL
+        || callee_decl->data.func_decl.body == NULL
+        || arg_index >= callee_decl->data.func_decl.param_count) {
+        return 0u;
+    }
+
+    return slot_analyze_param_summary_in_program(
+        callee_decl->data.func_decl.body,
+        callee_decl->data.func_decl.params[arg_index] != NULL
+            ? callee_decl->data.func_decl.params[arg_index]->name
+            : NULL,
+        ctx != NULL ? ctx->program_root : NULL);
+}
+
+#include "type_checker_ownership_call.inc"
+
 static Type *
 type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 const char *display_name,
@@ -130,45 +181,20 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             const char *constructor_field =
                                 field_name != NULL ? field_name : "<field>";
 
-                            if (borrowed_name != NULL
-                                && type_is_movable_resource_handle(field_type)) {
-                                semantic_report_borrowed_constructor_field_escape(
+                            if (borrowed_name != NULL) {
+                                semantic_validate_borrowed_escape(
                                     expr->data.call.arguments[i],
                                     expr->data.call.arguments[i],
                                     ctx,
+                                    field_type,
                                     borrowed_name,
-                                    "movable resource",
-                                    "movable-resource provenance",
+                                    OWNERSHIP_CONSUMER_CONSTRUCTOR_FIELD_STORE,
+                                    NULL,
                                     constructor_name,
                                     constructor_field,
-                                    "a copied/value/projection result",
-                                    false);
-                            } else if (borrowed_name != NULL
-                                       && type_is_subject_type(field_type, ctx)) {
-                                semantic_report_borrowed_constructor_field_escape(
-                                    expr->data.call.arguments[i],
-                                    expr->data.call.arguments[i],
-                                    ctx,
-                                    borrowed_name,
-                                    "subject",
-                                    "subject provenance",
-                                    constructor_name,
-                                    constructor_field,
-                                    "a projection/object/tobject/value result",
-                                    true);
-                            } else if (borrowed_name != NULL
-                                       && type_requires_boundary_borrow_tracking(field_type, ctx)) {
-                                semantic_report_borrowed_constructor_field_escape(
-                                    expr->data.call.arguments[i],
-                                    expr->data.call.arguments[i],
-                                    ctx,
-                                    borrowed_name,
-                                    "boundary value",
-                                    "boundary provenance",
-                                    constructor_name,
-                                    constructor_field,
-                                    "a copied/value/projection result",
-                                    false);
+                                    false,
+                                    NULL,
+                                    NULL);
                             }
                         }
                         if (sym->kind == SYMBOL_WORLD
@@ -199,7 +225,11 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     }
                                     if (strcmp(arg_type_name,
                                             zone_slot->data.world_zone.zone_type) == 0) {
-                                        semantic_error(ctx, expr->data.call.arguments[i],
+                                        semantic_error_with_hints(ctx,
+                                            "PGY_SEM_ANCHORED_HANDLE_COPY",
+                                            "semantic:anchored_handle:copy_attempt",
+                                            "use-move-or-retain-binding",
+                                            expr->data.call.arguments[i],
                                             "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                                             "Reason:\n"
                                             "- origin binding is '%s'\n"
@@ -262,7 +292,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
         if (sig_buf[0] == '\0')
             snprintf(sig_buf, sizeof(sig_buf), "fn(<signature unavailable>)");
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+            "semantic:call:not_callable", "use-callable-declaration",
+            expr,
             "'%s' resolves to a %s '%s' of type '%s', but function calls require a callable declaration. "
             "Expected a function signature matching %s. Use a function name, a callable variable, "
             "or adjust this symbol declaration before calling.",
@@ -277,7 +309,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
         ASTNode *decl = find_callable_decl_by_name(ctx->program_root, display_name);
         if (decl != NULL && !explicit_type_reference_allowed(decl, expr, ctx)) {
-            semantic_error(ctx, expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_VISIBILITY_BOUNDARY",
+                "semantic:visibility:boundary_cross", "widen-visibility-or-move-caller",
+                expr,
                 "Callable '%s' is not accessible across the current visibility boundary",
                 display_name);
             return sym->type->data.function.return_type;
@@ -362,13 +396,21 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         if (call_arg_types != NULL)
             call_arg_types[i] = arg_type;
 
-        if (type_is_movable_resource_handle(arg_type)
-            || type_is_movable_resource_handle(param_type)) {
+        {
+            OwnershipTypeClass param_ownership =
+                semantic_classify_ownership_type(param_type, ctx);
+            OwnershipTypeClass arg_ownership =
+                semantic_classify_ownership_type(arg_type, ctx);
+
+        if (param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
+            || arg_ownership == OWNERSHIP_TYPE_MOVE_ONLY) {
             ParamMode pmode = PARAM_MODE_DEFAULT;
             ASTNode *callee_decl = NULL;
-            if (!type_is_movable_resource_handle(arg_type)
-                || !type_is_movable_resource_handle(param_type)) {
-                semantic_error(ctx, expr->data.call.arguments[i],
+            if (arg_ownership != OWNERSHIP_TYPE_MOVE_ONLY
+                || param_ownership != OWNERSHIP_TYPE_MOVE_ONLY) {
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:type:movable_handle_required", "provide-movable-handle",
+                    expr->data.call.arguments[i],
                     "Movable resource argument type mismatch: expected '%s', got '%s'",
                     resource_handle_display_name(param_type),
                     resource_handle_display_name(arg_type));
@@ -377,49 +419,37 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (expr->data.call.arguments[i]->type != AST_IDENTIFIER
                 && semantic_borrowed_boundary_root_name(
                        expr->data.call.arguments[i], ctx) == NULL) {
-                semantic_error(ctx, expr->data.call.arguments[i],
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:move:source_not_named", "bind-to-named-variable-before-move",
+                    expr->data.call.arguments[i],
                     "%s arguments must be moved from a named variable; bind the value first, then pass that variable",
                     resource_handle_display_name(param_type));
                 continue;
             }
-            if (ctx->program_root != NULL) {
-                ASTNode *prog = ctx->program_root;
-                for (size_t si = 0; si < prog->data.program.count; si++) {
-                    ASTNode *stmt = prog->data.program.statements[si];
-                    if (stmt != NULL && stmt->type == AST_FUNC_DECL
-                        && stmt->data.func_decl.name != NULL
-                        && strcmp(stmt->data.func_decl.name, display_name) == 0
-                        && i < stmt->data.func_decl.param_count) {
-                        callee_decl = stmt;
-                        pmode = stmt->data.func_decl.params[i]->mode;
-                        break;
-                    }
-                }
-            }
+            callee_decl = lookup_function_param_contract_local(
+                ctx, display_name, i, &pmode);
             if (pmode == PARAM_MODE_REF
                 && callee_decl != NULL
                 && callee_decl->data.func_decl.body != NULL) {
                 const char *borrowed_name =
                     semantic_borrowed_boundary_root_name(
                         expr->data.call.arguments[i], ctx);
-                unsigned callee_mask = slot_analyze_param_summary_in_program(
-                    callee_decl->data.func_decl.body,
-                    callee_decl->data.func_decl.params[i] != NULL
-                        ? callee_decl->data.func_decl.params[i]->name
-                        : NULL,
-                    ctx->program_root);
+                unsigned callee_mask = callable_param_escape_summary_local(
+                    callee_decl, i, ctx);
                 if (borrowed_name != NULL
                     && (callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
                                        | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
                                        | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
-                    semantic_report_borrowed_helper_call_escape(
+                    semantic_validate_borrowed_escape(
                         expr->data.call.arguments[i],
                         expr->data.call.arguments[i],
                         ctx,
+                        arg_type,
                         borrowed_name,
-                        "movable resource",
-                        "movable-resource provenance",
+                        OWNERSHIP_CONSUMER_HELPER_CALL,
+                        NULL,
                         display_name != NULL ? display_name : "<callee>",
+                        NULL,
                         true,
                         NULL,
                         "movable-resource");
@@ -432,17 +462,19 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         expr->data.call.arguments[i], ctx);
                 if (borrowed_name == NULL)
                     goto type_check_call_movable_done;
-                semantic_report_borrowed_helper_call_escape(
+                semantic_validate_borrowed_escape(
                     expr->data.call.arguments[i],
                     expr->data.call.arguments[i],
                     ctx,
+                    arg_type,
                     borrowed_name,
-                    "movable resource",
-                    "movable-resource provenance",
+                    OWNERSHIP_CONSUMER_HELPER_CALL,
+                    NULL,
                     display_name != NULL ? display_name : "<callee>",
+                    NULL,
                     false,
                     pmode == PARAM_MODE_OWN ? "own" : "default",
-                    NULL);
+                    "movable-resource");
                 continue;
             }
 type_check_call_movable_done:
@@ -452,11 +484,13 @@ type_check_call_movable_done:
             continue;
         }
 
-        if (type_is_subject_type(param_type, ctx)) {
+        if (param_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
             ParamMode pmode = PARAM_MODE_DEFAULT;
             ASTNode *callee_decl = NULL;
-            if (!type_is_subject_type(arg_type, ctx)) {
-                semantic_error(ctx, expr->data.call.arguments[i],
+            if (arg_ownership != OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:type:subject_arg_mismatch", "align-subject-arg-type",
+                    expr->data.call.arguments[i],
                     "Subject argument type mismatch: expected '%s', got '%s'.\n"
                     "Reason:\n"
                     "- subject boundary passing requires the caller value and callee contract to agree on the same subject type\n"
@@ -470,105 +504,43 @@ type_check_call_movable_done:
                     type_name_or_unknown(arg_type));
                 continue;
             }
-            if (ctx->program_root != NULL) {
-                ASTNode *prog = ctx->program_root;
-                for (size_t si = 0; si < prog->data.program.count; si++) {
-                    ASTNode *stmt = prog->data.program.statements[si];
-                    if (stmt != NULL && stmt->type == AST_FUNC_DECL
-                        && stmt->data.func_decl.name != NULL
-                        && strcmp(stmt->data.func_decl.name, display_name) == 0
-                        && i < stmt->data.func_decl.param_count) {
-                        callee_decl = stmt;
-                        pmode = stmt->data.func_decl.params[i]->mode;
-                        break;
-                    }
-                }
-            }
-            if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
-                const char *borrowed_root_name =
-                    semantic_borrowed_boundary_root_name(
-                        expr->data.call.arguments[i], ctx);
-                if (pmode == PARAM_MODE_DEFAULT)
-                    continue;
-                if (borrowed_root_name != NULL)
-                    goto subject_helper_borrowed_argument;
-                semantic_report_named_boundary_argument_required(
-                    expr->data.call.arguments[i],
+            callee_decl = lookup_function_param_contract_local(
+                ctx, display_name, i, &pmode);
+            if (!semantic_validate_borrowed_boundary_call_argument(
                     expr->data.call.arguments[i],
                     ctx,
-                    "Subject",
+                    callee_decl,
+                    display_name,
+                    i,
+                    pmode,
+                    arg_type,
                     "subject",
-                    "bind the subject to a local variable first");
+                    true)) {
                 continue;
             }
-subject_helper_borrowed_argument:
-            if (pmode == PARAM_MODE_REF
-                && callee_decl != NULL
-                && callee_decl->data.func_decl.body != NULL) {
-                const char *borrowed_name =
-                    semantic_borrowed_boundary_root_name(
-                        expr->data.call.arguments[i], ctx);
-                unsigned callee_mask = slot_analyze_param_summary_in_program(
-                    callee_decl->data.func_decl.body,
-                    callee_decl->data.func_decl.params[i] != NULL
-                        ? callee_decl->data.func_decl.params[i]->name
-                        : NULL,
-                    ctx->program_root);
-                if (borrowed_name != NULL
-                    && (callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
-                                       | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
-                                       | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
-                    semantic_report_borrowed_helper_call_escape(
-                        expr->data.call.arguments[i],
-                        expr->data.call.arguments[i],
-                        ctx,
-                        borrowed_name,
-                        "subject",
-                        "subject provenance",
-                        display_name != NULL ? display_name : "<callee>",
-                        true,
-                        NULL,
-                        "subject");
-                    continue;
-                }
-            }
-            if (pmode != PARAM_MODE_REF) {
-                const char *borrowed_name =
-                    semantic_borrowed_boundary_root_name(
-                        expr->data.call.arguments[i], ctx);
-                if (borrowed_name == NULL)
-                    goto type_check_call_subject_done;
-                semantic_report_borrowed_helper_call_escape(
-                    expr->data.call.arguments[i],
-                    expr->data.call.arguments[i],
-                    ctx,
-                    borrowed_name,
-                    "subject",
-                    "subject provenance",
-                    display_name != NULL ? display_name : "<callee>",
-                    false,
-                    pmode == PARAM_MODE_OWN ? "own" : "default",
-                    NULL);
-                continue;
-            }
-type_check_call_subject_done:
             if (pmode == PARAM_MODE_OWN) {
                 consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
             }
             continue;
         }
 
-        if (type_is_general_boundary_type(param_type, ctx)
-            && !type_is_subject_type(param_type, ctx)
-            && !type_is_movable_resource_handle(param_type)) {
+        if (param_ownership == OWNERSHIP_TYPE_BORROW_TRACKED
+            || (param_ownership == OWNERSHIP_TYPE_COPY_ONLY
+                && type_is_general_boundary_type(param_type, ctx)
+                && !type_is_subject_type(param_type, ctx)
+                && !type_is_movable_resource_handle(param_type))) {
             ParamMode pmode = PARAM_MODE_DEFAULT;
             ASTNode *callee_decl = NULL;
+            bool track_boundary_borrow =
+                (param_ownership == OWNERSHIP_TYPE_BORROW_TRACKED);
             if (!type_is_general_boundary_type(arg_type, ctx)
-                || type_is_subject_type(arg_type, ctx)
-                || type_is_movable_resource_handle(arg_type)
+                || arg_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY
+                || arg_ownership == OWNERSHIP_TYPE_MOVE_ONLY
                 || !type_is_assignable(arg_type, param_type)
                 || !type_is_assignable(param_type, arg_type)) {
-                semantic_error(ctx, expr->data.call.arguments[i],
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:type:boundary_arg_mismatch", "align-boundary-arg-type",
+                    expr->data.call.arguments[i],
                     "Boundary value argument type mismatch: expected '%s', got '%s'.\n"
                     "Reason:\n"
                     "- own/ref value boundaries require the caller value and callee contract to agree on the same boundary value type\n"
@@ -582,102 +554,38 @@ type_check_call_subject_done:
                     type_name_or_unknown(arg_type));
                 continue;
             }
-            if (ctx->program_root != NULL) {
-                ASTNode *prog = ctx->program_root;
-                for (size_t si = 0; si < prog->data.program.count; si++) {
-                    ASTNode *stmt = prog->data.program.statements[si];
-                    if (stmt != NULL && stmt->type == AST_FUNC_DECL
-                        && stmt->data.func_decl.name != NULL
-                        && strcmp(stmt->data.func_decl.name, display_name) == 0
-                        && i < stmt->data.func_decl.param_count) {
-                        callee_decl = stmt;
-                        pmode = stmt->data.func_decl.params[i]->mode;
-                        break;
-                    }
-                }
-            }
-            if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
-                const char *borrowed_root_name =
-                    semantic_borrowed_boundary_root_name(
-                        expr->data.call.arguments[i], ctx);
-                if (pmode == PARAM_MODE_DEFAULT)
-                    continue;
-                if (borrowed_root_name != NULL)
-                    goto boundary_helper_borrowed_argument;
-                semantic_report_named_boundary_argument_required(
-                    expr->data.call.arguments[i],
+            callee_decl = lookup_function_param_contract_local(
+                ctx, display_name, i, &pmode);
+            if (!semantic_validate_borrowed_boundary_call_argument(
                     expr->data.call.arguments[i],
                     ctx,
-                    "Value",
+                    callee_decl,
+                    display_name,
+                    i,
+                    pmode,
+                    arg_type,
                     "value",
-                    "bind the value to a local variable first");
+                    track_boundary_borrow)) {
                 continue;
             }
-boundary_helper_borrowed_argument:
-            if (pmode == PARAM_MODE_REF
-                && type_requires_boundary_borrow_tracking(param_type, ctx)
-                && callee_decl != NULL
-                && callee_decl->data.func_decl.body != NULL) {
-                const char *borrowed_name =
-                    semantic_borrowed_boundary_root_name(
-                        expr->data.call.arguments[i], ctx);
-                unsigned callee_mask = slot_analyze_param_summary_in_program(
-                    callee_decl->data.func_decl.body,
-                    callee_decl->data.func_decl.params[i] != NULL
-                        ? callee_decl->data.func_decl.params[i]->name
-                        : NULL,
-                    ctx->program_root);
-                if (borrowed_name != NULL
-                    && (callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
-                                       | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
-                                       | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
-                    semantic_report_borrowed_helper_call_escape(
-                        expr->data.call.arguments[i],
-                        expr->data.call.arguments[i],
-                        ctx,
-                        borrowed_name,
-                        "boundary value",
-                        "boundary provenance",
-                        display_name != NULL ? display_name : "<callee>",
-                        true,
-                        NULL,
-                        "value");
-                    continue;
-                }
-            }
-            if (pmode != PARAM_MODE_REF) {
-                const char *borrowed_name =
-                    semantic_borrowed_boundary_root_name(
-                        expr->data.call.arguments[i], ctx);
-                if (borrowed_name == NULL)
-                    goto type_check_call_boundary_done;
-                if (!type_requires_boundary_borrow_tracking(param_type, ctx))
-                    continue;
-                semantic_report_borrowed_helper_call_escape(
-                    expr->data.call.arguments[i],
-                    expr->data.call.arguments[i],
-                    ctx,
-                    borrowed_name,
-                    "boundary value",
-                    "boundary provenance",
-                    display_name != NULL ? display_name : "<callee>",
-                    false,
-                    pmode == PARAM_MODE_OWN ? "own" : "default",
-                    NULL);
-                continue;
-            }
-type_check_call_boundary_done:
             if (pmode == PARAM_MODE_OWN) {
-                consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
+                const char *borrowed_name =
+                    semantic_borrowed_boundary_root_name(
+                        expr->data.call.arguments[i], ctx);
+                if (track_boundary_borrow || borrowed_name == NULL)
+                    consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
             }
             continue;
+        }
         }
 
         if (type_is_anchored_resource_handle(arg_type)
             || type_is_anchored_resource_handle(param_type)) {
             if (!type_is_anchored_resource_handle(arg_type)
                 || !type_is_anchored_resource_handle(param_type)) {
-                semantic_error(ctx, expr->data.call.arguments[i],
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:type:resource_handle_arg_mismatch", "align-resource-handle-arg",
+                    expr->data.call.arguments[i],
                     "Resource handle argument type mismatch: expected '%s', got '%s'",
                     resource_handle_display_name(param_type),
                     resource_handle_display_name(arg_type));
@@ -686,19 +594,8 @@ type_check_call_boundary_done:
             /* Check own/ref qualifier from function declaration AST */
             {
                 ParamMode pmode = PARAM_MODE_DEFAULT;
-                if (ctx->program_root != NULL) {
-                    ASTNode *prog = ctx->program_root;
-                    for (size_t si = 0; si < prog->data.program.count; si++) {
-                        ASTNode *stmt = prog->data.program.statements[si];
-                        if (stmt != NULL && stmt->type == AST_FUNC_DECL
-                            && stmt->data.func_decl.name != NULL
-                            && strcmp(stmt->data.func_decl.name, display_name) == 0
-                            && i < stmt->data.func_decl.param_count) {
-                            pmode = stmt->data.func_decl.params[i]->mode;
-                            break;
-                        }
-                    }
-                }
+                lookup_function_param_contract_local(
+                    ctx, display_name, i, &pmode);
                 if (pmode == PARAM_MODE_OWN) {
                     /* own: move — consume the source slot */
                     if (expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
@@ -720,7 +617,10 @@ type_check_call_boundary_done:
                         Symbol *src_sym = scope_lookup(ctx->scope, src);
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT
                             && src_sym->slot_info.state == SLOT_STATE_RELEASED) {
-                            semantic_error(ctx, expr->data.call.arguments[i],
+                            semantic_error_with_hints(ctx, "PGY_SEM_SLOT_RELEASED",
+                                "semantic:slot:borrow_released",
+                                "reclaim-source-or-trace-earlier-release",
+                                expr->data.call.arguments[i],
                                 "Cannot borrow released slot '%s'.\n"
                                 "Reason:\n"
                                 "- slot '%s' was already released or invalidated earlier in this scope\n"
@@ -735,7 +635,10 @@ type_check_call_boundary_done:
                     continue;
                 }
             }
-            semantic_error(ctx, expr->data.call.arguments[i],
+            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                "semantic:slot_param:qualifier_missing",
+                "annotate-slot-param-qualifier",
+                expr->data.call.arguments[i],
                 "Slot arguments require 'own' or 'ref' qualifier in function signature; "
                 "use 'func F(own s: Slot<T>)' to take ownership or "
                 "'func F(ref s: Slot<T>)' to borrow");

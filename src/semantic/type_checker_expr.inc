@@ -100,7 +100,9 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         if ((type_is_general_boundary_type(sym->type, ctx)
              || type_is_move_token(sym->type))
             && sym->is_consumed) {
-            semantic_error(ctx, expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_MOVE_FROM_RELEASED",
+                "semantic:move:from_released", "reclaim-or-trace-earlier-move",
+                expr,
                 "%s '%s' was moved or released and cannot be used again.\n"
                 "Reason:\n"
                 "- value '%s' was already consumed by an ownership transfer or release path\n"
@@ -163,7 +165,9 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
     case AST_AWAIT_EXPR:
         if (!ctx->in_async_func) {
-            semantic_error(ctx, expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                "semantic:async:context_required", "move-into-async-function",
+                expr,
                 "'await' used outside of async function");
         }
         semantic_record_effect(ctx, EFFECT_REMOTE);
@@ -176,7 +180,10 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                 && future_type->data.constructed.arg_count == 1) {
                 Type *inner = future_type->data.constructed.args[0];
                 if (type_is_anchored_resource_handle(inner)) {
-                    semantic_error(ctx, expr->data.await_expr.expression,
+                    semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
+                        "semantic:anchored_handle:copy_attempt",
+                        "use-move-or-retain-binding",
+                        expr->data.await_expr.expression,
                         "'await' cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; await a plain value or movable transfer result instead");
                     return TYPE_UNKNOWN;
                 }
@@ -189,7 +196,9 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                 }
                 return inner;
             }
-            semantic_error(ctx, expr->data.await_expr.expression,
+            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                "semantic:await:non_future", "await-future-type",
+                expr->data.await_expr.expression,
                 "'await' requires Future<T> or RemoteFuture<T>");
             return TYPE_UNKNOWN;
         }
@@ -286,7 +295,9 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
     /* Postfix ?: try/propagate — unwrap Result<T> to T, propagate error */
     if (op == TOKEN_QUESTION) {
         if (!type_is_constructed_named(operand, "Result")) {
-            semantic_error(ctx, expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_UNOP_TYPE_MISMATCH",
+                "semantic:unary_operator:operand", "align-operand-type",
+                expr,
                 "'?' operator requires Result<T> or Result<T, E>, got '%s'",
                 operand->name);
             return TYPE_UNKNOWN;
@@ -773,7 +784,9 @@ type_check_array_access(ASTNode *expr, SemanticContext *ctx)
     Type *index_type  = type_check_expression(expr->data.array_access.index, ctx);
 
     if (!type_equals(index_type, TYPE_INT)) {
-        semantic_error(ctx, expr->data.array_access.index,
+        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+            "semantic:array_access:index_non_int", "use-int-index",
+            expr->data.array_access.index,
             "Array index must be Int, got '%s'", index_type->name);
         return TYPE_UNKNOWN;
     }
@@ -783,79 +796,15 @@ type_check_array_access(ASTNode *expr, SemanticContext *ctx)
         return type_get_constructed_arg(object_type, 0);
     }
 
-    semantic_error(ctx, expr->data.array_access.array,
+    semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+        "semantic:array_access:target_not_indexable", "use-array-or-slice",
+        expr->data.array_access.array,
         "Index access requires Array<T> or Slice<T>, got '%s'",
         object_type->name);
     return TYPE_UNKNOWN;
 }
 
-static bool
-semantic_check_assignment_borrow_rebind(ASTNode *expr,
-                                        SemanticContext *ctx,
-                                        Type *target_type,
-                                        Type *value_type)
-{
-    const char *borrowed_name =
-        semantic_borrowed_boundary_root_name(
-            expr->data.assignment.value, ctx);
-
-    if (type_is_resource_handle(target_type) || type_is_resource_handle(value_type)) {
-        if (borrowed_name != NULL) {
-            semantic_report_borrowed_assignment_rebind_escape(
-                expr,
-                expr->data.assignment.target,
-                expr->data.assignment.value,
-                ctx,
-                borrowed_name,
-                "movable resource",
-                "movable-resource provenance",
-                "an escaping ownership rewrite at the current call boundary");
-            return true;
-        }
-        semantic_error_with_hints(ctx, "PGY_SEM_IMMUTABLE_FIELD_WRITE", "semantic:immutable_field:write", "reconstruct-or-change-host-kind", expr,
-            "Resource handle assignment is not allowed.\n"
-            "Reason:\n"
-            "- anchored handles (Slot/SecureSlot/DeviceSlot) cannot be copied or rebound with '='\n"
-            "- movable handles must transfer ownership through a new binding\n"
-            "Fix:\n"
-            "- use Read/Write for Slot<T>\n"
-            "- keep DeviceSlot local\n"
-            "- move a QubitSlot into a new binding\n"
-            "- or Claim... to create a fresh handle");
-        return true;
-    }
-
-    if ((type_is_class_object_type(target_type, ctx)
-         || type_is_class_object_type(value_type, ctx))
-        && borrowed_name != NULL) {
-        semantic_report_borrowed_assignment_rebind_escape(
-            expr,
-            expr->data.assignment.target,
-            expr->data.assignment.value,
-            ctx,
-            borrowed_name,
-            "subject",
-            "subject provenance",
-            "a second boundary-visible binding for the same borrowed identity");
-        return true;
-    }
-
-    if (type_requires_boundary_borrow_tracking(target_type, ctx)
-        && borrowed_name != NULL) {
-        semantic_report_borrowed_assignment_rebind_escape(
-            expr,
-            expr->data.assignment.target,
-            expr->data.assignment.value,
-            ctx,
-            borrowed_name,
-            "boundary value",
-            "boundary provenance",
-            "a second boundary-visible binding for the same borrowed provenance");
-        return true;
-    }
-
-    return false;
-}
+#include "type_checker_ownership_assign.inc"
 
 Type *
 type_check_assignment(ASTNode *expr, SemanticContext *ctx)
@@ -879,7 +828,10 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_class_object_type(target_type, ctx)
         || type_is_class_object_type(value_type, ctx)) {
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_IMMUTABLE_FIELD_WRITE",
+            "semantic:subject:rebind_forbidden",
+            "mutate-field-or-use-method",
+            expr,
             "Subject assignment is not allowed; subjects are identity-bearing active hosts. Mutate fields or methods on the existing subject instead of rebinding it with '='");
         return target_type;
     }
@@ -933,4 +885,3 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 /* -----------------------------------------------------------------
  * Statement checkers
  * ----------------------------------------------------------------- */
-

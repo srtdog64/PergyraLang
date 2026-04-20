@@ -2,15 +2,17 @@
         && init != NULL
         && type_is_class_object_type(init_type, ctx)
         && !expr_is_class_constructor_call(init, ctx)
-        && (init->type == AST_IDENTIFIER || init->type == AST_MEMBER_ACCESS)) {
-        const char *borrowed_root_name =
-            semantic_borrowed_boundary_root_name(init, ctx);
-        if (borrowed_root_name != NULL) {
-            semantic_report_borrowed_new_binding_escape(
-                node, init, ctx, borrowed_root_name, name,
-                "subject", "subject provenance");
-        }
-        semantic_error(ctx, node,
+        && (init->type == AST_IDENTIFIER
+            || init->type == AST_MEMBER_ACCESS
+            || init->type == AST_ARRAY_ACCESS)) {
+        semantic_validate_borrowed_escape(
+            node, init, ctx, decl_type, NULL,
+            OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
+            false, NULL, NULL);
+        semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
+            "semantic:anchored_handle:copy_attempt",
+            "use-move-or-retain-binding",
+            node,
             "Subjects cannot be copied into a new binding.\n"
             "Reason:\n"
             "- subject values carry identity and anchored state semantics\n"
@@ -27,9 +29,10 @@
             init != NULL && borrowed_movable_root != NULL;
         bool valid_qubit_init = false;
         if (borrowed_movable_new_binding) {
-            semantic_report_borrowed_new_binding_escape(
-                node, init, ctx, borrowed_movable_root, name,
-                "movable resource", "movable-resource provenance");
+            semantic_validate_borrowed_escape(
+                node, init, ctx, decl_type, borrowed_movable_root,
+                OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
+                false, NULL, NULL);
             valid_qubit_init = true;
         }
         if (init_type == TYPE_UNKNOWN) {
@@ -45,7 +48,10 @@
             }
         }
         if (!valid_qubit_init) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
+                "semantic:movable_handle:copy_attempt",
+                "use-move-or-retain-binding",
+                node,
                 "QubitSlot is a movable resource handle and cannot be plain-copied into a new binding.\n"
                 "Reason:\n"
                 "- movable resource values must come from a fresh claim, an explicit move, or a transfer boundary\n"
@@ -57,13 +63,9 @@
         }
     }
 
-    if (type_requires_boundary_borrow_tracking(decl_type, ctx)
-        && init != NULL) {
-        const char *borrowed_root_name =
-            semantic_borrowed_boundary_root_name(init, ctx);
-        if (borrowed_root_name != NULL) {
-            semantic_report_borrowed_new_binding_escape(
-                node, init, ctx, borrowed_root_name, name,
-                "boundary value", "boundary provenance");
-        }
+    if (init != NULL) {
+        semantic_validate_borrowed_escape(
+            node, init, ctx, decl_type, NULL,
+            OWNERSHIP_CONSUMER_NEW_BINDING, NULL, name, NULL,
+            false, NULL, NULL);
     }

@@ -114,6 +114,29 @@ llvm_set_error_with_hints(LLVMGenCtx *ctx, const char *code,
     va_end(args);
 }
 
+void
+llvm_set_error_at_with_hints(LLVMGenCtx *ctx, ASTNode *node, const char *code,
+                              const char *cause_ir, const char *fix_source,
+                              const char *fmt, ...)
+{
+    if (ctx->has_error)
+        return;
+    ctx->has_error = true;
+    ctx->error_line = (node != NULL) ? node->line : 0;
+    ctx->error_column = (node != NULL) ? node->column : 0;
+    if (code != NULL)
+        ctx->error_code = code;
+    if (cause_ir != NULL)
+        ctx->error_cause_ir = cause_ir;
+    if (fix_source != NULL)
+        ctx->error_fix_source = fix_source;
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    va_end(args);
+}
+
 LLVMGenResult *
 llvm_result_error(const char *message)
 {

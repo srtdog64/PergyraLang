@@ -1,6 +1,6 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-18
+마지막 업데이트: 2026-04-20
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
@@ -32,6 +32,25 @@
   - `test-abi`: `84 passed, 0 failed`
   - `ci-linux`: full green 유지
   - LLVM expr/stmt host-helper 정리 이후에도 `test-transpile`, `test-abi` 재통과 확인
+
+### 최근 closure 진행 (2026-04-20)
+
+- own/ref broader audit를 helper family 기준으로 더 정렬
+  - helper call boundary의 `subject` / general boundary value 경로를 공용 borrowed-boundary validator로 접음
+  - container store / array literal store borrow-escape를 공용 ownership diagnostic helper로 통합
+  - semantic channel send borrow-escape도 공용 ownership diagnostic helper로 승격
+  - 즉, `assignment / helper call / channel send / container store / array literal store / constructor field store`가 점점 같은 provenance wording family로 수렴 중
+- intent authority mismatch provenance를 더 직접적으로 노출
+  - `authorized by` unknown participant / non-subject participant / zone subject-slot mismatch / zone authority mismatch에 `approval boundary provenance` 섹션 추가
+  - provenance가 비어 있으면 `no inherited/derived authority provenance was recorded`를 명시적으로 보고
+- relation/effect/projection failure depth를 추가 보강
+  - invalid projection source / tobject source rejection이 target/source consumer path와 projection contract origin을 직접 보고
+  - 즉, projection diagnostics가 단순 type mismatch가 아니라 `target slot <- source slot` 경로를 기준으로 설명되기 시작함
+- 현재 베타 blocker 재정렬
+  - Windows backend-compare / LLVM parity 복구
+  - declaration-side MIR-only 남은 host/inventory helper debt 제거
+  - own/ref 일반화의 broader assignment / container / rebind / summary path closure
+  - intent/zone/world 및 relation/effect/projection provenance 마지막 심화
 
 ### 최근 closure 진행 (2026-04-16)
 
@@ -140,6 +159,8 @@
   - 진행: helper forwarding / builtin channel send(`Send`/`TrySend`/`SendTimeout`/status variants)도 unnamed borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
   - 진행: direct `return` escape도 borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)를 직접 보고하도록 정렬
   - 진행: slot/resource summary 기반 `return/channel/helper` diagnostics도 `summary provenance root` vocabulary로 direct semantic wording에 더 가깝게 정렬
+  - 진행: helper-call / container-store / array-literal-store / semantic channel-send diagnostic family를 공용 helper로 통합
+  - 남은 own/ref line: `type_checker_program.inc`의 summary-based `return/channel/helper` diagnostics를 공용 helper family로 더 접고, broader assignment / container / rebind audit에서 nested projection + transitive helper 경로를 계속 닫음
   - generic contract는 `default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path를 마지막까지 audit
   - 진행: `party role slot` generic mismatch consumer도 actual/expected type arg + consumer path provenance regression으로 고정
   - 남은 generic consumer path가 없다는 것을 regression으로 증명하고, partial acceptance처럼 보이는 경로를 남기지 않는다
@@ -157,6 +178,7 @@
   - Linux 기준 `parser / semantic / transpile / ABI / backend-compare / llvm smoke / ir-pipeline / example smoke`를 full green으로 유지
   - Windows는 MSYS2/MinGW + LLVM 환경에서 `ci-windows` full green을 다시 고정
   - backend compare는 domain semantics 기준 parity를 계속 확대하고, same-process ABI / launch / runtime environment 차이를 재발하지 않게 잡는다
+  - 현재 immediate blocker: Windows `backend-compare`와 LLVM parity의 마지막 crash / launch / runtime mismatch 제거
   - 베타 선언 전 acceptance line은 “부분 green”이 아니라 C/LLVM parity와 expected stdout/stderr/result parity까지 포함한 CI green으로 둔다
 
 실행 가능한 연구용 컴파일러 단계는 넘겼지만, 아직 베타라고 부를 수는 없다.

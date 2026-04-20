@@ -183,7 +183,9 @@ resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
     if (strcmp(name, "HashMap") == 0) {
         if (node->data.type.generic_args == NULL
             || node->data.type.generic_args->count != 2) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                node,
                 "HashMap requires exactly two type arguments");
             return TYPE_UNKNOWN;
         }
@@ -233,7 +235,9 @@ resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx)
         if (node->data.type.generic_args == NULL
             || provided < expected_min
             || provided > expected_max) {
-            semantic_error(ctx, node,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                node,
                 strcmp(name, "Result") == 0
                     ? "Result requires one or two type arguments"
                     : "%s requires exactly one type argument",

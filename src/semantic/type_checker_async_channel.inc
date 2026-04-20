@@ -17,17 +17,26 @@ semantic_check_channel_send_borrowed_transfer(ASTNode *value_expr,
                                               const char *named_binding_fix)
 {
     const char *borrowed_root_name;
+    Type *value_type;
 
     if (value_expr == NULL || ctx == NULL) {
         return false;
     }
 
+    (void)value_label;
+    (void)provenance_label;
+    (void)snapshot_label;
+
+    value_type = type_check_expression(value_expr, ctx);
     borrowed_root_name = semantic_borrowed_boundary_root_name(value_expr, ctx);
 
     if (value_expr->type != AST_IDENTIFIER
         && borrowed_root_name == NULL) {
         char *source_path = semantic_assignment_target_path(value_expr);
-        semantic_error(ctx, value_expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+            "semantic:channel:transport_rule_violation",
+            "bind-to-named-variable-before-send",
+            value_expr,
             "%s channel sends must transfer from a named variable%s%s%s.\n"
             "Reason:\n"
             "- ownership transfer at a channel boundary must point to one concrete source binding\n"
@@ -46,30 +55,10 @@ semantic_check_channel_send_borrowed_transfer(ASTNode *value_expr,
     }
 
     if (borrowed_root_name != NULL) {
-        char *source_path = semantic_assignment_target_path(value_expr);
-        semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
-            "semantic:borrow_escape", "change-ref-to-own-or-stop-escape",
-            value_expr,
-            "Borrowed ref %s '%s' cannot escape through channel send from '%s'.\n"
-            "Reason:\n"
-            "- consumer path is function '%s'\n"
-            "- '%s' entered this function as a borrowed 'ref' %s\n"
-            "- '%s' is derived from that borrowed %s\n"
-            "- channel send would transfer that borrow beyond the current call boundary\n"
-            "Fix:\n"
-            "- send a %s instead\n"
-            "- or change the current parameter to 'own' if transfer is intended",
-            value_label != NULL ? value_label : "boundary value",
-            borrowed_root_name,
-            source_path != NULL ? source_path : borrowed_root_name,
-            semantic_current_consumer_name(ctx),
-            borrowed_root_name,
-            value_label != NULL ? value_label : "boundary value",
-            source_path != NULL ? source_path : borrowed_root_name,
-            provenance_label != NULL ? provenance_label : "boundary provenance",
-            snapshot_label != NULL ? snapshot_label
-                                   : "copied/value/projection result");
-        free(source_path);
+        semantic_validate_borrowed_escape(
+            value_expr, value_expr, ctx, value_type, borrowed_root_name,
+            OWNERSHIP_CONSUMER_CHANNEL_SEND, NULL, NULL, NULL,
+            false, NULL, NULL);
         return true;
     }
 
@@ -87,17 +76,27 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         || channel_type->kind != TYPE_KIND_CONSTRUCTED
         || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
         || channel_type->data.constructed.arg_count != 1) {
-        semantic_error(ctx, expr->data.channel_send.channel,
+        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+            "semantic:channel:transport_rule_violation",
+            "align-channel-element-type",
+            expr->data.channel_send.channel,
             "Channel send requires Channel<T>, got '%s'",
             channel_type != NULL ? channel_type->name : "<null>");
         return TYPE_VOID;
     }
 
     Type *element_type = channel_type->data.constructed.args[0];
+    OwnershipTypeClass element_ownership =
+        semantic_classify_ownership_type(element_type, ctx);
+    OwnershipTypeClass value_ownership =
+        semantic_classify_ownership_type(value_type, ctx);
 
     if (type_is_anchored_resource_handle(element_type)
         || type_is_anchored_resource_handle(value_type)) {
-        semantic_error(ctx, expr->data.channel_send.value,
+        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+            "semantic:channel:transport_rule_violation",
+            "keep-handle-local-or-send-inner-value",
+            expr->data.channel_send.value,
             "Channels cannot transport anchored resource handles (Slot/SecureSlot/DeviceSlot) yet.\n"
             "Reason:\n"
             "- channel send would move an anchored handle outside its local ownership/runtime anchor\n"
@@ -110,7 +109,10 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_capability_bearing(element_type)
         || type_is_capability_bearing(value_type)) {
-        semantic_error(ctx, expr->data.channel_send.value,
+        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+            "semantic:channel:transport_rule_violation",
+            "keep-handle-local-or-send-inner-value",
+            expr->data.channel_send.value,
             "Channels cannot transport capability-bearing values (SecureSlot/Token) yet.\n"
             "Reason:\n"
             "- capability-bearing values would cross the channel boundary without a closed authority contract\n"
@@ -121,11 +123,14 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         return TYPE_VOID;
     }
 
-    if (type_is_subject_type(element_type, ctx)
-        || type_is_subject_type(value_type, ctx)) {
-        if (!type_is_subject_type(element_type, ctx)
-            || !type_is_subject_type(value_type, ctx)) {
-            semantic_error(ctx, expr->data.channel_send.value,
+    if (element_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY
+        || value_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
+        if (element_ownership != OWNERSHIP_TYPE_SUBJECT_IDENTITY
+            || value_ownership != OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
+            semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+                "semantic:channel:transport_rule_violation",
+                "align-channel-element-type",
+                expr->data.channel_send.value,
                 "Channel send subject mismatch: expected '%s', got '%s'.\n"
                 "Reason:\n"
                 "- channel element type and sent value must agree on the subject boundary contract\n"
@@ -153,11 +158,14 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         return TYPE_VOID;
     }
 
-    if (type_is_movable_resource_handle(element_type)
-        || type_is_movable_resource_handle(value_type)) {
-        if (!type_is_movable_resource_handle(element_type)
-            || !type_is_movable_resource_handle(value_type)) {
-            semantic_error(ctx, expr->data.channel_send.value,
+    if (element_ownership == OWNERSHIP_TYPE_MOVE_ONLY
+        || value_ownership == OWNERSHIP_TYPE_MOVE_ONLY) {
+        if (element_ownership != OWNERSHIP_TYPE_MOVE_ONLY
+            || value_ownership != OWNERSHIP_TYPE_MOVE_ONLY) {
+            semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+                "semantic:channel:transport_rule_violation",
+                "align-channel-element-type",
+                expr->data.channel_send.value,
                 "Channel send movable-resource mismatch: expected '%s', got '%s'.\n"
                 "Reason:\n"
                 "- channel element type and sent value must agree on the movable resource contract\n"
@@ -185,15 +193,14 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         return TYPE_VOID;
     }
 
-    if (type_requires_boundary_borrow_tracking(element_type, ctx)
-        || type_requires_boundary_borrow_tracking(value_type, ctx)) {
-        if (!type_requires_boundary_borrow_tracking(element_type, ctx)
-            || !type_requires_boundary_borrow_tracking(value_type, ctx)
-            || type_is_subject_type(element_type, ctx)
-            || type_is_subject_type(value_type, ctx)
-            || type_is_movable_resource_handle(element_type)
-            || type_is_movable_resource_handle(value_type)) {
-            semantic_error(ctx, expr->data.channel_send.value,
+    if (element_ownership == OWNERSHIP_TYPE_BORROW_TRACKED
+        || value_ownership == OWNERSHIP_TYPE_BORROW_TRACKED) {
+        if (element_ownership != OWNERSHIP_TYPE_BORROW_TRACKED
+            || value_ownership != OWNERSHIP_TYPE_BORROW_TRACKED) {
+            semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+                "semantic:channel:transport_rule_violation",
+                "align-channel-element-type",
+                expr->data.channel_send.value,
                 "Channel send boundary value mismatch: expected '%s', got '%s'.\n"
                 "Reason:\n"
                 "- channel element type and sent value must agree on the same boundary value contract\n"
@@ -234,14 +241,20 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
         || channel_type->kind != TYPE_KIND_CONSTRUCTED
         || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
         || channel_type->data.constructed.arg_count != 1) {
-        semantic_error(ctx, expr->data.channel_recv.channel,
+        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+            "semantic:channel:transport_rule_violation",
+            "align-channel-element-type",
+            expr->data.channel_recv.channel,
             "Channel recv requires Channel<T>, got '%s'",
             channel_type != NULL ? channel_type->name : "<null>");
         return TYPE_UNKNOWN;
     }
 
     if (type_is_anchored_resource_handle(channel_type->data.constructed.args[0])) {
-        semantic_error(ctx, expr->data.channel_recv.channel,
+        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+            "semantic:channel:transport_rule_violation",
+            "keep-handle-local-or-send-inner-value",
+            expr->data.channel_recv.channel,
             "Channels cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet.\n"
             "Reason:\n"
             "- receive would materialize an anchored handle beyond its local ownership/runtime anchor\n"
@@ -253,7 +266,10 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
     }
 
     if (type_is_capability_bearing(channel_type->data.constructed.args[0])) {
-        semantic_error(ctx, expr->data.channel_recv.channel,
+        semantic_error_with_hints(ctx, "PGY_SEM_CHANNEL_TRANSPORT_INVALID",
+            "semantic:channel:transport_rule_violation",
+            "keep-handle-local-or-send-inner-value",
+            expr->data.channel_recv.channel,
             "Channels cannot yield capability-bearing values (SecureSlot/Token) yet.\n"
             "Reason:\n"
             "- receive would materialize capability-bearing state outside the closed authority flow\n"
@@ -266,4 +282,3 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
 
     return channel_type->data.constructed.args[0];
 }
-

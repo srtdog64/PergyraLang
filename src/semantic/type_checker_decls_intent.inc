@@ -706,12 +706,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "Reason:\n"
                     "- the authorized-by clause references a participant alias that is not declared on the intent\n"
                     "- contract source is the authority-bearing zone/step approval requirement summarized below\n"
+                    "%s- approval boundary provenance is:\n"
                     "%s%s"
                     "Fix:\n"
                     "- add 'involves %s: <Subject>' to the intent\n"
                     "- or change 'authorized by' to one of the declared participants",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     alias != NULL ? alias : "<participant>",
+                    contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
                     contract_summary[0] != '\0' ? contract_summary : "",
                     contract_summary[0] != '\0' ? "\n" : "",
                     alias != NULL ? alias : "<participant>");
@@ -726,6 +728,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         "- only subject participants can satisfy zone authority contracts\n"
                         "- participant '%s' is not a subject host\n"
                         "- contract source is the authority-bearing zone/step approval requirement summarized below\n"
+                        "%s- approval boundary provenance is:\n"
                         "%s%s"
                         "Fix:\n"
                         "- authorize a subject participant instead\n"
@@ -733,6 +736,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         alias != NULL ? alias : "<participant>",
                         alias != NULL ? alias : "<participant>",
+                        contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
                         contract_summary[0] != '\0' ? contract_summary : "",
                         contract_summary[0] != '\0' ? "\n" : "",
                         alias != NULL ? alias : "<participant>");
@@ -746,6 +750,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         "- authorized participants must map to a subject slot inside the current zone\n"
                         "- contract source is authority-bearing zone '%s' with authorized participant '%s'\n"
                         "- zone '%s' does not declare a subject slot of type '%s'\n"
+                        "%s- approval boundary provenance is:\n"
                         "%s%s"
                         "Fix:\n"
                         "- authorize a participant whose subject type exists in zone '%s'\n"
@@ -758,6 +763,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         alias != NULL ? alias : "<participant>",
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         participant_type_name,
+                        contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
                         contract_summary[0] != '\0' ? contract_summary : "",
                         contract_summary[0] != '\0' ? "\n" : "",
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
@@ -769,6 +775,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "- contract source is authority-bearing zone '%s' with authorized participant '%s'\n"
                         "- zone '%s' has authority rules, but none match subject type '%s'\n"
+                        "%s- approval boundary provenance is:\n"
                         "%s%s"
                         "Fix:\n"
                         "- authorize a participant whose subject type is listed in zone authority\n"
@@ -781,6 +788,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         alias != NULL ? alias : "<participant>",
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         participant_type_name,
+                        contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
                         contract_summary[0] != '\0' ? contract_summary : "",
                         contract_summary[0] != '\0' ? "\n" : "",
                         participant_type_name,
@@ -822,7 +830,9 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         intent_clause_rejects_control_transfer(node->data.intent_decl.priority_expr, ctx,
             name, "priority");
         if (priority_type != NULL && !type_equals(priority_type, TYPE_INT)) {
-            semantic_error(ctx, node->data.intent_decl.priority_expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                "semantic:intent:priority_non_int", "use-int-priority",
+                node->data.intent_decl.priority_expr,
                 "Intent priority expression must be Int, got '%s'",
                 priority_type->name != NULL ? priority_type->name : "<type>");
         }

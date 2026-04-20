@@ -200,7 +200,9 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             Symbol *sys = scope_lookup(ctx->scope,
                 ws->data.world_roster.roster_type);
             if (sys == NULL || sys->kind != SYMBOL_ROSTER) {
-                semantic_error(ctx, ws,
+                semantic_error_with_hints(ctx, "PGY_SEM_UNKNOWN_TYPE",
+                    "semantic:type:unknown", "declare-or-import-type",
+                    ws,
                     "Roster type '%s' not found for slot '%s'.\n"
                     "Reason:\n"
                     "- world roster slot '%s' must reference a visible roster declaration\n"
@@ -751,7 +753,9 @@ type_check_domain_slots(ASTNode **slots,
             }
             if (slot_decl == NULL || slot_decl->type != AST_CLASS_DECL
                 || slot_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
-                semantic_error(ctx, slot,
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:domain:vessel_required", "declare-vessel-type",
+                    slot,
                     "%s vessel slot '%s' requires a vessel type",
                     kind_name,
                     slot->data.domain_slot.slot_name);

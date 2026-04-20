@@ -90,7 +90,9 @@ type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx,
 {
     if ((!requires_capacity && call->data.call.arg_count != 0)
         || (requires_capacity && call->data.call.arg_count != 1)) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
+            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+            call,
             requires_capacity
                 ? "AllocatorPool requires exactly 1 capacity argument"
                 : "Allocator constructor takes no arguments");
@@ -100,7 +102,9 @@ type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx,
     if (requires_capacity) {
         Type *cap_type = type_check_expression(call->data.call.arguments[0], ctx);
         if (!type_equals(cap_type, TYPE_INT) && !type_equals(cap_type, TYPE_LONG)) {
-            semantic_error(ctx, call->data.call.arguments[0],
+            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                "semantic:builtin:capacity_non_integer", "use-int-or-long-capacity",
+                call->data.call.arguments[0],
                 "AllocatorPool capacity must be Int or Long, got '%s'",
                 cap_type->name);
             return TYPE_UNKNOWN;
@@ -251,7 +255,9 @@ type_check_projection_call(ASTNode *call,
 
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
         || target_arg->data.identifier.name == NULL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
+            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+            call,
             "%s requires the first argument to be a %s type name",
             builtin_name, expected_label);
         return TYPE_UNKNOWN;
@@ -259,7 +265,9 @@ type_check_projection_call(ASTNode *call,
 
     if (source_arg == NULL || source_arg->type != AST_IDENTIFIER
         || source_arg->data.identifier.name == NULL) {
-        semantic_error(ctx, call,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
+            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+            call,
             "%s currently requires a named subject binding as the source",
             builtin_name);
         return TYPE_UNKNOWN;
@@ -270,7 +278,9 @@ type_check_projection_call(ASTNode *call,
     if (target_decl == NULL
         || !target_decl->data.class_decl.is_struct
         || target_decl->data.class_decl.nominal_kind != expected_kind) {
-        semantic_error(ctx, target_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_BUILTIN_ARGS_INVALID",
+            "semantic:builtin:signature_mismatch", "match-builtin-signature",
+            target_arg,
             "%s target '%s' must be a %s declaration",
             builtin_name,
             target_arg->data.identifier.name,
@@ -280,7 +290,9 @@ type_check_projection_call(ASTNode *call,
 
     target_sym = scope_lookup(ctx->scope, target_arg->data.identifier.name);
     if (target_sym == NULL || target_sym->type == NULL) {
-        semantic_error(ctx, target_arg,
+        semantic_error_with_hints(ctx, "PGY_SEM_UNKNOWN_TYPE",
+            "semantic:type:unknown", "declare-or-import-type",
+            target_arg,
             "Unknown %s type '%s'",
             expected_label,
             target_arg->data.identifier.name);

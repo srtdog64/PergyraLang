@@ -311,7 +311,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.func_decl.return_type != NULL)
         return_type = resolve_type_node(node->data.func_decl.return_type, ctx);
     if (type_is_anchored_resource_handle(return_type)) {
-        semantic_error(ctx, node->data.func_decl.return_type,
+        semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
+            "semantic:anchored_handle:return_boundary",
+            "return-inner-value-or-keep-local",
+            node->data.func_decl.return_type,
             "Anchored resource handle return types (Slot/SecureSlot/DeviceSlot) are not supported yet.\n"
             "Reason:\n"
             "- function return boundary would let an anchored handle escape its local ownership/runtime anchor\n"
@@ -321,7 +324,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             "- or keep the anchored handle local and return a boundary-safe projection/result");
     }
     if (type_is_class_object_type(return_type, ctx)) {
-        semantic_error(ctx, node->data.func_decl.return_type,
+        semantic_error_with_hints(ctx, "PGY_SEM_ANCHORED_HANDLE_COPY",
+            "semantic:anchored_handle:return_boundary",
+            "return-projection-or-keep-local",
+            node->data.func_decl.return_type,
             "Returning subjects by value is not supported yet.\n"
             "Reason:\n"
             "- return type '%s' is a subject, and subject values are zone/world anchored handles\n"
@@ -373,7 +379,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (param->mode != PARAM_MODE_DEFAULT
             && !type_is_anchored_resource_handle(param_types[i])) {
             if (!type_is_general_boundary_type(param_types[i], ctx)) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:param_mode:closed_subset",
+                    "use-supported-param-type",
+                    node,
                     "'%s' parameter mode is currently a closed subset: only ref/own subject values, ref/own movable resources, "
                     "ref/own boundary values, ref/own Slot<subject-host>, and own SecureSlot<subject-host> are supported at function boundaries.\n"
                     "Reason:\n"
@@ -394,7 +403,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (type_is_anchored_resource_handle(param_types[i])) {
             bool allowed_subject_slot = type_is_subject_host_slot_handle(param_types[i], ctx);
             if (!allowed_subject_slot) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:param_mode:anchored_handle_closed",
+                    "keep-handle-local-or-project",
+                    node,
                     "Anchored handle parameters are currently closed to ref/own Slot<subject-host> / "
                     "own SecureSlot<subject-host>; other anchored handles remain local-only.\n"
                     "Reason:\n"
@@ -404,7 +416,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     "- keep this anchored handle local to the current scope\n"
                     "- or convert it to a projection/value/boundary-safe result before the call");
             } else if (param->mode == PARAM_MODE_DEFAULT) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:slot_param:qualifier_missing",
+                    "annotate-slot-param-qualifier",
+                    node,
                     "Slot<subject-host>/SecureSlot<subject-host> parameters are part of the anchored "
                     "subject-slot boundary and require explicit 'own' or 'ref'.\n"
                     "Reason:\n"
@@ -415,7 +430,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     "- or mark it as 'own' for transfer");
             } else if (param_types[i]->data.slot.is_secure
                        && param->mode != PARAM_MODE_OWN) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:slot_param:secure_own_required",
+                    "use-own-secure-slot",
+                    node,
                     "SecureSlot<subject-host> parameters currently support only 'own' at function boundaries.\n"
                     "Reason:\n"
                     "- secure anchored handles carry capability-bearing ownership across the boundary\n"
@@ -543,250 +561,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.func_decl.body != NULL)
         type_check_block(node->data.func_decl.body, ctx);
 
-    if (node->data.func_decl.body != NULL) {
-        for (size_t i = 0; i < param_count; i++) {
-            FuncParam *param = node->data.func_decl.params[i];
-            unsigned summary_mask;
-
-            if (param == NULL || param->name == NULL || param->type == NULL)
-                continue;
-            if (param->mode != PARAM_MODE_REF)
-                continue;
-            if (!type_is_anchored_resource_handle(param_types[i])
-                && !type_is_movable_resource_handle(param_types[i])
-                && !type_is_subject_type(param_types[i], ctx)
-                && !type_requires_boundary_borrow_tracking(param_types[i], ctx))
-                continue;
-
-            summary_mask = slot_analyze_param_summary_in_program(
-                node->data.func_decl.body, param->name, ctx->program_root);
-            if ((summary_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
-                if (type_is_movable_resource_handle(param_types[i])) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref movable resource '%s' cannot escape via return from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' movable resource\n"
-                        "- summary provenance root is '%s'\n"
-                        "- slot/resource summary found a return-escape path for that borrowed symbol\n"
-                        "- returning it would let the borrow outlive the current call boundary\n"
-                        "Fix:\n"
-                        "- return a copied/projection/value result instead\n"
-                        "- or change the parameter to 'own' if transfer is intended",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                } else if (type_is_subject_type(param_types[i], ctx)) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref subject '%s' cannot escape via return from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' subject\n"
-                        "- summary provenance root is '%s'\n"
-                        "- slot/resource summary found a return-escape path for that borrowed symbol\n"
-                        "- returning it would let the borrow outlive the current call boundary\n"
-                        "Fix:\n"
-                        "- return a projection/object/tobject/value result instead\n"
-                        "- or change the parameter to 'own' if transfer is intended",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                } else if (type_requires_boundary_borrow_tracking(param_types[i], ctx)) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref boundary value '%s' cannot escape via return from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' boundary value\n"
-                        "- summary provenance root is '%s'\n"
-                        "- slot/resource summary found a return-escape path for that borrowed symbol\n"
-                        "- returning it would let the borrow outlive the current call boundary\n"
-                        "Fix:\n"
-                        "- return a copied/value/projection result instead\n"
-                        "- or change the parameter to 'own' if transfer is intended",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                } else {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref slot '%s' cannot escape via return from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' handle\n"
-                        "- summary provenance root is '%s'\n"
-                        "- 'ref' is a non-owning borrow tied to the caller scope\n"
-                        "- returning it would let the borrow outlive the call boundary\n"
-                        "Fix:\n"
-                        "- return a projection/object/tobject/value instead\n"
-                        "- or change the parameter to 'own' if transfer is intended",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                }
-            }
-            if ((summary_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
-                if (type_is_movable_resource_handle(param_types[i])) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref movable resource '%s' cannot escape through channel send from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' movable resource\n"
-                        "- summary provenance root is '%s'\n"
-                        "- slot/resource summary found a channel-escape path for that borrowed symbol\n"
-                        "- channel send would transfer the borrow beyond the current call boundary\n"
-                        "Fix:\n"
-                        "- send a copied/projection/value snapshot instead\n"
-                        "- or take ownership with 'own' before transfer",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                } else if (type_is_subject_type(param_types[i], ctx)) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref subject '%s' cannot escape through channel send from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' subject\n"
-                        "- summary provenance root is '%s'\n"
-                        "- slot/resource summary found a channel-escape path for that borrowed symbol\n"
-                        "- channel send would transfer the borrow beyond the current call boundary\n"
-                        "Fix:\n"
-                        "- send a projection/object/tobject/value snapshot instead\n"
-                        "- or take ownership with 'own' before transfer",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                } else if (type_requires_boundary_borrow_tracking(param_types[i], ctx)) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref boundary value '%s' cannot escape through channel send from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' boundary value\n"
-                        "- summary provenance root is '%s'\n"
-                        "- slot/resource summary found a channel-escape path for that borrowed symbol\n"
-                        "- channel send would transfer the borrow beyond the current call boundary\n"
-                        "Fix:\n"
-                        "- send a copied/value/projection snapshot instead\n"
-                        "- or take ownership with 'own' before transfer",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                } else {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref slot '%s' cannot escape through channel send from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' handle\n"
-                        "- summary provenance root is '%s'\n"
-                        "- 'ref' is a non-owning borrow tied to the current call\n"
-                        "- channel send would transfer the borrow beyond that boundary\n"
-                        "Fix:\n"
-                        "- send a projection/object/tobject/value snapshot instead\n"
-                        "- or take ownership with 'own' before transfer",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                }
-            }
-            if ((summary_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
-                if (type_is_movable_resource_handle(param_types[i])) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref movable resource '%s' cannot escape through helper/function call from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' movable resource\n"
-                        "- summary provenance root is '%s'\n"
-                        "- slot/resource summary found a transitive call-escape path for that borrowed symbol\n"
-                        "- forwarding it to another call would create a transitive borrow the compiler cannot keep boundary-safe\n"
-                        "Fix:\n"
-                        "- perform the movable-resource operation locally in this function\n"
-                        "- or change the parameter to 'own' if transfer/forwarding is intended",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                } else if (type_is_subject_type(param_types[i], ctx)) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref subject '%s' cannot escape through helper/function call from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' subject\n"
-                        "- summary provenance root is '%s'\n"
-                        "- slot/resource summary found a transitive call-escape path for that borrowed symbol\n"
-                        "- forwarding it to another call would create a transitive borrow the compiler cannot keep boundary-safe\n"
-                        "Fix:\n"
-                        "- perform the subject operation locally in this function\n"
-                        "- or change the parameter to 'own' if transfer/forwarding is intended",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                } else if (type_requires_boundary_borrow_tracking(param_types[i], ctx)) {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref boundary value '%s' cannot escape through helper/function call from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' boundary value\n"
-                        "- summary provenance root is '%s'\n"
-                        "- slot/resource summary found a transitive call-escape path for that borrowed symbol\n"
-                        "- forwarding it to another call would create a transitive borrow the compiler cannot keep boundary-safe\n"
-                        "Fix:\n"
-                        "- perform the value operation locally in this function\n"
-                        "- or change the parameter to 'own' if transfer/forwarding is intended",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                } else {
-                    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE", "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", node,
-                        "Borrowed ref slot '%s' cannot escape through helper/function call from '%s'.\n"
-                        "Reason:\n"
-                        "- consumer path is function '%s'\n"
-                        "- '%s' entered this function as a borrowed 'ref' handle\n"
-                        "- summary provenance root is '%s'\n"
-                        "- 'ref' is a non-owning borrow tied to the current call boundary\n"
-                        "- forwarding it to another call would create a transitive borrow the compiler does not yet track precisely\n"
-                        "Fix:\n"
-                        "- perform the slot operation locally in this function\n"
-                        "- or change the parameter to 'own' if transfer/forwarding is intended",
-                        param->name,
-                        param->name,
-                        node->data.func_decl.name != NULL
-                            ? node->data.func_decl.name : "<anonymous>",
-                        param->name,
-                        param->name);
-                }
-            }
-        }
-    }
+    #include "type_checker_ownership_param_summary.inc"
 
     {
         uint32_t derived_effects = type_effect_mask_closure(ctx->current_function_effects);
@@ -1012,7 +787,10 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             }
             if (field_decl == NULL
                 || field_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
-                semantic_error(ctx, field->type,
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:domain:vessel_required",
+                    "declare-vessel-type",
+                    field->type,
                     "subject vessel field '%s' must reference a vessel type",
                     field->name != NULL ? field->name : "<field>");
             }

@@ -334,7 +334,10 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
 
         param_index = ability_decl_generic_param_index(decl_params, tc->type_param);
         if (param_index < 0 || (size_t)param_index >= effective_count) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:bound_validation_failed",
+                "align-generic-bound-or-annotate",
+                site,
                 "%s '%s' could not validate generic bound '%s' on ability '%s'.\n"
                 "Reason:\n"
                 "- consumer path is %s '%s'\n"
@@ -360,7 +363,9 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
 
         concrete_type = resolve_type_node(effective_args[param_index], ctx);
         if (concrete_type == NULL) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                site,
                 "%s '%s' could not resolve generic argument for bound '%s' on ability '%s'.\n"
                 "Reason:\n"
                 "- consumer path is %s '%s'\n"
@@ -393,7 +398,10 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     : "<constraint>";
 
             if (!ability_generic_arg_satisfies_bound(concrete_type, bound_node, ctx)) {
-                semantic_error(ctx, site,
+                semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                    "semantic:generic:bound_validation_failed",
+                    "align-generic-bound-or-annotate",
+                    site,
                     "%s '%s' uses ability '%s' with generic argument '%s' that does not satisfy bound '%s'.\n"
                     "Reason:\n"
                     "- consumer path is %s '%s'\n"
@@ -615,7 +623,9 @@ resolve_required_ability_decl(ASTNode *ability_ref,
                 || !same_module_origin(site_module, ability_decl->origin_path))
                 && ability_decl->data.ability_decl.has_explicit_access
                 && ability_decl->data.ability_decl.access != ACCESS_PUBLIC))) {
-        semantic_error(ctx, site,
+        semantic_error_with_hints(ctx, "PGY_SEM_VISIBILITY_BOUNDARY",
+            "semantic:visibility:boundary_cross", "widen-visibility-or-move-caller",
+            site,
             "%s '%s' cannot require non-exported ability '%s' from another module.\n"
             "Reason:\n"
             "- consumer path is %s '%s'\n"
@@ -873,7 +883,9 @@ validate_stdlib_use_decl(ASTNode *stmt, SemanticContext *ctx)
     }
 
     if (!semantic_is_known_stdlib_use_module(stmt->data.use_decl.module_name)) {
-        semantic_error(ctx, stmt,
+        semantic_error_with_hints(ctx, "PGY_SEM_UNDEFINED_SYMBOL",
+            "semantic:symbol:undefined", "import-or-declare-symbol",
+            stmt,
             "Unknown stdlib use '%s'; expected one of datetime, device_adapter, http, ledger, money, obligation, page, spray, storage, timer, versioning",
             stmt->data.use_decl.module_name);
         return;

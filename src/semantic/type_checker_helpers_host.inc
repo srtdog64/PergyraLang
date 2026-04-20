@@ -288,7 +288,9 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
         Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
         if (param_type != NULL && arg_type != NULL
             && !type_is_assignable(arg_type, param_type)) {
-            semantic_error(ctx, expr->data.call.arguments[i],
+            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                "semantic:call:arg_type_mismatch", "align-arg-type",
+                expr->data.call.arguments[i],
                 "Argument %zu for '%s' expects '%s', got '%s'",
                 i + 1,
                 method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>",

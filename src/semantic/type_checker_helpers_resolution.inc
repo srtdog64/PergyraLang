@@ -152,7 +152,9 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
         "type-alias target lookup");
 
     if (!semantic_ctx_alias_resolution_push(ctx, alias_name)) {
-        semantic_error(ctx, alias_decl,
+        semantic_error_with_hints(ctx, "PGY_SEM_UNKNOWN_TYPE",
+            "semantic:resolution:oom", "reduce-scope-or-retry",
+            alias_decl,
             "Out of memory while tracking type alias resolution for '%s'.",
             alias_name);
         return TYPE_UNKNOWN;

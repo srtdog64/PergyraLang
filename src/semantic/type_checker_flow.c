@@ -127,14 +127,18 @@ declare_match_binding(SemanticContext *ctx, ASTNode *binding_node, Type *binding
         return false;
     if (binding_node->type != AST_IDENTIFIER
         || binding_node->data.identifier.name == NULL) {
-        semantic_error(ctx, binding_node,
+        semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID",
+            "semantic:match:pattern_shape", "align-pattern-arity-or-kind",
+            binding_node,
             "Destructuring pattern currently requires identifier bindings");
         return false;
     }
 
     name = binding_node->data.identifier.name;
     if (scope_lookup_current(ctx->scope, name) != NULL) {
-        semantic_error(ctx, binding_node,
+        semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID",
+            "semantic:match:pattern_shape", "align-pattern-arity-or-kind",
+            binding_node,
             "Duplicate match binding '%s' in the same case scope", name);
         return false;
     }
@@ -142,7 +146,9 @@ declare_match_binding(SemanticContext *ctx, ASTNode *binding_node, Type *binding
     binding = symbol_create_variable(name, binding_type,
         binding_node->line, binding_node->column);
     if (binding == NULL || !scope_declare(ctx->scope, binding)) {
-        semantic_error(ctx, binding_node,
+        semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID",
+            "semantic:match:pattern_shape", "align-pattern-arity-or-kind",
+            binding_node,
             "Failed to declare match binding '%s'", name);
         return false;
     }
@@ -196,7 +202,9 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
 
         if (strcmp(variant, "Ok") == 0) {
             if (arg_count != 1) {
-                semantic_error(ctx, pat,
+                semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID",
+                    "semantic:match:pattern_shape", "align-pattern-arity-or-kind",
+                    pat,
                     "Ok pattern requires exactly one binding");
                 return false;
             }
@@ -205,14 +213,18 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
         }
         if (strcmp(variant, "Err") == 0) {
             if (arg_count != 1) {
-                semantic_error(ctx, pat,
+                semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID",
+                    "semantic:match:pattern_shape", "align-pattern-arity-or-kind",
+                    pat,
                     "Err pattern requires exactly one binding");
                 return false;
             }
             return declare_match_binding(ctx, args[0], TYPE_STRING);
         }
 
-        semantic_error(ctx, pat,
+        semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID",
+            "semantic:match:pattern_shape", "align-pattern-arity-or-kind",
+            pat,
             "Result<T> match only supports Ok(...) and Err(...) patterns");
         return false;
     }
@@ -263,7 +275,9 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
             return true;
         }
 
-        semantic_error(ctx, pat,
+        semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID",
+            "semantic:match:pattern_shape", "align-pattern-arity-or-kind",
+            pat,
             "Unknown enum variant '%s' for match subject '%s'",
             variant, subj_type->name != NULL ? subj_type->name : "<enum>");
         return false;
@@ -327,7 +341,9 @@ type_check_match_case_patterns(ASTNode *mc, Type *subj_type,
             if (match_pattern_is_named_variant(patterns[i], &name, &args, &arg_count)) {
                 /* Allow simple variant names without payload bindings */
                 if (arg_count > 0) {
-                    semantic_error(ctx, patterns[i],
+                    semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID",
+                        "semantic:match:pattern_shape", "align-pattern-arity-or-kind",
+                        patterns[i],
                         "OR patterns with variant destructuring (e.g. case .Some(x) | .None) "
                         "are not yet supported; split into separate cases");
                     return false;
@@ -348,7 +364,9 @@ type_check_match_case_patterns(ASTNode *mc, Type *subj_type,
             Type *pat_type = type_check_expression(pat, ctx);
             if (!type_is_assignable(pat_type, subj_type) &&
                 !type_is_assignable(subj_type, pat_type)) {
-                semantic_error(ctx, pat,
+                semantic_error_with_hints(ctx, "PGY_SEM_MATCH_PATTERN_INVALID",
+                    "semantic:match:pattern_shape", "align-pattern-arity-or-kind",
+                    pat,
                     "Case pattern type '%s' incompatible with match subject '%s'",
                     pat_type->name, subj_type->name);
             }
@@ -592,7 +610,9 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     uint32_t else_effect_delta = EFFECT_NONE;
 
     if (!type_equals(cond, TYPE_BOOL)) {
-        semantic_error(ctx, node,
+        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+            "semantic:condition:non_bool", "convert-condition-to-bool",
+            node,
             "If condition must be Bool, got '%s'", cond->name);
     }
 
@@ -680,7 +700,9 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
         if (mc->data.match_case.guard != NULL) {
             Type *guard_type = type_check_expression(mc->data.match_case.guard, ctx);
             if (!type_equals(guard_type, TYPE_BOOL)) {
-                semantic_error(ctx, mc->data.match_case.guard,
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:condition:non_bool", "convert-condition-to-bool",
+                    mc->data.match_case.guard,
                     "Case guard must be Bool, got '%s'", guard_type->name);
             }
         }

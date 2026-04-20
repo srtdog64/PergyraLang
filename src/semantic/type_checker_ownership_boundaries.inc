@@ -11,6 +11,200 @@ semantic_current_consumer_name(SemanticContext *ctx)
     return "<anonymous>";
 }
 
+static OwnershipTypeClass
+semantic_classify_ownership_type(const Type *type, SemanticContext *ctx)
+{
+    if (type == NULL || ctx == NULL)
+        return OWNERSHIP_TYPE_COPY_ONLY;
+    if (type_is_anchored_resource_handle(type))
+        return OWNERSHIP_TYPE_ANCHORED_HANDLE;
+    if (type_is_movable_resource_handle(type))
+        return OWNERSHIP_TYPE_MOVE_ONLY;
+    if (type_is_subject_type(type, ctx))
+        return OWNERSHIP_TYPE_SUBJECT_IDENTITY;
+    if (type_requires_boundary_borrow_tracking(type, ctx))
+        return OWNERSHIP_TYPE_BORROW_TRACKED;
+    return OWNERSHIP_TYPE_COPY_ONLY;
+}
+
+static const char *
+semantic_ownership_value_label(OwnershipTypeClass klass)
+{
+    switch (klass) {
+    case OWNERSHIP_TYPE_MOVE_ONLY:
+        return "movable resource";
+    case OWNERSHIP_TYPE_SUBJECT_IDENTITY:
+        return "subject";
+    case OWNERSHIP_TYPE_BORROW_TRACKED:
+        return "boundary value";
+    case OWNERSHIP_TYPE_ANCHORED_HANDLE:
+        return "slot";
+    case OWNERSHIP_TYPE_COPY_ONLY:
+    default:
+        return "value";
+    }
+}
+
+static const char *
+semantic_ownership_provenance_label(OwnershipTypeClass klass)
+{
+    switch (klass) {
+    case OWNERSHIP_TYPE_MOVE_ONLY:
+        return "movable-resource provenance";
+    case OWNERSHIP_TYPE_SUBJECT_IDENTITY:
+        return "subject provenance";
+    case OWNERSHIP_TYPE_BORROW_TRACKED:
+        return "boundary provenance";
+    case OWNERSHIP_TYPE_ANCHORED_HANDLE:
+        return "slot provenance";
+    case OWNERSHIP_TYPE_COPY_ONLY:
+    default:
+        return "value provenance";
+    }
+}
+
+static const char *
+semantic_ownership_replacement_label(OwnershipTypeClass klass)
+{
+    switch (klass) {
+    case OWNERSHIP_TYPE_MOVE_ONLY:
+        return "a copied/projection/value result";
+    case OWNERSHIP_TYPE_SUBJECT_IDENTITY:
+        return "a projection/object/tobject/value result";
+    case OWNERSHIP_TYPE_BORROW_TRACKED:
+        return "a copied/value/projection result";
+    case OWNERSHIP_TYPE_ANCHORED_HANDLE:
+        return "a projection/object/tobject/value instead";
+    case OWNERSHIP_TYPE_COPY_ONLY:
+    default:
+        return "a value result";
+    }
+}
+
+static bool
+semantic_validate_borrowed_escape(ASTNode *site,
+                                  ASTNode *source_expr,
+                                  SemanticContext *ctx,
+                                  const Type *value_type,
+                                  const char *borrowed_name_override,
+                                  OwnershipConsumerKind consumer_kind,
+                                  ASTNode *target_expr,
+                                  const char *dest_name,
+                                  const char *secondary_name,
+                                  bool transitive_call,
+                                  const char *mode_label,
+                                  const char *local_fix_label)
+{
+    OwnershipTypeClass klass;
+    const char *borrowed_name;
+    const char *value_label;
+    const char *provenance_label;
+
+    if (ctx == NULL || value_type == NULL)
+        return false;
+
+    borrowed_name = borrowed_name_override != NULL
+        ? borrowed_name_override
+        : semantic_borrowed_boundary_root_name(source_expr, ctx);
+    if (borrowed_name == NULL)
+        return false;
+
+    klass = semantic_classify_ownership_type(value_type, ctx);
+    if (klass == OWNERSHIP_TYPE_COPY_ONLY)
+        return false;
+
+    value_label = semantic_ownership_value_label(klass);
+    provenance_label = semantic_ownership_provenance_label(klass);
+
+    switch (consumer_kind) {
+    case OWNERSHIP_CONSUMER_NEW_BINDING:
+        semantic_report_borrowed_new_binding_escape(
+            site, source_expr, ctx, borrowed_name, dest_name,
+            value_label, provenance_label);
+        return true;
+    case OWNERSHIP_CONSUMER_ASSIGNMENT_REBIND:
+        semantic_report_borrowed_assignment_rebind_escape(
+            site, target_expr, source_expr, ctx, borrowed_name,
+            value_label, provenance_label,
+            klass == OWNERSHIP_TYPE_SUBJECT_IDENTITY
+                ? "a second boundary-visible binding for the same borrowed identity"
+                : "a second boundary-visible binding for the same borrowed provenance");
+        return true;
+    case OWNERSHIP_CONSUMER_CONTAINER_STORE:
+        if (klass == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
+            semantic_report_borrowed_slot_handle_escape(
+                site, source_expr, ctx, borrowed_name,
+                "through container store",
+                "- storing it would let the borrowed slot handle outlive the current call boundary\n",
+                "keep the slot operation local to this function",
+                "or change the parameter to 'own' if transfer is intended");
+            return true;
+        }
+        semantic_report_borrowed_container_store_escape(
+            site, source_expr, ctx, borrowed_name, value_label,
+            provenance_label,
+            dest_name != NULL ? dest_name : "container",
+            secondary_name != NULL ? secondary_name : "<container store>",
+            semantic_ownership_replacement_label(klass),
+            "transfer");
+        return true;
+    case OWNERSHIP_CONSUMER_RETURN:
+        if (klass == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
+            semantic_report_borrowed_slot_handle_escape(
+                site, source_expr, ctx, borrowed_name,
+                "via return",
+                "- returning it would let the borrow outlive the call boundary\n",
+                "return a projection/object/tobject/value instead",
+                "or change the parameter to 'own' if transfer is intended");
+            return true;
+        }
+        semantic_report_borrowed_return_escape(
+            site, source_expr, ctx, borrowed_name, value_label,
+            provenance_label, semantic_ownership_replacement_label(klass));
+        return true;
+    case OWNERSHIP_CONSUMER_CHANNEL_SEND:
+        if (klass == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
+            semantic_report_borrowed_slot_handle_escape(
+                site, source_expr, ctx, borrowed_name,
+                "through channel send",
+                "- channel send would transfer the borrow beyond that boundary\n",
+                "send a projection/object/tobject/value result instead",
+                "or take ownership with 'own' before transfer");
+            return true;
+        }
+        semantic_report_borrowed_channel_send_escape(
+            site, source_expr, ctx, borrowed_name, value_label,
+            provenance_label, semantic_ownership_replacement_label(klass));
+        return true;
+    case OWNERSHIP_CONSUMER_HELPER_CALL:
+        if (klass == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
+            semantic_report_borrowed_slot_handle_escape(
+                site, source_expr, ctx, borrowed_name,
+                "through helper/function call",
+                "- forwarding it to another call would create a transitive borrow the compiler does not yet track precisely\n",
+                "perform the slot operation locally in this function",
+                "or change the parameter to 'own' if transfer/forwarding is intended");
+            return true;
+        }
+        semantic_report_borrowed_helper_call_escape(
+            site, source_expr, ctx, borrowed_name, value_label,
+            provenance_label, dest_name, transitive_call, mode_label,
+            local_fix_label);
+        return true;
+    case OWNERSHIP_CONSUMER_CONSTRUCTOR_FIELD_STORE:
+        semantic_report_borrowed_constructor_field_escape(
+            site, source_expr, ctx, borrowed_name, value_label,
+            provenance_label,
+            dest_name != NULL ? dest_name : "<constructor>",
+            secondary_name != NULL ? secondary_name : "<field>",
+            semantic_ownership_replacement_label(klass),
+            klass == OWNERSHIP_TYPE_SUBJECT_IDENTITY);
+        return true;
+    default:
+        return false;
+    }
+}
+
 static void
 semantic_report_borrowed_new_binding_escape(ASTNode *site,
                                             ASTNode *source_expr,
@@ -117,6 +311,126 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
 }
 
 static void
+semantic_report_borrowed_container_store_escape(ASTNode *site,
+                                                ASTNode *source_expr,
+                                                SemanticContext *ctx,
+                                                const char *borrowed_name,
+                                                const char *value_label,
+                                                const char *provenance_label,
+                                                const char *container_kind,
+                                                const char *container_name,
+                                                const char *replacement_label,
+                                                const char *transfer_label)
+{
+    char *source_path = semantic_assignment_target_path(source_expr);
+    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+        "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        "Borrowed ref %s '%s' cannot escape through %s store%s%s%s.\n"
+        "Reason:\n"
+        "- consumer path is function '%s'\n"
+        "- '%s' entered this function as a borrowed 'ref' %s\n"
+        "- '%s' is derived from that borrowed %s\n"
+        "- %s inserts values into %s state that may outlive the current call boundary\n"
+        "- storing the borrow would create a longer-lived ownership alias the compiler cannot keep boundary-safe\n"
+        "Fix:\n"
+        "- store a %s instead\n"
+        "- or change the current parameter to 'own' if %s into %s is intended",
+        value_label != NULL ? value_label : "boundary value",
+        borrowed_name != NULL ? borrowed_name : "<value>",
+        container_kind != NULL ? container_kind : "container",
+        source_path != NULL ? " from '" : "",
+        source_path != NULL ? source_path : "",
+        source_path != NULL ? "'" : "",
+        semantic_current_consumer_name(ctx),
+        borrowed_name != NULL ? borrowed_name : "<value>",
+        value_label != NULL ? value_label : "boundary value",
+        source_path != NULL ? source_path
+                            : (borrowed_name != NULL ? borrowed_name : "<value>"),
+        provenance_label != NULL ? provenance_label : "boundary provenance",
+        container_kind != NULL ? container_kind : "container",
+        container_name != NULL ? container_name : "<container store>",
+        replacement_label != NULL ? replacement_label : "a value result",
+        transfer_label != NULL ? transfer_label : "transfer",
+        container_kind != NULL ? container_kind : "container");
+    free(source_path);
+}
+
+static void
+semantic_report_borrowed_channel_send_escape(ASTNode *site,
+                                             ASTNode *source_expr,
+                                             SemanticContext *ctx,
+                                             const char *borrowed_name,
+                                             const char *value_label,
+                                             const char *provenance_label,
+                                             const char *replacement_label)
+{
+    char *source_path = semantic_assignment_target_path(source_expr);
+    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+        "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        "Borrowed ref %s '%s' cannot escape through channel send from '%s'.\n"
+        "Reason:\n"
+        "- consumer path is function '%s'\n"
+        "- '%s' entered this function as a borrowed 'ref' %s\n"
+        "- '%s' is derived from that borrowed %s\n"
+        "- channel send would transfer that borrow beyond the current call boundary\n"
+        "Fix:\n"
+        "- send a %s instead\n"
+        "- or change the current parameter to 'own' if transfer is intended",
+        value_label != NULL ? value_label : "boundary value",
+        borrowed_name != NULL ? borrowed_name : "<value>",
+        source_path != NULL ? source_path
+                            : (borrowed_name != NULL ? borrowed_name : "<value>"),
+        semantic_current_consumer_name(ctx),
+        borrowed_name != NULL ? borrowed_name : "<value>",
+        value_label != NULL ? value_label : "boundary value",
+        source_path != NULL ? source_path
+                            : (borrowed_name != NULL ? borrowed_name : "<value>"),
+        provenance_label != NULL ? provenance_label : "boundary provenance",
+        replacement_label != NULL ? replacement_label
+                                  : "copied/value/projection result");
+    free(source_path);
+}
+
+static void
+semantic_report_borrowed_slot_handle_escape(ASTNode *site,
+                                            ASTNode *source_expr,
+                                            SemanticContext *ctx,
+                                            const char *borrowed_name,
+                                            const char *escape_kind,
+                                            const char *detail_line,
+                                            const char *replacement_label,
+                                            const char *secondary_fix)
+{
+    char *source_path = semantic_assignment_target_path(source_expr);
+    semantic_error_with_hints(ctx, "PGY_SEM_BORROW_ESCAPE",
+        "semantic:borrow_escape", "change-ref-to-own-or-stop-escape", site,
+        "Borrowed ref slot '%s' cannot escape %s from '%s'.\n"
+        "Reason:\n"
+        "- consumer path is function '%s'\n"
+        "- '%s' entered this function as a borrowed 'ref' handle\n"
+        "- summary provenance root is '%s'\n"
+        "- 'ref' is a non-owning borrow tied to the current call boundary\n"
+        "%s"
+        "Fix:\n"
+        "- %s\n"
+        "- %s",
+        borrowed_name != NULL ? borrowed_name : "<slot>",
+        escape_kind != NULL ? escape_kind : "through an ownership boundary",
+        source_path != NULL ? source_path
+                            : (borrowed_name != NULL ? borrowed_name : "<slot>"),
+        semantic_current_consumer_name(ctx),
+        borrowed_name != NULL ? borrowed_name : "<slot>",
+        borrowed_name != NULL ? borrowed_name : "<slot>",
+        detail_line != NULL ? detail_line
+                            : "- this borrow cannot outlive the current call boundary\n",
+        replacement_label != NULL ? replacement_label
+                                  : "keep the slot operation local to this function",
+        secondary_fix != NULL ? secondary_fix
+                              : "or change the parameter to 'own' if transfer is intended");
+    free(source_path);
+}
+
+static void
 semantic_report_named_boundary_argument_required(ASTNode *site,
                                                  ASTNode *source_expr,
                                                  SemanticContext *ctx,
@@ -125,7 +439,10 @@ semantic_report_named_boundary_argument_required(ASTNode *site,
                                                  const char *bind_fix)
 {
     char *source_path = semantic_assignment_target_path(source_expr);
-    semantic_error(ctx, site,
+    semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+        "semantic:move:source_not_named",
+        "bind-to-named-variable-before-move",
+        site,
         "%s boundary arguments must use a named variable%s%s%s.\n"
         "Reason:\n"
         "- own/ref %s boundaries need one stable source binding for moved-here / borrowed-here provenance\n"

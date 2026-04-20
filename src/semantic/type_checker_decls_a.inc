@@ -609,7 +609,9 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         if (param == NULL || param->name == NULL)
             continue;
         if (effective_args[i] == NULL) {
-            semantic_error(ctx, site != NULL ? site : type_node,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                site != NULL ? site : type_node,
                 "Ability field contract '%s' could not materialize generic argument for '%s'.\n"
                 "Reason:\n"
                 "- generic subject is ability '%s'\n"
@@ -645,7 +647,9 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
 
         arg_type = resolve_type_node(effective_args[i], ctx);
         if (arg_type == NULL) {
-            semantic_error(ctx, site != NULL ? site : type_node,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                site != NULL ? site : type_node,
                 "Ability field contract '%s' could not resolve generic argument for '%s'.\n"
                 "Reason:\n"
                 "- generic subject is ability '%s'\n"
@@ -1402,7 +1406,9 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
             Symbol *party = scope_lookup(ctx->scope,
                 ps->data.roster_slot.party_type);
             if (party == NULL || party->kind != SYMBOL_PARTY) {
-                semantic_error(ctx, ps,
+                semantic_error_with_hints(ctx, "PGY_SEM_UNKNOWN_TYPE",
+                    "semantic:type:unknown", "declare-or-import-type",
+                    ps,
                     "Party type '%s' not found for roster slot '%s'.\n"
                     "Reason:\n"
                     "- roster slot '%s' must reference a visible party declaration\n"
@@ -1533,7 +1539,9 @@ intent_condition_is_bool(ASTNode *expr, SemanticContext *ctx, const char *label)
         return true;
     ty = type_check_expression(expr, ctx);
     if (ty != NULL && !type_equals(ty, TYPE_BOOL)) {
-        semantic_error(ctx, expr,
+        semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+            "semantic:intent:non_bool_clause", "convert-to-bool",
+            expr,
             "Intent %s expects a Bool value, got '%s'. Use a Bool predicate or cast/normalize the expression to Bool before this clause.",
             label != NULL ? label : "condition",
             ty->name != NULL ? ty->name : "<type>");

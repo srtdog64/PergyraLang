@@ -282,6 +282,16 @@ An anchored resource handle (`Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`) was boun
 - **Reason**: anchored handles are unique per resource; copying them creates two observable bindings for the same resource.
 - **Fix**: use `Move(slot)` to transfer, or keep the original binding and work through it.
 
+#### `PGY_SEM_CHANNEL_TRANSPORT_INVALID`
+
+A channel send/receive builtin (e.g. `TrySend`/`TryRecv`/`ch <- value`) violates the channel transport contract: the channel element type does not agree with the value being sent, an anchored/capability-bearing handle is being shipped across the channel, a movable resource is being sent non-blockingly, or the send expression is not a named binding.
+
+- **Reason**: the channel boundary is where ownership and capability provenance are reconciled; sending an anchored or capability-bearing handle would break slot uniqueness or leak authority, and unnamed sends make the moved-here source ambiguous. Type mismatches at the boundary leave the receiver with a wrong-shape value.
+- **Fix family** (by `fix_source`):
+  - `align-channel-element-type` — channel element type vs. sent/received value disagree; change one to match the other.
+  - `keep-handle-local-or-send-inner-value` — an anchored (`Slot`/`SecureSlot`/`DeviceSlot`) or capability-bearing value is being transported; send the inner scalar value or keep the handle local to the authorized flow.
+  - `bind-to-named-variable-before-send` — the send expression is unnamed; bind it in a local first so ownership transfer has one concrete source.
+
 ### Type Resolution
 
 #### `PGY_SEM_TYPE_DEPENDENCY_CYCLE`

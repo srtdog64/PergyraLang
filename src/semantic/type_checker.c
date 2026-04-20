@@ -16,6 +16,24 @@
 
 #define INITIAL_DIAG_CAPACITY 16
 
+typedef enum OwnershipTypeClass {
+    OWNERSHIP_TYPE_COPY_ONLY = 0,
+    OWNERSHIP_TYPE_MOVE_ONLY,
+    OWNERSHIP_TYPE_BORROW_TRACKED,
+    OWNERSHIP_TYPE_SUBJECT_IDENTITY,
+    OWNERSHIP_TYPE_ANCHORED_HANDLE
+} OwnershipTypeClass;
+
+typedef enum OwnershipConsumerKind {
+    OWNERSHIP_CONSUMER_NEW_BINDING = 0,
+    OWNERSHIP_CONSUMER_ASSIGNMENT_REBIND,
+    OWNERSHIP_CONSUMER_CONTAINER_STORE,
+    OWNERSHIP_CONSUMER_RETURN,
+    OWNERSHIP_CONSUMER_CHANNEL_SEND,
+    OWNERSHIP_CONSUMER_HELPER_CALL,
+    OWNERSHIP_CONSUMER_CONSTRUCTOR_FIELD_STORE
+} OwnershipConsumerKind;
+
 static bool
 explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx);
 static bool
@@ -34,6 +52,27 @@ static char *
 semantic_assignment_target_path(ASTNode *expr);
 static const char *
 semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx);
+static OwnershipTypeClass
+semantic_classify_ownership_type(const Type *type, SemanticContext *ctx);
+static const char *
+semantic_ownership_value_label(OwnershipTypeClass klass);
+static const char *
+semantic_ownership_provenance_label(OwnershipTypeClass klass);
+static const char *
+semantic_ownership_replacement_label(OwnershipTypeClass klass);
+static bool
+semantic_validate_borrowed_escape(ASTNode *site,
+                                  ASTNode *source_expr,
+                                  SemanticContext *ctx,
+                                  const Type *value_type,
+                                  const char *borrowed_name_override,
+                                  OwnershipConsumerKind consumer_kind,
+                                  ASTNode *target_expr,
+                                  const char *dest_name,
+                                  const char *secondary_name,
+                                  bool transitive_call,
+                                  const char *mode_label,
+                                  const char *local_fix_label);
 static void
 semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
                                                   ASTNode *target_expr,
@@ -43,6 +82,34 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
                                                   const char *value_label,
                                                   const char *provenance_label,
                                                   const char *rebind_label);
+static void
+semantic_report_borrowed_container_store_escape(ASTNode *site,
+                                                ASTNode *source_expr,
+                                                SemanticContext *ctx,
+                                                const char *borrowed_name,
+                                                const char *value_label,
+                                                const char *provenance_label,
+                                                const char *container_kind,
+                                                const char *container_name,
+                                                const char *replacement_label,
+                                                const char *transfer_label);
+static void
+semantic_report_borrowed_channel_send_escape(ASTNode *site,
+                                             ASTNode *source_expr,
+                                             SemanticContext *ctx,
+                                             const char *borrowed_name,
+                                             const char *value_label,
+                                             const char *provenance_label,
+                                             const char *replacement_label);
+static void
+semantic_report_borrowed_slot_handle_escape(ASTNode *site,
+                                            ASTNode *source_expr,
+                                            SemanticContext *ctx,
+                                            const char *borrowed_name,
+                                            const char *escape_kind,
+                                            const char *detail_line,
+                                            const char *replacement_label,
+                                            const char *secondary_fix);
 static void
 semantic_report_named_boundary_argument_required(ASTNode *site,
                                                  ASTNode *source_expr,
@@ -548,7 +615,9 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
         if (provided_count == 0)
             return NULL;
         if (ctx != NULL) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                site,
                 "%s '%s' does not accept generic type arguments.\n"
                 "Reason:\n"
                 "- this declaration has no generic parameters\n"
@@ -566,7 +635,9 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
 
     if (provided_count > decl_count) {
         if (ctx != NULL) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                site,
                 "%s '%s' accepts at most %zu generic argument(s), got %zu.\n"
                 "Reason:\n"
                 "- more type arguments were supplied than there are generic parameters\n"
@@ -585,7 +656,9 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
 
     if (provided_count < required_count) {
         if (ctx != NULL) {
-            semantic_error(ctx, site,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                site,
                 "%s '%s' requires at least %zu generic argument(s), got %zu.\n"
                 "Reason:\n"
                 "- some generic parameters have no default type argument\n"
@@ -635,7 +708,9 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                     decl_params->params[i] != NULL && decl_params->params[i]->name != NULL
                         ? decl_params->params[i]->name
                         : "<type-param>";
-                semantic_error(ctx, site,
+                semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                    "semantic:generic:args_invalid", "align-generic-arg-list",
+                    site,
                     "%s '%s' is missing generic argument for parameter '%s'.\n"
                     "Reason:\n"
                     "- this parameter has no provided argument and no usable default\n"
@@ -762,7 +837,9 @@ validate_generic_param_default_bounds(GenericParams *gp,
 
         param_index = find_generic_param_index(gp, tc->type_param);
         if (param_index < 0 || (size_t)param_index >= gp->count) {
-            semantic_error(ctx, owner != NULL ? owner : (ASTNode *)wc,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                owner != NULL ? owner : (ASTNode *)wc,
                 "%s '%s' could not validate default generic bound for unknown parameter '%s'.\n"
                 "Reason:\n"
                 "- where clause references '%s'\n"
@@ -793,7 +870,9 @@ validate_generic_param_default_bounds(GenericParams *gp,
 
         default_type = resolve_type_node(param->default_type, ctx);
         if (default_type == NULL || default_type == TYPE_UNKNOWN) {
-            semantic_error(ctx, owner != NULL ? owner : param->default_type,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                owner != NULL ? owner : param->default_type,
                 "Default generic type argument for parameter '%s' in %s '%s' could not be resolved.\n"
                 "Reason:\n"
                 "- default type argument participates in effective generic argument derivation\n"
@@ -832,7 +911,9 @@ validate_generic_param_default_bounds(GenericParams *gp,
                 continue;
             }
 
-            semantic_error(ctx, owner != NULL ? owner : param->default_type,
+            semantic_error_with_hints(ctx, "PGY_SEM_INFER_GENERIC",
+                "semantic:generic:args_invalid", "align-generic-arg-list",
+                owner != NULL ? owner : param->default_type,
                 "Default generic type argument '%s' does not satisfy constraint '%s' for parameter '%s' in %s '%s'.\n"
                 "Reason:\n"
                 "- %s '%s' declares '%s = %s'\n"
@@ -1183,7 +1264,9 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         }
         if (!type_is_qubit(sym->type)) {
-            semantic_error(ctx, expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                "semantic:type:movable_handle_required", "provide-movable-handle",
+                expr,
                 "Expected a movable resource handle (currently QubitSlot), got '%s'.\n"
                 "Reason:\n"
                 "- this consumer path expects a move-only resource value\n"
@@ -1197,7 +1280,9 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         }
         if (sym->is_consumed) {
-            semantic_error(ctx, expr,
+            semantic_error_with_hints(ctx, "PGY_SEM_MOVE_FROM_RELEASED",
+                "semantic:move:from_released", "reclaim-or-trace-earlier-move",
+                expr,
                 "%s '%s' was moved or released and cannot be used again.\n"
                 "Reason:\n"
                 "- value '%s' was already consumed by an ownership transfer or release path\n"
@@ -1587,7 +1672,9 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
     event_name = semantic_event_expr_name(node->data.event_op.event);
 
     if (event_type == NULL || event_type->kind != TYPE_KIND_FUNCTION) {
-        semantic_error(ctx, node->data.event_op.event,
+        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
+            "semantic:event:signature", "align-event-signature",
+            node->data.event_op.event,
             "Event %s target '%s' must be an event-compatible callable",
             op_name != NULL ? op_name : "operation",
             event_name);
@@ -1603,7 +1690,9 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
     }
 
     if (handler_type == NULL || handler_type->kind != TYPE_KIND_FUNCTION) {
-        semantic_error(ctx, node->data.event_op.handler,
+        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
+            "semantic:event:signature", "align-event-signature",
+            node->data.event_op.handler,
             "Event %s handler for '%s' must be a function or typed lambda",
             op_name != NULL ? op_name : "operation",
             event_name);
@@ -1612,7 +1701,9 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
 
     if (handler_type->data.function.return_type != NULL
         && !type_equals(handler_type->data.function.return_type, TYPE_VOID)) {
-        semantic_error(ctx, node->data.event_op.handler,
+        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
+            "semantic:event:signature", "align-event-signature",
+            node->data.event_op.handler,
             "Event %s handler for '%s' must return Void, got '%s'",
             op_name != NULL ? op_name : "operation",
             event_name,
@@ -1622,7 +1713,9 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
     }
 
     if (event_type->data.function.param_count != handler_type->data.function.param_count) {
-        semantic_error(ctx, node->data.event_op.handler,
+        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
+            "semantic:event:signature", "align-event-signature",
+            node->data.event_op.handler,
             "Event %s handler for '%s' has parameter count mismatch: expected %zu, got %zu",
             op_name != NULL ? op_name : "operation",
             event_name,
@@ -1641,7 +1734,9 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
         }
 
         if (!type_equals(expected, actual)) {
-            semantic_error(ctx, node->data.event_op.handler,
+            semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
+                "semantic:event:signature", "align-event-signature",
+                node->data.event_op.handler,
                 "Event %s handler for '%s' parameter %zu mismatch: expected '%s', got '%s'",
                 op_name != NULL ? op_name : "operation",
                 event_name,
@@ -1669,7 +1764,9 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
     event_name = semantic_event_expr_name(node->data.event_invoke.event);
 
     if (event_type == NULL || event_type->kind != TYPE_KIND_FUNCTION) {
-        semantic_error(ctx, node->data.event_invoke.event,
+        semantic_error_with_hints(ctx, "PGY_SEM_EVENT_CONTRACT_INVALID",
+            "semantic:event:signature", "align-event-signature",
+            node->data.event_invoke.event,
             "Event invoke target '%s' must be an event-compatible callable",
             event_name);
         return false;
@@ -1806,7 +1903,9 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
             size_t arity = type_tuple_arity(init_type);
             size_t binds = node->data.let_destructure.name_count;
             if (arity != binds) {
-                semantic_error(ctx, node,
+                semantic_error_with_hints(ctx, "PGY_SEM_TYPE_MISMATCH",
+                    "semantic:destructuring:arity_mismatch", "align-destructuring-arity",
+                    node,
                     "Tuple destructuring arity mismatch: binding %zu, tuple arity %zu",
                     binds, arity);
                 return false;
