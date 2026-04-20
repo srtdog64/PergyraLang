@@ -62,7 +62,7 @@
         }
         if (init_type != NULL && type_is_anchored_resource_handle(init_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY, PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING, node,
-                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding.\n"
+                "Slot handles (anchored) such as Slot/SecureSlot/DeviceSlot cannot be copied into a new binding.\n"
                 "Reason:\n"
                 "- slot handles (anchored) are tied to one ownership/runtime anchor and transfer contract\n"
                 "- creating a new binding would duplicate that anchor contract across a second boundary-visible handle name\n"

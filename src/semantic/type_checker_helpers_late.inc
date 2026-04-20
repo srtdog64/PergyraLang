@@ -495,7 +495,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         NULL,
                         true,
                         NULL,
-                        "movable-resource");
+                        "slot handle (movable)");
                     continue;
                 }
             }
@@ -517,7 +517,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     NULL,
                     false,
                     pmode == PARAM_MODE_OWN ? "own" : "default",
-                    "movable-resource");
+                    "slot handle (movable)");
                 continue;
             }
 type_check_call_movable_done:
@@ -637,9 +637,9 @@ type_check_call_movable_done:
                         PGY_CAUSE_SLOT_PARAM_QUALIFIER_MISSING,
                         PGY_FIX_ANNOTATE_SLOT_PARAM_QUALIFIER,
                         expr->data.call.arguments[i],
-                        "Anchored handle arguments require 'own' or 'ref' in the callee signature.\n"
+                        "Slot-handle (anchored) arguments require 'own' or 'ref' in the callee signature.\n"
                         "Reason:\n"
-                        "- anchored-handle boundaries must declare whether the call borrows or transfers ownership\n"
+                        "- slot-handle (anchored) boundaries must declare whether the call borrows or transfers ownership\n"
                         "- implicit handle passing would hide that boundary contract\n"
                         "Fix:\n"
                         "- use 'own' in the callee signature to transfer the handle\n"
@@ -654,7 +654,7 @@ type_check_call_movable_done:
                         i,
                         pmode,
                         arg_type,
-                        "anchored-handle",
+                        "slot handle (anchored)",
                         true)) {
                     continue;
                 }

@@ -286,7 +286,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
                 PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
                 expr->data.channel_send.value,
-                "Channel send movable-resource mismatch: expected '%s', got '%s'.\n"
+                "Channel send slot-handle (movable) mismatch: expected '%s', got '%s'.\n"
                 "Reason:\n"
                 "- channel element type and sent value must agree on the slot handle (movable) contract\n"
                 "- ownership transfer cannot be derived when the boundary expects '%s' but received '%s'\n"
@@ -320,7 +320,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 "Channel send",
                 OWNERSHIP_TYPE_ANCHORED_HANDLE,
                 element_ownership, value_ownership,
-                "anchored-handle",
+                "slot handle (anchored)",
                 resource_handle_display_name(element_type),
                 resource_handle_display_name(value_type),
                 "slot handle (anchored)",

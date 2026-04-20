@@ -364,7 +364,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             param_types[i] = resolve_type_node(param->type, ctx);
         }
         if (param->mode != PARAM_MODE_DEFAULT
-            && !type_is_anchored_resource_handle(param_types[i])) {
+            && semantic_classify_ownership_type(param_types[i], ctx)
+                == OWNERSHIP_TYPE_COPY_ONLY) {
+            /* copy-only values keep trivial own/ref semantics */
+        } else if (param->mode != PARAM_MODE_DEFAULT
+                   && !type_is_anchored_resource_handle(param_types[i])) {
             if (!type_is_general_boundary_type(param_types[i], ctx)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_PARAM_MODE_UNSUPPORTED_BOUNDARY_TYPE,
@@ -379,7 +383,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     "- own/ref only changes boundary semantics when the parameter carries ownership-relevant state across the call\n"
                     "Fix:\n"
                     "- remove '%s' and pass it as an ordinary value\n"
-                    "- or change the parameter type to a boundary-visible value / subject / slot handle (movable)",
+                    "- or change the parameter type to a boundary-visible value / subject / slot handle",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
                     param->name != NULL ? param->name : "<param>",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
@@ -395,7 +399,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     PGY_CAUSE_SLOT_PARAM_QUALIFIER_MISSING,
                     PGY_FIX_ANNOTATE_SLOT_PARAM_QUALIFIER,
                     node,
-                    "Anchored handle parameters require explicit 'own' or 'ref'.\n"
+                    "Slot handle (anchored) parameters require explicit 'own' or 'ref'.\n"
                     "Reason:\n"
                     "- slot handles (anchored) must declare whether the boundary borrows or transfers ownership\n"
                     "- implicit parameter passing would hide that boundary contract\n"

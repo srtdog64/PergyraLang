@@ -324,7 +324,7 @@ test_effect_inference(void)
 
         type_check_func_decl(func, ctx);
         EXPECT(ctx->has_error
-            && ctx_has_diagnostic_substring(ctx, "Anchored handle parameters require explicit 'own' or 'ref'"));
+            && ctx_has_diagnostic_substring(ctx, "Slot handle (anchored) parameters require explicit 'own' or 'ref'"));
 
         semantic_context_destroy(ctx);
         ast_destroy(func);
@@ -346,7 +346,7 @@ test_effect_inference(void)
 
         type_check_let_decl(decl, ctx);
         EXPECT(ctx->has_error
-            && ctx_has_diagnostic_substring(ctx, "Anchored resource handles"));
+            && ctx_has_diagnostic_substring(ctx, "Slot handles (anchored) such as Slot/SecureSlot/DeviceSlot"));
 
         semantic_context_destroy(ctx);
         ast_destroy(decl);

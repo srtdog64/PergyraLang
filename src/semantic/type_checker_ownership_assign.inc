@@ -26,7 +26,7 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
         }
         if (anchored_boundary) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE, PGY_CAUSE_IMMUTABLE_FIELD_WRITE, PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, expr,
-                "Anchored handle assignment is not allowed.\n"
+                "Slot-handle (anchored) assignment is not allowed.\n"
                 "Reason:\n"
                 "- slot handles (anchored) such as Slot/SecureSlot/DeviceSlot cannot be copied or rebound with '='\n"
                 "- assignment rebind would create a second boundary-visible handle binding outside the original anchor\n"

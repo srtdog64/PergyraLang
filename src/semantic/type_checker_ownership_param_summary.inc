@@ -44,10 +44,10 @@ semantic_check_param_summary_escapes(ASTNode *node,
                 node->data.func_decl.name != NULL
                     ? node->data.func_decl.name : "<anonymous>",
                 NULL, true, NULL,
-                ownership_class == OWNERSHIP_TYPE_MOVE_ONLY ? "movable-resource"
+                ownership_class == OWNERSHIP_TYPE_MOVE_ONLY ? "slot handle (movable)"
                     : (ownership_class == OWNERSHIP_TYPE_SUBJECT_IDENTITY ? "subject"
                        : (ownership_class == OWNERSHIP_TYPE_ANCHORED_HANDLE
-                          ? "anchored-handle"
+                          ? "slot handle (anchored)"
                           : "value")));
         }
     }

@@ -783,6 +783,8 @@
       - transpiler emitter hot path의 direct `current_*_name` 참조는 helper/restore layer 위주로 축소됨
       - LLVM declaration helper / MIR-domain emission / expr-call builtin path도 `llvm_current_host_decl_name(...)`와 bind/restore helper 쪽으로 이동함
       - LLVM `llvm_current_host_decl(...)`는 더 이상 `current_class_name` 재조회 fallback에 의존하지 않고 bound host handle / `within_zone`만을 truth로 사용함
+      - `llvm_pipeline.c`의 nominal declaration registration과 class-method enumeration도 raw `decl_header->methods` 직접 접근보다 active nominal inventory / `llvm_find_host_decl_methods_in_context(...)` 경유로 이동함
+      - `llvm_register.c`의 active nominal registration도 `mir->decl_headers` 직접 순회 대신 active nominal inventory 기준으로 정렬됨
       - 남은 핵심 debt는 LLVM pipeline의 AST-carried declaration inventory bootstrap와 helper/restore layer 바깥의 raw host-name state 제거
 
 - [x] **ownership vocabulary / payload cleanup 1차 고정**
@@ -801,6 +803,8 @@
   - 남은 것:
     - P3 잔여 세분류(`boundary value (subject)` 등) 추가 압축
     - payload/helper family를 ownership 바깥 semantic diagnostics로 더 확장
+    - own/ref call/consumer path에서 classifier 기반 trivial copy-only semantics를 더 넓게 적용
+    - destructure target binding / nested projection / helper-chain wording을 consumer kind 기준으로 더 세분화
 
 - [ ] **type-resolution DAG 엔진 도입**
   - 대상: semantic type resolution / generic consumer resolution / declaration dependency scheduling

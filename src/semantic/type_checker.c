@@ -1828,7 +1828,7 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
                 if (init != NULL) {
                     semantic_validate_borrowed_escape(
                         node, init, ctx, init_type, NULL,
-                        OWNERSHIP_CONSUMER_NEW_BINDING, NULL,
+                        OWNERSHIP_CONSUMER_DESTRUCTURE_TARGET_BINDING, NULL,
                         node->data.let_destructure.names[i], NULL,
                         false, NULL, NULL);
                 }
@@ -1850,7 +1850,7 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
             if (init != NULL) {
                 semantic_validate_borrowed_escape(
                     node, init, ctx, init_type, NULL,
-                    OWNERSHIP_CONSUMER_NEW_BINDING, NULL,
+                    OWNERSHIP_CONSUMER_DESTRUCTURE_TARGET_BINDING, NULL,
                     node->data.let_destructure.names[i], NULL,
                     false, NULL, NULL);
             }

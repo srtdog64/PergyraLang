@@ -122,6 +122,11 @@ semantic_validate_borrowed_escape(ASTNode *site,
             site, source_expr, ctx, borrowed_name, dest_name,
             value_label, provenance_label);
         return true;
+    case OWNERSHIP_CONSUMER_DESTRUCTURE_TARGET_BINDING:
+        semantic_report_borrowed_new_binding_escape(
+            site, source_expr, ctx, borrowed_name, dest_name,
+            value_label, provenance_label);
+        return true;
     case OWNERSHIP_CONSUMER_ASSIGNMENT_REBIND:
         semantic_report_borrowed_assignment_rebind_escape(
             site, target_expr, source_expr, ctx, borrowed_name,
@@ -238,7 +243,7 @@ semantic_report_borrowed_new_binding_escape(ASTNode *site,
     payload.secondary_name = binding_name;
 
     semantic_emit_payload(ctx, &payload,
-        "Borrowed ref %s '%s' cannot escape into a new binding '%s' from '%s'.\n"
+        "Borrowed ref %s '%s' cannot escape into %s '%s' from '%s'.\n"
         "Reason:\n"
         "- consumer path is function '%s'\n"
         "- '%s' entered this function as a borrowed 'ref' %s\n"
@@ -249,6 +254,9 @@ semantic_report_borrowed_new_binding_escape(ASTNode *site,
         "- or change the current parameter to 'own' if transfer is intended",
         value_label,
         borrowed_name,
+        site != NULL && site->type == AST_LET_DESTRUCTURE
+            ? "destructure target binding"
+            : "new binding",
         binding_name != NULL ? binding_name : "<binding>",
         source_path != NULL ? source_path : borrowed_name,
         semantic_current_consumer_name(ctx),

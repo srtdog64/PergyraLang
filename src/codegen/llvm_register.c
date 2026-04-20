@@ -220,18 +220,19 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 void
 llvm_register_active_nominal_types(LLVMGenCtx *ctx)
 {
+    ASTNode **nominal_nodes = NULL;
+    size_t nominal_count = 0;
+
     if (ctx == NULL)
         return;
-    if (ctx->mir == NULL || ctx->mir->decl_headers == NULL)
-        return;
 
-    for (size_t i = 0; i < ctx->mir->decl_header_count; i++) {
-        const MIRDeclHeader *decl_header = &ctx->mir->decl_headers[i];
-        ASTNode *stmt = decl_header != NULL ? decl_header->ast : NULL;
-        if (decl_header == NULL || stmt == NULL)
+    llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count);
+    for (size_t i = 0; i < nominal_count; i++) {
+        ASTNode *stmt = nominal_nodes != NULL ? nominal_nodes[i] : NULL;
+        if (stmt == NULL)
             continue;
-        if (decl_header->ast_type != AST_CLASS_DECL
-            && decl_header->ast_type != AST_ENUM_DECL) {
+        if (stmt->type != AST_CLASS_DECL
+            && stmt->type != AST_ENUM_DECL) {
             continue;
         }
         llvm_register_nominal_decl(ctx, stmt);

@@ -21,7 +21,7 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
     ownership_class = semantic_classify_ownership_type(arg_type, ctx);
     switch (ownership_class) {
     case OWNERSHIP_TYPE_MOVE_ONLY:
-        named_value_cap = "Movable resource";
+        named_value_cap = "Slot handle (movable)";
         named_value_lower = "slot handle (movable)";
         bind_fix = "bind the slot handle (movable) to a local variable first";
         break;
@@ -31,7 +31,7 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
         bind_fix = "bind the subject to a local variable first";
         break;
     case OWNERSHIP_TYPE_ANCHORED_HANDLE:
-        named_value_cap = "Anchored handle";
+        named_value_cap = "Slot handle (anchored)";
         named_value_lower = "slot handle (anchored)";
         bind_fix = "bind the slot handle (anchored) to a local variable first";
         break;
@@ -40,6 +40,9 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
     default:
         break;
     }
+
+    if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
+        return true;
 
     if (arg_expr->type != AST_IDENTIFIER) {
         const char *borrowed_root_name =

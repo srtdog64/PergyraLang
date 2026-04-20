@@ -62,3 +62,4 @@ tests/*.o
 tests/*_llvm
 tests/tmp_*
 .codex
+.claude/
