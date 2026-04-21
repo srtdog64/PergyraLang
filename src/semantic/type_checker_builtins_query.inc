@@ -746,6 +746,7 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
             "Contract source:\n"
             "- current world: %s\n"
             "- embedded zone slot '%s' resolves to zone '%s'\n"
+            "- world embedding query path is %s(%s, %s)\n"
             "Fix:\n"
             "- use a declared zone %s name\n"
             "- or declare '%s' on zone '%s'",
@@ -755,6 +756,7 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
             world->data.world_decl.name != NULL ? world->data.world_decl.name : "<world>",
             zone_slot_name,
             zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+            builtin_name, zone_slot_name, detail_name,
             detail_label,
             detail_name,
             zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");

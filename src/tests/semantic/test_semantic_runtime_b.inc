@@ -3486,6 +3486,10 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 6);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "world embedding query path is HasZoneProjection(battle, missing)"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "embedded zone slot 'battle' resolves to zone 'BattleZone'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

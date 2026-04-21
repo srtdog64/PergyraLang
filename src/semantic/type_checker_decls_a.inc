@@ -282,6 +282,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     bool has_any = false;
     ASTNode *matched_subject_decl = NULL;
     ASTNode *matched_action = NULL;
+    char alias_list[256];
 
     if (buffer == NULL || buffer_size == 0 || step == NULL
         || step->type != AST_INTENT_STEP) {
@@ -289,6 +290,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
 
     buffer[0] = '\0';
+    alias_list[0] = '\0';
 
     if (intent_decl != NULL && ctx != NULL) {
         matched_action = intent_step_find_inheritable_action(
@@ -318,10 +320,24 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
 
     if (step->data.intent_step.who_count > 0
         && !step->data.intent_step.inherited_who_from_action) {
+        size_t alias_used = 0;
+        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+            const char *alias = step->data.intent_step.who_names != NULL
+                ? step->data.intent_step.who_names[i] : NULL;
+            if (alias == NULL)
+                continue;
+            intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
+                "%s%s",
+                alias_used > 0 ? ", " : "",
+                alias);
+        }
         intent_step_summary_append(buffer, buffer_size, &used,
-            "%s- locally declared who on step",
-            has_any ? "\n" : "");
+            "%s- locally declared who on step%s%s",
+            has_any ? "\n" : "",
+            alias_list[0] != '\0' ? ": " : "",
+            alias_list);
         has_any = true;
+        alias_list[0] = '\0';
     }
     if (step->data.intent_step.where_type != NULL
         && !step->data.intent_step.inherited_where_from_action
@@ -352,10 +368,24 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
     if (step->data.intent_step.authorized_by_count > 0
         && !step->data.intent_step.inherited_authorized_by_from_action) {
+        size_t alias_used = 0;
+        for (size_t i = 0; i < step->data.intent_step.authorized_by_count; i++) {
+            const char *alias = step->data.intent_step.authorized_by != NULL
+                ? step->data.intent_step.authorized_by[i] : NULL;
+            if (alias == NULL)
+                continue;
+            intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
+                "%s%s",
+                alias_used > 0 ? ", " : "",
+                alias);
+        }
         intent_step_summary_append(buffer, buffer_size, &used,
-            "%s- locally declared authorized by on step (step-local approval source)",
-            has_any ? "\n" : "");
+            "%s- locally declared authorized by on step%s%s (step-local approval source)",
+            has_any ? "\n" : "",
+            alias_list[0] != '\0' ? ": " : "",
+            alias_list);
         has_any = true;
+        alias_list[0] = '\0';
     }
     if (step->data.intent_step.using_expr != NULL
         && !step->data.intent_step.derived_using_from_transfer

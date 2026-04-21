@@ -761,6 +761,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         "- authorized participants must map to a subject slot inside the current zone\n"
                         "Contract source:\n"
                         "- authority-bearing zone '%s' with authorized participant '%s'\n"
+                        "- declared authorized-by edge points to participant '%s' of type '%s'\n"
                         "- zone '%s' does not declare a subject slot of type '%s'\n"
                         "%s- approval boundary provenance is:\n"
                         "%s%s"
@@ -773,6 +774,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         alias != NULL ? alias : "<participant>",
+                        alias != NULL ? alias : "<participant>",
+                        participant_type_name,
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         participant_type_name,
                         contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
@@ -787,6 +790,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         "Reason:\n"
                         "Contract source:\n"
                         "- authority-bearing zone '%s' with authorized participant '%s'\n"
+                        "- declared authorized-by edge points to participant '%s' of type '%s'\n"
                         "- zone '%s' has authority rules, but none match subject type '%s'\n"
                         "%s- approval boundary provenance is:\n"
                         "%s%s"
@@ -799,6 +803,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         alias != NULL ? alias : "<participant>",
+                        alias != NULL ? alias : "<participant>",
+                        participant_type_name,
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         participant_type_name,
                         contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",

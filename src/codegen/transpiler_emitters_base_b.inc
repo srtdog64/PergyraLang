@@ -118,7 +118,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
         owner_is_zone = owner_zone_name != NULL;
         if (owner_is_role) {
-            ASTNode *role_decl = transpiler_find_decl_in_inventory_local(
+            ASTNode *role_decl = transpiler_find_decl_in_active_inventory_only_local(
                 ctx, AST_ROLE_DECL, owner_name);
             if (role_decl != NULL
                 && role_decl->type == AST_ROLE_DECL
@@ -135,20 +135,12 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     if (owner_is_role) {
         if (owner_role_subject_name != NULL) {
-            resolved_host_decl = transpiler_find_decl_in_inventory_local(
+            resolved_host_decl = transpiler_find_decl_in_active_inventory_only_local(
                 ctx, AST_CLASS_DECL, owner_role_subject_name);
         }
     } else if (owner_name != NULL) {
         resolved_host_decl = transpiler_find_host_decl_from_owner_local(
             ctx, owner_name, owner_ast_type);
-    } else if (saved_host_decl != NULL
-               && (saved_host_decl->type == AST_ZONE_DECL
-                   || saved_host_decl->type == AST_WORLD_DECL
-                   || saved_host_decl->type == AST_RELATION_DECL
-                   || saved_host_decl->type == AST_EFFECT_DECL
-                   || saved_host_decl->type == AST_CLASS_DECL
-                   || saved_host_decl->type == AST_ROLE_DECL)) {
-        resolved_host_decl = saved_host_decl;
     }
 
     if (owner_name != NULL && !owner_is_role && resolved_host_decl == NULL) {
@@ -225,6 +217,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             free(header_decl);
             ctx->slot_var_count = saved_slot_count;
             ctx->typed_var_count = saved_typed_count;
+            ctx->current_func_decl = saved_func_decl;
+            transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
             g_type_render_ctx = saved_render_ctx;
             ctx->out = saved_out;
             snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),

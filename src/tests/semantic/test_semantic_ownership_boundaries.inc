@@ -345,7 +345,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'items' cannot escape into new binding 'first'"));
+            "Borrowed ref boundary value 'items' cannot escape into destructure target binding 'first'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -529,6 +529,62 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Borrowed ref boundary value 'packet' cannot escape through list store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref class parameter cannot escape through constructor field store");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "class Envelope {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "func BorrowCtor(ref packet: Packet) -> Void {\n"
+            "    let env: Envelope = Envelope(packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'packet' cannot escape through constructor field store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref class parameter cannot escape transitively through ref helper return");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "func EchoBorrow(ref packet: Packet) -> Packet {\n"
+            "    return packet;\n"
+            "}\n"
+            "func BorrowForward(ref packet: Packet) -> Packet {\n"
+            "    return EchoBorrow(packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'packet' cannot escape through helper/function call"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -874,6 +930,62 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Borrowed ref subject 'hero' cannot escape through member assignment rebind"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape through constructor field store");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "struct Squad {\n"
+            "    let lead: Hero;\n"
+            "}\n"
+            "func BorrowCtor(ref hero: Hero) -> Void {\n"
+            "    let squad: Squad = Squad(hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref subject 'hero' cannot escape through constructor field store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref subject parameter cannot escape transitively through ref helper return");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func EchoBorrow(ref hero: Hero) -> Hero {\n"
+            "    return hero;\n"
+            "}\n"
+            "func BorrowForward(ref hero: Hero) -> Hero {\n"
+            "    return EchoBorrow(hero);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref subject 'hero' cannot escape through helper/function call"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

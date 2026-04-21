@@ -69,6 +69,31 @@ transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
     return transpiler_find_named_decl_local(ctx, decl_type, name);
 }
 
+static ASTNode *
+transpiler_find_decl_in_active_inventory_only_local(TranspilerCtx *ctx,
+                                                    ASTNodeType decl_type,
+                                                    const char *name)
+{
+    ASTNode **decls = NULL;
+    size_t decl_count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
+    for (size_t i = 0; decls != NULL && i < decl_count; i++) {
+        ASTNode *decl = decls[i];
+        const char *decl_name = transpiler_decl_name_local(decl);
+        if (decl != NULL && decl->type == decl_type
+            && decl_name != NULL
+            && strcmp(decl_name, name) == 0) {
+            return decl;
+        }
+    }
+
+    return NULL;
+}
+
 static void
 transpiler_decl_methods_local(ASTNode *decl, ASTNode ***methods_out,
                               size_t *method_count_out)
@@ -125,31 +150,37 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
 
     switch (owner_ast_type) {
     case AST_ZONE_DECL:
-        return transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL, owner_name);
+        return transpiler_find_decl_in_active_inventory_only_local(
+            ctx, AST_ZONE_DECL, owner_name);
     case AST_RELATION_DECL:
-        return transpiler_find_decl_in_inventory_local(ctx, AST_RELATION_DECL, owner_name);
+        return transpiler_find_decl_in_active_inventory_only_local(
+            ctx, AST_RELATION_DECL, owner_name);
     case AST_EFFECT_DECL:
-        return transpiler_find_decl_in_inventory_local(ctx, AST_EFFECT_DECL, owner_name);
+        return transpiler_find_decl_in_active_inventory_only_local(
+            ctx, AST_EFFECT_DECL, owner_name);
     case AST_WORLD_DECL:
-        return transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL, owner_name);
+        return transpiler_find_decl_in_active_inventory_only_local(
+            ctx, AST_WORLD_DECL, owner_name);
     case AST_ROLE_DECL:
-        role_decl = transpiler_find_decl_in_inventory_local(
+        role_decl = transpiler_find_decl_in_active_inventory_only_local(
             ctx, AST_ROLE_DECL, owner_name);
         if (role_decl != NULL
             && role_decl->type == AST_ROLE_DECL
             && role_decl->data.role_decl.for_type != NULL
             && role_decl->data.role_decl.for_type->type == AST_TYPE
             && role_decl->data.role_decl.for_type->data.type.name != NULL) {
-            return transpiler_find_decl_in_inventory_local(
+            return transpiler_find_decl_in_active_inventory_only_local(
                 ctx, AST_CLASS_DECL,
                 role_decl->data.role_decl.for_type->data.type.name);
         }
         return NULL;
     case AST_ENUM_DECL:
-        return transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL, owner_name);
+        return transpiler_find_decl_in_active_inventory_only_local(
+            ctx, AST_ENUM_DECL, owner_name);
     case AST_CLASS_DECL:
     default:
-        return transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, owner_name);
+        return transpiler_find_decl_in_active_inventory_only_local(
+            ctx, AST_CLASS_DECL, owner_name);
     }
 }
 

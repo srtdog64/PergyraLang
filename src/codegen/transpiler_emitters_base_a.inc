@@ -1149,7 +1149,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
             if (reason != NULL && reason_cap > 0) {
                 snprintf(reason, reason_cap,
-                         "MIR block %llu emission failed: unable to emit claim op for '%s'",
+                         "MIR block %zu emission failed: unable to emit claim op for '%s'",
                          block->id,
                          inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
             }
@@ -1942,7 +1942,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     free(rendered_type);
                     if (reason != NULL && reason_cap > 0) {
                         snprintf(reason, reason_cap,
-                                 "MIR block %llu emission failed: unable to materialize preserved let-binding '%s'",
+                                 "MIR block %zu emission failed: unable to materialize preserved let-binding '%s'",
                                  block->id,
                                  stmt->data.let_decl.name);
                     }

@@ -215,6 +215,10 @@
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 6);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "world embedding query path is HasZoneProjection(battle, missing)"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "embedded zone slot 'battle' resolves to zone 'BattleZone'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1633,6 +1637,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "zone 'CockpitZone' declares authority, so explicit approval is required"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "locally declared who on step: driver"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "add 'authorized by: driver;' to the step"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
@@ -1679,6 +1685,8 @@
             "Contract source:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "authority-bearing zone 'CockpitZone'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "declared authorized-by edge points to participant 'passenger' of type 'Passenger'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -1870,6 +1878,8 @@
             "derived zone from transfer target handoff: DeliveryZone"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "derived using from transfer target: deliver"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "locally declared who on step: courier"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "approval boundary provenance is"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
