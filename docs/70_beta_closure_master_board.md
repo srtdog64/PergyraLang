@@ -40,8 +40,8 @@
 | B0-1 Intent / Zone / World | 진행 중 | 84% | 차단 | observability baseline은 생겼고 embedding/handoff 핵심 진단은 `Contract source` 구조로 올라왔지만 authority/provenance depth가 더 남음 |
 | B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
 | B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
-| B0-4 own/ref | 진행 중 | 81% | 차단 | copy-value/general aggregate/slot-handle surface는 semantic에서 실제로 넓게 닫혔고 ownership wording/payload cleanup도 끝났지만 broader assignment/container/rebind/helper-chain audit와 남은 transitive edge 정렬이 남음 |
-| MIR-only declaration debt | 진행 중 | 80% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
+| B0-4 own/ref | 진행 중 | 84% | 차단 | copy-value/general aggregate/slot-handle surface는 semantic에서 실제로 넓게 닫혔고 constructor field store, transitive helper return, nested projection provenance 회귀도 추가됐다. 이제 broader assignment/container/rebind/helper-chain 조합과 남은 transitive edge wording 정렬이 남음 |
+| MIR-only declaration debt | 진행 중 | 82% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했다. MIR emit state restore도 helper로 묶였지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
 | Type-resolution DAG | 진행 중 | 66% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |

@@ -992,3 +992,78 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("ref boundary aggregate parameter reports nested projection path on transitive helper member rebind");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "class Wrapper {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "class Cargo {\n"
+            "    let wrapper: Wrapper;\n"
+            "}\n"
+            "class Envelope {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "func Rebind(env: Envelope, own packet: Packet) -> Void {\n"
+            "    env.packet = packet;\n"
+            "}\n"
+            "func BorrowForward(ref cargo: Cargo, env: Envelope) -> Void {\n"
+            "    Rebind(env, cargo.wrapper.packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'cargo' cannot escape through helper/function call to 'Rebind'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "from 'cargo.wrapper.packet'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary aggregate parameter reports nested projection path on constructor field store");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "class Wrapper {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "class Cargo {\n"
+            "    let wrapper: Wrapper;\n"
+            "}\n"
+            "class Envelope {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "func BorrowCtor(ref cargo: Cargo) -> Void {\n"
+            "    let env: Envelope = Envelope(cargo.wrapper.packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'cargo' cannot escape through constructor field store"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "from 'cargo.wrapper.packet'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }

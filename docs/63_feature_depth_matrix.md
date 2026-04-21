@@ -118,7 +118,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |
-| `own/ref` 소유권 | ✅ | ✅ | ◐ | ✅ | ✅ | 해당 없음 | ✅ | 중상 | 베타 stable subset은 `ref Slot<subject-host>` / `own SecureSlot<subject-host>`로 고정. 일반 타입 ownership system은 explicit reject이며 surface trust가 문서/진단/예제/회귀와 정렬됨 |
+| `own/ref` 소유권 | ✅ | ✅ | ◐ | ✅ | ✅ | 해당 없음 | ✅ | 중상 | 베타 stable subset은 copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule까지 넓어졌다. `Token<T>` escape와 일부 남은 transitive ownership corner만 explicit reject이며, broader assignment/container/rebind/helper-chain audit가 마지막 blocker다 |
 | 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
 | 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |

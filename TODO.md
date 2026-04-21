@@ -744,7 +744,7 @@
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: general own/ref surface on copy values + boundary-visible aggregates + slot handles
-  - explicit reject: authority-bearing `Token<T>` escape/transport and 아직 닫히지 않은 일부 transitive ownership corner
+  - explicit reject: authority-bearing `Token<T>` escape/transport and 아직 닫히지 않은 일부 assignment/container/rebind/helper-chain transitive ownership corner
   - beta-out-of-scope: arbitrary universal ownership lattice beyond current classifier/summary model
   - beta blocker: broader assignment/container/rebind/helper-chain audit와 wording/provenance 최종 정렬
 - collections
@@ -768,6 +768,8 @@
     - LLVM/C backend helper duplication 감소
     - debt ledger와 TODO 표현 정렬
   - 현황:
+    - 진행: MIR declaration emit state restore는 helper 하나로 묶였고, role host lookup은 active inventory-only 쪽으로 더 좁아졌다
+    - 진행: 조기 return 경로의 `current_host_decl` / `current_func_decl` 복구가 emitter 본문 중복 대신 공용 restore helper를 타게 됐다
     - role / party / roster / relation / effect / zone / world declaration method body의 AST fallback는 제거됨
     - 남은 debt는 declaration inventory / naming helper / named-decl lookup의 구조 정리 쪽으로 축소됨
     - 진행: `emit_func_decl_from_mir_named(...)`가 outer host restore에서 raw saved host-name fallback보다 `saved_host_decl + current_func_decl`를 우선 쓰도록 정렬
