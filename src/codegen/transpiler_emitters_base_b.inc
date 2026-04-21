@@ -844,6 +844,8 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     int saved_typed_count = ctx->typed_var_count;
     CodeBuf *saved_out = ctx->out;
     TranspilerCtx *saved_render_ctx = g_type_render_ctx;
+    ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
+    const ASTNode *saved_func_decl = ctx->current_func_decl;
     char saved_return_type[128];
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
@@ -976,8 +978,9 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         "%s", saved_return_type);
 
     codebuf_write(ctx->out, "}\n");
-    g_type_render_ctx = saved_render_ctx;
-    ctx->out = saved_out;
+    transpiler_restore_mir_emit_state_local(
+        ctx, saved_slot_count, saved_typed_count, saved_return_type,
+        saved_func_decl, saved_host_decl, saved_render_ctx, saved_out);
     return;
 
 emit_func_decl_named_fail:
@@ -986,12 +989,9 @@ emit_func_decl_named_fail:
     free(header_decl);
     if (params_sig != NULL)
         codebuf_destroy(params_sig);
-    ctx->slot_var_count = saved_slot_count;
-    ctx->typed_var_count = saved_typed_count;
-    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
-        "%s", saved_return_type);
-    g_type_render_ctx = saved_render_ctx;
-    ctx->out = saved_out;
+    transpiler_restore_mir_emit_state_local(
+        ctx, saved_slot_count, saved_typed_count, saved_return_type,
+        saved_func_decl, saved_host_decl, saved_render_ctx, saved_out);
 }
 
 void
