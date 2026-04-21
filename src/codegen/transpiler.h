@@ -140,10 +140,21 @@ typedef struct
     /* Slot variable → inner type mapping */
     SlotVarEntry slot_vars[MAX_SLOT_VARS];
     int          slot_var_count;
+    int          last_slot_var_index;
     TypedVarEntry typed_vars[MAX_SLOT_VARS];
     int           typed_var_count;
+    int           last_typed_var_index;
     AliasVarEntry alias_vars[MAX_ALIAS_VARS];
     int           alias_var_count;
+    int           last_alias_var_index;
+    ASTNodeType   last_decl_lookup_type;
+    char          last_decl_lookup_name[128];
+    ASTNode     **last_decl_lookup_inventory;
+    size_t        last_decl_lookup_inventory_count;
+    ASTNode      *last_decl_lookup_result;
+    bool          last_decl_lookup_active_only;
+    char          last_nominal_host_name[128];
+    ASTNode      *last_nominal_host_decl;
 
     /* Counter for unique parallel wrapper function names */
     unsigned int  parallel_id;

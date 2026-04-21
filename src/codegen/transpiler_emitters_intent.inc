@@ -18,6 +18,16 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     CodeBuf *saved_out;
     TranspilerCtx *saved_render_ctx;
 
+#define PGY_MIR_INTENT_CARRIER_FAIL(MSG) \
+    do { \
+        transpiler_set_backend_error_with_hints(ctx, \
+            PGY_CODE_MIR_INTENT_CARRIER_MISSING, \
+            PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, \
+            PGY_FIX_CHECK_INTENT_STEP_LOWERING, \
+            (MSG)); \
+        goto intent_emit_fail; \
+    } while (0)
+
     if (node == NULL || node->type != AST_INTENT_DECL || buf == NULL || ctx == NULL)
         return;
 
@@ -335,41 +345,41 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (mir_only_intent) {
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "pre")
                 && pre_expr == NULL)
-                goto mir_step_missing_pre;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent pre check carrier");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "guard")
                 && guard_expr == NULL)
-                goto mir_step_missing_guard;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent guard check carrier");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "post")
                 && post_expr == NULL)
-                goto mir_step_missing_post;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent post check carrier");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "expect")
                 && expect_expr == NULL)
-                goto mir_step_missing_expect;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent expect check carrier");
             if ((transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "invariant-pre")
                  || transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "invariant-post"))
                 && (invariant_pre_expr == NULL || invariant_post_expr == NULL))
-                goto mir_step_missing_invariant;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent invariant check carrier");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentEval", "intent")
                 && subintent_expr == NULL)
-                goto mir_step_missing_subintent;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent subintent eval carrier");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentEval", "on")
                 && on_expr_count == 0)
-                goto mir_step_missing_on;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent on-eval carrier");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneWhere", NULL)
                 && step_zone_name == NULL)
-                goto mir_step_missing_zone_where;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent zone where metadata");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneAlias", NULL)
                 && step_zone_alias == NULL)
-                goto mir_step_missing_zone_alias;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent zone alias metadata");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneFrom", NULL)
                 && step_from_alias == NULL)
-                goto mir_step_missing_zone_from;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent transfer-from metadata");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentWho", NULL)
                 && who_alias_count == 0)
-                goto mir_step_missing_who;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent who metadata");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentDispatch", NULL)
                 && dispatch_alias_count == 0) {
-                goto mir_step_missing_dispatch;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent dispatch carrier");
             }
         } else {
             if (pre_expr == NULL)
@@ -750,7 +760,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                             mir_routine, step_name,
                             "IntentEval", "compensate")
                         && compensate_expr_count == 0)
-                        goto mir_step_missing_compensate;
+                        PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent compensate eval carrier");
                     if (!mir_only_intent && compensate_expr_count == 0) {
                         compensate_expr_count = step->data.intent_step.compensate_expr_count;
                         compensate_exprs = step->data.intent_step.compensate_exprs;
@@ -759,19 +769,19 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                         if (transpiler_mir_intent_has_stmt(
                                 mir_routine, step_name, "IntentZoneWhere", NULL)
                             && zone_type_name == NULL)
-                            goto mir_step_missing_zone_where;
+                            PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent zone where metadata");
                         if (transpiler_mir_intent_has_stmt(
                                 mir_routine, step_name, "IntentZoneAlias", NULL)
                             && zone_alias == NULL)
-                            goto mir_step_missing_zone_alias;
+                            PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent zone alias metadata");
                         if (transpiler_mir_intent_has_stmt(
                                 mir_routine, step_name, "IntentZoneFrom", NULL)
                             && from_alias == NULL)
-                            goto mir_step_missing_zone_from;
+                            PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent transfer-from metadata");
                         if (transpiler_mir_intent_has_stmt(
                                 mir_routine, step_name, "IntentWho", NULL)
                             && who_alias_count == 0)
-                            goto mir_step_missing_who;
+                            PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent who metadata");
                     }
                     write_indent(ctx);
                     codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
@@ -906,60 +916,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     ctx->out = saved_out;
     return;
 
-mir_step_missing_pre:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent pre check carrier");
-    goto intent_emit_fail;
-mir_step_missing_guard:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent guard check carrier");
-    goto intent_emit_fail;
-mir_step_missing_post:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent post check carrier");
-    goto intent_emit_fail;
-mir_step_missing_expect:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent expect check carrier");
-    goto intent_emit_fail;
-mir_step_missing_invariant:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent invariant check carrier");
-    goto intent_emit_fail;
-mir_step_missing_subintent:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent subintent eval carrier");
-    goto intent_emit_fail;
-mir_step_missing_on:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent on-eval carrier");
-    goto intent_emit_fail;
-mir_step_missing_zone_where:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent zone where metadata");
-    goto intent_emit_fail;
-mir_step_missing_zone_alias:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent zone alias metadata");
-    goto intent_emit_fail;
-mir_step_missing_zone_from:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent transfer-from metadata");
-    goto intent_emit_fail;
-mir_step_missing_who:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent who metadata");
-    goto intent_emit_fail;
-mir_step_missing_dispatch:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent dispatch carrier");
-    goto intent_emit_fail;
-mir_step_missing_compensate:
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        "MIR-only C path missing intent compensate eval carrier");
-    goto intent_emit_fail;
-
 intent_emit_fail:
+#undef PGY_MIR_INTENT_CARRIER_FAIL
     free(mir_steps);
     free((void *)participant_aliases);
     free((void *)participant_types);
@@ -969,4 +927,3 @@ intent_emit_fail:
     g_type_render_ctx = saved_render_ctx;
     ctx->out = saved_out;
 }
-

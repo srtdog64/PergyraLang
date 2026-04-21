@@ -381,29 +381,48 @@ semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
 static char *
 format_generic_subject_signature(const char *name, GenericParams *params)
 {
+    size_t total_len;
     char *result;
+    char *cursor;
 
     if (name == NULL)
         return tc_strdup_fmt("<generic>");
     if (params == NULL || params->count == 0)
         return tc_strdup_fmt("%s", name);
 
-    result = tc_strdup_fmt("%s<", name);
+    total_len = strlen(name) + 2; /* '<' + '>' */
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam *gp = params->params[i];
+        const char *param_name =
+            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+        total_len += strlen(param_name);
+        if (i + 1 < params->count)
+            total_len += 2; /* ", " */
+    }
+
+    result = malloc(total_len + 1);
     if (result == NULL)
         return tc_strdup_fmt("%s", name);
+
+    cursor = result;
+    memcpy(cursor, name, strlen(name));
+    cursor += strlen(name);
+    *cursor++ = '<';
 
     for (size_t i = 0; i < params->count; i++) {
         GenericParam *gp = params->params[i];
         const char *param_name =
             (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
-        char *next = (i + 1 < params->count)
-            ? tc_strdup_fmt("%s%s, ", result, param_name)
-            : tc_strdup_fmt("%s%s>", result, param_name);
-        free(result);
-        result = next;
-        if (result == NULL)
-            return tc_strdup_fmt("%s", name);
+
+        memcpy(cursor, param_name, strlen(param_name));
+        cursor += strlen(param_name);
+        if (i + 1 < params->count) {
+            memcpy(cursor, ", ", 2);
+            cursor += 2;
+        }
     }
+    *cursor++ = '>';
+    *cursor = '\0';
 
     return result;
 }
@@ -411,29 +430,48 @@ format_generic_subject_signature(const char *name, GenericParams *params)
 static char *
 format_effective_generic_type_list(const char *name, Type **types, size_t count)
 {
+    size_t total_len;
     char *result;
+    char *cursor;
 
     if (name == NULL)
         return tc_strdup_fmt("<generic>");
     if (types == NULL || count == 0)
         return tc_strdup_fmt("%s", name);
 
-    result = tc_strdup_fmt("%s<", name);
+    total_len = strlen(name) + 2; /* '<' + '>' */
+    for (size_t i = 0; i < count; i++) {
+        const char *type_name =
+            (types[i] != NULL && types[i]->name != NULL)
+                ? types[i]->name : "<type>";
+        total_len += strlen(type_name);
+        if (i + 1 < count)
+            total_len += 2; /* ", " */
+    }
+
+    result = malloc(total_len + 1);
     if (result == NULL)
         return tc_strdup_fmt("%s", name);
+
+    cursor = result;
+    memcpy(cursor, name, strlen(name));
+    cursor += strlen(name);
+    *cursor++ = '<';
 
     for (size_t i = 0; i < count; i++) {
         const char *type_name =
             (types[i] != NULL && types[i]->name != NULL)
                 ? types[i]->name : "<type>";
-        char *next = (i + 1 < count)
-            ? tc_strdup_fmt("%s%s, ", result, type_name)
-            : tc_strdup_fmt("%s%s>", result, type_name);
-        free(result);
-        result = next;
-        if (result == NULL)
-            return tc_strdup_fmt("%s", name);
+
+        memcpy(cursor, type_name, strlen(type_name));
+        cursor += strlen(type_name);
+        if (i + 1 < count) {
+            memcpy(cursor, ", ", 2);
+            cursor += 2;
+        }
     }
+    *cursor++ = '>';
+    *cursor = '\0';
 
     return result;
 }

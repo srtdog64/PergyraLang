@@ -32,63 +32,61 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         }
     }
 
-    if (!has_data || llvm_lookup_class(ctx, enum_name) != NULL)
-        goto register_methods;
+    if (has_data && llvm_lookup_class(ctx, enum_name) == NULL) {
+        size_t variant_count = stmt->data.enum_decl.variant_count;
+        LLVMTypeRef *enum_fields = calloc((variant_count + 1), sizeof(LLVMTypeRef));
+        LLVMTypeRef enum_ty = LLVMStructCreateNamed(ctx->context, enum_name);
+        LLVMClassTypeEntry *enum_entry =
+            llvm_register_class(ctx, enum_name, enum_ty, false, false);
 
-    size_t variant_count = stmt->data.enum_decl.variant_count;
-    LLVMTypeRef *enum_fields = calloc((variant_count + 1), sizeof(LLVMTypeRef));
-    LLVMTypeRef enum_ty = LLVMStructCreateNamed(ctx->context, enum_name);
-    LLVMClassTypeEntry *enum_entry =
-        llvm_register_class(ctx, enum_name, enum_ty, false, false);
-
-    enum_fields[0] = ctx->type_i32;
-    if (enum_entry != NULL)
-        llvm_class_add_field(enum_entry, "tag", ctx->type_i32, 0);
-
-    for (size_t j = 0; j < variant_count; j++) {
-        const char *variant_name = stmt->data.enum_decl.variants[j];
-        size_t param_count = (stmt->data.enum_decl.variant_param_counts != NULL)
-            ? stmt->data.enum_decl.variant_param_counts[j] : 0;
-
-        if (param_count == 0) {
-            enum_fields[j + 1] = LLVMStructTypeInContext(ctx->context, NULL, 0, 0);
-            continue;
-        }
-
-        char payload_name[256];
-        snprintf(payload_name, sizeof(payload_name), "%s$%s", enum_name, variant_name);
-
-        LLVMTypeRef *payload_fields = calloc(param_count, sizeof(LLVMTypeRef));
-        for (size_t p = 0; p < param_count; p++) {
-            ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
-            payload_fields[p] = (pt != NULL) ? ast_type_to_llvm(ctx, pt) : ctx->type_i32;
-        }
-
-        LLVMTypeRef payload_ty = LLVMStructCreateNamed(ctx->context, payload_name);
-        LLVMStructSetBody(payload_ty, payload_fields, (unsigned)param_count, 0);
-
-        LLVMClassTypeEntry *payload_entry =
-            llvm_register_class(ctx, pergyra_strdup(payload_name), payload_ty, false, false);
-        if (payload_entry != NULL) {
-            for (size_t p = 0; p < param_count; p++) {
-                char field_name[32];
-                snprintf(field_name, sizeof(field_name), "_%zu", p);
-                llvm_class_add_field(payload_entry,
-                    pergyra_strdup(field_name),
-                    payload_fields[p], (int)p);
-            }
-        }
-
-        enum_fields[j + 1] = payload_ty;
+        enum_fields[0] = ctx->type_i32;
         if (enum_entry != NULL)
-            llvm_class_add_field(enum_entry, variant_name, payload_ty, (int)(j + 1));
-        free(payload_fields);
+            llvm_class_add_field(enum_entry, "tag", ctx->type_i32, 0);
+
+        for (size_t j = 0; j < variant_count; j++) {
+            const char *variant_name = stmt->data.enum_decl.variants[j];
+            size_t param_count = (stmt->data.enum_decl.variant_param_counts != NULL)
+                ? stmt->data.enum_decl.variant_param_counts[j] : 0;
+
+            if (param_count == 0) {
+                enum_fields[j + 1] = LLVMStructTypeInContext(ctx->context, NULL, 0, 0);
+                continue;
+            }
+
+            char payload_name[256];
+            snprintf(payload_name, sizeof(payload_name), "%s$%s", enum_name, variant_name);
+
+            LLVMTypeRef *payload_fields = calloc(param_count, sizeof(LLVMTypeRef));
+            for (size_t p = 0; p < param_count; p++) {
+                ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
+                payload_fields[p] = (pt != NULL) ? ast_type_to_llvm(ctx, pt) : ctx->type_i32;
+            }
+
+            LLVMTypeRef payload_ty = LLVMStructCreateNamed(ctx->context, payload_name);
+            LLVMStructSetBody(payload_ty, payload_fields, (unsigned)param_count, 0);
+
+            LLVMClassTypeEntry *payload_entry =
+                llvm_register_class(ctx, pergyra_strdup(payload_name), payload_ty, false, false);
+            if (payload_entry != NULL) {
+                for (size_t p = 0; p < param_count; p++) {
+                    char field_name[32];
+                    snprintf(field_name, sizeof(field_name), "_%zu", p);
+                    llvm_class_add_field(payload_entry,
+                        pergyra_strdup(field_name),
+                        payload_fields[p], (int)p);
+                }
+            }
+
+            enum_fields[j + 1] = payload_ty;
+            if (enum_entry != NULL)
+                llvm_class_add_field(enum_entry, variant_name, payload_ty, (int)(j + 1));
+            free(payload_fields);
+        }
+
+        LLVMStructSetBody(enum_ty, enum_fields, (unsigned)(variant_count + 1), 0);
+        free(enum_fields);
     }
 
-    LLVMStructSetBody(enum_ty, enum_fields, (unsigned)(variant_count + 1), 0);
-    free(enum_fields);
-
-register_methods:
     for (size_t j = 0; j < stmt->data.enum_decl.method_count; j++) {
         ASTNode *method = stmt->data.enum_decl.methods[j];
         if (method == NULL || method->type != AST_FUNC_DECL)

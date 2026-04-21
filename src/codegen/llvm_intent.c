@@ -1113,6 +1113,16 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     bool has_compensate_steps = false;
     bool mir_only_intent = false;
 
+#define PGY_MIR_INTENT_CARRIER_FAIL(MSG) \
+    do { \
+        llvm_set_error_with_hints(ctx, \
+            PGY_CODE_MIR_INTENT_CARRIER_MISSING, \
+            PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, \
+            PGY_FIX_CHECK_INTENT_STEP_LOWERING, \
+            (MSG)); \
+        goto intent_emit_fail; \
+    } while (0)
+
     if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
         return;
     mir_routine = llvm_find_mir_intent_routine(ctx, node);
@@ -1460,38 +1470,38 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (mir_only_intent) {
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "pre")
                 && pre_expr == NULL)
-                goto mir_step_missing_pre;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent pre check carrier");
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "guard")
                 && guard_expr == NULL)
-                goto mir_step_missing_guard;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent guard check carrier");
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "post")
                 && post_expr == NULL)
-                goto mir_step_missing_post;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent post check carrier");
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "expect")
                 && expect_expr == NULL)
-                goto mir_step_missing_expect;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent expect check carrier");
             if ((llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "invariant-pre")
                  || llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "invariant-post"))
                 && (invariant_pre_expr == NULL || invariant_post_expr == NULL))
-                goto mir_step_missing_invariant;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent invariant check carrier");
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentEval", "intent")
                 && subintent_expr == NULL)
-                goto mir_step_missing_subintent;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent subintent eval carrier");
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentEval", "on")
                 && on_expr_count == 0)
-                goto mir_step_missing_on;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent on-eval carrier");
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneWhere", NULL)
                 && zone_type_name == NULL)
-                goto mir_step_missing_zone_where;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent zone where metadata");
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneAlias", NULL)
                 && zone_alias == NULL)
-                goto mir_step_missing_zone_alias;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent zone alias metadata");
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneFrom", NULL)
                 && from_alias == NULL)
-                goto mir_step_missing_zone_from;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent transfer-from metadata");
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentWho", NULL)
                 && who_alias_count == 0)
-                goto mir_step_missing_who;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent who metadata");
         } else {
             if (pre_expr == NULL)
                 pre_expr = step->data.intent_step.pre_expr;
@@ -1615,7 +1625,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 alias_count = step->data.intent_step.who_count;
             else if (mir_only_intent && alias_count == 0
                      && llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentDispatch", NULL))
-                goto mir_step_missing_dispatch;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent dispatch carrier");
             for (size_t j = 0; j < alias_count; j++) {
                 const char *alias = dispatch_alias_count > 0
                     ? dispatch_aliases[j]
@@ -1827,7 +1837,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 && llvm_mir_intent_has_stmt(mir_routine, step_name,
                                             "IntentEval", "compensate")
                 && compensate_expr_count == 0)
-                goto mir_step_missing_compensate;
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent compensate eval carrier");
             if (!mir_only_intent && compensate_expr_count == 0) {
                 compensate_expr_count = step->data.intent_step.compensate_expr_count;
                 compensate_exprs = step->data.intent_step.compensate_exprs;
@@ -1835,16 +1845,16 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             if (mir_only_intent) {
                 if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneWhere", NULL)
                     && zone_type_name == NULL)
-                    goto mir_step_missing_zone_where;
+                    PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent zone where metadata");
                 if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneAlias", NULL)
                     && zone_alias == NULL)
-                    goto mir_step_missing_zone_alias;
+                    PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent zone alias metadata");
                 if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneFrom", NULL)
                     && from_alias == NULL)
-                    goto mir_step_missing_zone_from;
+                    PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent transfer-from metadata");
                 if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentWho", NULL)
                     && who_alias_count == 0)
-                    goto mir_step_missing_who;
+                    PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent who metadata");
             } else {
                 if (zone_type_name == NULL
                     && step->data.intent_step.where_type != NULL
@@ -1939,47 +1949,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
     return;
 
-mir_step_missing_pre:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent pre check carrier");
-    goto intent_emit_fail;
-mir_step_missing_guard:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent guard check carrier");
-    goto intent_emit_fail;
-mir_step_missing_post:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent post check carrier");
-    goto intent_emit_fail;
-mir_step_missing_expect:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent expect check carrier");
-    goto intent_emit_fail;
-mir_step_missing_invariant:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent invariant check carrier");
-    goto intent_emit_fail;
-mir_step_missing_subintent:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent subintent eval carrier");
-    goto intent_emit_fail;
-mir_step_missing_on:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent on-eval carrier");
-    goto intent_emit_fail;
-mir_step_missing_zone_where:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent zone where metadata");
-    goto intent_emit_fail;
-mir_step_missing_zone_alias:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent zone alias metadata");
-    goto intent_emit_fail;
-mir_step_missing_zone_from:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent transfer-from metadata");
-    goto intent_emit_fail;
-mir_step_missing_who:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent who metadata");
-    goto intent_emit_fail;
-mir_step_missing_dispatch:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent dispatch carrier");
-    goto intent_emit_fail;
-mir_step_missing_compensate:
-    llvm_set_error_with_hints(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, PGY_FIX_CHECK_INTENT_STEP_LOWERING, "MIR-only LLVM path missing intent compensate eval carrier");
-    goto intent_emit_fail;
-
 intent_emit_fail:
+#undef PGY_MIR_INTENT_CARRIER_FAIL
     free(completed_allocas);
     free((void *)participant_aliases);
     free((void *)participant_types);

@@ -56,12 +56,27 @@ transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
         return NULL;
 
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
+    if (ctx->last_decl_lookup_result != NULL
+        && ctx->last_decl_lookup_type == decl_type
+        && !ctx->last_decl_lookup_active_only
+        && ctx->last_decl_lookup_inventory == decls
+        && ctx->last_decl_lookup_inventory_count == decl_count
+        && strcmp(ctx->last_decl_lookup_name, name) == 0) {
+        return ctx->last_decl_lookup_result;
+    }
     for (size_t i = 0; decls != NULL && i < decl_count; i++) {
         ASTNode *decl = decls[i];
         const char *decl_name = transpiler_decl_name_local(decl);
         if (decl != NULL && decl->type == decl_type
             && decl_name != NULL
             && strcmp(decl_name, name) == 0) {
+            ctx->last_decl_lookup_type = decl_type;
+            snprintf(ctx->last_decl_lookup_name,
+                sizeof(ctx->last_decl_lookup_name), "%s", name);
+            ctx->last_decl_lookup_inventory = decls;
+            ctx->last_decl_lookup_inventory_count = decl_count;
+            ctx->last_decl_lookup_result = decl;
+            ctx->last_decl_lookup_active_only = false;
             return decl;
         }
     }
@@ -81,12 +96,27 @@ transpiler_find_decl_in_active_inventory_only_local(TranspilerCtx *ctx,
         return NULL;
 
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
+    if (ctx->last_decl_lookup_result != NULL
+        && ctx->last_decl_lookup_type == decl_type
+        && ctx->last_decl_lookup_active_only
+        && ctx->last_decl_lookup_inventory == decls
+        && ctx->last_decl_lookup_inventory_count == decl_count
+        && strcmp(ctx->last_decl_lookup_name, name) == 0) {
+        return ctx->last_decl_lookup_result;
+    }
     for (size_t i = 0; decls != NULL && i < decl_count; i++) {
         ASTNode *decl = decls[i];
         const char *decl_name = transpiler_decl_name_local(decl);
         if (decl != NULL && decl->type == decl_type
             && decl_name != NULL
             && strcmp(decl_name, name) == 0) {
+            ctx->last_decl_lookup_type = decl_type;
+            snprintf(ctx->last_decl_lookup_name,
+                sizeof(ctx->last_decl_lookup_name), "%s", name);
+            ctx->last_decl_lookup_inventory = decls;
+            ctx->last_decl_lookup_inventory_count = decl_count;
+            ctx->last_decl_lookup_result = decl;
+            ctx->last_decl_lookup_active_only = true;
             return decl;
         }
     }
@@ -210,22 +240,35 @@ transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
     if (ctx == NULL || host_type_name == NULL)
         return NULL;
 
+    if (ctx->last_nominal_host_decl != NULL
+        && strcmp(ctx->last_nominal_host_name, host_type_name) == 0) {
+        return ctx->last_nominal_host_decl;
+    }
+
     decl = transpiler_find_decl_in_inventory_local(ctx, AST_RELATION_DECL, host_type_name);
     if (decl != NULL)
-        return decl;
+        goto cache_and_return;
     decl = transpiler_find_decl_in_inventory_local(ctx, AST_EFFECT_DECL, host_type_name);
     if (decl != NULL)
-        return decl;
+        goto cache_and_return;
     decl = transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL, host_type_name);
     if (decl != NULL)
-        return decl;
+        goto cache_and_return;
     decl = transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL, host_type_name);
     if (decl != NULL)
-        return decl;
+        goto cache_and_return;
     decl = transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL, host_type_name);
     if (decl != NULL)
-        return decl;
-    return transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, host_type_name);
+        goto cache_and_return;
+    decl = transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, host_type_name);
+    if (decl == NULL)
+        return NULL;
+
+cache_and_return:
+    snprintf(ctx->last_nominal_host_name,
+        sizeof(ctx->last_nominal_host_name), "%s", host_type_name);
+    ctx->last_nominal_host_decl = decl;
+    return decl;
 }
 
 static const char *

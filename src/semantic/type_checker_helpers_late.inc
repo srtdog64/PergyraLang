@@ -503,24 +503,23 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 const char *borrowed_name =
                     semantic_borrowed_boundary_root_name(
                         expr->data.call.arguments[i], ctx);
-                if (borrowed_name == NULL)
-                    goto type_check_call_movable_done;
-                semantic_validate_borrowed_escape(
-                    expr->data.call.arguments[i],
-                    expr->data.call.arguments[i],
-                    ctx,
-                    arg_type,
-                    borrowed_name,
-                    OWNERSHIP_CONSUMER_HELPER_CALL,
-                    NULL,
-                    display_name != NULL ? display_name : "<callee>",
-                    NULL,
-                    false,
-                    pmode == PARAM_MODE_OWN ? "own" : "default",
-                    "slot handle (movable)");
-                continue;
+                if (borrowed_name != NULL) {
+                    semantic_validate_borrowed_escape(
+                        expr->data.call.arguments[i],
+                        expr->data.call.arguments[i],
+                        ctx,
+                        arg_type,
+                        borrowed_name,
+                        OWNERSHIP_CONSUMER_HELPER_CALL,
+                        NULL,
+                        display_name != NULL ? display_name : "<callee>",
+                        NULL,
+                        false,
+                        pmode == PARAM_MODE_OWN ? "own" : "default",
+                        "slot handle (movable)");
+                    continue;
+                }
             }
-type_check_call_movable_done:
             if (pmode == PARAM_MODE_REF)
                 continue;
             consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");

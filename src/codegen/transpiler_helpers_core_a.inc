@@ -46,8 +46,37 @@ codebuf_destroy(CodeBuf *buf)
 void
 codebuf_write(CodeBuf *buf, const char *fmt, ...)
 {
+    static const char null_text[] = "(null)";
     va_list ap;
+    const char *s;
+    char ch;
+
+    if (buf == NULL || fmt == NULL)
+        return;
+
+    if (strchr(fmt, '%') == NULL) {
+        codebuf_write_raw(buf, fmt, strlen(fmt));
+        return;
+    }
+
     va_start(ap, fmt);
+
+    if (strcmp(fmt, "%s") == 0) {
+        s = va_arg(ap, const char *);
+        if (s != NULL)
+            codebuf_write_raw(buf, s, strlen(s));
+        else
+            codebuf_write_raw(buf, null_text, sizeof(null_text) - 1);
+        va_end(ap);
+        return;
+    }
+
+    if (strcmp(fmt, "%c") == 0) {
+        ch = (char)va_arg(ap, int);
+        codebuf_write_raw(buf, &ch, 1);
+        va_end(ap);
+        return;
+    }
 
     /* Measure required space */
     va_list ap2;
@@ -149,15 +178,41 @@ transpiler_ctx_destroy(TranspilerCtx *ctx)
 static void
 write_indent(TranspilerCtx *ctx)
 {
-    for (int i = 0; i < ctx->indent; i++)
-        codebuf_write(ctx->out, "    ");
+    static const char indent_chunk[] =
+        "                                                                ";
+    size_t remaining;
+
+    if (ctx == NULL || ctx->out == NULL || ctx->indent <= 0)
+        return;
+
+    remaining = (size_t)ctx->indent * 4;
+    while (remaining > 0) {
+        size_t chunk = remaining;
+        if (chunk > sizeof(indent_chunk) - 1)
+            chunk = sizeof(indent_chunk) - 1;
+        codebuf_write_raw(ctx->out, indent_chunk, chunk);
+        remaining -= chunk;
+    }
 }
 
 static void
 write_indent_to(CodeBuf *buf, int indent)
 {
-    for (int i = 0; i < indent; i++)
-        codebuf_write(buf, "    ");
+    static const char indent_chunk[] =
+        "                                                                ";
+    size_t remaining;
+
+    if (buf == NULL || indent <= 0)
+        return;
+
+    remaining = (size_t)indent * 4;
+    while (remaining > 0) {
+        size_t chunk = remaining;
+        if (chunk > sizeof(indent_chunk) - 1)
+            chunk = sizeof(indent_chunk) - 1;
+        codebuf_write_raw(buf, indent_chunk, chunk);
+        remaining -= chunk;
+    }
 }
 
 static TranspilerCtx *g_type_render_ctx = NULL;
@@ -246,6 +301,7 @@ register_slot_var(TranspilerCtx *ctx, const char *name,
     if (ctx->slot_var_count >= MAX_SLOT_VARS)
         return;
     SlotVarEntry *e = &ctx->slot_vars[ctx->slot_var_count++];
+    ctx->last_slot_var_index = ctx->slot_var_count - 1;
     strncpy(e->name, name, sizeof(e->name) - 1);
     e->name[sizeof(e->name) - 1] = '\0';
     strncpy(e->inner_type, inner_type, sizeof(e->inner_type) - 1);
@@ -264,8 +320,18 @@ set_slot_token_name(TranspilerCtx *ctx, const char *slot_name, const char *token
 {
     if (ctx == NULL || slot_name == NULL || token_name == NULL)
         return;
+    if (ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, slot_name) == 0) {
+        strncpy(ctx->slot_vars[ctx->last_slot_var_index].token_name, token_name,
+                sizeof(ctx->slot_vars[ctx->last_slot_var_index].token_name) - 1);
+        ctx->slot_vars[ctx->last_slot_var_index]
+            .token_name[sizeof(ctx->slot_vars[ctx->last_slot_var_index].token_name) - 1] = '\0';
+        return;
+    }
     for (int i = 0; i < ctx->slot_var_count; i++) {
         if (strcmp(ctx->slot_vars[i].name, slot_name) == 0) {
+            ctx->last_slot_var_index = i;
             strncpy(ctx->slot_vars[i].token_name, token_name,
                     sizeof(ctx->slot_vars[i].token_name) - 1);
             ctx->slot_vars[i].token_name[sizeof(ctx->slot_vars[i].token_name) - 1] = '\0';
@@ -282,9 +348,17 @@ lookup_slot_type(TranspilerCtx *ctx, const char *var_name)
     if (ctx == NULL || var_name == NULL)
         return NULL;
 
+    if (ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0) {
+        return ctx->slot_vars[ctx->last_slot_var_index].inner_type;
+    }
+
     for (int i = 0; i < ctx->slot_var_count; i++) {
-        if (strcmp(ctx->slot_vars[i].name, var_name) == 0)
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
             return ctx->slot_vars[i].inner_type;
+        }
     }
     typed_name = lookup_typed_var(ctx, var_name);
     if (typed_name != NULL) {
@@ -309,9 +383,16 @@ lookup_slot_type(TranspilerCtx *ctx, const char *var_name)
 static bool
 lookup_slot_is_secure(TranspilerCtx *ctx, const char *var_name)
 {
+    if (ctx != NULL
+        && ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0)
+        return ctx->slot_vars[ctx->last_slot_var_index].is_secure;
     for (int i = 0; i < ctx->slot_var_count; i++) {
-        if (strcmp(ctx->slot_vars[i].name, var_name) == 0)
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
             return ctx->slot_vars[i].is_secure;
+        }
     }
     return false;
 }
@@ -319,8 +400,17 @@ lookup_slot_is_secure(TranspilerCtx *ctx, const char *var_name)
 static const char *
 lookup_slot_token_name(TranspilerCtx *ctx, const char *var_name)
 {
+    if (ctx != NULL
+        && ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0) {
+        if (ctx->slot_vars[ctx->last_slot_var_index].token_name[0] != '\0')
+            return ctx->slot_vars[ctx->last_slot_var_index].token_name;
+        return NULL;
+    }
     for (int i = 0; i < ctx->slot_var_count; i++) {
         if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
             if (ctx->slot_vars[i].token_name[0] != '\0')
                 return ctx->slot_vars[i].token_name;
             break;
@@ -332,9 +422,16 @@ lookup_slot_token_name(TranspilerCtx *ctx, const char *var_name)
 static bool
 lookup_slot_is_indirect(TranspilerCtx *ctx, const char *var_name)
 {
+    if (ctx != NULL
+        && ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0)
+        return ctx->slot_vars[ctx->last_slot_var_index].is_indirect;
     for (int i = 0; i < ctx->slot_var_count; i++) {
-        if (strcmp(ctx->slot_vars[i].name, var_name) == 0)
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
             return ctx->slot_vars[i].is_indirect;
+        }
     }
     return false;
 }
@@ -350,9 +447,16 @@ slot_ref_expr(TranspilerCtx *ctx, const char *slot_name, const char *slot_expr)
 static bool
 is_slot_var(TranspilerCtx *ctx, const char *var_name)
 {
+    if (ctx != NULL
+        && ctx->last_slot_var_index >= 0
+        && ctx->last_slot_var_index < ctx->slot_var_count
+        && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0)
+        return true;
     for (int i = 0; i < ctx->slot_var_count; i++) {
-        if (strcmp(ctx->slot_vars[i].name, var_name) == 0)
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
+            ctx->last_slot_var_index = i;
             return true;
+        }
     }
     return false;
 }
@@ -363,6 +467,7 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
     if (ctx->typed_var_count >= MAX_SLOT_VARS || name == NULL || type_name == NULL)
         return;
     TypedVarEntry *e = &ctx->typed_vars[ctx->typed_var_count++];
+    ctx->last_typed_var_index = ctx->typed_var_count - 1;
     memset(e, 0, sizeof(*e));
     strncpy(e->name, name, sizeof(e->name) - 1);
     e->name[sizeof(e->name) - 1] = '\0';
@@ -378,6 +483,7 @@ register_alias_var(TranspilerCtx *ctx, const char *name, ASTNode *target_expr)
         return;
 
     AliasVarEntry *e = &ctx->alias_vars[ctx->alias_var_count++];
+    ctx->last_alias_var_index = ctx->alias_var_count - 1;
     memset(e, 0, sizeof(*e));
     strncpy(e->name, name, sizeof(e->name) - 1);
     e->name[sizeof(e->name) - 1] = '\0';
@@ -390,9 +496,16 @@ lookup_alias_expr(TranspilerCtx *ctx, const char *var_name)
     if (ctx == NULL || var_name == NULL)
         return NULL;
 
+    if (ctx->last_alias_var_index >= 0
+        && ctx->last_alias_var_index < ctx->alias_var_count
+        && strcmp(ctx->alias_vars[ctx->last_alias_var_index].name, var_name) == 0)
+        return ctx->alias_vars[ctx->last_alias_var_index].target_expr;
+
     for (int i = ctx->alias_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->alias_vars[i].name, var_name) == 0)
+        if (strcmp(ctx->alias_vars[i].name, var_name) == 0) {
+            ctx->last_alias_var_index = i;
             return ctx->alias_vars[i].target_expr;
+        }
     }
     return NULL;
 }
@@ -400,9 +513,17 @@ lookup_alias_expr(TranspilerCtx *ctx, const char *var_name)
 static TypedVarEntry *
 lookup_typed_entry(TranspilerCtx *ctx, const char *var_name)
 {
+    if (ctx != NULL
+        && ctx->last_typed_var_index >= 0
+        && ctx->last_typed_var_index < ctx->typed_var_count
+        && strcmp(ctx->typed_vars[ctx->last_typed_var_index].name, var_name) == 0)
+        return &ctx->typed_vars[ctx->last_typed_var_index];
+
     for (int i = ctx->typed_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->typed_vars[i].name, var_name) == 0)
+        if (strcmp(ctx->typed_vars[i].name, var_name) == 0) {
+            ctx->last_typed_var_index = i;
             return &ctx->typed_vars[i];
+        }
     }
     return NULL;
 }
