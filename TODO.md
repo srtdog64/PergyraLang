@@ -18,6 +18,7 @@
 - `P2`: hint namespace (`code` / `cause_ir` / `fix_source`)를 레지스트리 기반으로 고정
 - `P3`: type-category vocabulary를 2-3층으로 압축
 - `P4`: 빌드/샌드박스/중간-stage JSON/artifact 문제를 공식 경로 기준으로 정리
+- `P9`: arena 패턴을 scratch/result lifetime 기준으로 명시 도입
 
 ### P1. `.inc` 스파게티를 실제 모듈로 절단
 
@@ -136,6 +137,41 @@
 - 준비 작업:
   - [ ] stale artifact 재현 조건 문서화
   - [ ] 권장 빌드 진입점에서 clean rebuild 선택지를 기본 노출
+
+### P9. arena 패턴 명시 도입
+
+- 문제:
+  - transpiler / semantic / diagnostics / type rendering 경로에 임시 문자열/버퍼 churn이 많다
+  - `malloc/free`와 context-lifetime scratch allocation이 섞여 있어, early-return/fail path에서 소유권이 산발적이다
+  - cache와 임시 문자열이 섞이면 dangling 또는 과도한 copy churn 위험이 커진다
+- 기본 방침:
+  - arena는 명시적으로 도입한다
+  - 단, 전면 치환이 아니라 `scratch arena`와 `result arena`를 수명 기준으로 분리한다
+  - cache / long-lived metadata / AST-owned field에는 arena-owned 포인터를 저장하지 않는다
+  - arena 간 교차 참조는 raw pointer보다 `index` / stable handle 참조를 기본으로 한다
+  - arena는 최소한 `transpiler`, `semantic scratch`, `semantic result`, 필요 시 `type/render scratch`처럼 역할/수명별로 분리한다
+  - 타입/역할별 arena 분리는 “누가 free하느냐”보다 “언제 reset되느냐”를 기준으로 설계한다
+  - 첫 단계는 transpiler / semantic diagnostics / type render helper의 scratch allocation 수렴이다
+- 이 결정이 맞는 이유:
+  - 현재 코드베이스는 long-lived cache와 short-lived formatting string이 강하게 섞여 있어, raw pointer 공유보다 index 참조가 훨씬 안전하다
+  - Pergyra는 early-return/fail path와 pass-local scratch data가 많아서, 단일 arena보다 역할/수명별 arena 분리가 디버깅과 reset 비용 면에서 낫다
+  - 즉, `Arena + Index 참조 + 타입별 arena 분리`가 지금 구조 debt를 줄이는 가장 보수적이고 안정적인 방향이다
+- 준비 작업:
+  - [ ] `scratch arena` / `result arena` lifetime 규칙 문서화
+  - [ ] arena 간 cross-reference를 `index` / stable handle 기준으로 문서화
+  - [ ] `TranspilerCtx` scratch arena 적용 범위 확정
+  - [ ] semantic analyze pass용 scratch arena 도입 지점 정리
+  - [ ] diagnostic payload/result-owned arena 분리 여부 결정
+  - [ ] 타입/역할별 arena 분할안 초안 작성
+  - [ ] `strdup_fmt` / type render / projection path / generic formatter helper의 arena 전환 우선순위 작성
+  - [ ] cache에 arena-owned 포인터 저장 금지 규칙 문서화
+  - [ ] 첫 vertical slice:
+    - transpiler temporary strings
+    - semantic diagnostic formatting scratch strings
+    - type-name rendering scratch helpers
+  - 진행: `docs/94_arena_index_lifetime_plan.md`로 방향 고정
+  - 진행: `TranspilerCtx`의 `arena`를 scratch arena로 명시
+  - 진행: `slot_ref_expr(...)` 및 zone authority temporary expression을 transpiler scratch arena로 1차 전환
 
 ### 최근 closure 진행 (2026-04-18)
 

@@ -9,8 +9,6 @@ static ASTNode *transpiler_current_host_decl_local(TranspilerCtx *ctx);
 static ASTNode *transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
                                                         ASTNodeType decl_type,
                                                         const char *name);
-static const char *current_host_decl_name(TranspilerCtx *ctx);
-
 /* -----------------------------------------------------------------
  * CodeBuf
  * ----------------------------------------------------------------- */
@@ -217,6 +215,8 @@ write_indent_to(CodeBuf *buf, int indent)
 
 static TranspilerCtx *g_type_render_ctx = NULL;
 static char *strdup_fmt(const char *fmt, ...);
+static char *transpiler_scratch_strdup(TranspilerCtx *ctx, const char *s);
+static char *transpiler_scratch_fmt(TranspilerCtx *ctx, const char *fmt, ...);
 
 static void
 transpiler_set_backend_error_v(TranspilerCtx *ctx, const char *code,
@@ -256,17 +256,27 @@ transpiler_set_backend_error(TranspilerCtx *ctx, const char *fmt, ...)
     va_end(ap);
 }
 
-/* Attach a stable diagnostic code (e.g. "PGY_MIR_UNRESOLVED_LOCAL") to the
- * emitted error. `code` must have static lifetime (string literal). If ctx
- * already has a recorded error, this call is a no-op — first error wins. */
-static void
-transpiler_set_backend_error_with_code(TranspilerCtx *ctx, const char *code,
-                                        const char *fmt, ...)
+static char *
+transpiler_scratch_strdup(TranspilerCtx *ctx, const char *s)
+{
+    if (ctx == NULL)
+        return NULL;
+    return pgy_arena_strdup(&ctx->arena, s);
+}
+
+static char *
+transpiler_scratch_fmt(TranspilerCtx *ctx, const char *fmt, ...)
 {
     va_list ap;
+    char *result;
+
+    if (ctx == NULL || fmt == NULL)
+        return NULL;
+
     va_start(ap, fmt);
-    transpiler_set_backend_error_v(ctx, code, fmt, ap);
+    result = pgy_arena_vfmt(&ctx->arena, fmt, ap);
     va_end(ap);
+    return result;
 }
 
 /* Full variant that records `cause_ir` + `fix_source` tags alongside the
@@ -440,8 +450,8 @@ static char *
 slot_ref_expr(TranspilerCtx *ctx, const char *slot_name, const char *slot_expr)
 {
     if (slot_name != NULL && lookup_slot_is_indirect(ctx, slot_name))
-        return pergyra_strdup(slot_expr);
-    return strdup_fmt("&%s", slot_expr);
+        return transpiler_scratch_strdup(ctx, slot_expr);
+    return transpiler_scratch_fmt(ctx, "&%s", slot_expr);
 }
 
 static bool
@@ -981,8 +991,6 @@ current_class_uses_self_cell(TranspilerCtx *ctx)
     host_decl = transpiler_current_host_decl_local(ctx);
     if (host_decl != NULL && host_decl->type == AST_CLASS_DECL)
         class_name = host_decl->data.class_decl.name;
-    if (class_name == NULL)
-        class_name = current_host_decl_name(ctx);
     return ctx != NULL
         && class_name != NULL
         && is_pointer_self_host_type_name(ctx, class_name);
@@ -992,27 +1000,13 @@ static bool
 current_class_has_field(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
-    const char *host_name = NULL;
 
     if (ctx == NULL || field_name == NULL)
         return false;
 
     decl = transpiler_current_host_decl_local(ctx);
-    host_name = current_host_decl_name(ctx);
     if (decl != NULL && decl->type != AST_CLASS_DECL)
         decl = NULL;
-    if (decl == NULL && host_name != NULL)
-        decl = find_class_decl(ctx, host_name);
-    /* For monomorphized generic classes, look up the original class decl */
-    if (decl == NULL && host_name != NULL) {
-        for (int gi = 0; gi < ctx->generic_class_spec_count; gi++) {
-            if (strcmp(ctx->generic_class_specs[gi].specialized_name,
-                       host_name) == 0) {
-                decl = (ASTNode *)ctx->generic_class_specs[gi].class_decl;
-                break;
-            }
-        }
-    }
     if (decl == NULL)
         return false;
 

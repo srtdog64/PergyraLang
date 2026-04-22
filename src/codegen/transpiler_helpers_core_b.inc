@@ -214,6 +214,27 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
     }
 }
 
+static const char *
+transpiler_role_subject_name_local(TranspilerCtx *ctx, const char *role_name)
+{
+    ASTNode *role_decl;
+
+    if (ctx == NULL || role_name == NULL)
+        return NULL;
+
+    role_decl = transpiler_find_decl_in_active_inventory_only_local(
+        ctx, AST_ROLE_DECL, role_name);
+    if (role_decl == NULL
+        || role_decl->type != AST_ROLE_DECL
+        || role_decl->data.role_decl.for_type == NULL
+        || role_decl->data.role_decl.for_type->type != AST_TYPE
+        || role_decl->data.role_decl.for_type->data.type.name == NULL) {
+        return NULL;
+    }
+
+    return role_decl->data.role_decl.for_type->data.type.name;
+}
+
 static void
 transpiler_bind_current_host_decl_local(TranspilerCtx *ctx, ASTNode *decl)
 {
@@ -365,19 +386,6 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
     return NULL;
 }
 
-static const char *
-current_host_decl_name(TranspilerCtx *ctx)
-{
-    ASTNode *decl;
-
-    if (ctx == NULL)
-        return NULL;
-    decl = transpiler_current_host_decl_local(ctx);
-    if (decl != NULL)
-        return transpiler_decl_name_local(decl);
-    return NULL;
-}
-
 static ASTNode *
 current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
 {
@@ -414,6 +422,13 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
     if (ctx == NULL || host_type_name == NULL || method_name == NULL)
         return NULL;
 
+    if (ctx->last_nominal_method_decl != NULL
+        && ctx->last_nominal_method_mir == ctx->mir
+        && strcmp(ctx->last_nominal_method_host_name, host_type_name) == 0
+        && strcmp(ctx->last_nominal_method_name, method_name) == 0) {
+        return ctx->last_nominal_method_decl;
+    }
+
     decl = transpiler_find_nominal_host_decl_local(ctx, host_type_name);
     transpiler_decl_methods_local(decl, &methods, &method_count);
 
@@ -422,6 +437,12 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
         if (method != NULL && method->type == AST_FUNC_DECL
             && method->data.func_decl.name != NULL
             && strcmp(method->data.func_decl.name, method_name) == 0) {
+            snprintf(ctx->last_nominal_method_host_name,
+                sizeof(ctx->last_nominal_method_host_name), "%s", host_type_name);
+            snprintf(ctx->last_nominal_method_name,
+                sizeof(ctx->last_nominal_method_name), "%s", method_name);
+            ctx->last_nominal_method_mir = ctx->mir;
+            ctx->last_nominal_method_decl = method;
             return method;
         }
     }
@@ -432,30 +453,7 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
 static ASTNode *
 find_nominal_host_decl_local(TranspilerCtx *ctx, const char *host_type_name)
 {
-    ASTNode *decl;
-
-    if (ctx == NULL || host_type_name == NULL)
-        return NULL;
-
-    decl = find_relation_decl(ctx, host_type_name);
-    if (decl != NULL)
-        return decl;
-    decl = find_effect_decl(ctx, host_type_name);
-    if (decl != NULL)
-        return decl;
-    decl = find_zone_decl(ctx, host_type_name);
-    if (decl != NULL)
-        return decl;
-    decl = find_world_decl(ctx, host_type_name);
-    if (decl != NULL)
-        return decl;
-    decl = find_subject_host_decl(ctx, host_type_name);
-    if (decl != NULL)
-        return decl;
-    decl = find_class_decl(ctx, host_type_name);
-    if (decl != NULL)
-        return decl;
-    return NULL;
+    return transpiler_find_nominal_host_decl_local(ctx, host_type_name);
 }
 
 static const char *

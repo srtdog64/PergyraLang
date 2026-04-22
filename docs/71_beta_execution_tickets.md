@@ -1,6 +1,6 @@
 # Pergyra Beta Execution Tickets
 
-마지막 업데이트: 2026-04-15
+마지막 업데이트: 2026-04-22
 
 ## 목적
 
@@ -24,6 +24,7 @@
 - 상태는 `open / in progress / blocked / closed`만 쓴다.
 - 베타라고 부르기 전까지는 `B0-*`가 전부 닫혀야 한다.
 - `B1-*`는 베타 신뢰도 티켓이지만, 외부 공개 직전에는 사실상 같이 닫는 것이 맞다.
+- 구조 debt가 beta 이후에 폭발할 가능성이 있으면 기능 티켓보다 우선한다.
 
 ## B0 Tickets
 
@@ -172,25 +173,28 @@ Current execution truth override:
 - diagnostics가 `generic subject / expected / actual / broken bound / consumer path / fix`를 포함한다.
 - broader generic generalization은 beta-out-of-scope로 문서에 남는다.
 
-### B0-09. own/ref anchored subset freeze
+### B0-09. own/ref general closure freeze
 
 목표:
 
-- own/ref를 일반 ownership system처럼 보이게 하지 않고 anchored subset contract로 고정한다.
+- own/ref를 일반 타입까지 닫힌 규칙으로 고정하고, 남은 미닫힘 표면은 explicit reject로 분리한다.
 
 stable subset:
 
-- `ref Slot<subject-host>`
-- `own SecureSlot<subject-host>`
+- copy-only value의 trivial own/ref
+- boundary-visible aggregate own/ref
+- slot handle own/ref
+- subject/class/object aggregate path
 
 explicit reject:
 
-- non-anchored/general value type own/ref
+- `Token<T>` 같은 authority-bearing explicit reject
+- 아직 semantic contract를 닫지 못한 surface의 임시 partial acceptance 금지
 
 완료 조건:
 
-- semantic diagnostics, examples, docs wording, backend behavior가 anchored subset 기준으로 일치한다.
-- unsupported general ownership path는 explicit reject가 된다.
+- semantic diagnostics, examples, docs wording, backend behavior가 general own/ref 기준으로 일치한다.
+- unsupported surface는 explicit reject가 되고, parser-accepted surface를 조용히 약화하지 않는다.
 
 ### B0-10. Frozen subset backend parity suite
 
@@ -203,7 +207,7 @@ explicit reject:
 - intent/zone/world
 - relation/effect/projection
 - generic contract stable subset
-- own/ref anchored subset
+- own/ref general stable subset
 
 완료 조건:
 
@@ -222,6 +226,25 @@ explicit reject:
 - zone/world/relation/effect/intent declaration emission이 MIR inventory 기준으로 설명 가능하다.
 - fallback comment나 silent recovery가 explicit backend error 또는 explicit unsupported로 바뀐다.
 - pain point 고정 이전에 리팩터 범위를 넓히지 않는다.
+
+### B0-12. Arena + lifetime discipline bootstrap
+
+목표:
+
+- beta 전에 arena/lifetime 규칙을 문서와 구현 둘 다에서 고정한다.
+
+범위:
+
+- transpiler scratch arena
+- semantic scratch/result boundary
+- cache vs arena pointer 금지 규칙
+- index/stable handle cross-reference
+
+완료 조건:
+
+- `docs/94_arena_index_lifetime_plan.md`의 규칙이 TODO/master board와 일치한다.
+- 최소 1개 vertical slice가 실제 코드에 들어간다.
+- cache가 arena-owned pointer를 장기 저장하지 않는다는 규칙이 코드 리뷰 기준으로 고정된다.
 
 ## B1 Tickets
 

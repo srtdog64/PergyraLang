@@ -1,6 +1,6 @@
 # Pergyra Beta Closure Master Board
 
-마지막 업데이트: 2026-04-20
+마지막 업데이트: 2026-04-22
 
 ## 목적
 
@@ -12,6 +12,8 @@
 - `부분 구현`을 stable surface로 남기지 않는다
 - 새 ontology/키워드를 늘리기보다 기존 surface를 닫는다
 - 조용한 fallback보다 explicit contract와 explicit failure를 우선한다
+- beta 전에는 기능 추가보다 구조 debt 제거를 우선한다
+- beta 이후에 debt가 터지는 구조는 지금 blocker로 본다
 
 ## 현재 판정
 
@@ -19,7 +21,7 @@
 - 베타 진행률 추정: `약 86%`
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
-  - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure`다
+  - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt`다
 
 ## Beta Acceptance Line
 
@@ -32,6 +34,7 @@
 5. semantic type resolution이 ad-hoc recursive lookup만이 아니라 graph inventory / cycle diagnostic 기준으로 닫히기 시작한다
 6. Linux/Windows CI가 parser/semantic/transpile/abi/backend-compare/example-smoke까지 녹색이다
 7. 문서가 구현보다 앞서가지 않는다
+8. scratch/result lifetime과 cache boundary가 문서/구현 기준으로 설명 가능하다
 
 ## Master Status Board
 
@@ -43,6 +46,7 @@
 | B0-4 own/ref | 진행 중 | 84% | 차단 | copy-value/general aggregate/slot-handle surface는 semantic에서 실제로 넓게 닫혔고 constructor field store, transitive helper return, nested projection provenance 회귀도 추가됐다. 이제 broader assignment/container/rebind/helper-chain 조합과 남은 transitive edge wording 정렬이 남음 |
 | MIR-only declaration debt | 진행 중 | 82% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했다. MIR emit state restore도 helper로 묶였지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
 | Type-resolution DAG | 진행 중 | 66% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
+| Arena / lifetime discipline | 진행 중 | 20% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 아직 규칙 문서화만 끝났고 vertical slice 구현은 시작 전이다 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
 | surface trust docs | 진행 중 | 87% | 차단 | 주요 surface는 정렬됐고 own/ref baseline도 넓어졌지만 B0 잔여에 맞춘 최종 재분류와 acceptance wording 고정이 남음 |
@@ -60,6 +64,23 @@
   - Case 1 (uninit local) HIGH divergence는 semantic 레벨 차단으로 **해소** (`PGY_CODE_SEM_UNINIT_LOCAL`): 함수-바디 `let x: T;` 거부. 관련 회귀 3종 추가
   - Case 2 (C backend aggregate fallback) 경로 `L815`는 `transpiler_c_type_uses_scalar_zero` helper로 scalar/aggregate 분기. defense in depth
   - Case 3 (slot claim) MEDIUM 비대칭은 **의도된 비대칭으로 확정** — runtime observability 확장 시 재감사
+- arena 방향 고정 — `docs/94_arena_index_lifetime_plan.md`
+  - `Arena + Index 참조 + 역할별 arena 분리` 채택
+  - cache에 arena-owned pointer 저장 금지
+  - beta 전에 첫 vertical slice를 반드시 착수
+
+## Debt-first Scheduling Rule
+
+beta 직전 운영 규칙:
+
+1. 의미론/백엔드 bug fix
+2. declaration-side MIR-only debt 제거
+3. own/ref / generic / provenance closure
+4. parity / CI closure
+5. arena/lifetime debt vertical slice
+6. 문서/예제/source-of-truth 정렬
+
+즉, 기능이 조금 더 늘어나는 것보다 “베타 이후에 구조 debt가 폭발하지 않게 만드는 것”을 우선한다.
 
 ## Structural Closure — Type-resolution DAG
 

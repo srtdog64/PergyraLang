@@ -124,7 +124,6 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         && mir_routine->kind == MIR_SCOPE_METHOD;
     const char *owner_name = is_method ? mir_routine->owner_name : NULL;
     ASTNodeType owner_ast_type = is_method ? mir_routine->owner_ast_type : AST_PROGRAM;
-    const char *owner_zone_name = NULL;
     const char *owner_role_subject_name = NULL;
     const char *owner_role_subject_c_type = NULL;
     bool owner_is_zone = false;
@@ -146,30 +145,20 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     }
 
     if (owner_name != NULL) {
-        if (owner_ast_type == AST_ZONE_DECL) {
-            owner_zone_name = owner_name;
-        }
-        owner_is_zone = owner_zone_name != NULL;
+        owner_is_zone = owner_ast_type == AST_ZONE_DECL;
         if (owner_is_role) {
-            ASTNode *role_decl = transpiler_find_decl_in_active_inventory_only_local(
-                ctx, AST_ROLE_DECL, owner_name);
-            if (role_decl != NULL
-                && role_decl->type == AST_ROLE_DECL
-                && role_decl->data.role_decl.for_type != NULL
-                && role_decl->data.role_decl.for_type->type == AST_TYPE
-                && role_decl->data.role_decl.for_type->data.type.name != NULL) {
-                owner_role_subject_name =
-                    role_decl->data.role_decl.for_type->data.type.name;
+            owner_role_subject_name =
+                transpiler_role_subject_name_local(ctx, owner_name);
+            if (owner_role_subject_name != NULL)
                 owner_role_subject_c_type =
                     pergyra_type_to_c(owner_role_subject_name);
-            }
         }
     }
 
     if (owner_is_role) {
         if (owner_role_subject_name != NULL) {
-            resolved_host_decl = transpiler_find_decl_in_active_inventory_only_local(
-                ctx, AST_CLASS_DECL, owner_role_subject_name);
+            resolved_host_decl = transpiler_find_host_decl_from_owner_local(
+                ctx, owner_name, owner_ast_type);
         }
     } else if (owner_name != NULL) {
         resolved_host_decl = transpiler_find_host_decl_from_owner_local(
@@ -336,12 +325,12 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                         zone_decl->data.zone_decl.authorities[0]
                             ->data.zone_authority.subject_slot_name;
                     if (auth_slot != NULL) {
-                        char *participant_expr = strdup_fmt("&self->%s", auth_slot);
+                        char *participant_expr =
+                            transpiler_scratch_fmt(ctx, "&self->%s", auth_slot);
                         write_indent(ctx);
                         codebuf_write(ctx->out,
                             "PGY_ZONE_AUTHORITY_CHECK(self, %s, \"%s\", \"%s\");\n",
-                            participant_expr, owner_zone_name, auth_slot);
-                        free(participant_expr);
+                            participant_expr, owner_name, auth_slot);
                     }
                 }
             }

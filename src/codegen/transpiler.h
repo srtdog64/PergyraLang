@@ -156,6 +156,10 @@ typedef struct
     char          last_nominal_host_name[128];
     const MIRProgram *last_nominal_host_mir;
     ASTNode      *last_nominal_host_decl;
+    char          last_nominal_method_host_name[128];
+    char          last_nominal_method_name[128];
+    const MIRProgram *last_nominal_method_mir;
+    ASTNode      *last_nominal_method_decl;
 
     /* Counter for unique parallel wrapper function names */
     unsigned int  parallel_id;
@@ -184,8 +188,8 @@ typedef struct
     bool        loop_continue_label_used[TRANSPILE_MAX_LOOP_DEPTH];
     int         loop_depth;
 
-    /* Memory arena for expression string allocation.
-     * Strings allocated here are freed in bulk at context destruction. */
+    /* Scratch arena for transpiler-local temporary strings.
+     * Long-lived caches/metadata must not retain pointers from here. */
     PgyArena arena;
 
     /* Active generic bindings while emitting a monomorphized function. */

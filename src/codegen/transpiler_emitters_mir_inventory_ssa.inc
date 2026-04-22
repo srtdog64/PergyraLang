@@ -926,7 +926,7 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
         return false;
     host_decl = transpiler_current_host_decl_local(ctx);
     in_zone_context = (host_decl != NULL && host_decl->type == AST_ZONE_DECL);
-    host_name = current_host_decl_name(ctx);
+    host_name = transpiler_decl_name_local(host_decl);
     if (current_class_has_field(ctx, base_name))
         return true;
     if (current_relation_has_field(ctx, base_name))

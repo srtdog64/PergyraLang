@@ -76,7 +76,6 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, value_expr);
     }
 
-    free(slot_ref);
     free(slot_expr);
     free(value_expr);
     return result;
@@ -195,7 +194,6 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
         result = strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
     }
 
-    free(slot_ref);
     free(slot_expr);
     return result;
 }
@@ -252,7 +250,6 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
         }
     }
 
-    free(slot_ref);
     free(slot_expr);
     return result;
 }
@@ -3223,7 +3220,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             const char *type_name = resolve_nominal_host_expr_type_name(ctx, obj);
             if (type_name != NULL && is_nominal_host_type_name(ctx, type_name)) {
                 CodeBuf *args_buf = codebuf_create();
-                char *owned_type_name = pergyra_strdup(type_name);
+                const char *owned_type_name = type_name;
                 bool use_self_cell = is_pointer_self_host_type_name(ctx, owned_type_name);
                 bool is_self_ident = (obj->type == AST_IDENTIFIER
                     && obj->data.identifier.name != NULL
@@ -3410,7 +3407,6 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                                         inner, slot_ref, val_expr);
                 }
                 free(val_expr);
-                free(slot_ref);
                 free(obj_expr);
                 return result;
             } else if (strcmp(method, "Read") == 0) {
@@ -3429,7 +3425,6 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 } else {
                     result = strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
                 }
-                free(slot_ref);
                 free(obj_expr);
                 return result;
             } else if (strcmp(method, "Release") == 0) {
@@ -3456,11 +3451,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         break;
                     }
                 }
-                free(slot_ref);
                 free(obj_expr);
                 return result;
             }
-            free(slot_ref);
             free(obj_expr);
         }
 
@@ -3513,8 +3506,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
 
     /* User function call */
     if (callee->type == AST_IDENTIFIER) {
+        ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
         ASTNode *host_method = current_host_method_decl(ctx, callee->data.identifier.name);
-        const char *host_name = current_host_decl_name(ctx);
+        const char *host_name = transpiler_decl_name_local(host_decl);
         if (host_method != NULL && host_name != NULL) {
             CodeBuf *args_buf = codebuf_create();
             codebuf_write(args_buf, "self");
@@ -3597,7 +3591,6 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 if (slot_name != NULL) {
                     char *slot_ref = slot_ref_expr(ctx, slot_name, arg);
                     codebuf_write(args_buf, "%s", slot_ref);
-                    free(slot_ref);
                     if (secure_param)
                         codebuf_write(args_buf, ", %s_token", slot_name);
                     handled = true;
@@ -3995,7 +3988,6 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 ? strdup_fmt("pgy_secure_read_%s(%s, &%s)",
                               inner, slot_ref, token_name)
                 : strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
-            free(slot_ref);
             return result;
         }
         {
@@ -4204,7 +4196,6 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     result = strdup_fmt("pgy_write_%s(%s, %s)",
                         inner, slot_ref, value);
                 }
-                free(slot_ref);
                 free(value);
                 return result;
             }
