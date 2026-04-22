@@ -26,7 +26,8 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
         if (refresh == NULL)
             continue;
         ok = type_check_projection_contract(node->data.effect_decl.slots,
-            node->data.effect_decl.slot_count, "Effect", refresh,
+            node->data.effect_decl.slot_count, "Effect",
+            node->data.effect_decl.name, refresh,
             refresh->data.zone_refresh.object_slot_name,
             refresh->data.zone_refresh.source_slot_name, ctx,
             action_name) && ok;

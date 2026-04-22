@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../common/arena.h"
 #include "../runtime/pgy_abi_spec.h"
 
 #include "mir_base.inc"
@@ -1016,15 +1017,21 @@ mir_apply_ssa_rename(MIRRoutine *routine)
     if (routine == NULL || routine->hir_routine == NULL || !routine->hir_routine->has_cfg)
         return true;
 
+    /* Outer SSA-rename tables are pass-local scratch and live in this
+     * MIRRoutine's own scratch arena.  Per-block inner out_versions[i]
+     * arrays are still heap-owned by mir_assign_ssa_recursive and freed
+     * below.  ssa_names is owned by mir_collect_ssa_names and is likewise
+     * freed at the end.  NOTE: we deliberately do NOT allocate into
+     * routine->hir_routine->scratch — HIR is frozen by the time MIR runs. */
     if (!mir_collect_ssa_names(routine, &ssa_names, &ssa_name_count))
         goto cleanup;
     if (ssa_name_count == 0) {
         ok = true;
         goto cleanup;
     }
-    next_versions = calloc(ssa_name_count, sizeof(size_t));
-    root_versions = calloc(ssa_name_count, sizeof(size_t));
-    out_versions = calloc(routine->block_count, sizeof(size_t *));
+    next_versions = pgy_arena_calloc(&routine->scratch, ssa_name_count * sizeof(size_t));
+    root_versions = pgy_arena_calloc(&routine->scratch, ssa_name_count * sizeof(size_t));
+    out_versions  = pgy_arena_calloc(&routine->scratch, routine->block_count * sizeof(size_t *));
     if (next_versions == NULL || root_versions == NULL || out_versions == NULL)
         goto cleanup;
 
@@ -1046,9 +1053,8 @@ cleanup:
         for (size_t i = 0; i < routine->block_count; i++)
             free(out_versions[i]);
     }
-    free(out_versions);
-    free(root_versions);
-    free(next_versions);
+    /* next_versions / root_versions / out_versions outer array are
+     * routine->scratch-owned; destroyed in mir_destroy(). */
     free((void *)ssa_names);
     return ok;
 }

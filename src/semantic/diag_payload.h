@@ -60,6 +60,22 @@ typedef struct DiagPayload
     const char *extra;
 } DiagPayload;
 
+/* Stable, result-owned snapshot of a DiagPayload.
+ * All strings are owned copies so the snapshot can outlive scratch
+ * formatting/storage used while constructing the diagnostic. */
+struct DiagnosticPayloadSnapshot
+{
+    char *value_label;
+    char *provenance_label;
+    char *replacement_label;
+    char *transfer_label;
+    char *borrowed_name;
+    char *consumer_name;
+    char *secondary_name;
+    char *kind_label;
+    char *extra;
+};
+
 static inline void
 diag_payload_init(DiagPayload *p)
 {
@@ -90,5 +106,11 @@ diag_payload_init(DiagPayload *p)
 void semantic_emit_payload(SemanticContext *ctx,
                            const DiagPayload *p,
                            const char *fmt, ...);
+
+DiagnosticPayloadSnapshot *
+diag_payload_snapshot_create(const DiagPayload *p);
+
+void
+diag_payload_snapshot_destroy(DiagnosticPayloadSnapshot *snapshot);
 
 #endif /* PGY_DIAG_PAYLOAD_H */

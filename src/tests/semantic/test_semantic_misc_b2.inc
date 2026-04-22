@@ -2020,6 +2020,10 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "is not a projection slot"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "target slot 'wrong' on Zone 'BattleZone'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "source slot 'player' is driving this bind path"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
@@ -2055,6 +2059,10 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "target slot 'playerView' must be a tobject slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "target slot 'playerView' on Zone 'BattleZone'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "source slot 'player' is driving this publish path"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -2096,6 +2104,10 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "target field 'hp' is ambiguous in source slot 'player'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "target projection declaration is 'PlayerView'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -2212,6 +2224,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "target slot 'monster' has type 'Monster'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "zone slot 'monster' is bound to effect slot 'poison'"));
@@ -2252,6 +2266,8 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "right slot 'villain' has type 'Villain'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Contract source:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,

@@ -496,7 +496,10 @@ check_match_redundancy(ASTNode *node, Type *subj_type, SemanticContext *ctx)
         || variants == NULL || variant_count == 0)
         return;
 
-    seen = calloc(variant_count, sizeof(bool));
+    /* Coverage tracker is pass-local scratch: populated per case, read for
+     * redundancy diagnostics, discarded on function exit. */
+    seen = pgy_arena_calloc(&ctx->scratch_arena,
+        variant_count * sizeof(bool));
     if (seen == NULL)
         return;
 
@@ -531,8 +534,7 @@ check_match_redundancy(ASTNode *node, Type *subj_type, SemanticContext *ctx)
      * Users may write default as a safety net against future enum expansion. */
     (void)covered;
     (void)variant_count;
-
-    free(seen);
+    /* seen is arena-owned. */
 }
 
 static void

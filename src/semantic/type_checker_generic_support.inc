@@ -47,6 +47,59 @@ format_generic_subject_signature(const char *name, GenericParams *params)
     return result;
 }
 
+static const char *
+format_generic_subject_signature_scratch(SemanticContext *ctx,
+                                         const char *name,
+                                         GenericParams *params)
+{
+    size_t total_len;
+    char *result;
+    char *cursor;
+
+    if (ctx == NULL)
+        return format_generic_subject_signature(name, params);
+    if (name == NULL)
+        return pgy_arena_strdup(&ctx->scratch_arena, "<generic>");
+    if (params == NULL || params->count == 0)
+        return pgy_arena_strdup(&ctx->scratch_arena, name);
+
+    total_len = strlen(name) + 2;
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam *gp = params->params[i];
+        const char *param_name =
+            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+        total_len += strlen(param_name);
+        if (i + 1 < params->count)
+            total_len += 2;
+    }
+
+    result = pgy_arena_alloc(&ctx->scratch_arena, total_len + 1);
+    if (result == NULL)
+        return pgy_arena_strdup(&ctx->scratch_arena, name);
+
+    cursor = result;
+    memcpy(cursor, name, strlen(name));
+    cursor += strlen(name);
+    *cursor++ = '<';
+
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam *gp = params->params[i];
+        const char *param_name =
+            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+
+        memcpy(cursor, param_name, strlen(param_name));
+        cursor += strlen(param_name);
+        if (i + 1 < params->count) {
+            memcpy(cursor, ", ", 2);
+            cursor += 2;
+        }
+    }
+    *cursor++ = '>';
+    *cursor = '\0';
+
+    return result;
+}
+
 static char *
 format_effective_generic_type_list(const char *name, Type **types, size_t count)
 {
@@ -72,6 +125,60 @@ format_effective_generic_type_list(const char *name, Type **types, size_t count)
     result = malloc(total_len + 1);
     if (result == NULL)
         return tc_strdup_fmt("%s", name);
+
+    cursor = result;
+    memcpy(cursor, name, strlen(name));
+    cursor += strlen(name);
+    *cursor++ = '<';
+
+    for (size_t i = 0; i < count; i++) {
+        const char *type_name =
+            (types[i] != NULL && types[i]->name != NULL)
+                ? types[i]->name : "<type>";
+
+        memcpy(cursor, type_name, strlen(type_name));
+        cursor += strlen(type_name);
+        if (i + 1 < count) {
+            memcpy(cursor, ", ", 2);
+            cursor += 2;
+        }
+    }
+    *cursor++ = '>';
+    *cursor = '\0';
+
+    return result;
+}
+
+static const char *
+format_effective_generic_type_list_scratch(SemanticContext *ctx,
+                                           const char *name,
+                                           Type **types,
+                                           size_t count)
+{
+    size_t total_len;
+    char *result;
+    char *cursor;
+
+    if (ctx == NULL)
+        return format_effective_generic_type_list(name, types, count);
+    if (name == NULL)
+        return pgy_arena_strdup(&ctx->scratch_arena, "<generic>");
+    if (types == NULL || count == 0)
+        return pgy_arena_strdup(&ctx->scratch_arena, name);
+
+    total_len = strlen(name) + 2;
+    for (size_t i = 0; i < count; i++) {
+        const char *type_name =
+            (types[i] != NULL && types[i]->name != NULL)
+                ? types[i]->name : "<type>";
+        total_len += strlen(type_name);
+        if (i + 1 < count)
+            total_len += 2;
+    }
+
+    result = pgy_arena_alloc(&ctx->scratch_arena, total_len + 1);
+    if (result == NULL)
+        return pgy_arena_strdup(&ctx->scratch_arena, name);
 
     cursor = result;
     memcpy(cursor, name, strlen(name));

@@ -449,9 +449,10 @@ lookup_slot_is_indirect(TranspilerCtx *ctx, const char *var_name)
 static char *
 slot_ref_expr(TranspilerCtx *ctx, const char *slot_name, const char *slot_expr)
 {
+    (void)ctx;
     if (slot_name != NULL && lookup_slot_is_indirect(ctx, slot_name))
-        return transpiler_scratch_strdup(ctx, slot_expr);
-    return transpiler_scratch_fmt(ctx, "&%s", slot_expr);
+        return pergyra_strdup(slot_expr);
+    return strdup_fmt("&%s", slot_expr);
 }
 
 static bool

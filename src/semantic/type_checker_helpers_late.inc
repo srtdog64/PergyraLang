@@ -746,12 +746,12 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     int param_index;
                     const char *param_name;
                     Type *concrete_type;
-                    char *actual_sig = format_effective_generic_type_list(
-                        display_name, effective_generic_types, decl_gp->count);
+                    const char *actual_sig =
+                        format_effective_generic_type_list_scratch(
+                            ctx, display_name, effective_generic_types, decl_gp->count);
 
                     if (tc == NULL || tc->type_param == NULL)
                     {
-                        free(actual_sig);
                         continue;
                     }
 
@@ -773,7 +773,6 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             param_name != NULL ? param_name : "<param>",
                             param_name != NULL ? param_name : "<param>",
                             display_name);
-                        free(actual_sig);
                         continue;
                     }
                     concrete_type = effective_generic_types[param_index];
@@ -792,7 +791,6 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             param_name != NULL ? param_name : "<param>",
                             param_name != NULL ? param_name : "<param>",
                             param_name != NULL ? param_name : "<param>");
-                        free(actual_sig);
                         continue;
                     }
                     /* Check each bound */
@@ -820,7 +818,6 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         }
                         free(bounds_text);
                     }
-                    free(actual_sig);
                 }
                 free(expected_sig);
                 free(effective_generic_types);

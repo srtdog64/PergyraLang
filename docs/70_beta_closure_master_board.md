@@ -46,7 +46,7 @@
 | B0-4 own/ref | 진행 중 | 84% | 차단 | copy-value/general aggregate/slot-handle surface는 semantic에서 실제로 넓게 닫혔고 constructor field store, transitive helper return, nested projection provenance 회귀도 추가됐다. 이제 broader assignment/container/rebind/helper-chain 조합과 남은 transitive edge wording 정렬이 남음 |
 | MIR-only declaration debt | 진행 중 | 82% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했다. MIR emit state restore도 helper로 묶였지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
 | Type-resolution DAG | 진행 중 | 66% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
-| Arena / lifetime discipline | 진행 중 | 20% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 아직 규칙 문서화만 끝났고 vertical slice 구현은 시작 전이다 |
+| Arena / lifetime discipline | 진행 중 | 60% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 규칙 문서화는 끝났고 transpiler scratch-only temporary의 첫 safe vertical slice, semantic result-owned diagnostic payload seam, semantic scratch arena가 ownership path 조립 / stdlib preload / enum method mangling / parallel task metadata / type-resolution cycle detection / match redundancy coverage까지 확장됐다. HIR/MIR에도 routine-scope `scratch` arena를 도입해 dominance/loop/SSA rename 3 pass가 같은 arena 를 재사용한다. 반환 ownership이 섞인 helper와 transpiler ctx-level scratch 확장은 아직 남아 있다 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
 | surface trust docs | 진행 중 | 87% | 차단 | 주요 surface는 정렬됐고 own/ref baseline도 넓어졌지만 B0 잔여에 맞춘 최종 재분류와 acceptance wording 고정이 남음 |
@@ -67,6 +67,18 @@
 - arena 방향 고정 — `docs/94_arena_index_lifetime_plan.md`
   - `Arena + Index 참조 + 역할별 arena 분리` 채택
   - cache에 arena-owned pointer 저장 금지
+  - transpiler scratch-only temporary의 첫 vertical slice 완료
+    - zone authority temp
+    - intent priority default literal
+    - projection refresh `source_expr`
+    - event declaration `event_type`
+  - semantic diagnostics result seam 1차 도입
+    - `DiagPayload` emit 경로는 result-owned payload snapshot을 `Diagnostic`에 보존
+    - semantic JSON 출력은 payload field를 함께 노출 가능
+  - semantic scratch arena 1차 도입
+    - `SemanticContext`에 scratch arena 추가
+    - ownership diagnostic path string은 scratch arena에서 조립
+  - `slot_ref_expr(...)` 같은 반환 string helper는 아직 전환 보류
   - beta 전에 첫 vertical slice를 반드시 착수
 
 ## Debt-first Scheduling Rule

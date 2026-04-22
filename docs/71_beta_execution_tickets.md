@@ -237,6 +237,7 @@ explicit reject:
 
 - transpiler scratch arena
 - semantic scratch/result boundary
+- semantic result-owned diagnostic payload seam
 - cache vs arena pointer 금지 규칙
 - index/stable handle cross-reference
 
@@ -244,6 +245,7 @@ explicit reject:
 
 - `docs/94_arena_index_lifetime_plan.md`의 규칙이 TODO/master board와 일치한다.
 - 최소 1개 vertical slice가 실제 코드에 들어간다.
+- `DiagPayload` emit 경로가 result-owned snapshot으로 보존되어 scratch formatting과 result-visible structured data가 분리되기 시작한다.
 - cache가 arena-owned pointer를 장기 저장하지 않는다는 규칙이 코드 리뷰 기준으로 고정된다.
 
 ## B1 Tickets

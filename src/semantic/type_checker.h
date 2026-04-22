@@ -10,6 +10,7 @@
 
 #include <stdbool.h>
 #include "../parser/ast.h"
+#include "../common/arena.h"
 #include "../semantic/type_system.h"
 #include "../semantic/symbol_table.h"
 
@@ -23,6 +24,7 @@
 /* Forward declarations */
 typedef struct SemanticContext SemanticContext;
 typedef struct Diagnostic      Diagnostic;
+typedef struct DiagnosticPayloadSnapshot DiagnosticPayloadSnapshot;
 typedef struct TypeResolutionNode TypeResolutionNode;
 typedef struct TypeResolutionEdge TypeResolutionEdge;
 typedef struct TypeResolutionGraph TypeResolutionGraph;
@@ -72,6 +74,7 @@ struct Diagnostic
      *                  without breaking tooling that routes on this tag. */
     const char*     cause_ir;
     const char*     fix_source;
+    DiagnosticPayloadSnapshot *payload; /* owned; optional structured payload snapshot */
 };
 
 typedef enum
@@ -136,6 +139,7 @@ struct SemanticContext
     Diagnostic** diagnostics;
     size_t       diagnostic_count;
     size_t       diagnostic_capacity;
+    PgyArena     scratch_arena;
 
     char**       embedded_world_zone_names;
     char**       embedded_world_zone_world_names;

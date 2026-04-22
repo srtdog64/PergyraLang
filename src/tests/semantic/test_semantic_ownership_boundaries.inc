@@ -18,7 +18,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("ref QubitSlot parameter cannot escape via return");
+    TEST("ref QubitSlot parameter cannot escape through return");
     {
         const char *source =
             "func Echo(ref q: QubitSlot) -> QubitSlot {\n"
@@ -32,7 +32,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref slot handle (movable) 'q' cannot escape via return"));
+            "Borrowed ref slot handle (movable) 'q' cannot escape through return"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -460,7 +460,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("ref class parameter cannot escape via return");
+    TEST("ref class parameter cannot escape through return");
     {
         const char *source =
             "class Packet {\n"
@@ -477,7 +477,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'packet' cannot escape via return"));
+            "Borrowed ref boundary value 'packet' cannot escape through return"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -674,7 +674,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("ref subject parameter cannot escape via return");
+    TEST("ref subject parameter cannot escape through return");
     {
         const char *source =
             "subject Hero {\n"
@@ -691,7 +691,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref subject 'hero' cannot escape via return"));
+            "Borrowed ref subject 'hero' cannot escape through return"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1351,6 +1351,110 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Borrowed ref boundary value 'cargo' cannot escape through array store"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "from 'cargo.wrapper.packet'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary aggregate parameter reports nested projection path on helper return summary");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "class Wrapper {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "class Cargo {\n"
+            "    let wrapper: Wrapper;\n"
+            "}\n"
+            "func ReturnPacket(ref packet: Packet) -> Packet {\n"
+            "    return packet;\n"
+            "}\n"
+            "func BorrowReturn(ref cargo: Cargo) -> Void {\n"
+            "    let packet = ReturnPacket(cargo.wrapper.packet);\n"
+            "    Log(packet.size);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'cargo' cannot escape through helper/function call to 'ReturnPacket'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "from 'cargo.wrapper.packet'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary aggregate parameter reports nested projection path on direct return");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "class Wrapper {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "class Cargo {\n"
+            "    let wrapper: Wrapper;\n"
+            "}\n"
+            "func BorrowDirectReturn(ref cargo: Cargo) -> Packet {\n"
+            "    return cargo.wrapper.packet;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'cargo' cannot escape through return"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "from 'cargo.wrapper.packet'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary aggregate parameter reports nested projection path on channel send");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "class Wrapper {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "class Cargo {\n"
+            "    let wrapper: Wrapper;\n"
+            "}\n"
+            "func BorrowSend(ref cargo: Cargo) -> Void {\n"
+            "    let ch: Channel<Packet> = ChannelNew(4);\n"
+            "    ch <- cargo.wrapper.packet;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'cargo' cannot escape through channel send"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "from 'cargo.wrapper.packet'"));
 

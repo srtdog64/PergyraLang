@@ -26,7 +26,8 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         if (refresh == NULL)
             continue;
         ok = type_check_projection_contract(node->data.relation_decl.slots,
-            node->data.relation_decl.slot_count, "Relation", refresh,
+            node->data.relation_decl.slot_count, "Relation",
+            node->data.relation_decl.name, refresh,
             refresh->data.zone_refresh.object_slot_name,
             refresh->data.zone_refresh.source_slot_name, ctx,
             action_name) && ok;

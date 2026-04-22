@@ -140,6 +140,35 @@ fi
 check_json "slot-released-code" "$SLOT_ERR" \
   'isinstance(data, list) and any(d.get("code") == "PGY_SEM_SLOT_RELEASED" for d in data)'
 
+# --- case 2d: payload-bearing ownership diagnostic exports structured payload ---
+OWN_SRC="$WORK_DIR/own_payload.pgy"
+cat > "$OWN_SRC" <<'EOF'
+class Packet {
+    let id: Int;
+}
+
+class Wrapper {
+    let packet: Packet;
+}
+
+class Cargo {
+    let wrapper: Wrapper;
+}
+
+func Leak(ref cargo: Cargo) -> Void {
+    let alias = cargo.wrapper.packet;
+    Log(alias.id);
+}
+EOF
+OWN_ERR="$WORK_DIR/own_payload.err"
+if "$PGY" "$OWN_SRC" --backend=c --error-format=json 2>"$OWN_ERR"; then
+    echo "[diag-json] own-payload: FAIL — expected non-zero exit" >&2
+    cat "$OWN_ERR" >&2
+    exit 1
+fi
+check_json "own-payload" "$OWN_ERR" \
+  'isinstance(data, list) and any(d.get("code") == "PGY_SEM_BORROW_ESCAPE" and isinstance(d.get("payload"), dict) and d["payload"].get("borrowed_name") == "cargo" and d["payload"].get("consumer_name") == "Leak" for d in data)'
+
 # --- case 2c: LLVM spec limit → stage=llvm_codegen + PGY_LLVM_SPEC_LIMIT ---
 # Only runs if the LLVM backend is available. 33 distinct Result<Int, E> error
 # enums overflow MAX_LLVM_RESULT_SPECS=32. The error surfaces from inside LLVM

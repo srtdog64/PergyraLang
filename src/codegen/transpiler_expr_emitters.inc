@@ -76,6 +76,7 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, value_expr);
     }
 
+    free(slot_ref);
     free(slot_expr);
     free(value_expr);
     return result;
@@ -194,6 +195,7 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
         result = strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
     }
 
+    free(slot_ref);
     free(slot_expr);
     return result;
 }
@@ -250,6 +252,7 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
         }
     }
 
+    free(slot_ref);
     free(slot_expr);
     return result;
 }
@@ -3357,10 +3360,8 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         free(ret_type_name);
                         free(invalidation);
                         free(result);
-                        free(owned_type_name);
                         return wrapped;
                     }
-                    free(owned_type_name);
                     return result;
                 }
             }
@@ -3407,6 +3408,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                                         inner, slot_ref, val_expr);
                 }
                 free(val_expr);
+                free(slot_ref);
                 free(obj_expr);
                 return result;
             } else if (strcmp(method, "Read") == 0) {
@@ -3425,6 +3427,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 } else {
                     result = strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
                 }
+                free(slot_ref);
                 free(obj_expr);
                 return result;
             } else if (strcmp(method, "Release") == 0) {
@@ -3451,9 +3454,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         break;
                     }
                 }
+                free(slot_ref);
                 free(obj_expr);
                 return result;
             }
+            free(slot_ref);
             free(obj_expr);
         }
 
@@ -3591,6 +3596,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 if (slot_name != NULL) {
                     char *slot_ref = slot_ref_expr(ctx, slot_name, arg);
                     codebuf_write(args_buf, "%s", slot_ref);
+                    free(slot_ref);
                     if (secure_param)
                         codebuf_write(args_buf, ", %s_token", slot_name);
                     handled = true;
@@ -3988,6 +3994,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 ? strdup_fmt("pgy_secure_read_%s(%s, &%s)",
                               inner, slot_ref, token_name)
                 : strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
+            free(slot_ref);
             return result;
         }
         {
@@ -4196,6 +4203,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     result = strdup_fmt("pgy_write_%s(%s, %s)",
                         inner, slot_ref, value);
                 }
+                free(slot_ref);
                 free(value);
                 return result;
             }

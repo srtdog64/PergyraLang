@@ -1,6 +1,6 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-20
+마지막 업데이트: 2026-04-22
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
@@ -157,21 +157,35 @@
   - Pergyra는 early-return/fail path와 pass-local scratch data가 많아서, 단일 arena보다 역할/수명별 arena 분리가 디버깅과 reset 비용 면에서 낫다
   - 즉, `Arena + Index 참조 + 타입별 arena 분리`가 지금 구조 debt를 줄이는 가장 보수적이고 안정적인 방향이다
 - 준비 작업:
-  - [ ] `scratch arena` / `result arena` lifetime 규칙 문서화
-  - [ ] arena 간 cross-reference를 `index` / stable handle 기준으로 문서화
-  - [ ] `TranspilerCtx` scratch arena 적용 범위 확정
+  - [x] `scratch arena` / `result arena` lifetime 규칙 문서화
+  - [x] arena 간 cross-reference를 `index` / stable handle 기준으로 문서화
+  - [x] `TranspilerCtx` scratch arena 적용 범위 확정
   - [ ] semantic analyze pass용 scratch arena 도입 지점 정리
   - [ ] diagnostic payload/result-owned arena 분리 여부 결정
   - [ ] 타입/역할별 arena 분할안 초안 작성
   - [ ] `strdup_fmt` / type render / projection path / generic formatter helper의 arena 전환 우선순위 작성
-  - [ ] cache에 arena-owned 포인터 저장 금지 규칙 문서화
+  - [x] cache에 arena-owned 포인터 저장 금지 규칙 문서화
   - [ ] 첫 vertical slice:
     - transpiler temporary strings
     - semantic diagnostic formatting scratch strings
     - type-name rendering scratch helpers
   - 진행: `docs/94_arena_index_lifetime_plan.md`로 방향 고정
   - 진행: `TranspilerCtx`의 `arena`를 scratch arena로 명시
-  - 진행: `slot_ref_expr(...)` 및 zone authority temporary expression을 transpiler scratch arena로 1차 전환
+  - 진행: transpiler scratch-only temporary 1차 vertical slice 완료
+    - zone authority temporary expression
+    - intent priority default literal
+    - projection refresh `source_expr`
+    - event declaration `event_type`
+  - 진행: semantic diagnostics result seam 1차 도입
+    - `Diagnostic`가 optional payload snapshot을 보존
+    - payload emit 경로는 result-owned snapshot으로 복사
+    - semantic JSON 출력도 payload 필드를 함께 노출 가능
+  - 진행: semantic scratch arena 1차 도입
+    - `SemanticContext`에 scratch arena 추가
+    - ownership diagnostic path string은 scratch arena를 우선 사용
+    - payload snapshot이 result로 복사하므로 helper 내부 free churn 제거
+  - 주의: 반환 계약이 있는 expression string은 아직 arena로 옮기지 않음
+  - 주의: `slot_ref_expr(...)` scratch 전환 시도는 되돌림. 반환 ownership 경계를 먼저 나눠야 함
 
 ### 최근 closure 진행 (2026-04-18)
 
@@ -196,6 +210,28 @@
   - `test-abi`: `84 passed, 0 failed`
   - `ci-linux`: full green 유지
   - LLVM expr/stmt host-helper 정리 이후에도 `test-transpile`, `test-abi` 재통과 확인
+
+### 최근 closure 진행 (2026-04-22)
+
+- arena scratch slice 3건 추가 흡수 — `docs/94_arena_index_lifetime_plan.md` 업데이트
+  - `semantic.c:50` `semantic_preload_stdlib_uses` 의 per-iteration `malloc/free` module path 조립을 function-local `PgyArena` 로 이동. 배치 alloc 하나로 수렴
+  - `type_checker.c:1109` enum method name mangling의 `malloc/snprintf/free` 를 `pgy_arena_fmt(&ctx->scratch_arena, ...)` 로 이동. `symbol_create_function` 이 이미 내부 `pergyra_strdup` 으로 이름을 복사하므로 arena 탈출 없음
+  - `slot_analyzer.c:1067` `slot_analyze_parallel_block` 의 outer task metadata 배열 3종 (`task_accesses`/`task_counts`/`task_caps`) 을 `sa->ctx->scratch_arena` 로 이동. per-task inner 배열은 여전히 `collect_slot_accesses` 가 heap-owned로 관리
+- arena scratch 2차 slice 추가 (같은 날)
+  - `type_checker.c:355` type resolution cycle detection 의 `visited`/`path` 배열 → `ctx->scratch_arena`. cycle text는 return-contract helper라 보류
+  - `type_checker_flow.c:499` match redundancy 의 `seen` 배열 → `ctx->scratch_arena`
+- arena scratch 3차 slice — HIR/MIR 첫 진입 (같은 날, 이후 4차에서 routine-scope로 통합됨)
+  - `hir.c:hir_compute_cfg_dominance` 의 `visited`/`postorder`/`idoms` 3배열 → function-local `PgyArena`
+  - `hir.c:hir_mark_natural_loop` 의 `in_loop`/`stack` 2배열 → function-local `PgyArena`
+  - `mir.c:mir_apply_ssa_rename` outer 3배열 → function-local `PgyArena`
+- arena scratch 4차 slice — **HIR/MIR routine-scope arena 도입** (같은 날)
+  - `hir.h` HIRRoutine / `mir.h` MIRRoutine 에 `PgyArena scratch` 필드 추가
+  - 생성: `hir_append_*`, `mir_lower` 루프 내 `memset` 직후 `pgy_arena_init(&routine.scratch, 0)`
+  - 파괴: `hir_destroy()` / `mir_destroy()` per-routine cleanup + OOM 경로 (배열 편입 실패 케이스)
+  - 3차에 function-local 로 시작한 3개 arena 를 모두 `&routine->scratch` 로 통합 → routine 하나당 init/destroy 한 번만. 여러 HIR/MIR pass 가 같은 arena 를 재사용
+  - MIR pass는 `routine->scratch` 만 씀. `routine->hir_routine->scratch` 는 HIR frozen 계약이라 접근 금지 (코멘트로 고정)
+- 원칙 유지: `scratch-only local temp 먼저, returned string 나중`. `slot_ref_expr(...)` 같은 반환 ownership 혼재 helper는 아직 보류
+- 베타 acceptance line #8 ("scratch/result lifetime과 cache boundary가 문서/구현 기준으로 설명 가능하다") 에 해당 slice 기여
 
 ### 최근 closure 진행 (2026-04-21)
 

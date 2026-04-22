@@ -1,6 +1,6 @@
 # Arena + Index Reference Lifetime Plan
 
-마지막 업데이트: 2026-04-22
+마지막 업데이트: 2026-04-22 (arena scratch slice 확장)
 
 ## 결론
 
@@ -182,6 +182,58 @@ Pergyra는 이미 다음 성격이 강하다.
 - transpiler temporary strings
 - semantic diagnostic formatting scratch strings
 - type render scratch helpers
+
+현재 상태:
+
+- transpiler scratch-only temporary는 첫 vertical slice가 시작됐고, 일부는 이미 전환됐다
+  - zone authority temporary expression
+  - intent priority default literal
+  - projection refresh `source_expr`
+  - event declaration `event_type`
+- semantic diagnostics 쪽도 첫 result seam이 들어갔다
+  - `DiagPayload` emit 경로는 이제 `Diagnostic`에 result-owned payload snapshot을 남긴다
+  - JSON 출력은 payload field를 함께 노출할 수 있다
+  - 즉, scratch formatting data와 result-visible structured data를 분리할 구조 훅이 생겼다
+- semantic scratch arena도 첫 실제 사용처가 생겼다
+  - `SemanticContext`가 scratch arena를 보유한다
+  - ownership diagnostic의 assignment/member/array path string은 scratch arena에서 조립된다
+  - result에 남겨야 하는 필드는 payload snapshot이 별도로 복사한다
+- 추가로 scratch-safe slice를 3개 더 흡수했다 (2026-04-22)
+  - `semantic_preload_stdlib_uses` 의 module path 조립은 function-local `PgyArena`로 이동
+    - per-iteration `malloc/free`를 batch arena alloc 하나로 대체
+    - path 문자열은 `import_resolver_load_program` 호출 후 재사용되지 않으므로 수명이 함수 내부에서 닫힌다
+  - enum method name mangling (`type_checker.c`) 는 `ctx->scratch_arena` 로 이동
+    - `symbol_create_function` 이 name을 내부에서 `pergyra_strdup` 하므로 mangled pointer는 함수 바깥으로 탈출하지 않는다
+  - `slot_analyze_parallel_block` 의 outer task metadata 배열 3종 (`task_accesses`, `task_counts`, `task_caps`) 은 `sa->ctx->scratch_arena` 로 이동
+    - per-task inner 배열은 `collect_slot_accesses` 가 여전히 heap-owned로 관리
+    - outer pointer array / counter array 만 arena-owned
+- 다시 scratch-safe slice 2개 추가 흡수 (2026-04-22, 2차)
+  - `semantic_type_resolution_record_named_dependency` 의 cycle-detection 작업 배열 (`visited`, `path`) 을 `ctx->scratch_arena` 로 이동
+    - 배열은 `type_resolution_find_path` 호출에만 사용되고 함수 밖으로 탈출하지 않는다
+    - cycle diagnostic 포맷 경로의 `cycle_text` 는 return-contract helper (`type_resolution_format_cycle`) 가 반환하므로 기존 heap-owned 그대로 유지 (이번 slice 범위 밖)
+  - `check_match_redundancy` 의 variant coverage tracker (`seen` bool 배열) 을 `ctx->scratch_arena` 로 이동
+    - 배열은 case 순회 동안만 쓰이고 함수 밖으로 탈출하지 않는다
+- HIR/MIR 쪽도 첫 slice 3개 흡수 (2026-04-22, 3차) — 이후 4차에서 routine-scope arena로 통합됨
+  - HIR/MIR에는 아직 context-scope arena가 없어서 `semantic_preload_stdlib_uses` 선례대로 함수-로컬 arena를 사용했다
+  - `hir.c:hir_compute_cfg_dominance` 의 `visited`/`postorder`/`idoms` 3배열 → function-local arena (이후 4차에서 `routine->scratch` 로 이동)
+  - `hir.c:hir_mark_natural_loop` 의 `in_loop`/`stack` 2배열 → function-local arena (이후 4차에서 `routine->scratch` 로 이동)
+  - `mir.c:mir_apply_ssa_rename` 의 outer `next_versions`/`root_versions`/`out_versions` 3배열 → function-local arena (이후 4차에서 `routine->scratch` 로 이동)
+
+- HIR/MIR 4차: **routine-scope scratch arena 도입** (2026-04-22, 4차)
+  - `hir.h` HIRRoutine 에 `PgyArena scratch` 필드 추가
+  - `mir.h` MIRRoutine 에 `PgyArena scratch` 필드 추가
+  - lifecycle 배선:
+    - 생성: `hir_append_hidden_method_routine`, `hir_append_decl_and_routine`, `mir_lower` 루프 내 stack-init 에서 `memset` 직후 `pgy_arena_init(&routine.scratch, 0)`
+    - 파괴: `hir_destroy()` / `mir_destroy()` 의 per-routine cleanup 블록에 `pgy_arena_destroy(&routine[i].scratch)`
+    - OOM 경로: HIR `oom_free_calls` 라벨 + 직접 `goto oom` 분기, MIR ssa/use/stmt/append 실패 분기에 stack-local routine scratch destroy 추가 (배열에 안 들어간 stack routine은 mir_destroy/hir_destroy가 못 봄)
+  - 기존 function-local arena 3개 (`dom_arena`, `loop_arena`, `ssa_arena`) 제거, 모두 `&routine->scratch` 로 통합
+    - routine 하나당 init/destroy 한 번만 발생 (반복되던 per-pass init/destroy churn 제거)
+    - 여러 HIR/MIR pass가 같은 routine 에서 scratch 를 공유 재사용
+  - 의도된 비대칭 유지: MIR 패스는 MIRRoutine.scratch 만 씀. `routine->hir_routine->scratch` 는 HIR frozen 계약이라 read/write 모두 금지
+  - struct copy 안전성: `pgy_arena_init` 직후 block_size=8192, current=NULL 상태에서 `realloc` 으로 배열에 복사됨. 이후 HIR pass가 array-resident routine 에 접근하면서 블록 할당이 stack routine 주소에서 일어나고 → realloc 이후에는 array-resident 주소로 이동. 첫 use 가 array 이후인 보통 경로는 안전. stack-routine 접근이 realloc 이전에 scratch 를 쓰는 HIR create 경로도 있으나, 이 경우 realloc 의 struct copy 가 `current` 포인터를 그대로 전달하므로 heap 블록은 유지됨 (append_routine 이 succeeded 경로).
+- 반대로 반환 계약이 있는 expression string은 아직 전환하지 않는다
+- `slot_ref_expr(...)` 같은 helper는 반환 ownership이 섞여 있으므로, scratch 전환을 먼저 시도했다가 되돌린 상태다
+- 즉, 현재 원칙은 `scratch-only local temp 먼저, returned string 나중`이다
 
 ### Phase 3. result separation
 

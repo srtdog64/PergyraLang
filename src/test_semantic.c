@@ -2004,7 +2004,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot escape via return"));
+            "cannot escape through return"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2322,7 +2322,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Borrowed ref boundary value 'pair' cannot escape via return"));
+            "Borrowed ref boundary value 'pair' cannot escape through return"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4213,7 +4213,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot escape via return from 'holder.packet'"));
+            "cannot escape through return from 'holder.packet'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "'holder.packet' is derived from that borrowed boundary provenance"));
 

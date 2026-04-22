@@ -6,6 +6,7 @@
 #include <sys/types.h>
 
 #include "../common/string_compat.h"
+#include "../common/arena.h"
 
 static bool
 append_ast(ASTNode ***items, size_t *count, ASTNode *node)
@@ -668,15 +669,19 @@ hir_compute_cfg_dominance(HIRRoutine *routine)
 
     hir_cfg_mark_reachable(routine, routine->cfg.entry_block);
 
-    bool *visited = calloc(routine->cfg.block_count, sizeof(bool));
-    size_t *postorder = calloc(routine->cfg.block_count, sizeof(size_t));
-    size_t *idoms = malloc(routine->cfg.block_count * sizeof(size_t));
-    if (visited == NULL || postorder == NULL || idoms == NULL) {
-        free(visited);
-        free(postorder);
-        free(idoms);
+    /* CFG dominance working arrays are purely transient: populated during
+     * the postorder walk + iterative idom fixpoint, consumed once to stamp
+     * routine->cfg.blocks[*].immediate_dominator, and then discarded.  They
+     * live in the routine-scope scratch arena so later HIR passes reuse the
+     * same block pool without per-pass init/destroy. */
+    bool *visited = pgy_arena_calloc(&routine->scratch,
+        routine->cfg.block_count * sizeof(bool));
+    size_t *postorder = pgy_arena_calloc(&routine->scratch,
+        routine->cfg.block_count * sizeof(size_t));
+    size_t *idoms = pgy_arena_alloc(&routine->scratch,
+        routine->cfg.block_count * sizeof(size_t));
+    if (visited == NULL || postorder == NULL || idoms == NULL)
         return false;
-    }
 
     size_t post_count = 0;
     hir_cfg_collect_rpo_postorder(routine,
@@ -728,9 +733,6 @@ hir_compute_cfg_dominance(HIRRoutine *routine)
         routine->cfg.blocks[i].has_immediate_dominator = true;
     }
 
-    free(visited);
-    free(postorder);
-    free(idoms);
     return true;
 }
 
@@ -810,13 +812,17 @@ hir_mark_natural_loop(HIRRoutine *routine, size_t header, size_t latch)
         return false;
     }
 
-    bool *in_loop = calloc(routine->cfg.block_count, sizeof(bool));
-    size_t *stack = malloc(routine->cfg.block_count * sizeof(size_t));
-    if (in_loop == NULL || stack == NULL) {
-        free(in_loop);
-        free(stack);
+    /* Loop membership + DFS stack are transient working sets: populated
+     * during the natural-loop walk, consumed via routine->cfg.blocks[*]
+     * side effects, discarded on return.  Allocated from the routine-scope
+     * scratch arena (shared with hir_compute_cfg_dominance and future HIR
+     * passes). */
+    bool *in_loop = pgy_arena_calloc(&routine->scratch,
+        routine->cfg.block_count * sizeof(bool));
+    size_t *stack = pgy_arena_alloc(&routine->scratch,
+        routine->cfg.block_count * sizeof(size_t));
+    if (in_loop == NULL || stack == NULL)
         return false;
-    }
 
     size_t stack_count = 0;
     in_loop[header] = true;
@@ -844,8 +850,6 @@ hir_mark_natural_loop(HIRRoutine *routine, size_t header, size_t latch)
         }
     }
 
-    free(in_loop);
-    free(stack);
     return true;
 }
 
@@ -1304,6 +1308,7 @@ hir_append_hidden_method_routine(HIRProgram *hir,
         return true;
 
     memset(&routine, 0, sizeof(routine));
+    pgy_arena_init(&routine.scratch, 0);
     routine.decl_id = decl_id;
     routine.kind = HIR_TOPLEVEL_FUNCTION;
     routine.name = method->data.func_decl.name;
@@ -1339,6 +1344,7 @@ hir_append_hidden_method_routine(HIRProgram *hir,
                                          &routine.signature_type_refs,
                                          &routine.signature_type_ref_count)) {
         free((void *)routine.signature_type_refs);
+        pgy_arena_destroy(&routine.scratch);
         return false;
     }
     if (!hir_collect_direct_calls(method->data.func_decl.body,
@@ -1357,6 +1363,10 @@ hir_append_hidden_method_routine(HIRProgram *hir,
 oom_free_calls:
     free((void *)routine.signature_type_refs);
     free((void *)routine.direct_calls);
+    /* Any scratch blocks the dominance/loop pass allocated on the stack
+     * routine must be released here — the routine never reaches the
+     * hir->routines[] array so hir_destroy() will not see it. */
+    pgy_arena_destroy(&routine.scratch);
     return false;
 }
 
@@ -1496,6 +1506,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
             && item.ast->type == AST_FUNC_DECL)) {
         HIRRoutine routine;
         memset(&routine, 0, sizeof(routine));
+        pgy_arena_init(&routine.scratch, 0);
         routine.decl_id = decl.id;
         routine.kind = item.kind;
         routine.name = item.name;
@@ -1535,6 +1546,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
                                                  &routine.signature_type_refs,
                                                  &routine.signature_type_ref_count)) {
                 free((void *)routine.signature_type_refs);
+                pgy_arena_destroy(&routine.scratch);
                 goto oom;
             }
             if (!hir_collect_direct_calls(item.ast->data.func_decl.body,
@@ -1542,6 +1554,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
                                           &routine.direct_call_count)) {
                 free((void *)routine.signature_type_refs);
                 free((void *)routine.direct_calls);
+                pgy_arena_destroy(&routine.scratch);
                 goto oom;
             }
         } else if (item.ast != NULL && item.ast->type == AST_INTENT_DECL) {
@@ -1627,6 +1640,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
 oom_free_calls:
             free((void *)routine.signature_type_refs);
             free((void *)routine.direct_calls);
+            pgy_arena_destroy(&routine.scratch);
             goto oom;
         }
         grown[hir->routine_count] = routine;
@@ -2077,6 +2091,7 @@ hir_destroy(HIRProgram *hir)
             free((void *)hir->routines[i].signature_type_refs);
             free((void *)hir->routines[i].direct_calls);
             free(hir->routines[i].callee_routine_ids);
+            pgy_arena_destroy(&hir->routines[i].scratch);
         }
     }
     free(hir->routines);

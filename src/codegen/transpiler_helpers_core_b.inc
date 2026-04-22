@@ -173,10 +173,19 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
                                            const char *owner_name,
                                            ASTNodeType owner_ast_type)
 {
+    ASTNode *current_host_decl;
     ASTNode *role_decl;
 
     if (ctx == NULL || owner_name == NULL)
         return NULL;
+
+    current_host_decl = transpiler_current_host_decl_local(ctx);
+    if (current_host_decl != NULL
+        && current_host_decl->type == owner_ast_type) {
+        const char *current_name = transpiler_decl_name_local(current_host_decl);
+        if (current_name != NULL && strcmp(current_name, owner_name) == 0)
+            return current_host_decl;
+    }
 
     switch (owner_ast_type) {
     case AST_ZONE_DECL:
@@ -194,6 +203,13 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
     case AST_ROLE_DECL:
         role_decl = transpiler_find_decl_in_active_inventory_only_local(
             ctx, AST_ROLE_DECL, owner_name);
+        if (role_decl == NULL
+            && current_host_decl != NULL
+            && current_host_decl->type == AST_ROLE_DECL) {
+            const char *current_name = transpiler_decl_name_local(current_host_decl);
+            if (current_name != NULL && strcmp(current_name, owner_name) == 0)
+                role_decl = current_host_decl;
+        }
         if (role_decl != NULL
             && role_decl->type == AST_ROLE_DECL
             && role_decl->data.role_decl.for_type != NULL

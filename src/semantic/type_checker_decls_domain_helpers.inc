@@ -573,6 +573,7 @@ static bool
 type_check_projection_contract(ASTNode **slots,
                                size_t slot_count,
                                const char *owner_label,
+                               const char *owner_name,
                                ASTNode *site,
                                const char *object_slot_name,
                                const char *source_slot_name,
@@ -596,6 +597,9 @@ type_check_projection_contract(ASTNode **slots,
         || object_slot->data.domain_slot.is_vessel) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s target slot '%s' is not a projection slot.\n"
+            "Contract source:\n"
+            "- target slot '%s' on %s '%s'\n"
+            "- source slot '%s' is driving this %s path\n"
             "Reason:\n"
             "- source slot '%s' is driving this %s path\n"
             "- %s only writes into object/tobject projection targets\n"
@@ -606,6 +610,11 @@ type_check_projection_contract(ASTNode **slots,
             "- or choose a tobject slot for boundary publication",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label,
+            owner_name != NULL ? owner_name : "<owner>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             action_name,
             action_name,
@@ -620,6 +629,9 @@ type_check_projection_contract(ASTNode **slots,
     if (requires_dto && !object_slot->data.domain_slot.is_tobject) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s target slot '%s' must be a tobject slot.\n"
+            "Contract source:\n"
+            "- target slot '%s' on %s '%s'\n"
+            "- source slot '%s' is driving this %s path\n"
             "Reason:\n"
             "- source slot '%s' is driving this %s path\n"
             "- publish writes a boundary transfer snapshot\n"
@@ -630,6 +642,11 @@ type_check_projection_contract(ASTNode **slots,
             "- or use refresh/bind into an object slot instead",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label,
+            owner_name != NULL ? owner_name : "<owner>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             action_name,
             owner_label,
@@ -647,6 +664,9 @@ type_check_projection_contract(ASTNode **slots,
     if (target_decl == NULL || !target_decl->data.class_decl.is_struct) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s target slot '%s' does not use a projection declaration.\n"
+            "Contract source:\n"
+            "- target slot '%s' on %s '%s'\n"
+            "- source slot '%s' is driving this %s path\n"
             "Reason:\n"
             "- source slot '%s' is driving this %s path\n"
             "- projection sync requires an object/tobject nominal target\n"
@@ -657,6 +677,11 @@ type_check_projection_contract(ASTNode **slots,
             "- or move this data through a plain assignment path instead",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label,
+            owner_name != NULL ? owner_name : "<owner>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             action_name,
             target_type->name != NULL ? target_type->name : "<unknown>",
@@ -674,6 +699,9 @@ type_check_projection_contract(ASTNode **slots,
         if (target_decl->data.class_decl.nominal_kind != expected_kind) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                 "%s %s target slot '%s' uses the wrong projection kind.\n"
+                "Contract source:\n"
+                "- target slot '%s' on %s '%s'\n"
+                "- source slot '%s' is driving this %s path\n"
                 "Reason:\n"
                 "- source slot '%s' is driving this %s path\n"
                 "- %s requires target slot '%s' to use %s declaration\n"
@@ -684,6 +712,11 @@ type_check_projection_contract(ASTNode **slots,
                 "- or switch to the matching projection operation",
                 owner_label, action_name,
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
+                object_slot_name != NULL ? object_slot_name : "<unknown>",
+                owner_label,
+                owner_name != NULL ? owner_name : "<owner>",
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                action_name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
                 action_name,
                 action_name,
@@ -840,6 +873,9 @@ type_check_projection_contract(ASTNode **slots,
         if (source_status == 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                 "%s %s target field '%s' is ambiguous in source slot '%s'.\n"
+                "Contract source:\n"
+                "- projection consumer path is target slot '%s' <- source slot '%s'\n"
+                "- target projection declaration is '%s'\n"
                 "Reason:\n"
                 "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                 "- requested source field/path is '%s'\n"
@@ -852,6 +888,11 @@ type_check_projection_contract(ASTNode **slots,
                 owner_label, action_name,
                 target_field->name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
+                object_slot_name != NULL ? object_slot_name : "<unknown>",
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                target_type != NULL && target_type->name != NULL
+                    ? target_type->name
+                    : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
                 source_field_name != NULL ? source_field_name : target_field->name,
@@ -970,7 +1011,8 @@ type_check_zone_projection_contract(ASTNode *zone,
     if (zone == NULL)
         return false;
     return type_check_projection_contract(zone->data.zone_decl.slots,
-        zone->data.zone_decl.slot_count, "Zone", site,
+        zone->data.zone_decl.slot_count, "Zone",
+        zone->data.zone_decl.name, site,
         object_slot_name, source_slot_name, ctx, action_name);
 }
 
@@ -1061,6 +1103,9 @@ type_check_zone_effect_contract(ASTNode *zone,
     if (!type_is_assignable(target_type, decl_target_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, apply_like,
             "Zone %s target slot '%s' has type '%s' but effect '%s' expects target type '%s'.\n"
+            "Contract source:\n"
+            "- effect slot '%s' in zone contract '%s'\n"
+            "- propagation edge is effect slot '%s' -> target slot '%s'\n"
             "Reason:\n"
             "- zone slot '%s' is bound to effect slot '%s'\n"
             "- propagation edge is effect slot '%s' -> target slot '%s'\n"
@@ -1078,6 +1123,10 @@ type_check_zone_effect_contract(ASTNode *zone,
             decl_target_type != NULL && decl_target_type->name != NULL
                 ? decl_target_type->name
                 : "<unknown>",
+            effect_slot_name != NULL ? effect_slot_name : "<effect-slot>",
+            action_name != NULL ? action_name : "<zone>",
+            effect_slot_name != NULL ? effect_slot_name : "<effect-slot>",
+            target_slot_name != NULL ? target_slot_name : "<target-slot>",
             target_slot_name != NULL ? target_slot_name : "<unknown>",
             effect_slot_name != NULL ? effect_slot_name : "<effect-slot>",
             effect_slot_name != NULL ? effect_slot_name : "<effect-slot>",

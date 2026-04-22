@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "../common/string_compat.h"
 #include "semantic.h"
+#include "diag_payload.h"
 #include "type_checker.h"
 #include "slot_analyzer.h"
 #include "../compiler/import_resolver.h"
@@ -51,16 +52,22 @@ semantic_preload_stdlib_uses(ASTNode *ast)
 {
     char  **loaded_modules = NULL;
     size_t  loaded_count = 0;
+    PgyArena path_arena;
 
     if (ast == NULL || ast->type != AST_PROGRAM)
         return;
+
+    /* Per-pass scratch arena for module path assembly.  Each iteration's
+     * path string is short-lived and never escapes: it is consumed by
+     * import_resolver_load_program and then unused.  Using a function-local
+     * arena batches the allocations and removes N malloc/free pairs. */
+    pgy_arena_init(&path_arena, 0);
 
     for (size_t i = 0; i < ast->data.program.count; i++) {
         ASTNode *stmt = ast->data.program.statements[i];
         char *module_path = NULL;
         ASTNode *loaded = NULL;
         char *error_message = NULL;
-        size_t module_path_len;
 
         if (stmt == NULL || stmt->type != AST_USE_DECL
             || stmt->data.use_decl.module_name == NULL) {
@@ -72,16 +79,13 @@ semantic_preload_stdlib_uses(ASTNode *ast)
             continue;
         }
 
-        module_path_len = strlen(PGY_PROJECT_ROOT) + strlen("/stdlib/")
-            + strlen(stmt->data.use_decl.module_name) + strlen(".pgy") + 1;
-        module_path = malloc(module_path_len);
+        module_path = pgy_arena_fmt(&path_arena, "%s/stdlib/%s.pgy",
+            PGY_PROJECT_ROOT, stmt->data.use_decl.module_name);
         if (module_path == NULL)
             continue;
 
-        snprintf(module_path, module_path_len, "%s/stdlib/%s.pgy",
-            PGY_PROJECT_ROOT, stmt->data.use_decl.module_name);
         loaded = import_resolver_load_program(module_path, &error_message);
-        free(module_path);
+        /* module_path is arena-owned: no free here. */
         free(error_message);
         if (loaded == NULL || loaded->type != AST_PROGRAM) {
             ast_destroy(loaded);
@@ -126,6 +130,7 @@ semantic_preload_stdlib_uses(ASTNode *ast)
     for (size_t i = 0; i < loaded_count; i++)
         free(loaded_modules[i]);
     free(loaded_modules);
+    pgy_arena_destroy(&path_arena);
 }
 
 SemanticResult *
@@ -188,6 +193,7 @@ semantic_result_destroy(SemanticResult *result)
 
     for (size_t i = 0; i < result->diagnostic_count; i++) {
         free(result->diagnostics[i]->message);
+        diag_payload_snapshot_destroy(result->diagnostics[i]->payload);
         free(result->diagnostics[i]);
     }
     free(result->diagnostics);
@@ -277,6 +283,32 @@ semantic_result_print_json(const SemanticResult *result)
         fprintf(out, "%u,\"column\":%u}", d->line, d->col);
         fputs(",\"message\":", out);
         json_emit_string(out, d->message != NULL ? d->message : "");
+        if (d->payload != NULL) {
+            bool wrote = false;
+            fputs(",\"payload\":{", out);
+#define PGY_JSON_PAYLOAD_FIELD(key, value) \
+            do { \
+                if ((value) != NULL) { \
+                    if (wrote) \
+                        fputc(',', out); \
+                    json_emit_string(out, (key)); \
+                    fputc(':', out); \
+                    json_emit_string(out, (value)); \
+                    wrote = true; \
+                } \
+            } while (0)
+            PGY_JSON_PAYLOAD_FIELD("value_label", d->payload->value_label);
+            PGY_JSON_PAYLOAD_FIELD("provenance_label", d->payload->provenance_label);
+            PGY_JSON_PAYLOAD_FIELD("replacement_label", d->payload->replacement_label);
+            PGY_JSON_PAYLOAD_FIELD("transfer_label", d->payload->transfer_label);
+            PGY_JSON_PAYLOAD_FIELD("borrowed_name", d->payload->borrowed_name);
+            PGY_JSON_PAYLOAD_FIELD("consumer_name", d->payload->consumer_name);
+            PGY_JSON_PAYLOAD_FIELD("secondary_name", d->payload->secondary_name);
+            PGY_JSON_PAYLOAD_FIELD("kind_label", d->payload->kind_label);
+            PGY_JSON_PAYLOAD_FIELD("extra", d->payload->extra);
+#undef PGY_JSON_PAYLOAD_FIELD
+            fputc('}', out);
+        }
         fputc('}', out);
     }
     fputs("]\n", out);

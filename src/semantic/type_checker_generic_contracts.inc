@@ -229,7 +229,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
 {
     WhereClause *wc;
     GenericParams *gp;
-    char *expected_text = NULL;
+    const char *expected_text = NULL;
 
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
         || constructed_type == NULL
@@ -242,7 +242,8 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
     wc = class_decl->data.class_decl.where_clause;
     if (gp == NULL || gp->count == 0 || wc == NULL || wc->count == 0)
         return;
-    expected_text = format_generic_subject_signature(
+    expected_text = format_generic_subject_signature_scratch(
+        ctx,
         class_decl->data.class_decl.name != NULL
             ? class_decl->data.class_decl.name : "<class>",
         gp);
@@ -333,7 +334,6 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
             free(bounds_text);
         }
     }
-    free(expected_text);
 }
 
 static void
@@ -346,7 +346,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
     WhereClause *wc;
     ASTNode **effective_args = NULL;
     size_t effective_count = 0;
-    char *expected_text = NULL;
+    const char *expected_text = NULL;
 
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
         || specialized_type == NULL || specialized_type->type != AST_TYPE
@@ -360,7 +360,8 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         || wc == NULL || wc->count == 0) {
         return;
     }
-    expected_text = format_generic_subject_signature(
+    expected_text = format_generic_subject_signature_scratch(
+        ctx,
         class_decl->data.class_decl.name != NULL
             ? class_decl->data.class_decl.name : "<class>",
         decl_params);
@@ -473,7 +474,5 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             free(bounds_text);
         }
     }
-
-    free(expected_text);
     free(effective_args);
 }

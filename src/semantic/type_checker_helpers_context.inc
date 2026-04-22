@@ -118,9 +118,11 @@ semantic_context_create(void)
     ctx->diagnostic_capacity = INITIAL_DIAG_CAPACITY;
     ctx->diagnostics         = calloc(INITIAL_DIAG_CAPACITY,
                                       sizeof(Diagnostic *));
+    pgy_arena_init(&ctx->scratch_arena, 0);
     if (ctx->scope == NULL || ctx->diagnostics == NULL) {
         scope_destroy(ctx->scope);
         free(ctx->diagnostics);
+        pgy_arena_destroy(&ctx->scratch_arena);
         free(ctx);
         return NULL;
     }
@@ -141,6 +143,7 @@ semantic_context_destroy(SemanticContext *ctx)
 
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         free(ctx->diagnostics[i]->message);
+        diag_payload_snapshot_destroy(ctx->diagnostics[i]->payload);
         free(ctx->diagnostics[i]);
     }
     for (size_t i = 0; i < ctx->embedded_world_zone_count; i++)
@@ -164,6 +167,7 @@ semantic_context_destroy(SemanticContext *ctx)
     free(ctx->resolve_type_cache.keys);
     free(ctx->resolve_type_cache.values);
     free(ctx->diagnostics);
+    pgy_arena_destroy(&ctx->scratch_arena);
     free(ctx);
 }
 
@@ -172,9 +176,60 @@ semantic_context_destroy(SemanticContext *ctx)
  * ----------------------------------------------------------------- */
 
 static void
+diag_payload_snapshot_destroy_fields(DiagnosticPayloadSnapshot *snapshot)
+{
+    if (snapshot == NULL)
+        return;
+    free(snapshot->value_label);
+    free(snapshot->provenance_label);
+    free(snapshot->replacement_label);
+    free(snapshot->transfer_label);
+    free(snapshot->borrowed_name);
+    free(snapshot->consumer_name);
+    free(snapshot->secondary_name);
+    free(snapshot->kind_label);
+    free(snapshot->extra);
+}
+
+DiagnosticPayloadSnapshot *
+diag_payload_snapshot_create(const DiagPayload *p)
+{
+    DiagnosticPayloadSnapshot *snapshot;
+
+    if (p == NULL)
+        return NULL;
+
+    snapshot = calloc(1, sizeof(*snapshot));
+    if (snapshot == NULL)
+        return NULL;
+
+    snapshot->value_label = p->value_label != NULL ? pergyra_strdup(p->value_label) : NULL;
+    snapshot->provenance_label = p->provenance_label != NULL ? pergyra_strdup(p->provenance_label) : NULL;
+    snapshot->replacement_label = p->replacement_label != NULL ? pergyra_strdup(p->replacement_label) : NULL;
+    snapshot->transfer_label = p->transfer_label != NULL ? pergyra_strdup(p->transfer_label) : NULL;
+    snapshot->borrowed_name = p->borrowed_name != NULL ? pergyra_strdup(p->borrowed_name) : NULL;
+    snapshot->consumer_name = p->consumer_name != NULL ? pergyra_strdup(p->consumer_name) : NULL;
+    snapshot->secondary_name = p->secondary_name != NULL ? pergyra_strdup(p->secondary_name) : NULL;
+    snapshot->kind_label = p->kind_label != NULL ? pergyra_strdup(p->kind_label) : NULL;
+    snapshot->extra = p->extra != NULL ? pergyra_strdup(p->extra) : NULL;
+
+    return snapshot;
+}
+
+void
+diag_payload_snapshot_destroy(DiagnosticPayloadSnapshot *snapshot)
+{
+    if (snapshot == NULL)
+        return;
+    diag_payload_snapshot_destroy_fields(snapshot);
+    free(snapshot);
+}
+
+static void
 emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
                       const char *code, const char *cause_ir,
                       const char *fix_source, const ASTNode *node,
+                      const DiagPayload *payload,
                       const char *fmt, va_list ap)
 {
     char *message = NULL;
@@ -210,6 +265,8 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
                 existing->cause_ir = cause_ir;
             if (existing->fix_source == NULL && fix_source != NULL)
                 existing->fix_source = fix_source;
+            if (existing->payload == NULL && payload != NULL)
+                existing->payload = diag_payload_snapshot_create(payload);
             free(message);
             return;
         }
@@ -236,6 +293,7 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
     d->code       = code;        /* non-owning; static literal or NULL */
     d->cause_ir   = cause_ir;    /* non-owning; static literal or NULL */
     d->fix_source = fix_source;  /* non-owning; static literal or NULL */
+    d->payload    = diag_payload_snapshot_create(payload);
 
     ctx->diagnostics[ctx->diagnostic_count++] = d;
 
@@ -248,7 +306,7 @@ emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
                  const char *code, const ASTNode *node,
                  const char *fmt, va_list ap)
 {
-    emit_diagnostic_full(ctx, level, code, NULL, NULL, node, fmt, ap);
+    emit_diagnostic_full(ctx, level, code, NULL, NULL, node, NULL, fmt, ap);
 }
 
 void
@@ -302,7 +360,7 @@ semantic_error_with_hints(SemanticContext *ctx,
     va_list ap;
     va_start(ap, fmt);
     emit_diagnostic_full(ctx, DIAG_ERROR, code, cause_ir, fix_source,
-                          node, fmt, ap);
+                          node, NULL, fmt, ap);
     va_end(ap);
 }
 
@@ -317,7 +375,7 @@ semantic_warning_with_hints(SemanticContext *ctx,
     va_list ap;
     va_start(ap, fmt);
     emit_diagnostic_full(ctx, DIAG_WARNING, code, cause_ir, fix_source,
-                          node, fmt, ap);
+                          node, NULL, fmt, ap);
     va_end(ap);
 }
 
@@ -337,7 +395,7 @@ semantic_emit_payload(SemanticContext *ctx,
         return;
     va_start(ap, fmt);
     emit_diagnostic_full(ctx, DIAG_ERROR, p->code, p->cause_ir,
-                          p->fix_source, p->site, fmt, ap);
+                          p->fix_source, p->site, p, fmt, ap);
     va_end(ap);
 }
 

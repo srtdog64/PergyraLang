@@ -1071,16 +1071,17 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
         return true;
 
     size_t n = parallel->data.parallel.task_count;
-    SlotAccessEntry **task_accesses = calloc(n, sizeof(SlotAccessEntry *));
-    size_t *task_counts = calloc(n, sizeof(size_t));
-    size_t *task_caps = calloc(n, sizeof(size_t));
+    /* Outer arrays are pass-local scratch: populated, read, and discarded
+     * before the function returns.  The per-task inner arrays are still
+     * heap-owned by collect_slot_accesses and freed explicitly below. */
+    PgyArena *scratch = &sa->ctx->scratch_arena;
+    SlotAccessEntry **task_accesses =
+        pgy_arena_calloc(scratch, n * sizeof(SlotAccessEntry *));
+    size_t *task_counts = pgy_arena_calloc(scratch, n * sizeof(size_t));
+    size_t *task_caps   = pgy_arena_calloc(scratch, n * sizeof(size_t));
 
-    if (task_accesses == NULL || task_counts == NULL || task_caps == NULL) {
-        free(task_accesses);
-        free(task_counts);
-        free(task_caps);
+    if (task_accesses == NULL || task_counts == NULL || task_caps == NULL)
         return false;
-    }
 
     for (size_t i = 0; i < n; i++)
         collect_slot_accesses(parallel->data.parallel.tasks[i],
@@ -1120,9 +1121,7 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
 
     for (size_t i = 0; i < n; i++)
         free(task_accesses[i]);
-    free(task_accesses);
-    free(task_counts);
-    free(task_caps);
+    /* outer arrays (task_accesses, task_counts, task_caps) are arena-owned */
 
     return !sa->ctx->has_error;
 }

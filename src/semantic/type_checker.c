@@ -35,8 +35,21 @@ static char *
 format_type_constraint_bounds(TypeConstraint *tc);
 static char *
 format_generic_subject_signature(const char *name, GenericParams *params);
+static const char *
+format_generic_subject_signature_scratch(SemanticContext *ctx,
+                                         const char *name,
+                                         GenericParams *params);
 static char *
 format_effective_generic_type_list(const char *name, Type **types, size_t count);
+static const char *
+format_effective_generic_type_list_scratch(SemanticContext *ctx,
+                                           const char *name,
+                                           Type **types,
+                                           size_t count);
+static char *
+semantic_assignment_target_path_impl(ASTNode *expr,
+                                     SemanticContext *ctx,
+                                     bool scratch);
 static void
 semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
                                                  const ASTNode *consumer_site,
@@ -340,8 +353,14 @@ semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
                                      provider_name != NULL ? provider_name : "<provider>");
 
     if (from != (size_t)-1 && to != (size_t)-1 && graph->node_count > 0) {
-        visited = calloc(graph->node_count, sizeof(bool));
-        path = calloc(graph->node_count > 0 ? graph->node_count : 1, sizeof(size_t));
+        /* Cycle-detection working arrays are scratch: populated during
+         * type_resolution_find_path, read for diagnostic assembly, discarded
+         * before the enclosing call returns.  Never stored anywhere that
+         * outlives this function. */
+        visited = pgy_arena_calloc(&ctx->scratch_arena,
+            graph->node_count * sizeof(bool));
+        path = pgy_arena_calloc(&ctx->scratch_arena,
+            graph->node_count * sizeof(size_t));
         if (visited != NULL && path != NULL) {
             bool has_cycle = (from == to)
                 || type_resolution_find_path(graph,
@@ -368,11 +387,12 @@ semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
                     consumer_name != NULL ? consumer_name : "<type-ref>",
                     consumer_name != NULL ? consumer_name : "<type-ref>",
                     cycle_text != NULL ? cycle_text : "<cycle>");
+                /* cycle_text is heap-owned per type_resolution_format_cycle
+                 * contract (returned string) — not in scope for this slice. */
                 free(cycle_text);
             }
         }
-        free(visited);
-        free(path);
+        /* visited / path are arena-owned. */
     }
 
     type_resolution_add_edge(graph, from, to, reason);
@@ -721,33 +741,45 @@ semantic_event_expr_name(ASTNode *expr)
     return "<event>";
 }
 
-char *
-semantic_assignment_target_path(ASTNode *expr)
+static char *
+semantic_assignment_target_path_impl(ASTNode *expr,
+                                     SemanticContext *ctx,
+                                     bool scratch)
 {
     char *base = NULL;
     char index_buf[32];
 
+#define PGY_SEM_PATH_DUP(s) \
+    (scratch \
+        ? pgy_arena_strdup(&ctx->scratch_arena, (s)) \
+        : pergyra_strdup((s)))
+#define PGY_SEM_PATH_FMT(...) \
+    (scratch \
+        ? pgy_arena_fmt(&ctx->scratch_arena, __VA_ARGS__) \
+        : tc_strdup_fmt(__VA_ARGS__))
+
     if (expr == NULL)
-        return pergyra_strdup("<target>");
+        return PGY_SEM_PATH_DUP("<target>");
 
     switch (expr->type) {
     case AST_IDENTIFIER:
         return expr->data.identifier.name != NULL
-            ? pergyra_strdup(expr->data.identifier.name)
-            : pergyra_strdup("<target>");
+            ? PGY_SEM_PATH_DUP(expr->data.identifier.name)
+            : PGY_SEM_PATH_DUP("<target>");
     case AST_MEMBER_ACCESS:
         if (expr->data.member.name == NULL)
-            return pergyra_strdup("<target>");
-        base = semantic_assignment_target_path(expr->data.member.object);
+            return PGY_SEM_PATH_DUP("<target>");
+        base = semantic_assignment_target_path_impl(expr->data.member.object, ctx, scratch);
         if (base == NULL)
-            return tc_strdup_fmt("<target>.%s", expr->data.member.name);
+            return PGY_SEM_PATH_FMT("<target>.%s", expr->data.member.name);
         {
-            char *result = tc_strdup_fmt("%s.%s", base, expr->data.member.name);
-            free(base);
-            return result != NULL ? result : pergyra_strdup("<target>");
+            char *result = PGY_SEM_PATH_FMT("%s.%s", base, expr->data.member.name);
+            if (!scratch)
+                free(base);
+            return result != NULL ? result : PGY_SEM_PATH_DUP("<target>");
         }
     case AST_ARRAY_ACCESS:
-        base = semantic_assignment_target_path(expr->data.array_access.array);
+        base = semantic_assignment_target_path_impl(expr->data.array_access.array, ctx, scratch);
         if (expr->data.array_access.index != NULL
             && expr->data.array_access.index->type == AST_NUMBER) {
             snprintf(index_buf, sizeof(index_buf), "%g",
@@ -761,15 +793,33 @@ semantic_assignment_target_path(ASTNode *expr)
             snprintf(index_buf, sizeof(index_buf), "?");
         }
         if (base == NULL)
-            return tc_strdup_fmt("<target>[%s]", index_buf);
+            return PGY_SEM_PATH_FMT("<target>[%s]", index_buf);
         {
-            char *result = tc_strdup_fmt("%s[%s]", base, index_buf);
-            free(base);
-            return result != NULL ? result : pergyra_strdup("<target>");
+            char *result = PGY_SEM_PATH_FMT("%s[%s]", base, index_buf);
+            if (!scratch)
+                free(base);
+            return result != NULL ? result : PGY_SEM_PATH_DUP("<target>");
         }
     default:
-        return pergyra_strdup("<target>");
+        return PGY_SEM_PATH_DUP("<target>");
     }
+
+#undef PGY_SEM_PATH_FMT
+#undef PGY_SEM_PATH_DUP
+}
+
+char *
+semantic_assignment_target_path(ASTNode *expr)
+{
+    return semantic_assignment_target_path_impl(expr, NULL, false);
+}
+
+const char *
+semantic_assignment_target_path_scratch(ASTNode *expr, SemanticContext *ctx)
+{
+    if (ctx == NULL)
+        return semantic_assignment_target_path(expr);
+    return semantic_assignment_target_path_impl(expr, ctx, true);
 }
 
 const char *
@@ -1063,11 +1113,13 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
                 Symbol *msym = scope_lookup_current(ctx->scope, method->data.func_decl.name);
                 if (msym == NULL || msym->kind != SYMBOL_FUNCTION)
                     continue;
-                size_t len = strlen(name) + 1 + strlen(method->data.func_decl.name) + 1;
-                char *mangled = malloc(len);
+                /* Mangled name is a scratch string: symbol_create_function
+                 * duplicates it into the symbol, so the arena allocation
+                 * never escapes beyond this block. */
+                char *mangled = pgy_arena_fmt(&ctx->scratch_arena,
+                    "%s_%s", name, method->data.func_decl.name);
                 if (mangled == NULL)
                     continue;
-                snprintf(mangled, len, "%s_%s", name, method->data.func_decl.name);
                 Symbol *mangled_sym = symbol_create_function(
                     mangled, msym->type, method->line, method->column);
                 Scope *enum_scope = ctx->scope;
@@ -1075,7 +1127,6 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
                 if (!scope_declare(ctx->scope, mangled_sym))
                     symbol_destroy(mangled_sym);
                 ctx->scope = enum_scope;
-                free(mangled);
             }
 
             scope_exit(&ctx->scope);

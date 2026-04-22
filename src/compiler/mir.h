@@ -196,6 +196,12 @@ typedef struct
     MIRValueSummary   *value_summaries;
     size_t             value_summary_count;
     bool               has_use_def_summary;
+    /* Pass-local scratch arena: reused across MIR passes (SSA rename,
+     * future liveness/DCE transforms).  Lifetime binds to the enclosing
+     * MIRRoutine — initialised at construction, destroyed in mir_destroy().
+     * Do NOT write to hir_routine->scratch from MIR passes; HIR is frozen
+     * by the time MIR runs. */
+    PgyArena           scratch;
 } MIRRoutine;
 
 typedef struct

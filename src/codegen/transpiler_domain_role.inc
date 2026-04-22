@@ -908,11 +908,10 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         target_decl = find_class_decl(ctx, target_type_name);
         source_decl = find_class_decl(ctx, source_type_name);
         {
-            char *source_expr = strdup_fmt("self->%s",
+            const char *source_expr = transpiler_scratch_fmt(ctx, "self->%s",
                 refresh->data.zone_refresh.source_slot_name);
             literal = emit_projection_literal(ctx, target_decl, source_decl,
                 refresh, target_type_name, source_expr);
-            free(source_expr);
         }
         write_indent(ctx);
         codebuf_write(ctx->out, "if (self->__projection_dirty_%s) {\n",
@@ -1106,11 +1105,10 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         target_decl = find_class_decl(ctx, target_type_name);
         source_decl = find_class_decl(ctx, source_type_name);
         {
-            char *source_expr = strdup_fmt("self->%s",
+            const char *source_expr = transpiler_scratch_fmt(ctx, "self->%s",
                 refresh->data.zone_refresh.source_slot_name);
             literal = emit_projection_literal(ctx, target_decl, source_decl,
                 refresh, target_type_name, source_expr);
-            free(source_expr);
         }
         write_indent(ctx);
         codebuf_write(ctx->out, "if (self->__projection_dirty_%s) {\n",
@@ -1387,11 +1385,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         target_decl = find_class_decl(ctx, target_type_name);
         source_decl = find_class_decl(ctx, source_type_name);
         {
-            char *source_expr = strdup_fmt("self->%s",
+            const char *source_expr = transpiler_scratch_fmt(ctx, "self->%s",
                 refresh->data.zone_refresh.source_slot_name);
             literal = emit_projection_literal(ctx, target_decl, source_decl,
                 refresh, target_type_name, source_expr);
-            free(source_expr);
         }
         write_indent(ctx);
         codebuf_write(ctx->out, "if (self->__projection_dirty_%s) {\n",
@@ -1719,12 +1716,12 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             const char *auth_slot = node->data.zone_decl.authorities[0]
                                         ->data.zone_authority.subject_slot_name;
             if (auth_slot != NULL) {
-                char *participant_expr = strdup_fmt("&self->%s", auth_slot);
+                const char *participant_expr = transpiler_scratch_fmt(ctx,
+                    "&self->%s", auth_slot);
                 write_indent(ctx);
                 codebuf_write(ctx->out,
                     "PGY_ZONE_AUTHORITY_CHECK(self, %s, \"%s\", \"%s\");\n",
                     participant_expr, name, auth_slot);
-                free(participant_expr);
             }
         }
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for zone method '%s.%s'",
@@ -2207,7 +2204,7 @@ void
 emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.event_decl.name;
-    char *event_type = strdup_fmt("%s_Event", name);
+    const char *event_type = transpiler_scratch_fmt(ctx, "%s_Event", name);
     
     /* Generate event handler type typedef */
     codebuf_write(ctx->out, "\n/* Event: %s */\n", name);
@@ -2284,7 +2281,6 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "    }\n");
     codebuf_write(ctx->out, "    e->is_invoking = false;\n");
     codebuf_write(ctx->out, "}\n");
-    free(event_type);
 }
 
 void

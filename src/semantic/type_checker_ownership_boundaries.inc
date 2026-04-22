@@ -158,7 +158,7 @@ semantic_validate_borrowed_escape(ASTNode *site,
         if (klass == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
             semantic_report_borrowed_slot_handle_escape(
                 site, source_expr, ctx, borrowed_name,
-                "via return",
+                "through return",
                 "- returning it would let the borrow outlive the call boundary\n",
                 "return a projection/object/tobject/value instead",
                 "or change the parameter to 'own' if transfer is intended",
@@ -229,7 +229,7 @@ semantic_report_borrowed_new_binding_escape(ASTNode *site,
                                             const char *value_label,
                                             const char *provenance_label)
 {
-    char *source_path = semantic_assignment_target_path(source_expr);
+    const char *source_path = semantic_assignment_target_path_scratch(source_expr, ctx);
     DiagPayload payload;
     diag_payload_init(&payload);
     payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
@@ -266,7 +266,6 @@ semantic_report_borrowed_new_binding_escape(ASTNode *site,
         provenance_label,
         binding_name != NULL ? binding_name : "<binding>",
         source_path != NULL ? source_path : borrowed_name);
-    free(source_path);
 }
 
 static void
@@ -279,7 +278,7 @@ semantic_report_borrowed_return_escape(ASTNode *site,
                                        const char *replacement_label,
                                        bool summary_only)
 {
-    char *source_path = semantic_assignment_target_path(source_expr);
+    const char *source_path = semantic_assignment_target_path_scratch(source_expr, ctx);
     DiagPayload payload;
     diag_payload_init(&payload);
     payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
@@ -315,7 +314,7 @@ semantic_report_borrowed_return_escape(ASTNode *site,
             replacement_label != NULL ? replacement_label : "a value result");
     } else {
         semantic_emit_payload(ctx, &payload,
-            "Borrowed ref %s '%s' cannot escape via return from '%s'.\n"
+            "Borrowed ref %s '%s' cannot escape through return from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' %s\n"
@@ -334,7 +333,6 @@ semantic_report_borrowed_return_escape(ASTNode *site,
             provenance_label,
             replacement_label != NULL ? replacement_label : "a value result");
     }
-    free(source_path);
 }
 
 static void
@@ -347,8 +345,8 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
                                                   const char *provenance_label,
                                                   const char *rebind_label)
 {
-    char *target_name = semantic_assignment_target_path(target_expr);
-    char *source_path = semantic_assignment_target_path(source_expr);
+    const char *target_name = semantic_assignment_target_path_scratch(target_expr, ctx);
+    const char *source_path = semantic_assignment_target_path_scratch(source_expr, ctx);
     const char *consumer_label = "assignment rebind";
     DiagPayload payload;
 
@@ -395,8 +393,6 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
         rebind_label != NULL ? rebind_label
                              : "a second boundary-visible binding for the borrowed provenance",
         borrowed_name);
-    free(target_name);
-    free(source_path);
 }
 
 /* P5 payload pattern: 10-param helper now carries structured fields via
@@ -414,7 +410,7 @@ semantic_report_borrowed_container_store_escape(ASTNode *site,
                                                 const char *replacement_label,
                                                 const char *transfer_label)
 {
-    char *source_path = semantic_assignment_target_path(source_expr);
+    const char *source_path = semantic_assignment_target_path_scratch(source_expr, ctx);
     DiagPayload payload;
     diag_payload_init(&payload);
     payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
@@ -458,7 +454,6 @@ semantic_report_borrowed_container_store_escape(ASTNode *site,
         replacement_label != NULL ? replacement_label : "a value result",
         transfer_label != NULL ? transfer_label : "transfer",
         container_kind != NULL ? container_kind : "container");
-    free(source_path);
 }
 
 static void
@@ -471,7 +466,7 @@ semantic_report_borrowed_channel_send_escape(ASTNode *site,
                                              const char *replacement_label,
                                              bool summary_only)
 {
-    char *source_path = semantic_assignment_target_path(source_expr);
+    const char *source_path = semantic_assignment_target_path_scratch(source_expr, ctx);
     DiagPayload payload;
     diag_payload_init(&payload);
     payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
@@ -532,7 +527,6 @@ semantic_report_borrowed_channel_send_escape(ASTNode *site,
             replacement_label != NULL ? replacement_label
                                       : "copied/value/projection result");
     }
-    free(source_path);
 }
 
 static void
@@ -546,7 +540,7 @@ semantic_report_borrowed_slot_handle_escape(ASTNode *site,
                                             const char *secondary_fix,
                                             bool summary_only)
 {
-    char *source_path = semantic_assignment_target_path(source_expr);
+    const char *source_path = semantic_assignment_target_path_scratch(source_expr, ctx);
     DiagPayload payload;
     diag_payload_init(&payload);
     payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
@@ -615,7 +609,6 @@ semantic_report_borrowed_slot_handle_escape(ASTNode *site,
             secondary_fix != NULL ? secondary_fix
                                   : "or change the parameter to 'own' if transfer is intended");
     }
-    free(source_path);
 }
 
 static void
@@ -626,7 +619,7 @@ semantic_report_named_boundary_argument_required(ASTNode *site,
                                                  const char *value_label_lower,
                                                  const char *bind_fix)
 {
-    char *source_path = semantic_assignment_target_path(source_expr);
+    const char *source_path = semantic_assignment_target_path_scratch(source_expr, ctx);
     DiagPayload payload;
     diag_payload_init(&payload);
     payload.code = PGY_CODE_SEM_TYPE_MISMATCH;
@@ -653,7 +646,6 @@ semantic_report_named_boundary_argument_required(ASTNode *site,
         value_label_lower != NULL ? value_label_lower : "value",
         value_label_lower != NULL ? value_label_lower : "value",
         bind_fix != NULL ? bind_fix : "bind the value to a local variable first");
-    free(source_path);
 }
 
 static void
@@ -668,7 +660,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
                                             const char *mode_label,
                                             const char *local_fix_label)
 {
-    char *source_path = semantic_assignment_target_path(source_expr);
+    const char *source_path = semantic_assignment_target_path_scratch(source_expr, ctx);
     const char *consumer_name = semantic_current_consumer_name(ctx);
     bool summary_only_escape = transitive_ref_escape
         && callee_name != NULL
@@ -756,7 +748,6 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
             mode_label != NULL ? mode_label : "default");
     }
 
-    free(source_path);
 }
 
 static void
@@ -771,7 +762,7 @@ semantic_report_borrowed_constructor_field_escape(ASTNode *site,
                                                   const char *snapshot_label,
                                                   bool identity_binding)
 {
-    char *source_path = semantic_assignment_target_path(source_expr);
+    const char *source_path = semantic_assignment_target_path_scratch(source_expr, ctx);
     DiagPayload payload;
     diag_payload_init(&payload);
     payload.code = PGY_CODE_SEM_BORROW_ESCAPE;
@@ -818,7 +809,6 @@ semantic_report_borrowed_constructor_field_escape(ASTNode *site,
             : "keep using the borrowed value directly within this function",
         snapshot_label != NULL ? snapshot_label : "a copied/value/projection result");
 
-    free(source_path);
 }
 
 #include "type_checker_ownership_let.inc"

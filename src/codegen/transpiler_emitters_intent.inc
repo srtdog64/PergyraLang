@@ -267,9 +267,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         }
     }
     {
-        char *priority = node->data.intent_decl.priority_expr != NULL
-            ? emit_expression(node->data.intent_decl.priority_expr, ctx)
-            : pergyra_strdup("0");
+        char *priority = NULL;
+        bool owns_priority = false;
+        if (node->data.intent_decl.priority_expr != NULL) {
+            priority = emit_expression(node->data.intent_decl.priority_expr, ctx);
+            owns_priority = (priority != NULL);
+        } else {
+            priority = (char *)transpiler_scratch_strdup(ctx, "0");
+        }
         write_indent(ctx);
         codebuf_write(ctx->out,
             "__intent_handle = pgy_intent_enter_export(\"%s\", %s, %zu, %s, %s);\n",
@@ -278,7 +283,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             subject_count,
             node->data.intent_decl.is_concurrent ? "true" : "false",
             priority != NULL ? priority : "0");
-        free(priority);
+        if (owns_priority)
+            free(priority);
     }
     {
         write_indent(ctx);

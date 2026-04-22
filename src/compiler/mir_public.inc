@@ -216,6 +216,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         const HIRBasicBlock *cfg_blocks_before = NULL;
         size_t cfg_block_count_before = 0;
         memset(&routine, 0, sizeof(routine));
+        pgy_arena_init(&routine.scratch, 0);
         routine.id = mir->routine_count;
         routine.kind = mir_scope_kind_from_hir(hir_routine);
         routine.name = hir_routine->name;
@@ -239,6 +240,10 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             || !mir_materialize_cleanup_edges(&routine)
             || !mir_recompute_analysis(&routine)
             || !append_routine(mir, routine)) {
+            /* On failure the stack routine never reaches mir->routines[],
+             * so mir_destroy() will not see any scratch blocks the earlier
+             * passes allocated.  Release them here to avoid a leak. */
+            pgy_arena_destroy(&routine.scratch);
             if (error_message != NULL)
                 *error_message = pergyra_strdup("out of memory");
             mir_destroy(mir);
@@ -440,6 +445,7 @@ mir_destroy(MIRProgram *mir)
             free((void *)routine->value_summaries[j].name);
         free(routine->value_summaries);
         free(routine->blocks);
+        pgy_arena_destroy(&routine->scratch);
     }
     free(mir->externs);
     free(mir->decl_headers);

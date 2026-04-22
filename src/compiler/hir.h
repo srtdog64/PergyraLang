@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "../parser/ast.h"
+#include "../common/arena.h"
 
 typedef struct HIRProgram HIRProgram;
 typedef struct HIRBasicBlock HIRBasicBlock;
@@ -86,6 +87,11 @@ typedef struct
         size_t                entry_block;
     } cfg;
     bool             has_cfg;
+    /* Pass-local scratch arena: reused across HIR analysis passes
+     * (dominance, natural-loop walk, future CFG transforms).  Lifetime
+     * binds to the enclosing HIRRoutine — initialised at construction,
+     * destroyed in hir_destroy(). */
+    PgyArena         scratch;
 } HIRRoutine;
 
 typedef enum
