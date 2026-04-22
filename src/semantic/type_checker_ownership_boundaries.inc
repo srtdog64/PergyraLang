@@ -293,7 +293,7 @@ semantic_report_borrowed_return_escape(ASTNode *site,
 
     if (summary_only) {
         semantic_emit_payload(ctx, &payload,
-            "Borrowed ref %s '%s' cannot escape through return summary in '%s' from '%s'.\n"
+            "Borrowed ref %s '%s' cannot escape through return from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' %s\n"
@@ -481,7 +481,7 @@ semantic_report_borrowed_channel_send_escape(ASTNode *site,
 
     if (summary_only) {
         semantic_emit_payload(ctx, &payload,
-            "Borrowed ref %s '%s' cannot escape through channel summary in '%s' from '%s'.\n"
+            "Borrowed ref %s '%s' cannot escape through channel send from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' %s\n"
@@ -682,7 +682,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
 
     if (summary_only_escape) {
         semantic_emit_payload(ctx, &payload,
-            "Borrowed ref %s '%s' cannot escape through helper/function summary in '%s' from '%s'.\n"
+            "Borrowed ref %s '%s' cannot escape through helper/function call to '%s' from '%s'.\n"
             "Reason:\n"
             "- consumer path is function '%s'\n"
             "- '%s' entered this function as a borrowed 'ref' %s\n"

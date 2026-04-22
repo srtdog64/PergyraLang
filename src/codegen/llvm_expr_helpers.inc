@@ -89,7 +89,8 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             emitted_count++;
     }
 
-    args = calloc(emitted_count > 0 ? emitted_count : 1, sizeof(LLVMValueRef));
+    args = pgy_arena_calloc(&ctx->scratch,
+                            (emitted_count > 0 ? emitted_count : 1) * sizeof(LLVMValueRef));
     if (args == NULL)
         return NULL;
 
@@ -296,18 +297,15 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
         nested_status = llvm_resolve_projection_source_path_rec(
             ctx, vessel_decl, field_name, depth + 1, &nested_path);
         if (nested_status != 1) {
-            if (nested_path != NULL)
-                free(nested_path);
             if (nested_status == 2)
                 match_count = 2;
             continue;
         }
 
         prefix_len = strlen(field->name) + strlen(nested_path) + 2;
-        prefixed_path = malloc(prefix_len);
+        prefixed_path = pgy_arena_alloc(&ctx->scratch, prefix_len);
         if (prefixed_path != NULL)
             snprintf(prefixed_path, prefix_len, "%s.%s", field->name, nested_path);
-        free(nested_path);
         if (prefixed_path == NULL)
             continue;
 
@@ -315,8 +313,6 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
         if (match_count == 1) {
             resolved_path = prefixed_path;
         } else {
-            free(prefixed_path);
-            free(resolved_path);
             resolved_path = NULL;
         }
     }
@@ -324,13 +320,9 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
     if (match_count == 1) {
         if (path_out != NULL)
             *path_out = resolved_path;
-        else
-            free(resolved_path);
         return 1;
     }
 
-    if (resolved_path != NULL)
-        free(resolved_path);
     return match_count > 1 ? 2 : 0;
 }
 
@@ -349,7 +341,6 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
 
     if (llvm_resolve_projection_source_path_rec(ctx, source_decl, field_name, 0, &path) != 1
         || path == NULL || source_cls == NULL || source_ptr == NULL) {
-        free(path);
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
@@ -384,7 +375,6 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
         if (dot == NULL) {
             LLVMValueRef field_value = LLVMBuildLoad2(ctx->builder, field_info->field_type,
                 field_ptr, llvm_tmp_name(ctx));
-            free(path);
             return field_value;
         }
 
@@ -404,7 +394,6 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
         cursor = dot + 1;
     }
 
-    free(path);
     return LLVMConstInt(ctx->type_i32, 0, 0);
 }
 
@@ -894,7 +883,7 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
     LLVMValueRef *args = NULL;
 
     if (argc > 0) {
-        args = calloc(argc, sizeof(LLVMValueRef));
+        args = pgy_arena_calloc(&ctx->scratch, argc * sizeof(LLVMValueRef));
         for (size_t i = 0; i < argc; i++)
             args[i] = llvm_emit_expression(arg_nodes[i], ctx);
     }
@@ -909,7 +898,6 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
                                 args, (unsigned)argc, llvm_tmp_name(ctx));
     }
 
-    free(args);
     return result;
 }
 
@@ -954,7 +942,8 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
             ret = ast_type_to_llvm(ctx, generic_ast->data.func_decl.return_type);
 
         size_t pc = generic_ast->data.func_decl.param_count;
-        LLVMTypeRef *ptypes = calloc((pc * 2) > 0 ? (pc * 2) : 1, sizeof(LLVMTypeRef));
+        LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
+            ((pc * 2) > 0 ? (pc * 2) : 1) * sizeof(LLVMTypeRef));
         size_t real_pc = 0;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = generic_ast->data.func_decl.params[k];
@@ -977,8 +966,6 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         LLVMTypeRef ft = LLVMFunctionType(ret, ptypes, (unsigned)real_pc, 0);
         LLVMValueRef mono_fn = LLVMAddFunction(ctx->module, mangled, ft);
         llvm_register_function(ctx, mangled, mono_fn, ft, ret);
-        free(ptypes);
-
         ctx->current_function = mono_fn;
         ctx->current_ret_type = ret;
         LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
@@ -1076,7 +1063,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMConstNull(ctx->type_task_handle);
 
     if (argc > 0) {
-        args = calloc(argc, sizeof(LLVMValueRef));
+        args = pgy_arena_calloc(&ctx->scratch, argc * sizeof(LLVMValueRef));
         for (size_t i = 0; i < argc; i++)
             args[i] = llvm_emit_expression(call->data.call.arguments[i], ctx);
     }
@@ -1089,11 +1076,9 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     malloc_fn = llvm_lookup_function(ctx, "malloc");
     free_fn = llvm_lookup_function(ctx, "free");
     if (spawn_fn == NULL || malloc_fn == NULL || free_fn == NULL) {
-        free(args);
         return LLVMConstNull(ctx->type_task_handle);
     }
     if (callee_entry == NULL) {
-        free(args);
         return LLVMConstNull(ctx->type_task_handle);
     }
 
@@ -1109,11 +1094,11 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMTypeRef arg_struct_type = NULL;
     if (argc > 0) {
-        LLVMTypeRef *field_types = calloc(argc, sizeof(LLVMTypeRef));
+        LLVMTypeRef *field_types = pgy_arena_calloc(&ctx->scratch,
+            argc * sizeof(LLVMTypeRef));
         for (size_t i = 0; i < argc; i++)
             field_types[i] = LLVMTypeOf(args[i]);
         arg_struct_type = LLVMStructTypeInContext(ctx->context, field_types, (unsigned)argc, 0);
-        free(field_types);
     }
 
     ctx->current_function = wrapper_fn;
@@ -1125,7 +1110,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef loaded_args_storage[16];
     LLVMValueRef *loaded_args = loaded_args_storage;
     if (argc > 16)
-        loaded_args = calloc(argc, sizeof(LLVMValueRef));
+        loaded_args = pgy_arena_calloc(&ctx->scratch, argc * sizeof(LLVMValueRef));
 
     LLVMValueRef raw_arg = LLVMGetParam(wrapper_fn, 0);
     if (argc > 0) {
@@ -1160,9 +1145,6 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     llvm_scope_pop(ctx);
-    if (loaded_args != loaded_args_storage)
-        free(loaded_args);
-
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
     if (saved_bb != NULL)
@@ -1190,7 +1172,6 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef handle = LLVMBuildCall2(ctx->builder, spawn_fn->fn_type, spawn_fn->fn,
         spawn_args, 2, llvm_tmp_name(ctx));
 
-    free(args);
     return handle;
 }
 
@@ -1406,8 +1387,11 @@ llvm_line_is_empty_with_only_ws(const char *line_start, const char *line_end)
     return true;
 }
 
+static char *llvm_normalize_banner_string_literal_scratch(const char *src,
+                                                          PgyArena *arena);
+
 static char *
-llvm_normalize_banner_string_literal(const char *src)
+llvm_normalize_banner_string_literal_scratch(const char *src, PgyArena *arena)
 {
     const char *cursor = src;
     const char *end;
@@ -1457,7 +1441,7 @@ llvm_normalize_banner_string_literal(const char *src)
     output_cap = (size_t)(end - cursor + 1);
     if (output_cap == 0)
         output_cap = 1;
-    output = malloc(output_cap);
+    output = pgy_arena_alloc(arena, output_cap);
     if (output == NULL)
         return NULL;
 
@@ -1484,9 +1468,10 @@ llvm_normalize_banner_string_literal(const char *src)
                 size_t new_cap = (output_cap * 2 > output_len + seg_len + 2)
                                  ? output_cap * 2
                                  : output_len + seg_len + 2;
-                char *grown = realloc(output, new_cap);
+                char *grown = pgy_arena_alloc(arena, new_cap);
                 if (grown == NULL)
                     break;
+                memcpy(grown, output, output_len);
                 output = grown;
                 output_cap = new_cap;
             }
@@ -1497,9 +1482,10 @@ llvm_normalize_banner_string_literal(const char *src)
         if (line_end < end) {
             if (output_len + 2 > output_cap) {
                 size_t new_cap = output_cap * 2;
-                char *grown = realloc(output, new_cap);
+                char *grown = pgy_arena_alloc(arena, new_cap);
                 if (grown == NULL)
                     break;
+                memcpy(grown, output, output_len);
                 output = grown;
                 output_cap = new_cap;
             }
@@ -1514,8 +1500,9 @@ llvm_normalize_banner_string_literal(const char *src)
     }
 
     if (output_len >= output_cap) {
-        char *grown = realloc(output, output_len + 1);
+        char *grown = pgy_arena_alloc(arena, output_len + 1);
         if (grown != NULL) {
+            memcpy(grown, output, output_len);
             output = grown;
             output_cap = output_len + 1;
         }

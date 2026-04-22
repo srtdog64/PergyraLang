@@ -14,7 +14,7 @@ llvm_function_signature_from_event_type(LLVMGenCtx *ctx, ASTNode *type_node)
         ret_type = ast_type_to_llvm(ctx, type_node->data.event_handler_type.return_type);
 
     if (param_count > 0) {
-        param_types = calloc(param_count, sizeof(LLVMTypeRef));
+        param_types = pgy_arena_calloc(&ctx->scratch, param_count * sizeof(LLVMTypeRef));
         if (param_types == NULL)
             return LLVMFunctionType(ret_type, NULL, 0, 0);
         for (size_t i = 0; i < param_count; i++)
@@ -23,8 +23,35 @@ llvm_function_signature_from_event_type(LLVMGenCtx *ctx, ASTNode *type_node)
     }
 
     fn_type = LLVMFunctionType(ret_type, param_types, (unsigned)param_count, 0);
-    free(param_types);
     return fn_type;
+}
+
+static LLVMTypeRef
+llvm_function_signature_from_callable_entry(LLVMGenCtx *ctx,
+                                            const LLVMCallableVarEntry *entry)
+{
+    LLVMTypeRef *param_types = NULL;
+    LLVMTypeRef ret_type = NULL;
+
+    if (ctx == NULL || entry == NULL)
+        return NULL;
+    if (entry->type_node != NULL)
+        return llvm_function_signature_from_event_type(ctx, entry->type_node);
+
+    ret_type = entry->return_type != NULL
+        ? ast_type_to_llvm(ctx, entry->return_type)
+        : ctx->type_void;
+    if (entry->param_count > 0) {
+        param_types = pgy_arena_calloc(&ctx->scratch,
+                                       entry->param_count * sizeof(LLVMTypeRef));
+        if (param_types == NULL)
+            return LLVMFunctionType(ret_type, NULL, 0, 0);
+        for (size_t i = 0; i < entry->param_count; i++)
+            param_types[i] = ast_type_to_llvm(ctx, entry->param_types[i]);
+    }
+
+    return LLVMFunctionType(ret_type, param_types,
+                            (unsigned)entry->param_count, 0);
 }
 
 static LLVMValueRef
@@ -108,12 +135,11 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 
         if (type_name != NULL && suffix != NULL) {
             size_t fn_len = strlen("operator_") + strlen(suffix) + 1 + strlen(type_name) + 1;
-            char *fn_name = malloc(fn_len);
+            char *fn_name = pgy_arena_alloc(&ctx->scratch, fn_len);
             if (fn_name == NULL)
                 return LLVMConstInt(ctx->type_i32, 0, 0);
             snprintf(fn_name, fn_len, "operator_%s_%s", suffix, type_name);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
-            free(fn_name);
             if (fn != NULL) {
                 LLVMValueRef args[] = { left, right };
                 if (fn->ret_type == ctx->type_void) {

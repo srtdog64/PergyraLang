@@ -352,50 +352,32 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     llvm_mark_function_as_used(ctx, "main");
 }
 
-bool
-llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message)
+LLVMGenResult *
+llvm_validate_mir_for_codegen(const MIRProgram *mir)
 {
-    if (error_message != NULL)
-        *error_message = NULL;
-
-    if (mir == NULL) {
-        if (error_message != NULL)
-            *error_message = pergyra_strdup("MIR program is NULL");
-        return false;
-    }
+    if (mir == NULL)
+        return llvm_result_error("MIR program is NULL");
 
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
         char *topology_error = NULL;
 
         if (routine->name == NULL) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("MIR routine is missing name");
-            return false;
+            return llvm_result_error("MIR routine is missing name");
         }
 
         if (!mir_validate_emission_topology(routine, false, false, &topology_error)) {
-            if (error_message != NULL) {
-                if (topology_error != NULL) {
-                    size_t msg_len = strlen(topology_error) + 128;
-                    *error_message = calloc(1, msg_len);
-                    if (*error_message != NULL) {
-                        snprintf(*error_message, msg_len,
-                                 "MIR routine '%s' emission topology invalid: %s",
-                                 routine->name != NULL ? routine->name : "(anonymous)",
-                                 topology_error);
-                    }
-                } else {
-                    *error_message = pergyra_strdup(
-                        "MIR emission topology validation failed");
-                }
-            }
+            LLVMGenResult *res = topology_error != NULL
+                ? llvm_result_error_fmt("MIR routine '%s' emission topology invalid: %s",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    topology_error)
+                : llvm_result_error("MIR emission topology validation failed");
             free(topology_error);
-            return false;
+            return res;
         }
         free(topology_error);
     }
-    return true;
+    return NULL;
 }
 
 bool

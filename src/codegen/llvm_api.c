@@ -34,11 +34,11 @@ llvm_result_from_ctx_error(LLVMGenCtx *ctx)
     LLVMGenResult *res = llvm_result_error(msg);
     if (res != NULL) {
         if (ctx->error_code != NULL)
-            res->error_code = pergyra_strdup(ctx->error_code);
+            res->error_code = pgy_arena_strdup(&res->owned_arena, ctx->error_code);
         if (ctx->error_cause_ir != NULL)
-            res->error_cause_ir = pergyra_strdup(ctx->error_cause_ir);
+            res->error_cause_ir = pgy_arena_strdup(&res->owned_arena, ctx->error_cause_ir);
         if (ctx->error_fix_source != NULL)
-            res->error_fix_source = pergyra_strdup(ctx->error_fix_source);
+            res->error_fix_source = pgy_arena_strdup(&res->owned_arena, ctx->error_fix_source);
     }
     return res;
 }
@@ -191,13 +191,10 @@ llvm_codegen_mir_only(const MIRProgram *mir, const char *module_name)
     ctx->mir = mir;
 
     llvm_debug_stage("codegen_with_mir:validate_mir");
-    char *mir_error = NULL;
-    if (!llvm_validate_mir_for_codegen(mir, &mir_error)) {
-        LLVMGenResult *res = llvm_result_error(
-            mir_error != NULL ? mir_error : "Invalid MIR program");
-        free(mir_error);
+    verify_result = llvm_validate_mir_for_codegen(mir);
+    if (verify_result != NULL) {
         llvm_ctx_destroy(ctx);
-        return res;
+        return verify_result;
     }
     llvm_debug_stage("codegen_with_mir:emit_program_from_mir");
     if (!llvm_emit_program_from_mir(mir, ctx)) {
@@ -262,13 +259,10 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
     ctx->mir = mir;
 
     llvm_debug_stage("codegen_to_object:validate_mir");
-    char *mir_error = NULL;
-    if (!llvm_validate_mir_for_codegen(mir, &mir_error)) {
-        LLVMGenResult *res = llvm_result_error(
-            mir_error != NULL ? mir_error : "Invalid MIR program");
-        free(mir_error);
+    verify_result = llvm_validate_mir_for_codegen(mir);
+    if (verify_result != NULL) {
         llvm_ctx_destroy(ctx);
-        return res;
+        return verify_result;
     }
     llvm_debug_stage("codegen_to_object:emit_program_from_mir");
     if (!llvm_emit_program_from_mir(mir, ctx)) {
@@ -375,11 +369,7 @@ llvm_gen_result_destroy(LLVMGenResult *res)
     if (res == NULL)
         return;
 
-    free(res->error_message);
-    free(res->error_code);
-    free(res->error_cause_ir);
-    free(res->error_fix_source);
-    free(res->ir_text);
+    pgy_arena_destroy(&res->owned_arena);
     free(res);
 }
 

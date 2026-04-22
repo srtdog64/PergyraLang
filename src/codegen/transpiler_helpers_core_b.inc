@@ -203,13 +203,6 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
     case AST_ROLE_DECL:
         role_decl = transpiler_find_decl_in_active_inventory_only_local(
             ctx, AST_ROLE_DECL, owner_name);
-        if (role_decl == NULL
-            && current_host_decl != NULL
-            && current_host_decl->type == AST_ROLE_DECL) {
-            const char *current_name = transpiler_decl_name_local(current_host_decl);
-            if (current_name != NULL && strcmp(current_name, owner_name) == 0)
-                role_decl = current_host_decl;
-        }
         if (role_decl != NULL
             && role_decl->type == AST_ROLE_DECL
             && role_decl->data.role_decl.for_type != NULL
@@ -466,12 +459,6 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
     return NULL;
 }
 
-static ASTNode *
-find_nominal_host_decl_local(TranspilerCtx *ctx, const char *host_type_name)
-{
-    return transpiler_find_nominal_host_decl_local(ctx, host_type_name);
-}
-
 static const char *
 lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_name,
                                      const char *member_name)
@@ -481,7 +468,7 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
     if (ctx == NULL || host_type_name == NULL || member_name == NULL)
         return NULL;
 
-    decl = find_nominal_host_decl_local(ctx, host_type_name);
+    decl = transpiler_find_nominal_host_decl_local(ctx, host_type_name);
     if (decl == NULL)
         return NULL;
 

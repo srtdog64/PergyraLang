@@ -16,6 +16,18 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
+static LLVMGenResult *
+llvm_result_alloc(void)
+{
+    LLVMGenResult *res = malloc(sizeof(LLVMGenResult));
+    if (res == NULL)
+        return NULL;
+    memset(res, 0, sizeof(LLVMGenResult));
+    pgy_arena_init(&res->owned_arena, 0);
+    return res;
+}
 
 void
 llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...)
@@ -140,24 +152,43 @@ llvm_set_error_at_with_hints(LLVMGenCtx *ctx, ASTNode *node, const char *code,
 LLVMGenResult *
 llvm_result_error(const char *message)
 {
-    LLVMGenResult *res = calloc(1, sizeof(LLVMGenResult));
+    LLVMGenResult *res = llvm_result_alloc();
     if (res == NULL)
         return NULL;
 
     res->success = false;
-    res->error_message = pergyra_strdup(message);
+    res->error_message = pgy_arena_strdup(&res->owned_arena, message);
+    return res;
+}
+
+LLVMGenResult *
+llvm_result_error_fmt(const char *fmt, ...)
+{
+    LLVMGenResult *res = llvm_result_alloc();
+    va_list args;
+
+    if (res == NULL)
+        return NULL;
+
+    res->success = false;
+    va_start(args, fmt);
+    res->error_message = pgy_arena_vfmt(&res->owned_arena, fmt, args);
+    va_end(args);
     return res;
 }
 
 LLVMGenResult *
 llvm_result_success(char *ir_text)
 {
-    LLVMGenResult *res = calloc(1, sizeof(LLVMGenResult));
+    LLVMGenResult *res = llvm_result_alloc();
     if (res == NULL)
         return NULL;
 
     res->success = true;
-    res->ir_text = ir_text;
+    if (ir_text != NULL) {
+        res->ir_text = pgy_arena_strdup(&res->owned_arena, ir_text);
+        free(ir_text);
+    }
     return res;
 }
 

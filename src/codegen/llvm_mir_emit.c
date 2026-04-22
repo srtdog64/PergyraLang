@@ -187,7 +187,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             param_count++;
         }
     }
-    LLVMTypeRef *param_types = calloc(param_count > 0 ? param_count : 1, sizeof(LLVMTypeRef));
+    LLVMTypeRef *param_types = pgy_arena_calloc(&ctx->scratch,
+        (param_count > 0 ? param_count : 1) * sizeof(LLVMTypeRef));
     for (size_t i = 0; i < param_count; i++) {
         if (is_intent) {
             ASTNode *binding = func_decl->data.intent_decl.binding_count > 0
@@ -261,8 +262,6 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (fn == NULL)
         return NULL;
     llvm_mir_debug_stage("emit_func_from_mir:fn_ready", routine);
-    free(param_types);
-
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;
     ASTNode *saved_func_decl = ctx->current_func_decl;
@@ -288,10 +287,13 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             ctx, llvm_find_host_decl_in_active_inventory(ctx, owner_name));
 
     size_t var_capacity = 64;
-    LLVMMirVar *vars = calloc(var_capacity, sizeof(LLVMMirVar));
+    LLVMMirVar *vars = pgy_arena_calloc(&ctx->scratch,
+        var_capacity * sizeof(LLVMMirVar));
     size_t var_count = 0;
 
-    LLVMBasicBlockRef *llvm_blocks = calloc(routine->block_count, sizeof(LLVMBasicBlockRef));
+    LLVMBasicBlockRef *llvm_blocks = pgy_arena_calloc(&ctx->scratch,
+        (routine->block_count > 0 ? routine->block_count : 1)
+            * sizeof(LLVMBasicBlockRef));
     for (size_t i = 0; i < routine->block_count; i++) {
         char bb_name[64];
         snprintf(bb_name, sizeof(bb_name), "bb_%zu", i);
@@ -389,8 +391,6 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     ctx->current_func_decl = saved_func_decl;
     if (is_method)
         llvm_restore_current_host_decl(ctx, saved_host_decl);
-    free(vars);
-    free(llvm_blocks);
     llvm_mir_debug_stage("emit_func_from_mir:return", routine);
     return fn;
 }

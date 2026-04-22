@@ -22,6 +22,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include "../common/arena.h"
 #include "../compiler/hir.h"
 #include "../compiler/mir.h"
 
@@ -32,6 +33,7 @@
 typedef struct
 {
     bool  success;
+    PgyArena owned_arena;
     char *error_message;  /* NULL on success                  */
     /* Stable diagnostic code attached to error_message (owning, e.g.
      * "PGY_LLVM_SPEC_LIMIT"). NULL when the failing site has not been
@@ -67,7 +69,13 @@ void llvm_gen_result_destroy(LLVMGenResult *res);
 
 #else /* !PGY_LLVM_ENABLED - stub declarations */
 
-typedef struct { bool success; char *error_message; char *ir_text; bool uses_intent_observability; } LLVMGenResult;
+typedef struct {
+    bool success;
+    PgyArena owned_arena;
+    char *error_message;
+    char *ir_text;
+    bool uses_intent_observability;
+} LLVMGenResult;
 LLVMGenResult *llvm_codegen_from_mir(const void *mir, const char *module_name);
 LLVMGenResult *llvm_codegen_to_object_from_mir(const void *mir, const char *module_name, const char *output_path, bool release_opt);
 void llvm_gen_result_destroy(LLVMGenResult *res);

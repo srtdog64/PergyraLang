@@ -193,7 +193,8 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
     /* Parameter types */
     LLVMTypeRef *param_types = NULL;
     if (emitted_param_count > 0) {
-        param_types = calloc(emitted_param_count, sizeof(LLVMTypeRef));
+        param_types = pgy_arena_calloc(&ctx->scratch,
+                                       emitted_param_count * sizeof(LLVMTypeRef));
         unsigned pidx = 0;
         for (size_t i = 0; i < param_count; i++) {
             bool is_secure = false;
@@ -224,7 +225,6 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef fn = LLVMAddFunction(ctx->module, name, fn_type);
     llvm_register_function(ctx, name, fn, fn_type, ret_type);
 
-    free(param_types);
 }
 
 void

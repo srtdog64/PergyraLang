@@ -859,8 +859,11 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         LLVMValueRef derived_ptr = NULL;
         LLVMValueRef derived_val = LLVMConstInt(ctx->type_i1, 0, 0);
         size_t zone_count = stmt->data.world_decl.zone_count;
-        LLVMValueRef *prev_active_addrs = calloc(zone_count > 0 ? zone_count : 1,
-            sizeof(LLVMValueRef));
+        /* Per-zone "previously active" pointer cache — populated during
+         * world sync emission and consumed once before this function
+         * returns.  Never escapes. */
+        LLVMValueRef *prev_active_addrs = pgy_arena_calloc(&ctx->scratch,
+            (zone_count > 0 ? zone_count : 1) * sizeof(LLVMValueRef));
 
         LLVMBuildStore(ctx->builder, LLVMGetParam(sync_fn, 0), sa);
         llvm_scope_declare(ctx, "self", sa, self_ptr_t);
@@ -1227,7 +1230,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             LLVMPositionBuilderAtEnd(ctx->builder, done_bb);
         }
 
-        free(prev_active_addrs);
+        /* prev_active_addrs is ctx->scratch-owned. */
     }
 
     LLVMBuildRetVoid(ctx->builder);
@@ -1360,7 +1363,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 + stmt->data.zone_decl.layer_slot_count
                 + stmt->data.zone_decl.state_count
                 + projection_count;
-            ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            ftypes = pgy_arena_calloc(&ctx->scratch,
+                (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
             size_t idx = 0;
             for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++, idx++) {
                 ASTNode *slot = stmt->data.zone_decl.slots[j];
@@ -1415,7 +1419,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
         } else if (stmt->type == AST_ROSTER_DECL) {
             fc = stmt->data.roster_decl.party_count
                 + stmt->data.roster_decl.shared_count;
-            ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            ftypes = pgy_arena_calloc(&ctx->scratch,
+                (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
             size_t idx = 0;
             for (size_t j = 0; j < stmt->data.roster_decl.party_count; j++, idx++) {
                 ASTNode *slot = stmt->data.roster_decl.party_slots[j];
@@ -1442,7 +1447,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 + stmt->data.world_decl.zone_count
                 + stmt->data.world_decl.state_count
                 + 1;
-            ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            ftypes = pgy_arena_calloc(&ctx->scratch,
+                (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
             size_t idx = 0;
             for (size_t j = 0; j < stmt->data.world_decl.roster_count; j++, idx++) {
                 ASTNode *ws = stmt->data.world_decl.rosters[j];
@@ -1477,7 +1483,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     refreshes, refresh_count)
                 : 0;
             fc = slot_count + shared_count + dyn_slot_count + projection_count;
-            ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            ftypes = pgy_arena_calloc(&ctx->scratch,
+                (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
             size_t idx = 0;
             for (size_t j = 0; j < slot_count; j++, idx++) {
                 ASTNode *slot = slots[j];
@@ -1678,7 +1685,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 }
             }
         }
-        free(ftypes);
+        /* ftypes is ctx->scratch-owned. */
 
         if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL
             || stmt->type == AST_ZONE_DECL || stmt->type == AST_WORLD_DECL) {
@@ -1716,8 +1723,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 user_pc++;
             }
 
-            LLVMTypeRef *ptypes = calloc(user_pc + 1,
-                                           sizeof(LLVMTypeRef));
+            LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
+                (user_pc + 1) * sizeof(LLVMTypeRef));
             ptypes[0] = LLVMPointerType(struct_ty, 0);
             size_t pidx = 1;
             for (size_t k = 0; k < pc; k++) {
@@ -1747,7 +1754,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                                                 fname, ft);
             llvm_register_function(ctx, LLVMGetValueName(fn),
                                     fn, ft, ret);
-            free(ptypes);
+            /* ptypes is ctx->scratch-owned. */
         }
         }
     }
@@ -1761,9 +1768,11 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
         const char *ab_name = stmt->data.ability_decl.name;
         size_t mc = stmt->data.ability_decl.method_count;
 
-        /* Build vtable struct: { fn_ptr_1, fn_ptr_2, ... } */
-        LLVMTypeRef *vt_fields = calloc(mc > 0 ? mc : 1,
-                                          sizeof(LLVMTypeRef));
+        /* Build vtable struct: { fn_ptr_1, fn_ptr_2, ... }.  Type arrays
+         * are consumed by LLVMFunctionType / LLVMStructSetBody and never
+         * retained after the struct type is registered below. */
+        LLVMTypeRef *vt_fields = pgy_arena_calloc(&ctx->scratch,
+            (mc > 0 ? mc : 1) * sizeof(LLVMTypeRef));
         for (size_t j = 0; j < mc; j++) {
             ASTNode *method = stmt->data.ability_decl.methods[j];
             if (method == NULL || method->type != AST_FUNC_DECL) {
@@ -1785,7 +1794,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     continue;
                 user_pc++;
             }
-            LLVMTypeRef *ptypes = calloc(user_pc + 1, sizeof(LLVMTypeRef));
+            LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
+                (user_pc + 1) * sizeof(LLVMTypeRef));
             ptypes[0] = ctx->type_i8ptr; /* self */
             size_t pidx = 1;
             for (size_t k = 0; k < pc; k++) {
@@ -1800,7 +1810,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             LLVMTypeRef fn_type = LLVMFunctionType(ret,
                 ptypes, (unsigned)(user_pc + 1), 0);
             vt_fields[j] = LLVMPointerType(fn_type, 0);
-            free(ptypes);
+            /* ptypes is ctx->scratch-owned. */
         }
 
         char vt_name[256];
@@ -1808,7 +1818,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
         LLVMTypeRef vt_struct = LLVMStructCreateNamed(ctx->context,
                                                         vt_name);
         LLVMStructSetBody(vt_struct, vt_fields, (unsigned)mc, 0);
-        free(vt_fields);
+        /* vt_fields is ctx->scratch-owned. */
 
         /* Register as class type so it's findable.
          * Must strdup because vt_name is a stack local. */
@@ -1862,8 +1872,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     user_pc++;
                 }
 
-                LLVMTypeRef *ptypes = calloc(user_pc + 1,
-                                               sizeof(LLVMTypeRef));
+                LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
+                    (user_pc + 1) * sizeof(LLVMTypeRef));
                 ptypes[0] = ctx->type_i8ptr;
                 size_t pidx = 1;
                 for (size_t k = 0; k < pc; k++) {
@@ -1885,7 +1895,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                                                     fname, ft);
                 llvm_register_function(ctx, LLVMGetValueName(fn),
                                         fn, ft, ret);
-                free(ptypes);
+                /* ptypes is ctx->scratch-owned. */
             }
         }
 
@@ -2151,9 +2161,11 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
         {
             char fname[256];
             snprintf(fname, sizeof(fname), "%s_INVOKE", ename);
-            /* params: ptr (event), then handler params */
-            LLVMTypeRef *inv_params = calloc((size_t)(pc + 1),
-                sizeof(LLVMTypeRef));
+            /* params: ptr (event), then handler params.  Consumed by
+             * LLVMFunctionType (which copies the type array) and never
+             * retained beyond this block. */
+            LLVMTypeRef *inv_params = pgy_arena_calloc(&ctx->scratch,
+                (size_t)(pc + 1) * sizeof(LLVMTypeRef));
             inv_params[0] = ctx->type_i8ptr;
             for (int j = 0; j < pc; j++)
                 inv_params[j + 1] = ptypes[j];
@@ -2207,13 +2219,15 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             LLVMValueRef hval = LLVMBuildLoad2(ctx->builder,
                 ctx->type_i8ptr, slot, "hval");
 
-            /* Call handler(params...) via indirect call */
-            LLVMValueRef *call_args = calloc((size_t)pc, sizeof(LLVMValueRef));
+            /* Call handler(params...) via indirect call.  Arg buffer is
+             * consumed by LLVMBuildCall2 and never retained. */
+            LLVMValueRef *call_args = pgy_arena_calloc(&ctx->scratch,
+                (size_t)pc * sizeof(LLVMValueRef));
             for (int j = 0; j < pc; j++)
                 call_args[j] = LLVMGetParam(inv_fn, (unsigned)(j + 1));
             LLVMBuildCall2(ctx->builder, handler_ft, hval,
                 call_args, (unsigned)pc, "");
-            free(call_args);
+            /* call_args is ctx->scratch-owned. */
 
             /* i++ */
             LLVMValueRef inc = LLVMBuildAdd(ctx->builder,
@@ -2224,7 +2238,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             LLVMPositionBuilderAtEnd(ctx->builder, done_bb);
             LLVMBuildRetVoid(ctx->builder);
 
-            free(inv_params);
+            /* inv_params is ctx->scratch-owned. */
         }
 
         /* Create global variable for this event */
@@ -2430,8 +2444,10 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 vt_type_name);
             if (vt_cls != NULL) {
                 size_t mc = impl->data.impl_ability.method_count;
-                LLVMValueRef *vals = calloc(mc > 0 ? mc : 1,
-                                              sizeof(LLVMValueRef));
+                /* Vtable method value array — consumed by
+                 * LLVMConstNamedStruct (copies) for the global initializer. */
+                LLVMValueRef *vals = pgy_arena_calloc(&ctx->scratch,
+                    (mc > 0 ? mc : 1) * sizeof(LLVMValueRef));
                 for (size_t j = 0; j < mc; j++) {
                     ASTNode *method = impl->data.impl_ability.methods[j];
                     if (method == NULL || method->type != AST_FUNC_DECL) {
@@ -2458,7 +2474,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 LLVMSetGlobalConstant(global, 1);
                 LLVMSetLinkage(global, LLVMInternalLinkage);
 
-                free(vals);
+                /* vals is ctx->scratch-owned. */
             }
         }
     }

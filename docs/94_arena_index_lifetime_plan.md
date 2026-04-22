@@ -1,6 +1,6 @@
 # Arena + Index Reference Lifetime Plan
 
-마지막 업데이트: 2026-04-22 (arena scratch slice 확장)
+마지막 업데이트: 2026-04-23 (LLVM lane closure 진전)
 
 ## 결론
 
@@ -142,6 +142,11 @@ semantic 쪽은 특히 이 분리가 중요하다.
   - temporary symbol names
   - helper render text
   - temporary debug/path strings
+- `llvm persistent arena`
+  - callable signature metadata
+  - ctx-lifetime declaration/codegen metadata that must outlive a single helper call
+- `llvm result-owned arena`
+  - backend-visible error/result strings
 
 ## 왜 index 참조가 맞는가
 
@@ -198,6 +203,13 @@ Pergyra는 이미 다음 성격이 강하다.
   - `SemanticContext`가 scratch arena를 보유한다
   - ownership diagnostic의 assignment/member/array path string은 scratch arena에서 조립된다
   - result에 남겨야 하는 필드는 payload snapshot이 별도로 복사한다
+- LLVM도 lane 분리가 실제 코드에 들어갔다 (2026-04-23)
+  - `LLVMGenCtx`는 `scratch + persistent` lane을 사용한다
+  - `LLVMGenResult`는 result-owned arena를 사용한다
+  - intent MIR collector, projection path, local grow helper, event invoke/type render temporary는 scratch로 수렴했다
+  - synthetic event-handler AST field 저장은 callable signature registry로 치환됐다
+  - 기존 `*error_message` heap return contract는 result-owned lane으로 수렴했다
+  - 남은 heap 경계는 owner shell(`ctx`, registry destroy, result outer shell)과 runtime ABI contract로 한정된다
 - 추가로 scratch-safe slice를 3개 더 흡수했다 (2026-04-22)
   - `semantic_preload_stdlib_uses` 의 module path 조립은 function-local `PgyArena`로 이동
     - per-iteration `malloc/free`를 batch arena alloc 하나로 대체
@@ -218,6 +230,34 @@ Pergyra는 이미 다음 성격이 강하다.
   - `hir.c:hir_compute_cfg_dominance` 의 `visited`/`postorder`/`idoms` 3배열 → function-local arena (이후 4차에서 `routine->scratch` 로 이동)
   - `hir.c:hir_mark_natural_loop` 의 `in_loop`/`stack` 2배열 → function-local arena (이후 4차에서 `routine->scratch` 로 이동)
   - `mir.c:mir_apply_ssa_rename` 의 outer `next_versions`/`root_versions`/`out_versions` 3배열 → function-local arena (이후 4차에서 `routine->scratch` 로 이동)
+
+- LLVM 백엔드 5차 slice 1개 흡수 (2026-04-22, 5차, 이후 6차에서 ctx-scope 로 통합됨)
+  - `llvm_register.c:llvm_register_enum_decl` 의 `enum_fields` + per-variant `payload_fields` 를 function-local `PgyArena` 하나로 수렴
+  - LLVMStructSetBody / llvm_class_add_field 는 전달받은 type 배열을 내부 복사하므로 버퍼는 함수 밖으로 탈출하지 않는다
+- `llvm_intent.c:llvm_collect_mir_intent_participants` 의 growth 버퍼는 return-ownership 계약 (호출자가 `aliases_out`/`types_out`을 받아서 사용 후 free) 이라 deferred. 반환 배열 lifetime이 함수 밖으로 확장됨 → arena reset 시점을 caller 쪽 계약에 맞추지 않는 한 옮길 수 없음
+
+- LLVM 6차: **LLVMGenCtx ctx-scope scratch arena 도입** (2026-04-22, 6차)
+  - `LLVMGenCtx` 에 `PgyArena scratch` 필드 추가
+  - `llvm_ctx_create` 에서 `pgy_arena_init(&ctx->scratch, 0)` 호출
+  - `llvm_ctx_destroy` 에서 `pgy_arena_destroy(&ctx->scratch)` 호출 (mono_instances 해제 직후, `free(ctx)` 직전)
+  - `llvm_register_enum_decl` 의 function-local arena 삭제, `ctx->scratch` 로 수렴
+  - 이후 추가되는 LLVM lowering scratch 사이트는 모두 이 arena 재사용 가능
+
+- LLVM 7차: **ctx-scope arena 일괄 흡수** (2026-04-22, 7차) — 9 scratch 사이트
+  - `llvm_expr.c:AST_TUPLE_LITERAL` 의 `vals` + `tys` — struct 생성 시 LLVMStructTypeInContext / BuildInsertValue 가 소비
+  - `llvm_backend.c:ast_type_to_llvm` AST_EVENT_HANDLER_TYPE 의 `param_types` — LLVMFunctionType 이 복사
+  - `llvm_backend.c:ast_type_to_llvm` tuple type 의 `fields` — LLVMStructTypeInContext 가 복사
+  - `llvm_domain.c` 이벤트 INVOKE 경로의 `inv_params` (LLVMFunctionType) 와 `call_args` (LLVMBuildCall2)
+  - `llvm_register.c` enum method / class struct field / class method / extern 의 4 param-type 버퍼
+  - `llvm_domain.c` ability vtable 의 `vt_fields` (outer) 와 per-method `ptypes` (inner)
+  - 공통: 전부 LLVM C API (FunctionType / StructSetBody / BuildCall2 / StructTypeInContext) 가 배열 내용을 내부 복사하므로 원본 포인터는 함수 밖으로 탈출하지 않음. scratch-safe
+
+- LLVM 8차: **ctx-scope arena 추가 흡수** (2026-04-22, 8차) — 17 scratch 사이트
+  - `llvm_stmt.c` 람다 param_types, 병렬 closure ctx_fields / wrapper_fns / handles, async closure fields, select rotation_bbs
+  - `llvm_intent.c` intent 함수 param_types, 스텝 completion 추적 `completed_allocas`, `saved_participant_ptrs`
+  - `llvm_domain.c` world sync `prev_active_addrs`, domain struct 빌드 `ftypes` 5분기 (zone/roster/world/default), role/class method `ptypes` 2 사이트, vtable method 값 배열 `vals`
+  - 전부 같은 "type-ref/value 배열을 LLVM C API 에 넘긴 뒤 원본을 버리는" 패턴. `ctx->scratch` 로 수렴
+  - 결과: LLVM 백엔드 내의 scratch-safe calloc/malloc 사이트가 거의 모두 ctx arena 에 정렬됨. 남은 것은 return-ownership 혼재 helper (`llvm_intent.c:llvm_collect_mir_intent_participants`, `llvm_pipeline.c` 의 error_message 계산 등) 과 stored-in-AST 케이스 (`handler_type->data.event_handler_type.param_types` 에 저장되는 파서/에미션 경로)
 
 - HIR/MIR 4차: **routine-scope scratch arena 도입** (2026-04-22, 4차)
   - `hir.h` HIRRoutine 에 `PgyArena scratch` 필드 추가

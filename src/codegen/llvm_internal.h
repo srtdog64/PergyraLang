@@ -267,6 +267,9 @@ typedef struct
 {
     const char *var_name;
     ASTNode    *type_node;
+    ASTNode   **param_types;
+    size_t      param_count;
+    ASTNode    *return_type;
 } LLVMCallableVarEntry;
 
 typedef struct
@@ -551,6 +554,18 @@ typedef struct LLVMGenCtx
      * emit (see type_checker.h::Diagnostic for field semantics). */
     const char     *error_cause_ir;
     const char     *error_fix_source;
+
+    /* Pass-local scratch arena: reused across LLVM lowering passes.
+     * Lifetime binds to the enclosing LLVMGenCtx — initialised in
+     * llvm_ctx_create(), destroyed in llvm_ctx_destroy().  Used for
+     * transient type-ref / name-buffer assembly that never escapes into
+     * the LLVM module, class registry, or MIR. */
+    PgyArena        scratch;
+    /* Context-lifetime persistent arena: for LLVM-owned metadata that
+     * outlives a single local emission helper but must still die with the
+     * enclosing codegen context. Used for callable signatures and other
+     * registry-backed arrays that must not be scratch-owned. */
+    PgyArena        persistent;
 } LLVMGenCtx;
 
 static inline const char *
@@ -1087,6 +1102,12 @@ const char *llvm_lookup_map_value(LLVMGenCtx *ctx, const char *var_name);
 void llvm_register_callable_var(LLVMGenCtx *ctx, const char *var_name,
                                 ASTNode *type_node);
 ASTNode *llvm_lookup_callable_var(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_callable_signature(LLVMGenCtx *ctx, const char *var_name,
+                                      size_t param_count,
+                                      ASTNode *const *param_types,
+                                      ASTNode *return_type);
+LLVMCallableVarEntry *llvm_lookup_callable_entry(LLVMGenCtx *ctx,
+                                                 const char *var_name);
 void llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
                              ASTNode *type_node);
 
@@ -1197,6 +1218,8 @@ const char   *llvm_tmp_name(LLVMGenCtx *ctx);
 LLVMValueRef  llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
                                         const char *name);
 char         *llvm_stmt_render_type_arg(GenericParam *param);
+char         *llvm_stmt_render_type_arg_scratch(GenericParam *param,
+                                                PgyArena *arena);
 ASTNode      *llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx,
                                                    const char *name);
 bool          llvm_mir_base_name_from_versioned(const char *mir_name,
@@ -1250,12 +1273,13 @@ void llvm_set_error_at_with_hints(LLVMGenCtx *ctx, ASTNode *node,
  * Result helpers (llvm_backend.c)
  * ================================================================= */
 LLVMGenResult *llvm_result_error(const char *message);
+LLVMGenResult *llvm_result_error_fmt(const char *fmt, ...);
 LLVMGenResult *llvm_result_success(char *ir_text);
 
 /* =================================================================
  * Pipeline helpers (llvm_backend.c / llvm_api.c)
  * ================================================================= */
-bool llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message);
+LLVMGenResult *llvm_validate_mir_for_codegen(const MIRProgram *mir);
 bool llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx);
 void llvm_declare_runtime(LLVMGenCtx *ctx);
 void llvm_set_type_render_ctx(LLVMGenCtx *ctx);

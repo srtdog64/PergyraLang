@@ -751,17 +751,59 @@ llvm_register_callable_var(LLVMGenCtx *ctx, const char *var_name,
                       ctx->callable_var_capacity, LLVMCallableVarEntry);
     ctx->callable_vars[ctx->callable_var_count].var_name = var_name;
     ctx->callable_vars[ctx->callable_var_count].type_node = type_node;
+    ctx->callable_vars[ctx->callable_var_count].param_types = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_count = 0;
+    ctx->callable_vars[ctx->callable_var_count].return_type = NULL;
     ctx->callable_var_count++;
+}
+
+void
+llvm_register_callable_signature(LLVMGenCtx *ctx, const char *var_name,
+                                 size_t param_count,
+                                 ASTNode *const *param_types,
+                                 ASTNode *return_type)
+{
+    ASTNode **stored_param_types = NULL;
+
+    if (ctx == NULL || var_name == NULL)
+        return;
+
+    if (param_count > 0) {
+        stored_param_types = pgy_arena_calloc(&ctx->persistent,
+                                              param_count * sizeof(ASTNode *));
+        if (stored_param_types == NULL) {
+            llvm_set_error(ctx, "out of memory registering callable signature");
+            return;
+        }
+        for (size_t i = 0; i < param_count; i++)
+            stored_param_types[i] = param_types != NULL ? param_types[i] : NULL;
+    }
+
+    PGY_DYNARR_ENSURE(ctx->callable_vars, ctx->callable_var_count,
+                      ctx->callable_var_capacity, LLVMCallableVarEntry);
+    ctx->callable_vars[ctx->callable_var_count].var_name = var_name;
+    ctx->callable_vars[ctx->callable_var_count].type_node = NULL;
+    ctx->callable_vars[ctx->callable_var_count].param_types = stored_param_types;
+    ctx->callable_vars[ctx->callable_var_count].param_count = param_count;
+    ctx->callable_vars[ctx->callable_var_count].return_type = return_type;
+    ctx->callable_var_count++;
+}
+
+LLVMCallableVarEntry *
+llvm_lookup_callable_entry(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->callable_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->callable_vars[i].var_name, var_name) == 0)
+            return &ctx->callable_vars[i];
+    }
+    return NULL;
 }
 
 ASTNode *
 llvm_lookup_callable_var(LLVMGenCtx *ctx, const char *var_name)
 {
-    for (int i = ctx->callable_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->callable_vars[i].var_name, var_name) == 0)
-            return ctx->callable_vars[i].type_node;
-    }
-    return NULL;
+    LLVMCallableVarEntry *entry = llvm_lookup_callable_entry(ctx, var_name);
+    return entry != NULL ? entry->type_node : NULL;
 }
 
 void

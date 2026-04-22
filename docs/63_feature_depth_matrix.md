@@ -47,9 +47,9 @@ subset surface는 아래 세 분류를 같이 써야 한다.
   - strict closure target: richer mismatch provenance와 broader instantiation-path parity
   - beta-out-of-scope: broader generic generalization
 - own/ref
-  - stable subset: anchored slot-handle boundary subset plus generalized provenance/escape diagnostics on the currently-closed consumer paths
-  - explicit reject: any general own/ref combination that still falls outside the current semantic contract
-  - beta-out-of-scope: general ownership system
+  - stable subset: copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule on the currently-closed consumer paths
+  - explicit reject: authority-bearing `Token<T>` escape/transport and a small set of remaining helper-chain/container/rebind transitive ownership corners
+  - beta-out-of-scope: ownership lattice beyond the current classifier/summary model
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds
@@ -118,7 +118,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |
-| `own/ref` 소유권 | ✅ | ✅ | ◐ | ✅ | ✅ | 해당 없음 | ✅ | 중상 | 베타 stable subset은 copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule까지 넓어졌다. `Token<T>` escape와 일부 남은 transitive ownership corner만 explicit reject이며, broader assignment/container/rebind/helper-chain audit가 마지막 blocker다 |
+| `own/ref` 소유권 | ✅ | ✅ | ◐ | ✅ | ✅ | 해당 없음 | ✅ | 중상 | 베타 stable subset은 copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule까지 넓어졌다. class/subject matrix는 거의 맞춰졌고 tuple/object도 기존 semantic suite에 coverage가 있다. `Token<T>` escape와 일부 남은 helper-chain/transitive ownership corner만 explicit reject다. 마지막 blocker는 summary/direct audit과 문서 정렬이다 |
 | 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
 | 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |

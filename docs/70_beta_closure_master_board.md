@@ -43,10 +43,10 @@
 | B0-1 Intent / Zone / World | 진행 중 | 84% | 차단 | observability baseline은 생겼고 embedding/handoff 핵심 진단은 `Contract source` 구조로 올라왔지만 authority/provenance depth가 더 남음 |
 | B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
 | B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
-| B0-4 own/ref | 진행 중 | 84% | 차단 | copy-value/general aggregate/slot-handle surface는 semantic에서 실제로 넓게 닫혔고 constructor field store, transitive helper return, nested projection provenance 회귀도 추가됐다. 이제 broader assignment/container/rebind/helper-chain 조합과 남은 transitive edge wording 정렬이 남음 |
-| MIR-only declaration debt | 진행 중 | 82% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했다. MIR emit state restore도 helper로 묶였지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
+| B0-4 own/ref | 진행 중 | 92% | 차단 | copy-value/general aggregate/slot-handle surface는 semantic에서 실제로 넓게 닫혔고 constructor field store, transitive helper return, channel send/direct return, nested projection provenance 회귀도 추가됐다. class/subject consumer matrix도 거의 맞춰졌고 tuple/object 계열도 기존 semantic suite에 coverage가 있다. 이제 남은 건 helper-chain 잔여 빈칸과 summary/direct equivalence audit, classifier/docs 최종 정렬이다 |
+| MIR-only declaration debt | 진행 중 | 84% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했다. MIR emit state restore도 helper로 묶였고 host-name 보조층도 더 줄었지만 zone/world/relation/effect declaration inventory bootstrap 잔여가 있음 |
 | Type-resolution DAG | 진행 중 | 66% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
-| Arena / lifetime discipline | 진행 중 | 60% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 규칙 문서화는 끝났고 transpiler scratch-only temporary의 첫 safe vertical slice, semantic result-owned diagnostic payload seam, semantic scratch arena가 ownership path 조립 / stdlib preload / enum method mangling / parallel task metadata / type-resolution cycle detection / match redundancy coverage까지 확장됐다. HIR/MIR에도 routine-scope `scratch` arena를 도입해 dominance/loop/SSA rename 3 pass가 같은 arena 를 재사용한다. 반환 ownership이 섞인 helper와 transpiler ctx-level scratch 확장은 아직 남아 있다 |
+| Arena / lifetime discipline | 진행 중 | 79% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 규칙 문서화는 끝났고 transpiler scratch-only temporary의 첫 safe vertical slice, semantic result-owned diagnostic payload seam, semantic scratch arena가 ownership path 조립 / stdlib preload / enum method mangling / parallel task metadata / type-resolution cycle detection / match redundancy coverage까지 확장됐다. HIR/MIR에는 routine-scope `scratch` arena가, LLVM은 `scratch + persistent + result-owned` lane으로 정리되어 event invoke, intent collector, projection path, local grow array, type render helper, callable signature metadata까지 arena 경계가 올라왔다. 남은 것은 owner shell과 runtime ABI contract, 반환 ownership이 섞인 일부 helper다 |
 | C/LLVM parity | 진행 중 | 81% | 차단 | core parity는 강해졌지만 domain edge path compare가 더 필요 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
 | surface trust docs | 진행 중 | 87% | 차단 | 주요 surface는 정렬됐고 own/ref baseline도 넓어졌지만 B0 잔여에 맞춘 최종 재분류와 acceptance wording 고정이 남음 |
@@ -304,13 +304,16 @@ diagnostic 고정 규칙:
 - boundary subset
 - diagnostics baseline
 - regression and docs alignment
+- copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule
+- constructor field store / transitive helper return / channel send / direct return / nested projection provenance 회귀
+- helper/return/channel wording family의 공용 정렬
 
 남은 것:
 
-- arbitrary value / anchored handle ownership 모델 확장
-- copy vs move-only 분류 정리
-- assignment/call/return/channel/container/rebind 전경로 analysis
-- moved-here / borrowed-here / escaped-here provenance diagnostics
+- broader matrix 잔여 빈칸(주로 helper-chain 교차와 일부 tuple/object 회귀 축 정규화)
+- helper-chain + nested projection + member/container/rebind 교차 회귀
+- summary path와 direct path의 완전 동일 family audit
+- classifier / docs / support-matrix 최종 정렬
 
 최근 진전:
 
@@ -319,15 +322,17 @@ diagnostic 고정 규칙:
 - movable resource(`QubitSlot`)는 explicit `own` parameter transfer path를 부분적으로 열기 시작했다
 - local binding 단계에서도 unnamed `recv/await` use, subject rebinding, released-slot move, anchored-handle rebinding이 provenance형 hard error로 정렬되기 시작했다
 - slot escape analyzer도 return/helper-call/channel/unterminated local claim 경로를 provenance형 `Reason:` / `Fix:` 경고로 정렬하기 시작했다
+- nested projection source(`cargo.wrapper.packet`)는 constructor field store / member rebind / list/set/queue/map store / array overwrite / helper return summary / channel send / direct return까지 회귀로 고정됐다
+- class/subject consumer matrix는 return / channel / helper / list / set / queue / map / array push / array overwrite / member rebind / constructor field store까지 거의 동형으로 정렬됐다
+- tuple/object 경로도 `test_semantic.c`의 기존 regression 축에서 channel/new-binding/rebind/return/helper forwarding/queue-map-array overwrite/projection provenance coverage가 유지된다
 
 직접 마감 항목:
 
-- movable vs copy type rule
-- assignment ownership rule
-- call boundary ownership rule
-- return boundary ownership rule
-- channel boundary ownership rule
-- container/rebind ownership rule
+- helper-chain 잔여 matrix
+- tuple/object 회귀 축의 ownership-boundaries 계열 정규화
+- broader assignment/container/rebind/helper-chain matrix
+- summary/direct path equivalence audit
+- classifier wording / support matrix / docs closure
 - helper-call escape analysis
 - declaration/runtime/diagnostic/backend parity
 

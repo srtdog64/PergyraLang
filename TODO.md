@@ -160,12 +160,12 @@
   - [x] `scratch arena` / `result arena` lifetime 규칙 문서화
   - [x] arena 간 cross-reference를 `index` / stable handle 기준으로 문서화
   - [x] `TranspilerCtx` scratch arena 적용 범위 확정
-  - [ ] semantic analyze pass용 scratch arena 도입 지점 정리
-  - [ ] diagnostic payload/result-owned arena 분리 여부 결정
-  - [ ] 타입/역할별 arena 분할안 초안 작성
-  - [ ] `strdup_fmt` / type render / projection path / generic formatter helper의 arena 전환 우선순위 작성
+  - [x] semantic analyze pass용 scratch arena 도입 지점 정리
+  - [x] diagnostic payload/result-owned arena 분리 여부 결정
+  - [x] 타입/역할별 arena 분할안 초안 작성
+  - [x] `strdup_fmt` / type render / projection path / generic formatter helper의 arena 전환 우선순위 작성
   - [x] cache에 arena-owned 포인터 저장 금지 규칙 문서화
-  - [ ] 첫 vertical slice:
+  - [x] 첫 vertical slice:
     - transpiler temporary strings
     - semantic diagnostic formatting scratch strings
     - type-name rendering scratch helpers
@@ -184,6 +184,13 @@
     - `SemanticContext`에 scratch arena 추가
     - ownership diagnostic path string은 scratch arena를 우선 사용
     - payload snapshot이 result로 복사하므로 helper 내부 free churn 제거
+  - 진행: LLVM arena lane 1차 closure
+    - `LLVMGenCtx`는 `scratch` + `persistent` lane으로 분리
+    - `LLVMGenResult`는 result-owned arena를 보유
+    - intent MIR collector / projection path / local grow helper / event invoke / type render helper가 scratch로 수렴
+    - synthetic event-handler AST field 저장은 callable signature registry로 치환
+    - `*error_message` heap return contract는 result-owned lane으로 수렴
+    - 남은 heap 경계는 owner shell(`ctx`, registry destroy, result outer shell)과 runtime ABI contract 수준으로 축소
   - 주의: 반환 계약이 있는 expression string은 아직 arena로 옮기지 않음
   - 주의: `slot_ref_expr(...)` scratch 전환 시도는 되돌림. 반환 ownership 경계를 먼저 나눠야 함
 
@@ -224,6 +231,28 @@
   - `hir.c:hir_compute_cfg_dominance` 의 `visited`/`postorder`/`idoms` 3배열 → function-local `PgyArena`
   - `hir.c:hir_mark_natural_loop` 의 `in_loop`/`stack` 2배열 → function-local `PgyArena`
   - `mir.c:mir_apply_ssa_rename` outer 3배열 → function-local `PgyArena`
+- arena scratch 5차 slice — LLVM 백엔드 첫 진입 (같은 날, 이후 6차에서 ctx-scope 로 통합)
+  - `llvm_register.c:llvm_register_enum_decl` 의 `enum_fields` + per-variant `payload_fields` type-ref 버퍼를 function-local `PgyArena` 로 수렴
+  - `llvm_intent.c:llvm_collect_mir_intent_participants` 는 return-ownership 계약이라 deferred
+- arena scratch 6차 slice — **LLVMGenCtx ctx-scope scratch arena 도입** (같은 날)
+  - `LLVMGenCtx` 에 `PgyArena scratch` 필드 추가
+  - `llvm_ctx_create` / `llvm_ctx_destroy` 에서 lifecycle 관리
+  - 5차에 function-local 로 시작한 enum type-ref arena 를 `ctx->scratch` 로 수렴. LLVMGenCtx 하나당 init/destroy 한 번만
+  - 후속 LLVM scratch 사이트 (미래에 발굴되는) 도 이 arena 재사용 가능
+- arena scratch 7차 slice — **LLVM 9 사이트 일괄 흡수** (같은 날)
+  - tuple literal (`llvm_expr.c`) 의 vals + tys
+  - event handler type / tuple type (`llvm_backend.c:ast_type_to_llvm`) 의 param_types + fields
+  - event INVOKE (`llvm_domain.c`) 의 inv_params + call_args
+  - class/enum/extern 등록 (`llvm_register.c`) 의 4 param-type 버퍼
+  - ability vtable (`llvm_domain.c`) 의 outer vt_fields + per-method ptypes
+  - 공통: LLVM C API 가 type/value 배열을 내부 복사하므로 scratch-safe
+  - 결과: LLVM 전체의 short-lived type 배열 assembly 가 ctx arena 하나로 수렴
+- arena scratch 8차 slice — **LLVM 17 사이트 추가 흡수** (같은 날)
+  - `llvm_stmt.c`: lambda param, parallel closure ctx/wrapper/handles, async closure fields, select rotation BBs
+  - `llvm_intent.c`: intent function param_types, step completion `completed_allocas`, `saved_participant_ptrs`
+  - `llvm_domain.c`: world sync `prev_active_addrs`, domain struct `ftypes` (4 분기), role/class method `ptypes` (2 사이트), vtable `vals`
+  - LLVM 쪽 scratch-safe calloc/malloc 은 거의 전수 `ctx->scratch` 로 수렴. 남은 것은 return-ownership 혼재 helper 와 AST-field stored 케이스
+
 - arena scratch 4차 slice — **HIR/MIR routine-scope arena 도입** (같은 날)
   - `hir.h` HIRRoutine / `mir.h` MIRRoutine 에 `PgyArena scratch` 필드 추가
   - 생성: `hir_append_*`, `mir_lower` 루프 내 `memset` 직후 `pgy_arena_init(&routine.scratch, 0)`
@@ -654,10 +683,14 @@
   - strict beta-quality 기준으로 anchored subset closure에서 재개방
   - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫는다
   - 이미 존재: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
-  - 남음: movable vs copy type rule, assignment/call/return/channel/container/rebind ownership, wider movable-type generalization, ownership provenance diagnostics, wider C/LLVM regression 확대
+  - 남음: helper-chain + nested projection + rebind/container 교차 회귀의 마지막 빈칸, summary/direct path family 완전 일치 audit, classifier/docs 최종 정렬
   - 진행: constructor field store escape 경로를 boundary-visible store로 고정하고 회귀 추가
   - 진행: array literal store escape 경로를 boundary-visible store로 고정하고 회귀 추가
   - 진행: assignment rebind escape diagnostic이 member/aggregate target path(`holder.packet`, `items[0]`) provenance를 직접 보고하도록 정렬
+  - 진행: nested projection provenance가 constructor field store / member rebind / list/set/queue/map store / array overwrite / helper return summary / channel send / direct return까지 회귀로 고정됨
+  - 진행: class/subject consumer matrix는 return / channel / helper / list / set / queue / map / array push / array overwrite / member rebind / constructor field store까지 거의 동형으로 정렬
+  - 진행: tuple/object 경로는 기존 `test_semantic.c` 회귀 축에서 channel/new-binding/rebind/return/helper forwarding/queue-map-array overwrite/projection provenance coverage 유지
+  - 진행: helper/return/channel wording family를 `through ...` 기준으로 정렬
   - ownership diagnostics는 `value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
   - anchored subset만 stable이라고 보고 넘기지 않는다
 

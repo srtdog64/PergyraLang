@@ -85,8 +85,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                 fn_ptr_ty, fn_ptr_field, llvm_tmp_name(ctx));
 
                             /* Build args: self (party_alloca as i8*) + user args */
-                            LLVMValueRef *args = calloc(argc + 1,
-                                sizeof(LLVMValueRef));
+                            LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
+                                (argc + 1) * sizeof(LLVMValueRef));
                             args[0] = LLVMBuildBitCast(ctx->builder,
                                 pvar->alloca, ctx->type_i8ptr,
                                 llvm_tmp_name(ctx));
@@ -104,7 +104,6 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                     fn_ptr, args, (unsigned)(argc + 1),
                                     llvm_tmp_name(ctx));
                             }
-                            free(args);
                             return result;
                         }
                     }
@@ -300,13 +299,12 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         && method_name != NULL) {
         if (llvm_is_upper_ident(obj_node)) {
             size_t fn_len = strlen(obj_node->data.identifier.name) + 1 + strlen(method_name) + 1;
-            char *full_name = malloc(fn_len);
+            char *full_name = pgy_arena_alloc(&ctx->scratch, fn_len);
             if (full_name == NULL)
                 return LLVMConstInt(ctx->type_i32, 0, 0);
             snprintf(full_name, fn_len, "%s_%s",
                      obj_node->data.identifier.name, method_name);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
-            free(full_name);
             if (fn != NULL) {
                 return llvm_emit_function_call_args(ctx, fn,
                     node->data.call.arguments, node->data.call.arg_count);
@@ -340,7 +338,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMTypeRef fn_type;
                 LLVMTypeRef ret_type;
                 size_t fn_len = strlen(class_name) + 1 + strlen(method_name) + 1;
-                char *full_name = malloc(fn_len);
+                char *full_name = pgy_arena_alloc(&ctx->scratch, fn_len);
                 if (full_name == NULL)
                     return LLVMConstInt(ctx->type_i32, 0, 0);
                 snprintf(full_name, fn_len, "%s_%s", class_name, method_name);
@@ -358,8 +356,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
                     /* subject methods receive a self pointer; class methods a self value */
                     size_t argc = node->data.call.arg_count;
-                    LLVMValueRef *args = calloc(argc + 1,
-                                                 sizeof(LLVMValueRef));
+                    LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
+                                                 (argc + 1) * sizeof(LLVMValueRef));
                     if (llvm_type_name_uses_pointer_self(ctx, class_name)) {
                         if (var != NULL && strcmp(var_name, "self") == 0) {
                             if (var->type == LLVMPointerType(cls->struct_type, 0))
@@ -446,15 +444,12 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             fn_type, fn_value, args,
                             (unsigned)(argc + 1), llvm_tmp_name(ctx));
                     }
-                    free(args);
-                    free(full_name);
                     return result;
                 }
-                free(full_name);
             }
             if (cls == NULL) {
                 size_t fn_len = strlen(class_name) + 1 + strlen(method_name) + 1;
-                char *full_name = malloc(fn_len);
+                char *full_name = pgy_arena_alloc(&ctx->scratch, fn_len);
                 if (full_name == NULL)
                     return LLVMConstInt(ctx->type_i32, 0, 0);
                 snprintf(full_name, fn_len, "%s_%s", class_name, method_name);
@@ -467,23 +462,21 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMTypeRef ret_type = fn != NULL
                     ? fn->ret_type
                     : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);
-                free(full_name);
                 if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
                     size_t argc = node->data.call.arg_count;
-                    LLVMValueRef *args = calloc(argc + 1, sizeof(LLVMValueRef));
+                    LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
+                        (argc + 1) * sizeof(LLVMValueRef));
                     args[0] = llvm_emit_expression(obj_node, ctx);
                     for (size_t i = 0; i < argc; i++)
                         args[i + 1] = llvm_emit_expression(node->data.call.arguments[i], ctx);
                     if (ret_type == ctx->type_void) {
                         LLVMBuildCall2(ctx->builder, fn_type, fn_value,
                                        args, (unsigned)(argc + 1), "");
-                        free(args);
                         return LLVMConstInt(ctx->type_i32, 0, 0);
                     } else {
                         LLVMValueRef result = LLVMBuildCall2(
                             ctx->builder, fn_type, fn_value,
                             args, (unsigned)(argc + 1), llvm_tmp_name(ctx));
-                        free(args);
                         return result;
                     }
                 }
@@ -507,7 +500,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef *args;
             LLVMValueRef self_ptr;
             size_t fn_len = strlen(class_name) + 1 + strlen(method_name) + 1;
-            char *full_name = malloc(fn_len);
+            char *full_name = pgy_arena_alloc(&ctx->scratch, fn_len);
             if (full_name == NULL)
                 return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -524,10 +517,10 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             method_decl = llvm_find_nominal_host_method_decl(ctx,
                 class_name, method_name);
             if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
-                args = calloc(argc + 1, sizeof(LLVMValueRef));
+                args = pgy_arena_calloc(&ctx->scratch,
+                                        (argc + 1) * sizeof(LLVMValueRef));
                 self_ptr = llvm_emit_member_lvalue_ptr(obj_node, ctx, NULL);
                 if (self_ptr == NULL) {
-                    free(args);
                     return LLVMConstInt(ctx->type_i32, 0, 0);
                 }
 
@@ -582,7 +575,6 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 if (ret_type == ctx->type_void) {
                     LLVMBuildCall2(ctx->builder, fn_type, fn_value,
                         args, (unsigned)(argc + 1), "");
-                    free(args);
                     return LLVMConstInt(ctx->type_i32, 0, 0);
                 }
 
@@ -590,12 +582,9 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMValueRef result = LLVMBuildCall2(ctx->builder,
                         fn_type, fn_value, args,
                         (unsigned)(argc + 1), llvm_tmp_name(ctx));
-                    free(args);
-                    free(full_name);
                     return result;
                 }
             }
-            free(full_name);
         }
     }
 
@@ -619,14 +608,15 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
 
         if (parent_cls != NULL && host_cls != NULL && field_idx >= 0) {
             size_t fn_len = strlen(class_name) + 1 + strlen(method_name) + 1;
-            char *full_name = malloc(fn_len);
+            char *full_name = pgy_arena_alloc(&ctx->scratch, fn_len);
             if (full_name == NULL)
                 return LLVMConstInt(ctx->type_i32, 0, 0);
             snprintf(full_name, fn_len, "%s_%s", class_name, method_name);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
             if (fn != NULL) {
                 size_t argc = node->data.call.arg_count;
-                LLVMValueRef *args = calloc(argc + 1, sizeof(LLVMValueRef));
+                LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
+                                                      (argc + 1) * sizeof(LLVMValueRef));
                 LLVMValueRef base_ptr = llvm_current_self_base_ptr(ctx, parent_cls);
                 LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
                     parent_cls->struct_type, base_ptr, (unsigned)field_idx,
@@ -691,7 +681,6 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         fn->fn_type, fn->fn, args,
                         (unsigned)(argc + 1), llvm_tmp_name(ctx));
                 }
-                free(args);
                 return result;
             }
         }

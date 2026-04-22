@@ -37,8 +37,15 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     }
                 }
                 if (var_count >= var_capacity) {
-                    var_capacity *= 2;
-                    vars = realloc(vars, var_capacity * sizeof(LLVMMirVar));
+                    size_t new_capacity = var_capacity > 0 ? var_capacity * 2 : 64;
+                    LLVMMirVar *grown = pgy_arena_calloc(&ctx->scratch,
+                        new_capacity * sizeof(LLVMMirVar));
+                    if (grown == NULL)
+                        return;
+                    if (vars != NULL && var_count > 0)
+                        memcpy(grown, vars, var_count * sizeof(LLVMMirVar));
+                    vars = grown;
+                    var_capacity = new_capacity;
                 }
                 vars[var_count].mir_name = inst->result_name;
                 vars[var_count].type = alloca_type;
@@ -86,11 +93,11 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             && decl->data.func_decl.return_type->data.type.generic_args != NULL
                             && decl->data.func_decl.return_type->data.type.generic_args->count >= 1
                             && decl->data.func_decl.return_type->data.type.generic_args->params[0] != NULL) {
-                            char *elem_name = llvm_stmt_render_type_arg(
-                                decl->data.func_decl.return_type->data.type.generic_args->params[0]);
+                            char *elem_name = llvm_stmt_render_type_arg_scratch(
+                                decl->data.func_decl.return_type->data.type.generic_args->params[0],
+                                &ctx->scratch);
                             elem_type = pergyra_type_to_llvm(ctx,
                                 elem_name != NULL ? elem_name : "Int");
-                            free(elem_name);
                         }
                     }
                     llvm_register_array_var(ctx, pergyra_strdup(base_name),

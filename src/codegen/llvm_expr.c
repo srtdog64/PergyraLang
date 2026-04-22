@@ -40,12 +40,15 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         size_t n = node->data.tuple_literal.count;
         if (n == 0)
             return LLVMConstInt(ctx->type_i32, 0, 0);
-        LLVMValueRef *vals = calloc(n, sizeof(LLVMValueRef));
-        LLVMTypeRef  *tys  = calloc(n, sizeof(LLVMTypeRef));
-        if (vals == NULL || tys == NULL) {
-            free(vals); free(tys);
+        /* Tuple element values + type refs — LLVMStructTypeInContext copies
+         * the type array, and BuildInsertValue consumes values immediately.
+         * Buffers are ctx-scratch-safe. */
+        LLVMValueRef *vals = pgy_arena_calloc(&ctx->scratch,
+            n * sizeof(LLVMValueRef));
+        LLVMTypeRef  *tys  = pgy_arena_calloc(&ctx->scratch,
+            n * sizeof(LLVMTypeRef));
+        if (vals == NULL || tys == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
-        }
         for (size_t i = 0; i < n; i++) {
             vals[i] = llvm_emit_expression(node->data.tuple_literal.elements[i], ctx);
             if (vals[i] == NULL)
@@ -58,7 +61,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         for (size_t i = 0; i < n; i++)
             agg = LLVMBuildInsertValue(ctx->builder, agg, vals[i],
                 (unsigned)i, llvm_tmp_name(ctx));
-        free(vals); free(tys);
+        /* vals / tys are ctx->scratch-owned. */
         return agg;
     }
 
@@ -431,14 +434,14 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 
             if (fn != NULL && ev_ptr != NULL) {
                 size_t ac = node->data.event_invoke.arg_count;
-                LLVMValueRef *args = calloc(ac + 1, sizeof(LLVMValueRef));
+                LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
+                    (ac + 1) * sizeof(LLVMValueRef));
                 args[0] = ev_ptr;
                 for (size_t j = 0; j < ac; j++)
                     args[j + 1] = llvm_emit_expression(
                         node->data.event_invoke.arguments[j], ctx);
                 LLVMBuildCall2(ctx->builder, fn->fn_type,
                     fn->fn, args, (unsigned)(ac + 1), "");
-                free(args);
             }
         }
         return LLVMConstInt(ctx->type_i32, 0, 0);

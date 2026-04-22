@@ -513,11 +513,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             const char *raw = arg_node->data.string.value;
             multiline_log = (strchr(raw, '\n') != NULL) || (strchr(raw, '\r') != NULL);
             if (multiline_log) {
-                char *normalized = llvm_normalize_banner_string_literal(raw);
+                char *normalized = llvm_normalize_banner_string_literal_scratch(
+                    raw, &ctx->scratch);
                 if (normalized != NULL) {
                     arg = LLVMBuildGlobalStringPtr(ctx->builder, normalized,
                                                   llvm_tmp_name(ctx));
-                    free(normalized);
                 } else {
                     arg = LLVMBuildGlobalStringPtr(ctx->builder, raw,
                                                   llvm_tmp_name(ctx));
@@ -603,12 +603,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
         LLVMValueRef log_arg = NULL;
         if (arg->type == AST_STRING) {
-            char *normalized = llvm_normalize_banner_string_literal(
-                arg->data.string.value);
+            char *normalized = llvm_normalize_banner_string_literal_scratch(
+                arg->data.string.value, &ctx->scratch);
             if (normalized != NULL) {
                 log_arg = LLVMBuildGlobalStringPtr(ctx->builder, normalized,
                                                    llvm_tmp_name(ctx));
-                free(normalized);
             }
         } else {
             log_arg = llvm_emit_expression(arg, ctx);
@@ -909,14 +908,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             }
             if (fn != NULL && ev_ptr != NULL) {
                 size_t ac = node->data.call.arg_count;
-                LLVMValueRef *args = calloc(ac + 1, sizeof(LLVMValueRef));
+                LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
+                    (ac + 1) * sizeof(LLVMValueRef));
                 args[0] = ev_ptr;
                 for (size_t j = 0; j < ac; j++)
                     args[j + 1] = llvm_emit_expression(
                         node->data.call.arguments[j], ctx);
                 LLVMBuildCall2(ctx->builder, fn->fn_type,
                     fn->fn, args, (unsigned)(ac + 1), "");
-                free(args);
                 return LLVMConstInt(ctx->type_i32, 0, 0);
             }
         }
@@ -2783,7 +2782,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
             if (fn != NULL) {
                 size_t argc = node->data.call.arg_count;
-                LLVMValueRef *args = calloc(argc + 1, sizeof(LLVMValueRef));
+                LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
+                    (argc + 1) * sizeof(LLVMValueRef));
                 if (args == NULL)
                     return LLVMConstInt(ctx->type_i32, 0, 0);
                 args[0] = llvm_current_self_call_arg(ctx);
@@ -2830,7 +2830,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         result = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                             args, (unsigned)(argc + 1), llvm_tmp_name(ctx));
                     }
-                    free(args);
                     return result;
                 }
             }
@@ -2847,7 +2846,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         args = llvm_build_boundary_call_args(ctx, decl, node->data.call.arguments,
             argc, &emitted_argc);
     if (args == NULL && intent_decl != NULL) {
-        args = calloc(argc > 0 ? argc : 1, sizeof(LLVMValueRef));
+        args = pgy_arena_calloc(&ctx->scratch,
+            (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
         if (args != NULL) {
             for (size_t i = 0; i < argc; i++) {
                 const char *type_name = NULL;
@@ -2916,7 +2916,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
     if (args == NULL) {
-        args = calloc(argc > 0 ? argc : 1, sizeof(LLVMValueRef));
+        args = pgy_arena_calloc(&ctx->scratch,
+            (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
         for (size_t i = 0; i < argc; i++)
             args[i] = llvm_emit_expression(node->data.call.arguments[i], ctx);
         emitted_argc = (unsigned)argc;
@@ -2939,8 +2940,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 ? intent_decl->data.intent_decl.binding_count
                 : (intent_decl->data.intent_decl.involve_count
                     + intent_decl->data.intent_decl.value_count);
-            param_types = calloc(param_count,
-                sizeof(LLVMTypeRef));
+            param_types = pgy_arena_calloc(&ctx->scratch,
+                param_count * sizeof(LLVMTypeRef));
             for (size_t i = 0; i < param_count; i++) {
                 LLVMTypeRef pt = ctx->type_i8ptr;
                 ASTNode *binding = intent_decl->data.intent_decl.binding_count > 0
@@ -2974,7 +2975,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 + intent_decl->data.intent_decl.value_count), 0);
         fn = LLVMAddFunction(ctx->module, callee_name, fn_type);
         llvm_register_function(ctx, callee_name, fn, fn_type, ctx->type_i1);
-        free(param_types);
         func = llvm_lookup_function(ctx, callee_name);
     }
     if (func == NULL) {
@@ -2982,17 +2982,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef fn_ptr = NULL;
         LLVMTypeRef fn_type = NULL;
         LLVMValueRef result;
+        LLVMCallableVarEntry *callable_entry = NULL;
 
         if (node->data.call.callee->type == AST_IDENTIFIER)
             callee_var = llvm_scope_lookup(ctx, callee_name);
+        callable_entry = llvm_lookup_callable_entry(ctx, callee_name);
         if (callee_var != NULL) {
-            ASTNode *callable_type = llvm_lookup_callable_var(ctx, callee_name);
             LLVMTypeRef callable_ptr_ty = NULL;
             if (LLVMGetTypeKind(callee_var->type) == LLVMPointerTypeKind)
                 fn_type = LLVMGetElementType(callee_var->type);
             if (fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind) {
-                if (callable_type != NULL)
-                    fn_type = llvm_function_signature_from_event_type(ctx, callable_type);
+                if (callable_entry != NULL)
+                    fn_type = llvm_function_signature_from_callable_entry(ctx, callable_entry);
             }
             if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind)
                 callable_ptr_ty = LLVMPointerType(fn_type, 0);
@@ -3016,7 +3017,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 ret = ast_type_to_llvm(ctx,
                                     p->type->data.event_handler_type.return_type);
                             if (pc > 0) {
-                                pts = calloc(pc, sizeof(LLVMTypeRef));
+                                pts = pgy_arena_calloc(&ctx->scratch,
+                                    pc * sizeof(LLVMTypeRef));
                                 if (pts != NULL) {
                                     for (size_t pi = 0; pi < pc; pi++) {
                                         pts[pi] = ast_type_to_llvm(ctx,
@@ -3025,7 +3027,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 }
                             }
                             fn_type = LLVMFunctionType(ret, pts, (unsigned)pc, 0);
-                            free(pts);
                         } else {
                             LLVMTypeRef declared_ptr_ty = ast_type_to_llvm(ctx, p->type);
                             if (LLVMGetTypeKind(declared_ptr_ty) == LLVMPointerTypeKind)
@@ -3064,13 +3065,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     result = LLVMBuildCall2(ctx->builder, fn_type, fn_ptr,
                         args, emitted_argc, llvm_tmp_name(ctx));
                 }
-                free(args);
                 return result;
             }
         }
 
         fprintf(stderr, "[llvm] warning: unknown function '%s'\n", callee_name);
-        free(args);
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
@@ -3080,17 +3079,17 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef param_ty = (i < param_count)
             ? LLVMTypeOf(LLVMGetParam(func->fn, (unsigned)i))
             : NULL;
-        if (param_ty != NULL
+            if (param_ty != NULL
             && LLVMGetTypeKind(param_ty) == LLVMPointerTypeKind) {
             if (arg_node->type == AST_IDENTIFIER) {
                 LLVMVarEntry *v = llvm_scope_lookup(ctx,
                     arg_node->data.identifier.name);
-                ASTNode *callable_type = llvm_lookup_callable_var(ctx,
-                    arg_node->data.identifier.name);
+                LLVMCallableVarEntry *callable_entry =
+                    llvm_lookup_callable_entry(ctx, arg_node->data.identifier.name);
                 if (v != NULL) {
-                    if (callable_type != NULL) {
+                    if (callable_entry != NULL) {
                         LLVMTypeRef callable_sig =
-                            llvm_function_signature_from_event_type(ctx, callable_type);
+                            llvm_function_signature_from_callable_entry(ctx, callable_entry);
                         LLVMTypeRef callable_ptr_ty = callable_sig != NULL
                             ? LLVMPointerType(callable_sig, 0)
                             : v->type;
@@ -3126,6 +3125,5 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 args, emitted_argc, llvm_tmp_name(ctx));
     }
 
-    free(args);
     return result;
 }

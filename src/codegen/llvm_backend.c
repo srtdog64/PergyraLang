@@ -221,6 +221,9 @@ llvm_ctx_create(const char *module_name)
     ctx->type_i8ptr = LLVMPointerTypeInContext(ctx->context, 0);
     ctx->type_void  = LLVMVoidTypeInContext(ctx->context);
 
+    pgy_arena_init(&ctx->scratch, 0);
+    pgy_arena_init(&ctx->persistent, 0);
+
     ctx->scope_depth   = 0;
     ctx->tmp_counter   = 0;
     ctx->func_count    = 0;
@@ -405,6 +408,8 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
         free(ctx->mono_instances[i].name);
     free(ctx->mono_instances);
 
+    pgy_arena_destroy(&ctx->scratch);
+    pgy_arena_destroy(&ctx->persistent);
     free(ctx);
 }
 
@@ -418,6 +423,7 @@ static bool llvm_can_forward_declare_type_early(LLVMGenCtx *ctx, ASTNode *type_n
 bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);
 
 static char *llvm_render_type_name(ASTNode *type_node);
+static char *llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena);
 
 void
 llvm_set_type_render_ctx(LLVMGenCtx *ctx)
@@ -449,11 +455,11 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         && type_node->data.type.generic_args->count > 0
         && type_node->data.type.generic_args->params[0] != NULL
         && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-        char *elem_name = llvm_render_type_name(
-            type_node->data.type.generic_args->params[0]->constraint);
+        char *elem_name = llvm_render_type_name_scratch(
+            type_node->data.type.generic_args->params[0]->constraint,
+            &ctx->scratch);
         LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
         llvm_register_array_var(ctx, var_name, elem_type, -1);
-        free(elem_name);
     }
 
     if (strcmp(type_name, "List") == 0
@@ -592,12 +598,25 @@ llvm_constructed_arg_name_at(const char *type_name, int arg_index)
 static char *
 llvm_render_type_name(ASTNode *type_node)
 {
+    PgyArena arena;
+    char *result;
+
+    pgy_arena_init(&arena, 0);
+    result = llvm_render_type_name_scratch(type_node, &arena);
+    result = result != NULL ? pergyra_strdup(result) : pergyra_strdup("Int");
+    pgy_arena_destroy(&arena);
+    return result;
+}
+
+static char *
+llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
+{
     ASTNode *alias_decl = NULL;
 
     if (type_node == NULL)
-        return pergyra_strdup("Void");
+        return pgy_arena_strdup(arena, "Void");
     if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
-        return pergyra_strdup("Int");
+        return pgy_arena_strdup(arena, "Int");
     if (type_node->data.type.generic_args == NULL
         || type_node->data.type.generic_args->count == 0) {
         ASTNode **types = NULL;
@@ -618,11 +637,11 @@ llvm_render_type_name(ASTNode *type_node)
             }
         }
         if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL)
-            return llvm_render_type_name(alias_decl->data.type_alias.target_type);
-        return pergyra_strdup(type_node->data.type.name);
+            return llvm_render_type_name_scratch(alias_decl->data.type_alias.target_type, arena);
+        return pgy_arena_strdup(arena, type_node->data.type.name);
     }
 
-    char *result = pergyra_strdup(type_node->data.type.name);
+    char *result = pgy_arena_strdup(arena, type_node->data.type.name);
     for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
         GenericParam *gp = type_node->data.type.generic_args->params[i];
         char *arg_name = NULL;
@@ -632,19 +651,17 @@ llvm_render_type_name(ASTNode *type_node)
         if (gp == NULL)
             continue;
         if (gp->constraint != NULL)
-            arg_name = llvm_render_type_name(gp->constraint);
+            arg_name = llvm_render_type_name_scratch(gp->constraint, arena);
         else if (gp->name != NULL)
-            arg_name = pergyra_strdup(gp->name);
+            arg_name = pgy_arena_strdup(arena, gp->name);
         else
-            arg_name = pergyra_strdup("Int");
+            arg_name = pgy_arena_strdup(arena, "Int");
 
         need = strlen(result) + strlen(arg_name) + 4;
-        grown = (char *)realloc(result, need);
-        if (grown == NULL) {
-            free(result);
-            free(arg_name);
-            return pergyra_strdup("Int");
-        }
+        grown = (char *)pgy_arena_alloc(arena, need);
+        if (grown == NULL)
+            return pgy_arena_strdup(arena, "Int");
+        memcpy(grown, result, strlen(result) + 1);
         result = grown;
         {
             size_t offset = strlen(result);
@@ -661,16 +678,14 @@ llvm_render_type_name(ASTNode *type_node)
             }
             result[offset] = '\0';
         }
-        free(arg_name);
     }
 
     {
         size_t cur_len = strlen(result);
-        char *grown = (char *)realloc(result, cur_len + 2);
-        if (grown == NULL) {
-            free(result);
-            return pergyra_strdup("Int");
-        }
+        char *grown = (char *)pgy_arena_alloc(arena, cur_len + 2);
+        if (grown == NULL)
+            return pgy_arena_strdup(arena, "Int");
+        memcpy(grown, result, cur_len + 1);
         result = grown;
         result[cur_len] = '>';
         result[cur_len + 1] = '\0';
@@ -874,7 +889,10 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
                 type_node->data.event_handler_type.return_type);
 
         if (param_count > 0) {
-            param_types = calloc(param_count, sizeof(LLVMTypeRef));
+            /* Param-type buffer is consumed by LLVMFunctionType (which
+             * copies contents) and never retained by the caller. */
+            param_types = pgy_arena_calloc(&ctx->scratch,
+                param_count * sizeof(LLVMTypeRef));
             if (param_types == NULL)
                 return LLVMPointerType(LLVMFunctionType(ret_type, NULL, 0, 0), 0);
             for (size_t i = 0; i < param_count; i++) {
@@ -884,7 +902,7 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
         }
 
         fn_type = LLVMFunctionType(ret_type, param_types, (unsigned)param_count, 0);
-        free(param_types);
+        /* param_types is ctx->scratch-owned. */
         return LLVMPointerType(fn_type, 0);
     }
 
@@ -893,7 +911,9 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
         && type_node->data.type.tuple_elements != NULL
         && type_node->data.type.tuple_element_count > 0) {
         size_t n = type_node->data.type.tuple_element_count;
-        LLVMTypeRef *fields = calloc(n, sizeof(LLVMTypeRef));
+        /* Field-type buffer is consumed by LLVMStructTypeInContext (copies). */
+        LLVMTypeRef *fields = pgy_arena_calloc(&ctx->scratch,
+            n * sizeof(LLVMTypeRef));
         if (fields == NULL)
             return ctx->type_i32;
         for (size_t i = 0; i < n; i++)
@@ -901,14 +921,13 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
                 type_node->data.type.tuple_elements[i]);
         LLVMTypeRef result = LLVMStructTypeInContext(ctx->context, fields,
             (unsigned)n, 0);
-        free(fields);
+        /* fields is ctx->scratch-owned. */
         return result;
     }
 
     if (type_node->type == AST_TYPE && type_node->data.type.name != NULL) {
-        char *full_name = llvm_render_type_name(type_node);
+        char *full_name = llvm_render_type_name_scratch(type_node, &ctx->scratch);
         LLVMTypeRef resolved = pergyra_type_to_llvm(ctx, full_name);
-        free(full_name);
         return resolved;
     }
 
@@ -1065,32 +1084,39 @@ llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type, const char *name)
 
 #include "llvm_backend.h"
 #include <stdlib.h>
+#include <string.h>
 
 LLVMGenResult *llvm_codegen_from_mir(const void *mir, const char *module_name) {
-    LLVMGenResult *res = calloc(1, sizeof(LLVMGenResult));
+    LLVMGenResult *res = malloc(sizeof(LLVMGenResult));
     (void)mir;
     (void)module_name;
-    if (res) res->error_message = strdup("LLVM backend not enabled");
+    if (res) {
+        memset(res, 0, sizeof(LLVMGenResult));
+        pgy_arena_init(&res->owned_arena, 0);
+        res->error_message = pgy_arena_strdup(&res->owned_arena,
+            "LLVM backend not enabled");
+    }
     return res;
 }
 
 LLVMGenResult *llvm_codegen_to_object_from_mir(const void *mir, const char *module_name, const char *output_path, bool release_opt) {
-    LLVMGenResult *res = calloc(1, sizeof(LLVMGenResult));
+    LLVMGenResult *res = malloc(sizeof(LLVMGenResult));
     (void)mir;
     (void)module_name;
     (void)output_path;
     (void)release_opt;
-    if (res) res->error_message = strdup("LLVM backend not enabled");
+    if (res) {
+        memset(res, 0, sizeof(LLVMGenResult));
+        pgy_arena_init(&res->owned_arena, 0);
+        res->error_message = pgy_arena_strdup(&res->owned_arena,
+            "LLVM backend not enabled");
+    }
     return res;
 }
 
 void llvm_gen_result_destroy(LLVMGenResult *res) {
     if (res) {
-        free(res->error_message);
-        free(res->error_code);
-        free(res->error_cause_ir);
-        free(res->error_fix_source);
-        free(res->ir_text);
+        pgy_arena_destroy(&res->owned_arena);
         free(res);
     }
 }

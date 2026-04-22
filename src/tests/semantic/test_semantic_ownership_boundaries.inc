@@ -562,6 +562,58 @@
         lexer_destroy(lexer);
     }
 
+    TEST("ref class parameter cannot escape through queue store");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "func BorrowQueue(ref packet: Packet) -> Void {\n"
+            "    let items: Queue<Packet> = QueueNew();\n"
+            "    QueuePush(items, packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'packet' cannot escape through queue store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref class parameter cannot escape through map store");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "func BorrowMap(ref packet: Packet) -> Void {\n"
+            "    let items: HashMap<String, Packet> = MapNew();\n"
+            "    MapSet(items, \"lead\", packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'packet' cannot escape through map store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ref class parameter cannot escape through array push");
     {
         const char *source =
@@ -581,6 +633,60 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Borrowed ref boundary value 'packet' cannot escape through array store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref class parameter cannot escape through array overwrite");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "func BorrowArraySet(ref packet: Packet) -> Void {\n"
+            "    let items: Array<Packet> = [Packet(1)];\n"
+            "    ArraySet(items, 0, packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'packet' cannot escape through array store"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref class parameter cannot escape through member assignment rebind");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "struct Envelope {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "func BorrowField(ref packet: Packet, env: Envelope) -> Void {\n"
+            "    env.packet = packet;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'packet' cannot escape through member assignment rebind"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1457,6 +1563,81 @@
             "Borrowed ref boundary value 'cargo' cannot escape through channel send"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "from 'cargo.wrapper.packet'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary aggregate parameter reports nested projection path on transitive helper chain");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "class Wrapper {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "class Cargo {\n"
+            "    let wrapper: Wrapper;\n"
+            "}\n"
+            "class Envelope {\n"
+            "    let packet: Packet;\n"
+            "}\n"
+            "func Rebind(env: Envelope, own packet: Packet) -> Void {\n"
+            "    env.packet = packet;\n"
+            "}\n"
+            "func Forward(env: Envelope, own packet: Packet) -> Void {\n"
+            "    Rebind(env, packet);\n"
+            "}\n"
+            "func BorrowForward(ref cargo: Cargo, env: Envelope) -> Void {\n"
+            "    Forward(env, cargo.wrapper.packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'cargo' cannot escape through helper/function call to 'Forward'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "from 'cargo.wrapper.packet'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref boundary aggregate parameter reports nested projection path on destructure binding");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "class Wrapper {\n"
+            "    let items: Array<Packet>;\n"
+            "}\n"
+            "class Cargo {\n"
+            "    let wrapper: Wrapper;\n"
+            "}\n"
+            "func BorrowDestructure(ref cargo: Cargo) -> Void {\n"
+            "    let (first) = cargo.wrapper.items;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'cargo' cannot escape into destructure target binding 'first'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "from 'cargo.wrapper.items'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

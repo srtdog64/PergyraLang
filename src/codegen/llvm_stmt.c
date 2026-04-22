@@ -7,30 +7,45 @@
  * ================================================================= */
 
 char *
+llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena);
+
+char *
 llvm_stmt_render_type_arg(GenericParam *param)
+{
+    PgyArena arena;
+    char *result;
+
+    pgy_arena_init(&arena, 0);
+    result = llvm_stmt_render_type_arg_scratch(param, &arena);
+    result = result != NULL ? pergyra_strdup(result) : pergyra_strdup("Int");
+    pgy_arena_destroy(&arena);
+    return result;
+}
+
+char *
+llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
 {
     ASTNode *type = NULL;
 
     if (param == NULL)
-        return pergyra_strdup("Int");
+        return pgy_arena_strdup(arena, "Int");
 
     type = param->constraint;
     if (type != NULL && type->type == AST_TYPE && type->data.type.name != NULL) {
         if (type->data.type.generic_args == NULL || type->data.type.generic_args->count == 0)
-            return pergyra_strdup(type->data.type.name);
+            return pgy_arena_strdup(arena, type->data.type.name);
 
-        char *result = pergyra_strdup(type->data.type.name);
+        char *result = pgy_arena_strdup(arena, type->data.type.name);
         for (size_t i = 0; i < type->data.type.generic_args->count; i++) {
-            char *arg = llvm_stmt_render_type_arg(type->data.type.generic_args->params[i]);
+            char *arg = llvm_stmt_render_type_arg_scratch(
+                type->data.type.generic_args->params[i], arena);
             size_t cur_len = strlen(result);
             size_t arg_len = strlen(arg);
             size_t need = cur_len + arg_len + 4;
-            char *grown = realloc(result, need);
-            if (grown == NULL) {
-                free(result);
-                free(arg);
-                return pergyra_strdup("Int");
-            }
+            char *grown = pgy_arena_alloc(arena, need);
+            if (grown == NULL)
+                return pgy_arena_strdup(arena, "Int");
+            memcpy(grown, result, cur_len + 1);
             result = grown;
             size_t offset = cur_len;
             if (i == 0) {
@@ -42,15 +57,13 @@ llvm_stmt_render_type_arg(GenericParam *param)
             memcpy(result + offset, arg, arg_len);
             offset += arg_len;
             result[offset] = '\0';
-            free(arg);
         }
         {
             size_t cur_len = strlen(result);
-            char *grown = realloc(result, cur_len + 2);
-            if (grown == NULL) {
-                free(result);
-                return pergyra_strdup("Int");
-            }
+            char *grown = pgy_arena_alloc(arena, cur_len + 2);
+            if (grown == NULL)
+                return pgy_arena_strdup(arena, "Int");
+            memcpy(grown, result, cur_len + 1);
             result = grown;
             result[cur_len] = '>';
             result[cur_len + 1] = '\0';
@@ -59,8 +72,8 @@ llvm_stmt_render_type_arg(GenericParam *param)
     }
 
     if (param->name != NULL)
-        return pergyra_strdup(param->name);
-    return pergyra_strdup("Int");
+        return pgy_arena_strdup(arena, param->name);
+    return pgy_arena_strdup(arena, "Int");
 }
 
 static ASTNode *
@@ -187,7 +200,9 @@ llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr)
     }
 
     if (pc > 0) {
-        params = calloc((size_t)pc, sizeof(LLVMTypeRef));
+        /* Lambda param-type buffer: consumed by LLVMFunctionType (copies). */
+        params = pgy_arena_calloc(&ctx->scratch,
+            (size_t)pc * sizeof(LLVMTypeRef));
         if (params == NULL)
             return LLVMPointerType(LLVMFunctionType(ret_type, NULL, 0, 0), 0);
         for (int i = 0; i < pc; i++) {
@@ -200,7 +215,7 @@ llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr)
     }
 
     LLVMTypeRef fn_type = LLVMFunctionType(ret_type, params, (unsigned)pc, 0);
-    free(params);
+    /* params is ctx->scratch-owned. */
     return LLVMPointerType(fn_type, 0);
 }
 
@@ -408,11 +423,11 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     && decl->data.func_decl.return_type->data.type.generic_args != NULL
                     && decl->data.func_decl.return_type->data.type.generic_args->count >= 1
                     && decl->data.func_decl.return_type->data.type.generic_args->params[0] != NULL) {
-                    char *elem_name = llvm_stmt_render_type_arg(
-                        decl->data.func_decl.return_type->data.type.generic_args->params[0]);
+                    char *elem_name = llvm_stmt_render_type_arg_scratch(
+                        decl->data.func_decl.return_type->data.type.generic_args->params[0],
+                        &ctx->scratch);
                     LLVMTypeRef slice_ty = llvm_slice_struct_type(ctx,
                         elem_name != NULL ? elem_name : "Int");
-                    free(elem_name);
                     return slice_ty;
                 }
             }
@@ -586,11 +601,11 @@ llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
                     && ret->data.type.generic_args != NULL
                     && ret->data.type.generic_args->count >= 1
                     && ret->data.type.generic_args->params[0] != NULL) {
-                    char *elem_name = llvm_stmt_render_type_arg(
-                        ret->data.type.generic_args->params[0]);
+                    char *elem_name = llvm_stmt_render_type_arg_scratch(
+                        ret->data.type.generic_args->params[0],
+                        &ctx->scratch);
                     LLVMTypeRef declared = pergyra_type_to_llvm(
                         ctx, elem_name != NULL ? elem_name : "Int");
-                    free(elem_name);
                     if (declared != NULL)
                         return declared;
                 }
@@ -1836,42 +1851,47 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (type_ann != NULL && type_ann->type == AST_EVENT_HANDLER_TYPE) {
         llvm_register_callable_var(ctx, name, type_ann);
     } else if (init != NULL && init->type == AST_LAMBDA_EXPR) {
-        ASTNode *handler_type = ast_create_event_handler_type();
-        handler_type->data.event_handler_type.param_count =
-            init->data.lambda_expr.param_count;
+        ASTNode **param_types = NULL;
         if (init->data.lambda_expr.param_count > 0) {
-            handler_type->data.event_handler_type.param_types = calloc(
-                init->data.lambda_expr.param_count, sizeof(ASTNode *));
+            param_types = pgy_arena_calloc(&ctx->scratch,
+                init->data.lambda_expr.param_count * sizeof(ASTNode *));
+            if (param_types == NULL) {
+                llvm_set_error(ctx, "out of memory registering lambda callable");
+                return;
+            }
             for (size_t i = 0; i < init->data.lambda_expr.param_count; i++) {
                 ASTNode *p = init->data.lambda_expr.params[i];
-                handler_type->data.event_handler_type.param_types[i] =
-                    (p != NULL && p->type == AST_LET_DECL)
+                param_types[i] = (p != NULL && p->type == AST_LET_DECL)
                     ? p->data.let_decl.type : NULL;
             }
         }
-        handler_type->data.event_handler_type.return_type =
-            init->data.lambda_expr.return_type;
-        llvm_register_callable_var(ctx, name, handler_type);
+        llvm_register_callable_signature(ctx, name,
+            init->data.lambda_expr.param_count,
+            param_types,
+            init->data.lambda_expr.return_type);
     } else if (init != NULL && init->type == AST_IDENTIFIER
                && init->data.identifier.name != NULL) {
         ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx,
             init->data.identifier.name);
         if (decl != NULL && decl->type == AST_FUNC_DECL) {
-            ASTNode *handler_type = ast_create_event_handler_type();
-            handler_type->data.event_handler_type.param_count =
-                decl->data.func_decl.param_count;
+            ASTNode **param_types = NULL;
             if (decl->data.func_decl.param_count > 0) {
-                handler_type->data.event_handler_type.param_types = calloc(
-                    decl->data.func_decl.param_count, sizeof(ASTNode *));
+                param_types = pgy_arena_calloc(&ctx->scratch,
+                    decl->data.func_decl.param_count * sizeof(ASTNode *));
+                if (param_types == NULL) {
+                    llvm_set_error(ctx,
+                        "out of memory registering function callable");
+                    return;
+                }
                 for (size_t i = 0; i < decl->data.func_decl.param_count; i++) {
                     FuncParam *p = decl->data.func_decl.params[i];
-                    handler_type->data.event_handler_type.param_types[i] =
-                        p != NULL ? p->type : NULL;
+                    param_types[i] = p != NULL ? p->type : NULL;
                 }
             }
-            handler_type->data.event_handler_type.return_type =
-                decl->data.func_decl.return_type;
-            llvm_register_callable_var(ctx, name, handler_type);
+            llvm_register_callable_signature(ctx, name,
+                decl->data.func_decl.param_count,
+                param_types,
+                decl->data.func_decl.return_type);
         }
     } else if (init != NULL && init->type == AST_CALL
                && init->data.call.callee != NULL
@@ -1911,11 +1931,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             || strcmp(type_ann->data.type.name, "Slice") == 0)
         && type_ann->data.type.generic_args != NULL
         && type_ann->data.type.generic_args->count > 0) {
-        char *elem_name = llvm_stmt_render_type_arg(
-            type_ann->data.type.generic_args->params[0]);
+        char *elem_name = llvm_stmt_render_type_arg_scratch(
+            type_ann->data.type.generic_args->params[0],
+            &ctx->scratch);
         LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
         llvm_register_array_var(ctx, name, elem_type, -1);
-        free(elem_name);
     } else if (init != NULL
         && init->type == AST_CALL
         && init->data.call.callee != NULL
@@ -2730,7 +2750,10 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
      *    In the wrapper, we GEP to get the pointer, then load/store
      *    through it — exactly like the C transpiler's approach.
      * ----------------------------------------------------------- */
-    LLVMTypeRef *ctx_fields = calloc((size_t)n_captured, sizeof(LLVMTypeRef));
+    /* Parallel closure context-struct field array — consumed by
+     * LLVMStructSetBody (copies). */
+    LLVMTypeRef *ctx_fields = pgy_arena_calloc(&ctx->scratch,
+        (size_t)n_captured * sizeof(LLVMTypeRef));
     for (int i = 0; i < n_captured; i++)
         ctx_fields[i] = ctx->type_i8ptr;   /* all fields are opaque ptr */
 
@@ -2738,7 +2761,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     snprintf(ctx_name, sizeof(ctx_name), "_pgy_par_ctx_%d", ctx->parallel_counter);
     LLVMTypeRef ctx_struct_type = LLVMStructCreateNamed(ctx->context, ctx_name);
     LLVMStructSetBody(ctx_struct_type, ctx_fields, (unsigned)n_captured, 0);
-    free(ctx_fields);
+    /* ctx_fields is ctx->scratch-owned. */
 
     /* -----------------------------------------------------------
      * 3) In the OUTER function: allocate + fill the context struct.
@@ -2771,7 +2794,11 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef wrapper_type = LLVMFunctionType(ctx->type_i8ptr,
                                                  wrapper_params, 1, 0);
 
-    LLVMValueRef *wrapper_fns = calloc(count, sizeof(LLVMValueRef));
+    /* Per-task wrapper function handles — pass-local scratch.  Values are
+     * stored into `wrapper_fns[i]` during the loop and read once in the
+     * spawn loop below; never retained beyond this function. */
+    LLVMValueRef *wrapper_fns = pgy_arena_calloc(&ctx->scratch,
+        count * sizeof(LLVMValueRef));
 
     for (size_t i = 0; i < count; i++) {
         char fn_name[64];
@@ -2837,14 +2864,15 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
 
     if (spawn_fn == NULL || await_fn == NULL) {
-        /* Fallback: emit sequentially */
+        /* Fallback: emit sequentially.  wrapper_fns is ctx->scratch-owned. */
         for (size_t i = 0; i < count; i++)
             llvm_emit_statement(node->data.parallel.tasks[i], ctx);
-        free(wrapper_fns);
         return;
     }
 
-    LLVMValueRef *handles = calloc(count, sizeof(LLVMValueRef));
+    /* Spawn handles — pass-local scratch. */
+    LLVMValueRef *handles = pgy_arena_calloc(&ctx->scratch,
+        count * sizeof(LLVMValueRef));
     for (size_t i = 0; i < count; i++) {
         LLVMValueRef fn_ptr = LLVMBuildBitCast(
             ctx->builder, wrapper_fns[i], ctx->type_i8ptr,
@@ -2862,8 +2890,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
                        await_fn->fn, args, 1, "");
     }
 
-    free(handles);
-    free(wrapper_fns);
+    /* handles / wrapper_fns are ctx->scratch-owned. */
 }
 
 static bool
@@ -2937,12 +2964,14 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef ctx_struct_type = NULL;
 
     if (has_captures) {
-        LLVMTypeRef *fields = calloc((size_t)n_captured, sizeof(LLVMTypeRef));
+        /* Async closure capture struct field array — LLVMStructSetBody copies. */
+        LLVMTypeRef *fields = pgy_arena_calloc(&ctx->scratch,
+            (size_t)n_captured * sizeof(LLVMTypeRef));
         for (int i = 0; i < n_captured; i++)
             fields[i] = ctx->type_i8ptr;
         ctx_struct_type = LLVMStructCreateNamed(ctx->context, llvm_tmp_name(ctx));
         LLVMStructSetBody(ctx_struct_type, fields, (unsigned)n_captured, 0);
-        free(fields);
+        /* fields is ctx->scratch-owned. */
 
         ctx_alloca = LLVMBuildAlloca(ctx->builder, ctx_struct_type, "_actx");
         for (int i = 0; i < n_captured; i++) {
@@ -3045,7 +3074,10 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
 
         LLVMBasicBlockRef default_bb = LLVMAppendBasicBlockInContext(
             ctx->context, fn, "select.default");
-        LLVMBasicBlockRef *rotation_bbs = calloc(case_count, sizeof(LLVMBasicBlockRef));
+        /* Per-rotation basic block refs — consumed by LLVMBuildSwitch /
+         * LLVMAddCase and never retained beyond this function. */
+        LLVMBasicBlockRef *rotation_bbs = pgy_arena_calloc(&ctx->scratch,
+            case_count * sizeof(LLVMBasicBlockRef));
         for (size_t i = 0; i < case_count; i++) {
             rotation_bbs[i] = LLVMAppendBasicBlockInContext(
                 ctx->context, fn, "select.rotation");
@@ -3161,7 +3193,7 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBuildBr(ctx->builder, default_bb);
         }
 
-        free(rotation_bbs);
+        /* rotation_bbs is ctx->scratch-owned. */
         LLVMPositionBuilderAtEnd(ctx->builder, default_bb);
     }
 

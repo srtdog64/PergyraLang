@@ -34,7 +34,13 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     if (has_data && llvm_lookup_class(ctx, enum_name) == NULL) {
         size_t variant_count = stmt->data.enum_decl.variant_count;
-        LLVMTypeRef *enum_fields = calloc((variant_count + 1), sizeof(LLVMTypeRef));
+        /* Type-array buffers used to feed LLVMStructSetBody and
+         * llvm_class_add_field.  LLVM copies the array contents into its
+         * own type definitions, so the buffers never need to outlive this
+         * function.  Allocated from the ctx-scope scratch arena, which
+         * shares block reuse with other LLVM-lowering scratch sites. */
+        LLVMTypeRef *enum_fields = pgy_arena_calloc(&ctx->scratch,
+            (variant_count + 1) * sizeof(LLVMTypeRef));
         LLVMTypeRef enum_ty = LLVMStructCreateNamed(ctx->context, enum_name);
         LLVMClassTypeEntry *enum_entry =
             llvm_register_class(ctx, enum_name, enum_ty, false, false);
@@ -56,7 +62,8 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             char payload_name[256];
             snprintf(payload_name, sizeof(payload_name), "%s$%s", enum_name, variant_name);
 
-            LLVMTypeRef *payload_fields = calloc(param_count, sizeof(LLVMTypeRef));
+            LLVMTypeRef *payload_fields = pgy_arena_calloc(&ctx->scratch,
+                param_count * sizeof(LLVMTypeRef));
             for (size_t p = 0; p < param_count; p++) {
                 ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
                 payload_fields[p] = (pt != NULL) ? ast_type_to_llvm(ctx, pt) : ctx->type_i32;
@@ -80,11 +87,12 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             enum_fields[j + 1] = payload_ty;
             if (enum_entry != NULL)
                 llvm_class_add_field(enum_entry, variant_name, payload_ty, (int)(j + 1));
-            free(payload_fields);
+            /* payload_fields is arena-owned. */
         }
 
         LLVMStructSetBody(enum_ty, enum_fields, (unsigned)(variant_count + 1), 0);
-        free(enum_fields);
+        /* enum_fields / payload_fields are ctx->scratch-owned;
+         * destroyed in llvm_ctx_destroy(). */
     }
 
     for (size_t j = 0; j < stmt->data.enum_decl.method_count; j++) {
@@ -110,7 +118,9 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         LLVMClassTypeEntry *enum_entry = llvm_lookup_class(ctx, enum_name);
         if (enum_entry != NULL)
             self_type = enum_entry->struct_type;
-        LLVMTypeRef *param_types = calloc(user_pc + 1, sizeof(LLVMTypeRef));
+        /* Param-type buffer is consumed by LLVMFunctionType (copies). */
+        LLVMTypeRef *param_types = pgy_arena_calloc(&ctx->scratch,
+            (user_pc + 1) * sizeof(LLVMTypeRef));
         param_types[0] = self_type;
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
@@ -126,7 +136,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         snprintf(full_name, sizeof(full_name), "%s_%s", enum_name, method_name);
         LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, ft);
         llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret_type);
-        free(param_types);
+        /* param_types is ctx->scratch-owned. */
     }
 }
 
@@ -146,7 +156,10 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
         return;
     size_t fc = stmt->data.class_decl.field_count;
-    LLVMTypeRef *field_types = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+    /* Field-type buffer: consumed by LLVMStructSetBody (copies) and read
+     * once for llvm_class_add_field below; never retained. */
+    LLVMTypeRef *field_types = pgy_arena_calloc(&ctx->scratch,
+        (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
     for (size_t j = 0; j < fc; j++) {
         ClassField *f = stmt->data.class_decl.fields[j];
         field_types[j] = (f->type != NULL) ? ast_type_to_llvm(ctx, f->type) : ctx->type_i32;
@@ -171,7 +184,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         }
     }
 
-    free(field_types);
+    /* field_types is ctx->scratch-owned. */
 
     for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
         ASTNode *method = stmt->data.class_decl.methods[j];
@@ -192,7 +205,9 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             user_pc++;
         }
 
-        LLVMTypeRef *param_types = calloc(user_pc + 1, sizeof(LLVMTypeRef));
+        /* Per-method param-type buffer: consumed by LLVMFunctionType. */
+        LLVMTypeRef *param_types = pgy_arena_calloc(&ctx->scratch,
+            (user_pc + 1) * sizeof(LLVMTypeRef));
         param_types[0] = is_pointer_self_host ? LLVMPointerType(struct_ty, 0) : struct_ty;
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
@@ -211,7 +226,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         llvm_set_function_flags(ctx, LLVMGetValueName(fn),
                                 method->data.func_decl.is_action,
                                 method->data.func_decl.is_action && user_pc == 0);
-        free(param_types);
+        /* param_types is ctx->scratch-owned. */
     }
 }
 
@@ -269,7 +284,9 @@ llvm_register_active_extern_prototypes(LLVMGenCtx *ctx)
                 ret = ast_type_to_llvm(ctx, decl->data.func_decl.return_type);
 
             size_t pc = decl->data.func_decl.param_count;
-            LLVMTypeRef *ptypes = calloc(pc > 0 ? pc : 1, sizeof(LLVMTypeRef));
+            /* Extern param-type buffer: consumed by LLVMFunctionType. */
+            LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
+                (pc > 0 ? pc : 1) * sizeof(LLVMTypeRef));
             for (size_t k = 0; k < pc; k++) {
                 FuncParam *p = decl->data.func_decl.params[k];
                 ptypes[k] = (p->type != NULL) ? ast_type_to_llvm(ctx, p->type)
@@ -279,7 +296,7 @@ llvm_register_active_extern_prototypes(LLVMGenCtx *ctx)
             LLVMTypeRef ft = LLVMFunctionType(ret, ptypes, (unsigned)pc, 0);
             LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
             llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);
-            free(ptypes);
+            /* ptypes is ctx->scratch-owned. */
         }
     }
 }

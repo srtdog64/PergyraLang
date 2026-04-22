@@ -128,16 +128,16 @@ llvm_mir_intent_has_stmt(const MIRRoutine *routine,
 
 static size_t
 llvm_collect_mir_intent_who_aliases(const MIRRoutine *routine,
+                                    LLVMGenCtx *ctx,
                                     const char *step_name,
                                     const char ***aliases_out)
 {
     const char **aliases = NULL;
     size_t count = 0;
-    size_t capacity = 0;
 
     if (aliases_out != NULL)
         *aliases_out = NULL;
-    if (routine == NULL || aliases_out == NULL)
+    if (routine == NULL || aliases_out == NULL || ctx == NULL)
         return 0;
 
     for (size_t bi = 0; bi < routine->block_count; bi++) {
@@ -146,8 +146,6 @@ llvm_collect_mir_intent_who_aliases(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            const char **grown;
-
             if (inst->kind != MIR_INST_STMT)
                 continue;
             if (inst->name == NULL || strcmp(inst->name, "IntentWho") != 0)
@@ -161,15 +159,35 @@ llvm_collect_mir_intent_who_aliases(const MIRRoutine *routine,
                 continue;
             }
 
-            if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
-                grown = realloc((void *)aliases, new_capacity * sizeof(const char *));
-                if (grown == NULL) {
-                    free((void *)aliases);
-                    return 0;
-                }
-                aliases = grown;
-                capacity = new_capacity;
+            count++;
+        }
+    }
+
+    if (count == 0)
+        return 0;
+    aliases = pgy_arena_calloc(&ctx->scratch, count * sizeof(const char *));
+    if (aliases == NULL)
+        return 0;
+
+    count = 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentWho") != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
             }
             aliases[count++] = inst->arg0;
         }
@@ -181,19 +199,19 @@ llvm_collect_mir_intent_who_aliases(const MIRRoutine *routine,
 
 static size_t
 llvm_collect_mir_intent_participants(const MIRRoutine *routine,
+                                     LLVMGenCtx *ctx,
                                      const char ***aliases_out,
                                      const char ***types_out)
 {
     const char **aliases = NULL;
     const char **types = NULL;
     size_t count = 0;
-    size_t capacity = 0;
 
     if (aliases_out != NULL)
         *aliases_out = NULL;
     if (types_out != NULL)
         *types_out = NULL;
-    if (routine == NULL || aliases_out == NULL || types_out == NULL)
+    if (routine == NULL || aliases_out == NULL || types_out == NULL || ctx == NULL)
         return 0;
 
     for (size_t bi = 0; bi < routine->block_count; bi++) {
@@ -202,9 +220,6 @@ llvm_collect_mir_intent_participants(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            const char **grown_aliases;
-            const char **grown_types;
-
             if (inst->kind != MIR_INST_STMT)
                 continue;
             if (inst->name == NULL || strcmp(inst->name, "IntentParticipant") != 0)
@@ -212,29 +227,31 @@ llvm_collect_mir_intent_participants(const MIRRoutine *routine,
             if (inst->arg0 == NULL || inst->arg1 == NULL)
                 continue;
 
-            if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
-                grown_aliases = malloc(new_capacity * sizeof(const char *));
-                grown_types = malloc(new_capacity * sizeof(const char *));
-                if (grown_aliases == NULL || grown_types == NULL) {
-                    free((void *)grown_aliases);
-                    free((void *)grown_types);
-                    free((void *)aliases);
-                    free((void *)types);
-                    return 0;
-                }
-                if (count > 0) {
-                    memcpy((void *)grown_aliases, (const void *)aliases,
-                           count * sizeof(const char *));
-                    memcpy((void *)grown_types, (const void *)types,
-                           count * sizeof(const char *));
-                }
-                free((void *)aliases);
-                free((void *)types);
-                aliases = grown_aliases;
-                types = grown_types;
-                capacity = new_capacity;
-            }
+            count++;
+        }
+    }
+
+    if (count == 0)
+        return 0;
+    aliases = pgy_arena_calloc(&ctx->scratch, count * sizeof(const char *));
+    types = pgy_arena_calloc(&ctx->scratch, count * sizeof(const char *));
+    if (aliases == NULL || types == NULL)
+        return 0;
+
+    count = 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentParticipant") != 0)
+                continue;
+            if (inst->arg0 == NULL || inst->arg1 == NULL)
+                continue;
             aliases[count] = inst->arg0;
             types[count] = inst->arg1;
             count++;
@@ -719,15 +736,16 @@ llvm_emit_mir_resource_hook(LLVMGenCtx *ctx,
 }
 
 static size_t
-llvm_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_out)
+llvm_collect_mir_intent_steps(const MIRRoutine *routine,
+                              LLVMGenCtx *ctx,
+                              ASTNode ***steps_out)
 {
     ASTNode **steps = NULL;
     size_t count = 0;
-    size_t capacity = 0;
 
     if (steps_out != NULL)
         *steps_out = NULL;
-    if (routine == NULL || steps_out == NULL)
+    if (routine == NULL || steps_out == NULL || ctx == NULL)
         return 0;
 
     for (size_t bi = 0; bi < routine->block_count; bi++) {
@@ -736,7 +754,6 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_out)
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            ASTNode **grown;
 
             if (inst->kind != MIR_INST_STMT || inst->ast == NULL
                 || inst->ast->type != AST_INTENT_STEP) {
@@ -744,16 +761,28 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_out)
             }
             if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
                 continue;
-            if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
-                grown = realloc(steps, new_capacity * sizeof(ASTNode *));
-                if (grown == NULL) {
-                    free(steps);
-                    return 0;
-                }
-                steps = grown;
-                capacity = new_capacity;
-            }
+            count++;
+        }
+    }
+
+    if (count == 0)
+        return 0;
+    steps = pgy_arena_calloc(&ctx->scratch, count * sizeof(ASTNode *));
+    if (steps == NULL)
+        return 0;
+
+    count = 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind != MIR_INST_STMT || inst->ast == NULL
+                || inst->ast->type != AST_INTENT_STEP)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
+                continue;
             steps[count++] = inst->ast;
         }
     }
@@ -763,15 +792,16 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_out)
 }
 
 static size_t
-llvm_collect_mir_intent_step_names(const MIRRoutine *routine, const char ***names_out)
+llvm_collect_mir_intent_step_names(const MIRRoutine *routine,
+                                   LLVMGenCtx *ctx,
+                                   const char ***names_out)
 {
     const char **names = NULL;
     size_t count = 0;
-    size_t capacity = 0;
 
     if (names_out != NULL)
         *names_out = NULL;
-    if (routine == NULL || names_out == NULL)
+    if (routine == NULL || names_out == NULL || ctx == NULL)
         return 0;
 
     for (size_t bi = 0; bi < routine->block_count; bi++) {
@@ -780,23 +810,32 @@ llvm_collect_mir_intent_step_names(const MIRRoutine *routine, const char ***name
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            const char **grown;
 
             if (inst->kind != MIR_INST_STMT)
                 continue;
             if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
                 continue;
+            count++;
+        }
+    }
 
-            if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
-                grown = realloc((void *)names, new_capacity * sizeof(const char *));
-                if (grown == NULL) {
-                    free((void *)names);
-                    return 0;
-                }
-                names = grown;
-                capacity = new_capacity;
-            }
+    if (count == 0)
+        return 0;
+    names = pgy_arena_calloc(&ctx->scratch, count * sizeof(const char *));
+    if (names == NULL)
+        return 0;
+
+    count = 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
+                continue;
             names[count++] = inst->arg0 != NULL ? inst->arg0 : inst->name;
         }
     }
@@ -839,17 +878,17 @@ llvm_find_mir_intent_check_expr(const MIRRoutine *routine,
 
 static size_t
 llvm_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
+                                   LLVMGenCtx *ctx,
                                    const char *step_name,
                                    const char *phase_name,
                                    ASTNode ***exprs_out)
 {
     ASTNode **exprs = NULL;
     size_t count = 0;
-    size_t capacity = 0;
 
     if (exprs_out != NULL)
         *exprs_out = NULL;
-    if (routine == NULL || phase_name == NULL || exprs_out == NULL)
+    if (routine == NULL || phase_name == NULL || exprs_out == NULL || ctx == NULL)
         return 0;
 
     for (size_t bi = 0; bi < routine->block_count; bi++) {
@@ -858,7 +897,6 @@ llvm_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            ASTNode **grown;
 
             if (inst->kind != MIR_INST_STMT || inst->ast == NULL)
                 continue;
@@ -872,16 +910,34 @@ llvm_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
             } else if (inst->arg1 != NULL) {
                 continue;
             }
+            count++;
+        }
+    }
 
-            if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
-                grown = realloc(exprs, new_capacity * sizeof(ASTNode *));
-                if (grown == NULL) {
-                    free(exprs);
-                    return 0;
-                }
-                exprs = grown;
-                capacity = new_capacity;
+    if (count == 0)
+        return 0;
+    exprs = pgy_arena_calloc(&ctx->scratch, count * sizeof(ASTNode *));
+    if (exprs == NULL)
+        return 0;
+
+    count = 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind != MIR_INST_STMT || inst->ast == NULL)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentEval") != 0)
+                continue;
+            if (inst->arg0 == NULL || strcmp(inst->arg0, phase_name) != 0)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
             }
             exprs[count++] = inst->ast;
         }
@@ -893,31 +949,31 @@ llvm_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
 
 static ASTNode *
 llvm_find_mir_intent_eval_expr(const MIRRoutine *routine,
+                               LLVMGenCtx *ctx,
                                const char *step_name,
                                const char *phase_name)
 {
     ASTNode **exprs = NULL;
     ASTNode *result = NULL;
     size_t count = llvm_collect_mir_intent_eval_exprs(
-        routine, step_name, phase_name, &exprs);
+        routine, ctx, step_name, phase_name, &exprs);
     if (count > 0)
         result = exprs[0];
-    free(exprs);
     return result;
 }
 
 static size_t
 llvm_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
+                                         LLVMGenCtx *ctx,
                                          const char *step_name,
                                          const char ***aliases_out)
 {
     const char **aliases = NULL;
     size_t count = 0;
-    size_t capacity = 0;
 
     if (aliases_out != NULL)
         *aliases_out = NULL;
-    if (routine == NULL || aliases_out == NULL)
+    if (routine == NULL || aliases_out == NULL || ctx == NULL)
         return 0;
 
     for (size_t bi = 0; bi < routine->block_count; bi++) {
@@ -926,8 +982,6 @@ llvm_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            const char **grown;
-
             if (inst->kind != MIR_INST_STMT)
                 continue;
             if (inst->name == NULL || strcmp(inst->name, "IntentDispatch") != 0)
@@ -941,15 +995,35 @@ llvm_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
                 continue;
             }
 
-            if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
-                grown = realloc((void *)aliases, new_capacity * sizeof(const char *));
-                if (grown == NULL) {
-                    free((void *)aliases);
-                    return 0;
-                }
-                aliases = grown;
-                capacity = new_capacity;
+            count++;
+        }
+    }
+
+    if (count == 0)
+        return 0;
+    aliases = pgy_arena_calloc(&ctx->scratch, count * sizeof(const char *));
+    if (aliases == NULL)
+        return 0;
+
+    count = 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentDispatch") != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
             }
             aliases[count++] = inst->arg0;
         }
@@ -981,7 +1055,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     mir_routine = llvm_find_mir_intent_routine(ctx, node);
     if (mir_routine != NULL) {
         participant_count = llvm_collect_mir_intent_participants(
-            mir_routine, &participant_aliases, &participant_types);
+            mir_routine, ctx, &participant_aliases, &participant_types);
     }
     mir_only_intent = ctx->mir != NULL && node->data.intent_decl.step_count > 0;
     if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
@@ -993,8 +1067,6 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                          ? node->data.intent_decl.name
                          : "(anonymous)");
             llvm_set_error(ctx, msg);
-            free((void *)participant_aliases);
-            free((void *)participant_types);
             return;
         }
         for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
@@ -1007,8 +1079,6 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                              ? node->data.intent_decl.name
                              : "(anonymous)");
                 llvm_set_error(ctx, msg);
-                free((void *)participant_aliases);
-                free((void *)participant_types);
                 return;
             }
         }
@@ -1022,7 +1092,9 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         param_count = participant_count;
 
     if (param_count > 0) {
-        param_types = calloc(param_count, sizeof(LLVMTypeRef));
+        /* Intent function param-type buffer: consumed by LLVMFunctionType. */
+        param_types = pgy_arena_calloc(&ctx->scratch,
+            param_count * sizeof(LLVMTypeRef));
         size_t participant_index = 0;
         for (size_t i = 0; i < param_count; i++) {
             LLVMTypeRef pt = ctx->type_i32;
@@ -1067,9 +1139,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
     llvm_register_function(ctx, name, fn, fn_type, ctx->type_i1);
-    free((void *)participant_aliases);
-    free((void *)participant_types);
-    free(param_types);
+    /* param_types is ctx->scratch-owned. */
 }
 
 void
@@ -1127,8 +1197,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         return;
     mir_routine = llvm_find_mir_intent_routine(ctx, node);
     if (mir_routine != NULL) {
-        step_count = llvm_collect_mir_intent_steps(mir_routine, &mir_steps);
-        (void)llvm_collect_mir_intent_step_names(mir_routine, &mir_step_names);
+        step_count = llvm_collect_mir_intent_steps(mir_routine, ctx, &mir_steps);
+        (void)llvm_collect_mir_intent_step_names(mir_routine, ctx, &mir_step_names);
     }
     if (ctx->mir != NULL && node->data.intent_decl.step_count > 0) {
         if (mir_routine == NULL) {
@@ -1139,8 +1209,6 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                          ? node->data.intent_decl.name
                          : "(anonymous)");
             llvm_set_error(ctx, msg);
-            free(mir_steps);
-            free((void *)mir_step_names);
             return;
         }
         if (step_count == 0) {
@@ -1151,8 +1219,6 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                          ? node->data.intent_decl.name
                          : "(anonymous)");
             llvm_set_error(ctx, msg);
-            free(mir_steps);
-            free((void *)mir_step_names);
             return;
         }
         mir_only_intent = true;
@@ -1165,7 +1231,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
     if (mir_routine != NULL) {
         participant_count = llvm_collect_mir_intent_participants(
-            mir_routine, &participant_aliases, &participant_types);
+            mir_routine, ctx, &participant_aliases, &participant_types);
     }
     if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
         if (participant_count < node->data.intent_decl.involve_count) {
@@ -1176,10 +1242,6 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                          ? node->data.intent_decl.name
                          : "(anonymous)");
             llvm_set_error(ctx, msg);
-            free((void *)participant_aliases);
-            free((void *)participant_types);
-            free(mir_steps);
-            free((void *)mir_step_names);
             return;
         }
         for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
@@ -1192,10 +1254,6 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                              ? node->data.intent_decl.name
                              : "(anonymous)");
                 llvm_set_error(ctx, msg);
-                free((void *)participant_aliases);
-                free((void *)participant_types);
-                free(mir_steps);
-                free((void *)mir_step_names);
                 return;
             }
         }
@@ -1318,7 +1376,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), handle_alloca);
     llvm_scope_declare(ctx, "__intent_handle", handle_alloca, ctx->type_i32);
     if (has_compensate_steps && step_count > 0) {
-        completed_allocas = calloc(step_count, sizeof(LLVMValueRef));
+        /* Per-step completion flag allocas — transient tracking array used
+         * only during intent emission; never escapes. */
+        completed_allocas = pgy_arena_calloc(&ctx->scratch,
+            step_count * sizeof(LLVMValueRef));
         for (size_t i = 0; i < step_count; i++) {
             completed_allocas[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, "__intent_step_done");
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), completed_allocas[i]);
@@ -1458,14 +1519,15 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             invariant_pre_expr = llvm_find_mir_intent_check_expr(mir_routine, step_name, "invariant-pre");
             invariant_post_expr = llvm_find_mir_intent_check_expr(mir_routine, step_name, "invariant-post");
             on_expr_count = llvm_collect_mir_intent_eval_exprs(
-                mir_routine, step_name, "on", &on_exprs);
-            subintent_expr = llvm_find_mir_intent_eval_expr(mir_routine, step_name, "intent");
+                mir_routine, ctx, step_name, "on", &on_exprs);
+            subintent_expr = llvm_find_mir_intent_eval_expr(mir_routine, ctx, step_name, "intent");
             zone_type_name = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneWhere");
             zone_alias = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneAlias");
             from_alias = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneFrom");
-            who_alias_count = llvm_collect_mir_intent_who_aliases(mir_routine, step_name, &who_aliases);
+            who_alias_count = llvm_collect_mir_intent_who_aliases(
+                mir_routine, ctx, step_name, &who_aliases);
             dispatch_alias_count = llvm_collect_mir_intent_dispatch_aliases(
-                mir_routine, step_name, &dispatch_aliases);
+                mir_routine, ctx, step_name, &dispatch_aliases);
         }
         if (mir_only_intent) {
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "pre")
@@ -1564,7 +1626,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         llvm_emit_intent_step_bind_bound_zone(
             ctx, node, zone_type_name, zone_alias, from_alias, who_aliases, who_alias_count);
         if (who_alias_count > 0) {
-            saved_participant_ptrs = calloc(who_alias_count, sizeof(LLVMValueRef));
+            /* Participant pointer cache for rebind/unrebind window; freed
+             * at step end, never escapes. */
+            saved_participant_ptrs = pgy_arena_calloc(&ctx->scratch,
+                who_alias_count * sizeof(LLVMValueRef));
             if (saved_participant_ptrs != NULL)
                 rebound_aliases = llvm_emit_intent_step_rebind_bound_zone_aliases(
                     ctx, node, zone_type_name, zone_alias, who_aliases, who_alias_count, saved_participant_ptrs);
@@ -1726,12 +1791,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
             LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
         }
-        free(on_exprs);
-        if (mir_only_intent && who_aliases != NULL)
-            free((void *)who_aliases);
-        if (mir_only_intent && dispatch_aliases != NULL)
-            free((void *)dispatch_aliases);
-        free(saved_participant_ptrs);
+        /* saved_participant_ptrs is ctx->scratch-owned; clear the local
+         * reference so the next step rebinds fresh (blocks stay in arena). */
         saved_participant_ptrs = NULL;
         {
             LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
@@ -1823,7 +1884,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 continue;
             if (mir_routine != NULL) {
                 compensate_expr_count = llvm_collect_mir_intent_eval_exprs(
-                    mir_routine, step_name, "compensate", &compensate_exprs);
+                    mir_routine, ctx, step_name, "compensate", &compensate_exprs);
                 zone_type_name = llvm_find_mir_intent_meta_arg(
                     mir_routine, step_name, "IntentZoneWhere");
                 zone_alias = llvm_find_mir_intent_meta_arg(
@@ -1831,7 +1892,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 from_alias = llvm_find_mir_intent_meta_arg(
                     mir_routine, step_name, "IntentZoneFrom");
                 who_alias_count = llvm_collect_mir_intent_who_aliases(
-                    mir_routine, step_name, &who_aliases);
+                    mir_routine, ctx, step_name, &who_aliases);
             }
             if (mir_only_intent
                 && llvm_mir_intent_has_stmt(mir_routine, step_name,
@@ -1889,11 +1950,6 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMBuildBr(ctx->builder, next_bb);
                 LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
             }
-            if (mir_only_intent && compensate_exprs != NULL) {
-                free(compensate_exprs);
-            }
-            if (mir_only_intent && who_aliases != NULL)
-                free((void *)who_aliases);
         }
     }
     LLVMBuildBr(ctx->builder, maybe_exit_bb);
@@ -1934,11 +1990,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     llvm_scope_pop(ctx);
-    free(completed_allocas);
-    free((void *)participant_aliases);
-    free((void *)participant_types);
-    free(mir_steps);
-    free((void *)mir_step_names);
+    /* completed_allocas is ctx->scratch-owned. */
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;
 
@@ -1951,11 +2003,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 
 intent_emit_fail:
 #undef PGY_MIR_INTENT_CARRIER_FAIL
-    free(completed_allocas);
-    free((void *)participant_aliases);
-    free((void *)participant_types);
-    free(mir_steps);
-    free((void *)mir_step_names);
+    /* completed_allocas is ctx->scratch-owned. */
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;
     if (saved_fn != NULL) {

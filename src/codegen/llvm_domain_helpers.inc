@@ -615,18 +615,15 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
         nested_status = llvm_resolve_projection_source_path_rec(
             ctx, vessel_decl, field_name, depth + 1, &nested_path);
         if (nested_status != 1) {
-            if (nested_path != NULL)
-                free(nested_path);
             if (nested_status == 2)
                 match_count = 2;
             continue;
         }
 
         prefix_len = strlen(field->name) + strlen(nested_path) + 2;
-        prefixed_path = malloc(prefix_len);
+        prefixed_path = pgy_arena_alloc(&ctx->scratch, prefix_len);
         if (prefixed_path != NULL)
             snprintf(prefixed_path, prefix_len, "%s.%s", field->name, nested_path);
-        free(nested_path);
         if (prefixed_path == NULL)
             continue;
 
@@ -634,8 +631,6 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
         if (match_count == 1) {
             resolved_path = prefixed_path;
         } else {
-            free(prefixed_path);
-            free(resolved_path);
             resolved_path = NULL;
         }
     }
@@ -643,13 +638,9 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
     if (match_count == 1) {
         if (path_out != NULL)
             *path_out = resolved_path;
-        else
-            free(resolved_path);
         return 1;
     }
 
-    if (resolved_path != NULL)
-        free(resolved_path);
     return match_count > 1 ? 2 : 0;
 }
 
@@ -668,7 +659,6 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
 
     if (llvm_resolve_projection_source_path_rec(ctx, source_decl, field_name, 0, &path) != 1
         || path == NULL || source_cls == NULL || source_ptr == NULL) {
-        free(path);
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
@@ -703,7 +693,6 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
         if (dot == NULL) {
             LLVMValueRef field_value = LLVMBuildLoad2(ctx->builder, field_info->field_type,
                 field_ptr, llvm_tmp_name(ctx));
-            free(path);
             return field_value;
         }
 
@@ -724,7 +713,6 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
         cursor = dot + 1;
     }
 
-    free(path);
     return LLVMConstInt(ctx->type_i32, 0, 0);
 }
 
