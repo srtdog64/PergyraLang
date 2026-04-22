@@ -23,7 +23,30 @@
                                                                ctx);
             }
         }
-        if (init != NULL) {
+        if (init == NULL) {
+            /* Function-body lets must carry an initializer.  The C backend
+             * emits a scalar zero fallback and the LLVM backend emits no
+             * store at all, so silently allowing `let x: T;` here diverges
+             * the backends at first read.  Class/subject fields have their
+             * own parser path (ClassField), so this check only fires for
+             * function-body locals. */
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_UNINIT_LOCAL,
+                PGY_CAUSE_UNINIT_LOCAL,
+                PGY_FIX_INITIALIZE_AT_BINDING,
+                node,
+                "Local binding '%s' has a type annotation but no initializer.\n"
+                "Reason:\n"
+                "- function-body lets must be initialized at the binding site\n"
+                "- the backends diverge on uninitialized reads\n"
+                "Fix:\n"
+                "- provide an initializer directly: 'let %s: %s = ...'\n"
+                "- or use a conditional expression as the initializer",
+                name != NULL ? name : "<binding>",
+                name != NULL ? name : "<binding>",
+                (ann->type == AST_TYPE && ann->data.type.name != NULL)
+                    ? ann->data.type.name : "T");
+        } else {
             if (init->type == AST_CALL
                 && init->data.call.callee->type == AST_IDENTIFIER
                 && strcmp(init->data.call.callee->data.identifier.name,

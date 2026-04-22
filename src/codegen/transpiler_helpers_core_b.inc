@@ -241,6 +241,7 @@ transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
         return NULL;
 
     if (ctx->last_nominal_host_decl != NULL
+        && ctx->last_nominal_host_mir == ctx->mir
         && strcmp(ctx->last_nominal_host_name, host_type_name) == 0) {
         return ctx->last_nominal_host_decl;
     }
@@ -267,6 +268,7 @@ transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
 cache_and_return:
     snprintf(ctx->last_nominal_host_name,
         sizeof(ctx->last_nominal_host_name), "%s", host_type_name);
+    ctx->last_nominal_host_mir = ctx->mir;
     ctx->last_nominal_host_decl = decl;
     return decl;
 }

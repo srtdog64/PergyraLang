@@ -47,6 +47,7 @@
 #define PGY_CODE_SEM_INFER_COLLECTION           "PGY_SEM_INFER_COLLECTION"
 #define PGY_CODE_SEM_INFER_GENERIC              "PGY_SEM_INFER_GENERIC"
 #define PGY_CODE_SEM_INFER_REQUIRED             "PGY_SEM_INFER_REQUIRED"
+#define PGY_CODE_SEM_UNINIT_LOCAL               "PGY_SEM_UNINIT_LOCAL"
 #define PGY_CODE_SEM_SLOT_RELEASED              "PGY_SEM_SLOT_RELEASED"
 #define PGY_CODE_SEM_RELEASE_REQUIRES_OWNER     "PGY_SEM_RELEASE_REQUIRES_OWNER"
 #define PGY_CODE_SEM_SLOT_DOUBLE_RELEASE        "PGY_SEM_SLOT_DOUBLE_RELEASE"
@@ -168,6 +169,7 @@
 #define PGY_CAUSE_INFER_NO_SOURCE               "semantic:infer:no_source"
 #define PGY_CAUSE_INFER_COLLECTION_NEEDS_ANNOTATION \
                                                 "semantic:infer:collection_needs_annotation"
+#define PGY_CAUSE_UNINIT_LOCAL                  "semantic:let:uninit_local_binding"
 
 /* --- Semantic: control flow / patterns --- */
 #define PGY_CAUSE_CONDITION_NON_BOOL            "semantic:condition:non_bool"
@@ -297,6 +299,7 @@
 
 /* --- bind / convert / declare / use / pass --- */
 #define PGY_FIX_ADD_ANNOTATION_OR_INITIALIZER   "add-annotation-or-initializer"
+#define PGY_FIX_INITIALIZE_AT_BINDING           "initialize-at-binding"
 #define PGY_FIX_BIND_THE_MOVED_VALUE_ONCE       "bind-the-moved-value-once"
 #define PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE \
                                                 "bind-to-named-variable-before-move"

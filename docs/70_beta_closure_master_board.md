@@ -56,6 +56,10 @@
   - `authority-bearing`
 - semantic regression은 현재 기준으로 `1872 passed, 0 failed`
 - transpile regression은 현재 기준으로 `601 passed, 0 failed`
+- C/LLVM init idiom 축 1차 감사 + 1차 정비 완료 — `docs/93_codegen_idiom_audit.md` 참조
+  - Case 1 (uninit local) HIGH divergence는 semantic 레벨 차단으로 **해소** (`PGY_CODE_SEM_UNINIT_LOCAL`): 함수-바디 `let x: T;` 거부. 관련 회귀 3종 추가
+  - Case 2 (C backend aggregate fallback) 경로 `L815`는 `transpiler_c_type_uses_scalar_zero` helper로 scalar/aggregate 분기. defense in depth
+  - Case 3 (slot claim) MEDIUM 비대칭은 **의도된 비대칭으로 확정** — runtime observability 확장 시 재감사
 
 ## Structural Closure — Type-resolution DAG
 

@@ -98,6 +98,17 @@ Inferred type still has an unbound generic parameter after all constraints appli
 - **Reason**: no type source.
 - **Fix**: add an annotation or initializer.
 
+#### `PGY_SEM_UNINIT_LOCAL`
+
+Function-body `let` has a type annotation but no initializer (e.g. `let x: Int;`). The two backends diverge on uninitialized reads — the C backend emits a scalar-zero default while the LLVM backend emits no store at all — so the semantic layer rejects this form at the binding site. Class/subject fields use a distinct parser path (`ClassField`) and are not affected.
+
+- **Reason**: backend divergence on uninitialized reads.
+- **Fix**: initialize at the binding (`let x: T = ...;`) or use a conditional initializer expression.
+- **cause_ir**: `semantic:let:uninit_local_binding`
+- **fix_source**: `initialize-at-binding`
+
+See `docs/93_codegen_idiom_audit.md` for the full backend parity rationale.
+
 ### Slot Ownership / Views
 
 #### `PGY_SEM_SLOT_RELEASED`

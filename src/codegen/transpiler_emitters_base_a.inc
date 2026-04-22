@@ -811,8 +811,15 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         ctx->expected_type = NULL;
         codebuf_write(ctx->out, "%s %s = %s;\n", c_type, name, init_expr);
         free(init_expr);
-    } else {
+    } else if (transpiler_c_type_uses_scalar_zero(c_type)) {
+        /* Scalar / pointer default. */
         codebuf_write(ctx->out, "%s %s = 0;\n", c_type, name);
+    } else {
+        /* Aggregate default.  Plain `= 0` is not a valid struct initializer
+         * in C99, so emit a compound literal zero.  Semantic currently
+         * rejects uninitialized locals before reaching this path, but this
+         * keeps the fallback well-formed as defense in depth. */
+        codebuf_write(ctx->out, "%s %s = (%s){0};\n", c_type, name, c_type);
     }
 
     if (ann_type_name != NULL) {

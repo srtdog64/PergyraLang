@@ -238,3 +238,73 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("function-body let with annotation and no initializer is parser-rejected");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let x: Int;\n"
+            "    Log(x);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(parser_has_error(parser));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("function-body let with aggregate annotation and no initializer is parser-rejected");
+    {
+        const char *source =
+            "class Box<T> {\n"
+            "    let value: T;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let b: Box<Int>;\n"
+            "    Log(0);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(parser_has_error(parser));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject field let with no initializer does not trigger the uninit-local guard");
+    {
+        /* Class/subject fields use a distinct parser path (ClassField), so
+         * the function-body uninit-local guard must not fire on them.  The
+         * substring check stays negative to pin the behavior in place. */
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    Log(1);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(!ctx_has_diagnostic_substring_from_result(result,
+            "type annotation but no initializer"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+

@@ -154,6 +154,7 @@ typedef struct
     ASTNode      *last_decl_lookup_result;
     bool          last_decl_lookup_active_only;
     char          last_nominal_host_name[128];
+    const MIRProgram *last_nominal_host_mir;
     ASTNode      *last_nominal_host_decl;
 
     /* Counter for unique parallel wrapper function names */

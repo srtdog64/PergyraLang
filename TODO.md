@@ -161,6 +161,20 @@
   - `ci-linux`: full green 유지
   - LLVM expr/stmt host-helper 정리 이후에도 `test-transpile`, `test-abi` 재통과 확인
 
+### 최근 closure 진행 (2026-04-21)
+
+- C/LLVM init idiom 축 감사 + 1차 정비 완료 (`docs/93_codegen_idiom_audit.md`)
+  - 6 case × 2 backend 매트릭스 고정
+  - **Case 1 HIGH divergence 해소**: 함수-바디 `let x: T;` (annotation + no init)을 `PGY_CODE_SEM_UNINIT_LOCAL` 로 거부. C는 scalar-zero, LLVM은 store 생략으로 첫 read에서 값 의미가 갈라지던 잠복 경로를 semantic 레벨에서 차단
+  - **Case 2 C backend L815 정리**: `transpiler_c_type_uses_scalar_zero` helper로 scalar/aggregate 분기. 기존 잠복 버그 (`struct Foo x = 0;` invalid C) 제거 (defense in depth)
+  - **Case 3 MEDIUM 의도 비대칭으로 확정**: slot claim은 C가 런타임 helper, LLVM이 IR-direct. 현재 runtime observability 수준에서 관측 side effect 0. runtime observability 확장 시 재감사로 deferral
+  - 회귀 3종 추가:
+    - `function-body let with annotation and no initializer is rejected`
+    - `function-body let with aggregate annotation and no initializer is rejected`
+    - `subject field let with no initializer does not trigger the uninit-local guard` (negative)
+  - 파서 구조 재확인: class/subject field는 ClassField 경로로 분리되어 `AST_LET_DECL`이 아님 → guard가 field-level 의미를 침범하지 않음
+  - docs/72 에 `PGY_SEM_UNINIT_LOCAL` 섹션 + docs/93 cross-link 추가
+
 ### 최근 closure 진행 (2026-04-20)
 
 - own/ref broader audit를 helper family 기준으로 더 정렬
