@@ -119,6 +119,8 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
             ctx, (size_t)cycle_index, alias_name);
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, alias_decl,
             "Type resolution dependency cycle detected around alias '%s'.\n"
+            "Contract source:\n"
+            "- alias chain provenance: %s\n"
             "Reason:\n"
             "- alias resolution re-entered '%s' before the current alias chain completed\n"
             "- cycle path: %s\n"
@@ -126,6 +128,7 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
             "- break the alias loop so one alias resolves to a concrete type first\n"
             "- or replace one side of the cycle with a non-alias type declaration",
             alias_name,
+            cycle_text != NULL ? cycle_text : "<cycle>",
             alias_name,
             cycle_text != NULL ? cycle_text : "<cycle>");
         free(cycle_text);
@@ -134,7 +137,17 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
 
     if (depth > 32) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, alias_decl,
-            "Type alias resolution exceeded maximum depth near '%s'",
+            "Type alias resolution exceeded maximum depth near '%s'.\n"
+            "Contract source:\n"
+            "- alias chain provenance: %s\n"
+            "Reason:\n"
+            "- alias materialization exceeded the beta maximum alias depth\n"
+            "- this usually means a dependency cycle escaped the graph prepass\n"
+            "Fix:\n"
+            "- break the alias chain with a concrete type declaration\n"
+            "- or split the recursive shape behind an explicit indirection",
+            alias_decl->data.type_alias.name != NULL
+                ? alias_decl->data.type_alias.name : "<alias>",
             alias_decl->data.type_alias.name != NULL
                 ? alias_decl->data.type_alias.name : "<alias>");
         return TYPE_UNKNOWN;

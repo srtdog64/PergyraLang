@@ -4201,6 +4201,181 @@
         remove(module_path);
     }
 
+    TEST("cross-module action requires rejects imported generic ability reference that violates one of multiple where bounds");
+    {
+        const char *module_path = "test_generic_multibound_contract_module_b.pgy";
+        const char *main_path = "test_generic_multibound_contract_main_b.pgy";
+        const char *module_source =
+            "ability Comparable { }\n"
+            "ability Cloneable { }\n"
+            "ability Bufferable<T> where T: Comparable + Cloneable {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_generic_multibound_contract_module_b.pgy\";\n"
+            "subject Item {\n"
+            "    let hp: Int;\n"
+            "    action Save(self) -> Void requires Bufferable<Item> { return; }\n"
+            "}\n"
+            "role ItemComparable for Item {\n"
+            "    impl ability Comparable { }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Cloneable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is action 'Save'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "expected type args are 'Bufferable<Item>'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("cross-module intent step requires rejects imported generic ability reference that violates one of multiple where bounds");
+    {
+        const char *module_path = "test_generic_multibound_contract_module_c.pgy";
+        const char *main_path = "test_generic_multibound_contract_main_c.pgy";
+        const char *module_source =
+            "ability Comparable { }\n"
+            "ability Cloneable { }\n"
+            "ability Bufferable<T> where T: Comparable + Cloneable {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_generic_multibound_contract_module_c.pgy\";\n"
+            "subject Item {\n"
+            "    let hp: Int;\n"
+            "    action Save(self) -> Void { return; }\n"
+            "}\n"
+            "zone StorageZone { subject slot item: Item }\n"
+            "role ItemComparable for Item {\n"
+            "    impl ability Comparable { }\n"
+            "}\n"
+            "intent Persist(storage: StorageZone, item: Item) {\n"
+            "    step Save {\n"
+            "        where: StorageZone;\n"
+            "        using: storage;\n"
+            "        who: item;\n"
+            "        requires: Bufferable<Item>;\n"
+            "        on: item.Save();\n"
+            "    }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Cloneable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is Intent step 'Save'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "expected type args are 'Bufferable<Item>'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("cross-module party role slot rejects imported generic ability reference that violates one of multiple where bounds");
+    {
+        const char *module_path = "test_generic_multibound_contract_module_d.pgy";
+        const char *main_path = "test_generic_multibound_contract_main_d.pgy";
+        const char *module_source =
+            "ability Comparable { }\n"
+            "ability Cloneable { }\n"
+            "ability Bufferable<T> where T: Comparable + Cloneable {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_generic_multibound_contract_module_d.pgy\";\n"
+            "subject Item { let hp: Int; }\n"
+            "role ItemComparable for Item {\n"
+            "    impl ability Comparable { }\n"
+            "}\n"
+            "party StorageParty {\n"
+            "    role slot item: Bufferable<Item>\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Cloneable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "consumer path is party role slot 'item'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "expected type args are 'Bufferable<Item>'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
     TEST("role impl rejects omitted trailing generic default arguments when default violates where bound");
     {
         const char *source =

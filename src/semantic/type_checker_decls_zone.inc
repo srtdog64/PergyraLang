@@ -185,7 +185,14 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         if (layer_slot->data.zone_layer_slot.is_relation
             && layer_slot->data.zone_layer_slot.is_pool) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, layer_slot,
-                "Zone relation pool '%s' is not supported yet",
+                "Zone relation pool '%s' is not supported yet.\n"
+                "Reason:\n"
+                "- relation pools need explicit propagation/ownership semantics before backend emission can be trusted\n"
+                "Contract source:\n"
+                "- zone relation pool declaration\n"
+                "Fix:\n"
+                "- declare individual relation slots for the beta stable subset\n"
+                "- or move pooled relation semantics to beta-out-of-scope documentation",
                 layer_slot->data.zone_layer_slot.slot_name != NULL
                     ? layer_slot->data.zone_layer_slot.slot_name
                     : "<unknown>");
@@ -194,7 +201,14 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             && layer_slot->data.zone_layer_slot.is_pool
             && layer_slot->data.zone_layer_slot.pool_capacity <= 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, layer_slot,
-                "Zone effect pool '%s' must declare a positive capacity",
+                "Zone effect pool '%s' must declare a positive capacity.\n"
+                "Reason:\n"
+                "- effect pool capacity participates in lifecycle propagation bounds\n"
+                "Contract source:\n"
+                "- zone effect pool declaration\n"
+                "Fix:\n"
+                "- choose a positive pool capacity\n"
+                "- or use a non-pool effect slot for the beta stable subset",
                 layer_slot->data.zone_layer_slot.slot_name != NULL
                     ? layer_slot->data.zone_layer_slot.slot_name
                     : "<unknown>");
@@ -252,6 +266,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- zone '%s' declares authority and apply mutates effect state on '%s'\n"
                 "- without an approving subject slot, contract provenance becomes incomplete\n"
+                "Contract source:\n"
+                "- zone authority declaration on this zone\n"
+                "- apply effect lifecycle mutation requires an approving subject slot\n"
                 "Fix:\n"
                 "- add 'by <subjectSlot>' to this apply clause\n"
                 "- or remove zone authority if this rule is intentionally authority-free",
@@ -328,6 +345,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- zone '%s' declares authority and link mutates relation state\n"
                 "- relation provenance must record the approving subject slot\n"
+                "Contract source:\n"
+                "- zone authority declaration on this zone\n"
+                "- link relation lifecycle mutation requires an approving subject slot\n"
                 "Fix:\n"
                 "- add 'by <subjectSlot>' to this link clause\n"
                 "- or remove zone authority if this relation edge is intentionally authority-free",
@@ -387,6 +407,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- zone '%s' declares authority and detach mutates effect lifecycle on '%s'\n"
                 "- detachment provenance must record the approving subject slot\n"
+                "Contract source:\n"
+                "- zone authority declaration on this zone\n"
+                "- detach effect lifecycle mutation requires an approving subject slot\n"
                 "Fix:\n"
                 "- add 'by <subjectSlot>' to this detach clause\n"
                 "- or remove zone authority if this detach rule is intentionally authority-free",
@@ -463,6 +486,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- zone '%s' declares authority and unlink mutates relation lifecycle\n"
                 "- unlink provenance must record the approving subject slot\n"
+                "Contract source:\n"
+                "- zone authority declaration on this zone\n"
+                "- unlink relation lifecycle mutation requires an approving subject slot\n"
                 "Fix:\n"
                 "- add 'by <subjectSlot>' to this unlink clause\n"
                 "- or remove zone authority if this unlink rule is intentionally authority-free",
@@ -526,6 +552,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     "Reason:\n"
                     "- boundary projection publishes authority-bearing state across the zone edge\n"
                     "- zone '%s' declares authority, so provenance must name the approving subject slot\n"
+                    "Contract source:\n"
+                    "- zone authority declaration on this zone\n"
+                    "- boundary projection publish/bind/refresh requires an approving subject slot\n"
                     "Fix:\n"
                     "- add 'by <subjectSlot>' to this %s clause\n"
                     "- or publish into a non-authority zone",
@@ -539,6 +568,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     "Reason:\n"
                     "- the zone declares authority and this projection mutates local derived state\n"
                     "- without an explicit participant, contract provenance becomes harder to explain at diagnostics/runtime\n"
+                    "Contract source:\n"
+                    "- zone authority declaration on this zone\n"
+                    "- projection sync mutates derived zone state and requires an approving subject slot\n"
                     "Fix:\n"
                     "- add 'by <subjectSlot>' to this %s clause\n"
                     "- or remove the authority declaration if this projection is intentionally authority-free",
@@ -592,6 +624,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- zone '%s' declares authority and maintain keeps effect '%s' active on '%s'\n"
                 "- persistent lifecycle rules must record the approving subject slot\n"
+                "Contract source:\n"
+                "- zone authority declaration on this zone\n"
+                "- maintained effect lifecycle requires an approving subject slot\n"
                 "Fix:\n"
                 "- add 'by <subjectSlot>' to this maintain clause\n"
                 "- or remove zone authority if this maintenance rule is intentionally authority-free",
@@ -709,6 +744,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "Reason:\n"
                 "- zone '%s' declares authority and maintain keeps relation '%s' active\n"
                 "- persistent relation lifecycle rules must record the approving subject slot\n"
+                "Contract source:\n"
+                "- zone authority declaration on this zone\n"
+                "- maintained relation lifecycle requires an approving subject slot\n"
                 "Fix:\n"
                 "- add 'by <subjectSlot>' to this maintain clause\n"
                 "- or remove zone authority if this maintenance rule is intentionally authority-free",

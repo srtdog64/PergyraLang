@@ -459,6 +459,8 @@ type_resolution_validate_graph(SemanticContext *ctx)
                 graph, cycle_path, cycle_len, closing_node);
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, site,
                 "Type resolution dependency cycle detected in the semantic graph around '%s'.\n"
+                "Contract source:\n"
+                "- graph edge provenance: %s\n"
                 "Reason:\n"
                 "- provider/consumer resolution formed a closed dependency loop\n"
                 "- cycle path: %s\n"
@@ -467,6 +469,7 @@ type_resolution_validate_graph(SemanticContext *ctx)
                 "- or split the contract into acyclic declarations",
                 graph->nodes[closing_node].label != NULL
                     ? graph->nodes[closing_node].label : "<type-ref>",
+                cycle_text != NULL ? cycle_text : "<cycle>",
                 cycle_text != NULL ? cycle_text : "<cycle>");
             free(cycle_text);
             ok = false;

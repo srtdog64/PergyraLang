@@ -3370,9 +3370,21 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_EFFECT_DECL:
     case AST_ZONE_DECL:
     case AST_EVENT_DECL:
+    case AST_INTENT_DECL:
     case AST_IMPORT_DECL:
     case AST_NAMESPACE_DECL:
-        /* Handled in program pass or declaration-only — skip here */
+    case AST_TYPE_ALIAS:
+    case AST_USE_DECL:
+    case AST_INCLUDE_STMT:
+    case AST_IMPL_ABILITY:
+        /* Category 3 (top-level declarations) skip list.
+         * See docs/95_ast_dispatch_partition.md for the partition model.
+         *
+         * These are consumed by the program pass (MIR-backed emitters in
+         * llvm_pipeline.c / llvm_domain.c / llvm_intent.c / llvm_register.c).
+         * Under current MIR-based emission they never reach this switch, but
+         * the list absorbs any future dispatcher change that accidentally
+         * routes a top-level decl into function-body statement context. */
         break;
 
     case AST_EXTERN_BLOCK:
@@ -3470,14 +3482,41 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_EVENT_SUBSCRIBE:
     case AST_EVENT_UNSUBSCRIBE:
     case AST_EVENT_INVOKE:
+    case AST_WORLD_ACTIVATE:
+    case AST_WORLD_DEACTIVATE:
+    case AST_WORLD_MAINTAIN:
+    case AST_WORLD_STATE:
+    case AST_ZONE_APPLY:
+    case AST_ZONE_LINK:
+    case AST_ZONE_DETACH:
+    case AST_ZONE_UNLINK:
+    case AST_ZONE_REFRESH:
+    case AST_ZONE_AUTHORITY:
+    case AST_ZONE_STATE:
+        /* Category 2 (decl sub-metadata) safety-net forward.
+         * See docs/95_ast_dispatch_partition.md for the partition model.
+         *
+         * These domain runtime verbs are created only as sub-nodes of
+         * world_decl / zone_decl in parser_domain.c, and llvm_domain.c
+         * consumes those arrays directly with dedicated handlers.  Under
+         * the current parser they never reach this switch, but the
+         * verbs' identifier semantics ("activate", "apply", "link", …)
+         * make future function-body use plausible, so the forward routes
+         * any accidental arrival into llvm_emit_expression — where
+         * PGY_CODE_LLVM_TYPE_UNSUPPORTED surfaces the breakage with an
+         * actionable diagnostic instead of a silent no-op. */
         llvm_emit_expression(node, ctx);
         if (node->type == AST_CALL)
             llvm_stmt_emit_zone_action_effect_runtime(node, ctx);
         break;
 
     default:
-        fprintf(stderr, "[llvm] warning: unhandled statement AST type %d\n",
-                (int)node->type);
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM statement emitter has no lowering for AST node type %d; add an explicit lowering or keep this node in declaration/domain metadata",
+            (int)node->type);
         break;
     }
 }

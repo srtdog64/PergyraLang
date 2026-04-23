@@ -1,6 +1,6 @@
 # Feature Depth Matrix
 
-마지막 업데이트: 2026-04-12
+마지막 업데이트: 2026-04-23
 
 이 문서는 PergyraLang의 기능별 구현 깊이를 코드 기준으로 기록한다.
 설계 문서상 존재하는 개념이 아니라, 현재 저장소에서 실제로 확인된 depth만 적는다.
@@ -47,8 +47,8 @@ subset surface는 아래 세 분류를 같이 써야 한다.
   - strict closure target: richer mismatch provenance와 broader instantiation-path parity
   - beta-out-of-scope: broader generic generalization
 - own/ref
-  - stable subset: copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule on the currently-closed consumer paths
-  - explicit reject: authority-bearing `Token<T>` escape/transport and a small set of wording-level summary/direct ownership corners
+  - stable subset: classifier-backed copy-value trivial own/ref + boundary-visible aggregate provenance + movable value transfer/borrow + slot-handle boundary rule on the closed consumer paths
+  - explicit reject: authority-bearing `Token<T>` escape/transport
   - beta-out-of-scope: ownership lattice beyond the current classifier/summary model
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
@@ -111,14 +111,15 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 | `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션+상속/유도 강함, `with name: Type;` 값 파라미터 지원 |
 | `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | authority/contract 연결됨, move/clone ownership 정리 중 |
 | `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM 검증됨, zone embedding ownership 정리 중 |
-| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | stable subset은 declaration/constructor, projection slot family, `refresh/publish/bind`, query family, incremental sync parity, 그리고 RIR projection/authority/handoff conservative merge helper까지 포함한다. 남은 것은 authority-resource-effect 통합과 deeper propagation이다 |
+| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중상 | stable subset은 declaration/constructor, projection slot family, `refresh/publish/bind`, query family, incremental sync parity, RIR projection/authority/handoff conservative merge helper, authority-bearing lifecycle/projection `Contract source` diagnostics까지 포함한다. 남은 것은 authority-resource-effect 통합과 deeper propagation이다 |
 | `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | MPMC+SPSC 런타임, send/recv/select 전부 동작 |
 | `Event` | ✅ | ✅ | ◐ | ✅ | ✅ | ◐ | ✅ | 중상 | declaration/subscribe/unsubscribe/invoke 시맨틱과 negative path, positive smoke까지 정렬됐다. invoke의 canonical surface는 parser상 `AST_CALL` 경로다 |
 | `Set/Map/List` | ✅ | ✅ | ◐ | ✅ | ✅ | ✅ | ✅ | 중상 | stable subset은 `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`로 닫혔고, 그 외 key 조합은 explicit error다 |
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |
-| `own/ref` 소유권 | ✅ | ✅ | ◐ | ✅ | ✅ | 해당 없음 | ✅ | 중상 | 베타 stable subset은 copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule까지 넓어졌다. class/subject matrix는 사실상 닫혔고 tuple/object도 기존 semantic suite에 coverage가 있다. `Token<T>` escape와 소수 wording-level ownership corner만 explicit reject다. 마지막 blocker는 summary/direct audit의 마지막 확인과 문서 정렬이다 |
+| `own/ref` 소유권 | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 베타 stable subset은 ownership classifier 기준으로 닫혔다. copy-value trivial own/ref, boundary-visible aggregate provenance, movable value transfer/borrow, slot-handle boundary rule, direct/summary helper-chain, destructure/member/container/return/channel 경로가 semantic 회귀로 고정됐다. `Token<T>` escape/transport와 universal ownership lattice만 explicit reject / beta-out-of-scope다 |
+| AST dispatch / backend fallback trust | ✅ | 해당 없음 | ✅ | ◐ | ✅ | 해당 없음 | ✅ | 중상 | AST 타입 partition은 문서와 smoke로 고정됐다. LLVM stmt/expr fallback은 structured backend error로 닫혔고, C backend의 동일 수준 fallback audit는 계속 진행한다 |
 | 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
 | 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |
@@ -357,7 +358,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - **깊은 축 (7개)**: 기본 코어, 존재론 6종, Slot, Channel, Intent, Zone, Async
 - **중상 축 (4개)**: World, Event, Math/String stdlib, relation/effect
 - **중간 축 (3개)**: 타입/제네릭, ability/role 계약, Set/Map/List
-- **얕은 축 (1개)**: own/ref 소유권
+- **얕은 축 (0개)**: 없음
 - **기본 구현 축 (3개)**: debugger, formatter, LSP
 
 이전 평가에서 "❌ 부재"로 표시했던 많은 항목이 실제로는 동작하고 있었다:
@@ -378,7 +379,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 | Intent 값 파라미터 | subject/zone만 | `with price: Int` 지원 |
 | refresh map {} | 필드명 정확 일치 | 매핑 문법 |
 | Zone→World ownership | 암묵 복사 | move/clone 명시 |
-| own/ref 강제 | copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule | summary/direct equivalence audit 마지막 확인과 문서 정렬 마감 |
+| own/ref 강제 | classifier-backed stable subset | Token<T> transport explicit reject, universal ownership lattice는 beta-out-of-scope |
 
 ### P1 — 깊이 보강
 
@@ -416,7 +417,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - `Set/Map/List`: C+LLVM raw_export 전부 동작 확인 → LLVM ◐→✅ 상향
 - `Async/spawn`: pthread 스케줄러+fiber 실구현 확인 → 행 추가, 깊음 판정
 - `Math/String stdlib`: 빌트인 30+개 존재 확인 → 행 추가, 중상 판정
-- `own/ref`: anchored slot handle 한정 단계는 지났고, copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule까지 베타 stable subset이 넓어졌다. 남은 것은 summary/direct equivalence audit 마지막 확인과 소수 wording-level corner 정리다
+- `own/ref`: anchored slot handle 한정 단계는 지났고, classifier-backed stable subset으로 닫혔다. 남은 것은 새 의미론이 아니라 future ownership lattice와 `Token<T>` explicit reject 문서 유지다
 - `vessel`: 동작 확인 → 존재론 축에 포함
 
 키워드 감사 (72개):
@@ -426,5 +427,5 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - 미구현: embed (토큰 자체 없음)
 
 P0 재정의:
-- refresh map, Zone ownership, own/ref summary/direct closure audit
+- refresh map, Zone ownership
 - P2는 `tooling`과 `authoring shorthand`

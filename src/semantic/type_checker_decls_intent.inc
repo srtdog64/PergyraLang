@@ -609,9 +609,18 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
                 step->data.intent_step.causes_effect) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
-                "Intent step '%s' causes unknown effect '%s'",
+                "Intent step '%s' causes unknown effect '%s'.\n"
+                "Reason:\n"
+                "- causes requires an effect declaration visible to this intent contract\n"
+                "- compile-time contract validation cannot be repaired by runtime sync\n"
+                "Contract source:\n"
+                "- intent step causes clause\n"
+                "Fix:\n"
+                "- declare/export effect '%s'\n"
+                "- or change/remove the causes clause",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                step->data.intent_step.causes_effect);
+                step->data.intent_step.causes_effect,
+                step->data.intent_step.causes_effect != NULL ? step->data.intent_step.causes_effect : "<effect>");
         } else if (step->data.intent_step.causes_effect != NULL
             && zone_decl != NULL
             && !zone_has_effect_layer_type(zone_decl, step->data.intent_step.causes_effect)) {

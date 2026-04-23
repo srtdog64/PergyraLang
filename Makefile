@@ -595,6 +595,9 @@ ir-pipeline-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/ir_pipeline_probe.sh
 
+ast-dispatch-test-smoke:
+	"$(BASH)" tests/ast_dispatch_partition_smoke.sh
+
 llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
@@ -637,6 +640,7 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" stdlib-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" module-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" ir-pipeline-test-smoke
+	$(MAKE) ast-dispatch-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" example-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-abi-same-process
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-backend-compare
@@ -733,7 +737,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-rir test-mir test-hir test-all \
-        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

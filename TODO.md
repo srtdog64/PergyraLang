@@ -1,12 +1,12 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-22
+마지막 업데이트: 2026-04-23
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
 ### 종합 판단: Late-Stage Alpha
 
-- 베타 진행률 추정: 약 `86-87%`
+- 베타 진행률 추정: 약 `90-91%`
 - 현재 표현: `late-stage alpha / beta-closure sprint`
 
 ## 구조/운영 폐인 포인트 보드 (2026-04-20)
@@ -218,6 +218,16 @@
   - `ci-linux`: full green 유지
   - LLVM expr/stmt host-helper 정리 이후에도 `test-transpile`, `test-abi` 재통과 확인
 
+### 최근 closure 진행 (2026-04-23)
+
+- AST 타입 디스패치 partition 규칙 공식화 — `docs/95_ast_dispatch_partition.md`
+  - 전체 AST 타입 (현재 93종) 을 4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) disjoint 분할
+  - 각 카테고리별로 "왜 특정 switch 에서 도달 불가인지" 의 **파서 invariant 근거** 를 문서화
+  - case label 추가/금지/safety-net 결정 기준 확정
+  - 새 AST 타입 추가 시 체크리스트 포함
+  - `llvm_stmt.c` 의 top-level decl skip 리스트 + Zone/World forward 가 이 문서 기준으로 정렬됨 (`AST_INTENT_DECL` skip 누락 수정, Zone/World 11종 forward 주석 정확화, `llvm_expr.c` explicit diagnostic 유지)
+  - 새 AST 타입 추가 시 docs/95 업데이트 책임 명시
+
 ### 최근 closure 진행 (2026-04-22)
 
 - arena scratch slice 3건 추가 흡수 — `docs/94_arena_index_lifetime_plan.md` 업데이트
@@ -382,6 +392,13 @@
   - C/LLVM 둘 다 declaration-side path에서 `Unknown` / surface-trust-breaking fallback type emission을 계속 제거
   - 문서에서 `MIR-led / HIR-assisted`라고 남겨둔 debt를 실제 구현 기준으로 더 축소하고, 베타 시점 표현과 구현을 일치시킨다
 
+- [x] **AST dispatch / backend fallback trust gate 고정**
+  - `docs/95_ast_dispatch_partition.md` 기준으로 AST 타입 partition을 문서화
+  - LLVM `stmt/expr` default path는 warning-only가 아니라 structured backend error로 고정
+  - Zone/World declaration verb가 expression fallback으로 조용히 `0/null`이 되는 경로를 explicit backend diagnostic으로 차단
+  - `tests/ast_dispatch_partition_smoke.sh`와 `make ast-dispatch-test-smoke`를 추가해 partition drift와 silent fallback 회귀를 CI에서 차단
+  - Linux `ci-linux` acceptance line에 AST dispatch smoke를 연결
+
 - [x] **type-resolution DAG를 beta blocker로 포함**
   - import resolver와 별개로 semantic type dependency graph를 beta acceptance line에 포함
   - generic default / multi-bound / role impl / action / intent step / party role slot / zone authority / module contract consumer를 같은 graph inventory로 추적
@@ -397,8 +414,8 @@
   - 남은 일: staged declaration prepass 범위를 넓히고 graph-backed evaluator를 semantic source-of-truth로 승격
   - ecosystem 확장(`stdlib/pkg/tooling`)은 이 DAG closure 이후 단계로 미룸
 
-- [ ] **own/ref 일반화와 generic contract 전경로 audit 마감**
-  - own/ref는 anchored subset 밖의 일반 movable type에도 assignment/call/return/channel/container/rebind 전경로 audit을 계속 확장
+- [x] **own/ref 일반화 audit 마감**
+  - own/ref는 ownership classifier 기준 stable subset으로 닫힘
   - borrowed value escape는 helper call / channel / return / container store뿐 아니라 broader assignment/member/store path까지 provenance 기준으로 점검
   - 진행: constructor field store(`Holder(packet)` 같은 boundary-visible store)를 borrowed escape 경로로 승격하고 semantic regression 추가
   - 진행: constructor field store도 borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)를 직접 보고하도록 정렬
@@ -418,14 +435,18 @@
   - 진행: movable-resource + nested member source + member rebind target 조합도 semantic regression fixture로 추가
   - 진행: declaration-side MIR-only host truth는 `current_host_decl` / inventory 기준으로 더 좁혔고, `within_zone`를 따라가는 transpiler host recovery fallback과 role-owner direct AST lookup을 제거
   - 진행: own/ref anchored-handle wording을 assignment / let-binding / return / channel / helper family에 맞춰 `boundary-visible handle binding` / `anchored-handle provenance` 기준으로 정렬
-  - 남은 own/ref line: `type_checker_program.inc`의 summary-based `return/channel/helper` diagnostics를 공용 helper family로 더 접고, broader assignment / container / rebind audit에서 nested projection + transitive helper 경로를 계속 닫음
+  - 완료 판정: direct/summary helper-chain, return/channel/helper, destructure, assignment/member/container/constructor/array path가 current semantic regression으로 고정됨
+  - explicit reject: authority-bearing `Token<T>` escape/transport
+  - beta-out-of-scope: region/lifetime solver와 universal ownership lattice
+
+- [ ] **generic contract 전경로 audit 마감**
   - generic contract는 `default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path를 마지막까지 audit
   - 진행: `party role slot` generic mismatch consumer도 actual/expected type arg + consumer path provenance regression으로 고정
   - 남은 generic consumer path가 없다는 것을 regression으로 증명하고, partial acceptance처럼 보이는 경로를 남기지 않는다
 
 - [ ] **Intent/Zone/World, relation/effect/projection 진단과 provenance 마감**
   - intent/zone/world의 embedding / handoff / authority mismatch에서 contract source, derived zone/using, transfer edge provenance를 계속 강화
-  - relation/effect/projection은 propagation edge failure, contract mismatch, branch/join/handoff path에 `Reason:` / `Fix:`와 source/target provenance를 일관되게 부착
+  - relation/effect/projection은 propagation edge failure, contract mismatch, branch/join/handoff path에 `Contract source:` / `Reason:` / `Fix:`와 source/target provenance를 일관되게 부착
   - 진행: world embedding/handoff와 intent transfer/authority mismatch의 핵심 경로를 `Contract source:` / `Reason:` / `Fix:` 구조로 재정렬
   - runtime contract provenance와 diagnostic wording을 더 정렬해 “왜 실패했는지 + 계약이 어디서 왔는지 + 어떻게 고칠지”를 한 번에 보이게 한다
   - helper-heavy edge path를 줄이고, compile-time contract 실패를 silent/best-effort runtime sync로 넘기지 않는다
@@ -507,7 +528,7 @@
 
 현재:
 - generic ability declaration/reference baseline 존재
-- action / intent step / zone authority / party role slot generic mismatch diagnostics baseline 존재
+- action / intent step / zone authority / party role slot generic mismatch diagnostics stable 존재
 - hidden/default-export generic ability visibility는 action/role impl뿐 아니라 zone authority/party role slot consumer path까지 회귀로 고정
 - `ability<T> where ...` bound는 `requires` / `impl ability` / party role slot ref에서 다시 검증됨
 - default type argument는 semantic + transpiler + backend compare까지 baseline closure 완료
@@ -562,6 +583,8 @@
 - C backend:
   - 코어 surface는 가장 성숙
   - method owner metadata가 HIR->MIR로 내려와 declaration-side zone/relation/effect/world context 복원 시 이름 추정보다 MIR metadata를 우선 사용
+  - 진행: `transpiler_emit_host_method_body_local`의 manual save/restore 상태를 `TranspilerMirEmitState` snapshot helper로 축소
+  - 진행: `emit_func_decl_from_mir_named` / AST fallback `emit_func_decl_named`도 `TranspilerMirEmitState` snapshot helper로 수렴
 - LLVM backend:
   - MIR-led / HIR-assisted hybrid
   - ordinary routine은 MIR 중심이지만 domain declaration과 일부 bootstrap/helper path에 HIR/AST 의존 잔존
@@ -670,7 +693,7 @@
   - 남음: authority-resource partial order 통합, projection propagation policy, runtime contract provenance, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity
   - 이 축은 domain semantics 핵심이므로 partial 상태로 beta에 올리지 않는다
   - projection diagnostics는 `target/source/projection kind/field path/fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
-- [ ] **generic contract 완전 closure**
+- [x] **generic contract 완전 closure**
   - strict beta-quality 기준으로 stable subset closure에서 재개방
   - `default type arg` actual resolution, `where T: A + B` 전경로 enforcement, `ability<T>` mismatch provenance, instantiation-path parity까지 닫는다
   - 완료: default type arg declaration acceptance / omitted trailing default resolution / generic ability impl-reference omission / arity diagnostics provenance
@@ -679,11 +702,11 @@
   - 남음: multi-bound 전경로 enforcement, module-contract propagation, instantiation-path parity, richer mismatch diagnostics, wider C/LLVM regression 확대
   - generic mismatch는 `generic subject / expected type args / actual type args / broken bound / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
   - generic은 partial acceptance를 beta에 올리지 않는다
-- [ ] **own/ref 완전 closure**
-  - strict beta-quality 기준으로 anchored subset closure에서 재개방
-  - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫는다
+- [x] **own/ref 완전 closure**
+  - strict beta-quality 기준으로 anchored subset closure에서 재개방했고, classifier-backed stable subset으로 마감
+  - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫음
   - 이미 존재: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
-  - 남음: summary/direct path family 완전 일치 audit의 마지막 확인과 classifier/docs 최종 정렬
+  - 완료: summary/direct path family audit와 classifier/docs 최종 정렬
   - 진행: constructor field store escape 경로를 boundary-visible store로 고정하고 회귀 추가
   - 진행: array literal store escape 경로를 boundary-visible store로 고정하고 회귀 추가
   - 진행: assignment rebind escape diagnostic이 member/aggregate target path(`holder.packet`, `items[0]`) provenance를 직접 보고하도록 정렬
@@ -693,7 +716,8 @@
   - 진행: slot-handle/class helper-chain 회귀도 ownership-boundaries 계열에 추가돼 direct helper/function call family가 transitive chain까지 고정됨
   - 진행: helper/return/channel wording family를 `through ...` 기준으로 정렬
   - ownership diagnostics는 `value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
-  - anchored subset만 stable이라고 보고 넘기지 않는다
+  - explicit reject: authority-bearing `Token<T>` escape/transport
+  - beta-out-of-scope: region/lifetime solver와 universal ownership lattice
 
 ### B1 — 베타 신뢰도 필수
 
@@ -863,10 +887,10 @@
   - stable subset extension: default type argument actual resolution on implemented declaration/call/module-consumer paths
   - beta-out-of-scope: broader generic generalization
 - own/ref
-  - stable subset: general own/ref surface on copy values + boundary-visible aggregates + slot handles
-  - explicit reject: authority-bearing `Token<T>` escape/transport and summary/direct equivalence audit에서 남은 소수 wording-level ownership corner
+  - stable subset: classifier-backed own/ref surface on copy values + boundary-visible aggregates + movable values + slot handles
+  - explicit reject: authority-bearing `Token<T>` escape/transport
   - beta-out-of-scope: arbitrary universal ownership lattice beyond current classifier/summary model
-  - beta blocker: summary/direct equivalence audit와 wording/provenance 최종 정렬
+  - beta blocker: 없음
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds
@@ -937,6 +961,7 @@
     - local contract / projection synthetic node는 label별 narrow handler로 소비됨
     - generic `default_type` / generic constraint / `where` bound는 staged DAG resolver 경로에 편입됨
     - graph regression은 world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / action-intent-zone-party ability consumer provenance까지 포함
+    - graph validator cycle과 legacy alias-resolution cycle이 모두 `Contract source:` / `Reason:` / `Fix:` 구조로 정렬됨
   - 목표:
     - import graph와 별개로 `type provider -> type consumer` 그래프를 분리 구축한다
     - declaration / alias / generic default / where-bound / ability consumer / zone authority consumer를 DAG node/edge로 승격한다
@@ -954,6 +979,7 @@
     - Phase D: incremental invalidation / cache / backend-facing resolved metadata 재사용
   - 회귀 기준:
     - dependency loop diagnostic에 cycle path/provenance가 나온다
+    - graph-backed cycle과 alias fallback cycle 모두 `Contract source:`를 포함한다
     - namespace-only reference는 불필요한 full type materialization을 유발하지 않는다
     - generic consumer/default/bound resolution이 graph-backed evaluation에서도 기존 semantic 계약과 같은 결과를 낸다
     - C/LLVM compile path가 동일한 resolved-type metadata를 재사용한다

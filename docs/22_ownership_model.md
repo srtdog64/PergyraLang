@@ -16,42 +16,30 @@ Pergyra는 이종 자원(메모리, GPU, 네트워크, 양자)을 같은 Slot �
 
 ---
 
-## 현재 구현에서 먼저 믿어도 되는 규칙
+## 베타 stable ownership surface
 
-`own/ref`는 장기적으로는 더 넓은 ownership vocabulary를 지향하지만,
-**현재 컴파일러에서 실사용 가능하게 닫힌 범위는 general-purpose ownership 전체가 아니라 boundary-focused subset이다.**
+`own/ref`는 이제 anchored-only 실험 표면이 아니다. 현재 컴파일러에서
+닫힌 기준은 **ownership classifier 기반 stable subset**이다.
 
-오늘 기준으로 안정적으로 믿어도 되는 표면은 다음이다.
+stable subset:
 
-- `ref/own` subject values
-- `ref/own` class/object 계열 boundary values
-- `ref/own` movable resource values (`QubitSlot` 등 현재 열린 movable subset)
-- `ref Slot<subject-host>`
-- `own SecureSlot<subject-host>`
-- 이 subset의 helper forwarding / return-escape / channel-send escape / new-binding / assignment rebind / container-store 차단 규칙
+- copy-only 값: `ref Int`, `own Int`, enum 등은 legal surface이며 ordinary value passing과 같은 trivial semantics를 가진다
+- boundary-visible aggregate: tuple / class / object / subject 계열 borrowed value는 escape/rebind/store/return/send/helper 경계에서 추적된다
+- movable resource value: `QubitSlot`처럼 이미 move-only 의미가 있는 값은 `own` transfer와 `ref` borrow boundary를 가진다
+- slot handle boundary: `ref Slot<subject-host>`, `own SecureSlot<subject-host>`, explicit `own` anchored-handle transfer boundary
+- nested projection provenance: `holder.packet`, `cargo.wrapper.packet`, `items[0]` 같은 source path가 진단에 남는다
+- consumer coverage: new binding, destructure binding, assignment/member rebind, constructor field store, container store, array literal/store, return, channel send, helper/function call, transitive helper chain
 
-즉 이 문서는 "장기 ownership 비전"보다 **현재 닫힌 boundary subset**을 우선 설명한다.
+explicit reject:
 
-## 현재 closure 기준 판정
+- authority-bearing `Token<T>` escape/transport
+- current classifier/summary model 밖의 arbitrary universal ownership lattice
 
-현재 stable surface에서 `own/ref`는 여전히 **일반 목적 ownership system**이 아니다.
+beta-out-of-scope:
 
-현재 stable surface:
-
-- `ref/own` subject values
-- `ref/own` class/object 계열 boundary values
-- `ref/own` movable resource values
-- `ref Slot<subject-host>`
-- `own SecureSlot<subject-host>`
-
-strict beta-quality closure track에서 다시 열리는 범위:
-
-- 일반 값 타입 전반에 대한 ownership discipline
-- `DeviceSlot<T>` / `QubitSlot` / arbitrary `Slot<T>` 전반에 대한 함수 경계 ownership
-- region-based 또는 multi-level alias summary ownership model
-
-즉 현재 문서 기준 `own/ref`는 아직 "완료된 범용 시스템"이 아니라
-**boundary-focused ownership subset**으로 읽어야 한다.
+- region/lifetime solver
+- arbitrary alias graph solver
+- v2 quantum resource model
 
 ## 기본 규칙
 
@@ -72,9 +60,7 @@ let a: Slot<Int> = 42;
 let b: Slot<Int> = Clone(a);  // 새 Slot에 값 복사, a 여전히 유효
 ```
 
-### 3. 함수 인수: `own / ref`는 현재 닫힌 boundary subset 안에서만 허용
-
-다음 예시는 **현재 바로 믿어도 되는 구현 범위**로 바꿔 읽어야 한다.
+### 3. 함수 인수: `own / ref`는 classifier 기준으로 해석된다
 
 ```pergyra
 subject Session {
@@ -96,16 +82,14 @@ Inspect(live);       // ref boundary
 Revoke(secured);     // own boundary
 ```
 
-현재 구현 상태는 이 규칙의 전체 일반화가 아니라 일부 닫힌 상태다.
+구현 규칙:
 
-- `subject` / class-object 계열 boundary value / 현재 열린 movable resource subset은 `own/ref` 함수 경계 규칙을 갖는다
-- `QubitSlot` 같은 movable handle은 기존 move 규칙을 따른다 **(단, 전체 quantum resource semantics는 아직 v2 작업이고 현재는 partial surface/skeleton 상태다)**
-- anchored handle 중에서는 현재 `Slot<subject-host>` / `SecureSlot<subject-host>`만 `own/ref` 함수 경계를 지원한다
-- 여기서 `subject-host`는 `subject`를 뜻한다
-- `Slot<Int>`, `SecureSlot<String>`, `DeviceSlot<T>` 같은 다른 anchored handle은 아직 local-only다
+- copy-only type의 `own/ref`는 허용되며 borrow tracking을 만들지 않는다
+- subject / class / object / tuple / boundary-visible aggregate는 borrowed escape를 추적한다
+- movable resource value는 explicit `own` transfer 또는 `ref` borrow로 처리된다
+- anchored slot handle은 subject-host boundary와 explicit transfer boundary에서 닫힌다
+- `Token<T>`는 authority-bearing value이므로 transport/escape는 explicit reject다
 - 경계 전달 구현은 semantic + C backend + LLVM 경로까지 닫혔다
-- 현재 닫힌 진단 축은 call / return / channel / new binding / assignment rebind / container store까지 포함한다
-- 일반 anchored handle에 `own/ref`를 붙이면 컴파일러는 명시 오류를 낸다
 
 ### 4. Release는 항상 명시적
 
@@ -119,8 +103,8 @@ Release(s);     // 자원 반환 — 항상 소유자가 직접 호출
 
 | 수식자 | 의미 | 호출 후 원본 |
 |--------|------|-------------|
-| `own` | subject/class-object boundary value, movable resource, `own SecureSlot<subject-host>` 경계에서 닫힘 | **무효** |
-| `ref` | subject/class-object boundary value, movable resource, `ref Slot<subject-host>` 경계에서 닫힘 | 유효 |
+| `own` | copy-only trivial pass 또는 ownership transfer boundary | copy-only는 유효, move/handle/subject identity는 **무효** |
+| `ref` | non-owning borrow boundary | 유효. 단 borrow-tracked 값은 escape/rebind/store/send/return 차단 |
 | (없음) | 일반 값/로컬 anchored handle 규칙 | 타입에 따라 |
 
 ```pergyra
@@ -129,15 +113,9 @@ func Borrow(ref session: Slot<Session>) -> Void { ... }
 func Forward(own session: SecureSlot<Session>) -> Void { ... }
 ```
 
-장기적으로는 더 넓은 자원 축으로 확장할 수 있지만,
-**현재 문서/테스트/코드젠이 함께 닫힌 범위는**
-
-- subject values
-- class/object 계열 boundary values
-- 현재 열린 movable resource values
-- subject-host anchored slot boundary
-
-다.
+현재 문서/테스트/코드젠이 함께 닫힌 범위는 `copy-only`,
+`borrow-tracked`, `move-only`, `subject identity`, `slot handle
+(anchored)` classifier branch다.
 
 ---
 
@@ -153,14 +131,14 @@ func Forward(own session: SecureSlot<Session>) -> Void { ... }
 | **`ref` 파라미터** | 함수 경계에서의 borrow |
 | **`Clone()`** | 명시적 값 복사 |
 
-`own`/`ref`는 현재 View 시스템의 함수 경계 확장 중에서도
-**subject/class-object boundary value + movable resource + subject-host anchored slot boundary**에 대해 닫힌 subset이다.
+`own`/`ref`는 View 시스템보다 넓은 함수 경계 ownership vocabulary다.
 
 - `ref Slot<subject-host>`는 borrowed anchored handle처럼 동작한다
 - `own SecureSlot<subject-host>`는 moved secure anchored handle처럼 동작한다
 - return escape / channel send / rebinding / aliasing은 모두 보수적으로 차단된다
-- 일반 `Slot<T>` 전반이나 `DeviceSlot<T>` 전체에 대해 같은 규칙이 열린 것은 아니다
-- `QubitSlot`은 현재 열린 movable resource subset에 포함되지만, 전체 quantum ownership semantics 자체는 아직 v2/partial 범위다
+- copy-only 값은 legal no-op ownership surface다
+- `QubitSlot`은 current move-only resource subset에 포함된다. 전체 quantum resource model은 v2/beta-out-of-scope다
+- `Token<T>`는 authority-bearing explicit reject다
 
 ---
 
@@ -206,10 +184,9 @@ C++에서는 `&&`, `const&`, `*`, `unique_ptr`, `shared_ptr`이 난립하고,
 Go에서는 값 전달인지 포인터 전달인지 암묵적이고,
 Python에서는 모든 게 참조인데 뭐가 공유되는지 안 보인다.
 
-현재 구현 기준으로는 아직 그렇게 말하면 과장이다.
+현재 베타 기준의 정확한 표현은 이렇다:
 
-더 정확한 표현은 이렇다:
-
-- Pergyra는 `own` / `ref`를 boundary vocabulary로 채택했다
-- 현재 닫힌 규칙은 subject/class-object boundary value, movable resource, `Slot<subject-host>` / `SecureSlot<subject-host>` 경계 subset이다
-- 나머지 자원 축은 동일 vocabulary로 넓혀 가는 중이다
+- Pergyra는 `own` / `ref`를 general boundary vocabulary로 채택했다
+- compiler는 ownership classifier로 copy-only / borrow-tracked / move-only / subject identity / slot handle branch를 분류한다
+- parser가 받는 current stable `own/ref` surface는 semantic diagnostics와 C/LLVM parity 기준으로 닫혀 있다
+- region/lifetime solver와 arbitrary universal ownership lattice는 beta-out-of-scope다

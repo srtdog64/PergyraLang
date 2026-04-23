@@ -692,6 +692,8 @@ test_type_resolution_graph(void)
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "cycle path:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+               "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "Left"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "Right"));
@@ -723,6 +725,8 @@ test_type_resolution_graph(void)
                "Type resolution dependency cycle detected"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "cycle path:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+               "Contract source:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "Left"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -758,6 +762,8 @@ test_type_resolution_graph(void)
                "Type resolution dependency cycle detected"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "cycle path:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+               "Contract source:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "Left"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -798,6 +804,8 @@ test_type_resolution_graph(void)
                "Type resolution dependency cycle detected"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "cycle path:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+               "Contract source:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "Left"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -843,6 +851,8 @@ test_type_resolution_graph(void)
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "cycle path:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+               "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "Left"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "Right"));
@@ -885,6 +895,8 @@ test_type_resolution_graph(void)
                "Type resolution dependency cycle detected"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "cycle path:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+               "Contract source:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
                "Left"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -981,6 +993,8 @@ test_type_resolution_graph(void)
                     result, "Type resolution dependency cycle detected")
                 || !ctx_has_diagnostic_substring_from_result(
                     result, "cycle path:")
+                || !ctx_has_diagnostic_substring_from_result(
+                    result, "Contract source:")
                 || !ctx_has_diagnostic_substring_from_result(
                     result, "Fix:")) {
                 stable = false;

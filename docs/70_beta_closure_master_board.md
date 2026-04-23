@@ -1,6 +1,6 @@
 # Pergyra Beta Closure Master Board
 
-마지막 업데이트: 2026-04-22
+마지막 업데이트: 2026-04-23
 
 ## 목적
 
@@ -18,7 +18,7 @@
 ## 현재 판정
 
 - 현재 단계: `late-stage alpha / beta-closure sprint`
-- 베타 진행률 추정: `약 86%`
+- 베타 진행률 추정: `약 90-91%`
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
   - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt`다
@@ -43,11 +43,11 @@
 | B0-1 Intent / Zone / World | 진행 중 | 84% | 차단 | observability baseline은 생겼고 embedding/handoff 핵심 진단은 `Contract source` 구조로 올라왔지만 authority/provenance depth가 더 남음 |
 | B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
 | B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
-| B0-4 own/ref | 진행 중 | 96% | 차단 | copy-value/general aggregate/slot-handle surface는 semantic에서 실제로 넓게 닫혔고 constructor field store, transitive helper return, transitive helper chain, channel send/direct return, nested projection provenance 회귀도 추가됐다. class/subject consumer matrix는 사실상 닫혔고 tuple/object 계열도 기존 semantic suite에 coverage가 있다. helper/function call family는 direct vs summary wording 차이를 마지막 audit 단계로 좁혔다. 이제 남은 것은 summary/direct equivalence 마지막 확인과 classifier/docs 최종 정렬이다 |
+| B0-4 own/ref | 완료 | 100% | 비차단 | ownership classifier 기준 stable subset으로 닫힘. copy-value trivial own/ref, boundary-visible aggregate provenance, movable value transfer/borrow, slot-handle boundary, direct/summary helper-chain, destructure/member/container/return/channel 경로가 semantic 회귀로 고정됐다. `Token<T>` transport는 explicit reject, universal ownership lattice는 beta-out-of-scope다 |
 | MIR-only declaration debt | 진행 중 | 88% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했다. MIR emit state restore와 function emit host/return binding은 helper family로 수렴됐고 intent emitter의 return-type/count restore도 helper 경계로 정리됐다. 남은 것은 zone/world/relation/effect declaration inventory bootstrap 잔여다 |
-| Type-resolution DAG | 진행 중 | 66% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔지만 full graph-backed evaluator는 아직 미완 |
+| Type-resolution DAG | 진행 중 | 70% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔다. graph cycle과 legacy alias cycle 모두 `Contract source` / `Reason` / `Fix` vocabulary로 정렬됐고, full graph-backed evaluator는 beta-out-of-scope로 두고 stage-2 source-of-truth 승격이 남음 |
 | Arena / lifetime discipline | 진행 중 | 81% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 규칙 문서화는 끝났고 transpiler scratch-only temporary의 첫 safe vertical slice, semantic result-owned diagnostic payload seam, semantic scratch arena가 ownership path 조립 / stdlib preload / enum method mangling / parallel task metadata / type-resolution cycle detection / match redundancy coverage까지 확장됐다. HIR/MIR에는 routine-scope `scratch` arena가, LLVM은 `scratch + persistent + result-owned` lane으로 정리되어 event invoke, intent collector, projection path, local grow array, type render helper, callable signature metadata까지 arena 경계가 올라왔다. 남은 것은 owner shell과 runtime ABI contract, 반환 ownership이 섞인 일부 helper다 |
-| C/LLVM parity | 진행 중 | 86% | 차단 | Linux acceptance line은 로컬에서 다시 green으로 고정됐고, Windows full green은 plain Linux host가 아니라 MSYS2/MinGW + LLVM runner truth로 분리했다 |
+| C/LLVM parity | 진행 중 | 88% | 차단 | LLVM stmt/expr fallback은 warning-only가 아니라 structured backend error로 고정됐고 AST dispatch partition smoke가 CI gate에 들어갔다. Windows full green은 plain Linux host가 아니라 MSYS2/MinGW + LLVM runner truth로 분리했다 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
 | surface trust docs | 진행 중 | 87% | 차단 | 주요 surface는 정렬됐고 own/ref baseline도 넓어졌지만 B0 잔여에 맞춘 최종 재분류와 acceptance wording 고정이 남음 |
 
@@ -60,6 +60,9 @@
   - `authority-bearing`
 - semantic regression은 현재 기준으로 `1872 passed, 0 failed`
 - transpile regression은 현재 기준으로 `601 passed, 0 failed`
+- AST 타입 디스패치 partition 규칙 문서화 완료 — `docs/95_ast_dispatch_partition.md`. 4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) 로 전체 AST 타입이 disjoint 분할되고, 각 카테고리별로 case label 추가/금지/safety-net 판단 기준이 고정됨. `llvm_stmt.c` skip 리스트 + Zone/World safety-net forward 가 이 문서 기준으로 정렬됨
+- AST dispatch partition smoke 추가 — `tests/ast_dispatch_partition_smoke.sh`, `make ast-dispatch-test-smoke`. LLVM `stmt/expr`의 unknown/default path가 warning-only나 silent `0/null` fallback으로 회귀하지 못하게 Linux CI acceptance line에 연결됨
+- type-resolution DAG cycle provenance 강화 — graph validator cycle과 legacy alias-resolution cycle 모두 `Contract source:` / `Reason:` / `Fix:` 구조를 갖도록 정렬. semantic graph regression은 해당 vocabulary를 요구하며 `test-semantic 2019/0`으로 검증됨
 - C/LLVM init idiom 축 1차 감사 + 1차 정비 완료 — `docs/93_codegen_idiom_audit.md` 참조
   - Case 1 (uninit local) HIGH divergence는 semantic 레벨 차단으로 **해소** (`PGY_CODE_SEM_UNINIT_LOCAL`): 함수-바디 `let x: T;` 거부. 관련 회귀 3종 추가
   - Case 2 (C backend aggregate fallback) 경로 `L815`는 `transpiler_c_type_uses_scalar_zero` helper로 scalar/aggregate 분기. defense in depth
@@ -111,12 +114,14 @@ beta 직전 운영 규칙:
 - generic `default_type` / generic constraint / `where` bound가 staged DAG resolver 경로를 통과하며 semantic 회귀와 Linux CI에서 검증됨
 - role impl / action / intent step / zone authority / party role slot ability consumer가 provider pre-stage와 cycle provenance 회귀를 통해 같은 DAG 경로로 정렬됨
 - graph regression이 world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / role-action-intent-zone-party ability consumer provenance까지 확장됨
+- graph validator cycle과 legacy alias cycle diagnostic이 모두 `Contract source` / `Reason` / `Fix` vocabulary로 정렬됨
 
 남은 것:
 
 - provider/consumer inventory를 generic/module/authority/party 경로까지 더 확장
 - world/zone local contract와 projection path도 graph vocabulary로 계속 끌어올림
 - SCC/cycle diagnostic을 alias depth fallback보다 신뢰 가능한 기준으로 승격
+- legacy alias cycle fallback도 graph cycle과 같은 provenance vocabulary로 정렬해 migration 중에도 사용자-facing 진단 구조가 갈라지지 않게 유지
 - topo scheduling과 staged declaration worklist를 top-level decl에서 local/projection synthetic node, ability/authority/party consumer를 넘어 더 넓게 연결
 - graph-backed evaluator entrypoint를 declaration prepass에서 semantic source-of-truth로 승격
 - namespace-only lookup과 full concrete materialization을 분리
@@ -294,24 +299,20 @@ diagnostic 고정 규칙:
 
 판정:
 
-- boundary subset(subject/class-object boundary value, movable resource, subject-slot anchored handle), diagnostics baseline, regression alignment은 이미 존재한다
-- 남은 일은 arbitrary value/anchored handle ownership model, copy vs move-only 분류, assignment/call/return/channel/container/rebind 전경로 analysis, richer provenance diagnostics를 닫는 것이다
-- own/ref는 지금 beta-quality 기준에서 다시 활성 blocker로 본다
-- current boundary subset만 stable이라고 보고 넘어가면 language ownership story 자체가 partial acceptance로 남는다
+- beta stable subset은 ownership classifier 기준으로 닫혔다
+- `own/ref`는 anchored-only 또는 boundary-only 실험 surface가 아니다
+- copy-only 값은 trivial semantics로 허용하고, borrow-tracked/move-only/subject identity/slot-handle branch는 escape/rebind/store/send/return/helper boundary에서 추적한다
+- `Token<T>` transport는 authority-bearing explicit reject로 유지한다
+- region/lifetime solver와 universal ownership lattice는 beta-out-of-scope다
 
 닫힌 것:
 
-- boundary subset
-- diagnostics baseline
-- regression and docs alignment
 - copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule
 - constructor field store / transitive helper return / channel send / direct return / nested projection provenance 회귀
 - helper/return/channel wording family의 공용 정렬
-
-남은 것:
-
-- summary path와 direct path의 완전 동일 family audit 마지막 확인
-- classifier / docs / support-matrix 최종 정렬
+- direct/summary helper-chain coverage
+- destructure binding / member rebind / container store / array store/literal 경로
+- class/subject/tuple/object/array aggregate matrix
 
 최근 진전:
 
@@ -327,9 +328,8 @@ diagnostic 고정 규칙:
 
 직접 마감 항목:
 
-- summary/direct path equivalence audit
-- classifier wording / support matrix / docs closure
-- declaration/runtime/diagnostic/backend parity
+- 완료. 새 ownership 의미론은 베타 범위에서 추가하지 않는다
+- 향후 작업은 universal ownership lattice / region solver / richer lifetime inference로 분리한다
 
 diagnostic 고정 규칙:
 
@@ -345,10 +345,11 @@ diagnostic 고정 규칙:
 
 완료 기준:
 
-- boundary subset이 아니라 broader arbitrary value / anchored handle ownership contract가 존재한다
-- runtime 보정이 아니라 semantic 단계에서 대부분의 위반을 차단한다
+- classifier-backed stable subset이 존재한다
+- runtime 보정이 아니라 semantic 단계에서 위반을 차단한다
 - channel/return/helper call escape path가 회귀로 고정된다
 - ownership diagnostics가 `value/mode/provenance/consumer-path/fix`를 포함하고 `Reason:` / `Fix:` 포맷을 유지한다
+- `Token<T>` transport는 explicit reject로 남는다
 
 ## MIR-only Declaration Closure Board
 

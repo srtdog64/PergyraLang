@@ -447,9 +447,40 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
+    case AST_WORLD_ACTIVATE:
+    case AST_WORLD_DEACTIVATE:
+    case AST_WORLD_MAINTAIN:
+    case AST_WORLD_STATE:
+    case AST_ZONE_APPLY:
+    case AST_ZONE_LINK:
+    case AST_ZONE_DETACH:
+    case AST_ZONE_UNLINK:
+    case AST_ZONE_REFRESH:
+    case AST_ZONE_AUTHORITY:
+    case AST_ZONE_STATE:
+        /* Category 2 (decl sub-metadata) safety-net terminus.
+         * See docs/95_ast_dispatch_partition.md for the partition model.
+         *
+         * These domain verbs should only be consumed by llvm_domain.c
+         * handlers that index world_decl / zone_decl child arrays.  If
+         * one arrives here it means a parser or dispatcher change
+         * started routing them through expression emission — raise an
+         * explicit diagnostic so the regression surfaces immediately. */
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM domain AST node %d reached expression emission; domain operations must lower through MIR/domain emitters, not silent expression fallback",
+            (int)node->type);
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
     default:
-        fprintf(stderr, "[llvm] warning: unhandled expression AST type %d\n",
-                (int)node->type);
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM expression emitter has no lowering for AST node type %d; add an explicit lowering or route this declaration metadata through the domain/MIR emitter",
+            (int)node->type);
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 }
