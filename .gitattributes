@@ -1,0 +1,31 @@
+# Pergyra linguist hints.
+#
+# NOTE: `linguist-language=Pergyra` is a forward-declaration.  Until the
+# Pergyra entry is merged into github-linguist/linguist, GitHub silently
+# ignores the attribute (no harm).  Once merged, `.pgy` files will be
+# counted toward the "Pergyra" slice of every repo's language bar.
+#
+# See docs/96_linguist_submission.md for the submission plan.
+
+*.pgy linguist-language=Pergyra
+*.pgy linguist-detectable=true
+
+# Editor extension assets are tooling, not primary source; exclude from
+# repo language stats so the language bar reflects actual Pergyra code.
+editor/vscode-pergyra/** linguist-vendored=true
+
+# Build / binary artifacts should never count.
+build/**  linguist-generated=true
+bin/**    linguist-generated=true
+
+# Generated MIR/HIR/DIR/RIR dumps used for golden tests.
+**/*.hir.txt  linguist-generated=true
+**/*.dir.txt  linguist-generated=true
+**/*.rir.txt  linguist-generated=true
+**/*.mir.txt  linguist-generated=true
+
+# Line ending normalization: Pergyra sources are LF everywhere,
+# including on Windows (matches the MSYS2/MinGW acceptance line).
+*.pgy text eol=lf
+*.c   text eol=lf
+*.h   text eol=lf

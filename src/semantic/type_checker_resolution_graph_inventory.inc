@@ -104,6 +104,12 @@ semantic_type_resolution_collect_generic_contract_inventory(GenericParams *gp,
                 owner,
                 consumer_name,
                 "default-type lookup");
+            semantic_type_resolution_collect_type_refs(
+                param->constraint,
+                ctx,
+                owner,
+                consumer_name,
+                "generic constraint lookup");
             free(consumer_name);
         }
     }
@@ -512,6 +518,14 @@ semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
         party_decl,
         "party",
         party_decl->data.party_decl.name);
+
+    semantic_type_resolution_collect_type_refs(
+        party_decl->data.party_decl.extends,
+        ctx,
+        party_decl,
+        party_decl->data.party_decl.name != NULL
+            ? party_decl->data.party_decl.name : "<party>",
+        "party extends lookup");
 
     for (size_t i = 0; i < party_decl->data.party_decl.shared_count; i++) {
         ASTNode *field = party_decl->data.party_decl.shared_fields[i];
@@ -960,11 +974,15 @@ static void
 semantic_type_resolution_precollect_domain_inventory(ASTNode *domain_decl,
                                                      ASTNode **slots,
                                                      size_t slot_count,
+                                                     ASTNode **shared_fields,
+                                                     size_t shared_count,
                                                      ASTNode **methods,
                                                      size_t method_count,
                                                      SemanticContext *ctx,
                                                      const char *kind_name,
-                                                     const char *decl_name)
+                                                     const char *decl_name,
+                                                     const char *slot_reason,
+                                                     const char *shared_reason)
 {
     (void)domain_decl;
 
@@ -981,7 +999,20 @@ semantic_type_resolution_precollect_domain_inventory(ASTNode *domain_decl,
             slot,
             slot->data.domain_slot.slot_name != NULL
                 ? slot->data.domain_slot.slot_name : "<domain-slot>",
-            "domain slot type lookup");
+            slot_reason != NULL ? slot_reason : "domain slot type lookup");
+    }
+
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *field = shared_fields[i];
+        if (field == NULL || field->type != AST_PARTY_SHARED)
+            continue;
+        semantic_type_resolution_collect_type_refs(
+            field->data.party_shared.type,
+            ctx,
+            field,
+            field->data.party_shared.name != NULL
+                ? field->data.party_shared.name : "<domain-shared>",
+            shared_reason != NULL ? shared_reason : "domain shared field type lookup");
     }
 
     for (size_t i = 0; i < method_count; i++) {
@@ -990,6 +1021,65 @@ semantic_type_resolution_precollect_domain_inventory(ASTNode *domain_decl,
             ctx,
             decl_name != NULL ? decl_name : kind_name);
     }
+}
+
+static void
+semantic_type_resolution_precollect_relation_inventory(ASTNode *relation_decl,
+                                                       SemanticContext *ctx)
+{
+    if (relation_decl == NULL || relation_decl->type != AST_RELATION_DECL || ctx == NULL)
+        return;
+
+    semantic_type_resolution_collect_type_refs(
+        relation_decl->data.relation_decl.between_left_type,
+        ctx,
+        relation_decl,
+        relation_decl->data.relation_decl.name != NULL
+            ? relation_decl->data.relation_decl.name : "<relation>",
+        "relation between-left type lookup");
+    semantic_type_resolution_collect_type_refs(
+        relation_decl->data.relation_decl.between_right_type,
+        ctx,
+        relation_decl,
+        relation_decl->data.relation_decl.name != NULL
+            ? relation_decl->data.relation_decl.name : "<relation>",
+        "relation between-right type lookup");
+
+    semantic_type_resolution_precollect_domain_inventory(
+        relation_decl,
+        relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count,
+        relation_decl->data.relation_decl.shared_fields,
+        relation_decl->data.relation_decl.shared_count,
+        relation_decl->data.relation_decl.methods,
+        relation_decl->data.relation_decl.method_count,
+        ctx,
+        "relation",
+        relation_decl->data.relation_decl.name,
+        "relation slot type lookup",
+        "relation shared field type lookup");
+}
+
+static void
+semantic_type_resolution_precollect_effect_inventory(ASTNode *effect_decl,
+                                                     SemanticContext *ctx)
+{
+    if (effect_decl == NULL || effect_decl->type != AST_EFFECT_DECL || ctx == NULL)
+        return;
+
+    semantic_type_resolution_precollect_domain_inventory(
+        effect_decl,
+        effect_decl->data.effect_decl.slots,
+        effect_decl->data.effect_decl.slot_count,
+        effect_decl->data.effect_decl.shared_fields,
+        effect_decl->data.effect_decl.shared_count,
+        effect_decl->data.effect_decl.methods,
+        effect_decl->data.effect_decl.method_count,
+        ctx,
+        "effect",
+        effect_decl->data.effect_decl.name,
+        "effect slot type lookup",
+        "effect shared field type lookup");
 }
 
 static void
@@ -1009,7 +1099,7 @@ semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
             involves,
             involves->data.intent_involves.alias != NULL
                 ? involves->data.intent_involves.alias : "<intent-binding>",
-            "intent binding type lookup");
+            "intent involves type lookup");
     }
 
     for (size_t i = 0; i < intent_decl->data.intent_decl.value_count; i++) {
@@ -1031,7 +1121,7 @@ semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
         intent_decl,
         intent_decl->data.intent_decl.name != NULL
             ? intent_decl->data.intent_decl.name : "<intent>",
-        "intent default zone lookup");
+        "intent default where-type lookup");
 
     for (size_t i = 0; i < intent_decl->data.intent_decl.step_count; i++) {
         ASTNode *step = intent_decl->data.intent_decl.steps[i];
@@ -1054,7 +1144,7 @@ semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
             ctx,
             step,
             step_consumer_name,
-            "intent step zone lookup");
+            "intent step where-type lookup");
         semantic_type_resolution_precollect_required_abilities(
             step->data.intent_step.required_abilities,
             step->data.intent_step.required_ability_count,
@@ -1102,6 +1192,19 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
             slot->data.domain_slot.slot_name != NULL
                 ? slot->data.domain_slot.slot_name : "<zone-slot>",
             "zone slot type lookup");
+    }
+
+    for (size_t i = 0; i < zone_decl->data.zone_decl.shared_count; i++) {
+        ASTNode *field = zone_decl->data.zone_decl.shared_fields[i];
+        if (field == NULL || field->type != AST_PARTY_SHARED)
+            continue;
+        semantic_type_resolution_collect_type_refs(
+            field->data.party_shared.type,
+            ctx,
+            field,
+            field->data.party_shared.name != NULL
+                ? field->data.party_shared.name : "<zone-shared>",
+            "zone shared field type lookup");
     }
 
     for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
@@ -2135,27 +2238,11 @@ semantic_type_resolution_precollect_program(ASTNode *program,
             break;
 
         case AST_RELATION_DECL:
-            semantic_type_resolution_precollect_domain_inventory(
-                stmt,
-                stmt->data.relation_decl.slots,
-                stmt->data.relation_decl.slot_count,
-                stmt->data.relation_decl.methods,
-                stmt->data.relation_decl.method_count,
-                ctx,
-                "relation",
-                stmt->data.relation_decl.name);
+            semantic_type_resolution_precollect_relation_inventory(stmt, ctx);
             break;
 
         case AST_EFFECT_DECL:
-            semantic_type_resolution_precollect_domain_inventory(
-                stmt,
-                stmt->data.effect_decl.slots,
-                stmt->data.effect_decl.slot_count,
-                stmt->data.effect_decl.methods,
-                stmt->data.effect_decl.method_count,
-                ctx,
-                "effect",
-                stmt->data.effect_decl.name);
+            semantic_type_resolution_precollect_effect_inventory(stmt, ctx);
             break;
 
         default:

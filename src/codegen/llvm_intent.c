@@ -598,6 +598,46 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
 }
 
 static void
+llvm_emit_intent_step_dirty_zone_projections(LLVMGenCtx *ctx,
+                                             const char *zone_type_name,
+                                             const char *zone_alias)
+{
+    LLVMVarEntry *zone_var;
+    LLVMValueRef zone_ptr;
+    LLVMClassTypeEntry *zone_cls;
+
+    if (ctx == NULL || zone_alias == NULL || zone_type_name == NULL)
+        return;
+
+    zone_var = llvm_scope_lookup(ctx, zone_alias);
+    zone_cls = llvm_lookup_class(ctx, zone_type_name);
+    if (zone_var == NULL || zone_cls == NULL
+        || LLVMGetTypeKind(zone_var->type) != LLVMPointerTypeKind) {
+        return;
+    }
+
+    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type,
+        zone_var->alloca, llvm_tmp_name(ctx));
+
+    for (int i = 0; i < zone_cls->field_count; i++) {
+        const char *field_name = zone_cls->fields[i].field_name;
+        if (field_name == NULL)
+            continue;
+        if (strncmp(field_name, "__projection_dirty_", 19) == 0) {
+            LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
+                zone_cls->struct_type, zone_ptr, (unsigned)zone_cls->fields[i].index,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), field_ptr);
+        } else if (strncmp(field_name, "__projection_ready_", 19) == 0) {
+            LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
+                zone_cls->struct_type, zone_ptr, (unsigned)zone_cls->fields[i].index,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), field_ptr);
+        }
+    }
+}
+
+static void
 llvm_emit_intent_step_sync_effective_zone(LLVMGenCtx *ctx,
                                           const char *zone_type_name,
                                           const char *zone_alias)
@@ -1719,6 +1759,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 }
             }
         }
+        if (rebound_aliases)
+            llvm_emit_intent_step_dirty_zone_projections(ctx, zone_type_name, zone_alias);
         if (rebound_aliases)
             llvm_emit_intent_step_sync_effective_zone(ctx, zone_type_name, zone_alias);
         else

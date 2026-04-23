@@ -539,6 +539,25 @@ make rebuild                   # Force clean + full rebuild (use when stale)
 If a build looks stale ("Nothing to be done" while sources changed), see
 [Build Troubleshooting](docs/91_build_troubleshooting.md).
 
+## Editor Support
+
+- File extension: `.pgy`
+- TextMate scope: `source.pergyra`
+- VSCode extension: [editor/vscode-pergyra/](editor/vscode-pergyra/) (marketplace publication pending)
+- tree-sitter / Vim / Emacs: not yet provided
+
+## GitHub Language Recognition
+
+Pergyra is not yet registered with [github-linguist/linguist](https://github.com/github-linguist/linguist),
+so GitHub's Language bar currently classifies `.pgy` as "Other". The
+[`.gitattributes`](.gitattributes) at the repo root forward-declares
+`linguist-language=Pergyra`; it is a no-op until the Linguist entry is merged
+and then activates automatically.
+
+The submission checklist (sample selection, TextMate grammar extraction, color
+candidates, "in use" adoption strategy) is tracked in
+[docs/96_linguist_submission.md](docs/96_linguist_submission.md).
+
 ## Documentation
 
 - [Syntax Reference](docs/grammar/01_syntax.md)
@@ -548,6 +567,7 @@ If a build looks stale ("Nothing to be done" while sources changed), see
 - [Language Status](docs/18_language_status.md)
 - [Stable Example Surface Board](docs/65_stable_example_surface_board.md)
 - [Design Vision](docs/00_vision.md)
+- [Linguist Submission Checklist](docs/96_linguist_submission.md)
 - [한국어 README](docs/README_ko.md)
 
 ## License

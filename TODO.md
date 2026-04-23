@@ -223,6 +223,20 @@
   - `ci-linux`: full green 유지
   - LLVM expr/stmt host-helper 정리 이후에도 `test-transpile`, `test-abi` 재통과 확인
 
+### 최근 closure 진행 (2026-04-24)
+
+- runtime propagation/provenance 1차 closure
+  - C/LLVM domain hidden cell이 `ready/dirty` bool만 가지던 상태에서 `epoch/cause` provenance cell까지 같은 schema로 확장됨
+  - relation/effect/zone/world projection, layer, state, world-derived state가 recompute 시점에 cause-stamped provenance를 남기도록 C/LLVM이 정렬됨
+  - LLVM domain struct layout이 그동안 빠뜨리고 있던 `__projection_dirty_*` field를 relation/effect/zone에 다시 포함하도록 parity 수정
+  - LLVM projection sync도 C와 같은 dirty-gated recompute 경로로 정렬됨
+  - LLVM host-field assignment가 zone/relation/effect host method 안에서 projection invalidation을 만들도록 복구
+  - LLVM intent step rebound-zone 경로도 effective zone projection cell을 보수적으로 dirty-mark + sync 하도록 보강
+  - 결과: `relation_effect_propagation_abi`, `intent_zone_binding`, `intent_cross_world_transfer`, `intent_rich_history_identity` backend compare drift 제거
+  - 새 회귀: transpile domain async/world tests가 provenance hidden field와 stamp write까지 직접 확인
+  - 현재 해석: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)은 이제 beta 계약의 일부로 간주하고 다시 약화시키지 않음
+  - 강한 남은 과제: bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. single-pass sync를 최종 모델로 인정하지 않음
+
 ### 최근 closure 진행 (2026-04-23)
 
 - AST 타입 디스패치 partition 규칙 공식화 — `docs/95_ast_dispatch_partition.md`
@@ -693,12 +707,16 @@
 - [ ] **Intent/Zone/World semantics 완전 closure**
   - contract reuse/derivation / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
   - 이미 존재: intent orchestration, inherited/derived contract, zone/world query, observability baseline
-  - 남음: embedding ownership/handoff policy, cross-layer propagation policy, richer provenance, declaration/runtime/diagnostic parity
+  - 진행: runtime zone/world propagation cell에 `epoch/cause` provenance baseline이 들어갔고, LLVM intent rebound-zone sync도 같은 truth로 정렬됨
+  - 강한 기준: 이 축은 이제 "얕은 single-pass sync로도 beta 가능" 같은 해석을 허용하지 않음
+  - 남음: embedding ownership/handoff policy, **bounded fixpoint 기반 cross-layer propagation policy**, richer provenance query surface, declaration/runtime/diagnostic parity
   - 이 축은 언어 정체성 자체이므로 beta 직전까지 열어두지 않는다
 - [ ] **relation/effect/projection semantics 완전 closure**
   - effect lattice, authority-resource partial order 통합, refresh/publish/bind/causes 일관화, diagnostics, C/LLVM parity
   - 이미 존재: declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync, effect join/meet/conflict, projection contract diagnostics baseline
-  - 남음: authority-resource partial order 통합, projection propagation policy, runtime contract provenance, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity
+  - 진행: relation/effect/zone projection hidden cell도 C/LLVM 모두 `dirty/ready + epoch/cause` schema로 정렬됐고 runtime contract provenance baseline이 생김
+  - 강한 기준: projection propagation은 더 이상 "helper replay가 대체로 맞음" 수준으로 두지 않고, transitive semantics가 닫히기 전까지 beta blocker로 유지
+  - 남음: authority-resource partial order 통합, **transitive projection propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity의 마지막 shrink
   - 이 축은 domain semantics 핵심이므로 partial 상태로 beta에 올리지 않는다
   - projection diagnostics는 `target/source/projection kind/field path/fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
 - [x] **generic contract 완전 closure**
@@ -851,6 +869,8 @@
 - [ ] **intent/zone/world recoverable failure baseline**
   - intent failure, authority rejection, boundary mismatch는 process abort 대신 queryable reason/state로 노출
   - runtime observability와 diagnostics wording을 같은 provenance vocabulary로 정렬
+  - 참고: runtime propagation provenance(`epoch/cause`) baseline은 완료로 본다
+  - 남음: queryable failure reason/state surface는 여전히 beta blocker다
 - [ ] **runtime authority guard downshift**
   - 현재 `pgy_zone_authority_check_export(...)`는 null self/null participant invariant guard다
   - 이 guard 자체는 hard-fail 유지

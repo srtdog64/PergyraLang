@@ -22,6 +22,7 @@
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
   - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt`다
+  - runtime propagation은 이제 C/LLVM 공통 `dirty/ready + epoch/cause` provenance baseline까지 닫혔고, 남은 차단점은 `bounded fixpoint / transitive frontier scheduler`다
 
 ## Beta Acceptance Line
 
@@ -40,15 +41,15 @@
 
 | 트랙 | 상태 | 진행률 | 베타 차단 여부 | 핵심 메모 |
 |------|------|--------|----------------|----------|
-| B0-1 Intent / Zone / World | 진행 중 | 84% | 차단 | observability baseline은 생겼고 embedding/handoff 핵심 진단은 `Contract source` 구조로 올라왔지만 authority/provenance depth가 더 남음 |
-| B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
+| B0-1 Intent / Zone / World | 진행 중 | 88% | 차단 | observability baseline과 C/LLVM runtime provenance baseline은 닫혔지만 embedding/handoff rule, authority rejection surface, bounded fixpoint 기반 cross-layer propagation이 더 남음 |
+| B0-2 relation / effect / projection | 진행 중 | 87% | 차단 | refresh/publish/bind baseline과 `dirty/ready + epoch/cause` provenance baseline은 닫혔지만 transitive propagation, effect partial order, scheduler depth가 더 남음 |
 | B0-3 generic contract | 완료 | 100% | 비차단 | default arg, omitted trailing default, multi-bound, ability/authority/party/action/intent consumer, cross-module imported consumer가 semantic 회귀 기준으로 닫혔다 |
 | B0-4 own/ref | 완료 | 100% | 비차단 | ownership classifier 기준 stable subset으로 닫힘. copy-value trivial own/ref, boundary-visible aggregate provenance, movable value transfer/borrow, slot-handle boundary, direct/summary helper-chain, destructure/member/container/return/channel 경로가 semantic 회귀로 고정됐다. `Token<T>` transport는 explicit reject, universal ownership lattice는 beta-out-of-scope다 |
 | MIR-only declaration debt | 진행 중 | 97% | 차단 | host context는 inventory-backed handle 쪽으로 이동했고 function/method/intent emit state는 `TranspilerMirEmitState` snapshot helper로 수렴됐다. generic class specialization method도 MIR routine gate를 탄다. party/roster/relation/effect/zone/world hosted method emission은 공용 MIR helper로 수렴했고, declaration emit entrypoint도 inventory decl을 우선 사용한다. dead AST fallback은 제거되어 MIR routine 부재 시 partial C surface 없이 즉시 backend error로 실패한다. 남은 것은 declaration inventory bootstrap 잔여다 |
 | Type-resolution DAG | 진행 중 | 70% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔다. graph cycle과 legacy alias cycle 모두 `Contract source` / `Reason` / `Fix` vocabulary로 정렬됐고, full graph-backed evaluator는 beta-out-of-scope로 두고 stage-2 source-of-truth 승격이 남음 |
 | Arena / lifetime discipline | 진행 중 | 81% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 규칙 문서화는 끝났고 transpiler scratch-only temporary의 첫 safe vertical slice, semantic result-owned diagnostic payload seam, semantic scratch arena가 ownership path 조립 / stdlib preload / enum method mangling / parallel task metadata / type-resolution cycle detection / match redundancy coverage까지 확장됐다. HIR/MIR에는 routine-scope `scratch` arena가, LLVM은 `scratch + persistent + result-owned` lane으로 정리되어 event invoke, intent collector, projection path, local grow array, type render helper, callable signature metadata까지 arena 경계가 올라왔다. 남은 것은 owner shell과 runtime ABI contract, 반환 ownership이 섞인 일부 helper다 |
 | C/LLVM parity | 진행 중 | 89% | 차단 | LLVM stmt/expr fallback은 warning-only가 아니라 structured backend error로 고정됐고 AST dispatch partition smoke가 CI gate에 들어갔다. domain method MIR-missing 경로도 partial emit 없이 explicit backend error로 정렬됐다. Windows full green은 plain Linux host가 아니라 MSYS2/MinGW + LLVM runner truth로 분리했다 |
-| runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
+| runtime observability | 진행 중 | 82% | 차단 | last/history/active/recent baseline과 propagation provenance stamp는 있으나 queryable failure state와 bounded recompute provenance가 더 남음 |
 | surface trust docs | 진행 중 | 87% | 차단 | 주요 surface는 정렬됐고 own/ref baseline도 넓어졌지만 B0 잔여에 맞춘 최종 재분류와 acceptance wording 고정이 남음 |
 
 최근 고정:
@@ -58,8 +59,13 @@
   - `slot handle (anchored)`
   - `slot handle (movable)`
   - `authority-bearing`
-- semantic regression은 현재 기준으로 `1872 passed, 0 failed`
-- transpile regression은 현재 기준으로 `601 passed, 0 failed`
+- semantic regression은 현재 기준으로 `2132 passed, 0 failed`
+- transpile regression은 현재 기준으로 `625 passed, 0 failed`
+- runtime propagation provenance baseline closure:
+  - relation/effect/zone/world hidden cell이 `dirty/ready + epoch/cause` schema로 C/LLVM parity를 갖는다
+  - LLVM `__projection_dirty_*` layout debt와 host-field assignment invalidation drift를 제거했다
+  - intent rebound-zone projection invalidation도 다시 연결되어 backend compare drift가 줄었다
+  - 현재 propagation blocker는 helper flag 부재가 아니라 `bounded fixpoint / transitive frontier scheduler`다
 - AST 타입 디스패치 partition 규칙 문서화 완료 — `docs/95_ast_dispatch_partition.md`. 4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) 로 전체 AST 타입이 disjoint 분할되고, 각 카테고리별로 case label 추가/금지/safety-net 판단 기준이 고정됨. `llvm_stmt.c` skip 리스트 + Zone/World safety-net forward 가 이 문서 기준으로 정렬됨
 - AST dispatch partition smoke 추가 — `tests/ast_dispatch_partition_smoke.sh`, `make ast-dispatch-test-smoke`. LLVM `stmt/expr`의 unknown/default path가 warning-only나 silent `0/null` fallback으로 회귀하지 못하게 Linux CI acceptance line에 연결됨
 - type-resolution DAG cycle provenance 강화 — graph validator cycle과 legacy alias-resolution cycle 모두 `Contract source:` / `Reason:` / `Fix:` 구조를 갖도록 정렬. semantic graph regression은 해당 vocabulary를 요구하며 `test-semantic 2019/0`으로 검증됨
@@ -141,7 +147,8 @@ beta 직전 운영 규칙:
 판정:
 
 - intent orchestration, inherited/derived contract, zone/world query, observability baseline은 이미 존재한다
-- 남은 일은 embedding ownership/handoff policy, cross-layer propagation policy, richer provenance, declaration/runtime/diagnostic까지의 C/LLVM parity를 닫는 것이다
+- runtime provenance baseline(`dirty/ready + epoch/cause`)도 이제 C/LLVM parity로 들어왔다
+- 남은 일은 embedding ownership/handoff policy, bounded fixpoint 기반 cross-layer propagation policy, richer authority rejection surface, declaration/runtime/diagnostic까지의 C/LLVM parity를 닫는 것이다
 - 이 축은 언어 정체성 자체이므로 beta 직전까지 열어두면 안 된다
 
 닫힌 것:
@@ -150,12 +157,14 @@ beta 직전 운영 규칙:
 - active/recent/last/history query baseline
 - zone/world state/layer/projection query baseline
 - embedded world -> zone projection visibility baseline
+- relation/effect/zone/world hidden provenance baseline (`dirty/ready + epoch/cause`)
 
 남은 것:
 
 - embedding ownership와 handoff policy를 한 규칙으로 고정
 - mutation visibility를 value-copy 오해 없이 handle/reference 의미로 정렬
 - intent failure/authority/boundary mismatch provenance를 더 깊게 연결
+- single-pass sync를 넘는 bounded fixpoint / transitive frontier scheduler를 도입
 - multi-instance timeline과 recent/history structured query를 보강
 - C/LLVM/runtime diagnostics 품질을 같은 수준으로 정렬
 
@@ -167,11 +176,13 @@ beta 직전 운영 규칙:
 - embedding ownership rule
 - handoff visibility rule
 - cross-layer propagation rule
+- bounded recompute rule
 
 완료 기준:
 
 - world embedding/handoff가 semantic/runtime/backend compare에서 같은 결과를 낸다
 - failure diagnostics가 `contract provenance + reason + fix` 구조를 유지한다
+- runtime propagation이 single-pass helper replay가 아니라 bounded recompute 규칙으로 설명 가능하다
 - active/recent/history 관측이 example smoke와 ABI 경로에서 안정적으로 검증된다
 
 ### B0-2. relation / effect / projection
@@ -181,7 +192,8 @@ beta 직전 운영 규칙:
 - declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync baseline은 이미 존재한다
 - projection contract diagnostics baseline도 이미 존재한다
 - effect join/meet/conflict baseline도 이미 존재한다
-- 남은 일은 authority-resource partial order 통합, projection propagation policy, deeper runtime contract provenance, helper-heavy edge path 감소와 parity를 닫는 것이다
+- runtime provenance baseline(`dirty/ready + epoch/cause`)도 이제 C/LLVM parity로 닫혔다
+- 남은 일은 authority-resource partial order 통합, transitive projection propagation policy, bounded recompute scheduler, deeper runtime contract provenance, helper-heavy edge path 감소와 parity를 닫는 것이다
 - 이 축은 Pergyra의 domain semantics 핵심이므로 partial 상태로 beta에 올리면 안 된다
 - projection은 언어 강점이므로 실패 이유가 약하면 가장 먼저 authoring friction을 만든다
 
@@ -192,11 +204,13 @@ beta 직전 운영 규칙:
 - layer/state query baseline
 - projection contract structured diagnostics baseline
 - effect join/meet/conflict baseline
+- relation/effect/zone/world hidden provenance baseline (`dirty/ready + epoch/cause`)
 
 남은 것:
 
 - authority/resource/effect partial order를 semantic contract로 더 명확히 승격
 - projection propagation policy를 branch/join/handoff/embedded zone-world path까지 더 조밀하게 검증
+- single-pass helper replay를 bounded fixpoint / transitive frontier scheduler로 승격
 - helper-heavy best-effort sync를 줄이고 explicit backend/runtime failure로 승격
 - runtime contract provenance를 edge path까지 일관화
 - helper-heavy edge path를 줄여 declaration/runtime/diagnostic/backend parity를 더 직접적으로 맞춘다
@@ -214,6 +228,7 @@ beta 직전 운영 규칙:
 - projection handoff propagation rule
 - projection embedded zone/world propagation rule
 - runtime contract provenance visibility
+- bounded recompute / fixpoint rule
 - helper-heavy edge path 감소
 - declaration/runtime/diagnostic/backend parity
 
@@ -232,6 +247,7 @@ diagnostic 고정 규칙:
 
 - relation/effect propagation regression이 branch/join/handoff path까지 고정된다
 - C/LLVM compare가 propagation과 refresh/publish visibility를 같은 결과로 보여준다
+- runtime propagation이 single-pass helper replay가 아니라 bounded recompute 규칙으로 설명 가능하다
 - unsupported projection surface는 parser/semantic에서 명시 거부된다
 - projection diagnostics가 `target/source/projection kind/field path/fix`를 모두 포함하고 `Reason:` / `Fix:` 포맷을 유지한다
 

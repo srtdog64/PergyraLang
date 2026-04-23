@@ -949,6 +949,12 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
         if (decl->data.type_alias.name == NULL)
             break;
         sym = scope_lookup_current(ctx->scope, decl->data.type_alias.name);
+        (void)semantic_stage_resolve_type_quiet(
+            decl->data.type_alias.target_type,
+            ctx,
+            decl,
+            decl->data.type_alias.name,
+            "type-alias target lookup");
         if (sym != NULL)
             sym->type = resolve_type_node(decl->data.type_alias.target_type, ctx);
         break;
@@ -1312,6 +1318,10 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
                 step,
                 step_consumer_name,
                 "intent step ability consumer lookup");
+            (void)semantic_stage_named_decl_quiet(
+                ctx,
+                AST_EFFECT_DECL,
+                step->data.intent_step.causes_effect);
             free(step_consumer_name);
         }
         break;
@@ -1465,4 +1475,3 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
     ctx->current_zone = saved_zone;
     ctx->current_world = saved_world;
 }
-

@@ -20,6 +20,11 @@
 - failure class freeze 진행:
   - `Result<T>` / `await RemoteFuture<T>` / channel timeout-or-nonblocking surface는 recoverable path로 유지한다
   - `Unwrap(result)` on `Err`, `UnwrapOption(option)` on `None`, released slot / invalid token 계열은 hard-fail boundary로 회귀에 고정한다
+- runtime propagation provenance closure 진행:
+  - relation/effect/zone/world hidden cell은 이제 C/LLVM 양쪽에서 `dirty/ready`만이 아니라 `epoch/cause` provenance baseline까지 가진다
+  - LLVM domain layout의 `__projection_dirty_*` 누락 debt를 제거했고, projection sync는 dirty-gated refresh로 정렬됐다
+  - LLVM host-field assignment invalidation과 intent rebound-zone projection invalidation도 다시 연결되어 backend compare drift를 줄였다
+  - 남은 핵심 debt는 provenance cell 추가가 아니라 `bounded fixpoint / transitive frontier scheduler`다
 - `parallel`을 코어 실행 primitive로 재정의한 정책은 `docs/53_parallel_core_policy.md`에 정리한다.
 - `spawn/select/async`를 `parallel` 아래 실행 family로 재배치하는 작업 보드는 `docs/54_parallel_execution_relayout_board.md`에서 추적한다.
 - 전체 언어 키워드의 현재 완성도와 공백은 `docs/55_keyword_progress_board.md`에서 추적한다.
@@ -56,6 +61,14 @@
 - `bind`는 target slot kind를 따른다. object slot이면 internal `ProjectRefresh/Synced`, tobject slot이면 boundary `ProjectPublish/Published`로 RIR에 고정된다.
 - `entity`는 코어 언어 존재론에 넣지 않고, 필요하면 프레임워크/도메인 용어로만 취급함.
 - 상위 레이어로 갈수록 더 덜 구속적인 문맥 계층이라는 원칙을 채택함.
+
+## 최근 closure 진행 (2026-04-24)
+
+- relation/effect/zone/world runtime propagation은 이제 `dirty/ready + epoch/cause` hidden provenance cell을 C/LLVM 양쪽에서 공통 baseline으로 가진다.
+- projection refresh, zone layer/state lifecycle, world zone activation, derived world-state recompute는 모두 causal stamp를 남긴다.
+- LLVM backend는 `__projection_dirty_*` struct layout 누락, host-field assignment 이후 projection invalidation 누락, intent rebound-zone projection stale drift를 닫았다.
+- `make test-transpile`, `make test-abi`, `make test-all`, `make llvm-test-backend-compare` 기준으로 이번 closure가 다시 검증됐다.
+- 이 시점의 남은 propagation blocker는 richer flag/provenance 자체가 아니라, single-pass sync 위에 머문 recompute policy를 `bounded fixpoint / transitive frontier scheduler`로 승격하는 일이다.
 
 ## 구현된 컴포넌트
 

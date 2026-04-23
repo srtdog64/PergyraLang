@@ -11,6 +11,27 @@
 
 #include "llvm_internal.h"
 
+enum {
+    PGY_PROP_CAUSE_NONE = 0,
+    PGY_PROP_CAUSE_REFRESH = 1,
+    PGY_PROP_CAUSE_APPLY = 2,
+    PGY_PROP_CAUSE_MAINTAIN = 3,
+    PGY_PROP_CAUSE_DETACH = 4,
+    PGY_PROP_CAUSE_LINK = 5,
+    PGY_PROP_CAUSE_UNLINK = 6,
+    PGY_PROP_CAUSE_WORLD_ACTIVATE = 7,
+    PGY_PROP_CAUSE_WORLD_MAINTAIN = 8,
+    PGY_PROP_CAUSE_WORLD_DEACTIVATE = 9,
+    PGY_PROP_CAUSE_WORLD_DERIVED = 10,
+};
+
+static void llvm_stamp_domain_provenance(LLVMGenCtx *ctx,
+                                         LLVMClassTypeEntry *decl_cls,
+                                         LLVMValueRef self_ptr,
+                                         const char *prefix,
+                                         const char *name,
+                                         unsigned cause);
+
 static const MIRRoutine *
 llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
                                    const char *owner_name,
@@ -121,6 +142,46 @@ llvm_operator_method_name_matches(PgyTokenType op, const char *name)
 }
 
 #include "llvm_domain_helpers.inc"
+
+static void
+llvm_stamp_domain_provenance(LLVMGenCtx *ctx,
+                             LLVMClassTypeEntry *decl_cls,
+                             LLVMValueRef self_ptr,
+                             const char *prefix,
+                             const char *name,
+                             unsigned cause)
+{
+    char field_name[256];
+    int field_idx;
+
+    if (ctx == NULL || decl_cls == NULL || self_ptr == NULL
+        || prefix == NULL || name == NULL) {
+        return;
+    }
+
+    snprintf(field_name, sizeof(field_name), "__%s_epoch_%s", prefix, name);
+    field_idx = llvm_class_field_index(decl_cls, field_name);
+    if (field_idx >= 0) {
+        LLVMValueRef epoch_ptr = LLVMBuildStructGEP2(ctx->builder,
+            decl_cls->struct_type, self_ptr, (unsigned)field_idx,
+            llvm_tmp_name(ctx));
+        LLVMValueRef epoch_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+            epoch_ptr, llvm_tmp_name(ctx));
+        LLVMValueRef next_epoch = LLVMBuildAdd(ctx->builder, epoch_val,
+            LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, next_epoch, epoch_ptr);
+    }
+
+    snprintf(field_name, sizeof(field_name), "__%s_cause_%s", prefix, name);
+    field_idx = llvm_class_field_index(decl_cls, field_name);
+    if (field_idx >= 0) {
+        LLVMValueRef cause_ptr = LLVMBuildStructGEP2(ctx->builder,
+            decl_cls->struct_type, self_ptr, (unsigned)field_idx,
+            llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, cause, 0),
+            cause_ptr);
+    }
+}
 
 static LLVMTypeRef
 llvm_zone_effect_pool_struct_type(LLVMGenCtx *ctx, LLVMTypeRef effect_ty, int capacity)
@@ -301,6 +362,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
+            llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
+                state_name, PGY_PROP_CAUSE_APPLY);
             if (apply != NULL) {
                 const char *layer_name = apply->data.zone_apply.effect_slot_name;
                 if (layer_name == NULL) {
@@ -326,6 +389,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                             self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+                        llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
+                            "layer", layer_name, PGY_PROP_CAUSE_APPLY);
                     }
                     if (apply->data.zone_apply.target_slot_name != NULL) {
                         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
@@ -362,6 +427,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "layer",
+                    apply->data.zone_apply.effect_slot_name,
+                    PGY_PROP_CAUSE_APPLY);
             }
             llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
                 apply->data.zone_apply.effect_slot_name,
@@ -389,6 +457,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "layer",
+                    maintain->data.zone_maintain_effect.effect_slot_name,
+                    PGY_PROP_CAUSE_MAINTAIN);
             }
             if (maintain->data.zone_maintain_relation.left_slot_name != NULL
                 && maintain->data.zone_maintain_relation.right_slot_name != NULL) {
@@ -428,6 +499,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
+            llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
+                state_name, PGY_PROP_CAUSE_MAINTAIN);
         }
     }
 
@@ -448,6 +521,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
+            llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
+                maintain->data.zone_maintain_state.state_name,
+                PGY_PROP_CAUSE_MAINTAIN);
             for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
                 ASTNode *state = stmt->data.zone_decl.states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
@@ -465,6 +541,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                             self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+                        llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
+                            "layer", state->data.zone_state.layer_slot_name,
+                            PGY_PROP_CAUSE_MAINTAIN);
                     }
                     if (!state->data.zone_state.is_relation) {
                         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
@@ -517,6 +596,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(ctx->type_i1, 0, 0), state_ptr);
+            llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
+                state_name, PGY_PROP_CAUSE_DETACH);
             if (detach != NULL) {
                 const char *layer_name = detach->data.zone_detach.effect_slot_name;
                 if (layer_name == NULL) {
@@ -542,6 +623,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                             self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 0, 0), layer_ptr);
+                        llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
+                            "layer", layer_name, PGY_PROP_CAUSE_DETACH);
                     }
                 }
             }
@@ -558,6 +641,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(ctx->type_i1, 0, 0), layer_ptr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "layer",
+                    detach->data.zone_detach.effect_slot_name,
+                    PGY_PROP_CAUSE_DETACH);
             }
         }
     }
@@ -601,6 +687,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
+            llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
+                state_name, PGY_PROP_CAUSE_LINK);
             if (link != NULL) {
                 const char *layer_name = link->data.zone_link.relation_slot_name;
                 if (layer_name == NULL) {
@@ -626,6 +714,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                             self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+                        llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
+                            "layer", layer_name, PGY_PROP_CAUSE_LINK);
                     }
                     if (link->data.zone_link.left_slot_name != NULL
                         && link->data.zone_link.right_slot_name != NULL) {
@@ -668,6 +758,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "layer",
+                    link->data.zone_link.relation_slot_name,
+                    PGY_PROP_CAUSE_LINK);
             }
             llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
                 link->data.zone_link.relation_slot_name,
@@ -691,6 +784,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "layer",
+                    maintain->data.zone_maintain_relation.relation_slot_name,
+                    PGY_PROP_CAUSE_MAINTAIN);
             }
         }
         if (maintain == NULL)
@@ -727,6 +823,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
+            llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
+                state_name, PGY_PROP_CAUSE_MAINTAIN);
         }
     }
 
@@ -769,6 +867,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(ctx->type_i1, 0, 0), state_ptr);
+            llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
+                state_name, PGY_PROP_CAUSE_UNLINK);
             if (unlink != NULL) {
                 const char *layer_name = unlink->data.zone_unlink.relation_slot_name;
                 if (layer_name == NULL) {
@@ -794,6 +894,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                             self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 0, 0), layer_ptr);
+                        llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
+                            "layer", layer_name, PGY_PROP_CAUSE_UNLINK);
                     }
                 }
             }
@@ -932,6 +1034,8 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                 active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
                     self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), active_ptr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone",
+                    slot_name, PGY_PROP_CAUSE_WORLD_ACTIVATE);
             }
         }
         for (size_t i = 0; i < stmt->data.world_decl.maintained_zone_count; i++) {
@@ -956,6 +1060,8 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                 active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
                     self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), active_ptr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone",
+                    slot_name, PGY_PROP_CAUSE_WORLD_MAINTAIN);
             }
         }
         for (size_t i = 0; i < stmt->data.world_decl.deactivate_count; i++) {
@@ -980,6 +1086,8 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                 active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
                     self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), active_ptr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone",
+                    slot_name, PGY_PROP_CAUSE_WORLD_DEACTIVATE);
             }
         }
 
@@ -1085,17 +1193,52 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 
         /* world derived pass */
         {
-            LLVMBasicBlockRef derived_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
-                "world.derived");
-            LLVMBasicBlockRef skip_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
-                "world.derived.skip");
+            LLVMValueRef pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
+                "world.derived.pass.addr");
+            LLVMValueRef continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
+                "world.derived.continue.addr");
+            LLVMValueRef limit_val = LLVMConstInt(ctx->type_i32,
+                (unsigned long long)(stmt->data.world_decl.state_count + 1), 0);
+            LLVMBasicBlockRef derived_init_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.derived.init");
+            LLVMBasicBlockRef loop_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.derived.check");
+            LLVMBasicBlockRef loop_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.derived.body");
             LLVMBasicBlockRef done_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
                 "world.derived.done");
             LLVMValueRef needs_derived = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
                 derived_dirty_addr, llvm_tmp_name(ctx));
-            LLVMBuildCondBr(ctx->builder, needs_derived, derived_bb, skip_bb);
+            LLVMBuildCondBr(ctx->builder, needs_derived, derived_init_bb, done_bb);
 
-            LLVMPositionBuilderAtEnd(ctx->builder, derived_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, derived_init_bb);
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), pass_addr);
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), continue_addr);
+            LLVMBuildBr(ctx->builder, loop_check_bb);
+
+            LLVMPositionBuilderAtEnd(ctx->builder, loop_check_bb);
+            {
+                LLVMValueRef continue_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                    continue_addr, llvm_tmp_name(ctx));
+                LLVMValueRef pass_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                    pass_addr, llvm_tmp_name(ctx));
+                LLVMValueRef under_limit = LLVMBuildICmp(ctx->builder, LLVMIntULT,
+                    pass_val, limit_val, llvm_tmp_name(ctx));
+                LLVMValueRef loop_cond = LLVMBuildAnd(ctx->builder, continue_val,
+                    under_limit, llvm_tmp_name(ctx));
+                LLVMBuildCondBr(ctx->builder, loop_cond, loop_body_bb, done_bb);
+            }
+
+            LLVMPositionBuilderAtEnd(ctx->builder, loop_body_bb);
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), continue_addr);
+            {
+                LLVMValueRef pass_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                    pass_addr, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMBuildAdd(ctx->builder, pass_val,
+                        LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
+                    pass_addr);
+            }
             for (size_t i = 0; i < stmt->data.world_decl.state_count; i++) {
                 ASTNode *state = stmt->data.world_decl.states[i];
                 const char *slot_name;
@@ -1105,9 +1248,11 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                 int active_idx = -1;
                 LLVMValueRef self_ptr;
                 LLVMValueRef state_ptr;
+                LLVMValueRef prev_state_val;
                 LLVMValueRef active_ptr = NULL;
                 LLVMValueRef active_val = LLVMConstInt(ctx->type_i1, 0, 0);
                 LLVMValueRef derived_val = NULL;
+                LLVMValueRef changed_val;
                 if (state == NULL || state->type != AST_WORLD_STATE
                     || state->data.world_state.state_name == NULL)
                     continue;
@@ -1120,6 +1265,8 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                 self_ptr = LLVMGetParam(sync_fn, 0);
                 state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
                     self_ptr, (unsigned)state_idx, llvm_tmp_name(ctx));
+                prev_state_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                    state_ptr, llvm_tmp_name(ctx));
                 if (slot_name != NULL) {
                     snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
                     active_idx = llvm_class_field_index(decl_cls, active_field);
@@ -1218,16 +1365,21 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                 }
 
                 LLVMBuildStore(ctx->builder, derived_val, state_ptr);
+                changed_val = LLVMBuildICmp(ctx->builder, LLVMIntNE, prev_state_val,
+                    derived_val, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMBuildOr(ctx->builder,
+                        LLVMBuildLoad2(ctx->builder, ctx->type_i1, continue_addr, llvm_tmp_name(ctx)),
+                        changed_val, llvm_tmp_name(ctx)),
+                    continue_addr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone_state",
+                    state->data.world_state.state_name, PGY_PROP_CAUSE_WORLD_DERIVED);
             }
-            if (derived_ptr != NULL)
-                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), derived_ptr);
-            LLVMBuildBr(ctx->builder, done_bb);
+            LLVMBuildBr(ctx->builder, loop_check_bb);
 
-            LLVMPositionBuilderAtEnd(ctx->builder, skip_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, done_bb);
             if (derived_ptr != NULL)
                 LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), derived_ptr);
-            LLVMBuildBr(ctx->builder, done_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, done_bb);
         }
 
         /* prev_active_addrs is ctx->scratch-owned. */
@@ -1361,8 +1513,10 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 + stmt->data.zone_decl.shared_count
                 + stmt->data.zone_decl.layer_slot_count
                 + stmt->data.zone_decl.layer_slot_count
+                + (stmt->data.zone_decl.layer_slot_count * 2)
                 + stmt->data.zone_decl.state_count
-                + projection_count;
+                + (stmt->data.zone_decl.state_count * 2)
+                + (projection_count * 4);
             ftypes = pgy_arena_calloc(&ctx->scratch,
                 (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
             size_t idx = 0;
@@ -1401,8 +1555,14 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, idx++) {
                 ftypes[idx] = ctx->type_i1;
             }
+            for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count * 2; j++, idx++) {
+                ftypes[idx] = ctx->type_i32;
+            }
             for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, idx++) {
                 ftypes[idx] = ctx->type_i1;
+            }
+            for (size_t j = 0; j < stmt->data.zone_decl.state_count * 2; j++, idx++) {
+                ftypes[idx] = ctx->type_i32;
             }
             for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++) {
                 ASTNode *slot = stmt->data.zone_decl.slots[j];
@@ -1413,8 +1573,10 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                             stmt->data.zone_decl.refresh_count))) {
                     continue;
                 }
-                ftypes[idx] = ctx->type_i1;
-                idx++;
+                ftypes[idx++] = ctx->type_i1;
+                ftypes[idx++] = ctx->type_i1;
+                ftypes[idx++] = ctx->type_i32;
+                ftypes[idx++] = ctx->type_i32;
             }
         } else if (stmt->type == AST_ROSTER_DECL) {
             fc = stmt->data.roster_decl.party_count
@@ -1446,6 +1608,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 + stmt->data.world_decl.zone_count
                 + stmt->data.world_decl.zone_count
                 + stmt->data.world_decl.state_count
+                + (stmt->data.world_decl.zone_count * 2)
+                + (stmt->data.world_decl.state_count * 2)
                 + 1;
             ftypes = pgy_arena_calloc(&ctx->scratch,
                 (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
@@ -1474,6 +1638,10 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 ftypes[idx] = ctx->type_i1;
             for (size_t j = 0; j < stmt->data.world_decl.state_count; j++, idx++)
                 ftypes[idx] = ctx->type_i1;
+            for (size_t j = 0; j < stmt->data.world_decl.zone_count * 2; j++, idx++)
+                ftypes[idx] = ctx->type_i32;
+            for (size_t j = 0; j < stmt->data.world_decl.state_count * 2; j++, idx++)
+                ftypes[idx] = ctx->type_i32;
             ftypes[idx] = ctx->type_i1;
         } else {
             /* Build struct: { slots..., shared_fields..., vtable_ptrs... } */
@@ -1483,6 +1651,8 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     refreshes, refresh_count)
                 : 0;
             fc = slot_count + shared_count + dyn_slot_count + projection_count;
+            if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
+                fc = slot_count + shared_count + dyn_slot_count + (projection_count * 4);
             ftypes = pgy_arena_calloc(&ctx->scratch,
                 (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
             size_t idx = 0;
@@ -1511,8 +1681,10 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                                 refreshes, refresh_count))) {
                         continue;
                     }
-                    ftypes[idx] = ctx->type_i1;
-                    idx++;
+                    ftypes[idx++] = ctx->type_i1;
+                    ftypes[idx++] = ctx->type_i1;
+                    ftypes[idx++] = ctx->type_i32;
+                    ftypes[idx++] = ctx->type_i32;
                 }
             }
         }
@@ -1552,10 +1724,42 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     llvm_class_add_field(entry, pergyra_strdup(field_name),
                         ftypes[field_index], field_index);
                 }
+                for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, field_index++) {
+                    ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__layer_epoch_%s",
+                        slot->data.zone_layer_slot.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, field_index++) {
+                    ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__layer_cause_%s",
+                        slot->data.zone_layer_slot.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
                 for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, field_index++) {
                     ASTNode *state = stmt->data.zone_decl.states[j];
                     char field_name[256];
                     snprintf(field_name, sizeof(field_name), "__state_%s",
+                        state->data.zone_state.state_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, field_index++) {
+                    ASTNode *state = stmt->data.zone_decl.states[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__state_epoch_%s",
+                        state->data.zone_state.state_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, field_index++) {
+                    ASTNode *state = stmt->data.zone_decl.states[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__state_cause_%s",
                         state->data.zone_state.state_name);
                     llvm_class_add_field(entry, pergyra_strdup(field_name),
                         ftypes[field_index], field_index);
@@ -1572,6 +1776,21 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                         continue;
                     }
                     snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
+                        slot->data.domain_slot.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                    field_index++;
+                    snprintf(field_name, sizeof(field_name), "__projection_dirty_%s",
+                        slot->data.domain_slot.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                    field_index++;
+                    snprintf(field_name, sizeof(field_name), "__projection_epoch_%s",
+                        slot->data.domain_slot.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                    field_index++;
+                    snprintf(field_name, sizeof(field_name), "__projection_cause_%s",
                         slot->data.domain_slot.slot_name);
                     llvm_class_add_field(entry, pergyra_strdup(field_name),
                         ftypes[field_index], field_index);
@@ -1632,6 +1851,38 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     llvm_class_add_field(entry, pergyra_strdup(field_name),
                         ftypes[field_index], field_index);
                 }
+                for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
+                    ASTNode *wz = stmt->data.world_decl.zones[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__zone_epoch_%s",
+                        wz->data.world_zone.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
+                    ASTNode *wz = stmt->data.world_decl.zones[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__zone_cause_%s",
+                        wz->data.world_zone.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.world_decl.state_count; j++, field_index++) {
+                    ASTNode *state = stmt->data.world_decl.states[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__zone_state_epoch_%s",
+                        state->data.world_state.state_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.world_decl.state_count; j++, field_index++) {
+                    ASTNode *state = stmt->data.world_decl.states[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__zone_state_cause_%s",
+                        state->data.world_state.state_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
                 llvm_class_add_field(entry, pergyra_strdup("__world_derived_dirty"),
                     ftypes[field_index], field_index);
             } else {
@@ -1677,6 +1928,21 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                             continue;
                         }
                         snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
+                            slot->data.domain_slot.slot_name);
+                        llvm_class_add_field(entry, pergyra_strdup(field_name),
+                            ftypes[field_index], field_index);
+                        field_index++;
+                        snprintf(field_name, sizeof(field_name), "__projection_dirty_%s",
+                            slot->data.domain_slot.slot_name);
+                        llvm_class_add_field(entry, pergyra_strdup(field_name),
+                            ftypes[field_index], field_index);
+                        field_index++;
+                        snprintf(field_name, sizeof(field_name), "__projection_epoch_%s",
+                            slot->data.domain_slot.slot_name);
+                        llvm_class_add_field(entry, pergyra_strdup(field_name),
+                            ftypes[field_index], field_index);
+                        field_index++;
+                        snprintf(field_name, sizeof(field_name), "__projection_cause_%s",
                             slot->data.domain_slot.slot_name);
                         llvm_class_add_field(entry, pergyra_strdup(field_name),
                             ftypes[field_index], field_index);

@@ -784,38 +784,15 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
     if (stmt == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
         return;
 
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        char field_name[256];
-        int field_idx;
-        LLVMValueRef self_ptr;
-        LLVMValueRef flag_ptr;
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || (!slot->data.domain_slot.is_tobject
-                && !llvm_domain_slot_is_projection_target(slot, refreshes, refresh_count))
-            || slot->data.domain_slot.slot_name == NULL)
-            continue;
-        snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
-            slot->data.domain_slot.slot_name);
-        field_idx = llvm_class_field_index(decl_cls, field_name);
-        if (field_idx < 0)
-            continue;
-        self_ptr = LLVMGetParam(sync_fn, 0);
-        flag_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-            self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), flag_ptr);
-    }
-
     for (size_t i = 0; i < refresh_count; i++) {
         ASTNode *refresh = refreshes[i];
         LLVMClassTypeEntry *target_cls;
         LLVMClassTypeEntry *source_cls;
         int target_index;
         int source_index;
+        int dirty_index;
+        int ready_index;
         LLVMValueRef self_ptr;
-        LLVMValueRef target_ptr;
-        LLVMValueRef source_ptr;
-        LLVMValueRef projected;
         const char *target_slot_name;
         const char *source_slot_name;
         const char *target_type_name;
@@ -860,32 +837,69 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
         source_cls = llvm_lookup_class(ctx, source_type_name);
         target_index = llvm_class_field_index(decl_cls, target_slot_name);
         source_index = llvm_class_field_index(decl_cls, source_slot_name);
+        {
+            char field_name[256];
+            snprintf(field_name, sizeof(field_name), "__projection_dirty_%s",
+                target_slot_name);
+            dirty_index = llvm_class_field_index(decl_cls, field_name);
+            snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
+                target_slot_name);
+            ready_index = llvm_class_field_index(decl_cls, field_name);
+        }
         if (target_cls == NULL || source_cls == NULL
-            || target_index < 0 || source_index < 0)
+            || target_index < 0 || source_index < 0 || dirty_index < 0)
             continue;
 
         self_ptr = LLVMGetParam(sync_fn, 0);
-        target_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-            self_ptr, (unsigned)target_index, llvm_tmp_name(ctx));
-        source_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-            self_ptr, (unsigned)source_index, llvm_tmp_name(ctx));
-        projected = llvm_build_domain_projection_value(ctx, target_cls,
-            source_cls, llvm_find_projection_nominal_decl_local(ctx, source_type_name),
-            refresh,
-            source_ptr);
-        LLVMBuildStore(ctx->builder, projected, target_ptr);
         {
-            char field_name[256];
-            int field_idx;
-            LLVMValueRef flag_ptr;
-            snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
-                target_slot_name);
-            field_idx = llvm_class_field_index(decl_cls, field_name);
-            if (field_idx >= 0) {
-                flag_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
-                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), flag_ptr);
+            LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
+                decl_cls->struct_type, self_ptr, (unsigned)dirty_index,
+                llvm_tmp_name(ctx));
+            LLVMValueRef dirty_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                dirty_ptr, llvm_tmp_name(ctx));
+            LLVMBasicBlockRef sync_bb = LLVMAppendBasicBlockInContext(ctx->context,
+                sync_fn, "projection.sync");
+            LLVMBasicBlockRef cont_bb = LLVMAppendBasicBlockInContext(ctx->context,
+                sync_fn, "projection.cont");
+
+            LLVMBuildCondBr(ctx->builder, dirty_val, sync_bb, cont_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, sync_bb);
+            {
+                LLVMValueRef target_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    decl_cls->struct_type, self_ptr, (unsigned)target_index,
+                    llvm_tmp_name(ctx));
+                LLVMValueRef source_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    decl_cls->struct_type, self_ptr, (unsigned)source_index,
+                    llvm_tmp_name(ctx));
+                LLVMValueRef projected;
+
+                if (ready_index >= 0) {
+                    LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
+                        decl_cls->struct_type, self_ptr, (unsigned)ready_index,
+                        llvm_tmp_name(ctx));
+                    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0),
+                        ready_ptr);
+                }
+
+                projected = llvm_build_domain_projection_value(ctx, target_cls,
+                    source_cls, llvm_find_projection_nominal_decl_local(ctx, source_type_name),
+                    refresh, source_ptr);
+                LLVMBuildStore(ctx->builder, projected, target_ptr);
+
+                if (ready_index >= 0) {
+                    LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
+                        decl_cls->struct_type, self_ptr, (unsigned)ready_index,
+                        llvm_tmp_name(ctx));
+                    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
+                        ready_ptr);
+                }
+                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0),
+                    dirty_ptr);
+                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
+                    "projection", target_slot_name, PGY_PROP_CAUSE_REFRESH);
             }
+            LLVMBuildBr(ctx->builder, cont_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
         }
     }
 }

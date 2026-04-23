@@ -49,6 +49,194 @@ llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx, LLVMTypeRef *out_fie
         (unsigned)field_idx, llvm_tmp_name(ctx));
 }
 
+static bool
+llvm_host_projection_source_from_assignment(ASTNode *host_decl,
+                                            ASTNode *target,
+                                            const char **source_slot_out,
+                                            const char **source_field_out)
+{
+    ASTNode **slots = NULL;
+    size_t slot_count = 0;
+    ASTNode *cursor = target;
+    const char *source_field = NULL;
+
+    if (source_slot_out != NULL)
+        *source_slot_out = NULL;
+    if (source_field_out != NULL)
+        *source_field_out = NULL;
+    if (host_decl == NULL || target == NULL)
+        return false;
+
+    switch (host_decl->type) {
+    case AST_ZONE_DECL:
+        slots = host_decl->data.zone_decl.slots;
+        slot_count = host_decl->data.zone_decl.slot_count;
+        break;
+    case AST_RELATION_DECL:
+        slots = host_decl->data.relation_decl.slots;
+        slot_count = host_decl->data.relation_decl.slot_count;
+        break;
+    case AST_EFFECT_DECL:
+        slots = host_decl->data.effect_decl.slots;
+        slot_count = host_decl->data.effect_decl.slot_count;
+        break;
+    default:
+        return false;
+    }
+
+    if (target->type == AST_IDENTIFIER && target->data.identifier.name != NULL) {
+        for (size_t i = 0; i < slot_count; i++) {
+            ASTNode *slot = slots[i];
+            if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+                && slot->data.domain_slot.slot_name != NULL
+                && strcmp(slot->data.domain_slot.slot_name,
+                          target->data.identifier.name) == 0) {
+                if (source_slot_out != NULL)
+                    *source_slot_out = target->data.identifier.name;
+                return true;
+            }
+        }
+    }
+
+    while (cursor != NULL && cursor->type == AST_MEMBER_ACCESS) {
+        ASTNode *obj = cursor->data.member.object;
+        if (source_field == NULL)
+            source_field = cursor->data.member.name;
+        if (obj != NULL && obj->type == AST_IDENTIFIER
+            && obj->data.identifier.name != NULL) {
+            for (size_t i = 0; i < slot_count; i++) {
+                ASTNode *slot = slots[i];
+                if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+                    && slot->data.domain_slot.slot_name != NULL
+                    && strcmp(slot->data.domain_slot.slot_name,
+                              obj->data.identifier.name) == 0) {
+                    if (source_slot_out != NULL)
+                        *source_slot_out = obj->data.identifier.name;
+                    if (source_field_out != NULL)
+                        *source_field_out = source_field;
+                    return true;
+                }
+            }
+        }
+        cursor = obj;
+    }
+
+    return false;
+}
+
+static bool
+llvm_refresh_mentions_source_field(ASTNode *refresh, const char *source_field)
+{
+    if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+        return false;
+    if (source_field == NULL)
+        return true;
+    if (refresh->data.zone_refresh.field_map_count == 0)
+        return true;
+
+    for (size_t i = 0; i < refresh->data.zone_refresh.field_map_count; i++) {
+        const char *mapped_source = refresh->data.zone_refresh.mapped_source_fields[i];
+        if (mapped_source != NULL && strcmp(mapped_source, source_field) == 0)
+            return true;
+    }
+    return false;
+}
+
+static void
+llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
+{
+    ASTNode *host_decl;
+    ASTNode **refreshes = NULL;
+    size_t refresh_count = 0;
+    const char *host_name = NULL;
+    const char *source_slot = NULL;
+    const char *source_field = NULL;
+    LLVMClassTypeEntry *host_cls;
+    LLVMVarEntry *self_var;
+    LLVMValueRef self_ptr;
+
+    if (ctx == NULL || target == NULL)
+        return;
+
+    host_decl = llvm_current_host_decl(ctx);
+    if (host_decl == NULL
+        || !llvm_host_projection_source_from_assignment(host_decl, target,
+            &source_slot, &source_field)
+        || source_slot == NULL) {
+        return;
+    }
+
+    switch (host_decl->type) {
+    case AST_ZONE_DECL:
+        refreshes = host_decl->data.zone_decl.refreshes;
+        refresh_count = host_decl->data.zone_decl.refresh_count;
+        host_name = host_decl->data.zone_decl.name;
+        break;
+    case AST_RELATION_DECL:
+        refreshes = host_decl->data.relation_decl.refreshes;
+        refresh_count = host_decl->data.relation_decl.refresh_count;
+        host_name = host_decl->data.relation_decl.name;
+        break;
+    case AST_EFFECT_DECL:
+        refreshes = host_decl->data.effect_decl.refreshes;
+        refresh_count = host_decl->data.effect_decl.refresh_count;
+        host_name = host_decl->data.effect_decl.name;
+        break;
+    default:
+        return;
+    }
+
+    if (refreshes == NULL || refresh_count == 0 || host_name == NULL)
+        return;
+
+    host_cls = llvm_lookup_class(ctx, host_name);
+    self_var = llvm_scope_lookup(ctx, "self");
+    if (host_cls == NULL || self_var == NULL)
+        return;
+
+    self_ptr = self_var->alloca;
+    if (self_var->type == LLVMPointerType(host_cls->struct_type, 0)) {
+        self_ptr = LLVMBuildLoad2(ctx->builder, self_var->type,
+            self_var->alloca, llvm_tmp_name(ctx));
+    }
+
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
+        const char *target_slot;
+        const char *refresh_source;
+        char field_name[256];
+        int field_idx;
+
+        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+            continue;
+        target_slot = refresh->data.zone_refresh.object_slot_name;
+        refresh_source = refresh->data.zone_refresh.source_slot_name;
+        if (target_slot == NULL || refresh_source == NULL
+            || strcmp(refresh_source, source_slot) != 0
+            || !llvm_refresh_mentions_source_field(refresh, source_field)) {
+            continue;
+        }
+
+        snprintf(field_name, sizeof(field_name), "__projection_dirty_%s", target_slot);
+        field_idx = llvm_class_field_index(host_cls, field_name);
+        if (field_idx >= 0) {
+            LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
+                host_cls->struct_type, self_ptr, (unsigned)field_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), dirty_ptr);
+        }
+
+        snprintf(field_name, sizeof(field_name), "__projection_ready_%s", target_slot);
+        field_idx = llvm_class_field_index(host_cls, field_name);
+        if (field_idx >= 0) {
+            LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
+                host_cls->struct_type, self_ptr, (unsigned)field_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), ready_ptr);
+        }
+    }
+}
+
 static LLVMValueRef
 llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -102,6 +290,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
         LLVMBuildStore(ctx->builder, val, gep);
+        llvm_emit_host_projection_invalidations(ctx, node->data.assignment.target);
         return val;
     }
 
@@ -132,6 +321,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
                 gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
                     (unsigned)field_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder, val, gep);
+                llvm_emit_host_projection_invalidations(ctx, node->data.assignment.target);
                 return val;
             }
         }

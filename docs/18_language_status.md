@@ -1,6 +1,6 @@
 # Pergyra 언어 상태 평가
 
-마지막 업데이트: 2026-04-15
+마지막 업데이트: 2026-04-24
 
 ## 요약
 
@@ -70,6 +70,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - world sync는 per-zone dirty flag와 world derived-dirty flag를 사용해 dirty zone만 다시 sync하고 derived layer를 필요한 경우에만 다시 계산한다
 - world constructor는 zone dirty와 world derived-dirty를 `true`로 초기화해 첫 sync에서 embedded zone projection/runtime state를 놓치지 않는다
 - world method는 post-sync 직전에 embedded zone dirty를 다시 세워 world-owned zone 교체가 projection/derived state까지 전파되게 한다
+- relation/effect/zone/world hidden propagation cell은 이제 C/LLVM 양쪽에서 `dirty/ready + epoch/cause` provenance baseline을 가진다
+- LLVM backend는 `__projection_dirty_*` layout debt, host-field assignment 이후 projection invalidation drift, intent rebound-zone projection stale drift를 닫아 propagation parity를 더 끌어올렸다
 - zone method 안에서 `self.poison.view.hp`, `self.trust.packet.name` 같은 embedded overlay projection read가 LLVM runtime smoke로 검증된다
 - `apply/detach`는 `effect`의 bindable target arity/type와 기본 정합성을 검사하며 object target도 허용함
 - `link/unlink`는 `relation`의 bindable endpoint arity/type와 기본 정합성을 검사하며 object endpoint도 허용함
@@ -110,11 +112,11 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 ## 현재 한계
 
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving” 상태다
-- `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand, C backend sync/codegen까지 올라왔지만 deeper runtime propagation semantics는 아직 얕음
-- `relation`, `effect`, `zone`의 플래그/constructor/sync는 C/LLVM parity를 가지고, world 쪽도 `all` / `any` 조합 state까지 올라왔지만, 더 깊은 propagation model은 아직 남아 있다
+- `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand, C/LLVM sync/codegen, propagation provenance baseline까지 올라왔지만 deeper runtime propagation semantics는 아직 얕다
+- `relation`, `effect`, `zone`의 플래그/constructor/sync는 C/LLVM parity를 가지고, world 쪽도 `all` / `any` 조합 state와 provenance stamp까지 올라왔지만, 더 깊은 propagation model과 scheduler는 아직 남아 있다
 - projection의 중심은 `tobject` 자체가 아니라 `relation/effect/zone/world` 문맥과 projection sync 흐름이다
 - `HasProjection(slotName)`는 relation/effect/zone 문맥에서 object/tobject projection slot의 sync-ready 상태를 읽는 query surface로 들어갔고, semantic/C/LLVM runtime parity까지 닫혀 있다
-- zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics까지 올라왔지만 richer propagation model 자체는 아직 얕다
+- zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics와 `epoch/cause` provenance까지 올라왔지만 richer propagation model 자체는 아직 얕다
 - 베타 기준에서 먼저 믿어도 되는 relation/effect/projection surface는 다음이다:
   - declaration + positional constructor
   - `subject slot` / `object slot` / `tobject slot`
@@ -123,7 +125,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
   - zone/world sync helper 기반 incremental runtime parity
 - 베타 범위 밖으로 남겨둔 것은 다음이다:
   - authority/resource/effect의 더 완전한 unified partial order
-  - 더 깊은 propagation model
+  - bounded fixpoint / transitive frontier scheduler를 포함한 더 깊은 propagation model
   - higher-order multi-layer runtime policy
 - `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다
 - `subject slot`과 `ToObject` / `ToTObject` projection source는 subject host (`subject`, `subject`)에 허용되고 bare `class`는 제외된다
@@ -248,10 +250,12 @@ Windows LLVM을 공식 beta support로 올리려면 README, TODO, CI, backend pa
 - internal compiler/runtime invariant corruption
 - explicit `Unwrap(...)` misuse
 
-## 2026-04-11 기준 확인된 상태
+## 2026-04-24 기준 확인된 상태
 
-- `make test-transpile` 통과 (`464 passed`)
-- `make test-abi` 통과 (`126 passed`)
+- `make test-semantic` 통과 (`2132 passed`)
+- `make test-transpile` 통과 (`625 passed`)
+- `make test-abi` 통과
+- `make test-all` 통과
 - `make llvm-test-backend-compare` 통과
 - `make example-test-smoke` 통과
 - `make ir-pipeline-test-smoke` 통과

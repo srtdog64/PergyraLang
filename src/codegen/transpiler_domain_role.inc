@@ -42,6 +42,49 @@ emit_hosted_methods_from_mir_or_error_local(const char *host_name,
     }
 }
 
+enum {
+    PGY_PROP_CAUSE_NONE = 0,
+    PGY_PROP_CAUSE_REFRESH = 1,
+    PGY_PROP_CAUSE_APPLY = 2,
+    PGY_PROP_CAUSE_MAINTAIN = 3,
+    PGY_PROP_CAUSE_DETACH = 4,
+    PGY_PROP_CAUSE_LINK = 5,
+    PGY_PROP_CAUSE_UNLINK = 6,
+    PGY_PROP_CAUSE_WORLD_ACTIVATE = 7,
+    PGY_PROP_CAUSE_WORLD_MAINTAIN = 8,
+    PGY_PROP_CAUSE_WORLD_DEACTIVATE = 9,
+    PGY_PROP_CAUSE_WORLD_DERIVED = 10,
+};
+
+static void
+emit_hidden_provenance_fields(TranspilerCtx *ctx,
+                              const char *prefix,
+                              const char *name)
+{
+    if (ctx == NULL || ctx->out == NULL || prefix == NULL || name == NULL)
+        return;
+
+    codebuf_write(ctx->out, "    uint32_t __%s_epoch_%s;\n", prefix, name);
+    codebuf_write(ctx->out, "    int __%s_cause_%s;\n", prefix, name);
+}
+
+static void
+emit_hidden_provenance_stamp(TranspilerCtx *ctx,
+                             const char *self_expr,
+                             const char *prefix,
+                             const char *name,
+                             int cause)
+{
+    if (ctx == NULL || self_expr == NULL || prefix == NULL || name == NULL)
+        return;
+
+    write_indent(ctx);
+    codebuf_write(ctx->out, "%s->__%s_epoch_%s++;\n", self_expr, prefix, name);
+    write_indent(ctx);
+    codebuf_write(ctx->out, "%s->__%s_cause_%s = %d;\n",
+        self_expr, prefix, name, cause);
+}
+
 static void
 build_ability_ref_bindings(ASTNode *ability_decl,
                            ASTNode *ability_ref,
@@ -845,6 +888,8 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
                 slot->data.domain_slot.slot_name);
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
                 slot->data.domain_slot.slot_name);
+            emit_hidden_provenance_fields(ctx, "projection",
+                slot->data.domain_slot.slot_name);
         }
     }
 
@@ -937,6 +982,9 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__projection_dirty_%s = false;\n",
             refresh->data.zone_refresh.object_slot_name);
+        emit_hidden_provenance_stamp(ctx, "self", "projection",
+            refresh->data.zone_refresh.object_slot_name,
+            PGY_PROP_CAUSE_REFRESH);
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
@@ -989,6 +1037,8 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
+                slot->data.domain_slot.slot_name);
+            emit_hidden_provenance_fields(ctx, "projection",
                 slot->data.domain_slot.slot_name);
         }
     }
@@ -1082,6 +1132,9 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__projection_dirty_%s = false;\n",
             refresh->data.zone_refresh.object_slot_name);
+        emit_hidden_provenance_stamp(ctx, "self", "projection",
+            refresh->data.zone_refresh.object_slot_name,
+            PGY_PROP_CAUSE_REFRESH);
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
@@ -1151,6 +1204,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 slot->data.domain_slot.slot_name);
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
                 slot->data.domain_slot.slot_name);
+            emit_hidden_provenance_fields(ctx, "projection",
+                slot->data.domain_slot.slot_name);
         }
     }
 
@@ -1172,6 +1227,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 slot->data.zone_layer_slot.slot_name);
         }
         codebuf_write(ctx->out, "    bool __layer_active_%s;\n",
+            slot->data.zone_layer_slot.slot_name);
+        emit_hidden_provenance_fields(ctx, "layer",
             slot->data.zone_layer_slot.slot_name);
     }
 
@@ -1197,6 +1254,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
         ASTNode *state = node->data.zone_decl.states[i];
         codebuf_write(ctx->out, "    bool __state_%s;\n",
+            state->data.zone_state.state_name);
+        emit_hidden_provenance_fields(ctx, "state",
             state->data.zone_state.state_name);
     }
 
@@ -1310,6 +1369,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__projection_dirty_%s = false;\n",
             refresh->data.zone_refresh.object_slot_name);
+        emit_hidden_provenance_stamp(ctx, "self", "projection",
+            refresh->data.zone_refresh.object_slot_name,
+            PGY_PROP_CAUSE_REFRESH);
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
@@ -1322,6 +1384,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__state_%s = true;\n",
                 apply->data.zone_apply.state_name);
+            emit_hidden_provenance_stamp(ctx, "self", "state",
+                apply->data.zone_apply.state_name, PGY_PROP_CAUSE_APPLY);
             for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
                 ASTNode *state = node->data.zone_decl.states[j];
                 if (!state->data.zone_state.is_relation
@@ -1330,6 +1394,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
                         state->data.zone_state.layer_slot_name);
+                    emit_hidden_provenance_stamp(ctx, "self", "layer",
+                        state->data.zone_state.layer_slot_name,
+                        PGY_PROP_CAUSE_APPLY);
                     emit_zone_bind_effect_layer(ctx->out, node,
                         state->data.zone_state.layer_slot_name,
                         state->data.zone_state.left_or_target_slot_name, ctx);
@@ -1340,6 +1407,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
             apply->data.zone_apply.effect_slot_name);
+        emit_hidden_provenance_stamp(ctx, "self", "layer",
+            apply->data.zone_apply.effect_slot_name, PGY_PROP_CAUSE_APPLY);
         emit_zone_bind_effect_layer(ctx->out, node,
             apply->data.zone_apply.effect_slot_name,
             apply->data.zone_apply.target_slot_name, ctx);
@@ -1353,6 +1422,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = true;\n",
                     state->data.zone_state.state_name);
+                emit_hidden_provenance_stamp(ctx, "self", "state",
+                    state->data.zone_state.state_name, PGY_PROP_CAUSE_APPLY);
             }
         }
     }
@@ -1362,6 +1433,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
             maintain->data.zone_maintain_effect.effect_slot_name);
+        emit_hidden_provenance_stamp(ctx, "self", "layer",
+            maintain->data.zone_maintain_effect.effect_slot_name,
+            PGY_PROP_CAUSE_MAINTAIN);
         emit_zone_bind_effect_layer(ctx->out, node,
             maintain->data.zone_maintain_effect.effect_slot_name,
             maintain->data.zone_maintain_effect.target_slot_name, ctx);
@@ -1375,6 +1449,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = true;\n",
                     state->data.zone_state.state_name);
+                emit_hidden_provenance_stamp(ctx, "self", "state",
+                    state->data.zone_state.state_name,
+                    PGY_PROP_CAUSE_MAINTAIN);
             }
         }
     }
@@ -1384,6 +1461,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__state_%s = true;\n",
             maintain->data.zone_maintain_state.state_name);
+        emit_hidden_provenance_stamp(ctx, "self", "state",
+            maintain->data.zone_maintain_state.state_name,
+            PGY_PROP_CAUSE_MAINTAIN);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (strcmp(state->data.zone_state.state_name,
@@ -1391,6 +1471,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
                     state->data.zone_state.layer_slot_name);
+                emit_hidden_provenance_stamp(ctx, "self", "layer",
+                    state->data.zone_state.layer_slot_name,
+                    PGY_PROP_CAUSE_MAINTAIN);
                 if (!state->data.zone_state.is_relation) {
                     emit_zone_bind_effect_layer(ctx->out, node,
                         state->data.zone_state.layer_slot_name,
@@ -1411,6 +1494,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__state_%s = false;\n",
                 detach->data.zone_detach.state_name);
+            emit_hidden_provenance_stamp(ctx, "self", "state",
+                detach->data.zone_detach.state_name, PGY_PROP_CAUSE_DETACH);
             for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
                 ASTNode *state = node->data.zone_decl.states[j];
                 if (!state->data.zone_state.is_relation
@@ -1419,6 +1504,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
                         state->data.zone_state.layer_slot_name);
+                    emit_hidden_provenance_stamp(ctx, "self", "layer",
+                        state->data.zone_state.layer_slot_name,
+                        PGY_PROP_CAUSE_DETACH);
                 }
             }
             continue;
@@ -1426,6 +1514,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
             detach->data.zone_detach.effect_slot_name);
+        emit_hidden_provenance_stamp(ctx, "self", "layer",
+            detach->data.zone_detach.effect_slot_name, PGY_PROP_CAUSE_DETACH);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (!state->data.zone_state.is_relation
@@ -1436,6 +1526,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = false;\n",
                     state->data.zone_state.state_name);
+                emit_hidden_provenance_stamp(ctx, "self", "state",
+                    state->data.zone_state.state_name,
+                    PGY_PROP_CAUSE_DETACH);
             }
         }
     }
@@ -1446,6 +1539,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__state_%s = true;\n",
                 link->data.zone_link.state_name);
+            emit_hidden_provenance_stamp(ctx, "self", "state",
+                link->data.zone_link.state_name, PGY_PROP_CAUSE_LINK);
             for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
                 ASTNode *state = node->data.zone_decl.states[j];
                 if (state->data.zone_state.is_relation
@@ -1454,6 +1549,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
                         state->data.zone_state.layer_slot_name);
+                    emit_hidden_provenance_stamp(ctx, "self", "layer",
+                        state->data.zone_state.layer_slot_name,
+                        PGY_PROP_CAUSE_LINK);
                     emit_zone_bind_relation_layer(ctx->out, node,
                         state->data.zone_state.layer_slot_name,
                         state->data.zone_state.left_or_target_slot_name,
@@ -1465,6 +1563,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
             link->data.zone_link.relation_slot_name);
+        emit_hidden_provenance_stamp(ctx, "self", "layer",
+            link->data.zone_link.relation_slot_name, PGY_PROP_CAUSE_LINK);
         emit_zone_bind_relation_layer(ctx->out, node,
             link->data.zone_link.relation_slot_name,
             link->data.zone_link.left_slot_name,
@@ -1481,6 +1581,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = true;\n",
                     state->data.zone_state.state_name);
+                emit_hidden_provenance_stamp(ctx, "self", "state",
+                    state->data.zone_state.state_name, PGY_PROP_CAUSE_LINK);
             }
         }
     }
@@ -1490,6 +1592,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
             maintain->data.zone_maintain_relation.relation_slot_name);
+        emit_hidden_provenance_stamp(ctx, "self", "layer",
+            maintain->data.zone_maintain_relation.relation_slot_name,
+            PGY_PROP_CAUSE_MAINTAIN);
         emit_zone_bind_relation_layer(ctx->out, node,
             maintain->data.zone_maintain_relation.relation_slot_name,
             maintain->data.zone_maintain_relation.left_slot_name,
@@ -1506,6 +1611,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = true;\n",
                     state->data.zone_state.state_name);
+                emit_hidden_provenance_stamp(ctx, "self", "state",
+                    state->data.zone_state.state_name,
+                    PGY_PROP_CAUSE_MAINTAIN);
             }
         }
     }
@@ -1516,6 +1624,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__state_%s = false;\n",
                 unlink->data.zone_unlink.state_name);
+            emit_hidden_provenance_stamp(ctx, "self", "state",
+                unlink->data.zone_unlink.state_name, PGY_PROP_CAUSE_UNLINK);
             for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
                 ASTNode *state = node->data.zone_decl.states[j];
                 if (state->data.zone_state.is_relation
@@ -1524,6 +1634,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
                         state->data.zone_state.layer_slot_name);
+                    emit_hidden_provenance_stamp(ctx, "self", "layer",
+                        state->data.zone_state.layer_slot_name,
+                        PGY_PROP_CAUSE_UNLINK);
                 }
             }
             continue;
@@ -1531,6 +1644,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
             unlink->data.zone_unlink.relation_slot_name);
+        emit_hidden_provenance_stamp(ctx, "self", "layer",
+            unlink->data.zone_unlink.relation_slot_name, PGY_PROP_CAUSE_UNLINK);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (state->data.zone_state.is_relation
@@ -1543,6 +1658,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = false;\n",
                     state->data.zone_state.state_name);
+                emit_hidden_provenance_stamp(ctx, "self", "state",
+                    state->data.zone_state.state_name,
+                    PGY_PROP_CAUSE_UNLINK);
             }
         }
     }
@@ -1595,6 +1713,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             wz->data.world_zone.slot_name);
         codebuf_write(ctx->out, "    bool __zone_dirty_%s;\n",
             wz->data.world_zone.slot_name);
+        emit_hidden_provenance_fields(ctx, "zone",
+            wz->data.world_zone.slot_name);
     }
 
     /* Shared fields */
@@ -1620,6 +1740,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
         ASTNode *state = node->data.world_decl.states[i];
         codebuf_write(ctx->out, "    bool __zone_state_%s;\n",
+            state->data.world_state.state_name);
+        emit_hidden_provenance_fields(ctx, "zone_state",
             state->data.world_state.state_name);
     }
     codebuf_write(ctx->out, "    bool __world_derived_dirty;\n");
@@ -1657,6 +1779,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot_name != NULL) {
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__zone_active_%s = true;\n", slot_name);
+            emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
+                PGY_PROP_CAUSE_WORLD_ACTIVATE);
         }
     }
     for (size_t i = 0; i < node->data.world_decl.maintained_zone_count; i++) {
@@ -1672,6 +1796,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot_name != NULL) {
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__zone_active_%s = true;\n", slot_name);
+            emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
+                PGY_PROP_CAUSE_WORLD_MAINTAIN);
         }
     }
     for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++) {
@@ -1687,6 +1813,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot_name != NULL) {
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__zone_active_%s = false;\n", slot_name);
+            emit_hidden_provenance_stamp(ctx, "self", "zone", slot_name,
+                PGY_PROP_CAUSE_WORLD_DEACTIVATE);
         }
     }
     for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
@@ -1728,10 +1856,29 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "if (_pgy_world_needs_derived) {\n");
     ctx->indent++;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "size_t _pgy_world_pass = 0;\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "size_t _pgy_world_pass_limit = %zu;\n",
+        node->data.world_decl.state_count + 1);
+    write_indent(ctx);
+    codebuf_write(ctx->out, "bool _pgy_world_continue = true;\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out,
+        "while (_pgy_world_continue && _pgy_world_pass < _pgy_world_pass_limit) {\n");
+    ctx->indent++;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "_pgy_world_continue = false;\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "_pgy_world_pass++;\n");
     for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
         ASTNode *state = node->data.world_decl.states[i];
         const char *expr_fmt = "self->__zone_active_%s";
         const char *detail_name = state->data.world_state.detail_name;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "bool _pgy_prev_zone_state_%s = self->__zone_state_%s;\n",
+            state->data.world_state.state_name,
+            state->data.world_state.state_name);
         write_indent(ctx);
         switch (state->data.world_state.source_kind) {
         case WORLD_STATE_SOURCE_ALL:
@@ -1796,7 +1943,23 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
                 state->data.world_state.zone_slot_name);
             break;
         }
+        emit_hidden_provenance_stamp(ctx, "self", "zone_state",
+            state->data.world_state.state_name, PGY_PROP_CAUSE_WORLD_DERIVED);
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "if (self->__zone_state_%s != _pgy_prev_zone_state_%s) {\n",
+            state->data.world_state.state_name,
+            state->data.world_state.state_name);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pgy_world_continue = true;\n");
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
     }
+    ctx->indent--;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "}\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "self->__world_derived_dirty = false;\n");
     ctx->indent--;
