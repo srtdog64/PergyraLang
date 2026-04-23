@@ -28,6 +28,18 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             (MSG)); \
         goto intent_emit_fail; \
     } while (0)
+#define PGY_BIND_INTENT_STEP_CONTEXT(STEP_ZONE_DECL, STEP_ZONE_ALIAS) \
+    do { \
+        if ((STEP_ZONE_DECL) != NULL) \
+            transpiler_bind_current_host_decl_local(ctx, (STEP_ZONE_DECL)); \
+        if ((STEP_ZONE_ALIAS) != NULL) \
+            ctx->current_overlay_receiver_expr = (STEP_ZONE_ALIAS); \
+    } while (0)
+#define PGY_RESTORE_INTENT_STEP_CONTEXT(SAVED_HOST_DECL, SAVED_OVERLAY_RECEIVER) \
+    do { \
+        transpiler_bind_current_host_decl_local(ctx, (SAVED_HOST_DECL)); \
+        ctx->current_overlay_receiver_expr = (SAVED_OVERLAY_RECEIVER); \
+    } while (0)
 
     if (node == NULL || node->type != AST_INTENT_DECL || buf == NULL || ctx == NULL)
         return;
@@ -433,11 +445,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         }
         if (step_zone_name != NULL) {
             ASTNode *step_zone_decl = find_zone_decl(ctx, step_zone_name);
-            if (step_zone_decl != NULL)
-                transpiler_bind_current_host_decl_local(ctx, step_zone_decl);
+            PGY_BIND_INTENT_STEP_CONTEXT(step_zone_decl, step_zone_alias);
+        } else {
+            PGY_BIND_INTENT_STEP_CONTEXT(NULL, step_zone_alias);
         }
-        if (step_zone_alias != NULL)
-            ctx->current_overlay_receiver_expr = step_zone_alias;
 
         write_indent(ctx);
         codebuf_write(ctx->out, "/* intent step: %s */\n",
@@ -577,8 +588,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 emit_intent_step_restore_bound_zone_aliases(ctx->out, ctx, node, step, i);
             }
         }
-        transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
-        ctx->current_overlay_receiver_expr = saved_overlay_receiver;
+        PGY_RESTORE_INTENT_STEP_CONTEXT(saved_host_decl,
+                                        saved_overlay_receiver);
 
         if (has_compensate_steps) {
             write_indent(ctx);
@@ -932,6 +943,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
 intent_emit_fail:
 #undef PGY_MIR_INTENT_CARRIER_FAIL
+#undef PGY_BIND_INTENT_STEP_CONTEXT
+#undef PGY_RESTORE_INTENT_STEP_CONTEXT
     free(mir_steps);
     free((void *)participant_aliases);
     free((void *)participant_types);
