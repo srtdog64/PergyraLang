@@ -48,7 +48,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule on the currently-closed consumer paths
-  - explicit reject: authority-bearing `Token<T>` escape/transport and a small set of remaining helper-chain/container/rebind transitive ownership corners
+  - explicit reject: authority-bearing `Token<T>` escape/transport and a small set of wording-level summary/direct ownership corners
   - beta-out-of-scope: ownership lattice beyond the current classifier/summary model
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
@@ -118,7 +118,7 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |
-| `own/ref` 소유권 | ✅ | ✅ | ◐ | ✅ | ✅ | 해당 없음 | ✅ | 중상 | 베타 stable subset은 copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule까지 넓어졌다. class/subject matrix는 거의 맞춰졌고 tuple/object도 기존 semantic suite에 coverage가 있다. `Token<T>` escape와 일부 남은 helper-chain/transitive ownership corner만 explicit reject다. 마지막 blocker는 summary/direct audit과 문서 정렬이다 |
+| `own/ref` 소유권 | ✅ | ✅ | ◐ | ✅ | ✅ | 해당 없음 | ✅ | 중상 | 베타 stable subset은 copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule까지 넓어졌다. class/subject matrix는 사실상 닫혔고 tuple/object도 기존 semantic suite에 coverage가 있다. `Token<T>` escape와 소수 wording-level ownership corner만 explicit reject다. 마지막 blocker는 summary/direct audit의 마지막 확인과 문서 정렬이다 |
 | 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
 | 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |
@@ -378,7 +378,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 | Intent 값 파라미터 | subject/zone만 | `with price: Int` 지원 |
 | refresh map {} | 필드명 정확 일치 | 매핑 문법 |
 | Zone→World ownership | 암묵 복사 | move/clone 명시 |
-| own/ref 강제 | anchored slot handle 한정 강제 | 시맨틱 검증 |
+| own/ref 강제 | copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule | summary/direct equivalence audit 마지막 확인과 문서 정렬 마감 |
 
 ### P1 — 깊이 보강
 
@@ -416,7 +416,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - `Set/Map/List`: C+LLVM raw_export 전부 동작 확인 → LLVM ◐→✅ 상향
 - `Async/spawn`: pthread 스케줄러+fiber 실구현 확인 → 행 추가, 깊음 판정
 - `Math/String stdlib`: 빌트인 30+개 존재 확인 → 행 추가, 중상 판정
-- `own/ref`: anchored slot handle 한정으로는 강제되며, 일반 타입은 오류·`ref` escape/alias/rebind는 차단됨 → 여전히 전역 소유권 규칙으로는 얕음
+- `own/ref`: anchored slot handle 한정 단계는 지났고, copy-value trivial own/ref + boundary-visible aggregate provenance + slot-handle boundary rule까지 베타 stable subset이 넓어졌다. 남은 것은 summary/direct equivalence audit 마지막 확인과 소수 wording-level corner 정리다
 - `vessel`: 동작 확인 → 존재론 축에 포함
 
 키워드 감사 (72개):
@@ -426,5 +426,5 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - 미구현: embed (토큰 자체 없음)
 
 P0 재정의:
-- refresh map, Zone ownership, own/ref 전역 규칙
+- refresh map, Zone ownership, own/ref summary/direct closure audit
 - P2는 `tooling`과 `authoring shorthand`

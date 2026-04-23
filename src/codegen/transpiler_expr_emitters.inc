@@ -3223,12 +3223,18 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             const char *type_name = resolve_nominal_host_expr_type_name(ctx, obj);
             if (type_name != NULL && is_nominal_host_type_name(ctx, type_name)) {
                 CodeBuf *args_buf = codebuf_create();
+                char stable_type_name[128];
                 const char *owned_type_name = type_name;
                 bool use_self_cell = is_pointer_self_host_type_name(ctx, owned_type_name);
                 bool is_self_ident = (obj->type == AST_IDENTIFIER
                     && obj->data.identifier.name != NULL
                     && strcmp(obj->data.identifier.name, "self") == 0);
                 ASTNode *method_decl = find_nominal_host_method_decl(ctx, owned_type_name, method);
+
+                snprintf(stable_type_name, sizeof(stable_type_name), "%s",
+                    owned_type_name != NULL ? owned_type_name : "Unknown");
+                owned_type_name = stable_type_name;
+                use_self_cell = is_pointer_self_host_type_name(ctx, owned_type_name);
 
                 if (is_self_ident && use_self_cell) {
                     codebuf_write(args_buf, "self");

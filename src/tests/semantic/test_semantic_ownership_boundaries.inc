@@ -80,6 +80,8 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Borrowed ref slot handle (movable) 'q' cannot escape through helper/function call"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "forwarding it to 'UseOwned' as 'own' would create a transitive helper transfer"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -105,6 +107,38 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Borrowed ref slot handle (movable) 'q' cannot escape through helper/function call"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "callee 'EchoBorrow' derives a transitive helper-escape path for its borrowed parameter"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref QubitSlot parameter cannot escape through transitive helper chain");
+    {
+        const char *source =
+            "func UseOwned(own q: QubitSlot) -> Void {\n"
+            "    return;\n"
+            "}\n"
+            "func Forward(own q: QubitSlot) -> Void {\n"
+            "    UseOwned(q);\n"
+            "}\n"
+            "func BorrowForward(ref q: QubitSlot) -> Void {\n"
+            "    Forward(q);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref slot handle (movable) 'q' cannot escape through helper/function call to 'Forward'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "forwarding it to 'Forward' as 'own' would create a transitive helper transfer"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -743,6 +777,39 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Borrowed ref boundary value 'packet' cannot escape through helper/function call"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref class parameter cannot escape through transitive helper chain");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let size: Int;\n"
+            "}\n"
+            "func UseOwned(own packet: Packet) -> Void {\n"
+            "    return;\n"
+            "}\n"
+            "func Forward(own packet: Packet) -> Void {\n"
+            "    UseOwned(packet);\n"
+            "}\n"
+            "func BorrowForward(ref packet: Packet) -> Void {\n"
+            "    Forward(packet);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'packet' cannot escape through helper/function call to 'Forward'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "forwarding it to 'Forward' as 'own' would create a transitive helper transfer"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1638,6 +1705,36 @@
             "Borrowed ref boundary value 'cargo' cannot escape into destructure target binding 'first'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "from 'cargo.wrapper.items'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref tuple parameter cannot escape through transitive helper chain");
+    {
+        const char *source =
+            "func Consume(own pair: (Int, Int)) -> Void {\n"
+            "    return;\n"
+            "}\n"
+            "func Forward(own pair: (Int, Int)) -> Void {\n"
+            "    Consume(pair);\n"
+            "}\n"
+            "func BorrowForward(ref pair: (Int, Int)) -> Void {\n"
+            "    Forward(pair);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'pair' cannot escape through helper/function call to 'Forward'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "forwarding it to 'Forward' as 'own' would create a transitive helper transfer"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

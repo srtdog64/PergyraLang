@@ -435,7 +435,7 @@
 
 - [ ] **C/LLVM parity + full CI green을 베타 최종 관문으로 고정**
   - Linux 기준 `parser / semantic / transpile / ABI / backend-compare / llvm smoke / ir-pipeline / example smoke`를 full green으로 유지
-  - Windows는 MSYS2/MinGW + LLVM 환경에서 `ci-windows` full green을 다시 고정
+  - Windows는 로컬 Linux host에서 강행하지 않고, MSYS2/MinGW + LLVM runner에서 `ci-windows` full green을 다시 고정
   - backend compare는 domain semantics 기준 parity를 계속 확대하고, same-process ABI / launch / runtime environment 차이를 재발하지 않게 잡는다
   - 현재 immediate blocker: Windows `backend-compare`와 LLVM parity의 마지막 crash / launch / runtime mismatch 제거
   - 베타 선언 전 acceptance line은 “부분 green”이 아니라 C/LLVM parity와 expected stdout/stderr/result parity까지 포함한 CI green으로 둔다
@@ -683,13 +683,14 @@
   - strict beta-quality 기준으로 anchored subset closure에서 재개방
   - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫는다
   - 이미 존재: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
-  - 남음: helper-chain + nested projection + rebind/container 교차 회귀의 마지막 빈칸, summary/direct path family 완전 일치 audit, classifier/docs 최종 정렬
+  - 남음: summary/direct path family 완전 일치 audit의 마지막 확인과 classifier/docs 최종 정렬
   - 진행: constructor field store escape 경로를 boundary-visible store로 고정하고 회귀 추가
   - 진행: array literal store escape 경로를 boundary-visible store로 고정하고 회귀 추가
   - 진행: assignment rebind escape diagnostic이 member/aggregate target path(`holder.packet`, `items[0]`) provenance를 직접 보고하도록 정렬
   - 진행: nested projection provenance가 constructor field store / member rebind / list/set/queue/map store / array overwrite / helper return summary / channel send / direct return까지 회귀로 고정됨
   - 진행: class/subject consumer matrix는 return / channel / helper / list / set / queue / map / array push / array overwrite / member rebind / constructor field store까지 거의 동형으로 정렬
   - 진행: tuple/object 경로는 기존 `test_semantic.c` 회귀 축에서 channel/new-binding/rebind/return/helper forwarding/queue-map-array overwrite/projection provenance coverage 유지
+  - 진행: slot-handle/class helper-chain 회귀도 ownership-boundaries 계열에 추가돼 direct helper/function call family가 transitive chain까지 고정됨
   - 진행: helper/return/channel wording family를 `through ...` 기준으로 정렬
   - ownership diagnostics는 `value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
   - anchored subset만 stable이라고 보고 넘기지 않는다
@@ -863,9 +864,9 @@
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: general own/ref surface on copy values + boundary-visible aggregates + slot handles
-  - explicit reject: authority-bearing `Token<T>` escape/transport and 아직 닫히지 않은 일부 assignment/container/rebind/helper-chain transitive ownership corner
+  - explicit reject: authority-bearing `Token<T>` escape/transport and summary/direct equivalence audit에서 남은 소수 wording-level ownership corner
   - beta-out-of-scope: arbitrary universal ownership lattice beyond current classifier/summary model
-  - beta blocker: broader assignment/container/rebind/helper-chain audit와 wording/provenance 최종 정렬
+  - beta blocker: summary/direct equivalence audit와 wording/provenance 최종 정렬
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds

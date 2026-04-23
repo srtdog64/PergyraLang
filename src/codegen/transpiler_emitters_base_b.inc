@@ -11,6 +11,15 @@ static void transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
                                                     ASTNode *saved_host_decl,
                                                     TranspilerCtx *saved_render_ctx,
                                                     CodeBuf *saved_out);
+static void transpiler_bind_function_emit_host_local(TranspilerCtx *ctx,
+                                                     ASTNode *host_decl,
+                                                     const ASTNode *func_decl);
+static void transpiler_set_current_return_type_local(TranspilerCtx *ctx,
+                                                     const char *type_name);
+static void transpiler_restore_local_binding_counts_local(TranspilerCtx *ctx,
+                                                          int saved_slot_count,
+                                                          int saved_typed_count,
+                                                          int saved_alias_count);
 
 static void
 transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
@@ -99,8 +108,8 @@ transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
     if (ctx == NULL)
         return;
 
-    ctx->slot_var_count = saved_slot_count;
-    ctx->typed_var_count = saved_typed_count;
+    transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
+                                                  saved_typed_count, -1);
     if (saved_return_type != NULL) {
         snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
             "%s", saved_return_type);
@@ -109,6 +118,45 @@ transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
     transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
     g_type_render_ctx = saved_render_ctx;
     ctx->out = saved_out;
+}
+
+static void
+transpiler_restore_local_binding_counts_local(TranspilerCtx *ctx,
+                                              int saved_slot_count,
+                                              int saved_typed_count,
+                                              int saved_alias_count)
+{
+    if (ctx == NULL)
+        return;
+
+    ctx->slot_var_count = saved_slot_count;
+    ctx->typed_var_count = saved_typed_count;
+    if (saved_alias_count >= 0)
+        ctx->alias_var_count = saved_alias_count;
+}
+
+static void
+transpiler_bind_function_emit_host_local(TranspilerCtx *ctx,
+                                         ASTNode *host_decl,
+                                         const ASTNode *func_decl)
+{
+    if (ctx == NULL)
+        return;
+
+    transpiler_bind_current_host_decl_local(ctx, host_decl);
+    if (func_decl != NULL && func_decl->type == AST_FUNC_DECL)
+        ctx->current_func_decl = func_decl;
+}
+
+static void
+transpiler_set_current_return_type_local(TranspilerCtx *ctx,
+                                         const char *type_name)
+{
+    if (ctx == NULL)
+        return;
+
+    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+             "%s", type_name != NULL ? type_name : "Void");
 }
 
 static void
@@ -184,9 +232,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     ctx->out = buf;
     g_type_render_ctx = ctx;
-    transpiler_bind_current_host_decl_local(ctx, resolved_host_decl);
-    if (node != NULL && node->type == AST_FUNC_DECL)
-        ctx->current_func_decl = node;
+    transpiler_bind_function_emit_host_local(ctx, resolved_host_decl, node);
     snprintf(saved_return_type, sizeof(saved_return_type), "%s",
         ctx->current_return_type);
 
@@ -194,11 +240,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     if (node->data.func_decl.return_type != NULL) {
         char *rendered = render_type_name(node->data.func_decl.return_type);
-        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
-            "%s", rendered);
+        transpiler_set_current_return_type_local(ctx, rendered);
         free(rendered);
     } else {
-        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Void");
+        transpiler_set_current_return_type_local(ctx, "Void");
     }
 
     if (owner_name != NULL) {
@@ -1469,8 +1514,8 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
 
-    ctx->slot_var_count = saved_slot_count;
-    ctx->typed_var_count = saved_typed_count;
+    transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
+                                                  saved_typed_count, -1);
 }
 
 /* -----------------------------------------------------------------
@@ -2168,9 +2213,9 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
             }
         }
 
-        ctx->slot_var_count = saved_slot_count;
-        ctx->typed_var_count = saved_typed_count;
-        ctx->alias_var_count = saved_alias_count;
+        transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
+                                                      saved_typed_count,
+                                                      saved_alias_count);
     } else {
         emit_statement(node, ctx);
     }
