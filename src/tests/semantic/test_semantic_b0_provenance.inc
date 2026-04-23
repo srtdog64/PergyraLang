@@ -258,6 +258,12 @@ test_b0_provenance_closure_diagnostics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "class declaration contract is 'Box<T>'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "validation path is 'Box<Item>'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "full bound set is 'T: Comparable + Cloneable'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "expected type args are 'Box<T>'"));

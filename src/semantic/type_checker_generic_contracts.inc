@@ -68,6 +68,10 @@ semantic_report_class_generic_bound_failure(SemanticContext *ctx,
     semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
         PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
         "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
+        "Contract source:\n"
+        "- class declaration contract is '%s'\n"
+        "- where clause requires '%s: %s'\n"
+        "- validation path is '%s'\n"
         "Reason:\n"
         "- class '%s' requires '%s: %s'\n"
         "- full bound set is '%s: %s'\n"
@@ -81,6 +85,10 @@ semantic_report_class_generic_bound_failure(SemanticContext *ctx,
         bound_name != NULL ? bound_name : "<constraint>",
         param_name != NULL ? param_name : "<type-param>",
         class_name != NULL ? class_name : "<class>",
+        expected_text != NULL ? expected_text : "<class>",
+        param_name != NULL ? param_name : "<type-param>",
+        bounds_text != NULL ? bounds_text : "<constraint>",
+        actual_text != NULL ? actual_text : "<actual>",
         class_name != NULL ? class_name : "<class>",
         param_name != NULL ? param_name : "<type-param>",
         bound_name != NULL ? bound_name : "<constraint>",

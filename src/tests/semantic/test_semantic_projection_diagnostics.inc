@@ -152,6 +152,81 @@ test_projection_contract_diagnostics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone refresh reports non-projection target provenance with structured diagnostic");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "class PlayerSnapshot {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot snapshot: PlayerSnapshot\n"
+            "    refresh snapshot from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "target slot 'snapshot' does not use a projection declaration"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "target slot 'snapshot' on Zone 'BattleZone'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "target slot 'snapshot' is declared on Zone 'BattleZone'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "'PlayerSnapshot' is not an object/tobject declaration"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone refresh reports tobject source provenance with structured diagnostic");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "object PlayerView {\n"
+            "    hp: Int;\n"
+            "}\n"
+            "tobject PlayerPacket {\n"
+            "    hp: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    object slot playerView: PlayerView\n"
+            "    tobject slot playerPacket: PlayerPacket\n"
+            "    refresh playerView from playerPacket\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "source slot 'playerPacket' cannot be a tobject slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "projection contract originates from target slot 'playerView' on Zone 'BattleZone'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "source slot 'playerPacket' currently resolves to tobject 'PlayerPacket'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "use the original subject/object slot as the source"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("zone refresh reports duplicate field map with structured diagnostic");
     {
         const char *source =

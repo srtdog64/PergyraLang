@@ -138,6 +138,16 @@
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 2);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Unknown world zone/state 'missing' in HasZone(...)"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "current world: GameWorld"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "world observability path is HasZone(missing)"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "HasZone(...) is only available inside world declarations and world methods."));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -216,9 +226,17 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 6);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Unknown zone projection slot 'missing'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "current world: GameWorld"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "world embedding query path is HasZoneProjection(battle, missing)"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "embedded zone slot 'battle' resolves to zone 'BattleZone'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "HasZoneProjection(...) is only available inside world declarations and world methods."));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2222,9 +2240,15 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Zone BattleZone target slot 'monster' has type 'Monster'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "target slot 'monster' has type 'Monster'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "effect 'Poison' expects target type 'Hero'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "effect slot 'poison' in zone contract 'BattleZone'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -2265,9 +2289,15 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Zone BattleZone right slot 'villain' has type 'Villain'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "right slot 'villain' has type 'Villain'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "relation 'Rivalry' expects right endpoint type 'Hero'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Contract source:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "relation slot 'rivalry' in zone contract 'BattleZone'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,

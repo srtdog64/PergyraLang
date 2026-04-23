@@ -1,6 +1,6 @@
 # Pergyra 에러 처리 시스템
 
-마지막 업데이트: 2026-04-03
+마지막 업데이트: 2026-04-24
 
 이 문서는 현재 구현 기준으로 정리한 에러 처리 표면이다. 과거 설계 문서에 있던 `Result<T, E>`, `try/catch`, 에러 매크로 시스템은 아직 현재 구현 기준의 stable feature가 아니다.
 
@@ -104,6 +104,11 @@ semantic에서 막는 것이 원칙이고, 런타임까지 오면 hard-fail로 �
 - 값을 돌려주는 순간 정상 제어 흐름처럼 오해될 수 있다
 - 따라서 현재 정책은 panic / internal error를 유지하고, diagnostics와 test가 그 경계를 명시적으로 보여 주는 쪽이다
 
+현재 회귀 기준:
+
+- `test_memory_layout`는 `Unwrap(result)` on `Err`와 `UnwrapOption(option)` on `None`를 expected panic으로 고정한다
+- semantic/runtime 문서는 이 둘을 recoverable helper가 아니라 hard-fail sharp tool로 취급한다
+
 ## 1. 현재 구현 중심
 
 현재 코드와 테스트가 실제로 보장하는 축은 다음이다.
@@ -130,6 +135,7 @@ canonical 이름 규칙:
 권장:
 - recoverable flow의 기본은 `IsOk/IsErr`, `UnwrapOr`, `?`
 - `Unwrap(...)`는 실패가 논리적으로 불가능하거나 개발용 crash-fast가 필요한 지점에서만 사용
+- `Err(...)` 가능성이 남아 있는 경로를 normal control flow로 다루려면 `Unwrap(...)` 대신 분기 또는 `?`를 사용
 
 ```pergyra
 func SafeDiv(a: Int, b: Int) -> Result<Int> {
@@ -237,6 +243,7 @@ func Main() -> Void {
 - C backend: `PgyOption_*` lowering
 - LLVM backend: option struct lowering
 - `match`: `Some(...)` / `None()` destructuring
+- runtime hard-fail: `UnwrapOption(None())`는 panic 경계로 유지
 
 ## 7. 아직 stable 하지 않은 항목
 

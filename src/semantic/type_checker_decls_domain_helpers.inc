@@ -684,10 +684,10 @@ type_check_projection_contract(ASTNode **slots,
             action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             action_name,
-            target_type->name != NULL ? target_type->name : "<unknown>",
-            object_slot_name != NULL ? object_slot_name : "<unknown>",
-            owner_label,
-            owner_label);
+                    target_type->name != NULL ? target_type->name : "<unknown>",
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    owner_label,
+                    owner_name != NULL ? owner_name : "<owner>");
         return true;
     }
     if (site != NULL && site->type == AST_ZONE_REFRESH) {
@@ -747,12 +747,12 @@ type_check_projection_contract(ASTNode **slots,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_slot_name != NULL ? source_slot_name : "<unknown>",
-            object_slot_name != NULL ? object_slot_name : "<unknown>",
-            owner_label != NULL ? owner_label : "<owner>",
-            owner_label != NULL ? owner_label : "<owner>",
             source_type != NULL && source_type->name != NULL
                 ? source_type->name
-                : "<unknown>");
+                : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label != NULL ? owner_label : "<owner>",
+            owner_name != NULL ? owner_name : "<owner>");
         return true;
     }
 
@@ -780,7 +780,7 @@ type_check_projection_contract(ASTNode **slots,
                 : "<unknown>",
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             owner_label != NULL ? owner_label : "<owner>",
-            owner_label != NULL ? owner_label : "<owner>");
+            owner_name != NULL ? owner_name : "<owner>");
         return true;
     }
 
@@ -1050,11 +1050,16 @@ type_check_zone_effect_contract(ASTNode *zone,
     Type *target_type;
     Type *decl_target_type;
     size_t target_count;
+    const char *zone_name;
+
+    (void) action_name;
 
     effect_slot = find_zone_effect_slot(zone, effect_slot_name);
     target_slot = find_zone_domain_slot(zone, target_slot_name);
-    if (effect_slot == NULL || target_slot == NULL || ctx == NULL)
+    if (zone == NULL || effect_slot == NULL || target_slot == NULL || ctx == NULL)
         return false;
+
+    zone_name = zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>";
 
     effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
         effect_slot->data.zone_layer_slot.layer_type);
@@ -1075,7 +1080,7 @@ type_check_zone_effect_contract(ASTNode *zone,
             "Fix:\n"
             "- keep exactly one bindable target slot in effect '%s'\n"
             "- or split the effect contract if it truly targets multiple subjects",
-            action_name,
+            zone_name,
             effect_decl->data.effect_decl.name != NULL
                 ? effect_decl->data.effect_decl.name
                 : "<unknown>",
@@ -1114,7 +1119,7 @@ type_check_zone_effect_contract(ASTNode *zone,
             "Fix:\n"
             "- bind effect '%s' to a zone slot of type '%s'\n"
             "- or change effect '%s' so its target contract accepts '%s'",
-            action_name,
+            zone_name,
             target_slot_name != NULL ? target_slot_name : "<unknown>",
             target_type != NULL && target_type->name != NULL ? target_type->name : "<unknown>",
             effect_decl->data.effect_decl.name != NULL
@@ -1124,7 +1129,7 @@ type_check_zone_effect_contract(ASTNode *zone,
                 ? decl_target_type->name
                 : "<unknown>",
             effect_slot_name != NULL ? effect_slot_name : "<effect-slot>",
-            action_name != NULL ? action_name : "<zone>",
+            zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
             effect_slot_name != NULL ? effect_slot_name : "<effect-slot>",
             target_slot_name != NULL ? target_slot_name : "<target-slot>",
             target_slot_name != NULL ? target_slot_name : "<unknown>",
@@ -1237,12 +1242,18 @@ type_check_zone_relation_contract(ASTNode *zone,
     RelationEndpointKind between_right_kind;
     ASTNode *between_left_type;
     ASTNode *between_right_type;
+    const char *zone_name;
+
+    (void) action_name;
 
     relation_slot = find_zone_relation_slot(zone, relation_slot_name);
     left_slot = find_zone_domain_slot(zone, left_slot_name);
     right_slot = find_zone_domain_slot(zone, right_slot_name);
-    if (relation_slot == NULL || left_slot == NULL || right_slot == NULL || ctx == NULL)
+    if (zone == NULL || relation_slot == NULL || left_slot == NULL || right_slot == NULL
+        || ctx == NULL)
         return false;
+
+    zone_name = zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>";
 
     relation_decl = find_domain_decl_by_name(ctx->program_root, AST_RELATION_DECL,
         relation_slot->data.zone_layer_slot.layer_type);
@@ -1268,7 +1279,7 @@ type_check_zone_relation_contract(ASTNode *zone,
                 "Fix:\n"
                 "- bind relation '%s' to a left slot that matches the declared endpoint kind\n"
                 "- or change relation '%s' so its left endpoint contract accepts '%s'",
-                action_name,
+                zone_name,
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
                 relation_decl->data.relation_decl.name != NULL
                     ? relation_decl->data.relation_decl.name
@@ -1302,7 +1313,7 @@ type_check_zone_relation_contract(ASTNode *zone,
                 "Fix:\n"
                 "- bind relation '%s' to a right slot that matches the declared endpoint kind\n"
                 "- or change relation '%s' so its right endpoint contract accepts '%s'",
-                action_name,
+                zone_name,
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
                 relation_decl->data.relation_decl.name != NULL
                     ? relation_decl->data.relation_decl.name
@@ -1342,7 +1353,7 @@ type_check_zone_relation_contract(ASTNode *zone,
             "Fix:\n"
             "- keep exactly two bindable endpoint slots in relation '%s'\n"
             "- or split the relation contract if it truly models multiple independent edges",
-            action_name,
+            zone_name,
             relation_decl->data.relation_decl.name != NULL
                 ? relation_decl->data.relation_decl.name
                 : "<unknown>",
@@ -1385,7 +1396,7 @@ type_check_zone_relation_contract(ASTNode *zone,
             "Fix:\n"
             "- bind relation '%s' to a left slot of type '%s'\n"
             "- or change relation '%s' so its left endpoint contract accepts '%s'",
-            action_name,
+            zone_name,
             left_slot_name != NULL ? left_slot_name : "<unknown>",
             left_type != NULL && left_type->name != NULL ? left_type->name : "<unknown>",
             relation_decl->data.relation_decl.name != NULL
@@ -1440,7 +1451,7 @@ type_check_zone_relation_contract(ASTNode *zone,
             "Fix:\n"
             "- bind relation '%s' to a right slot of type '%s'\n"
             "- or change relation '%s' so its right endpoint contract accepts '%s'",
-            action_name,
+            zone_name,
             right_slot_name != NULL ? right_slot_name : "<unknown>",
             right_type != NULL && right_type->name != NULL ? right_type->name : "<unknown>",
             relation_decl->data.relation_decl.name != NULL

@@ -487,6 +487,16 @@ test_panic_conditions(void)
         tok.can_read = false; /* remove read permission */
         pgy_secure_read_Int(&s, &tok); /* should panic */
     });
+
+    EXPECT_PANIC("Result unwrap on Err stays hard-fail", {
+        PgyResult_Int result = Err_Int("expected failure");
+        (void)Unwrap_Int(result);
+    });
+
+    EXPECT_PANIC("Option unwrap on None stays hard-fail", {
+        PgyOption_Int option = None_Int();
+        (void)UnwrapOption_Int(option);
+    });
 }
 
 /* -----------------------------------------------------------------
