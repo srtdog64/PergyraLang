@@ -823,11 +823,6 @@
         ASTNode *program = parser_parse_program(parser);
         SemanticResult *result = semantic_analyze(program);
 
-        fprintf(stderr, "MISC-LATE action requires test: parser=%d result=%p errors=%zu warnings=%zu\n",
-            parser_has_error(parser),
-            (void *)result,
-            result != NULL ? result->error_count : 0u,
-            result != NULL ? result->warning_count : 0u);
         EXPECT(!parser_has_error(parser));
         if (result != NULL && result->error_count > 0)
             semantic_result_print(result);

@@ -413,11 +413,12 @@ transpiler_ctx_create_for_test(void)
 #define transpiler_ctx_create transpiler_ctx_create_for_test
 
 static bool
-lower_pipeline_from_source(const char *source,
-                           ASTNode **program_out,
-                           HIRProgram **hir_out,
-                           RIRProgram **rir_out,
-                           MIRProgram **mir_out)
+lower_pipeline_from_source_ex(const char *source,
+                              ASTNode **program_out,
+                              HIRProgram **hir_out,
+                              RIRProgram **rir_out,
+                              MIRProgram **mir_out,
+                              bool report_failure)
 {
     bool ok = false;
     Lexer *lexer = lexer_create(source);
@@ -443,7 +444,7 @@ lower_pipeline_from_source(const char *source,
     }
 
     ok = (*hir_out != NULL && *rir_out != NULL && *mir_out != NULL);
-    if (!ok) {
+    if (!ok && report_failure) {
         if (hir_error != NULL)
             fprintf(stderr, "HIR lowering failed in test: %s\n", hir_error);
         if (rir_error != NULL)
@@ -453,8 +454,6 @@ lower_pipeline_from_source(const char *source,
         if (*hir_out == NULL) fprintf(stderr, "HIR is NULL\n");
         if (*rir_out == NULL) fprintf(stderr, "RIR is NULL\n");
         if (*mir_out == NULL) fprintf(stderr, "MIR is NULL\n");
-    } else {
-        fprintf(stderr, "MIR lowering OK: %zu routines\n", (*mir_out)->routine_count);
     }
 
     free(hir_error);
@@ -463,6 +462,28 @@ lower_pipeline_from_source(const char *source,
     parser_destroy(parser);
     lexer_destroy(lexer);
     return ok;
+}
+
+static bool
+lower_pipeline_from_source(const char *source,
+                           ASTNode **program_out,
+                           HIRProgram **hir_out,
+                           RIRProgram **rir_out,
+                           MIRProgram **mir_out)
+{
+    return lower_pipeline_from_source_ex(source, program_out, hir_out, rir_out,
+        mir_out, true);
+}
+
+static bool
+lower_pipeline_from_source_quiet(const char *source,
+                                 ASTNode **program_out,
+                                 HIRProgram **hir_out,
+                                 RIRProgram **rir_out,
+                                 MIRProgram **mir_out)
+{
+    return lower_pipeline_from_source_ex(source, program_out, hir_out, rir_out,
+        mir_out, false);
 }
 
 static char *

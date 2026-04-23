@@ -20,7 +20,7 @@
 </p>
 
 > **Current Status**: Executable experimental alpha, currently in a **late-stage alpha / beta-closure sprint**. The remaining beta work is not about widening the language surface; it is about freezing a narrower stable subset and aligning `syntax -> semantic -> runtime -> C -> LLVM -> diagnostics -> regression -> docs` on that subset.
-> **Stable subset being frozen for beta**: generics (`exact/ability/multi-bound` plus implemented default type argument actual resolution), `own/ref` anchored slot-handle boundaries with generalized provenance/escape diagnostics, collections (`List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`), and runtime observability (`last / history / active / recent`).
+> **Stable subset being frozen for beta**: generics (`exact/ability/multi-bound` plus implemented default type argument actual resolution), `own/ref` anchored slot-handle boundaries with generalized provenance/escape diagnostics, collections (`List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`), and runtime observability (`last / history / active / recent`).
 > **Explicit reject / beta-out-of-scope**: unsupported map key kinds, broader generic generalization, richer multi-instance observability queries, the full quantum resource model, and any ownership combination that still escapes the current semantic contract. `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` remain a partial `v2 / experimental` surface.
 
 ---
@@ -159,6 +159,7 @@ Recent backend hygiene snapshot:
 
 - LLVM declaration-side helper cleanup now shares implicit-self detection, host decl/method lookup, and pointer-self classification instead of repeating the same logic across declaration/intent/MIR-expression paths
 - negative-path memory tests now suppress expected panic/tracing stderr so CI logs reflect regressions instead of deliberate failure probes
+- frontend/transpile regression helpers no longer leak ad-hoc debug stderr on successful runs, so `make test-all` output stays signal-first
 - semantic builtin diagnostics were tightened to remove Windows-native MinGW format-string drift
 
 Stable example guidance:

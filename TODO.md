@@ -211,6 +211,8 @@
   - C transpiler domain/hosted method emission도 `emit_hosted_methods_from_mir_or_error_local(...)` helper로 수렴
   - party / roster / relation / effect / zone / world method emit는 같은 MIR routine gate와 같은 explicit backend error 정책을 사용
   - relation/effect/zone/world method의 dead AST signature fallback 제거
+  - party / roster / relation / effect / zone / world declaration emit entrypoint는 inventory decl을 우선 사용
+  - bootstrap residual은 이제 per-domain AST array 직접 순회보다 inventory-backed bootstrap helper 본체 쪽으로 더 압축
 - generic contract + type-resolution DAG 회귀를 더 넓힘
   - `role impl ability` 경로가 generic default/where-bound cycle provenance regression에 추가됨
   - 즉, action/intent-step/zone-authority/party-role-slot에 더해 role impl consumer도 staged DAG path 회귀 범위에 포함

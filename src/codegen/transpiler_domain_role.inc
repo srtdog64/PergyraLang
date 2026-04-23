@@ -636,6 +636,11 @@ void
 emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.party_decl.name;
+    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_PARTY_DECL, name);
+
+    if (inventory_decl != NULL)
+        node = inventory_decl;
 
     codebuf_write(ctx->out, "\n/* Party: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -755,6 +760,11 @@ void
 emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.roster_decl.name;
+    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_ROSTER_DECL, name);
+
+    if (inventory_decl != NULL)
+        node = inventory_decl;
 
     codebuf_write(ctx->out, "\n/* Roster: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -804,6 +814,11 @@ void
 emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.relation_decl.name;
+    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_RELATION_DECL, name);
+
+    if (inventory_decl != NULL)
+        node = inventory_decl;
 
     codebuf_write(ctx->out, "\n/* Relation: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -944,6 +959,11 @@ void
 emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.effect_decl.name;
+    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_EFFECT_DECL, name);
+
+    if (inventory_decl != NULL)
+        node = inventory_decl;
 
     codebuf_write(ctx->out, "\n/* Effect: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -1084,6 +1104,11 @@ void
 emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.zone_decl.name;
+    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_ZONE_DECL, name);
+
+    if (inventory_decl != NULL)
+        node = inventory_decl;
 
     for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.slots[i];
@@ -1543,6 +1568,11 @@ void
 emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.world_decl.name;
+    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_WORLD_DECL, name);
+
+    if (inventory_decl != NULL)
+        node = inventory_decl;
 
     codebuf_write(ctx->out, "\n/* World: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
