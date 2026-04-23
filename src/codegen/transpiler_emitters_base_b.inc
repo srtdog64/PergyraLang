@@ -1236,8 +1236,39 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
         ASTNode *method = class_decl->data.class_decl.methods[i];
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
+        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx,
+            class_decl->data.class_decl.name, method);
         if (method->type != AST_FUNC_DECL)
             continue;
+
+        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "MIR-only C path missing routine for generic class method '%s.%s' specialization '%s'",
+                    class_decl->data.class_decl.name != NULL
+                        ? class_decl->data.class_decl.name
+                        : "(anonymous-class)",
+                    method->data.func_decl.name != NULL
+                        ? method->data.func_decl.name
+                        : "(anonymous)",
+                    spec_name != NULL ? spec_name : "(anonymous-specialization)");
+            }
+            g_type_render_ctx = saved_render_ctx;
+            ctx->generic_binding_count = saved_binding_count;
+            codebuf_destroy(nbuf);
+            return NULL;
+        }
+
+        if (mir_method != NULL) {
+            char emitted_name[256];
+            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", spec_name,
+                method->data.func_decl.name != NULL
+                    ? method->data.func_decl.name
+                    : "(anonymous)");
+            emit_func_decl_from_mir_named(method, mir_method, emitted_name,
+                ctx->helpers, ctx);
+            continue;
+        }
 
         const char *method_name = method->data.func_decl.name;
         const char *ret_type    = "void";

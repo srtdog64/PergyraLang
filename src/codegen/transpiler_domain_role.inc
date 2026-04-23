@@ -3,6 +3,46 @@
  * ================================================================= */
 
 static void
+emit_hosted_methods_from_mir_or_error_local(const char *host_name,
+                                            const char *anonymous_host_name,
+                                            const char *host_kind,
+                                            ASTNode **methods,
+                                            size_t method_count,
+                                            TranspilerCtx *ctx)
+{
+    for (size_t i = 0; i < method_count; i++) {
+        ASTNode *method = methods[i];
+        const MIRRoutine *mir_method;
+        char emitted_name[256];
+
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
+
+        mir_method = transpiler_find_mir_method(ctx, host_name, method);
+        if (mir_method == NULL) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_MIR_TOPOLOGY_INVALID,
+                PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING,
+                PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+                "MIR-only C path missing routine for %s method '%s.%s'",
+                host_kind != NULL ? host_kind : "host",
+                host_name != NULL ? host_name : anonymous_host_name,
+                method->data.func_decl.name != NULL
+                    ? method->data.func_decl.name
+                    : "(anonymous)");
+            return;
+        }
+
+        snprintf(emitted_name, sizeof(emitted_name), "%s_%s", host_name,
+            method->data.func_decl.name);
+        emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
+        if (ctx != NULL && ctx->backend_error != NULL)
+            return;
+    }
+}
+
+static void
 build_ability_ref_bindings(ASTNode *ability_decl,
                            ASTNode *ability_ref,
                            TranspilerCtx *ctx,
@@ -665,33 +705,9 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             node->data.party_decl.methods[i], true, ctx->out, ctx);
     }
 
-    for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
-        ASTNode *method = node->data.party_decl.methods[i];
-        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
-        if (method->type != AST_FUNC_DECL)
-            continue;
-        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for party method '%s.%s'",
-                name != NULL ? name : "(anonymous-party)",
-                method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name
-                    : "(anonymous)");
-            return;
-        }
-        if (mir_method != NULL) {
-            char emitted_name[256];
-            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
-                method->data.func_decl.name);
-            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
-            continue;
-        }
-        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for party method '%s.%s'",
-            name != NULL ? name : "(anonymous-party)",
-            method->data.func_decl.name != NULL
-                ? method->data.func_decl.name
-                : "(anonymous)");
-        return;
-    }
+    emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-party)",
+        "party", node->data.party_decl.methods,
+        node->data.party_decl.method_count, ctx);
 
     /* Emit bind helpers for dyn role slots */
     for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
@@ -779,32 +795,9 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
             node->data.roster_decl.methods[i], true, ctx->out, ctx);
     }
 
-    for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
-        ASTNode *method = node->data.roster_decl.methods[i];
-        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
-        if (method->type != AST_FUNC_DECL) continue;
-        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for roster method '%s.%s'",
-                name != NULL ? name : "(anonymous-roster)",
-                method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name
-                    : "(anonymous)");
-            return;
-        }
-        if (mir_method != NULL) {
-            char emitted_name[256];
-            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
-                method->data.func_decl.name);
-            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
-            continue;
-        }
-        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for roster method '%s.%s'",
-            name != NULL ? name : "(anonymous-roster)",
-            method->data.func_decl.name != NULL
-                ? method->data.func_decl.name
-                : "(anonymous)");
-        return;
-    }
+    emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-roster)",
+        "roster", node->data.roster_decl.methods,
+        node->data.roster_decl.method_count, ctx);
 }
 
 void
@@ -942,66 +935,9 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             node->data.relation_decl.methods[i], true, ctx->out, ctx);
     }
 
-    for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
-        ASTNode *method = node->data.relation_decl.methods[i];
-        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
-        if (method->type != AST_FUNC_DECL) continue;
-        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for relation method '%s.%s'",
-                name != NULL ? name : "(anonymous-relation)",
-                method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name
-                    : "(anonymous)");
-            return;
-        }
-        if (mir_method != NULL) {
-            char emitted_name[256];
-            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
-                method->data.func_decl.name);
-            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
-            continue;
-        }
-
-        const char *method_name = method->data.func_decl.name;
-        const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
-
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
-                      ret_type, name, method_name, name);
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
-            if (p != NULL && p->type == NULL && p->name != NULL
-                && strcmp(p->name, "self") == 0)
-                continue;
-            const char *pt = NULL;
-            char surface_desc[256];
-            snprintf(surface_desc, sizeof(surface_desc),
-                "relation method parameter '%s.%s(%s)'",
-                name != NULL ? name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)",
-                p != NULL && p->name != NULL ? p->name : "(anonymous)");
-            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-            if (pt == NULL)
-                return;
-            {
-                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
-                bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
-                if (subj_param)
-                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
-                else
-                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
-                free(ptn);
-            }
-        }
-        codebuf_write(ctx->out, ")\n{\n");
-        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for relation method '%s.%s'",
-            name != NULL ? name : "(anonymous-relation)",
-            method->data.func_decl.name != NULL
-                ? method->data.func_decl.name
-                : "(anonymous)");
-        return;
-    }
+    emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-relation)",
+        "relation", node->data.relation_decl.methods,
+        node->data.relation_decl.method_count, ctx);
 }
 
 void
@@ -1139,66 +1075,9 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             node->data.effect_decl.methods[i], true, ctx->out, ctx);
     }
 
-    for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
-        ASTNode *method = node->data.effect_decl.methods[i];
-        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
-        if (method->type != AST_FUNC_DECL) continue;
-        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for effect method '%s.%s'",
-                name != NULL ? name : "(anonymous-effect)",
-                method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name
-                    : "(anonymous)");
-            return;
-        }
-        if (mir_method != NULL) {
-            char emitted_name[256];
-            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
-                method->data.func_decl.name);
-            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
-            continue;
-        }
-
-        const char *method_name = method->data.func_decl.name;
-        const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
-
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
-                      ret_type, name, method_name, name);
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
-            if (p != NULL && p->type == NULL && p->name != NULL
-                && strcmp(p->name, "self") == 0)
-                continue;
-            const char *pt = NULL;
-            char surface_desc[256];
-            snprintf(surface_desc, sizeof(surface_desc),
-                "effect method parameter '%s.%s(%s)'",
-                name != NULL ? name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)",
-                p != NULL && p->name != NULL ? p->name : "(anonymous)");
-            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-            if (pt == NULL)
-                return;
-            {
-                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
-                bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
-                if (subj_param)
-                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
-                else
-                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
-                free(ptn);
-            }
-        }
-        codebuf_write(ctx->out, ")\n{\n");
-        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for effect method '%s.%s'",
-            name != NULL ? name : "(anonymous-effect)",
-            method->data.func_decl.name != NULL
-                ? method->data.func_decl.name
-                : "(anonymous)");
-        return;
-    }
+    emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-effect)",
+        "effect", node->data.effect_decl.methods,
+        node->data.effect_decl.method_count, ctx);
 }
 
 void
@@ -1655,82 +1534,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             node->data.zone_decl.methods[i], true, ctx->out, ctx);
     }
 
-    for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
-        ASTNode *method = node->data.zone_decl.methods[i];
-        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
-        if (method->type != AST_FUNC_DECL) continue;
-        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for zone method '%s.%s'",
-                name != NULL ? name : "(anonymous-zone)",
-                method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name
-                    : "(anonymous)");
-            return;
-        }
-        if (mir_method != NULL) {
-            char emitted_name[256];
-            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
-                method->data.func_decl.name);
-            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
-            continue;
-        }
-
-        const char *method_name = method->data.func_decl.name;
-        const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
-
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
-                      ret_type, name, method_name, name);
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
-            if (p != NULL && p->type == NULL && p->name != NULL
-                && strcmp(p->name, "self") == 0)
-                continue;
-            const char *pt = NULL;
-            char surface_desc[256];
-            snprintf(surface_desc, sizeof(surface_desc),
-                "zone method parameter '%s.%s(%s)'",
-                name != NULL ? name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)",
-                p != NULL && p->name != NULL ? p->name : "(anonymous)");
-            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-            if (pt == NULL)
-                return;
-            {
-                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
-                bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
-                if (subj_param)
-                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
-                else
-                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
-                free(ptn);
-            }
-        }
-        codebuf_write(ctx->out, ")\n{\n");
-        ctx->indent++;
-        /* Emit zone authority runtime check if authority is declared */
-        if (node->data.zone_decl.authority_count > 0
-            && node->data.zone_decl.authorities != NULL
-            && node->data.zone_decl.authorities[0] != NULL) {
-            const char *auth_slot = node->data.zone_decl.authorities[0]
-                                        ->data.zone_authority.subject_slot_name;
-            if (auth_slot != NULL) {
-                const char *participant_expr = transpiler_scratch_fmt(ctx,
-                    "&self->%s", auth_slot);
-                write_indent(ctx);
-                codebuf_write(ctx->out,
-                    "PGY_ZONE_AUTHORITY_CHECK(self, %s, \"%s\", \"%s\");\n",
-                    participant_expr, name, auth_slot);
-            }
-        }
-        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for zone method '%s.%s'",
-            name != NULL ? name : "(anonymous-zone)",
-            method->data.func_decl.name != NULL
-                ? method->data.func_decl.name
-                : "(anonymous)");
-        return;
-    }
+    emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-zone)",
+        "zone", node->data.zone_decl.methods,
+        node->data.zone_decl.method_count, ctx);
 }
 
 void
@@ -1975,67 +1781,9 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             node->data.world_decl.methods[i], true, ctx->out, ctx);
     }
 
-    for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
-        ASTNode *method = node->data.world_decl.methods[i];
-        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
-        if (method->type != AST_FUNC_DECL) continue;
-        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for world method '%s.%s'",
-                name != NULL ? name : "(anonymous-world)",
-                method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name
-                    : "(anonymous)");
-            return;
-        }
-        if (mir_method != NULL) {
-            char emitted_name[256];
-            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
-                method->data.func_decl.name);
-            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
-            continue;
-        }
-
-        const char *method_name = method->data.func_decl.name;
-        const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
-
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
-                      ret_type, name, method_name, name);
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
-            if (p != NULL && p->type == NULL && p->name != NULL
-                && strcmp(p->name, "self") == 0)
-                continue;
-            const char *pt = NULL;
-            char surface_desc[256];
-            snprintf(surface_desc, sizeof(surface_desc),
-                "world method parameter '%s.%s(%s)'",
-                name != NULL ? name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)",
-                p != NULL && p->name != NULL ? p->name : "(anonymous)");
-            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-            if (pt == NULL)
-                return;
-            {
-                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
-                bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
-                if (subj_param)
-                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
-                else
-                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
-                free(ptn);
-            }
-        }
-        codebuf_write(ctx->out, ")\n{\n");
-        ctx->indent++;
-        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for world method '%s.%s'",
-            name != NULL ? name : "(anonymous-world)",
-            method->data.func_decl.name != NULL
-                ? method->data.func_decl.name
-                : "(anonymous)");
-        return;
-    }
+    emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-world)",
+        "world", node->data.world_decl.methods,
+        node->data.world_decl.method_count, ctx);
 }
 
 /* =================================================================

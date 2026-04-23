@@ -1,6 +1,6 @@
 # Pergyra Beta Closure Master Board
 
-마지막 업데이트: 2026-04-23
+마지막 업데이트: 2026-04-24
 
 ## 목적
 
@@ -18,7 +18,7 @@
 ## 현재 판정
 
 - 현재 단계: `late-stage alpha / beta-closure sprint`
-- 베타 진행률 추정: `약 90-91%`
+- 베타 진행률 추정: `약 94-95%`
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
   - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt`다
@@ -42,12 +42,12 @@
 |------|------|--------|----------------|----------|
 | B0-1 Intent / Zone / World | 진행 중 | 84% | 차단 | observability baseline은 생겼고 embedding/handoff 핵심 진단은 `Contract source` 구조로 올라왔지만 authority/provenance depth가 더 남음 |
 | B0-2 relation / effect / projection | 진행 중 | 82% | 차단 | refresh/publish/bind baseline은 강해졌고 authority-bearing lifecycle contract는 hardening됐지만 propagation/effect partial order 심화가 남음 |
-| B0-3 generic contract | 진행 중 | 80% | 차단 | default arg baseline과 consumer-path hardening은 전진했지만 multi-bound/module-contract 전경로 closure가 남음 |
+| B0-3 generic contract | 완료 | 100% | 비차단 | default arg, omitted trailing default, multi-bound, ability/authority/party/action/intent consumer, cross-module imported consumer가 semantic 회귀 기준으로 닫혔다 |
 | B0-4 own/ref | 완료 | 100% | 비차단 | ownership classifier 기준 stable subset으로 닫힘. copy-value trivial own/ref, boundary-visible aggregate provenance, movable value transfer/borrow, slot-handle boundary, direct/summary helper-chain, destructure/member/container/return/channel 경로가 semantic 회귀로 고정됐다. `Token<T>` transport는 explicit reject, universal ownership lattice는 beta-out-of-scope다 |
-| MIR-only declaration debt | 진행 중 | 88% | 차단 | intent inventory는 많이 줄였고 host context는 inventory-backed handle 쪽으로 더 이동했다. MIR emit state restore와 function emit host/return binding은 helper family로 수렴됐고 intent emitter의 return-type/count restore도 helper 경계로 정리됐다. 남은 것은 zone/world/relation/effect declaration inventory bootstrap 잔여다 |
+| MIR-only declaration debt | 진행 중 | 96% | 차단 | host context는 inventory-backed handle 쪽으로 이동했고 function/method/intent emit state는 `TranspilerMirEmitState` snapshot helper로 수렴됐다. generic class specialization method도 MIR routine gate를 탄다. party/roster/relation/effect/zone/world hosted method emission은 공용 MIR helper로 수렴했고, dead AST fallback도 제거되어 MIR routine 부재 시 partial C surface 없이 즉시 backend error로 실패한다. 남은 것은 declaration inventory bootstrap 잔여다 |
 | Type-resolution DAG | 진행 중 | 70% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔다. graph cycle과 legacy alias cycle 모두 `Contract source` / `Reason` / `Fix` vocabulary로 정렬됐고, full graph-backed evaluator는 beta-out-of-scope로 두고 stage-2 source-of-truth 승격이 남음 |
 | Arena / lifetime discipline | 진행 중 | 81% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 규칙 문서화는 끝났고 transpiler scratch-only temporary의 첫 safe vertical slice, semantic result-owned diagnostic payload seam, semantic scratch arena가 ownership path 조립 / stdlib preload / enum method mangling / parallel task metadata / type-resolution cycle detection / match redundancy coverage까지 확장됐다. HIR/MIR에는 routine-scope `scratch` arena가, LLVM은 `scratch + persistent + result-owned` lane으로 정리되어 event invoke, intent collector, projection path, local grow array, type render helper, callable signature metadata까지 arena 경계가 올라왔다. 남은 것은 owner shell과 runtime ABI contract, 반환 ownership이 섞인 일부 helper다 |
-| C/LLVM parity | 진행 중 | 88% | 차단 | LLVM stmt/expr fallback은 warning-only가 아니라 structured backend error로 고정됐고 AST dispatch partition smoke가 CI gate에 들어갔다. Windows full green은 plain Linux host가 아니라 MSYS2/MinGW + LLVM runner truth로 분리했다 |
+| C/LLVM parity | 진행 중 | 89% | 차단 | LLVM stmt/expr fallback은 warning-only가 아니라 structured backend error로 고정됐고 AST dispatch partition smoke가 CI gate에 들어갔다. domain method MIR-missing 경로도 partial emit 없이 explicit backend error로 정렬됐다. Windows full green은 plain Linux host가 아니라 MSYS2/MinGW + LLVM runner truth로 분리했다 |
 | runtime observability | 진행 중 | 76% | 차단 | last/history/active/recent baseline은 있으나 richer state/failure provenance가 얕음 |
 | surface trust docs | 진행 중 | 87% | 차단 | 주요 surface는 정렬됐고 own/ref baseline도 넓어졌지만 B0 잔여에 맞춘 최종 재분류와 acceptance wording 고정이 남음 |
 

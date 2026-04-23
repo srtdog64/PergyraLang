@@ -1,8 +1,6 @@
 emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 {
-    int saved_slot_count;
-    int saved_typed_count;
-    char saved_return_type[128];
+    TranspilerMirEmitState saved_emit_state;
     bool has_compensate_steps = false;
     bool needs_cleanup_done_label = false;
     bool mir_only_intent = false;
@@ -16,8 +14,6 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     size_t participant_count = 0;
     const MIRRoutine *mir_routine = NULL;
     bool emit_cleanup_from_mir = false;
-    CodeBuf *saved_out;
-    TranspilerCtx *saved_render_ctx;
 
 #define PGY_MIR_INTENT_CARRIER_FAIL(MSG) \
     do { \
@@ -44,14 +40,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     if (node == NULL || node->type != AST_INTENT_DECL || buf == NULL || ctx == NULL)
         return;
 
-    saved_slot_count = ctx->slot_var_count;
-    saved_typed_count = ctx->typed_var_count;
-    saved_out = ctx->out;
-    saved_render_ctx = g_type_render_ctx;
+    transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
     g_type_render_ctx = ctx;
-    snprintf(saved_return_type, sizeof(saved_return_type), "%s",
-             ctx->current_return_type);
     mir_only_intent = ctx->mir != NULL;
     transpiler_set_current_return_type_local(ctx, "Bool");
     emit_cleanup_from_mir = transpiler_can_emit_intent_cleanup_from_mir(ctx, node, &mir_routine);
@@ -80,9 +71,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         free((void *)participant_aliases);
         free((void *)participant_types);
         free((void *)mir_step_names);
-        transpiler_set_current_return_type_local(ctx, saved_return_type);
-        g_type_render_ctx = saved_render_ctx;
-        ctx->out = saved_out;
+        transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
         return;
     }
     if (mir_only_intent && node->data.intent_decl.step_count > 0 && step_count == 0) {
@@ -97,9 +86,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         free((void *)participant_aliases);
         free((void *)participant_types);
         free((void *)mir_step_names);
-        transpiler_set_current_return_type_local(ctx, saved_return_type);
-        g_type_render_ctx = saved_render_ctx;
-        ctx->out = saved_out;
+        transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
         return;
     }
     if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
@@ -115,9 +102,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             free((void *)participant_aliases);
             free((void *)participant_types);
             free((void *)mir_step_names);
-            transpiler_set_current_return_type_local(ctx, saved_return_type);
-            g_type_render_ctx = saved_render_ctx;
-            ctx->out = saved_out;
+            transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
             return;
         }
         for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
@@ -134,9 +119,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 free((void *)participant_aliases);
                 free((void *)participant_types);
                 free((void *)mir_step_names);
-                transpiler_set_current_return_type_local(ctx, saved_return_type);
-                g_type_render_ctx = saved_render_ctx;
-                ctx->out = saved_out;
+                transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
                 return;
             }
         }
@@ -929,16 +912,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     ctx->indent--;
 
     ctx->indent--;
-    transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
-                                                  saved_typed_count, -1);
-    transpiler_set_current_return_type_local(ctx, saved_return_type);
     codebuf_write(ctx->out, "}\n");
     free(mir_steps);
     free((void *)participant_aliases);
     free((void *)participant_types);
     free((void *)mir_step_names);
-    g_type_render_ctx = saved_render_ctx;
-    ctx->out = saved_out;
+    transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
     return;
 
 intent_emit_fail:
@@ -949,9 +928,5 @@ intent_emit_fail:
     free((void *)participant_aliases);
     free((void *)participant_types);
     free((void *)mir_step_names);
-    transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
-                                                  saved_typed_count, -1);
-    transpiler_set_current_return_type_local(ctx, saved_return_type);
-    g_type_render_ctx = saved_render_ctx;
-    ctx->out = saved_out;
+    transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
 }

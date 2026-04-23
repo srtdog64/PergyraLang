@@ -6,7 +6,7 @@
 
 ### 종합 판단: Late-Stage Alpha
 
-- 베타 진행률 추정: 약 `90-91%`
+- 베타 진행률 추정: 약 `94-95%`
 - 현재 표현: `late-stage alpha / beta-closure sprint`
 
 ## 구조/운영 폐인 포인트 보드 (2026-04-20)
@@ -208,6 +208,9 @@
   - LLVM pipeline의 nominal registration / class method emission도 raw nominal AST array보다 `mir->decl_headers`를 직접 순회하도록 정렬
   - LLVM domain pass도 raw `ctx->mir->{relations,effects,zones,...}` 직접 접근 대신 `llvm_active_domain_inventory(...)` helper를 통과하도록 정렬
   - 즉, declaration-side debt는 이제 emitter 본문보다 inventory bootstrap + helper/restore layer 국소 부위로 더 압축됨
+  - C transpiler domain/hosted method emission도 `emit_hosted_methods_from_mir_or_error_local(...)` helper로 수렴
+  - party / roster / relation / effect / zone / world method emit는 같은 MIR routine gate와 같은 explicit backend error 정책을 사용
+  - relation/effect/zone/world method의 dead AST signature fallback 제거
 - generic contract + type-resolution DAG 회귀를 더 넓힘
   - `role impl ability` 경로가 generic default/where-bound cycle provenance regression에 추가됨
   - 즉, action/intent-step/zone-authority/party-role-slot에 더해 role impl consumer도 staged DAG path 회귀 범위에 포함
@@ -585,6 +588,9 @@
   - method owner metadata가 HIR->MIR로 내려와 declaration-side zone/relation/effect/world context 복원 시 이름 추정보다 MIR metadata를 우선 사용
   - 진행: `transpiler_emit_host_method_body_local`의 manual save/restore 상태를 `TranspilerMirEmitState` snapshot helper로 축소
   - 진행: `emit_func_decl_from_mir_named` / AST fallback `emit_func_decl_named`도 `TranspilerMirEmitState` snapshot helper로 수렴
+  - 진행: `emit_intent_decl`의 function-scope out/render/return/local-count restore도 `TranspilerMirEmitState` snapshot helper로 수렴
+  - 진행: generic class specialization method body도 MIR inventory 존재 시 AST fallback 대신 MIR routine gate / explicit backend error로 정렬
+  - 진행: LLVM domain/role missing-routine errors도 `PGY_CODE_LLVM_MIR_ROUTINE_MISSING` / cause / fix structured path로 정렬
 - LLVM backend:
   - MIR-led / HIR-assisted hybrid
   - ordinary routine은 MIR 중심이지만 domain declaration과 일부 bootstrap/helper path에 HIR/AST 의존 잔존

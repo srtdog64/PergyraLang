@@ -2336,7 +2336,11 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                              method->data.func_decl.name != NULL
                                  ? method->data.func_decl.name
                                  : "(anonymous)");
-                    llvm_set_error(ctx, msg);
+                    llvm_set_error_with_hints(ctx,
+                        PGY_CODE_LLVM_MIR_ROUTINE_MISSING,
+                        PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "%s", msg);
                     llvm_scope_pop(ctx);
                     return;
                 }
@@ -2540,7 +2544,11 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                          method->data.func_decl.name != NULL
                              ? method->data.func_decl.name
                              : "(anonymous)");
-                llvm_set_error(ctx, msg);
+                llvm_set_error_with_hints(ctx,
+                    PGY_CODE_LLVM_MIR_ROUTINE_MISSING,
+                    PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "%s", msg);
                 return;
             }
 
@@ -2636,7 +2644,11 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                          method->data.func_decl.name != NULL
                              ? method->data.func_decl.name
                              : "(anonymous)");
-                llvm_set_error(ctx, msg);
+                llvm_set_error_with_hints(ctx,
+                    PGY_CODE_LLVM_MIR_ROUTINE_MISSING,
+                    PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "%s", msg);
                 return;
             }
 
