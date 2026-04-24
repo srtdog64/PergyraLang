@@ -72,96 +72,6 @@ find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
 }
 
 static bool
-role_decl_has_ability(ASTNode *role, ASTNode *program,
-                      ASTNode *ability_ref, int depth)
-{
-    if (role == NULL || role->type != AST_ROLE_DECL
-        || ability_ref == NULL || depth > 16) {
-        return false;
-    }
-
-    for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
-        ASTNode *impl = role->data.role_decl.impl_abilities[i];
-        if (impl != NULL
-            && impl->type == AST_IMPL_ABILITY
-            && impl->data.impl_ability.ability_ref != NULL
-            && ability_ref_matches(program,
-                impl->data.impl_ability.ability_ref, ability_ref)) {
-            return true;
-        }
-    }
-
-    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
-        ASTNode *inc = role->data.role_decl.includes[i];
-        ASTNode *included = find_role_decl_in_program(program,
-            inc != NULL ? inc->data.include_stmt.role_name : NULL);
-        if (role_decl_has_ability(included, program, ability_ref, depth + 1))
-            return true;
-    }
-
-    return false;
-}
-
-static bool
-subject_type_has_ability(ASTNode *program, const char *type_name,
-                         ASTNode *ability_ref)
-{
-    if (program == NULL || program->type != AST_PROGRAM
-        || type_name == NULL || ability_ref == NULL) {
-        return false;
-    }
-
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_ROLE_DECL
-            || stmt->data.role_decl.for_type == NULL
-            || stmt->data.role_decl.for_type->type != AST_TYPE
-            || stmt->data.role_decl.for_type->data.type.name == NULL
-            || strcmp(stmt->data.role_decl.for_type->data.type.name, type_name) != 0) {
-            continue;
-        }
-        if (role_decl_has_ability(stmt, program, ability_ref, 0))
-            return true;
-    }
-
-    return false;
-}
-
-static ASTNode *
-subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
-                                    const char *ability_name)
-{
-    if (program == NULL || program->type != AST_PROGRAM
-        || type_name == NULL || ability_name == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_ROLE_DECL
-            || stmt->data.role_decl.for_type == NULL
-            || stmt->data.role_decl.for_type->type != AST_TYPE
-            || stmt->data.role_decl.for_type->data.type.name == NULL
-            || strcmp(stmt->data.role_decl.for_type->data.type.name, type_name) != 0) {
-            continue;
-        }
-        for (size_t j = 0; j < stmt->data.role_decl.impl_count; j++) {
-            ASTNode *impl = stmt->data.role_decl.impl_abilities[j];
-            if (impl != NULL
-                && impl->type == AST_IMPL_ABILITY
-                && impl->data.impl_ability.ability_ref != NULL
-                && impl->data.impl_ability.ability_ref->type == AST_TYPE
-                && impl->data.impl_ability.ability_ref->data.type.name != NULL
-                && strcmp(impl->data.impl_ability.ability_ref->data.type.name, ability_name) == 0) {
-                return impl->data.impl_ability.ability_ref;
-            }
-        }
-    }
-
-    return NULL;
-}
-
-static bool
 any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
 {
     if (program == NULL || program->type != AST_PROGRAM
@@ -255,7 +165,7 @@ find_domain_slot_local(ASTNode **slots, size_t slot_count, const char *slot_name
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 find_zone_domain_slot(ASTNode *zone, const char *slot_name)
 {
     if (zone == NULL || slot_name == NULL)

@@ -1,23 +1,23 @@
 # `.inc` Split Roadmap
 
-마지막 업데이트: 2026-04-20
+마지막 업데이트: 2026-04-24
 
 `type_checker.c` 및 transpiler/LLVM의 일부 `.inc` 파일은 “모듈화”가 아니라 **파일이 분할된 단일 translation unit**에 가깝다. 이 문서는 P1 (TODO.md 폐인 포인트 보드) 항목을 단계적으로 닫기 위한 axis-by-axis 절단 계획.
 
 ---
 
-## 현 상태 (2026-04-20)
+## 현 상태 (2026-04-24)
 
 `src/semantic/`:
-- `.c` 7개, `.h` 12개, `.inc` **53개**
-- 분리된 internal header 7개 (`type_checker_*_internal.h`) — 인터페이스만 분리, 구현은 여전히 .inc
+- `.c` 26개, `.h` 22개, `.inc` **55개**
+- `.inc` 개수는 split용 shim/include가 섞여 단순 감소 지표로 쓰지 않는다. 베타 debt 지표는 큰 `.inc` LOC, static cascade, direct include chain 축소로 본다.
+- 분리된 internal header 16개 (`type_checker_*_internal.h`) — leaf/axis 인터페이스는 translation unit 경계로 이동 중
 
 `type_checker.c` include chain (depth 4):
 ```
 type_checker.c
 ├─ type_checker_helpers.inc → core / host / late
 ├─ type_checker_visibility.inc
-├─ type_checker_module_contracts.inc
 ├─ type_checker_resolution.inc → graph / stage
 ├─ type_checker_expr.inc → resolve / operator_expr
 ├─ type_checker_ownership_boundaries.inc
@@ -27,12 +27,107 @@ type_checker.c
 └─ type_checker_program.inc
 ```
 
-가장 큰 .inc 파일 Top 5 (LOC):
-1. `type_checker_resolution_graph_inventory.inc` — 2,167
-2. `type_checker_decls_a.inc` — 2,088
-3. `type_checker_decls_domain_helpers.inc` — 1,542
-4. `type_checker_resolution_stage.inc` — 1,468
-5. `type_checker_program.inc` — 1,206
+가장 큰 .inc 파일 Top 5 (LOC, 2026-04-24 snapshot):
+1. `type_checker_resolution_graph_inventory.inc` — 1,809
+2. `type_checker_decls_a.inc` — 2,124
+3. `type_checker_decls_domain_helpers.inc` — 1,557
+4. `type_checker_resolution_stage.inc` — 1,477
+5. `type_checker_program.inc` — 1,210
+
+Cross-subsystem large `.inc` debt (LOC, 2026-04-24 snapshot):
+1. `runtime/pgy_runtime_part_ba.inc` — 4,731
+2. `codegen/transpiler_expr_emitters.inc` — 4,334
+3. `runtime/pgy_runtime_lib_part_b.inc` — 4,154
+4. `codegen/llvm_expr_calls.inc` — 3,129
+5. `codegen/transpiler_emitters_base_b.inc` — 3,068
+6. `codegen/transpiler_emitters_base_a.inc` — 2,890
+7. `codegen/transpiler_helpers_core_a.inc` — 2,600
+8. `codegen/transpiler_helpers_core_b.inc` — 2,572
+
+---
+
+## 장기 목표선 — 어디까지 모듈화해야 충분한가
+
+목표는 `.inc` 개수를 0으로 만드는 것이 아니라, **언어 축별 owner와 dependency direction이 명확한 translation unit 구조**를 만드는 것이다. 베타 이후에도 기능을 계속 추가하려면 최소한 다음 상태까지 가야 한다.
+
+### Target State A — Semantic Core
+
+- `type_checker.c`는 orchestration만 담당한다.
+- `type_checker_resolution_graph_inventory.inc`와 `type_checker_resolution_stage.inc`는 각각 500 LOC 이하의 shim 또는 완전한 `.c` 모듈로 전환한다.
+- declaration validators는 `subject/class`, `zone`, `world`, `intent`, `relation/effect/projection`, `ability/role/party/roster` 단위의 `.c`로 분리한다.
+- `find_*_decl`, `find_*_slot`, label/format, dependency record API는 static include-order가 아니라 internal header 계약으로만 사용한다.
+- type-resolution DAG는 recursive resolver의 보조 자료가 아니라 provider/consumer validation schedule의 source of truth가 된다.
+
+Semantic stop condition:
+- `src/semantic`에는 800 LOC 초과 `.inc`가 없다.
+- `type_checker.c`는 600 LOC 이하이며 include aggregator가 아니다.
+- semantic 신규 기능은 `.inc` 수정 없이 해당 axis `.c`와 internal header만 수정해서 추가 가능해야 한다.
+
+### Target State B — Backend Emitters
+
+- C transpiler와 LLVM은 각각 expression/statement/declaration/domain/runtime-call emitter를 실제 `.c` 단위로 소유한다.
+- `transpiler_expr_emitters.inc`, `llvm_expr_calls.inc`, `llvm_expr_helpers.inc`는 500~800 LOC 이하의 feature module로 쪼갠다.
+- backend declaration inventory는 AST-carried helper에 직접 기대지 않고 MIR/DIR/RIR metadata reader API를 통한다.
+- C/LLVM 공통 ABI naming, projection labels, runtime symbol lookup은 중복 helper가 아니라 공유 contract module에서 읽는다.
+
+Backend stop condition:
+- `src/codegen`에는 1,000 LOC 초과 `.inc`가 없다.
+- C/LLVM parity test에 새 frozen surface를 추가할 때 emitter helper를 두 곳에 복붙하지 않는다.
+- declaration emit path에서 raw AST fallback은 hard error 또는 dedicated inventory reader로만 흐른다.
+
+### Target State C — Runtime / ABI
+
+- `pgy_runtime_part_*.inc`와 `pgy_runtime_lib_part_*.inc`는 domain별 `.c`로 분리한다: slot/resource, intent observability, zone/world frontier, projection propagation, authority failure, async/parallel.
+- runtime public ABI와 internal scheduler/storage helper를 같은 파일에 섞지 않는다.
+- recoverable failure state, hard-fail invariant, queryable observability state를 파일 경계에서도 분리한다.
+
+Runtime stop condition:
+- `src/runtime`에는 1,000 LOC 초과 `.inc`가 없다.
+- ABI struct/header 변경은 `pgy_abi_spec.h`와 해당 runtime `.c`만 보면 audit 가능하다.
+- world/zone/projection propagation의 bounded scheduler는 single source of truth로 존재하고 C/LLVM generated calls가 같은 runtime entrypoint를 호출한다.
+
+### Target State D — Tests
+
+- 대형 semantic test `.inc`도 axis별 executable 또는 fixture module로 분리한다.
+- `test_semantic.c`가 10개 이상의 대형 `.inc`를 include하는 구조는 장기적으로 유지하지 않는다.
+- beta frozen subset은 semantic/unit, C smoke, LLVM smoke, backend compare에 같은 case id로 연결한다.
+
+Test stop condition:
+- 1,500 LOC 초과 test `.inc`가 없다.
+- 실패 로그에서 case id만으로 feature axis와 backend parity 여부를 추적할 수 있다.
+
+### Target State E — Speed / Build Performance
+
+- 장기 모듈화는 include-order debt를 줄이되, frontend/backend latency를 숨은 비용으로 늘리면 안 된다.
+- `make test-abi-perf`는 beta frozen ABI/runtime surface의 benchmark-only baseline으로 유지한다.
+- `tests/perf_summary.sh <log>` 또는 `make perf-summary PERF_LOG=<log>`로 C/LLVM compile/run 평균과 worst-case를 요약한다.
+- representative backend benchmark는 `tests/bench_backend.sh <source.pgy> dev`로 C/LLVM wall time과 peak RSS를 같이 본다.
+- generated/native compile warning은 performance noise로 취급하지 않고 build hygiene bug로 즉시 닫는다.
+
+Speed stop condition:
+- `test-abi-perf`는 `320 passed, 0 failed` 기준을 유지한다.
+- 대표 backend compare case의 generated compile warning은 0개여야 한다. 소스 semantic warning은 expected case일 때만 허용한다.
+- 모듈화 slice 후 `perf_summary` worst-case compile time이 이전 baseline 대비 2배 이상 튀면 해당 slice를 성능 회귀 후보로 기록한다.
+- CI hard bound는 `test_abi_pipeline`의 latency floor를 사용하고, 로컬 benchmark는 비교용 수치로만 다룬다.
+
+---
+
+## 장기 단계화
+
+1. Beta closure phase:
+   - semantic DAG inventory/stage 본체를 먼저 줄인다.
+   - declaration-side MIR inventory bootstrap debt와 runtime propagation blocker만 건드린다.
+   - codegen/runtime 대형 split은 parity를 깨지 않는 leaf helper 위주로 제한한다.
+
+2. Beta+1 architecture phase:
+   - C/LLVM emitter include tree를 실제 TU로 전환한다.
+   - runtime propagation/observability/failure를 domain별 `.c`로 분리한다.
+   - test include bundle을 feature fixture runner로 바꾼다.
+   - perf summary baseline을 release artifact에 첨부할 수 있게 자동화한다.
+
+3. v1 readiness phase:
+   - `.inc`는 generated table, local macro table, private test fixture 같은 제한 용도로만 남긴다.
+   - 모든 core language axis는 owner module, internal header, regression matrix, docs entry를 가진다.
 
 ---
 
@@ -59,42 +154,78 @@ semantic_classify_ownership_type
 ### 1. **diagnostic helpers** (P0 — 다음 sprint 시작점)
 - 대상: `type_checker_helpers_context.inc` (emit_diagnostic_full 등)
 - 종속: `Type`, `SemanticContext`, `ASTNode` 만 사용 — leaf
-- 출력: `type_checker_diag.c` + `type_checker_diag.h`
-- 예상 cascade: 0개
+- 출력: `type_checker_diag.c`; public declarations remain in `type_checker.h` / `diag_payload.h`
+- 상태: DONE — `type_checker_helpers_context.inc`에서 diagnostic snapshot/emission/printing 243 LOC 제거
+- 검증: `make test-semantic`, `make test-all`
 
 ### 2. **ownership classifier + labels**
 - 대상: `type_checker_ownership_boundaries.inc:14-82` (5개 함수)
 - 종속: `type_is_*` predicate 4개 (그 중 `type_is_subject_type`이 static)
 - 출력: `type_checker_ownership_classify.c` + 기존 `type_checker_ownership_internal.h` 갱신
-- 예상 cascade: 1개 (`type_is_subject_type` promote to extern in `type_checker_internal.h`)
+- 상태: DONE — classifier/value/provenance/replacement labels를 별도 TU로 이동
+- cascade: `type_is_subject_type` promoted to extern in `type_checker_internal.h`
+- 검증: `make test-semantic`
 
 ### 3. **channel transport validator**
 - 대상: `type_checker_async_channel.inc:11-217` (validator + reporters)
 - 종속: ownership classifier (위 axis 2 선행 필요), `OwnershipConsumerKind`
 - 출력: `type_checker_channel_transport.c` + 기존 `type_checker_channel_transport_internal.h` 갱신
-- 예상 cascade: 0개 (axis 2 완료 가정)
+- 상태: DONE — borrowed transfer, named-binding transfer, transport mismatch/policy reporters를 별도 TU로 이동
+- include hygiene: `type_checker_builtins.c` 수동 forward declaration 제거, channel header의 ownership diagnostic include 제거
+- 검증: `make test-semantic`
 
 ### 4. **generic contract diagnostics**
 - 대상: `type_checker_helpers_late.inc:40-79` 외 generic mismatch helpers
 - 종속: `Type`, `SemanticContext`, `GenericParams`, ability metadata
 - 출력: `type_checker_generic_diag.c` + 기존 `type_checker_generic_diag_internal.h` 갱신
-- 예상 cascade: 2~3개
+- 상태: DONE — function/class/ability generic bound failure renderers를 별도 TU로 이동
+- 검증: `make test-semantic`
 
 ### 5. **ownership consumers (escape diagnostics)**
 - 대상: `type_checker_ownership_diag_internal.h` 기반 helper family (10-param 진단)
 - 종속: ownership classifier, `OwnershipConsumerKind`
 - 출력: `type_checker_ownership_diag.c`
-- 예상 cascade: 1~2개
+- 상태: DONE — ownership escape diagnostic renderer/helper family를 별도 TU로 이동
+- 결과: `type_checker_ownership_boundaries.inc`는 validation switch + ownership let/return includes 중심으로 축소
+- 검증: `make test-semantic`
 
 ### 6. **module contract / authority consumer**
 - 대상: `type_checker_module_contracts.inc` 일부
 - 종속: ability metadata, generic params
 - 출력: `type_checker_module_contract.c`
+- 선행 seam: DONE — ability reference display/name/signature helpers를 `type_checker_ability_ref.c`로 이동
+- 선행 seam: DONE — stdlib use validation을 `type_checker_stdlib_use.c`로 이동
+- 선행 seam: DONE — subject ability mismatch diagnostic을 `type_checker_module_contract_diag.c`로 이동
+- 선행 seam: DONE — ability `fields` validator를 `type_checker_ability_fields.c`로 이동
+- 선행 seam: DONE — ability ref matching / role ability lookup / subject ability lookup을 `type_checker_ability_match.c`로 이동
+- 선행 seam: DONE — ability where-bound consumer validation을 `type_checker_ability_where.c`로 이동
+- 본체: DONE — required ability resolver와 action required-ability validator를 `type_checker_module_contract.c`로 이동
+- cascade: `find_type_decl_by_name`를 `type_checker_internal.h` internal API로 승격
+- cascade: `find_ability_decl_by_name`와 `collect_effective_generic_arg_nodes`를 internal API로 승격
+- cascade: `generic_params_required_count`를 internal API로 승격
+- cascade: `format_type_constraint_bounds`와 `semantic_type_resolution_record_type_ref_dependency`를 internal API로 승격
+- 후속: `semantic_type_resolution_record_type_ref_dependency`는 graph core TU로 이동 완료
+- 결과: `type_checker_module_contracts.inc` 제거
+- 남음: authority 의미론 자체는 베타 보드에서 계속 관리하지만, module contract include-order 구조 debt는 닫힘
 - 예상 cascade: 5+ (가장 무거움)
 
 ### 7. **resolution graph / stage** (마지막 — 가장 큰 .inc 두 개)
 - 대상: `type_checker_resolution_graph_inventory.inc` (2,167 LOC), `type_checker_resolution_stage.inc` (1,468 LOC)
 - 종속: 거의 모든 type/context 인프라
+- 선행 seam: DONE — type constraint bound formatter를 `type_checker_type_constraint.c`로 이동
+- 선행 seam: DONE — graph node/edge/path/cycle-format primitive를 `type_checker_resolution_graph_core.c`로 이동
+- 선행 seam: DONE — named dependency edge recorder와 즉시 cycle diagnostic 발행 경로를 `type_checker_resolution_graph_core.c`로 이동
+- 선행 seam: DONE — type-ref dependency recorder를 `type_checker_resolution_graph_core.c`로 이동
+- 선행 seam: DONE — type-ref collector를 `type_checker_resolution_graph_collect.c`로 이동
+- 선행 seam: DONE — generic contract inventory / string dependency / required ability collector helpers를 `type_checker_resolution_graph_collect.c`로 이동
+- 선행 seam: DONE — top-level declaration graph registration을 `type_checker_resolution_graph_collect.c`로 이동
+- 선행 seam: DONE — local-contract graph node/dependency + zone/world/projection label formatters를 `type_checker_resolution_graph_labels.c`로 이동
+- 선행 seam: DONE — event declaration precollector를 `type_checker_resolution_graph_decl.c`로 이동
+- 선행 seam: DONE — projection source resolver를 `type_checker_resolution_graph_domain.c`로 이동하고 `find_zone_domain_slot`을 internal API로 승격
+- cleanup: DONE — `find_type_alias_decl`의 cross-include dangling return-type seam을 명시 선언으로 정리
+- cleanup: DONE — `type_checker_resolution_graph_core.inc` → inventory include 경계의 dangling `static void` seam 2개를 명시 return type으로 정리
+- cascade: `type_resolution_intern_node`, `type_resolution_add_edge`, `type_resolution_find_path`, `type_resolution_format_cycle`, `semantic_type_resolution_record_named_dependency`, `semantic_type_resolution_record_type_ref_dependency`, `semantic_type_resolution_collect_type_refs`, `find_type_alias_decl`를 internal API로 승격
+- 현재 크기: `type_checker_resolution_graph_core.inc` 331 LOC, `type_checker_resolution_graph_collect.c` 285 LOC, `type_checker_resolution_graph_labels.c` 164 LOC, `type_checker_resolution_graph_domain.c` 29 LOC, `type_checker_resolution_graph_decl.c` 70 LOC, `type_checker_resolution_graph_inventory.inc` 1,809 LOC, `type_checker_resolution_stage.inc` 1,477 LOC
 - 예상 cascade: 10+ — full audit 필요
 
 ---
@@ -137,15 +268,15 @@ semantic_classify_ownership_type
 
 | Axis | 상태 | 비고 |
 |---|---|---|
-| 1. diagnostic helpers | TODO | 다음 sprint 첫 항목 |
-| 2. ownership classifier | TODO | cascade 1개 (`type_is_subject_type`) |
-| 3. channel transport validator | TODO | axis 2 선행 필요 |
-| 4. generic contract diagnostics | TODO | cascade 2~3개 |
-| 5. ownership consumers | TODO | axis 2 선행 필요 |
-| 6. module contract consumer | TODO | 무거움, 별 sprint 권장 |
-| 7. resolution graph / stage | TODO | 마지막, full audit |
+| 1. diagnostic helpers | DONE | `type_checker_diag.c`; semantic/test-all 통과 |
+| 2. ownership classifier | DONE | `type_checker_ownership_classify.c`; `type_is_subject_type` extern 승격 |
+| 3. channel transport validator | DONE | `type_checker_channel_transport.c`; channel include 경계 축소 |
+| 4. generic contract diagnostics | DONE | `type_checker_generic_diag.c`; function/class/ability generic bound diagnostics 분리 |
+| 5. ownership consumers | DONE | `type_checker_ownership_diag.c`; escape diagnostic renderer 분리 |
+| 6. module contract consumer | DONE | `type_checker_module_contract.c`; `type_checker_module_contracts.inc` 제거 |
+| 7. resolution graph / stage | IN PROGRESS | formatter + graph primitive + dependency recorder + collector-helper + event precollector seams 분리 완료; inventory/stage 본체 남음 |
 
-총 7개 axis 완료 시 `.inc` 카운트 53 → 약 35-40으로 감소 예상. 남은 .inc는 정말 단일 hot path 분할용으로만 유지.
+7개 axis 중 6개가 완료됐고, 7번째 axis도 leaf/primitive/dependency-recorder/collector seam 분리는 시작됐다. `.inc` 카운트 자체는 shim/include 추가 때문에 단순 감소하지 않지만, leaf helper와 module-contract consumer는 실제 translation unit으로 이동했다. 남은 큰 축은 resolution graph inventory/stage 본체이며, 이 축은 full audit 후 좁은 handler 단위로 더 절단해야 한다.
 
 ---
 

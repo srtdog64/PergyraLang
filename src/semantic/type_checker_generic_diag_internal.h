@@ -26,4 +26,16 @@ semantic_report_function_generic_bound_failure(SemanticContext *ctx,
                                                const char *actual_sig,
                                                const char *concrete_name);
 
+void
+semantic_report_class_generic_bound_failure(SemanticContext *ctx,
+                                            ASTNode *site,
+                                            const char *class_name,
+                                            const char *param_name,
+                                            const char *bound_name,
+                                            const char *bounds_text,
+                                            const char *expected_text,
+                                            const char *actual_text,
+                                            const char *concrete_name,
+                                            const char *site_label);
+
 #endif

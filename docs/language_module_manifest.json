@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "current_import_surface": "file import plus namespace/export",
+  "future_import_surface": "logical pgy.* module names; no new beta syntax implied",
+  "modules": [
+    {
+      "name": "pgy.foundation",
+      "layer": "foundation",
+      "status": "stable-subset",
+      "beta_blocker": true,
+      "current_surface": "builtins and compiler/runtime baseline",
+      "surfaces": [
+        "primitive values",
+        "func/let/control flow",
+        "callable/lambda baseline",
+        "Option",
+        "Result",
+        "List<T>",
+        "Set<T>",
+        "HashMap<String|Int|Long|Bool, T>",
+        "basic runtime ABI"
+      ]
+    },
+    {
+      "name": "pgy.core",
+      "layer": "core",
+      "status": "stable-subset",
+      "beta_blocker": true,
+      "current_surface": "language keywords and semantic contracts",
+      "surfaces": [
+        "intent",
+        "world",
+        "zone",
+        "subject",
+        "relation",
+        "effect",
+        "projection",
+        "authority",
+        "handoff",
+        "runtime observability",
+        "anchored ownership boundary",
+        "generic contract system",
+        "module visibility/export contract",
+        "parallel"
+      ]
+    },
+    {
+      "name": "pgy.execution",
+      "layer": "execution-family",
+      "status": "stable-subset",
+      "beta_blocker": true,
+      "current_surface": "parallel family syntax/runtime",
+      "surfaces": [
+        "parallel",
+        "spawn",
+        "async",
+        "await",
+        "select",
+        "channel",
+        "cancellation"
+      ]
+    },
+    {
+      "name": "pgy.runtime.scheduler",
+      "layer": "runtime-mechanism",
+      "status": "implementation-detail",
+      "beta_blocker": false,
+      "current_surface": "runtime/async implementation",
+      "surfaces": [
+        "POSIX ucontext",
+        "Windows Fiber",
+        "scheduler queue",
+        "suspension/resume machinery"
+      ]
+    },
+    {
+      "name": "pgy.compat.oop",
+      "layer": "compatibility",
+      "status": "compatibility-surface",
+      "beta_blocker": false,
+      "current_surface": "class/object convenience where supported",
+      "surfaces": [
+        "class-heavy convenience",
+        "method-style sugar",
+        "legacy pattern naming"
+      ]
+    },
+    {
+      "name": "pgy.compat.fp",
+      "layer": "compatibility",
+      "status": "compatibility-surface",
+      "beta_blocker": false,
+      "current_surface": "library-level combinators only",
+      "surfaces": [
+        "Map/Filter/Fold",
+        "OptionMap",
+        "ResultMap",
+        "ResultAndThen"
+      ],
+      "out_of_scope": [
+        "Functor ability over HKT",
+        "higher-kinded types",
+        "type-family generalization"
+      ]
+    },
+    {
+      "name": "pgy.std.money",
+      "layer": "standard-library",
+      "status": "library-surface",
+      "beta_blocker": false,
+      "current_surface": "stdlib/money.pgy",
+      "path": "stdlib/money.pgy",
+      "surfaces": [
+        "Money",
+        "minor-unit arithmetic"
+      ]
+    },
+    {
+      "name": "pgy.std.datetime",
+      "layer": "standard-library",
+      "status": "library-surface",
+      "beta_blocker": false,
+      "current_surface": "stdlib/datetime.pgy",
+      "path": "stdlib/datetime.pgy",
+      "surfaces": [
+        "LocalDate",
+        "LocalTime",
+        "DateTime",
+        "Duration",
+        "Instant"
+      ]
+    },
+    {
+      "name": "pgy.std.timer",
+      "layer": "standard-library",
+      "status": "library-surface",
+      "beta_blocker": false,
+      "current_surface": "stdlib/timer.pgy",
+      "path": "stdlib/timer.pgy",
+      "surfaces": [
+        "TimerAfter",
+        "TimerEvery",
+        "TimerExpired",
+        "TimerTick"
+      ]
+    },
+    {
+      "name": "pgy.std.versioning",
+      "layer": "standard-library",
+      "status": "library-surface",
+      "beta_blocker": false,
+      "current_surface": "stdlib/versioning.pgy",
+      "path": "stdlib/versioning.pgy",
+      "surfaces": [
+        "VersionStamp",
+        "IdempotencyKey"
+      ]
+    },
+    {
+      "name": "pgy.kit.ledger",
+      "layer": "domain-kit",
+      "status": "domain-kit",
+      "beta_blocker": false,
+      "current_surface": "stdlib/ledger.pgy",
+      "path": "stdlib/ledger.pgy",
+      "depends_on": [
+        "pgy.std.money",
+        "pgy.std.versioning"
+      ],
+      "surfaces": [
+        "append-only posting pattern"
+      ]
+    },
+    {
+      "name": "pgy.kit.obligation",
+      "layer": "domain-kit",
+      "status": "domain-kit",
+      "beta_blocker": false,
+      "current_surface": "stdlib/obligation.pgy",
+      "path": "stdlib/obligation.pgy",
+      "depends_on": [
+        "pgy.std.datetime"
+      ],
+      "surfaces": [
+        "deadline to violation pattern"
+      ]
+    },
+    {
+      "name": "pgy.kit.device_adapter",
+      "layer": "domain-kit",
+      "status": "domain-kit",
+      "beta_blocker": false,
+      "current_surface": "stdlib/device_adapter.pgy",
+      "path": "stdlib/device_adapter.pgy",
+      "surfaces": [
+        "register/sample/command adapter pattern"
+      ]
+    }
+  ]
+}

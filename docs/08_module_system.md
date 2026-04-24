@@ -7,6 +7,7 @@
 - stable current surface는 파일 기반 `import "path.pgy";` 와 namespace/export 조합이다
 - 아래 `module ... {}` 문법, `init/deinit`, attribute 기반 조건부 컴파일은 설계 예시에 가깝다
 - 현재 상태 평가는 `docs/17_development_status.md`를 우선한다
+- 언어 surface 계층화 기준은 `docs/99_language_module_taxonomy.md`를 우선한다. `pgy.core`, `pgy.foundation`, `pgy.execution`, `pgy.compat.*` 이름은 현재 새 문법이 아니라 future package/import 설계를 위한 논리 모듈명이다.
 
 ## 0. Current Implementation Surface
 

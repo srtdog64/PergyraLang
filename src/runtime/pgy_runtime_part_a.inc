@@ -18,8 +18,8 @@
 #define CLOCK_REALTIME 0
 extern int clock_gettime(int clk_id, struct timespec *tp);
 extern int nanosleep(const struct timespec *req, struct timespec *rem);
-extern char *realpath(const char *path, char *resolved_path);
 #endif
+extern char *realpath(const char *path, char *resolved_path);
 #endif
 #ifdef _WIN32
 #include <windows.h>

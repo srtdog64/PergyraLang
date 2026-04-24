@@ -328,7 +328,7 @@ constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *
     }
 }
 
-static bool
+bool
 type_is_subject_type(const Type *type, SemanticContext *ctx);
 
 static bool
@@ -365,7 +365,7 @@ type_is_nominal_host_type(const Type *type, SemanticContext *ctx)
     return false;
 }
 
-static bool
+bool
 type_is_subject_type(const Type *type, SemanticContext *ctx)
 {
     ASTNode *decl;

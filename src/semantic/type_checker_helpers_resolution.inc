@@ -1,3 +1,4 @@
+ASTNode *
 find_type_alias_decl(ASTNode *program, const char *name)
 {
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
@@ -180,115 +181,8 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
     }
 }
 
-static ASTNode *
+ASTNode *
 find_type_decl_by_name(ASTNode *program, const char *type_name);
-
-static bool
-type_name_is_builtin_provider(const char *name)
-{
-    return name != NULL
-        && (strcmp(name, "Int") == 0
-            || strcmp(name, "Long") == 0
-            || strcmp(name, "Float") == 0
-            || strcmp(name, "Double") == 0
-            || strcmp(name, "Bool") == 0
-            || strcmp(name, "String") == 0
-            || strcmp(name, "QubitSlot") == 0
-            || strcmp(name, "Void") == 0
-            || strcmp(name, "Array") == 0
-            || strcmp(name, "Slice") == 0
-            || strcmp(name, "List") == 0
-            || strcmp(name, "Queue") == 0
-            || strcmp(name, "HashMap") == 0
-            || strcmp(name, "Set") == 0
-            || strcmp(name, "Box") == 0
-            || strcmp(name, "Rc") == 0
-            || strcmp(name, "Weak") == 0
-            || strcmp(name, "RemoteFuture") == 0
-            || strcmp(name, "DeviceSlot") == 0
-            || strcmp(name, "Allocator") == 0
-            || strcmp(name, "Option") == 0);
-}
-
-static void
-semantic_type_resolution_record_type_ref_dependency(SemanticContext *ctx,
-                                                    const ASTNode *consumer_site,
-                                                    const char *consumer_name,
-                                                    const ASTNode *provider_type_ref,
-                                                    const char *reason)
-{
-    const char *provider_name;
-    ASTNode *alias_decl;
-    ASTNode *decl;
-
-    if (ctx == NULL || provider_type_ref == NULL)
-        return;
-
-    if (provider_type_ref->type != AST_TYPE
-        || provider_type_ref->data.type.name == NULL) {
-        semantic_type_resolution_record_named_dependency(
-            ctx,
-            consumer_site,
-            consumer_name,
-            TYPE_RES_NODE_TYPE_REF,
-            provider_type_ref,
-            "<type>",
-            reason);
-        return;
-    }
-
-    provider_name = provider_type_ref->data.type.name;
-    if (type_name_is_builtin_provider(provider_name)) {
-        semantic_type_resolution_record_named_dependency(
-            ctx,
-            consumer_site,
-            consumer_name,
-            TYPE_RES_NODE_BUILTIN,
-            NULL,
-            provider_name,
-            reason);
-        return;
-    }
-
-    alias_decl = (ctx->program_root != NULL)
-        ? find_type_alias_decl(ctx->program_root, provider_name)
-        : NULL;
-    if (alias_decl != NULL) {
-        semantic_type_resolution_record_named_dependency(
-            ctx,
-            consumer_site,
-            consumer_name,
-            TYPE_RES_NODE_ALIAS,
-            alias_decl,
-            provider_name,
-            reason);
-        return;
-    }
-
-    decl = (ctx->program_root != NULL)
-        ? find_type_decl_by_name(ctx->program_root, provider_name)
-        : NULL;
-    if (decl != NULL) {
-        semantic_type_resolution_record_named_dependency(
-            ctx,
-            consumer_site,
-            consumer_name,
-            TYPE_RES_NODE_DECL,
-            decl,
-            provider_name,
-            reason);
-        return;
-    }
-
-    semantic_type_resolution_record_named_dependency(
-        ctx,
-        consumer_site,
-        consumer_name,
-        TYPE_RES_NODE_TYPE_REF,
-        provider_type_ref,
-        provider_name,
-        reason);
-}
 
 static Type *
 resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)

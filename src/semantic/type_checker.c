@@ -16,23 +16,24 @@
 #include "diag_payload.h"
 #include "diag_codes.h"
 #include "type_checker_generic_diag_internal.h"
+#include "type_checker_ability_ref_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_diag_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_channel_transport_internal.h"
 #include "type_checker_ownership_support_internal.h"
+#include "type_checker_stdlib_use_internal.h"
+#include "type_checker_module_contract_internal.h"
+#include "type_checker_module_contract_diag_internal.h"
+#include "type_checker_ability_fields_internal.h"
+#include "type_checker_ability_match_internal.h"
+#include "type_checker_ability_where_internal.h"
 #include "slot_analyzer.h"
 
 #define INITIAL_DIAG_CAPACITY 16
 
 static bool
-semantic_is_known_stdlib_use_module(const char *module_name);
-static bool
 callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx);
-static size_t
-generic_params_required_count(GenericParams *params);
-static char *
-format_type_constraint_bounds(TypeConstraint *tc);
 static char *
 format_generic_subject_signature(const char *name, GenericParams *params);
 static const char *
@@ -50,28 +51,6 @@ static char *
 semantic_assignment_target_path_impl(ASTNode *expr,
                                      SemanticContext *ctx,
                                      bool scratch);
-static void
-semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
-                                                 const ASTNode *consumer_site,
-                                                 const char *consumer_name,
-                                                 TypeResolutionNodeKind provider_kind,
-                                                 const ASTNode *provider_site,
-                                                 const char *provider_name,
-                                                 const char *reason);
-static void
-semantic_type_resolution_record_type_ref_dependency(SemanticContext *ctx,
-                                                    const ASTNode *consumer_site,
-                                                    const char *consumer_name,
-                                                    const ASTNode *provider_type_ref,
-                                                    const char *reason);
-static bool
-type_resolution_find_path(TypeResolutionGraph *graph,
-                          size_t current,
-                          size_t goal,
-                          bool *visited,
-                          size_t *path,
-                          size_t *path_len,
-                          size_t path_cap);
 static bool
 type_resolution_find_cycle_visit(TypeResolutionGraph *graph,
                                  size_t current,
@@ -82,11 +61,6 @@ type_resolution_find_cycle_visit(TypeResolutionGraph *graph,
                                  size_t *cycle_len,
                                  size_t cycle_cap,
                                  size_t *closing_node);
-static char *
-type_resolution_format_cycle(TypeResolutionGraph *graph,
-                             size_t *path,
-                             size_t path_len,
-                             size_t closing_node);
 static bool
 type_resolution_validate_graph(SemanticContext *ctx);
 static bool
@@ -98,15 +72,12 @@ semantic_type_resolution_precollect_action_contract(ASTNode *method,
                                                     SemanticContext *ctx,
                                                     const char *fallback_name);
 static void
-semantic_type_resolution_precollect_event_inventory(ASTNode *event_decl,
-                                                    SemanticContext *ctx);
-static void
 semantic_type_resolution_precollect_enum_inventory(ASTNode *enum_decl,
                                                    SemanticContext *ctx);
 static void
 semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
                                                    SemanticContext *ctx);
-static ASTNode **
+ASTNode **
 collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     GenericParams *provided_args,
                                     const ASTNode *site,
@@ -122,48 +93,8 @@ semantic_stage_method_array(ASTNode **methods,
 static void
 semantic_stage_event_signature(ASTNode *event_decl,
                                SemanticContext *ctx);
-static void
-semantic_type_resolution_register_local_contract_node(SemanticContext *ctx,
-                                                      const ASTNode *site,
-                                                      const char *label);
-static void
-semantic_type_resolution_record_local_contract_dependency(SemanticContext *ctx,
-                                                          const ASTNode *consumer_site,
-                                                          const char *consumer_label,
-                                                          const ASTNode *provider_site,
-                                                          const char *provider_label,
-                                                          const char *reason);
-static char *
-semantic_type_resolution_world_zone_slot_label(ASTNode *world_decl,
-                                               const char *slot_name);
-static char *
-semantic_type_resolution_world_state_label(ASTNode *world_decl,
-                                           const char *state_name);
-static char *
-semantic_type_resolution_zone_slot_label(ASTNode *zone_decl,
-                                         const char *slot_name);
-static char *
-semantic_type_resolution_zone_layer_label(ASTNode *zone_decl,
-                                          const char *slot_name);
-static char *
-semantic_type_resolution_zone_state_label(ASTNode *zone_decl,
-                                          const char *state_name);
-static char *
-semantic_type_resolution_projection_path_label(ASTNode *zone_decl,
-                                               const char *target_slot_name,
-                                               const char *source_slot_name,
-                                               const char *target_field_name,
-                                               const char *source_field_name);
-static char *
-semantic_type_resolution_projection_slot_field_label(ASTNode *zone_decl,
-                                                     const char *slot_name,
-                                                     const char *field_path);
 char *
 semantic_assignment_target_path(ASTNode *expr);
-static ASTNode *
-semantic_type_resolution_projection_source_decl(ASTNode *zone_decl,
-                                                const char *slot_name,
-                                                SemanticContext *ctx);
 static ASTNode *
 semantic_world_find_zone_slot_local(ASTNode *world, const char *slot_name);
 static ASTNode *
@@ -191,7 +122,6 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
 #include "type_checker_helpers.inc"
 /* type_checker_visibility.inc was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
-#include "type_checker_module_contracts.inc"
 
 const char *
 qubit_state_name(QubitSemanticState state)
@@ -322,88 +252,6 @@ semantic_run_type_resolution_worklist(ASTNode *program,
         }
     }
 }
-
-static void
-semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
-                                                 const ASTNode *consumer_site,
-                                                 const char *consumer_name,
-                                                 TypeResolutionNodeKind provider_kind,
-                                                 const ASTNode *provider_site,
-                                                 const char *provider_name,
-                                                 const char *reason)
-{
-    TypeResolutionGraph *graph;
-    size_t from;
-    size_t to;
-    bool *visited = NULL;
-    size_t *path = NULL;
-    size_t path_len = 0;
-
-    if (ctx == NULL)
-        return;
-
-    graph = &ctx->type_resolution_graph;
-    from = type_resolution_intern_node(graph,
-                                       TYPE_RES_NODE_TYPE_REF,
-                                       consumer_site,
-                                       consumer_name != NULL ? consumer_name : "<type-ref>");
-    to = type_resolution_intern_node(graph,
-                                     provider_kind,
-                                     provider_site,
-                                     provider_name != NULL ? provider_name : "<provider>");
-
-    if (from != (size_t)-1 && to != (size_t)-1 && graph->node_count > 0) {
-        /* Cycle-detection working arrays are scratch: populated during
-         * type_resolution_find_path, read for diagnostic assembly, discarded
-         * before the enclosing call returns.  Never stored anywhere that
-         * outlives this function. */
-        visited = pgy_arena_calloc(&ctx->scratch_arena,
-            graph->node_count * sizeof(bool));
-        path = pgy_arena_calloc(&ctx->scratch_arena,
-            graph->node_count * sizeof(size_t));
-        if (visited != NULL && path != NULL) {
-            bool has_cycle = (from == to)
-                || type_resolution_find_path(graph,
-                                             to,
-                                             from,
-                                             visited,
-                                             path,
-                                             &path_len,
-                                             graph->node_count);
-            if (has_cycle && consumer_site != NULL) {
-                char *cycle_text = type_resolution_format_cycle(
-                    graph,
-                    path,
-                    path_len,
-                    from);
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, consumer_site,
-                    "Type resolution dependency cycle detected around '%s'.\n"
-                    "Reason:\n"
-                    "- resolving '%s' would feed back into itself through the current dependency graph\n"
-                    "- cycle path: %s\n"
-                    "Fix:\n"
-                    "- break the alias/default/bound dependency loop so one side becomes concrete first\n"
-                    "- or split the contract into acyclic declarations",
-                    consumer_name != NULL ? consumer_name : "<type-ref>",
-                    consumer_name != NULL ? consumer_name : "<type-ref>",
-                    cycle_text != NULL ? cycle_text : "<cycle>");
-                /* cycle_text is heap-owned per type_resolution_format_cycle
-                 * contract (returned string) — not in scope for this slice. */
-                free(cycle_text);
-            }
-        }
-        /* visited / path are arena-owned. */
-    }
-
-    type_resolution_add_edge(graph, from, to, reason);
-}
-
-static bool
-subject_type_has_ability(ASTNode *program, const char *type_name,
-                         ASTNode *ability_ref);
-static ASTNode *
-subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
-                                    const char *ability_name);
 
 static int
 semantic_find_labeled_loop_depth(SemanticContext *ctx, const char *label)
@@ -542,34 +390,6 @@ type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
 
     ctx->in_parallel = prev_parallel;
     return !ctx->has_error;
-}
-
-static bool
-semantic_is_known_stdlib_use_module(const char *module_name)
-{
-    static const char *const modules[] = {
-        "datetime",
-        "device_adapter",
-        "http",
-        "ledger",
-        "money",
-        "obligation",
-        "page",
-        "spray",
-        "storage",
-        "timer",
-        "versioning"
-    };
-
-    if (module_name == NULL)
-        return false;
-
-    for (size_t i = 0; i < sizeof(modules) / sizeof(modules[0]); i++) {
-        if (strcmp(module_name, modules[i]) == 0)
-            return true;
-    }
-
-    return false;
 }
 
 static bool

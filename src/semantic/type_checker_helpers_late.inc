@@ -37,47 +37,6 @@ static uint32_t
 declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
                                     bool *has_contract_out);
 
-void
-semantic_report_function_generic_bound_failure(SemanticContext *ctx,
-                                               ASTNode *site,
-                                               const char *function_name,
-                                               const char *param_name,
-                                               const char *bound_name,
-                                               const char *bounds_text,
-                                               const char *expected_sig,
-                                               const char *actual_sig,
-                                               const char *concrete_name)
-{
-    semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
-        PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
-        "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'.\n"
-        "Reason:\n"
-        "- generic subject is function '%s'\n"
-        "- function '%s' requires '%s: %s'\n"
-        "- full bound set is '%s: %s'\n"
-        "- expected type args are '%s'\n"
-        "- actual type args are '%s'\n"
-        "- consumer path is call site of '%s'\n"
-        "- broken bound is '%s'\n"
-        "Fix:\n"
-        "- pass an argument whose type satisfies '%s'\n"
-        "- or relax the function where-clause",
-        concrete_name != NULL ? concrete_name : "<type>",
-        bound_name != NULL ? bound_name : "<constraint>",
-        param_name != NULL ? param_name : "<type-param>",
-        function_name != NULL ? function_name : "<function>",
-        function_name != NULL ? function_name : "<function>",
-        param_name != NULL ? param_name : "<type-param>",
-        bound_name != NULL ? bound_name : "<constraint>",
-        param_name != NULL ? param_name : "<type-param>",
-        bounds_text != NULL ? bounds_text : "<constraint>",
-        expected_sig != NULL ? expected_sig : "<function>",
-        actual_sig != NULL ? actual_sig : "<actual>",
-        function_name != NULL ? function_name : "<function>",
-        bound_name != NULL ? bound_name : "<constraint>",
-        bound_name != NULL ? bound_name : "<constraint>");
-}
-
 static ASTNode *
 lookup_function_param_contract_local(SemanticContext *ctx,
                                      const char *display_name,

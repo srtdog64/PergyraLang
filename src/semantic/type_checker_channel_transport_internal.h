@@ -1,7 +1,7 @@
 #ifndef PERGYRA_TYPE_CHECKER_CHANNEL_TRANSPORT_INTERNAL_H
 #define PERGYRA_TYPE_CHECKER_CHANNEL_TRANSPORT_INTERNAL_H
 
-#include "type_checker_ownership_consumers_internal.h"
+#include "type_checker_ownership_internal.h"
 
 bool
 semantic_check_channel_send_borrowed_transfer(ASTNode *value_expr,

@@ -54,54 +54,6 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
 }
 
 static void
-semantic_report_class_generic_bound_failure(SemanticContext *ctx,
-                                            ASTNode *site,
-                                            const char *class_name,
-                                            const char *param_name,
-                                            const char *bound_name,
-                                            const char *bounds_text,
-                                            const char *expected_text,
-                                            const char *actual_text,
-                                            const char *concrete_name,
-                                            const char *site_label)
-{
-    semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
-        PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
-        "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
-        "Contract source:\n"
-        "- class declaration contract is '%s'\n"
-        "- where clause requires '%s: %s'\n"
-        "- validation path is '%s'\n"
-        "Reason:\n"
-        "- class '%s' requires '%s: %s'\n"
-        "- full bound set is '%s: %s'\n"
-        "- expected type args are '%s'\n"
-        "- actual type args are '%s'\n"
-        "- %s type argument is '%s'\n"
-        "Fix:\n"
-        "- pass/specialize with a type that satisfies '%s'\n"
-        "- or relax the class where-clause",
-        concrete_name != NULL ? concrete_name : "<type>",
-        bound_name != NULL ? bound_name : "<constraint>",
-        param_name != NULL ? param_name : "<type-param>",
-        class_name != NULL ? class_name : "<class>",
-        expected_text != NULL ? expected_text : "<class>",
-        param_name != NULL ? param_name : "<type-param>",
-        bounds_text != NULL ? bounds_text : "<constraint>",
-        actual_text != NULL ? actual_text : "<actual>",
-        class_name != NULL ? class_name : "<class>",
-        param_name != NULL ? param_name : "<type-param>",
-        bound_name != NULL ? bound_name : "<constraint>",
-        param_name != NULL ? param_name : "<type-param>",
-        bounds_text != NULL ? bounds_text : "<constraint>",
-        expected_text != NULL ? expected_text : "<class>",
-        actual_text != NULL ? actual_text : "<actual>",
-        site_label != NULL ? site_label : "effective",
-        concrete_name != NULL ? concrete_name : "<type>",
-        bound_name != NULL ? bound_name : "<constraint>");
-}
-
-static void
 validate_generic_param_default_bounds(GenericParams *gp,
                                       WhereClause *wc,
                                       SemanticContext *ctx,

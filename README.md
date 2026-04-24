@@ -38,6 +38,18 @@ Pergyra documents every major surface with one of these labels:
 
 Current classification snapshot:
 
+- language identity / core
+  - stable beta core: `intent`, `world`, `zone`, `subject`, `relation`, `effect`, `projection`, `authority`, `handoff`, runtime observability, anchored ownership boundaries, the generic contract system, module visibility/export contracts, and `parallel`
+  - generic contracts are core, not a compatibility feature: exact generics, ability bounds, multi-bounds, implemented default type argument resolution, and supported module/export consumers define the domain contract language
+  - `parallel` is the core execution primitive; it is separate from `intent`, which remains the orchestration contract core
+- foundation layer
+  - stable subset: primitive values, `func`, `let`, control flow, basic callable values, `Option` / `Result`, and the collection implementations needed by the core contract language
+  - purpose: make the core executable without becoming the language identity
+- execution family / compatibility surface
+  - `spawn`, `async`, `await`, `select`, `channel`, cancellation, coroutine/fiber machinery, OOP-style class convenience, and FP combinator libraries are support/style surfaces unless explicitly promoted
+  - fiber / coroutine support is runtime machinery for suspension and scheduling; it is not the same layer as the `parallel` execution primitive
+  - beta support may smoke-test these surfaces, but beta identity and blocker status are anchored on `pgy.core + pgy.foundation`; `pgy.execution` keeps the `parallel` family explicit without promoting fiber/coroutine to core identity
+  - source of truth: [docs/99_language_module_taxonomy.md](docs/99_language_module_taxonomy.md), [docs/language_module_manifest.json](docs/language_module_manifest.json), and [docs/language_module_cases.json](docs/language_module_cases.json)
 - generics
   - stable subset: exact/ability/multi-bound baseline plus implemented default type argument resolution on supported declaration/call/module-consumer paths
   - beta-out-of-scope: broader generic generalization, higher-kinded types, Functor / `fmap`-style abstraction (soft-no — see [docs/04_generic_design.md](docs/04_generic_design.md))

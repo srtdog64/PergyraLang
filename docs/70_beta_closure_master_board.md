@@ -37,6 +37,55 @@
 7. 문서가 구현보다 앞서가지 않는다
 8. scratch/result lifetime과 cache boundary가 문서/구현 기준으로 설명 가능하다
 
+## Core / Foundation / Style Taxonomy
+
+이 보드는 beta closure 기준을 언어 정체성 기준으로 다시 나눈다.
+
+### Core language
+
+Beta blocker로 본다.
+
+- `intent`, `world`, `zone`, `subject`
+- `relation`, `effect`, `projection`
+- `authority`, `handoff`, runtime observability
+- anchored ownership boundary
+- generic contract system
+- `ability` / multi-bound / implemented default type argument resolution
+- module visibility/export contract
+- `parallel` as the core execution primitive
+
+중요한 결정:
+
+- generics는 foundation이나 FP compatibility가 아니라 core domain contract다.
+- `where T: A + B`, ability bounds, default type arg actual resolution은 zone/intent/projection/authority가 받을 수 있는 host/resource shape를 정하는 언어 계약이다.
+- `parallel`은 core execution primitive다. `intent`는 orchestration core이고, 둘은 같은 층이 아니라 서로 맞물리는 1급 core 축이다.
+
+### Foundation layer
+
+Core를 실행 가능하게 만드는 최소 기반이다. Beta blocker이지만 언어 identity로 과장하지 않는다.
+
+- primitive values
+- `func`, `let`, control flow
+- callable values / lambda baseline
+- `Option` / `Result`
+- stable collections implementation
+- basic runtime ABI needed by core contracts
+
+### Execution family / compatibility surface
+
+Beta에서 smoke/parity는 유지하되, core identity나 B0 blocker로 넓히지 않는다.
+
+- `spawn`: task-producing surface under `parallel`
+- `async` / `await`: suspension and completion surface
+- `select` / `channel` / cancellation: readiness and dataflow support under the execution family
+- fiber / coroutine: runtime mechanism, not language identity
+- OOP-style class convenience: compatibility/style surface
+- FP combinator libraries: compatibility/style surface
+
+따라서 fiber/coroutine 계열은 `parallel`과 같은 core 축이 아니다. `parallel`은 실행 의미론을 바꾸는 언어 primitive이고, fiber/coroutine은 그 아래에서 suspension/scheduler를 구현하는 runtime mechanism으로 문서화한다.
+
+Source of truth for future module/package naming: `docs/99_language_module_taxonomy.md`, `docs/language_module_manifest.json`, and `docs/language_module_cases.json`. Drift gate: `make module-taxonomy-test-smoke`.
+
 ## Master Status Board
 
 | 트랙 | 상태 | 진행률 | 베타 차단 여부 | 핵심 메모 |

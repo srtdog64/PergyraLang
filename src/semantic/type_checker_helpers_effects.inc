@@ -335,7 +335,7 @@ type_is_movable_resource_handle(const Type *type)
     return type_is_qubit(type);
 }
 
-static bool
+bool
 type_is_subject_type(const Type *type, SemanticContext *ctx);
 
 static bool
@@ -393,7 +393,7 @@ resource_handle_display_name(const Type *type)
     return type->name != NULL ? type->name : "resource";
 }
 
-static ASTNode *
+ASTNode *
 find_type_decl_by_name(ASTNode *program, const char *type_name)
 {
     if (program == NULL || program->type != AST_PROGRAM || type_name == NULL)
@@ -412,7 +412,7 @@ find_type_decl_by_name(ASTNode *program, const char *type_name)
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 find_ability_decl_by_name(ASTNode *program, const char *name)
 {
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
@@ -517,12 +517,8 @@ static ASTNode *
 find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type,
                          const char *name);
 
-static ASTNode *
+ASTNode *
 find_zone_domain_slot(ASTNode *zone, const char *slot_name);
-
-static bool
-subject_type_has_ability(ASTNode *program, const char *type_name,
-                         ASTNode *ability_ref);
 
 static ClassField *
 subject_host_field_at(ASTNode *decl, size_t index)

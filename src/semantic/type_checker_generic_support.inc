@@ -238,7 +238,7 @@ identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx)
     return false;
 }
 
-static size_t
+size_t
 generic_params_required_count(GenericParams *params)
 {
     size_t required = 0;
@@ -252,7 +252,7 @@ generic_params_required_count(GenericParams *params)
     return required;
 }
 
-static ASTNode **
+ASTNode **
 collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     GenericParams *provided_args,
                                     const ASTNode *site,

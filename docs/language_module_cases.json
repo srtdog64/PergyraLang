@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "purpose": "Tags representative tests and examples by logical language module layer. This does not change current file-based imports.",
+  "cases": [
+    {
+      "path": "tests/cases/abi_pipeline/intent_authority_snapshot_abi/main.pgy",
+      "kind": "abi-pipeline",
+      "modules": ["pgy.core", "pgy.foundation"],
+      "role": "authority snapshot reaches runtime observability"
+    },
+    {
+      "path": "tests/cases/abi_pipeline/handoff_projection_frontier_abi/main.pgy",
+      "kind": "abi-pipeline",
+      "modules": ["pgy.core", "pgy.foundation"],
+      "role": "handoff projection frontier"
+    },
+    {
+      "path": "tests/cases/abi_pipeline/handoff_world_state_frontier_abi/main.pgy",
+      "kind": "abi-pipeline",
+      "modules": ["pgy.core", "pgy.foundation"],
+      "role": "world-derived state freshness after handoff"
+    },
+    {
+      "path": "tests/cases/abi_pipeline/handoff_layer_state_frontier_abi/main.pgy",
+      "kind": "abi-pipeline",
+      "modules": ["pgy.core", "pgy.foundation"],
+      "role": "action-caused layer/state freshness after handoff"
+    },
+    {
+      "path": "tests/cases/abi_pipeline/world_embedded_action_frontier_abi/main.pgy",
+      "kind": "abi-pipeline",
+      "modules": ["pgy.core", "pgy.foundation"],
+      "role": "embedded world-zone action frontier"
+    },
+    {
+      "path": "tests/cases/abi_pipeline/world_embedded_action_pool_frontier_abi/main.pgy",
+      "kind": "abi-pipeline",
+      "modules": ["pgy.core", "pgy.foundation"],
+      "role": "embedded world-zone action frontier with effect pool"
+    },
+    {
+      "path": "tests/cases/backend_compare/generic_multi_bound_defaults/main.pgy",
+      "kind": "backend-compare",
+      "modules": ["pgy.core", "pgy.foundation"],
+      "role": "generic contract core parity"
+    },
+    {
+      "path": "tests/cases/backend_compare/parallel_channel_sum/main.pgy",
+      "kind": "backend-compare",
+      "modules": ["pgy.core", "pgy.execution", "pgy.foundation"],
+      "role": "parallel execution family parity"
+    },
+    {
+      "path": "tests/cases/backend_compare/higher_order_compose/main.pgy",
+      "kind": "backend-compare",
+      "modules": ["pgy.foundation", "pgy.compat.fp"],
+      "role": "FP-style callable composition without Functor/HKT"
+    },
+    {
+      "path": "tests/cases/backend_compare/host_method_class_return/main.pgy",
+      "kind": "backend-compare",
+      "modules": ["pgy.foundation", "pgy.compat.oop"],
+      "role": "class method compatibility parity"
+    },
+    {
+      "path": "examples/resource_scheduler_async_probe/main.pgy",
+      "kind": "example",
+      "modules": ["pgy.core", "pgy.execution", "pgy.foundation"],
+      "role": "parallel/resource example"
+    },
+    {
+      "path": "examples/finance_ledger_probe/main.pgy",
+      "kind": "example",
+      "modules": ["pgy.core", "pgy.foundation", "pgy.std.money", "pgy.std.versioning", "pgy.kit.ledger"],
+      "role": "domain kit ledger example"
+    },
+    {
+      "path": "examples/compliance_obligation_probe/main.pgy",
+      "kind": "example",
+      "modules": ["pgy.core", "pgy.foundation", "pgy.std.datetime", "pgy.kit.obligation"],
+      "role": "domain kit obligation example"
+    },
+    {
+      "path": "examples/iot_device_adapter_probe/main.pgy",
+      "kind": "example",
+      "modules": ["pgy.core", "pgy.foundation", "pgy.kit.device_adapter"],
+      "role": "domain kit device adapter example"
+    }
+  ]
+}

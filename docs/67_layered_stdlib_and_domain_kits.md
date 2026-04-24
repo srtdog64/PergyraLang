@@ -7,23 +7,26 @@
 - 코어 언어에는 새 도메인 키워드를 더 넣지 않는다
 - 공통 개념은 표준 라이브러리(common stdlib)로 올린다
 - 업종별 패턴은 domain kit로 분리한다
+- 전체 언어 surface 계층은 `docs/99_language_module_taxonomy.md`를 따른다
 
 핵심 원칙:
 
-- 코어: `authority / boundary / orchestration / ownership`
+- 코어: `intent / world / zone / relation / effect / projection / authority / handoff / generic contract / ownership / parallel`
+- foundation: primitive values / control flow / callable baseline / `Option` / `Result` / stable collections
+- execution family: `parallel` 아래 `spawn / async / await / select / channel / cancel`
 - common stdlib: `money / time / timer / versioning`
 - domain kit: `ledger / obligation / device_adapter`
 
 즉 다음 방향이다.
 
 ```pergyra
-use money;
-use datetime;
-use timer;
-use versioning;
-use ledger;
-use obligation;
-use device_adapter;
+use pgy.std.money;
+use pgy.std.datetime;
+use pgy.std.timer;
+use pgy.std.versioning;
+use pgy.kit.ledger;
+use pgy.kit.obligation;
+use pgy.kit.device_adapter;
 ```
 
 이지 다음 방향이 아니다.

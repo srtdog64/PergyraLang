@@ -1558,10 +1558,6 @@ intent_step_resolve_transfer_target_involves(ASTNode *intent_decl,
 }
 
 static bool
-subject_type_has_ability(ASTNode *program, const char *type_name,
-                         ASTNode *ability_ref);
-
-static bool
 intent_condition_is_bool(ASTNode *expr, SemanticContext *ctx, const char *label)
 {
     Type *ty;

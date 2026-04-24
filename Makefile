@@ -164,6 +164,24 @@ RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/symbol_table.c \
                    $(SEMANTIC_DIR)/type_checker.c \
+                   $(SEMANTIC_DIR)/type_checker_diag.c \
+                   $(SEMANTIC_DIR)/type_checker_generic_diag.c \
+                   $(SEMANTIC_DIR)/type_checker_type_constraint.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_core.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_collect.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_labels.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_domain.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_ability_ref.c \
+                   $(SEMANTIC_DIR)/type_checker_stdlib_use.c \
+                   $(SEMANTIC_DIR)/type_checker_module_contract.c \
+                   $(SEMANTIC_DIR)/type_checker_module_contract_diag.c \
+                   $(SEMANTIC_DIR)/type_checker_ability_fields.c \
+                   $(SEMANTIC_DIR)/type_checker_ability_match.c \
+                   $(SEMANTIC_DIR)/type_checker_ability_where.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_classify.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_diag.c \
+                   $(SEMANTIC_DIR)/type_checker_channel_transport.c \
                    $(SEMANTIC_DIR)/type_checker_visibility.c \
                    $(SEMANTIC_DIR)/type_checker_builtins.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \
@@ -499,6 +517,10 @@ test-abi-perf: $(ABI_PIPELINE_TEST) abi-perf-runtime
 	PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS1="$(ABI_PERF_RUNTIME_RELEASE_OBS1)" \
 	PGY_ABI_PERF_MODE=1 "$(ABI_PIPELINE_TEST)"
 
+perf-summary:
+	@test -n "$(PERF_LOG)" || { echo "usage: make perf-summary PERF_LOG=/path/to/test-abi-perf.log" >&2; exit 1; }
+	$(BASH) tests/perf_summary.sh "$(PERF_LOG)"
+
 test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="
 	$(CONCURRENCY_TEST)
@@ -598,6 +620,9 @@ ir-pipeline-test-smoke:
 ast-dispatch-test-smoke:
 	"$(BASH)" tests/ast_dispatch_partition_smoke.sh
 
+module-taxonomy-test-smoke:
+	"$(BASH)" tests/module_taxonomy_smoke.sh
+
 llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
@@ -639,6 +664,7 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" fmt-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" stdlib-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" module-test-smoke
+	$(MAKE) module-taxonomy-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" ir-pipeline-test-smoke
 	$(MAKE) ast-dispatch-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" example-test-smoke
@@ -737,7 +763,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-rir test-mir test-hir test-all \
-        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

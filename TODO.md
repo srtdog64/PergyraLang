@@ -9,6 +9,26 @@
 - 베타 진행률 추정: 약 `94-95%`
 - 현재 표현: `late-stage alpha / beta-closure sprint`
 
+## Beta taxonomy freeze: core / foundation / style
+
+베타 기준은 이제 기능 나열이 아니라 언어 정체성 기준으로 나눈다.
+
+- Core language: `intent`, `world`, `zone`, `subject`, `relation`, `effect`, `projection`, `authority`, `handoff`, runtime observability, anchored ownership boundary, generic contract system, module visibility/export contract, `parallel`.
+- Generic contract는 core다. exact/ability/multi-bound/default type arg actual resolution은 FP/OOP 편의가 아니라 domain contract를 표현하는 타입 언어다.
+- Foundation layer: primitive values, `func`, `let`, control flow, callable/lambda baseline, `Option`/`Result`, stable collections, core 실행에 필요한 runtime ABI.
+- Style / compatibility surface: OOP convenience, FP combinator libraries, app infra, richer async helpers.
+- Execution family split: `parallel`은 core execution primitive이고, `spawn`/`async`/`await`/`select`/`channel`/cancel은 그 아래 execution family다. fiber/coroutine은 language core가 아니라 runtime scheduling/suspension mechanism이다.
+
+실행 규칙:
+
+- B0 blocker는 `core + foundation stable subset`에만 붙인다.
+- `pgy.fp`식 Functor/HKT 추상화, class-heavy OOP 확장, coroutine/fiber 고도화는 beta identity blocker가 아니다.
+- 단, `parallel`은 core이므로 slot/resource/effect conflict, cancellation/fairness, C/LLVM lowering parity는 beta 품질 기준으로 계속 관리한다.
+- Source of truth: `docs/99_language_module_taxonomy.md`
+- Machine-readable manifest: `docs/language_module_manifest.json`
+- Representative case tags: `docs/language_module_cases.json`
+- Drift gate: `make module-taxonomy-test-smoke`
+
 ## 구조/운영 폐인 포인트 보드 (2026-04-20)
 
 이 섹션은 기능 backlog가 아니라, 실제 작업 효율과 베타 신뢰도를 계속 깎는 구조 debt / 운영 pain point를 고정한다.
@@ -19,6 +39,7 @@
 - `P3`: type-category vocabulary를 2-3층으로 압축
 - `P4`: 빌드/샌드박스/중간-stage JSON/artifact 문제를 공식 경로 기준으로 정리
 - `P9`: arena 패턴을 scratch/result lifetime 기준으로 명시 도입
+- `P10`: 모듈화/전파 고도화의 compile/runtime 속도 회귀를 별도 baseline으로 추적
 
 ### P1. `.inc` 스파게티를 실제 모듈로 절단
 
@@ -32,21 +53,80 @@
 - 기본 방침:
   - 우선 `semantic/type_checker_*`에서 ownership / generic / module-contract / diagnostics 축부터 실제 `.c`/`.h` export 구조로 절단
   - declaration-side MIR-only hot path도 helper family를 `.c` 경계로 분리
+  - 장기 목표선은 `docs/92_inc_split_roadmap.md`의 Target State A-D로 고정한다
+  - stop condition: semantic에는 800 LOC 초과 `.inc` 없음, codegen/runtime에는 1,000 LOC 초과 `.inc` 없음, `type_checker.c`는 orchestration-only, backend declaration path는 dedicated inventory reader 또는 hard error만 허용
+  - speed stop condition: `test-abi-perf`와 `perf-summary` baseline을 유지하고, 모듈화 slice 후 worst-case compile time이 2배 이상 튀면 회귀 후보로 기록
+  - `.inc`는 generated table / local macro table / private test fixture 같은 제한 용도로만 남긴다
 - 준비 작업:
-  - [ ] `type_checker`를 최소 4축으로 절단
-    - ownership classification
-    - ownership diagnostics/consumers
+  - [ ] `type_checker`를 최소 5축으로 절단
+    - [x] diagnostic emission/snapshot: `type_checker_diag.c`
+    - [x] ownership classification: `type_checker_ownership_classify.c`
+    - [x] channel transport validator: `type_checker_channel_transport.c`
+    - [x] ownership diagnostics/consumers: `type_checker_ownership_diag.c`
+    - [x] generic contract diagnostics: `type_checker_generic_diag.c`
+    - [x] ability reference formatting seam: `type_checker_ability_ref.c`
+    - [x] stdlib use validator seam: `type_checker_stdlib_use.c`
+    - [x] module contract diagnostic seam: `type_checker_module_contract_diag.c`
+    - [x] ability fields validator seam: `type_checker_ability_fields.c`
+    - [x] ability matcher / subject ability lookup seam: `type_checker_ability_match.c`
+    - [x] ability where-bound validator seam: `type_checker_ability_where.c`
     - generic consumer pipeline
-    - module contract / authority consumer
+    - [x] module contract / authority consumer: `type_checker_module_contract.c`
   - 진행: ownership 공용 enum/entrypoint를 `type_checker_ownership_internal.h`로 분리 시작
   - 진행: ownership diagnostics forward declaration도 `type_checker_ownership_diag_internal.h`로 분리 시작
+  - 진행: ownership escape diagnostic renderer/helper family는 `type_checker_ownership_diag.c`로 실제 TU 분리 완료
   - 진행: ownership support helper(`semantic_assignment_target_path`, `semantic_borrowed_boundary_root_name`)도 `type_checker_ownership_support_internal.h`로 분리 시작
   - 진행: ownership consumer seam(`return` / `assign` / `call`)도 `type_checker_ownership_consumers_internal.h`로 분리 시작
   - 진행: `param_summary`도 raw include block이 아니라 `semantic_check_param_summary_escapes(...)` consumer helper로 승격
   - 진행: channel transport seam도 `type_checker_channel_transport_internal.h`로 분리 시작
-  - 진행: high-arity generic mismatch helper도 `type_checker_generic_diag_internal.h`로 분리 시작
+  - 진행: channel transport validator/reporters는 `type_checker_channel_transport.c`로 실제 TU 분리 완료
+  - 진행: high-arity generic mismatch helper도 `type_checker_generic_diag.c`로 실제 TU 분리 완료
+  - 진행: module contract consumer 선행 seam인 ability reference display/name/signature helper는 `type_checker_ability_ref.c`로 실제 TU 분리 완료
+  - 진행: stdlib use validator는 `type_checker_stdlib_use.c`로 실제 TU 분리 완료
+  - 진행: subject ability mismatch diagnostic은 `type_checker_module_contract_diag.c`로 실제 TU 분리 완료
+  - 진행: ability `fields` validator는 `type_checker_ability_fields.c`로 실제 TU 분리 완료
+  - 진행: `find_type_decl_by_name`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
+  - 진행: ability ref matching / role ability lookup / subject ability lookup은 `type_checker_ability_match.c`로 실제 TU 분리 완료
+  - 진행: `find_ability_decl_by_name` / `collect_effective_generic_arg_nodes`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
+  - 진행: ability where-bound consumer validation은 `type_checker_ability_where.c`로 실제 TU 분리 완료
+  - 진행: `format_type_constraint_bounds`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격 후 별도 TU로 분리
+  - 진행: `semantic_type_resolution_record_type_ref_dependency`는 graph core TU로 이동해 include-order static helper 의존을 제거
+  - 진행: `semantic_type_resolution_collect_type_refs`는 `type_checker_resolution_graph_collect.c`로 이동해 DAG inventory collector의 첫 실제 TU seam을 만들었다
+  - 진행: generic contract inventory / string dependency / required ability collector helpers도 `type_checker_resolution_graph_collect.c`로 이동
+  - 진행: top-level declaration graph registration도 `type_checker_resolution_graph_collect.c`로 이동해 inventory pass의 bootstrap helper debt를 더 줄였다
+  - 진행: local-contract graph node/dependency + zone/world/projection label formatters는 `type_checker_resolution_graph_labels.c`로 이동해 graph inventory `.inc`를 1,835 LOC까지 축소했다
+  - 진행: projection source resolver는 `type_checker_resolution_graph_domain.c`로 이동하고 `find_zone_domain_slot`을 internal API로 승격해 graph/domain split 선행 seam을 만들었다
+  - 진행: event declaration precollector는 `type_checker_resolution_graph_decl.c`로 이동해 declaration-kind collector 분리도 시작
+  - 진행: `type_checker_resolution_graph_core.inc` → inventory include 경계의 dangling `static void` seam 2개를 명시 return type으로 정리
+  - 진행: `generic_params_required_count`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
+  - 완료: required ability resolver와 action required-ability validator는 `type_checker_module_contract.c`로 실제 TU 분리 완료
+  - 완료: `type_checker_module_contracts.inc` 제거. module contract include-order 구조 debt는 닫힘
   - [ ] `.inc` 내부 static helper 중 교차 참조 심한 심볼 목록 작성
   - [ ] include-order에 의존하는 implicit declaration 경로 제거
+
+### P10. 속도 / 빌드 성능 baseline
+
+- 문제:
+  - 장기 모듈화가 translation unit 수를 늘리면 incremental build는 좋아질 수 있지만 full build/link 또는 generated backend compile 시간이 튈 수 있다
+  - 현재 `test-abi-perf`는 존재하지만 raw log가 길어 worst-case 추적이 어렵다
+- 기본 방침:
+  - `make test-abi-perf`로 benchmark-only ABI/runtime baseline을 캡처한다
+  - `make perf-summary PERF_LOG=<log>`로 C/LLVM compile/run 평균과 worst-case를 요약한다
+  - representative case는 `tests/bench_backend.sh <source.pgy> dev`로 C/LLVM wall time + RSS를 직접 확인한다
+  - generated/native compile warning은 속도 noise가 아니라 build hygiene bug로 보고 즉시 닫는다
+- 현재 baseline (2026-04-24, local WSL):
+  - `make test-abi-perf`: 320 passed, 0 failed
+  - `perf-summary`: C 32 cases, avg compile 0.569s, max 1.783s (`intent_authority_snapshot_abi`), avg run 0.001s
+  - `perf-summary`: LLVM 32 cases, avg compile 0.187s, max 0.251s (`projection_abi`), avg run 0.002s
+  - representative `relation_effect_propagation/main.pgy`: C dev 1.03s / 46MB, LLVM dev 0.72s / 60MB after `realpath` warning fix
+- 진행:
+  - [x] `tests/perf_summary.sh` 추가
+  - [x] `make perf-summary PERF_LOG=<log>` 추가
+  - [x] generated C/LLVM compile path의 POSIX `realpath` implicit declaration 경고 제거
+- 남음:
+  - [ ] CI에서 benchmark-only 수치를 artifact로 저장할지 결정
+  - [ ] release/beta notes에 perf-summary baseline 첨부
+  - [ ] worst-case compile 2배 이상 증가 시 regression 후보로 자동 표시
 
 ### P2. hint namespace 레지스트리화
 
@@ -113,10 +193,11 @@
   - channel transport는 공통 validator 하나로 수렴
   - builtin/send wrappers는 surface adapter만 담당
 - 준비 작업:
-  - [ ] send/try-send/send-timeout/status variants 공통 validator 추출
+  - [x] send/try-send/send-timeout/status variants 공통 validator 추출
   - [ ] subject / movable / anchored / boundary mismatch wording 통일
   - 진행: named-transfer requirement와 subject/boundary/anchored borrowed-send/mismatch는 `semantic_channel_transfer_requires_named_binding(...)`, `semantic_report_named_channel_transfer_required(...)`, `semantic_validate_channel_transport_ownership(...)` helper로 1차 수렴
   - 진행: token / move-only send-recv restriction wording도 `semantic_report_channel_transport_policy(...)` helper로 정렬 시작
+  - 진행: validator/reporting 구현은 `type_checker_async_channel.inc`에서 제거되고 `type_checker_channel_transport.c`가 source of truth가 됐다
 
 ### P7. 중간 stage JSON routing closure
 
@@ -1012,6 +1093,17 @@
     - generic `default_type` / generic constraint / `where` bound는 staged DAG resolver 경로에 편입됨
     - graph regression은 world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / action-intent-zone-party ability consumer provenance까지 포함
     - graph validator cycle과 legacy alias-resolution cycle이 모두 `Contract source:` / `Reason:` / `Fix:` 구조로 정렬됨
+    - 진행: type constraint bound formatter는 `type_checker_type_constraint.c`로 실제 TU 분리 완료
+    - 진행: graph node/edge/path/cycle-format primitive는 `type_checker_resolution_graph_core.c`로 실제 TU 분리 완료
+    - 진행: named dependency edge recorder와 즉시 cycle diagnostic 발행 경로는 `type_checker_resolution_graph_core.c`로 실제 TU 분리 완료
+    - 진행: type-ref dependency recorder도 `type_checker_resolution_graph_core.c`로 이동했고, `find_type_alias_decl`의 cross-include dangling return-type seam을 명시 선언으로 정리
+    - 진행: type-ref collector는 `type_checker_resolution_graph_collect.c`로 이동했고, graph core/include 경계의 dangling `static void` seam을 제거
+    - 진행: generic contract inventory / string dependency / required ability collector helpers는 `type_checker_resolution_graph_collect.c`로 이동해 declaration collector들의 공통 의존을 TU 경계로 승격
+    - 진행: top-level declaration graph registration은 `type_checker_resolution_graph_collect.c`로 이동해 inventory `.inc`를 1,962 LOC까지 축소
+    - 진행: local-contract graph node/dependency + zone/world/projection label formatters는 `type_checker_resolution_graph_labels.c`로 이동해 inventory `.inc`를 1,835 LOC까지 축소
+    - 진행: projection source resolver는 `type_checker_resolution_graph_domain.c`로 이동하고 `find_zone_domain_slot`을 internal API로 승격해 inventory `.inc`를 1,809 LOC까지 축소
+    - 진행: event declaration precollector는 `type_checker_resolution_graph_decl.c`로 이동해 inventory 본체에서 declaration-kind collector를 첫 절단
+    - 진행: `type_resolution_intern_node` / `type_resolution_add_edge` / `type_resolution_find_path` / `type_resolution_format_cycle`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
   - 목표:
     - import graph와 별개로 `type provider -> type consumer` 그래프를 분리 구축한다
     - declaration / alias / generic default / where-bound / ability consumer / zone authority consumer를 DAG node/edge로 승격한다

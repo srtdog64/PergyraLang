@@ -4,10 +4,10 @@
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_support_internal.h"
 
-static const char *
+const char *
 semantic_current_consumer_name(SemanticContext *ctx);
 
-static void
+void
 semantic_report_borrowed_new_binding_escape(ASTNode *site,
                                             ASTNode *source_expr,
                                             SemanticContext *ctx,
@@ -16,7 +16,7 @@ semantic_report_borrowed_new_binding_escape(ASTNode *site,
                                             const char *value_label,
                                             const char *provenance_label);
 
-static void
+void
 semantic_report_borrowed_return_escape(ASTNode *site,
                                        ASTNode *source_expr,
                                        SemanticContext *ctx,
@@ -26,7 +26,7 @@ semantic_report_borrowed_return_escape(ASTNode *site,
                                        const char *replacement_label,
                                        bool summary_only);
 
-static void
+void
 semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
                                                   ASTNode *target_expr,
                                                   ASTNode *source_expr,
@@ -36,7 +36,7 @@ semantic_report_borrowed_assignment_rebind_escape(ASTNode *site,
                                                   const char *provenance_label,
                                                   const char *rebind_label);
 
-static void
+void
 semantic_report_borrowed_container_store_escape(ASTNode *site,
                                                 ASTNode *source_expr,
                                                 SemanticContext *ctx,
@@ -48,7 +48,7 @@ semantic_report_borrowed_container_store_escape(ASTNode *site,
                                                 const char *replacement_label,
                                                 const char *transfer_label);
 
-static void
+void
 semantic_report_borrowed_channel_send_escape(ASTNode *site,
                                              ASTNode *source_expr,
                                              SemanticContext *ctx,
@@ -58,7 +58,7 @@ semantic_report_borrowed_channel_send_escape(ASTNode *site,
                                              const char *replacement_label,
                                              bool summary_only);
 
-static void
+void
 semantic_report_borrowed_slot_handle_escape(ASTNode *site,
                                             ASTNode *source_expr,
                                             SemanticContext *ctx,
@@ -69,7 +69,7 @@ semantic_report_borrowed_slot_handle_escape(ASTNode *site,
                                             const char *secondary_fix,
                                             bool summary_only);
 
-static void
+void
 semantic_report_named_boundary_argument_required(ASTNode *site,
                                                  ASTNode *source_expr,
                                                  SemanticContext *ctx,
@@ -77,7 +77,7 @@ semantic_report_named_boundary_argument_required(ASTNode *site,
                                                  const char *value_label_lower,
                                                  const char *bind_fix);
 
-static void
+void
 semantic_report_borrowed_helper_call_escape(ASTNode *site,
                                             ASTNode *source_expr,
                                             SemanticContext *ctx,
@@ -89,7 +89,7 @@ semantic_report_borrowed_helper_call_escape(ASTNode *site,
                                             const char *mode_label,
                                             const char *local_fix_label);
 
-static void
+void
 semantic_report_borrowed_constructor_field_escape(ASTNode *site,
                                                   ASTNode *source_expr,
                                                   SemanticContext *ctx,

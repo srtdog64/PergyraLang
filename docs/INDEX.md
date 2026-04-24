@@ -30,6 +30,9 @@
 | **현황** | [`docs/68_pain_point_report.md`](docs/68_pain_point_report.md) | 실제 사용 pain point 보고 (컴파일/런타임 버그 포함) |
 | **현황** | [`docs/70_beta_closure_master_board.md`](docs/70_beta_closure_master_board.md) | 베타 판정 기준, B0/B1 차단축, MIR-only/parity/observability 마감 보드 |
 | **현황** | [`docs/71_beta_execution_tickets.md`](docs/71_beta_execution_tickets.md) | master board를 16개 실행 티켓으로 자른 beta blocker / trust 실행 보드 |
+| **현황** | [`docs/99_language_module_taxonomy.md`](docs/99_language_module_taxonomy.md) | core / foundation / execution / compatibility / domain kit 모듈 경계와 future import 기준 |
+| **현황** | [`docs/language_module_manifest.json`](docs/language_module_manifest.json) | module taxonomy의 machine-readable manifest |
+| **현황** | [`docs/language_module_cases.json`](docs/language_module_cases.json) | 대표 ABI/backend/example 케이스의 module layer tag manifest |
 | **컴파일러** | [`docs/94_arena_index_lifetime_plan.md`](docs/94_arena_index_lifetime_plan.md) | Arena + Index 참조 + 역할별 arena 분리 원칙과 도입 순서 |
 | **라이브러리** | [`docs/29_stdlib_design.md`](docs/29_stdlib_design.md) | stdlib/common/domain kit 계층과 모듈 정책 |
 | **라이브러리** | [`docs/67_layered_stdlib_and_domain_kits.md`](docs/67_layered_stdlib_and_domain_kits.md) | 코어 추가 금지, common stdlib vs domain kit 분리 정책 |
@@ -45,6 +48,22 @@
 | **레퍼런스** | [`TODO.md`](TODO.md) | 상세 TODO |
 
 ## 최신 변경 사항 (2026-04-12)
+
+### Core / Foundation / Style 모듈 경계 고정
+
+1. **언어 정체성 기준의 모듈 taxonomy 추가**
+   - `docs/99_language_module_taxonomy.md` 추가
+   - `pgy.core`: intent/world/zone/subject/relation/effect/projection/authority/handoff/generic contract/ownership/parallel
+   - `pgy.foundation`: primitive/control/callable/Option/Result/stable collections/runtime ABI
+   - `pgy.execution`: `parallel` 아래 spawn/async/await/select/channel/cancel family
+   - `pgy.runtime.scheduler`: fiber/coroutine runtime mechanism, language core 아님
+   - `pgy.compat.oop`, `pgy.compat.fp`, `pgy.kit.*`: beta identity blocker가 아닌 style/domain layer
+
+2. **베타 기준 재정렬**
+   - generics는 core domain contract로 고정
+   - `parallel`은 core execution primitive로 고정
+   - Functor/HKT, class-heavy OOP, coroutine/fiber 고도화는 beta-out-of-scope 또는 compatibility surface로 분리
+   - 현재 파일 기반 `import "path.pgy";` 구현은 유지하고, `pgy.*` 이름은 future package/import 설계를 위한 논리 모듈명으로 기록
 
 ### 계층형 stdlib / domain kit 정리
 
