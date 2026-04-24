@@ -205,6 +205,14 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ability_where.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_classify.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_diag.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_assign.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_array_store.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_boundaries.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_call.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_destructure.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_let.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_param_summary.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_return.c \
                    $(SEMANTIC_DIR)/type_checker_channel_transport.c \
                    $(SEMANTIC_DIR)/type_checker_visibility.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_projection.c \
@@ -659,6 +667,9 @@ formal-semantics-test-smoke:
 semantic-inc-size-test-smoke:
 	"$(BASH)" tests/semantic_inc_size_smoke.sh
 
+semantic-tu-size-test-smoke:
+	"$(BASH)" tests/semantic_tu_size_smoke.sh
+
 backend-inc-size-test-smoke:
 	"$(BASH)" tests/backend_inc_size_smoke.sh
 
@@ -737,6 +748,7 @@ ci-linux:
 	$(MAKE) module-taxonomy-test-smoke
 	$(MAKE) formal-semantics-test-smoke
 	$(MAKE) semantic-inc-size-test-smoke
+	$(MAKE) semantic-tu-size-test-smoke
 	$(MAKE) backend-inc-size-test-smoke
 	$(MAKE) semantic-core-shape-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" type-resolution-dag-test-smoke
@@ -846,7 +858,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-rir test-mir test-hir test-all \
-        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke formal-semantics-test-smoke semantic-inc-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke parallel-core-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke formal-semantics-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke parallel-core-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

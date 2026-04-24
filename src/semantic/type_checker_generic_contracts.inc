@@ -302,7 +302,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
     }
 }
 
-static void
+void
 validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                                                ASTNode *specialized_type,
                                                ASTNode *site,

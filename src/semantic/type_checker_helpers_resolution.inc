@@ -362,7 +362,6 @@ root_identifier_name(ASTNode *expr)
         return NULL;
     }
 }
-
 static void
 reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
                                        ASTNode *target, const char *op_name)
@@ -420,5 +419,3 @@ reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
         owner_world != NULL ? owner_world : "<world>",
         owner_slot != NULL ? owner_slot : "<slot>");
 }
-
-static void

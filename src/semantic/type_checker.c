@@ -170,10 +170,6 @@ type_get_constructed_arg(const Type *type, size_t index)
 }
 
 #include "type_checker_expr.inc"
-#include "type_checker_ownership_boundaries.inc"
-#include "type_checker_ownership_destructure.inc"
-#include "type_checker_ownership_destructure_stmt.inc"
-#include "type_checker_ownership_param_summary.inc"
 
 
 bool

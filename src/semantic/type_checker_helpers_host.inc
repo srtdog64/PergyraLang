@@ -372,7 +372,7 @@ type_is_subject_host_slot_handle(const Type *type, SemanticContext *ctx)
     return type_is_subject_type(type->data.slot.inner_type, ctx);
 }
 
-static bool
+bool
 type_is_class_object_type(const Type *type, SemanticContext *ctx)
 {
     return type_is_subject_type(type, ctx);
@@ -563,7 +563,7 @@ zone_has_effect_layer_type(ASTNode *zone, const char *effect_name)
     return false;
 }
 
-static bool
+bool
 expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx)
 {
     ASTNode *decl;
@@ -583,7 +583,7 @@ expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx)
     return false;
 }
 
-static bool
+bool
 expr_is_qubit_claim(const ASTNode *expr)
 {
     return expr != NULL
@@ -594,7 +594,7 @@ expr_is_qubit_claim(const ASTNode *expr)
         && strcmp(expr->data.call.callee->data.identifier.name, "ClaimQubit") == 0;
 }
 
-static bool
+bool
 expr_is_device_slot_claim(const ASTNode *expr)
 {
     return expr != NULL
@@ -605,7 +605,7 @@ expr_is_device_slot_claim(const ASTNode *expr)
         && strcmp(expr->data.call.callee->data.identifier.name, "ClaimDeviceSlot") == 0;
 }
 
-static bool
+bool
 expr_is_movable_resource_transfer_source(const ASTNode *expr)
 {
     if (expr == NULL)
@@ -622,7 +622,7 @@ expr_is_movable_resource_transfer_source(const ASTNode *expr)
     }
 }
 
-static bool
+bool
 slot_transfer_compatible(const Type *from, const Type *to)
 {
     if (from == NULL || to == NULL)

@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Function parameter ownership escape summary checks.
+ */
+
+#include "slot_analyzer.h"
+#include "type_checker_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
+#include "type_checker_ownership_internal.h"
+
 void
 semantic_check_param_summary_escapes(ASTNode *node,
                                      size_t param_count,

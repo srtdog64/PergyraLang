@@ -12,6 +12,14 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
                                         Type *target_type,
                                         Type *value_type);
 
+void
+reject_borrowed_array_literal_store(ASTNode *value_expr,
+                                    const Type *stored_value_type,
+                                    SemanticContext *ctx);
+
+bool
+type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx);
+
 bool
 semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
                                                   SemanticContext *ctx,

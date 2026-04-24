@@ -68,6 +68,14 @@ make formal-semantics-test-smoke
 - `type_checker_class_decl.c`가 class/extern declaration checking을 소유하고, `type_checker_program.c`가 top-level semantic orchestration을 소유한다. `type_checker_program.inc`는 624 LOC까지 줄어 semantic 800 LOC stop condition 아래로 내려갔다.
 - `type_checker_builtins_projection.c`가 `ToObject` / `ToTObject` projection diagnostics를 소유하며, `type_checker_builtins_nominal.inc`는 659 LOC까지 줄어 semantic 800 LOC stop condition 아래로 내려갔다.
 - `type_checker_expr_ops.c`가 binary/unary/array literal/indexed access를 소유하고, `type_checker_expr_names.c`가 static member path / consumed-boundary name helper를 소유한다. `type_checker_expr.inc`는 758 LOC, `type_checker_helpers_late.inc`는 773 LOC까지 줄어 semantic 800 LOC stop condition 아래로 내려갔다.
+- `type_checker_ownership_return.c`, `type_checker_ownership_assign.c`,
+  `type_checker_ownership_array_store.c`, `type_checker_ownership_boundaries.c`,
+  `type_checker_ownership_call.c`, `type_checker_ownership_destructure.c`,
+  `type_checker_ownership_let.c`, and `type_checker_ownership_param_summary.c`
+  now own return, assignment rebind, array-literal store, boundary validation,
+  call-argument, destructuring, let-binding, and parameter escape-summary
+  ownership consumers. The old behavior-owning ownership `.inc` files were
+  deleted; `src/semantic/type_checker_ownership_*.inc` is now zero.
 - `type_checker_decls_domain_helpers.c`가 domain slot/projection/overlay helper body를 소유한다. `type_checker_decls_domain_helpers.inc`는 제거됐다.
 - `type_checker_intent_helpers.c`가 intent inheritance/derivation/helper body를 소유한다. `type_checker_decls_a.inc`는 1-line forwarding stub으로 축소됐다.
 - `type_checker_event.c`가 event declaration/subscription/invoke semantic을 소유한다.
@@ -92,6 +100,13 @@ make formal-semantics-test-smoke
 
 남은 것:
 
+- Behavior-owning `.inc` files are now beta blockers, not beta+1 cleanup. The
+  previous size-only gate is insufficient for an ecosystem-safe beta because it
+  still permits include-order semantics.
+- TU mixing is also blocked: `.inc` removal cannot mean dumping several behavior
+  families into one large `.c`. `make semantic-tu-size-test-smoke` gates new
+  semantic owner TUs at 1,000 LOC and caps the known oversized debt files so they
+  cannot grow while being split.
 - Tier 1 파일 크기 gate는 닫혔지만, 여러 slice는 include-order 보존 mechanical split이다. LLVM constructor owner처럼 일부 semantic-owner 추출은 시작됐고, 나머지 실제 TU/owner extraction은 아직 Tier 2 구조 부채다.
 - `type_checker.c`는 600 LOC 이하로 내려갔지만, 아직 일부 helper shim include가 남아 있어 완전한 orchestration-only는 아니다.
 - core module boundary와 compiler implementation module boundary가 아직 완전히 대응하지 않는다.

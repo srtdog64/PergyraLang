@@ -1,4 +1,14 @@
-static void
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Array literal ownership-boundary checks.
+ */
+
+#include "type_checker_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
+
+void
 reject_borrowed_array_literal_store(ASTNode *value_expr,
                                     const Type *stored_value_type,
                                     SemanticContext *ctx)

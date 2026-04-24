@@ -684,8 +684,6 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
     return TYPE_UNKNOWN;
 }
 
-#include "type_checker_ownership_assign.inc"
-
 Type *
 type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 {

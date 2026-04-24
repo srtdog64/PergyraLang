@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Return-statement ownership boundary checks.
+ */
+
+#include "type_checker_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
+
 bool
 type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 {

@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "type_checker_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_diag_internal.h"
 #include "diag_codes.h"
 

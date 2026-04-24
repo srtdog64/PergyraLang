@@ -60,8 +60,8 @@ grep -RIn 'semantic_type_resolution_resolve_or_fallback' src/semantic \
     src/semantic/type_checker_intent_decl.c|\
     src/semantic/type_checker_intent_helpers.c|\
     src/semantic/type_checker_operator_expr.inc|\
-    src/semantic/type_checker_ownership_destructure_stmt.inc|\
-    src/semantic/type_checker_ownership_let.inc|\
+    src/semantic/type_checker_ownership_destructure.c|\
+    src/semantic/type_checker_ownership_let.c|\
     src/semantic/type_checker_party_decl.c|\
     src/semantic/type_checker_program.c|\
     src/semantic/type_checker_program.inc|\

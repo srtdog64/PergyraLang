@@ -201,8 +201,6 @@ type_check_operator_overload(ASTNode *expr, SemanticContext *ctx,
     return sym->type->data.function.return_type;
 }
 
-#include "type_checker_ownership_array_store.inc"
-
 Type *
 type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 {

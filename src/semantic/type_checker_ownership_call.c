@@ -1,3 +1,37 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Call-argument ownership-boundary checks.
+ */
+
+#include "slot_analyzer.h"
+#include "type_checker_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
+#include "type_checker_ownership_diag_internal.h"
+#include "type_checker_ownership_internal.h"
+#include "type_checker_ownership_support_internal.h"
+
+static unsigned
+callable_param_escape_summary_local(ASTNode *callee_decl,
+                                    size_t arg_index,
+                                    SemanticContext *ctx)
+{
+    if (callee_decl == NULL
+        || callee_decl->type != AST_FUNC_DECL
+        || callee_decl->data.func_decl.body == NULL
+        || arg_index >= callee_decl->data.func_decl.param_count) {
+        return 0u;
+    }
+
+    return slot_analyze_param_summary_in_program(
+        callee_decl->data.func_decl.body,
+        callee_decl->data.func_decl.params[arg_index] != NULL
+            ? callee_decl->data.func_decl.params[arg_index]->name
+            : NULL,
+        ctx != NULL ? ctx->program_root : NULL);
+}
+
 bool
 semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
                                                   SemanticContext *ctx,

@@ -81,8 +81,6 @@ callable_param_escape_summary_local(ASTNode *callee_decl,
         ctx != NULL ? ctx->program_root : NULL);
 }
 
-#include "type_checker_ownership_call.inc"
-
 Type *
 type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 const char *display_name,

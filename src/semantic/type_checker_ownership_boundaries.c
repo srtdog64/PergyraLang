@@ -1,4 +1,13 @@
-/* Own/ref boundary diagnostics and local binding rules */
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Own/ref boundary diagnostics and local binding rules.
+ */
+
+#include "type_checker_ownership_diag_internal.h"
+#include "type_checker_ownership_internal.h"
+#include "type_checker_ownership_support_internal.h"
 
 bool
 semantic_validate_borrowed_escape(ASTNode *site,
@@ -134,7 +143,3 @@ semantic_validate_borrowed_escape(ASTNode *site,
         return false;
     }
 }
-
-#include "type_checker_ownership_let.inc"
-
-#include "type_checker_ownership_return.inc"

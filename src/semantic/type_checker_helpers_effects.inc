@@ -1,3 +1,4 @@
+void
 mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
 {
     ASTNode *world_decl;

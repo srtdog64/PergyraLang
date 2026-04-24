@@ -168,6 +168,11 @@
   - [ ] `.inc` 내부 static helper 중 교차 참조 심한 심볼 목록 작성
   - [x] include-order에 의존하는 implicit declaration 경로 제거를 빌드 계약으로 승격 (`-Werror=implicit-function-declaration`, `-Werror=implicit-int`)
 
+  - 진행: ownership return / assignment rebind / array literal store / boundary validation / call argument / destructuring / let-binding / parameter escape-summary consumers는 `.inc`에서 실제 TU로 승격했다. 삭제된 파일: `type_checker_ownership_return.inc`, `type_checker_ownership_assign.inc`, `type_checker_ownership_array_store.inc`, `type_checker_ownership_boundaries.inc`, `type_checker_ownership_call.inc`, `type_checker_ownership_destructure.inc`, `type_checker_ownership_destructure_stmt.inc`, `type_checker_ownership_let.inc`, `type_checker_ownership_let_boundary.inc`, `type_checker_ownership_let_claim.inc`, `type_checker_ownership_let_infer.inc`, `type_checker_ownership_let_slot.inc`, `type_checker_ownership_let_value.inc`, `type_checker_ownership_param_summary.inc`. 현재 `src/semantic/type_checker_ownership_*.inc`는 0개다
+  - 원칙 강화: 베타 기준에서는 behavior-owning `.inc`를 beta+1 정리가 아니라 blocker로 본다. generated table / local macro table / private test fixture 외 `.inc`는 owner `.c` 또는 명시적 generated artifact로 옮긴다
+  - 원칙 강화: `.inc` 제거 과정에서 여러 behavior family를 하나의 mega-TU로 합치지 않는다. `make semantic-tu-size-test-smoke`가 새 semantic owner TU는 1,000 LOC 이하로 제한하고, 기존 초대형 TU는 개별 cap으로 더 커지지 못하게 막는다
+  - 남은 위험 seam: `type_checker_builtins_query.inc`는 `type_checker_builtins_slotops.inc`와 `BuiltinKind builtin_resolve(...)` 시그니처가 include-chain으로 붙어 있다. query/slot/nominal builtin은 dispatcher contract를 먼저 분리한 뒤 TU로 올린다
+
 ### P10. 속도 / 빌드 성능 baseline
 
 - 문제:

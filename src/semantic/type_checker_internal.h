@@ -16,6 +16,7 @@ bool type_is_movable_resource_handle(const Type *type);
 bool type_is_general_boundary_type(const Type *type, SemanticContext *ctx);
 bool type_is_capability_bearing(const Type *type);
 bool type_is_subject_type(const Type *type, SemanticContext *ctx);
+bool type_is_class_object_type(const Type *type, SemanticContext *ctx);
 bool type_requires_boundary_borrow_tracking(const Type *type, SemanticContext *ctx);
 Type *resolve_named_type(const char *name, SemanticContext *ctx,
                          const ASTNode *site);
@@ -40,6 +41,16 @@ uint32_t declared_effects_from_function_node(ASTNode *node,
                                              bool *has_contract_out);
 char *flatten_static_member_access(const ASTNode *expr, char separator);
 Symbol *lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx);
+void mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx);
+bool expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx);
+bool expr_is_qubit_claim(const ASTNode *expr);
+bool expr_is_device_slot_claim(const ASTNode *expr);
+bool expr_is_movable_resource_transfer_source(const ASTNode *expr);
+bool slot_transfer_compatible(const Type *from, const Type *to);
+void validate_class_where_clause_specialization_ast(ASTNode *class_decl,
+                                                    ASTNode *specialized_type,
+                                                    ASTNode *site,
+                                                    SemanticContext *ctx);
 
 extern size_t g_resolve_type_node_calls;
 extern size_t g_resolve_type_node_unique_nodes;

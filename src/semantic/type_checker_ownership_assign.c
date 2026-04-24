@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Assignment ownership-boundary checks.
+ */
+
+#include "diag_codes.h"
+#include "type_checker_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
+#include "type_checker_ownership_internal.h"
+
 bool
 semantic_check_assignment_borrow_rebind(ASTNode *expr,
                                         SemanticContext *ctx,
@@ -25,7 +37,9 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
             return true;
         }
         if (anchored_boundary) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE, PGY_CAUSE_IMMUTABLE_FIELD_WRITE, PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, expr,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
+                PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
+                PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, expr,
                 "Slot-handle (anchored) assignment is not allowed.\n"
                 "Reason:\n"
                 "- slot handles (anchored) such as Slot/SecureSlot/DeviceSlot cannot be copied or rebound with '='\n"
@@ -35,7 +49,9 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
                 "- keep using the current slot handle (anchored) binding directly\n"
                 "- or move the slot handle (anchored) through an explicit ownership boundary");
         } else {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE, PGY_CAUSE_MOVE_ONLY_ASSIGNMENT_REBIND, PGY_FIX_BIND_THE_MOVED_VALUE_ONCE, expr,
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_MOVE_ONLY_ASSIGNMENT_REBIND,
+                PGY_FIX_BIND_THE_MOVED_VALUE_ONCE, expr,
                 "Move-only assignment rebind is not allowed.\n"
                 "Reason:\n"
                 "- move-only values must transfer ownership through a fresh binding\n"
