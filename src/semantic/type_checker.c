@@ -34,7 +34,7 @@
 
 static bool
 callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx);
-static char *
+char *
 format_generic_subject_signature(const char *name, GenericParams *params);
 static const char *
 format_generic_subject_signature_scratch(SemanticContext *ctx,
@@ -67,16 +67,6 @@ static bool
 type_resolution_build_topo_order(TypeResolutionGraph *graph,
                                  size_t **out_order,
                                  size_t *out_count);
-static void
-semantic_type_resolution_precollect_action_contract(ASTNode *method,
-                                                    SemanticContext *ctx,
-                                                    const char *fallback_name);
-static void
-semantic_type_resolution_precollect_enum_inventory(ASTNode *enum_decl,
-                                                   SemanticContext *ctx);
-static void
-semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
-                                                   SemanticContext *ctx);
 ASTNode **
 collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     GenericParams *provided_args,
@@ -86,17 +76,10 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     const char *owner_name,
                                     size_t *out_count);
 static void
-semantic_stage_method_array(ASTNode **methods,
-                            size_t method_count,
-                            SemanticContext *ctx,
-                            const char *fallback_name);
-static void
 semantic_stage_event_signature(ASTNode *event_decl,
                                SemanticContext *ctx);
 char *
 semantic_assignment_target_path(ASTNode *expr);
-static ASTNode *
-semantic_world_find_zone_slot_local(ASTNode *world, const char *slot_name);
 static ASTNode *
 semantic_find_top_level_decl_by_label(ASTNode *program,
                                       const char *label,
@@ -104,17 +87,9 @@ semantic_find_top_level_decl_by_label(ASTNode *program,
 static ASTNode *
 semantic_find_graph_host_decl(ASTNode *program,
                               const char *label);
-static void
-semantic_stage_world_local_contract_from_label(ASTNode *world_decl,
-                                               const char *label,
-                                               SemanticContext *ctx);
-static void
-semantic_stage_zone_local_contract_from_label(ASTNode *zone_decl,
-                                              const char *label,
-                                              SemanticContext *ctx);
-static int
+int
 find_generic_param_index(GenericParams *gp, const char *param_name);
-static bool
+bool
 concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
                               SemanticContext *ctx);
 
@@ -409,88 +384,7 @@ callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx)
         || node->data.func_decl.access == ACCESS_PROTECTED;
 }
 
-bool
-type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
-{
-    const char *name = node->data.ability_decl.name;
-    bool has_generics = (node->data.ability_decl.generic_params != NULL
-                         && node->data.ability_decl.generic_params->count > 0);
-
-    /* Register ability as a symbol so roles can reference it */
-    Symbol *sym = calloc(1, sizeof(Symbol));
-    sym->name = pergyra_strdup(name);
-    sym->kind = SYMBOL_ABILITY;
-    sym->type = TYPE_VOID; /* Abilities don't have a concrete type */
-    sym->decl_line = node->line;
-    sym->decl_col = node->column;
-
-    Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_REDECLARATION,
-            PGY_CAUSE_ABILITY_DUPLICATE_NAME,
-            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
-            node, "Redeclaration of ability '%s'", name);
-        symbol_destroy(sym);
-        return false;
-    }
-    scope_declare(ctx->scope, sym);
-
-    if (has_generics) {
-        validate_generic_param_defaults(node->data.ability_decl.generic_params,
-            ctx, node, "ability");
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        GenericParams *gp = node->data.ability_decl.generic_params;
-        for (size_t gi = 0; gi < gp->count; gi++) {
-            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
-                continue;
-            Type *tp = calloc(1, sizeof(Type));
-            if (tp != NULL) {
-                tp->kind = TYPE_KIND_CLASS;
-                tp->name = pergyra_strdup(gp->params[gi]->name);
-            }
-            Symbol *s = symbol_create_variable(
-                gp->params[gi]->name,
-                tp != NULL ? tp : TYPE_UNKNOWN,
-                node->line, node->column);
-            s->kind = SYMBOL_CLASS;
-            scope_declare(ctx->scope, s);
-        }
-    }
-
-    validate_where_clause_bounds(node->data.ability_decl.where_clause, ctx, node);
-    validate_generic_param_default_bounds(
-        node->data.ability_decl.generic_params,
-        node->data.ability_decl.where_clause,
-        ctx,
-        node,
-        "ability",
-        name);
-    validate_ability_require_fields(node, ctx);
-
-    /* Check method signatures */
-    scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
-        ASTNode *method = node->data.ability_decl.methods[i];
-        /* Only type-check methods that have a body */
-        if (method->data.func_decl.body != NULL) {
-            type_check_func_decl(method, ctx);
-        } else {
-            /* Abstract method — just validate the signature types */
-            if (method->data.func_decl.return_type != NULL)
-                resolve_type_node(method->data.func_decl.return_type, ctx);
-            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                if (method->data.func_decl.params[j]->type != NULL)
-                    resolve_type_node(method->data.func_decl.params[j]->type, ctx);
-            }
-        }
-    }
-    scope_exit(&ctx->scope);
-    if (has_generics)
-        scope_exit(&ctx->scope);
-
-    return !ctx->has_error;
-}
+/* type_check_ability_decl body moved to type_checker_ability_decl.c — see docs/101_semantic_split_template.md */
 
 #include "type_checker_decls.inc"
 

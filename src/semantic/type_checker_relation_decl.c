@@ -1,3 +1,5 @@
+#include "type_checker_internal.h"
+#include "diag_codes.h"
 
 bool
 type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
@@ -20,11 +22,11 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         node->data.relation_decl.slot_count, ctx, "relation") && ok;
     for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.relation_decl.refreshes[i];
+        if (refresh == NULL)
+            continue;
         const char *action_name =
             refresh->data.zone_refresh.derive_target_kind ? "bind"
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
-        if (refresh == NULL)
-            continue;
         ok = type_check_projection_contract(node->data.relation_decl.slots,
             node->data.relation_decl.slot_count, "Relation",
             node->data.relation_decl.name, refresh,

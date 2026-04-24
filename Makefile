@@ -48,7 +48,7 @@ endif
 TMPDIR ?= /tmp
 export TMPDIR
 TMPDIR_CI := $(subst \,/,$(TMPDIR))
-CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) $(PLATFORM_CFLAGS) -I$(SRC_DIR)
+CFLAGS  = -Wall -Wextra -Werror=implicit-function-declaration -Werror=implicit-int -std=c11 -O2 -g $(OPENMP_FLAGS) $(PLATFORM_CFLAGS) -I$(SRC_DIR)
 DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
@@ -171,7 +171,19 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_collect.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_labels.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_domain.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_world.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_zone.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_stage_domain.c \
+                   $(SEMANTIC_DIR)/type_checker_relation_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_effect_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_zone_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_ability_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_world_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_role_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_party_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_roster_decl.c \
                    $(SEMANTIC_DIR)/type_checker_ability_ref.c \
                    $(SEMANTIC_DIR)/type_checker_stdlib_use.c \
                    $(SEMANTIC_DIR)/type_checker_module_contract.c \

@@ -1,10 +1,10 @@
-static bool
+bool
 any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref);
-static ASTNode *
+ASTNode *
 any_subject_role_find_base_ability_impl(ASTNode *program, const char *ability_name);
-static const char *
+const char *
 intent_involves_type_name(ASTNode *involves);
-static bool
+bool
 intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx);
 static ASTNode *
 intent_step_find_inheritable_action(ASTNode *intent_decl, ASTNode *step,
@@ -143,7 +143,7 @@ intent_step_same_who_binding(ASTNode *intent_decl,
     return matched_alias != NULL && strcmp(matched_alias, step_alias) == 0;
 }
 
-static void
+void
 intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
                                            ASTNode *step,
                                            SemanticContext *ctx)
@@ -271,7 +271,7 @@ intent_step_summary_append(char *buffer, size_t buffer_size, size_t *used,
     *used += (size_t)written;
 }
 
-static void
+void
 intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                                            const ASTNode *step,
                                            SemanticContext *ctx,
@@ -506,7 +506,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
 }
 
-static const char *
+const char *
 intent_step_single_who_alias(const ASTNode *step)
 {
     if (step == NULL || step->type != AST_INTENT_STEP)
@@ -728,7 +728,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
     free(effective_args);
 }
 
-static void
+void
 validate_ability_require_fields_for_role(ASTNode *role_decl,
                                          ASTNode *ability_decl,
                                          ASTNode *ability_ref,
@@ -861,620 +861,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
     free(ability_text);
 }
 
-bool
-type_check_role_decl(ASTNode *node, SemanticContext *ctx)
-{
-    const char *name = node->data.role_decl.name;
-
-    /* Register role as a symbol */
-    Symbol *sym = calloc(1, sizeof(Symbol));
-    sym->name = pergyra_strdup(name);
-    sym->kind = SYMBOL_ROLE;
-    sym->type = create_overlay_nominal_type(name);
-    sym->decl_line = node->line;
-    sym->decl_col = node->column;
-
-    Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_REDECLARATION,
-            PGY_CAUSE_ROLE_DUPLICATE_NAME,
-            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
-            node, "Redeclaration of role '%s'", name);
-        symbol_destroy(sym);
-        return false;
-    }
-    scope_declare(ctx->scope, sym);
-
-    if (node->data.role_decl.generic_params != NULL
-        && node->data.role_decl.generic_params->count > 0) {
-        validate_generic_param_defaults(node->data.role_decl.generic_params,
-            ctx, node, "role");
-    }
-
-    /* Check for_type exists */
-    if (node->data.role_decl.for_type != NULL) {
-        semantic_type_resolution_record_type_ref_dependency(
-            ctx,
-            node,
-            name != NULL ? name : "<role>",
-            node->data.role_decl.for_type,
-            "role host-type lookup");
-        Type *bound_type = resolve_type_node(node->data.role_decl.for_type, ctx);
-        if (bound_type != NULL
-            && node->data.role_decl.for_type->type == AST_TYPE
-            && node->data.role_decl.for_type->data.type.name != NULL) {
-            ASTNode *type_decl = find_type_decl_by_name(
-                ctx->program_root, node->data.role_decl.for_type->data.type.name);
-            if (type_decl != NULL && !decl_is_subject_host(type_decl)) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, node->data.role_decl.for_type,
-                    "Role '%s' must be bound to a subject or primitive domain; '%s' is not a subject",
-                    name,
-                    node->data.role_decl.for_type->data.type.name);
-            }
-        }
-    }
-
-    validate_where_clause_bounds(node->data.role_decl.where_clause, ctx, node);
-    validate_generic_param_default_bounds(
-        node->data.role_decl.generic_params,
-        node->data.role_decl.where_clause,
-        ctx,
-        node,
-        "role",
-        name);
-
-    /* Check includes reference existing roles */
-    for (size_t i = 0; i < node->data.role_decl.include_count; i++) {
-        ASTNode *inc = node->data.role_decl.includes[i];
-        const char *role_name = inc->data.include_stmt.role_name;
-        semantic_type_resolution_record_named_dependency(
-            ctx,
-            inc,
-            name != NULL ? name : "<role>",
-            TYPE_RES_NODE_DECL,
-            NULL,
-            role_name,
-            "role include lookup");
-        Symbol *role_sym = scope_lookup(ctx->scope, role_name);
-        if (role_sym == NULL) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, inc,
-                "Role '%s' includes unknown role '%s'.\n"
-                "Reason:\n"
-                "- include contracts must reference a visible role declaration\n"
-                "- no role named '%s' is visible in the current module/scope\n"
-                "Fix:\n"
-                "- declare role '%s'\n"
-                "- or import/export the module that defines it",
-                name != NULL ? name : "<role>",
-                role_name != NULL ? role_name : "<role>",
-                role_name != NULL ? role_name : "<role>",
-                role_name != NULL ? role_name : "<role>");
-        } else if (ctx->program_root != NULL && role_name != NULL) {
-            ASTNode *included_role_decl = NULL;
-            if (ctx->program_root->type == AST_PROGRAM) {
-                for (size_t ri = 0; ri < ctx->program_root->data.program.count; ri++) {
-                    ASTNode *candidate = ctx->program_root->data.program.statements[ri];
-                    if (candidate != NULL
-                        && candidate->type == AST_ROLE_DECL
-                        && candidate->data.role_decl.name != NULL
-                        && strcmp(candidate->data.role_decl.name, role_name) == 0) {
-                        included_role_decl = candidate;
-                        break;
-                    }
-                }
-            }
-
-            if (included_role_decl != NULL
-                && included_role_decl->data.role_decl.generic_params != NULL
-                && included_role_decl->data.role_decl.generic_params->count > 0) {
-                size_t effective_count = 0;
-                ASTNode **effective_args = collect_effective_generic_arg_nodes(
-                    included_role_decl->data.role_decl.generic_params,
-                    inc->data.include_stmt.type_args,
-                    inc,
-                    ctx,
-                    "role include",
-                    role_name,
-                    &effective_count);
-                if (effective_args != NULL
-                    && included_role_decl->data.role_decl.where_clause != NULL) {
-                    char *expected_text = format_generic_subject_signature(
-                        role_name,
-                        included_role_decl->data.role_decl.generic_params);
-                    WhereClause *wc = included_role_decl->data.role_decl.where_clause;
-                    for (size_t ci = 0; ci < wc->count; ci++) {
-                        TypeConstraint *tc = wc->constraints[ci];
-                        int param_index;
-                        Type *concrete_type;
-                        if (tc == NULL || tc->type_param == NULL)
-                            continue;
-                        param_index = find_generic_param_index(
-                            included_role_decl->data.role_decl.generic_params,
-                            tc->type_param);
-                        if (param_index < 0 || (size_t)param_index >= effective_count)
-                            continue;
-                        concrete_type = resolve_type_node(effective_args[param_index], ctx);
-                        if (concrete_type == NULL)
-                            continue;
-                        for (size_t bi = 0; bi < tc->bound_count; bi++) {
-                            ASTNode *bound_node = tc->bounds[bi];
-                            char *bounds_text = format_type_constraint_bounds(tc);
-                            const char *bound_name =
-                                (bound_node != NULL
-                                 && bound_node->type == AST_TYPE
-                                 && bound_node->data.type.name != NULL)
-                                    ? bound_node->data.type.name
-                                    : "<constraint>";
-                            if (!concrete_type_satisfies_bound(
-                                    concrete_type, bound_node, ctx)) {
-                                semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, inc,
-                                    "Role '%s' includes role '%s' with generic argument '%s' that does not satisfy bound '%s'.\n"
-                                    "Reason:\n"
-                                    "- include consumer path is role '%s'\n"
-                                    "- included role '%s' requires '%s: %s'\n"
-                                    "- full bound set is '%s: %s'\n"
-                                    "- expected type args are '%s'\n"
-                                    "- actual type args are specialized through include '%s'\n"
-                                    "Fix:\n"
-                                    "- include role '%s' with a type that satisfies '%s'\n"
-                                    "- or relax the included role where-clause",
-                                    name != NULL ? name : "<role>",
-                                    role_name,
-                                    concrete_type->name != NULL ? concrete_type->name : "<type>",
-                                    bound_name,
-                                    name != NULL ? name : "<role>",
-                                    role_name,
-                                    tc->type_param,
-                                    bound_name,
-                                    tc->type_param,
-                                    bounds_text != NULL ? bounds_text : "<constraint>",
-                                    expected_text != NULL ? expected_text : role_name,
-                                    role_name,
-                                    role_name,
-                                    bound_name);
-                            }
-                            free(bounds_text);
-                        }
-                    }
-                    free(expected_text);
-                }
-                free(effective_args);
-            }
-        }
-    }
-
-    /* Check impl ability blocks */
-    scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
-        ASTNode *impl = node->data.role_decl.impl_abilities[i];
-
-        if (impl->type == AST_IMPL_ABILITY) {
-            semantic_type_resolution_record_type_ref_dependency(
-                ctx,
-                impl,
-                name != NULL ? name : "<role>",
-                impl->data.impl_ability.ability_ref,
-                "role impl ability lookup");
-            /* Check that the ability exists */
-            if (impl->data.impl_ability.ability_ref != NULL
-                && impl->data.impl_ability.ability_ref->type == AST_TYPE
-                && impl->data.impl_ability.ability_ref->data.type.name != NULL) {
-                const char *ability_name = impl->data.impl_ability.ability_ref->data.type.name;
-                ASTNode *ability_decl = find_ability_decl_by_name(
-                    ctx->program_root, ability_name);
-                Symbol *ab = scope_lookup(ctx->scope,
-                    ability_name);
-                if (ability_decl != NULL
-                           && ability_decl->type == AST_ABILITY_DECL
-                           && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
-                    semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, impl,
-                        "Role '%s' cannot implement non-exported ability '%s' from another module.\n"
-                        "Reason:\n"
-                        "- impl block references ability '%s'\n"
-                        "- the declaration exists but is not visible across the current module boundary\n"
-                        "Fix:\n"
-                        "- export ability '%s' from its defining module\n"
-                        "- or move role '%s' into the same module\n"
-                        "- or implement a public ability instead",
-                        name != NULL ? name : "<role>",
-                        ability_name,
-                        ability_name,
-                        ability_name,
-                        name != NULL ? name : "<role>");
-                } else if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
-                    semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, impl,
-                        "Role '%s' implements unknown ability '%s'.\n"
-                        "Reason:\n"
-                        "- impl block references '%s'\n"
-                        "- no visible ability declaration named '%s' was found\n"
-                        "Fix:\n"
-                        "- declare ability '%s'\n"
-                        "- or import/export the module that defines it",
-                        name != NULL ? name : "<role>",
-                        ability_name,
-                        ability_name,
-                        ability_name,
-                        ability_name);
-                } else if (ability_decl != NULL
-                           && ability_decl->type == AST_ABILITY_DECL
-                           && ability_decl->data.ability_decl.is_innate
-                           && ability_decl->origin_path != NULL
-                           && node->origin_path != NULL
-                           && strcmp(ability_decl->origin_path,
-                                     node->origin_path) != 0) {
-                    semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, impl,
-                        "innate ability '%s' cannot be implemented outside its declaring module",
-                        ability_name);
-                } else if (ability_decl != NULL
-                           && ability_decl->type == AST_ABILITY_DECL) {
-                    size_t arg_count = impl->data.impl_ability.ability_ref->data.type.generic_args != NULL
-                        ? impl->data.impl_ability.ability_ref->data.type.generic_args->count : 0;
-                    size_t param_count = ability_decl->data.ability_decl.generic_params != NULL
-                        ? ability_decl->data.ability_decl.generic_params->count : 0;
-                    bool malformed_impl_args = false;
-
-                    if (arg_count > 0 && param_count == 0) {
-                        char *impl_text =
-                            ability_ref_display(impl->data.impl_ability.ability_ref);
-                        char *expected_text =
-                            ability_decl_signature_display(
-                                ability_name,
-                                ability_decl->data.ability_decl.generic_params);
-                        semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, impl,
-                            "Ability '%s' does not accept generic type arguments in impl clauses.\n"
-                            "Reason:\n"
-                            "- consumer path is impl ability '%s'\n"
-                            "- generic subject is ability '%s'\n"
-                            "- impl ability uses '%s'\n"
-                            "- ability declaration '%s' is non-generic\n"
-                            "- expected type args are '%s'\n"
-                            "- actual type args are '%s'\n"
-                            "Fix:\n"
-                            "- remove the generic arguments from '%s'\n"
-                            "- or declare '%s' with matching generic parameters",
-                            ability_name,
-                            ability_name,
-                            ability_name,
-                            impl_text != NULL ? impl_text : ability_name,
-                            ability_name,
-                            expected_text != NULL ? expected_text : ability_name,
-                            impl_text != NULL ? impl_text : ability_name,
-                            ability_name,
-                            ability_name);
-                        free(expected_text);
-                        free(impl_text);
-                    } else if (arg_count > param_count
-                               || arg_count < generic_params_required_count(
-                                      ability_decl->data.ability_decl.generic_params)) {
-                        size_t required_count = generic_params_required_count(
-                            ability_decl->data.ability_decl.generic_params);
-                        char *impl_text =
-                            ability_ref_display(impl->data.impl_ability.ability_ref);
-                        char *expected_text =
-                            ability_decl_signature_display(
-                                ability_name,
-                                ability_decl->data.ability_decl.generic_params);
-                        semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, impl,
-                            "Ability '%s' requires between %llu and %llu generic argument(s) in impl clauses, got %llu.\n"
-                            "Reason:\n"
-                            "- consumer path is impl ability '%s'\n"
-                            "- impl ability uses '%s'\n"
-                            "- actual type args are '%s'\n"
-                            "Fix:\n"
-                            "- pass enough generic argument(s) to cover non-default parameters of '%s'\n"
-                            "- or rely on declaration defaults for trailing parameters only\n"
-                            "- or change the ability declaration to match the intended arity",
-                            ability_name != NULL ? ability_name : "<ability>",
-                            (unsigned long long) required_count, (unsigned long long) param_count, (unsigned long long) arg_count,
-                            ability_name != NULL ? ability_name : "<ability>",
-                            impl_text != NULL ? impl_text : ability_name,
-                            impl_text != NULL ? impl_text : ability_name,
-                            ability_name != NULL ? ability_name : "<ability>");
-                        free(expected_text);
-                        free(impl_text);
-                    } else {
-                        for (size_t k = 0; k < arg_count; k++) {
-                            GenericParam *gp =
-                                impl->data.impl_ability.ability_ref->data.type.generic_args->params[k];
-                            ASTNode *arg = gp != NULL ? gp->constraint : NULL;
-                            if (arg == NULL) {
-                                char *impl_text =
-                                    ability_ref_display(impl->data.impl_ability.ability_ref);
-                                char *expected_text =
-                                    ability_decl_signature_display(
-                                        ability_name,
-                                        ability_decl->data.ability_decl.generic_params);
-                                semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, impl,
-                                    "Ability '%s' has an invalid generic argument in impl clause.\n"
-                                    "Reason:\n"
-                                    "- consumer path is impl ability '%s'\n"
-                                    "- generic subject is ability '%s'\n"
-                                    "- generic argument %llu in '%s' is missing or malformed\n"
-                                    "- impl contract cannot derive effective type arguments from an incomplete surface\n"
-                                    "- expected type args are '%s'\n"
-                                    "- actual type args are '%s'\n"
-                                    "Fix:\n"
-                                    "- provide a concrete type argument for each generic parameter\n"
-                                    "- or remove the malformed generic argument from '%s'",
-                                    ability_name,
-                                    ability_name,
-                                    ability_name,
-                                    (unsigned long long) (k + 1),
-                                    impl_text != NULL ? impl_text : ability_name,
-                                    expected_text != NULL ? expected_text : ability_name,
-                                    impl_text != NULL ? impl_text : ability_name,
-                                    ability_name);
-                                free(expected_text);
-                                free(impl_text);
-                                malformed_impl_args = true;
-                                continue;
-                            }
-                            resolve_type_node(arg, ctx);
-                        }
-                    }
-                    if (!malformed_impl_args) {
-                        validate_ability_decl_where_clause_reference(
-                            ability_decl,
-                            impl->data.impl_ability.ability_ref,
-                            impl,
-                            ctx,
-                            "role",
-                            name != NULL ? name : "<role>");
-                        validate_ability_require_fields_for_role(
-                            node,
-                            ability_decl,
-                            impl->data.impl_ability.ability_ref,
-                            ctx);
-                    }
-                }
-            }
-
-            /* Type-check each method implementation */
-            for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-                type_check_func_decl(impl->data.impl_ability.methods[j], ctx);
-            }
-        } else if (impl->type == AST_OVERRIDE_FUNC) {
-            /* Type-check the overridden function */
-            if (impl->data.override_func.func_decl != NULL)
-                type_check_func_decl(impl->data.override_func.func_decl, ctx);
-        }
-    }
-    scope_exit(&ctx->scope);
-
-    return !ctx->has_error;
-}
-
-bool
-type_check_party_decl(ASTNode *node, SemanticContext *ctx)
-{
-    const char *name = node->data.party_decl.name;
-    const char *prev_module_path = ctx->current_module_path;
-    if (node->origin_path != NULL)
-        ctx->current_module_path = node->origin_path;
-
-    Symbol *sym = calloc(1, sizeof(Symbol));
-    sym->name = pergyra_strdup(name);
-    sym->kind = SYMBOL_PARTY;
-    sym->type = create_overlay_nominal_type(name);
-    sym->decl_line = node->line;
-    sym->decl_col = node->column;
-
-    Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL && existing->kind == SYMBOL_CLASS) {
-        /* Forward-declared in Pass 1 — update kind */
-        existing->kind = SYMBOL_PARTY;
-        if (existing->type == NULL || existing->type == TYPE_VOID)
-            existing->type = create_overlay_nominal_type(name);
-        symbol_destroy(sym);
-    } else if (existing != NULL) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_REDECLARATION,
-            PGY_CAUSE_PARTY_DUPLICATE_NAME,
-            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
-            node, "Redeclaration of party '%s'", name);
-        symbol_destroy(sym);
-        ctx->current_module_path = prev_module_path;
-        return false;
-    } else {
-        scope_declare(ctx->scope, sym);
-    }
-
-    if (node->data.party_decl.generic_params != NULL
-        && node->data.party_decl.generic_params->count > 0) {
-        validate_generic_param_defaults(node->data.party_decl.generic_params,
-            ctx, node, "party");
-    }
-
-    /* Check role slot ability references */
-    for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
-        ASTNode *rs = node->data.party_decl.role_slots[i];
-
-        /* dyn slots require at least one ability for vtable dispatch */
-        if (rs->data.role_slot.is_dynamic &&
-            rs->data.role_slot.ability_count == 0) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, rs,
-                "Dynamic role slot '%s' requires at least one ability type",
-                rs->data.role_slot.slot_name);
-        }
-
-        for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
-            ASTNode *ab_type = rs->data.role_slot.required_abilities[j];
-            if (ab_type != NULL && ab_type->data.type.name != NULL) {
-                const char *ability_name = ab_type->data.type.name;
-                char *required_text = ability_ref_display(ab_type);
-                semantic_type_resolution_record_type_ref_dependency(
-                    ctx,
-                    rs,
-                    rs->data.role_slot.slot_name != NULL
-                        ? rs->data.role_slot.slot_name : "<role-slot>",
-                    ab_type,
-                    "party role slot ability consumer lookup");
-                if (ctx->program_root != NULL) {
-                    ASTNode *ability_decl = resolve_required_ability_decl(
-                        ab_type, rs, ctx, "party role slot",
-                        rs->data.role_slot.slot_name);
-                    if (ability_decl == NULL) {
-                        free(required_text);
-                        continue;
-                    }
-                }
-                if (ctx->program_root != NULL
-                           && !any_subject_role_has_ability(ctx->program_root,
-                               ab_type)) {
-                    ASTNode *actual_impl = any_subject_role_find_base_ability_impl(
-                        ctx->program_root, ability_name);
-                    char *actual_text = actual_impl != NULL
-                        ? ability_ref_display(actual_impl) : NULL;
-                    if (actual_text != NULL) {
-                        semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, rs,
-                            "Party role slot '%s' requires ability '%s', but subject-bound roles implement '%s' instead.\n"
-                            "Reason:\n"
-                            "- consumer path is party role slot '%s'\n"
-                            "- no subject-bound role satisfies required ability '%s'\n"
-                            "- expected type args are '%s'\n"
-                            "- actual implementation is '%s'\n"
-                            "- actual type args are '%s'\n"
-                            "Fix:\n"
-                            "- implement '%s' on a subject-bound role\n"
-                            "- or change the role slot contract",
-                            rs->data.role_slot.slot_name,
-                            required_text != NULL ? required_text : ability_name,
-                            actual_text,
-                            rs->data.role_slot.slot_name,
-                            required_text != NULL ? required_text : ability_name,
-                            required_text != NULL ? required_text : ability_name,
-                            actual_text,
-                            actual_text,
-                            required_text != NULL ? required_text : ability_name);
-                    } else {
-                        semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, rs,
-                            "Party role slot '%s' requires ability '%s', but no subject-bound role implements it.\n"
-                            "Reason:\n"
-                            "- consumer path is party role slot '%s'\n"
-                            "- no subject-bound role satisfies required ability '%s'\n"
-                            "- expected type args are '%s'\n"
-                            "- no matching implementation was found for '%s'\n"
-                            "Fix:\n"
-                            "- implement '%s' on a subject-bound role\n"
-                            "- or change the role slot contract",
-                            rs->data.role_slot.slot_name,
-                            required_text != NULL ? required_text : ability_name,
-                            rs->data.role_slot.slot_name,
-                            required_text != NULL ? required_text : ability_name,
-                            required_text != NULL ? required_text : ability_name,
-                            required_text != NULL ? required_text : ability_name,
-                            required_text != NULL ? required_text : ability_name);
-                    }
-                    free(actual_text);
-                }
-                free(required_text);
-            }
-        }
-    }
-
-    /* Check shared fields */
-    for (size_t i = 0; i < node->data.party_decl.shared_count; i++) {
-        ASTNode *shared = node->data.party_decl.shared_fields[i];
-        if (shared->data.party_shared.type != NULL)
-            resolve_type_node(shared->data.party_shared.type, ctx);
-        if (shared->data.party_shared.initializer != NULL)
-            type_check_expression(shared->data.party_shared.initializer, ctx);
-    }
-
-    /* Check methods */
-    scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
-        type_check_func_decl(node->data.party_decl.methods[i], ctx);
-    }
-    scope_exit(&ctx->scope);
-
-    ctx->current_module_path = prev_module_path;
-    return !ctx->has_error;
-}
-
-bool
-type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
-{
-    const char *name = node->data.roster_decl.name;
-
-    Symbol *sym = calloc(1, sizeof(Symbol));
-    sym->name = pergyra_strdup(name);
-    sym->kind = SYMBOL_ROSTER;
-    sym->type = create_overlay_nominal_type(name);
-    sym->decl_line = node->line;
-    sym->decl_col = node->column;
-
-    Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL && existing->kind == SYMBOL_CLASS) {
-        existing->kind = SYMBOL_ROSTER;
-        if (existing->type == NULL || existing->type == TYPE_VOID)
-            existing->type = create_overlay_nominal_type(name);
-        symbol_destroy(sym);
-    } else if (existing != NULL) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_REDECLARATION,
-            PGY_CAUSE_ROSTER_DUPLICATE_NAME,
-            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
-            node, "Redeclaration of roster '%s'", name);
-        symbol_destroy(sym);
-        return false;
-    } else {
-        scope_declare(ctx->scope, sym);
-    }
-
-    if (node->data.roster_decl.generic_params != NULL
-        && node->data.roster_decl.generic_params->count > 0) {
-        validate_generic_param_defaults(node->data.roster_decl.generic_params,
-            ctx, node, "roster");
-    }
-
-    /* Check party slot references */
-    for (size_t i = 0; i < node->data.roster_decl.party_count; i++) {
-        ASTNode *ps = node->data.roster_decl.party_slots[i];
-        if (ps->data.roster_slot.party_type != NULL) {
-            Symbol *party = scope_lookup(ctx->scope,
-                ps->data.roster_slot.party_type);
-            if (party == NULL || party->kind != SYMBOL_PARTY) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
-                    PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_DECLARE_OR_IMPORT_TYPE,
-                    ps,
-                    "Party type '%s' not found for roster slot '%s'.\n"
-                    "Reason:\n"
-                    "- roster slot '%s' must reference a visible party declaration\n"
-                    "- no party named '%s' is visible at this point\n"
-                    "Fix:\n"
-                    "- declare party '%s'\n"
-                    "- or import/export the module that defines it",
-                    ps->data.roster_slot.party_type,
-                    ps->data.roster_slot.slot_name,
-                    ps->data.roster_slot.slot_name,
-                    ps->data.roster_slot.party_type,
-                    ps->data.roster_slot.party_type);
-            }
-        }
-    }
-
-    /* Check shared fields */
-    for (size_t i = 0; i < node->data.roster_decl.shared_count; i++) {
-        ASTNode *shared = node->data.roster_decl.shared_fields[i];
-        if (shared->data.party_shared.type != NULL)
-            resolve_type_node(shared->data.party_shared.type, ctx);
-        if (shared->data.party_shared.initializer != NULL)
-            type_check_expression(shared->data.party_shared.initializer, ctx);
-    }
-
-    /* Check methods */
-    scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
-        type_check_func_decl(node->data.roster_decl.methods[i], ctx);
-    }
-    scope_exit(&ctx->scope);
-
-    return !ctx->has_error;
-}
-
-static ASTNode *
+ASTNode *
 find_intent_involves_local(ASTNode *intent, const char *alias)
 {
     if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
@@ -1522,7 +909,7 @@ find_unique_intent_involves_by_type_name(ASTNode *intent,
     return matched;
 }
 
-static ASTNode *
+ASTNode *
 intent_step_resolve_transfer_target_involves(ASTNode *intent_decl,
                                              ASTNode *step,
                                              const char **resolved_alias_out)
@@ -1557,7 +944,7 @@ intent_step_resolve_transfer_target_involves(ASTNode *intent_decl,
     return to_involves;
 }
 
-static bool
+bool
 intent_condition_is_bool(ASTNode *expr, SemanticContext *ctx, const char *label)
 {
     Type *ty;
@@ -1690,7 +1077,7 @@ intent_forbidden_control_construct(ASTNode *node)
     }
 }
 
-static bool
+bool
 intent_clause_rejects_control_transfer(ASTNode *expr,
                                        SemanticContext *ctx,
                                        const char *step_name,
@@ -1710,7 +1097,7 @@ intent_clause_rejects_control_transfer(ASTNode *expr,
     return false;
 }
 
-static const char *
+const char *
 intent_involves_type_name(ASTNode *involves)
 {
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES
@@ -1721,7 +1108,7 @@ intent_involves_type_name(ASTNode *involves)
     return involves->data.intent_involves.subject_type->data.type.name;
 }
 
-static bool
+bool
 intent_involves_is_subject_host(ASTNode *program, ASTNode *involves)
 {
     const char *type_name = intent_involves_type_name(involves);
@@ -1733,7 +1120,7 @@ intent_involves_is_subject_host(ASTNode *program, ASTNode *involves)
     return decl_is_subject_host(decl);
 }
 
-static bool
+bool
 subject_decl_has_action_named(ASTNode *decl, const char *action_name)
 {
     if (decl == NULL || decl->type != AST_CLASS_DECL || action_name == NULL
@@ -1852,7 +1239,7 @@ intent_step_find_inheritable_action(ASTNode *intent_decl, ASTNode *step,
     return matched_action;
 }
 
-static void
+void
 intent_step_derive_who_from_action(ASTNode *intent_decl, ASTNode *step,
                                    SemanticContext *ctx)
 {
@@ -1890,7 +1277,7 @@ intent_step_derive_who_from_action(ASTNode *intent_decl, ASTNode *step,
     }
 }
 
-static void
+void
 intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
                                     SemanticContext *ctx)
 {
@@ -1982,7 +1369,7 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
     }
 }
 
-static void
+void
 intent_step_derive_transfer_context(ASTNode *intent_decl, ASTNode *step,
                                     SemanticContext *ctx)
 {
@@ -2014,7 +1401,7 @@ intent_step_derive_transfer_context(ASTNode *intent_decl, ASTNode *step,
     }
 }
 
-static void
+void
 intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
                                         SemanticContext *ctx)
 {
@@ -2111,14 +1498,12 @@ projection_target_decl_has_field(ASTNode *target_decl, const char *field_name)
     return false;
 }
 
-static ASTNode *
+ASTNode *
 find_zone_authority(ASTNode *zone, const char *slot_name);
 
-static ASTNode *
+ASTNode *
 resolve_zone_subject_slot_for_participant(ASTNode *zone,
                                           SemanticContext *ctx,
                                           const char *participant_alias,
                                           const char *participant_type_name,
                                           bool *ambiguous_out);
-
-bool

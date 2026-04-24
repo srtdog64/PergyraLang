@@ -1,4 +1,4 @@
-static void
+void
 validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *owner)
 {
     if (wc == NULL || ctx == NULL)
@@ -57,7 +57,7 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
     }
 }
 
-static void
+void
 validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
                                 ASTNode *owner, const char *kind_name)
 {

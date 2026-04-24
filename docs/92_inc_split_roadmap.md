@@ -28,11 +28,11 @@ type_checker.c
 ```
 
 가장 큰 .inc 파일 Top 5 (LOC, 2026-04-24 snapshot):
-1. `type_checker_resolution_graph_inventory.inc` — 1,809
-2. `type_checker_decls_a.inc` — 2,124
-3. `type_checker_decls_domain_helpers.inc` — 1,557
-4. `type_checker_resolution_stage.inc` — 1,477
-5. `type_checker_program.inc` — 1,210
+1. `type_checker_decls_domain_helpers.inc` — 1,559
+2. `type_checker_decls_a.inc` — 1,509
+3. `type_checker_program.inc` — 1,210
+4. `type_checker_builtins_stdlib_body.inc` — 1,131
+5. `type_checker_resolution_stage.inc` — 969
 
 Cross-subsystem large `.inc` debt (LOC, 2026-04-24 snapshot):
 1. `runtime/pgy_runtime_part_ba.inc` — 4,731
@@ -43,6 +43,46 @@ Cross-subsystem large `.inc` debt (LOC, 2026-04-24 snapshot):
 6. `codegen/transpiler_emitters_base_a.inc` — 2,890
 7. `codegen/transpiler_helpers_core_a.inc` — 2,600
 8. `codegen/transpiler_helpers_core_b.inc` — 2,572
+
+---
+
+## 진행 sprint — 2026-04-24 semantic 템플릿 적용
+
+분리 작업이 동일 템플릿 반복으로 수렴하도록 [docs/101_semantic_split_template.md](101_semantic_split_template.md) 를 source-of-truth 로 도입. 템플릿 A (body-only TU), 템플릿 B (DAG precollect 포함).
+
+완료 slice:
+
+| slice | 대상 | 새 TU | 구 `.inc` 폐기 | LOC |
+|---|---|---|---|---|
+| 1 차 | relation | `src/semantic/type_checker_relation_decl.c` | `type_checker_decls_relation.inc` | 94 |
+| 1 차 | effect | `src/semantic/type_checker_effect_decl.c` | `type_checker_decls_effect.inc` | 66 |
+| 2 차 | zone | `src/semantic/type_checker_zone_decl.c` | `type_checker_decls_zone.inc` | 1076 |
+| 3 차 | ability | `src/semantic/type_checker_ability_decl.c` | (type_checker.c 에서 본체 추출) | 80 |
+| 4 차 | world | `src/semantic/type_checker_world_decl.c` | `type_checker_decls_world.inc` | 856 |
+| 4-B | intent | `src/semantic/type_checker_intent_decl.c` + `type_checker_intent_helpers_internal.h` | `type_checker_decls_intent.inc` + `type_checker_decls_intent_world.inc` | 919 |
+| 3-B | role | `src/semantic/type_checker_role_decl.c` + `type_checker_decls_a_helpers_internal.h` | (decls_a.inc 에서 body 추출) | 383 |
+| 3-B | party | `src/semantic/type_checker_party_decl.c` | (decls_a.inc 에서 body 추출) | 147 |
+| 3-B | roster | `src/semantic/type_checker_roster_decl.c` | (decls_a.inc 에서 body 추출) | 80 |
+
+**3-B 에서 추가로 externalize 된 5 helper**: `any_subject_role_has_ability`, `any_subject_role_find_base_ability_impl`, `validate_ability_require_fields_for_role`, `find_generic_param_index`, `concrete_type_satisfies_bound`. `static` 제거 site 7 개 + 선언 승격 (`type_checker_decls_a_helpers_internal.h` 신설 + `type_checker_internal.h` 확장).
+
+**4-B / 3-B 에서 확립된 helper externalization 패턴**: body 를 TU 로 추출하기 전에 해당 body 가 호출하던 static 함수를 (1) internal header 에 선언 추가, (2) 원 정의의 `static` 제거 로 외부 linkage 로 전환한다. 정의 위치는 그대로 유지. 상세: [docs/101_semantic_split_template.md](101_semantic_split_template.md) §8.
+
+**빌드 가드 추가**: 4-B 과정에서 포인터 반환 helper의 implicit declaration 이 런타임 세그폴트로 이어질 수 있음을 확인했다. 기본 `CFLAGS`에 `-Werror=implicit-function-declaration -Werror=implicit-int`를 추가해, 이후 `.inc` → `.c` 분리 중 숨은 helper 의존이 테스트 실행 전 컴파일 단계에서 실패하도록 고정했다.
+
+**DAG zone slice**: zone refresh projection field-map edge collector를 `src/semantic/type_checker_resolution_graph_zone.c`로 이동했다. 이로써 `type_checker_resolution_graph_inventory.inc`는 737 LOC가 되었고, graph inventory는 semantic 800 LOC stop condition 아래로 내려갔다.
+
+**Stage domain slice**: world/zone local-contract replay를 `src/semantic/type_checker_resolution_stage_domain.c`로 이동했다. `type_checker_resolution_stage.inc`는 969 LOC가 되었고, 남은 stage debt는 top-level declaration staging과 generic/function/event staging 쪽으로 압축됐다.
+
+남은 semantic 800+ `.inc`:
+
+- `type_checker_decls_domain_helpers.inc` (약 1559) — 자체가 helper 모음 → 별도 axis 분리 전략 (5 차 slice).
+- `type_checker_decls_a.inc` (약 1509, 이전 2124 → **615 감소**) — intent helpers + class/subject/ability helpers 가 섞여 있어 추가 축소는 helper-axis 분리 전략 필요 (5 차 slice). 800 초과는 유지되지만 declaration body 는 모두 TU 로 나감.
+- `type_checker_program.inc` (약 1210) — program orchestration split 대상.
+- `type_checker_builtins_stdlib_body.inc` (약 1131) — stdlib body split 대상.
+- `type_checker_resolution_stage.inc` (약 969) — top-level declaration staging residual split 대상.
+
+§1 체크리스트의 "800 LOC 초과 `.inc` 없음" 조건은 **이번 sprint 에서 닫히지 않음**. 그러나 모든 declaration body 는 kind 별 TU 로 승격되어 owner boundary 가 명확해졌고, 새 declaration kind 추가 시 `.inc` aggregator 를 건드릴 필요 없음 — 사용자가 말한 "다른 지향 쉽게 추가" 의 구체적 장치 확보.
 
 ---
 
@@ -221,11 +261,19 @@ semantic_classify_ownership_type
 - 선행 seam: DONE — top-level declaration graph registration을 `type_checker_resolution_graph_collect.c`로 이동
 - 선행 seam: DONE — local-contract graph node/dependency + zone/world/projection label formatters를 `type_checker_resolution_graph_labels.c`로 이동
 - 선행 seam: DONE — event declaration precollector를 `type_checker_resolution_graph_decl.c`로 이동
+- 선행 seam: DONE — enum declaration precollector를 `type_checker_resolution_graph_decl.c`로 이동하고 `semantic_stage_method_array`를 internal API로 승격
+- 선행 seam: DONE — ability declaration precollector와 action-contract precollector를 `type_checker_resolution_graph_decl.c`로 이동
+- 선행 seam: DONE — role/class/party/roster declaration precollector를 `type_checker_resolution_graph_decl.c`로 이동
 - 선행 seam: DONE — projection source resolver를 `type_checker_resolution_graph_domain.c`로 이동하고 `find_zone_domain_slot`을 internal API로 승격
+- 선행 seam: DONE — relation/effect domain inventory precollector를 `type_checker_resolution_graph_domain.c`로 이동
+- 선행 seam: DONE — intent declaration precollector를 `type_checker_resolution_graph_decl.c`로 이동
+- 선행 seam: DONE — world inventory precollector를 `type_checker_resolution_graph_world.c`로 이동
 - cleanup: DONE — `find_type_alias_decl`의 cross-include dangling return-type seam을 명시 선언으로 정리
 - cleanup: DONE — `type_checker_resolution_graph_core.inc` → inventory include 경계의 dangling `static void` seam 2개를 명시 return type으로 정리
-- cascade: `type_resolution_intern_node`, `type_resolution_add_edge`, `type_resolution_find_path`, `type_resolution_format_cycle`, `semantic_type_resolution_record_named_dependency`, `semantic_type_resolution_record_type_ref_dependency`, `semantic_type_resolution_collect_type_refs`, `find_type_alias_decl`를 internal API로 승격
-- 현재 크기: `type_checker_resolution_graph_core.inc` 331 LOC, `type_checker_resolution_graph_collect.c` 285 LOC, `type_checker_resolution_graph_labels.c` 164 LOC, `type_checker_resolution_graph_domain.c` 29 LOC, `type_checker_resolution_graph_decl.c` 70 LOC, `type_checker_resolution_graph_inventory.inc` 1,809 LOC, `type_checker_resolution_stage.inc` 1,477 LOC
+- cleanup: DONE — `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 사이의 dangling return-type seams 제거
+- cleanup: DONE — `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`를 standalone semantic TU로 빌드 가능하게 만들고 hidden helper 의존을 internal/header 계약으로 승격
+- cascade: `type_resolution_intern_node`, `type_resolution_add_edge`, `type_resolution_find_path`, `type_resolution_format_cycle`, `semantic_type_resolution_record_named_dependency`, `semantic_type_resolution_record_type_ref_dependency`, `semantic_type_resolution_collect_type_refs`, `find_type_alias_decl`, `find_domain_decl_by_name`, `semantic_world_find_zone_slot_local`, `create_overlay_nominal_type`를 internal API로 승격
+- 현재 크기: `type_checker_resolution_graph_collect.c` 285 LOC, `type_checker_resolution_graph_labels.c` 164 LOC, `type_checker_resolution_graph_domain.c` 136 LOC, `type_checker_resolution_graph_decl.c` 554 LOC, `type_checker_resolution_graph_world.c` 381 LOC, `type_checker_resolution_graph_inventory.inc` 870 LOC, `type_checker_resolution_stage.inc` 1,477 LOC
 - 예상 cascade: 10+ — full audit 필요
 
 ---

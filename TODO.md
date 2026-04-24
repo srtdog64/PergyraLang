@@ -6,8 +6,13 @@
 
 ### 종합 판단: Late-Stage Alpha
 
-- 베타 진행률 추정: 약 `94-95%`
+- 베타 readiness 추정: 약 `70%`
 - 현재 표현: `late-stage alpha / beta-closure sprint`
+- 보정 이유:
+  - 기능 표면만 보면 core/foundation 구현은 넓지만, beta는 기능 개수가 아니라 end-to-end 신뢰도다
+  - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
+  - 장기 모듈화 stop condition도 아직 멀다. semantic에는 800 LOC 초과 `.inc`가 남아 있고, codegen/runtime에는 1,000 LOC를 크게 넘는 `.inc`가 남아 있다
+  - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 70%로 본다
 
 ## Beta taxonomy freeze: core / foundation / style
 
@@ -28,6 +33,7 @@
 - Machine-readable manifest: `docs/language_module_manifest.json`
 - Representative case tags: `docs/language_module_cases.json`
 - Drift gate: `make module-taxonomy-test-smoke`
+- Operational beta checklist: `docs/100_beta_readiness_checklist.md`
 
 ## 구조/운영 폐인 포인트 보드 (2026-04-20)
 
@@ -97,12 +103,22 @@
   - 진행: local-contract graph node/dependency + zone/world/projection label formatters는 `type_checker_resolution_graph_labels.c`로 이동해 graph inventory `.inc`를 1,835 LOC까지 축소했다
   - 진행: projection source resolver는 `type_checker_resolution_graph_domain.c`로 이동하고 `find_zone_domain_slot`을 internal API로 승격해 graph/domain split 선행 seam을 만들었다
   - 진행: event declaration precollector는 `type_checker_resolution_graph_decl.c`로 이동해 declaration-kind collector 분리도 시작
+  - 진행: enum declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고 `semantic_stage_method_array`를 internal API로 승격해 inventory `.inc`를 1,765 LOC까지 축소
+  - 진행: ability declaration precollector와 action-contract precollector도 `type_checker_resolution_graph_decl.c`로 이동해 inventory `.inc`를 1,648 LOC까지 축소
+  - 진행: role/class/party/roster declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고, relation/effect domain inventory precollector는 `type_checker_resolution_graph_domain.c`로 이동해 inventory `.inc`를 1,299 LOC까지 축소
+  - 진행: intent declaration precollector는 `type_checker_resolution_graph_decl.c`로, world inventory precollector는 `type_checker_resolution_graph_world.c`로 이동해 inventory `.inc`를 870 LOC까지 축소
+  - 진행: zone refresh projection field-map DAG collector는 `type_checker_resolution_graph_zone.c`로 이동해 inventory `.inc`를 737 LOC까지 축소하고, semantic 800 LOC stop condition 대상에서 graph inventory를 제외
+  - 진행: world/zone local-contract stage replay는 `type_checker_resolution_stage_domain.c`로 이동해 `type_checker_resolution_stage.inc`를 969 LOC까지 축소
+  - 진행: `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`는 standalone TU로 빌드되며 hidden include-order helper 의존을 internal/header 계약으로 승격
+  - 진행: `type_checker_intent_decl.c` standalone TU 승격 중 드러난 implicit helper dependency를 internal/header 계약으로 승격하고, `-Werror=implicit-function-declaration -Werror=implicit-int`를 기본 CFLAGS로 고정해 같은 종류의 C 모듈화 버그를 빌드 단계에서 차단
+  - 진행: `type_checker_role_decl.c`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`도 hard implicit-declaration CFLAGS 아래에서 빌드되도록 helper/header 의존을 명시
+  - 진행: `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 사이 dangling return-type seams 제거
   - 진행: `type_checker_resolution_graph_core.inc` → inventory include 경계의 dangling `static void` seam 2개를 명시 return type으로 정리
   - 진행: `generic_params_required_count`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
   - 완료: required ability resolver와 action required-ability validator는 `type_checker_module_contract.c`로 실제 TU 분리 완료
   - 완료: `type_checker_module_contracts.inc` 제거. module contract include-order 구조 debt는 닫힘
   - [ ] `.inc` 내부 static helper 중 교차 참조 심한 심볼 목록 작성
-  - [ ] include-order에 의존하는 implicit declaration 경로 제거
+  - [x] include-order에 의존하는 implicit declaration 경로 제거를 빌드 계약으로 승격 (`-Werror=implicit-function-declaration`, `-Werror=implicit-int`)
 
 ### P10. 속도 / 빌드 성능 baseline
 
@@ -1103,6 +1119,14 @@
     - 진행: local-contract graph node/dependency + zone/world/projection label formatters는 `type_checker_resolution_graph_labels.c`로 이동해 inventory `.inc`를 1,835 LOC까지 축소
     - 진행: projection source resolver는 `type_checker_resolution_graph_domain.c`로 이동하고 `find_zone_domain_slot`을 internal API로 승격해 inventory `.inc`를 1,809 LOC까지 축소
     - 진행: event declaration precollector는 `type_checker_resolution_graph_decl.c`로 이동해 inventory 본체에서 declaration-kind collector를 첫 절단
+    - 진행: enum declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고 `semantic_stage_method_array`를 internal API로 승격해 inventory `.inc`를 1,765 LOC까지 축소
+    - 진행: ability declaration precollector와 action-contract precollector도 `type_checker_resolution_graph_decl.c`로 이동해 inventory `.inc`를 1,648 LOC까지 축소
+    - 진행: role/class/party/roster declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고, relation/effect domain inventory precollector는 `type_checker_resolution_graph_domain.c`로 이동해 inventory `.inc`를 1,299 LOC까지 축소
+    - 진행: intent declaration precollector와 world inventory precollector를 각각 `type_checker_resolution_graph_decl.c`, `type_checker_resolution_graph_world.c`로 이동해 inventory `.inc`를 870 LOC까지 축소
+    - 진행: zone projection field-map collector를 `type_checker_resolution_graph_zone.c`로 분리해 inventory `.inc`를 737 LOC까지 축소
+    - 진행: world/zone local-contract stage replay를 `type_checker_resolution_stage_domain.c`로 분리해 stage `.inc`를 969 LOC까지 축소
+    - 진행: standalone TU 승격 중 드러난 dangling return-type seams와 implicit helper dependency를 제거해 `make test-all`, `make llvm-test-backend-compare` 회귀 통과
+    - 진행: implicit declaration / implicit int는 기본 CFLAGS에서 에러로 고정되어 이후 DAG/semantic split 중 hidden helper dependency가 즉시 실패하도록 정렬
     - 진행: `type_resolution_intern_node` / `type_resolution_add_edge` / `type_resolution_find_path` / `type_resolution_format_cycle`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
   - 목표:
     - import graph와 별개로 `type provider -> type consumer` 그래프를 분리 구축한다

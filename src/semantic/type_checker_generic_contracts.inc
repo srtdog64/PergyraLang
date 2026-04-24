@@ -1,4 +1,4 @@
-static int
+int
 find_generic_param_index(GenericParams *gp, const char *param_name)
 {
     if (gp == NULL || param_name == NULL)
@@ -15,7 +15,7 @@ find_generic_param_index(GenericParams *gp, const char *param_name)
     return -1;
 }
 
-static bool
+bool
 concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
                               SemanticContext *ctx)
 {
@@ -53,7 +53,7 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
     return false;
 }
 
-static void
+void
 validate_generic_param_default_bounds(GenericParams *gp,
                                       WhereClause *wc,
                                       SemanticContext *ctx,

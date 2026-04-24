@@ -263,7 +263,7 @@ name_looks_qualified(const char *name)
     return name != NULL && strchr(name, '.') != NULL;
 }
 
-static const char *
+const char *
 semantic_symbol_kind_label(SymbolKind kind)
 {
     switch (kind) {
@@ -341,7 +341,7 @@ semantic_format_function_signature(const Type *type, char *out, size_t out_cap)
 
 static ASTNode *
 constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *name);
-static ASTNode *
+ASTNode *
 find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type, const char *name);
 
 static const char *

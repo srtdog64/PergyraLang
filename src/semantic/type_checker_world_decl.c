@@ -1,3 +1,12 @@
+#include "type_checker_internal.h"
+#include "type_checker_visibility.h"
+#include "diag_codes.h"
+#include "../common/string_compat.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+static ASTNode *
 find_world_zone_slot_local(ASTNode *world, const char *slot_name)
 {
     if (world == NULL || world->type != AST_WORLD_DECL || slot_name == NULL)
@@ -742,7 +751,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     return !ctx->has_error;
 }
 
-static bool
+bool
 type_check_domain_slots(ASTNode **slots,
                         size_t slot_count,
                         SemanticContext *ctx,
@@ -778,7 +787,7 @@ type_check_domain_slots(ASTNode **slots,
     return !ctx->has_error;
 }
 
-static bool
+bool
 type_check_domain_slot_initializers(ASTNode **slots,
                                     size_t slot_count,
                                     SemanticContext *ctx,
@@ -853,5 +862,3 @@ type_check_domain_slot_initializers(ASTNode **slots,
     scope_exit(&ctx->scope);
     return !ctx->has_error;
 }
-
-static size_t

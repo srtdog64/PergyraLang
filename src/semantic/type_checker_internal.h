@@ -17,11 +17,89 @@ bool type_is_capability_bearing(const Type *type);
 bool type_is_subject_type(const Type *type, SemanticContext *ctx);
 bool type_requires_boundary_borrow_tracking(const Type *type, SemanticContext *ctx);
 void semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask);
+Type *create_overlay_nominal_type(const char *name);
+bool decl_is_subject_host(const ASTNode *decl);
+char *format_generic_subject_signature(const char *name,
+                                       GenericParams *params);
 
 bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
                          const char *action);
 Type *type_check_qubit_use(ASTNode *expr, SemanticContext *ctx);
 bool identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx);
+size_t count_subject_domain_slots(ASTNode **slots, size_t slot_count);
+size_t count_object_domain_slots(ASTNode **slots, size_t slot_count);
+size_t count_bindable_domain_slots(ASTNode **slots,
+                                   size_t slot_count,
+                                   ASTNode **refreshes,
+                                   size_t refresh_count);
+bool type_check_projection_contract(ASTNode **slots,
+                                    size_t slot_count,
+                                    const char *owner_label,
+                                    const char *owner_name,
+                                    ASTNode *site,
+                                    const char *object_slot_name,
+                                    const char *source_slot_name,
+                                    SemanticContext *ctx,
+                                    const char *action_name);
+bool type_check_overlay_decl_common(ASTNode *node,
+                                    SemanticContext *ctx,
+                                    const char *name,
+                                    SymbolKind kind,
+                                    ASTNode **shared_fields,
+                                    size_t shared_count,
+                                    ASTNode **methods,
+                                    size_t method_count,
+                                    const char *kind_name);
+bool type_check_domain_slots(ASTNode **slots,
+                             size_t slot_count,
+                             SemanticContext *ctx,
+                             const char *kind_name);
+bool type_check_domain_slot_initializers(ASTNode **slots,
+                                         size_t slot_count,
+                                         SemanticContext *ctx,
+                                         const char *kind_name);
+ASTNode *find_zone_effect_slot(ASTNode *zone, const char *slot_name);
+ASTNode *find_zone_relation_slot(ASTNode *zone, const char *slot_name);
+ASTNode *find_zone_state(ASTNode *zone, const char *state_name);
+bool resolve_zone_effect_state(ASTNode *zone,
+                               ASTNode *site,
+                               const char *state_name,
+                               SemanticContext *ctx,
+                               const char *action_name,
+                               const char **effect_slot_name,
+                               const char **target_slot_name);
+bool resolve_zone_relation_state(ASTNode *zone,
+                                 ASTNode *site,
+                                 const char *state_name,
+                                 SemanticContext *ctx,
+                                 const char *action_name,
+                                 const char **relation_slot_name,
+                                 const char **left_slot_name,
+                                 const char **right_slot_name);
+bool type_check_zone_participant_authority(ASTNode *zone,
+                                           ASTNode *site,
+                                           const char *participant_slot_name,
+                                           SemanticContext *ctx,
+                                           const char *action_name);
+bool type_check_zone_projection_contract(ASTNode *zone,
+                                         ASTNode *site,
+                                         const char *object_slot_name,
+                                         const char *source_slot_name,
+                                         SemanticContext *ctx,
+                                         const char *action_name);
+bool type_check_zone_effect_contract(ASTNode *zone,
+                                     ASTNode *apply_like,
+                                     const char *effect_slot_name,
+                                     const char *target_slot_name,
+                                     SemanticContext *ctx,
+                                     const char *action_name);
+bool type_check_zone_relation_contract(ASTNode *zone,
+                                       ASTNode *link_like,
+                                       const char *relation_slot_name,
+                                       const char *left_slot_name,
+                                       const char *right_slot_name,
+                                       SemanticContext *ctx,
+                                       const char *action_name);
 
 /* Currently-resolved nominal host (class/zone/world/relation/effect)
  * declaration for `ctx`.  Promoted to extern so visibility/access
@@ -31,8 +109,56 @@ ASTNode *current_host_decl(SemanticContext *ctx);
 ASTNode *find_type_alias_decl(ASTNode *program, const char *name);
 ASTNode *find_type_decl_by_name(ASTNode *program, const char *type_name);
 ASTNode *find_ability_decl_by_name(ASTNode *program, const char *name);
+ASTNode *find_domain_decl_by_name(ASTNode *program,
+                                  ASTNodeType decl_type,
+                                  const char *name);
+ASTNode *find_subject_host_decl_by_name(ASTNode *program,
+                                        const char *type_name);
 ASTNode *find_zone_domain_slot(ASTNode *zone, const char *slot_name);
+ASTNode *find_zone_authority(ASTNode *zone, const char *slot_name);
+ASTNode *resolve_zone_subject_slot_for_participant(ASTNode *zone,
+                                                   SemanticContext *ctx,
+                                                   const char *participant_alias,
+                                                   const char *participant_type_name,
+                                                   bool *ambiguous_out);
+ASTNode *semantic_world_find_zone_slot_local(ASTNode *world,
+                                             const char *slot_name);
+void semantic_stage_world_local_contracts(ASTNode *world_decl,
+                                          SemanticContext *ctx);
+void semantic_stage_zone_local_contracts(ASTNode *zone_decl);
+void semantic_stage_world_local_contract_from_label(ASTNode *world_decl,
+                                                    const char *label,
+                                                    SemanticContext *ctx);
+void semantic_stage_zone_local_contract_from_label(ASTNode *zone_decl,
+                                                   const char *label,
+                                                   SemanticContext *ctx);
+const char *semantic_symbol_kind_label(SymbolKind kind);
+const char *intent_step_single_who_alias(const ASTNode *step);
+ASTNode *find_intent_involves_local(ASTNode *intent, const char *alias);
+ASTNode *intent_step_resolve_transfer_target_involves(
+    ASTNode *intent_decl,
+    ASTNode *step,
+    const char **resolved_alias_out);
+const char *intent_involves_type_name(ASTNode *involves);
+bool domain_has_subject_slot_type(ASTNode **slots,
+                                  size_t slot_count,
+                                  SemanticContext *ctx,
+                                  const char *type_name);
+bool zone_has_effect_layer_type(ASTNode *zone, const char *effect_name);
 size_t generic_params_required_count(GenericParams *params);
+void validate_where_clause_bounds(WhereClause *wc,
+                                  SemanticContext *ctx,
+                                  ASTNode *owner);
+void validate_generic_param_defaults(GenericParams *gp,
+                                     SemanticContext *ctx,
+                                     ASTNode *owner,
+                                     const char *kind_name);
+void validate_generic_param_default_bounds(GenericParams *gp,
+                                           WhereClause *wc,
+                                           SemanticContext *ctx,
+                                           ASTNode *owner,
+                                           const char *owner_kind,
+                                           const char *owner_name);
 ASTNode **collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                               GenericParams *provided_args,
                                               const ASTNode *site,
@@ -41,6 +167,10 @@ ASTNode **collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                               const char *owner_name,
                                               size_t *out_count);
 char *format_type_constraint_bounds(TypeConstraint *tc);
+int find_generic_param_index(GenericParams *gp, const char *param_name);
+bool concrete_type_satisfies_bound(Type *concrete_type,
+                                   ASTNode *bound_node,
+                                   SemanticContext *ctx);
 void semantic_type_resolution_record_type_ref_dependency(
     SemanticContext *ctx,
     const ASTNode *consumer_site,
@@ -73,6 +203,33 @@ void semantic_type_resolution_precollect_required_abilities(
     const ASTNode *owner,
     const char *consumer_name,
     const char *reason);
+void semantic_type_resolution_precollect_action_contract(ASTNode *method,
+                                                         SemanticContext *ctx,
+                                                         const char *fallback_name);
+void semantic_type_resolution_precollect_ability_inventory(ASTNode *ability_decl,
+                                                           SemanticContext *ctx);
+void semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
+                                                        SemanticContext *ctx);
+void semantic_type_resolution_precollect_class_inventory(ASTNode *class_decl,
+                                                         SemanticContext *ctx);
+void semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
+                                                         SemanticContext *ctx);
+void semantic_type_resolution_precollect_roster_inventory(ASTNode *roster_decl,
+                                                          SemanticContext *ctx);
+void semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
+                                                         SemanticContext *ctx);
+void semantic_type_resolution_precollect_zone_refresh_projection_map(
+    ASTNode *zone_decl,
+    ASTNode *refresh,
+    SemanticContext *ctx,
+    const char *consumer_label);
+void semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
+                                                          SemanticContext *ctx);
+bool type_check_intent_decl(ASTNode *node, SemanticContext *ctx);
+void semantic_type_resolution_precollect_relation_inventory(ASTNode *relation_decl,
+                                                            SemanticContext *ctx);
+void semantic_type_resolution_precollect_effect_inventory(ASTNode *effect_decl,
+                                                          SemanticContext *ctx);
 void semantic_type_resolution_register_top_level_decl(ASTNode *stmt,
                                                       SemanticContext *ctx);
 void semantic_type_resolution_register_local_contract_node(SemanticContext *ctx,
@@ -106,8 +263,20 @@ char *semantic_type_resolution_projection_slot_field_label(ASTNode *zone_decl,
 ASTNode *semantic_type_resolution_projection_source_decl(ASTNode *zone_decl,
                                                          const char *slot_name,
                                                          SemanticContext *ctx);
+int resolve_projection_source_field_path(ASTNode *program_root,
+                                         ASTNode *source_decl,
+                                         const char *field_name,
+                                         SemanticContext *ctx,
+                                         char **path_out,
+                                         Type **field_type_out);
 void semantic_type_resolution_precollect_event_inventory(ASTNode *event_decl,
                                                          SemanticContext *ctx);
+void semantic_type_resolution_precollect_enum_inventory(ASTNode *enum_decl,
+                                                        SemanticContext *ctx);
+void semantic_stage_method_array(ASTNode **methods,
+                                 size_t method_count,
+                                 SemanticContext *ctx,
+                                 const char *fallback_name);
 void semantic_type_resolution_record_named_dependency(
     SemanticContext *ctx,
     const ASTNode *consumer_site,

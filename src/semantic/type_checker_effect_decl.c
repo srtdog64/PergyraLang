@@ -1,3 +1,4 @@
+#include "type_checker_internal.h"
 
 bool
 type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
@@ -20,11 +21,11 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
         node->data.effect_decl.slot_count, ctx, "effect") && ok;
     for (size_t i = 0; i < node->data.effect_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.effect_decl.refreshes[i];
+        if (refresh == NULL)
+            continue;
         const char *action_name =
             refresh->data.zone_refresh.derive_target_kind ? "bind"
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
-        if (refresh == NULL)
-            continue;
         ok = type_check_projection_contract(node->data.effect_decl.slots,
             node->data.effect_decl.slot_count, "Effect",
             node->data.effect_decl.name, refresh,

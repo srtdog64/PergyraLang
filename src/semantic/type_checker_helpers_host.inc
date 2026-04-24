@@ -1,3 +1,4 @@
+Type *
 create_overlay_nominal_type(const char *name)
 {
     Type *type = calloc(1, sizeof(Type));
@@ -416,7 +417,7 @@ find_action_binding_type_name(ASTNode *func, ASTNode *enclosing_nominal,
     return NULL;
 }
 
-static bool
+bool
 domain_has_subject_slot_type(ASTNode **slots, size_t slot_count,
                              SemanticContext *ctx, const char *type_name)
 {
@@ -510,7 +511,7 @@ zone_has_authority_for_subject_type(ASTNode *zone, SemanticContext *ctx,
     return false;
 }
 
-static bool
+bool
 zone_has_effect_layer_type(ASTNode *zone, const char *effect_name)
 {
     if (zone == NULL || zone->type != AST_ZONE_DECL || effect_name == NULL)

@@ -14,6 +14,10 @@ PergyraLang is no longer blocked by broad surface absence. The remaining beta ri
 - type-resolution DAG exists but is not yet the full semantic execution truth;
 - arena/lifetime rules are mostly settled but a few owner/runtime ABI boundaries remain.
 
+Current beta readiness is approximately **70%**.
+
+This is intentionally lower than a feature-count reading. Many core and foundation surfaces are already implemented, tested, and documented, but strict beta readiness depends on the trust of the underlying closure mechanisms. Until type-resolution DAG becomes the source of truth for frozen-subset dependency ordering, and until long-term modularization reaches stable owner boundaries, the project should not be described as 90%+ beta-ready.
+
 The current beta posture is best described as:
 
 > Narrow beta is close, but strict beta still needs the remaining propagation, failure, MIR inventory, DAG, and lifetime closure work to be either completed or explicitly downgraded from the beta contract.
@@ -163,7 +167,7 @@ Beta closure condition:
 
 ### 4. Type-Resolution DAG Source Of Truth
 
-Status: graph infrastructure exists; full evaluator authority is not complete.
+Status: graph infrastructure exists; source-of-truth authority is not complete. This is the main reason the overall beta readiness is held near 70%.
 
 Already closed:
 
@@ -189,6 +193,30 @@ Beta closure condition:
 - no known frozen-subset type dependency relies only on declaration order;
 - graph-backed errors include stable provenance;
 - the docs stop calling for a full DAG rewrite and instead name the exact remaining migration paths.
+
+### 4b. Long-Term Modularization Boundary
+
+Status: necessary structural work is underway, but the stop condition is not met.
+
+Already closed:
+
+- several semantic leaf/helper families now live in real translation units;
+- module contract include-order debt was removed;
+- type-resolution graph primitive, collector, label, domain, and declaration helper seams have started moving out of `.inc`;
+- speed baseline and `perf-summary` are available to catch modularization regressions.
+
+Remaining work:
+
+- reduce semantic `.inc` files above 800 LOC;
+- reduce codegen/runtime `.inc` files above 1,000 LOC;
+- make `type_checker.c` orchestration-only rather than an include aggregator;
+- split backend/runtime owners so future core features do not require editing multi-thousand-line include fragments.
+
+Beta closure condition:
+
+- DAG/stage/declaration/backend/runtime owner boundaries are explicit enough that a frozen-subset feature can be changed without relying on include-order side effects;
+- remaining `.inc` usage is limited to generated tables, local macro tables, or private test fixtures;
+- any remaining representation debt is documented as internal and non-user-visible.
 
 ### 5. Arena And Lifetime Boundaries
 
@@ -260,22 +288,25 @@ Recommended next work:
 
 ## Recommended Execution Order
 
-1. Close the remaining handoff propagation tails.
+1. Promote DAG staged resolution.
+   Audit remaining recursive type-resolution consumers and move frozen-subset dependency ordering behind graph-backed paths. This is now the highest-value beta blocker because it defines whether the language can keep module/generic/authority contracts stable as the surface grows.
+
+2. Continue long-term modularization around the DAG boundary.
+   Split graph inventory/stage/declaration helpers until semantic ownership is explicit enough to avoid include-order side effects. Prioritize `.inc` seams that directly affect type resolution, module contracts, and backend declaration inventory.
+
+3. Close the remaining handoff propagation tails.
    The active projection-backed world-state and action-caused layer/state slices are now covered; next add handoff authority/failure cases and implement any missing queryable rejection path.
 
-2. Complete recoverable failure state.
+4. Complete recoverable failure state.
    Expand queryable runtime failure beyond the current authority baseline while preserving hard-fail boundaries.
 
-3. Shrink declaration inventory debt.
+5. Shrink declaration inventory debt.
    Build a dedicated declaration metadata view for frozen domain declarations and migrate C/LLVM consumers.
 
-4. Promote DAG staged resolution.
-   Audit remaining recursive type-resolution consumers and move frozen-subset dependency ordering behind graph-backed paths.
-
-5. Finish arena/lifetime ownership review.
+6. Finish arena/lifetime ownership review.
    Classify returned helper ownership and add a small regression that proves result-owned data outlives scratch formatting.
 
-6. Freeze docs and examples.
+7. Freeze docs and examples.
    Update the live truth set, stable examples, and release checklist only after the code paths are covered.
 
 ## Practical Beta Exit Criteria

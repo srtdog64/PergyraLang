@@ -1,5 +1,7 @@
-#include "type_checker_decls_intent_world.inc"
+/* type_checker_decls_intent_world.inc removed — intent body lives in type_checker_intent_decl.c (4-B slice),
+ * world body in type_checker_world_decl.c (4 차 slice). See docs/101_semantic_split_template.md */
 
+size_t
 count_subject_domain_slots(ASTNode **slots, size_t slot_count)
 {
     size_t subject_count = 0;
@@ -13,7 +15,7 @@ count_subject_domain_slots(ASTNode **slots, size_t slot_count)
     return subject_count;
 }
 
-static size_t
+size_t
 count_object_domain_slots(ASTNode **slots, size_t slot_count)
 {
     size_t object_count = 0;
@@ -27,7 +29,7 @@ count_object_domain_slots(ASTNode **slots, size_t slot_count)
     return object_count;
 }
 
-static size_t
+size_t
 count_bindable_domain_slots(ASTNode **slots, size_t slot_count,
                             ASTNode **refreshes, size_t refresh_count)
 {
@@ -71,7 +73,7 @@ find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
     return NULL;
 }
 
-static bool
+bool
 any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
 {
     if (program == NULL || program->type != AST_PROGRAM
@@ -103,7 +105,7 @@ any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
     return false;
 }
 
-static ASTNode *
+ASTNode *
 any_subject_role_find_base_ability_impl(ASTNode *program, const char *ability_name)
 {
     if (program == NULL || program->type != AST_PROGRAM
@@ -175,7 +177,7 @@ find_zone_domain_slot(ASTNode *zone, const char *slot_name)
         zone->data.zone_decl.slot_count, slot_name);
 }
 
-static ASTNode *
+ASTNode *
 find_domain_decl_by_name(ASTNode *program,
                          ASTNodeType decl_type,
                          const char *name)
@@ -207,7 +209,7 @@ find_domain_decl_by_name(ASTNode *program,
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 find_zone_effect_slot(ASTNode *zone, const char *slot_name)
 {
     if (zone == NULL || slot_name == NULL)
@@ -226,7 +228,7 @@ find_zone_effect_slot(ASTNode *zone, const char *slot_name)
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 find_zone_relation_slot(ASTNode *zone, const char *slot_name)
 {
     if (zone == NULL || slot_name == NULL)
@@ -245,7 +247,7 @@ find_zone_relation_slot(ASTNode *zone, const char *slot_name)
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 find_zone_authority(ASTNode *zone, const char *slot_name)
 {
     if (zone == NULL || slot_name == NULL)
@@ -264,7 +266,7 @@ find_zone_authority(ASTNode *zone, const char *slot_name)
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 resolve_zone_subject_slot_for_participant(ASTNode *zone,
                                           SemanticContext *ctx,
                                           const char *participant_alias,
@@ -309,7 +311,7 @@ resolve_zone_subject_slot_for_participant(ASTNode *zone,
     return typed_match;
 }
 
-static ASTNode *
+ASTNode *
 find_zone_state(ASTNode *zone, const char *state_name)
 {
     if (zone == NULL || state_name == NULL)
@@ -328,7 +330,7 @@ find_zone_state(ASTNode *zone, const char *state_name)
     return NULL;
 }
 
-static bool
+bool
 resolve_zone_effect_state(ASTNode *zone,
                           ASTNode *site,
                           const char *state_name,
@@ -366,7 +368,7 @@ resolve_zone_effect_state(ASTNode *zone,
     return true;
 }
 
-static bool
+bool
 resolve_zone_relation_state(ASTNode *zone,
                             ASTNode *site,
                             const char *state_name,
@@ -409,7 +411,7 @@ resolve_zone_relation_state(ASTNode *zone,
     return true;
 }
 
-static bool
+bool
 type_check_zone_participant_authority(ASTNode *zone,
                                 ASTNode *site,
                                 const char *participant_slot_name,
@@ -467,7 +469,7 @@ find_named_class_decl_local(ASTNode *program, const char *name)
     return NULL;
 }
 
-static bool
+bool
 intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx)
 {
     ASTNode *callee;
@@ -524,7 +526,7 @@ intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *c
     return false;
 }
 
-static bool
+bool
 type_check_projection_contract(ASTNode **slots,
                                size_t slot_count,
                                const char *owner_label,
@@ -955,7 +957,7 @@ type_check_projection_contract(ASTNode **slots,
     return true;
 }
 
-static bool
+bool
 type_check_zone_projection_contract(ASTNode *zone,
                                     ASTNode *site,
                                     const char *object_slot_name,
@@ -990,7 +992,7 @@ relation_endpoint_kind_label(RelationEndpointKind kind)
     }
 }
 
-static bool
+bool
 type_check_zone_effect_contract(ASTNode *zone,
                                 ASTNode *apply_like,
                                 const char *effect_slot_name,
@@ -1173,7 +1175,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
         && type_equals(slot_type, named_type);
 }
 
-static bool
+bool
 type_check_zone_relation_contract(ASTNode *zone,
                                   ASTNode *link_like,
                                   const char *relation_slot_name,
@@ -1452,7 +1454,7 @@ type_check_zone_relation_contract(ASTNode *zone,
     return true;
 }
 
-static bool
+bool
 type_check_overlay_decl_common(ASTNode *node,
                                SemanticContext *ctx,
                                const char *name,

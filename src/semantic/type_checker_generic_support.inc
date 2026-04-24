@@ -1,4 +1,4 @@
-static char *
+char *
 format_generic_subject_signature(const char *name, GenericParams *params)
 {
     size_t total_len;

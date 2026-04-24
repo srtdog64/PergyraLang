@@ -461,13 +461,13 @@ decl_is_subject_type(const ASTNode *decl)
         && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
 }
 
-static bool
+bool
 decl_is_subject_host(const ASTNode *decl)
 {
     return decl_is_subject_type(decl);
 }
 
-static ASTNode *
+ASTNode *
 find_subject_host_decl_by_name(ASTNode *program, const char *type_name)
 {
     ASTNode *decl = find_type_decl_by_name(program, type_name);
@@ -513,7 +513,7 @@ decl_is_projection_source(const ASTNode *decl)
         && decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
 }
 
-static ASTNode *
+ASTNode *
 find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type,
                          const char *name);
 
@@ -657,7 +657,7 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
     return match_count > 1 ? 2 : 0;
 }
 
-static int
+int
 resolve_projection_source_field_path(ASTNode *program_root,
                                      ASTNode *source_decl,
                                      const char *field_name,
@@ -668,5 +668,3 @@ resolve_projection_source_field_path(ASTNode *program_root,
     return resolve_projection_source_field_path_rec(program_root, source_decl,
         field_name, 0, ctx, path_out, field_type_out);
 }
-
-static Type *

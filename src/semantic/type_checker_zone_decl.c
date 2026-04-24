@@ -1,3 +1,13 @@
+#include "type_checker_internal.h"
+#include "type_checker_ability_match_internal.h"
+#include "type_checker_ability_ref_internal.h"
+#include "type_checker_module_contract_diag_internal.h"
+#include "type_checker_module_contract_internal.h"
+#include "type_checker_visibility.h"
+#include "diag_codes.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 bool
 type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
@@ -1070,7 +1080,3 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
     ctx->current_module_path = prev_module_path;
     return ok && !ctx->has_error;
 }
-
-/* -----------------------------------------------------------------
- * Async system type checkers
- * ----------------------------------------------------------------- */

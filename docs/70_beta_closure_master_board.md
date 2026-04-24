@@ -18,10 +18,16 @@
 ## 현재 판정
 
 - 현재 단계: `late-stage alpha / beta-closure sprint`
-- 베타 진행률 추정: `약 95%`
+- 베타 readiness 추정: `약 70%`
+- 판정 방식:
+  - 기능 표면 성숙도만 보면 다수 core/foundation surface가 구현되어 `90%+`처럼 보인다
+  - 그러나 strict beta는 `DAG source-of-truth`, `runtime propagation generalization`, `MIR declaration inventory`, `arena/lifetime`, `장기 모듈화 stop condition`까지 함께 요구한다
+  - 따라서 현재 공식 수치는 기능 개수 기준이 아니라 **베타 신뢰도 기준 약 70%**로 낮춘다
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
-  - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt`다
+  - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt + 장기 모듈화 debt`다
+  - 특히 Type-resolution DAG가 semantic source-of-truth로 승격되지 않으면 declaration order, module contract, generic consumer path가 다시 drift할 수 있으므로 전체 readiness를 끌어내리는 핵심 blocker다
+  - 완전 모듈화도 베타 이후 지속 개발 가능성의 조건이다. `.inc` 제거율 자체가 목표는 아니지만, core semantic/DAG/backend/runtime owner 경계가 아직 충분히 닫히지 않았다
 - runtime propagation은 이제 C/LLVM 공통 `dirty/ready + epoch/cause` provenance baseline, world-derived bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone projection read-after-mutate closure를 straight-line assignment, method-call, branch-join slice까지 닫았고, 남은 차단점은 이를 handoff와 더 넓은 world-zone path로 일반화하는 broader `bounded fixpoint / transitive frontier scheduler`다
 
 ## Beta Acceptance Line
@@ -86,6 +92,8 @@ Beta에서 smoke/parity는 유지하되, core identity나 B0 blocker로 넓히�
 
 Source of truth for future module/package naming: `docs/99_language_module_taxonomy.md`, `docs/language_module_manifest.json`, and `docs/language_module_cases.json`. Drift gate: `make module-taxonomy-test-smoke`.
 
+Operational beta checklist: `docs/100_beta_readiness_checklist.md`. The checklist is the execution-level view of this board and tracks six closure axes: core/module boundary, DAG, MIR declaration debt, ABI ownership, `parallel`/core keyword tests, and pain point fix loop.
+
 ## Master Status Board
 
 | 트랙 | 상태 | 진행률 | 베타 차단 여부 | 핵심 메모 |
@@ -99,6 +107,7 @@ Source of truth for future module/package naming: `docs/99_language_module_taxon
 | Arena / lifetime discipline | 진행 중 | 81% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 규칙 문서화는 끝났고 transpiler scratch-only temporary의 첫 safe vertical slice, semantic result-owned diagnostic payload seam, semantic scratch arena가 ownership path 조립 / stdlib preload / enum method mangling / parallel task metadata / type-resolution cycle detection / match redundancy coverage까지 확장됐다. HIR/MIR에는 routine-scope `scratch` arena가, LLVM은 `scratch + persistent + result-owned` lane으로 정리되어 event invoke, intent collector, projection path, local grow array, type render helper, callable signature metadata까지 arena 경계가 올라왔다. 남은 것은 owner shell과 runtime ABI contract, 반환 ownership이 섞인 일부 helper다 |
 | C/LLVM parity | 진행 중 | 90% | 차단 | LLVM stmt/expr fallback은 warning-only가 아니라 structured backend error로 고정됐고 AST dispatch partition smoke가 CI gate에 들어갔다. domain method MIR-missing 경로도 partial emit 없이 explicit backend error로 정렬됐다. world-derived / projection-chain bounded recompute도 C/LLVM parity smoke에 올라왔다. Windows full green은 plain Linux host가 아니라 MSYS2/MinGW + LLVM runner truth로 분리했다 |
 | runtime observability | 진행 중 | 91% | 차단 | last/history/active/recent baseline, propagation provenance stamp, authority guard `last_code` snapshot baseline, intent authority snapshot, bounded recompute ABI smoke는 있지만 deeper queryable failure state와 handoff/world-zone generalization까지 포함한 frontier recompute provenance가 더 남음 |
+| Long-term modularization | 진행 중 | 70% | 차단 | semantic leaf/helper split은 많이 진행됐고 `type_checker_resolution_graph_inventory.inc`는 1,809 LOC까지 줄었지만, semantic에는 아직 800 LOC 초과 `.inc`가 다수 남아 있고 codegen/runtime에는 3k~4k LOC `.inc`가 남아 있다. beta 이후 기능 확장을 안전하게 이어가려면 DAG/stage/declaration/backend/runtime owner 경계가 더 닫혀야 한다 |
 | surface trust docs | 진행 중 | 87% | 차단 | 주요 surface는 정렬됐고 own/ref baseline도 넓어졌지만 B0 잔여에 맞춘 최종 재분류와 acceptance wording 고정이 남음 |
 
 최근 고정:
@@ -554,28 +563,29 @@ diagnostic 고정 규칙:
 
 ## Next Locked Sequence
 
-1. B0-1 Intent / Zone / World 잔여 좁히기
+1. Type-resolution DAG source-of-truth 승격
+   - remaining recursive `resolve_type_node` consumer audit
+   - graph-backed / namespace-only / legacy resolver 분류
+   - frozen subset provider/consumer ordering을 graph schedule로 고정
+   - declaration order에 기대는 semantic path 제거
+   - cycle/provenance diagnostic vocabulary 유지
+2. 장기 모듈화 owner boundary 축소
+   - DAG inventory/stage/declaration `.inc`를 실제 TU로 더 분리
+   - semantic 800 LOC 초과 `.inc` 축소
+   - codegen/runtime 1,000 LOC 초과 `.inc`는 beta 이후 폭발하지 않도록 leaf seam부터 절단
+   - `type_checker.c` orchestration-only 목표 유지
+3. B0-1 Intent / Zone / World 잔여 좁히기
    - embedding ownership / handoff
    - cross-layer propagation
    - richer provenance
    - declaration/runtime/diagnostic parity
-2. B0-2 relation / effect / projection closure
+4. B0-2 relation / effect / projection closure
    - authority-resource-effect partial order
    - branch/join/handoff/embedded propagation
    - projection propagation policy
    - runtime contract provenance
    - helper-heavy edge path 감소
    - declaration/runtime/diagnostic/backend parity
-3. B0-3 generic multi-bound/module-contract closure
-   - multi-bound 전경로 enforcement
-   - module-contract propagation
-   - instantiation-path parity
-   - expected/actual/bound/consumer-path diagnostics
-4. B0-4 own/ref general movable rule 확장
-   - movable vs copy type rule
-   - assignment/call/return/channel/container/rebind ownership
-   - helper-call escape analysis
-   - ownership provenance diagnostics
 5. declaration-side MIR-only debt 제거
    - 진행: domain method emission이 MIR inventory 존재 시 AST fallback으로 조용히 내려가지 않도록 C/LLVM gate를 정렬
 6. Backend parity final closure

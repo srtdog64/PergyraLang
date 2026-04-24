@@ -1,3 +1,14 @@
+#include "type_checker_internal.h"
+#include "type_checker_ability_match_internal.h"
+#include "type_checker_ability_ref_internal.h"
+#include "type_checker_intent_helpers_internal.h"
+#include "type_checker_module_contract_internal.h"
+#include "diag_codes.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+bool
 type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.intent_decl.name;
@@ -915,5 +926,3 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
 bool
 type_check_world_decl(ASTNode *node, SemanticContext *ctx);
-
-static ASTNode *
