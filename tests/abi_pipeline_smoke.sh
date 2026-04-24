@@ -170,6 +170,10 @@ CASES=(
     intent_failure_abi
     world_clone_ownership_abi
     world_handoff_mutation_abi
+    intent_authority_snapshot_abi
+    handoff_projection_frontier_abi
+    handoff_world_state_frontier_abi
+    handoff_layer_state_frontier_abi
     world_zone_query_abi
     world_fixpoint_abi
     projection_chain_abi
@@ -177,6 +181,8 @@ CASES=(
     world_embedded_projection_abi
     world_embedded_method_projection_abi
     world_embedded_branch_projection_abi
+    world_embedded_action_frontier_abi
+    world_embedded_action_pool_frontier_abi
     authority_failure_abi
     relation_effect_zone_abi
     relation_effect_propagation_abi

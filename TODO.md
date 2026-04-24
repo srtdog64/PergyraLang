@@ -241,9 +241,15 @@
 - 추가 closure: zone lifecycle sync도 이제 C/LLVM 양쪽에서 bounded frontier loop를 가지며, state/layer replay가 single-batch에만 묶이지 않는다
 - 추가 closure: embedded world-zone source assignment도 이제 projection dirty mark 뒤에 같은 turn의 zone sync를 태워 stale `ready/value` drift 없이 projection recompute를 닫는다
 - 추가 회귀: `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`가 C/LLVM ABI smoke에서 녹색이며 embedded zone projection read-after-mutate path를 straight-line assignment, method-call, branch-join slice까지 잠근다
-- 강한 남은 과제: full bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. 다만 남은 debt는 zone/world frontier loop의 부재가 아니라 handoff와 더 넓은 world-zone propagation family를 같은 source-of-truth로 일반화하는 일이다
+- 추가 회귀: `handoff_projection_frontier_abi`가 C/LLVM ABI smoke에서 녹색이고 `handoff_projection_frontier`가 backend-compare에서 녹색이다. v1 handoff materialization 이후 source projection은 source snapshot을, target projection은 target mutation 결과를 보도록 잠근다
+- 추가 회귀: `handoff_world_state_frontier_abi`와 `handoff_world_state_frontier`가 C/LLVM에서 녹색이다. active world-owned zone을 `transfer:` 대상으로 넘긴 뒤 projection-backed world state와 `all` composed state가 같은 tick에서 fresh하게 보이는 최소 frontier를 잠근다
+- 추가 회귀: `handoff_layer_state_frontier_abi`와 `handoff_layer_state_frontier`가 C/LLVM에서 녹색이다. `transfer:` 이후 action-caused effect가 target zone layer/state와 active world-derived layer/state alias까지 같은 tick에서 fresh하게 전파되는 경로를 잠근다
+- 추가 회귀: `world_embedded_action_frontier_abi`와 `world_embedded_action_frontier`가 C/LLVM에서 녹색이다. embedded world-zone subject action call이 action-caused effect layer/state와 active world-derived layer/state alias까지 같은 tick에서 fresh하게 전파되는 경로를 잠근다
+- 추가 회귀: `world_embedded_action_pool_frontier_abi`와 `world_embedded_action_pool_frontier`가 C/LLVM에서 녹색이다. embedded world-zone subject action call의 fixed-capacity effect pool 경로도 같은 frontier 계약으로 잠근다
+- 강한 남은 과제: full bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. 다만 남은 debt는 zone/world frontier loop의 부재가 아니라 remaining authority/failure handoff family와 더 넓은 world-zone propagation family를 같은 source-of-truth로 일반화하는 일이다
 - 추가 closure: relation/effect/zone projection sync도 bounded transitive recompute loop로 올라왔고 declaration order에 기대지 않는다
 - 추가 회귀: `projection_chain_abi`가 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`에서 잠겼다
+- Beta readiness audit: `docs/98_beta_closure_readiness_report.md` records the current codebase verdict, remaining blockers, and concrete closure order. It narrows the next highest-value implementation target to handoff propagation and broader world-zone scheduler generalization.
 
 ### 최근 closure 진행 (2026-04-23)
 
@@ -726,7 +732,7 @@
 - 진행: relation/effect/zone projection hidden cell도 C/LLVM 모두 `dirty/ready + epoch/cause` schema로 정렬됐고 runtime contract provenance baseline이 생김
 - 진행: world-derived recompute는 bounded pass loop로 올라왔고, relation/effect/zone projection chain도 bounded transitive recompute loop로 올라왔다
 - 강한 기준: projection propagation은 더 이상 "helper replay가 대체로 맞음" 수준으로 두지 않고, transitive semantics가 닫히기 전까지 beta blocker로 유지
-- 남음: authority-resource partial order 통합, projection을 넘어선 **handoff와 더 넓은 world-zone propagation family까지의 full transitive frontier propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity의 마지막 shrink
+- 남음: authority-resource partial order 통합, projection/layer/state를 넘어선 **authority/failure handoff와 더 넓은 world-zone propagation family까지의 full transitive frontier propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity의 마지막 shrink
   - 이 축은 domain semantics 핵심이므로 partial 상태로 beta에 올리지 않는다
   - projection diagnostics는 `target/source/projection kind/field path/fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
 - [x] **generic contract 완전 closure**
@@ -880,12 +886,16 @@
   - intent failure, authority rejection, boundary mismatch는 process abort 대신 queryable reason/state로 노출
   - runtime observability와 diagnostics wording을 같은 provenance vocabulary로 정렬
   - 참고: runtime propagation provenance(`epoch/cause`) baseline은 완료로 본다
-  - 진행: runtime zone authority invariant guard는 `last_ok / zone / participant / reason` thread-local snapshot을 남기도록 정렬되어, hard-fail guard와 별개로 최소 queryable failure snapshot baseline은 생겼다
+  - 진행: runtime zone authority invariant guard는 `last_ok / zone / participant / code / reason` thread-local snapshot을 남기도록 정렬되어, hard-fail guard와 별개로 최소 queryable failure snapshot baseline은 생겼다
+  - 진행: intent emitter는 MIR `IntentAuthorizedBy` metadata를 C/LLVM 양쪽에서 수집하고, step-local approval을 `pgy_zone_authority_validate_flags_export(...)`로 검증해 `authority:<step>` recoverable intent failure와 runtime authority snapshot을 같은 경로로 남긴다
+  - 진행: intent `authorized by`는 concrete zone subject slot으로 해석되며, 같은 타입의 non-authority slot 또는 ambiguous same-type slot mapping은 semantic hard error로 닫혔다
+  - 회귀: `intent authorized participant must resolve to authority slot`, `intent authorized participant reports ambiguous authority slot`
+  - 회귀: `intent_authority_snapshot_abi`, `intent_authority_snapshot`
   - 남음: queryable failure reason/state surface는 여전히 beta blocker다
 - [ ] **runtime authority guard downshift**
   - 현재 `pgy_zone_authority_check_export(...)`는 null self/null participant invariant guard다
   - 이 guard 자체는 hard-fail 유지
-  - 진행: C inline validator와 LLVM runtime export 모두 마지막 authority validation 결과를 같은 vocabulary(`last_ok`, `zone`, `participant`, `reason`)로 남긴다
+  - 진행: C inline validator, LLVM runtime export, intent step-local `authorized by` validation 모두 마지막 authority validation 결과를 같은 vocabulary(`last_ok`, `zone`, `participant`, `code`, `reason`)로 남긴다
   - 별도 real authority rejection runtime path가 생기면 그쪽을 `recoverable authority failure` 경로로 설계
 - [x] **hard-fail boundary 명시**
   - 완료: `README.md`와 `docs/07_error_handling.md`에 hard-fail boundary를 명시

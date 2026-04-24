@@ -2115,4 +2115,14 @@ projection_target_decl_has_field(ASTNode *target_decl, const char *field_name)
     return false;
 }
 
+static ASTNode *
+find_zone_authority(ASTNode *zone, const char *slot_name);
+
+static ASTNode *
+resolve_zone_subject_slot_for_participant(ASTNode *zone,
+                                          SemanticContext *ctx,
+                                          const char *participant_alias,
+                                          const char *participant_type_name,
+                                          bool *ambiguous_out);
+
 bool

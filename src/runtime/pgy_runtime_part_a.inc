@@ -35,6 +35,7 @@ static inline char *pgy_runtime_strdup(const char *src);
 static _Thread_local bool pgy_zone_authority_last_ok = true;
 static _Thread_local char pgy_zone_authority_last_zone[128] = "";
 static _Thread_local char pgy_zone_authority_last_participant[128] = "";
+static _Thread_local char pgy_zone_authority_last_code[64] = "ok";
 static _Thread_local char pgy_zone_authority_last_reason[192] = "";
 
 static inline void

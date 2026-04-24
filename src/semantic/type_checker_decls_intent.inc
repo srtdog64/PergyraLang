@@ -792,35 +792,67 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         contract_summary[0] != '\0' ? "\n" : "",
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
-                } else if (zone_decl->data.zone_decl.authority_count > 0
-                    && !zone_has_authority_for_subject_type(zone_decl, ctx, participant_type_name)) {
-                    semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
-                        "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' declares no matching authority.\n"
-                        "Reason:\n"
-                        "Contract source:\n"
-                        "- authority-bearing zone '%s' with authorized participant '%s'\n"
-                        "- declared authorized-by edge points to participant '%s' of type '%s'\n"
-                        "- zone '%s' has authority rules, but none match subject type '%s'\n"
-                        "%s- approval boundary provenance is:\n"
-                        "%s%s"
-                        "Fix:\n"
-                        "- authorize a participant whose subject type is listed in zone authority\n"
-                        "- or add an authority declaration for subject type '%s' in zone '%s'",
-                        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                        alias != NULL ? alias : "<participant>",
-                        participant_type_name,
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                        alias != NULL ? alias : "<participant>",
-                        alias != NULL ? alias : "<participant>",
-                        participant_type_name,
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                        participant_type_name,
-                        contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
-                        contract_summary[0] != '\0' ? contract_summary : "",
-                        contract_summary[0] != '\0' ? "\n" : "",
-                        participant_type_name,
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+                } else if (zone_decl->data.zone_decl.authority_count > 0) {
+                    bool authority_slot_ambiguous = false;
+                    ASTNode *authority_slot = resolve_zone_subject_slot_for_participant(
+                        zone_decl, ctx, alias, participant_type_name,
+                        &authority_slot_ambiguous);
+                    const char *authority_slot_name = authority_slot != NULL
+                        ? authority_slot->data.domain_slot.slot_name : NULL;
+                    if (authority_slot_ambiguous) {
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
+                            "Intent step '%s' authorized participant '%s' of type '%s' is ambiguous in zone '%s'.\n"
+                            "Reason:\n"
+                            "- authorized participants must resolve to one concrete authority subject slot\n"
+                            "- zone '%s' has more than one subject slot of type '%s'\n"
+                            "- participant alias '%s' does not name one of those slots directly\n"
+                            "%s- approval boundary provenance is:\n"
+                            "%s%s"
+                            "Fix:\n"
+                            "- rename the participant alias to the intended authority slot name\n"
+                            "- or authorize a participant whose alias directly names the authority slot\n"
+                            "- or split the zone contract so authority is not ambiguous",
+                            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                            alias != NULL ? alias : "<participant>",
+                            participant_type_name,
+                            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                            participant_type_name,
+                            alias != NULL ? alias : "<participant>",
+                            contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
+                            contract_summary[0] != '\0' ? contract_summary : "",
+                            contract_summary[0] != '\0' ? "\n" : "");
+                    } else if (authority_slot == NULL || authority_slot_name == NULL
+                        || find_zone_authority(zone_decl, authority_slot_name) == NULL) {
+                        semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
+                            "Intent step '%s' authorized participant '%s' resolves to non-authority slot '%s' in zone '%s'.\n"
+                            "Reason:\n"
+                            "Contract source:\n"
+                            "- authority-bearing zone '%s' with authorized participant '%s'\n"
+                            "- declared authorized-by edge points to participant '%s' of type '%s'\n"
+                            "- zone '%s' has authority rules, but resolved slot '%s' is not an authority slot\n"
+                            "%s- approval boundary provenance is:\n"
+                            "%s%s"
+                            "Fix:\n"
+                            "- authorize the participant mapped to an authority slot in zone '%s'\n"
+                            "- or add an authority declaration for slot '%s' in zone '%s'",
+                            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                            alias != NULL ? alias : "<participant>",
+                            authority_slot_name != NULL ? authority_slot_name : "<unbound>",
+                            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                            alias != NULL ? alias : "<participant>",
+                            alias != NULL ? alias : "<participant>",
+                            participant_type_name,
+                            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                            authority_slot_name != NULL ? authority_slot_name : "<unbound>",
+                            contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
+                            contract_summary[0] != '\0' ? contract_summary : "",
+                            contract_summary[0] != '\0' ? "\n" : "",
+                            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                            authority_slot_name != NULL ? authority_slot_name : "<slot>",
+                            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+                    }
                 }
             }
         }

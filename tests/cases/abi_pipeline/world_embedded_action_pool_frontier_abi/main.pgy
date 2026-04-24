@@ -1,0 +1,46 @@
+within BattleZone {
+    subject Player {
+        let hp: Int;
+
+        action Attack(self) -> Void
+            authorized by self
+            causes Poisoned
+        {
+            hp = hp - 1;
+        }
+    }
+}
+
+effect Poisoned for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    effect pool poison: Poisoned capacity 4
+    authority player
+    state poisoned: effect poison on player
+}
+
+world GameWorld {
+    zone battle: BattleZone
+    state battleLayer: zone battle layer poison
+    state battlePoisoned: zone battle state poisoned
+    state ready: all battleLayer, battlePoisoned
+    activate battle
+
+    func AttackAndReport(self) -> Void {
+        Log(HasZoneLayer(battle, poison));
+        Log(HasZone(battleLayer));
+        battle.player.Attack();
+        Log(HasZoneLayer(battle, poison));
+        Log(HasZoneState(battle, poisoned));
+        Log(HasZone(battleLayer));
+        Log(HasZone(battlePoisoned));
+        Log(HasZone(ready));
+        Log(battle.player.hp);
+    }
+}
+
+func Main() -> Void {
+    let world = GameWorld(BattleZone(Player(9)));
+    world.AttackAndReport();
+}

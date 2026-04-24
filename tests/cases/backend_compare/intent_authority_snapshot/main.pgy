@@ -1,0 +1,60 @@
+extern "C" {
+    func pgy_zone_authority_last_ok_rt_export() -> Bool;
+    func pgy_zone_authority_last_zone_rt_export() -> String;
+    func pgy_zone_authority_last_participant_rt_export() -> String;
+    func pgy_zone_authority_last_reason_rt_export() -> String;
+}
+
+within PaymentZone {
+    subject Buyer {
+        let hp: Int;
+
+        action Approve(self) -> Void
+            authorized by self
+            causes Charged
+        {
+            hp = hp + 1;
+        }
+    }
+}
+
+effect Charged for bearer: Buyer { }
+
+zone CartZone {
+    subject slot buyer: Buyer
+    authority buyer
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+    effect slot charged: Charged
+    authority buyer
+    state chargedState: effect charged on buyer
+}
+
+intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
+    step Charge {
+        where: PaymentZone;
+        using: payment;
+        transfer: cart -> payment;
+        who: buyer;
+        authorized by: buyer;
+        on: buyer.Approve();
+        expect: payment.buyer.hp == 8;
+    }
+
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let cart = CartZone(Buyer(7));
+    let payment = PaymentZone(Buyer(0));
+    let ok = Checkout(cart, payment, cart.buyer);
+
+    Log("ok=" + ToString(ok));
+    Log("authority.ok=" + ToString(pgy_zone_authority_last_ok_rt_export()));
+    Log("authority.zone=" + pgy_zone_authority_last_zone_rt_export());
+    Log("authority.participant=" + pgy_zone_authority_last_participant_rt_export());
+    Log("authority.reason=" + pgy_zone_authority_last_reason_rt_export());
+}

@@ -1191,12 +1191,113 @@ main(void)
         "7\n"
         "true\n"
         "10\n";
+    static const char *world_embedded_action_frontier_source =
+        "within BattleZone {\n"
+        "    subject Player {\n"
+        "        let hp: Int;\n"
+        "        action Attack(self) -> Void\n"
+        "            authorized by self\n"
+        "            causes Poisoned\n"
+        "        {\n"
+        "            hp = hp - 1;\n"
+        "        }\n"
+        "    }\n"
+        "}\n"
+        "effect Poisoned for bearer: Player { }\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    effect slot poison: Poisoned\n"
+        "    authority player\n"
+        "    state poisoned: effect poison on player\n"
+        "}\n"
+        "world GameWorld {\n"
+        "    zone battle: BattleZone\n"
+        "    state battleLayer: zone battle layer poison\n"
+        "    state battlePoisoned: zone battle state poisoned\n"
+        "    state ready: all battleLayer, battlePoisoned\n"
+        "    activate battle\n"
+        "    func AttackAndReport(self) -> Void {\n"
+        "        Log(HasZoneLayer(battle, poison));\n"
+        "        Log(HasZone(battleLayer));\n"
+        "        battle.player.Attack();\n"
+        "        Log(HasZoneLayer(battle, poison));\n"
+        "        Log(HasZoneState(battle, poisoned));\n"
+        "        Log(HasZone(battleLayer));\n"
+        "        Log(HasZone(battlePoisoned));\n"
+        "        Log(HasZone(ready));\n"
+        "        Log(battle.player.hp);\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let world = GameWorld(BattleZone(Player(9)));\n"
+        "    world.AttackAndReport();\n"
+        "}\n";
+    static const char *world_embedded_action_frontier_expected =
+        "false\n"
+        "false\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "8\n";
+    static const char *world_embedded_action_pool_frontier_source =
+        "within BattleZone {\n"
+        "    subject Player {\n"
+        "        let hp: Int;\n"
+        "        action Attack(self) -> Void\n"
+        "            authorized by self\n"
+        "            causes Poisoned\n"
+        "        {\n"
+        "            hp = hp - 1;\n"
+        "        }\n"
+        "    }\n"
+        "}\n"
+        "effect Poisoned for bearer: Player { }\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    effect pool poison: Poisoned capacity 4\n"
+        "    authority player\n"
+        "    state poisoned: effect poison on player\n"
+        "}\n"
+        "world GameWorld {\n"
+        "    zone battle: BattleZone\n"
+        "    state battleLayer: zone battle layer poison\n"
+        "    state battlePoisoned: zone battle state poisoned\n"
+        "    state ready: all battleLayer, battlePoisoned\n"
+        "    activate battle\n"
+        "    func AttackAndReport(self) -> Void {\n"
+        "        Log(HasZoneLayer(battle, poison));\n"
+        "        Log(HasZone(battleLayer));\n"
+        "        battle.player.Attack();\n"
+        "        Log(HasZoneLayer(battle, poison));\n"
+        "        Log(HasZoneState(battle, poisoned));\n"
+        "        Log(HasZone(battleLayer));\n"
+        "        Log(HasZone(battlePoisoned));\n"
+        "        Log(HasZone(ready));\n"
+        "        Log(battle.player.hp);\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let world = GameWorld(BattleZone(Player(9)));\n"
+        "    world.AttackAndReport();\n"
+        "}\n";
+    static const char *world_embedded_action_pool_frontier_expected =
+        "false\n"
+        "false\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "8\n";
     static const char *authority_failure_source =
         "extern \"C\" {\n"
         "    func pgy_zone_authority_validate_flags_export(hasZone: Bool, hasParticipant: Bool, zone: String, participant: String) -> Bool;\n"
         "    func pgy_zone_authority_last_ok_rt_export() -> Bool;\n"
         "    func pgy_zone_authority_last_zone_rt_export() -> String;\n"
         "    func pgy_zone_authority_last_participant_rt_export() -> String;\n"
+        "    func pgy_zone_authority_last_code_rt_export() -> String;\n"
         "    func pgy_zone_authority_last_reason_rt_export() -> String;\n"
         "}\n"
         "func Main() -> Void {\n"
@@ -1204,11 +1305,14 @@ main(void)
         "    Log(pgy_zone_authority_last_ok_rt_export());\n"
         "    Log(pgy_zone_authority_last_zone_rt_export());\n"
         "    Log(pgy_zone_authority_last_participant_rt_export());\n"
+        "    Log(pgy_zone_authority_last_code_rt_export());\n"
         "    Log(pgy_zone_authority_validate_flags_export(false, true, \"BattleZone\", \"owner\"));\n"
         "    Log(pgy_zone_authority_last_ok_rt_export());\n"
+        "    Log(pgy_zone_authority_last_code_rt_export());\n"
         "    Log(pgy_zone_authority_last_reason_rt_export());\n"
         "    Log(pgy_zone_authority_validate_flags_export(true, false, \"BattleZone\", \"owner\"));\n"
         "    Log(pgy_zone_authority_last_ok_rt_export());\n"
+        "    Log(pgy_zone_authority_last_code_rt_export());\n"
         "    Log(pgy_zone_authority_last_reason_rt_export());\n"
         "}\n";
     static const char *authority_failure_expected =
@@ -1216,12 +1320,73 @@ main(void)
         "true\n"
         "BattleZone\n"
         "owner\n"
+        "ok\n"
         "false\n"
         "false\n"
+        "missing-zone\n"
         "zone authority validation failed: null zone self\n"
         "false\n"
         "false\n"
+        "missing-participant\n"
         "zone authority validation failed: null authority participant\n";
+    static const char *intent_authority_snapshot_source =
+        "extern \"C\" {\n"
+        "    func pgy_zone_authority_last_ok_rt_export() -> Bool;\n"
+        "    func pgy_zone_authority_last_zone_rt_export() -> String;\n"
+        "    func pgy_zone_authority_last_participant_rt_export() -> String;\n"
+        "    func pgy_zone_authority_last_reason_rt_export() -> String;\n"
+        "}\n"
+        "within PaymentZone {\n"
+        "    subject Buyer {\n"
+        "        let hp: Int;\n"
+        "        action Approve(self) -> Void\n"
+        "            authorized by self\n"
+        "            causes Charged\n"
+        "        {\n"
+        "            hp = hp + 1;\n"
+        "        }\n"
+        "    }\n"
+        "}\n"
+        "effect Charged for bearer: Buyer { }\n"
+        "zone CartZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    authority buyer\n"
+        "}\n"
+        "zone PaymentZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    effect slot charged: Charged\n"
+        "    authority buyer\n"
+        "    state chargedState: effect charged on buyer\n"
+        "}\n"
+        "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+        "    step Charge {\n"
+        "        where: PaymentZone;\n"
+        "        using: payment;\n"
+        "        transfer: cart -> payment;\n"
+        "        who: buyer;\n"
+        "        authorized by: buyer;\n"
+        "        on: buyer.Approve();\n"
+        "        expect: payment.buyer.hp == 8;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let cart = CartZone(Buyer(7));\n"
+        "    let payment = PaymentZone(Buyer(0));\n"
+        "    let ok = Checkout(cart, payment, cart.buyer);\n"
+        "    Log(ok);\n"
+        "    Log(pgy_zone_authority_last_ok_rt_export());\n"
+        "    Log(pgy_zone_authority_last_zone_rt_export());\n"
+        "    Log(pgy_zone_authority_last_participant_rt_export());\n"
+        "    Log(pgy_zone_authority_last_reason_rt_export());\n"
+        "}\n";
+    static const char *intent_authority_snapshot_expected =
+        "true\n"
+        "true\n"
+        "PaymentZone\n"
+        "buyer\n"
+        "\n";
     static const char *relation_effect_zone_source =
         "subject Player {\n"
         "    let hp: Int;\n"
@@ -1297,6 +1462,229 @@ main(void)
         "5\n"
         "5\n"
         "1\n";
+    static const char *handoff_projection_frontier_source =
+        "subject Buyer {\n"
+        "    let hp: Int;\n"
+        "    action Promote(self) -> Void {\n"
+        "        hp = hp + 2;\n"
+        "    }\n"
+        "}\n"
+        "object BuyerView {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "zone CartZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    object slot mirror: BuyerView = BuyerView(0)\n"
+        "    authority buyer\n"
+        "    bind mirror from buyer by buyer\n"
+        "    func Ready(self) -> Bool {\n"
+        "        return HasProjection(mirror);\n"
+        "    }\n"
+        "    func MirrorHp(self) -> Int {\n"
+        "        return mirror.hp;\n"
+        "    }\n"
+        "}\n"
+        "zone PaymentZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    object slot receipt: BuyerView = BuyerView(0)\n"
+        "    authority buyer\n"
+        "    bind receipt from buyer by buyer\n"
+        "    func Ready(self) -> Bool {\n"
+        "        return HasProjection(receipt);\n"
+        "    }\n"
+        "    func ReceiptHp(self) -> Int {\n"
+        "        return receipt.hp;\n"
+        "    }\n"
+        "}\n"
+        "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+        "    step Handoff {\n"
+        "        where: PaymentZone;\n"
+        "        using: payment;\n"
+        "        transfer: cart -> payment;\n"
+        "        who: buyer;\n"
+        "        authorized by: buyer;\n"
+        "        on: buyer.Promote();\n"
+        "        expect: payment.Ready() && payment.receipt.hp == 7;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let cart = CartZone(Buyer(5), BuyerView(0));\n"
+        "    let payment = PaymentZone(Buyer(0), BuyerView(0));\n"
+        "    Log(cart.Ready());\n"
+        "    Log(cart.MirrorHp());\n"
+        "    Log(payment.Ready());\n"
+        "    Log(payment.ReceiptHp());\n"
+        "    let ok = Checkout(cart, payment, cart.buyer);\n"
+        "    Log(ok);\n"
+        "    Log(cart.Ready());\n"
+        "    Log(cart.MirrorHp());\n"
+        "    Log(payment.Ready());\n"
+        "    Log(payment.ReceiptHp());\n"
+        "}\n";
+    static const char *handoff_projection_frontier_expected =
+        "true\n"
+        "5\n"
+        "true\n"
+        "0\n"
+        "true\n"
+        "true\n"
+        "5\n"
+        "true\n"
+        "7\n";
+    static const char *handoff_world_state_frontier_source =
+        "subject Buyer {\n"
+        "    let hp: Int;\n"
+        "    action Promote(self) -> Void {\n"
+        "        hp = hp + 2;\n"
+        "    }\n"
+        "}\n"
+        "object BuyerView {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "zone CartZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    object slot mirror: BuyerView = BuyerView(0)\n"
+        "    authority buyer\n"
+        "    bind mirror from buyer by buyer\n"
+        "}\n"
+        "zone PaymentZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    object slot receipt: BuyerView = BuyerView(0)\n"
+        "    authority buyer\n"
+        "    bind receipt from buyer by buyer\n"
+        "}\n"
+        "world CheckoutWorld {\n"
+        "    zone cart: CartZone\n"
+        "    zone payment: PaymentZone\n"
+        "    state cartReady: zone cart projection mirror\n"
+        "    state paymentReady: zone payment projection receipt\n"
+        "    state bothReady: all cartReady, paymentReady\n"
+        "    activate cart\n"
+        "    activate payment\n"
+        "    func Report(self) -> Void {\n"
+        "        Log(HasZone(cartReady));\n"
+        "        Log(HasZone(paymentReady));\n"
+        "        Log(HasZone(bothReady));\n"
+        "        Log(HasZoneProjection(payment, receipt));\n"
+        "        Log(payment.receipt.hp);\n"
+        "    }\n"
+        "}\n"
+        "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+        "    step Handoff {\n"
+        "        where: PaymentZone;\n"
+        "        using: payment;\n"
+        "        transfer: cart -> payment;\n"
+        "        who: buyer;\n"
+        "        authorized by: buyer;\n"
+        "        on: buyer.Promote();\n"
+        "        expect: payment.receipt.hp == 7;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let world = CheckoutWorld(\n"
+        "        CartZone(Buyer(5), BuyerView(0)),\n"
+        "        PaymentZone(Buyer(0), BuyerView(0)));\n"
+        "    world.Report();\n"
+        "    let ok = Checkout(world.cart, world.payment, world.cart.buyer);\n"
+        "    Log(ok);\n"
+        "    world.Report();\n"
+        "}\n";
+    static const char *handoff_world_state_frontier_expected =
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "0\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "7\n";
+    static const char *handoff_layer_state_frontier_source =
+        "within PaymentZone {\n"
+        "    subject Buyer {\n"
+        "        let hp: Int;\n"
+        "        action Promote(self) -> Void\n"
+        "            authorized by self\n"
+        "            causes Charged\n"
+        "        {\n"
+        "            hp = hp + 2;\n"
+        "        }\n"
+        "    }\n"
+        "}\n"
+        "effect Charged for bearer: Buyer { }\n"
+        "zone CartZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    authority buyer\n"
+        "}\n"
+        "zone PaymentZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    effect slot charged: Charged\n"
+        "    authority buyer\n"
+        "    state chargedState: effect charged on buyer\n"
+        "    func Report(self) -> Void {\n"
+        "        Log(HasLayer(charged));\n"
+        "        Log(HasState(chargedState, buyer));\n"
+        "    }\n"
+        "}\n"
+        "world CheckoutWorld {\n"
+        "    zone cart: CartZone\n"
+        "    zone payment: PaymentZone\n"
+        "    state paymentLayer: zone payment layer charged\n"
+        "    state paymentCharged: zone payment state chargedState\n"
+        "    state ready: all paymentLayer, paymentCharged\n"
+        "    activate payment\n"
+        "    func Report(self) -> Void {\n"
+        "        Log(HasZoneLayer(payment, charged));\n"
+        "        Log(HasZoneState(payment, chargedState));\n"
+        "        Log(HasZone(paymentLayer));\n"
+        "        Log(HasZone(paymentCharged));\n"
+        "        Log(HasZone(ready));\n"
+        "        Log(payment.buyer.hp);\n"
+        "    }\n"
+        "}\n"
+        "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+        "    step Handoff {\n"
+        "        where: PaymentZone;\n"
+        "        using: payment;\n"
+        "        transfer: cart -> payment;\n"
+        "        who: buyer;\n"
+        "        authorized by: buyer;\n"
+        "        on: buyer.Promote();\n"
+        "        expect: payment.buyer.hp == 7;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let world = CheckoutWorld(CartZone(Buyer(5)), PaymentZone(Buyer(0)));\n"
+        "    world.Report();\n"
+        "    let ok = Checkout(world.cart, world.payment, world.cart.buyer);\n"
+        "    Log(ok);\n"
+        "    world.payment.Report();\n"
+        "    world.Report();\n"
+        "}\n";
+    static const char *handoff_layer_state_frontier_expected =
+        "false\n"
+        "false\n"
+        "false\n"
+        "false\n"
+        "false\n"
+        "0\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "7\n";
     static const char *relation_effect_propagation_source =
         "subject Player {\n"
         "    let hp: Int;\n"
@@ -1558,6 +1946,18 @@ main(void)
     run_pipeline_case("world_handoff_mutation_abi", world_handoff_mutation_source, world_handoff_mutation_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("intent_authority_snapshot_abi", intent_authority_snapshot_source, intent_authority_snapshot_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("handoff_projection_frontier_abi", handoff_projection_frontier_source, handoff_projection_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("handoff_world_state_frontier_abi", handoff_world_state_frontier_source, handoff_world_state_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("handoff_layer_state_frontier_abi", handoff_layer_state_frontier_source, handoff_layer_state_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("world_zone_query_abi", world_zone_query_source, world_zone_query_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
@@ -1577,6 +1977,12 @@ main(void)
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("world_embedded_branch_projection_abi", world_embedded_branch_projection_source, world_embedded_branch_projection_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("world_embedded_action_frontier_abi", world_embedded_action_frontier_source, world_embedded_action_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("world_embedded_action_pool_frontier_abi", world_embedded_action_pool_frontier_source, world_embedded_action_pool_frontier_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("authority_failure_abi", authority_failure_source, authority_failure_expected,
@@ -1637,6 +2043,18 @@ main(void)
     run_pipeline_case("world_handoff_mutation_abi", world_handoff_mutation_source, world_handoff_mutation_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("intent_authority_snapshot_abi", intent_authority_snapshot_source, intent_authority_snapshot_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("handoff_projection_frontier_abi", handoff_projection_frontier_source, handoff_projection_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("handoff_world_state_frontier_abi", handoff_world_state_frontier_source, handoff_world_state_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("handoff_layer_state_frontier_abi", handoff_layer_state_frontier_source, handoff_layer_state_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("world_zone_query_abi", world_zone_query_source, world_zone_query_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
@@ -1656,6 +2074,12 @@ main(void)
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("world_embedded_branch_projection_abi", world_embedded_branch_projection_source, world_embedded_branch_projection_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("world_embedded_action_frontier_abi", world_embedded_action_frontier_source, world_embedded_action_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("world_embedded_action_pool_frontier_abi", world_embedded_action_pool_frontier_source, world_embedded_action_pool_frontier_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("authority_failure_abi", authority_failure_source, authority_failure_expected,

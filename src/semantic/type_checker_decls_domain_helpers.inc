@@ -355,6 +355,51 @@ find_zone_authority(ASTNode *zone, const char *slot_name)
 }
 
 static ASTNode *
+resolve_zone_subject_slot_for_participant(ASTNode *zone,
+                                          SemanticContext *ctx,
+                                          const char *participant_alias,
+                                          const char *participant_type_name,
+                                          bool *ambiguous_out)
+{
+    ASTNode *typed_match = NULL;
+
+    if (ambiguous_out != NULL)
+        *ambiguous_out = false;
+    if (zone == NULL || zone->type != AST_ZONE_DECL || ctx == NULL
+        || participant_alias == NULL || participant_type_name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < zone->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.slots[i];
+        Type *slot_type;
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || !slot->data.domain_slot.is_subject
+            || slot->data.domain_slot.slot_name == NULL
+            || slot->data.domain_slot.type == NULL) {
+            continue;
+        }
+        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        if (slot_type == NULL || slot_type->name == NULL
+            || strcmp(slot_type->name, participant_type_name) != 0) {
+            continue;
+        }
+        if (strcmp(slot->data.domain_slot.slot_name, participant_alias) == 0)
+            return slot;
+        if (typed_match != NULL) {
+            if (ambiguous_out != NULL)
+                *ambiguous_out = true;
+        } else {
+            typed_match = slot;
+        }
+    }
+
+    if (ambiguous_out != NULL && *ambiguous_out)
+        return NULL;
+    return typed_match;
+}
+
+static ASTNode *
 find_zone_state(ASTNode *zone, const char *state_name)
 {
     if (zone == NULL || state_name == NULL)

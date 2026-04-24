@@ -205,7 +205,7 @@ A value bound as a `ref` parameter (borrowed boundary value / subject / movable 
 
 #### `PGY_SEM_INTENT_STEP_INVALID`
 
-Intent step declaration violates one or more contract requirements: missing `where: <Zone>` when no zone is inferable; transfer clauses referencing unknown aliases; `who` participants that do not bind to a subject type or a matching zone slot; required abilities unsatisfied by the participant's role impl; effects not declared in the zone contract; authority requirements violated (missing `authorized by`, unknown authorized participant, wrong type); forbidden control-flow in contract clauses.
+Intent step declaration violates one or more contract requirements: missing `where: <Zone>` when no zone is inferable; transfer clauses referencing unknown aliases; `who` participants that do not bind to a subject type or a matching zone slot; required abilities unsatisfied by the participant's role impl; effects not declared in the zone contract; authority requirements violated (missing `authorized by`, unknown authorized participant, wrong type, non-authority slot, or ambiguous same-type slot mapping); forbidden control-flow in contract clauses.
 
 - **Reason**: intent step is over-constrained by the combined zone / action / participant / effect contracts and the declaration is inconsistent with that combination.
 - **Fix**: cross-check the zone's subject slots, ability impls, effect slots, and authority rules; align the step's `where`/`using`/`who`/`authorized by`/`causes` clauses accordingly, or adjust the matching action contract.

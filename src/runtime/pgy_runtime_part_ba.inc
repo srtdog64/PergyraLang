@@ -4297,6 +4297,7 @@ static inline void
 pgy_zone_authority_record_last(bool ok,
                                const char *zone_name,
                                const char *participant_name,
+                               const char *code,
                                const char *reason)
 {
     const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
@@ -4309,6 +4310,8 @@ pgy_zone_authority_record_last(bool ok,
     snprintf(pgy_zone_authority_last_participant,
              sizeof(pgy_zone_authority_last_participant),
              "%s", resolved_participant);
+    snprintf(pgy_zone_authority_last_code, sizeof(pgy_zone_authority_last_code),
+             "%s", code != NULL ? code : (ok ? "ok" : "unknown"));
     snprintf(pgy_zone_authority_last_reason, sizeof(pgy_zone_authority_last_reason),
              "%s", reason != NULL ? reason : "");
 }
@@ -4325,6 +4328,7 @@ pgy_zone_authority_validate_impl(void *zone_ptr, void *participant_ptr,
 
     if (zone_ptr == NULL) {
         pgy_zone_authority_record_last(false, resolved_zone, resolved_participant,
+            "missing-zone",
             "zone authority validation failed: null zone self");
         if (emit_stderr) {
             fprintf(stderr,
@@ -4335,6 +4339,7 @@ pgy_zone_authority_validate_impl(void *zone_ptr, void *participant_ptr,
     }
     if (participant_ptr == NULL) {
         pgy_zone_authority_record_last(false, resolved_zone, resolved_participant,
+            "missing-participant",
             "zone authority validation failed: null authority participant");
         if (emit_stderr) {
             fprintf(stderr,
@@ -4343,7 +4348,8 @@ pgy_zone_authority_validate_impl(void *zone_ptr, void *participant_ptr,
         }
         return false;
     }
-    pgy_zone_authority_record_last(true, resolved_zone, resolved_participant, "");
+    pgy_zone_authority_record_last(true, resolved_zone, resolved_participant,
+                                   "ok", "");
     return true;
 }
 
@@ -4387,6 +4393,12 @@ pgy_zone_authority_last_participant_export(void)
 }
 
 static inline char *
+pgy_zone_authority_last_code_export(void)
+{
+    return pgy_zone_authority_last_code;
+}
+
+static inline char *
 pgy_zone_authority_last_reason_export(void)
 {
     return pgy_zone_authority_last_reason;
@@ -4408,6 +4420,12 @@ static inline char *
 pgy_zone_authority_last_participant_rt_export(void)
 {
     return pgy_zone_authority_last_participant_export();
+}
+
+static inline char *
+pgy_zone_authority_last_code_rt_export(void)
+{
+    return pgy_zone_authority_last_code_export();
 }
 
 static inline char *

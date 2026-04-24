@@ -1,0 +1,73 @@
+within PaymentZone {
+    subject Buyer {
+        let hp: Int;
+
+        action Promote(self) -> Void
+            authorized by self
+            causes Charged
+        {
+            hp = hp + 2;
+        }
+    }
+}
+
+effect Charged for bearer: Buyer { }
+
+zone CartZone {
+    subject slot buyer: Buyer
+    authority buyer
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+    effect slot charged: Charged
+    authority buyer
+    state chargedState: effect charged on buyer
+
+    func Report(self) -> Void {
+        Log("zone.layer=" + ToString(HasLayer(charged)));
+        Log("zone.state=" + ToString(HasState(chargedState, buyer)));
+    }
+}
+
+world CheckoutWorld {
+    zone cart: CartZone
+    zone payment: PaymentZone
+    state paymentLayer: zone payment layer charged
+    state paymentCharged: zone payment state chargedState
+    state ready: all paymentLayer, paymentCharged
+    activate payment
+
+    func Report(self) -> Void {
+        Log("direct.layer=" + ToString(HasZoneLayer(payment, charged)));
+        Log("direct.state=" + ToString(HasZoneState(payment, chargedState)));
+        Log("derived.layer=" + ToString(HasZone(paymentLayer)));
+        Log("derived.state=" + ToString(HasZone(paymentCharged)));
+        Log("derived.all=" + ToString(HasZone(ready)));
+        Log("hp=" + ToString(payment.buyer.hp));
+    }
+}
+
+intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
+    step Handoff {
+        where: PaymentZone;
+        using: payment;
+        transfer: cart -> payment;
+        who: buyer;
+        authorized by: buyer;
+        on: buyer.Promote();
+        expect: payment.buyer.hp == 7;
+    }
+
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let world = CheckoutWorld(CartZone(Buyer(5)), PaymentZone(Buyer(0)));
+
+    world.Report();
+    Log("ok=" + ToString(Checkout(world.cart, world.payment, world.cart.buyer)));
+    world.payment.Report();
+    world.Report();
+}

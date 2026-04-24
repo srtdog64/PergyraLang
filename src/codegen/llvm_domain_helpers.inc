@@ -419,6 +419,43 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             layer_ptr, (unsigned)subject_idx, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, target_value, subject_ptr);
     }
+    for (size_t i = 0; i < effect_decl->data.effect_decl.refresh_count; i++) {
+        ASTNode *refresh = effect_decl->data.effect_decl.refreshes[i];
+        const char *projection_name;
+        const char *source_name;
+        char dirty_field[256];
+        char ready_field[256];
+        int dirty_idx;
+        int ready_idx;
+
+        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+            continue;
+        projection_name = refresh->data.zone_refresh.object_slot_name;
+        source_name = refresh->data.zone_refresh.source_slot_name;
+        if (projection_name == NULL || source_name == NULL
+            || strcmp(source_name, target_slot->data.domain_slot.slot_name) != 0) {
+            continue;
+        }
+
+        snprintf(dirty_field, sizeof(dirty_field), "__projection_dirty_%s",
+            projection_name);
+        snprintf(ready_field, sizeof(ready_field), "__projection_ready_%s",
+            projection_name);
+        dirty_idx = llvm_class_field_index(effect_cls, dirty_field);
+        ready_idx = llvm_class_field_index(effect_cls, ready_field);
+        if (dirty_idx >= 0) {
+            LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
+                effect_cls->struct_type, layer_ptr, (unsigned)dirty_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), dirty_ptr);
+        }
+        if (ready_idx >= 0) {
+            LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
+                effect_cls->struct_type, layer_ptr, (unsigned)ready_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), ready_ptr);
+        }
+    }
     {
         char sync_name[256];
         LLVMFuncEntry *sync_entry;
@@ -513,6 +550,45 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         LLVMValueRef subject_ptr = LLVMBuildStructGEP2(ctx->builder, relation_cls->struct_type,
             layer_ptr, (unsigned)right_subject_idx, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, right_value, subject_ptr);
+    }
+    for (size_t i = 0; i < relation_decl->data.relation_decl.refresh_count; i++) {
+        ASTNode *refresh = relation_decl->data.relation_decl.refreshes[i];
+        const char *projection_name;
+        const char *source_name;
+        char dirty_field[256];
+        char ready_field[256];
+        int dirty_idx;
+        int ready_idx;
+
+        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+            continue;
+        projection_name = refresh->data.zone_refresh.object_slot_name;
+        source_name = refresh->data.zone_refresh.source_slot_name;
+        if (projection_name == NULL || source_name == NULL)
+            continue;
+        if (strcmp(source_name, left_target->data.domain_slot.slot_name) != 0
+            && strcmp(source_name, right_target->data.domain_slot.slot_name) != 0) {
+            continue;
+        }
+
+        snprintf(dirty_field, sizeof(dirty_field), "__projection_dirty_%s",
+            projection_name);
+        snprintf(ready_field, sizeof(ready_field), "__projection_ready_%s",
+            projection_name);
+        dirty_idx = llvm_class_field_index(relation_cls, dirty_field);
+        ready_idx = llvm_class_field_index(relation_cls, ready_field);
+        if (dirty_idx >= 0) {
+            LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
+                relation_cls->struct_type, layer_ptr, (unsigned)dirty_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), dirty_ptr);
+        }
+        if (ready_idx >= 0) {
+            LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
+                relation_cls->struct_type, layer_ptr, (unsigned)ready_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), ready_ptr);
+        }
     }
     {
         char sync_name[256];

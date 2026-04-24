@@ -208,6 +208,59 @@ transpiler_collect_mir_intent_who_aliases(const MIRRoutine *routine,
 }
 
 static size_t
+transpiler_collect_mir_intent_authorized_aliases(const MIRRoutine *routine,
+                                                 const char *step_name,
+                                                 const char ***aliases_out)
+{
+    const char **aliases = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (aliases_out != NULL)
+        *aliases_out = NULL;
+    if (routine == NULL || aliases_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const char **grown;
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentAuthorizedBy") != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                grown = realloc((void *)aliases, new_capacity * sizeof(const char *));
+                if (grown == NULL) {
+                    free((void *)aliases);
+                    return 0;
+                }
+                aliases = grown;
+                capacity = new_capacity;
+            }
+            aliases[count++] = inst->arg0;
+        }
+    }
+
+    *aliases_out = aliases;
+    return count;
+}
+
+static size_t
 transpiler_collect_mir_intent_participants(const MIRRoutine *routine,
                                            const char ***aliases_out,
                                            const char ***types_out)

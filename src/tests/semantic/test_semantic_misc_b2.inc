@@ -1716,6 +1716,96 @@
         lexer_destroy(lexer);
     }
 
+    TEST("intent authorized participant must resolve to authority slot");
+    {
+        const char *source =
+            "subject User {\n"
+            "    let level: Int;\n"
+            "}\n"
+            "zone AccountZone {\n"
+            "    subject slot owner: User\n"
+            "    subject slot guest: User\n"
+            "    authority owner\n"
+            "}\n"
+            "intent EditAccount(account: AccountZone, guest: User) {\n"
+            "    step Edit {\n"
+            "        where: AccountZone;\n"
+            "        using: account;\n"
+            "        who: guest;\n"
+            "        authorized by: guest;\n"
+            "        on: true;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "resolves to non-authority slot 'guest'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "resolved slot 'guest' is not an authority slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "authorize the participant mapped to an authority slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent authorized participant reports ambiguous authority slot");
+    {
+        const char *source =
+            "subject User {\n"
+            "    let level: Int;\n"
+            "}\n"
+            "zone AccountZone {\n"
+            "    subject slot owner: User\n"
+            "    subject slot guest: User\n"
+            "    authority owner\n"
+            "}\n"
+            "intent EditAccount(account: AccountZone, actor: User) {\n"
+            "    step Edit {\n"
+            "        where: AccountZone;\n"
+            "        using: account;\n"
+            "        who: actor;\n"
+            "        authorized by: actor;\n"
+            "        on: true;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "authorized participant 'actor' of type 'User' is ambiguous"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "must resolve to one concrete authority subject slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "rename the participant alias to the intended authority slot name"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("subject return diagnostic includes reason and fix");
     {
         const char *source =

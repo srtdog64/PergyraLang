@@ -3307,6 +3307,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     const char *source_slot_name =
                         assignment_target_root_slot_name(obj);
                     char *invalidation = NULL;
+                    char *action_sync = NULL;
                     char *post_sync = NULL;
                     ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
                     const char *saved_receiver_expr = ctx->current_overlay_receiver_expr;
@@ -3343,12 +3344,15 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     }
                     ctx->current_overlay_receiver_expr = saved_receiver_expr;
                     transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
+                    action_sync = emit_world_embedded_action_effect_sync(
+                        ctx, obj, method_decl);
                     post_sync = emit_world_embedded_receiver_projection_sync(ctx, obj);
                     codebuf_destroy(args_buf);
-                    if (invalidation != NULL || post_sync != NULL) {
+                    if (invalidation != NULL || action_sync != NULL || post_sync != NULL) {
                         char *ret_type_name = NULL;
                         char *wrapped = NULL;
                         const char *prefix = invalidation != NULL ? invalidation : "";
+                        const char *effect_suffix = action_sync != NULL ? action_sync : "";
                         const char *suffix = post_sync != NULL ? post_sync : "";
 
                         if (method_decl->data.func_decl.return_type != NULL)
@@ -3359,20 +3363,22 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                             && strcmp(ret_type_name, "Void") != 0) {
                             int tmp_id = ++ctx->tmp_counter;
                             wrapped = strdup_fmt(
-                                "({ %s _pgy_call_%d = %s; %s%s_pgy_call_%d; })",
+                                "({ %s _pgy_call_%d = %s; %s%s%s_pgy_call_%d; })",
                                 pergyra_type_to_c(ret_type_name), tmp_id,
-                                result, prefix, suffix, tmp_id);
+                                result, prefix, effect_suffix, suffix, tmp_id);
                         } else {
-                            wrapped = strdup_fmt("({ %s; %s%s})",
-                                result, prefix, suffix);
+                            wrapped = strdup_fmt("({ %s; %s%s%s})",
+                                result, prefix, effect_suffix, suffix);
                         }
 
                         free(ret_type_name);
                         free(invalidation);
+                        free(action_sync);
                         free(post_sync);
                         free(result);
                         return wrapped;
                     }
+                    free(action_sync);
                     free(post_sync);
                     return result;
                 }

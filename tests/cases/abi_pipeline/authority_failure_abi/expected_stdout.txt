@@ -2,9 +2,12 @@ true
 true
 BattleZone
 owner
+ok
 false
 false
+missing-zone
 zone authority validation failed: null zone self
 false
 false
+missing-participant
 zone authority validation failed: null authority participant

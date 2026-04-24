@@ -54,6 +54,7 @@ enum {
     PGY_PROP_CAUSE_WORLD_MAINTAIN = 8,
     PGY_PROP_CAUSE_WORLD_DEACTIVATE = 9,
     PGY_PROP_CAUSE_WORLD_DERIVED = 10,
+    PGY_PROP_CAUSE_ACTION = 11,
 };
 
 static void
@@ -1416,6 +1417,39 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         "zone_projection",
         false);
 
+    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = node->data.zone_decl.layer_slots[i];
+        const char *layer_name;
+        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
+            || slot->data.zone_layer_slot.is_relation
+            || slot->data.zone_layer_slot.slot_name == NULL) {
+            continue;
+        }
+        layer_name = slot->data.zone_layer_slot.slot_name;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "if (self->__layer_cause_%s == %d) {\n",
+            layer_name, PGY_PROP_CAUSE_ACTION);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n", layer_name);
+        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+            ASTNode *state = node->data.zone_decl.states[j];
+            if (state == NULL || state->type != AST_ZONE_STATE
+                || state->data.zone_state.is_relation
+                || state->data.zone_state.layer_slot_name == NULL
+                || state->data.zone_state.state_name == NULL
+                || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
+                continue;
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__state_%s = true;\n",
+                state->data.zone_state.state_name);
+        }
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+    }
+
     for (size_t i = 0; i < node->data.zone_decl.apply_count; i++) {
         ASTNode *apply = node->data.zone_decl.applies[i];
         if (apply->data.zone_apply.state_name != NULL) {
@@ -1793,6 +1827,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             wz->data.world_zone.slot_name);
         codebuf_write(ctx->out, "    bool __zone_dirty_%s;\n",
             wz->data.world_zone.slot_name);
+        codebuf_write(ctx->out, "    uint32_t __zone_seen_generation_%s;\n",
+            wz->data.world_zone.slot_name);
         emit_hidden_provenance_fields(ctx, "zone",
             wz->data.world_zone.slot_name);
     }
@@ -1933,11 +1969,27 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *wz = node->data.world_decl.zones[i];
         const char *slot_name = wz->data.world_zone.slot_name;
         write_indent(ctx);
+        codebuf_write(ctx->out,
+            "if (self->%s.__sync_generation != self->__zone_seen_generation_%s) {\n",
+            slot_name, slot_name);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__zone_dirty_%s = true;\n", slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__world_derived_dirty = true;\n");
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+        write_indent(ctx);
         codebuf_write(ctx->out, "if (self->__zone_dirty_%s) {\n", slot_name);
         ctx->indent++;
         write_indent(ctx);
         codebuf_write(ctx->out, "%s_sync(&self->%s);\n",
             wz->data.world_zone.zone_type, slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "self->__zone_seen_generation_%s = self->%s.__sync_generation;\n",
+            slot_name, slot_name);
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__zone_dirty_%s = false;\n", slot_name);
         write_indent(ctx);

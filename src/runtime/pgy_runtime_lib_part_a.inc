@@ -39,12 +39,14 @@ static char *pgy_runtime_lib_strdup(const char *src);
 _Thread_local bool pgy_zone_authority_last_ok = true;
 _Thread_local char pgy_zone_authority_last_zone[128] = "";
 _Thread_local char pgy_zone_authority_last_participant[128] = "";
+_Thread_local char pgy_zone_authority_last_code[64] = "ok";
 _Thread_local char pgy_zone_authority_last_reason[192] = "";
 
 static void
 pgy_runtime_record_zone_authority_last(bool ok,
                                        const char *zone_name,
                                        const char *participant_name,
+                                       const char *code,
                                        const char *reason)
 {
     const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
@@ -57,6 +59,8 @@ pgy_runtime_record_zone_authority_last(bool ok,
     snprintf(pgy_zone_authority_last_participant,
              sizeof(pgy_zone_authority_last_participant),
              "%s", resolved_participant);
+    snprintf(pgy_zone_authority_last_code, sizeof(pgy_zone_authority_last_code),
+             "%s", code != NULL ? code : (ok ? "ok" : "unknown"));
     snprintf(pgy_zone_authority_last_reason, sizeof(pgy_zone_authority_last_reason),
              "%s", reason != NULL ? reason : "");
 }
@@ -73,6 +77,7 @@ pgy_runtime_zone_authority_validate_core(void *zone_ptr, void *participant_ptr,
 
     if (zone_ptr == NULL) {
         pgy_runtime_record_zone_authority_last(false, resolved_zone, resolved_participant,
+            "missing-zone",
             "zone authority validation failed: null zone self");
         if (emit_stderr) {
             fprintf(stderr,
@@ -83,6 +88,7 @@ pgy_runtime_zone_authority_validate_core(void *zone_ptr, void *participant_ptr,
     }
     if (participant_ptr == NULL) {
         pgy_runtime_record_zone_authority_last(false, resolved_zone, resolved_participant,
+            "missing-participant",
             "zone authority validation failed: null authority participant");
         if (emit_stderr) {
             fprintf(stderr,
@@ -92,7 +98,8 @@ pgy_runtime_zone_authority_validate_core(void *zone_ptr, void *participant_ptr,
         return false;
     }
 
-    pgy_runtime_record_zone_authority_last(true, resolved_zone, resolved_participant, "");
+    pgy_runtime_record_zone_authority_last(true, resolved_zone, resolved_participant,
+        "ok", "");
     return true;
 }
 
@@ -195,6 +202,12 @@ char *
 pgy_zone_authority_last_participant_rt_export(void)
 {
     return pgy_zone_authority_last_participant;
+}
+
+char *
+pgy_zone_authority_last_code_rt_export(void)
+{
+    return pgy_zone_authority_last_code;
 }
 
 char *

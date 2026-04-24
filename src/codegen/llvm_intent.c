@@ -198,6 +198,77 @@ llvm_collect_mir_intent_who_aliases(const MIRRoutine *routine,
 }
 
 static size_t
+llvm_collect_mir_intent_authorized_aliases(const MIRRoutine *routine,
+                                           LLVMGenCtx *ctx,
+                                           const char *step_name,
+                                           const char ***aliases_out)
+{
+    const char **aliases = NULL;
+    size_t count = 0;
+
+    if (aliases_out != NULL)
+        *aliases_out = NULL;
+    if (routine == NULL || aliases_out == NULL || ctx == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentAuthorizedBy") != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+
+            count++;
+        }
+    }
+
+    if (count == 0)
+        return 0;
+    aliases = pgy_arena_calloc(&ctx->scratch, count * sizeof(const char *));
+    if (aliases == NULL)
+        return 0;
+
+    count = 0;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentAuthorizedBy") != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+            aliases[count++] = inst->arg0;
+        }
+    }
+
+    *aliases_out = aliases;
+    return count;
+}
+
+static size_t
 llvm_collect_mir_intent_participants(const MIRRoutine *routine,
                                      LLVMGenCtx *ctx,
                                      const char ***aliases_out,
@@ -666,6 +737,175 @@ llvm_emit_intent_step_sync_effective_zone(LLVMGenCtx *ctx,
     }
 }
 
+static ASTNode *
+llvm_find_zone_decl_by_name(LLVMGenCtx *ctx, const char *zone_type_name)
+{
+    ASTNode **zones = NULL;
+    size_t zone_count = 0;
+
+    if (ctx == NULL || zone_type_name == NULL)
+        return NULL;
+
+    llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
+        if (zone != NULL && zone->type == AST_ZONE_DECL
+            && zone->data.zone_decl.name != NULL
+            && strcmp(zone->data.zone_decl.name, zone_type_name) == 0) {
+            return zone;
+        }
+    }
+    return NULL;
+}
+
+static void
+llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
+                                         const char *zone_type_name,
+                                         const char *zone_alias,
+                                         const char *causes_effect)
+{
+    ASTNode *zone_decl;
+    LLVMClassTypeEntry *zone_cls;
+    LLVMVarEntry *zone_var;
+    LLVMValueRef zone_ptr;
+
+    if (ctx == NULL || zone_type_name == NULL || zone_alias == NULL
+        || causes_effect == NULL) {
+        return;
+    }
+
+    zone_decl = llvm_find_zone_decl_by_name(ctx, zone_type_name);
+    zone_cls = llvm_lookup_class(ctx, zone_type_name);
+    zone_var = llvm_scope_lookup(ctx, zone_alias);
+    if (zone_decl == NULL || zone_cls == NULL || zone_var == NULL
+        || LLVMGetTypeKind(zone_var->type) != LLVMPointerTypeKind) {
+        return;
+    }
+
+    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type,
+        zone_var->alloca, llvm_tmp_name(ctx));
+
+    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+        const char *layer_name;
+        char epoch_field[256];
+        char cause_field[256];
+        int epoch_idx;
+        int cause_idx;
+
+        if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
+            || layer_slot->data.zone_layer_slot.is_relation
+            || layer_slot->data.zone_layer_slot.slot_name == NULL
+            || layer_slot->data.zone_layer_slot.layer_type == NULL
+            || strcmp(layer_slot->data.zone_layer_slot.layer_type, causes_effect) != 0) {
+            continue;
+        }
+
+        layer_name = layer_slot->data.zone_layer_slot.slot_name;
+        snprintf(epoch_field, sizeof(epoch_field), "__layer_epoch_%s", layer_name);
+        snprintf(cause_field, sizeof(cause_field), "__layer_cause_%s", layer_name);
+        epoch_idx = llvm_class_field_index(zone_cls, epoch_field);
+        cause_idx = llvm_class_field_index(zone_cls, cause_field);
+        if (epoch_idx >= 0) {
+            LLVMValueRef epoch_ptr = LLVMBuildStructGEP2(ctx->builder,
+                zone_cls->struct_type, zone_ptr, (unsigned)epoch_idx,
+                llvm_tmp_name(ctx));
+            LLVMValueRef epoch_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                epoch_ptr, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMBuildAdd(ctx->builder, epoch_val,
+                    LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
+                epoch_ptr);
+        }
+        if (cause_idx >= 0) {
+            LLVMValueRef cause_ptr = LLVMBuildStructGEP2(ctx->builder,
+                zone_cls->struct_type, zone_ptr, (unsigned)cause_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 11, 0), cause_ptr);
+        }
+
+        for (size_t j = 0; j < zone_decl->data.zone_decl.state_count; j++) {
+            ASTNode *state = zone_decl->data.zone_decl.states[j];
+            char state_epoch_field[256];
+            char state_cause_field[256];
+            int state_epoch_idx;
+            int state_cause_idx;
+            if (state == NULL || state->type != AST_ZONE_STATE
+                || state->data.zone_state.is_relation
+                || state->data.zone_state.state_name == NULL
+                || state->data.zone_state.layer_slot_name == NULL
+                || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
+                continue;
+            }
+            snprintf(state_epoch_field, sizeof(state_epoch_field), "__state_epoch_%s",
+                state->data.zone_state.state_name);
+            snprintf(state_cause_field, sizeof(state_cause_field), "__state_cause_%s",
+                state->data.zone_state.state_name);
+            state_epoch_idx = llvm_class_field_index(zone_cls, state_epoch_field);
+            state_cause_idx = llvm_class_field_index(zone_cls, state_cause_field);
+            if (state_epoch_idx >= 0) {
+                LLVMValueRef state_epoch_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    zone_cls->struct_type, zone_ptr, (unsigned)state_epoch_idx,
+                    llvm_tmp_name(ctx));
+                LLVMValueRef state_epoch_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                    state_epoch_ptr, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMBuildAdd(ctx->builder, state_epoch_val,
+                        LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
+                    state_epoch_ptr);
+            }
+            if (state_cause_idx >= 0) {
+                LLVMValueRef state_cause_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    zone_cls->struct_type, zone_ptr, (unsigned)state_cause_idx,
+                    llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 11, 0), state_cause_ptr);
+            }
+        }
+    }
+}
+
+static const char *
+llvm_infer_intent_step_causes_from_on_exprs(LLVMGenCtx *ctx,
+                                            ASTNode **on_exprs,
+                                            size_t on_expr_count)
+{
+    if (ctx == NULL || on_exprs == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < on_expr_count; i++) {
+        ASTNode *expr = on_exprs[i];
+        ASTNode *callee;
+        ASTNode *receiver;
+        const char *alias;
+        const char *method_name;
+        const char *subject_name;
+        ASTNode *action_decl;
+
+        if (expr == NULL || expr->type != AST_CALL)
+            continue;
+        callee = expr->data.call.callee;
+        if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
+            continue;
+        receiver = callee->data.member.object;
+        method_name = callee->data.member.name;
+        if (receiver == NULL || receiver->type != AST_IDENTIFIER
+            || receiver->data.identifier.name == NULL || method_name == NULL) {
+            continue;
+        }
+
+        alias = receiver->data.identifier.name;
+        subject_name = llvm_lookup_var_class(ctx, alias);
+        action_decl = llvm_find_host_method_decl_in_context(ctx, subject_name, method_name);
+        if (action_decl != NULL && action_decl->type == AST_FUNC_DECL
+            && action_decl->data.func_decl.is_action
+            && action_decl->data.func_decl.causes_effect != NULL) {
+            return action_decl->data.func_decl.causes_effect;
+        }
+    }
+
+    return NULL;
+}
+
 static void
 llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
                                                  ASTNode *intent,
@@ -1071,6 +1311,76 @@ llvm_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
 
     *aliases_out = aliases;
     return count;
+}
+
+static LLVMValueRef
+llvm_emit_intent_presence_flag(LLVMGenCtx *ctx, const char *alias)
+{
+    LLVMVarEntry *var;
+    LLVMValueRef value;
+
+    if (ctx == NULL)
+        return NULL;
+    if (alias == NULL)
+        return LLVMConstInt(ctx->type_i1, 1, 0);
+
+    var = llvm_scope_lookup(ctx, alias);
+    if (var == NULL || LLVMGetTypeKind(var->type) != LLVMPointerTypeKind)
+        return LLVMConstInt(ctx->type_i1, 1, 0);
+
+    value = LLVMBuildLoad2(ctx->builder, var->type, var->alloca, llvm_tmp_name(ctx));
+    return LLVMBuildICmp(ctx->builder, LLVMIntNE, value,
+        LLVMConstPointerNull(var->type), llvm_tmp_name(ctx));
+}
+
+static void
+llvm_emit_intent_step_validate_authority(LLVMGenCtx *ctx,
+                                         LLVMValueRef fn,
+                                         LLVMBasicBlockRef fail_bb,
+                                         LLVMValueRef fail_reason_alloca,
+                                         const char *step_name,
+                                         const char *zone_type_name,
+                                         const char *zone_alias,
+                                         const char **authorized_aliases,
+                                         size_t authorized_alias_count)
+{
+    LLVMFuncEntry *validate_fn;
+
+    if (ctx == NULL || fn == NULL || fail_bb == NULL || fail_reason_alloca == NULL
+        || zone_type_name == NULL || authorized_aliases == NULL
+        || authorized_alias_count == 0) {
+        return;
+    }
+
+    validate_fn = llvm_lookup_function(ctx, "pgy_zone_authority_validate_flags_export");
+    if (validate_fn == NULL)
+        return;
+
+    for (size_t i = 0; i < authorized_alias_count; i++) {
+        const char *alias = authorized_aliases[i];
+        char reason[256];
+        LLVMBasicBlockRef ok_bb;
+        LLVMValueRef args[4];
+        LLVMValueRef ok;
+
+        if (alias == NULL)
+            continue;
+
+        ok_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.authority.ok");
+        args[0] = llvm_emit_intent_presence_flag(ctx, zone_alias);
+        args[1] = llvm_emit_intent_presence_flag(ctx, alias);
+        args[2] = LLVMBuildGlobalStringPtr(ctx->builder, zone_type_name, llvm_tmp_name(ctx));
+        args[3] = LLVMBuildGlobalStringPtr(ctx->builder, alias, llvm_tmp_name(ctx));
+        ok = LLVMBuildCall2(ctx->builder, validate_fn->fn_type, validate_fn->fn,
+            args, 4, llvm_tmp_name(ctx));
+        snprintf(reason, sizeof(reason), "authority:%s",
+            step_name != NULL ? step_name : "<step>");
+        LLVMBuildStore(ctx->builder,
+            LLVMBuildGlobalStringPtr(ctx->builder, reason, llvm_tmp_name(ctx)),
+            fail_reason_alloca);
+        LLVMBuildCondBr(ctx->builder, ok, ok_bb, fail_bb);
+        LLVMPositionBuilderAtEnd(ctx->builder, ok_bb);
+    }
 }
 
 void
@@ -1541,8 +1851,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *zone_type_name = NULL;
         const char *zone_alias = NULL;
         const char *from_alias = NULL;
+        const char *causes_effect = NULL;
         const char **who_aliases = NULL;
         size_t who_alias_count = 0;
+        const char **authorized_aliases = NULL;
+        size_t authorized_alias_count = 0;
         const char **dispatch_aliases = NULL;
         size_t dispatch_alias_count = 0;
         LLVMValueRef *saved_participant_ptrs = NULL;
@@ -1564,8 +1877,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             zone_type_name = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneWhere");
             zone_alias = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneAlias");
             from_alias = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneFrom");
+            causes_effect = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentCauses");
             who_alias_count = llvm_collect_mir_intent_who_aliases(
                 mir_routine, ctx, step_name, &who_aliases);
+            authorized_alias_count = llvm_collect_mir_intent_authorized_aliases(
+                mir_routine, ctx, step_name, &authorized_aliases);
             dispatch_alias_count = llvm_collect_mir_intent_dispatch_aliases(
                 mir_routine, ctx, step_name, &dispatch_aliases);
         }
@@ -1604,6 +1920,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentWho", NULL)
                 && who_alias_count == 0)
                 PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent who metadata");
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentAuthorizedBy", NULL)
+                && authorized_alias_count == 0)
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only LLVM path missing intent authorized-by metadata");
         } else {
             if (pre_expr == NULL)
                 pre_expr = step->data.intent_step.pre_expr;
@@ -1628,9 +1947,15 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 zone_alias = llvm_intent_step_effective_zone_alias(step);
             if (from_alias == NULL)
                 from_alias = step->data.intent_step.transfer_from_alias;
+            if (causes_effect == NULL)
+                causes_effect = step->data.intent_step.causes_effect;
             if (who_alias_count == 0) {
                 who_alias_count = step->data.intent_step.who_count;
                 who_aliases = (const char **)step->data.intent_step.who_names;
+            }
+            if (authorized_alias_count == 0) {
+                authorized_alias_count = step->data.intent_step.authorized_by_count;
+                authorized_aliases = (const char **)step->data.intent_step.authorized_by;
             }
         }
 
@@ -1663,6 +1988,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             };
             LLVMBuildCall2(ctx->builder, trace_bind_fn->fn_type, trace_bind_fn->fn, args, 3, "");
         }
+        llvm_emit_intent_step_validate_authority(ctx, fn, fail_bb, fail_reason_alloca,
+            step_name, zone_type_name, zone_alias,
+            authorized_aliases, authorized_alias_count);
         llvm_emit_intent_step_bind_bound_zone(
             ctx, node, zone_type_name, zone_alias, from_alias, who_aliases, who_alias_count);
         if (who_alias_count > 0) {
@@ -1759,6 +2087,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 }
             }
         }
+        if (causes_effect == NULL) {
+            causes_effect = llvm_infer_intent_step_causes_from_on_exprs(
+                ctx, on_exprs, on_expr_count);
+        }
+        llvm_emit_intent_step_mark_caused_effect(ctx, zone_type_name, zone_alias, causes_effect);
         if (rebound_aliases)
             llvm_emit_intent_step_dirty_zone_projections(ctx, zone_type_name, zone_alias);
         if (rebound_aliases)

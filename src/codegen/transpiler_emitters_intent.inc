@@ -325,8 +325,11 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         const char *step_zone_name = NULL;
         const char *step_zone_alias = NULL;
         const char *step_from_alias = NULL;
+        const char *step_causes_effect = NULL;
         const char **who_aliases = NULL;
         size_t who_alias_count = 0;
+        const char **authorized_aliases = NULL;
+        size_t authorized_alias_count = 0;
         const char **dispatch_aliases = NULL;
         size_t dispatch_alias_count = 0;
         bool rebound_aliases = false;
@@ -347,7 +350,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             step_zone_name = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneWhere");
             step_zone_alias = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneAlias");
             step_from_alias = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneFrom");
+            step_causes_effect = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentCauses");
             who_alias_count = transpiler_collect_mir_intent_who_aliases(mir_routine, step_name, &who_aliases);
+            authorized_alias_count = transpiler_collect_mir_intent_authorized_aliases(
+                mir_routine, step_name, &authorized_aliases);
             dispatch_alias_count = transpiler_collect_mir_intent_dispatch_aliases(mir_routine, step_name, &dispatch_aliases);
         }
         if (mir_only_intent) {
@@ -385,6 +391,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentWho", NULL)
                 && who_alias_count == 0)
                 PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent who metadata");
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentAuthorizedBy", NULL)
+                && authorized_alias_count == 0)
+                PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent authorized-by metadata");
             if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentDispatch", NULL)
                 && dispatch_alias_count == 0) {
                 PGY_MIR_INTENT_CARRIER_FAIL("MIR-only C path missing intent dispatch carrier");
@@ -417,9 +426,15 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 step_zone_alias = intent_step_effective_zone_alias(step);
             if (step_from_alias == NULL)
                 step_from_alias = step->data.intent_step.transfer_from_alias;
+            if (step_causes_effect == NULL)
+                step_causes_effect = step->data.intent_step.causes_effect;
             if (who_alias_count == 0) {
                 who_aliases = (const char **)step->data.intent_step.who_names;
                 who_alias_count = step->data.intent_step.who_count;
+            }
+            if (authorized_alias_count == 0) {
+                authorized_aliases = (const char **)step->data.intent_step.authorized_by;
+                authorized_alias_count = step->data.intent_step.authorized_by_count;
             }
             if (dispatch_alias_count == 0) {
                 dispatch_aliases = (const char **)step->data.intent_step.who_names;
@@ -450,6 +465,11 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 alias != NULL ? alias : "<participant>",
                 slot_name != NULL ? slot_name : "<unbound>");
         }
+        emit_intent_step_validate_authority(ctx->out, ctx,
+            node->data.intent_decl.name, step_name, step_zone_name, step_zone_alias,
+            authorized_aliases, authorized_alias_count,
+            emit_cleanup_from_mir,
+            mir_routine != NULL ? mir_routine->cleanup_block : 0);
         if (mir_only_intent) {
             emit_intent_step_bind_bound_zone_with_metadata(
                 ctx->out, ctx, node, step_zone_name, step_zone_alias, step_from_alias,
@@ -548,6 +568,13 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 }
             }
         }
+        if (step_causes_effect == NULL) {
+            step_causes_effect = infer_intent_step_causes_from_on_exprs(
+                ctx, node, on_exprs, on_expr_count,
+                participant_aliases, participant_types, participant_count);
+        }
+        emit_intent_step_mark_caused_effect(ctx->out, ctx,
+            step_zone_name, step_zone_alias, step_causes_effect);
         if (rebound_aliases) {
             if (mir_only_intent)
                 emit_intent_step_sync_effective_zone_with_metadata(ctx->out, ctx, step_zone_name, step_zone_alias);
@@ -652,6 +679,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         free(on_exprs);
         if (mir_only_intent)
             free((void *)who_aliases);
+        if (mir_only_intent)
+            free((void *)authorized_aliases);
         if (mir_only_intent)
             free((void *)dispatch_aliases);
     }

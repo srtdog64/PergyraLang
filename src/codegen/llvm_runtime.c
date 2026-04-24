@@ -208,6 +208,8 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { 0 }, 0 },
             { "pgy_zone_authority_last_participant_rt_export", ctx->type_i8ptr,
               { 0 }, 0 },
+            { "pgy_zone_authority_last_code_rt_export", ctx->type_i8ptr,
+              { 0 }, 0 },
             { "pgy_zone_authority_last_reason_rt_export", ctx->type_i8ptr,
               { 0 }, 0 },
             { "pgy_read_file", ctx->type_i8ptr,

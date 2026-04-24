@@ -3,6 +3,7 @@ extern "C" {
     func pgy_zone_authority_last_ok_rt_export() -> Bool;
     func pgy_zone_authority_last_zone_rt_export() -> String;
     func pgy_zone_authority_last_participant_rt_export() -> String;
+    func pgy_zone_authority_last_code_rt_export() -> String;
     func pgy_zone_authority_last_reason_rt_export() -> String;
 }
 
@@ -11,12 +12,15 @@ func Main() -> Void {
     Log("last.ok=" + ToString(pgy_zone_authority_last_ok_rt_export()));
     Log("last.zone=" + pgy_zone_authority_last_zone_rt_export());
     Log("last.participant=" + pgy_zone_authority_last_participant_rt_export());
+    Log("last.code=" + pgy_zone_authority_last_code_rt_export());
 
     Log("missing.zone=" + ToString(pgy_zone_authority_validate_flags_export(false, true, "BattleZone", "owner")));
     Log("missing.zone.ok=" + ToString(pgy_zone_authority_last_ok_rt_export()));
+    Log("missing.zone.code=" + pgy_zone_authority_last_code_rt_export());
     Log("missing.zone.reason=" + pgy_zone_authority_last_reason_rt_export());
 
     Log("missing.participant=" + ToString(pgy_zone_authority_validate_flags_export(true, false, "BattleZone", "owner")));
     Log("missing.participant.ok=" + ToString(pgy_zone_authority_last_ok_rt_export()));
+    Log("missing.participant.code=" + pgy_zone_authority_last_code_rt_export());
     Log("missing.participant.reason=" + pgy_zone_authority_last_reason_rt_export());
 }

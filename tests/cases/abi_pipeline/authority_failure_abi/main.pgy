@@ -3,6 +3,7 @@ extern "C" {
     func pgy_zone_authority_last_ok_rt_export() -> Bool;
     func pgy_zone_authority_last_zone_rt_export() -> String;
     func pgy_zone_authority_last_participant_rt_export() -> String;
+    func pgy_zone_authority_last_code_rt_export() -> String;
     func pgy_zone_authority_last_reason_rt_export() -> String;
 }
 
@@ -11,12 +12,15 @@ func Main() -> Void {
     Log(pgy_zone_authority_last_ok_rt_export());
     Log(pgy_zone_authority_last_zone_rt_export());
     Log(pgy_zone_authority_last_participant_rt_export());
+    Log(pgy_zone_authority_last_code_rt_export());
 
     Log(pgy_zone_authority_validate_flags_export(false, true, "BattleZone", "owner"));
     Log(pgy_zone_authority_last_ok_rt_export());
+    Log(pgy_zone_authority_last_code_rt_export());
     Log(pgy_zone_authority_last_reason_rt_export());
 
     Log(pgy_zone_authority_validate_flags_export(true, false, "BattleZone", "owner"));
     Log(pgy_zone_authority_last_ok_rt_export());
+    Log(pgy_zone_authority_last_code_rt_export());
     Log(pgy_zone_authority_last_reason_rt_export());
 }

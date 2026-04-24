@@ -80,7 +80,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `link/unlink`는 `relation`의 bindable endpoint arity/type와 기본 정합성을 검사하며 object endpoint도 허용함
 - `refresh`/`publish`/`bind`는 object/tobject slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 tobject source는 금지함
 - `maintain`은 duplicate/conflicting lifecycle rule을 warning으로 보고함
-- `authority`는 선언된 subject slot만 받을 수 있고, authority가 선언된 zone에서 mutable rule이 `by`를 생략하면 warning을 냄
+- `authority`는 선언된 subject slot만 받을 수 있고, intent `authorized by`는 participant type만이 아니라 concrete zone subject slot까지 해석해서 non-authority slot/ambiguous same-type slot을 거부함. authority가 선언된 zone에서 mutable rule이 `by`를 생략하면 warning을 냄
 - `state` shorthand는 effect/relation kind mismatch를 semantic error로 보고함
 - `zone`은 subject-heavy shape에 대해 권장 기반 warning을 냄
 - 장기 조립 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
@@ -103,7 +103,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `Void`는 결과가 없음을 나타내는 반환 타입이고, `return`은 현재 실행을 종료하는 제어 문장으로 구분됨
 - `return;`은 `Void` 경로의 조기 종료이고, `return expr;`은 non-`Void` 경로의 값 반환임
 - example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
-- 현재 직접 확인된 회귀 범위: `test-semantic 2132 passed`, `test-security 74 passed`, `test-transpile 670 passed`, `make test-abi` 통과, `make test-all` 통과, `llvm-test-backend-compare` 통과, `example-test-smoke` 통과, `ir-pipeline-test-smoke` 통과, `fmt-test-smoke` 통과
+- 현재 직접 확인된 회귀 범위: `test-semantic 2146 passed`, `test-security 80 passed`, `test-transpile 670 passed`, `make test-abi` 통과, `make test-all` 통과, `llvm-test-backend-compare` 통과, `example-test-smoke` 통과, `ir-pipeline-test-smoke` 통과, `fmt-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToTObject(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 tobject surface로 C/LLVM에 반영됨
 - relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToTObject`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `tobject slot`과 projection sync(`refresh` / `publish` / `bind`)임
@@ -116,7 +116,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving” 상태다
 - `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand, C/LLVM sync/codegen, propagation provenance baseline까지 올라왔지만 deeper runtime propagation semantics는 아직 얕다
-- `relation`, `effect`, `zone`의 플래그/constructor/sync는 C/LLVM parity를 가지고, world 쪽도 `all` / `any` 조합 state와 provenance stamp, bounded world-derived recompute까지 올라왔고 zone lifecycle도 bounded frontier loop를 갖지만, 이를 넘어서는 deeper transitive scheduler는 아직 남아 있다
+- `relation`, `effect`, `zone`의 플래그/constructor/sync는 C/LLVM parity를 가지고, world 쪽도 `all` / `any` 조합 state와 provenance stamp, bounded world-derived recompute까지 올라왔고 zone lifecycle도 bounded frontier loop를 갖는다. `transfer:` 이후 action-caused layer/state가 active world-derived alias로 전파되는 handoff slice도 닫혔지만, 이를 넘어서는 authority/failure 포함 deeper transitive scheduler는 아직 남아 있다
 - projection의 중심은 `tobject` 자체가 아니라 `relation/effect/zone/world` 문맥과 projection sync 흐름이다
 - `HasProjection(slotName)`는 relation/effect/zone 문맥에서 object/tobject projection slot의 sync-ready 상태를 읽는 query surface로 들어갔고, semantic/C/LLVM runtime parity까지 닫혀 있다
 - zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics, `epoch/cause` provenance, bounded world-derived/projection-chain recompute, zone lifecycle bounded frontier loop까지 올라왔지만 broader transitive frontier propagation model 자체는 아직 얕다
@@ -232,7 +232,7 @@ Windows LLVM을 공식 beta support로 올리려면 README, TODO, CI, backend pa
   - array/slice out of bounds
 - current runtime zone authority guard
   - `pgy_zone_authority_check_export(...)`는 현재 real authority rejection이 아니라 `null self / null participant ptr` invariant guard이며, validation 실패 시 panic한다
-  - 다만 guard는 이제 hard-fail 전에 `last_ok / zone / participant / reason` snapshot을 남겨 최소 queryable authority-validation state는 제공한다
+  - 다만 guard는 이제 hard-fail 전에 `last_ok / zone / participant / code / reason` snapshot을 남겨 최소 queryable authority-validation state는 제공한다
 
 ### strict beta-quality 기준에서 다음으로 내려야 할 것
 
@@ -259,14 +259,14 @@ Windows LLVM을 공식 beta support로 올리려면 README, TODO, CI, backend pa
 
 ## 2026-04-24 기준 확인된 상태
 
-- `make test-semantic` 통과 (`2132 passed`)
-- `make test-security` 통과 (`74 passed`)
+- `make test-semantic` 통과 (`2146 passed`)
+- `make test-security` 통과 (`80 passed`)
 - `make test-transpile` 통과 (`670 passed`)
 - `make test-abi` 통과
 - `make test-all` 통과
 - `make llvm-test-backend-compare` 통과
 - `make example-test-smoke` 통과
-- `world_fixpoint_abi` / `projection_chain_abi` / `zone_frontier_abi` / `world_embedded_projection_abi` / `world_embedded_method_projection_abi` / `world_embedded_branch_projection_abi`가 `make test-abi`의 C/LLVM smoke에서 통과
+- `world_fixpoint_abi` / `projection_chain_abi` / `zone_frontier_abi` / `handoff_projection_frontier_abi` / `handoff_world_state_frontier_abi` / `handoff_layer_state_frontier_abi` / `world_embedded_projection_abi` / `world_embedded_method_projection_abi` / `world_embedded_branch_projection_abi` / `world_embedded_action_frontier_abi` / `world_embedded_action_pool_frontier_abi`가 `make test-abi`의 C/LLVM smoke에서 통과
 - `make ir-pipeline-test-smoke` 통과
 - `make fmt-test-smoke` 통과
 - Windows CI에서 드러난 path/newline/list-warning 이식성 문제를 이번 정리에서 닫음
@@ -312,8 +312,12 @@ Remaining work is no longer basic visibility plumbing. The remaining surface wor
 ## 2026-04-24 Authority Failure Follow-up
 
 - Runtime authority failure is now observable through a real ABI surface instead of only through the panic/invariant path.
-- Both backends now cover the same baseline exports for `validate_flags`, `last_ok`, `last_zone`, `last_participant`, and `last_reason`.
+- Both backends now cover the same baseline exports for `validate_flags`, `last_ok`, `last_zone`, `last_participant`, `last_code`, and `last_reason`.
 - `authority_failure_abi` is now part of the smoke matrix and backend pipeline regression set.
 - `authority_failure_surface` is now part of backend-compare, and the C transpiler extern lookup no longer degrades `Bool` runtime exports into `1/0` stringification.
+- `intent_authority_snapshot_abi` and `intent_authority_snapshot` now lock the path from `authorized by` through MIR metadata into C/LLVM runtime authority snapshots.
 - `world_embedded_branch_projection_visibility` is now part of backend-compare too, so embedded world-zone projection freshness across a simple branch-join is locked by direct C/LLVM stdout parity, not only ABI smoke.
-- This improves the recoverable-runtime-failure area, but it does not remove the larger frontier-scheduler blocker.
+- `handoff_projection_frontier` is now part of backend-compare too, so v1 handoff materialization locks source and target projection freshness by direct C/LLVM stdout parity.
+- `handoff_world_state_frontier` is now part of backend-compare too, so active world-owned zone handoff locks projection-backed world state and composed-state freshness by direct C/LLVM stdout parity.
+- `handoff_layer_state_frontier`, `world_embedded_action_frontier`, and `world_embedded_action_pool_frontier` are now part of backend-compare too, so action-caused effect layer/state freshness after transfer and embedded world-zone action calls is locked through direct zone query and active world-derived alias parity for both single effect slots and fixed-capacity effect pools.
+- This improves the propagation area, but it does not remove the larger authority/failure frontier-scheduler blocker.

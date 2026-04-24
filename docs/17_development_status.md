@@ -71,12 +71,16 @@
 - relation/effect/zone projection chain도 이제 bounded transitive recompute loop를 통해 계산되어, projection refresh order가 선언 순서에 묶이지 않는다.
 - bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `abort()` 경로로 hard-fail되도록 고정됐다.
 - LLVM backend는 `__projection_dirty_*` struct layout 누락, host-field assignment 이후 projection invalidation 누락, intent rebound-zone projection stale drift를 닫았다.
-- runtime zone authority invariant guard는 이제 hard-fail 이전에 `last_ok / zone / participant / reason` snapshot을 남긴다. generated C의 inline validator와 LLVM runtime export가 같은 vocabulary를 공유한다.
-- `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`가 이제 C/LLVM ABI smoke에 함께 들어가며, `make test-abi`와 `make llvm-test-backend-compare`에서 다시 검증된다.
+- runtime zone authority invariant guard는 이제 hard-fail 이전에 `last_ok / zone / participant / code / reason` snapshot을 남긴다. generated C의 inline validator와 LLVM runtime export가 같은 vocabulary를 공유한다. Intent emitter도 MIR `IntentAuthorizedBy`를 읽어 step-local approval을 recoverable intent failure boundary에서 검증하고, 성공 시 같은 runtime authority snapshot을 갱신한다.
+- `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `intent_authority_snapshot_abi`, `handoff_projection_frontier_abi`, `handoff_world_state_frontier_abi`, `handoff_layer_state_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`, `world_embedded_action_frontier_abi`, `world_embedded_action_pool_frontier_abi`가 이제 C/LLVM ABI smoke에 함께 들어가며, `make test-abi`와 `make llvm-test-backend-compare`에서 다시 검증된다.
 - runtime async/world-roster security build seam(`stdatomic` typedef drift, header include path drift, anonymous constraints prototype drift)도 정리되어 `make test-security`가 다시 녹색이다.
 - `make test-semantic`, `make test-transpile`, `make test-abi`, `make test-all`, `make llvm-test-backend-compare` 기준으로 이번 closure가 다시 검증됐다.
 - `world_embedded_branch_projection_visibility`도 backend-compare에 올라가서 branch-join embedded projection freshness를 C/LLVM stdout parity로 직접 잠근다.
-- 이 시점의 남은 propagation blocker는 richer flag/provenance 자체가 아니라, 이미 들어간 zone/world bounded frontier loop와 embedded zone projection read-after-mutate closure를 straight-line assignment, method-call, branch-join slice까지 닫은 뒤 남은 handoff와 더 넓은 world-zone propagation family까지 같은 source-of-truth로 일반화하는 일이다.
+- `handoff_projection_frontier`도 backend-compare에 올라가서 v1 handoff materialization 이후 source/target projection freshness를 C/LLVM stdout parity로 직접 잠근다.
+- `handoff_world_state_frontier`도 backend-compare에 올라가서 active world-owned zone handoff 이후 projection-backed world state와 composed state freshness를 C/LLVM stdout parity로 직접 잠근다.
+- `handoff_layer_state_frontier`, `world_embedded_action_frontier`, `world_embedded_action_pool_frontier`도 backend-compare에 올라가서 action-caused effect가 transfer target zone 및 embedded world zone의 single/pool layer-state와 active world-derived layer/state alias로 전파되는 경로를 C/LLVM stdout parity로 잠근다.
+- `intent_authority_snapshot`도 backend-compare에 올라가서 `authorized by`가 MIR metadata에서 C/LLVM runtime authority snapshot까지 내려가는 경로를 stdout parity로 잠근다.
+- 이 시점의 남은 propagation blocker는 richer flag/provenance 자체가 아니라, 이미 들어간 zone/world bounded frontier loop와 embedded/handoff projection/layer/state closure를 닫은 뒤 남은 authority/failure handoff와 더 넓은 world-zone propagation family까지 같은 source-of-truth로 일반화하는 일이다.
 
 ## 구현된 컴포넌트
 
@@ -228,10 +232,10 @@
 
 | 스위트 | 결과 |
 |---|---|
-| semantic | 2132 passed |
+| semantic | 2146 passed |
 | transpile | 670 passed |
 | abi | 28 spec + C/LLVM pipeline smoke 통과 |
-| security | 74 passed |
+| security | 80 passed |
 | llvm backend compare | 통과 |
 | example smoke | 통과 |
 | ir pipeline smoke | 통과 |
@@ -247,7 +251,7 @@
 - `make example-test-smoke` 통과
 - `make ir-pipeline-test-smoke` 통과
 - `make fmt-test-smoke` 통과
-- `world_fixpoint_abi` / `projection_chain_abi` / `zone_frontier_abi` / `world_embedded_projection_abi` / `world_embedded_method_projection_abi` / `world_embedded_branch_projection_abi`가 C/LLVM ABI smoke에서 통과
+- `world_fixpoint_abi` / `projection_chain_abi` / `zone_frontier_abi` / `handoff_projection_frontier_abi` / `handoff_world_state_frontier_abi` / `handoff_layer_state_frontier_abi` / `world_embedded_projection_abi` / `world_embedded_method_projection_abi` / `world_embedded_branch_projection_abi` / `world_embedded_action_frontier_abi` / `world_embedded_action_pool_frontier_abi`가 C/LLVM ABI smoke에서 통과
 - Windows CI 이식성 수정:
   - `/tmp` 하드코딩 제거
   - ABI pipeline stdout 비교의 CRLF false negative 제거
@@ -296,10 +300,11 @@
 ## 2026-04-24 Authority Failure Follow-up
 
 - Runtime authority rejection now has a real recoverable/queryable ABI slice on both backends.
-- Added `authority_failure_abi` coverage to the ABI smoke matrix and to `test_abi_pipeline`.
-- Added `authority_failure_surface` to backend-compare and fixed the transpiler extern-inventory drift behind it.
+- Added `authority_failure_abi` and `intent_authority_snapshot_abi` coverage to the ABI smoke matrix and to `test_abi_pipeline`.
+- Added `authority_failure_surface` and `intent_authority_snapshot` to backend-compare and fixed the transpiler extern-inventory drift behind authority runtime exports.
 - Generated C uses header-inline authority query helpers for the non-aborting path; LLVM uses runtime-lib exports with the same vocabulary.
 - `test_security` now covers both the legacy inline validator path and the new non-aborting `validate_flags` + `*_rt_export` path.
-- The baseline queryable state now includes `last_ok`, `last_zone`, `last_participant`, and `last_reason`.
+- The baseline queryable state now includes `last_ok`, `last_zone`, `last_participant`, `last_code`, and `last_reason`.
+- Intent `authorized by` validation now resolves participants to concrete zone subject slots before accepting authority, so same-type non-authority slots and ambiguous same-type mappings are rejected before backend/runtime lowering.
 - That closure also fixes a real C/LLVM truth drift: extern `Bool` runtime exports now stringify as `true/false` on both backends instead of `1/0` on the C transpiler path.
 - What remains open here is broader authority/boundary policy depth, not the existence of a queryable rejection surface.
