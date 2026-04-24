@@ -34,6 +34,39 @@ intent_action_binding_type_name(ASTNode *action_decl, ASTNode *action_subject_de
 static const char *
 nominal_decl_name(ASTNode *decl);
 
+static Type *
+intent_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
+static Type *
+intent_helper_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
+{
+    if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
+        return NULL;
+    return intent_helper_resolve_type_ref(
+        involves->data.intent_involves.subject_type, ctx);
+}
+
+static Type *
+intent_helper_resolve_step_where_type(ASTNode *step, SemanticContext *ctx)
+{
+    if (step == NULL || step->type != AST_INTENT_STEP)
+        return NULL;
+    return intent_helper_resolve_type_ref(step->data.intent_step.where_type, ctx);
+}
+
+static Type *
+intent_helper_resolve_field_type(ClassField *field, SemanticContext *ctx)
+{
+    if (field == NULL)
+        return NULL;
+    return intent_helper_resolve_type_ref(field->type, ctx);
+}
+
 static const char *
 nominal_decl_name(ASTNode *decl)
 {
@@ -621,13 +654,13 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
     }
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
         || ability_ref == NULL || ability_ref->type != AST_TYPE) {
-        *out_type = resolve_type_node(type_node, ctx);
+        *out_type = intent_helper_resolve_type_ref(type_node, ctx);
         return;
     }
 
     decl_params = ability_decl->data.ability_decl.generic_params;
     if (decl_params == NULL || decl_params->count == 0) {
-        *out_type = resolve_type_node(type_node, ctx);
+        *out_type = intent_helper_resolve_type_ref(type_node, ctx);
         return;
     }
 
@@ -693,7 +726,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
             continue;
         }
 
-        arg_type = resolve_type_node(effective_args[i], ctx);
+        arg_type = intent_helper_resolve_type_ref(effective_args[i], ctx);
         if (arg_type == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
@@ -740,7 +773,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         scope_declare(ctx->scope, s);
     }
 
-    *out_type = resolve_type_node(type_node, ctx);
+    *out_type = intent_helper_resolve_type_ref(type_node, ctx);
     scope_exit(&ctx->scope);
     free(ability_text);
     free(effective_args);
@@ -829,7 +862,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                                                  role_decl,
                                                  ctx,
                                                  &required_type);
-        field_type = resolve_type_node(field->type, ctx);
+        field_type = intent_helper_resolve_field_type(field, ctx);
         if (required_type != NULL && field_type != NULL
             && !type_is_assignable(field_type, required_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, role_decl,
@@ -1214,7 +1247,7 @@ intent_action_binding_type_name(ASTNode *action_decl, ASTNode *subject_decl,
             || param->type == NULL) {
             continue;
         }
-        param_type = resolve_type_node(param->type, ctx);
+        param_type = intent_helper_resolve_type_ref(param->type, ctx);
         return (param_type != NULL) ? param_type->name : NULL;
     }
 
@@ -1404,7 +1437,7 @@ intent_step_derive_transfer_context(ASTNode *intent_decl, ASTNode *step,
     if (to_involves == NULL || to_involves->type != AST_INTENT_INVOLVES)
         return;
 
-    to_type = resolve_type_node(to_involves->data.intent_involves.subject_type, ctx);
+    to_type = intent_helper_resolve_involves_type(to_involves, ctx);
 
     if (step->data.intent_step.using_expr == NULL) {
         step->data.intent_step.using_expr = ast_create_identifier(to_alias);
@@ -1433,9 +1466,7 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
         && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
         ASTNode *using_involves = find_intent_involves_local(intent_decl,
             step->data.intent_step.using_expr->data.identifier.name);
-        Type *using_type = using_involves != NULL
-            ? resolve_type_node(using_involves->data.intent_involves.subject_type, ctx)
-            : NULL;
+        Type *using_type = intent_helper_resolve_involves_type(using_involves, ctx);
         ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root,
             AST_ZONE_DECL, using_type != NULL ? using_type->name : NULL);
         if (zone_decl != NULL && using_type != NULL && using_type->name != NULL) {
@@ -1446,7 +1477,7 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
 
     if (step->data.intent_step.using_expr == NULL
         && step->data.intent_step.where_type != NULL) {
-        Type *zone_type = resolve_type_node(step->data.intent_step.where_type, ctx);
+        Type *zone_type = intent_helper_resolve_step_where_type(step, ctx);
         const char *matched_alias = NULL;
 
         if (zone_type == NULL || zone_type->name == NULL)
@@ -1461,8 +1492,7 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
                 continue;
             }
 
-            participant_type = resolve_type_node(
-                involves->data.intent_involves.subject_type, ctx);
+            participant_type = intent_helper_resolve_involves_type(involves, ctx);
             if (participant_type == NULL || participant_type->name == NULL
                 || strcmp(participant_type->name, zone_type->name) != 0) {
                 continue;

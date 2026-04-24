@@ -21,6 +21,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+static Type *
+domain_resolve_slot_type(ASTNode *slot, SemanticContext *ctx)
+{
+    if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
+        return TYPE_UNKNOWN;
+    return resolve_type_node(slot->data.domain_slot.type, ctx);
+}
+
+static Type *
+domain_resolve_shared_type(ASTNode *shared, SemanticContext *ctx)
+{
+    if (shared == NULL || shared->type != AST_PARTY_SHARED)
+        return TYPE_UNKNOWN;
+    return resolve_type_node(shared->data.party_shared.type, ctx);
+}
+
+static Type *
+domain_resolve_named_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 /* type_checker_decls_intent_world.inc removed — intent body lives in type_checker_intent_decl.c (4-B slice),
  * world body in type_checker_world_decl.c (4 차 slice). See docs/101_semantic_split_template.md */
 
@@ -314,7 +338,7 @@ resolve_zone_subject_slot_for_participant(ASTNode *zone,
             || slot->data.domain_slot.type == NULL) {
             continue;
         }
-        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        slot_type = domain_resolve_slot_type(slot, ctx);
         if (slot_type == NULL || slot_type->name == NULL
             || strcmp(slot_type->name, participant_type_name) != 0) {
             continue;
@@ -633,8 +657,8 @@ type_check_projection_contract(ASTNode **slots,
             object_slot_name != NULL ? object_slot_name : "<slot>");
         return true;
     }
-    target_type = resolve_type_node(object_slot->data.domain_slot.type, ctx);
-    source_type = resolve_type_node(source_slot->data.domain_slot.type, ctx);
+    target_type = domain_resolve_slot_type(object_slot, ctx);
+    source_type = domain_resolve_slot_type(source_slot, ctx);
     if (target_type == NULL || source_type == NULL
         || target_type == TYPE_UNKNOWN || source_type == TYPE_UNKNOWN) {
         return true;
@@ -943,7 +967,7 @@ type_check_projection_contract(ASTNode **slots,
             continue;
         }
 
-        target_field_type = resolve_type_node(target_field->type, ctx);
+        target_field_type = domain_resolve_named_type_ref(target_field->type, ctx);
         if (!type_is_assignable(source_field_type, target_field_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                 "%s %s target field '%s' cannot accept source path '%s' from slot '%s'.\n"
@@ -1083,8 +1107,8 @@ type_check_zone_effect_contract(ASTNode *zone,
     if (decl_target == NULL)
         return false;
 
-    target_type = resolve_type_node(target_slot->data.domain_slot.type, ctx);
-    decl_target_type = resolve_type_node(decl_target->data.domain_slot.type, ctx);
+    target_type = domain_resolve_slot_type(target_slot, ctx);
+    decl_target_type = domain_resolve_slot_type(decl_target, ctx);
     if (!type_is_assignable(target_type, decl_target_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, apply_like,
             "Zone %s target slot '%s' has type '%s' but effect '%s' expects target type '%s'.\n"
@@ -1192,7 +1216,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
             && decl->data.class_decl.nominal_kind != NOMINAL_DECL_TOBJECT;
     }
 
-    named_type = named_type_ref != NULL ? resolve_type_node(named_type_ref, ctx) : NULL;
+    named_type = domain_resolve_named_type_ref(named_type_ref, ctx);
     return slot_type != NULL
         && named_type != NULL
         && type_equals(slot_type, named_type);
@@ -1244,8 +1268,8 @@ type_check_zone_relation_contract(ASTNode *zone,
     between_right_kind = relation_decl->data.relation_decl.between_right_kind;
     between_left_type = relation_decl->data.relation_decl.between_left_type;
     between_right_type = relation_decl->data.relation_decl.between_right_type;
-    left_type = resolve_type_node(left_slot->data.domain_slot.type, ctx);
-    right_type = resolve_type_node(right_slot->data.domain_slot.type, ctx);
+    left_type = domain_resolve_slot_type(left_slot, ctx);
+    right_type = domain_resolve_slot_type(right_slot, ctx);
 
     if (between_left_kind != RELATION_ENDPOINT_NAMED || between_right_kind != RELATION_ENDPOINT_NAMED
         || between_left_type != NULL || between_right_type != NULL) {
@@ -1360,8 +1384,8 @@ type_check_zone_relation_contract(ASTNode *zone,
     if (decl_left == NULL || decl_right == NULL)
         return false;
 
-    decl_left_type = resolve_type_node(decl_left->data.domain_slot.type, ctx);
-    decl_right_type = resolve_type_node(decl_right->data.domain_slot.type, ctx);
+    decl_left_type = domain_resolve_slot_type(decl_left, ctx);
+    decl_right_type = domain_resolve_slot_type(decl_right, ctx);
 
     if (!type_is_assignable(left_type, decl_left_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, link_like,
@@ -1516,7 +1540,7 @@ type_check_overlay_decl_common(ASTNode *node,
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
         if (shared->data.party_shared.type != NULL)
-            resolve_type_node(shared->data.party_shared.type, ctx);
+            domain_resolve_shared_type(shared, ctx);
         if (shared->data.party_shared.initializer != NULL)
             type_check_expression(shared->data.party_shared.initializer, ctx);
     }
@@ -1529,7 +1553,7 @@ type_check_overlay_decl_common(ASTNode *node,
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
                 && slot->data.domain_slot.slot_name != NULL
                 && slot->data.domain_slot.type != NULL) {
-                Type *slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+                Type *slot_type = domain_resolve_slot_type(slot, ctx);
                 Symbol *slot_sym = calloc(1, sizeof(Symbol));
                 slot_sym->name = pergyra_strdup(slot->data.domain_slot.slot_name);
                 slot_sym->kind = SYMBOL_VARIABLE;
@@ -1564,7 +1588,7 @@ type_check_overlay_decl_common(ASTNode *node,
         if (shared != NULL && shared->data.party_shared.name != NULL) {
             Type *field_type = TYPE_INT;
             if (shared->data.party_shared.type != NULL)
-                field_type = resolve_type_node(shared->data.party_shared.type, ctx);
+                field_type = domain_resolve_shared_type(shared, ctx);
             Symbol *field_sym = calloc(1, sizeof(Symbol));
             field_sym->name = pergyra_strdup(shared->data.party_shared.name);
             field_sym->kind = SYMBOL_VARIABLE;

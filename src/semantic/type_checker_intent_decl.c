@@ -8,6 +8,32 @@
 #include <stdlib.h>
 #include <string.h>
 
+static Type *
+intent_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
+{
+    if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
+        return TYPE_UNKNOWN;
+    return resolve_type_node(involves->data.intent_involves.subject_type, ctx);
+}
+
+static Type *
+intent_resolve_value_type(ASTNode *value, SemanticContext *ctx)
+{
+    if (value == NULL || value->type != AST_INTENT_VALUE)
+        return TYPE_UNKNOWN;
+    return resolve_type_node(value->data.intent_value.value_type, ctx);
+}
+
+static Type *
+intent_resolve_step_where_type(ASTNode *step, SemanticContext *ctx)
+{
+    if (step == NULL || step->type != AST_INTENT_STEP
+        || step->data.intent_step.where_type == NULL) {
+        return NULL;
+    }
+    return resolve_type_node(step->data.intent_step.where_type, ctx);
+}
+
 bool
 type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -36,12 +62,10 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     : node->data.intent_decl.values[i - node->data.intent_decl.involve_count]);
             if (binding != NULL && binding->type == AST_INTENT_INVOLVES
                 && binding->data.intent_involves.subject_type != NULL) {
-                ptypes[i] = resolve_type_node(
-                    binding->data.intent_involves.subject_type, ctx);
+                ptypes[i] = intent_resolve_involves_type(binding, ctx);
             } else if (binding != NULL && binding->type == AST_INTENT_VALUE
                 && binding->data.intent_value.value_type != NULL) {
-                ptypes[i] = resolve_type_node(
-                    binding->data.intent_value.value_type, ctx);
+                ptypes[i] = intent_resolve_value_type(binding, ctx);
             } else {
                 ptypes[i] = TYPE_UNKNOWN;
             }
@@ -57,13 +81,13 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *involves = node->data.intent_decl.involves[i];
         if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
             continue;
-        (void)resolve_type_node(involves->data.intent_involves.subject_type, ctx);
+        (void)intent_resolve_involves_type(involves, ctx);
     }
     for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
         ASTNode *value = node->data.intent_decl.values[i];
         if (value == NULL || value->type != AST_INTENT_VALUE)
             continue;
-        (void)resolve_type_node(value->data.intent_value.value_type, ctx);
+        (void)intent_resolve_value_type(value, ctx);
     }
 
     scope_enter(&ctx->scope, SCOPE_BLOCK);
@@ -75,7 +99,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
             continue;
 
-        subject_type = resolve_type_node(involves->data.intent_involves.subject_type, ctx);
+        subject_type = intent_resolve_involves_type(involves, ctx);
         participant_sym = symbol_create_variable(involves->data.intent_involves.alias,
             subject_type, involves->line, involves->column);
         scope_declare(ctx->scope, participant_sym);
@@ -88,7 +112,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         if (value == NULL || value->type != AST_INTENT_VALUE)
             continue;
 
-        value_type = resolve_type_node(value->data.intent_value.value_type, ctx);
+        value_type = intent_resolve_value_type(value, ctx);
         value_sym = symbol_create_variable(value->data.intent_value.alias,
             value_type, value->line, value->column);
         scope_declare(ctx->scope, value_sym);
@@ -128,7 +152,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 contract_summary[0] != '\0' ? contract_summary : "",
                 contract_summary[0] != '\0' ? "\n" : "");
         } else {
-            Type *zone_type = resolve_type_node(step->data.intent_step.where_type, ctx);
+            Type *zone_type = intent_resolve_step_where_type(step, ctx);
             zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 zone_type != NULL ? zone_type->name : NULL);
             if (step->data.intent_step.where_type != NULL && zone_decl == NULL) {
@@ -141,8 +165,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
         if (step->data.intent_step.using_expr != NULL) {
             Type *using_type = type_check_expression(step->data.intent_step.using_expr, ctx);
-            Type *zone_type = step->data.intent_step.where_type != NULL
-                ? resolve_type_node(step->data.intent_step.where_type, ctx) : NULL;
+            Type *zone_type = intent_resolve_step_where_type(step, ctx);
             intent_clause_rejects_control_transfer(step->data.intent_step.using_expr, ctx,
                 step->data.intent_step.name, "using");
             if (step->data.intent_step.using_expr->type != AST_IDENTIFIER) {
@@ -174,15 +197,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             ASTNode *to_involves = intent_step_resolve_transfer_target_involves(
                 node, step, &to_alias);
             Type *from_type = from_involves != NULL
-                ? resolve_type_node(from_involves->data.intent_involves.subject_type, ctx) : NULL;
+                ? intent_resolve_involves_type(from_involves, ctx) : NULL;
             Type *to_type = to_involves != NULL
-                ? resolve_type_node(to_involves->data.intent_involves.subject_type, ctx) : NULL;
+                ? intent_resolve_involves_type(to_involves, ctx) : NULL;
             ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 from_type != NULL ? from_type->name : NULL);
             ASTNode *to_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 to_type != NULL ? to_type->name : NULL);
-            Type *where_zone_type = step->data.intent_step.where_type != NULL
-                ? resolve_type_node(step->data.intent_step.where_type, ctx) : NULL;
+            Type *where_zone_type = intent_resolve_step_where_type(step, ctx);
 
             if (from_alias == NULL || to_alias == NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
@@ -475,7 +497,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 ASTNode *from_involves = find_intent_involves_local(node,
                     step->data.intent_step.transfer_from_alias);
                 Type *from_type = from_involves != NULL
-                    ? resolve_type_node(from_involves->data.intent_involves.subject_type, ctx) : NULL;
+                    ? intent_resolve_involves_type(from_involves, ctx) : NULL;
                 ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                     from_type != NULL ? from_type->name : NULL);
                 if (from_zone_decl != NULL

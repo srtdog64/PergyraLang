@@ -6,6 +6,22 @@
 #include <stdlib.h>
 #include <string.h>
 
+static Type *
+world_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
+static Type *
+world_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
+{
+    if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
+        return TYPE_UNKNOWN;
+    return world_resolve_type_ref(slot->data.domain_slot.type, ctx);
+}
+
 static ASTNode *
 find_world_zone_slot_local(ASTNode *world, const char *slot_name)
 {
@@ -735,7 +751,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < node->data.world_decl.shared_count; i++) {
         ASTNode *shared = node->data.world_decl.shared_fields[i];
         if (shared->data.party_shared.type != NULL)
-            resolve_type_node(shared->data.party_shared.type, ctx);
+            world_resolve_type_ref(shared->data.party_shared.type, ctx);
         if (shared->data.party_shared.initializer != NULL)
             type_check_expression(shared->data.party_shared.initializer, ctx);
     }
@@ -759,7 +775,7 @@ type_check_domain_slots(ASTNode **slots,
 {
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
-        Type *slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        Type *slot_type = world_resolve_domain_slot_type(slot, ctx);
         if (slot->data.domain_slot.is_subject
             && !type_is_subject_type(slot_type, ctx)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_WORLD_CONTRACT_INVALID, PGY_CAUSE_WORLD_CONTRACT, PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION, slot,
@@ -808,7 +824,7 @@ type_check_domain_slot_initializers(ASTNode **slots,
             continue;
         }
 
-        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        slot_type = world_resolve_domain_slot_type(slot, ctx);
         if (slot_type == NULL || slot_type == TYPE_UNKNOWN)
             continue;
 
@@ -848,7 +864,7 @@ type_check_domain_slot_initializers(ASTNode **slots,
             continue;
         }
 
-        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        slot_type = world_resolve_domain_slot_type(slot, ctx);
         init_type = type_check_expression(slot->data.domain_slot.initializer, ctx);
         if (slot_type == NULL || init_type == NULL
             || slot_type == TYPE_UNKNOWN || init_type == TYPE_UNKNOWN) {

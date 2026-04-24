@@ -17,6 +17,14 @@ operator_overload_suffix(PgyTokenType op)
     }
 }
 
+static Type *
+operator_expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 static bool
 operator_method_name_matches(PgyTokenType op, const char *name)
 {
@@ -154,12 +162,13 @@ type_check_role_operator_overload(ASTNode *expr, SemanticContext *ctx,
 
         Type *rhs_type = TYPE_INT;
         if (rhs_param != NULL && rhs_param->type != NULL)
-            rhs_type = resolve_type_node(rhs_param->type, ctx);
+            rhs_type = operator_expr_resolve_type_ref(rhs_param->type, ctx);
         if (!type_is_assignable(right, rhs_type))
             continue;
 
         if (method->data.func_decl.return_type != NULL)
-            return resolve_type_node(method->data.func_decl.return_type, ctx);
+            return operator_expr_resolve_type_ref(
+                method->data.func_decl.return_type, ctx);
         return TYPE_VOID;
     }
 

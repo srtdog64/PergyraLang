@@ -20,9 +20,12 @@ fi
 
 for path in \
     src/semantic/type_checker_event.c \
+    src/semantic/type_checker_generic_validation.c \
     src/semantic/type_checker_qubit.c \
     src/semantic/type_checker_resolution_graph_inventory.c \
     src/semantic/type_checker_resolution_stage.c \
+    src/semantic/type_checker_resolution_stage_lookup.c \
+    src/semantic/type_checker_resolution_stage_stats.c \
     src/semantic/type_checker_resolution_stage_domain.c
 do
     [ -f "$path" ] || fail "missing semantic owner TU: $path"
@@ -30,6 +33,10 @@ done
 
 if grep -q '#include "type_checker_resolution_graph_inventory.inc"' src/semantic/type_checker.c; then
     fail "type_checker.c must not include graph inventory body"
+fi
+
+if grep -R "resolve_type_node(" src/semantic/type_checker_resolution_graph_*.c src/semantic/type_checker_resolution_graph_core.inc >/dev/null; then
+    fail "DAG graph core/precollect layer must not call resolve_type_node directly"
 fi
 
 echo "[semantic-core-shape] semantic owner boundaries ok"

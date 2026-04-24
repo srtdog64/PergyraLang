@@ -9,6 +9,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+static Type *
+role_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 bool
 type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -48,7 +56,8 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
             name != NULL ? name : "<role>",
             node->data.role_decl.for_type,
             "role host-type lookup");
-        Type *bound_type = resolve_type_node(node->data.role_decl.for_type, ctx);
+        Type *bound_type = role_resolve_type_ref(
+            node->data.role_decl.for_type, ctx);
         if (bound_type != NULL
             && node->data.role_decl.for_type->type == AST_TYPE
             && node->data.role_decl.for_type->data.type.name != NULL) {
@@ -142,7 +151,8 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             tc->type_param);
                         if (param_index < 0 || (size_t)param_index >= effective_count)
                             continue;
-                        concrete_type = resolve_type_node(effective_args[param_index], ctx);
+                        concrete_type = role_resolve_type_ref(
+                            effective_args[param_index], ctx);
                         if (concrete_type == NULL)
                             continue;
                         for (size_t bi = 0; bi < tc->bound_count; bi++) {
@@ -358,7 +368,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                                 malformed_impl_args = true;
                                 continue;
                             }
-                            resolve_type_node(arg, ctx);
+                            role_resolve_type_ref(arg, ctx);
                         }
                     }
                     if (!malformed_impl_args) {

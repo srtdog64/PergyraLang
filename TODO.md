@@ -1161,6 +1161,21 @@
     - 진행: standalone TU 승격 중 드러난 dangling return-type seams와 implicit helper dependency를 제거해 `make test-all`, `make llvm-test-backend-compare` 회귀 통과
     - 진행: implicit declaration / implicit int는 기본 CFLAGS에서 에러로 고정되어 이후 DAG/semantic split 중 hidden helper dependency가 즉시 실패하도록 정렬
     - 진행: `type_resolution_intern_node` / `type_resolution_add_edge` / `type_resolution_find_path` / `type_resolution_format_cycle`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
+    - 진행: DAG stage 안에서 아직 `resolve_type_node(...)`로 내려가는 legacy fallback을 `PGY_TYPE_RES_STATS=1` 통계에 노출했다. `stage-legacy-resolve: calls/failed/suppressed_diagnostics`와 `stage-legacy-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`가 출력되며, `make type-resolution-dag-test-smoke`가 graph stats, topo validation, legacy fallback inventory 존재를 CI gate로 고정한다
+    - 진행: type-alias stage는 quiet resolve 성공 결과를 재사용하도록 정리해 성공 경로의 중복 `resolve_type_node(...)` 호출을 제거했다. 실패 경로는 기존 diagnostic fallback을 유지한다
+    - 진행: DAG edge가 이미 존재하는 named type-ref는 generic argument를 포함해 stage에서 `resolve_type_node(...)`를 다시 호출하지 않고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N` 통계가 추가됐고 `type-resolution-dag-test-smoke`가 skip 합계가 0으로 퇴행하지 않는지 검사한다
+    - 진행: graph precollect TU 안에서 enum methods가 `semantic_stage_method_array(...)`를 호출하던 impurity를 제거했다. 이제 enum method signature/contract도 precollect action contract 경로로만 graph edge를 수집한다
+    - 진행: DAG stage helper를 `type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`로 분리해 `type_checker_resolution_stage.c`를 895 LOC로 낮췄다. graph precollect, stage lookup, stage stats, stage replay owner가 파일 경계로 분리됐다
+    - 진행: generic where/default validation은 `type_checker_generic_validation.c`로 이동했다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.inc`는 더 이상 `resolve_type_node(...)`를 직접 호출하지 않으며, `semantic-core-shape-test-smoke`가 이 resolver-free graph-layer 경계를 검사한다
+    - 진행: `type_checker_intent_decl.c`의 직접 `resolve_type_node(...)` 호출은 participant/value/where local seam 3개로 수렴했다. 다음 DAG 전환은 이 seam을 graph metadata 조회로 교체하는 방식으로 진행한다
+    - 진행: `type_checker_decls_domain_helpers.c`의 domain contract 직접 `resolve_type_node(...)` 호출은 slot/shared/named-ref local seam 3개로 수렴했다. projection/relation/effect contract의 다음 DAG 전환은 이 seam을 metadata query로 교체하는 방식으로 진행한다
+    - 진행: `type_checker_intent_helpers.c`의 direct resolver 호출은 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. transfer-derived using/where, ability generic arg, role-field checks는 이 seam을 통해 다음 DAG metadata 전환을 탄다
+    - 진행: `type_checker_helpers_host.inc`의 direct resolver 호출은 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. projection source fields, hosted method return/param, zone authority/domain slot checks는 이 seam을 통해 다음 DAG metadata 전환을 탄다
+    - 진행: `type_checker_program.c`의 forward-declaration type materialization은 quiet resolver seam 1개로 수렴했고, `type_checker_program.inc`의 function-body param/return/domain-slot materialization도 body resolver seam 1개로 수렴했다
+    - 진행: `type_checker_event.c`의 event signature/lambda handler materialization은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 event signature metadata를 graph-backed result로 재사용하는 것이다
+    - 진행: `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. world shared/slot checks는 이 seam에서 graph-backed metadata로 교체할 수 있다
+    - 진행: `type_checker_role_decl.c`, `type_checker_generic_contracts.inc`, `type_checker_helpers_late.c`, `type_checker_expr.inc`의 직접 resolver 호출도 각각 role/generic-contract/late-helper/expr local seam 1개로 수렴했다
+    - 진행: `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 남은 direct count는 대부분 resolver 본체, 주석, 또는 명시 seam이다
   - 목표:
     - import graph와 별개로 `type provider -> type consumer` 그래프를 분리 구축한다
     - declaration / alias / generic default / where-bound / ability consumer / zone authority consumer를 DAG node/edge로 승격한다
@@ -1182,6 +1197,7 @@
     - namespace-only reference는 불필요한 full type materialization을 유발하지 않는다
     - generic consumer/default/bound resolution이 graph-backed evaluation에서도 기존 semantic 계약과 같은 결과를 낸다
     - C/LLVM compile path가 동일한 resolved-type metadata를 재사용한다
+    - `PGY_TYPE_RES_STATS=1`에서 stage graph-backed skip 수, legacy fallback 호출량, family breakdown, suppressed diagnostic 수가 보인다. 이 값은 남은 DAG migration debt의 직접 지표이며 숨겨진 fallback을 추가하면 smoke에서 즉시 드러나야 한다
 
 - [x] **runtime observability baseline vs richer query 구분 고정**
   - 대상: `IntentLast* / IntentHistory* / IntentActive* / IntentRecent*`, zone/world inspection

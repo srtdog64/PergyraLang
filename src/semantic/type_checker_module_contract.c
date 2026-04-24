@@ -8,6 +8,14 @@
 #include "type_checker_module_contract_internal.h"
 #include "type_checker_visibility.h"
 
+static Type *
+module_contract_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 ASTNode *
 resolve_required_ability_decl(ASTNode *ability_ref,
                               const ASTNode *site,
@@ -27,7 +35,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
         ability_ref,
         "required ability resolution");
 
-    resolve_type_node(ability_ref, ctx);
+    module_contract_resolve_type_ref(ability_ref, ctx);
     if (ability == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
             "%s '%s' requires a valid ability type reference.\n"
@@ -196,7 +204,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
                 free(required_text);
                 return NULL;
             }
-            resolve_type_node(arg, ctx);
+            module_contract_resolve_type_ref(arg, ctx);
         }
 
         free(expected_text);

@@ -169,6 +169,13 @@ void semantic_stage_world_local_contract_from_label(ASTNode *world_decl,
 void semantic_stage_zone_local_contract_from_label(ASTNode *zone_decl,
                                                    const char *label,
                                                    SemanticContext *ctx);
+bool semantic_stage_should_defer_to_graph(ASTNode *type_node,
+                                          SemanticContext *ctx,
+                                          const ASTNode *consumer_site,
+                                          const char *consumer_name,
+                                          const char *reason);
+void semantic_stage_record_legacy_family(SemanticContext *ctx,
+                                         const char *reason);
 const char *semantic_symbol_kind_label(SymbolKind kind);
 const char *intent_step_single_who_alias(const ASTNode *step);
 ASTNode *find_intent_involves_local(ASTNode *intent, const char *alias);

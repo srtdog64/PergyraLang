@@ -8,6 +8,14 @@
 #include "type_checker_ability_where_internal.h"
 #include "type_checker_generic_diag_internal.h"
 
+static Type *
+ability_where_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 static int
 ability_decl_generic_param_index(GenericParams *gp, const char *param_name)
 {
@@ -35,7 +43,7 @@ ability_generic_arg_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
     if (concrete_type == NULL || bound_node == NULL || ctx == NULL)
         return false;
 
-    bound_type = resolve_type_node(bound_node, ctx);
+    bound_type = ability_where_resolve_type_ref(bound_node, ctx);
     if (bound_type != NULL
         && bound_type != TYPE_UNKNOWN
         && type_satisfies_constraint(concrete_type, bound_type)) {
@@ -147,7 +155,8 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
             return false;
         }
 
-        concrete_type = resolve_type_node(effective_args[param_index], ctx);
+        concrete_type = ability_where_resolve_type_ref(
+            effective_args[param_index], ctx);
         if (concrete_type == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,

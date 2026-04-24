@@ -26,6 +26,14 @@ uint32_t
 declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
                                     bool *has_contract_out);
 
+static Type *
+late_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 static ASTNode *
 lookup_function_param_contract_local(SemanticContext *ctx,
                                      const char *display_name,
@@ -150,7 +158,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         }
                         if (field_type_node == NULL)
                             continue;
-                        Type *field_type = resolve_type_node(field_type_node, ctx);
+                        Type *field_type = late_helper_resolve_type_ref(
+                            field_type_node, ctx);
                         Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
                         if (field_type != NULL && arg_type != NULL
                             && !type_is_assignable(arg_type, field_type)) {
@@ -352,7 +361,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     GenericParam *gp = callable_generic_params->params[gi];
                     if (gp != NULL && gp->default_type != NULL)
                         effective_generic_types[gi] =
-                            resolve_type_node(gp->default_type, ctx);
+                            late_helper_resolve_type_ref(gp->default_type, ctx);
                 }
             }
         }
@@ -670,7 +679,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 for (size_t gi = 0; gi < decl_gp->count; gi++) {
                     GenericParam *gp = decl_gp->params[gi];
                     if (gp != NULL && gp->default_type != NULL)
-                        effective_generic_types[gi] = resolve_type_node(gp->default_type, ctx);
+                        effective_generic_types[gi] =
+                            late_helper_resolve_type_ref(gp->default_type, ctx);
                 }
                 for (size_t ai = 0; ai < provided; ai++) {
                     FuncParam *fp = (ai < stmt->data.func_decl.param_count)

@@ -10,6 +10,48 @@ create_overlay_nominal_type(const char *name)
     return type;
 }
 
+static Type *
+host_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
+static Type *
+host_helper_resolve_class_field_type(ClassField *field, SemanticContext *ctx)
+{
+    if (field == NULL)
+        return NULL;
+    return host_helper_resolve_type_ref(field->type, ctx);
+}
+
+static Type *
+host_helper_resolve_func_return_type(ASTNode *method, SemanticContext *ctx)
+{
+    if (method == NULL || method->type != AST_FUNC_DECL
+        || method->data.func_decl.return_type == NULL) {
+        return TYPE_VOID;
+    }
+    return host_helper_resolve_type_ref(method->data.func_decl.return_type, ctx);
+}
+
+static Type *
+host_helper_resolve_func_param_type(FuncParam *param, SemanticContext *ctx)
+{
+    if (param == NULL || param->type == NULL)
+        return TYPE_UNKNOWN;
+    return host_helper_resolve_type_ref(param->type, ctx);
+}
+
+static Type *
+host_helper_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
+{
+    if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
+        return TYPE_UNKNOWN;
+    return host_helper_resolve_type_ref(slot->data.domain_slot.type, ctx);
+}
+
 size_t
 overlay_field_count(ASTNode *decl)
 {
@@ -154,7 +196,7 @@ current_host_field_type(SemanticContext *ctx, const char *field_name)
             ClassField *field = projection_source_field_at(decl, i);
             if (field != NULL && field->name != NULL
                 && strcmp(field->name, field_name) == 0) {
-                return resolve_type_node(field->type, ctx);
+                return host_helper_resolve_class_field_type(field, ctx);
             }
         }
         return NULL;
@@ -182,7 +224,7 @@ current_host_field_type(SemanticContext *ctx, const char *field_name)
         const char *name = NULL;
         ASTNode *type_node = overlay_field_decl_at(decl, i, &name);
         if (name != NULL && strcmp(name, field_name) == 0)
-            return resolve_type_node(type_node, ctx);
+            return host_helper_resolve_type_ref(type_node, ctx);
     }
 
     return NULL;
@@ -256,9 +298,7 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
             "Parallel context does not permit calling secure-effect method '%s'; serialize authority-bearing operations outside the parallel block",
             method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>");
-        if (method->data.func_decl.return_type != NULL)
-            return resolve_type_node(method->data.func_decl.return_type, ctx);
-        return TYPE_VOID;
+        return host_helper_resolve_func_return_type(method, ctx);
     }
 
     if (method->data.func_decl.param_count > 0
@@ -276,16 +316,12 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
             "'%s' expects %llu argument(s), got %llu",
             method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>",
             (unsigned long long) expected, (unsigned long long) provided);
-        if (method->data.func_decl.return_type != NULL)
-            return resolve_type_node(method->data.func_decl.return_type, ctx);
-        return TYPE_VOID;
+        return host_helper_resolve_func_return_type(method, ctx);
     }
 
     for (size_t i = 0; i < provided; i++) {
         FuncParam *param = method->data.func_decl.params[i + implicit_self];
-        Type *param_type = (param != NULL && param->type != NULL)
-            ? resolve_type_node(param->type, ctx)
-            : TYPE_UNKNOWN;
+        Type *param_type = host_helper_resolve_func_param_type(param, ctx);
         Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
         if (param_type != NULL && arg_type != NULL
             && !type_is_assignable(arg_type, param_type)) {
@@ -300,9 +336,7 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
         }
     }
 
-    if (method->data.func_decl.return_type != NULL)
-        return resolve_type_node(method->data.func_decl.return_type, ctx);
-    return TYPE_VOID;
+    return host_helper_resolve_func_return_type(method, ctx);
 }
 
 ASTNode *
@@ -408,7 +442,7 @@ find_action_binding_type_name(ASTNode *func, ASTNode *enclosing_nominal,
         }
         if (param->type == NULL)
             return NULL;
-        param_type = resolve_type_node(param->type, ctx);
+        param_type = host_helper_resolve_func_param_type(param, ctx);
         if (param_type == NULL || !type_is_subject_type(param_type, ctx))
             return NULL;
         return param_type->name;
@@ -432,7 +466,7 @@ domain_has_subject_slot_type(ASTNode **slots, size_t slot_count,
             || slot->data.domain_slot.type == NULL) {
             continue;
         }
-        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        slot_type = host_helper_resolve_domain_slot_type(slot, ctx);
         if (slot_type != NULL && slot_type->name != NULL
             && strcmp(slot_type->name, type_name) == 0) {
             return true;
@@ -501,7 +535,7 @@ zone_has_authority_for_subject_type(ASTNode *zone, SemanticContext *ctx,
             authority->data.zone_authority.subject_slot_name);
         if (slot == NULL || slot->data.domain_slot.type == NULL)
             continue;
-        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        slot_type = host_helper_resolve_domain_slot_type(slot, ctx);
         if (slot_type != NULL && slot_type->name != NULL
             && strcmp(slot_type->name, type_name) == 0) {
             return true;

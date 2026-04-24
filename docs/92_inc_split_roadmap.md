@@ -162,6 +162,19 @@ Backend 진행:
 - `type_checker.c`는 orchestration만 담당한다.
 - `type_checker_resolution_graph_inventory.c`가 graph inventory pass를 소유한다.
 - `type_checker_resolution_stage.c`는 DAG stage source of truth로 유지하고 include shim으로 되돌리지 않는다.
+- DAG stage 안의 남은 `resolve_type_node(...)` legacy fallback은 숨기지 않는다. `PGY_TYPE_RES_STATS=1`의 `stage-graph-backed` / `stage-legacy-resolve` / `stage-legacy-family` 통계와 `make type-resolution-dag-test-smoke`가 남은 migration debt를 공개 지표로 고정한다.
+- `type_checker_resolution_stage_lookup.c`는 stage lookup/host-label mapping을 소유하고, `type_checker_resolution_stage_stats.c`는 graph-backed skip 판정과 legacy-family 계측을 소유한다.
+- graph precollect TU는 stage runner를 호출하지 않는다. enum method inventory도 precollect action contract 경로로만 edge를 만든다.
+- `type_checker_generic_validation.c`는 generic where/default validation을 소유한다. graph core/precollect layer는 `resolve_type_node(...)`를 직접 호출하지 않는 resolver-free inventory/graph primitive layer로 고정하고, `semantic-core-shape-test-smoke`가 이를 검사한다.
+- `type_checker_intent_decl.c`의 participant/value/where type materialization은 local seam 3개로 수렴했다. 다음 DAG slice는 이 seam을 graph-backed resolved metadata query로 교체하는 것이다.
+- `type_checker_decls_domain_helpers.c`의 projection/relation/effect contract type materialization은 slot/shared/named-ref seam 3개로 수렴했다. 다음 DAG slice는 domain contract checks가 이 seam에서 graph-backed resolved metadata를 재사용하게 만드는 것이다.
+- `type_checker_intent_helpers.c`의 transfer-derived using/where, ability generic arg, role-field checks는 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 이 seam을 graph-backed metadata reader로 교체하는 것이다.
+- `type_checker_helpers_host.inc`의 projection source field, hosted method return/param, zone authority/domain slot checks는 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 host helper include의 마지막 resolver seam을 `.c` owner로 추출한 뒤 graph-backed metadata reader로 교체하는 것이다.
+- `type_checker_program.c` / `type_checker_program.inc`의 declaration/body type materialization은 quiet/body resolver seam으로 수렴했다. 다음 DAG slice는 program-level registration과 function body materialization이 graph-backed resolved metadata를 재사용하게 만드는 것이다.
+- `type_checker_event.c`의 event declaration/subscription signature materialization은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 event signature metadata reader로 교체하는 것이다.
+- `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. 다음 DAG slice는 world shared/slot checks가 graph-backed resolved metadata를 재사용하게 만드는 것이다.
+- `type_checker_role_decl.c`, `type_checker_generic_contracts.inc`, `type_checker_helpers_late.c`, `type_checker_expr.inc`는 각각 local resolver seam 1개로 수렴했다. 다음 DAG slice는 role include/impl, generic default/bound, call default, lambda/member metadata를 graph-backed result로 교체하는 것이다.
+- `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 다음 DAG slice는 이 seam들을 graph-backed metadata reader로 교체하고 remaining direct count를 implementation/comment/seam만 남기는 것이다.
 - declaration validators는 `subject/class`, `zone`, `world`, `intent`, `relation/effect/projection`, `ability/role/party/roster` 단위의 `.c`로 분리한다.
 - `find_*_decl`, `find_*_slot`, label/format, dependency record API는 static include-order가 아니라 internal header 계약으로만 사용한다.
 - type-resolution DAG는 recursive resolver의 보조 자료가 아니라 provider/consumer validation schedule의 source of truth가 된다.
@@ -170,6 +183,7 @@ Semantic stop condition:
 - `src/semantic`에는 800 LOC 초과 `.inc`가 없다.
 - `type_checker.c`는 600 LOC 이하이며 include aggregator가 아니다.
 - 현재 상태: `type_checker_event.c`와 `type_checker_qubit.c` owner 추출 후 `type_checker.c`는 481 LOC다. 남은 include는 helper shims와 statement/program orchestration 경계다.
+- 현재 상태: DAG graph stats, graph-backed stage skip, stage legacy fallback inventory는 `type-resolution-dag-test-smoke`로 CI에 연결됐다. named type-ref는 generic argument를 포함해 graph-backed skip 경로로 들어가며, smoke는 skip 합계가 0으로 퇴행하면 실패한다. 다음 closure slice는 generic/default/bound validation 자체와 nested consumer metadata를 graph-backed result로 재사용해 legacy 호출량을 더 줄이는 것이다.
 - semantic 신규 기능은 `.inc` 수정 없이 해당 axis `.c`와 internal header만 수정해서 추가 가능해야 한다.
 
 ### Target State B — Backend Emitters

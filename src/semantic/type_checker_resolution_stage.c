@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -28,54 +27,6 @@ tc_strdup_fmt(const char *fmt, ...)
     return buf;
 }
 
-const char *
-semantic_type_resolution_decl_label(ASTNode *stmt)
-{
-    if (stmt == NULL)
-        return NULL;
-
-    switch (stmt->type) {
-    case AST_TYPE_ALIAS:
-        return stmt->data.type_alias.name;
-    case AST_CLASS_DECL:
-        return stmt->data.class_decl.name;
-    case AST_FUNC_DECL:
-        return stmt->data.func_decl.name;
-    case AST_EVENT_DECL:
-        return stmt->data.event_decl.name;
-    case AST_ENUM_DECL:
-        return stmt->data.enum_decl.name;
-    case AST_ABILITY_DECL:
-        return stmt->data.ability_decl.name;
-    case AST_ROLE_DECL:
-        return stmt->data.role_decl.name;
-    case AST_PARTY_DECL:
-        return stmt->data.party_decl.name;
-    case AST_ROSTER_DECL:
-        return stmt->data.roster_decl.name;
-    case AST_WORLD_DECL:
-        return stmt->data.world_decl.name;
-    case AST_INTENT_DECL:
-        return stmt->data.intent_decl.name;
-    case AST_RELATION_DECL:
-        return stmt->data.relation_decl.name;
-    case AST_EFFECT_DECL:
-        return stmt->data.effect_decl.name;
-    case AST_ZONE_DECL:
-        return stmt->data.zone_decl.name;
-    default:
-        return NULL;
-    }
-}
-
-static TypeResolutionNodeKind
-semantic_type_resolution_decl_kind(ASTNode *stmt)
-{
-    if (stmt != NULL && stmt->type == AST_TYPE_ALIAS)
-        return TYPE_RES_NODE_ALIAS;
-    return TYPE_RES_NODE_DECL;
-}
-
 static Type *
 semantic_stage_resolve_type_quiet(ASTNode *type_node,
                                   SemanticContext *ctx,
@@ -90,14 +41,24 @@ semantic_stage_resolve_type_quiet(ASTNode *type_node,
     if (type_node == NULL || ctx == NULL)
         return TYPE_UNKNOWN;
 
-    (void)consumer_site;
-    (void)consumer_name;
-    (void)reason;
+    if (semantic_stage_should_defer_to_graph(type_node,
+                                             ctx,
+                                             consumer_site,
+                                             consumer_name,
+                                             reason)) {
+        ctx->type_resolution_stage_graph_backed_skip_count++;
+        return TYPE_UNKNOWN;
+    }
 
+    ctx->type_resolution_stage_legacy_resolve_count++;
+    semantic_stage_record_legacy_family(ctx, reason);
     saved_diag = ctx->diagnostic_count;
     saved_error = ctx->has_error;
     resolved = resolve_type_node(type_node, ctx);
     if (ctx->diagnostic_count > saved_diag) {
+        ctx->type_resolution_stage_legacy_resolve_failed_count++;
+        ctx->type_resolution_stage_legacy_resolve_suppressed_diag_count +=
+            ctx->diagnostic_count - saved_diag;
         for (size_t i = saved_diag; i < ctx->diagnostic_count; i++) {
             if (ctx->diagnostics[i] != NULL) {
                 free(ctx->diagnostics[i]->message);
@@ -110,6 +71,8 @@ semantic_stage_resolve_type_quiet(ASTNode *type_node,
         return TYPE_UNKNOWN;
     }
 
+    if (resolved == NULL)
+        ctx->type_resolution_stage_legacy_resolve_failed_count++;
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
@@ -376,77 +339,6 @@ semantic_stage_event_signature(ASTNode *event_decl,
         "event return type lookup");
 }
 
-ASTNode *
-semantic_find_top_level_decl_by_label(ASTNode *program,
-                                      const char *label,
-                                      TypeResolutionNodeKind kind)
-{
-    if (program == NULL || program->type != AST_PROGRAM || label == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        const char *stmt_label;
-
-        if (stmt == NULL)
-            continue;
-        if (semantic_type_resolution_decl_kind(stmt) != kind)
-            continue;
-
-        stmt_label = semantic_type_resolution_decl_label(stmt);
-        if (stmt_label != NULL && strcmp(stmt_label, label) == 0)
-            return stmt;
-    }
-
-    return NULL;
-}
-
-ASTNode *
-semantic_find_graph_host_decl(ASTNode *program,
-                              const char *label)
-{
-    const char *space;
-    const char *dot;
-    size_t name_len;
-    char *host_name;
-    ASTNode *decl = NULL;
-
-    if (program == NULL || label == NULL)
-        return NULL;
-
-    if (strncmp(label, "world ", 6) == 0) {
-        space = label + 6;
-        dot = strchr(space, '.');
-        if (dot == NULL || dot == space)
-            return NULL;
-        name_len = (size_t)(dot - space);
-        host_name = calloc(name_len + 1, 1);
-        if (host_name == NULL)
-            return NULL;
-        memcpy(host_name, space, name_len);
-        decl = find_domain_decl_by_name(program, AST_WORLD_DECL, host_name);
-        free(host_name);
-        return decl;
-    }
-
-    if (strncmp(label, "zone ", 5) == 0) {
-        space = label + 5;
-        dot = strchr(space, '.');
-        if (dot == NULL || dot == space)
-            return NULL;
-        name_len = (size_t)(dot - space);
-        host_name = calloc(name_len + 1, 1);
-        if (host_name == NULL)
-            return NULL;
-        memcpy(host_name, space, name_len);
-        decl = find_domain_decl_by_name(program, AST_ZONE_DECL, host_name);
-        free(host_name);
-        return decl;
-    }
-
-    return NULL;
-}
-
 void
 semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
 {
@@ -468,17 +360,21 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
     switch (decl->type) {
     case AST_TYPE_ALIAS: {
         Symbol *sym;
+        Type *alias_type;
         if (decl->data.type_alias.name == NULL)
             break;
         sym = scope_lookup_current(ctx->scope, decl->data.type_alias.name);
-        (void)semantic_stage_resolve_type_quiet(
+        alias_type = semantic_stage_resolve_type_quiet(
             decl->data.type_alias.target_type,
             ctx,
             decl,
             decl->data.type_alias.name,
             "type-alias target lookup");
-        if (sym != NULL)
-            sym->type = resolve_type_node(decl->data.type_alias.target_type, ctx);
+        if (sym != NULL) {
+            sym->type = alias_type != TYPE_UNKNOWN
+                ? alias_type
+                : resolve_type_node(decl->data.type_alias.target_type, ctx);
+        }
         break;
     }
 

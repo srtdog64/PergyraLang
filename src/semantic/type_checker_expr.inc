@@ -1,4 +1,13 @@
 #include "type_checker_resolve.inc"
+
+static Type *
+expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 Type *
 type_check_expression(ASTNode *expr, SemanticContext *ctx)
 {
@@ -33,7 +42,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             if (param != NULL && param->type == AST_LET_DECL) {
                 param_name = param->data.let_decl.name;
                 if (param->data.let_decl.type != NULL)
-                    param_type = resolve_type_node(param->data.let_decl.type, ctx);
+                    param_type = expr_resolve_type_ref(
+                        param->data.let_decl.type, ctx);
             } else if (param != NULL && param->type == AST_IDENTIFIER) {
                 param_name = param->data.identifier.name;
             }
@@ -48,7 +58,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         }
 
         if (expr->data.lambda_expr.return_type != NULL) {
-            return_type = resolve_type_node(expr->data.lambda_expr.return_type, ctx);
+            return_type = expr_resolve_type_ref(
+                expr->data.lambda_expr.return_type, ctx);
         } else if (expr->data.lambda_expr.body != NULL
                    && expr->data.lambda_expr.body->type != AST_BLOCK) {
             return_type = type_check_expression(expr->data.lambda_expr.body, ctx);
@@ -543,7 +554,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 return TYPE_UNKNOWN;
                             }
                             if (method->data.func_decl.return_type != NULL)
-                                return resolve_type_node(
+                                return expr_resolve_type_ref(
                                     method->data.func_decl.return_type, ctx);
                             return TYPE_VOID;
                         }
@@ -628,7 +639,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
                             field_name);
                         return TYPE_UNKNOWN;
                     }
-                    return resolve_type_node(cf->type, ctx);
+                    return expr_resolve_type_ref(cf->type, ctx);
                 }
             }
         } else if (decl != NULL) {
@@ -657,7 +668,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
                     &overlay_field_name);
                 if (overlay_field_name != NULL
                     && strcmp(overlay_field_name, field_name) == 0) {
-                    return resolve_type_node(field_type_node, ctx);
+                    return expr_resolve_type_ref(field_type_node, ctx);
                 }
             }
         }

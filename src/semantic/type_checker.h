@@ -152,6 +152,16 @@ struct SemanticContext
     size_t       alias_resolution_capacity;
 
     TypeResolutionGraph type_resolution_graph;
+    size_t type_resolution_stage_graph_backed_skip_count;
+    size_t type_resolution_stage_legacy_resolve_count;
+    size_t type_resolution_stage_legacy_resolve_failed_count;
+    size_t type_resolution_stage_legacy_resolve_suppressed_diag_count;
+    size_t type_resolution_stage_legacy_generic_contract_count;
+    size_t type_resolution_stage_legacy_signature_count;
+    size_t type_resolution_stage_legacy_ability_consumer_count;
+    size_t type_resolution_stage_legacy_domain_contract_count;
+    size_t type_resolution_stage_legacy_alias_count;
+    size_t type_resolution_stage_legacy_other_count;
 
     /* Memoization cache for resolve_type_node (AST node pointer -> Type*).
      * Populated after a successful resolution to skip re-work for identical

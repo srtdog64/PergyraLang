@@ -505,11 +505,12 @@ semantic_type_resolution_precollect_enum_inventory(ASTNode *enum_decl,
         free(consumer_name);
     }
 
-    semantic_stage_method_array(
-        enum_decl->data.enum_decl.methods,
-        enum_decl->data.enum_decl.method_count,
-        ctx,
-        enum_decl->data.enum_decl.name);
+    for (size_t i = 0; i < enum_decl->data.enum_decl.method_count; i++) {
+        semantic_type_resolution_precollect_action_contract(
+            enum_decl->data.enum_decl.methods[i],
+            ctx,
+            enum_decl->data.enum_decl.name);
+    }
 }
 
 void

@@ -15,6 +15,14 @@ semantic_event_expr_name(ASTNode *expr)
     return "<event>";
 }
 
+static Type *
+semantic_event_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 bool
 type_check_event_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -51,12 +59,13 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         }
 
-        if (resolve_type_node(param->data.let_decl.type, ctx) == NULL)
+        if (semantic_event_resolve_type_ref(param->data.let_decl.type, ctx) == NULL)
             ok = false;
     }
 
     if (node->data.event_decl.return_type != NULL) {
-        Type *return_type = resolve_type_node(node->data.event_decl.return_type, ctx);
+        Type *return_type = semantic_event_resolve_type_ref(
+            node->data.event_decl.return_type, ctx);
         if (return_type != NULL && !type_equals(return_type, TYPE_VOID)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
                 PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
@@ -93,14 +102,16 @@ semantic_event_handler_signature(ASTNode *handler, SemanticContext *ctx)
             if (param != NULL
                 && param->type == AST_LET_DECL
                 && param->data.let_decl.type != NULL) {
-                param_types[i] = resolve_type_node(param->data.let_decl.type, ctx);
+                param_types[i] = semantic_event_resolve_type_ref(
+                    param->data.let_decl.type, ctx);
             } else {
                 param_types[i] = TYPE_UNKNOWN;
             }
         }
 
         if (handler->data.lambda_expr.return_type != NULL) {
-            Type *resolved = resolve_type_node(handler->data.lambda_expr.return_type, ctx);
+            Type *resolved = semantic_event_resolve_type_ref(
+                handler->data.lambda_expr.return_type, ctx);
             if (resolved != NULL)
                 return_type = resolved;
         }

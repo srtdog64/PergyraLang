@@ -6,6 +6,51 @@
 #include "type_checker_internal.h"
 #include "diag_codes.h"
 
+static Type *
+program_resolve_type_quiet(ASTNode *type_node, SemanticContext *ctx)
+{
+    size_t saved_diag;
+    bool saved_err;
+    Type *resolved;
+
+    if (type_node == NULL || ctx == NULL)
+        return TYPE_UNKNOWN;
+
+    saved_diag = ctx->diagnostic_count;
+    saved_err = ctx->has_error;
+    resolved = resolve_type_node(type_node, ctx);
+    if (ctx->diagnostic_count > saved_diag) {
+        ctx->diagnostic_count = saved_diag;
+        ctx->has_error = saved_err;
+        return TYPE_UNKNOWN;
+    }
+    return resolved != NULL ? resolved : TYPE_UNKNOWN;
+}
+
+static Type *
+program_resolve_func_return_type_quiet(ASTNode *func_decl, SemanticContext *ctx)
+{
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
+        || func_decl->data.func_decl.return_type == NULL) {
+        return TYPE_VOID;
+    }
+    return program_resolve_type_quiet(func_decl->data.func_decl.return_type, ctx);
+}
+
+static Type *
+program_resolve_intent_binding_type_quiet(ASTNode *binding, SemanticContext *ctx)
+{
+    if (binding == NULL)
+        return TYPE_UNKNOWN;
+    if (binding->type == AST_INTENT_INVOLVES)
+        return program_resolve_type_quiet(
+            binding->data.intent_involves.subject_type, ctx);
+    if (binding->type == AST_INTENT_VALUE)
+        return program_resolve_type_quiet(
+            binding->data.intent_value.value_type, ctx);
+    return TYPE_UNKNOWN;
+}
+
 bool
 type_check_program(ASTNode *program, SemanticContext *ctx)
 {
@@ -65,20 +110,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                                          sizeof(Type *));
                 for (size_t j = 0; j < real_pc; j++)
                     ptypes[j] = TYPE_UNKNOWN;
-                Type *ret = TYPE_VOID;
-                if (stmt->data.func_decl.return_type != NULL) {
-                    /* Try to resolve return type; use TYPE_UNKNOWN on failure
-                     * (e.g., generic return type 'T' not in scope yet). */
-                    size_t saved_diag = ctx->diagnostic_count;
-                    bool saved_err = ctx->has_error;
-                    ret = resolve_type_node(stmt->data.func_decl.return_type, ctx);
-                    if (ctx->diagnostic_count > saved_diag) {
-                        /* Roll back the diagnostic — Pass 2 will re-check */
-                        ctx->diagnostic_count = saved_diag;
-                        ctx->has_error = saved_err;
-                        ret = TYPE_UNKNOWN;
-                    }
-                }
+                Type *ret = program_resolve_func_return_type_quiet(stmt, ctx);
                 Type *placeholder = type_create_function(ptypes, real_pc, ret);
                 if (placeholder != NULL)
                     placeholder->data.function.effect_mask =
@@ -98,15 +130,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     if (p != NULL
                         && p->type == AST_LET_DECL
                         && p->data.let_decl.type != NULL) {
-                        size_t saved_diag = ctx->diagnostic_count;
-                        bool saved_err = ctx->has_error;
-                        eptypes[j] = resolve_type_node(p->data.let_decl.type, ctx);
-                        if (ctx->diagnostic_count > saved_diag) {
-                            /* Roll back the diagnostic — Pass 2 will re-check. */
-                            ctx->diagnostic_count = saved_diag;
-                            ctx->has_error = saved_err;
-                            eptypes[j] = TYPE_UNKNOWN;
-                        }
+                        eptypes[j] = program_resolve_type_quiet(
+                            p->data.let_decl.type, ctx);
                     } else {
                         eptypes[j] = TYPE_UNKNOWN;
                     }
@@ -144,7 +169,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     Type **ptypes = calloc(vpc, sizeof(Type *));
                     for (size_t p = 0; p < vpc && ptypes != NULL; p++) {
                         ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
-                        ptypes[p] = resolve_type_node(pt, ctx);
+                        ptypes[p] = program_resolve_type_quiet(pt, ctx);
                     }
                     Type *ft = type_create_function(ptypes, vpc, etype);
                     free(ptypes);
@@ -190,26 +215,12 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                             : stmt->data.intent_decl.values[j - stmt->data.intent_decl.involve_count]);
                     if (binding != NULL && binding->type == AST_INTENT_INVOLVES
                         && binding->data.intent_involves.subject_type != NULL) {
-                        size_t saved_diag = ctx->diagnostic_count;
-                        bool saved_err = ctx->has_error;
-                        ptypes[j] = resolve_type_node(
-                            binding->data.intent_involves.subject_type, ctx);
-                        if (ctx->diagnostic_count > saved_diag) {
-                            ctx->diagnostic_count = saved_diag;
-                            ctx->has_error = saved_err;
-                            ptypes[j] = TYPE_UNKNOWN;
-                        }
+                        ptypes[j] = program_resolve_intent_binding_type_quiet(
+                            binding, ctx);
                     } else if (binding != NULL && binding->type == AST_INTENT_VALUE
                         && binding->data.intent_value.value_type != NULL) {
-                        size_t saved_diag = ctx->diagnostic_count;
-                        bool saved_err = ctx->has_error;
-                        ptypes[j] = resolve_type_node(
-                            binding->data.intent_value.value_type, ctx);
-                        if (ctx->diagnostic_count > saved_diag) {
-                            ctx->diagnostic_count = saved_diag;
-                            ctx->has_error = saved_err;
-                            ptypes[j] = TYPE_UNKNOWN;
-                        }
+                        ptypes[j] = program_resolve_intent_binding_type_quiet(
+                            binding, ctx);
                     } else {
                         ptypes[j] = TYPE_UNKNOWN;
                     }
@@ -337,6 +348,19 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                         ? 100.0 * (double)(g_resolve_type_node_calls - g_resolve_type_node_unique_nodes)
                           / (double)g_resolve_type_node_calls
                         : 0.0);
+            fprintf(stderr, "[type-res-stats] stage-legacy-resolve: calls=%llu failed=%llu suppressed_diagnostics=%llu\n",
+                    (unsigned long long) ctx->type_resolution_stage_legacy_resolve_count,
+                    (unsigned long long) ctx->type_resolution_stage_legacy_resolve_failed_count,
+                    (unsigned long long) ctx->type_resolution_stage_legacy_resolve_suppressed_diag_count);
+            fprintf(stderr, "[type-res-stats] stage-graph-backed: skips=%llu\n",
+                    (unsigned long long) ctx->type_resolution_stage_graph_backed_skip_count);
+            fprintf(stderr, "[type-res-stats] stage-legacy-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
+                    (unsigned long long) ctx->type_resolution_stage_legacy_generic_contract_count,
+                    (unsigned long long) ctx->type_resolution_stage_legacy_signature_count,
+                    (unsigned long long) ctx->type_resolution_stage_legacy_ability_consumer_count,
+                    (unsigned long long) ctx->type_resolution_stage_legacy_domain_contract_count,
+                    (unsigned long long) ctx->type_resolution_stage_legacy_alias_count,
+                    (unsigned long long) ctx->type_resolution_stage_legacy_other_count);
             {
                 size_t total = g_resolve_type_node_cache_hits + g_resolve_type_node_cache_misses;
                 fprintf(stderr, "[type-res-stats] cache: hits=%llu misses=%llu hit_rate=%.1f%%\n",

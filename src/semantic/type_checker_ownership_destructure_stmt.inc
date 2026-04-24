@@ -1,3 +1,11 @@
+static Type *
+ownership_destructure_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 static bool
 type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
 {
@@ -32,12 +40,13 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                     : NULL;
             Type *inner_type = NULL;
             if (inner_node != NULL)
-                inner_type = resolve_type_node(inner_node, ctx);
+                inner_type = ownership_destructure_resolve_type_ref(
+                    inner_node, ctx);
             if (inner_type == NULL && inner_name != NULL) {
                 ASTNode synth = {0};
                 synth.type = AST_TYPE;
                 synth.data.type.name = (char *)inner_name;
-                inner_type = resolve_type_node(&synth, ctx);
+                inner_type = ownership_destructure_resolve_type_ref(&synth, ctx);
             }
             if (inner_type == NULL)
                 inner_type = TYPE_INT;

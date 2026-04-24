@@ -15,6 +15,14 @@ find_generic_param_index(GenericParams *gp, const char *param_name)
     return -1;
 }
 
+static Type *
+generic_contract_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
 bool
 concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
                               SemanticContext *ctx)
@@ -26,7 +34,7 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
     if (concrete_type == NULL || bound_node == NULL || ctx == NULL)
         return false;
 
-    bound_type = resolve_type_node(bound_node, ctx);
+    bound_type = generic_contract_resolve_type_ref(bound_node, ctx);
     if (bound_type != NULL
         && bound_type != TYPE_UNKNOWN
         && type_satisfies_constraint(concrete_type, bound_type)) {
@@ -106,7 +114,7 @@ validate_generic_param_default_bounds(GenericParams *gp,
             param->default_type,
             "default-bound subject lookup");
 
-        default_type = resolve_type_node(param->default_type, ctx);
+        default_type = generic_contract_resolve_type_ref(param->default_type, ctx);
         if (default_type == NULL || default_type == TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
@@ -377,7 +385,8 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             continue;
         }
 
-        concrete_type = resolve_type_node(effective_args[param_index], ctx);
+        concrete_type = generic_contract_resolve_type_ref(
+            effective_args[param_index], ctx);
         if (concrete_type == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
                 "Class '%s' could not resolve specialized type argument for '%s'.\n"

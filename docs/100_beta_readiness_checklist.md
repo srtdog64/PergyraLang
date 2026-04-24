@@ -107,6 +107,21 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - world inventory precollector는 graph world TU로 이동했다.
 - zone refresh projection field-map collector는 graph zone TU로 이동했다.
 - world/zone local-contract stage replay는 stage domain TU로 이동했다.
+- DAG stage 내부의 legacy `resolve_type_node(...)` fallback은 `PGY_TYPE_RES_STATS=1`에서 `stage-legacy-resolve: calls/failed/suppressed_diagnostics`와 `stage-legacy-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`로 노출된다.
+- DAG edge가 이미 있는 named type-ref는 generic argument를 포함해 stage에서 다시 materialize하지 않고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N`이 이 경로의 공개 지표이며 `type-resolution-dag-test-smoke`는 skip 합계가 0으로 퇴행하면 실패한다.
+- graph precollect TU는 더 이상 stage runner를 호출하지 않는다. enum methods도 `semantic_stage_method_array(...)`가 아니라 precollect action contract 경로로 edge를 수집한다.
+- stage lookup과 stage stats helper는 `type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`로 분리됐다. `type_checker_resolution_stage.c`는 895 LOC로 내려가 stage replay 본체만 소유한다.
+- generic where/default validation은 `type_checker_generic_validation.c`가 소유한다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.inc`는 resolver-free graph layer로 고정됐고, `semantic-core-shape-test-smoke`가 graph layer의 직접 `resolve_type_node(...)` 호출을 금지한다.
+- intent declaration resolution은 participant/value/where local seam 3개로 수렴했다. 이 seam은 다음 DAG metadata replacement 지점이다.
+- domain contract resolution은 slot/shared/named-ref local seam 3개로 수렴했다. projection/relation/effect contract는 이 seam을 통해 다음 DAG metadata replacement로 넘어간다.
+- intent helper resolution은 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. transfer-derived using/where, ability generic arg, role-field checks는 이 seam에서 graph-backed metadata로 교체할 수 있다.
+- host helper resolution은 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. projection source fields, hosted method return/param, zone authority/domain slot checks는 이 seam에서 graph-backed metadata로 교체할 수 있다.
+- program declaration/body resolution은 quiet/body resolver seam으로 수렴했다. top-level declaration registration과 function-body materialization은 다음 DAG metadata replacement 지점이다.
+- event signature resolution은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. event params, return type, lambda handler signature를 graph-backed signature metadata로 교체할 수 있다.
+- world shared/domain-slot resolution은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. world shared fields와 slot initializer checks는 이 seam에서 graph-backed metadata를 재사용할 수 있다.
+- role/generic-contract/late-helper/expr resolution은 각각 local seam 1개로 수렴했다. remaining direct resolver inventory에서 이 파일들은 이제 metadata replacement owner를 명확히 가진다.
+- generic validation, ability where/module contract/declaration, class field, operator overload, ownership destructure resolution도 local seam으로 수렴했다. remaining direct resolver inventory는 resolver implementation, comments, or explicit seam sites로 압축됐다.
+- `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage legacy fallback inventory를 CI gate로 검사한다.
 - intent/standalone helper dependency는 internal headers와 hard CFLAGS로 고정되어 DAG split 중 hidden include-order failure를 즉시 잡는다.
 - graph cycle과 legacy alias cycle 모두 `Contract source`, `Reason`, `Fix` vocabulary를 쓴다.
 
@@ -114,6 +129,7 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 
 - `resolve_type_node` 중심 recursive resolver가 여전히 semantic source-of-truth 일부다.
 - remaining consumers를 `graph-backed`, `namespace-only`, `legacy`로 분류해야 한다.
+- `stage-legacy-resolve` 호출량과 family별 호출량을 더 줄여야 한다. `stage-graph-backed` skip 수는 DAG가 실제 stage source-of-truth로 옮겨간 양을 보여주는 공개 지표다.
 - frozen subset에서 declaration order에만 기대는 type dependency가 없어야 한다.
 - graph inventory metadata를 backend/declaration inventory와 더 잘 연결해야 한다.
 
@@ -128,6 +144,7 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 
 ```sh
 make test-semantic
+make type-resolution-dag-test-smoke
 make module-test-smoke
 grep -R "resolve_type_node" -n src/semantic
 ```

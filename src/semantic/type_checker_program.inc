@@ -1,3 +1,37 @@
+static Type *
+program_body_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return NULL;
+    return resolve_type_node(type_ref, ctx);
+}
+
+static Type *
+program_body_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
+{
+    if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
+        return TYPE_UNKNOWN;
+    return program_body_resolve_type_ref(slot->data.domain_slot.type, ctx);
+}
+
+static Type *
+program_body_resolve_param_type(FuncParam *param, SemanticContext *ctx)
+{
+    if (param == NULL || param->type == NULL)
+        return TYPE_UNKNOWN;
+    return program_body_resolve_type_ref(param->type, ctx);
+}
+
+static Type *
+program_body_resolve_func_return_type(ASTNode *func_decl, SemanticContext *ctx)
+{
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
+        || func_decl->data.func_decl.return_type == NULL) {
+        return TYPE_VOID;
+    }
+    return program_body_resolve_type_ref(func_decl->data.func_decl.return_type, ctx);
+}
+
 bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -208,7 +242,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                         || slot->data.domain_slot.type == NULL) {
                         continue;
                     }
-                    slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+                    slot_type = program_body_resolve_domain_slot_type(slot, ctx);
                     if (slot_type == NULL || slot_type->name == NULL)
                         continue;
 
@@ -220,7 +254,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                             Type *param_type;
                             if (param == NULL || param->type == NULL)
                                 continue;
-                            param_type = resolve_type_node(param->type, ctx);
+                            param_type = program_body_resolve_param_type(param, ctx);
                             if (param_type != NULL
                                 && param_type->name != NULL
                                 && strcmp(param_type->name, slot_type->name) == 0) {
@@ -307,9 +341,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    Type *return_type = TYPE_VOID;
-    if (node->data.func_decl.return_type != NULL)
-        return_type = resolve_type_node(node->data.func_decl.return_type, ctx);
+    Type *return_type = program_body_resolve_func_return_type(node, ctx);
     if (type_is_class_object_type(return_type, ctx)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
             PGY_CAUSE_ANCHORED_HANDLE_RETURN_BOUNDARY,
@@ -361,7 +393,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (param_types[i] == NULL)
                 param_types[i] = TYPE_UNKNOWN;
         } else {
-            param_types[i] = resolve_type_node(param->type, ctx);
+            param_types[i] = program_body_resolve_param_type(param, ctx);
         }
         if (param->mode != PARAM_MODE_DEFAULT
             && semantic_classify_ownership_type(param_types[i], ctx)
