@@ -32,6 +32,11 @@ extern char *realpath(const char *path, char *resolved_path);
 
 static inline char *pgy_runtime_strdup(const char *src);
 
+static _Thread_local bool pgy_zone_authority_last_ok = true;
+static _Thread_local char pgy_zone_authority_last_zone[128] = "";
+static _Thread_local char pgy_zone_authority_last_participant[128] = "";
+static _Thread_local char pgy_zone_authority_last_reason[192] = "";
+
 static inline void
 pgy_runtime_warn_intent_enter_failure(const char *name, const char *reason,
                                       int32_t priority, bool is_concurrent)

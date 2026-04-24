@@ -235,6 +235,124 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         llvm_scope_declare(ctx, "self", sa, self_ptr_t);
         llvm_register_var_class(ctx, "self", decl_name);
     }
+    LLVMValueRef frontier_pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
+        "zone.frontier.pass.addr");
+    LLVMValueRef frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
+        "zone.frontier.continue.addr");
+    LLVMValueRef frontier_limit_val = LLVMConstInt(ctx->type_i32,
+        (unsigned long long)(stmt->data.zone_decl.state_count
+            + stmt->data.zone_decl.layer_slot_count + 1), 0);
+    LLVMBasicBlockRef frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+        "zone.frontier.check");
+    LLVMBasicBlockRef frontier_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+        "zone.frontier.body");
+    LLVMBasicBlockRef frontier_done_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+        "zone.frontier.done");
+    LLVMBasicBlockRef frontier_overflow_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+        "zone.frontier.overflow");
+    LLVMBasicBlockRef frontier_exit_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+        "zone.frontier.exit");
+    LLVMValueRef *prev_state_addrs = pgy_arena_calloc(&ctx->scratch,
+        (stmt->data.zone_decl.state_count > 0 ? stmt->data.zone_decl.state_count : 1)
+            * sizeof(LLVMValueRef));
+    LLVMValueRef *prev_layer_addrs = pgy_arena_calloc(&ctx->scratch,
+        (stmt->data.zone_decl.layer_slot_count > 0 ? stmt->data.zone_decl.layer_slot_count : 1)
+            * sizeof(LLVMValueRef));
+
+    for (size_t i = 0; i < stmt->data.zone_decl.state_count; i++) {
+        ASTNode *state = stmt->data.zone_decl.states[i];
+        char prev_name[256];
+        if (state == NULL || state->type != AST_ZONE_STATE
+            || state->data.zone_state.state_name == NULL)
+            continue;
+        snprintf(prev_name, sizeof(prev_name), "zone.prev_state.%s",
+            state->data.zone_state.state_name);
+        prev_state_addrs[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
+    }
+    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+        char prev_name[256];
+        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
+            || slot->data.zone_layer_slot.slot_name == NULL)
+            continue;
+        snprintf(prev_name, sizeof(prev_name), "zone.prev_layer.%s",
+            slot->data.zone_layer_slot.slot_name);
+        prev_layer_addrs[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
+    }
+
+    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), frontier_pass_addr);
+    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), frontier_continue_addr);
+    LLVMBuildBr(ctx->builder, frontier_check_bb);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, frontier_check_bb);
+    {
+        LLVMValueRef continue_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            frontier_continue_addr, llvm_tmp_name(ctx));
+        LLVMValueRef pass_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+            frontier_pass_addr, llvm_tmp_name(ctx));
+        LLVMValueRef under_limit = LLVMBuildICmp(ctx->builder, LLVMIntULT,
+            pass_val, frontier_limit_val, llvm_tmp_name(ctx));
+        LLVMValueRef loop_cond = LLVMBuildAnd(ctx->builder, continue_val,
+            under_limit, llvm_tmp_name(ctx));
+        LLVMBuildCondBr(ctx->builder, loop_cond, frontier_body_bb, frontier_done_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, frontier_body_bb);
+    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), frontier_continue_addr);
+    LLVMBuildStore(ctx->builder,
+        LLVMBuildAdd(ctx->builder,
+            LLVMBuildLoad2(ctx->builder, ctx->type_i32, frontier_pass_addr, llvm_tmp_name(ctx)),
+            LLVMConstInt(ctx->type_i32, 1, 0),
+            llvm_tmp_name(ctx)),
+        frontier_pass_addr);
+
+    for (size_t i = 0; i < stmt->data.zone_decl.state_count; i++) {
+        ASTNode *state = stmt->data.zone_decl.states[i];
+        const char *state_name;
+        int field_idx;
+        LLVMValueRef self_ptr;
+        LLVMValueRef state_ptr;
+        LLVMValueRef state_val;
+        if (prev_state_addrs[i] == NULL || state == NULL || state->type != AST_ZONE_STATE
+            || state->data.zone_state.state_name == NULL)
+            continue;
+        state_name = state->data.zone_state.state_name;
+        {
+            char field_name[256];
+            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+        }
+        if (field_idx < 0)
+            continue;
+        self_ptr = LLVMGetParam(sync_fn, 0);
+        state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+            self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+        state_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            state_ptr, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, state_val, prev_state_addrs[i]);
+    }
+    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+        char field_name[256];
+        int field_idx;
+        LLVMValueRef self_ptr;
+        LLVMValueRef layer_ptr;
+        LLVMValueRef layer_val;
+        if (prev_layer_addrs[i] == NULL || slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
+            || slot->data.zone_layer_slot.slot_name == NULL)
+            continue;
+        snprintf(field_name, sizeof(field_name), "__layer_active_%s",
+            slot->data.zone_layer_slot.slot_name);
+        field_idx = llvm_class_field_index(decl_cls, field_name);
+        if (field_idx < 0)
+            continue;
+        self_ptr = LLVMGetParam(sync_fn, 0);
+        layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+            self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+        layer_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            layer_ptr, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, layer_val, prev_layer_addrs[i]);
+    }
 
     for (size_t i = 0; i < stmt->data.zone_decl.state_count; i++) {
         ASTNode *state = stmt->data.zone_decl.states[i];
@@ -916,6 +1034,98 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         }
     }
 
+    for (size_t i = 0; i < stmt->data.zone_decl.state_count; i++) {
+        ASTNode *state = stmt->data.zone_decl.states[i];
+        const char *state_name;
+        int field_idx;
+        LLVMValueRef self_ptr;
+        LLVMValueRef state_ptr;
+        LLVMValueRef current_val;
+        LLVMValueRef prev_val;
+        LLVMValueRef changed_val;
+        LLVMValueRef pending_val;
+        if (prev_state_addrs[i] == NULL || state == NULL || state->type != AST_ZONE_STATE
+            || state->data.zone_state.state_name == NULL)
+            continue;
+        state_name = state->data.zone_state.state_name;
+        {
+            char field_name[256];
+            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+        }
+        if (field_idx < 0)
+            continue;
+        self_ptr = LLVMGetParam(sync_fn, 0);
+        state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+            self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+        current_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            state_ptr, llvm_tmp_name(ctx));
+        prev_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            prev_state_addrs[i], llvm_tmp_name(ctx));
+        changed_val = LLVMBuildICmp(ctx->builder, LLVMIntNE, current_val, prev_val,
+            llvm_tmp_name(ctx));
+        pending_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            frontier_continue_addr, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder,
+            LLVMBuildOr(ctx->builder, pending_val, changed_val, llvm_tmp_name(ctx)),
+            frontier_continue_addr);
+    }
+    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+        char field_name[256];
+        int field_idx;
+        LLVMValueRef self_ptr;
+        LLVMValueRef layer_ptr;
+        LLVMValueRef current_val;
+        LLVMValueRef prev_val;
+        LLVMValueRef changed_val;
+        LLVMValueRef pending_val;
+        if (prev_layer_addrs[i] == NULL || slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
+            || slot->data.zone_layer_slot.slot_name == NULL)
+            continue;
+        snprintf(field_name, sizeof(field_name), "__layer_active_%s",
+            slot->data.zone_layer_slot.slot_name);
+        field_idx = llvm_class_field_index(decl_cls, field_name);
+        if (field_idx < 0)
+            continue;
+        self_ptr = LLVMGetParam(sync_fn, 0);
+        layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+            self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+        current_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            layer_ptr, llvm_tmp_name(ctx));
+        prev_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            prev_layer_addrs[i], llvm_tmp_name(ctx));
+        changed_val = LLVMBuildICmp(ctx->builder, LLVMIntNE, current_val, prev_val,
+            llvm_tmp_name(ctx));
+        pending_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            frontier_continue_addr, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder,
+            LLVMBuildOr(ctx->builder, pending_val, changed_val, llvm_tmp_name(ctx)),
+            frontier_continue_addr);
+    }
+
+    LLVMBuildBr(ctx->builder, frontier_check_bb);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, frontier_done_bb);
+    {
+        LLVMValueRef continue_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            frontier_continue_addr, llvm_tmp_name(ctx));
+        LLVMBuildCondBr(ctx->builder, continue_val, frontier_overflow_bb, frontier_exit_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, frontier_overflow_bb);
+    {
+        LLVMTypeRef abort_ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
+        LLVMFuncEntry *abort_fn = llvm_lookup_or_create_function(ctx, "abort",
+            abort_ft, ctx->type_void);
+        if (abort_fn != NULL) {
+            LLVMBuildCall2(ctx->builder, abort_fn->fn_type, abort_fn->fn,
+                NULL, 0, "");
+        }
+        LLVMBuildUnreachable(ctx->builder);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, frontier_exit_bb);
     LLVMBuildRetVoid(ctx->builder);
     llvm_scope_pop(ctx);
     ctx->current_function = saved_fn;
@@ -957,6 +1167,8 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         LLVMValueRef sa = llvm_create_entry_alloca(ctx, self_ptr_t, "self.addr");
         LLVMValueRef derived_dirty_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
             "world.derived_dirty.addr");
+        LLVMValueRef needs_derived_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
+            "world.needs_derived.addr");
         int derived_idx = llvm_class_field_index(decl_cls, "__world_derived_dirty");
         LLVMValueRef derived_ptr = NULL;
         LLVMValueRef derived_val = LLVMConstInt(ctx->type_i1, 0, 0);
@@ -1133,83 +1345,151 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                     llvm_tmp_name(ctx));
             }
             LLVMBuildStore(ctx->builder, changed_val, dirty_ptr);
-            LLVMBuildStore(ctx->builder,
-                LLVMBuildOr(ctx->builder,
-                    LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_dirty_addr, llvm_tmp_name(ctx)),
-                    changed_val, llvm_tmp_name(ctx)),
-                derived_dirty_addr);
-        }
-
-        /* world zone sync pass */
-        for (size_t i = 0; i < zone_count; i++) {
-            ASTNode *zone = stmt->data.world_decl.zones[i];
-            int zone_idx;
-            int dirty_idx;
-            char dirty_field[256];
-            LLVMValueRef self_ptr;
-            LLVMValueRef dirty_ptr;
-            LLVMValueRef dirty_val;
-            LLVMBasicBlockRef sync_bb;
-            LLVMBasicBlockRef cont_bb;
-            if (zone == NULL || zone->type != AST_WORLD_ZONE
-                || zone->data.world_zone.slot_name == NULL)
-                continue;
-            zone_idx = llvm_class_field_index(decl_cls, zone->data.world_zone.slot_name);
-            snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s",
-                zone->data.world_zone.slot_name);
-            dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
-            self_ptr = LLVMGetParam(sync_fn, 0);
-            if (zone_idx < 0 || dirty_idx < 0 || zone->data.world_zone.zone_type == NULL)
-                continue;
             {
-                LLVMClassTypeEntry *zone_cls = llvm_lookup_class(ctx, zone->data.world_zone.zone_type);
-                char sync_name[256];
-                LLVMFuncEntry *zone_sync;
-                snprintf(sync_name, sizeof(sync_name), "%s_sync",
-                    zone->data.world_zone.zone_type);
-                zone_sync = llvm_lookup_function(ctx, sync_name);
-                if (zone_cls == NULL || zone_sync == NULL)
-                    continue;
-                dirty_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)dirty_idx, llvm_tmp_name(ctx));
-                dirty_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-                    dirty_ptr, llvm_tmp_name(ctx));
-                sync_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "world.zone.sync");
-                cont_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "world.zone.cont");
-                LLVMBuildCondBr(ctx->builder, dirty_val, sync_bb, cont_bb);
-                LLVMPositionBuilderAtEnd(ctx->builder, sync_bb);
-                {
-                    LLVMValueRef zone_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                        self_ptr, (unsigned)zone_idx, llvm_tmp_name(ctx));
-                    LLVMValueRef args[] = { zone_ptr };
-                    LLVMBuildCall2(ctx->builder, zone_sync->fn_type, zone_sync->fn, args, 1, "");
-                }
-                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), dirty_ptr);
-                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), derived_dirty_addr);
-                LLVMBuildBr(ctx->builder, cont_bb);
-                LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+                LLVMValueRef derived_dirty_val = LLVMBuildOr(ctx->builder,
+                    LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_dirty_addr,
+                        llvm_tmp_name(ctx)),
+                    changed_val, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, derived_dirty_val, derived_dirty_addr);
+                if (derived_ptr != NULL)
+                    LLVMBuildStore(ctx->builder, derived_dirty_val, derived_ptr);
             }
         }
 
-        /* world derived pass */
         {
+            LLVMValueRef frontier_pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
+                "world.frontier.pass.addr");
+            LLVMValueRef frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
+                "world.frontier.continue.addr");
             LLVMValueRef pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
                 "world.derived.pass.addr");
             LLVMValueRef continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
                 "world.derived.continue.addr");
+            LLVMValueRef frontier_limit_val = LLVMConstInt(ctx->type_i32,
+                (unsigned long long)(zone_count + stmt->data.world_decl.state_count + 1), 0);
             LLVMValueRef limit_val = LLVMConstInt(ctx->type_i32,
                 (unsigned long long)(stmt->data.world_decl.state_count + 1), 0);
+            LLVMBasicBlockRef frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.frontier.check");
+            LLVMBasicBlockRef frontier_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.frontier.body");
+            LLVMBasicBlockRef frontier_done_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.frontier.done");
+            LLVMBasicBlockRef frontier_overflow_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.frontier.overflow");
+            LLVMBasicBlockRef frontier_exit_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.frontier.exit");
             LLVMBasicBlockRef derived_init_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
                 "world.derived.init");
             LLVMBasicBlockRef loop_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
                 "world.derived.check");
             LLVMBasicBlockRef loop_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
                 "world.derived.body");
+            LLVMBasicBlockRef overflow_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.derived.overflow");
+            LLVMBasicBlockRef finalize_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.derived.finalize");
             LLVMBasicBlockRef done_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
                 "world.derived.done");
-            LLVMValueRef needs_derived = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-                derived_dirty_addr, llvm_tmp_name(ctx));
-            LLVMBuildCondBr(ctx->builder, needs_derived, derived_init_bb, done_bb);
+            LLVMBasicBlockRef derived_exit_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
+                "world.derived.exit");
+
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), frontier_pass_addr);
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), frontier_continue_addr);
+            LLVMBuildBr(ctx->builder, frontier_check_bb);
+
+            LLVMPositionBuilderAtEnd(ctx->builder, frontier_check_bb);
+            {
+                LLVMValueRef continue_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                    frontier_continue_addr, llvm_tmp_name(ctx));
+                LLVMValueRef pass_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                    frontier_pass_addr, llvm_tmp_name(ctx));
+                LLVMValueRef under_limit = LLVMBuildICmp(ctx->builder, LLVMIntULT,
+                    pass_val, frontier_limit_val, llvm_tmp_name(ctx));
+                LLVMValueRef loop_cond = LLVMBuildAnd(ctx->builder, continue_val,
+                    under_limit, llvm_tmp_name(ctx));
+                LLVMBuildCondBr(ctx->builder, loop_cond, frontier_body_bb, frontier_done_bb);
+            }
+
+            LLVMPositionBuilderAtEnd(ctx->builder, frontier_body_bb);
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), frontier_continue_addr);
+            {
+                LLVMValueRef pass_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                    frontier_pass_addr, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMBuildAdd(ctx->builder, pass_val,
+                        LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
+                    frontier_pass_addr);
+            }
+            if (derived_ptr != NULL) {
+                LLVMBuildStore(ctx->builder,
+                    LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_ptr, llvm_tmp_name(ctx)),
+                    needs_derived_addr);
+            } else {
+                LLVMBuildStore(ctx->builder,
+                    LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_dirty_addr,
+                        llvm_tmp_name(ctx)),
+                    needs_derived_addr);
+            }
+
+            /* world zone sync pass */
+            for (size_t i = 0; i < zone_count; i++) {
+                ASTNode *zone = stmt->data.world_decl.zones[i];
+                int zone_idx;
+                int dirty_idx;
+                char dirty_field[256];
+                LLVMValueRef self_ptr;
+                LLVMValueRef dirty_ptr;
+                LLVMValueRef dirty_val;
+                LLVMBasicBlockRef sync_bb;
+                LLVMBasicBlockRef cont_bb;
+                if (zone == NULL || zone->type != AST_WORLD_ZONE
+                    || zone->data.world_zone.slot_name == NULL)
+                    continue;
+                zone_idx = llvm_class_field_index(decl_cls, zone->data.world_zone.slot_name);
+                snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s",
+                    zone->data.world_zone.slot_name);
+                dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
+                self_ptr = LLVMGetParam(sync_fn, 0);
+                if (zone_idx < 0 || dirty_idx < 0 || zone->data.world_zone.zone_type == NULL)
+                    continue;
+                {
+                    LLVMClassTypeEntry *zone_cls = llvm_lookup_class(ctx, zone->data.world_zone.zone_type);
+                    char sync_name[256];
+                    LLVMFuncEntry *zone_sync;
+                    snprintf(sync_name, sizeof(sync_name), "%s_sync",
+                        zone->data.world_zone.zone_type);
+                    zone_sync = llvm_lookup_function(ctx, sync_name);
+                    if (zone_cls == NULL || zone_sync == NULL)
+                        continue;
+                    dirty_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                        self_ptr, (unsigned)dirty_idx, llvm_tmp_name(ctx));
+                    dirty_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                        dirty_ptr, llvm_tmp_name(ctx));
+                    sync_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "world.zone.sync");
+                    cont_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "world.zone.cont");
+                    LLVMBuildCondBr(ctx->builder, dirty_val, sync_bb, cont_bb);
+                    LLVMPositionBuilderAtEnd(ctx->builder, sync_bb);
+                    {
+                        LLVMValueRef zone_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                            self_ptr, (unsigned)zone_idx, llvm_tmp_name(ctx));
+                        LLVMValueRef args[] = { zone_ptr };
+                        LLVMBuildCall2(ctx->builder, zone_sync->fn_type, zone_sync->fn, args, 1, "");
+                    }
+                    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), dirty_ptr);
+                    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), needs_derived_addr);
+                    LLVMBuildBr(ctx->builder, cont_bb);
+                    LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+                }
+            }
+
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), pass_addr);
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), continue_addr);
+            {
+                LLVMValueRef needs_derived = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                    needs_derived_addr, llvm_tmp_name(ctx));
+                LLVMBuildCondBr(ctx->builder, needs_derived, derived_init_bb, done_bb);
+            }
 
             LLVMPositionBuilderAtEnd(ctx->builder, derived_init_bb);
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), pass_addr);
@@ -1378,8 +1658,82 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             LLVMBuildBr(ctx->builder, loop_check_bb);
 
             LLVMPositionBuilderAtEnd(ctx->builder, done_bb);
+            {
+                LLVMValueRef continue_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                    continue_addr, llvm_tmp_name(ctx));
+                LLVMBuildCondBr(ctx->builder, continue_val, overflow_bb, finalize_bb);
+            }
+
+            LLVMPositionBuilderAtEnd(ctx->builder, overflow_bb);
+            {
+                LLVMTypeRef abort_ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
+                LLVMFuncEntry *abort_fn = llvm_lookup_or_create_function(ctx, "abort",
+                    abort_ft, ctx->type_void);
+                if (abort_fn != NULL) {
+                    LLVMBuildCall2(ctx->builder, abort_fn->fn_type, abort_fn->fn,
+                        NULL, 0, "");
+                }
+                LLVMBuildUnreachable(ctx->builder);
+            }
+
+            LLVMPositionBuilderAtEnd(ctx->builder, finalize_bb);
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), derived_dirty_addr);
             if (derived_ptr != NULL)
                 LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), derived_ptr);
+            LLVMBuildBr(ctx->builder, derived_exit_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, derived_exit_bb);
+            {
+                LLVMValueRef pending_val = derived_ptr != NULL
+                    ? LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_ptr, llvm_tmp_name(ctx))
+                    : LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_dirty_addr,
+                        llvm_tmp_name(ctx));
+                for (size_t i = 0; i < zone_count; i++) {
+                    ASTNode *zone = stmt->data.world_decl.zones[i];
+                    char dirty_field[256];
+                    int dirty_idx;
+                    LLVMValueRef self_ptr;
+                    LLVMValueRef dirty_ptr;
+                    LLVMValueRef dirty_val;
+                    if (zone == NULL || zone->type != AST_WORLD_ZONE
+                        || zone->data.world_zone.slot_name == NULL)
+                        continue;
+                    snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s",
+                        zone->data.world_zone.slot_name);
+                    dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
+                    if (dirty_idx < 0)
+                        continue;
+                    self_ptr = LLVMGetParam(sync_fn, 0);
+                    dirty_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                        self_ptr, (unsigned)dirty_idx, llvm_tmp_name(ctx));
+                    dirty_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                        dirty_ptr, llvm_tmp_name(ctx));
+                    pending_val = LLVMBuildOr(ctx->builder, pending_val, dirty_val,
+                        llvm_tmp_name(ctx));
+                }
+                LLVMBuildStore(ctx->builder, pending_val, frontier_continue_addr);
+            }
+            LLVMBuildBr(ctx->builder, frontier_check_bb);
+
+            LLVMPositionBuilderAtEnd(ctx->builder, frontier_done_bb);
+            {
+                LLVMValueRef continue_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                    frontier_continue_addr, llvm_tmp_name(ctx));
+                LLVMBuildCondBr(ctx->builder, continue_val, frontier_overflow_bb, frontier_exit_bb);
+            }
+
+            LLVMPositionBuilderAtEnd(ctx->builder, frontier_overflow_bb);
+            {
+                LLVMTypeRef abort_ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
+                LLVMFuncEntry *abort_fn = llvm_lookup_or_create_function(ctx, "abort",
+                    abort_ft, ctx->type_void);
+                if (abort_fn != NULL) {
+                    LLVMBuildCall2(ctx->builder, abort_fn->fn_type, abort_fn->fn,
+                        NULL, 0, "");
+                }
+                LLVMBuildUnreachable(ctx->builder);
+            }
+
+            LLVMPositionBuilderAtEnd(ctx->builder, frontier_exit_bb);
         }
 
         /* prev_active_addrs is ctx->scratch-owned. */

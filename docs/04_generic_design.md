@@ -52,18 +52,87 @@ ability SecureStorage {
 }
 ```
 
-#### C. Higher-Kinded Types
+#### C. Higher-Kinded Types / Functor 추상 — 도입 유보 (soft-no)
+
+> **입장**: Pergyra 는 진짜 Functor 추상(Haskell `fmap` 스타일) 및 그 기반인
+> HKT(higher-kinded type) 를 **현재 도입하지 않는다**. 영구 거부는 아니고
+> "현재 언어 스타일과 맞지 않는다" 수준의 soft-no 이며, 베타 이후에도
+> 낮은 우선순위로 분류한다.
+>
+> 이 결정은 [docs/00_engine_core_spec.md](00_engine_core_spec.md) 의
+> "초기 금지 범위 — higher-kinded type" 조항과 일치하며, 본 섹션은 그
+> 근거와 대체 방식을 문서화한다.
+
+**설계 제안 (참고용, 미구현)**:
 
 ```pergyra
-// 타입 생성자를 받는 제네릭
+// 타입 생성자를 받는 제네릭 — 설계 초안
 func Map<F<_>, A, B>(container: F<A>, transform: (A) -> B) -> F<B> {
     // F는 타입 생성자 (Array, Option, Result 등)
 }
 
-// 사용 예
+// 사용 예 (가상)
 let numbers: Array<Int> = [1, 2, 3]
 let strings: Array<String> = Map(numbers, ToString)
 ```
+
+**유보 근거**:
+
+1. **에러 메시지 품질** — Pergyra 는 intent-first / DDD 철학상 "문제 위치 ·
+   원인 · 해결힌트" 가 모두 명확한 진단을 1순위로 둔다. HKT 를 도입하면
+   Haskell/Scala 에서 익숙한 `No instance for (Functor (Either e))`
+   류의 긴 추론 실패 메시지가 발생해 이 정체성에 역행한다.
+2. **타입 추론 복잡도** — HKT 는 단형화(monomorphization) 전략과
+   associated type constructor 추론 재설계를 요구한다. 현 베타의
+   "exact / ability / multi-bound + default type argument" 안정
+   closure 를 흔들 위험이 크다.
+3. **교육 부담** — 게임 도메인(던전 크롤러 killer use case) 개발자 대상
+   입문성을 유지하려면 범주이론 개념 전제를 줄이는 것이 유리하다.
+4. **실용 대체 수단 존재** — 아래 "§ 대체 패턴" 참조. per-container map
+   함수와 ability<T> + associated type 조합으로 실제 워크로드의 99% 가
+   커버된다.
+
+**대체 패턴**:
+
+```pergyra
+// 1) per-container map 함수 (현재 방식)
+let doubled: Array<Int> = ArrayMap(nums, Double)
+let label: Option<String> = OptionMap(maybeId, FormatId)
+let saved: Result<User> = ResultMap(parsed, Persist)
+
+// 2) ability<T> + associated type 로 컨테이너 계약 공유
+ability Container<T> {
+    type Item = T
+    type Index = Int
+    func Get(index: Self.Index) -> Self.Item
+}
+
+// 3) Option/Result 편의는 구문설탕으로 (향후 검토)
+//    - ?. null-safe chaining
+//    - when Some(x) = ...
+//    - Result match sugar
+```
+
+**유사 언어 비교**:
+
+| 언어 | HKT | Functor 추상 | 포지션 |
+|---|---|---|---|
+| Haskell | ✓ | ✓ (`Functor` typeclass) | HKT 를 언어 중심축으로 |
+| Scala | ✓ | ✓ (Cats / ZIO 계열) | HKT 있지만 생태계 고급 용법으로 분리 |
+| OCaml | 부분 (module functor) | 없음 | module functor 로만, 값 레벨 Functor 없음 |
+| F# | 없음 | 없음 | DDD 언어로 성공, HKT 없이 번영 |
+| Gleam | 없음 | 없음 | 최근 소형 언어, 의도적으로 HKT 배제 |
+| **Pergyra** | **없음 (soft-no)** | **없음 (per-container 대체)** | F# / Gleam 계열 포지션 |
+
+**재검토 조건**:
+
+아래 3가지 중 **2개 이상** 충족 시에만 HKT 재검토를 연다:
+
+- per-container map/filter/fold 함수가 30개 이상으로 늘어 중복 유지 부담이 체감
+- killer use case 에서 HKT 없이 표현 불가능한 패턴이 반복 관찰
+- 타입 추론 / 에러 메시지 인프라가 HKT 도입 후에도 품질을 유지할 수 있도록 개선됨
+
+이 3조건 중 1개만 만족해서는 HKT 를 열지 않는다 — "구현 가능함" 과 "언어에 맞음" 은 다르다.
 
 ### 1.3 제네릭 슬롯 고급 기능
 

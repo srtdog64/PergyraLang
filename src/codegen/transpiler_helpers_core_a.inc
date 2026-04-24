@@ -593,6 +593,32 @@ transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
                                  const char *name);
 
 static ASTNode *
+find_extern_function_decl(TranspilerCtx *ctx, const char *function_name)
+{
+    ASTNode **decls = NULL;
+    size_t decl_count = 0;
+
+    if (ctx == NULL || function_name == NULL)
+        return NULL;
+
+    transpiler_active_inventory(ctx, AST_EXTERN_BLOCK, &decls, &decl_count);
+    for (size_t i = 0; decls != NULL && i < decl_count; i++) {
+        ASTNode *block = decls[i];
+        if (block == NULL || block->type != AST_EXTERN_BLOCK)
+            continue;
+        for (size_t j = 0; j < block->data.extern_block.count; j++) {
+            ASTNode *stmt = block->data.extern_block.declarations[j];
+            if (stmt != NULL && stmt->type == AST_FUNC_DECL
+                && stmt->data.func_decl.name != NULL
+                && strcmp(stmt->data.func_decl.name, function_name) == 0) {
+                return stmt;
+            }
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
 find_role_decl(TranspilerCtx *ctx, const char *role_name)
 {
     return transpiler_find_named_decl_local(ctx, AST_ROLE_DECL, role_name);
@@ -601,7 +627,10 @@ find_role_decl(TranspilerCtx *ctx, const char *role_name)
 static ASTNode *
 find_function_decl(TranspilerCtx *ctx, const char *function_name)
 {
-    return transpiler_find_named_decl_local(ctx, AST_FUNC_DECL, function_name);
+    ASTNode *decl = transpiler_find_named_decl_local(ctx, AST_FUNC_DECL, function_name);
+    if (decl != NULL)
+        return decl;
+    return find_extern_function_decl(ctx, function_name);
 }
 
 static ASTNode *

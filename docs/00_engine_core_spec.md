@@ -97,7 +97,8 @@ struct Transform {
 
 초기 금지 범위:
 
-- higher-kinded type
+- higher-kinded type — Functor / HKT 도입은 soft-no 입장이며, 전체 근거 ·
+  대체 패턴 · 재검토 조건은 [04_generic_design.md § Higher-Kinded Types / Functor 추상](04_generic_design.md#c-higher-kinded-types--functor-%EC%B6%94%EC%83%81--%EB%8F%84%EC%9E%85-%EC%9C%A0%EB%B3%B4-soft-no) 참조
 - 복잡한 암시적 계약 파생
 - ability specialization
 

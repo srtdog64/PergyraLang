@@ -1,0 +1,26 @@
+subject Player {
+    let hp: Int;
+}
+
+effect Poisoned for bearer: Player {
+}
+
+zone BattleZone {
+    subject slot player: Player
+    effect slot poison: Poisoned
+    authority player
+    state poisoned: effect poison on player
+    apply poison to player by player
+
+    func Show(self) -> Void {
+        Log(HasLayer(poison));
+        Log(HasState(poisoned));
+    }
+}
+
+func Main() -> Void {
+    let player: Player = Player(5);
+    let battle: BattleZone = BattleZone(player);
+    battle.Show();
+    battle.Show();
+}

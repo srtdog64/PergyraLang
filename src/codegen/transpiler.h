@@ -279,6 +279,7 @@ transpiler_active_inventory(const TranspilerCtx *ctx,
         case AST_EFFECT_DECL: nodes = ctx->mir->effects; count = ctx->mir->effect_count; break;
         case AST_ZONE_DECL: nodes = ctx->mir->zones; count = ctx->mir->zone_count; break;
         case AST_EVENT_DECL: nodes = ctx->mir->events; count = ctx->mir->event_count; break;
+        case AST_EXTERN_BLOCK: nodes = ctx->mir->externs; count = ctx->mir->extern_count; break;
         case AST_CLASS_DECL:
         case AST_ENUM_DECL:
         case AST_TYPE_ALIAS:

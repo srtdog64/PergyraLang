@@ -26,6 +26,26 @@ async_scope_warn(const char* op, const char* reason, AsyncScope* scope)
         (void*)scope);
 }
 
+static char*
+async_scope_strdup(const char* text)
+{
+    size_t length;
+    char* copy;
+
+    if (text == NULL) {
+        return NULL;
+    }
+
+    length = strlen(text) + 1;
+    copy = (char*)malloc(length);
+    if (copy == NULL) {
+        return NULL;
+    }
+
+    memcpy(copy, text, length);
+    return copy;
+}
+
 AsyncScope* AsyncScopeCreate(AsyncScope* parent)
 {
     AsyncScope* scope = (AsyncScope*)calloc(1, sizeof(AsyncScope));
@@ -137,7 +157,7 @@ static void AsyncScopeRemoveFiber(AsyncScope* scope, Fiber* fiber)
                 /* Record first error */
                 if (!scope->hasError && fiber->errorMessage != NULL) {
                     scope->hasError = true;
-                    scope->firstError = strdup(fiber->errorMessage);
+                    scope->firstError = async_scope_strdup(fiber->errorMessage);
                 }
             } else {
                 atomic_fetch_add(&scope->totalCompleted, 1);

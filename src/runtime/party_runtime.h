@@ -11,9 +11,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "../runtime/slot_manager.h"
-#include "../runtime/async/fiber.h"
-#include "../runtime/async/scheduler.h"
+#include "slot_manager.h"
+#include "async/fiber.h"
+#include "async/scheduler.h"
 
 typedef Scheduler FiberScheduler;
 

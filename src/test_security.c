@@ -564,12 +564,57 @@ void test_runtime_zone_authority_validation()
     TEST_ASSERT(pgy_zone_authority_validate(&zone, &participant,
                                             "BattleZone", "owner"),
                 "Zone authority validation accepts non-null zone and participant");
+    TEST_ASSERT(pgy_zone_authority_last_ok_export(),
+                "Zone authority validation records success state");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_zone_export(), "BattleZone") == 0,
+                "Zone authority validation records last zone");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_participant_export(), "owner") == 0,
+                "Zone authority validation records last participant");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_reason_export(), "") == 0,
+                "Zone authority validation clears failure reason after success");
     TEST_SECURITY_VIOLATION(!pgy_zone_authority_validate(NULL, &participant,
                                                          "BattleZone", "owner"),
                             "Zone authority validation rejects null zone");
+    TEST_ASSERT(!pgy_zone_authority_last_ok_export(),
+                "Zone authority validation records failed state for null zone");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_reason_export(),
+                       "zone authority validation failed: null zone self") == 0,
+                "Zone authority validation records null-zone failure reason");
     TEST_SECURITY_VIOLATION(!pgy_zone_authority_validate(&zone, NULL,
                                                          "BattleZone", "owner"),
                             "Zone authority validation rejects null participant");
+    TEST_ASSERT(!pgy_zone_authority_last_ok_export(),
+                "Zone authority validation records failed state for null participant");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_reason_export(),
+                       "zone authority validation failed: null authority participant") == 0,
+                "Zone authority validation records null-participant failure reason");
+    TEST_ASSERT(pgy_zone_authority_validate_flags_export(true, true,
+                                                         "BattleZone", "owner"),
+                "Zone authority flag export accepts present zone and participant");
+    TEST_ASSERT(pgy_zone_authority_last_ok_rt_export(),
+                "Zone authority flag export records success via runtime accessors");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_zone_rt_export(), "BattleZone") == 0,
+                "Zone authority runtime accessor records last zone");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_participant_rt_export(), "owner") == 0,
+                "Zone authority runtime accessor records last participant");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_reason_rt_export(), "") == 0,
+                "Zone authority runtime accessor clears failure reason after success");
+    TEST_SECURITY_VIOLATION(!pgy_zone_authority_validate_flags_export(false, true,
+                                                                      "BattleZone", "owner"),
+                            "Zone authority flag export rejects missing zone without aborting");
+    TEST_ASSERT(!pgy_zone_authority_last_ok_rt_export(),
+                "Zone authority runtime accessor records failed state for missing zone");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_reason_rt_export(),
+                       "zone authority validation failed: null zone self") == 0,
+                "Zone authority runtime accessor records missing-zone reason");
+    TEST_SECURITY_VIOLATION(!pgy_zone_authority_validate_flags_export(true, false,
+                                                                      "BattleZone", "owner"),
+                            "Zone authority flag export rejects missing participant without aborting");
+    TEST_ASSERT(!pgy_zone_authority_last_ok_rt_export(),
+                "Zone authority runtime accessor records failed state for missing participant");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_reason_rt_export(),
+                       "zone authority validation failed: null authority participant") == 0,
+                "Zone authority runtime accessor records missing-participant reason");
 }
 
 /*

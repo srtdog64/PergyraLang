@@ -36,6 +36,66 @@ extern char *realpath(const char *path, char *resolved_path);
 
 static char *pgy_runtime_lib_strdup(const char *src);
 
+_Thread_local bool pgy_zone_authority_last_ok = true;
+_Thread_local char pgy_zone_authority_last_zone[128] = "";
+_Thread_local char pgy_zone_authority_last_participant[128] = "";
+_Thread_local char pgy_zone_authority_last_reason[192] = "";
+
+static void
+pgy_runtime_record_zone_authority_last(bool ok,
+                                       const char *zone_name,
+                                       const char *participant_name,
+                                       const char *reason)
+{
+    const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
+    const char *resolved_participant =
+        participant_name != NULL ? participant_name : "<participant>";
+
+    pgy_zone_authority_last_ok = ok;
+    snprintf(pgy_zone_authority_last_zone, sizeof(pgy_zone_authority_last_zone),
+             "%s", resolved_zone);
+    snprintf(pgy_zone_authority_last_participant,
+             sizeof(pgy_zone_authority_last_participant),
+             "%s", resolved_participant);
+    snprintf(pgy_zone_authority_last_reason, sizeof(pgy_zone_authority_last_reason),
+             "%s", reason != NULL ? reason : "");
+}
+
+static bool
+pgy_runtime_zone_authority_validate_core(void *zone_ptr, void *participant_ptr,
+                                         const char *zone_name,
+                                         const char *participant_name,
+                                         bool emit_stderr)
+{
+    const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
+    const char *resolved_participant =
+        participant_name != NULL ? participant_name : "<participant>";
+
+    if (zone_ptr == NULL) {
+        pgy_runtime_record_zone_authority_last(false, resolved_zone, resolved_participant,
+            "zone authority validation failed: null zone self");
+        if (emit_stderr) {
+            fprintf(stderr,
+                "[pgy][authority] zone '%s' entered with null self while validating '%s'\n",
+                resolved_zone, resolved_participant);
+        }
+        return false;
+    }
+    if (participant_ptr == NULL) {
+        pgy_runtime_record_zone_authority_last(false, resolved_zone, resolved_participant,
+            "zone authority validation failed: null authority participant");
+        if (emit_stderr) {
+            fprintf(stderr,
+                "[pgy][authority] zone '%s' has null authority participant '%s'\n",
+                resolved_zone, resolved_participant);
+        }
+        return false;
+    }
+
+    pgy_runtime_record_zone_authority_last(true, resolved_zone, resolved_participant, "");
+    return true;
+}
+
 static void
 pgy_runtime_warn_invalid_channel(const char *op, const char *reason)
 {
@@ -101,22 +161,46 @@ pgy_zone_authority_check_export(void *zone_ptr, void *participant_ptr,
                                 const char *zone_name,
                                 const char *participant_name)
 {
-    const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
-    const char *resolved_participant =
-        participant_name != NULL ? participant_name : "<participant>";
+    if (!pgy_runtime_zone_authority_validate_core(zone_ptr, participant_ptr,
+            zone_name, participant_name, true)) {
+        abort();
+    }
+}
 
-    if (zone_ptr == NULL) {
-        fprintf(stderr,
-            "[pgy][authority] zone '%s' entered with null self while validating '%s'\n",
-            resolved_zone, resolved_participant);
-        abort();
-    }
-    if (participant_ptr == NULL) {
-        fprintf(stderr,
-            "[pgy][authority] zone '%s' has null authority participant '%s'\n",
-            resolved_zone, resolved_participant);
-        abort();
-    }
+bool
+pgy_zone_authority_validate_flags_export(bool has_zone, bool has_participant,
+                                         char *zone_name,
+                                         char *participant_name)
+{
+    void *zone_ptr = has_zone ? (void *)&pgy_zone_authority_last_ok : NULL;
+    void *participant_ptr =
+        has_participant ? (void *)pgy_zone_authority_last_zone : NULL;
+    return pgy_runtime_zone_authority_validate_core(zone_ptr, participant_ptr,
+        zone_name, participant_name, false);
+}
+
+bool
+pgy_zone_authority_last_ok_rt_export(void)
+{
+    return pgy_zone_authority_last_ok;
+}
+
+char *
+pgy_zone_authority_last_zone_rt_export(void)
+{
+    return pgy_zone_authority_last_zone;
+}
+
+char *
+pgy_zone_authority_last_participant_rt_export(void)
+{
+    return pgy_zone_authority_last_participant;
+}
+
+char *
+pgy_zone_authority_last_reason_rt_export(void)
+{
+    return pgy_zone_authority_last_reason;
 }
 
 static bool

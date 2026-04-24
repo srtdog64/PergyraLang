@@ -9,7 +9,11 @@
 #ifndef PERGYRA_ASYNC_SCOPE_H
 #define PERGYRA_ASYNC_SCOPE_H
 
+#include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <stdatomic.h>
 #include "fiber.h"
 
 /* Forward declarations */
@@ -44,9 +48,9 @@ struct AsyncScope {
     pthread_mutex_t disposeMutex;
     
     /* Statistics */
-    atomic_uint64_t totalSpawned;
-    atomic_uint64_t totalCompleted;
-    atomic_uint64_t totalFailed;
+    atomic_uint_least64_t totalSpawned;
+    atomic_uint_least64_t totalCompleted;
+    atomic_uint_least64_t totalFailed;
 };
 
 /* AsyncScope lifecycle - BSD style with PascalCase */

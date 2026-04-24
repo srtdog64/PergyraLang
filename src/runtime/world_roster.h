@@ -8,7 +8,7 @@
 #define PERGYRA_WORLD_ROSTER_H
 
 #include "party_runtime.h"
-#include "../slot_manager.h"
+#include "slot_manager.h"
 
 /* ============= Roster Level ============= */
 
@@ -224,6 +224,13 @@ typedef struct {
     size_t estimatedGpuFibers;
 } HierarchicalExecutionPlan;
 
+typedef struct {
+    uint32_t availableCpuCores;
+    uint32_t availableGpuUnits;
+    size_t availableMemory;
+    bool preferLatency;  /* vs throughput */
+} ExecutionConstraints;
+
 /* Generate execution plan for world */
 HierarchicalExecutionPlan* GenerateWorldExecutionPlan(
     WorldContext* world
@@ -232,12 +239,7 @@ HierarchicalExecutionPlan* GenerateWorldExecutionPlan(
 /* Optimize execution plan */
 void OptimizeExecutionPlan(
     HierarchicalExecutionPlan* plan,
-    const struct {
-        uint32_t availableCpuCores;
-        uint32_t availableGpuUnits;
-        size_t availableMemory;
-        bool preferLatency;  /* vs throughput */
-    }* constraints
+    const ExecutionConstraints* constraints
 );
 
 /* ============= Monitoring & Debugging ============= */

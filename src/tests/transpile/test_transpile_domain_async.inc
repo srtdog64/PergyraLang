@@ -256,6 +256,10 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __world_derived_dirty;");
         EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld_sync(GameWorld *self)");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_active_battle = self->__zone_active_battle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_world_frontier_pass = 0;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_world_frontier_pass_limit = 3;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_world_frontier_continue = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_world_needs_derived = self->__world_derived_dirty;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_dirty_battle = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__zone_dirty_battle) {");
@@ -267,6 +271,7 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "while (_pgy_world_continue && _pgy_world_pass < _pgy_world_pass_limit) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_world_continue = false;");
         EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_world_pass++;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PANIC(\"world derived recompute exceeded bounded pass limit\");");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_zone_state_liveBattle = self->__zone_state_liveBattle;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_active_battle = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_epoch_battle++;");
@@ -656,8 +661,8 @@ test_roster_world_emit(void)
             "zone BattleZone { }\n"
             "world GameWorld {\n"
             "    zone battle: BattleZone\n"
-            "    state outer: any inner\n"
             "    state inner: zone battle\n"
+            "    state outer: any inner\n"
             "    activate battle\n"
             "    func Show(self) -> Void {\n"
             "        Log(HasZone(outer));\n"
@@ -675,6 +680,8 @@ test_roster_world_emit(void)
 
         emit_program(ctx);
 
+        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_world_frontier_pass_limit = 4;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_world_pass_limit = 3;");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_zone_state_outer = self->__zone_state_outer;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_outer = (self->__zone_state_inner);");
@@ -682,6 +689,99 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_zone_state_inner = self->__zone_state_inner;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_inner = self->__zone_active_battle;");
         EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__zone_state_inner != _pgy_prev_zone_state_inner) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (_pgy_world_continue) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PANIC(\"world derived recompute exceeded bounded pass limit\");");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__world_derived_dirty || self->__zone_dirty_battle) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_world_frontier_continue = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PANIC(\"world frontier recompute exceeded bounded pass limit\");");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone projection chains emit bounded recompute loop");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "object ScoreBoard { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    object slot board: ScoreBoard\n"
+            "    authority player\n"
+            "    refresh board from playerView by player\n"
+            "    refresh playerView from player by player\n"
+            "    func Show(self) -> Void {\n"
+            "        Log(board.hp);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        emit_program(ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_zone_projection_pass_limit = 3;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "while (_pgy_zone_projection_continue && _pgy_zone_projection_pass < _pgy_zone_projection_pass_limit) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__projection_dirty_board = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__projection_ready_board = false;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_zone_projection_continue = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PANIC(\"projection recompute exceeded bounded pass limit\");");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone lifecycle emits bounded frontier loop");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "effect Poisoned for bearer: Player {\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "    apply poison to player\n"
+            "    func Show(self) -> Void {\n"
+            "        Log(HasState(poisoned));\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        emit_program(ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_zone_frontier_pass_limit = 3;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "while (_pgy_zone_frontier_continue && _pgy_zone_frontier_pass < _pgy_zone_frontier_pass_limit) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_state_poisoned = self->__state_poisoned;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_layer_poison = self->__layer_active_poison;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__state_poisoned != _pgy_prev_state_poisoned) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__layer_active_poison != _pgy_prev_layer_poison) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_zone_frontier_continue = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PANIC(\"zone frontier recompute exceeded bounded pass limit\");");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

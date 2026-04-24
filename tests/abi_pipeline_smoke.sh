@@ -171,6 +171,10 @@ CASES=(
     world_clone_ownership_abi
     world_handoff_mutation_abi
     world_zone_query_abi
+    world_fixpoint_abi
+    projection_chain_abi
+    zone_frontier_abi
+    authority_failure_abi
     relation_effect_zone_abi
     relation_effect_propagation_abi
     runtime_floor

@@ -3157,6 +3157,49 @@ test_program_emit(void)
         hir_destroy(hir);
     }
 
+    TEST("extern Bool return uses bool stringification");
+    {
+        const char *source =
+            "extern \"C\" {\n"
+            "    func pgy_zone_authority_validate_flags_export(hasZone: Bool, hasParticipant: Bool, zone: String, participant: String) -> Bool;\n"
+            "    func pgy_zone_authority_last_ok_rt_export() -> Bool;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    Log(ToString(pgy_zone_authority_validate_flags_export(true, true, \"BattleZone\", \"owner\")));\n"
+            "    Log(ToString(pgy_zone_authority_last_ok_rt_export()));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        TranspilerCtx *ctx = NULL;
+
+        program = parser_parse_program(parser);
+        EXPECT(program != NULL);
+        mir = lower_program_to_mir(program, &hir, &rir);
+        ctx = transpiler_ctx_create();
+        emit_program(ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_bool_to_string(pgy_zone_authority_validate_flags_export(true, true, \"BattleZone\", \"owner\"))");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_bool_to_string(pgy_zone_authority_last_ok_rt_export())");
+        EXPECT_STR_NOT_CONTAINS(ctx->out->data,
+            "pgy_int_to_string(pgy_zone_authority_validate_flags_export");
+        EXPECT_STR_NOT_CONTAINS(ctx->out->data,
+            "pgy_int_to_string(pgy_zone_authority_last_ok_rt_export()");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("event declaration stays at file scope");
     {
         ASTNode event_node;

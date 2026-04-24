@@ -66,9 +66,16 @@
 
 - relation/effect/zone/world runtime propagation은 이제 `dirty/ready + epoch/cause` hidden provenance cell을 C/LLVM 양쪽에서 공통 baseline으로 가진다.
 - projection refresh, zone layer/state lifecycle, world zone activation, derived world-state recompute는 모두 causal stamp를 남긴다.
+- world derived-state chain은 이제 C/LLVM 양쪽에서 bounded recompute loop를 통해 계산되어, derived alias recompute가 순수 single-pass replay에만 묶이지 않는다.
+- zone lifecycle sync도 이제 C/LLVM 양쪽에서 bounded frontier loop를 가지며, layer/state lifecycle replay가 single-batch에만 묶이지 않는다.
+- relation/effect/zone projection chain도 이제 bounded transitive recompute loop를 통해 계산되어, projection refresh order가 선언 순서에 묶이지 않는다.
+- bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `abort()` 경로로 hard-fail되도록 고정됐다.
 - LLVM backend는 `__projection_dirty_*` struct layout 누락, host-field assignment 이후 projection invalidation 누락, intent rebound-zone projection stale drift를 닫았다.
-- `make test-transpile`, `make test-abi`, `make test-all`, `make llvm-test-backend-compare` 기준으로 이번 closure가 다시 검증됐다.
-- 이 시점의 남은 propagation blocker는 richer flag/provenance 자체가 아니라, single-pass sync 위에 머문 recompute policy를 `bounded fixpoint / transitive frontier scheduler`로 승격하는 일이다.
+- runtime zone authority invariant guard는 이제 hard-fail 이전에 `last_ok / zone / participant / reason` snapshot을 남긴다. generated C의 inline validator와 LLVM runtime export가 같은 vocabulary를 공유한다.
+- `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`가 이제 C/LLVM ABI smoke에 함께 들어가며, `make test-abi`와 `make llvm-test-backend-compare`에서 다시 검증된다.
+- runtime async/world-roster security build seam(`stdatomic` typedef drift, header include path drift, anonymous constraints prototype drift)도 정리되어 `make test-security`가 다시 녹색이다.
+- `make test-semantic`, `make test-transpile`, `make test-abi`, `make test-all`, `make llvm-test-backend-compare` 기준으로 이번 closure가 다시 검증됐다.
+- 이 시점의 남은 propagation blocker는 richer flag/provenance 자체가 아니라, 이미 들어간 zone/world bounded frontier loop를 branch/join/handoff/embedded zone-world path까지 같은 source-of-truth로 일반화하는 일이다.
 
 ## 구현된 컴포넌트
 
@@ -216,24 +223,30 @@
 
 ## 테스트 현황
 
-2026-04-11 현재 직접 확인한 기준:
+2026-04-24 현재 직접 확인한 기준:
 
 | 스위트 | 결과 |
 |---|---|
-| transpile | 464 passed |
-| abi | 56 passed |
+| semantic | 2132 passed |
+| transpile | 670 passed |
+| abi | 28 spec + C/LLVM pipeline smoke 통과 |
+| security | 74 passed |
 | llvm backend compare | 통과 |
 | example smoke | 통과 |
 | ir pipeline smoke | 통과 |
 | fmt smoke | 통과 |
 
 추가 회귀:
+- `make test-semantic` 통과
+- `make test-security` 통과
 - `make test-transpile` 통과
 - `make test-abi` 통과
+- `make test-all` 통과
 - `make llvm-test-backend-compare` 통과
 - `make example-test-smoke` 통과
 - `make ir-pipeline-test-smoke` 통과
 - `make fmt-test-smoke` 통과
+- `world_fixpoint_abi` / `projection_chain_abi` / `zone_frontier_abi`가 C/LLVM ABI smoke에서 통과
 - Windows CI 이식성 수정:
   - `/tmp` 하드코딩 제거
   - ABI pipeline stdout 비교의 CRLF false negative 제거
@@ -279,3 +292,13 @@
 - WebAssembly 타겟
 - 패키지 매니저
 - 성능 최적화 (LLVM 쪽 집중)
+## 2026-04-24 Authority Failure Follow-up
+
+- Runtime authority rejection now has a real recoverable/queryable ABI slice on both backends.
+- Added `authority_failure_abi` coverage to the ABI smoke matrix and to `test_abi_pipeline`.
+- Added `authority_failure_surface` to backend-compare and fixed the transpiler extern-inventory drift behind it.
+- Generated C uses header-inline authority query helpers for the non-aborting path; LLVM uses runtime-lib exports with the same vocabulary.
+- `test_security` now covers both the legacy inline validator path and the new non-aborting `validate_flags` + `*_rt_export` path.
+- The baseline queryable state now includes `last_ok`, `last_zone`, `last_participant`, and `last_reason`.
+- That closure also fixes a real C/LLVM truth drift: extern `Bool` runtime exports now stringify as `true/false` on both backends instead of `1/0` on the C transpiler path.
+- What remains open here is broader authority/boundary policy depth, not the existence of a queryable rejection surface.

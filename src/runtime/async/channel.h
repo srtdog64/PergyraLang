@@ -60,9 +60,9 @@ typedef struct Channel {
     WaitingFiber* receiversTail;
     
     /* Statistics */
-    atomic_uint64_t totalSends;
-    atomic_uint64_t totalReceives;
-    atomic_uint64_t totalBlocks;
+    atomic_uint_least64_t totalSends;
+    atomic_uint_least64_t totalReceives;
+    atomic_uint_least64_t totalBlocks;
 } Channel;
 
 /* Channel result types */

@@ -1,0 +1,10 @@
+true
+true
+BattleZone
+owner
+false
+false
+zone authority validation failed: null zone self
+false
+false
+zone authority validation failed: null authority participant

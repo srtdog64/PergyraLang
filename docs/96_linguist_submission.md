@@ -160,14 +160,27 @@ Linguist 의 명시적 승인 기준 (CONTRIBUTING.md):
 
 ## Phase 별 단계
 
-### Phase 1 — 로컬 자산 정리 (완료 시점: 이 문서 생성 시점)
+### 타이밍 결정 (2026-04-24)
+
+**Phase 1 만 지금 완료. Phase 2 이후는 beta 완료 후 재개.**
+
+근거:
+- beta 가 닫히지 않은 상태에서는 문법 surface 가 계속 변경됨 → grammar 를
+  독립 repo 로 분리해도 재배포 부담이 누적
+- adoption 신호는 "stable 한 언어" 에 대해서만 의미가 있음 — 미완성
+  언어에 사용자 유치해도 다음 breaking change 때 이탈
+- Linguist "in use" gate 는 수개월 단위 병렬 트랙이라 beta 완료를
+  선행해도 전체 일정 손해 없음
+
+### Phase 1 — 로컬 자산 정리 (완료 ✓ — 2026-04-24)
 
 - [x] `.gitattributes` 작성 — forward-declared linguist hint
 - [x] `docs/96_linguist_submission.md` 작성 — 본 문서
-- [ ] `README.md` 에 "Editor Support / Linguist status" 섹션 추가
-- [ ] 색상 1순위 확정 후 브랜딩 문서에 기록
+- [x] `README.md` 에 "Editor Support / GitHub Language Recognition" 섹션 추가
+- [x] 색상 1순위 `#DD891D` 확정 + Clarion `#DB901E` 근접성 기록 + rollback 후보 3개
+- [ ] (선택) 원본 PNG 에서 정밀 hex 재확인 — beta 기간 중 여유 날 때
 
-### Phase 2 — Grammar / Marketplace 분리 배포 (외부 작업)
+### Phase 2 — Grammar / Marketplace 분리 배포 (beta 완료 후 재개)
 
 - [ ] `pergyra-lang/pergyra-tmLanguage` 공개 repo 생성
 - [ ] 현 grammar 를 해당 repo 에 복사 + LICENSE + README

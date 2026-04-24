@@ -36,6 +36,7 @@ static void party_runtime_warn_scheduler(const char* reason,
                                          SchedulerTag tag,
                                          const char* name);
 static void party_runtime_warn(const char* op, const char* reason);
+static char* party_runtime_strdup(const char* text);
 static uint64_t HashString(const char* str);
 static uint64_t GetTimeNanos(void);
 static void UpdateFiberStats(const char* roleId, const FiberResult* result);
@@ -67,6 +68,26 @@ party_runtime_warn(const char* op, const char* reason)
             reason != NULL ? reason : "unknown");
 }
 
+static char*
+party_runtime_strdup(const char* text)
+{
+    size_t length;
+    char* copy;
+
+    if (text == NULL) {
+        return NULL;
+    }
+
+    length = strlen(text) + 1;
+    copy = (char*)malloc(length);
+    if (copy == NULL) {
+        return NULL;
+    }
+
+    memcpy(copy, text, length);
+    return copy;
+}
+
 /* ============= FiberMap Generation ============= */
 
 FiberMap*
@@ -85,7 +106,7 @@ GenerateFiberMap(const char* partyType,
         return NULL;
     }
 
-    map->partyTypeName = strdup(partyType);
+    map->partyTypeName = party_runtime_strdup(partyType);
     if (map->partyTypeName == NULL) {
         free(map);
         party_runtime_warn("generate_fiber_map", "party type allocation failed");
@@ -108,9 +129,9 @@ GenerateFiberMap(const char* partyType,
         }
 
         FiberMapEntry* entry = &map->entries[entryCount];
-        entry->roleId = strdup(roleBindings[i].slotName != NULL
-                                   ? roleBindings[i].slotName
-                                   : "<anonymous>");
+        entry->roleId = party_runtime_strdup(roleBindings[i].slotName != NULL
+                                                 ? roleBindings[i].slotName
+                                                 : "<anonymous>");
         if (entry->roleId == NULL) {
             FreeFiberMap(map);
             party_runtime_warn("generate_fiber_map", "role id allocation failed");
@@ -655,7 +676,7 @@ RegisterScheduler(SchedulerTag tag, const char* name, FiberScheduler* scheduler)
         return false;
     }
 
-    char* ownedName = strdup(name);
+    char* ownedName = party_runtime_strdup(name);
     if (ownedName == NULL) {
         party_runtime_warn_scheduler("name allocation failed", tag, name);
         return false;
@@ -725,7 +746,7 @@ UpdateFiberStats(const char* roleId, const FiberResult* result)
 
         stats = &g_fiberStats.stats[g_fiberStats.count++];
         memset(stats, 0, sizeof(FiberStats));
-        stats->roleId = strdup(roleId);
+        stats->roleId = party_runtime_strdup(roleId);
         if (stats->roleId == NULL) {
             g_fiberStats.count--;
             party_runtime_warn("fiber_stats", "role id allocation failed");

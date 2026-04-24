@@ -1,0 +1,28 @@
+subject Player {
+    let hp: Int;
+}
+object PlayerView {
+    hp: Int;
+}
+object ScoreBoard {
+    hp: Int;
+}
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    object slot board: ScoreBoard
+    authority player
+    refresh board from playerView by player
+    refresh playerView from player by player
+    func Pulse(self) -> Void {
+        player.hp = player.hp + 5;
+    }
+    func Report(self) -> Void {
+        Log(board.hp);
+    }
+}
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    battle.Pulse();
+    battle.Report();
+}

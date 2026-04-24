@@ -40,7 +40,7 @@ Current classification snapshot:
 
 - generics
   - stable subset: exact/ability/multi-bound baseline plus implemented default type argument resolution on supported declaration/call/module-consumer paths
-  - beta-out-of-scope: broader generic generalization
+  - beta-out-of-scope: broader generic generalization, higher-kinded types, Functor / `fmap`-style abstraction (soft-no — see [docs/04_generic_design.md](docs/04_generic_design.md))
 - own/ref
   - stable subset: anchored slot-handle boundaries plus generalized provenance/escape diagnostics on the currently-closed consumer paths
   - explicit reject: any general own/ref combination that still falls outside the current semantic contract
@@ -127,6 +127,8 @@ make ir-pipeline-test-smoke
 make fmt-test-smoke
 ```
 
+Propagation parity is currently locked through `world_fixpoint_abi`, `projection_chain_abi`, and `zone_frontier_abi` in `make test-abi`, with zone lifecycle bounded frontier emission and C/LLVM runtime parity checked again in `make llvm-test-backend-compare`.
+
 Current CI support matrix:
 
 - Linux: C backend + LLVM backend regression coverage
@@ -161,6 +163,8 @@ Recent backend hygiene snapshot:
 - negative-path memory tests now suppress expected panic/tracing stderr so CI logs reflect regressions instead of deliberate failure probes
 - frontend/transpile regression helpers no longer leak ad-hoc debug stderr on successful runs, so `make test-all` output stays signal-first
 - semantic builtin diagnostics were tightened to remove Windows-native MinGW format-string drift
+- world derived-state chains, zone lifecycle sync, and relation/effect/zone projection chains now use bounded recompute/frontier loops on both C and LLVM, so runtime propagation no longer depends on declaration order for those closed paths
+- ABI smoke now includes `projection_chain_abi`, and current direct regression checks are `test-semantic 2132 passed`, `test-transpile 670 passed`, `make test-abi`, `make test-all`, and `make llvm-test-backend-compare`
 
 Stable example guidance:
 

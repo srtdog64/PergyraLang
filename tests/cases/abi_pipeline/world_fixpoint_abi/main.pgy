@@ -1,0 +1,15 @@
+zone BattleZone { }
+world GameWorld {
+    zone battle: BattleZone
+    state inner: zone battle
+    state outer: any inner
+    activate battle
+    func Show(self) -> Void {
+        Log(HasZone(outer));
+        Log(HasZone(inner));
+    }
+}
+func Main() -> Void {
+    let world = GameWorld(BattleZone());
+    world.Show();
+}

@@ -1010,6 +1010,115 @@ main(void)
         "true\n"
         "true\n"
         "true\n";
+    static const char *world_fixpoint_source =
+        "zone BattleZone { }\n"
+        "world GameWorld {\n"
+        "    zone battle: BattleZone\n"
+        "    state inner: zone battle\n"
+        "    state outer: any inner\n"
+        "    activate battle\n"
+        "    func Show(self) -> Void {\n"
+        "        Log(HasZone(outer));\n"
+        "        Log(HasZone(inner));\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let world = GameWorld(BattleZone());\n"
+        "    world.Show();\n"
+        "}\n";
+    static const char *world_fixpoint_expected =
+        "true\n"
+        "true\n";
+    static const char *projection_chain_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "}\n"
+        "object PlayerView {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "object ScoreBoard {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    object slot playerView: PlayerView\n"
+        "    object slot board: ScoreBoard\n"
+        "    authority player\n"
+        "    refresh board from playerView by player\n"
+        "    refresh playerView from player by player\n"
+        "    func Pulse(self) -> Void {\n"
+        "        player.hp = player.hp + 5;\n"
+        "    }\n"
+        "    func Report(self) -> Void {\n"
+        "        Log(board.hp);\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let battle = BattleZone(Player(7));\n"
+        "    battle.Pulse();\n"
+        "    battle.Report();\n"
+        "}\n";
+    static const char *projection_chain_expected =
+        "12\n";
+    static const char *zone_frontier_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "}\n"
+        "effect Poisoned for bearer: Player {\n"
+        "}\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    effect slot poison: Poisoned\n"
+        "    authority player\n"
+        "    state poisoned: effect poison on player\n"
+        "    apply poison to player by player\n"
+        "    func Show(self) -> Void {\n"
+        "        Log(HasLayer(poison));\n"
+        "        Log(HasState(poisoned));\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let player: Player = Player(5);\n"
+        "    let battle: BattleZone = BattleZone(player);\n"
+        "    battle.Show();\n"
+        "    battle.Show();\n"
+        "}\n";
+    static const char *zone_frontier_expected =
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n";
+    static const char *authority_failure_source =
+        "extern \"C\" {\n"
+        "    func pgy_zone_authority_validate_flags_export(hasZone: Bool, hasParticipant: Bool, zone: String, participant: String) -> Bool;\n"
+        "    func pgy_zone_authority_last_ok_rt_export() -> Bool;\n"
+        "    func pgy_zone_authority_last_zone_rt_export() -> String;\n"
+        "    func pgy_zone_authority_last_participant_rt_export() -> String;\n"
+        "    func pgy_zone_authority_last_reason_rt_export() -> String;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    Log(pgy_zone_authority_validate_flags_export(true, true, \"BattleZone\", \"owner\"));\n"
+        "    Log(pgy_zone_authority_last_ok_rt_export());\n"
+        "    Log(pgy_zone_authority_last_zone_rt_export());\n"
+        "    Log(pgy_zone_authority_last_participant_rt_export());\n"
+        "    Log(pgy_zone_authority_validate_flags_export(false, true, \"BattleZone\", \"owner\"));\n"
+        "    Log(pgy_zone_authority_last_ok_rt_export());\n"
+        "    Log(pgy_zone_authority_last_reason_rt_export());\n"
+        "    Log(pgy_zone_authority_validate_flags_export(true, false, \"BattleZone\", \"owner\"));\n"
+        "    Log(pgy_zone_authority_last_ok_rt_export());\n"
+        "    Log(pgy_zone_authority_last_reason_rt_export());\n"
+        "}\n";
+    static const char *authority_failure_expected =
+        "true\n"
+        "true\n"
+        "BattleZone\n"
+        "owner\n"
+        "false\n"
+        "false\n"
+        "zone authority validation failed: null zone self\n"
+        "false\n"
+        "false\n"
+        "zone authority validation failed: null authority participant\n";
     static const char *relation_effect_zone_source =
         "subject Player {\n"
         "    let hp: Int;\n"
@@ -1349,6 +1458,18 @@ main(void)
     run_pipeline_case("world_zone_query_abi", world_zone_query_source, world_zone_query_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("world_fixpoint_abi", world_fixpoint_source, world_fixpoint_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("projection_chain_abi", projection_chain_source, projection_chain_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("zone_frontier_abi", zone_frontier_source, zone_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("authority_failure_abi", authority_failure_source, authority_failure_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("relation_effect_zone_abi", relation_effect_zone_source, relation_effect_zone_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
@@ -1405,6 +1526,18 @@ main(void)
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("world_zone_query_abi", world_zone_query_source, world_zone_query_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("world_fixpoint_abi", world_fixpoint_source, world_fixpoint_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("projection_chain_abi", projection_chain_source, projection_chain_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("zone_frontier_abi", zone_frontier_source, zone_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("authority_failure_abi", authority_failure_source, authority_failure_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("relation_effect_zone_abi", relation_effect_zone_source, relation_effect_zone_expected,

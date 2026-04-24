@@ -25,7 +25,7 @@
 static __thread Fiber* tlsCurrentFiber = NULL;
 
 /* Fiber ID counter */
-static atomic_uint64_t fiberIdCounter = 0;
+static atomic_uint_least64_t fiberIdCounter = 0;
 
 static void
 fiber_warn(const char *op, const char *reason, Fiber *fiber)

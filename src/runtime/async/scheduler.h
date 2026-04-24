@@ -10,6 +10,9 @@
 #define PERGYRA_SCHEDULER_H
 
 #include <pthread.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdatomic.h>
 #include "fiber.h"
 #include "concurrent_queue.h"
@@ -36,9 +39,9 @@ typedef struct WorkerThread {
     Fiber* currentFiber;
     
     /* Statistics */
-    atomic_uint64_t tasksExecuted;
-    atomic_uint64_t stealAttempts;
-    atomic_uint64_t stealSuccesses;
+    atomic_uint_least64_t tasksExecuted;
+    atomic_uint_least64_t stealAttempts;
+    atomic_uint_least64_t stealSuccesses;
     
     /* Worker state */
     atomic_bool shouldStop;
@@ -65,16 +68,16 @@ typedef struct Scheduler {
     
     /* Scheduler state */
     atomic_bool isRunning;
-    atomic_uint64_t totalFibers;
-    atomic_uint64_t activeFibers;
+    atomic_uint_least64_t totalFibers;
+    atomic_uint_least64_t activeFibers;
     
     /* Work stealing */
-    atomic_uint32_t stealingVictim;  /* Round-robin victim selection */
+    atomic_uint_least32_t stealingVictim;  /* Round-robin victim selection */
     
     /* Parking/waking workers */
     pthread_mutex_t parkMutex;
     pthread_cond_t parkCondition;
-    atomic_uint32_t parkedWorkers;
+    atomic_uint_least32_t parkedWorkers;
 } Scheduler;
 
 /* Scheduler lifecycle - BSD style with PascalCase */

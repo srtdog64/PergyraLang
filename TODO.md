@@ -1,6 +1,6 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-23
+마지막 업데이트: 2026-04-24
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
@@ -218,7 +218,7 @@
   - 즉, action/intent-step/zone-authority/party-role-slot에 더해 role impl consumer도 staged DAG path 회귀 범위에 포함
 - 현재 검증선
   - `test-semantic`: `1617 passed, 0 failed`
-  - `test-transpile`: `529 passed, 0 failed`
+  - `test-transpile`: `670 passed, 0 failed`
   - `test-abi`: `84 passed, 0 failed`
   - `ci-linux`: full green 유지
   - LLVM expr/stmt host-helper 정리 이후에도 `test-transpile`, `test-abi` 재통과 확인
@@ -234,8 +234,14 @@
   - LLVM intent step rebound-zone 경로도 effective zone projection cell을 보수적으로 dirty-mark + sync 하도록 보강
   - 결과: `relation_effect_propagation_abi`, `intent_zone_binding`, `intent_cross_world_transfer`, `intent_rich_history_identity` backend compare drift 제거
   - 새 회귀: transpile domain async/world tests가 provenance hidden field와 stamp write까지 직접 확인
-  - 현재 해석: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)은 이제 beta 계약의 일부로 간주하고 다시 약화시키지 않음
-  - 강한 남은 과제: bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. single-pass sync를 최종 모델로 인정하지 않음
+  - 새 진행: `world` derived-state recompute가 C/LLVM 양쪽에서 bounded pass loop를 가지도록 올라왔고, single-pass declaration-order replay에만 의존하지 않게 됨
+  - 새 진행: bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `abort()` 경로로 hard-fail되도록 고정됨
+- 새 회귀: transpile world-derived chain test + `world_fixpoint_abi` smoke가 C/LLVM 양쪽에서 녹색
+- 현재 해석: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)은 이제 beta 계약의 일부로 간주하고 다시 약화시키지 않음
+- 추가 closure: zone lifecycle sync도 이제 C/LLVM 양쪽에서 bounded frontier loop를 가지며, state/layer replay가 single-batch에만 묶이지 않는다
+- 강한 남은 과제: full bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. 다만 남은 debt는 zone/world frontier loop의 부재가 아니라 branch/join/handoff/embedded zone-world path까지 같은 source-of-truth로 일반화하는 일이다
+- 추가 closure: relation/effect/zone projection sync도 bounded transitive recompute loop로 올라왔고 declaration order에 기대지 않는다
+- 추가 회귀: `projection_chain_abi`가 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`에서 잠겼다
 
 ### 최근 closure 진행 (2026-04-23)
 
@@ -708,15 +714,17 @@
   - contract reuse/derivation / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
   - 이미 존재: intent orchestration, inherited/derived contract, zone/world query, observability baseline
   - 진행: runtime zone/world propagation cell에 `epoch/cause` provenance baseline이 들어갔고, LLVM intent rebound-zone sync도 같은 truth로 정렬됨
+  - 진행: world derived-state chain은 이제 bounded recompute loop를 통해 C/LLVM 양쪽에서 같은 규칙으로 계산됨
   - 강한 기준: 이 축은 이제 "얕은 single-pass sync로도 beta 가능" 같은 해석을 허용하지 않음
-  - 남음: embedding ownership/handoff policy, **bounded fixpoint 기반 cross-layer propagation policy**, richer provenance query surface, declaration/runtime/diagnostic parity
+- 남음: embedding ownership/handoff policy, **branch/join/handoff/embedded zone-world path까지 일반화된 bounded fixpoint 기반 cross-layer propagation policy**, richer provenance query surface, declaration/runtime/diagnostic parity
   - 이 축은 언어 정체성 자체이므로 beta 직전까지 열어두지 않는다
 - [ ] **relation/effect/projection semantics 완전 closure**
   - effect lattice, authority-resource partial order 통합, refresh/publish/bind/causes 일관화, diagnostics, C/LLVM parity
   - 이미 존재: declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync, effect join/meet/conflict, projection contract diagnostics baseline
-  - 진행: relation/effect/zone projection hidden cell도 C/LLVM 모두 `dirty/ready + epoch/cause` schema로 정렬됐고 runtime contract provenance baseline이 생김
-  - 강한 기준: projection propagation은 더 이상 "helper replay가 대체로 맞음" 수준으로 두지 않고, transitive semantics가 닫히기 전까지 beta blocker로 유지
-  - 남음: authority-resource partial order 통합, **transitive projection propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity의 마지막 shrink
+- 진행: relation/effect/zone projection hidden cell도 C/LLVM 모두 `dirty/ready + epoch/cause` schema로 정렬됐고 runtime contract provenance baseline이 생김
+- 진행: world-derived recompute는 bounded pass loop로 올라왔고, relation/effect/zone projection chain도 bounded transitive recompute loop로 올라왔다
+- 강한 기준: projection propagation은 더 이상 "helper replay가 대체로 맞음" 수준으로 두지 않고, transitive semantics가 닫히기 전까지 beta blocker로 유지
+- 남음: authority-resource partial order 통합, projection을 넘어선 **branch/join/handoff/embedded zone-world path까지의 full transitive frontier propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity의 마지막 shrink
   - 이 축은 domain semantics 핵심이므로 partial 상태로 beta에 올리지 않는다
   - projection diagnostics는 `target/source/projection kind/field path/fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
 - [x] **generic contract 완전 closure**
@@ -870,10 +878,12 @@
   - intent failure, authority rejection, boundary mismatch는 process abort 대신 queryable reason/state로 노출
   - runtime observability와 diagnostics wording을 같은 provenance vocabulary로 정렬
   - 참고: runtime propagation provenance(`epoch/cause`) baseline은 완료로 본다
+  - 진행: runtime zone authority invariant guard는 `last_ok / zone / participant / reason` thread-local snapshot을 남기도록 정렬되어, hard-fail guard와 별개로 최소 queryable failure snapshot baseline은 생겼다
   - 남음: queryable failure reason/state surface는 여전히 beta blocker다
 - [ ] **runtime authority guard downshift**
   - 현재 `pgy_zone_authority_check_export(...)`는 null self/null participant invariant guard다
   - 이 guard 자체는 hard-fail 유지
+  - 진행: C inline validator와 LLVM runtime export 모두 마지막 authority validation 결과를 같은 vocabulary(`last_ok`, `zone`, `participant`, `reason`)로 남긴다
   - 별도 real authority rejection runtime path가 생기면 그쪽을 `recoverable authority failure` 경로로 설계
 - [x] **hard-fail boundary 명시**
   - 완료: `README.md`와 `docs/07_error_handling.md`에 hard-fail boundary를 명시

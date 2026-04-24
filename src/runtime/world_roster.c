@@ -566,12 +566,7 @@ GenerateWorldExecutionPlan(WorldContext* world)
 
 void
 OptimizeExecutionPlan(HierarchicalExecutionPlan* plan,
-                      const struct {
-                          uint32_t availableCpuCores;
-                          uint32_t availableGpuUnits;
-                          size_t availableMemory;
-                          bool preferLatency;
-                      }* constraints)
+                      const ExecutionConstraints* constraints)
 {
     (void)constraints;
     if (plan == NULL) {
