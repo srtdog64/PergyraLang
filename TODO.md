@@ -239,7 +239,9 @@
 - 새 회귀: transpile world-derived chain test + `world_fixpoint_abi` smoke가 C/LLVM 양쪽에서 녹색
 - 현재 해석: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)은 이제 beta 계약의 일부로 간주하고 다시 약화시키지 않음
 - 추가 closure: zone lifecycle sync도 이제 C/LLVM 양쪽에서 bounded frontier loop를 가지며, state/layer replay가 single-batch에만 묶이지 않는다
-- 강한 남은 과제: full bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. 다만 남은 debt는 zone/world frontier loop의 부재가 아니라 branch/join/handoff/embedded zone-world path까지 같은 source-of-truth로 일반화하는 일이다
+- 추가 closure: embedded world-zone source assignment도 이제 projection dirty mark 뒤에 같은 turn의 zone sync를 태워 stale `ready/value` drift 없이 projection recompute를 닫는다
+- 추가 회귀: `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`가 C/LLVM ABI smoke에서 녹색이며 embedded zone projection read-after-mutate path를 straight-line assignment, method-call, branch-join slice까지 잠근다
+- 강한 남은 과제: full bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. 다만 남은 debt는 zone/world frontier loop의 부재가 아니라 handoff와 더 넓은 world-zone propagation family를 같은 source-of-truth로 일반화하는 일이다
 - 추가 closure: relation/effect/zone projection sync도 bounded transitive recompute loop로 올라왔고 declaration order에 기대지 않는다
 - 추가 회귀: `projection_chain_abi`가 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`에서 잠겼다
 
@@ -716,7 +718,7 @@
   - 진행: runtime zone/world propagation cell에 `epoch/cause` provenance baseline이 들어갔고, LLVM intent rebound-zone sync도 같은 truth로 정렬됨
   - 진행: world derived-state chain은 이제 bounded recompute loop를 통해 C/LLVM 양쪽에서 같은 규칙으로 계산됨
   - 강한 기준: 이 축은 이제 "얕은 single-pass sync로도 beta 가능" 같은 해석을 허용하지 않음
-- 남음: embedding ownership/handoff policy, **branch/join/handoff/embedded zone-world path까지 일반화된 bounded fixpoint 기반 cross-layer propagation policy**, richer provenance query surface, declaration/runtime/diagnostic parity
+- 남음: embedding ownership/handoff policy, **handoff와 더 넓은 world-zone propagation family까지 일반화된 bounded fixpoint 기반 cross-layer propagation policy**, richer provenance query surface, declaration/runtime/diagnostic parity
   - 이 축은 언어 정체성 자체이므로 beta 직전까지 열어두지 않는다
 - [ ] **relation/effect/projection semantics 완전 closure**
   - effect lattice, authority-resource partial order 통합, refresh/publish/bind/causes 일관화, diagnostics, C/LLVM parity
@@ -724,7 +726,7 @@
 - 진행: relation/effect/zone projection hidden cell도 C/LLVM 모두 `dirty/ready + epoch/cause` schema로 정렬됐고 runtime contract provenance baseline이 생김
 - 진행: world-derived recompute는 bounded pass loop로 올라왔고, relation/effect/zone projection chain도 bounded transitive recompute loop로 올라왔다
 - 강한 기준: projection propagation은 더 이상 "helper replay가 대체로 맞음" 수준으로 두지 않고, transitive semantics가 닫히기 전까지 beta blocker로 유지
-- 남음: authority-resource partial order 통합, projection을 넘어선 **branch/join/handoff/embedded zone-world path까지의 full transitive frontier propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity의 마지막 shrink
+- 남음: authority-resource partial order 통합, projection을 넘어선 **handoff와 더 넓은 world-zone propagation family까지의 full transitive frontier propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity의 마지막 shrink
   - 이 축은 domain semantics 핵심이므로 partial 상태로 beta에 올리지 않는다
   - projection diagnostics는 `target/source/projection kind/field path/fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
 - [x] **generic contract 완전 closure**

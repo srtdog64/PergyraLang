@@ -174,6 +174,9 @@ CASES=(
     world_fixpoint_abi
     projection_chain_abi
     zone_frontier_abi
+    world_embedded_projection_abi
+    world_embedded_method_projection_abi
+    world_embedded_branch_projection_abi
     authority_failure_abi
     relation_effect_zone_abi
     relation_effect_propagation_abi

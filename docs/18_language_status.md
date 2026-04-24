@@ -129,8 +129,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
   - bounded world-derived recompute + bounded projection-chain recompute + zone lifecycle bounded frontier loop
 - strict beta closure 전에 더 닫아야 하는 것은 다음이다:
   - authority/resource/effect의 더 완전한 unified partial order
-- current bounded loops를 branch/join/handoff/embedded zone-world path까지 일반화하는 `bounded fixpoint / transitive frontier scheduler`
-  - branch/join/handoff/embedded zone-world path까지 포함하는 richer propagation policy
+- current bounded loops와 embedded world-zone projection read-after-mutate closure를 handoff와 더 넓은 world-zone path까지 일반화하는 `bounded fixpoint / transitive frontier scheduler`
+  - straight-line assignment, method-call, branch-join slice는 닫혔고 handoff/world-zone generalization이 남아 있는 richer propagation policy
 - 베타 밖으로 남겨둔 것은 다음이다:
   - higher-order multi-layer runtime policy와 full reactive graph engine 수준의 propagation
 - `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다
@@ -266,7 +266,7 @@ Windows LLVM을 공식 beta support로 올리려면 README, TODO, CI, backend pa
 - `make test-all` 통과
 - `make llvm-test-backend-compare` 통과
 - `make example-test-smoke` 통과
-- `world_fixpoint_abi` / `projection_chain_abi` / `zone_frontier_abi`가 `make test-abi`의 C/LLVM smoke에서 통과
+- `world_fixpoint_abi` / `projection_chain_abi` / `zone_frontier_abi` / `world_embedded_projection_abi` / `world_embedded_method_projection_abi` / `world_embedded_branch_projection_abi`가 `make test-abi`의 C/LLVM smoke에서 통과
 - `make ir-pipeline-test-smoke` 통과
 - `make fmt-test-smoke` 통과
 - Windows CI에서 드러난 path/newline/list-warning 이식성 문제를 이번 정리에서 닫음
@@ -315,4 +315,5 @@ Remaining work is no longer basic visibility plumbing. The remaining surface wor
 - Both backends now cover the same baseline exports for `validate_flags`, `last_ok`, `last_zone`, `last_participant`, and `last_reason`.
 - `authority_failure_abi` is now part of the smoke matrix and backend pipeline regression set.
 - `authority_failure_surface` is now part of backend-compare, and the C transpiler extern lookup no longer degrades `Bool` runtime exports into `1/0` stringification.
+- `world_embedded_branch_projection_visibility` is now part of backend-compare too, so embedded world-zone projection freshness across a simple branch-join is locked by direct C/LLVM stdout parity, not only ABI smoke.
 - This improves the recoverable-runtime-failure area, but it does not remove the larger frontier-scheduler blocker.

@@ -1088,6 +1088,109 @@ main(void)
         "true\n"
         "true\n"
         "true\n";
+    static const char *world_embedded_projection_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "}\n"
+        "object PlayerView {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    object slot playerView: PlayerView\n"
+        "    authority player\n"
+        "    refresh playerView from player by player\n"
+        "}\n"
+        "world GameWorld {\n"
+        "    zone battle: BattleZone\n"
+        "    func Mutate(self) -> Void {\n"
+        "        battle.player.hp = battle.player.hp + 2;\n"
+        "    }\n"
+        "    func Read(self) -> Void {\n"
+        "        Log(HasZoneProjection(battle, playerView));\n"
+        "        Log(battle.playerView.hp);\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let world = GameWorld(BattleZone(Player(5)));\n"
+        "    world.Read();\n"
+        "    world.Mutate();\n"
+        "    world.Read();\n"
+        "}\n";
+    static const char *world_embedded_projection_expected =
+        "true\n"
+        "5\n"
+        "true\n"
+        "7\n";
+    static const char *world_embedded_method_projection_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "    func Heal(self, amount: Int) -> Void {\n"
+        "        hp = hp + amount;\n"
+        "    }\n"
+        "}\n"
+        "object PlayerView {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    object slot playerView: PlayerView\n"
+        "    authority player\n"
+        "    refresh playerView from player by player\n"
+        "}\n"
+        "world GameWorld {\n"
+        "    zone battle: BattleZone\n"
+        "    func HealAndRead(self) -> Void {\n"
+        "        battle.player.Heal(2);\n"
+        "        Log(HasZoneProjection(battle, playerView));\n"
+        "        Log(battle.playerView.hp);\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let world = GameWorld(BattleZone(Player(5)));\n"
+        "    world.HealAndRead();\n"
+        "}\n";
+    static const char *world_embedded_method_projection_expected =
+        "true\n"
+        "7\n";
+    static const char *world_embedded_branch_projection_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "    func Heal(self, amount: Int) -> Void {\n"
+        "        hp = hp + amount;\n"
+        "    }\n"
+        "}\n"
+        "object PlayerView {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    object slot playerView: PlayerView\n"
+        "    authority player\n"
+        "    refresh playerView from player by player\n"
+        "}\n"
+        "world GameWorld {\n"
+        "    zone battle: BattleZone\n"
+        "    func Mutate(self, healFirst: Bool) -> Void {\n"
+        "        if healFirst {\n"
+        "            battle.player.Heal(2);\n"
+        "        } else {\n"
+        "            battle.player.hp = battle.player.hp + 3;\n"
+        "        }\n"
+        "        Log(HasZoneProjection(battle, playerView));\n"
+        "        Log(battle.playerView.hp);\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let world = GameWorld(BattleZone(Player(5)));\n"
+        "    world.Mutate(true);\n"
+        "    world.Mutate(false);\n"
+        "}\n";
+    static const char *world_embedded_branch_projection_expected =
+        "true\n"
+        "7\n"
+        "true\n"
+        "10\n";
     static const char *authority_failure_source =
         "extern \"C\" {\n"
         "    func pgy_zone_authority_validate_flags_export(hasZone: Bool, hasParticipant: Bool, zone: String, participant: String) -> Bool;\n"
@@ -1467,6 +1570,15 @@ main(void)
     run_pipeline_case("zone_frontier_abi", zone_frontier_source, zone_frontier_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("world_embedded_projection_abi", world_embedded_projection_source, world_embedded_projection_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("world_embedded_method_projection_abi", world_embedded_method_projection_source, world_embedded_method_projection_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("world_embedded_branch_projection_abi", world_embedded_branch_projection_source, world_embedded_branch_projection_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("authority_failure_abi", authority_failure_source, authority_failure_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
@@ -1535,6 +1647,15 @@ main(void)
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("zone_frontier_abi", zone_frontier_source, zone_frontier_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("world_embedded_projection_abi", world_embedded_projection_source, world_embedded_projection_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("world_embedded_method_projection_abi", world_embedded_method_projection_source, world_embedded_method_projection_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("world_embedded_branch_projection_abi", world_embedded_branch_projection_source, world_embedded_branch_projection_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("authority_failure_abi", authority_failure_source, authority_failure_expected,

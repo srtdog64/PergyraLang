@@ -370,6 +370,7 @@ main() {
         "tests/cases/backend_compare/intent_header_interleaved"
         "tests/cases/backend_compare/map_keys"
         "tests/cases/backend_compare/world_zone_projection_visibility"
+        "tests/cases/backend_compare/world_embedded_branch_projection_visibility"
         "tests/cases/backend_compare/relation_effect_propagation"
         "tests/cases/backend_compare/authority_failure_surface"
         "tests/cases/backend_compare/higher_order_simple"

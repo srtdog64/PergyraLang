@@ -3307,6 +3307,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     const char *source_slot_name =
                         assignment_target_root_slot_name(obj);
                     char *invalidation = NULL;
+                    char *post_sync = NULL;
                     ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
                     const char *saved_receiver_expr = ctx->current_overlay_receiver_expr;
 
@@ -3342,10 +3343,13 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     }
                     ctx->current_overlay_receiver_expr = saved_receiver_expr;
                     transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
+                    post_sync = emit_world_embedded_receiver_projection_sync(ctx, obj);
                     codebuf_destroy(args_buf);
-                    if (invalidation != NULL) {
+                    if (invalidation != NULL || post_sync != NULL) {
                         char *ret_type_name = NULL;
                         char *wrapped = NULL;
+                        const char *prefix = invalidation != NULL ? invalidation : "";
+                        const char *suffix = post_sync != NULL ? post_sync : "";
 
                         if (method_decl->data.func_decl.return_type != NULL)
                             ret_type_name = render_type_name(
@@ -3355,19 +3359,21 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                             && strcmp(ret_type_name, "Void") != 0) {
                             int tmp_id = ++ctx->tmp_counter;
                             wrapped = strdup_fmt(
-                                "({ %s _pgy_call_%d = %s; %s_pgy_call_%d; })",
+                                "({ %s _pgy_call_%d = %s; %s%s_pgy_call_%d; })",
                                 pergyra_type_to_c(ret_type_name), tmp_id,
-                                result, invalidation, tmp_id);
+                                result, prefix, suffix, tmp_id);
                         } else {
-                            wrapped = strdup_fmt("({ %s; %s})",
-                                result, invalidation);
+                            wrapped = strdup_fmt("({ %s; %s%s})",
+                                result, prefix, suffix);
                         }
 
                         free(ret_type_name);
                         free(invalidation);
+                        free(post_sync);
                         free(result);
                         return wrapped;
                     }
+                    free(post_sync);
                     return result;
                 }
             }
@@ -4216,18 +4222,21 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         char *target = emit_expression(node->data.assignment.target, ctx);
         char *value  = emit_expression(node->data.assignment.value,  ctx);
-        const char *root_slot_name = assignment_target_root_slot_name(
-            node->data.assignment.target);
-        const char *root_subfield_name = assignment_target_root_subfield_name(
-            node->data.assignment.target);
-        char *invalidation = emit_current_overlay_projection_invalidation(
-            ctx, root_slot_name, root_subfield_name);
+        char *invalidation = emit_assignment_projection_invalidation(
+            ctx, node->data.assignment.target);
+        char *post_sync = emit_world_embedded_assignment_sync(
+            ctx, node->data.assignment.target);
         char *result;
-        if (invalidation != NULL)
+        if (post_sync != NULL)
+            result = strdup_fmt("({ %s%s = %s; %s%s; })",
+                invalidation != NULL ? invalidation : "",
+                target, value, post_sync, target);
+        else if (invalidation != NULL)
             result = strdup_fmt("({ %s%s = %s; })", invalidation, target, value);
         else
             result = strdup_fmt("%s = %s", target, value);
         free(invalidation);
+        free(post_sync);
         free(target);
         free(value);
         return result;

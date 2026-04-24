@@ -1,0 +1,37 @@
+subject Player {
+    let hp: Int;
+    func Heal(self, amount: Int) -> Void {
+        hp = hp + amount;
+    }
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    authority player
+    refresh playerView from player by player
+}
+
+world GameWorld {
+    zone battle: BattleZone
+
+    func Mutate(self, healFirst: Bool) -> Void {
+        if healFirst {
+            battle.player.Heal(2);
+        } else {
+            battle.player.hp = battle.player.hp + 3;
+        }
+        Log(HasZoneProjection(battle, playerView));
+        Log(battle.playerView.hp);
+    }
+}
+
+func Main() -> Void {
+    let world = GameWorld(BattleZone(Player(5)));
+    world.Mutate(true);
+    world.Mutate(false);
+}

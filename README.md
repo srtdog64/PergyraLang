@@ -127,7 +127,7 @@ make ir-pipeline-test-smoke
 make fmt-test-smoke
 ```
 
-Propagation parity is currently locked through `world_fixpoint_abi`, `projection_chain_abi`, and `zone_frontier_abi` in `make test-abi`, with zone lifecycle bounded frontier emission and C/LLVM runtime parity checked again in `make llvm-test-backend-compare`.
+Propagation parity is currently locked through `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, and `world_embedded_branch_projection_abi` in `make test-abi`, with zone lifecycle bounded frontier emission and C/LLVM runtime parity checked again in `make llvm-test-backend-compare`.
 
 Current CI support matrix:
 
@@ -164,7 +164,7 @@ Recent backend hygiene snapshot:
 - frontend/transpile regression helpers no longer leak ad-hoc debug stderr on successful runs, so `make test-all` output stays signal-first
 - semantic builtin diagnostics were tightened to remove Windows-native MinGW format-string drift
 - world derived-state chains, zone lifecycle sync, and relation/effect/zone projection chains now use bounded recompute/frontier loops on both C and LLVM, so runtime propagation no longer depends on declaration order for those closed paths
-- ABI smoke now includes `projection_chain_abi`, and current direct regression checks are `test-semantic 2132 passed`, `test-transpile 670 passed`, `make test-abi`, `make test-all`, and `make llvm-test-backend-compare`
+- ABI smoke now includes `projection_chain_abi`, `zone_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, and `world_embedded_branch_projection_abi`, and current direct regression checks are `test-semantic 2132 passed`, `test-transpile 670 passed`, `make test-abi`, `make test-all`, and `make llvm-test-backend-compare`
 
 Stable example guidance:
 
