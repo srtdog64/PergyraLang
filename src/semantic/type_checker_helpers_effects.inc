@@ -125,6 +125,18 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
     }
 }
 
+static Type *
+helpers_effects_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    Type *resolved;
+    if (type_ref == NULL)
+        return NULL;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
+}
+
 static uint32_t
 parse_effect_word(const char *word)
 {
@@ -587,7 +599,7 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
                 *path_out = pergyra_strdup(field_name);
             if (field_type_out != NULL)
                 *field_type_out = field->type != NULL
-                    ? resolve_type_node(field->type, ctx)
+                    ? helpers_effects_resolve_type_ref(field->type, ctx)
                     : TYPE_UNKNOWN;
             return 1;
         }

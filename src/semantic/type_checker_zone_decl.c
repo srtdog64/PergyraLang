@@ -9,6 +9,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+static Type *
+zone_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
+{
+    Type *resolved;
+    ASTNode *type_ref;
+    if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
+        return NULL;
+    type_ref = slot->data.domain_slot.type;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
+}
+
 bool
 type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -88,7 +102,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "Zone authority '%s' must reference a subject slot",
                 authority->data.zone_authority.subject_slot_name);
         }
-        slot_type = slot != NULL ? resolve_type_node(slot->data.domain_slot.type, ctx) : NULL;
+        slot_type = zone_resolve_domain_slot_type(slot, ctx);
         for (size_t j = 0; j < authority->data.zone_authority.ability_count; j++) {
             ASTNode *ability_ref = authority->data.zone_authority.required_abilities[j];
             const char *ability_name = ability_ref_name(ability_ref);

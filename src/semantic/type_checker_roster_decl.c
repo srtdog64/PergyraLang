@@ -6,6 +6,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+static Type *
+roster_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    Type *resolved;
+    if (type_ref == NULL)
+        return NULL;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
+}
+
 bool
 type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -72,7 +84,7 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < node->data.roster_decl.shared_count; i++) {
         ASTNode *shared = node->data.roster_decl.shared_fields[i];
         if (shared->data.party_shared.type != NULL)
-            resolve_type_node(shared->data.party_shared.type, ctx);
+            roster_resolve_type_ref(shared->data.party_shared.type, ctx);
         if (shared->data.party_shared.initializer != NULL)
             type_check_expression(shared->data.party_shared.initializer, ctx);
     }

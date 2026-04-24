@@ -97,6 +97,7 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
                 }
             }
         }
+        semantic_type_resolution_try_record_stable_constructed_type(ctx, type_node);
         return;
 
     default:

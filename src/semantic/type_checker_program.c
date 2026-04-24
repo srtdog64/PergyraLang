@@ -354,6 +354,16 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     (unsigned long long) ctx->type_resolution_stage_legacy_resolve_suppressed_diag_count);
             fprintf(stderr, "[type-res-stats] stage-graph-backed: skips=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_graph_backed_skip_count);
+            size_t metadata_owned_count = 0;
+            for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
+                if (ctx->type_resolution_metadata.owned[i])
+                    metadata_owned_count++;
+            }
+            fprintf(stderr, "[type-res-stats] metadata: entries=%llu owned=%llu hits=%llu misses=%llu\n",
+                    (unsigned long long) ctx->type_resolution_metadata.count,
+                    (unsigned long long) metadata_owned_count,
+                    (unsigned long long) ctx->type_resolution_metadata_hits,
+                    (unsigned long long) ctx->type_resolution_metadata_misses);
             fprintf(stderr, "[type-res-stats] stage-legacy-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_legacy_generic_contract_count,
                     (unsigned long long) ctx->type_resolution_stage_legacy_signature_count,

@@ -252,8 +252,13 @@ resolve_generic_type_arg(GenericParam *gp, SemanticContext *ctx,
 {
     if (gp == NULL)
         return TYPE_UNKNOWN;
-    if (gp->constraint != NULL)
+    if (gp->constraint != NULL) {
+        Type *resolved = semantic_type_resolution_lookup_resolved_type(
+            ctx, gp->constraint);
+        if (resolved != NULL)
+            return resolved;
         return resolve_type_node(gp->constraint, ctx);
+    }
     return resolve_named_type(gp->name, ctx, site);
 }
 

@@ -232,6 +232,17 @@ void semantic_type_resolution_collect_type_refs(
     const ASTNode *consumer_site,
     const char *consumer_name,
     const char *reason);
+void semantic_type_resolution_record_resolved_type(SemanticContext *ctx,
+                                                   ASTNode *type_node,
+                                                   Type *resolved_type);
+void semantic_type_resolution_record_owned_resolved_type(SemanticContext *ctx,
+                                                         ASTNode *type_node,
+                                                         Type *resolved_type);
+Type *semantic_type_resolution_lookup_resolved_type(SemanticContext *ctx,
+                                                    ASTNode *type_node);
+void semantic_type_resolution_free_metadata(SemanticContext *ctx);
+void semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx,
+                                                                 ASTNode *type_node);
 void semantic_type_resolution_collect_generic_contract_inventory(
     GenericParams *gp,
     WhereClause *wc,

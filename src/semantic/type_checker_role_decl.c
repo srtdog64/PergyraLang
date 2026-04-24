@@ -12,8 +12,12 @@
 static Type *
 role_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
+    Type *resolved;
     if (type_ref == NULL)
         return NULL;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
     return resolve_type_node(type_ref, ctx);
 }
 

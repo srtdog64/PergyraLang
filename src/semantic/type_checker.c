@@ -316,6 +316,18 @@ semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx)
     }
 }
 
+static Type *
+statement_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    Type *resolved;
+    if (type_ref == NULL)
+        return NULL;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
+}
+
 bool
 type_check_statement(ASTNode *node, SemanticContext *ctx)
 {
@@ -333,7 +345,8 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_event_decl(node, ctx);
     case AST_TYPE_ALIAS:
         if (node->data.type_alias.target_type != NULL)
-            (void)resolve_type_node(node->data.type_alias.target_type, ctx);
+            (void)statement_resolve_type_ref(
+                node->data.type_alias.target_type, ctx);
         return !ctx->has_error;
     case AST_CLASS_DECL:
         return type_check_class_decl(node, ctx);

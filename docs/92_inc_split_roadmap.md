@@ -159,6 +159,10 @@ Backend 진행:
 
 ### Target State A — Semantic Core
 
+- 2026-04-25 DAG metadata slice: `type_checker_resolution_graph_core.c` records context-independent builtin type refs into `SemanticContext.type_resolution_metadata`, and owner resolver seams query that metadata before recursive fallback.
+- 2026-04-25 stable constructed metadata slice: graph metadata can materialize `List<T>`, `Set<T>`, `HashMap<String|Int, T>`, `Option<T>`, and `Result<T,E>` when argument facts are present. Owned constructed `Type` shells are freed with the semantic context.
+- `resolve_generic_type_arg(...)` now queries graph metadata before recursive fallback, so constructed builtin and generic consumer paths share the same DAG metadata seam.
+- `make type-resolution-dag-test-smoke` now fails if graph-backed skips, metadata entries, metadata owned entries, or metadata hits regress to zero. This keeps the DAG migration honest: graph inventory must produce reusable materialized facts, not just skip legacy staging.
 - `type_checker.c`는 orchestration만 담당한다.
 - `type_checker_resolution_graph_inventory.c`가 graph inventory pass를 소유한다.
 - `type_checker_resolution_stage.c`는 DAG stage source of truth로 유지하고 include shim으로 되돌리지 않는다.
@@ -166,15 +170,16 @@ Backend 진행:
 - `type_checker_resolution_stage_lookup.c`는 stage lookup/host-label mapping을 소유하고, `type_checker_resolution_stage_stats.c`는 graph-backed skip 판정과 legacy-family 계측을 소유한다.
 - graph precollect TU는 stage runner를 호출하지 않는다. enum method inventory도 precollect action contract 경로로만 edge를 만든다.
 - `type_checker_generic_validation.c`는 generic where/default validation을 소유한다. graph core/precollect layer는 `resolve_type_node(...)`를 직접 호출하지 않는 resolver-free inventory/graph primitive layer로 고정하고, `semantic-core-shape-test-smoke`가 이를 검사한다.
-- `type_checker_intent_decl.c`의 participant/value/where type materialization은 local seam 3개로 수렴했다. 다음 DAG slice는 이 seam을 graph-backed resolved metadata query로 교체하는 것이다.
-- `type_checker_decls_domain_helpers.c`의 projection/relation/effect contract type materialization은 slot/shared/named-ref seam 3개로 수렴했다. 다음 DAG slice는 domain contract checks가 이 seam에서 graph-backed resolved metadata를 재사용하게 만드는 것이다.
+- `type_checker_intent_decl.c`의 participant/value/where type materialization은 local seam 3개로 수렴했고, 이제 graph-backed resolved metadata를 먼저 조회한 뒤 recursive fallback으로 내려간다.
+- `type_checker_decls_domain_helpers.c`의 projection/relation/effect contract type materialization은 slot/shared/named-ref seam 3개로 수렴했고, domain contract checks는 graph-backed resolved metadata를 먼저 재사용한다. Zone authority participant resolution also now treats exact/qualified-tail direct slot aliases as concrete before same-type ambiguity, and clears stale ambiguity when returning a direct match.
 - `type_checker_intent_helpers.c`의 transfer-derived using/where, ability generic arg, role-field checks는 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 이 seam을 graph-backed metadata reader로 교체하는 것이다.
 - `type_checker_helpers_host.inc`의 projection source field, hosted method return/param, zone authority/domain slot checks는 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 host helper include의 마지막 resolver seam을 `.c` owner로 추출한 뒤 graph-backed metadata reader로 교체하는 것이다.
-- `type_checker_program.c` / `type_checker_program.inc`의 declaration/body type materialization은 quiet/body resolver seam으로 수렴했다. 다음 DAG slice는 program-level registration과 function body materialization이 graph-backed resolved metadata를 재사용하게 만드는 것이다.
+- `type_checker_program.c` / `type_checker_program.inc`의 declaration/body type materialization은 quiet/body resolver seam으로 수렴했다. function body materialization은 graph-backed resolved metadata를 먼저 재사용한다.
 - `type_checker_event.c`의 event declaration/subscription signature materialization은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 event signature metadata reader로 교체하는 것이다.
 - `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. 다음 DAG slice는 world shared/slot checks가 graph-backed resolved metadata를 재사용하게 만드는 것이다.
 - `type_checker_role_decl.c`, `type_checker_generic_contracts.inc`, `type_checker_helpers_late.c`, `type_checker_expr.inc`는 각각 local resolver seam 1개로 수렴했다. 다음 DAG slice는 role include/impl, generic default/bound, call default, lambda/member metadata를 graph-backed result로 교체하는 것이다.
 - `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 다음 DAG slice는 이 seam들을 graph-backed metadata reader로 교체하고 remaining direct count를 implementation/comment/seam만 남기는 것이다.
+- statement/type-alias, ability fields, projection/query builtins, flow with-slot, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다. zone domain-slot seam은 graph metadata-first 조회를 사용하며, `type-resolution-resolver-inventory-test-smoke`가 새 direct resolver 호출을 allowlist 밖에서 금지한다.
 - declaration validators는 `subject/class`, `zone`, `world`, `intent`, `relation/effect/projection`, `ability/role/party/roster` 단위의 `.c`로 분리한다.
 - `find_*_decl`, `find_*_slot`, label/format, dependency record API는 static include-order가 아니라 internal header 계약으로만 사용한다.
 - type-resolution DAG는 recursive resolver의 보조 자료가 아니라 provider/consumer validation schedule의 source of truth가 된다.

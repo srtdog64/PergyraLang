@@ -176,6 +176,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_zone.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_inventory.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_metadata.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_domain.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_lookup.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_stats.c \
@@ -652,6 +653,9 @@ ast-dispatch-test-smoke:
 module-taxonomy-test-smoke:
 	"$(BASH)" tests/module_taxonomy_smoke.sh
 
+formal-semantics-test-smoke:
+	"$(BASH)" tests/formal_semantics_smoke.sh
+
 semantic-inc-size-test-smoke:
 	"$(BASH)" tests/semantic_inc_size_smoke.sh
 
@@ -664,8 +668,20 @@ semantic-core-shape-test-smoke:
 type-resolution-dag-test-smoke: $(SEMANTIC_TEST)
 	SEMANTIC_TEST_BIN="$(abspath $(SEMANTIC_TEST))" "$(BASH)" tests/type_resolution_dag_smoke.sh
 
+type-resolution-resolver-inventory-test-smoke:
+	"$(BASH)" tests/type_resolution_resolver_inventory_smoke.sh
+
 diagnostic-registry-test-smoke:
 	"$(BASH)" tests/diagnostic_registry_smoke.sh
+
+runtime-authority-contract-test-smoke:
+	"$(BASH)" tests/runtime_authority_contract_smoke.sh
+
+projection-diagnostic-contract-test-smoke:
+	"$(BASH)" tests/projection_diagnostic_contract_smoke.sh
+
+runtime-abi-lifetime-test-smoke:
+	"$(BASH)" tests/runtime_abi_lifetime_smoke.sh
 
 parser-lexer-diagnostic-test-smoke:
 	"$(BASH)" tests/parser_lexer_diagnostic_smoke.sh
@@ -716,11 +732,16 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" stdlib-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" module-test-smoke
 	$(MAKE) module-taxonomy-test-smoke
+	$(MAKE) formal-semantics-test-smoke
 	$(MAKE) semantic-inc-size-test-smoke
 	$(MAKE) backend-inc-size-test-smoke
 	$(MAKE) semantic-core-shape-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" type-resolution-dag-test-smoke
+	$(MAKE) type-resolution-resolver-inventory-test-smoke
 	$(MAKE) diagnostic-registry-test-smoke
+	$(MAKE) runtime-authority-contract-test-smoke
+	$(MAKE) projection-diagnostic-contract-test-smoke
+	$(MAKE) runtime-abi-lifetime-test-smoke
 	$(MAKE) parser-lexer-diagnostic-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" diagnostics-json-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" ir-pipeline-test-smoke
@@ -821,7 +842,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-rir test-mir test-hir test-all \
-        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke semantic-inc-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke diagnostic-registry-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke formal-semantics-test-smoke semantic-inc-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

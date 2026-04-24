@@ -59,6 +59,30 @@ type_name_is_builtin_provider(const char *name)
             || strcmp(name, "Option") == 0);
 }
 
+static Type *
+type_resolution_builtin_singleton(const char *name)
+{
+    if (name == NULL)
+        return NULL;
+    if (strcmp(name, "Int") == 0)
+        return TYPE_INT;
+    if (strcmp(name, "Long") == 0)
+        return TYPE_LONG;
+    if (strcmp(name, "Float") == 0)
+        return TYPE_FLOAT;
+    if (strcmp(name, "Double") == 0)
+        return TYPE_DOUBLE;
+    if (strcmp(name, "Bool") == 0)
+        return TYPE_BOOL;
+    if (strcmp(name, "String") == 0)
+        return TYPE_STRING;
+    if (strcmp(name, "QubitSlot") == 0)
+        return TYPE_QUBIT;
+    if (strcmp(name, "Void") == 0)
+        return TYPE_VOID;
+    return NULL;
+}
+
 static bool
 type_resolution_labels_equal(const char *lhs, const char *rhs)
 {
@@ -353,6 +377,14 @@ semantic_type_resolution_record_type_ref_dependency(SemanticContext *ctx,
 
     provider_name = provider_type_ref->data.type.name;
     if (type_name_is_builtin_provider(provider_name)) {
+        Type *builtin = type_resolution_builtin_singleton(provider_name);
+        if (builtin != NULL
+            && provider_type_ref->data.type.generic_args == NULL) {
+            semantic_type_resolution_record_resolved_type(
+                ctx,
+                (ASTNode *)provider_type_ref,
+                builtin);
+        }
         semantic_type_resolution_record_named_dependency(
             ctx,
             consumer_site,

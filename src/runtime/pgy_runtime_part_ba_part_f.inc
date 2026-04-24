@@ -349,7 +349,9 @@ pgy_zone_authority_record_last(bool ok,
              sizeof(pgy_zone_authority_last_participant),
              "%s", resolved_participant);
     snprintf(pgy_zone_authority_last_code, sizeof(pgy_zone_authority_last_code),
-             "%s", code != NULL ? code : (ok ? "ok" : "unknown"));
+             "%s", code != NULL ? code
+                                 : (ok ? PGY_ZONE_AUTHORITY_CODE_OK
+                                       : PGY_ZONE_AUTHORITY_CODE_UNKNOWN));
     snprintf(pgy_zone_authority_last_reason, sizeof(pgy_zone_authority_last_reason),
              "%s", reason != NULL ? reason : "");
 }
@@ -366,28 +368,26 @@ pgy_zone_authority_validate_impl(void *zone_ptr, void *participant_ptr,
 
     if (zone_ptr == NULL) {
         pgy_zone_authority_record_last(false, resolved_zone, resolved_participant,
-            "missing-zone",
-            "zone authority validation failed: null zone self");
+            PGY_ZONE_AUTHORITY_CODE_MISSING_ZONE,
+            PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE);
         if (emit_stderr) {
-            fprintf(stderr,
-                "[pgy][authority] zone '%s' entered with null self while validating '%s'\n",
+            fprintf(stderr, PGY_ZONE_AUTHORITY_STDERR_MISSING_ZONE,
                 resolved_zone, resolved_participant);
         }
         return false;
     }
     if (participant_ptr == NULL) {
         pgy_zone_authority_record_last(false, resolved_zone, resolved_participant,
-            "missing-participant",
-            "zone authority validation failed: null authority participant");
+            PGY_ZONE_AUTHORITY_CODE_MISSING_PARTICIPANT,
+            PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT);
         if (emit_stderr) {
-            fprintf(stderr,
-                "[pgy][authority] zone '%s' has null authority participant '%s'\n",
+            fprintf(stderr, PGY_ZONE_AUTHORITY_STDERR_MISSING_PARTICIPANT,
                 resolved_zone, resolved_participant);
         }
         return false;
     }
     pgy_zone_authority_record_last(true, resolved_zone, resolved_participant,
-                                   "ok", "");
+                                   PGY_ZONE_AUTHORITY_CODE_OK, "");
     return true;
 }
 

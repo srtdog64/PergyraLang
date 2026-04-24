@@ -48,6 +48,18 @@ static FlowFlags type_check_with_stmt_flow(ASTNode *node,
                                            SemanticContext *ctx,
                                            LoopFlowState *loop_flow);
 
+static Type *
+flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    Type *resolved;
+    if (type_ref == NULL)
+        return NULL;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
+}
+
 static bool
 match_pattern_is_named_variant(ASTNode *pat, const char **name_out,
                                ASTNode ***args_out, size_t *arg_count_out)
@@ -795,7 +807,7 @@ type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
     const char *alias = node->data.with_stmt.alias;
     bool is_secure = node->data.with_stmt.is_secure;
 
-    Type *inner = resolve_type_node(slot_type_node, ctx);
+    Type *inner = flow_resolve_type_ref(slot_type_node, ctx);
     Type *slot_type = type_create_slot(inner, is_secure);
 
     Symbol *sym = symbol_create_slot(alias, slot_type, is_secure, NULL,

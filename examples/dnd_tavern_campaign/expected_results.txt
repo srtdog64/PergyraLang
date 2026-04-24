@@ -170,7 +170,7 @@ layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari
 [Substate] tavern.scene
 [Intent] TavernRecruitment ok=true
 [Substate] tavern.choice_resolution
-  [Fighter] Ari lv=1 aff=7
+  [Fighter] Ari lv=1 aff=8
   [MagePacket] Sol hp=21 gold=0
   [Objective] loot=guild rumor map
 [World] mode=SCRIPTED phase=TAVERN day=1 omen=1 fame=4 gold=0 morale=9 route=10/3/6/6

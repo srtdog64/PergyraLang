@@ -173,6 +173,19 @@ struct SemanticContext
         size_t capacity;
     } resolve_type_cache;
 
+    /* Graph-backed staged type metadata (AST type node -> Type*).
+     * Populated by the DAG stage after a successful materialization, then
+     * reused by Pass 2 owner seams before falling back to recursive resolve. */
+    struct {
+        void **keys;     /* ASTNode * pointers */
+        void **values;   /* Type * pointers */
+        bool *owned;     /* true when the metadata cache owns the Type shell */
+        size_t count;
+        size_t capacity;
+    } type_resolution_metadata;
+    size_t type_resolution_metadata_hits;
+    size_t type_resolution_metadata_misses;
+
     bool         has_error;
 };
 

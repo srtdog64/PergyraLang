@@ -25,6 +25,7 @@ extern char *realpath(const char *path, char *resolved_path);
 #include <windows.h>
 #endif
 #include "pgy_parallel.h"
+#include "pgy_runtime_authority_contract.h"
 
 #ifndef PGY_RUNTIME_MAX_FILE_BYTES
 #define PGY_RUNTIME_MAX_FILE_BYTES (64u * 1024u * 1024u)
@@ -35,7 +36,8 @@ static inline char *pgy_runtime_strdup(const char *src);
 static _Thread_local bool pgy_zone_authority_last_ok = true;
 static _Thread_local char pgy_zone_authority_last_zone[128] = "";
 static _Thread_local char pgy_zone_authority_last_participant[128] = "";
-static _Thread_local char pgy_zone_authority_last_code[64] = "ok";
+static _Thread_local char pgy_zone_authority_last_code[64] =
+    PGY_ZONE_AUTHORITY_CODE_OK;
 static _Thread_local char pgy_zone_authority_last_reason[192] = "";
 
 static inline void

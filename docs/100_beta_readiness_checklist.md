@@ -1,6 +1,6 @@
 # Beta Readiness Checklist
 
-마지막 업데이트: 2026-04-24
+마지막 업데이트: 2026-04-25
 
 이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity**다. 현재 공식 beta readiness는 약 70%로 본다.
 
@@ -12,6 +12,36 @@
 - `OUT OF BETA`: 베타 뒤로 명시 이동한다.
 
 ---
+
+## 0. Formal Semantics / Proof Obligations
+
+Status: `IN PROGRESS / BLOCKER-DOC`
+
+Goal:
+
+- The beta stable subset must have an explicit mathematical contract before it is called beta-complete.
+- The proof source of truth is the split proof pack in `docs/semantics/`, with `docs/102_formal_semantics_and_proof_obligations.md` kept as the stable index.
+- Proof evidence is not the same as proof: regression, smoke, and backend-compare runs are supporting evidence, while the stable theorem/invariant statements live in the formal semantics doc.
+- The proof scope is intentionally narrow: core declarations, stable generics, anchored own/ref, stable collections, observability baseline, `parallel` baseline, runtime propagation, DAG, ABI ownership, and C/LLVM parity.
+
+Closed now:
+
+- `docs/semantics/` is the source of truth for beta proof vocabulary, judgments, theorem statements, and remaining proof obligations.
+- `docs/102_formal_semantics_and_proof_obligations.md` now points to the split proof pack and remains as the stable English index.
+- The doc explicitly separates language proof obligations from the math library design in `docs/45_math_layer_design.md`.
+- Out-of-beta proof claims are sealed for full quantum, full FP/HKT/functor algebra, arbitrary ownership, arbitrary map keys, GPU/Spray, Skia/render, package manager, and advanced debugger semantics.
+
+Remaining:
+
+- Tie each B0 closure item to a theorem/invariant row before calling that item beta-complete.
+- Keep DAG, runtime propagation, MIR declaration inventory, ABI ownership, and backend parity blockers open until their theorem statements and regression evidence match.
+- Do not advertise mechanized proof for beta unless a separate Lean/Coq or executable small-step model is actually added.
+
+Evidence command:
+
+```sh
+make formal-semantics-test-smoke
+```
 
 ## 1. Core Module / Module Boundary Closure
 
@@ -25,6 +55,7 @@
 
 현재 닫힌 것:
 
+- 2026-04-25 local acceptance: `make ci-linux` completed green on WSL/Linux after the DAG metadata and authority direct-slot fixes. This covers `test-all`, LLVM smoke, fmt/stdlib/module/example smoke, taxonomy/inc-size/core-shape/DAG/inventory/diagnostic/parser-lexer/JSON/IR/AST gates, ABI same-process, and backend compare.
 - `docs/99_language_module_taxonomy.md`로 core/foundation/execution/compat layer를 고정했다.
 - `docs/language_module_manifest.json`, `docs/language_module_cases.json`가 machine-readable source다.
 - `make module-taxonomy-test-smoke`가 taxonomy drift를 검사한다.
@@ -53,6 +84,8 @@
 - `type_checker_helpers_late.c` standalone TU가 hidden include-order helper 없이 빌드되도록 call-path helper prototypes와 slot analyzer / visibility / generic diagnostic include 계약을 명시했다.
 - string literal / interpolation stable subset을 grammar docs에 고정했다. Stable은 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace까지이며 nested brace matching / format specifier / multiline interpolation은 beta-out-of-scope다.
 - `diagnostic-registry-test-smoke`가 `diag_codes.h` / `docs/72_diagnostic_codes.md` code sync와 `semantic_error_with_hints` / `semantic_warning_with_hints` macro usage를 검사한다.
+- runtime authority failure surface는 `pgy_runtime_authority_contract.h`를 공통 source-of-truth로 사용한다. inline C runtime과 LLVM runtime library export가 같은 `missing-zone` / `missing-participant` code, reason, stderr format을 쓰며, `runtime-authority-contract-test-smoke`가 literal drift를 막는다.
+- projection diagnostics는 missing source field / ambiguous source path / wrong projection kind / duplicate field map 4개 베타 필수 케이스를 `projection-diagnostic-contract-test-smoke`로 고정한다.
 - AI-first/GPU 방향은 `pgy.accel.spray`로 module taxonomy와 manifest에 예약했다. 이는 post-beta accelerator library/runtime surface이며 core keyword나 beta blocker가 아니다.
 - Skia/shader/render 방향은 `pgy.render.skia`로, DOP style은 `pgy.compat.dop`로 module taxonomy와 manifest에 예약했다. 둘 다 post-beta ecosystem surface이며 core keyword나 beta blocker가 아니다.
 - module ecosystem update policy를 taxonomy에 고정했다. `pgy.core`는 가장 자주 개선하되 가장 강하게 검증하고, OOP/FP/DOP/GPU/render/std/kit은 모듈 생태계로 진화한다.
@@ -88,6 +121,16 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 
 ## 2. Type-Resolution DAG Closure
 
+2026-04-25 update:
+
+- Graph precollect now materializes context-independent builtin type refs (`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`) into `SemanticContext.type_resolution_metadata`.
+- Graph metadata now materializes a narrow stable constructed subset (`List<T>`, `Set<T>`, `HashMap<String|Int, T>`, `Option<T>`, `Result<T,E>`) when the argument facts are already available. Constructed `Type` shells are owned by the semantic context metadata lane and released on context destroy.
+- Pass-2 owner resolver seams now query `semantic_type_resolution_lookup_resolved_type(...)` before falling back to recursive `resolve_type_node(...)`.
+- `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, and metadata hits. Latest local smoke: `graph-backed skips=3079 metadata_entries=1527 metadata_owned=1 metadata_hits=2380`.
+- This is not full DAG source-of-truth yet. The remaining closure is graph/topo materialization for generic/default/bound/module/nominal references, then shrinking recursive fallback to explicit legacy-only seams.
+- Authority direct-slot resolution now clears stale ambiguity when the participant alias resolves to a concrete zone subject slot after earlier same-type candidates. This keeps `authorized by rogue/mage` valid when the zone has matching `subject slot rogue/mage: Adventurer`, while still preserving the hard error for genuinely ambiguous same-type participants.
+
 상태: `IN PROGRESS / BLOCKER`
 
 목표:
@@ -112,15 +155,18 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - graph precollect TU는 더 이상 stage runner를 호출하지 않는다. enum methods도 `semantic_stage_method_array(...)`가 아니라 precollect action contract 경로로 edge를 수집한다.
 - stage lookup과 stage stats helper는 `type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`로 분리됐다. `type_checker_resolution_stage.c`는 895 LOC로 내려가 stage replay 본체만 소유한다.
 - generic where/default validation은 `type_checker_generic_validation.c`가 소유한다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.inc`는 resolver-free graph layer로 고정됐고, `semantic-core-shape-test-smoke`가 graph layer의 직접 `resolve_type_node(...)` 호출을 금지한다.
-- intent declaration resolution은 participant/value/where local seam 3개로 수렴했다. 이 seam은 다음 DAG metadata replacement 지점이다.
-- domain contract resolution은 slot/shared/named-ref local seam 3개로 수렴했다. projection/relation/effect contract는 이 seam을 통해 다음 DAG metadata replacement로 넘어간다.
+- intent declaration resolution은 participant/value/where local seam 3개로 수렴했고, 이제 graph metadata-first 조회 후 recursive fallback으로 내려간다.
+- domain contract resolution은 slot/shared/named-ref local seam 3개로 수렴했고, projection/relation/effect contract도 graph metadata-first 조회 후 fallback으로 내려간다.
 - intent helper resolution은 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. transfer-derived using/where, ability generic arg, role-field checks는 이 seam에서 graph-backed metadata로 교체할 수 있다.
 - host helper resolution은 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. projection source fields, hosted method return/param, zone authority/domain slot checks는 이 seam에서 graph-backed metadata로 교체할 수 있다.
-- program declaration/body resolution은 quiet/body resolver seam으로 수렴했다. top-level declaration registration과 function-body materialization은 다음 DAG metadata replacement 지점이다.
+- program declaration/body resolution은 quiet/body resolver seam으로 수렴했다. function-body materialization seam은 graph metadata-first 조회 후 fallback으로 내려간다.
 - event signature resolution은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. event params, return type, lambda handler signature를 graph-backed signature metadata로 교체할 수 있다.
 - world shared/domain-slot resolution은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. world shared fields와 slot initializer checks는 이 seam에서 graph-backed metadata를 재사용할 수 있다.
 - role/generic-contract/late-helper/expr resolution은 각각 local seam 1개로 수렴했다. remaining direct resolver inventory에서 이 파일들은 이제 metadata replacement owner를 명확히 가진다.
 - generic validation, ability where/module contract/declaration, class field, operator overload, ownership destructure resolution도 local seam으로 수렴했다. remaining direct resolver inventory는 resolver implementation, comments, or explicit seam sites로 압축됐다.
+- statement, ability field, builtin projection/query, flow, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다.
+- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다.
+- `type_checker_decls_domain_helpers.c`의 zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. `dnd_tavern_campaign` 같은 multi-slot same-type zone에서 concrete participant alias가 false-positive ambiguous로 떨어지는 경로를 닫았다.
 - `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage legacy fallback inventory를 CI gate로 검사한다.
 - intent/standalone helper dependency는 internal headers와 hard CFLAGS로 고정되어 DAG split 중 hidden include-order failure를 즉시 잡는다.
 - graph cycle과 legacy alias cycle 모두 `Contract source`, `Reason`, `Fix` vocabulary를 쓴다.
@@ -143,6 +189,7 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 증거 명령:
 
 ```sh
+make ci-linux
 make test-semantic
 make type-resolution-dag-test-smoke
 make module-test-smoke
@@ -207,11 +254,13 @@ make ast-dispatch-test-smoke
 - semantic scratch arena, diagnostic result-owned payload seam, HIR/MIR routine scratch, LLVM scratch/result-owned lane이 들어왔다.
 - `make test-abi-perf`와 `make perf-summary`로 speed baseline도 관리한다.
 - POSIX `realpath` implicit declaration warning을 제거했다.
+- intent observability and authority failure stable string exports are `runtime-borrowed string` ABI values: callers must not free them, and values are valid until the next mutation of the corresponding runtime registry/snapshot.
+- `runtime-abi-lifetime-test-smoke` gates stable intent/authority string export bodies so they do not allocate/free/strdup in the ABI return path.
 
 남은 것:
 
 - owner shell과 runtime ABI contract가 섞인 helper가 남아 있다.
-- `char *`, `const char *`, grow-array payload 반환 helper의 ownership audit가 필요하다.
+- helper payload, runtime-owned handle, and grow-array payload return helpers still need the same ownership audit.
 - runtime query/diagnostic string이 scratch teardown 이후에도 안전한지 회귀가 더 필요하다.
 
 완료 조건:
@@ -224,6 +273,7 @@ make ast-dispatch-test-smoke
 
 ```sh
 make test-abi
+make runtime-abi-lifetime-test-smoke
 make test-abi-perf
 make perf-summary PERF_LOG=/path/to/test-abi-perf.log
 ```

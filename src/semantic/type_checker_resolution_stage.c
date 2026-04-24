@@ -73,6 +73,8 @@ semantic_stage_resolve_type_quiet(ASTNode *type_node,
 
     if (resolved == NULL)
         ctx->type_resolution_stage_legacy_resolve_failed_count++;
+    if (resolved != NULL)
+        semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 

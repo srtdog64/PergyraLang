@@ -10,7 +10,7 @@
     /* Type inference: if no annotation, infer from initializer */
     if (ann != NULL) {
         /* Explicit type annotation */
-        decl_type = resolve_type_node(ann, ctx);
+        decl_type = ownership_let_resolve_type_ref(ann, ctx);
         if (ctx->program_root != NULL
             && ann->type == AST_TYPE
             && ann->data.type.name != NULL) {

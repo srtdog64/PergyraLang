@@ -2,6 +2,18 @@
 #include "diag_codes.h"
 
 static Type *
+builtin_projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    Type *resolved;
+    if (type_ref == NULL)
+        return NULL;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
+}
+
+static Type *
 type_check_projection_call(ASTNode *call,
                            SemanticContext *ctx,
                            const char *builtin_name,
@@ -133,7 +145,8 @@ type_check_projection_call(ASTNode *call,
             continue;
         }
 
-        target_field_type = resolve_type_node(target_field->type, ctx);
+        target_field_type = builtin_projection_resolve_type_ref(
+            target_field->type, ctx);
         require_assignable(source_field_type, target_field_type, call, ctx);
     }
 

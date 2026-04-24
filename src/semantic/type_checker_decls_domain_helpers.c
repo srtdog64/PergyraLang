@@ -18,30 +18,47 @@
 #include "diag_codes.h"
 #include "../common/string_compat.h"
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
 static Type *
 domain_resolve_slot_type(ASTNode *slot, SemanticContext *ctx)
 {
+    Type *resolved;
+    ASTNode *type_ref;
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return TYPE_UNKNOWN;
-    return resolve_type_node(slot->data.domain_slot.type, ctx);
+    type_ref = slot->data.domain_slot.type;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
 }
 
 static Type *
 domain_resolve_shared_type(ASTNode *shared, SemanticContext *ctx)
 {
+    Type *resolved;
+    ASTNode *type_ref;
     if (shared == NULL || shared->type != AST_PARTY_SHARED)
         return TYPE_UNKNOWN;
-    return resolve_type_node(shared->data.party_shared.type, ctx);
+    type_ref = shared->data.party_shared.type;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
 }
 
 static Type *
 domain_resolve_named_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
+    Type *resolved;
     if (type_ref == NULL)
         return NULL;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
     return resolve_type_node(type_ref, ctx);
 }
 
@@ -313,6 +330,41 @@ find_zone_authority(ASTNode *zone, const char *slot_name)
     return NULL;
 }
 
+static bool
+domain_name_segment_equals(const char *name, const char *alias)
+{
+    size_t name_len;
+    size_t alias_len;
+
+    if (name == NULL || alias == NULL)
+        return false;
+    name_len = strlen(name);
+    alias_len = strlen(alias);
+    while (name_len > 0 && isspace((unsigned char)name[name_len - 1]))
+        name_len--;
+    while (alias_len > 0 && isspace((unsigned char)alias[alias_len - 1]))
+        alias_len--;
+    return name_len == alias_len && strncmp(name, alias, name_len) == 0;
+}
+
+static bool
+domain_slot_name_matches_alias(const char *slot_name, const char *alias)
+{
+    const char *tail;
+
+    if (domain_name_segment_equals(slot_name, alias))
+        return true;
+
+    tail = strrchr(slot_name, '.');
+    if (tail != NULL && domain_name_segment_equals(tail + 1, alias))
+        return true;
+    tail = strrchr(slot_name, ':');
+    if (tail != NULL && domain_name_segment_equals(tail + 1, alias))
+        return true;
+    tail = strrchr(slot_name, '/');
+    return tail != NULL && domain_name_segment_equals(tail + 1, alias);
+}
+
 ASTNode *
 resolve_zone_subject_slot_for_participant(ASTNode *zone,
                                           SemanticContext *ctx,
@@ -332,19 +384,27 @@ resolve_zone_subject_slot_for_participant(ASTNode *zone,
     for (size_t i = 0; i < zone->data.zone_decl.slot_count; i++) {
         ASTNode *slot = zone->data.zone_decl.slots[i];
         Type *slot_type;
+        bool direct_name_match;
+        bool type_name_match;
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
             || !slot->data.domain_slot.is_subject
             || slot->data.domain_slot.slot_name == NULL
             || slot->data.domain_slot.type == NULL) {
             continue;
         }
+        direct_name_match = domain_slot_name_matches_alias(
+            slot->data.domain_slot.slot_name, participant_alias);
+        if (direct_name_match) {
+            if (ambiguous_out != NULL)
+                *ambiguous_out = false;
+            return slot;
+        }
         slot_type = domain_resolve_slot_type(slot, ctx);
-        if (slot_type == NULL || slot_type->name == NULL
-            || strcmp(slot_type->name, participant_type_name) != 0) {
+        type_name_match = slot_type != NULL && slot_type->name != NULL
+            && strcmp(slot_type->name, participant_type_name) == 0;
+        if (!type_name_match) {
             continue;
         }
-        if (strcmp(slot->data.domain_slot.slot_name, participant_alias) == 0)
-            return slot;
         if (typed_match != NULL) {
             if (ambiguous_out != NULL)
                 *ambiguous_out = true;

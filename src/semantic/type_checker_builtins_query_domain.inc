@@ -1,3 +1,15 @@
+static Type *
+builtin_query_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    Type *resolved;
+    if (type_ref == NULL)
+        return NULL;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
+}
+
 static ASTNode *
 find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
 {
@@ -301,7 +313,7 @@ resolve_projection_source_field_type_rec(ASTNode *program,
             && strcmp(field->name, field_name) == 0) {
             if (field_type_out != NULL)
                 *field_type_out = field->type != NULL
-                    ? resolve_type_node(field->type, ctx)
+                    ? builtin_query_resolve_type_ref(field->type, ctx)
                     : TYPE_UNKNOWN;
             return 1;
         }

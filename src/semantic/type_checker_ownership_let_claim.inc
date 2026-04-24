@@ -31,7 +31,7 @@
              * use it directly instead of double-wrapping. */
             Type *slot_type = NULL;
             if (ann != NULL) {
-                Type *ann_type = resolve_type_node(ann, ctx);
+                Type *ann_type = ownership_let_resolve_type_ref(ann, ctx);
                 if (ann_type->kind == TYPE_KIND_SLOT) {
                     slot_type = ann_type;
                     is_secure = ann_type->data.slot.is_secure;

@@ -11,27 +11,45 @@
 static Type *
 intent_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
 {
+    Type *resolved;
+    ASTNode *type_ref;
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
         return TYPE_UNKNOWN;
-    return resolve_type_node(involves->data.intent_involves.subject_type, ctx);
+    type_ref = involves->data.intent_involves.subject_type;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
 }
 
 static Type *
 intent_resolve_value_type(ASTNode *value, SemanticContext *ctx)
 {
+    Type *resolved;
+    ASTNode *type_ref;
     if (value == NULL || value->type != AST_INTENT_VALUE)
         return TYPE_UNKNOWN;
-    return resolve_type_node(value->data.intent_value.value_type, ctx);
+    type_ref = value->data.intent_value.value_type;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
 }
 
 static Type *
 intent_resolve_step_where_type(ASTNode *step, SemanticContext *ctx)
 {
+    Type *resolved;
+    ASTNode *type_ref;
     if (step == NULL || step->type != AST_INTENT_STEP
         || step->data.intent_step.where_type == NULL) {
         return NULL;
     }
-    return resolve_type_node(step->data.intent_step.where_type, ctx);
+    type_ref = step->data.intent_step.where_type;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    return resolve_type_node(type_ref, ctx);
 }
 
 bool

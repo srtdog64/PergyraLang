@@ -46,6 +46,27 @@
 - Drift gate: `make module-taxonomy-test-smoke`
 - Operational beta checklist: `docs/100_beta_readiness_checklist.md`
 
+## Formal semantics / mathematical proof obligations
+
+베타는 “테스트가 통과한다”만으로 닫히지 않는다. stable subset마다 타입 보존, 진행, ownership safety, authority soundness, projection freshness, DAG soundness, module visibility non-interference, backend parity 같은 수학적 불변식이 문서화되어야 한다.
+
+- Source of truth: `docs/semantics/`
+- Stable index: `docs/102_formal_semantics_and_proof_obligations.md`
+- Drift gate: `make formal-semantics-test-smoke`
+- 상태: `IN PROGRESS / BLOCKER-DOC`
+- 베타 기준:
+  - [x] 수학 library 문서(`docs/45_math_layer_design.md`)와 언어 의미론 증명 문서를 분리한다.
+  - [x] stable beta subset의 semantic domain, judgment, theorem/proof-obligation vocabulary를 고정한다.
+  - [ ] B0 항목마다 theorem statement + current regression evidence + remaining proof obligation을 최신 코드 상태와 맞춘다.
+  - [ ] runtime propagation, DAG, MIR declaration inventory, ABI ownership, C/LLVM parity의 남은 blocker를 proof obligation으로 추적한다.
+  - [ ] beta 문구에서 Lean/Coq/기계증명 완료처럼 보이는 표현을 금지한다. 기계증명은 별도 executable model 또는 proof assistant artifact가 생기기 전까지 post-beta/v1 hardening으로 둔다.
+
+운영 규칙:
+
+- 테스트/스모크/백엔드 비교는 proof evidence이지 proof 자체가 아니다.
+- undocumented mathematical assumption이 필요한 surface는 stable이 아니라 `IN PROGRESS`, `explicit reject`, 또는 `OUT OF BETA`로 내려야 한다.
+- FP functor/HKT, full ownership, full quantum, GPU/Spray, Skia/render graph는 현재 beta proof scope 밖이다.
+
 ## 구조/운영 폐인 포인트 보드 (2026-04-20)
 
 이 섹션은 기능 backlog가 아니라, 실제 작업 효율과 베타 신뢰도를 계속 깎는 구조 debt / 운영 pain point를 고정한다.
@@ -317,6 +338,9 @@
     - synthetic event-handler AST field 저장은 callable signature registry로 치환
     - `*error_message` heap return contract는 result-owned lane으로 수렴
     - 남은 heap 경계는 owner shell(`ctx`, registry destroy, result outer shell)과 runtime ABI contract 수준으로 축소
+    - 진행: intent observability와 authority failure snapshot의 stable runtime string exports는 `runtime-borrowed string` ABI로 고정했다. caller는 free하지 않고 다음 runtime registry/snapshot mutation 전까지만 유효하다
+    - 진행: `runtime-abi-lifetime-test-smoke`가 stable intent/authority 문자열 export body에서 allocation/free/strdup이 발생하지 않도록 검사한다
+    - 남음: helper payload와 runtime-owned handle ownership도 같은 수준의 smoke/문서 계약으로 확장해야 한다
   - 주의: 반환 계약이 있는 expression string은 아직 arena로 옮기지 않음
   - 주의: `slot_ref_expr(...)` scratch 전환 시도는 되돌림. 반환 ownership 경계를 먼저 나눠야 함
 
@@ -1013,11 +1037,15 @@
   - runtime observability와 diagnostics wording을 같은 provenance vocabulary로 정렬
   - 참고: runtime propagation provenance(`epoch/cause`) baseline은 완료로 본다
   - 진행: runtime zone authority invariant guard는 `last_ok / zone / participant / code / reason` thread-local snapshot을 남기도록 정렬되어, hard-fail guard와 별개로 최소 queryable failure snapshot baseline은 생겼다
+  - 진행: authority failure code/reason/stderr format은 `src/runtime/pgy_runtime_authority_contract.h`로 승격했다. inline C runtime과 LLVM runtime library export가 같은 contract macro를 사용하고 `runtime-authority-contract-test-smoke`가 raw literal drift를 차단한다
   - 진행: intent emitter는 MIR `IntentAuthorizedBy` metadata를 C/LLVM 양쪽에서 수집하고, step-local approval을 `pgy_zone_authority_validate_flags_export(...)`로 검증해 `authority:<step>` recoverable intent failure와 runtime authority snapshot을 같은 경로로 남긴다
   - 진행: intent `authorized by`는 concrete zone subject slot으로 해석되며, 같은 타입의 non-authority slot 또는 ambiguous same-type slot mapping은 semantic hard error로 닫혔다
+  - 진행: concrete direct-slot participant alias는 ambiguous same-type 후보보다 우선한다. `subject slot rogue: Adventurer`가 존재하면 `authorized by rogue`는 concrete authority slot으로 닫히며, 이전 후보가 세운 stale ambiguity flag는 무시된다
   - 회귀: `intent authorized participant must resolve to authority slot`, `intent authorized participant reports ambiguous authority slot`
+  - 회귀: `dnd_tavern_campaign` example smoke가 multi-subject same-type zone에서 direct authority aliases를 end-to-end로 고정한다
   - 회귀: `intent_authority_snapshot_abi`, `intent_authority_snapshot`
-  - 남음: queryable failure reason/state surface는 여전히 beta blocker다
+  - 회귀: `authority_failure_abi`, `authority_failure_surface`, `runtime-authority-contract-test-smoke`
+  - 남음: missing-zone/missing-participant 이후의 richer authority mismatch/domain-boundary denial reason도 같은 queryable contract로 확장해야 한다
 - [ ] **runtime authority guard downshift**
   - 현재 `pgy_zone_authority_check_export(...)`는 null self/null participant invariant guard다
   - 이 guard 자체는 hard-fail 유지
@@ -1036,6 +1064,7 @@
     - structured `Reason:` / `Fix:` formatting을 source-of-truth로 고정
   - 회귀 기준:
     - semantic regression: missing source field / ambiguous path / wrong projection kind / duplicate field map
+  - 진행: `projection-diagnostic-contract-test-smoke`가 위 4개 베타 필수 진단 케이스와 `Reason:` / `Fix:` / projection consumer path vocabulary를 semantic regression, implementation, proof doc 기준으로 함께 검사한다
 
 현재 source-of-truth:
 - stable example
@@ -1043,6 +1072,7 @@
   - `examples/projection_refresh_publish_group_minimal.pgy`
 - semantic regression
   - `src/test_semantic.c:test_projection_contract_diagnostics`
+  - `make projection-diagnostic-contract-test-smoke`
 
 - [x] **surface trust subset 분류 고정**
   - 대상: generics, own/ref, collections, runtime observability
@@ -1167,15 +1197,23 @@
     - 진행: graph precollect TU 안에서 enum methods가 `semantic_stage_method_array(...)`를 호출하던 impurity를 제거했다. 이제 enum method signature/contract도 precollect action contract 경로로만 graph edge를 수집한다
     - 진행: DAG stage helper를 `type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`로 분리해 `type_checker_resolution_stage.c`를 895 LOC로 낮췄다. graph precollect, stage lookup, stage stats, stage replay owner가 파일 경계로 분리됐다
     - 진행: generic where/default validation은 `type_checker_generic_validation.c`로 이동했다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.inc`는 더 이상 `resolve_type_node(...)`를 직접 호출하지 않으며, `semantic-core-shape-test-smoke`가 이 resolver-free graph-layer 경계를 검사한다
-    - 진행: `type_checker_intent_decl.c`의 직접 `resolve_type_node(...)` 호출은 participant/value/where local seam 3개로 수렴했다. 다음 DAG 전환은 이 seam을 graph metadata 조회로 교체하는 방식으로 진행한다
-    - 진행: `type_checker_decls_domain_helpers.c`의 domain contract 직접 `resolve_type_node(...)` 호출은 slot/shared/named-ref local seam 3개로 수렴했다. projection/relation/effect contract의 다음 DAG 전환은 이 seam을 metadata query로 교체하는 방식으로 진행한다
+    - 진행: graph precollect가 context-independent builtin type refs(`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`)를 `SemanticContext.type_resolution_metadata`에 기록한다. owner resolver seams는 이 metadata를 먼저 조회한 뒤 recursive fallback으로 내려간다
+    - 진행: graph metadata가 stable constructed type 일부(`List<T>`, `Set<T>`, `HashMap<String|Int, T>`, `Option<T>`, `Result<T,E>`)를 materialize할 수 있다. graph가 만든 `Type` shell은 metadata owned lane으로 기록하고 semantic context destroy에서 해제한다
+    - 진행: `resolve_generic_type_arg(...)`도 metadata-first 조회 후 fallback으로 내려간다. constructed builtin/generic consumer path의 recursive resolver 의존 면적을 줄였다
+    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 metadata entries/owned/hits도 0으로 퇴행하지 않는지 검사한다. 최신 local smoke: `graph-backed skips=3079 metadata_entries=1527 metadata_owned=1 metadata_hits=2380`
+    - 진행: zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. 같은 타입 subject slot이 여럿 있어도 `authorized by rogue`가 실제 `subject slot rogue: Adventurer`로 concrete하게 닫히면 false-positive ambiguous로 떨어지지 않는다
+    - 진행: `type_checker_intent_decl.c`의 participant/value/where local seam 3개는 graph metadata-first 조회 후 recursive fallback으로 내려간다
+    - 진행: `type_checker_decls_domain_helpers.c`의 slot/shared/named-ref local seam 3개는 graph metadata-first 조회 후 recursive fallback으로 내려간다
     - 진행: `type_checker_intent_helpers.c`의 direct resolver 호출은 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. transfer-derived using/where, ability generic arg, role-field checks는 이 seam을 통해 다음 DAG metadata 전환을 탄다
     - 진행: `type_checker_helpers_host.inc`의 direct resolver 호출은 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. projection source fields, hosted method return/param, zone authority/domain slot checks는 이 seam을 통해 다음 DAG metadata 전환을 탄다
-    - 진행: `type_checker_program.c`의 forward-declaration type materialization은 quiet resolver seam 1개로 수렴했고, `type_checker_program.inc`의 function-body param/return/domain-slot materialization도 body resolver seam 1개로 수렴했다
+    - 진행: `type_checker_program.c`의 forward-declaration type materialization은 quiet resolver seam 1개로 수렴했고, `type_checker_program.inc`의 function-body param/return/domain-slot materialization body resolver seam은 graph metadata-first 조회 후 fallback으로 내려간다
     - 진행: `type_checker_event.c`의 event signature/lambda handler materialization은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 event signature metadata를 graph-backed result로 재사용하는 것이다
     - 진행: `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. world shared/slot checks는 이 seam에서 graph-backed metadata로 교체할 수 있다
     - 진행: `type_checker_role_decl.c`, `type_checker_generic_contracts.inc`, `type_checker_helpers_late.c`, `type_checker_expr.inc`의 직접 resolver 호출도 각각 role/generic-contract/late-helper/expr local seam 1개로 수렴했다
     - 진행: `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 남은 direct count는 대부분 resolver 본체, 주석, 또는 명시 seam이다
+    - 진행: `type_checker.c`, `type_checker_ability_fields.c`, `type_checker_builtins_projection.c`, `type_checker_builtins_query_domain.inc`, `type_checker_flow.c`, `type_checker_generic_support.inc`, `type_checker_helpers_effects.inc`, `type_checker_ownership_let*.inc`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`, `type_checker_zone_decl.c`의 단발 direct resolver 호출도 local seam으로 수렴했고, zone domain-slot seam은 graph metadata-first 조회를 사용한다
+    - 완료: `make type-resolution-resolver-inventory-test-smoke`를 추가해 새 `resolve_type_node(...)` 직접 호출이 resolver 본체/stage legacy fallback/core fallback/local seam allowlist 밖에 생기면 실패하도록 고정했다. `ci-linux`에도 연결했다
+    - 검증: 2026-04-25 local WSL/Linux `make ci-linux` full green. Windows/MSYS2 native runner는 이 머신에 없으므로 별도 CI 환경 acceptance line으로 유지
   - 목표:
     - import graph와 별개로 `type provider -> type consumer` 그래프를 분리 구축한다
     - declaration / alias / generic default / where-bound / ability consumer / zone authority consumer를 DAG node/edge로 승격한다

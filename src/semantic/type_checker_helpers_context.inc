@@ -166,6 +166,7 @@ semantic_context_destroy(SemanticContext *ctx)
     free(ctx->type_resolution_graph.edges);
     free(ctx->resolve_type_cache.keys);
     free(ctx->resolve_type_cache.values);
+    semantic_type_resolution_free_metadata(ctx);
     free(ctx->diagnostics);
     pgy_arena_destroy(&ctx->scratch_arena);
     free(ctx);
