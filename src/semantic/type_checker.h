@@ -162,6 +162,10 @@ struct SemanticContext
     size_t type_resolution_stage_legacy_domain_contract_count;
     size_t type_resolution_stage_legacy_alias_count;
     size_t type_resolution_stage_legacy_other_count;
+    size_t type_resolution_stage_alias_materialized_count;
+    size_t type_resolution_stage_alias_diagnostic_fallback_count;
+    size_t type_resolution_stage_alias_fallback_resolved_count;
+    size_t type_resolution_stage_alias_fallback_unresolved_count;
 
     /* Memoization cache for resolve_type_node (AST node pointer -> Type*).
      * Populated after a successful resolution to skip re-work for identical

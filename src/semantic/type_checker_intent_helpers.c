@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
@@ -37,13 +37,7 @@ nominal_decl_name(ASTNode *decl);
 static Type *
 intent_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    Type *resolved;
-    if (type_ref == NULL)
-        return NULL;
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
-    if (resolved != NULL)
-        return resolved;
-    return resolve_type_node(type_ref, ctx);
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
 }
 
 static Type *

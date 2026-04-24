@@ -32,9 +32,15 @@ static Type *resolve_type_node_uncached(ASTNode *node, SemanticContext *ctx);
 Type *
 resolve_type_node(ASTNode *node, SemanticContext *ctx)
 {
+    Type *metadata_type;
+
     resolve_type_node_stats_record(node);
     if (node == NULL)
         return TYPE_VOID;
+
+    metadata_type = semantic_type_resolution_lookup_resolved_type(ctx, node);
+    if (metadata_type != NULL)
+        return metadata_type;
 
     static int cache_disabled = -1;
     if (cache_disabled < 0) {
@@ -342,4 +348,3 @@ wrap_constructed(Type *constructor, Type *inner)
     Type *args[1] = { inner };
     return type_create_constructed(constructor, args, 1);
 }
-

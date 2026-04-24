@@ -18,7 +18,7 @@ program_resolve_type_quiet(ASTNode *type_node, SemanticContext *ctx)
 
     saved_diag = ctx->diagnostic_count;
     saved_err = ctx->has_error;
-    resolved = resolve_type_node(type_node, ctx);
+    resolved = semantic_type_resolution_resolve_or_fallback(ctx, type_node);
     if (ctx->diagnostic_count > saved_diag) {
         ctx->diagnostic_count = saved_diag;
         ctx->has_error = saved_err;
@@ -90,6 +90,15 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
                 if (s != NULL)
                     s->kind = SYMBOL_CLASS;
+                scope_declare(ctx->scope, s);
+            }
+        } else if (stmt->type == AST_ABILITY_DECL) {
+            const char *aname = stmt->data.ability_decl.name;
+            if (aname != NULL && scope_lookup_current(ctx->scope, aname) == NULL) {
+                Symbol *s = symbol_create_function(aname, TYPE_VOID,
+                                                    stmt->line, stmt->column);
+                if (s != NULL)
+                    s->kind = SYMBOL_ABILITY;
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_FUNC_DECL) {
@@ -371,6 +380,12 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     (unsigned long long) ctx->type_resolution_stage_legacy_domain_contract_count,
                     (unsigned long long) ctx->type_resolution_stage_legacy_alias_count,
                     (unsigned long long) ctx->type_resolution_stage_legacy_other_count);
+            fprintf(stderr, "[type-res-stats] stage-alias: materialized=%llu diagnostic_fallback=%llu\n",
+                    (unsigned long long) ctx->type_resolution_stage_alias_materialized_count,
+                    (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_fallback_count);
+            fprintf(stderr, "[type-res-stats] stage-alias-fallback: resolved=%llu unresolved=%llu\n",
+                    (unsigned long long) ctx->type_resolution_stage_alias_fallback_resolved_count,
+                    (unsigned long long) ctx->type_resolution_stage_alias_fallback_unresolved_count);
             {
                 size_t total = g_resolve_type_node_cache_hits + g_resolve_type_node_cache_misses;
                 fprintf(stderr, "[type-res-stats] cache: hits=%llu misses=%llu hit_rate=%.1f%%\n",

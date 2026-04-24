@@ -124,10 +124,19 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 2026-04-25 update:
 
 - Graph precollect now materializes context-independent builtin type refs (`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`) into `SemanticContext.type_resolution_metadata`.
-- Graph metadata now materializes a narrow stable constructed subset (`List<T>`, `Set<T>`, `HashMap<String|Int, T>`, `Option<T>`, `Result<T,E>`) when the argument facts are already available. Constructed `Type` shells are owned by the semantic context metadata lane and released on context destroy.
+- Graph metadata now materializes resolver-stable constructed and anchored-handle shells (`Array<T>`, `Slice<T>`, `List<T>`, `Queue<T>`, `Set<T>`, `Box<T>`, `Rc<T>`, `Weak<T>`, `Channel<T>`, `Future<T>`, `RemoteFuture<T>`, `Token<T>`, `DeviceSlot<T>`, `HashMap<String|Int|Long|Bool, T>`, `Option<T>`, `Result<T,E>`, `Slot<T>`, `SecureSlot<T>`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`) when the argument facts are already available. Metadata-owned `Type` shells are released on semantic context destroy.
+- Graph metadata now also materializes tuple shells and event-handler/function shells when all element/parameter/return facts are available. Channel/future AST nodes now record their constructed shell during graph collect instead of waiting for recursive fallback.
 - Pass-2 owner resolver seams now query `semantic_type_resolution_lookup_resolved_type(...)` before falling back to recursive `resolve_type_node(...)`.
+- `resolve_type_node(...)` itself is now metadata-first, so the remaining explicit legacy allowlist also consumes DAG facts before recursive materialization.
+- Owner-local resolver seams now converge through `semantic_type_resolution_resolve_or_fallback(...)`; direct `resolve_type_node(...)` calls are statically blocked outside the resolver implementation and the shared fallback helper.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, and metadata hits. Latest local smoke: `graph-backed skips=3079 metadata_entries=1527 metadata_owned=1 metadata_hits=2380`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3090 metadata_entries=1605 metadata_owned=46 metadata_hits=2475 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
+- The remaining stage legacy surface is alias-only. Successful alias materialization and diagnostic fallback are reported separately, and valid alias fallback is gated at zero. The 78 unresolved fallback entries come from intentional alias-cycle diagnostic coverage, not hidden non-alias recursive resolution.
+- Ability declarations are now predeclared in the program-level symbol inventory, and `type_check_ability_decl(...)` reuses only its own predeclare. This closes the forward declaration-order gap for generic default/where consumers, zone authority ability consumers, and party role-slot ability consumers without weakening duplicate-ability diagnostics.
+- C/LLVM parity now includes `tests/cases/backend_compare/forward_ability_order/main.pgy`, which keeps provider-after-consumer ordering for generic defaults, aliases, zone authority ability consumers, and party role-slot ability consumers from regressing outside semantic-only tests.
+- `tests/compare_backends.sh` now fails its default run when a `tests/cases/backend_compare/*/main.pgy` directory is not registered in the default case array. Targeted runs with explicit arguments remain allowed for development, but CI can no longer silently skip a new parity case. The gate pulled eight previously passing but unregistered cases into the default C/LLVM parity suite: array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, and try-operator result.
+- `type-resolution-resolver-inventory-test-smoke` now treats the fallback seam count as a one-way debt cap instead of a coverage floor. The current 38-site cap blocks growth, but shrinking below the old floor no longer fails CI.
+- `type_checker_module_contract.c` no longer calls the recursive fallback helper for ability contract bookkeeping. It records and checks ability contract shape/provenance through ability-specific logic and only performs DAG metadata lookup for already-materialized type facts, reducing the fallback seam inventory from 39 to 38.
 - This is not full DAG source-of-truth yet. The remaining closure is graph/topo materialization for generic/default/bound/module/nominal references, then shrinking recursive fallback to explicit legacy-only seams.
 - Authority direct-slot resolution now clears stale ambiguity when the participant alias resolves to a concrete zone subject slot after earlier same-type candidates. This keeps `authorized by rogue/mage` valid when the zone has matching `subject slot rogue/mage: Adventurer`, while still preserving the hard error for genuinely ambiguous same-type participants.
 
@@ -165,18 +174,20 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - role/generic-contract/late-helper/expr resolution은 각각 local seam 1개로 수렴했다. remaining direct resolver inventory에서 이 파일들은 이제 metadata replacement owner를 명확히 가진다.
 - generic validation, ability where/module contract/declaration, class field, operator overload, ownership destructure resolution도 local seam으로 수렴했다. remaining direct resolver inventory는 resolver implementation, comments, or explicit seam sites로 압축됐다.
 - statement, ability field, builtin projection/query, flow, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다.
-- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다.
+- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다. It also gates new `semantic_type_resolution_resolve_or_fallback(...)` users behind an explicit owner-seam allowlist and caps the metadata-first fallback seam inventory at 38, so remaining consumers are no longer unclassified and cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
 - `type_checker_decls_domain_helpers.c`의 zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. `dnd_tavern_campaign` 같은 multi-slot same-type zone에서 concrete participant alias가 false-positive ambiguous로 떨어지는 경로를 닫았다.
 - `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage legacy fallback inventory를 CI gate로 검사한다.
 - intent/standalone helper dependency는 internal headers와 hard CFLAGS로 고정되어 DAG split 중 hidden include-order failure를 즉시 잡는다.
 - graph cycle과 legacy alias cycle 모두 `Contract source`, `Reason`, `Fix` vocabulary를 쓴다.
+- provider-after-consumer source order is covered for a frozen DAG slice: function generic default/where references, type alias providers, zone authority ability consumers, and party role-slot ability consumers can appear before their ability/type providers. This is now covered by both semantic graph regression and C/LLVM backend compare.
 
 남은 것:
 
 - `resolve_type_node` 중심 recursive resolver가 여전히 semantic source-of-truth 일부다.
-- remaining consumers를 `graph-backed`, `namespace-only`, `legacy`로 분류해야 한다.
+- remaining fallback consumers are owner-file classified by `type-resolution-resolver-inventory-test-smoke`; the next cleanup is to shrink that allowlist, not to discover it.
 - `stage-legacy-resolve` 호출량과 family별 호출량을 더 줄여야 한다. `stage-graph-backed` skip 수는 DAG가 실제 stage source-of-truth로 옮겨간 양을 보여주는 공개 지표다.
 - frozen subset에서 declaration order에만 기대는 type dependency가 없어야 한다.
+- ability provider predeclaration is closed for the tested frozen DAG slice; remaining declaration-order debt should be narrowed to module/backend metadata reuse, not top-level ability visibility.
 - graph inventory metadata를 backend/declaration inventory와 더 잘 연결해야 한다.
 
 완료 조건:
@@ -292,6 +303,7 @@ make perf-summary PERF_LOG=/path/to/test-abi-perf.log
 
 현재 닫힌 것:
 
+- `parallel-core-contract-test-smoke`가 taxonomy/manifest/case-tag/semantic/backend/module-smoke evidence를 하나로 묶는다.
 - backend compare에 `parallel_channel_sum`, `parallel_channel_dual`, `triple_paradigm`이 있다.
 - `llvm_smoke.sh`는 `select_ready`, `select_fairness`, channel pressure, spawn/generic spawn/string spawn을 가진다.
 - `test-concurrency`는 worker spawn, channel send/recv, cancellation, descendant cancellation, zone HasLayer stress를 검증한다.
@@ -299,7 +311,7 @@ make perf-summary PERF_LOG=/path/to/test-abi-perf.log
 
 남은 것:
 
-- core keyword별 stable/reject/out-of-beta matrix가 아직 하나의 체크리스트로 묶여 있지 않다.
+- `parallel` 외 core keyword별 stable/reject/out-of-beta matrix가 아직 하나의 체크리스트로 묶여 있지 않다.
 - `parallel`과 zone/effect/resource conflict의 C/LLVM parity coverage를 더 명시해야 한다.
 - execution family가 core identity로 과장되지 않도록 README/status docs wording을 마지막에 다시 맞춰야 한다.
 
@@ -312,6 +324,7 @@ make perf-summary PERF_LOG=/path/to/test-abi-perf.log
 증거 명령:
 
 ```sh
+make parallel-core-contract-test-smoke
 make test-concurrency
 make llvm-test-backend-compare
 bash tests/llvm_smoke.sh

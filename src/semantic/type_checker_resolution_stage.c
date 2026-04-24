@@ -54,7 +54,7 @@ semantic_stage_resolve_type_quiet(ASTNode *type_node,
     semantic_stage_record_legacy_family(ctx, reason);
     saved_diag = ctx->diagnostic_count;
     saved_error = ctx->has_error;
-    resolved = resolve_type_node(type_node, ctx);
+    resolved = semantic_type_resolution_resolve_or_fallback(ctx, type_node);
     if (ctx->diagnostic_count > saved_diag) {
         ctx->type_resolution_stage_legacy_resolve_failed_count++;
         ctx->type_resolution_stage_legacy_resolve_suppressed_diag_count +=
@@ -373,9 +373,20 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
             decl->data.type_alias.name,
             "type-alias target lookup");
         if (sym != NULL) {
-            sym->type = alias_type != TYPE_UNKNOWN
-                ? alias_type
-                : resolve_type_node(decl->data.type_alias.target_type, ctx);
+            if (alias_type != TYPE_UNKNOWN) {
+                ctx->type_resolution_stage_alias_materialized_count++;
+                sym->type = alias_type;
+            } else {
+                Type *fallback_type;
+                ctx->type_resolution_stage_alias_diagnostic_fallback_count++;
+                fallback_type = semantic_type_resolution_resolve_or_fallback(
+                    ctx, decl->data.type_alias.target_type);
+                if (fallback_type != NULL && fallback_type != TYPE_UNKNOWN)
+                    ctx->type_resolution_stage_alias_fallback_resolved_count++;
+                else
+                    ctx->type_resolution_stage_alias_fallback_unresolved_count++;
+                sym->type = fallback_type;
+            }
         }
         break;
     }

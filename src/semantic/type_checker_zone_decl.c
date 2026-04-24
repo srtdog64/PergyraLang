@@ -12,15 +12,11 @@
 static Type *
 zone_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
 {
-    Type *resolved;
     ASTNode *type_ref;
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return NULL;
     type_ref = slot->data.domain_slot.type;
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
-    if (resolved != NULL)
-        return resolved;
-    return resolve_type_node(type_ref, ctx);
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
 }
 
 bool

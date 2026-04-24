@@ -183,6 +183,7 @@ beta 직전 운영 규칙:
 - provider-first topo-driven staged resolution worklist가 실제로 활성화되어 top-level declaration inventory와 local/projection synthetic node를 소비함
 - generic `default_type` / generic constraint / `where` bound가 staged DAG resolver 경로를 통과하며 semantic 회귀와 Linux CI에서 검증됨
 - role impl / action / intent step / zone authority / party role slot ability consumer가 provider pre-stage와 cycle provenance 회귀를 통해 같은 DAG 경로로 정렬됨
+- provider-after-consumer generic default / alias / zone authority / party role-slot ability ordering은 backend compare case까지 올라가 C/LLVM parity에서 고정됨
 - graph regression이 world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / role-action-intent-zone-party ability consumer provenance까지 확장됨
 - graph validator cycle과 legacy alias cycle diagnostic이 모두 `Contract source` / `Reason` / `Fix` vocabulary로 정렬됨
 

@@ -345,9 +345,12 @@ main() {
         "tests/cases/backend_compare/slot_sugar"
         "tests/cases/backend_compare/break_continue"
         "tests/cases/backend_compare/array_enum"
+        "tests/cases/backend_compare/array_builtins"
+        "tests/cases/backend_compare/array_inline_access"
         "tests/cases/backend_compare/destructure_array"
         "tests/cases/backend_compare/destructure_tuple_return"
         "tests/cases/backend_compare/slice_surface"
+        "tests/cases/backend_compare/slice_inline_access"
         "tests/cases/backend_compare/dynamic_array"
         "tests/cases/backend_compare/string_io"
         "tests/cases/backend_compare/module_namespace"
@@ -358,6 +361,7 @@ main() {
         "tests/cases/backend_compare/intent_conflict_runtime"
         "tests/cases/backend_compare/intent_trace_compensate"
         "tests/cases/backend_compare/intent_failure_observability_strings"
+        "tests/cases/backend_compare/intent_observability_rollback"
         "tests/cases/backend_compare/intent_zone_binding"
         "tests/cases/backend_compare/intent_cross_world_transfer"
         "tests/cases/backend_compare/intent_rich_history_identity"
@@ -370,9 +374,13 @@ main() {
         "tests/cases/backend_compare/ownership_forwarding"
         "tests/cases/backend_compare/generic_default_contracts"
         "tests/cases/backend_compare/generic_multi_bound_defaults"
+        "tests/cases/backend_compare/forward_ability_order"
         "tests/cases/backend_compare/result_custom_error"
         "tests/cases/backend_compare/intent_header_interleaved"
         "tests/cases/backend_compare/map_keys"
+        "tests/cases/backend_compare/list_get_string"
+        "tests/cases/backend_compare/map_get_string"
+        "tests/cases/backend_compare/queue_pop_string"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_embedded_branch_projection_visibility"
         "tests/cases/backend_compare/world_embedded_action_frontier"
@@ -383,8 +391,38 @@ main() {
         "tests/cases/backend_compare/higher_order_compose"
         "tests/cases/backend_compare/parallel_channel_sum"
         "tests/cases/backend_compare/parallel_channel_dual"
+        "tests/cases/backend_compare/try_operator_result"
         "tests/cases/backend_compare/triple_paradigm"
     )
+
+    if [[ "$#" -eq 0 ]]; then
+        local -a missing_cases=()
+        local discovered
+        while IFS= read -r discovered; do
+            local source_rel
+            local registered
+            local found=0
+            source_rel="$(dirname "$discovered")"
+            for registered in "${cases[@]}"; do
+                if [[ "$registered" == "$source_rel" ]]; then
+                    found=1
+                    break
+                fi
+            done
+            if [[ "$found" -eq 0 ]]; then
+                missing_cases+=("$source_rel")
+            fi
+        done < <(find tests/cases/backend_compare -mindepth 2 -maxdepth 2 -name main.pgy | LC_ALL=C sort)
+
+        if (( ${#missing_cases[@]} > 0 )); then
+            echo "backend-compare: case inventory is missing registered entries:" >&2
+            for discovered in "${missing_cases[@]}"; do
+                echo "  - $discovered" >&2
+            done
+            echo "Add each case to the default cases array, or pass explicit case arguments for a targeted run." >&2
+            return 1
+        fi
+    fi
 
     if [[ "$#" -gt 0 ]]; then
         cases=("$@")

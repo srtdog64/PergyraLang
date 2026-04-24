@@ -175,7 +175,8 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
     }
 
     {
-        Type *resolved = resolve_type_node(alias_decl->data.type_alias.target_type, ctx);
+        Type *resolved = semantic_type_resolution_resolve_or_fallback(
+            ctx, alias_decl->data.type_alias.target_type);
         semantic_ctx_alias_resolution_pop(ctx);
         return resolved;
     }
@@ -252,13 +253,8 @@ resolve_generic_type_arg(GenericParam *gp, SemanticContext *ctx,
 {
     if (gp == NULL)
         return TYPE_UNKNOWN;
-    if (gp->constraint != NULL) {
-        Type *resolved = semantic_type_resolution_lookup_resolved_type(
-            ctx, gp->constraint);
-        if (resolved != NULL)
-            return resolved;
-        return resolve_type_node(gp->constraint, ctx);
-    }
+    if (gp->constraint != NULL)
+        return semantic_type_resolution_resolve_or_fallback(ctx, gp->constraint);
     return resolve_named_type(gp->name, ctx, site);
 }
 

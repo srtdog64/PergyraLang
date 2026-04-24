@@ -47,6 +47,7 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
             consumer_site,
             consumer_name,
             reason);
+        semantic_type_resolution_try_record_stable_constructed_type(ctx, type_node);
         return;
 
     case AST_FUTURE_TYPE:
@@ -56,6 +57,7 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
             consumer_site,
             consumer_name,
             reason);
+        semantic_type_resolution_try_record_stable_constructed_type(ctx, type_node);
         return;
 
     case AST_EVENT_HANDLER_TYPE:
@@ -73,9 +75,22 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
             consumer_site,
             consumer_name,
             reason);
+        semantic_type_resolution_try_record_stable_constructed_type(ctx, type_node);
         return;
 
     case AST_TYPE:
+        if (type_node->data.type.tuple_elements != NULL) {
+            for (size_t i = 0; i < type_node->data.type.tuple_element_count; i++) {
+                semantic_type_resolution_collect_type_refs(
+                    type_node->data.type.tuple_elements[i],
+                    ctx,
+                    consumer_site,
+                    consumer_name,
+                    reason);
+            }
+            semantic_type_resolution_try_record_stable_constructed_type(ctx, type_node);
+            return;
+        }
         if (type_node->data.type.name != NULL) {
             semantic_type_resolution_record_type_ref_dependency(
                 ctx,

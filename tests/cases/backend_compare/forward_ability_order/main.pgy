@@ -1,0 +1,36 @@
+zone BattleZone {
+    subject slot player: Player
+    authority player requires Commandable
+}
+
+party StrikeTeam {
+    role slot commander: Commandable
+}
+
+func Wrap<T = UserId>(value: T) -> T where T: UserId {
+    return value;
+}
+
+type UserId = Int;
+
+subject Player {
+    let id: UserId;
+}
+
+ability Commandable {
+    func Command() -> Void;
+}
+
+role PlayerCommandable for Player {
+    impl ability Commandable {
+        func Command() -> Void {
+            return;
+        }
+    }
+}
+
+func Main() -> Void {
+    let p = Player(7);
+    Log("wrap=" + ToString(Wrap(5)));
+    Log("player=" + ToString(p.id));
+}

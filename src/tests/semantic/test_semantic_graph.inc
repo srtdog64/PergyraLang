@@ -485,6 +485,89 @@ test_type_resolution_graph(void)
         lexer_destroy(lexer);
     }
 
+    TEST("graph-backed declaration order handles forward generic and authority consumers");
+    {
+        const char *source =
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    authority player requires Commandable\n"
+            "}\n"
+            "party StrikeTeam {\n"
+            "    role slot commander: Commandable\n"
+            "}\n"
+            "func Wrap<T = UserId>(value: T) -> T where T: UserId {\n"
+            "    return value;\n"
+            "}\n"
+            "type UserId = Int;\n"
+            "subject Player {\n"
+            "    action Command(self) -> Void { return; }\n"
+            "}\n"
+            "ability Commandable { func Command() -> Void; }\n"
+            "role PlayerCommandable for Player {\n"
+            "    impl ability Commandable {\n"
+            "        func Command() -> Void { return; }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        TypeResolutionGraph *graph = NULL;
+
+        EXPECT(!parser_has_error(parser));
+
+        type_check_program(program, ctx);
+        EXPECT(!ctx->has_error);
+
+        graph = &ctx->type_resolution_graph;
+        EXPECT(type_resolution_graph_has_edge_between(
+            graph,
+            "func Wrap.T",
+            "UserId",
+            "default-type lookup"));
+        EXPECT(type_resolution_graph_has_edge_between(
+            graph,
+            "func Wrap.T",
+            "UserId",
+            "where-bound lookup"));
+        EXPECT(type_resolution_graph_has_edge_between(
+            graph,
+            "UserId",
+            "Int",
+            "type-alias target lookup"));
+        EXPECT(type_resolution_graph_has_edge_between(
+            graph,
+            "zone BattleZone.player",
+            "Commandable",
+            "zone authority ability consumer lookup"));
+        EXPECT(type_resolution_graph_has_edge_between(
+            graph,
+            "party StrikeTeam.commander",
+            "Commandable",
+            "party role slot ability consumer lookup"));
+        EXPECT(type_resolution_graph_provider_before_consumer_schedule(
+            graph,
+            "func Wrap.T",
+            "UserId"));
+        EXPECT(type_resolution_graph_provider_before_consumer_schedule(
+            graph,
+            "UserId",
+            "Int"));
+        EXPECT(type_resolution_graph_provider_before_consumer_schedule(
+            graph,
+            "zone BattleZone.player",
+            "Commandable"));
+        EXPECT(type_resolution_graph_provider_before_consumer_schedule(
+            graph,
+            "party StrikeTeam.commander",
+            "Commandable"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("graph-backed reverse schedule covers action and intent effect/zone consumers");
     {
         const char *source =

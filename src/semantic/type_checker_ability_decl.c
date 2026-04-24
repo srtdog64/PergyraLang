@@ -8,13 +8,7 @@
 static Type *
 ability_decl_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    Type *resolved;
-    if (type_ref == NULL)
-        return NULL;
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
-    if (resolved != NULL)
-        return resolved;
-    return resolve_type_node(type_ref, ctx);
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
 }
 
 bool
@@ -24,25 +18,29 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
     bool has_generics = (node->data.ability_decl.generic_params != NULL
                          && node->data.ability_decl.generic_params->count > 0);
 
-    /* Register ability as a symbol so roles can reference it */
-    Symbol *sym = calloc(1, sizeof(Symbol));
-    sym->name = pergyra_strdup(name);
-    sym->kind = SYMBOL_ABILITY;
-    sym->type = TYPE_VOID; /* Abilities don't have a concrete type */
-    sym->decl_line = node->line;
-    sym->decl_col = node->column;
-
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_REDECLARATION,
-            PGY_CAUSE_ABILITY_DUPLICATE_NAME,
-            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
-            node, "Redeclaration of ability '%s'", name);
-        symbol_destroy(sym);
-        return false;
+        bool is_self_predecl = existing->kind == SYMBOL_ABILITY
+            && existing->decl_line == node->line
+            && existing->decl_col == node->column;
+        if (!is_self_predecl) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_REDECLARATION,
+                PGY_CAUSE_ABILITY_DUPLICATE_NAME,
+                PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
+                node, "Redeclaration of ability '%s'", name);
+            return false;
+        }
+    } else {
+        /* Register ability as a symbol so roles can reference it. */
+        Symbol *sym = calloc(1, sizeof(Symbol));
+        sym->name = pergyra_strdup(name);
+        sym->kind = SYMBOL_ABILITY;
+        sym->type = TYPE_VOID; /* Abilities don't have a concrete type */
+        sym->decl_line = node->line;
+        sym->decl_col = node->column;
+        scope_declare(ctx->scope, sym);
     }
-    scope_declare(ctx->scope, sym);
 
     if (has_generics) {
         validate_generic_param_defaults(node->data.ability_decl.generic_params,

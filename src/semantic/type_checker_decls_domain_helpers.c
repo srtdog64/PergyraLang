@@ -25,41 +25,27 @@
 static Type *
 domain_resolve_slot_type(ASTNode *slot, SemanticContext *ctx)
 {
-    Type *resolved;
     ASTNode *type_ref;
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return TYPE_UNKNOWN;
     type_ref = slot->data.domain_slot.type;
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
-    if (resolved != NULL)
-        return resolved;
-    return resolve_type_node(type_ref, ctx);
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
 }
 
 static Type *
 domain_resolve_shared_type(ASTNode *shared, SemanticContext *ctx)
 {
-    Type *resolved;
     ASTNode *type_ref;
     if (shared == NULL || shared->type != AST_PARTY_SHARED)
         return TYPE_UNKNOWN;
     type_ref = shared->data.party_shared.type;
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
-    if (resolved != NULL)
-        return resolved;
-    return resolve_type_node(type_ref, ctx);
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
 }
 
 static Type *
 domain_resolve_named_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    Type *resolved;
-    if (type_ref == NULL)
-        return NULL;
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
-    if (resolved != NULL)
-        return resolved;
-    return resolve_type_node(type_ref, ctx);
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
 }
 
 /* type_checker_decls_intent_world.inc removed — intent body lives in type_checker_intent_decl.c (4-B slice),
