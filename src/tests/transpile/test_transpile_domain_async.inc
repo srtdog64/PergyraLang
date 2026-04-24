@@ -262,10 +262,17 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone_sync(&self->battle);");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_dirty_battle = false;");
         EXPECT_STR_CONTAINS(ctx->out->data, "if (_pgy_world_needs_derived) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_world_pass = 0;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_world_continue = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "while (_pgy_world_continue && _pgy_world_pass < _pgy_world_pass_limit) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_world_continue = false;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_world_pass++;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_zone_state_liveBattle = self->__zone_state_liveBattle;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_active_battle = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_epoch_battle++;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_cause_battle = 7;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_liveBattle = self->__zone_active_battle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__zone_state_liveBattle != _pgy_prev_zone_state_liveBattle) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_epoch_liveBattle++;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_cause_liveBattle = 10;");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
@@ -633,6 +640,48 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "__zone_dirty_battle");
         EXPECT_STR_CONTAINS(ctx->out->data, "__world_derived_dirty");
         EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld_sync");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world derived state chains emit bounded recompute loop");
+    {
+        const char *source =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state outer: any inner\n"
+            "    state inner: zone battle\n"
+            "    activate battle\n"
+            "    func Show(self) -> Void {\n"
+            "        Log(HasZone(outer));\n"
+            "        Log(HasZone(inner));\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        emit_program(ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_world_pass_limit = 3;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_zone_state_outer = self->__zone_state_outer;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_outer = (self->__zone_state_inner);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__zone_state_outer != _pgy_prev_zone_state_outer) {");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_zone_state_inner = self->__zone_state_inner;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_inner = self->__zone_active_battle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__zone_state_inner != _pgy_prev_zone_state_inner) {");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
