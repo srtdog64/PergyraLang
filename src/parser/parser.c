@@ -4,6 +4,7 @@
  */
 
 #include "parser_internal.h"
+#include "../semantic/diag_codes.h"
 #include <ctype.h>
 
 static bool
@@ -292,15 +293,29 @@ void parser_error(Parser* parser, const char* format, ...) {
 
     parser->has_error = true;
 
+    char message[384];
     va_list args;
     va_start(args, format);
-    vsnprintf(parser->error_msg, sizeof(parser->error_msg), format, args);
+    vsnprintf(message, sizeof(message), format, args);
     va_end(args);
 
     // 에러 위치 정보 추가
     char location[256];
     snprintf(location, sizeof(location), " at line %d, column %d",
              parser->current_token.line, parser->current_token.column);
+    snprintf(parser->error_msg, sizeof(parser->error_msg), "%s", message);
+    strncat(parser->error_msg, "\nCode: ",
+            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
+    strncat(parser->error_msg, PGY_CODE_PARSE_SYNTAX,
+            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
+    strncat(parser->error_msg, "\nReason: ",
+            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
+    strncat(parser->error_msg, PGY_CAUSE_PARSE_UNEXPECTED_TOKEN,
+            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
+    strncat(parser->error_msg, "\nFix: ",
+            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
+    strncat(parser->error_msg, PGY_FIX_CHECK_SYNTAX,
+            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
     strncat(parser->error_msg, location,
             sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
 }

@@ -1,3 +1,5 @@
+
+/* =================================================================
  * Slot operations — Double
  * ================================================================= */
 
@@ -796,5 +798,3 @@ char *StringJoin(PgyArray_String *arr, const char *sep)
         if (i > 0 && slen > 0) { memcpy(wp, sep, slen); wp += slen; }
         if (arr->data[i] != NULL) {
             size_t l = strlen(arr->data[i]);
-            memcpy(wp, arr->data[i], l);
-            wp += l;

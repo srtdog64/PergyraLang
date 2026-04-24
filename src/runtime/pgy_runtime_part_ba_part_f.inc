@@ -1,3 +1,41 @@
+    q.data = (char **)calloc(q.capacity, sizeof(char *));
+    if (q.data == NULL) {
+        q.capacity = 0;
+        pgy_runtime_warn_invalid_collection("queue_new_string", "allocation failed");
+    }
+    return q;
+}
+
+static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
+{
+    if (q == NULL || (q->data == NULL && q->capacity == 0)) {
+        pgy_runtime_warn_invalid_collection("queue_push_string", "queue is not initialized");
+        return;
+    }
+    if (q->count >= q->capacity) {
+        size_t nc = q->capacity == 0 ? 16 : q->capacity * 2;
+        char **nd = (char **)calloc(nc, sizeof(char *));
+        if (nd == NULL) {
+            pgy_runtime_warn_invalid_collection("queue_push_string", "growth allocation failed");
+            return;
+        }
+        for (size_t i = 0; i < q->count; i++)
+            nd[i] = q->data[(q->head + i) % q->capacity];
+        free(q->data);
+        q->data = nd;
+        q->head = 0;
+        q->tail = q->count;
+        q->capacity = nc;
+    }
+    q->data[q->tail] = (char *)val;
+    q->tail = (q->tail + 1) % q->capacity;
+    q->count++;
+}
+
+static inline char *pgy_queue_pop_string(PgyQueue_String *q)
+{
+    char *out = NULL;
+    if (q == NULL || q->count == 0) {
         pgy_runtime_warn_invalid_collection("queue_pop_string", "queue is empty");
         return NULL;
     }

@@ -796,5 +796,3 @@ void pgy_release_Float(PgySlot_Float *s)
 {
     if (s != NULL) { s->value = 0.0f; s->claimed = false; }
 }
-
-/* =================================================================

@@ -797,4 +797,3 @@ void
 emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.role_decl.name;
-

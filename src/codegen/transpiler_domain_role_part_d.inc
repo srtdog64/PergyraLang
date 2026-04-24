@@ -1,3 +1,4 @@
+    codebuf_write(ctx->out, "    e->is_invoking = true;\n");
     codebuf_write(ctx->out, "    for (size_t i = 0; i < e->count; i++) {\n");
     codebuf_write(ctx->out, "        e->handlers[i](");
     for (size_t i = 0; i < node->data.event_decl.param_count; i++) {

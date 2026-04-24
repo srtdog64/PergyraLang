@@ -1,3 +1,41 @@
+
+#define PGY_ARRAY_DEFINE(SuffixName, CType) \
+typedef struct { \
+    CType        *data; \
+    size_t        length; \
+    size_t        capacity; \
+    PgyAllocator *allocator; \
+} PgyArray_##SuffixName; \
+\
+typedef struct { \
+    CType  *data; \
+    size_t  length; \
+} PgySlice_##SuffixName; \
+\
+static inline PgyArray_##SuffixName \
+pgy_array_new_in_##SuffixName(PgyAllocator *alloc, size_t capacity) \
+{ \
+    PgyArray_##SuffixName arr; \
+    arr.length = 0; \
+    arr.capacity = capacity; \
+    arr.allocator = alloc; \
+    arr.data = capacity > 0 \
+        ? (CType*)pgy_alloc(alloc, sizeof(CType) * capacity, _Alignof(CType)) \
+        : NULL; \
+    return arr; \
+} \
+\
+static inline PgyArray_##SuffixName \
+pgy_array_new_##SuffixName(size_t capacity) \
+{ \
+    return pgy_array_new_in_##SuffixName(NULL, capacity); \
+} \
+\
+static inline void \
+pgy_array_drop_##SuffixName(PgyArray_##SuffixName *arr) \
+{ \
+    if (arr->data != NULL) { \
+        pgy_free(arr->allocator, arr->data, sizeof(CType) * arr->capacity); \
         arr->data = NULL; \
     } \
     arr->length = 0; \
@@ -760,41 +798,3 @@ static inline void SeedRandom(int32_t seed)   { srand((unsigned int)seed); }
 static inline char* pgy_int_to_string(int32_t val) {
     char stack_buf[32];
     int len = snprintf(stack_buf, sizeof(stack_buf), "%d", val);
-    if (len < 0) {
-        char *fallback = (char *)malloc(2);
-        if (fallback != NULL) {
-            fallback[0] = '0';
-            fallback[1] = '\0';
-        }
-        return fallback;
-    }
-    char *buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL) return NULL;
-    memcpy(buf, stack_buf, (size_t)len + 1);
-    return buf;
-}
-
-static inline char* pgy_long_to_string(int64_t val) {
-    char stack_buf[32];
-    int len = snprintf(stack_buf, sizeof(stack_buf), "%lld", (long long)val);
-    if (len < 0) {
-        char *fallback = (char *)malloc(2);
-        if (fallback != NULL) {
-            fallback[0] = '0';
-            fallback[1] = '\0';
-        }
-        return fallback;
-    }
-    char *buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL) return NULL;
-    memcpy(buf, stack_buf, (size_t)len + 1);
-    return buf;
-}
-
-static inline char* pgy_float_to_string(float val) {
-    char stack_buf[32];
-    int len = snprintf(stack_buf, sizeof(stack_buf), "%g", (double)val);
-    if (len < 0) {
-        char *fallback = (char *)malloc(4);
-        if (fallback != NULL) { fallback[0] = '0'; fallback[1] = '.'; fallback[2] = '0'; fallback[3] = '\0'; }
-        return fallback;

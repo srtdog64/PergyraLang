@@ -5,6 +5,7 @@
 
 #include "lexer.h"
 #include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -246,7 +247,12 @@ static Token make_token(Lexer* lexer, PgyTokenType type, const char* start, size
 /* Create an error token */
 static Token error_token(Lexer* lexer, const char* message) {
     lexer->hasError = true;
-    strncpy(lexer->errorMsg, message, sizeof(lexer->errorMsg) - 1);
+    snprintf(lexer->errorMsg, sizeof(lexer->errorMsg),
+        "%s\nCode: %s\nReason: %s\nFix: %s",
+        message,
+        PGY_CODE_LEX_INVALID_TOKEN,
+        PGY_CAUSE_LEX_INVALID_TOKEN,
+        PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER);
     
     Token token;
     token.type = TOKEN_ERROR;

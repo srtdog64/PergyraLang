@@ -1,3 +1,4 @@
+                    state->data.zone_state.state_name);
                 emit_hidden_provenance_stamp(ctx, "self", "state",
                     state->data.zone_state.state_name,
                     PGY_PROP_CAUSE_DETACH);
@@ -797,4 +798,3 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, ", %s %s", pt, param->data.let_decl.name);
     }
     codebuf_write(ctx->out, ") {\n");
-    codebuf_write(ctx->out, "    e->is_invoking = true;\n");

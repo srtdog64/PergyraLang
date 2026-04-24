@@ -1,3 +1,41 @@
+    if (len < 0) {
+        char *fallback = (char *)malloc(2);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '\0';
+        }
+        return fallback;
+    }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+static inline char* pgy_long_to_string(int64_t val) {
+    char stack_buf[32];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%lld", (long long)val);
+    if (len < 0) {
+        char *fallback = (char *)malloc(2);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '\0';
+        }
+        return fallback;
+    }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+static inline char* pgy_float_to_string(float val) {
+    char stack_buf[32];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%g", (double)val);
+    if (len < 0) {
+        char *fallback = (char *)malloc(4);
+        if (fallback != NULL) { fallback[0] = '0'; fallback[1] = '.'; fallback[2] = '0'; fallback[3] = '\0'; }
+        return fallback;
     }
     char *buf = (char *)malloc((size_t)len + 1);
     if (buf == NULL) return NULL;
@@ -760,41 +798,3 @@ static inline void pgy_map_remove_string(PgyHashMap_String *m, const char *key)
     if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return;
     if (m->count == 0) return;
     uint32_t cap = (uint32_t)m->capacity;
-    uint32_t h = pgy_hash_string(key) % cap;
-    size_t probes = 0;
-    while (m->occupied[h] && probes < m->capacity) {
-        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) {
-            free(m->keys[h]);
-            m->keys[h] = NULL;
-            free(m->values[h]);
-            m->values[h] = NULL;
-            m->occupied[h] = 0;
-            m->count--;
-            /* Backward-shift: rehash subsequent entries to fill the gap */
-            uint32_t gap = h;
-            uint32_t j = (gap + 1) % cap;
-            while (m->occupied[j]) {
-                uint32_t ideal = pgy_hash_string(m->keys[j]) % cap;
-                uint32_t dist_to_j   = (j - ideal + cap) % cap;
-                uint32_t dist_to_gap = (gap - ideal + cap) % cap;
-                if (dist_to_gap < dist_to_j) {
-                    m->keys[gap]     = m->keys[j];
-                    m->values[gap]   = m->values[j];
-                    m->occupied[gap] = 1;
-                    m->keys[j]      = NULL;
-                    m->values[j]    = NULL;
-                    m->occupied[j]  = 0;
-                    gap = j;
-                }
-                j = (j + 1) % cap;
-            }
-            return;
-        }
-        h = (h + 1) % cap;
-        probes++;
-    }
-}
-
-static inline int32_t pgy_map_size_string(PgyHashMap_String *m)
-{
-    return m != NULL ? (int32_t)m->count : 0;

@@ -1,3 +1,6 @@
+
+/* --- Qubit operations --- */
+
 int32_t ClaimQubit(void)
 {
     if (!pgy_qubit_rng_init_rt) {

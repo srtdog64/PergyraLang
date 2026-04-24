@@ -38,6 +38,10 @@
  * stage prefix for downstream stage routing (driver_route_stage).
  * ================================================================= */
 
+/* --- Parse / lex (PGY_PARSE_*, PGY_LEX_*) --- */
+#define PGY_CODE_PARSE_SYNTAX                   "PGY_PARSE_SYNTAX"
+#define PGY_CODE_LEX_INVALID_TOKEN              "PGY_LEX_INVALID_TOKEN"
+
 /* --- Semantic (PGY_SEM_*) --- */
 #define PGY_CODE_SEM_TYPE_MISMATCH              "PGY_SEM_TYPE_MISMATCH"
 #define PGY_CODE_SEM_BINOP_TYPE_MISMATCH        "PGY_SEM_BINOP_TYPE_MISMATCH"
@@ -103,6 +107,10 @@
  * Namespace: <stage>:<area>:<specific>
  * Stages: semantic, mir, llvm, c, parse, lex, io
  * ================================================================= */
+
+/* --- Parse / lex --- */
+#define PGY_CAUSE_PARSE_UNEXPECTED_TOKEN        "parse:unexpected_token"
+#define PGY_CAUSE_LEX_INVALID_TOKEN             "lex:invalid_token"
 
 /* --- Semantic: contracts --- */
 #define PGY_CAUSE_ABILITY_CONTRACT              "semantic:ability_contract"
@@ -347,6 +355,7 @@
                                                 "reclaim-source-or-trace-earlier-release"
 #define PGY_FIX_RELEASE_OWNING_SLOT_NOT_VIEW    "release-owning-slot-not-view"
 #define PGY_FIX_REMOVE_REDUNDANT_RELEASE        "remove-redundant-release"
+#define PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER      "remove-or-escape-character"
 #define PGY_FIX_RETURN_INNER_VALUE_OR_KEEP_LOCAL \
                                                 "return-inner-value-or-keep-local"
 #define PGY_FIX_RETURN_PROJECTION_OR_KEEP_LOCAL "return-projection-or-keep-local"
@@ -358,6 +367,7 @@
 #define PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE \
                                                 "change-ref-to-own-or-stop-escape"
 #define PGY_FIX_CHECK_INTENT_STEP_LOWERING      "check-intent-step-lowering"
+#define PGY_FIX_CHECK_SYNTAX                    "check-syntax"
 #define PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING     "inspect-hir-to-mir-lowering"
 #define PGY_FIX_INSPECT_MIR_INVENTORY           "inspect-mir-inventory"
 #define PGY_FIX_MATCH_BUILTIN_SIGNATURE         "match-builtin-signature"

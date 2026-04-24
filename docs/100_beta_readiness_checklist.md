@@ -32,18 +32,24 @@
 - `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`는 standalone semantic TU로 빌드된다.
 - `type_checker_intent_decl.c`도 standalone semantic TU로 빌드되며, helper boundary 누락은 기본 CFLAGS의 implicit-declaration hard error로 차단된다.
 - `type_checker_role_decl.c`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`도 standalone semantic TU hard-CFLAGS path에서 빌드된다.
-- `type_checker_resolution_graph_inventory.inc`는 737 LOC까지 줄었고, graph inventory axis는 semantic 800 LOC stop condition 아래로 내려갔다.
+- `type_checker_resolution_graph_inventory.c`가 graph inventory axis를 소유한다. 기존 `type_checker_resolution_graph_inventory.inc`는 제거됐다.
 - `type_checker_resolution_stage_domain.c`가 world/zone local-contract stage replay를 소유하고, `type_checker_resolution_stage.c`가 top-level DAG stage replay를 소유한다. `type_checker_resolution_stage.inc`는 제거됐다.
 - `type_checker_class_decl.c`가 class/extern declaration checking을 소유하고, `type_checker_program.c`가 top-level semantic orchestration을 소유한다. `type_checker_program.inc`는 624 LOC까지 줄어 semantic 800 LOC stop condition 아래로 내려갔다.
 - `type_checker_builtins_projection.c`가 `ToObject` / `ToTObject` projection diagnostics를 소유하며, `type_checker_builtins_nominal.inc`는 659 LOC까지 줄어 semantic 800 LOC stop condition 아래로 내려갔다.
 - `type_checker_expr_ops.c`가 binary/unary/array literal/indexed access를 소유하고, `type_checker_expr_names.c`가 static member path / consumed-boundary name helper를 소유한다. `type_checker_expr.inc`는 758 LOC, `type_checker_helpers_late.inc`는 773 LOC까지 줄어 semantic 800 LOC stop condition 아래로 내려갔다.
 - `type_checker_decls_domain_helpers.c`가 domain slot/projection/overlay helper body를 소유한다. `type_checker_decls_domain_helpers.inc`는 제거됐다.
 - `type_checker_intent_helpers.c`가 intent inheritance/derivation/helper body를 소유한다. `type_checker_decls_a.inc`는 1-line forwarding stub으로 축소됐다.
+- `type_checker_event.c`가 event declaration/subscription/invoke semantic을 소유한다.
+- `type_checker_qubit.c`가 QubitSlot compile-time state, entangle pool, movable-resource-use validation을 소유한다.
+- `type_checker.c`는 481 LOC로 내려갔고, semantic stop condition의 600 LOC 이하 조건을 만족한다.
 - `make semantic-inc-size-test-smoke`가 `src/semantic/**/*.inc <= 800 LOC`를 검사한다.
+- `make semantic-core-shape-test-smoke`가 `type_checker.c <= 600 LOC`, DAG inventory `.c` ownership, event/qubit owner TU 존재를 검사한다.
 - `transpiler_emitters_mir_inventory_ssa.inc`는 5-line shim으로 축소됐고, MIR intent inventory / SSA name / SSA emit slice가 각각 1,000 LOC 아래 하위 include로 분리됐다.
 - `transpiler_expr_emitters.inc`는 7-line shim으로 축소됐고, builtin / call A / call B / member / tail slice가 각각 1,000 LOC 아래 하위 include로 분리됐다. 현재는 include-order 보존 split이며, beta+1 수준의 실제 TU/owner 추출은 별도 과제다.
-- `llvm_expr_calls.inc`는 6-line shim으로 축소됐고, 네 개의 mechanical slice가 각각 1,000 LOC 아래로 내려갔다. 단, `llvm_emit_call`은 아직 거대 함수라서 실제 semantic-owner 추출은 남아 있다.
+- `llvm_expr_calls.inc`는 17-line shim + constructor / array / collection-base / domain query / event invocation / intent observability / log / scalar math / result-option / slot-device / task-channel owner + 네 개의 call slice로 축소됐고, 각 slice가 1,000 LOC 아래로 내려갔다. `llvm_emit_call` 앞단의 enum/class constructor lowering은 `llvm_expr_call_constructors.inc`로, array builtin은 `llvm_expr_call_arrays.inc`로, `ListNew`/`Set*` base collection family는 `llvm_expr_call_collections_base.inc`로, `HasProjection` / `HasLayer` / `HasState` / `HasZone*` lowering은 `llvm_expr_call_domain_queries.inc`로, event invocation은 `llvm_expr_call_events.inc`로, intent observability runtime calls는 `llvm_expr_call_intent_observability.inc`로, `Log*`는 `llvm_expr_call_log.inc`로, `Abs`/`Min`/`Max`는 `llvm_expr_call_math.inc`로, Result/Option builtin lowering은 `llvm_expr_call_result_option.inc`로, `ClaimSlot` / `Write` / `Read` / `Release` / `Device*` lowering은 `llvm_expr_call_slots.inc`로, task cancellation/channel operations는 `llvm_expr_call_task_channel.inc`로 이동했다. 단, list/map/queue continuation / stdlib IO/file/time / user function fallback owner 추출은 남아 있다.
 - `transpiler_emitters_base_b.inc`는 6-line shim으로 축소됐고, 네 개의 mechanical slice가 각각 1,000 LOC 아래로 내려갔다. 단, statement/block/intent forward-declare owner extraction은 남아 있다.
+- Tier 1 runtime/codegen/compiler `.inc` split gate를 닫았다. `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`, `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a.inc`, `transpiler_helpers_core_b.inc`, `transpiler_domain_role.inc`, `llvm_expr_helpers.inc`, `mir_public.inc`, `llvm_expr_call_methods.inc`, `llvm_domain_helpers.inc`는 모두 shim + sub-1,000 LOC slice로 내려갔다.
+- `make backend-inc-size-test-smoke`가 `src/runtime`, `src/codegen`, `src/compiler`의 `.inc <= 1000 LOC`를 검사한다.
 - `type_checker_helpers_late.c` standalone TU가 hidden include-order helper 없이 빌드되도록 call-path helper prototypes와 slot analyzer / visibility / generic diagnostic include 계약을 명시했다.
 - string literal / interpolation stable subset을 grammar docs에 고정했다. Stable은 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace까지이며 nested brace matching / format specifier / multiline interpolation은 beta-out-of-scope다.
 - `diagnostic-registry-test-smoke`가 `diag_codes.h` / `docs/72_diagnostic_codes.md` code sync와 `semantic_error_with_hints` / `semantic_warning_with_hints` macro usage를 검사한다.
@@ -53,9 +59,8 @@
 
 남은 것:
 
-- codegen/runtime에는 1,000 LOC를 크게 넘는 `.inc`가 남아 있다.
-- 특히 runtime `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`와 C backend `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a/b.inc`가 다음 대형 부채다.
-- `type_checker.c`는 아직 orchestration-only가 아니라 include aggregator 성격이 남아 있다.
+- Tier 1 파일 크기 gate는 닫혔지만, 여러 slice는 include-order 보존 mechanical split이다. LLVM constructor owner처럼 일부 semantic-owner 추출은 시작됐고, 나머지 실제 TU/owner extraction은 아직 Tier 2 구조 부채다.
+- `type_checker.c`는 600 LOC 이하로 내려갔지만, 아직 일부 helper shim include가 남아 있어 완전한 orchestration-only는 아니다.
 - core module boundary와 compiler implementation module boundary가 아직 완전히 대응하지 않는다.
 - parser/lex error code routing은 아직 semantic diagnostic registry만큼 강하게 닫히지 않았다.
 - `pgy.accel.spray`는 아직 구현/stdlib/API가 없다. 베타 전에는 설계 경계만 유지하고, 베타 이후 CPU fallback + explicit device/context + owned buffer/tensor API부터 별도 closure로 진행한다.
@@ -64,7 +69,7 @@
 완료 조건:
 
 - `src/semantic`에 800 LOC 초과 `.inc`가 없다. 현재 `make semantic-inc-size-test-smoke`로 고정한다.
-- `src/codegen`과 `src/runtime`에 1,000 LOC 초과 `.inc`가 없다.
+- `src/codegen`, `src/runtime`, `src/compiler`에 1,000 LOC 초과 `.inc`가 없다. 현재 `make backend-inc-size-test-smoke`로 고정한다.
 - core semantic/DAG/backend/runtime owner boundary가 문서와 파일 구조에서 추적 가능하다.
 - `.inc`는 generated table, local macro table, private test fixture 용도로만 남는다.
 
@@ -75,6 +80,7 @@ make module-taxonomy-test-smoke
 make test-semantic
 make test-all
 make llvm-test-backend-compare
+make backend-inc-size-test-smoke
 find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l | sort -nr | head
 ```
 
@@ -291,3 +297,10 @@ make ast-dispatch-test-smoke
 4. ABI ownership audit.
 5. parallel/core keyword matrix.
 6. pain point sweep and beta wording freeze.
+## Progress Log — 2026-04-24 Parser/Lexer Diagnostic Routing
+
+- `parser_error`와 lexer error token이 stage code, reason, fix를 갖도록 1차 routing gate를 닫았다.
+- 새 코드: `PGY_PARSE_SYNTAX`, `PGY_LEX_INVALID_TOKEN`.
+- 새 gate: `make parser-lexer-diagnostic-test-smoke`.
+- CI 연결: `ci-linux`가 parser/lexer diagnostic gate를 실행한다.
+- 남은 beta debt: parse/lex message surface는 routable하지만, full JSON diagnostic object routing은 아직 driver/parser refactor가 필요하다.

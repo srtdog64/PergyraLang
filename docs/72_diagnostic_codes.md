@@ -10,7 +10,8 @@ All codes follow `PGY_<STAGE>_<REASON>`:
 - `PGY_MIR_*` — MIR contract/validation (shared by both backends)
 - `PGY_C_*` — C backend codegen (transpiler lowering MIR → C)
 - `PGY_LLVM_*` — LLVM backend codegen (MIR → LLVM IR → object)
-- `PGY_PARSE_*` — parser-level syntax errors (reserved — currently parse errors surface via `"stage":"parse"` without a code)
+- `PGY_PARSE_*` — parser-level syntax errors
+- `PGY_LEX_*` — lexer/tokenization errors
 
 JSON output structure when `--error-format=json`:
 
@@ -66,9 +67,25 @@ Naming rules:
 - `semantic_error_with_hints` and `semantic_warning_with_hints` call sites must pass `PGY_CODE_*`, `PGY_CAUSE_*`, and `PGY_FIX_*` macros, or explicit `NULL` / `0` for unrouted fields.
 - Function declarations/definitions and comments are ignored; the gate is about real semantic diagnostic call sites.
 
-Parser and lexer diagnostics still surface mostly through stage/message routing. They are reserved for the same registry model but are not fully migrated yet.
+`make parser-lexer-diagnostic-test-smoke` enforces the first parser/lexer routing gate: lexer and parser errors must include `Code:`, `Reason:`, and `Fix:` fields backed by `diag_codes.h` macros.
 
 ## Catalog
+
+### Parse / Lex
+
+#### `PGY_PARSE_SYNTAX`
+
+Parser-level syntax failure: missing expected token, unsupported clause shape, duplicate clause, or malformed declaration/body surface.
+
+- **Reason**: parser saw an unexpected token for the current grammar production.
+- **Fix**: check syntax near the reported line/column.
+
+#### `PGY_LEX_INVALID_TOKEN`
+
+Lexer/tokenization failure: invalid character or unterminated string family.
+
+- **Reason**: source text cannot be tokenized into the stable lexical surface.
+- **Fix**: remove the invalid character, escape it, or close the literal.
 
 ### Type System
 
@@ -484,5 +501,5 @@ Heap allocation failed while growing an internal LLVM-backend data structure (e.
 ## Future Extensions
 
 - `cause_ir` and `fix_source` fields are wired (see field reference at the top). Coverage is partial: a handful of representative sites carry them today (type mismatch, slot lifecycle, view-through, LLVM spec limit). Remaining sites can be upgraded incrementally via `semantic_error_with_hints` / `llvm_set_error_with_hints`.
-- `PGY_PARSE_*` prefix is reserved. Parser-layer errors currently surface via `"stage":"parse"` without a code because the parser does not accumulate diagnostics into `SemanticContext`; routing them through the JSON sink requires a parser refactor.
+- Parser/lexer stage errors now carry stage codes in their message surface. Full JSON diagnostic object routing for parse/lex remains a later parser-driver refactor.
 - `related_rules` field will link each code to the language reference spec once that document exists.

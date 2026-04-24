@@ -1,3 +1,5 @@
+            memcpy(wp, arr->data[i], l);
+            wp += l;
         }
     }
     *wp = '\0';
@@ -795,6 +797,3 @@ rt_pool_merge(int32_t dst_pool, int32_t src_pool)
     src->count  = 0;
     src->active = false;
 }
-
-/* --- Qubit operations --- */
-

@@ -1,3 +1,41 @@
+    uint32_t h = pgy_hash_string(key) % cap;
+    size_t probes = 0;
+    while (m->occupied[h] && probes < m->capacity) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) {
+            free(m->keys[h]);
+            m->keys[h] = NULL;
+            free(m->values[h]);
+            m->values[h] = NULL;
+            m->occupied[h] = 0;
+            m->count--;
+            /* Backward-shift: rehash subsequent entries to fill the gap */
+            uint32_t gap = h;
+            uint32_t j = (gap + 1) % cap;
+            while (m->occupied[j]) {
+                uint32_t ideal = pgy_hash_string(m->keys[j]) % cap;
+                uint32_t dist_to_j   = (j - ideal + cap) % cap;
+                uint32_t dist_to_gap = (gap - ideal + cap) % cap;
+                if (dist_to_gap < dist_to_j) {
+                    m->keys[gap]     = m->keys[j];
+                    m->values[gap]   = m->values[j];
+                    m->occupied[gap] = 1;
+                    m->keys[j]      = NULL;
+                    m->values[j]    = NULL;
+                    m->occupied[j]  = 0;
+                    gap = j;
+                }
+                j = (j + 1) % cap;
+            }
+            return;
+        }
+        h = (h + 1) % cap;
+        probes++;
+    }
+}
+
+static inline int32_t pgy_map_size_string(PgyHashMap_String *m)
+{
+    return m != NULL ? (int32_t)m->count : 0;
 }
 
 static inline void pgy_map_set_i32_string(PgyHashMap_String *m, int32_t key, const char *val)
@@ -760,41 +798,3 @@ static inline PgyQueue_String pgy_queue_new_string(void)
     PgyQueue_String q;
     q.capacity = 16;
     q.count = q.head = q.tail = 0;
-    q.data = (char **)calloc(q.capacity, sizeof(char *));
-    if (q.data == NULL) {
-        q.capacity = 0;
-        pgy_runtime_warn_invalid_collection("queue_new_string", "allocation failed");
-    }
-    return q;
-}
-
-static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
-{
-    if (q == NULL || (q->data == NULL && q->capacity == 0)) {
-        pgy_runtime_warn_invalid_collection("queue_push_string", "queue is not initialized");
-        return;
-    }
-    if (q->count >= q->capacity) {
-        size_t nc = q->capacity == 0 ? 16 : q->capacity * 2;
-        char **nd = (char **)calloc(nc, sizeof(char *));
-        if (nd == NULL) {
-            pgy_runtime_warn_invalid_collection("queue_push_string", "growth allocation failed");
-            return;
-        }
-        for (size_t i = 0; i < q->count; i++)
-            nd[i] = q->data[(q->head + i) % q->capacity];
-        free(q->data);
-        q->data = nd;
-        q->head = 0;
-        q->tail = q->count;
-        q->capacity = nc;
-    }
-    q->data[q->tail] = (char *)val;
-    q->tail = (q->tail + 1) % q->capacity;
-    q->count++;
-}
-
-static inline char *pgy_queue_pop_string(PgyQueue_String *q)
-{
-    char *out = NULL;
-    if (q == NULL || q->count == 0) {

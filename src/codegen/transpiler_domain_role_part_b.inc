@@ -1,3 +1,4 @@
+
     codebuf_write(ctx->out, "\n/* Role: %s */\n", name);
     emit_included_role_impls(node, ctx);
 
@@ -797,4 +798,3 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                           detach->data.zone_detach.target_slot_name) == 0) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = false;\n",
-                    state->data.zone_state.state_name);

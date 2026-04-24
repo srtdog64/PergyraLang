@@ -608,14 +608,6 @@ slot_transfer_compatible(const Type *from, const Type *to)
 }
 
 static bool
-expr_is_movable_resource_boundary(const ASTNode *expr)
-{
-    return expr != NULL
-        && (expr->type == AST_CHANNEL_RECV
-            || expr->type == AST_AWAIT_EXPR);
-}
-
-static bool
 expr_is_static_member_access(const ASTNode *expr)
 {
     if (expr == NULL || expr->type != AST_MEMBER_ACCESS

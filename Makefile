@@ -173,6 +173,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_domain.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_world.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_zone.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_inventory.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_decl.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_domain.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage.c \
@@ -189,6 +190,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_party_decl.c \
                    $(SEMANTIC_DIR)/type_checker_roster_decl.c \
                    $(SEMANTIC_DIR)/type_checker_async_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_event.c \
+                   $(SEMANTIC_DIR)/type_checker_qubit.c \
                    $(SEMANTIC_DIR)/type_checker_ability_ref.c \
                    $(SEMANTIC_DIR)/type_checker_stdlib_use.c \
                    $(SEMANTIC_DIR)/type_checker_module_contract.c \
@@ -649,8 +652,17 @@ module-taxonomy-test-smoke:
 semantic-inc-size-test-smoke:
 	"$(BASH)" tests/semantic_inc_size_smoke.sh
 
+backend-inc-size-test-smoke:
+	"$(BASH)" tests/backend_inc_size_smoke.sh
+
+semantic-core-shape-test-smoke:
+	"$(BASH)" tests/semantic_core_shape_smoke.sh
+
 diagnostic-registry-test-smoke:
 	"$(BASH)" tests/diagnostic_registry_smoke.sh
+
+parser-lexer-diagnostic-test-smoke:
+	"$(BASH)" tests/parser_lexer_diagnostic_smoke.sh
 
 diagnostics-json-test-smoke:
 	$(MAKE) $(PGY)
@@ -699,7 +711,10 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" module-test-smoke
 	$(MAKE) module-taxonomy-test-smoke
 	$(MAKE) semantic-inc-size-test-smoke
+	$(MAKE) backend-inc-size-test-smoke
+	$(MAKE) semantic-core-shape-test-smoke
 	$(MAKE) diagnostic-registry-test-smoke
+	$(MAKE) parser-lexer-diagnostic-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" diagnostics-json-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" ir-pipeline-test-smoke
 	$(MAKE) ast-dispatch-test-smoke
@@ -799,7 +814,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-rir test-mir test-hir test-all \
-        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke semantic-inc-size-test-smoke diagnostic-registry-test-smoke diagnostics-json-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke semantic-inc-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke diagnostic-registry-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

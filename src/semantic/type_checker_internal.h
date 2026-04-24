@@ -268,6 +268,10 @@ void semantic_type_resolution_precollect_zone_refresh_projection_map(
 void semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
                                                           SemanticContext *ctx);
 bool type_check_intent_decl(ASTNode *node, SemanticContext *ctx);
+bool type_check_event_decl(ASTNode *node, SemanticContext *ctx);
+bool type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
+                                   const char *op_name);
+bool type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx);
 void semantic_type_resolution_precollect_relation_inventory(ASTNode *relation_decl,
                                                             SemanticContext *ctx);
 void semantic_type_resolution_precollect_effect_inventory(ASTNode *effect_decl,
