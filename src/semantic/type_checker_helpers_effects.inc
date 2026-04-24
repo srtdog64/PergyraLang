@@ -229,7 +229,7 @@ structured_comment_has_effects_tag(StructuredComment *comment)
     return false;
 }
 
-static uint32_t
+uint32_t
 declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
                                     bool *has_contract_out)
 {
@@ -341,7 +341,7 @@ type_is_subject_type(const Type *type, SemanticContext *ctx);
 static bool
 type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx);
 
-static bool
+bool
 type_is_general_boundary_type(const Type *type, SemanticContext *ctx)
 {
     return type_is_movable_resource_handle(type)
@@ -373,7 +373,7 @@ type_is_capability_bearing(const Type *type)
         || type_is_constructed_named(type, "Token");
 }
 
-static const char *
+const char *
 resource_handle_display_name(const Type *type)
 {
     if (type == NULL)
@@ -430,7 +430,7 @@ find_ability_decl_by_name(ASTNode *program, const char *name)
     return NULL;
 }
 
-static TypeNominalFlavor
+TypeNominalFlavor
 nominal_flavor_from_decl(const ASTNode *decl)
 {
     if (decl == NULL || decl->type != AST_CLASS_DECL)
@@ -476,7 +476,7 @@ find_subject_host_decl_by_name(ASTNode *program, const char *type_name)
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 find_callable_decl_by_name(ASTNode *program, const char *name)
 {
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
@@ -503,7 +503,7 @@ find_callable_decl_by_name(ASTNode *program, const char *name)
     return NULL;
 }
 
-static bool
+bool
 decl_is_projection_source(const ASTNode *decl)
 {
     if (decl_is_subject_host(decl))
@@ -520,7 +520,7 @@ find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type,
 ASTNode *
 find_zone_domain_slot(ASTNode *zone, const char *slot_name);
 
-static ClassField *
+ClassField *
 subject_host_field_at(ASTNode *decl, size_t index)
 {
     if (decl == NULL)

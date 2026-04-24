@@ -13,8 +13,9 @@
 #include "diag_codes.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_channel_transport_internal.h"
+#include "type_checker_builtins_internal.h"
 
-static bool
+bool
 type_is_future_like(const Type *type)
 {
     return type_is_constructed_named(type, "Future")
@@ -25,6 +26,6 @@ type_is_future_like(const Type *type)
 
 #include "type_checker_builtins_query.inc"
 
-#include "type_checker_builtins_stdlib.inc"
+#include "type_checker_builtins_slotops.inc"
 
 #include "type_checker_builtins_nominal.inc"

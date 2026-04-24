@@ -226,7 +226,7 @@ current_projection_host_decl(SemanticContext *ctx, const char **label_out,
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 find_named_class_decl(ASTNode *program, const char *name)
 {
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
@@ -245,7 +245,7 @@ find_named_class_decl(ASTNode *program, const char *name)
     return NULL;
 }
 
-static bool
+bool
 decl_is_subject_nominal(ASTNode *decl)
 {
     return (decl != NULL
@@ -277,7 +277,7 @@ projection_source_field_at_local(ASTNode *decl, size_t index)
     return NULL;
 }
 
-static int
+int
 resolve_projection_source_field_type_rec(ASTNode *program,
                                          ASTNode *source_decl,
                                          const char *field_name,

@@ -196,7 +196,7 @@ type_check_operator_overload(ASTNode *expr, SemanticContext *ctx,
 
 #include "type_checker_ownership_array_store.inc"
 
-static Type *
+Type *
 type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 {
     if (expr->data.array_literal.count == 0)

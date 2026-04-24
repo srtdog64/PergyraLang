@@ -1,3 +1,33 @@
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
+
+#include "type_checker_internal.h"
+
+static char *
+tc_strdup_fmt(const char *fmt, ...)
+{
+    va_list ap, ap2;
+    int len;
+    char *buf;
+
+    va_start(ap, fmt);
+    va_copy(ap2, ap);
+    len = vsnprintf(NULL, 0, fmt, ap);
+    va_end(ap);
+    if (len < 0) {
+        va_end(ap2);
+        return NULL;
+    }
+
+    buf = malloc((size_t)len + 1);
+    if (buf != NULL)
+        vsnprintf(buf, (size_t)len + 1, fmt, ap2);
+    va_end(ap2);
+    return buf;
+}
+
 const char *
 semantic_type_resolution_decl_label(ASTNode *stmt)
 {
@@ -346,7 +376,7 @@ semantic_stage_event_signature(ASTNode *event_decl,
         "event return type lookup");
 }
 
-static ASTNode *
+ASTNode *
 semantic_find_top_level_decl_by_label(ASTNode *program,
                                       const char *label,
                                       TypeResolutionNodeKind kind)
@@ -371,7 +401,7 @@ semantic_find_top_level_decl_by_label(ASTNode *program,
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 semantic_find_graph_host_decl(ASTNode *program,
                               const char *label)
 {
@@ -417,7 +447,7 @@ semantic_find_graph_host_decl(ASTNode *program,
     return NULL;
 }
 
-static void
+void
 semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
 {
     ASTNode *saved_nominal;

@@ -647,7 +647,7 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
     }
 }
 
-static void
+void
 semantic_type_resolution_precollect_program(ASTNode *program,
                                             SemanticContext *ctx)
 {

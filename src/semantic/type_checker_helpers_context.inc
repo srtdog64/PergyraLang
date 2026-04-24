@@ -51,7 +51,7 @@ semantic_ctx_embedded_world_zone_slot_name(SemanticContext *ctx, const char *nam
     return ctx->embedded_world_zone_slot_names[index];
 }
 
-static void
+void
 semantic_ctx_mark_embedded_world_zone_name(SemanticContext *ctx,
                                            const char *name,
                                            const char *world_name,

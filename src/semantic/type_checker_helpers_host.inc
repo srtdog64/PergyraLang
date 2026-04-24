@@ -10,7 +10,7 @@ create_overlay_nominal_type(const char *name)
     return type;
 }
 
-static size_t
+size_t
 overlay_field_count(ASTNode *decl)
 {
     if (decl == NULL)
@@ -37,7 +37,7 @@ overlay_field_count(ASTNode *decl)
     }
 }
 
-static ASTNode *
+ASTNode *
 overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
 {
     if (field_name_out != NULL)
@@ -305,7 +305,7 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
     return TYPE_VOID;
 }
 
-static ASTNode *
+ASTNode *
 constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *name)
 {
     if (program == NULL || name == NULL)
@@ -630,5 +630,3 @@ expr_is_static_member_access(const ASTNode *expr)
 
     return expr_is_static_member_access(expr->data.member.object);
 }
-
-static char *

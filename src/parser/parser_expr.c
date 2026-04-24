@@ -132,7 +132,11 @@ parse_interpolation_body(const char *raw, bool is_fstring)
         /* Extract expression between { and } or ${ and } */
         const char *expr_start = interp + delim_len;
         const char *expr_end = strchr(expr_start, '}');
-        if (expr_end == NULL || expr_end >= end) break;
+        if (expr_end == NULL || expr_end >= end) {
+            if (result != NULL)
+                ast_destroy(result);
+            return ast_create_string(raw);
+        }
 
         size_t expr_len = expr_end - expr_start;
         char *expr_str = malloc(expr_len + 1);

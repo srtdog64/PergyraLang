@@ -13,14 +13,38 @@ bool type_is_move_token(const Type *type);
 bool type_is_resource_handle(const Type *type);
 bool type_is_anchored_resource_handle(const Type *type);
 bool type_is_movable_resource_handle(const Type *type);
+bool type_is_general_boundary_type(const Type *type, SemanticContext *ctx);
 bool type_is_capability_bearing(const Type *type);
 bool type_is_subject_type(const Type *type, SemanticContext *ctx);
 bool type_requires_boundary_borrow_tracking(const Type *type, SemanticContext *ctx);
+Type *resolve_named_type(const char *name, SemanticContext *ctx,
+                         const ASTNode *site);
+const char *type_name_or_unknown(const Type *type);
+bool name_looks_qualified(const char *name);
+void semantic_format_function_signature(const Type *type,
+                                        char *out,
+                                        size_t out_cap);
 void semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask);
 Type *create_overlay_nominal_type(const char *name);
+size_t overlay_field_count(ASTNode *decl);
+ASTNode *overlay_field_decl_at(ASTNode *decl,
+                               size_t index,
+                               const char **field_name_out);
 bool decl_is_subject_host(const ASTNode *decl);
+ClassField *subject_host_field_at(ASTNode *decl, size_t index);
 char *format_generic_subject_signature(const char *name,
                                        GenericParams *params);
+TypeNominalFlavor nominal_flavor_from_decl(const ASTNode *decl);
+uint32_t declared_effects_from_function_node(ASTNode *node,
+                                             SemanticContext *ctx,
+                                             bool *has_contract_out);
+char *flatten_static_member_access(const ASTNode *expr, char separator);
+Symbol *lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx);
+
+extern size_t g_resolve_type_node_calls;
+extern size_t g_resolve_type_node_unique_nodes;
+extern size_t g_resolve_type_node_cache_hits;
+extern size_t g_resolve_type_node_cache_misses;
 
 bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
                          const char *action);
@@ -109,9 +133,13 @@ ASTNode *current_host_decl(SemanticContext *ctx);
 ASTNode *find_type_alias_decl(ASTNode *program, const char *name);
 ASTNode *find_type_decl_by_name(ASTNode *program, const char *type_name);
 ASTNode *find_ability_decl_by_name(ASTNode *program, const char *name);
+ASTNode *find_callable_decl_by_name(ASTNode *program, const char *name);
 ASTNode *find_domain_decl_by_name(ASTNode *program,
                                   ASTNodeType decl_type,
                                   const char *name);
+ASTNode *constructor_decl_for_symbol_kind(ASTNode *program,
+                                          SymbolKind kind,
+                                          const char *name);
 ASTNode *find_subject_host_decl_by_name(ASTNode *program,
                                         const char *type_name);
 ASTNode *find_zone_domain_slot(ASTNode *zone, const char *slot_name);
@@ -123,6 +151,15 @@ ASTNode *resolve_zone_subject_slot_for_participant(ASTNode *zone,
                                                    bool *ambiguous_out);
 ASTNode *semantic_world_find_zone_slot_local(ASTNode *world,
                                              const char *slot_name);
+const char *resource_handle_display_name(const Type *type);
+const char *format_effective_generic_type_list_scratch(SemanticContext *ctx,
+                                                       const char *name,
+                                                       Type **types,
+                                                       size_t count);
+void semantic_ctx_mark_embedded_world_zone_name(SemanticContext *ctx,
+                                                const char *name,
+                                                const char *world_name,
+                                                const char *slot_name);
 void semantic_stage_world_local_contracts(ASTNode *world_decl,
                                           SemanticContext *ctx);
 void semantic_stage_zone_local_contracts(ASTNode *zone_decl);
@@ -145,6 +182,11 @@ bool domain_has_subject_slot_type(ASTNode **slots,
                                   SemanticContext *ctx,
                                   const char *type_name);
 bool zone_has_effect_layer_type(ASTNode *zone, const char *effect_name);
+bool decl_is_projection_source(const ASTNode *decl);
+const char *projection_refresh_source_field_name(ASTNode *refresh,
+                                                 const char *target_field_name);
+bool projection_target_decl_has_field(ASTNode *target_decl,
+                                      const char *field_name);
 size_t generic_params_required_count(GenericParams *params);
 void validate_where_clause_bounds(WhereClause *wc,
                                   SemanticContext *ctx,
@@ -277,6 +319,12 @@ void semantic_stage_method_array(ASTNode **methods,
                                  size_t method_count,
                                  SemanticContext *ctx,
                                  const char *fallback_name);
+ASTNode *semantic_find_top_level_decl_by_label(ASTNode *program,
+                                               const char *label,
+                                               TypeResolutionNodeKind kind);
+ASTNode *semantic_find_graph_host_decl(ASTNode *program,
+                                       const char *label);
+void semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx);
 void semantic_type_resolution_record_named_dependency(
     SemanticContext *ctx,
     const ASTNode *consumer_site,
@@ -285,6 +333,12 @@ void semantic_type_resolution_record_named_dependency(
     const ASTNode *provider_site,
     const char *provider_name,
     const char *reason);
+void semantic_type_resolution_precollect_program(ASTNode *program,
+                                                 SemanticContext *ctx);
+void semantic_run_type_resolution_worklist(ASTNode *program,
+                                           SemanticContext *ctx,
+                                           size_t *topo_order,
+                                           size_t topo_count);
 size_t type_resolution_intern_node(TypeResolutionGraph *graph,
                                    TypeResolutionNodeKind kind,
                                    const ASTNode *site,
@@ -300,6 +354,10 @@ bool type_resolution_find_path(TypeResolutionGraph *graph,
                                size_t *path,
                                size_t *path_len,
                                size_t path_cap);
+bool type_resolution_validate_graph(SemanticContext *ctx);
+bool type_resolution_build_topo_order(TypeResolutionGraph *graph,
+                                      size_t **out_order,
+                                      size_t *out_count);
 char *type_resolution_format_cycle(TypeResolutionGraph *graph,
                                    size_t *path,
                                    size_t path_len,
@@ -323,7 +381,50 @@ void    merge_entangle_pools(SemanticContext *ctx,
                              int32_t dst_pool, int32_t src_pool);
 void    propagate_collapse_to_pool(SemanticContext *ctx, int32_t pool_id);
 
+/* Cross-TU helpers promoted from static to extern to support the
+ * type_checker_decls_domain_helpers.c translation unit extraction
+ * (5-A slice, docs/101_semantic_split_template.md). */
+const char *type_name_or_unknown(const Type *type);
+Type *resolve_named_type(const char *name, SemanticContext *ctx,
+                         const ASTNode *site);
+bool decl_is_projection_source(const ASTNode *decl);
+const char *projection_refresh_source_field_name(ASTNode *refresh,
+                                                 const char *target_field_name);
+bool projection_target_decl_has_field(ASTNode *target_decl,
+                                      const char *field_name);
+Type *type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
+                                      const char *display_name,
+                                      SemanticContext *ctx);
+
+/* Helper-axis promotions for the helpers_late.c TU (docs/101). */
+ASTNode *overlay_field_decl_at(ASTNode *decl, size_t index,
+                               const char **field_name_out);
+void semantic_ctx_mark_embedded_world_zone_name(SemanticContext *ctx,
+                                                const char *name,
+                                                const char *world_name,
+                                                const char *slot_name);
+void semantic_format_function_signature(const Type *type, char *out,
+                                        size_t out_cap);
+ASTNode *find_callable_decl_by_name(ASTNode *program, const char *name);
+const char *resource_handle_display_name(const Type *type);
+const char *format_effective_generic_type_list_scratch(SemanticContext *ctx,
+                                                       const char *name,
+                                                       Type **types,
+                                                       size_t count);
+
 Type *type_check_stdlib_call(ASTNode *expr, const char *name,
                              SemanticContext *ctx);
+bool check_call_arity(ASTNode *expr, size_t expected, const char *name,
+                      SemanticContext *ctx);
+ASTNode *find_named_class_decl(ASTNode *program, const char *name);
+bool decl_is_subject_nominal(ASTNode *decl);
+int resolve_projection_source_field_type_rec(ASTNode *program,
+                                             ASTNode *source_decl,
+                                             const char *field_name,
+                                             unsigned depth,
+                                             SemanticContext *ctx,
+                                             Type **field_type_out);
+Type *type_check_to_tobject(ASTNode *call, SemanticContext *ctx);
+Type *type_check_to_object(ASTNode *call, SemanticContext *ctx);
 
 #endif

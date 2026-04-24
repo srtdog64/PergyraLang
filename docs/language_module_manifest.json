@@ -74,6 +74,55 @@
       ]
     },
     {
+      "name": "pgy.accel.spray",
+      "layer": "accelerator-library",
+      "status": "post-beta-design-surface",
+      "beta_blocker": false,
+      "current_surface": "not implemented; reserved logical module for GPU/AI acceleration",
+      "depends_on": [
+        "pgy.foundation",
+        "pgy.execution"
+      ],
+      "surfaces": [
+        "GPU device/context handles",
+        "buffer/tensor memory ownership",
+        "kernel launch graph",
+        "parallel-to-accelerator scheduling bridge",
+        "AI operator library boundary"
+      ],
+      "out_of_scope": [
+        "new beta keywords",
+        "implicit global GPU state",
+        "backend-specific CUDA/ROCm syntax in core",
+        "HKT/functor-based tensor abstraction"
+      ]
+    },
+    {
+      "name": "pgy.render.skia",
+      "layer": "render-library",
+      "status": "post-beta-design-surface",
+      "beta_blocker": false,
+      "current_surface": "not implemented; reserved logical module for Skia/render/shader integration",
+      "depends_on": [
+        "pgy.foundation",
+        "pgy.execution",
+        "pgy.accel.spray"
+      ],
+      "surfaces": [
+        "Skia canvas/surface handles",
+        "render graph",
+        "shader module boundary",
+        "CPU/GPU render backend adapter",
+        "resource lifetime for textures and surfaces"
+      ],
+      "out_of_scope": [
+        "new beta keywords",
+        "shader language embedded into core syntax",
+        "implicit global graphics context",
+        "backend-specific render syntax in core"
+      ]
+    },
+    {
       "name": "pgy.compat.oop",
       "layer": "compatibility",
       "status": "compatibility-surface",
@@ -83,6 +132,28 @@
         "class-heavy convenience",
         "method-style sugar",
         "legacy pattern naming"
+      ]
+    },
+    {
+      "name": "pgy.compat.dop",
+      "layer": "compatibility",
+      "status": "post-beta-design-surface",
+      "beta_blocker": false,
+      "current_surface": "not implemented; reserved logical module for data-oriented programming style",
+      "depends_on": [
+        "pgy.foundation",
+        "pgy.core"
+      ],
+      "surfaces": [
+        "struct-of-arrays style helpers",
+        "batch processing patterns",
+        "data layout annotations as library metadata",
+        "cache-friendly collection adapters"
+      ],
+      "out_of_scope": [
+        "new beta keywords",
+        "layout pragmas in core syntax",
+        "unsafe memory model expansion before ABI closure"
       ]
     },
     {

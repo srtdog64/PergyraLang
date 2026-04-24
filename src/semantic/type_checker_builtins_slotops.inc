@@ -138,7 +138,7 @@ type_check_claim_slot(ASTNode *call, SemanticContext *ctx)
     return TYPE_UNKNOWN;
 }
 
-static Type *
+Type *
 type_check_claim_device_slot(ASTNode *call, SemanticContext *ctx)
 {
     if (!check_call_arity(call, 0, "ClaimDeviceSlot", ctx))
@@ -498,7 +498,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     return true;
 }
 
-static Type *
+Type *
 type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
                              const char *builtin_name,
                              bool allow_released)
@@ -541,4 +541,3 @@ type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
     return slot_type;
 }
 
-Type *

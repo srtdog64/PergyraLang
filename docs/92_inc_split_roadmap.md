@@ -9,7 +9,7 @@
 ## 현 상태 (2026-04-24)
 
 `src/semantic/`:
-- `.c` 26개, `.h` 22개, `.inc` **55개**
+- `.c` 45개, `.h` 24개, `.inc` **47개**
 - `.inc` 개수는 split용 shim/include가 섞여 단순 감소 지표로 쓰지 않는다. 베타 debt 지표는 큰 `.inc` LOC, static cascade, direct include chain 축소로 본다.
 - 분리된 internal header 16개 (`type_checker_*_internal.h`) — leaf/axis 인터페이스는 translation unit 경계로 이동 중
 
@@ -19,30 +19,57 @@ type_checker.c
 ├─ type_checker_helpers.inc → core / host / late
 ├─ type_checker_visibility.inc
 ├─ type_checker_resolution.inc → graph / stage
-├─ type_checker_expr.inc → resolve / operator_expr
+├─ type_checker_expr.inc → resolve
 ├─ type_checker_ownership_boundaries.inc
 ├─ type_checker_ownership_param_summary.inc
 ├─ type_checker_decls.inc → a / b (5 추가 .inc)
 ├─ type_checker_async_channel.inc
-└─ type_checker_program.inc
+├─ type_checker_program.inc
+├─ type_checker_program.c
+└─ type_checker_class_decl.c
 ```
 
 가장 큰 .inc 파일 Top 5 (LOC, 2026-04-24 snapshot):
-1. `type_checker_decls_domain_helpers.inc` — 1,559
-2. `type_checker_decls_a.inc` — 1,509
-3. `type_checker_program.inc` — 1,210
-4. `type_checker_builtins_stdlib_body.inc` — 1,131
-5. `type_checker_resolution_stage.inc` — 969
+1. `type_checker_helpers_late.inc` — 773
+2. `type_checker_builtins_query.inc` — 769
+3. `type_checker_expr.inc` — 758
+4. `type_checker_resolution_graph_inventory.inc` — 735
+5. `type_checker_helpers_effects.inc` — 670
 
 Cross-subsystem large `.inc` debt (LOC, 2026-04-24 snapshot):
 1. `runtime/pgy_runtime_part_ba.inc` — 4,731
-2. `codegen/transpiler_expr_emitters.inc` — 4,334
-3. `runtime/pgy_runtime_lib_part_b.inc` — 4,154
-4. `codegen/llvm_expr_calls.inc` — 3,129
-5. `codegen/transpiler_emitters_base_b.inc` — 3,068
-6. `codegen/transpiler_emitters_base_a.inc` — 2,890
-7. `codegen/transpiler_helpers_core_a.inc` — 2,600
-8. `codegen/transpiler_helpers_core_b.inc` — 2,572
+2. `runtime/pgy_runtime_lib_part_b.inc` — 4,154
+3. `codegen/transpiler_emitters_base_a.inc` — 2,890
+4. `codegen/transpiler_helpers_core_a.inc` — 2,600
+5. `codegen/transpiler_helpers_core_b.inc` — 2,572
+6. `codegen/transpiler_domain_role.inc` — 2,439
+7. `codegen/llvm_expr_helpers.inc` — 1,816
+8. `codegen/llvm_expr_call_methods.inc` — 1,195
+
+Recently closed:
+- `semantic/type_checker_decls_domain_helpers.inc` — removed; body lives in `type_checker_decls_domain_helpers.c`.
+- `semantic/type_checker_decls_a.inc` — reduced to a one-line shim; body lives in `type_checker_intent_helpers.c`.
+- `codegen/transpiler_emitters_mir_inventory_ssa.inc` — reduced to a five-line shim that includes three sub-1000 LOC slices:
+  `transpiler_emitters_mir_inventory_intent.inc`,
+  `transpiler_emitters_mir_inventory_ssa_names.inc`,
+  `transpiler_emitters_mir_inventory_ssa_emit.inc`.
+- `codegen/transpiler_expr_emitters.inc` — reduced to a seven-line shim that includes five sub-1,000 LOC slices:
+  `transpiler_expr_emitters_builtins.inc`,
+  `transpiler_expr_emitters_call_a.inc`,
+  `transpiler_expr_emitters_call_b.inc`,
+  `transpiler_expr_emitters_members.inc`,
+  `transpiler_expr_emitters_tail.inc`.
+- `codegen/llvm_expr_calls.inc` — reduced to a six-line shim that includes four sub-1,000 LOC mechanical slices:
+  `llvm_expr_calls_part_a.inc`,
+  `llvm_expr_calls_part_b.inc`,
+  `llvm_expr_calls_part_c.inc`,
+  `llvm_expr_calls_part_d.inc`.
+- `codegen/transpiler_emitters_base_b.inc` — reduced to a six-line shim that includes four sub-1,000 LOC mechanical slices:
+  `transpiler_emitters_base_b_part_a.inc`,
+  `transpiler_emitters_base_b_part_b.inc`,
+  `transpiler_emitters_base_b_part_c.inc`,
+  `transpiler_emitters_base_b_part_d.inc`.
+- `semantic/type_checker_helpers_late.c` — standalone TU hidden include-order dependency fixed by promoting call-path helpers to `type_checker_internal.h` and explicitly including slot analyzer / visibility / generic diagnostic contracts.
 
 ---
 
@@ -63,6 +90,12 @@ Cross-subsystem large `.inc` debt (LOC, 2026-04-24 snapshot):
 | 3-B | role | `src/semantic/type_checker_role_decl.c` + `type_checker_decls_a_helpers_internal.h` | (decls_a.inc 에서 body 추출) | 383 |
 | 3-B | party | `src/semantic/type_checker_party_decl.c` | (decls_a.inc 에서 body 추출) | 147 |
 | 3-B | roster | `src/semantic/type_checker_roster_decl.c` | (decls_a.inc 에서 body 추출) | 80 |
+| 4-C | class/extern | `src/semantic/type_checker_class_decl.c` | (`type_checker_program.inc` 에서 body 추출) | 215 |
+| 4-D | program orchestration | `src/semantic/type_checker_program.c` | (`type_checker_program.inc` 에서 body 추출) | 381 |
+| 4-E | type-resolution stage | `src/semantic/type_checker_resolution_stage.c` | `type_checker_resolution_stage.inc` | 999 |
+| 4-F | builtin projection | `src/semantic/type_checker_builtins_projection.c` | (`type_checker_builtins_nominal.inc` 에서 body 추출) | 167 |
+| 4-G | expression operators/index access | `src/semantic/type_checker_expr_ops.c` | (`type_checker_expr.inc` 에서 body 추출) | 141 |
+| 4-H | expression name helpers | `src/semantic/type_checker_expr_names.c` | (`type_checker_helpers_late.inc` 에서 helper 추출) | 73 |
 
 **3-B 에서 추가로 externalize 된 5 helper**: `any_subject_role_has_ability`, `any_subject_role_find_base_ability_impl`, `validate_ability_require_fields_for_role`, `find_generic_param_index`, `concrete_type_satisfies_bound`. `static` 제거 site 7 개 + 선언 승격 (`type_checker_decls_a_helpers_internal.h` 신설 + `type_checker_internal.h` 확장).
 
@@ -74,15 +107,26 @@ Cross-subsystem large `.inc` debt (LOC, 2026-04-24 snapshot):
 
 **Stage domain slice**: world/zone local-contract replay를 `src/semantic/type_checker_resolution_stage_domain.c`로 이동했다. `type_checker_resolution_stage.inc`는 969 LOC가 되었고, 남은 stage debt는 top-level declaration staging과 generic/function/event staging 쪽으로 압축됐다.
 
+**Stage TU closure**: `type_checker_resolution_stage.inc`를 제거하고 `src/semantic/type_checker_resolution_stage.c`로 승격했다. top-level declaration staging, generic/function/event signature staging, graph host lookup이 실제 TU에서 빌드되며, `type_checker_resolution.inc`는 graph include shim만 남았다.
+
+**Program declaration/orchestration slice**: class/extern declaration checking을 `src/semantic/type_checker_class_decl.c`로, top-level program orchestration을 `src/semantic/type_checker_program.c`로 이동했다. `nominal_flavor_from_decl`, `declared_effects_from_function_node`, graph topo/validation, program precollect/worklist, resolver stats는 include-order static helper에서 internal API로 승격했다. `type_checker_program.inc`는 624 LOC가 되어 semantic 800 LOC stop condition 아래로 내려갔다.
+
+**Builtin projection slice**: `ToObject` / `ToTObject` semantic checker를 `src/semantic/type_checker_builtins_projection.c`로 이동했다. `type_checker_builtins_nominal.inc`는 659 LOC가 되어 semantic 800 LOC stop condition 아래로 내려갔고, projection diagnostics helper boundary가 builtin dispatcher에서 분리됐다.
+
+**Expression operator/name slices**: binary/unary operator checker, array literal/indexed access checker를 `src/semantic/type_checker_expr_ops.c`로 이동했다. static member path flattening과 consumed-boundary identifier lookup은 `src/semantic/type_checker_expr_names.c`로 이동했다. `type_checker_expr.inc`는 758 LOC, `type_checker_helpers_late.inc`는 773 LOC가 되어 semantic 800 LOC stop condition 아래로 내려갔다.
+
 남은 semantic 800+ `.inc`:
 
-- `type_checker_decls_domain_helpers.inc` (약 1559) — 자체가 helper 모음 → 별도 axis 분리 전략 (5 차 slice).
-- `type_checker_decls_a.inc` (약 1509, 이전 2124 → **615 감소**) — intent helpers + class/subject/ability helpers 가 섞여 있어 추가 축소는 helper-axis 분리 전략 필요 (5 차 slice). 800 초과는 유지되지만 declaration body 는 모두 TU 로 나감.
-- `type_checker_program.inc` (약 1210) — program orchestration split 대상.
-- `type_checker_builtins_stdlib_body.inc` (약 1131) — stdlib body split 대상.
-- `type_checker_resolution_stage.inc` (약 969) — top-level declaration staging residual split 대상.
+- 없음. `make semantic-inc-size-test-smoke`가 `src/semantic/**/*.inc <= 800 LOC`를 강제한다.
 
-§1 체크리스트의 "800 LOC 초과 `.inc` 없음" 조건은 **이번 sprint 에서 닫히지 않음**. 그러나 모든 declaration body 는 kind 별 TU 로 승격되어 owner boundary 가 명확해졌고, 새 declaration kind 추가 시 `.inc` aggregator 를 건드릴 필요 없음 — 사용자가 말한 "다른 지향 쉽게 추가" 의 구체적 장치 확보.
+§1 체크리스트의 "800 LOC 초과 `.inc` 없음" 조건은 닫혔다. 모든 declaration body 는 kind/helper 별 TU 로 승격되어 owner boundary 가 명확해졌고, 새 declaration kind 추가 시 `.inc` aggregator 를 건드릴 필요 없음 — 사용자가 말한 "다른 지향 쉽게 추가" 의 구체적 장치 확보.
+
+Backend 진행:
+- `transpiler_emitters_mir_inventory_ssa.inc`는 1,998 LOC 단일 include에서 5 LOC shim + 760/626/610 LOC 하위 slice로 분리됐다.
+- `transpiler_expr_emitters.inc`는 4,334 LOC 단일 include에서 7 LOC shim + 900/900/900/900/734 LOC 하위 slice로 분리됐다. 이 slice는 의미 단위 TU 승격이 아니라 include-order 보존 mechanical split이므로, 다음 단계는 call/member/builtin owner 경계를 실제 `.c` 또는 더 작은 feature include로 정리하는 것이다.
+- `llvm_expr_calls.inc`는 3,129 LOC 단일 include에서 6 LOC shim + 800/800/800/729 LOC 하위 slice로 분리됐다. `llvm_emit_call` 자체는 아직 단일 거대 함수이므로, beta+1에서는 builtin family dispatcher / collection calls / intent observability / channel calls / user function fallback으로 실제 helper 추출이 필요하다.
+- `transpiler_emitters_base_b.inc`는 3,068 LOC 단일 include에서 6 LOC shim + 800/800/800/668 LOC 하위 slice로 분리됐다. `emit_statement`, `emit_block`, intent forward declaration family는 아직 include-order preserved 상태라서 다음 실제 owner extraction 후보로 남는다.
+- 검증: `make test-transpile -j2`, `make test-semantic -j2`, `make llvm-test-backend-compare -j2`.
 
 ---
 
@@ -93,7 +137,8 @@ Cross-subsystem large `.inc` debt (LOC, 2026-04-24 snapshot):
 ### Target State A — Semantic Core
 
 - `type_checker.c`는 orchestration만 담당한다.
-- `type_checker_resolution_graph_inventory.inc`와 `type_checker_resolution_stage.inc`는 각각 500 LOC 이하의 shim 또는 완전한 `.c` 모듈로 전환한다.
+- `type_checker_resolution_graph_inventory.inc`는 500 LOC 이하의 shim 또는 완전한 `.c` 모듈로 전환한다.
+- `type_checker_resolution_stage.c`는 DAG stage source of truth로 유지하고 include shim으로 되돌리지 않는다.
 - declaration validators는 `subject/class`, `zone`, `world`, `intent`, `relation/effect/projection`, `ability/role/party/roster` 단위의 `.c`로 분리한다.
 - `find_*_decl`, `find_*_slot`, label/format, dependency record API는 static include-order가 아니라 internal header 계약으로만 사용한다.
 - type-resolution DAG는 recursive resolver의 보조 자료가 아니라 provider/consumer validation schedule의 source of truth가 된다.
@@ -273,7 +318,7 @@ semantic_classify_ownership_type
 - cleanup: DONE — `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 사이의 dangling return-type seams 제거
 - cleanup: DONE — `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`를 standalone semantic TU로 빌드 가능하게 만들고 hidden helper 의존을 internal/header 계약으로 승격
 - cascade: `type_resolution_intern_node`, `type_resolution_add_edge`, `type_resolution_find_path`, `type_resolution_format_cycle`, `semantic_type_resolution_record_named_dependency`, `semantic_type_resolution_record_type_ref_dependency`, `semantic_type_resolution_collect_type_refs`, `find_type_alias_decl`, `find_domain_decl_by_name`, `semantic_world_find_zone_slot_local`, `create_overlay_nominal_type`를 internal API로 승격
-- 현재 크기: `type_checker_resolution_graph_collect.c` 285 LOC, `type_checker_resolution_graph_labels.c` 164 LOC, `type_checker_resolution_graph_domain.c` 136 LOC, `type_checker_resolution_graph_decl.c` 554 LOC, `type_checker_resolution_graph_world.c` 381 LOC, `type_checker_resolution_graph_inventory.inc` 870 LOC, `type_checker_resolution_stage.inc` 1,477 LOC
+- 현재 크기: `type_checker_resolution_graph_collect.c` 285 LOC, `type_checker_resolution_graph_labels.c` 164 LOC, `type_checker_resolution_graph_domain.c` 136 LOC, `type_checker_resolution_graph_decl.c` 554 LOC, `type_checker_resolution_graph_world.c` 381 LOC, `type_checker_resolution_graph_inventory.inc` 735 LOC, `type_checker_resolution_stage.c` 999 LOC, `type_checker_resolution_stage_domain.c` 520 LOC
 - 예상 cascade: 10+ — full audit 필요
 
 ---

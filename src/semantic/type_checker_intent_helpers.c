@@ -1,3 +1,21 @@
+﻿/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Intent helper routines extracted from type_checker_decls_a.inc.
+ */
+
+#include "type_checker_internal.h"
+#include "type_checker_decls_a_helpers_internal.h"
+#include "type_checker_intent_helpers_internal.h"
+#include "type_checker_ability_ref_internal.h"
+#include "diag_codes.h"
+#include "../common/string_compat.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
 bool
 any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref);
 ASTNode *
@@ -1460,7 +1478,7 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
     }
 }
 
-static const char *
+const char *
 projection_refresh_source_field_name(ASTNode *refresh,
                                      const char *target_field_name)
 {
@@ -1481,7 +1499,7 @@ projection_refresh_source_field_name(ASTNode *refresh,
     return target_field_name;
 }
 
-static bool
+bool
 projection_target_decl_has_field(ASTNode *target_decl, const char *field_name)
 {
     if (target_decl == NULL || target_decl->type != AST_CLASS_DECL

@@ -11,7 +11,7 @@
 - 보정 이유:
   - 기능 표면만 보면 core/foundation 구현은 넓지만, beta는 기능 개수가 아니라 end-to-end 신뢰도다
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
-  - 장기 모듈화 stop condition도 아직 멀다. semantic에는 800 LOC 초과 `.inc`가 남아 있고, codegen/runtime에는 1,000 LOC를 크게 넘는 `.inc`가 남아 있다
+  - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건은 닫혔지만, codegen/runtime에는 1,000 LOC를 크게 넘는 `.inc`가 남아 있다
   - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 70%로 본다
 
 ## Beta taxonomy freeze: core / foundation / style
@@ -23,11 +23,22 @@
 - Foundation layer: primitive values, `func`, `let`, control flow, callable/lambda baseline, `Option`/`Result`, stable collections, core 실행에 필요한 runtime ABI.
 - Style / compatibility surface: OOP convenience, FP combinator libraries, app infra, richer async helpers.
 - Execution family split: `parallel`은 core execution primitive이고, `spawn`/`async`/`await`/`select`/`channel`/cancel은 그 아래 execution family다. fiber/coroutine은 language core가 아니라 runtime scheduling/suspension mechanism이다.
+- Accelerator split: AI-first/GPU 방향은 `pgy.accel.spray` 논리 모듈로 예약한다. 이는 `parallel` / ownership / module visibility 위에 올라가는 accelerator library/runtime 축이며 core keyword 확장이 아니다.
+- Render split: Skia/shader/render graph 방향은 `pgy.render.skia` 논리 모듈로 예약한다. renderer/shader는 core keyword가 아니라 Spray/Execution 위의 생태계 모듈이다.
+- Compatibility split: OOP/FP/DOP는 각각 `pgy.compat.oop`, `pgy.compat.fp`, `pgy.compat.dop`로 분리한다. 기존 언어 스타일을 수용하되 core identity로 설명하지 않는다.
+
+업데이트 정책:
+
+- `pgy.core`는 가장 자주 개선하되 가장 작고 강하게 검증한다.
+- `pgy.foundation`은 core보다 느리게 움직이며 ABI/backend parity를 깨지 않는다.
+- `pgy.accel.spray`, `pgy.render.skia`, `pgy.compat.*`, `pgy.std.*`, `pgy.kit.*`는 모듈 생태계로 진화한다. 빠른 실험은 허용하지만 core keyword를 늘리지 않는다.
 
 실행 규칙:
 
 - B0 blocker는 `core + foundation stable subset`에만 붙인다.
 - `pgy.fp`식 Functor/HKT 추상화, class-heavy OOP 확장, coroutine/fiber 고도화는 beta identity blocker가 아니다.
+- `pgy.accel.spray`는 post-beta design surface다. 베타 전에는 새 GPU 키워드나 backend-specific CUDA/ROCm/Metal 문법을 열지 않고, module boundary와 ownership 원칙만 고정한다.
+- `pgy.render.skia`와 `pgy.compat.dop`도 post-beta design surface다. 베타 전에는 shader/layout keyword를 열지 않고 module boundary만 고정한다.
 - 단, `parallel`은 core이므로 slot/resource/effect conflict, cancellation/fairness, C/LLVM lowering parity는 beta 품질 기준으로 계속 관리한다.
 - Source of truth: `docs/99_language_module_taxonomy.md`
 - Machine-readable manifest: `docs/language_module_manifest.json`
@@ -108,10 +119,20 @@
   - 진행: role/class/party/roster declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고, relation/effect domain inventory precollector는 `type_checker_resolution_graph_domain.c`로 이동해 inventory `.inc`를 1,299 LOC까지 축소
   - 진행: intent declaration precollector는 `type_checker_resolution_graph_decl.c`로, world inventory precollector는 `type_checker_resolution_graph_world.c`로 이동해 inventory `.inc`를 870 LOC까지 축소
   - 진행: zone refresh projection field-map DAG collector는 `type_checker_resolution_graph_zone.c`로 이동해 inventory `.inc`를 737 LOC까지 축소하고, semantic 800 LOC stop condition 대상에서 graph inventory를 제외
-  - 진행: world/zone local-contract stage replay는 `type_checker_resolution_stage_domain.c`로 이동해 `type_checker_resolution_stage.inc`를 969 LOC까지 축소
+  - 진행: world/zone local-contract stage replay는 `type_checker_resolution_stage_domain.c`로 이동했고, top-level DAG stage replay는 `type_checker_resolution_stage.c`로 승격해 `type_checker_resolution_stage.inc`를 제거
   - 진행: `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`는 standalone TU로 빌드되며 hidden include-order helper 의존을 internal/header 계약으로 승격
   - 진행: `type_checker_intent_decl.c` standalone TU 승격 중 드러난 implicit helper dependency를 internal/header 계약으로 승격하고, `-Werror=implicit-function-declaration -Werror=implicit-int`를 기본 CFLAGS로 고정해 같은 종류의 C 모듈화 버그를 빌드 단계에서 차단
   - 진행: `type_checker_role_decl.c`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`도 hard implicit-declaration CFLAGS 아래에서 빌드되도록 helper/header 의존을 명시
+  - 진행: `type_checker_class_decl.c`가 class/extern declaration checking을 소유하고, `type_checker_program.c`가 top-level semantic orchestration을 소유한다. 관련 graph/worklist/effect/stats helper를 internal API로 승격해 `type_checker_program.inc`를 624 LOC까지 축소
+  - 진행: `type_checker_builtins_projection.c`가 `ToObject` / `ToTObject` semantic projection checker를 소유하고, `type_checker_builtins_nominal.inc`를 659 LOC까지 축소
+  - 진행: expression operator/indexed-access checker를 `type_checker_expr_ops.c`로 분리하고, static member path / consumed-boundary helper를 `type_checker_expr_names.c`로 이동했다. `type_checker_expr.inc`는 758 LOC, `type_checker_helpers_late.inc`는 773 LOC가 되어 둘 다 semantic 800 LOC stop condition 아래로 내려갔다
+  - 진행: domain slot/projection/overlay helper body를 `type_checker_decls_domain_helpers.c`로 승격하고, intent inheritance/derivation helper body를 `type_checker_intent_helpers.c`로 승격했다. `type_checker_decls_domain_helpers.inc`는 제거됐고 `type_checker_decls_a.inc`는 1-line forwarding stub으로 축소
+  - 완료: semantic `.inc` 800 LOC stop condition은 `make semantic-inc-size-test-smoke`로 고정. 현재 `src/semantic`에는 800 LOC 초과 `.inc`가 없다
+  - 진행: C backend MIR inventory/SSA emitter include를 5-line shim + `transpiler_emitters_mir_inventory_intent.inc` / `transpiler_emitters_mir_inventory_ssa_names.inc` / `transpiler_emitters_mir_inventory_ssa_emit.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다
+  - 진행: C backend expression emitter include를 7-line shim + `transpiler_expr_emitters_builtins.inc` / `transpiler_expr_emitters_call_a.inc` / `transpiler_expr_emitters_call_b.inc` / `transpiler_expr_emitters_members.inc` / `transpiler_expr_emitters_tail.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다. 검증: `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
+  - 진행: LLVM call emitter include를 6-line shim + `llvm_expr_calls_part_a.inc` / `llvm_expr_calls_part_b.inc` / `llvm_expr_calls_part_c.inc` / `llvm_expr_calls_part_d.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다. 검증: `make test-semantic -j2`, `make llvm-test-backend-compare -j2`
+  - 진행: C backend base emitter B include를 6-line shim + `transpiler_emitters_base_b_part_a.inc` / `transpiler_emitters_base_b_part_b.inc` / `transpiler_emitters_base_b_part_c.inc` / `transpiler_emitters_base_b_part_d.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다. 검증: `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
+  - 진행: `type_checker_helpers_late.c` standalone TU 빌드 중 드러난 call-path helper include-order 의존을 `type_checker_internal.h` prototype과 직접 include 계약으로 고정했다
   - 진행: `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 사이 dangling return-type seams 제거
   - 진행: `type_checker_resolution_graph_core.inc` → inventory include 경계의 dangling `static void` seam 2개를 명시 return type으로 정리
   - 진행: `generic_params_required_count`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
@@ -155,9 +176,12 @@
   - `code`, `cause_ir`, `fix_source`를 모두 registry/enum-like literal set으로 관리
   - 문서와 코드 리뷰 기준에서 “새 literal 추가 시 registry + docs 동시 갱신”을 강제
 - 준비 작업:
-  - [ ] diagnostic literal registry 초안 추가
-  - [ ] `cause_ir` / `fix_source` 네이밍 규칙 문서화
-  - [ ] free-form 문자열 신규 추가 지점에 TODO/grep gate 마련
+  - [x] diagnostic literal registry 초안 추가
+    - 완료: `src/semantic/diag_codes.h`가 `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` registry source of truth로 동작하고 `docs/72_diagnostic_codes.md`가 이를 문서화
+  - [x] `cause_ir` / `fix_source` 네이밍 규칙 문서화
+    - 완료: `docs/72_diagnostic_codes.md`에 `cause_ir` stage/subsystem/condition 규칙과 `fix_source` source-action token 규칙 고정
+  - [x] free-form 문자열 신규 추가 지점에 smoke gate 마련
+    - 완료: `tests/diagnostic_registry_smoke.sh` / `make diagnostic-registry-test-smoke`가 semantic diagnostic call-site의 `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` macro 사용과 diagnostic code 문서 sync를 검사
 
 ### P3. 타입/ownership 용어 압축
 
@@ -1124,7 +1148,11 @@
     - 진행: role/class/party/roster declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고, relation/effect domain inventory precollector는 `type_checker_resolution_graph_domain.c`로 이동해 inventory `.inc`를 1,299 LOC까지 축소
     - 진행: intent declaration precollector와 world inventory precollector를 각각 `type_checker_resolution_graph_decl.c`, `type_checker_resolution_graph_world.c`로 이동해 inventory `.inc`를 870 LOC까지 축소
     - 진행: zone projection field-map collector를 `type_checker_resolution_graph_zone.c`로 분리해 inventory `.inc`를 737 LOC까지 축소
-    - 진행: world/zone local-contract stage replay를 `type_checker_resolution_stage_domain.c`로 분리해 stage `.inc`를 969 LOC까지 축소
+    - 진행: world/zone local-contract stage replay를 `type_checker_resolution_stage_domain.c`로 분리하고, 남은 stage 본체를 `type_checker_resolution_stage.c`로 승격해 stage `.inc` 제거
+    - 진행: class/extern declaration checker를 `type_checker_class_decl.c`로, top-level semantic orchestration을 `type_checker_program.c`로 분리해 program `.inc`를 624 LOC까지 축소
+    - 진행: `ToObject` / `ToTObject` projection checker를 `type_checker_builtins_projection.c`로 분리해 builtins nominal `.inc`를 659 LOC까지 축소
+    - 진행: domain helper와 intent helper를 각각 `type_checker_decls_domain_helpers.c`, `type_checker_intent_helpers.c`로 승격해 semantic `.inc` 800 LOC stop condition을 달성하고 `make semantic-inc-size-test-smoke`로 회귀 방지
+    - 진행: C backend `transpiler_emitters_mir_inventory_ssa.inc`를 3개 하위 slice로 분리하고 `make test-transpile`, `make llvm-test-backend-compare`로 parity 회귀 통과
     - 진행: standalone TU 승격 중 드러난 dangling return-type seams와 implicit helper dependency를 제거해 `make test-all`, `make llvm-test-backend-compare` 회귀 통과
     - 진행: implicit declaration / implicit int는 기본 CFLAGS에서 에러로 고정되어 이후 DAG/semantic split 중 hidden helper dependency가 즉시 실패하도록 정렬
     - 진행: `type_resolution_intern_node` / `type_resolution_add_edge` / `type_resolution_find_path` / `type_resolution_format_cycle`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
@@ -1328,6 +1356,9 @@
   - 완료: lexer에서 `f"..."` → `TOKEN_INTERPOLATED_STRING`
   - 완료: parser에서 `{expr}` 파싱, `ToString(expr)` + `+` concatenation으로 분해
   - 완료: 기존 `"${expr}"` 레거시 문법도 호환 유지
+  - 완료: 베타 stable subset을 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace로 문서화
+  - 완료: unmatched interpolation brace는 보간하지 않고 literal text로 보존하도록 parser 회귀 추가
+  - beta-out-of-scope: nested brace matching, format specifier, multiline interpolation, custom interpolation protocol
 
 ### 에러 처리
 - [x] **`?` 연산자** — `Result<T>` 에러 자동 전파. `let val = riskyFunc()?;` → 에러 시 즉시 반환

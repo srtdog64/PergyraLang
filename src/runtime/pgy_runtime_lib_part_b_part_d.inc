@@ -1,0 +1,800 @@
+ * Slot operations — Double
+ * ================================================================= */
+
+PgySlot_Double pgy_claim_Double(void)
+{
+    PgySlot_Double s;
+    s.value = 0.0;
+    s.claimed = true;
+    return s;
+}
+
+void pgy_write_Double(PgySlot_Double *s, double v)
+{
+    if (s == NULL) return;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Double)\n"); return; }
+    s->value = v;
+}
+
+double pgy_read_Double(PgySlot_Double *s)
+{
+    if (s == NULL) return 0.0;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Double)\n"); return 0.0; }
+    return s->value;
+}
+
+void pgy_release_Double(PgySlot_Double *s)
+{
+    if (s != NULL) { s->value = 0.0; s->claimed = false; }
+}
+
+/* =================================================================
+ * Slot operations — Bool
+ * ================================================================= */
+
+PgySlot_Bool pgy_claim_Bool(void)
+{
+    PgySlot_Bool s;
+    s.value = false;
+    s.claimed = true;
+    return s;
+}
+
+void pgy_write_Bool(PgySlot_Bool *s, bool v)
+{
+    if (s == NULL) return;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Bool)\n"); return; }
+    s->value = v;
+}
+
+bool pgy_read_Bool(PgySlot_Bool *s)
+{
+    if (s == NULL) return false;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Bool)\n"); return false; }
+    return s->value;
+}
+
+void pgy_release_Bool(PgySlot_Bool *s)
+{
+    if (s != NULL) { s->value = false; s->claimed = false; }
+}
+
+/* =================================================================
+ * Slot operations — String
+ * ================================================================= */
+
+PgySlot_String pgy_claim_String(void)
+{
+    PgySlot_String s;
+    s.value = NULL;
+    s.claimed = true;
+    return s;
+}
+
+void pgy_write_String(PgySlot_String *s, char *v)
+{
+    if (s == NULL) return;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (String)\n"); return; }
+    s->value = v;
+}
+
+char *pgy_read_String(PgySlot_String *s)
+{
+    if (s == NULL) return NULL;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (String)\n"); return NULL; }
+    return s->value;
+}
+
+void pgy_release_String(PgySlot_String *s)
+{
+    if (s != NULL) {
+        s->value = NULL;
+        s->claimed = false;
+    }
+}
+
+/* =================================================================
+ * Secure slot operations — extern wrappers for LLVM linker
+ * ================================================================= */
+
+#define PGY_DEFINE_SECURE_SLOT_EXPORTS(Suffix, CType, ZeroExpr)                \
+typedef struct {                                                               \
+    CType    value;                                                            \
+    bool     occupied;                                                         \
+    uint64_t token;                                                            \
+} PgySecureSlot_##Suffix;                                                      \
+                                                                               \
+typedef struct {                                                               \
+    uint64_t id;                                                               \
+    bool     can_write;                                                        \
+    bool     can_read;                                                         \
+} PgyToken_##Suffix;                                                           \
+                                                                               \
+PgySecureSlot_##Suffix pgy_claim_secure_##Suffix(PgyToken_##Suffix *out_token) \
+{                                                                              \
+    PgySecureSlot_##Suffix s;                                                  \
+    s.value = (ZeroExpr);                                                      \
+    s.occupied = true;                                                         \
+    s.token = 0;                                                               \
+    if (out_token != NULL) {                                                   \
+        out_token->id = 0;                                                     \
+        out_token->can_write = true;                                           \
+        out_token->can_read = true;                                            \
+    }                                                                          \
+    return s;                                                                  \
+}                                                                              \
+                                                                               \
+void pgy_secure_write_##Suffix(PgySecureSlot_##Suffix *s, CType v,             \
+                               const PgyToken_##Suffix *t)                     \
+{                                                                              \
+    if (s != NULL && t != NULL && s->occupied                                  \
+        && s->token == t->id && t->can_write)                                  \
+        s->value = v;                                                          \
+}                                                                              \
+                                                                               \
+CType pgy_secure_read_##Suffix(PgySecureSlot_##Suffix *s,                      \
+                               const PgyToken_##Suffix *t)                     \
+{                                                                              \
+    if (s != NULL && t != NULL && s->occupied                                  \
+        && s->token == t->id && t->can_read)                                   \
+        return s->value;                                                       \
+    return (ZeroExpr);                                                         \
+}                                                                              \
+                                                                               \
+void pgy_secure_release_##Suffix(PgySecureSlot_##Suffix *s,                    \
+                                 const PgyToken_##Suffix *t)                   \
+{                                                                              \
+    if (s != NULL && t != NULL && s->token == t->id) {                         \
+        s->occupied = false;                                                   \
+        s->token = 0;                                                          \
+    }                                                                          \
+}
+
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Int, int32_t, 0)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Long, int64_t, 0)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Float, float, 0.0f)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Double, double, 0.0)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Bool, bool, false)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(String, char *, NULL)
+
+/* =================================================================
+ * Device Slot operations — extern wrappers for LLVM linker
+ * ================================================================= */
+
+#define PGY_DEFINE_DEVICE_SLOT_EXPORTS(Suffix, CType, ZeroExpr)                 \
+typedef struct {                                                                \
+    CType value;                                                                \
+    bool  claimed;                                                              \
+} PgyDeviceSlot_##Suffix;                                                       \
+                                                                                \
+typedef struct {                                                                \
+    PgyDeviceSlot_##Suffix *slot;                                               \
+} PgyDeviceReadTaskArg_##Suffix;                                                \
+                                                                                \
+PgyDeviceSlot_##Suffix pgy_claim_device_##Suffix(void)                          \
+{                                                                               \
+    PgyDeviceSlot_##Suffix s;                                                   \
+    s.value = (ZeroExpr);                                                       \
+    s.claimed = true;                                                           \
+    return s;                                                                   \
+}                                                                               \
+                                                                                \
+void pgy_device_write_##Suffix(PgyDeviceSlot_##Suffix *s, CType v)              \
+{                                                                               \
+    if (s != NULL && s->claimed)                                                \
+        s->value = v;                                                           \
+}                                                                               \
+                                                                                \
+CType pgy_device_read_##Suffix(PgyDeviceSlot_##Suffix *s)                       \
+{                                                                               \
+    if (s != NULL && s->claimed)                                                \
+        return s->value;                                                        \
+    return (ZeroExpr);                                                          \
+}                                                                               \
+                                                                                \
+void pgy_release_device_##Suffix(PgyDeviceSlot_##Suffix *s)                     \
+{                                                                               \
+    if (s != NULL) {                                                            \
+        s->value = (ZeroExpr);                                                  \
+        s->claimed = false;                                                     \
+    }                                                                           \
+}                                                                               \
+                                                                                \
+static void *pgy_device_read_task_##Suffix(void *raw)                           \
+{                                                                               \
+    PgyDeviceReadTaskArg_##Suffix *arg =                                        \
+        (PgyDeviceReadTaskArg_##Suffix *)raw;                                   \
+    CType *result = (CType *)malloc(sizeof(CType));                             \
+    if (result == NULL) {                                                       \
+        free(arg);                                                              \
+        return NULL;                                                            \
+    }                                                                           \
+    *result = pgy_device_read_##Suffix(arg->slot);                              \
+    free(arg);                                                                  \
+    return result;                                                              \
+}                                                                               \
+                                                                                \
+PgyTaskHandle pgy_submit_device_read_##Suffix(PgyDeviceSlot_##Suffix *s)        \
+{                                                                               \
+    PgyDeviceReadTaskArg_##Suffix *arg =                                        \
+        (PgyDeviceReadTaskArg_##Suffix *)malloc(sizeof(PgyDeviceReadTaskArg_##Suffix)); \
+    if (arg == NULL) {                                                          \
+        PgyTaskHandle empty = {0};                                              \
+        return empty;                                                           \
+    }                                                                           \
+    arg->slot = s;                                                              \
+    return pgy_spawn(pgy_device_read_task_##Suffix, arg);                       \
+}
+
+PGY_DEFINE_DEVICE_SLOT_EXPORTS(Int, int32_t, 0)
+PGY_DEFINE_DEVICE_SLOT_EXPORTS(Long, int64_t, 0)
+PGY_DEFINE_DEVICE_SLOT_EXPORTS(Float, float, 0.0f)
+PGY_DEFINE_DEVICE_SLOT_EXPORTS(Double, double, 0.0)
+PGY_DEFINE_DEVICE_SLOT_EXPORTS(Bool, bool, false)
+PGY_DEFINE_DEVICE_SLOT_EXPORTS(String, char *, NULL)
+
+/* =================================================================
+ * Array operations — extern wrappers for LLVM linker
+ * ================================================================= */
+
+#define PGY_DEFINE_ARRAY_EXPORTS(Suffix, CType)                                  \
+typedef struct {                                                                 \
+    CType  *data;                                                                \
+    size_t  length;                                                              \
+    size_t  capacity;                                                            \
+    void   *allocator;                                                           \
+} PgyArray_##Suffix;                                                             \
+                                                                                 \
+typedef struct {                                                                 \
+    CType  *data;                                                                \
+    size_t  length;                                                              \
+} PgySlice_##Suffix;                                                             \
+                                                                                 \
+PgyArray_##Suffix pgy_array_new_##Suffix(size_t capacity)                        \
+{                                                                                \
+    PgyArray_##Suffix arr;                                                       \
+    arr.length = 0;                                                              \
+    arr.capacity = capacity;                                                     \
+    arr.allocator = NULL;                                                        \
+    arr.data = capacity > 0                                                      \
+        ? (CType *)malloc(sizeof(CType) * capacity)                              \
+        : NULL;                                                                  \
+    return arr;                                                                  \
+}                                                                                \
+                                                                                 \
+void pgy_array_push_##Suffix(PgyArray_##Suffix *arr, CType value)                \
+{                                                                                \
+    if (arr == NULL)                                                             \
+        return;                                                                  \
+    if (arr->length == arr->capacity) {                                          \
+        size_t next = arr->capacity == 0 ? 4 : arr->capacity * 2;                \
+        CType *next_data = arr->data == NULL                                     \
+            ? (CType *)malloc(sizeof(CType) * next)                              \
+            : (CType *)realloc(arr->data, sizeof(CType) * next);                 \
+        if (next_data == NULL)                                                   \
+            return;                                                              \
+        arr->data = next_data;                                                   \
+        arr->capacity = next;                                                    \
+    }                                                                            \
+    arr->data[arr->length++] = value;                                            \
+}                                                                                \
+                                                                                 \
+PgySlice_##Suffix pgy_array_slice_##Suffix(PgyArray_##Suffix *arr,               \
+                                           size_t start, size_t len)             \
+{                                                                                \
+    PgySlice_##Suffix slice;                                                     \
+    slice.data = NULL;                                                           \
+    slice.length = 0;                                                            \
+    if (arr == NULL)                                                             \
+        return slice;                                                            \
+    if (start + len > arr->length) {                                             \
+        pgy_runtime_warn_invalid_collection("array_slice",                       \
+            "slice out of bounds");                                              \
+        return slice;                                                            \
+    }                                                                            \
+    slice.data = arr->data + start;                                              \
+    slice.length = len;                                                          \
+    return slice;                                                                \
+}
+
+PGY_DEFINE_ARRAY_EXPORTS(Int, int32_t)
+PGY_DEFINE_ARRAY_EXPORTS(Long, int64_t)
+PGY_DEFINE_ARRAY_EXPORTS(Float, float)
+PGY_DEFINE_ARRAY_EXPORTS(Double, double)
+PGY_DEFINE_ARRAY_EXPORTS(Bool, bool)
+PGY_DEFINE_ARRAY_EXPORTS(String, char *)
+
+void
+pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    PgyArray_String *out = (PgyArray_String *)out_array_ptr;
+
+    if (out == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys", "null output");
+        return;
+    }
+
+    *out = pgy_array_new_String(map != NULL ? map->count : 0);
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys", "null map");
+        return;
+    }
+    if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
+        return;
+
+    for (size_t i = 0; i < map->capacity; i++) {
+        char *dup_key;
+
+        if (!map->occupied[i] || map->keys[i] == NULL)
+            continue;
+        dup_key = pgy_runtime_strdup_export(map->keys[i]);
+        if (dup_key == NULL) {
+            pgy_runtime_warn_invalid_collection("map_keys", "key duplication failed");
+            continue;
+        }
+        pgy_array_push_String(out, dup_key);
+    }
+}
+
+void
+pgy_map_keys_raw_i32_export(void *map_ptr, void *out_array_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    PgyArray_Int *out = (PgyArray_Int *)out_array_ptr;
+
+    if (out == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_i32", "null output");
+        return;
+    }
+
+    *out = pgy_array_new_Int(map != NULL ? map->count : 0);
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_i32", "null map");
+        return;
+    }
+    if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
+        return;
+
+    for (size_t i = 0; i < map->capacity; i++) {
+        char *end = NULL;
+        long parsed;
+
+        if (!map->occupied[i] || map->keys[i] == NULL)
+            continue;
+        parsed = strtol(map->keys[i], &end, 10);
+        if (end == map->keys[i] || (end != NULL && *end != '\0')) {
+            pgy_runtime_warn_invalid_collection("map_keys_i32", "invalid stored int key");
+            continue;
+        }
+        pgy_array_push_Int(out, (int32_t)parsed);
+    }
+}
+
+void
+pgy_map_keys_raw_i64_export(void *map_ptr, void *out_array_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    PgyArray_Long *out = (PgyArray_Long *)out_array_ptr;
+
+    if (out == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_i64", "null output");
+        return;
+    }
+
+    *out = pgy_array_new_Long(map != NULL ? map->count : 0);
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_i64", "null map");
+        return;
+    }
+    if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
+        return;
+
+    for (size_t i = 0; i < map->capacity; i++) {
+        char *end = NULL;
+        long long parsed;
+
+        if (!map->occupied[i] || map->keys[i] == NULL)
+            continue;
+        parsed = strtoll(map->keys[i], &end, 10);
+        if (end == map->keys[i] || (end != NULL && *end != '\0')) {
+            pgy_runtime_warn_invalid_collection("map_keys_i64", "invalid stored long key");
+            continue;
+        }
+        pgy_array_push_Long(out, (int64_t)parsed);
+    }
+}
+
+void
+pgy_map_keys_raw_bool_export(void *map_ptr, void *out_array_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    PgyArray_Bool *out = (PgyArray_Bool *)out_array_ptr;
+
+    if (out == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_bool", "null output");
+        return;
+    }
+
+    *out = pgy_array_new_Bool(map != NULL ? map->count : 0);
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_keys_bool", "null map");
+        return;
+    }
+    if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
+        return;
+
+    for (size_t i = 0; i < map->capacity; i++) {
+        bool parsed;
+
+        if (!map->occupied[i] || map->keys[i] == NULL)
+            continue;
+        if (strcmp(map->keys[i], "true") == 0) {
+            parsed = true;
+        } else if (strcmp(map->keys[i], "false") == 0) {
+            parsed = false;
+        } else {
+            pgy_runtime_warn_invalid_collection("map_keys_bool", "invalid stored bool key");
+            continue;
+        }
+        pgy_array_push_Bool(out, parsed);
+    }
+}
+
+static char *
+pgy_runtime_lib_strdup(const char *src)
+{
+    if (src == NULL)
+        src = "";
+
+    size_t len = strlen(src);
+    char *copy = (char *)malloc(len + 1);
+    if (copy == NULL)
+        return NULL;
+
+    memcpy(copy, src, len + 1);
+    return copy;
+}
+
+/* =================================================================
+ * File I/O and string helpers needed by LLVM backend
+ * ================================================================= */
+
+#define PGY_MAX_OPEN_FILES 256
+
+static FILE *pgy_runtime_ftable[PGY_MAX_OPEN_FILES];
+static int   pgy_runtime_ftable_next = 3;
+
+static void
+pgy_runtime_io_init(void)
+{
+    pgy_runtime_ftable[0] = stdin;
+    pgy_runtime_ftable[1] = stdout;
+    pgy_runtime_ftable[2] = stderr;
+}
+
+int32_t pgy_file_open(const char *path, const char *mode)
+{
+    if (pgy_runtime_ftable[0] == NULL)
+        pgy_runtime_io_init();
+
+    FILE *fp = fopen(path, mode);
+    if (fp == NULL)
+        return -1;
+    if (pgy_runtime_ftable_next >= PGY_MAX_OPEN_FILES) {
+        fclose(fp);
+        return -1;
+    }
+
+    int fd = pgy_runtime_ftable_next++;
+    pgy_runtime_ftable[fd] = fp;
+    return (int32_t)fd;
+}
+
+char *pgy_file_read(int32_t fd)
+{
+    char tmp[4096];
+
+    tmp[0] = '\0';
+    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL)
+        return pgy_runtime_lib_strdup("");
+    if (fgets(tmp, sizeof(tmp), pgy_runtime_ftable[fd]) == NULL)
+        return pgy_runtime_lib_strdup("");
+
+    size_t len = strlen(tmp);
+    if (len > 0 && tmp[len - 1] == '\n')
+        tmp[len - 1] = '\0';
+    return pgy_runtime_lib_strdup(tmp);
+}
+
+void pgy_file_write(int32_t fd, const char *data)
+{
+    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL)
+        return;
+    if (data != NULL)
+        fwrite(data, 1, strlen(data), pgy_runtime_ftable[fd]);
+}
+
+void pgy_file_close(int32_t fd)
+{
+    if (fd < 3 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL)
+        return;
+    fclose(pgy_runtime_ftable[fd]);
+    pgy_runtime_ftable[fd] = NULL;
+}
+
+char *pgy_read_file(const char *path)
+{
+    char *resolved = pgy_runtime_resolve_file_path(path, false);
+    if (resolved == NULL)
+        return pgy_runtime_lib_strdup("");
+
+    FILE *fp = fopen(resolved, "rb");
+    if (fp == NULL)
+        return pgy_runtime_lib_strdup("");
+
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fclose(fp);
+        return pgy_runtime_lib_strdup("");
+    }
+    long len = ftell(fp);
+    if (len < 0 || (unsigned long)len > (unsigned long)PGY_RUNTIME_MAX_FILE_BYTES) {
+        fclose(fp);
+        return pgy_runtime_lib_strdup("");
+    }
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        fclose(fp);
+        return pgy_runtime_lib_strdup("");
+    }
+
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) {
+        fclose(fp);
+        return pgy_runtime_lib_strdup("");
+    }
+
+    size_t read_len = fread(buf, 1, (size_t)len, fp);
+    if (read_len != (size_t)len) {
+        fclose(fp);
+        free(resolved);
+        free(buf);
+        return pgy_runtime_lib_strdup("");
+    }
+    buf[read_len] = '\0';
+    fclose(fp);
+    free(resolved);
+    return buf;
+}
+
+void pgy_write_file(const char *path, const char *data)
+{
+    char *resolved = pgy_runtime_resolve_file_path(path, true);
+    if (resolved == NULL)
+        return;
+    FILE *fp = fopen(resolved, "wb");
+    if (fp == NULL)
+        return;
+    if (data != NULL) {
+        size_t len = strlen(data);
+        (void)fwrite(data, 1, len, fp);
+    }
+    fclose(fp);
+    free(resolved);
+}
+
+char *pgy_input(const char *prompt)
+{
+    char tmp[4096];
+
+    if (prompt != NULL && prompt[0] != '\0')
+        printf("%s", prompt);
+    fflush(stdout);
+
+    tmp[0] = '\0';
+    if (fgets(tmp, sizeof(tmp), stdin) == NULL) {
+        char *empty = (char *)malloc(1);
+        if (empty != NULL) empty[0] = '\0';
+        return empty;
+    }
+
+    size_t len = strlen(tmp);
+    if (len > 0 && tmp[len - 1] == '\n')
+        tmp[len - 1] = '\0';
+
+    len = strlen(tmp);
+    char *result = (char *)malloc(len + 1);
+    if (result != NULL)
+        memcpy(result, tmp, len + 1);
+    return result;
+}
+
+bool StringContains(const char *haystack, const char *needle)
+{
+    if (haystack == NULL || needle == NULL)
+        return false;
+    return strstr(haystack, needle) != NULL;
+}
+
+char *Substring(const char *s, int32_t start, int32_t len)
+{
+    if (s == NULL)
+        return pgy_runtime_lib_strdup("");
+
+    int32_t slen = (int32_t)strlen(s);
+    if (start < 0 || start >= slen || len <= 0)
+        return pgy_runtime_lib_strdup("");
+    if (start + len > slen)
+        len = slen - start;
+
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL)
+        return pgy_runtime_lib_strdup("");
+    memcpy(buf, s + start, (size_t)len);
+    buf[len] = '\0';
+    return buf;
+}
+
+char *StringReplace(const char *s, const char *old_str, const char *new_str)
+{
+    if (s == NULL || old_str == NULL || new_str == NULL)
+        return pgy_runtime_lib_strdup(s != NULL ? s : "");
+
+    size_t old_len = strlen(old_str);
+    size_t new_len = strlen(new_str);
+    if (old_len == 0)
+        return pgy_runtime_lib_strdup(s);
+
+    int count = 0;
+    const char *p = s;
+    while ((p = strstr(p, old_str)) != NULL) {
+        count++;
+        p += old_len;
+    }
+
+    size_t result_len = strlen(s) + (size_t)count * (new_len - old_len);
+    char *result = (char *)malloc(result_len + 1);
+    char *dst = result;
+
+    if (result == NULL)
+        return pgy_runtime_lib_strdup("");
+
+    p = s;
+    while (*p) {
+        if (strncmp(p, old_str, old_len) == 0) {
+            memcpy(dst, new_str, new_len);
+            dst += new_len;
+            p += old_len;
+        } else {
+            *dst++ = *p++;
+        }
+    }
+    *dst = '\0';
+    return result;
+}
+
+char *StringTrim(const char *s)
+{
+    if (s == NULL)
+        return pgy_runtime_lib_strdup("");
+
+    while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r')
+        s++;
+
+    size_t len = strlen(s);
+    while (len > 0
+           && (s[len - 1] == ' ' || s[len - 1] == '\t'
+               || s[len - 1] == '\n' || s[len - 1] == '\r'))
+        len--;
+
+    char *buf = (char *)malloc(len + 1);
+    if (buf == NULL)
+        return pgy_runtime_lib_strdup("");
+    memcpy(buf, s, len);
+    buf[len] = '\0';
+    return buf;
+}
+
+char *ToUpper(const char *s)
+{
+    if (s == NULL)
+        return pgy_runtime_lib_strdup("");
+
+    size_t len = strlen(s);
+    char *buf = (char *)malloc(len + 1);
+    if (buf == NULL)
+        return pgy_runtime_lib_strdup("");
+    for (size_t i = 0; i <= len; i++)
+        buf[i] = (s[i] >= 'a' && s[i] <= 'z') ? (char)(s[i] - 32) : s[i];
+    return buf;
+}
+
+char *ToLower(const char *s)
+{
+    if (s == NULL)
+        return pgy_runtime_lib_strdup("");
+
+    size_t len = strlen(s);
+    char *buf = (char *)malloc(len + 1);
+    if (buf == NULL)
+        return pgy_runtime_lib_strdup("");
+    for (size_t i = 0; i <= len; i++)
+        buf[i] = (s[i] >= 'A' && s[i] <= 'Z') ? (char)(s[i] + 32) : s[i];
+    return buf;
+}
+
+char *StringConcat(const char *a, const char *b)
+{
+    if (a == NULL)
+        a = "";
+    if (b == NULL)
+        b = "";
+
+    size_t la = strlen(a);
+    size_t lb = strlen(b);
+    char *buf = (char *)malloc(la + lb + 1);
+    if (buf == NULL)
+        return pgy_runtime_lib_strdup("");
+    memcpy(buf, a, la);
+    memcpy(buf + la, b, lb + 1);
+    return buf;
+}
+
+bool pgy_string_equals(const char *a, const char *b)
+{
+    if (a == NULL)
+        a = "";
+    if (b == NULL)
+        b = "";
+    return strcmp(a, b) == 0;
+}
+
+/* -----------------------------------------------------------------
+ * StringSplit / StringJoin / ToInt / ToFloat / Math
+ * ----------------------------------------------------------------- */
+
+/* StringSplit(str, delim) → Array<String> (caller-allocated PgyArray_String) */
+PgyArray_String StringSplit(const char *s, const char *delim)
+{
+    PgyArray_String result = pgy_array_new_String(8);
+    if (s == NULL || delim == NULL || *delim == '\0') {
+        if (s != NULL)
+            pgy_array_push_String(&result, pgy_runtime_lib_strdup(s));
+        return result;
+    }
+    size_t dlen = strlen(delim);
+    const char *p = s;
+    for (;;) {
+        const char *found = strstr(p, delim);
+        if (found == NULL) {
+            pgy_array_push_String(&result, pgy_runtime_lib_strdup(p));
+            break;
+        }
+        size_t seg = (size_t)(found - p);
+        char *part = (char *)malloc(seg + 1);
+        if (part != NULL) { memcpy(part, p, seg); part[seg] = '\0'; }
+        pgy_array_push_String(&result, part != NULL ? part : pgy_runtime_lib_strdup(""));
+        p = found + dlen;
+    }
+    return result;
+}
+
+/* StringJoin(arr, sep) → String */
+char *StringJoin(PgyArray_String *arr, const char *sep)
+{
+    if (arr == NULL || arr->length == 0)
+        return pgy_runtime_lib_strdup("");
+    size_t slen = (sep != NULL) ? strlen(sep) : 0;
+    size_t total = 0;
+    for (size_t i = 0; i < arr->length; i++) {
+        if (arr->data[i] != NULL) total += strlen(arr->data[i]);
+        if (i > 0) total += slen;
+    }
+    char *buf = (char *)malloc(total + 1);
+    if (buf == NULL) return pgy_runtime_lib_strdup("");
+    char *wp = buf;
+    for (size_t i = 0; i < arr->length; i++) {
+        if (i > 0 && slen > 0) { memcpy(wp, sep, slen); wp += slen; }
+        if (arr->data[i] != NULL) {
+            size_t l = strlen(arr->data[i]);
+            memcpy(wp, arr->data[i], l);
+            wp += l;

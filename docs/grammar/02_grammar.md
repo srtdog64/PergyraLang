@@ -76,6 +76,13 @@ let y = Validate(x)?;
 - postfix `?` (Result<T> unwrap + early return)
 - `${}` 문자열 보간: `"hello ${name}"`
 
+문자열 stable subset:
+- `"..."`는 escape `\n`, `\r`, `\t`, `\\`, `\"`, `\0`를 지원한다.
+- `"""..."""`는 raw multiline payload이며 보간하지 않는다.
+- `"${expr}"`와 `f"{expr}"`는 단순 expression interpolation만 지원하고 `ToString(expr)`로 낮아진다.
+- `f"\{name}"`처럼 escaped `{`는 literal brace로 남는다.
+- nested brace matching, format specifier, multiline interpolation은 베타 밖이다.
+
 ### 2.3 우선순위
 
 대체로 다음 순서를 따른다.

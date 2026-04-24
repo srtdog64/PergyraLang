@@ -8,7 +8,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     #include "type_checker_ownership_let_claim.inc"
     #include "type_checker_ownership_let_infer.inc"
     #include "type_checker_ownership_let_boundary.inc"
-    #include "type_checker_ownership_let_register.inc"
+    #include "type_checker_ownership_let_slot.inc"
+    #include "type_checker_ownership_let_value.inc"
 
     return !ctx->has_error;
 }

@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Domain helpers: counting / locating / contract-checking routines shared
+ * across declaration kinds (subject, object, zone, world, relation, effect,
+ * projection).  Extracted from type_checker_decls_domain_helpers.inc so that
+ * these helpers live in their own translation unit and future declaration
+ * kinds can depend on them without re-routing through the decls.inc chain.
+ * See docs/101_semantic_split_template.md (5-A slice).
+ */
+
+#include "type_checker_internal.h"
+#include "type_checker_decls_a_helpers_internal.h"
+#include "type_checker_ability_match_internal.h"
+#include "type_checker_intent_helpers_internal.h"
+#include "type_checker_visibility.h"
+#include "diag_codes.h"
+#include "../common/string_compat.h"
+
+#include <stdlib.h>
+#include <string.h>
+
 /* type_checker_decls_intent_world.inc removed — intent body lives in type_checker_intent_decl.c (4-B slice),
  * world body in type_checker_world_decl.c (4 차 slice). See docs/101_semantic_split_template.md */
 

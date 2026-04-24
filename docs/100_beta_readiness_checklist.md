@@ -33,18 +33,37 @@
 - `type_checker_intent_decl.c`도 standalone semantic TU로 빌드되며, helper boundary 누락은 기본 CFLAGS의 implicit-declaration hard error로 차단된다.
 - `type_checker_role_decl.c`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`도 standalone semantic TU hard-CFLAGS path에서 빌드된다.
 - `type_checker_resolution_graph_inventory.inc`는 737 LOC까지 줄었고, graph inventory axis는 semantic 800 LOC stop condition 아래로 내려갔다.
-- `type_checker_resolution_stage_domain.c`가 world/zone local-contract stage replay를 소유하며, `type_checker_resolution_stage.inc`는 969 LOC까지 줄었다.
+- `type_checker_resolution_stage_domain.c`가 world/zone local-contract stage replay를 소유하고, `type_checker_resolution_stage.c`가 top-level DAG stage replay를 소유한다. `type_checker_resolution_stage.inc`는 제거됐다.
+- `type_checker_class_decl.c`가 class/extern declaration checking을 소유하고, `type_checker_program.c`가 top-level semantic orchestration을 소유한다. `type_checker_program.inc`는 624 LOC까지 줄어 semantic 800 LOC stop condition 아래로 내려갔다.
+- `type_checker_builtins_projection.c`가 `ToObject` / `ToTObject` projection diagnostics를 소유하며, `type_checker_builtins_nominal.inc`는 659 LOC까지 줄어 semantic 800 LOC stop condition 아래로 내려갔다.
+- `type_checker_expr_ops.c`가 binary/unary/array literal/indexed access를 소유하고, `type_checker_expr_names.c`가 static member path / consumed-boundary name helper를 소유한다. `type_checker_expr.inc`는 758 LOC, `type_checker_helpers_late.inc`는 773 LOC까지 줄어 semantic 800 LOC stop condition 아래로 내려갔다.
+- `type_checker_decls_domain_helpers.c`가 domain slot/projection/overlay helper body를 소유한다. `type_checker_decls_domain_helpers.inc`는 제거됐다.
+- `type_checker_intent_helpers.c`가 intent inheritance/derivation/helper body를 소유한다. `type_checker_decls_a.inc`는 1-line forwarding stub으로 축소됐다.
+- `make semantic-inc-size-test-smoke`가 `src/semantic/**/*.inc <= 800 LOC`를 검사한다.
+- `transpiler_emitters_mir_inventory_ssa.inc`는 5-line shim으로 축소됐고, MIR intent inventory / SSA name / SSA emit slice가 각각 1,000 LOC 아래 하위 include로 분리됐다.
+- `transpiler_expr_emitters.inc`는 7-line shim으로 축소됐고, builtin / call A / call B / member / tail slice가 각각 1,000 LOC 아래 하위 include로 분리됐다. 현재는 include-order 보존 split이며, beta+1 수준의 실제 TU/owner 추출은 별도 과제다.
+- `llvm_expr_calls.inc`는 6-line shim으로 축소됐고, 네 개의 mechanical slice가 각각 1,000 LOC 아래로 내려갔다. 단, `llvm_emit_call`은 아직 거대 함수라서 실제 semantic-owner 추출은 남아 있다.
+- `transpiler_emitters_base_b.inc`는 6-line shim으로 축소됐고, 네 개의 mechanical slice가 각각 1,000 LOC 아래로 내려갔다. 단, statement/block/intent forward-declare owner extraction은 남아 있다.
+- `type_checker_helpers_late.c` standalone TU가 hidden include-order helper 없이 빌드되도록 call-path helper prototypes와 slot analyzer / visibility / generic diagnostic include 계약을 명시했다.
+- string literal / interpolation stable subset을 grammar docs에 고정했다. Stable은 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace까지이며 nested brace matching / format specifier / multiline interpolation은 beta-out-of-scope다.
+- `diagnostic-registry-test-smoke`가 `diag_codes.h` / `docs/72_diagnostic_codes.md` code sync와 `semantic_error_with_hints` / `semantic_warning_with_hints` macro usage를 검사한다.
+- AI-first/GPU 방향은 `pgy.accel.spray`로 module taxonomy와 manifest에 예약했다. 이는 post-beta accelerator library/runtime surface이며 core keyword나 beta blocker가 아니다.
+- Skia/shader/render 방향은 `pgy.render.skia`로, DOP style은 `pgy.compat.dop`로 module taxonomy와 manifest에 예약했다. 둘 다 post-beta ecosystem surface이며 core keyword나 beta blocker가 아니다.
+- module ecosystem update policy를 taxonomy에 고정했다. `pgy.core`는 가장 자주 개선하되 가장 강하게 검증하고, OOP/FP/DOP/GPU/render/std/kit은 모듈 생태계로 진화한다.
 
 남은 것:
 
-- semantic에는 아직 800 LOC 초과 `.inc`가 남아 있다.
 - codegen/runtime에는 1,000 LOC를 크게 넘는 `.inc`가 남아 있다.
+- 특히 runtime `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`와 C backend `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a/b.inc`가 다음 대형 부채다.
 - `type_checker.c`는 아직 orchestration-only가 아니라 include aggregator 성격이 남아 있다.
 - core module boundary와 compiler implementation module boundary가 아직 완전히 대응하지 않는다.
+- parser/lex error code routing은 아직 semantic diagnostic registry만큼 강하게 닫히지 않았다.
+- `pgy.accel.spray`는 아직 구현/stdlib/API가 없다. 베타 전에는 설계 경계만 유지하고, 베타 이후 CPU fallback + explicit device/context + owned buffer/tensor API부터 별도 closure로 진행한다.
+- `pgy.render.skia`와 `pgy.compat.dop`도 아직 구현/stdlib/API가 없다. 베타 전에는 module boundary만 유지하고, 베타 이후 render/shader graph 및 data-layout helper를 별도 closure로 진행한다.
 
 완료 조건:
 
-- `src/semantic`에 800 LOC 초과 `.inc`가 없다.
+- `src/semantic`에 800 LOC 초과 `.inc`가 없다. 현재 `make semantic-inc-size-test-smoke`로 고정한다.
 - `src/codegen`과 `src/runtime`에 1,000 LOC 초과 `.inc`가 없다.
 - core semantic/DAG/backend/runtime owner boundary가 문서와 파일 구조에서 추적 가능하다.
 - `.inc`는 generated table, local macro table, private test fixture 용도로만 남는다.

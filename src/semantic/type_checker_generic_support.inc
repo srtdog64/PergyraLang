@@ -149,7 +149,7 @@ format_effective_generic_type_list(const char *name, Type **types, size_t count)
     return result;
 }
 
-static const char *
+const char *
 format_effective_generic_type_list_scratch(SemanticContext *ctx,
                                            const char *name,
                                            Type **types,

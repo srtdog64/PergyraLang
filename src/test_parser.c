@@ -1442,6 +1442,85 @@ cleanup:
     return failed;
 }
 
+static int
+run_string_literal_surface_test(void)
+{
+    const char *interpolated_code =
+        "func Main() -> Void {\n"
+        "    Log(f\"count={1 + 2}\");\n"
+        "    Log(\"legacy=${3 + 4}\");\n"
+        "}\n";
+    const char *escaped_code =
+        "func Main() -> Void {\n"
+        "    Log(f\"open \\{name}\");\n"
+        "}\n";
+    const char *unmatched_code =
+        "func Main() -> Void {\n"
+        "    Log(f\"prefix {name\");\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = NULL;
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+
+    printf("\n=== Test: String Literal / Interpolation Stable Surface ===\n");
+
+#define PARSE_STRING_CASE(src) \
+    do { \
+        lexer = lexer_create(src); \
+        parser = lexer != NULL ? parser_create(lexer) : NULL; \
+        ast = parser != NULL ? parser_parse_program(parser) : NULL; \
+        if (lexer == NULL || parser == NULL || parser_has_error(parser)) { \
+            printf("[FAIL] string-surface parse failed: %s\n", \
+                parser != NULL ? parser_get_error(parser) : "<parser unavailable>"); \
+            failed = 1; \
+            goto cleanup; \
+        } \
+    } while (0)
+
+    PARSE_STRING_CASE(interpolated_code);
+    if (!ast_print_contains(ast, "ToString")) {
+        printf("[FAIL] f-string / legacy interpolation did not lower through ToString\n");
+        failed = 1;
+        goto cleanup;
+    }
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    ast = NULL;
+    parser = NULL;
+    lexer = NULL;
+
+    PARSE_STRING_CASE(escaped_code);
+    if (ast_print_contains(ast, "ToString")
+        || !ast_print_contains(ast, "open {name}")) {
+        printf("[FAIL] escaped f-string brace should remain a literal brace\n");
+        failed = 1;
+        goto cleanup;
+    }
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    ast = NULL;
+    parser = NULL;
+    lexer = NULL;
+
+    PARSE_STRING_CASE(unmatched_code);
+    if (ast_print_contains(ast, "ToString")
+        || !ast_print_contains(ast, "prefix {name")) {
+        printf("[FAIL] unmatched interpolation brace should preserve literal text\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+cleanup:
+#undef PARSE_STRING_CASE
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
 int
 main(void)
 {
@@ -2343,6 +2422,8 @@ main(void)
     failures += run_tobject_keyword_test();
     printf("\n");
     failures += run_object_keyword_alias_test();
+    printf("\n");
+    failures += run_string_literal_surface_test();
     printf("\n");
     failures += run_vessel_keyword_alias_test();
     printf("\n");

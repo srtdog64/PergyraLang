@@ -42,11 +42,8 @@ format_generic_subject_signature_scratch(SemanticContext *ctx,
                                          GenericParams *params);
 static char *
 format_effective_generic_type_list(const char *name, Type **types, size_t count);
-static const char *
-format_effective_generic_type_list_scratch(SemanticContext *ctx,
-                                           const char *name,
-                                           Type **types,
-                                           size_t count);
+/* format_effective_generic_type_list_scratch is declared in type_checker_internal.h
+ * (promoted to external linkage for the helpers_late.c TU). */
 static char *
 semantic_assignment_target_path_impl(ASTNode *expr,
                                      SemanticContext *ctx,
@@ -61,9 +58,9 @@ type_resolution_find_cycle_visit(TypeResolutionGraph *graph,
                                  size_t *cycle_len,
                                  size_t cycle_cap,
                                  size_t *closing_node);
-static bool
+bool
 type_resolution_validate_graph(SemanticContext *ctx);
-static bool
+bool
 type_resolution_build_topo_order(TypeResolutionGraph *graph,
                                  size_t **out_order,
                                  size_t *out_count);
@@ -75,26 +72,21 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     const char *owner_kind,
                                     const char *owner_name,
                                     size_t *out_count);
-static void
-semantic_stage_event_signature(ASTNode *event_decl,
-                               SemanticContext *ctx);
 char *
 semantic_assignment_target_path(ASTNode *expr);
-static ASTNode *
-semantic_find_top_level_decl_by_label(ASTNode *program,
-                                      const char *label,
-                                      TypeResolutionNodeKind kind);
-static ASTNode *
-semantic_find_graph_host_decl(ASTNode *program,
-                              const char *label);
 int
 find_generic_param_index(GenericParams *gp, const char *param_name);
 bool
 concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
                               SemanticContext *ctx);
 
-/* Local printf-to-heap helper (same as transpiler's strdup_fmt) */
-#include "type_checker_helpers.inc"
+/* Helper .inc fragments (tc_strdup_fmt, ownership/qubit helpers, etc).
+ * Formerly chained through helpers.inc + helpers_core.inc — wrappers
+ * deleted once the helpers_late.c TU went out. */
+#include "type_checker_helpers_context.inc"
+#include "type_checker_helpers_resolution.inc"
+#include "type_checker_helpers_effects.inc"
+#include "type_checker_helpers_host.inc"
 /* type_checker_visibility.inc was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
 
@@ -178,8 +170,10 @@ merge_entangle_pools(SemanticContext *ctx,
     }
 }
 
-#include "type_checker_resolution.inc"
-static void
+#include "type_checker_resolution_graph_core.inc"
+#include "type_checker_resolution_graph_inventory.inc"
+
+void
 semantic_run_type_resolution_worklist(ASTNode *program,
                                       SemanticContext *ctx,
                                       size_t *topo_order,
@@ -385,8 +379,6 @@ callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx)
 }
 
 /* type_check_ability_decl body moved to type_checker_ability_decl.c — see docs/101_semantic_split_template.md */
-
-#include "type_checker_decls.inc"
 
 #include "type_checker_async_channel.inc"
 

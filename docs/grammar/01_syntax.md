@@ -487,6 +487,23 @@ await pending
 9. 파이프 `|>`
 10. 할당 `=`
 
+### 4.1 문자열 literal / interpolation stable subset
+
+베타 stable 문자열 표면은 의도적으로 좁게 고정한다.
+
+- 일반 문자열: `"text"` 형태. 지원 escape는 `\n`, `\r`, `\t`, `\\`, `\"`, `\0`이다.
+- multiline raw string: `"""..."""` 형태. 본문은 raw payload로 보존하며 `${...}` / `{...}` 보간을 수행하지 않는다.
+- legacy interpolation: `"hello ${name}"` 형태. `${expr}`는 `ToString(expr)`로 낮아진다.
+- f-string interpolation: `f"hello {name}"` 형태. `{expr}`는 `ToString(expr)`로 낮아진다.
+- escaped f-string brace: `f"\{name}"`는 보간이 아니라 literal `{name}`이다.
+- unmatched interpolation brace는 보간하지 않고 literal text로 보존한다.
+
+베타 밖:
+- nested interpolation brace matching
+- format specifier (`{value:02d}` 등)
+- raw interpolation / multiline interpolation
+- custom interpolation protocol
+
 ## 5. 제어문
 
 ### 5.1 조건/반복

@@ -179,6 +179,9 @@ codegen / runtime 의 1000+ LOC `.inc` 는 semantic 템플릿이 validated 된 �
 | 3-B | role | [type_checker_role_decl.c](../src/semantic/type_checker_role_decl.c) | A + externalization ([type_checker_decls_a_helpers_internal.h](../src/semantic/type_checker_decls_a_helpers_internal.h), type_checker_internal.h 확장) | 383 |
 | 3-B | party | [type_checker_party_decl.c](../src/semantic/type_checker_party_decl.c) | A (3-B 공유 header) | 147 |
 | 3-B | roster | [type_checker_roster_decl.c](../src/semantic/type_checker_roster_decl.c) | A (3-B 공유 header) | 80 |
+| 5-F | async | [type_checker_async_decl.c](../src/semantic/type_checker_async_decl.c) | A (helper 없음) | 72 |
+| 5-D | builtins stdlib dispatch | [type_checker_builtins_stdlib_body.c](../src/semantic/type_checker_builtins_stdlib_body.c) | A + externalization ([type_checker_builtins_internal.h](../src/semantic/type_checker_builtins_internal.h)) | 1131 |
+| 5-A | decls_domain_helpers 전체 | [type_checker_decls_domain_helpers.c](../src/semantic/type_checker_decls_domain_helpers.c) | A + externalization (type_checker_internal.h 로 5 helper 승격) | 1559 |
 | 이전 | enum | [resolution_graph_decl.c](../src/semantic/type_checker_resolution_graph_decl.c) | B | — |
 | 이전 | event | [resolution_graph_decl.c](../src/semantic/type_checker_resolution_graph_decl.c) | B | — |
 | 이전 | role / class / ability (precollect) | [resolution_graph_decl.c](../src/semantic/type_checker_resolution_graph_decl.c) | B (precollect only) | — |
@@ -203,12 +206,36 @@ decls_intent.inc 가 decls_a.inc 의 11 개 `static` 함수를 cross-.inc 로 �
 
 총 static 제거 site: 7 개 (forward decls + definitions + 기존 type_checker.c forward decls).
 
-**남은 deferred / 정리 작업**:
+**5-D 에서 externalize 된 helper (builtins chain untangling)**:
 
-- `decls_a.inc` : 1509 LOC (기존 2124 → 615 감소). 여전히 800 초과. intent helpers 와 class/subject helper 들이 섞여 있어 추가 분리 시 helper-axis 재배치 필요 (5 차 slice).
-- `decls_domain_helpers.inc` : 1558 LOC. 이 자체가 helper 모음이라 별도 분리 전략.
+- `type_is_future_like` (builtins.c 내 static) → `type_checker_builtins_internal.h`
+- `type_check_channel_send_builtin` / `type_check_channel_recv_builtin` (builtins_query_channel.inc)
+- `type_check_claim_device_slot` / `type_check_device_handle_arg` (builtins_slotops.inc)
+- `reject_borrowed_boundary_container_store` (builtins_query.inc)
 
-`decls_a.inc` 가 800 미만이 될 때까지 한 사이클 더 필요하지만, **§1 체크리스트의 "800+ LOC .inc 없음" 조건은 이번 sprint 에 닫히지 않는다** — 남은 공정 중 가장 큰 single item. 하지만 role/party/roster 가 TU 로 승격되어 core vs module 경계가 크게 정돈됨.
+이 slice 가 특수한 이유: `builtins_stdlib_body.inc` 는 .inc 체인의 dangling `static Type *` / `Type *` 접두사가 _다음_ .inc 의 함수 signature 와 concatenate 되는 preprocessor-macro 스타일 chain 안에 있었음. 제거 후 `nominal.inc` 의 첫 함수에 `static Type *\n` 접두사 명시, `slotops.inc` 끝의 dangling `Type *` 제거하여 chain 해체.
+
+**5-A 에서 externalize 된 helper (domain_helpers TU 승격)**:
+
+- `type_name_or_unknown`, `resolve_named_type` (helpers_resolution.inc)
+- `decl_is_projection_source` (helpers_effects.inc)
+- `projection_refresh_source_field_name`, `projection_target_decl_has_field` (decls_a.inc)
+
+전부 `type_checker_internal.h` 로 승격. `decls_b.inc` 는 empty stub 이 되어 삭제, `decls.inc` 는 `decls_a.inc` 만 include 로 단순화.
+
+**§1 semantic 축 마감 상태 (2026-04-24 sprint 종료 시점)**:
+
+모든 `src/semantic/*.inc` 가 **800 LOC 미만**. 현재 largest:
+- `helpers_late.inc` (773)
+- `builtins_query.inc` (769)
+- `expr.inc` (758)
+
+이들은 helper / dispatch / expr-visitor 축이라 declaration-kind 분리 template 에 해당하지 않음. 추가 감축은 helper axis 재배치 slice 가 될 것이나, **§1 의 semantic 조건은 이 시점에 충족**.
+
+**남은 deferred 작업 (별도 sprint)**:
+
+- `decls_a.inc` (1509 LOC) — 800 초과 marker 남아있음. ability/class/subject 본체 분리 필요 (5-B 잔여). 현재 해당 decls 는 이미 별도 TU 로 승격됨 — 이 .inc 에 남은 것은 미분리 subject/class helper 군.
+- codegen/runtime 축 대형 `.inc` (4731, 4334, 4154 LOC) — §1 의 전체 조건을 위해 향후 sprint 필요.
 
 ---
 

@@ -12,7 +12,10 @@
 pgy.foundation
   -> pgy.core
        -> pgy.execution
+       -> pgy.accel.spray
+       -> pgy.render.skia
        -> pgy.compat.oop
+       -> pgy.compat.dop
        -> pgy.compat.fp
        -> pgy.kit.*
 
@@ -24,8 +27,10 @@ pgy.runtime.scheduler is implementation machinery below pgy.execution.
 - `pgy.foundation`은 core가 실행될 수 있게 하는 값/제어/ABI 기반이다.
 - `pgy.core`는 Pergyra의 언어 정체성이다.
 - `pgy.execution`은 `parallel` 아래 실행 family다.
+- `pgy.accel.spray`는 GPU/AI 가속 라이브러리 축이다.
+- `pgy.render.skia`는 Skia/render/shader integration을 위한 라이브러리 축이다.
 - `pgy.runtime.scheduler`는 fiber/coroutine 구현 층이지 언어 core가 아니다.
-- `pgy.compat.*`는 기존 언어 스타일을 수용하는 compatibility surface다.
+- `pgy.compat.*`는 기존 언어 스타일(OOP/FP/DOP)을 수용하는 compatibility surface다.
 - `pgy.std.*`는 공통 표준 라이브러리다.
 - `pgy.kit.*`는 도메인별 표준 패턴 묶음이다.
 - machine-readable manifest: `docs/language_module_manifest.json`
@@ -64,6 +69,8 @@ Core에서 제외:
 - Functor/HKT abstraction
 - class-heavy OOP extension
 - coroutine/fiber API 고도화
+- GPU/AI accelerator API
+- Skia/render/shader API
 - app/web/page/storage convenience
 
 ## 3. `pgy.foundation`
@@ -123,7 +130,62 @@ Beta blocker지만 언어 identity로 과장하지 않는다.
 - user-facing language order is `parallel -> spawn -> async/await -> select/channel`.
 - runtime implementation may use fibers/coroutines without promoting them to core surface.
 
-## 6. `pgy.compat.oop`
+## 6. `pgy.accel.spray`
+
+AI-first 방향을 위해 필요한 GPU/accelerator 축이다. 다만 이것은 Pergyra core를 넓히는 새 키워드 축이 아니라, `parallel` / ownership / module visibility 위에 올라가는 library + runtime backend 축이다.
+
+포함 후보:
+
+- GPU device/context handle
+- buffer/tensor memory ownership
+- kernel launch graph
+- parallel-to-accelerator scheduling bridge
+- AI operator library boundary
+- backend adapter: CPU fallback, CUDA, ROCm, Metal/Vulkan 후보
+
+베타 기준:
+
+- `pgy.accel.spray`라는 논리 모듈명과 경계를 예약한다.
+- 새 키워드는 추가하지 않는다.
+- 베타 blocker로 보지 않는다.
+- core 문법에 CUDA/ROCm/Metal 같은 backend-specific surface를 섞지 않는다.
+- `parallel`은 core execution primitive로 남고, Spray는 이를 가속 실행으로 lowering할 수 있는 라이브러리/런타임 축으로 둔다.
+
+장기 설계 원칙:
+
+- GPU memory는 일반 값이 아니라 owned accelerator resource로 취급한다.
+- buffer/tensor는 `own` / `ref` / anchored handle policy와 충돌하지 않아야 한다.
+- kernel launch는 암묵적 global state가 아니라 explicit context/stream/graph에 묶는다.
+- AI operator는 언어 키워드가 아니라 `pgy.accel.spray`의 표준 라이브러리 API로 제공한다.
+- tensor/functor/HKT 일반화는 이 모듈의 전제 조건이 아니다. 베타 이후에도 먼저 concrete tensor/operator contract를 닫고, 추상 FP 계층은 별도 검토한다.
+
+## 7. `pgy.render.skia`
+
+Skia, shader, render graph는 장기 경쟁력에 중요하지만 core 문법이 아니다. `pgy.render.skia`는 Spray와 같은 생태계 모듈이며, 그래픽 리소스 수명과 backend adapter를 명시적으로 다룬다.
+
+포함 후보:
+
+- Skia canvas/surface handle
+- render graph
+- shader module boundary
+- CPU/GPU render backend adapter
+- texture/surface resource lifetime
+
+베타 기준:
+
+- `pgy.render.skia` 논리 모듈명과 경계를 예약한다.
+- 새 키워드는 추가하지 않는다.
+- shader language를 core syntax에 임베드하지 않는다.
+- implicit global graphics context를 만들지 않는다.
+- renderer-specific API는 library/backend adapter로 둔다.
+
+장기 설계 원칙:
+
+- render surface, texture, shader module은 owned resource다.
+- render graph는 `parallel`과 Spray scheduler 위에서 실행될 수 있지만, core execution semantics를 바꾸지 않는다.
+- Skia는 첫 render backend 후보일 수 있으나, 언어 계약은 Skia 하나에 종속되지 않는다.
+
+## 8. `pgy.compat.oop`
 
 기존 언어 스타일을 수용하는 compatibility surface다.
 
@@ -139,7 +201,24 @@ Beta blocker지만 언어 identity로 과장하지 않는다.
 - `class` convenience should not become the default explanation for the language identity.
 - inheritance-heavy models and hidden callback graphs are not beta core.
 
-## 7. `pgy.compat.fp`
+## 9. `pgy.compat.dop`
+
+DOP(Data-Oriented Programming)는 성능과 게임/시뮬레이션/AI 데이터 파이프라인에서 중요하지만 core identity가 아니다. 구조체 배치, SoA/Batch helpers, cache-friendly adapters는 compatibility/library surface로 둔다.
+
+포함 후보:
+
+- struct-of-arrays style helpers
+- batch processing patterns
+- data layout metadata
+- cache-friendly collection adapters
+
+베타 기준:
+
+- 새 layout keyword나 unsafe memory model 확장은 열지 않는다.
+- 현재 foundation collection과 ownership/ABI 계약 위에서 문서화만 한다.
+- 베타 이후 ABI ownership closure가 충분해진 뒤 concrete library부터 추가한다.
+
+## 10. `pgy.compat.fp`
 
 FP style support는 필요하지만 beta core는 아니다.
 
@@ -161,7 +240,18 @@ Beta-out-of-scope:
 - Functor/HKT는 compatibility/future FP abstraction이다.
 - 이 둘을 섞지 않는다.
 
-## 8. `pgy.std.*` and `pgy.kit.*`
+## 11. Module Ecosystem Update Policy
+
+업데이트 빈도와 안정성 기준:
+
+- `pgy.core`: 가장 자주 업데이트되지만 표면은 가장 작고 강하게 검증한다. core 변경은 semantic/runtime/C/LLVM/docs/tests 전체 기준을 만족해야 한다.
+- `pgy.foundation`: core를 실행시키는 ABI/value baseline이다. core보다 느리게 움직이며 backend parity를 깨면 안 된다.
+- `pgy.execution`: `parallel` 중심으로 core와 붙어 있지만, fiber/coroutine 구현 세부는 runtime mechanism으로 숨긴다.
+- `pgy.accel.spray` / `pgy.render.skia`: 생태계 경쟁력 축이다. 빠르게 실험할 수 있지만 core keyword 확장 없이 module API와 backend adapter로 진화한다.
+- `pgy.compat.oop` / `pgy.compat.fp` / `pgy.compat.dop`: 기존 스타일 수용층이다. core identity를 설명하는 기본 축으로 쓰지 않는다.
+- `pgy.std.*` / `pgy.kit.*`: 도메인 패턴과 라이브러리다. 새 키워드가 아니라 importable module/API로만 확장한다.
+
+## 12. `pgy.std.*` and `pgy.kit.*`
 
 공통 표준 라이브러리와 도메인 키트는 새 키워드가 아니라 library/domain pattern layer다.
 
@@ -185,9 +275,7 @@ Beta-out-of-scope:
 - business vocabulary는 새 키워드가 아니라 importable pattern/library로 올린다.
 - domain kit는 필요하면 `pgy.std.*`에 의존하지만, `pgy.core` 의미론을 직접 확장하지 않는다.
 
-## 9. Migration Order
-
-## 9. Implementation Rule: module boundary before module syntax
+## 13. Implementation Rule: module boundary before module syntax
 
 베타 전에는 `use pgy.core;` 같은 새 사용자 문법을 열지 않는다. 대신 다음 순서로 실제 모듈성을 만든다.
 
@@ -198,7 +286,7 @@ Beta-out-of-scope:
 
 이 방식은 C/C++의 textual include처럼 “파일을 붙여서 되는 구조”를 줄이고, Pergyra 쪽은 논리 모듈명을 먼저 고정한 뒤 loader/resolver/package syntax를 나중에 얹는 전략이다.
 
-## 10. Migration Order
+## 14. Migration Order
 
 1. Documentation taxonomy freeze: done in this document.
 2. Machine-readable manifest: `docs/language_module_manifest.json`.
@@ -210,11 +298,13 @@ Beta-out-of-scope:
 8. Current file-based import remains stable.
 9. Future `use pgy.core;` / package-style loading can be designed after beta without changing core semantics.
 
-## 11. Beta Rule
+## 15. Beta Rule
 
 Beta completion means:
 
 - `pgy.core + pgy.foundation` stable subset is end-to-end closed.
 - `pgy.execution` has enough smoke/parity for the current supported family.
-- `pgy.compat.oop`, `pgy.compat.fp`, and `pgy.kit.*` are allowed only when they do not expand beta blockers.
+- `pgy.accel.spray` is reserved as a post-beta accelerator module and must not expand beta blockers.
+- `pgy.render.skia` is reserved as a post-beta render/shader module and must not expand beta blockers.
+- `pgy.compat.oop`, `pgy.compat.fp`, `pgy.compat.dop`, and `pgy.kit.*` are allowed only when they do not expand beta blockers.
 - Any surface outside this rule must be labeled `explicit reject`, `experimental`, or `beta-out-of-scope`.

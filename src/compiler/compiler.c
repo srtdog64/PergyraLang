@@ -887,6 +887,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
         compile_argv[ci++] = "-Wno-unused-value";
         compile_argv[ci++] = "-Wno-parentheses-equality";
         compile_argv[ci++] = "-Wno-c23-extensions";
+        compile_argv[ci++] = "-Wno-format-truncation";
         compile_argv[ci++] = PGY_CFLAGS_THREAD_FLAG;
 #endif
         compile_argv[ci++] = opt_flag;
@@ -1192,6 +1193,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     compile_runtime_argv[compile_runtime_argc++] = "-Wno-unused-value";
     compile_runtime_argv[compile_runtime_argc++] = "-Wno-parentheses-equality";
     compile_runtime_argv[compile_runtime_argc++] = "-Wno-c23-extensions";
+    compile_runtime_argv[compile_runtime_argc++] = "-Wno-format-truncation";
     compile_runtime_argv[compile_runtime_argc++] = PGY_CFLAGS_THREAD_FLAG;
     compile_runtime_argv[compile_runtime_argc++] = opt_flag;
     compile_runtime_argv[compile_runtime_argc++] = intent_observability_flag;

@@ -17,7 +17,7 @@ builtin_type_name_or_unknown(const Type *type)
     return (type != NULL && type->name != NULL) ? type->name : "<unknown>";
 }
 
-static bool
+bool
 check_call_arity(ASTNode *expr, size_t expected, const char *name,
                  SemanticContext *ctx)
 {
@@ -111,7 +111,7 @@ builtin_borrowed_boundary_root_name(ASTNode *value_expr,
     return NULL;
 }
 
-static void
+void
 reject_borrowed_boundary_container_store(ASTNode *value_expr,
                                          const Type *stored_value_type,
                                          const char *container_kind,

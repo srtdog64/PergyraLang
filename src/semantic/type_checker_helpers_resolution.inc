@@ -184,7 +184,7 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
 ASTNode *
 find_type_decl_by_name(ASTNode *program, const char *type_name);
 
-static Type *
+Type *
 resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
 {
     Symbol *sym = scope_lookup(ctx->scope, name);
@@ -257,7 +257,7 @@ resolve_generic_type_arg(GenericParam *gp, SemanticContext *ctx,
     return resolve_named_type(gp->name, ctx, site);
 }
 
-static bool
+bool
 name_looks_qualified(const char *name)
 {
     return name != NULL && strchr(name, '.') != NULL;
@@ -286,7 +286,7 @@ semantic_symbol_kind_label(SymbolKind kind)
     }
 }
 
-static const char *
+const char *
 type_name_or_unknown(const Type *type)
 {
     if (type == NULL)
@@ -311,7 +311,7 @@ type_name_or_unknown(const Type *type)
     }
 }
 
-static void
+void
 semantic_format_function_signature(const Type *type, char *out, size_t out_cap)
 {
     size_t pos = 0;
@@ -339,7 +339,7 @@ semantic_format_function_signature(const Type *type, char *out, size_t out_cap)
                  type_name_or_unknown(type->data.function.return_type));
 }
 
-static ASTNode *
+ASTNode *
 constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *name);
 ASTNode *
 find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type, const char *name);

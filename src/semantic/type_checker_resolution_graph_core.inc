@@ -185,7 +185,7 @@ type_resolution_find_cycle_visit(TypeResolutionGraph *graph,
     return false;
 }
 
-static bool
+bool
 type_resolution_validate_graph(SemanticContext *ctx)
 {
     TypeResolutionGraph *graph;
@@ -258,7 +258,7 @@ type_resolution_validate_graph(SemanticContext *ctx)
     return ok;
 }
 
-static bool
+bool
 type_resolution_build_topo_order(TypeResolutionGraph *graph,
                                  size_t **out_order,
                                  size_t *out_count)

@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Type Checker — stdlib builtin dispatch body.
+ * Extracted from the legacy type_checker_builtins_stdlib_body.inc fragment
+ * that was chained together with slotops.inc inside type_checker_builtins.c.
+ * Cross-TU helpers live in type_checker_builtins_internal.h.
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "../common/string_compat.h"
+#include "type_checker_internal.h"
+#include "type_checker_builtins_internal.h"
+#include "type_checker_ownership_internal.h"
+#include "type_checker_channel_transport_internal.h"
+#include "diag_codes.h"
+
+Type *
 type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
     if (strcmp(name, "Abs") == 0) {
@@ -1127,5 +1149,3 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
 
     return NULL;
 }
-
-static Type *

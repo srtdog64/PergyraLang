@@ -1,3 +1,6 @@
+#include "type_checker_internal.h"
+#include "diag_codes.h"
+
 
 bool
 type_check_async_block(ASTNode *node, SemanticContext *ctx)

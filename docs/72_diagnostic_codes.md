@@ -39,9 +39,34 @@ JSON output structure when `--error-format=json`:
 
 Identifies **where inside the compiler pipeline** the diagnostic was raised. Format is `<stage>:<subsystem>:<condition>`, e.g. `semantic:assignability_check`, `semantic:slot_lifecycle:write_after_release`, `llvm:result_spec:capacity_exceeded`. Stable across versions. Useful when the same `code` fires from multiple IR paths — `cause_ir` disambiguates which IR layer reported the breach.
 
+Naming rules:
+
+- Use lowercase ASCII tokens only.
+- The first segment is a compiler stage: `lex`, `parse`, `semantic`, `mir`, `c`, `llvm`, or `io`.
+- The second segment is the smallest stable subsystem that a downstream tool can route on.
+- The final segment names the IR/compiler condition, not the free-text user message.
+- Do not encode source-line wording, type names, or runtime values in `cause_ir`.
+
 ### `fix_source` — source-level repair action tag
 
 Compact, stable token describing **what to change at the source level**, e.g. `annotate-or-convert`, `reuse-shared-error-enum`, `reclaim-before-use`, `reclaim-source-or-drop-view`. Distinct from the free-text `message` because message wording can be refined while `fix_source` remains stable. One `code` may map to multiple `fix_source` values when the same semantic condition admits different concrete repairs (e.g. `PGY_SEM_SLOT_RELEASED` uses `reclaim-before-use` for direct slot misuse and `reclaim-source-or-drop-view` when the release is upstream of a view).
+
+Naming rules:
+
+- Use lowercase ASCII action tokens joined by hyphens.
+- Describe the source edit class, not the compiler stage.
+- Keep the token stable even if the human `Fix:` sentence is rewritten.
+- Prefer one reusable token per repair class; add a new token only when downstream tools need a distinct action.
+
+## Registry Gate
+
+`make diagnostic-registry-test-smoke` enforces the semantic diagnostic registry contract:
+
+- Every `PGY_CODE_*` literal in `src/semantic/diag_codes.h` must be documented in this file.
+- `semantic_error_with_hints` and `semantic_warning_with_hints` call sites must pass `PGY_CODE_*`, `PGY_CAUSE_*`, and `PGY_FIX_*` macros, or explicit `NULL` / `0` for unrouted fields.
+- Function declarations/definitions and comments are ignored; the gate is about real semantic diagnostic call sites.
+
+Parser and lexer diagnostics still surface mostly through stage/message routing. They are reserved for the same registry model but are not fully migrated yet.
 
 ## Catalog
 

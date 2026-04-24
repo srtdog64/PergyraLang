@@ -1,10 +1,10 @@
 /* Instrumentation counters for type-resolution audit (단계 1.0). */
-static size_t g_resolve_type_node_calls = 0;
-static size_t g_resolve_type_node_unique_nodes = 0;
+size_t g_resolve_type_node_calls = 0;
+size_t g_resolve_type_node_unique_nodes = 0;
 static void **g_resolve_type_node_seen = NULL;
 static size_t g_resolve_type_node_seen_cap = 0;
-static size_t g_resolve_type_node_cache_hits = 0;
-static size_t g_resolve_type_node_cache_misses = 0;
+size_t g_resolve_type_node_cache_hits = 0;
+size_t g_resolve_type_node_cache_misses = 0;
 
 static void
 resolve_type_node_stats_record(ASTNode *node)

@@ -49,7 +49,7 @@ channel_builtin_recv_result(Type *element_type, const char *name,
     return wrap_constructed(TYPE_OPTION, element_type);
 }
 
-static Type *
+Type *
 type_check_channel_send_builtin(ASTNode *expr, const char *name,
                                 bool has_timeout, bool detailed_status,
                                 SemanticContext *ctx)
@@ -160,7 +160,7 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                            : TYPE_BOOL;
 }
 
-static Type *
+Type *
 type_check_channel_recv_builtin(ASTNode *expr, const char *name,
                                 bool has_timeout, SemanticContext *ctx)
 {
