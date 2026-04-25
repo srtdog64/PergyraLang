@@ -28,6 +28,12 @@ tc_strdup_fmt(const char *fmt, ...)
 }
 
 static Type *
+semantic_stage_resolve_with_fallback(SemanticContext *ctx, ASTNode *type_node)
+{
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_node);
+}
+
+static Type *
 semantic_stage_resolve_type_quiet(ASTNode *type_node,
                                   SemanticContext *ctx,
                                   const ASTNode *consumer_site,
@@ -54,7 +60,7 @@ semantic_stage_resolve_type_quiet(ASTNode *type_node,
     semantic_stage_record_legacy_family(ctx, reason);
     saved_diag = ctx->diagnostic_count;
     saved_error = ctx->has_error;
-    resolved = semantic_type_resolution_resolve_or_fallback(ctx, type_node);
+    resolved = semantic_stage_resolve_with_fallback(ctx, type_node);
     if (ctx->diagnostic_count > saved_diag) {
         ctx->type_resolution_stage_legacy_resolve_failed_count++;
         ctx->type_resolution_stage_legacy_resolve_suppressed_diag_count +=
@@ -379,7 +385,7 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
             } else {
                 Type *fallback_type;
                 ctx->type_resolution_stage_alias_diagnostic_fallback_count++;
-                fallback_type = semantic_type_resolution_resolve_or_fallback(
+                fallback_type = semantic_stage_resolve_with_fallback(
                     ctx, decl->data.type_alias.target_type);
                 if (fallback_type != NULL && fallback_type != TYPE_UNKNOWN)
                     ctx->type_resolution_stage_alias_fallback_resolved_count++;

@@ -517,10 +517,23 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         char *index = emit_expression(node->data.array_access.index, ctx);
         const char *array_type = infer_expression_type_name(ctx, node->data.array_access.array);
         char *result;
-        if (strncmp(array_type, "Array<", 6) == 0 || strncmp(array_type, "Slice<", 6) == 0)
-            result = strdup_fmt("%s.data[%s]", array, index);
-        else
+        if (strncmp(array_type, "Array<", 6) == 0) {
+            const char *inner = slot_inner_type_name(array_type);
+            int tmp_id = ++ctx->tmp_counter;
+            result = strdup_fmt(
+                "({ PgyArray_%s _pgy_arr_get_%d = %s; "
+                "pgy_array_get_%s(&_pgy_arr_get_%d, %s); })",
+                inner, tmp_id, array, inner, tmp_id, index);
+        } else if (strncmp(array_type, "Slice<", 6) == 0) {
+            const char *inner = slot_inner_type_name(array_type);
+            int tmp_id = ++ctx->tmp_counter;
+            result = strdup_fmt(
+                "({ PgySlice_%s _pgy_slice_get_%d = %s; "
+                "pgy_slice_get_%s(&_pgy_slice_get_%d, %s); })",
+                inner, tmp_id, array, inner, tmp_id, index);
+        } else {
             result = strdup_fmt("%s[%s]", array, index);
+        }
         free(array);
         free(index);
         return result;

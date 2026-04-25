@@ -69,6 +69,12 @@ semantic_ctx_alias_resolution_pop(SemanticContext *ctx)
     ctx->alias_resolution_count--;
 }
 
+static Type *
+resolution_helpers_resolve_type_ref(SemanticContext *ctx, ASTNode *type_ref)
+{
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+}
+
 static char *
 semantic_ctx_alias_resolution_cycle_text(SemanticContext *ctx,
                                          size_t start_index,
@@ -175,7 +181,7 @@ resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned dept
     }
 
     {
-        Type *resolved = semantic_type_resolution_resolve_or_fallback(
+        Type *resolved = resolution_helpers_resolve_type_ref(
             ctx, alias_decl->data.type_alias.target_type);
         semantic_ctx_alias_resolution_pop(ctx);
         return resolved;
@@ -254,7 +260,7 @@ resolve_generic_type_arg(GenericParam *gp, SemanticContext *ctx,
     if (gp == NULL)
         return TYPE_UNKNOWN;
     if (gp->constraint != NULL)
-        return semantic_type_resolution_resolve_or_fallback(ctx, gp->constraint);
+        return resolution_helpers_resolve_type_ref(ctx, gp->constraint);
     return resolve_named_type(gp->name, ctx, site);
 }
 

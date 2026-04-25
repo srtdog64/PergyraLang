@@ -20,6 +20,51 @@ LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
 #include "llvm_expr_call_methods.inc"
 #include "llvm_expr_calls.inc"
 
+static LLVMValueRef
+llvm_emit_checked_collection_get(LLVMGenCtx *ctx, LLVMValueRef aggregate,
+                                 LLVMTypeRef aggregate_type,
+                                 LLVMValueRef index,
+                                 const char *struct_name)
+{
+    const char *fn_prefix = NULL;
+    const char *suffix = NULL;
+    char fn_name[64];
+    LLVMFuncEntry *fn;
+    LLVMValueRef tmp;
+    LLVMValueRef index64;
+    LLVMValueRef args[2];
+
+    if (ctx == NULL || aggregate == NULL || aggregate_type == NULL
+        || index == NULL || struct_name == NULL)
+        return NULL;
+
+    if (strncmp(struct_name, "PgyArray_", 9) == 0) {
+        fn_prefix = "pgy_array_get_";
+        suffix = struct_name + 9;
+    } else if (strncmp(struct_name, "PgySlice_", 9) == 0) {
+        fn_prefix = "pgy_slice_get_";
+        suffix = struct_name + 9;
+    } else {
+        return NULL;
+    }
+
+    snprintf(fn_name, sizeof(fn_name), "%s%s", fn_prefix, suffix);
+    fn = llvm_lookup_function(ctx, fn_name);
+    if (fn == NULL)
+        return NULL;
+
+    tmp = llvm_create_entry_alloca(ctx, aggregate_type, llvm_tmp_name(ctx));
+    LLVMBuildStore(ctx->builder, aggregate, tmp);
+    index64 = index;
+    if (LLVMTypeOf(index64) != ctx->type_i64)
+        index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
+            ctx->type_i64, llvm_tmp_name(ctx));
+    args[0] = tmp;
+    args[1] = index64;
+    return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2,
+        llvm_tmp_name(ctx));
+}
+
 LLVMValueRef
 llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -96,13 +141,41 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     case AST_ARRAY_ACCESS: {
-        /* arr[idx] → GEP + load */
         ASTNode *array_node = node->data.array_access.array;
         LLVMValueRef arr = llvm_emit_expression(array_node, ctx);
         LLVMValueRef idx = llvm_emit_expression(
             node->data.array_access.index, ctx);
         if (arr == NULL || idx == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
+            const char *name = array_node->data.identifier.name;
+            LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, name);
+            LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
+            if (arr_var != NULL && entry != NULL) {
+                const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+                if (suffix != NULL && strcmp(suffix, "Unknown") != 0) {
+                    const char *struct_name = LLVMGetStructName(arr_var->type);
+                    const char *fn_prefix = "pgy_array_get_";
+                    char fn_name[64];
+                    if (struct_name != NULL
+                        && strncmp(struct_name, "PgySlice_", 9) == 0) {
+                        fn_prefix = "pgy_slice_get_";
+                    }
+                    snprintf(fn_name, sizeof(fn_name), "%s%s", fn_prefix, suffix);
+                    LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+                    if (fn != NULL) {
+                        LLVMValueRef index64 = idx;
+                        if (LLVMTypeOf(index64) != ctx->type_i64)
+                            index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
+                                ctx->type_i64, llvm_tmp_name(ctx));
+                        LLVMValueRef args[] = { arr_var->alloca, index64 };
+                        return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                            args, 2, llvm_tmp_name(ctx));
+                    }
+                }
+            }
+        }
 
         LLVMTypeRef arr_ty = LLVMTypeOf(arr);
         if (arr_ty == ctx->type_i8ptr) {
@@ -125,6 +198,12 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (LLVMGetTypeKind(arr_ty) == LLVMStructTypeKind) {
+            const char *struct_name = LLVMGetStructName(arr_ty);
+            LLVMValueRef checked = llvm_emit_checked_collection_get(
+                ctx, arr, arr_ty, idx, struct_name);
+            if (checked != NULL)
+                return checked;
+
             LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, arr);
             LLVMTypeRef elem_ty = llvm_stmt_resolve_array_elem_type(
                 ctx, array_node, data_ptr);

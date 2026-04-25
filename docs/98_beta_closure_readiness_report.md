@@ -11,16 +11,17 @@ PergyraLang is no longer blocked by broad surface absence. The remaining beta ri
 - runtime propagation must be generalized beyond the closed slices;
 - runtime recoverable failure needs a richer queryable surface;
 - declaration-side MIR inventory still carries AST-shaped metadata;
+- function/action/intent body safety is not yet fully CFG/dataflow-backed, even though HIR/MIR CFG infrastructure exists;
 - type-resolution DAG exists but is not yet the full semantic execution truth;
 - arena/lifetime rules are mostly settled but a few owner/runtime ABI boundaries remain.
 
-Current beta readiness is approximately **70%**.
+Current beta readiness is approximately **50%**.
 
-This is intentionally lower than a feature-count reading. Many core and foundation surfaces are already implemented, tested, and documented, but strict beta readiness depends on the trust of the underlying closure mechanisms. Until type-resolution DAG becomes the source of truth for frozen-subset dependency ordering, and until long-term modularization reaches stable owner boundaries, the project should not be described as 90%+ beta-ready.
+This is intentionally lower than a feature-count reading. Many core and foundation surfaces are already implemented, tested, and documented, but strict beta readiness depends on the trust of the underlying closure mechanisms. Until function body safety is CFG/dataflow-backed, until type-resolution DAG becomes the source of truth for frozen-subset dependency ordering, and until long-term modularization reaches stable owner boundaries, the project should not be described as 90%+ beta-ready.
 
 The current beta posture is best described as:
 
-> Narrow beta is close, but strict beta still needs the remaining propagation, failure, MIR inventory, DAG, and lifetime closure work to be either completed or explicitly downgraded from the beta contract.
+> Narrow beta is close, but strict beta still needs CFG-backed body safety plus the remaining propagation, failure, MIR inventory, DAG, and lifetime closure work to be either completed or explicitly downgraded from the beta contract.
 
 ## Closed Or Mostly Closed
 
@@ -65,7 +66,7 @@ This is meaningful progress: the remaining propagation problem is no longer the 
 The current parity baseline is strong for the covered subset:
 
 - `make test-abi` covers C and LLVM ABI smoke cases.
-- `make llvm-test-backend-compare` now includes 43 backend-compare cases.
+- `make llvm-test-backend-compare` now includes 52 backend-compare cases.
 - authority failure bool/string/code drift was closed through `authority_failure_surface`.
 - intent authority snapshot propagation was closed through `intent_authority_snapshot_abi` and `intent_authority_snapshot`.
 - embedded branch projection visibility is now a direct backend-compare case, not only ABI smoke.
@@ -75,6 +76,58 @@ The current parity baseline is strong for the covered subset:
 Routine body emission is largely MIR-driven. Missing ordinary function, method, and intent carriers are hard errors instead of silent partial output. The remaining issue is structural: declaration inventory is still carried as AST-shaped data inside the MIR program instead of a dedicated declaration IR.
 
 ## Remaining Beta Blockers
+
+### 0. Function CFG And Body Dataflow Source Of Truth
+
+Status: highest semantic architecture blocker.
+
+Already closed:
+
+- HIR has function CFG v0 with predecessor/reachability, dominator/frontier, loop-depth, local-def, and phi-candidate skeleton facts.
+- MIR has routine/block/instruction/cleanup blocks, SSA version maps, def/use summaries, rollback/invalidation exceptional CFG, liveness/DCE slices, and backend vertical slices.
+- RIR carries flow-block summaries for resource/projection/world-handoff/invalidation/authority-loss style facts.
+
+Remaining work:
+
+- promote all-path return, reachability, the general branch/join assignment
+  lattice beyond the sealed local-`let` surface, move/use-after-move, borrow/ref
+  lifetime, drop/cleanup, zone/effect transition, projection freshness, and
+  parallel/channel task-boundary checks to CFG/dataflow facts;
+- add interprocedural body summaries for return, escape, move, borrow, drop, effect, zone, task, and channel behavior;
+- require diagnostics to include path provenance, previous state, `Reason`, and `Fix`;
+- make C and LLVM consume the same facts for the frozen subset.
+
+Concrete next work:
+
+- write a CFG/body dataflow inventory test that compares HIR/RIR/MIR facts for representative bodies;
+- all-path return is now migrated, direct/terminating-if/exhaustive-match
+  unreachable warnings are emitted as `PGY_SEM_UNREACHABLE_CODE`, and stable local `let`
+  use-before-init is sealed by syntax plus `PGY_SEM_UNINIT_LOCAL`;
+- `QubitSlot` loop move/join now has source-level regression for break-exit
+  consumption and continue-backedge consumed-resource detection; migrate richer
+  nested/exceptional reachability provenance and the wider branch/join
+  assignment lattice next if delayed assignment becomes part of the beta-stable
+  surface;
+- `defer` cleanup-body terminators are now isolated from the surrounding CFG
+  path, and cleanup-body resource moves/releases are snapshot-restored so they
+  do not consume the current path's live resources;
+- the direct `type_check_statement()` fallback now uses the same defer cleanup
+  snapshot helper as CFG body flow; full drop insertion/validation remains a
+  beta blocker;
+- resource snapshots now include anchored slot state, so terminating-branch
+  releases no longer poison reachable fallthrough paths and fallthrough releases
+  remain conservatively joined;
+- parallel task bodies now use CFG/resource snapshots: task-local terminators do
+  not terminate the outer path, resource moves/releases are joined after the
+  parallel block, and duplicate cross-task consumption reports
+  `PGY_SEM_PARALLEL_SLOT_CONFLICT`. Blocking channel send of a movable resource
+  in a parallel task is now covered by the same consume/join regression;
+- then migrate remaining ownership borrow/drop, followed by zone/effect and
+  channel receive/backpressure/cancellation facts.
+
+Beta closure condition:
+
+- function/action/intent body safety is no longer AST traversal policy; it is a CFG/dataflow contract with semantic diagnostics and backend parity coverage.
 
 ### 1. Handoff And Broader World-Zone Propagation
 
@@ -110,6 +163,13 @@ Beta closure condition:
 ### 2. Recoverable Runtime Failure Surface
 
 Status: baseline exists, richer query surface remains.
+
+Runtime panic contract progress:
+
+- `src/runtime/pgy_runtime_panic_contract.h` now provides the shared hard-fail panic vocabulary.
+- Exported typed slot and secure-slot runtime paths no longer silently fallback for released-slot or invalid-token hard failures.
+- Inline typed slot and secure-slot runtime paths use the same released-slot, invalid-secure-token, and double-release classes.
+- `runtime-panic-contract-test-smoke` gates the implementation contract, and `runtime-panic-abi-test-smoke` provides executable evidence for released-slot, invalid-token, and double-release aborts.
 
 Already closed:
 
@@ -167,7 +227,7 @@ Beta closure condition:
 
 ### 4. Type-Resolution DAG Source Of Truth
 
-Status: graph infrastructure exists; source-of-truth authority is not complete. This is the main reason the overall beta readiness is held near 70%.
+Status: graph infrastructure exists; source-of-truth authority is not complete. This is now one of the two main structural blockers alongside CFG-backed body safety.
 
 Already closed:
 
@@ -320,6 +380,7 @@ PergyraLang can be called beta when the following are simultaneously true:
 - runtime propagation has handoff/general world-zone coverage, not only projection-chain and embedded slices;
 - recoverable runtime failures expose queryable state for the stable failure surface;
 - declaration-side MIR debt is either closed for the frozen subset or explicitly documented as non-user-visible representation debt;
+- function/action/intent body safety is CFG/dataflow-backed for reachability, all-path return, init, move/borrow, cleanup, effect/zone, and parallel/channel facts;
 - type-resolution DAG is the source of truth for frozen-subset dependency ordering;
 - arena/runtime ABI ownership rules are reviewable and tested;
 - stable subset, explicit reject, and beta-out-of-scope wording match across README, TODO, status docs, diagnostics, and smoke examples.

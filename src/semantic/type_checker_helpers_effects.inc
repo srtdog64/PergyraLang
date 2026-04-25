@@ -266,6 +266,16 @@ semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask)
         return;
     ctx->current_function_effects =
         type_effect_mask_join(ctx->current_function_effects, effect_mask);
+    if (effect_mask != EFFECT_NONE)
+        semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
+}
+
+void
+semantic_record_body_summary(SemanticContext *ctx, uint32_t summary_mask)
+{
+    if (ctx == NULL || !ctx->tracking_function_effects)
+        return;
+    ctx->current_function_body_summary |= summary_mask;
 }
 
 bool

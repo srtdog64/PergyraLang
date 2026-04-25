@@ -37,6 +37,11 @@ semantic_check_param_summary_escapes(ASTNode *node,
 
         summary_mask = slot_analyze_param_summary_in_program(
             node->data.func_decl.body, param->name, ctx->program_root);
+        if ((summary_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
+                | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+            semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_ESCAPE_REF);
+        }
         if ((summary_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,

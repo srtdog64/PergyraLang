@@ -11,6 +11,8 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
             return false;
         if (a->states[i] != b->states[i])
             return false;
+        if (a->slot_states[i] != b->slot_states[i])
+            return false;
         if (a->sem_states[i] != b->sem_states[i])
             return false;
         if (a->pool_ids[i] != b->pool_ids[i])
@@ -54,23 +56,21 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
 
     dst.symbols    = calloc(src->count, sizeof(Symbol *));
     dst.states     = calloc(src->count, sizeof(bool));
+    dst.used_states = calloc(src->count, sizeof(bool));
+    dst.slot_states = calloc(src->count, sizeof(SlotState));
     dst.sem_states = calloc(src->count, sizeof(QubitSemanticState));
     dst.pool_ids   = calloc(src->count, sizeof(int32_t));
     if (dst.symbols == NULL || dst.states == NULL
+        || dst.used_states == NULL || dst.slot_states == NULL
         || dst.sem_states == NULL || dst.pool_ids == NULL) {
-        free(dst.symbols);
-        free(dst.states);
-        free(dst.sem_states);
-        free(dst.pool_ids);
-        dst.symbols = NULL;
-        dst.states = NULL;
-        dst.sem_states = NULL;
-        dst.pool_ids = NULL;
+        destroy_resource_snapshot(&dst);
         return dst;
     }
 
     memcpy(dst.symbols, src->symbols, src->count * sizeof(Symbol *));
     memcpy(dst.states, src->states, src->count * sizeof(bool));
+    memcpy(dst.used_states, src->used_states, src->count * sizeof(bool));
+    memcpy(dst.slot_states, src->slot_states, src->count * sizeof(SlotState));
     memcpy(dst.sem_states, src->sem_states, src->count * sizeof(QubitSemanticState));
     memcpy(dst.pool_ids, src->pool_ids, src->count * sizeof(int32_t));
     dst.count = src->count;

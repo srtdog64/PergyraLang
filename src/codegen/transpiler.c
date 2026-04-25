@@ -326,15 +326,54 @@ emit_program(TranspilerCtx *ctx)
 {
     const MIRProgram *mir = (ctx != NULL) ? ctx->mir : NULL;
     ASTNode *synthetic_executable_func = NULL;
+    ASTNode **abilities = NULL;
+    ASTNode **types = NULL;
+    ASTNode **externs = NULL;
+    ASTNode **functions = NULL;
+    ASTNode **intents = NULL;
+    ASTNode **roles = NULL;
+    ASTNode **parties = NULL;
+    ASTNode **rosters = NULL;
+    ASTNode **relations = NULL;
+    ASTNode **effects = NULL;
+    ASTNode **zones = NULL;
+    ASTNode **worlds = NULL;
+    ASTNode **events = NULL;
+    size_t ability_count = 0;
+    size_t type_count = 0;
+    size_t extern_count = 0;
+    size_t function_count = 0;
+    size_t intent_count = 0;
+    size_t role_count = 0;
+    size_t party_count = 0;
+    size_t roster_count = 0;
+    size_t relation_count = 0;
+    size_t effect_count = 0;
+    size_t zone_count = 0;
+    size_t world_count = 0;
+    size_t event_count = 0;
     bool has_main_function = false;
     bool has_top_level_exec = false;
 
     if (mir == NULL)
         return;
 
-    synthetic_executable_func = mir_find_function_decl(mir, "__pgy_top_level_exec");
-    has_main_function = mir->has_main_function;
-    has_top_level_exec = mir->has_top_level_exec;
+    synthetic_executable_func = transpiler_active_synthetic_executable_func(ctx);
+    has_main_function = transpiler_active_has_main_function(ctx);
+    has_top_level_exec = transpiler_active_has_top_level_exec(ctx);
+    transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
+    transpiler_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
+    transpiler_active_externs(ctx, &externs, &extern_count);
+    transpiler_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
+    transpiler_active_inventory(ctx, AST_INTENT_DECL, &intents, &intent_count);
+    transpiler_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
+    transpiler_active_inventory(ctx, AST_PARTY_DECL, &parties, &party_count);
+    transpiler_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count);
+    transpiler_active_inventory(ctx, AST_RELATION_DECL, &relations, &relation_count);
+    transpiler_active_inventory(ctx, AST_EFFECT_DECL, &effects, &effect_count);
+    transpiler_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
+    transpiler_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
+    transpiler_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
 
     /* File header */
     codebuf_write(ctx->out,
@@ -363,12 +402,12 @@ emit_program(TranspilerCtx *ctx)
      */
 
     /* Pass 1: abilities (vtable typedefs) */
-    for (size_t i = 0; i < mir->ability_count; i++)
-        emit_ability_decl(mir->abilities[i], ctx);
+    for (size_t i = 0; i < ability_count; i++)
+        emit_ability_decl(abilities[i], ctx);
 
     /* Pass 1.5: enums + type aliases */
-    for (size_t i = 0; i < mir->type_count; i++) {
-        ASTNode *type_decl = mir->types[i];
+    for (size_t i = 0; i < type_count; i++) {
+        ASTNode *type_decl = types[i];
         if (type_decl != NULL
             && (type_decl->type == AST_ENUM_DECL
                 || type_decl->type == AST_TYPE_ALIAS))
@@ -376,63 +415,63 @@ emit_program(TranspilerCtx *ctx)
     }
 
     /* Pass 2: classes */
-    for (size_t i = 0; i < mir->type_count; i++) {
-        ASTNode *type_decl = mir->types[i];
+    for (size_t i = 0; i < type_count; i++) {
+        ASTNode *type_decl = types[i];
         if (type_decl != NULL && type_decl->type == AST_CLASS_DECL)
             emit_class_decl(type_decl, ctx);
     }
 
     /* Pass 2.5: extern declarations */
-    for (size_t i = 0; i < mir->extern_count; i++)
-        emit_extern_block(mir->externs[i], ctx);
+    for (size_t i = 0; i < extern_count; i++)
+        emit_extern_block(externs[i], ctx);
 
     /* Pass 2.6: early forward declarations for standalone functions so
      * class/domain hosted methods can call file-scope helpers declared later. */
-    for (size_t i = 0; i < mir->function_count; i++) {
-        if (transpiler_can_forward_declare_func_early(ctx, mir->functions[i]))
-            emit_func_forward_decl(mir->functions[i], ctx->out, ctx);
+    for (size_t i = 0; i < function_count; i++) {
+        if (transpiler_can_forward_declare_func_early(ctx, functions[i]))
+            emit_func_forward_decl(functions[i], ctx->out, ctx);
     }
     if (synthetic_executable_func != NULL
         && transpiler_can_forward_declare_func_early(ctx, synthetic_executable_func)) {
         emit_func_forward_decl(synthetic_executable_func, ctx->out, ctx);
     }
-    for (size_t i = 0; i < mir->intent_count; i++) {
-        if (transpiler_can_forward_declare_intent_early(ctx, mir->intents[i]))
-            emit_intent_forward_decl(mir->intents[i], ctx->out, ctx);
+    for (size_t i = 0; i < intent_count; i++) {
+        if (transpiler_can_forward_declare_intent_early(ctx, intents[i]))
+            emit_intent_forward_decl(intents[i], ctx->out, ctx);
     }
 
     /* Pass 3: roles (vtable instances + free functions) */
-    for (size_t i = 0; i < mir->role_count; i++)
-        emit_role_decl(mir->roles[i], ctx);
+    for (size_t i = 0; i < role_count; i++)
+        emit_role_decl(roles[i], ctx);
 
     /* Pass 3.5: parties (struct + methods) */
-    for (size_t i = 0; i < mir->party_count; i++)
-        emit_party_decl(mir->parties[i], ctx);
+    for (size_t i = 0; i < party_count; i++)
+        emit_party_decl(parties[i], ctx);
 
     /* Pass 3.7: rosters (struct + methods) */
-    for (size_t i = 0; i < mir->roster_count; i++)
-        emit_roster_decl(mir->rosters[i], ctx);
+    for (size_t i = 0; i < roster_count; i++)
+        emit_roster_decl(rosters[i], ctx);
 
     /* Pass 3.75: relations and effects (must precede zones that reference them) */
-    for (size_t i = 0; i < mir->relation_count; i++)
-        emit_relation_decl(mir->relations[i], ctx);
-    for (size_t i = 0; i < mir->effect_count; i++)
-        emit_effect_decl(mir->effects[i], ctx);
+    for (size_t i = 0; i < relation_count; i++)
+        emit_relation_decl(relations[i], ctx);
+    for (size_t i = 0; i < effect_count; i++)
+        emit_effect_decl(effects[i], ctx);
 
     /* Pass 3.8: zones (struct + methods + sync helpers) */
-    for (size_t i = 0; i < mir->zone_count; i++)
-        emit_zone_decl(mir->zones[i], ctx);
+    for (size_t i = 0; i < zone_count; i++)
+        emit_zone_decl(zones[i], ctx);
 
     /* Pass 3.85: now that zones are declared, emit intent prototypes that
      * depend on zone types before world methods are emitted. */
-    for (size_t i = 0; i < mir->intent_count; i++) {
-        if (!transpiler_can_forward_declare_intent_early(ctx, mir->intents[i]))
-            emit_intent_forward_decl(mir->intents[i], ctx->out, ctx);
+    for (size_t i = 0; i < intent_count; i++) {
+        if (!transpiler_can_forward_declare_intent_early(ctx, intents[i]))
+            emit_intent_forward_decl(intents[i], ctx->out, ctx);
     }
-    for (size_t i = 0; i < mir->function_count; i++) {
-        if (!transpiler_can_forward_declare_func_early(ctx, mir->functions[i])
-            && transpiler_can_forward_declare_func_after_zones(ctx, mir->functions[i])) {
-            emit_func_forward_decl(mir->functions[i], ctx->out, ctx);
+    for (size_t i = 0; i < function_count; i++) {
+        if (!transpiler_can_forward_declare_func_early(ctx, functions[i])
+            && transpiler_can_forward_declare_func_after_zones(ctx, functions[i])) {
+            emit_func_forward_decl(functions[i], ctx->out, ctx);
         }
     }
     if (synthetic_executable_func != NULL
@@ -442,18 +481,18 @@ emit_program(TranspilerCtx *ctx)
     }
 
     /* Pass 3.9: worlds (struct + methods) */
-    for (size_t i = 0; i < mir->world_count; i++)
-        emit_world_decl(mir->worlds[i], ctx);
+    for (size_t i = 0; i < world_count; i++)
+        emit_world_decl(worlds[i], ctx);
 
-    for (size_t i = 0; i < mir->event_count; i++)
-        emit_event_decl(mir->events[i], ctx);
+    for (size_t i = 0; i < event_count; i++)
+        emit_event_decl(events[i], ctx);
 
-    for (size_t i = 0; i < mir->function_count; i++)
-        emit_func_forward_decl(mir->functions[i], ctx->decls, ctx);
+    for (size_t i = 0; i < function_count; i++)
+        emit_func_forward_decl(functions[i], ctx->decls, ctx);
     if (synthetic_executable_func != NULL)
         emit_func_forward_decl(synthetic_executable_func, ctx->decls, ctx);
-    for (size_t i = 0; i < mir->intent_count; i++)
-        emit_intent_forward_decl(mir->intents[i], ctx->decls, ctx);
+    for (size_t i = 0; i < intent_count; i++)
+        emit_intent_forward_decl(intents[i], ctx->decls, ctx);
 
     /* Pass 4: functions — emit in two sub-passes so that helpers
      * (parallel context structs, wrapper functions) generated during
@@ -463,12 +502,12 @@ emit_program(TranspilerCtx *ctx)
         CodeBuf *func_buf = codebuf_create();
         CodeBuf *saved_out = ctx->out;
         ctx->out = func_buf;
-        for (size_t i = 0; i < mir->function_count; i++)
-            emit_func_decl(mir->functions[i], ctx);
+        for (size_t i = 0; i < function_count; i++)
+            emit_func_decl(functions[i], ctx);
         if (synthetic_executable_func != NULL)
             emit_func_decl(synthetic_executable_func, ctx);
-        for (size_t i = 0; i < mir->intent_count; i++)
-            emit_intent_decl(mir->intents[i], func_buf, ctx);
+        for (size_t i = 0; i < intent_count; i++)
+            emit_intent_decl(intents[i], func_buf, ctx);
         ctx->out = saved_out;
 
         /* Emit forward declarations after function emission so late-added

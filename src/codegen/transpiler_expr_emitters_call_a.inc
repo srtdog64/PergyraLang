@@ -51,7 +51,30 @@
     char *left  = emit_expression(expr->data.binary.left,  ctx);
     char *right = emit_expression(expr->data.binary.right, ctx);
     const char *op = binary_op_to_c(expr->data.binary.op.type);
-    char *result = strdup_fmt("(%s %s %s)", left, op, right);
+    char *result;
+    if (expr->data.binary.op.type == TOKEN_SLASH
+        || expr->data.binary.op.type == TOKEN_PERCENT) {
+        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
+        const char *rt = infer_expression_type_name(ctx, expr->data.binary.right);
+        bool is_float_div = (lt != NULL
+                && (strcmp(lt, "Float") == 0 || strcmp(lt, "Double") == 0))
+            || (rt != NULL
+                && (strcmp(rt, "Float") == 0 || strcmp(rt, "Double") == 0));
+        bool is_long_div = (lt != NULL && strcmp(lt, "Long") == 0)
+            || (rt != NULL && strcmp(rt, "Long") == 0);
+        if (!is_float_div) {
+            const char *helper = expr->data.binary.op.type == TOKEN_SLASH
+                ? (is_long_div ? "pgy_checked_div_i64_export"
+                               : "pgy_checked_div_i32_export")
+                : (is_long_div ? "pgy_checked_mod_i64_export"
+                               : "pgy_checked_mod_i32_export");
+            result = strdup_fmt("%s(%s, %s)", helper, left, right);
+        } else {
+            result = strdup_fmt("(%s %s %s)", left, op, right);
+        }
+    } else {
+        result = strdup_fmt("(%s %s %s)", left, op, right);
+    }
     free(left);
     free(right);
     return result;

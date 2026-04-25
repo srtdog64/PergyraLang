@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# Regression gate for LLVM declaration-side MIR inventory usage.
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+PY_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+    PY_BIN="$(command -v python3)"
+elif command -v python >/dev/null 2>&1; then
+    PY_BIN="$(command -v python)"
+fi
+
+if [[ -z "$PY_BIN" ]]; then
+    echo "[mir-decl-inventory] FAIL: python is required" >&2
+    exit 1
+fi
+
+"$PY_BIN" - "$ROOT_DIR" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+internal_path = root / "src" / "codegen" / "llvm_internal.h"
+pipeline_path = root / "src" / "codegen" / "llvm_pipeline.c"
+domain_path = root / "src" / "codegen" / "llvm_domain.c"
+backend_doc_path = root / "src" / "codegen" / "llvm_backend.h"
+transpiler_header_path = root / "src" / "codegen" / "transpiler.h"
+transpiler_path = root / "src" / "codegen" / "transpiler.c"
+checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
+todo_path = root / "TODO.md"
+
+for path in (
+    internal_path,
+    pipeline_path,
+    domain_path,
+    backend_doc_path,
+    transpiler_header_path,
+    transpiler_path,
+    checklist_path,
+    todo_path,
+):
+    if not path.exists():
+        raise SystemExit(f"[mir-decl-inventory] missing required file: {path.relative_to(root)}")
+
+internal = internal_path.read_text(encoding="utf-8")
+pipeline = pipeline_path.read_text(encoding="utf-8")
+domain = domain_path.read_text(encoding="utf-8")
+backend_doc = backend_doc_path.read_text(encoding="utf-8")
+transpiler_header = transpiler_header_path.read_text(encoding="utf-8")
+transpiler = transpiler_path.read_text(encoding="utf-8")
+checklist = checklist_path.read_text(encoding="utf-8")
+todo = todo_path.read_text(encoding="utf-8")
+
+errors = []
+
+required_internal_terms = [
+    "llvm_active_inventory",
+    "llvm_find_decl_in_active_inventory",
+    "llvm_find_host_decl_in_active_inventory",
+    "llvm_find_host_method_decl_in_context",
+    "llvm_find_host_decl_methods_in_context",
+    "llvm_active_nominal_inventory",
+    "llvm_active_domain_inventory",
+    "mir_find_decl_header(ctx->mir, name)",
+    "llvm_is_host_decl_type",
+]
+for term in required_internal_terms:
+    if term not in internal:
+        errors.append(f"llvm_internal.h missing declaration inventory helper: {term}")
+
+required_pipeline_terms = [
+    "llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count)",
+    "llvm_find_host_decl_methods_in_context(ctx, cls_name, &methods, &method_count)",
+    "MIR-only LLVM path missing routine for class method",
+    "MIR-only LLVM path missing routine for function",
+    "declaration inventory is still AST-carried inside MIRProgram",
+]
+for term in required_pipeline_terms:
+    if term not in pipeline:
+        errors.append(f"llvm_pipeline.c missing MIR declaration inventory guard: {term}")
+
+if "llvm_active_domain_inventory(ctx, &inventory)" not in domain:
+    errors.append("llvm_domain.c must consume domain declarations through llvm_active_domain_inventory")
+
+for term in [
+    "declaration / top-level inventory is carried through MIRProgram",
+    "dedicated declaration IR layer",
+]:
+    if term not in backend_doc:
+        errors.append(f"llvm_backend.h must document remaining declaration inventory debt: {term}")
+
+required_transpiler_terms = [
+    "transpiler_active_inventory",
+    "transpiler_active_externs",
+    "transpiler_active_executables",
+    "transpiler_active_synthetic_executable_func",
+    "transpiler_active_has_main_function",
+    "transpiler_active_has_top_level_exec",
+]
+for term in required_transpiler_terms:
+    if term not in transpiler_header:
+        errors.append(f"transpiler.h missing C backend active inventory helper: {term}")
+
+for term in [
+    "transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count)",
+    "transpiler_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count)",
+    "transpiler_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count)",
+    "transpiler_active_inventory(ctx, AST_INTENT_DECL, &intents, &intent_count)",
+    "transpiler_active_synthetic_executable_func(ctx)",
+    "transpiler_active_has_main_function(ctx)",
+    "transpiler_active_has_top_level_exec(ctx)",
+]:
+    if term not in transpiler:
+        errors.append(f"transpiler.c must consume active executable metadata helper: {term}")
+
+for term in [
+    "MIR Declaration Debt Removal",
+    "AST-carried declaration inventory",
+    "dedicated declaration metadata view",
+    "make mir-declaration-inventory-test-smoke",
+]:
+    if term not in checklist:
+        errors.append(f"beta checklist must track MIR declaration inventory term: {term}")
+
+if "declaration-side MIR-only debt" not in todo:
+    errors.append("TODO must keep declaration-side MIR-only debt visible")
+
+domain_arrays = {
+    "functions",
+    "intents",
+    "abilities",
+    "roles",
+    "parties",
+    "rosters",
+    "worlds",
+    "relations",
+    "effects",
+    "zones",
+    "events",
+    "types",
+}
+
+allowed_raw_files = {
+    "src/codegen/llvm_internal.h",
+    "src/codegen/transpiler.h",
+}
+
+raw_hits = []
+for path in list((root / "src" / "codegen").glob("llvm*.[ch]")) + [
+    root / "src" / "codegen" / "transpiler.c",
+    root / "src" / "codegen" / "transpiler.h",
+    *list((root / "src" / "codegen").glob("transpiler_*.inc")),
+]:
+    rel = path.relative_to(root).as_posix()
+    text = path.read_text(encoding="utf-8")
+    if rel in allowed_raw_files:
+        continue
+    for name in domain_arrays:
+        if re.search(rf"\bctx->mir->{name}\b|\bmir->{name}\b", text):
+            raw_hits.append(f"{rel}: raw MIR declaration array access: {name}")
+
+if raw_hits:
+    errors.append(
+        "raw MIR declaration inventory array access outside allowed owner files:\n  "
+        + "\n  ".join(sorted(raw_hits))
+    )
+
+if errors:
+    print("[mir-decl-inventory] FAIL", file=sys.stderr)
+    for error in errors:
+        print(f"  - {error}", file=sys.stderr)
+    sys.exit(1)
+
+print("[mir-decl-inventory] OK: C/LLVM declaration inventory use is helper-gated")
+PY

@@ -41,7 +41,6 @@ grep -RIn 'semantic_type_resolution_resolve_or_fallback' src/semantic \
   case "$path" in
     src/semantic/type_checker.c|\
     src/semantic/type_checker_ability_decl.c|\
-    src/semantic/type_checker_ability_fields.c|\
     src/semantic/type_checker_ability_where.c|\
     src/semantic/type_checker_builtins_projection.c|\
     src/semantic/type_checker_builtins_query_domain.inc|\
@@ -89,11 +88,8 @@ fallback_sites="$(
     | grep -v 'type_checker_internal.h' \
     | wc -l
 )"
-if [ "$fallback_sites" -lt 30 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first fallback seam inventory shrank to $fallback_sites" >&2
-fi
-if [ "$fallback_sites" -gt 38 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first fallback seam inventory grew: $fallback_sites > 38" >&2
+if [ "$fallback_sites" -gt 31 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first fallback seam inventory grew: $fallback_sites > 31" >&2
   echo "Shrink or explicitly justify the fallback owner allowlist before adding new seams." >&2
   exit 1
 fi
@@ -134,4 +130,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=31; lower is better)"

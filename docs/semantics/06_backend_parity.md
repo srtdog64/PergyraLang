@@ -59,6 +59,7 @@ Observed behavior includes:
 - runtime observability state.
 - recoverable failure state.
 - hard-fail class.
+- runtime panic class.
 
 Current evidence:
 
@@ -67,6 +68,42 @@ Current evidence:
 Remaining proof obligation:
 
 - Keep Windows support wording honest: official beta support is Linux C+LLVM and Windows C-only unless Windows LLVM runner parity is actually green.
+
+## Theorem: Runtime Panic Parity
+
+For every accepted beta program that reaches a runtime panic boundary, C and LLVM must fail in the same stable panic class without silently returning a value or falling back to a different behavior.
+
+Stable panic classes:
+
+- OOM
+- divide-by-zero
+- array/slice/list/map out-of-bounds
+- released slot use
+- double release
+- invalid-secure-token
+- authority-mismatch
+- internal compiler/runtime invariant break
+
+Policy:
+
+- Recoverable runtime contract failures expose `Bool`, `Result<T>`, or queryable runtime state when the language surface says they are recoverable.
+- Ownership/security boundary violations are hard-fail unless explicitly modeled as recoverable.
+- Internal compiler/runtime invariant breaks are always hard-fail.
+- Unsupported backend behavior must be a structured backend error before runtime, not a silent panic mismatch.
+
+Current evidence:
+
+- Runtime authority failure vocabulary is shared between generated C and LLVM runtime exports.
+- ABI smoke and backend compare already cover authority failure snapshots and multiple propagation-frontier cases.
+- `runtime-panic-contract-test-smoke` gates the shared panic class/reason vocabulary and prevents released-slot, secure-slot, device-slot, authority, OOM, out-of-bounds, and checked-arithmetic paths from drifting back to silent fallback.
+- `runtime-panic-abi-test-smoke` executes inline-runtime and exported-runtime harnesses for released slot use, invalid secure-slot token, double release, device slot release violations, authority mismatch, OOM, out-of-bounds, and divide-by-zero.
+- `runtime-panic-codegen-test-smoke` verifies generated C and LLVM programs lower integer divide/modulo by zero to the same `divide-by-zero` panic class and stable `Array<T>`/`Slice<T>` indexing, including temporary function-return access, plus `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, and `MapRemove` invalid access to the same `out-of-bounds` panic class.
+- The same generated-code smoke verifies `Unwrap(Err)` and `UnwrapOption(None)`
+  panic with the same `internal-invariant` class in C and LLVM.
+
+Remaining proof obligation:
+
+- Extend collection policy to any new beta-stable collection API before exposing it: absence must be either an explicit query/fallible result surface or a hard-fail boundary.
 
 ## Theorem: Structured Backend Failure
 

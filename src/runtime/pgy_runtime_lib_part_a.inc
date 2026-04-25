@@ -34,6 +34,7 @@ extern char *realpath(const char *path, char *resolved_path);
 #endif
 #include "runtime/pgy_parallel.h"
 #include "runtime/pgy_runtime_authority_contract.h"
+#include "runtime/pgy_runtime_panic_contract.h"
 
 static char *pgy_runtime_lib_strdup(const char *src);
 
@@ -172,8 +173,52 @@ pgy_zone_authority_check_export(void *zone_ptr, void *participant_ptr,
 {
     if (!pgy_runtime_zone_authority_validate_core(zone_ptr, participant_ptr,
             zone_name, participant_name, true)) {
-        abort();
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_AUTHORITY_MISMATCH,
+                          PGY_RUNTIME_PANIC_REASON_AUTHORITY_MISMATCH);
     }
+}
+
+void
+pgy_runtime_panic_internal_invariant_export(const char *reason)
+{
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                      reason != NULL ? reason : "runtime invariant failed");
+}
+
+int32_t
+pgy_checked_div_i32_export(int32_t lhs, int32_t rhs)
+{
+    if (rhs == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
+                          PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    return lhs / rhs;
+}
+
+int64_t
+pgy_checked_div_i64_export(int64_t lhs, int64_t rhs)
+{
+    if (rhs == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
+                          PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    return lhs / rhs;
+}
+
+int32_t
+pgy_checked_mod_i32_export(int32_t lhs, int32_t rhs)
+{
+    if (rhs == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
+                          PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    return lhs % rhs;
+}
+
+int64_t
+pgy_checked_mod_i64_export(int64_t lhs, int64_t rhs)
+{
+    if (rhs == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
+                          PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    return lhs % rhs;
 }
 
 bool
@@ -552,4 +597,3 @@ pgy_runtime_resolve_file_path(const char *path, bool for_write)
 
     return candidate;
 }
-

@@ -77,9 +77,6 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
 
-        LLVMValueRef arr = LLVMBuildLoad2(ctx->builder, arr_var->type, arr_var->alloca,
-            llvm_tmp_name(ctx));
-        LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, arr);
         if (LLVMTypeOf(value) != entry->elem_type) {
             if ((entry->elem_type == ctx->type_i32 || entry->elem_type == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
@@ -88,9 +85,20 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
                 value = LLVMBuildSIToFP(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
         }
-        LLVMValueRef gep = LLVMBuildGEP2(ctx->builder, entry->elem_type, data_ptr, &idx, 1,
-            llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, value, gep);
+        const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+        if (suffix != NULL && strcmp(suffix, "Unknown") != 0) {
+            char fn_name[64];
+            snprintf(fn_name, sizeof(fn_name), "pgy_array_set_%s", suffix);
+            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+            if (fn != NULL) {
+                LLVMValueRef index64 = idx;
+                if (LLVMTypeOf(index64) != ctx->type_i64)
+                    index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
+                        ctx->type_i64, llvm_tmp_name(ctx));
+                LLVMValueRef args[] = { arr_var->alloca, index64, value };
+                LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+            }
+        }
         *out = LLVMConstInt(ctx->type_i32, 0, 0);
         return true;
     }

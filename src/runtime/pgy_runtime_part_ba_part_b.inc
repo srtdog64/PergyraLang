@@ -423,15 +423,11 @@ pgy_timespec_after_ns(uint64_t timeout_ns)
 #endif
 
 /* =================================================================
- * Panic — Unrecoverable Error
+ * Panic ??Unrecoverable Error
  * ================================================================= */
 
 #define PGY_PANIC(msg) \
-    do { \
-        fprintf(stderr, "[PGY PANIC] %s:%d — %s\n", \
-                __FILE__, __LINE__, (msg)); \
-        abort(); \
-    } while (0)
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, (msg))
 
 #define PGY_ASSERT(cond, msg) \
     do { \
@@ -440,20 +436,63 @@ pgy_timespec_after_ns(uint64_t timeout_ns)
         } \
     } while (0)
 
+static inline void
+pgy_runtime_panic_internal_invariant_export(const char *reason)
+{
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                      reason != NULL ? reason : "runtime invariant failed");
+}
+
+static inline int32_t
+pgy_checked_div_i32_export(int32_t lhs, int32_t rhs)
+{
+    if (rhs == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
+                          PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    return lhs / rhs;
+}
+
+static inline int64_t
+pgy_checked_div_i64_export(int64_t lhs, int64_t rhs)
+{
+    if (rhs == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
+                          PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    return lhs / rhs;
+}
+
+static inline int32_t
+pgy_checked_mod_i32_export(int32_t lhs, int32_t rhs)
+{
+    if (rhs == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
+                          PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    return lhs % rhs;
+}
+
+static inline int64_t
+pgy_checked_mod_i64_export(int64_t lhs, int64_t rhs)
+{
+    if (rhs == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO,
+                          PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO);
+    return lhs % rhs;
+}
+
 /* =================================================================
- * Stack Memory (Default — Zero Overhead)
+ * Stack Memory (Default ??Zero Overhead)
  *
  * All plain variables are stack-allocated by default in C.
  * No special macros needed.
  * ================================================================= */
 
 /* Example:
- *   let x: Int = 42;     →   int32_t x = 42;
- *   let v: Vec3;         →   Vec3 v;
+ *   let x: Int = 42;     ??  int32_t x = 42;
+ *   let v: Vec3;         ??  Vec3 v;
  */
 
 /* =================================================================
- * Heap Memory — Box<T> (Owned Heap Allocation)
+ * Heap Memory ??Box<T> (Owned Heap Allocation)
  * ================================================================= */
 
 #define PGY_BOX_DEFINE(SuffixName, CType) \
@@ -468,7 +507,8 @@ pgy_box_new_##SuffixName(CType value) \
     PgyBox_##SuffixName b; \
     b.ptr = (CType*)malloc(sizeof(CType)); \
     if (b.ptr == NULL) { \
-        PGY_PANIC("Box allocation failed"); \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, \
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); \
     } \
     *b.ptr = value; \
     return b; \
@@ -515,7 +555,7 @@ pgy_box_is_valid_##SuffixName(PgyBox_##SuffixName* b) \
     } while (0)
 
 /* =================================================================
- * Heap Memory — Arena Allocator (Frame-based)
+ * Heap Memory ??Arena Allocator (Frame-based)
  * ================================================================= */
 
 typedef struct {
@@ -529,8 +569,9 @@ pgy_arena_create(size_t capacity)
 {
     PgyArena arena;
     arena.buffer = (char*)malloc(capacity);
-    if (arena.buffer == NULL) {
-        PGY_PANIC("Arena allocation failed");
+    if (arena.buffer == NULL && capacity > 0) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
     }
     arena.capacity = capacity;
     arena.offset = 0;
@@ -553,7 +594,8 @@ pgy_arena_alloc(PgyArena* arena, size_t size, size_t align)
     size_t aligned_offset = (arena->offset + align - 1) & ~(align - 1);
 
     if (aligned_offset + size > arena->capacity) {
-        PGY_PANIC("Arena out of memory");
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ARENA_OUT_OF_MEMORY);
     }
 
     void* ptr = arena->buffer + aligned_offset;
@@ -666,10 +708,12 @@ pgy_allocator_pool(size_t capacity)
     alloc.kind = PGY_ALLOC_POOL;
     alloc.pool = (PgyPoolAllocatorState*)calloc(1, sizeof(PgyPoolAllocatorState));
     if (alloc.pool == NULL)
-        PGY_PANIC("Pool allocator state allocation failed");
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
     alloc.pool->buffer = (char*)malloc(capacity);
-    if (alloc.pool->buffer == NULL)
-        PGY_PANIC("Pool allocator buffer allocation failed");
+    if (alloc.pool->buffer == NULL && capacity > 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
     alloc.pool->capacity = capacity;
     alloc.pool->offset = 0;
     return alloc;
@@ -693,7 +737,8 @@ pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
     if (alloc != NULL && alloc->kind == PGY_ALLOC_POOL) {
         size_t offset = (alloc->pool->offset + align - 1) & ~(align - 1);
         if (offset + size > alloc->pool->capacity)
-            PGY_PANIC("Pool allocator out of memory");
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                              PGY_RUNTIME_PANIC_REASON_POOL_OUT_OF_MEMORY);
         void *ptr = alloc->pool->buffer + offset;
         alloc->pool->offset = offset + size;
         pgy_allocator_record_alloc(alloc, size);
@@ -703,8 +748,9 @@ pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
     }
 
     void *ptr = malloc(size);
-    if (ptr == NULL)
-        PGY_PANIC("Allocator allocation failed");
+    if (ptr == NULL && size > 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
     if (alloc != NULL) {
         pgy_allocator_record_alloc(alloc, size);
         if (alloc->debug_enabled)
@@ -723,8 +769,9 @@ pgy_realloc(PgyAllocator *alloc, void *ptr, size_t old_size, size_t new_size)
     }
 
     void *grown = realloc(ptr, new_size);
-    if (grown == NULL)
-        PGY_PANIC("Allocator reallocation failed");
+    if (grown == NULL && new_size > 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
 
     if (alloc != NULL) {
         pgy_allocator_record_free(alloc, old_size);

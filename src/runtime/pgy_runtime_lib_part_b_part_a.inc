@@ -174,21 +174,21 @@ pgy_list_get_raw_export(void *list_ptr, int32_t index, void *out_ptr, int64_t el
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
     if (out_ptr == NULL) {
-        pgy_runtime_warn_invalid_collection("list_get", "null output");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list get on null output");
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("list_get", "non-positive element size");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list get with invalid element size");
     }
     memset(out_ptr, 0, (size_t)elem_size);
     if (list == NULL) {
-        pgy_runtime_warn_invalid_collection("list_get", "null list");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list get on null list");
     }
     if (index < 0 || (size_t)index >= list->count) {
-        pgy_runtime_warn_invalid_collection("list_get", "index out of bounds");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "list index out of bounds");
     }
     memcpy(out_ptr,
            (char *)list->data + ((size_t)index * (size_t)elem_size),
@@ -200,20 +200,20 @@ pgy_list_set_raw_export(void *list_ptr, int32_t index, void *value_ptr, int64_t 
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
     if (list == NULL) {
-        pgy_runtime_warn_invalid_collection("list_set", "null list");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list set on null list");
     }
     if (value_ptr == NULL) {
-        pgy_runtime_warn_invalid_collection("list_set", "null value");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list set with null value");
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("list_set", "non-positive element size");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list set with invalid element size");
     }
     if (index < 0 || (size_t)index >= list->count) {
-        pgy_runtime_warn_invalid_collection("list_set", "index out of bounds");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "list set index out of bounds");
     }
     memcpy((char *)list->data + ((size_t)index * (size_t)elem_size),
            value_ptr, (size_t)elem_size);
@@ -236,16 +236,16 @@ pgy_list_remove_raw_export(void *list_ptr, int32_t index, int64_t elem_size)
     PgyListRaw *list = (PgyListRaw *)list_ptr;
     size_t tail_count;
     if (list == NULL) {
-        pgy_runtime_warn_invalid_collection("list_remove", "null list");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list remove on null list");
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("list_remove", "non-positive element size");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list remove with invalid element size");
     }
     if (index < 0 || (size_t)index >= list->count) {
-        pgy_runtime_warn_invalid_collection("list_remove", "index out of bounds");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "list remove index out of bounds");
     }
     tail_count = list->count - (size_t)index - 1;
     if (tail_count > 0) {
@@ -328,21 +328,21 @@ pgy_queue_pop_raw_export(void *queue_ptr, void *out_ptr, int64_t elem_size)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
     if (out_ptr == NULL) {
-        pgy_runtime_warn_invalid_collection("queue_pop", "null output");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "queue pop on null output");
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("queue_pop", "non-positive element size");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "queue pop with invalid element size");
     }
     memset(out_ptr, 0, (size_t)elem_size);
     if (queue == NULL) {
-        pgy_runtime_warn_invalid_collection("queue_pop", "null queue");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "queue pop on null queue");
     }
     if (queue->count == 0) {
-        pgy_runtime_warn_invalid_collection("queue_pop", "empty queue");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "queue pop from empty queue");
     }
     memcpy(out_ptr,
            (char *)queue->data + (queue->head * (size_t)elem_size),
@@ -506,29 +506,31 @@ pgy_map_get_raw_export(void *map_ptr, const char *key, void *out_ptr, int64_t va
     uint32_t h;
     size_t probes = 0;
     if (out_ptr == NULL) {
-        pgy_runtime_warn_invalid_collection("map_get", "null output");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map get on null output");
     }
     if (value_size <= 0) {
-        pgy_runtime_warn_invalid_collection("map_get", "non-positive value size");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map get with invalid value size");
     }
     memset(out_ptr, 0, (size_t)value_size);
     if (map == NULL) {
-        pgy_runtime_warn_invalid_collection("map_get", "null map");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map get on null map");
     }
     if (key == NULL) {
-        pgy_runtime_warn_invalid_collection("map_get", "null key");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map get with null key");
     }
     if (map->capacity == 0 || map->keys == NULL || map->values == NULL
         || map->occupied == NULL) {
-        pgy_runtime_warn_invalid_collection("map_get", "map is not initialized");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map get on uninitialized map");
     }
-    if (map->count == 0)
-        return;
+    if (map->count == 0) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "map key not found");
+    }
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
     while (map->occupied[h] && probes < map->capacity) {
         if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
@@ -540,6 +542,8 @@ pgy_map_get_raw_export(void *map_ptr, const char *key, void *out_ptr, int64_t va
         h = (h + 1) % (uint32_t)map->capacity;
         probes++;
     }
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                      "map key not found");
 }
 
 bool
@@ -575,19 +579,21 @@ pgy_map_remove_raw_export(void *map_ptr, const char *key, int64_t value_size)
     uint32_t h;
     size_t probes = 0;
     if (map == NULL) {
-        pgy_runtime_warn_invalid_collection("map_remove", "null map");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map remove on null map");
     }
     if (key == NULL) {
-        pgy_runtime_warn_invalid_collection("map_remove", "null key");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map remove with null key");
     }
     if (value_size <= 0) {
-        pgy_runtime_warn_invalid_collection("map_remove", "non-positive value size");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map remove with invalid value size");
     }
-    if (map->count == 0)
-        return;
+    if (map->count == 0) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "map remove key not found");
+    }
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
     while (map->occupied[h] && probes < map->capacity) {
         if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
@@ -601,6 +607,8 @@ pgy_map_remove_raw_export(void *map_ptr, const char *key, int64_t value_size)
         h = (h + 1) % (uint32_t)map->capacity;
         probes++;
     }
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                      "map remove key not found");
 }
 
 int32_t

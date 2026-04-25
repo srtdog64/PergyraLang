@@ -26,6 +26,7 @@ extern char *realpath(const char *path, char *resolved_path);
 #endif
 #include "pgy_parallel.h"
 #include "pgy_runtime_authority_contract.h"
+#include "pgy_runtime_panic_contract.h"
 
 #ifndef PGY_RUNTIME_MAX_FILE_BYTES
 #define PGY_RUNTIME_MAX_FILE_BYTES (64u * 1024u * 1024u)

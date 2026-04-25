@@ -709,30 +709,42 @@ PgySlot_Int pgy_claim_Int(void)
 
 void pgy_write_Int(PgySlot_Int *s, int32_t v)
 {
-    if (s == NULL) return;
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Int slot write");
+    }
     if (!s->claimed) {
-        fprintf(stderr, "[pgy] slot write after release (Int)\n");
-        return;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE);
     }
     s->value = v;
 }
 
 int32_t pgy_read_Int(PgySlot_Int *s)
 {
-    if (s == NULL) return 0;
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Int slot read");
+    }
     if (!s->claimed) {
-        fprintf(stderr, "[pgy] slot read after release (Int)\n");
-        return 0;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ);
     }
     return s->value;
 }
 
 void pgy_release_Int(PgySlot_Int *s)
 {
-    if (s != NULL) {
-        s->value = 0;
-        s->claimed = false;
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Int slot release");
     }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE,
+                          PGY_RUNTIME_PANIC_REASON_DOUBLE_RELEASE_SLOT);
+    }
+    s->value = 0;
+    s->claimed = false;
 }
 
 /* =================================================================
@@ -749,21 +761,42 @@ PgySlot_Long pgy_claim_Long(void)
 
 void pgy_write_Long(PgySlot_Long *s, int64_t v)
 {
-    if (s == NULL) return;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Long)\n"); return; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Long slot write");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE);
+    }
     s->value = v;
 }
 
 int64_t pgy_read_Long(PgySlot_Long *s)
 {
-    if (s == NULL) return 0;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Long)\n"); return 0; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Long slot read");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ);
+    }
     return s->value;
 }
 
 void pgy_release_Long(PgySlot_Long *s)
 {
-    if (s != NULL) { s->value = 0; s->claimed = false; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Long slot release");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE,
+                          PGY_RUNTIME_PANIC_REASON_DOUBLE_RELEASE_SLOT);
+    }
+    s->value = 0;
+    s->claimed = false;
 }
 
 /* =================================================================
@@ -780,19 +813,40 @@ PgySlot_Float pgy_claim_Float(void)
 
 void pgy_write_Float(PgySlot_Float *s, float v)
 {
-    if (s == NULL) return;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Float)\n"); return; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Float slot write");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE);
+    }
     s->value = v;
 }
 
 float pgy_read_Float(PgySlot_Float *s)
 {
-    if (s == NULL) return 0.0f;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Float)\n"); return 0.0f; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Float slot read");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ);
+    }
     return s->value;
 }
 
 void pgy_release_Float(PgySlot_Float *s)
 {
-    if (s != NULL) { s->value = 0.0f; s->claimed = false; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Float slot release");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE,
+                          PGY_RUNTIME_PANIC_REASON_DOUBLE_RELEASE_SLOT);
+    }
+    s->value = 0.0f;
+    s->claimed = false;
 }

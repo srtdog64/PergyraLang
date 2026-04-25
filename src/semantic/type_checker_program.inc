@@ -38,6 +38,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ASTNode *enclosing_nominal = ctx->current_nominal_decl;
     ASTNode *prev_function_decl = ctx->current_function_decl;
     uint32_t prev_effects = ctx->current_function_effects;
+    uint32_t prev_body_summary = ctx->current_function_body_summary;
     bool prev_tracking = ctx->tracking_function_effects;
     bool prev_async = ctx->in_async_func;
     const char *prev_module_path = ctx->current_module_path;
@@ -508,13 +509,23 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ctx->current_function_decl = node;
     ctx->current_return = return_type;
     ctx->current_function_effects = EFFECT_NONE;
+    ctx->current_function_body_summary = BODY_SUMMARY_NONE;
     ctx->tracking_function_effects = true;
     ctx->in_async_func = prev_async || node->is_async_decl;
+
+    if (declared_effects != EFFECT_NONE)
+        semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
+    if (is_action && node->data.func_decl.within_zone != NULL)
+        semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
 
     /* Register parameters */
     for (size_t i = 0; i < param_count; i++) {
         Type *pt = func_type->data.function.param_types[i];
         const char *param_name = node->data.func_decl.params[i]->name;
+        if (node->data.func_decl.params[i]->mode == PARAM_MODE_OWN)
+            semantic_record_body_summary(ctx, BODY_SUMMARY_MOVES_PARAM);
+        else if (node->data.func_decl.params[i]->mode == PARAM_MODE_REF)
+            semantic_record_body_summary(ctx, BODY_SUMMARY_BORROWS_PARAM);
         if (pt != NULL && pt->kind == TYPE_KIND_SLOT && pt->data.slot.is_secure)
             semantic_record_effect(ctx, EFFECT_SECURE);
         if (type_is_constructed_named(pt, "Token"))
@@ -553,8 +564,28 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         scope_declare(ctx->scope, p);
     }
 
-    if (node->data.func_decl.body != NULL)
-        type_check_block(node->data.func_decl.body, ctx);
+    if (node->data.func_decl.body != NULL) {
+        bool body_must_return = false;
+        semantic_check_body_flow(node->data.func_decl.body, ctx, &body_must_return);
+        if (!type_equals(return_type, TYPE_VOID)
+            && return_type != TYPE_UNKNOWN
+            && !body_must_return) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_MISSING_RETURN,
+                PGY_CAUSE_CFG_MISSING_RETURN,
+                PGY_FIX_ADD_RETURN_ON_ALL_PATHS,
+                node,
+                "Function '%s' with return type '%s' may fall through without returning a value.\n"
+                "Reason:\n"
+                "- the CFG body summary has at least one reachable normal path without a return terminator\n"
+                "- beta-stable body safety requires non-Void functions to return on every normal path\n"
+                "Fix:\n"
+                "- add a return on the missing branch/path\n"
+                "- or change the function return type to Void if falling through is intended",
+                name != NULL ? name : "<anonymous>",
+                return_type->name != NULL ? return_type->name : "<unknown>");
+        }
+    }
 
     semantic_check_param_summary_escapes(node, param_count, param_types, ctx);
 
@@ -642,9 +673,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    func_type->data.function.body_summary_mask =
+        ctx->current_function_body_summary;
+
     ctx->current_return = prev_return;
     ctx->current_function_decl = prev_function_decl;
     ctx->current_function_effects = prev_effects;
+    ctx->current_function_body_summary = prev_body_summary;
     ctx->tracking_function_effects = prev_tracking;
     ctx->in_async_func = prev_async;
     ctx->current_module_path = prev_module_path;

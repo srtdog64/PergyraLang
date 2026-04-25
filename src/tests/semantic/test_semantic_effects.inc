@@ -927,8 +927,43 @@ test_effect_inference(void)
         Symbol *sym = scope_lookup(ctx->scope, "Dispatch");
         uint32_t effects = sym != NULL && sym->type != NULL
             ? type_function_effects(sym->type) : EFFECT_NONE;
+        uint32_t body_summary = sym != NULL && sym->type != NULL
+            ? type_function_body_summary(sym->type) : BODY_SUMMARY_NONE;
         EXPECT(!ctx->has_error
-            && type_effect_mask_has(effects, EFFECT_REMOTE));
+            && type_effect_mask_has(effects, EFFECT_REMOTE)
+            && (body_summary & BODY_SUMMARY_EFFECTS) != 0
+            && (body_summary & BODY_SUMMARY_SPAWNS_TASK) != 0
+            && (body_summary & BODY_SUMMARY_SENDS_CHANNEL) != 0
+            && (body_summary & BODY_SUMMARY_MAY_RETURN) != 0);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("function body summary records param boundary modes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("Boundary");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 2;
+        func->data.func_decl.params = calloc(2, sizeof(FuncParam *));
+        func->data.func_decl.params[0] =
+            make_func_param("owned", ast_create_type("Int"));
+        func->data.func_decl.params[0]->mode = PARAM_MODE_OWN;
+        func->data.func_decl.params[1] =
+            make_func_param("borrowed", ast_create_type("Int"));
+        func->data.func_decl.params[1]->mode = PARAM_MODE_REF;
+
+        type_check_func_decl(func, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "Boundary");
+        uint32_t body_summary = sym != NULL && sym->type != NULL
+            ? type_function_body_summary(sym->type) : BODY_SUMMARY_NONE;
+        EXPECT(!ctx->has_error
+            && (body_summary & BODY_SUMMARY_MOVES_PARAM) != 0
+            && (body_summary & BODY_SUMMARY_BORROWS_PARAM) != 0);
 
         semantic_context_destroy(ctx);
         ast_destroy(func);

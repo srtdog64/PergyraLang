@@ -20,22 +20,6 @@ static Type *
 channel_builtin_recv_result(Type *element_type, const char *name,
                             ASTNode *site, SemanticContext *ctx)
 {
-    OwnershipTypeClass element_ownership =
-        semantic_classify_ownership_type(element_type, ctx);
-
-    if (element_ownership == OWNERSHIP_TYPE_MOVE_ONLY) {
-        char message[256];
-        char fix[256];
-        snprintf(message, sizeof(message),
-            "%s does not support slot handle (movable) channels yet", name);
-        snprintf(fix, sizeof(fix),
-            "use blocking '<-' receive and bind the result first");
-        semantic_report_channel_transport_policy(
-            site, ctx, message,
-            "slot handle (movable) receive remains restricted on this builtin channel surface",
-            fix);
-        return TYPE_UNKNOWN;
-    }
     if (type_is_constructed_named(element_type, "Token")) {
         char message[256];
         snprintf(message, sizeof(message),
@@ -44,6 +28,24 @@ channel_builtin_recv_result(Type *element_type, const char *name,
             site, ctx, message,
             "receive would materialize authority-bearing token state outside the closed flow",
             "receive a plain value instead");
+        return TYPE_UNKNOWN;
+    }
+    OwnershipTypeClass element_ownership =
+        semantic_classify_ownership_type(element_type, ctx);
+
+    if (element_ownership != OWNERSHIP_TYPE_COPY_ONLY) {
+        char message[256];
+        char reason[256];
+        snprintf(message, sizeof(message),
+            "%s does not support %s channels yet",
+            name, semantic_ownership_value_label(element_ownership));
+        snprintf(reason, sizeof(reason),
+            "%s receive remains restricted on this builtin channel surface",
+            semantic_ownership_provenance_label(element_ownership));
+        semantic_report_channel_transport_policy(
+            site, ctx, message,
+            reason,
+            "use blocking '<-' receive and bind the result first");
         return TYPE_UNKNOWN;
     }
     return wrap_constructed(TYPE_OPTION, element_type);
@@ -57,6 +59,7 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
     if (!check_call_arity(expr, has_timeout ? 3 : 2, name, ctx))
         return TYPE_UNKNOWN;
 
+    semantic_record_body_summary(ctx, BODY_SUMMARY_SENDS_CHANNEL);
     semantic_record_effect(ctx, EFFECT_REMOTE);
     Type *element_type = channel_builtin_element_type(expr, 0, name, ctx);
     Type *value_type = type_check_expression(expr->data.call.arguments[1], ctx);
@@ -177,4 +180,46 @@ type_check_channel_recv_builtin(ASTNode *expr, const char *name,
      * channel_builtin_recv_result so the rule lives in one place. */
     return channel_builtin_recv_result(
         element_type, name, expr->data.call.arguments[0], ctx);
+}
+
+Type *
+type_check_channel_close_builtin(ASTNode *expr, SemanticContext *ctx)
+{
+    Type *element_type;
+    OwnershipTypeClass element_ownership;
+
+    if (!check_call_arity(expr, 1, "ChannelClose", ctx))
+        return TYPE_UNKNOWN;
+
+    semantic_record_effect(ctx, EFFECT_REMOTE);
+    element_type = channel_builtin_element_type(expr, 0, "ChannelClose", ctx);
+    if (element_type == TYPE_UNKNOWN)
+        return TYPE_UNKNOWN;
+
+    if (type_is_constructed_named(element_type, "Token")) {
+        semantic_report_channel_transport_policy(
+            expr->data.call.arguments[0], ctx,
+            "ChannelClose cannot close Token channels yet",
+            "closing a channel may discard queued authority-bearing token state",
+            "keep token channels local and drain/handle token state explicitly");
+        return TYPE_UNKNOWN;
+    }
+
+    element_ownership = semantic_classify_ownership_type(element_type, ctx);
+    if (element_ownership != OWNERSHIP_TYPE_COPY_ONLY) {
+        char message[256];
+        char reason[256];
+        snprintf(message, sizeof(message),
+            "ChannelClose does not support %s channels yet",
+            semantic_ownership_value_label(element_ownership));
+        snprintf(reason, sizeof(reason),
+            "closing a channel may discard queued %s without a cleanup summary",
+            semantic_ownership_provenance_label(element_ownership));
+        semantic_report_channel_transport_policy(
+            expr->data.call.arguments[0], ctx, message, reason,
+            "drain the channel with blocking '<-' into named bindings first");
+        return TYPE_UNKNOWN;
+    }
+
+    return TYPE_VOID;
 }

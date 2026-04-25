@@ -4502,17 +4502,23 @@ test_qubit_slot_semantics(void)
 
     TEST("Slot return types are accepted when the boundary is explicit");
     {
-        SemanticContext *ctx = semantic_context_create();
+        const char *source =
+            "subject Vec2 { let x: Int; let y: Int; }\n"
+            "func MakeSlot(own s: Slot<Vec2>) -> Slot<Vec2> {\n"
+            "    return s;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
 
-        ASTNode *func = ast_create_function("MakeSlot");
-        func->data.func_decl.return_type = make_generic_type("Slot", "Int");
-        func->data.func_decl.body = ast_create_block();
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
-        type_check_func_decl(func, ctx);
-        EXPECT(!ctx->has_error);
-
-        semantic_context_destroy(ctx);
-        ast_destroy(func);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 }
 

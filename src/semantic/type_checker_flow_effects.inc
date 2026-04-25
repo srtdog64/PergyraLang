@@ -75,6 +75,25 @@ flow_record_branch_effect_conflict(SemanticContext *ctx, const ASTNode *node,
 }
 
 static void
+flow_record_unreachable_statement(SemanticContext *ctx, const ASTNode *node)
+{
+    if (ctx == NULL || node == NULL)
+        return;
+    semantic_warning_with_hints(ctx,
+        PGY_CODE_SEM_UNREACHABLE_CODE,
+        PGY_CAUSE_CFG_UNREACHABLE_STATEMENT,
+        PGY_FIX_REMOVE_OR_MOVE_BEFORE_TERMINATOR,
+        node,
+        "Statement is unreachable after a control-flow terminator.\n"
+        "Reason:\n"
+        "- the CFG body summary has no reachable normal edge to this statement\n"
+        "- an earlier return, break, or continue terminates the current path\n"
+        "Fix:\n"
+        "- remove this statement\n"
+        "- or move it before the terminating statement if it must execute");
+}
+
+static void
 flow_merge_effect_delta(SemanticContext *ctx, const ASTNode *node,
                         uint32_t *merged_delta,
                         uint32_t *previous_delta,

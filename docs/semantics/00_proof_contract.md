@@ -15,6 +15,7 @@ This document defines the shared notation for all keyword-level proof documents 
 - `ResourceState`: ownership, authority, relation/effect/projection metadata, dirty/ready flags, epoch, and cause.
 - `ZoneState`: world/zone lifecycle state, embedded zones, handoff state, and frontier scheduling state.
 - `History`: runtime observability history for `last`, `history`, `active`, and `recent`.
+- `PanicState`: hard-fail runtime state for OOM, divide-by-zero, out-of-bounds, slot invariant breaks, token mismatch, authority mismatch, and internal compiler/runtime invariant breaks.
 - `MIRState`: lowered declaration/body/inventory state used by both C and LLVM backends.
 - `BackendPair`: C and LLVM artifacts emitted from the same MIR-level semantics.
 
@@ -35,6 +36,7 @@ Resource and runtime transition judgments:
 ResourceState |- op => ResourceState'
 ZoneState; ResourceState; History |- step => ZoneState'; ResourceState'; History'; outcome
 ZoneState; ResourceState |- frontier => ZoneState'; ResourceState'
+ResourceState; PanicState |- runtime_op => outcome
 ```
 
 Lowering and backend judgments:
@@ -87,6 +89,7 @@ Required behavior:
 - Recoverable failure: queryable state, no process abort by default.
 - Contract violation: stable diagnostic provenance with code/reason/fix.
 - Internal invariant break: hard-fail path, not presented as normal user failure.
+- Runtime panic: hard-fail path with backend-equivalent class and no silent fallback to a different result.
 
 ### Backend Observational Equivalence
 
@@ -97,6 +100,7 @@ For accepted beta programs, C and LLVM must agree on:
 - runtime observability state.
 - recoverable failure state.
 - hard-fail class.
+- panic class for OOM/divide-by-zero/out-of-bounds/slot violation/token mismatch/authority mismatch.
 
 ## Evidence Boundary
 

@@ -50,6 +50,20 @@ typedef enum
 
 typedef enum
 {
+    BODY_SUMMARY_NONE           = 0,
+    BODY_SUMMARY_MAY_RETURN     = 1u << 0,
+    BODY_SUMMARY_MAY_ESCAPE_REF = 1u << 1,
+    BODY_SUMMARY_MOVES_PARAM    = 1u << 2,
+    BODY_SUMMARY_BORROWS_PARAM  = 1u << 3,
+    BODY_SUMMARY_DROPS_RESOURCE = 1u << 4,
+    BODY_SUMMARY_EFFECTS        = 1u << 5,
+    BODY_SUMMARY_REQUIRES_ZONE  = 1u << 6,
+    BODY_SUMMARY_SPAWNS_TASK    = 1u << 7,
+    BODY_SUMMARY_SENDS_CHANNEL  = 1u << 8
+} BodySummaryMask;
+
+typedef enum
+{
     SLOT_ACCESS_OWNED,
     SLOT_ACCESS_READ_VIEW,
     SLOT_ACCESS_WRITE_VIEW,
@@ -96,6 +110,7 @@ struct Type
             size_t param_count;
             Type* return_type;
             uint32_t effect_mask;
+            uint32_t body_summary_mask;
         } function;
         
         /* Slot type */
@@ -156,6 +171,7 @@ Type* type_create_slot_access(Type* inner_type, bool is_secure, SlotAccessMode a
 Type* type_create_read_view(Type* inner_type);
 Type* type_create_write_view(Type* inner_type);
 uint32_t type_function_effects(const Type* type);
+uint32_t type_function_body_summary(const Type* type);
 uint32_t type_effect_mask_closure(uint32_t mask);
 uint32_t type_effect_mask_join(uint32_t left, uint32_t right);
 uint32_t type_effect_mask_meet(uint32_t left, uint32_t right);

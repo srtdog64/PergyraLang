@@ -606,8 +606,13 @@
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
             char *idx = emit_expression(call->data.call.arguments[1], ctx);
             char *val = emit_expression(call->data.call.arguments[2], ctx);
+            const char *arr_type = infer_expression_type_name(ctx,
+                call->data.call.arguments[0]);
+            const char *inner = "Int";
+            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
+                inner = slot_inner_type_name(arr_type);
             char *result = strdup_fmt(
-                "((%s).data[%s] = %s)", arr, idx, val);
+                "pgy_array_set_%s(&%s, %s, %s)", inner, arr, idx, val);
             free(arr); free(idx); free(val);
             return result;
         }

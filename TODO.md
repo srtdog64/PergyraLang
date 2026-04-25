@@ -1,18 +1,19 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-24
+마지막 업데이트: 2026-04-25
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
 ### 종합 판단: Late-Stage Alpha
 
-- 베타 readiness 추정: 약 `70%`
+- 베타 readiness 추정: 약 `50%`
 - 현재 표현: `late-stage alpha / beta-closure sprint`
 - 보정 이유:
   - 기능 표면만 보면 core/foundation 구현은 넓지만, beta는 기능 개수가 아니라 end-to-end 신뢰도다
+  - HIR/MIR CFG skeleton은 이미 있지만, 함수/action/intent body 안전성의 semantic source-of-truth가 아직 CFG/dataflow로 승격되지 않았다. all-path return, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary를 AST/helper traversal만으로 닫으면 strict beta 신뢰도가 부족하다
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
-  - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 70%로 본다
+  - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 50%로 본다
 
 ## Beta taxonomy freeze: core / foundation / style
 
@@ -26,6 +27,7 @@
 - Accelerator split: AI-first/GPU 방향은 `pgy.accel.spray` 논리 모듈로 예약한다. 이는 `parallel` / ownership / module visibility 위에 올라가는 accelerator library/runtime 축이며 core keyword 확장이 아니다.
 - Render split: Skia/shader/render graph 방향은 `pgy.render.skia` 논리 모듈로 예약한다. renderer/shader는 core keyword가 아니라 Spray/Execution 위의 생태계 모듈이다.
 - Compatibility split: OOP/FP/DOP는 각각 `pgy.compat.oop`, `pgy.compat.fp`, `pgy.compat.dop`로 분리한다. 기존 언어 스타일을 수용하되 core identity로 설명하지 않는다.
+- Interop split: 외부 언어 연동(JVM 캐스팅/JNI 브릿지, Python C-API 등)은 `pgy.interop.*` 생태계 모듈로 분류하며, 베타 마일스톤에서는 완전히 제외(Out of Beta)한다.
 
 업데이트 정책:
 
@@ -61,6 +63,9 @@
   - [ ] B0 항목마다 theorem statement + current regression evidence + remaining proof obligation을 최신 코드 상태와 맞춘다.
   - [ ] runtime propagation, DAG, MIR declaration inventory, ABI ownership, C/LLVM parity의 남은 blocker를 proof obligation으로 추적한다.
   - [ ] beta 문구에서 Lean/Coq/기계증명 완료처럼 보이는 표현을 금지한다. 기계증명은 별도 executable model 또는 proof assistant artifact가 생기기 전까지 post-beta/v1 hardening으로 둔다.
+  - [~] **[NEW]** Runtime panic / unwinding model (abort vs unwind)의 정책 명시 및 C/LLVM backend parity 증명 추가. Panic class vocabulary와 released-slot / invalid-secure-token / double-release / device-slot / out-of-bounds / authority-mismatch / OOM / divide-by-zero / internal-invariant hard-fail contract는 `src/runtime/pgy_runtime_panic_contract.h`, `make runtime-panic-contract-test-smoke`, `make runtime-panic-abi-test-smoke`, `make runtime-panic-codegen-test-smoke`로 고정했다. Generated C/LLVM `Array<T>`/`Slice<T>` indexing, temporary function-return indexing, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access와 `Unwrap(Err)` / `UnwrapOption(None)` misuse도 checked runtime helper / panic contract로 고정했다. 남은 것은 새 panic class가 추가될 때마다 같은 executable parity gate를 요구하는 것이다.
+  - [~] **[NEW]** Secure slot 및 authority token의 위변조 불가능성(Unforgeability) 형식 불변성(Formal Invariants) 문서화. Secure slot invalid-token/denied-capability export path는 silent fallback에서 panic contract로 이동했다.
+  - [ ] **[NEW]** Intent 시스템의 Rollback/Cleanup 보장에 대한 Formal Closure (상태 기계 증명) 문서화.
 
 운영 규칙:
 
@@ -68,17 +73,86 @@
 - undocumented mathematical assumption이 필요한 surface는 stable이 아니라 `IN PROGRESS`, `explicit reject`, 또는 `OUT OF BETA`로 내려야 한다.
 - FP functor/HKT, full ownership, full quantum, GPU/Spray, Skia/render graph는 현재 beta proof scope 밖이다.
 
+## Missing beta gate audit
+
+현재 strict beta 기준에서는 다음 항목을 별도 gate로 본다. 이 항목들은 기능 확장이 아니라 이미 있는 core/runtime/tooling 표면의 신뢰도 계약이다.
+
+- [~] Runtime panic / unwinding model: OOM, divide-by-zero, out-of-bounds, slot violation, token mismatch, authority mismatch, invariant break의 abort/unwind/recoverable 정책을 `Runtime Panic Parity` proof obligation으로 올렸다. `src/runtime/pgy_runtime_panic_contract.h`가 panic class vocabulary를 소유하고, inline/exported typed slot read/write/release는 released-slot 및 double-release에서 더 이상 기본값/no-op로 빠지지 않는다. `make runtime-panic-abi-test-smoke`가 released-slot, invalid-secure-token, double-release, device-slot, out-of-bounds, authority-mismatch, OOM, divide-by-zero executable evidence를 제공한다. `make runtime-panic-codegen-test-smoke`는 generated C/LLVM divide/modulo-by-zero와 `Array<T>`/`Slice<T>` index, temporary function-return index, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access, `Unwrap(Err)`, `UnwrapOption(None)` parity를 검증한다. 남은 것은 새 hard-fail class가 추가될 때마다 같은 executable parity gate를 요구하는 것이다.
+- [~] Secure slot / authority secret invariant: token unforgeability, secure-slot mismatch denial, authority token non-forgeability, authority transfer single-owner invariant, runtime snapshot secret non-exposure를 `Secure Token Unforgeability` / `Authority Transfer Single-Owner` proof obligation으로 올렸다. inline/exported secure slot read/write/release invalid-token 및 denied-capability path는 `PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN`로 고정했고 secure-slot double-release도 `PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE`로 고정했다. `make runtime-panic-abi-test-smoke`가 invalid-token/double-release executable evidence를 제공한다. 남은 것은 authority-mismatch parity regression이다.
+- [ ] Intent formal closure: step ordering, compensation/rollback/invalidation, effect propagation, observability ABI stability를 beta-stable contract로 고정한다.
+- [ ] Zone/world/authority/handoff formal closure: zone generation, world embedding, handoff frontier, projection freshness, authority rejection query surface를 beta-stable contract로 고정한다.
+- [ ] Diagnostic quality gate: 모든 user-facing error가 severity, stable code, source span when available, `Reason:`, `Fix:`를 갖도록 품질 기준을 registry smoke와 별도 gate로 둔다.
+- [ ] Cross-platform CI matrix: Linux/WSL, Windows native/MSYS2/MinGW, macOS의 support level을 stable/experimental/out-of-beta로 명시한다.
+- [ ] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 범위를 한 곳에서 freeze한다.
+- [ ] Stdlib beta freeze list: stable/experimental/out-of-beta API와 breaking-change policy를 명시한다.
+- [ ] Tooling conformance: LSP/fmt/debugger의 beta-stable 범위를 명시한다.
+- [ ] Package/module resolver surface: manifest, version resolution, import path, supply-chain integrity를 stable/experimental/out-of-beta로 분류한다.
+- [ ] Test quality gate: pre-beta mandatory suite, fuzz/property status, coverage/perf baseline을 추적한다.
+- [ ] Observability/tracing schema: event schema, intent history, authority failure state, runtime registry, trace format version을 고정한다.
+- [ ] Memory/concurrency model: `parallel`, task, channel, cancellation, visibility/happens-before 최소 계약을 문서화한다.
+- [ ] String/unicode policy: normalization, comparison, locale, escape handling, unsupported policy를 명시한다.
+
+Checklist source of truth:
+
+- `docs/100_beta_readiness_checklist.md`
+- Drift gate: `make beta-readiness-checklist-test-smoke`
+
 ## 구조/운영 폐인 포인트 보드 (2026-04-20)
 
 이 섹션은 기능 backlog가 아니라, 실제 작업 효율과 베타 신뢰도를 계속 깎는 구조 debt / 운영 pain point를 고정한다.
 
 우선순위 제안:
+- `P0`: function/action/intent body CFG + dataflow를 semantic source-of-truth로 승격
 - `P1`: `.inc` 분할을 실제 `.c`/`.h` 모듈로 전환
 - `P2`: hint namespace (`code` / `cause_ir` / `fix_source`)를 레지스트리 기반으로 고정
 - `P3`: type-category vocabulary를 2-3층으로 압축
 - `P4`: 빌드/샌드박스/중간-stage JSON/artifact 문제를 공식 경로 기준으로 정리
 - `P9`: arena 패턴을 scratch/result lifetime 기준으로 명시 도입
 - `P10`: 모듈화/전파 고도화의 compile/runtime 속도 회귀를 별도 baseline으로 추적
+
+### P0. Function CFG / Body Dataflow Closure
+
+판정: `BLOCKER`
+
+핵심 정리:
+
+- CFG가 없는 상태는 아니다. HIR는 function CFG v0, predecessor/reachability, dominator/frontier, loop depth, phi candidate skeleton을 가진다.
+- MIR도 HIR CFG와 RIR op를 묶어 routine/block/instruction/cleanup block, SSA version map, def/use, cleanup/rollback/invalidation exceptional CFG, liveness/DCE vertical slice까지 가지고 있다.
+- 남은 blocker는 이 CFG/MIR infra를 **함수 본문 의미론의 source-of-truth**로 승격하는 것이다. 현재 body safety의 일부는 여전히 AST/helper traversal, local summary, backend fallback에 기대고 있어 strict beta 기준으로 부족하다.
+
+베타 완료 조건:
+
+- [ ] Function/action/intent body마다 `BasicBlock`, `Edge`, `Terminator`, reachability, exceptional cleanup edge가 semantic pass에서 직접 소비된다.
+- [x] 반환형이 있는 routine은 모든 reachable normal path에서 return/value terminator를 가진다는 all-path return 검사를 CFG body summary로 고정한다.
+- [~] definite assignment/use-before-init 검사를 CFG dataflow로 이동하고 branch/join/loop widening 진단을 고정한다. stable local `let` 표면은 parser `=` 요구와 `PGY_SEM_UNINIT_LOCAL` backstop으로 봉인됐고, wider delayed-assignment lattice는 아직 열려 있다.
+- [~] move/use-after-move, borrow/ref lifetime, boundary escape를 CFG join facts로 계산한다. `QubitSlot` loop break/continue join regression, anchored `Slot<T>` branch/join release-state regression, `own subject` branch/join consumed-state regression, parallel subject transfer join/conflict regression, parallel `ref`+`own` boundary conflict regression, parallel `ref`+`ref` shared-read acceptance regression, direct named-call `spawn ref` ownership-boundary rejection regression, anonymous async spawn explicit reject regression은 닫혔고, closure/lambda/general longer-lived borrow lifetime은 남아 있다. `mut ref`/`ref mut` surface가 없으므로 mutable-borrow overlap은 beta-out-of-scope로 봉인한다.
+- [~] owned resource drop/cleanup insertion point를 normal return, early return, break/continue, intent cancel/rollback/invalidation edge에서 같은 규칙으로 계산한다. `defer` cleanup terminator와 resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking은 닫혔고, full drop insertion/validation은 남아 있다.
+- [ ] zone/effect/relation transition facts를 path-sensitive summary로 올려 branch/join/handoff에서 stale state와 conflict를 같은 vocabulary로 진단한다.
+- [~] `parallel`/channel/task boundary에서 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact를 CFG summary로 검증한다. parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, copy-only cancellation payload reject, copy-only channel close는 닫혔고, broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact는 남아 있다.
+- [~] Interprocedural body summary를 고정한다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1차 구조로 function type의 `body_summary_mask`와 semantic recorder는 들어갔다. 남은 것은 zone/effect/runtime propagation과 C/LLVM lowering이 이 summary bit를 직접 소비하게 만드는 일이다.
+- [ ] 진단은 block/path provenance를 포함한다: source path, branch/join edge, previous state, Reason, Fix.
+- [ ] MIR/C/LLVM lowering은 같은 CFG/dataflow facts를 소비하고, frozen subset parity regression으로 묶는다.
+
+실행 순서:
+
+1. 현재 HIR/MIR CFG fact inventory와 semantic 소비 지점을 표로 만든다.
+2. `--hir-cfg`, `--mir`, RIR flow-block dump를 묶는 smoke를 추가해 CFG fact drift를 막는다.
+3. all-path return + reachability + definite assignment를 CFG 기반으로 먼저 승격한다.
+4. ownership move/borrow/drop cleanup을 CFG dataflow로 이동한다.
+5. zone/effect/relation transition, handoff frontier, projection freshness를 body CFG summary와 runtime propagation scheduler에 연결한다.
+6. parallel/channel/task boundary summary를 추가하고 C/LLVM backend compare에 frozen cases를 넣는다.
+
+검증 목표:
+
+- `make test-semantic`
+- `make ir-pipeline-test-smoke`
+- `make type-resolution-dag-test-smoke`
+- `make cfg-body-dataflow-test-smoke`
+- `make llvm-test-backend-compare`
+
+Source of truth:
+
+- `docs/103_cfg_body_dataflow_need.md`
 
 ### P1. `.inc` 스파게티를 실제 모듈로 절단
 
@@ -153,6 +227,7 @@
   - 완료: semantic `.inc` 800 LOC stop condition은 `make semantic-inc-size-test-smoke`로 고정. 현재 `src/semantic`에는 800 LOC 초과 `.inc`가 없다
   - 완료: semantic core shape stop condition은 `make semantic-core-shape-test-smoke`로 고정. `type_checker.c <= 600 LOC`, event/qubit owner TU, DAG inventory `.c` ownership을 CI에서 검사한다
   - 진행: C backend MIR inventory/SSA emitter include를 5-line shim + `transpiler_emitters_mir_inventory_intent.inc` / `transpiler_emitters_mir_inventory_ssa_names.inc` / `transpiler_emitters_mir_inventory_ssa_emit.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다
+  - 진행: C backend `emit_program(...)` bootstrap은 direct declaration-array reads 대신 `transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view를 소비한다. `make mir-declaration-inventory-test-smoke`가 C/LLVM declaration-side codegen의 raw declaration inventory access를 helper owner로 제한한다
   - 진행: C backend expression emitter include를 7-line shim + `transpiler_expr_emitters_builtins.inc` / `transpiler_expr_emitters_call_a.inc` / `transpiler_expr_emitters_call_b.inc` / `transpiler_expr_emitters_members.inc` / `transpiler_expr_emitters_tail.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다. 검증: `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
   - 진행: LLVM call emitter include를 17-line shim + `llvm_expr_call_constructors.inc` / `llvm_expr_call_arrays.inc` / `llvm_expr_call_collections_base.inc` / `llvm_expr_call_domain_queries.inc` / `llvm_expr_call_events.inc` / `llvm_expr_call_intent_observability.inc` / `llvm_expr_call_log.inc` / `llvm_expr_call_math.inc` / `llvm_expr_call_result_option.inc` / `llvm_expr_call_slots.inc` / `llvm_expr_call_task_channel.inc` / `llvm_expr_calls_part_a.inc` / `llvm_expr_calls_part_b.inc` / `llvm_expr_calls_part_c.inc` / `llvm_expr_calls_part_d.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다. enum/class constructor, array builtin, `ListNew`/`Set*` base collection, domain query builtin, event invocation, intent observability, log, scalar math, Result/Option, slot/device-slot builtin, task/channel lowering은 `llvm_emit_call`에서 분리되어 별도 owner include가 됐다. 검증: `make test-transpile -j2`, `make backend-inc-size-test-smoke`, `make llvm-test-backend-compare -j2`
   - 진행: C backend base emitter B include를 6-line shim + `transpiler_emitters_base_b_part_a.inc` / `transpiler_emitters_base_b_part_b.inc` / `transpiler_emitters_base_b_part_c.inc` / `transpiler_emitters_base_b_part_d.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다. 검증: `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
@@ -167,6 +242,7 @@
   - 완료: `type_checker_module_contracts.inc` 제거. module contract include-order 구조 debt는 닫힘
   - [ ] `.inc` 내부 static helper 중 교차 참조 심한 심볼 목록 작성
   - [x] include-order에 의존하는 implicit declaration 경로 제거를 빌드 계약으로 승격 (`-Werror=implicit-function-declaration`, `-Werror=implicit-int`)
+  - [~] declaration-side MIR-only debt는 helper-gated state까지 닫혔다. 남은 단계는 `MIRProgram` 안 AST-shaped declaration inventory를 dedicated declaration metadata model로 분리하는 일이다
 
   - 진행: ownership return / assignment rebind / array literal store / boundary validation / call argument / destructuring / let-binding / parameter escape-summary consumers는 `.inc`에서 실제 TU로 승격했다. 삭제된 파일: `type_checker_ownership_return.inc`, `type_checker_ownership_assign.inc`, `type_checker_ownership_array_store.inc`, `type_checker_ownership_boundaries.inc`, `type_checker_ownership_call.inc`, `type_checker_ownership_destructure.inc`, `type_checker_ownership_destructure_stmt.inc`, `type_checker_ownership_let.inc`, `type_checker_ownership_let_boundary.inc`, `type_checker_ownership_let_claim.inc`, `type_checker_ownership_let_infer.inc`, `type_checker_ownership_let_slot.inc`, `type_checker_ownership_let_value.inc`, `type_checker_ownership_param_summary.inc`. 현재 `src/semantic/type_checker_ownership_*.inc`는 0개다
   - 원칙 강화: 베타 기준에서는 behavior-owning `.inc`를 beta+1 정리가 아니라 blocker로 본다. generated table / local macro table / private test fixture 외 `.inc`는 owner `.c` 또는 명시적 generated artifact로 옮긴다
@@ -235,6 +311,7 @@
 - 문제:
   - bash / PowerShell / cmd / MSYS2 / stale object / path rewrite / sed 기반 stamp가 서로 다른 방식으로 깨진다
   - “Nothing to be done” + stale artifact 같은 회귀가 생산성을 크게 깎는다
+  - smoke test가 repo root에 runtime artifact를 남기면 dirty worktree와 실제 소스 변경을 구분하기 어려워진다
 - 기본 방침:
   - 단일 공식 빌드 경로를 정하고 나머지는 document-only 또는 best-effort로 내린다
   - stale artifact 회피를 위해 강제 재빌드 경로를 공식화
@@ -242,6 +319,8 @@
   - [x] 공식 Windows 빌드 경로 1개로 문서화
     - 기준: GitHub Actions `windows-latest` + `msys2/setup-msys2` native MinGW/MSYS2 runtime
     - plain Linux-hosted `gcc`는 `ci-windows` acceptance line이 아님
+  - [x] `llvm_smoke.sh`의 `string_io` smoke가 repo root에 `io.txt`를 남기지 않도록 각 case를 source directory에서 실행하게 정렬
+  - [x] LLVM runtime object freshness가 split runtime `.inc` subpart 변경을 보도록 `compiler_runtime_cache_is_fresh(...)` dependency list를 확장. `pgy_runtime_lib_part_b_part_d.inc` 같은 하위 include 수정 후 stale runtime object가 링크되는 문제를 차단
   - [ ] `clean && build` 강제 wrapper / recommended entrypoint 정의
   - [ ] stale `.o` / `.d` 진단 가이드와 강제 재빌드 옵션 정리
 
@@ -821,7 +900,7 @@
 - [x] **P0-1: Array for-in `.count` → `.length`** — `transpiler.c`에서 Array는 `.length`, List는 `.count` 사용
 - [x] **P0-2: `StringSplit`/`StringJoin` 런타임 구현** — `pgy_runtime.h`에 실제 구현 추가, 시맨틱/C 백엔드 일치
 - [x] **P0-3: `None` 심볼 정의** — `type_checker.c`에서 AST_IDENTIFIER 처리, `type_system.c`에서 `Option<unknown>` → `Option<T>` 할당 허용, 코드젠에서 `expected_type` 기반 타입 해결
-- [x] **P0-6: defer 변수 스코프 버그 수정** — `type_checker_flow.c`에서 defer body 처리 전/후 slot 상태 저장/복원
+- [x] **P0-6: defer 변수 스코프 버그 수정** — `type_checker_flow.c`에서 defer body 처리 전/후 resource-state snapshot/restore. cleanup body의 `return`/`break`/`continue`와 QubitSlot release/move는 검사하지만 주변 CFG path와 outer loop flow를 소비하지 않는다. direct `type_check_statement()` fallback도 같은 helper를 사용한다.
 - [x] **P1-7: struct/subject Slot 매크로 warning 억제** — `transpiler.c`에서 `#pragma GCC diagnostic push/pop`으로 `-Wunused-function` 억제
 - [x] **P1-emit_call 갭 메우기** — `BUILTIN_BOX_ARRAY`, `BUILTIN_PARALLEL` 케이스 추가
 - [x] **P0-4: enum match OR 패턴 수정** — `type_checker_flow.c`에서 named variant OR 패턴 허용 + coverage 체크 수정
@@ -1143,6 +1222,9 @@
       - LLVM `llvm_current_host_decl(...)`는 더 이상 `current_class_name` 재조회 fallback에 의존하지 않고 bound host handle / `within_zone`만을 truth로 사용함
       - `llvm_pipeline.c`의 nominal declaration registration과 class-method enumeration도 raw `decl_header->methods` 직접 접근보다 active nominal inventory / `llvm_find_host_decl_methods_in_context(...)` 경유로 이동함
       - `llvm_register.c`의 active nominal registration도 `mir->decl_headers` 직접 순회 대신 active nominal inventory 기준으로 정렬됨
+      - `make mir-declaration-inventory-test-smoke`를 추가해 C/LLVM declaration/domain/nominal active inventory helper seam과 pipeline/domain 소비 경로를 static gate로 고정했다. 새 raw MIR declaration array access는 owner 파일 밖에서 조용히 늘어날 수 없다
+      - C backend `emit_program(...)`의 executable metadata도 `mir->has_*` / `mir_find_function_decl(...)` 직접 접근 대신 `transpiler_active_*` helper를 통과하도록 정렬했다
+      - C backend `emit_program(...)`의 ability/type/extern/function/intent/domain/event declaration bootstrap 순회도 direct `mir->...` array/count 접근 대신 `transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view를 사용하도록 정렬했다
       - 남은 핵심 debt는 LLVM pipeline의 AST-carried declaration inventory bootstrap와 helper/restore layer 바깥의 raw host-name state 제거
 
 - [x] **ownership vocabulary / payload cleanup 1차 고정**
@@ -1209,15 +1291,19 @@
     - 진행: `resolve_type_node(...)` wrapper 자체가 metadata-first가 되어, 남은 explicit legacy allowlist도 recursive materialization 전에 DAG facts를 먼저 소비한다
     - 진행: `resolve_generic_type_arg(...)`도 metadata-first 조회 후 fallback으로 내려간다. constructed builtin/generic consumer path의 recursive resolver 의존 면적을 줄였다
     - 진행: owner-local resolver seams는 `semantic_type_resolution_resolve_or_fallback(...)` 공용 helper로 수렴했다. resolver 구현체와 공용 fallback helper 밖에서 직접 `resolve_type_node(...)`를 호출하면 `type-resolution-resolver-inventory-test-smoke`가 실패한다
-    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 metadata entries/owned/hits, zero non-alias stage legacy fallback, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3090 metadata_entries=1605 metadata_owned=46 metadata_hits=2475 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
+    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 metadata entries/owned/hits, zero non-alias stage legacy fallback, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3124 metadata_entries=1641 metadata_owned=50 metadata_hits=2513 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
+    - 진행: DAG smoke는 이제 graph-backed skip/metadata entry/metadata hit/owned metadata가 단순히 0보다 큰지만 보지 않고 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)를 검사한다. DAG source-of-truth 사용량이 크게 후퇴하면 CI에서 즉시 잡는다
     - 진행: 남은 stage legacy surface는 alias-only로 고정됐다. 성공 alias materialization과 diagnostic fallback을 별도 계측하고 valid alias fallback은 0으로 gate한다. 남은 78건은 alias-cycle diagnostic coverage에서 나오는 unresolved fallback이며 hidden non-alias recursive resolution이 아니다
     - 진행: program-level symbol inventory가 ability declarations도 predeclare한다. `type_check_ability_decl(...)`은 자기 자신의 predeclare만 재사용하고 같은 이름의 다른 ability는 기존처럼 duplicate diagnostic으로 처리한다. forward source order에서 generic default/where, zone authority, party role-slot ability consumer가 provider 후행이어도 통과하는 regression을 추가했다
     - 진행: `tests/cases/backend_compare/forward_ability_order/main.pgy`를 backend compare suite에 추가했다. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering이 semantic-only가 아니라 C/LLVM 출력 동등성까지 유지되는지 검사한다
     - 진행: `tests/compare_backends.sh` 기본 실행은 `tests/cases/backend_compare/*/main.pgy`가 default case array에 빠져 있으면 실패한다. 명시 인자 기반 targeted run은 유지하되, CI/default path에서 새 parity case가 조용히 누락되는 drift를 차단했다. 이 gate로 기존 passing case 8개(array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)를 default C/LLVM parity suite에 편입했다
     - 진행: `type-resolution-resolver-inventory-test-smoke`가 direct resolver allowlist와 함께 metadata-first wrapper, execution/anchored-handle metadata materializer coverage를 static gate로 고정한다
-    - 진행: `type-resolution-resolver-inventory-test-smoke`가 새 `semantic_type_resolution_resolve_or_fallback(...)` 사용자를 explicit owner-seam allowlist 밖에서 금지하고 metadata-first fallback seam 총량을 38개 이하로 고정한다. remaining fallback consumers는 이제 unclassified discovery 대상이 아니라 shrink 대상이다
-    - 진행: fallback seam gate의 기존 하한선(`30개 미만이면 실패`)을 debt-reduction에 맞지 않는 규칙으로 보고 제거했다. 이제 38개 상한만 growth guard로 유지하며, seam 축소는 CI 성공 경로다
+    - 진행: `type-resolution-resolver-inventory-test-smoke`가 새 `semantic_type_resolution_resolve_or_fallback(...)` 사용자를 explicit owner-seam allowlist 밖에서 금지하고 metadata-first fallback seam 총량을 31개 이하로 고정한다. gate 출력은 현재 fallback seam count를 직접 보여주며, remaining fallback consumers는 이제 unclassified discovery 대상이 아니라 shrink 대상이다
+    - 진행: fallback seam gate의 기존 하한선(`30개 미만이면 실패`)을 debt-reduction에 맞지 않는 규칙으로 보고 제거했다. 이제 31개 상한만 growth guard로 유지하며, seam 축소는 CI 성공 경로다
     - 진행: `type_checker_module_contract.c`의 ability contract bookkeeping은 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only seam으로 낮췄다. ability 존재/visibility/generic arity/where provenance는 ability-specific validator가 계속 소유하며, fallback seam inventory는 39에서 38로 감소했다
+    - 진행: `type_checker_ability_fields.c`의 ability `fields` requirement validation도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. field contract diagnostics는 ability-specific validator가 계속 소유하며, fallback seam cap은 32에서 31로 감소했다
+    - 진행: domain/intent declaration resolver는 owner-local type-ref seam으로 수렴했다. slot/shared/named domain refs와 intent involves/value/where refs가 각각 하나의 owner seam을 공유하면서 fallback seam inventory는 38에서 34로 감소했다
+    - 진행: alias/generic-parameter helper와 resolution-stage diagnostic fallback도 owner-local seam으로 수렴했다. fallback seam inventory는 34에서 32로 감소했다
     - 진행: zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. 같은 타입 subject slot이 여럿 있어도 `authorized by rogue`가 실제 `subject slot rogue: Adventurer`로 concrete하게 닫히면 false-positive ambiguous로 떨어지지 않는다
     - 진행: `type_checker_intent_decl.c`의 participant/value/where local seam 3개는 graph metadata-first 조회 후 recursive fallback으로 내려간다
     - 진행: `type_checker_decls_domain_helpers.c`의 slot/shared/named-ref local seam 3개는 graph metadata-first 조회 후 recursive fallback으로 내려간다
@@ -1990,3 +2076,26 @@
 - 구현: lexer error token은 `PGY_LEX_INVALID_TOKEN`, `lex:invalid_token`, `remove-or-escape-character`를 같은 표면으로 출력한다.
 - 검증: `make parser-lexer-diagnostic-test-smoke`, `make diagnostic-registry-test-smoke`, `make test-parser`.
 - 남음: parse/lex diagnostics를 driver JSON diagnostic object로 직접 흘리는 refactor는 별도 Tier 2 작업으로 유지한다.
+
+## UTF-8 Progress Note - 2026-04-25
+
+- `TryRecv` / `RecvTimeout` are now copy-only for the beta surface.
+- Ownership-bearing payloads (`QubitSlot`, `Slot<T>`, `SecureSlot<T>`,
+  `subject`, boundary-value aggregates, and `Token<T>`) are explicitly rejected.
+- Use blocking `<-` receive into a named binding or a plain projection/value
+  channel when ownership provenance must cross a channel boundary.
+
+## UTF-8 Progress Note - 2026-04-25 - Cancellation Payload Boundary
+
+- `Cancel(Future<T>)` / `Cancel(RemoteFuture<T>)` are copy-only for beta.
+- Ownership-bearing payload futures (`QubitSlot`, `Slot<T>`, `SecureSlot<T>`,
+  `subject`, boundary-value aggregates, and `Token<T>`) are explicitly rejected
+  until task-boundary cleanup summaries can prove observation/release.
+
+## UTF-8 Progress Note - 2026-04-25 - Channel Close Boundary
+
+- `ChannelClose(Channel<T>)` is copy-only for beta.
+- Ownership-bearing queued payload channels (`QubitSlot`, `Slot<T>`,
+  `SecureSlot<T>`, `subject`, boundary-value aggregates, and `Token<T>`) are
+  explicitly rejected until channel cleanup/backpressure summaries can prove
+  drain/release behavior.

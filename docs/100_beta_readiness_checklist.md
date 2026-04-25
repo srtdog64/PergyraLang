@@ -2,7 +2,7 @@
 
 마지막 업데이트: 2026-04-25
 
-이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity**다. 현재 공식 beta readiness는 약 70%로 본다.
+이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety**다. 현재 공식 beta readiness는 약 50%로 본다.
 
 상태 표기:
 
@@ -22,7 +22,7 @@ Goal:
 - The beta stable subset must have an explicit mathematical contract before it is called beta-complete.
 - The proof source of truth is the split proof pack in `docs/semantics/`, with `docs/102_formal_semantics_and_proof_obligations.md` kept as the stable index.
 - Proof evidence is not the same as proof: regression, smoke, and backend-compare runs are supporting evidence, while the stable theorem/invariant statements live in the formal semantics doc.
-- The proof scope is intentionally narrow: core declarations, stable generics, anchored own/ref, stable collections, observability baseline, `parallel` baseline, runtime propagation, DAG, ABI ownership, and C/LLVM parity.
+- The proof scope is intentionally narrow: core declarations, stable generics, anchored own/ref, stable collections, observability baseline, `parallel` baseline, CFG-backed body safety, runtime propagation, DAG, ABI ownership, and C/LLVM parity.
 
 Closed now:
 
@@ -30,17 +30,351 @@ Closed now:
 - `docs/102_formal_semantics_and_proof_obligations.md` now points to the split proof pack and remains as the stable English index.
 - The doc explicitly separates language proof obligations from the math library design in `docs/45_math_layer_design.md`.
 - Out-of-beta proof claims are sealed for full quantum, full FP/HKT/functor algebra, arbitrary ownership, arbitrary map keys, GPU/Spray, Skia/render, package manager, and advanced debugger semantics.
+- `Runtime Panic Parity` now has a formal theorem slot in `docs/semantics/06_backend_parity.md`.
+- Secure token unforgeability and authority transfer single-owner now have formal theorem slots in `docs/semantics/04_ownership_abi.md`.
 
 Remaining:
 
 - Tie each B0 closure item to a theorem/invariant row before calling that item beta-complete.
-- Keep DAG, runtime propagation, MIR declaration inventory, ABI ownership, and backend parity blockers open until their theorem statements and regression evidence match.
+- Keep DAG, runtime propagation, MIR declaration inventory, ABI ownership, panic parity, secure token invariants, and backend parity blockers open until their theorem statements and regression evidence match.
 - Do not advertise mechanized proof for beta unless a separate Lean/Coq or executable small-step model is actually added.
+- Keep C/LLVM panic-class regressions green for divide-by-zero, out-of-bounds, released slot, double release, invalid secure-slot token, OOM, authority token mismatch, and internal-invariant unwrap misuse.
+- Add invalid-token / authority-mismatch semantic or ABI regressions that prove secure token invariants are not just documented.
+- **[NEW]** Add state-machine proofs for the Intent system's rollback and cleanup closure.
 
 Evidence command:
 
 ```sh
 make formal-semantics-test-smoke
+```
+
+## 0b. Function CFG / Body Dataflow Closure
+
+Status: `IN PROGRESS / BLOCKER`
+
+Source of truth: `docs/103_cfg_body_dataflow_need.md`
+
+Goal:
+
+- Strict beta must not depend on AST-shaped local traversal for routine body safety.
+- HIR/MIR CFG already exists, so the blocker is not "add a CFG from zero". The blocker is promoting CFG/dataflow facts to the semantic source of truth for function/action/intent bodies.
+- Body safety must cover normal control flow, exceptional cleanup flow, ownership/resource flow, zone/effect transitions, and parallel/channel boundaries before the language is advertised as ecosystem-safe beta.
+
+Closed now:
+
+- HIR has function CFG v0 with predecessor/reachability, dominator/frontier, loop-depth, local-def, and phi-candidate skeleton facts.
+- MIR has routine/block/instruction/cleanup blocks, SSA version maps, def/use summaries, rollback/invalidation exceptional CFG, liveness/DCE slices, and backend vertical slices.
+- RIR already carries flow-block summaries for resource/projection/world-handoff/invalidation/authority-loss style facts.
+- Non-`Void` functions now consume the CFG body flow summary for all-path return. If any reachable normal path can fall through without a return terminator, semantic analysis emits `PGY_SEM_MISSING_RETURN` with `Reason:` and `Fix:`.
+- Statements after direct terminators and after `if`/`match` bodies whose
+  reachable paths all terminate now emit
+  `PGY_SEM_UNREACHABLE_CODE` with `Reason:` and `Fix:` instead of being
+  silently skipped by the body-flow walk.
+- `QubitSlot` loop move/join now has source-level regression for break-exit
+  consumption and continue-backedge consumed-resource detection.
+- `defer` cleanup-body terminators are isolated from the surrounding CFG path:
+  they do not make following statements unreachable and do not satisfy
+  non-`Void` all-path return.
+- `defer` cleanup-body resource facts are isolated by snapshot/restore:
+  cleanup moves, releases, and cleanup-only loop terminators are checked without
+  consuming the surrounding path's live resource state or outer loop flow.
+- The direct `type_check_statement()` fallback path delegates `defer` body
+  checking to the same cleanup snapshot helper as CFG body flow, closing the
+  previous split-brain semantic path.
+- Resource snapshots now cover anchored slot state (`Slot<T>`, `SecureSlot<T>`,
+  `DeviceSlot<T>`) as well as `QubitSlot` consumption facts. This closes the
+  branch/join case where a release on a terminating branch used to leak into the
+  reachable fallthrough path.
+- CFG ownership snapshots now also track classifier-backed ownership boundary
+  values (`subject` identity, borrow-tracked aggregates, movable resources, and
+  anchored handles). `own subject` movement in terminating branches no longer
+  poisons reachable fallthrough paths, fallthrough moves are joined as consumed,
+  and parallel subject transfers participate in the same duplicate-consume
+  conflict gate as slot resources.
+- Parallel ownership snapshots now carry task-local `is_used` as well as
+  consumed/released state. This closes the stable `ref` + `own` task-boundary
+  conflict for ownership-bearing values: a task that borrows a subject cannot
+  run in parallel with another task that consumes the same subject.
+- Shared `ref` reads of the same ownership-bearing value across parallel tasks
+  remain accepted. The beta contract is therefore explicit: shared `ref`/`ref`
+  read boundaries are allowed, while `ref`/`own` and `own`/`own` task-boundary
+  conflicts are rejected for the stable ownership subset.
+- `spawn` direct named-call boundaries now reject borrowed `ref` parameters for
+  ownership-bearing values (`subject`, borrow-tracked aggregate, movable
+  resource, anchored handle). Copy-only `ref` arguments remain accepted, and
+  the diagnostic uses `PGY_SEM_BORROW_ESCAPE` with `Reason:` / `Fix:` wording.
+- Function types now carry first-stage interprocedural body summaries through
+  `body_summary_mask`. The current seam records `may_return`, `may_escape_ref`,
+  `moves_param`, `borrows_param`, `drops_resource`, `effects`,
+  `requires_zone`, `spawns_task`, and `sends_channel`, giving later CFG/runtime
+  propagation and backend parity work one stable fact surface instead of
+  repeatedly rediscovering those facts from AST-shaped helpers.
+- Parser-accepted anonymous async spawn bodies (`spawn async () { ... }`) are
+  explicit beta rejects until closure capture/lifetime analysis is closed. The
+  stable beta surface is named `spawn Worker(args...)`, where parameters,
+  effects, and ownership boundaries are checked through declarations.
+- `parallel` task bodies now consume CFG/resource snapshots directly: task-local
+  terminators stay local to the task, task resource moves/releases are joined
+  after the parallel block, and duplicate cross-task consumption is rejected with
+  `PGY_SEM_PARALLEL_SLOT_CONFLICT`. Blocking channel send of a movable resource
+  in a parallel task is fixed to the same consume/join contract.
+- Non-blocking/timeout channel receive for ownership-bearing payloads is
+  explicitly rejected (`TryRecv(Channel<QubitSlot>)`,
+  `TryRecv(Channel<Slot<Int>>)`, `RecvTimeout(Channel<Array<Int>>, t)`).
+  The stable non-blocking receive surface is copy-only; movable, subject,
+  boundary-value, anchored-handle, and token payloads must use blocking `<-`
+  into a named binding or a plain projection/value channel.
+- Timeout/status channel send surfaces now share the same explicit transport
+  policy as `TrySend`: movable resources remain blocked on builtin send
+  helpers, authority-bearing `Token<T>` is rejected, and blocking `ch <- value`
+  stays the explicit ownership-transfer path for named resources.
+- `Cancel(Future<T>)` and `Cancel(RemoteFuture<T>)` are copy-only for beta.
+  Ownership-bearing payload futures are explicitly rejected until task-boundary
+  cleanup summaries can prove where movable/anchored/subject/token payloads are
+  released or observed.
+- `ChannelClose(Channel<T>)` is copy-only for beta. Closing a channel with
+  ownership-bearing queued payloads would need a cleanup/backpressure summary,
+  so movable, subject, boundary-value, anchored-handle, and token channels must
+  be drained explicitly before close.
+
+Remaining:
+
+- Richer reachability provenance across nested/exceptional CFG edges, the
+  general branch/join assignment lattice beyond the current sealed local-`let`
+  surface and longer-lived borrow lifetime beyond the current task-local
+  borrow/use snapshot baseline, full drop/cleanup insertion and validation
+  beyond current `defer` isolation, zone/effect transition, projection
+  freshness, broader channel receive/backpressure, and richer cancellation
+  task-boundary checks must consume CFG/dataflow facts directly. Anchored slot branch-join,
+  `own subject` branch-join, parallel resource/boundary consume state, and
+  parallel `ref`+`own` boundary conflicts, plus direct named-call `spawn ref`
+  boundary rejection, anonymous async spawn explicit reject, timeout/status
+  channel-send transport rejection, non-blocking ownership-bearing receive
+  explicit reject, copy-only cancellation payload reject, and copy-only channel
+  close are already covered by regression and remain as closed baseline
+  evidence.
+- Full mutable-borrow overlap is not a beta blocker because beta has no
+  `mut ref`/`ref mut` surface. If such a surface is introduced after beta, it
+  must be added as a new CFG lattice fact instead of being inferred from current
+  `ref` parameters.
+- Interprocedural body summaries must be fixed: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, and `sends_channel`.
+  First-stage `body_summary_mask` storage and semantic recording exist now; the
+  remaining blocker is making downstream zone/effect/runtime/codegen consumers
+  use those bits instead of local rediscovery.
+- Diagnostics must report path provenance with branch/join edge, previous state, `Reason`, and `Fix`.
+- C and LLVM must lower the frozen subset from the same CFG/dataflow facts and be covered by backend compare.
+
+Evidence command:
+
+```sh
+make cfg-body-dataflow-test-smoke
+make ir-pipeline-test-smoke
+make test-semantic
+make llvm-test-backend-compare
+```
+
+Step skeleton:
+
+1. CFG fact inventory gate: `cfg-body-dataflow-test-smoke` keeps HIR CFG, HIR dom, RIR flow-block, and MIR cleanup/SSA facts visible.
+2. Semantic control-flow gate: all-path return and reachability use CFG facts;
+   local delayed initialization stays sealed by `let = initializer`, while any
+   future wider assignment surface needs explicit CFG lattice facts.
+3. Ownership gate: move/use-after-move, borrow lifetime, mutable borrow overlap, and drop/cleanup use CFG join facts.
+4. Orchestration gate: zone/effect/relation/projection/handoff facts use body summaries at branch/join.
+5. Execution gate: `parallel`, task, cancellation, and channel boundaries use interprocedural body summaries.
+6. Backend gate: C and LLVM consume the same frozen facts and backend-compare covers representative cases.
+
+## 0c. Core Language Semantic Closure
+
+Status: `BLOCKER`
+
+Goal:
+
+- The beta stable subset must be defined in one place, not inferred from scattered README/TODO/status notes.
+- Intent, zone/world/authority/handoff, and projection freshness are core language semantics, not library polish.
+- This section is the checklist entry for the formal proof documents under `docs/semantics/01_intent_world_zone.md` and the stable subset contract.
+
+Stable subset that must be frozen:
+
+- Core declarations: `subject`, `zone`, `world`, `intent`, `relation`, `effect`, `projection`, `authority`, `handoff`.
+- Core execution: `func`, `let`, `if`, `match`, `for`, `while`, `return`, `parallel`, stable channel/task baseline.
+- Generic contracts: exact type parameters, ability bounds, multi-bound `where T: A + B`, implemented default type argument resolution.
+- Ownership: anchored slot-handle boundary subset, boundary-visible aggregate provenance, copy-value trivial `own/ref`, explicit reject for `Token<T>` transport.
+- Collections: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, plus any currently implemented additional key families only if docs/tests/backend parity list them explicitly.
+- Observability: `last`, `history`, `active`, `recent` baseline.
+
+Intent closure:
+
+- Intent step ordering must be deterministic and backend-independent.
+- Compensation, rollback, cancellation, and invalidation paths must have a formal meaning and an ABI smoke surface.
+- Intent effect propagation must use the same runtime provenance vocabulary as zone/effect/projection propagation.
+- Intent observability ABI fields and trace order must be versioned or explicitly frozen for beta.
+
+Zone/world/authority/handoff closure:
+
+- Zone generation and world embedding must define ownership and handoff behavior.
+- Handoff frontier recompute must define pass limit, stale-read behavior, and hard-fail boundary.
+- Projection freshness must state when `refresh`, `publish`, and `bind` make data visible.
+- Authority rejection must expose queryable recoverable state for beta-stable recoverable failures.
+
+Evidence command:
+
+```sh
+make formal-semantics-test-smoke
+make runtime-authority-contract-test-smoke
+make projection-diagnostic-contract-test-smoke
+make llvm-test-backend-compare
+```
+
+## 0d. Runtime Panic And Secure Authority Invariants
+
+Status: `BLOCKER`
+
+Goal:
+
+- Runtime failure behavior must be the same on C and LLVM for the frozen subset.
+- Security-bearing surfaces must have explicit invariants before the language claims security semantics.
+
+Runtime panic/unwinding policy that must be frozen:
+
+- OOM
+- divide-by-zero
+- array/slice/list/map out-of-bounds
+- released slot use
+- double release
+- released or double-released device slot use
+- invalid secure-slot token
+- authority token mismatch
+- internal compiler/runtime invariant break
+
+Implementation progress:
+
+- `src/runtime/pgy_runtime_panic_contract.h` owns the panic class vocabulary and
+  shared `PGY_RUNTIME_PANIC` emitter.
+- Inline runtime `PGY_PANIC` delegates to the shared panic contract.
+- LLVM exported typed slot read/write now hard-fails on released-slot access
+  instead of logging and returning a default value.
+- LLVM exported secure slot read/write/release now hard-fails on released secure
+  slot, invalid token, and denied token capability.
+- Inline and LLVM exported device slot read/write/release now hard-fails on
+  released or double-released device slots instead of silently no-oping or
+  returning a default value.
+- Generated C and LLVM `Array<T>`/`Slice<T>` indexing, including temporary
+  function-return access (`Words()[0]`, `Words().Slice(...)[0]`), and
+  `ArraySet` now lower through checked runtime helpers, so stable collection
+  out-of-bounds reaches the shared `out-of-bounds` panic class instead of
+  direct memory access.
+- Stable value-demanding collection APIs now share the same hard-fail policy:
+  `ListGet` out-of-range, `QueuePop` on an empty queue, and `MapGet` on a
+  missing key panic with `out-of-bounds` in generated C and LLVM. Recoverable
+  absence checks stay on `ListSize`, `QueueEmpty`, and `MapHas`.
+- Stable mutation collection APIs no longer silently no-op on invalid targets:
+  `ListSet`, `ListRemove`, and `MapRemove` invalid access panic with
+  `out-of-bounds` in generated C and LLVM.
+- Stable unwrap misuse no longer drifts between backends: `Unwrap(Err)` and
+  `UnwrapOption(None)` panic with `internal-invariant` in generated C and LLVM.
+- `docs/105_runtime_panic_contract.md` records the runtime panic contract and
+  the stable collection access/mutation hard-fail split.
+- `runtime-panic-abi-test-smoke` executes inline and exported runtime harnesses
+  for released-slot, invalid-secure-token, double-release, device-slot,
+  authority-mismatch, OOM, and divide-by-zero panic classes.
+
+Required policy decision:
+
+- Recoverable user/runtime contract failures expose `Bool`, `Result<T>`, or queryable runtime state.
+- Contract violations at ownership/security boundaries are hard-fail unless explicitly modeled as recoverable.
+- Internal compiler/runtime invariant breaks are hard-fail.
+- No beta path may silently fallback to a different backend behavior.
+
+Secure slot / authority invariant obligations:
+
+- Secure tokens are unforgeable by source-level code.
+- Secure slot token mismatch cannot read or write the protected slot.
+- Authority-bearing tokens cannot be copied into an untrusted boundary or transported through unsupported channels.
+- Zone authority transfer cannot create two active owners for one authority boundary.
+- Runtime snapshots must not expose secret token material.
+
+Evidence command:
+
+```sh
+make runtime-authority-contract-test-smoke
+make runtime-panic-contract-test-smoke
+make runtime-panic-abi-test-smoke
+make runtime-panic-codegen-test-smoke
+make runtime-abi-lifetime-test-smoke
+make llvm-test-backend-compare
+```
+
+## 0e. User-Facing Beta Quality Gates
+
+Status: `IN PROGRESS / BLOCKER`
+
+Goal:
+
+- Beta must be honest about platform support, diagnostics, stdlib API stability, tooling stability, and performance regression limits.
+
+Diagnostic quality gate:
+
+- Every user-facing parser, lexer, semantic, backend, and runtime error must have severity, stable code, source span when available, `Reason:`, and `Fix:`.
+- `diagnostic-registry-test-smoke` verifies code registry drift, but beta also requires representative quality checks for parser/lexer/backend/runtime messages.
+
+Cross-platform support matrix:
+
+- Linux/WSL native: required beta gate for C + LLVM.
+- Windows native/MSYS2/MinGW: required support matrix entry; LLVM may be marked unsupported until a real runner is green.
+- macOS: must be either explicitly supported, experimental, or out-of-beta before release wording.
+- 2026-04-25 local check: `make ci-windows` was not runnable in this WSL/Linux shell because `gcc -dumpmachine` reports `x86_64-linux-gnu`, not MSYS2/MinGW. This is an environment gap, not a code green signal; Windows beta evidence still requires a real MSYS2/MinGW runner.
+
+Stdlib beta freeze:
+
+- The stable stdlib API list must identify beta-stable, experimental, and out-of-beta APIs.
+- Breaking-change policy must state whether beta APIs can change before v1.
+- `type_checker_stdlib_use.c` should be aligned with the public freeze list.
+
+Tooling beta conformance:
+
+- LSP must list which of diagnostics, hover, goto-def, completion, and formatting hooks are beta-stable.
+- Formatter must state whether format is idempotent and whether parse -> fmt -> parse is required.
+- Debugger must state whether DAP, breakpoints, stepping, or variable inspection are beta-stable, experimental, or out-of-beta.
+
+Package/module resolver beta surface:
+
+- Manifest format, import path resolution, version resolution, and supply-chain integrity rules must be stable or explicitly out-of-beta.
+
+Test quality gate:
+
+- A beta-freeze test suite list must identify mandatory pre-beta tests.
+- Fuzz/property tests can be out-of-beta, but their absence must be documented.
+- Coverage and perf baselines must be tracked as explicit quality signals, not implied by test count.
+
+Performance gate:
+
+- Compile/runtime perf baselines must be captured before major CFG/DAG/runtime propagation rewrites.
+- Regressions beyond the chosen threshold must block beta unless explicitly waived.
+
+Observability/tracing schema gate:
+
+- Intent history, authority failure state, runtime registry state, event schema, and trace format need a stable beta schema or explicit experimental label.
+
+Docs freeze:
+
+- Language reference, getting-started tutorial, and migration/release notes must describe the frozen beta subset without overclaiming future surfaces.
+
+Memory/concurrency model gate:
+
+- `parallel`, task, channel, cancellation, and shared runtime visibility need a minimal happens-before/channel buffering contract.
+
+String/unicode policy:
+
+- String literal syntax is stable only if comparison, normalization, escape handling, and locale/non-locale behavior are documented or explicitly deferred.
+
+Evidence command:
+
+```sh
+make diagnostic-registry-test-smoke
+make parser-lexer-diagnostic-test-smoke
+make module-taxonomy-test-smoke
+make parallel-core-contract-test-smoke
 ```
 
 ## 1. Core Module / Module Boundary Closure
@@ -55,7 +389,7 @@ make formal-semantics-test-smoke
 
 현재 닫힌 것:
 
-- 2026-04-25 local acceptance: `make ci-linux` completed green on WSL/Linux after the DAG metadata and authority direct-slot fixes. This covers `test-all`, LLVM smoke, fmt/stdlib/module/example smoke, taxonomy/inc-size/core-shape/DAG/inventory/diagnostic/parser-lexer/JSON/IR/AST gates, ABI same-process, and backend compare.
+- 2026-04-25 local acceptance: `make ci-linux` completed green on WSL/Linux after the DAG metadata floor gate, fallback seam cap reduction to 31, CFG/body dataflow gate, runtime panic contract gates, authority direct-slot fixes, C/LLVM MIR declaration inventory gate, and C backend active-inventory bootstrap. This covers `test-all`, LLVM smoke, fmt/stdlib/module/example smoke, taxonomy/inc-size/core-shape/DAG/MIR-inventory/diagnostic/parser-lexer/JSON/IR/AST gates, ABI same-process, and backend compare.
 - `docs/99_language_module_taxonomy.md`로 core/foundation/execution/compat layer를 고정했다.
 - `docs/language_module_manifest.json`, `docs/language_module_cases.json`가 machine-readable source다.
 - `make module-taxonomy-test-smoke`가 taxonomy drift를 검사한다.
@@ -96,7 +430,8 @@ make formal-semantics-test-smoke
 - projection diagnostics는 missing source field / ambiguous source path / wrong projection kind / duplicate field map 4개 베타 필수 케이스를 `projection-diagnostic-contract-test-smoke`로 고정한다.
 - AI-first/GPU 방향은 `pgy.accel.spray`로 module taxonomy와 manifest에 예약했다. 이는 post-beta accelerator library/runtime surface이며 core keyword나 beta blocker가 아니다.
 - Skia/shader/render 방향은 `pgy.render.skia`로, DOP style은 `pgy.compat.dop`로 module taxonomy와 manifest에 예약했다. 둘 다 post-beta ecosystem surface이며 core keyword나 beta blocker가 아니다.
-- module ecosystem update policy를 taxonomy에 고정했다. `pgy.core`는 가장 자주 개선하되 가장 강하게 검증하고, OOP/FP/DOP/GPU/render/std/kit은 모듈 생태계로 진화한다.
+- **[NEW]** 외부 언어 연동(JVM JNI, Python C-API 등)은 `pgy.interop.*` 생태계 모듈로 분류하며, core 언어가 안정화된 이후(v1 또는 별도 마일스톤)의 post-beta 영역으로 명시하여 제외한다.
+- module ecosystem update policy를 taxonomy에 고정했다. `pgy.core`는 가장 자주 개선하되 가장 강하게 검증하고, OOP/FP/DOP/GPU/render/interop/std/kit은 모듈 생태계로 진화한다.
 
 남은 것:
 
@@ -145,13 +480,17 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - `resolve_type_node(...)` itself is now metadata-first, so the remaining explicit legacy allowlist also consumes DAG facts before recursive materialization.
 - Owner-local resolver seams now converge through `semantic_type_resolution_resolve_or_fallback(...)`; direct `resolve_type_node(...)` calls are statically blocked outside the resolver implementation and the shared fallback helper.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3090 metadata_entries=1605 metadata_owned=46 metadata_hits=2475 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3124 metadata_entries=1641 metadata_owned=50 metadata_hits=2513 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
+- The DAG smoke now enforces beta floors for graph-backed usage (`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`) instead of accepting any non-zero metadata activity.
 - The remaining stage legacy surface is alias-only. Successful alias materialization and diagnostic fallback are reported separately, and valid alias fallback is gated at zero. The 78 unresolved fallback entries come from intentional alias-cycle diagnostic coverage, not hidden non-alias recursive resolution.
 - Ability declarations are now predeclared in the program-level symbol inventory, and `type_check_ability_decl(...)` reuses only its own predeclare. This closes the forward declaration-order gap for generic default/where consumers, zone authority ability consumers, and party role-slot ability consumers without weakening duplicate-ability diagnostics.
 - C/LLVM parity now includes `tests/cases/backend_compare/forward_ability_order/main.pgy`, which keeps provider-after-consumer ordering for generic defaults, aliases, zone authority ability consumers, and party role-slot ability consumers from regressing outside semantic-only tests.
 - `tests/compare_backends.sh` now fails its default run when a `tests/cases/backend_compare/*/main.pgy` directory is not registered in the default case array. Targeted runs with explicit arguments remain allowed for development, but CI can no longer silently skip a new parity case. The gate pulled eight previously passing but unregistered cases into the default C/LLVM parity suite: array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, and try-operator result.
-- `type-resolution-resolver-inventory-test-smoke` now treats the fallback seam count as a one-way debt cap instead of a coverage floor. The current 38-site cap blocks growth, but shrinking below the old floor no longer fails CI.
+- `type-resolution-resolver-inventory-test-smoke` now treats the fallback seam count as a one-way debt cap instead of a coverage floor. The current 31-site cap blocks growth, prints the active fallback seam count, and shrinking below the old floor no longer fails CI.
 - `type_checker_module_contract.c` no longer calls the recursive fallback helper for ability contract bookkeeping. It records and checks ability contract shape/provenance through ability-specific logic and only performs DAG metadata lookup for already-materialized type facts, reducing the fallback seam inventory from 39 to 38.
+- `type_checker_ability_fields.c` now follows the same lookup-only pattern for ability `fields` requirements: the ability-specific validator owns field-contract diagnostics, while DAG metadata provides already-materialized type facts without recursive fallback.
+- Domain and intent declaration resolution now converge through owner-local type-reference seams. Domain slot/shared/named refs and intent involves/value/where refs share their local owner seam, reducing the fallback seam inventory from 38 to 34.
+- Alias/generic-parameter helpers and resolution-stage diagnostic fallback now converge through owner-local seams, reducing the fallback seam inventory from 34 to 32. Ability-field validation lookup-only resolution reduces the active seam cap to 31.
 - This is not full DAG source-of-truth yet. The remaining closure is graph/topo materialization for generic/default/bound/module/nominal references, then shrinking recursive fallback to explicit legacy-only seams.
 - Authority direct-slot resolution now clears stale ambiguity when the participant alias resolves to a concrete zone subject slot after earlier same-type candidates. This keeps `authorized by rogue/mage` valid when the zone has matching `subject slot rogue/mage: Adventurer`, while still preserving the hard error for genuinely ambiguous same-type participants.
 
@@ -189,7 +528,7 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - role/generic-contract/late-helper/expr resolution은 각각 local seam 1개로 수렴했다. remaining direct resolver inventory에서 이 파일들은 이제 metadata replacement owner를 명확히 가진다.
 - generic validation, ability where/module contract/declaration, class field, operator overload, ownership destructure resolution도 local seam으로 수렴했다. remaining direct resolver inventory는 resolver implementation, comments, or explicit seam sites로 압축됐다.
 - statement, ability field, builtin projection/query, flow, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다.
-- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다. It also gates new `semantic_type_resolution_resolve_or_fallback(...)` users behind an explicit owner-seam allowlist and caps the metadata-first fallback seam inventory at 38, so remaining consumers are no longer unclassified and cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
+- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다. It also gates new `semantic_type_resolution_resolve_or_fallback(...)` users behind an explicit owner-seam allowlist and caps the metadata-first fallback seam inventory at 31, so remaining consumers are no longer unclassified and cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
 - `type_checker_decls_domain_helpers.c`의 zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. `dnd_tavern_campaign` 같은 multi-slot same-type zone에서 concrete participant alias가 false-positive ambiguous로 떨어지는 경로를 닫았다.
 - `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage legacy fallback inventory를 CI gate로 검사한다.
 - intent/standalone helper dependency는 internal headers와 hard CFLAGS로 고정되어 DAG split 중 hidden include-order failure를 즉시 잡는다.
@@ -240,12 +579,16 @@ grep -R "resolve_type_node" -n src/semantic
 - domain method MIR-missing 경로는 partial emit 대신 explicit backend error로 정렬됐다.
 - declaration emit entrypoint는 inventory decl을 우선 사용한다.
 - C/LLVM backend compare가 frozen subset parity를 넓게 커버한다.
+- `make mir-declaration-inventory-test-smoke`가 C/LLVM declaration-side codegen을 active inventory helper path에 묶는다.
+- C backend `emit_program(...)`는 ability/type/extern/function/intent/domain/event bootstrap을 `transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view로 소비한다. Direct declaration-array reads are now confined to the helper owner in `transpiler.h`.
+- LLVM declaration raw inventory reads are confined to the helper owner in `llvm_internal.h`; pipeline/domain/intent emitters must go through active inventory and lookup helpers.
 
 남은 것:
 
 - declaration inventory bootstrap은 아직 AST-shaped metadata를 많이 들고 있다.
 - zone/world/relation/effect declaration metadata를 dedicated view로 잘라야 한다.
 - raw host-name state와 duplicated named-decl lookup helper를 더 줄여야 한다.
+- dedicated declaration IR is still not complete: the current beta-safe line is helper-gated MIRProgram inventory, not a fully separated declaration metadata model.
 
 완료 조건:
 
@@ -258,9 +601,12 @@ grep -R "resolve_type_node" -n src/semantic
 
 ```sh
 make test-mir
+make mir-declaration-inventory-test-smoke
 make llvm-test-backend-compare
 make ast-dispatch-test-smoke
 ```
+
+Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/LLVM declaration-side codegen on the active MIR inventory helper path. It verifies the nominal/domain/declaration helper seam and blocks new raw MIR declaration array reads outside the current owner files. C backend `emit_program(...)` now gets ability/type/extern/function/intent/domain/event declaration views through `transpiler_active_inventory(...)` / `transpiler_active_externs(...)`, not direct `mir->...` declaration arrays.
 
 ---
 

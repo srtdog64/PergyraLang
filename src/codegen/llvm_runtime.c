@@ -66,6 +66,16 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
             { "pgy_string_equals", ctx->type_i1,
               { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
+            { "pgy_runtime_panic_internal_invariant_export", ctx->type_void,
+              { ctx->type_i8ptr }, 1 },
+            { "pgy_checked_div_i32_export", ctx->type_i32,
+              { ctx->type_i32, ctx->type_i32 }, 2 },
+            { "pgy_checked_div_i64_export", ctx->type_i64,
+              { ctx->type_i64, ctx->type_i64 }, 2 },
+            { "pgy_checked_mod_i32_export", ctx->type_i32,
+              { ctx->type_i32, ctx->type_i32 }, 2 },
+            { "pgy_checked_mod_i64_export", ctx->type_i64,
+              { ctx->type_i64, ctx->type_i64 }, 2 },
             { "ToInt", ctx->type_i32,
               { ctx->type_i8ptr }, 1 },
             { "ToFloat", ctx->type_f32,
@@ -341,6 +351,22 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           snprintf(fn_name, sizeof(fn_name), "pgy_array_push_%s", suffix);
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        { LLVMTypeRef params[] = { arr_ptr_ty, ctx->type_i64 };
+          LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 2, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_array_get_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
+        { LLVMTypeRef params[] = { arr_ptr_ty, ctx->type_i64, val_ty };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_array_set_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        { LLVMTypeRef params[] = { LLVMPointerType(llvm_slice_struct_type(ctx, suffix), 0),
+                                   ctx->type_i64 };
+          LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 2, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_slice_get_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
         { LLVMTypeRef params[] = { arr_ptr_ty, ctx->type_i64, ctx->type_i64 };
           LLVMTypeRef ft = LLVMFunctionType(llvm_slice_struct_type(ctx, suffix), params, 3, 0);
           snprintf(fn_name, sizeof(fn_name), "pgy_array_slice_%s", suffix);

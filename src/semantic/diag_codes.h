@@ -52,6 +52,8 @@
 #define PGY_CODE_SEM_INFER_GENERIC              "PGY_SEM_INFER_GENERIC"
 #define PGY_CODE_SEM_INFER_REQUIRED             "PGY_SEM_INFER_REQUIRED"
 #define PGY_CODE_SEM_UNINIT_LOCAL               "PGY_SEM_UNINIT_LOCAL"
+#define PGY_CODE_SEM_MISSING_RETURN             "PGY_SEM_MISSING_RETURN"
+#define PGY_CODE_SEM_UNREACHABLE_CODE           "PGY_SEM_UNREACHABLE_CODE"
 #define PGY_CODE_SEM_SLOT_RELEASED              "PGY_SEM_SLOT_RELEASED"
 #define PGY_CODE_SEM_RELEASE_REQUIRES_OWNER     "PGY_SEM_RELEASE_REQUIRES_OWNER"
 #define PGY_CODE_SEM_SLOT_DOUBLE_RELEASE        "PGY_SEM_SLOT_DOUBLE_RELEASE"
@@ -180,6 +182,8 @@
 #define PGY_CAUSE_UNINIT_LOCAL                  "semantic:let:uninit_local_binding"
 
 /* --- Semantic: control flow / patterns --- */
+#define PGY_CAUSE_CFG_MISSING_RETURN            "semantic:cfg:missing_return_path"
+#define PGY_CAUSE_CFG_UNREACHABLE_STATEMENT     "semantic:cfg:unreachable_statement"
 #define PGY_CAUSE_CONDITION_NON_BOOL            "semantic:condition:non_bool"
 #define PGY_CAUSE_LOOP_CONTROL                  "semantic:loop_control"
 #define PGY_CAUSE_FOR_IN_NON_ITERABLE           "semantic:for_in:non_iterable"
@@ -198,6 +202,7 @@
 
 /* --- Semantic: parallel / async --- */
 #define PGY_CAUSE_PARALLEL_SECURE_IN_TASK       "semantic:parallel:secure_in_task"
+#define PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT    "semantic:parallel:resource_conflict"
 #define PGY_CAUSE_ASYNC_CONTEXT_REQUIRED        "semantic:async:context_required"
 #define PGY_CAUSE_AWAIT_NON_FUTURE              "semantic:await:non_future"
 #define PGY_CAUSE_REMOTE_FUTURE_DIRECT_ACCESS   "semantic:remote_future:direct_access"
@@ -308,6 +313,9 @@
 /* --- bind / convert / declare / use / pass --- */
 #define PGY_FIX_ADD_ANNOTATION_OR_INITIALIZER   "add-annotation-or-initializer"
 #define PGY_FIX_INITIALIZE_AT_BINDING           "initialize-at-binding"
+#define PGY_FIX_ADD_RETURN_ON_ALL_PATHS         "add-return-on-all-paths"
+#define PGY_FIX_REMOVE_OR_MOVE_BEFORE_TERMINATOR \
+    "remove-or-move-before-terminator"
 #define PGY_FIX_BIND_THE_MOVED_VALUE_ONCE       "bind-the-moved-value-once"
 #define PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE \
                                                 "bind-to-named-variable-before-move"

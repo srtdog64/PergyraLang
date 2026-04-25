@@ -248,6 +248,7 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
     t->data.function.return_type  = return_type;
     t->data.function.param_count  = param_count;
     t->data.function.effect_mask  = EFFECT_NONE;
+    t->data.function.body_summary_mask = BODY_SUMMARY_NONE;
     t->data.function.param_types  = (param_count > 0)
         ? calloc(param_count, sizeof(Type *))
         : NULL;
@@ -269,6 +270,14 @@ type_function_effects(const Type *type)
     if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
         return EFFECT_NONE;
     return type->data.function.effect_mask;
+}
+
+uint32_t
+type_function_body_summary(const Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return BODY_SUMMARY_NONE;
+    return type->data.function.body_summary_mask;
 }
 
 Type *

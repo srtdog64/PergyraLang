@@ -23,13 +23,19 @@
 #include <string.h>
 
 static Type *
+domain_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+}
+
+static Type *
 domain_resolve_slot_type(ASTNode *slot, SemanticContext *ctx)
 {
     ASTNode *type_ref;
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return TYPE_UNKNOWN;
     type_ref = slot->data.domain_slot.type;
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return domain_resolve_type_ref(type_ref, ctx);
 }
 
 static Type *
@@ -39,13 +45,13 @@ domain_resolve_shared_type(ASTNode *shared, SemanticContext *ctx)
     if (shared == NULL || shared->type != AST_PARTY_SHARED)
         return TYPE_UNKNOWN;
     type_ref = shared->data.party_shared.type;
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return domain_resolve_type_ref(type_ref, ctx);
 }
 
 static Type *
 domain_resolve_named_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return domain_resolve_type_ref(type_ref, ctx);
 }
 
 /* type_checker_decls_intent_world.inc removed — intent body lives in type_checker_intent_decl.c (4-B slice),

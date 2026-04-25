@@ -49,6 +49,7 @@ required_files = {
         "### Progress",
         "### Failure Separation",
         "### Backend Observational Equivalence",
+        "`PanicState`",
     ],
     "01_intent_world_zone.md": [
         "Keywords: `intent`, `world`, `zone`, `subject`, `authority`, `handoff`.",
@@ -71,6 +72,8 @@ required_files = {
     "04_ownership_abi.md": [
         "Keywords and surfaces: `own`, `ref`, anchored slot handles, slot boundaries, runtime ABI ownership.",
         "## Theorem: Anchored Ownership Safety",
+        "## Theorem: Secure Token Unforgeability",
+        "## Theorem: Authority Transfer Single-Owner",
         "## Theorem: Arena Lifetime Non-Escape",
         "## Theorem: ABI Ownership Parity",
     ],
@@ -83,6 +86,7 @@ required_files = {
         "Surfaces: MIR, declaration inventory, C backend, LLVM backend, runtime ABI.",
         "## Theorem: MIR Source-of-Truth",
         "## Theorem: Backend Observational Equivalence",
+        "## Theorem: Runtime Panic Parity",
         "## Theorem: Structured Backend Failure",
     ],
 }

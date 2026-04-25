@@ -13,6 +13,8 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 {
     Type *ret_type = TYPE_VOID;
 
+    semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_RETURN);
+
     if (node->data.return_stmt.value != NULL)
         ret_type = type_check_expression(node->data.return_stmt.value, ctx);
 

@@ -18,14 +18,15 @@
 ## 현재 판정
 
 - 현재 단계: `late-stage alpha / beta-closure sprint`
-- 베타 readiness 추정: `약 70%`
+- 베타 readiness 추정: `약 50%`
 - 판정 방식:
   - 기능 표면 성숙도만 보면 다수 core/foundation surface가 구현되어 `90%+`처럼 보인다
-  - 그러나 strict beta는 `DAG source-of-truth`, `runtime propagation generalization`, `MIR declaration inventory`, `arena/lifetime`, `장기 모듈화 stop condition`까지 함께 요구한다
-  - 따라서 현재 공식 수치는 기능 개수 기준이 아니라 **베타 신뢰도 기준 약 70%**로 낮춘다
+  - 그러나 strict beta는 `function body CFG/dataflow source-of-truth`, `DAG source-of-truth`, `runtime propagation generalization`, `MIR declaration inventory`, `arena/lifetime`, `장기 모듈화 stop condition`까지 함께 요구한다
+  - 따라서 현재 공식 수치는 기능 개수 기준이 아니라 **베타 신뢰도 기준 약 50%**로 낮춘다
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
-  - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt + 장기 모듈화 debt`다
+  - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + function body CFG/dataflow closure + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt + 장기 모듈화 debt`다
+  - HIR/MIR CFG skeleton은 이미 존재하지만, all-path return과 direct/branch/match terminator 기반 unreachable warning 외의 richer reachability provenance, 일반 branch/join assignment lattice, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary가 아직 semantic source-of-truth로 완전히 승격되지 않았다. stable local `let` use-before-init 표면은 parser의 `=` 요구와 `PGY_SEM_UNINIT_LOCAL` semantic backstop으로 봉인되어 있다
   - 특히 Type-resolution DAG가 semantic source-of-truth로 승격되지 않으면 declaration order, module contract, generic consumer path가 다시 drift할 수 있으므로 전체 readiness를 끌어내리는 핵심 blocker다
   - 완전 모듈화도 베타 이후 지속 개발 가능성의 조건이다. `.inc` 제거율 자체가 목표는 아니지만, core semantic/DAG/backend/runtime owner 경계가 아직 충분히 닫히지 않았다
 - runtime propagation은 이제 C/LLVM 공통 `dirty/ready + epoch/cause` provenance baseline, world-derived bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone projection read-after-mutate closure를 straight-line assignment, method-call, branch-join slice까지 닫았고, 남은 차단점은 이를 handoff와 더 넓은 world-zone path로 일반화하는 broader `bounded fixpoint / transitive frontier scheduler`다
@@ -42,6 +43,7 @@
 6. Linux/Windows CI가 parser/semantic/transpile/abi/backend-compare/example-smoke까지 녹색이다
 7. 문서가 구현보다 앞서가지 않는다
 8. scratch/result lifetime과 cache boundary가 문서/구현 기준으로 설명 가능하다
+9. function/action/intent body safety가 CFG/dataflow facts로 검증된다: reachability, all-path return, use-before-init, move/borrow, drop/cleanup, zone/effect transition, parallel/channel boundary.
 
 ## Core / Foundation / Style Taxonomy
 
@@ -92,22 +94,23 @@ Beta에서 smoke/parity는 유지하되, core identity나 B0 blocker로 넓히�
 
 Source of truth for future module/package naming: `docs/99_language_module_taxonomy.md`, `docs/language_module_manifest.json`, and `docs/language_module_cases.json`. Drift gate: `make module-taxonomy-test-smoke`.
 
-Operational beta checklist: `docs/100_beta_readiness_checklist.md`. The checklist is the execution-level view of this board and tracks six closure axes: core/module boundary, DAG, MIR declaration debt, ABI ownership, `parallel`/core keyword tests, and pain point fix loop.
+Operational beta checklist: `docs/100_beta_readiness_checklist.md`. The checklist is the execution-level view of this board and tracks seven closure axes: CFG/body dataflow, core/module boundary, DAG, MIR declaration debt, ABI ownership, `parallel`/core keyword tests, and pain point fix loop.
 
 ## Master Status Board
 
 | 트랙 | 상태 | 진행률 | 베타 차단 여부 | 핵심 메모 |
 |------|------|--------|----------------|----------|
+| Function CFG / body dataflow | 진행 중 | 70% | 차단 | HIR function CFG v0와 MIR CFG/SSA/cleanup skeleton은 존재한다. `cfg-body-dataflow-test-smoke`, non-`Void` all-path return semantic check, direct/terminating-if/exhaustive-match unreachable warning, stable local `let` use-before-init seal, `QubitSlot` loop move/join source regression, anchored `Slot<T>` branch/join release state, `defer` cleanup terminator/resource-state isolation, direct `type_check_statement()` defer fallback convergence, parallel task/channel-send resource-consume boundary와 duplicate-consume diagnostic은 닫혔다. 남은 blocker는 richer reachability provenance across nested/exceptional edges, wider branch/join assignment lattice, broader borrow join, full drop/cleanup insertion, zone/effect transition, channel receive/backpressure/cancellation boundary를 semantic source-of-truth로 승격하고 C/LLVM lowering이 같은 facts를 소비하게 만드는 것이다 |
 | B0-1 Intent / Zone / World | 진행 중 | 98% | 차단 | observability baseline, runtime provenance baseline, world-derived bounded recompute, zone lifecycle bounded frontier loop, embedded zone projection read-after-mutate closure의 straight-line assignment/method-call/branch-join slice, v1 handoff projection/world-state/layer-state frontier smoke, intent `authorized by` runtime snapshot, authority guard snapshot baseline, concrete authority-slot resolution은 닫혔지만 richer authority rejection surface와 더 넓은 world-zone path까지 일반화된 bounded fixpoint 기반 cross-layer propagation이 더 남음 |
 | B0-2 relation / effect / projection | 진행 중 | 94% | 차단 | refresh/publish/bind baseline, `dirty/ready + epoch/cause` provenance baseline, projection-chain bounded recompute, embedded branch-join recompute slice, v1 handoff projection/layer-state frontier는 닫혔지만 effect partial order와 authority/failure frontier scheduler depth가 더 남음 |
 | B0-3 generic contract | 완료 | 100% | 비차단 | default arg, omitted trailing default, multi-bound, ability/authority/party/action/intent consumer, cross-module imported consumer가 semantic 회귀 기준으로 닫혔다 |
-| B0-4 own/ref | 완료 | 100% | 비차단 | ownership classifier 기준 stable subset으로 닫힘. copy-value trivial own/ref, boundary-visible aggregate provenance, movable value transfer/borrow, slot-handle boundary, direct/summary helper-chain, destructure/member/container/return/channel 경로가 semantic 회귀로 고정됐다. `Token<T>` transport는 explicit reject, universal ownership lattice는 beta-out-of-scope다 |
+| B0-4 own/ref | 진행 중 | 65% | 차단 | stable surface와 classifier 회귀는 많이 닫혔지만 strict beta 기준에서는 body CFG/dataflow migration이 남았다. copy-value trivial own/ref, boundary-visible aggregate provenance, movable value transfer/borrow, slot-handle boundary, direct/summary helper-chain은 유지하되 branch/join/loop/early-return/parallel boundary의 move/borrow/drop facts를 CFG source-of-truth로 승격해야 한다. `Token<T>` transport는 explicit reject, universal ownership lattice는 beta-out-of-scope다 |
 | MIR-only declaration debt | 진행 중 | 97% | 차단 | host context는 inventory-backed handle 쪽으로 이동했고 function/method/intent emit state는 `TranspilerMirEmitState` snapshot helper로 수렴됐다. generic class specialization method도 MIR routine gate를 탄다. party/roster/relation/effect/zone/world hosted method emission은 공용 MIR helper로 수렴했고, declaration emit entrypoint도 inventory decl을 우선 사용한다. dead AST fallback은 제거되어 MIR routine 부재 시 partial C surface 없이 즉시 backend error로 실패한다. 남은 것은 declaration inventory bootstrap 잔여다 |
 | Type-resolution DAG | 진행 중 | 70% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔다. graph cycle과 legacy alias cycle 모두 `Contract source` / `Reason` / `Fix` vocabulary로 정렬됐고, full graph-backed evaluator는 beta-out-of-scope로 두고 stage-2 source-of-truth 승격이 남음 |
 | Arena / lifetime discipline | 진행 중 | 81% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 규칙 문서화는 끝났고 transpiler scratch-only temporary의 첫 safe vertical slice, semantic result-owned diagnostic payload seam, semantic scratch arena가 ownership path 조립 / stdlib preload / enum method mangling / parallel task metadata / type-resolution cycle detection / match redundancy coverage까지 확장됐다. HIR/MIR에는 routine-scope `scratch` arena가, LLVM은 `scratch + persistent + result-owned` lane으로 정리되어 event invoke, intent collector, projection path, local grow array, type render helper, callable signature metadata까지 arena 경계가 올라왔다. 남은 것은 owner shell과 runtime ABI contract, 반환 ownership이 섞인 일부 helper다 |
 | C/LLVM parity | 진행 중 | 90% | 차단 | LLVM stmt/expr fallback은 warning-only가 아니라 structured backend error로 고정됐고 AST dispatch partition smoke가 CI gate에 들어갔다. domain method MIR-missing 경로도 partial emit 없이 explicit backend error로 정렬됐다. world-derived / projection-chain bounded recompute도 C/LLVM parity smoke에 올라왔다. Windows full green은 plain Linux host가 아니라 MSYS2/MinGW + LLVM runner truth로 분리했다 |
 | runtime observability | 진행 중 | 91% | 차단 | last/history/active/recent baseline, propagation provenance stamp, authority guard `last_code` snapshot baseline, intent authority snapshot, bounded recompute ABI smoke는 있지만 deeper queryable failure state와 handoff/world-zone generalization까지 포함한 frontier recompute provenance가 더 남음 |
-| Long-term modularization | 진행 중 | 70% | 차단 | semantic leaf/helper split은 많이 진행됐고 `type_checker_resolution_graph_inventory.inc`는 1,809 LOC까지 줄었지만, semantic에는 아직 800 LOC 초과 `.inc`가 다수 남아 있고 codegen/runtime에는 3k~4k LOC `.inc`가 남아 있다. beta 이후 기능 확장을 안전하게 이어가려면 DAG/stage/declaration/backend/runtime owner 경계가 더 닫혀야 한다 |
+| Long-term modularization | 진행 중 | 72% | 차단 | semantic 800 LOC `.inc` gate와 runtime/codegen/compiler 1,000 LOC `.inc` gate는 닫혔다. ownership behavior `.inc`는 삭제되어 실제 TU로 이동했고 `semantic-tu-size-test-smoke`가 mega-TU 회귀를 막는다. 남은 debt는 include-order 보존 mechanical slice를 실제 owner/TU로 더 끌어올리는 것과 CFG/body dataflow owner 경계를 분리하는 것이다 |
 | surface trust docs | 진행 중 | 87% | 차단 | 주요 surface는 정렬됐고 own/ref baseline도 넓어졌지만 B0 잔여에 맞춘 최종 재분류와 acceptance wording 고정이 남음 |
 
 최근 고정:
@@ -117,7 +120,7 @@ Operational beta checklist: `docs/100_beta_readiness_checklist.md`. The checklis
   - `slot handle (anchored)`
   - `slot handle (movable)`
   - `authority-bearing`
-- semantic regression은 현재 기준으로 `2146 passed, 0 failed`
+- semantic regression은 현재 기준으로 `2157 passed, 0 failed`
 - transpile regression은 현재 기준으로 `670 passed, 0 failed`
 - runtime propagation provenance baseline closure:
   - relation/effect/zone/world hidden cell이 `dirty/ready + epoch/cause` schema로 C/LLVM parity를 갖는다
@@ -166,6 +169,47 @@ beta 직전 운영 규칙:
 6. 문서/예제/source-of-truth 정렬
 
 즉, 기능이 조금 더 늘어나는 것보다 “베타 이후에 구조 debt가 폭발하지 않게 만드는 것”을 우선한다.
+
+## Structural Closure — Function CFG / Body Dataflow
+
+판정:
+
+- HIR/MIR/RIR infra는 이미 존재한다. HIR는 function CFG v0, predecessor/reachability, dominator/frontier, loop-depth, local-def, phi candidate skeleton을 가진다.
+- MIR는 routine/block/instruction/cleanup block, SSA version map, def/use, cleanup/rollback/invalidation exceptional CFG, liveness/DCE vertical slice를 가진다.
+- 따라서 누락은 CFG 자료구조 자체가 아니라, body safety를 CFG/dataflow source-of-truth로 끌어올리는 semantic migration이다.
+
+베타 차단 이유:
+
+- AST/helper traversal만으로는 all-path return, use-before-init, move/borrow join, early drop cleanup, zone/effect path state, parallel/channel boundary를 엄격하게 증명하기 어렵다.
+- Pergyra의 beta는 “실행 가능한 preview”가 아니라 생태계를 올릴 수 있는 v1 전 안정 지점이므로, 함수 본문 안전성은 optimizer가 아니라 semantic blocker다.
+
+닫아야 하는 것:
+
+- [~] reachability + all-path return: all-path return and direct/terminating-if/exhaustive-match unreachable warnings are implemented; richer nested/exceptional reachability provenance remains open
+- [~] definite assignment / use-before-init for the stable local-`let` subset
+  is sealed by syntax plus `PGY_SEM_UNINIT_LOCAL`; wider branch/join assignment
+  remains open if delayed assignment becomes beta-stable
+- [~] move / use-after-move join: `QubitSlot` loop break/continue source-level
+  baseline and anchored `Slot<T>` branch/join release-state baseline are sealed;
+  broader anchored resources, borrow lifetime, and mutable borrow overlap remain
+  open
+- [~] owned resource drop and cleanup: `defer` cleanup terminators and
+  resource-state facts are isolated from the surrounding CFG path, including the
+  direct semantic fallback path; anchored slot branch/join state is tracked;
+  full drop insertion/validation remains open
+- [ ] zone/effect/relation transition facts and handoff/projection freshness at branch/join
+- [~] `parallel`/channel/task boundary facts: parallel task-local terminators,
+  resource move/release join, and duplicate resource consume diagnostic are
+  sealed; deeper channel send/recv, cancellation, and borrowed-reference task
+  lifetime summaries remain open
+- [ ] interprocedural summary: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`
+- [ ] path-provenance diagnostics with `Reason:` and `Fix:`
+- [ ] MIR/C/LLVM parity using the same facts
+
+검증:
+
+- current: `make ir-pipeline-test-smoke`, `make test-semantic`, `make llvm-test-backend-compare`
+- required new gate: `make cfg-body-dataflow-test-smoke`
 
 ## Structural Closure — Type-resolution DAG
 
@@ -564,18 +608,23 @@ diagnostic 고정 규칙:
 
 ## Next Locked Sequence
 
-1. Type-resolution DAG source-of-truth 승격
+1. Function CFG/body dataflow source-of-truth 승격
+   - HIR/MIR/RIR CFG fact inventory
+   - all-path return / reachability / definite assignment
+   - move/borrow/drop cleanup / zone-effect / parallel-channel facts
+   - C/LLVM parity gate: `cfg-body-dataflow-test-smoke`
+2. Type-resolution DAG source-of-truth 승격
    - remaining recursive `resolve_type_node` consumer audit
    - graph-backed / namespace-only / legacy resolver 분류
    - frozen subset provider/consumer ordering을 graph schedule로 고정
    - declaration order에 기대는 semantic path 제거
    - cycle/provenance diagnostic vocabulary 유지
-2. 장기 모듈화 owner boundary 축소
+3. 장기 모듈화 owner boundary 축소
    - DAG inventory/stage/declaration `.inc`를 실제 TU로 더 분리
    - semantic 800 LOC 초과 `.inc` 축소
    - codegen/runtime 1,000 LOC 초과 `.inc`는 beta 이후 폭발하지 않도록 leaf seam부터 절단
    - `type_checker.c` orchestration-only 목표 유지
-3. B0-1 Intent / Zone / World 잔여 좁히기
+4. B0-1 Intent / Zone / World 잔여 좁히기
    - embedding ownership / handoff
    - cross-layer propagation
    - richer provenance
@@ -643,6 +692,15 @@ diagnostic 고정 규칙:
 - Runtime authority rejection is no longer missing as a recoverable/queryable ABI surface, and intent step-local `authorized by` now refreshes the same runtime snapshot from MIR metadata.
 - `authority_failure_surface` is now green in backend-compare too, and the C transpiler no longer drifts on extern `Bool` runtime exports.
 - `intent_authority_snapshot_abi`, `intent_authority_snapshot`, and `authority_failure_surface` are green, so C/LLVM both report `last_ok / zone / participant / code / reason` after authority validation and authority-bearing handoff steps.
+
+## 2026-04-25 Runtime Panic Contract Follow-up
+
+- `src/runtime/pgy_runtime_panic_contract.h` now owns the panic class vocabulary used by hard-fail runtime boundaries.
+- Inline `PGY_PANIC` delegates to the shared runtime panic contract instead of owning a separate stderr/abort format.
+- LLVM exported typed slot read/write no longer logs and returns defaults after release; released-slot access is a hard-fail panic class.
+- LLVM exported secure slot read/write/release now hard-fails for released secure slot, invalid token, and denied token capability instead of silently returning `ZeroExpr` or no-oping.
+- Inline runtime slot and secure-slot macros now use the same released-slot and invalid-secure-token panic classes.
+- `make runtime-panic-contract-test-smoke` and `make runtime-panic-abi-test-smoke` are now CI gates. Released-slot, invalid-secure-token, and double-release have executable inline/exported evidence. Remaining blocker: executable regressions for the remaining stable panic classes and a final collection indexing policy decision.
 - `world_embedded_branch_projection_visibility` is now green in backend-compare too, so the branch-join embedded projection freshness slice is covered by direct C/LLVM output parity as well as ABI smoke.
 - `handoff_projection_frontier` is now green in backend-compare too, so v1 handoff materialization projection freshness is covered by direct C/LLVM output parity as well as ABI smoke.
 - `handoff_world_state_frontier` is now green in backend-compare too, so active world-owned zone handoff updates projection-backed world states and `all` composed states with direct C/LLVM output parity.

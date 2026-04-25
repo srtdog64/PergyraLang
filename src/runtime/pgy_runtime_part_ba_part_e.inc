@@ -31,6 +31,8 @@
         h = (h + 1) % cap;
         probes++;
     }
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                      "map remove key not found");
 }
 
 static inline int32_t pgy_map_size_string(PgyHashMap_String *m)
@@ -334,22 +336,30 @@ static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val
 \
 static inline CType pgy_list_get_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
 { \
-    CType zero_value; \
-    memset(&zero_value, 0, sizeof(CType)); \
-    if (index < 0 || (size_t)index >= l->count) return zero_value; \
+    if (l == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on null list"); \
+    if (index < 0 || (size_t)index >= l->count) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list index out of bounds"); \
     return l->data[index]; \
 } \
 \
 static inline void pgy_list_set_##SuffixName(PgyList_##SuffixName *l, int32_t index, CType val) \
 { \
-    if (index >= 0 && (size_t)index < l->count) l->data[index] = val; \
+    if (l == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list set on null list"); \
+    if (index < 0 || (size_t)index >= l->count) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list set index out of bounds"); \
+    l->data[index] = val; \
 } \
 \
 static inline int32_t pgy_list_size_##SuffixName(PgyList_##SuffixName *l) { return (int32_t)l->count; } \
 \
 static inline void pgy_list_remove_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
 { \
-    if (index < 0 || (size_t)index >= l->count) return; \
+    if (l == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list remove on null list"); \
+    if (index < 0 || (size_t)index >= l->count) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list remove index out of bounds"); \
     for (size_t i = (size_t)index; i < l->count - 1; i++) \
         l->data[i] = l->data[i + 1]; \
     l->count--; \
@@ -396,20 +406,34 @@ static inline void pgy_list_push_int(PgyList_Int *l, int32_t val)
 
 static inline int32_t pgy_list_get_int(PgyList_Int *l, int32_t index)
 {
-    if (index < 0 || (size_t)index >= l->count) return 0;
+    if (l == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on null list");
+    if (index < 0 || (size_t)index >= l->count)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list index out of bounds");
     return l->data[index];
 }
 
 static inline void pgy_list_set_int(PgyList_Int *l, int32_t index, int32_t val)
 {
-    if (index >= 0 && (size_t)index < l->count) l->data[index] = val;
+    if (l == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list set on null list");
+    if (index < 0 || (size_t)index >= l->count)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "list set index out of bounds");
+    l->data[index] = val;
 }
 
 static inline int32_t pgy_list_size_int(PgyList_Int *l) { return (int32_t)l->count; }
 
 static inline void pgy_list_remove_int(PgyList_Int *l, int32_t index)
 {
-    if (index < 0 || (size_t)index >= l->count) return;
+    if (l == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list remove on null list");
+    if (index < 0 || (size_t)index >= l->count)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "list remove index out of bounds");
     for (size_t i = (size_t)index; i < l->count - 1; i++)
         l->data[i] = l->data[i + 1];
     l->count--;
@@ -462,7 +486,10 @@ static inline void pgy_list_push_string(PgyList_String *l, const char *val)
 
 static inline char *pgy_list_get_string(PgyList_String *l, int32_t index)
 {
-    if (index < 0 || (size_t)index >= l->count) return "";
+    if (l == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on null list");
+    if (index < 0 || (size_t)index >= l->count)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list index out of bounds");
     return l->data[index] ? l->data[index] : "";
 }
 
@@ -713,10 +740,10 @@ static inline void pgy_queue_push_##SuffixName(PgyQueue_##SuffixName *q, CType v
 \
 static inline CType pgy_queue_pop_##SuffixName(PgyQueue_##SuffixName *q) \
 { \
-    CType zero_value; \
-    memset(&zero_value, 0, sizeof(CType)); \
-    if (q == NULL || q->data == NULL || q->capacity == 0) return zero_value; \
-    if (q->count == 0) return zero_value; \
+    if (q == NULL || q->data == NULL || q->capacity == 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "queue pop on invalid queue"); \
+    if (q->count == 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "queue pop from empty queue"); \
     CType val = q->data[q->head]; \
     q->head = (q->head + 1) % q->capacity; \
     q->count--; \
@@ -773,8 +800,12 @@ static inline void pgy_queue_push_int(PgyQueue_Int *q, int32_t val)
 
 static inline int32_t pgy_queue_pop_int(PgyQueue_Int *q)
 {
-    if (q == NULL || q->data == NULL || q->capacity == 0) return 0;
-    if (q->count == 0) return 0;
+    if (q == NULL || q->data == NULL || q->capacity == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "queue pop on invalid queue");
+    if (q->count == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "queue pop from empty queue");
     int32_t val = q->data[q->head];
     q->head = (q->head + 1) % q->capacity;
     q->count--;

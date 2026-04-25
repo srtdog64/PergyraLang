@@ -186,10 +186,12 @@ static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const ch
 \
 static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
 { \
-    CType zero_value; \
-    memset(&zero_value, 0, sizeof(CType)); \
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return zero_value; \
-    if (m->count == 0) return zero_value; \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map"); \
+    if (key == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get with null key"); \
+    if (m->count == 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found"); \
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     size_t probes = 0; \
     while (m->occupied[h] && probes < m->capacity) { \
@@ -198,7 +200,7 @@ static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const c
         h = (h + 1) % (uint32_t)m->capacity; \
         probes++; \
     } \
-    return zero_value; \
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found"); \
 } \
 \
 static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
@@ -218,8 +220,12 @@ static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const ch
 \
 static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
 { \
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return; \
-    if (m->count == 0) return; \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove on invalid map"); \
+    if (key == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove with null key"); \
+    if (m->count == 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found"); \
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     size_t probes = 0; \
     while (m->occupied[h] && probes < m->capacity) { \
@@ -234,6 +240,7 @@ static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const
         h = (h + 1) % (uint32_t)m->capacity; \
         probes++; \
     } \
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found"); \
 } \
 \
 static inline int32_t pgy_map_size_##SuffixName(PgyHashMap_##SuffixName *m) \
@@ -470,8 +477,12 @@ static inline void pgy_map_set_int(PgyHashMap_Int *m, const char *key, int32_t v
 
 static inline int32_t pgy_map_get_int(PgyHashMap_Int *m, const char *key)
 {
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return 0;
-    if (m->count == 0) return 0;
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map");
+    if (key == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get with null key");
+    if (m->count == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
     size_t probes = 0;
     while (m->occupied[h] && probes < m->capacity) {
@@ -480,7 +491,7 @@ static inline int32_t pgy_map_get_int(PgyHashMap_Int *m, const char *key)
         h = (h + 1) % (uint32_t)m->capacity;
         probes++;
     }
-    return 0;
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
 }
 
 static inline bool pgy_map_has_int(PgyHashMap_Int *m, const char *key)
@@ -500,8 +511,12 @@ static inline bool pgy_map_has_int(PgyHashMap_Int *m, const char *key)
 
 static inline void pgy_map_remove_int(PgyHashMap_Int *m, const char *key)
 {
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return;
-    if (m->count == 0) return;
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove on invalid map");
+    if (key == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove with null key");
+    if (m->count == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found");
     uint32_t cap = (uint32_t)m->capacity;
     uint32_t h = pgy_hash_string(key) % cap;
     size_t probes = 0;
@@ -535,6 +550,7 @@ static inline void pgy_map_remove_int(PgyHashMap_Int *m, const char *key)
         h = (h + 1) % cap;
         probes++;
     }
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found");
 }
 
 static inline int32_t pgy_map_size_int(PgyHashMap_Int *m)
@@ -768,8 +784,12 @@ static inline void pgy_map_set_string(PgyHashMap_String *m, const char *key, con
 
 static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
 {
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return "";
-    if (m->count == 0) return "";
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map");
+    if (key == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get with null key");
+    if (m->count == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
     size_t p = 0;
     while (m->occupied[h] && p < m->capacity) {
@@ -777,7 +797,7 @@ static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
             return m->values[h] ? m->values[h] : "";
         h = (h + 1) % (uint32_t)m->capacity; p++;
     }
-    return "";
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
 }
 
 static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
@@ -795,6 +815,10 @@ static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
 
 static inline void pgy_map_remove_string(PgyHashMap_String *m, const char *key)
 {
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return;
-    if (m->count == 0) return;
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove on invalid map");
+    if (key == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove with null key");
+    if (m->count == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found");
     uint32_t cap = (uint32_t)m->capacity;

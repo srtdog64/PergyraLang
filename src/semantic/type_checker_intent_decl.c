@@ -9,13 +9,19 @@
 #include <string.h>
 
 static Type *
+intent_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+}
+
+static Type *
 intent_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
 {
     ASTNode *type_ref;
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
         return TYPE_UNKNOWN;
     type_ref = involves->data.intent_involves.subject_type;
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return intent_resolve_type_ref(type_ref, ctx);
 }
 
 static Type *
@@ -25,7 +31,7 @@ intent_resolve_value_type(ASTNode *value, SemanticContext *ctx)
     if (value == NULL || value->type != AST_INTENT_VALUE)
         return TYPE_UNKNOWN;
     type_ref = value->data.intent_value.value_type;
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return intent_resolve_type_ref(type_ref, ctx);
 }
 
 static Type *
@@ -37,7 +43,7 @@ intent_resolve_step_where_type(ASTNode *step, SemanticContext *ctx)
         return NULL;
     }
     type_ref = step->data.intent_step.where_type;
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return intent_resolve_type_ref(type_ref, ctx);
 }
 
 bool

@@ -422,6 +422,8 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
 bool
 type_check_release_slot(ASTNode *call, SemanticContext *ctx)
 {
+    semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
+
     if (call->data.call.arg_count < 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
@@ -540,4 +542,3 @@ type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
     semantic_record_effect(ctx, EFFECT_REMOTE);
     return slot_type;
 }
-

@@ -184,6 +184,102 @@ test_parallel_execution_semantics(void)
         ast_destroy(call);
     }
 
+    TEST("Cancel rejects movable resource Future payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending", future_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("pending", 1) };
+        ASTNode *call = make_call("Cancel", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "Cancel does not support slot handle (movable) future payloads yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("Cancel rejects anchored slot-handle Future payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *slot_type = type_create_slot(TYPE_INT, false);
+        Type *args[1] = { slot_type };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending", future_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("pending", 1) };
+        ASTNode *call = make_call("Cancel", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "Cancel does not support slot handle (anchored) future payloads yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("Cancel rejects boundary-value Future payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->program_root = program;
+
+        Type *array_args[1] = { TYPE_INT };
+        Type *array_type = type_create_constructed(TYPE_ARRAY, array_args, 1);
+        Type *args[1] = { array_type };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending", future_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("pending", 1) };
+        ASTNode *call = make_call("Cancel", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "Cancel does not support boundary value future payloads yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+        ast_destroy(program);
+    }
+
+    TEST("Cancel rejects authority Token Future payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *token_args[1] = { TYPE_INT };
+        Type *token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+        Type *args[1] = { token_type };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending", future_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("pending", 1) };
+        ASTNode *call = make_call("Cancel", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "Cancel does not support authority-bearing Token future payloads yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
     TEST("Cancel rejects non-future values");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -284,6 +380,124 @@ test_parallel_execution_semantics(void)
         ast_destroy(call);
     }
 
+    TEST("TryRecv rejects movable resource channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("TryRecv", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "TryRecv does not support slot handle (movable) channels yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("RecvTimeout rejects movable resource channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[2] = { make_identifier("ch", 1), make_number(1000, 1) };
+        ASTNode *call = make_call("RecvTimeout", call_args, 2, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "RecvTimeout does not support slot handle (movable) channels yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("TryRecv rejects anchored slot-handle channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *slot_type = type_create_slot(TYPE_INT, false);
+        Type *args[1] = { slot_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("TryRecv", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "TryRecv does not support slot handle (anchored) channels yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("RecvTimeout rejects boundary-value channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->program_root = program;
+
+        Type *array_args[1] = { TYPE_INT };
+        Type *array_type = type_create_constructed(TYPE_ARRAY, array_args, 1);
+        Type *channel_args[1] = { array_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, channel_args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[2] = { make_identifier("ch", 1), make_number(1000, 1) };
+        ASTNode *call = make_call("RecvTimeout", call_args, 2, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "RecvTimeout does not support boundary value channels yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+        ast_destroy(program);
+    }
+
+    TEST("TryRecv rejects authority Token channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *token_args[1] = { TYPE_INT };
+        Type *token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+        Type *args[1] = { token_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("TryRecv", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "TryRecv cannot yield Token values yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
     TEST("ChannelLength(Channel<Int>) returns Int");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -374,6 +588,71 @@ test_parallel_execution_semantics(void)
         ASTNode *call = make_call("ChannelClosed", call_args, 1, 1);
         Type *t = type_check_expression(call, ctx);
         EXPECT(!ctx->has_error && type_equals(t, TYPE_BOOL));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("ChannelClose(Channel<Int>) returns Void");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("ChannelClose", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_VOID));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("ChannelClose rejects movable resource channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("ChannelClose", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "ChannelClose does not support slot handle (movable) channels yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("ChannelClose rejects authority Token channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *token_args[1] = { TYPE_INT };
+        Type *token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+        Type *args[1] = { token_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("ChannelClose", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "ChannelClose cannot close Token channels yet"));
 
         semantic_context_destroy(ctx);
         ast_destroy(call);
@@ -480,6 +759,94 @@ test_parallel_execution_semantics(void)
 
         semantic_context_destroy(ctx);
         ast_destroy(decl);
+        ast_destroy(call);
+    }
+
+    TEST("SendTimeout rejects movable resource channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 1);
+        type_check_let_decl(decl, ctx);
+
+        ASTNode *call_args[3] = {
+            make_identifier("ch", 2),
+            make_identifier("q", 2),
+            make_number(1000, 2)
+        };
+        ASTNode *call = make_call("SendTimeout", call_args, 3, 2);
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx,
+                "SendTimeout does not support slot handle (movable) sends yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(call);
+    }
+
+    TEST("TrySendStatus rejects authority Token channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *token_args[1] = { TYPE_INT };
+        Type *token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+        Type *channel_args[1] = { token_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, channel_args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+        scope_declare(ctx->scope,
+            symbol_create_variable("tok", token_type, 1, 1));
+
+        ASTNode *call_args[2] = {
+            make_identifier("ch", 2),
+            make_identifier("tok", 2)
+        };
+        ASTNode *call = make_call("TrySendStatus", call_args, 2, 2);
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx,
+                "TrySendStatus cannot transport Token values yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("SendTimeoutStatus rejects authority Token channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *token_args[1] = { TYPE_INT };
+        Type *token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+        Type *channel_args[1] = { token_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, channel_args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+        scope_declare(ctx->scope,
+            symbol_create_variable("tok", token_type, 1, 1));
+
+        ASTNode *call_args[3] = {
+            make_identifier("ch", 2),
+            make_identifier("tok", 2),
+            make_number(1000, 2)
+        };
+        ASTNode *call = make_call("SendTimeoutStatus", call_args, 3, 2);
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx,
+                "SendTimeoutStatus cannot transport Token values yet"));
+
+        semantic_context_destroy(ctx);
         ast_destroy(call);
     }
 

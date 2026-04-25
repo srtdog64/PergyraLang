@@ -107,8 +107,18 @@ if [ "$graph_skips" -le 0 ]; then
   exit 1
 fi
 
+if [ "$graph_skips" -lt 3000 ]; then
+  echo "graph-backed stage skip inventory regressed below beta floor: $graph_skips < 3000" >&2
+  exit 1
+fi
+
 if [ "$metadata_entries" -le 0 ]; then
   echo "graph-backed metadata inventory regressed to zero entries" >&2
+  exit 1
+fi
+
+if [ "$metadata_entries" -lt 1500 ]; then
+  echo "graph-backed metadata inventory regressed below beta floor: $metadata_entries < 1500" >&2
   exit 1
 fi
 
@@ -117,8 +127,18 @@ if [ "$metadata_hits" -le 0 ]; then
   exit 1
 fi
 
+if [ "$metadata_hits" -lt 2400 ]; then
+  echo "graph-backed metadata reuse regressed below beta floor: $metadata_hits < 2400" >&2
+  exit 1
+fi
+
 if [ "$metadata_owned" -le 0 ]; then
   echo "graph-backed stable constructed metadata regressed to zero owned entries" >&2
+  exit 1
+fi
+
+if [ "$metadata_owned" -lt 45 ]; then
+  echo "graph-backed stable constructed metadata regressed below beta floor: $metadata_owned < 45" >&2
   exit 1
 fi
 

@@ -151,6 +151,25 @@ Function-body `let` has a type annotation but no initializer (e.g. `let x: Int;`
 
 See `docs/93_codegen_idiom_audit.md` for the full backend parity rationale.
 
+#### `PGY_SEM_MISSING_RETURN`
+
+Non-`Void` function body has at least one reachable normal CFG path that can fall through without returning a value.
+
+- **Reason**: the CFG body summary contains a reachable path without a return terminator.
+- **Fix**: add a return on every branch/path, or change the function return type to `Void` if falling through is intended.
+- **cause_ir**: `semantic:cfg:missing_return_path`
+- **fix_source**: `add-return-on-all-paths`
+
+#### `PGY_SEM_UNREACHABLE_CODE`
+
+Statement appears after a CFG terminator (`return`, `break`, or `continue`) in
+the same block and has no reachable normal entry edge.
+
+- **Reason**: the CFG body summary has no reachable normal edge to the statement.
+- **Fix**: remove the statement or move it before the terminator if it must execute.
+- **cause_ir**: `semantic:cfg:unreachable_statement`
+- **fix_source**: `remove-or-move-before-terminator`
+
 ### Slot Ownership / Views
 
 #### `PGY_SEM_SLOT_RELEASED`
@@ -201,6 +220,7 @@ Read or Write through a `MoveToken<T>`. Move tokens are one-shot ownership trans
 
 Inside a `parallel` block, two or more tasks mutate or release the **same** slot. This is a hard error — data race by construction.
 
+- **Cause IR**: `semantic:parallel:resource_conflict`
 - **Reason**: owning writes across tasks must be disjoint; identity and alias analysis both trace to the same slot.
 - **Fix**: split the slot into per-task slots; use a `Channel<T>` to serialize writes; or move the write outside the parallel block.
 

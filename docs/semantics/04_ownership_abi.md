@@ -13,6 +13,7 @@ Keywords and surfaces: `own`, `ref`, anchored slot handles, slot boundaries, run
 - Movable value transfer/borrow where explicitly covered.
 - Ownership diagnostics for destructure/member/container/return/channel/helper-chain paths.
 - Arena discipline: scratch/result/persistent/runtime lanes.
+- SecureSlot and authority token invariants for the stable anchored boundary subset.
 
 Out of beta:
 
@@ -29,6 +30,8 @@ Gamma; ResourceState |- move(x) => ResourceState'
 Gamma; ResourceState |- release(slot) => ResourceState'
 ABI |- returned_value owns lane
 ABI |- scratch_value does not escape
+Gamma; ResourceState |- secure_read(slot, token) ok
+Gamma; ResourceState |- authority_use(zone, token) ok
 ```
 
 ## Theorem: Anchored Ownership Safety
@@ -50,6 +53,48 @@ Current evidence:
 Remaining proof obligation:
 
 - Finish ABI ownership seams for returned strings/helper payloads and runtime-owned values.
+
+## Theorem: Secure Token Unforgeability
+
+Secure slot tokens and authority-bearing tokens cannot be forged, copied into an unsupported trust boundary, or used to access a slot/zone authority boundary they were not issued for.
+
+Required invariants:
+
+- Token material is not constructible by source-level expressions outside compiler/runtime issuance points.
+- Secure slot token mismatch cannot read, write, release, or otherwise mutate the protected slot.
+- Authority-bearing tokens cannot be transported through unsupported channels or stored in stable beta containers unless the surface explicitly defines that transfer.
+- Runtime snapshots and observability strings must not expose secret token material.
+
+Current evidence:
+
+- Secure slot read/write paths already validate token pairing.
+- Runtime authority failure surface exposes reason/code state without exposing secret token material.
+- `runtime-authority-contract-test-smoke` and `runtime-abi-lifetime-test-smoke` guard parts of the runtime ABI vocabulary and borrowed-string lifetime surface.
+
+Remaining proof obligation:
+
+- Add C/LLVM parity regressions for invalid secure-slot token and authority-token mismatch paths.
+- Make unsupported authority token transport an explicit semantic reject everywhere the beta surface accepts transport syntax.
+
+## Theorem: Authority Transfer Single-Owner
+
+Zone authority transfer and handoff cannot create two active owners for one authority boundary.
+
+Required invariants:
+
+- A handoff either materializes a new owner and invalidates the previous authority frontier, or fails with a recoverable authority/boundary state.
+- A failed handoff cannot leave source and target both active.
+- Projection and observability state after handoff must report the same authority owner on C and LLVM.
+
+Current evidence:
+
+- Handoff projection/world-state/layer-state frontier ABI cases exist.
+- Authority guard snapshots and intent authority snapshots share the same runtime reason vocabulary.
+
+Remaining proof obligation:
+
+- Generalize handoff authority ownership beyond the currently covered frontier slices.
+- Add explicit invalid-authority transfer tests for C and LLVM parity.
 
 ## Theorem: Arena Lifetime Non-Escape
 

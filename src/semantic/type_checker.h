@@ -129,6 +129,7 @@ struct SemanticContext
     ASTNode*     current_function_decl; /* Enclosing function/action decl */
     Type*        current_return; /* Expected return type of func   */
     uint32_t     current_function_effects; /* Inferred effect mask    */
+    uint32_t     current_function_body_summary; /* Interprocedural body facts */
     bool         tracking_function_effects; /* Only inside function body */
     bool         in_async_func;  /* Inside async func              */
     bool         in_parallel;    /* Inside parallel block          */

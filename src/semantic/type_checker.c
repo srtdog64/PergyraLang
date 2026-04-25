@@ -175,17 +175,7 @@ type_get_constructed_arg(const Type *type, size_t index)
 bool
 type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
 {
-    bool prev_parallel = ctx->in_parallel;
-    ctx->in_parallel   = true;
-
-    for (size_t i = 0; i < node->data.parallel.task_count; i++) {
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        type_check_statement(node->data.parallel.tasks[i], ctx);
-        scope_exit(&ctx->scope);
-    }
-
-    ctx->in_parallel = prev_parallel;
-    return !ctx->has_error;
+    return type_check_parallel_block_flow(node, ctx);
 }
 
 static bool
@@ -465,11 +455,7 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
             type_check_block(node->data.unsafe_block.body, ctx);
         return !ctx->has_error;
     case AST_DEFER_STMT:
-        /* Type-check deferred body — actual slot state save/restore
-         * is handled in type_check_statement_flow (type_checker_flow.c). */
-        if (node->data.defer_stmt.body != NULL)
-            type_check_block(node->data.defer_stmt.body, ctx);
-        return !ctx->has_error;
+        return type_check_defer_body_flow(node->data.defer_stmt.body, ctx);
     case AST_BIND_STMT:
         /* bind party.slot = Role; — validated at codegen level */
         return true;

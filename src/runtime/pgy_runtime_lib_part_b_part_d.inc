@@ -13,21 +13,42 @@ PgySlot_Double pgy_claim_Double(void)
 
 void pgy_write_Double(PgySlot_Double *s, double v)
 {
-    if (s == NULL) return;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Double)\n"); return; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Double slot write");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE);
+    }
     s->value = v;
 }
 
 double pgy_read_Double(PgySlot_Double *s)
 {
-    if (s == NULL) return 0.0;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Double)\n"); return 0.0; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Double slot read");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ);
+    }
     return s->value;
 }
 
 void pgy_release_Double(PgySlot_Double *s)
 {
-    if (s != NULL) { s->value = 0.0; s->claimed = false; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Double slot release");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE,
+                          PGY_RUNTIME_PANIC_REASON_DOUBLE_RELEASE_SLOT);
+    }
+    s->value = 0.0;
+    s->claimed = false;
 }
 
 /* =================================================================
@@ -44,21 +65,42 @@ PgySlot_Bool pgy_claim_Bool(void)
 
 void pgy_write_Bool(PgySlot_Bool *s, bool v)
 {
-    if (s == NULL) return;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Bool)\n"); return; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Bool slot write");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE);
+    }
     s->value = v;
 }
 
 bool pgy_read_Bool(PgySlot_Bool *s)
 {
-    if (s == NULL) return false;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Bool)\n"); return false; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Bool slot read");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ);
+    }
     return s->value;
 }
 
 void pgy_release_Bool(PgySlot_Bool *s)
 {
-    if (s != NULL) { s->value = false; s->claimed = false; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null Bool slot release");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE,
+                          PGY_RUNTIME_PANIC_REASON_DOUBLE_RELEASE_SLOT);
+    }
+    s->value = false;
+    s->claimed = false;
 }
 
 /* =================================================================
@@ -75,24 +117,42 @@ PgySlot_String pgy_claim_String(void)
 
 void pgy_write_String(PgySlot_String *s, char *v)
 {
-    if (s == NULL) return;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (String)\n"); return; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null String slot write");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE);
+    }
     s->value = v;
 }
 
 char *pgy_read_String(PgySlot_String *s)
 {
-    if (s == NULL) return NULL;
-    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (String)\n"); return NULL; }
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null String slot read");
+    }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ);
+    }
     return s->value;
 }
 
 void pgy_release_String(PgySlot_String *s)
 {
-    if (s != NULL) {
-        s->value = NULL;
-        s->claimed = false;
+    if (s == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "null String slot release");
     }
+    if (!s->claimed) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE,
+                          PGY_RUNTIME_PANIC_REASON_DOUBLE_RELEASE_SLOT);
+    }
+    s->value = NULL;
+    s->claimed = false;
 }
 
 /* =================================================================
@@ -129,27 +189,53 @@ PgySecureSlot_##Suffix pgy_claim_secure_##Suffix(PgyToken_##Suffix *out_token) \
 void pgy_secure_write_##Suffix(PgySecureSlot_##Suffix *s, CType v,             \
                                const PgyToken_##Suffix *t)                     \
 {                                                                              \
-    if (s != NULL && t != NULL && s->occupied                                  \
-        && s->token == t->id && t->can_write)                                  \
-        s->value = v;                                                          \
+    if (s == NULL || t == NULL)                                                 \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,          \
+                          "null secure slot write operand");                   \
+    if (!s->occupied)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,               \
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SECURE_SLOT_WRITE); \
+    if (s->token != t->id)                                                      \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN,         \
+                          PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE); \
+    if (!t->can_write)                                                          \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN,         \
+                          PGY_RUNTIME_PANIC_REASON_SECURE_TOKEN_DENIES_WRITE);  \
+    s->value = v;                                                              \
 }                                                                              \
                                                                                \
 CType pgy_secure_read_##Suffix(PgySecureSlot_##Suffix *s,                      \
                                const PgyToken_##Suffix *t)                     \
 {                                                                              \
-    if (s != NULL && t != NULL && s->occupied                                  \
-        && s->token == t->id && t->can_read)                                   \
-        return s->value;                                                       \
-    return (ZeroExpr);                                                         \
+    if (s == NULL || t == NULL)                                                 \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,          \
+                          "null secure slot read operand");                    \
+    if (!s->occupied)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,               \
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SECURE_SLOT_READ);  \
+    if (s->token != t->id)                                                      \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN,         \
+                          PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_READ);  \
+    if (!t->can_read)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN,         \
+                          PGY_RUNTIME_PANIC_REASON_SECURE_TOKEN_DENIES_READ);   \
+    return s->value;                                                           \
 }                                                                              \
                                                                                \
 void pgy_secure_release_##Suffix(PgySecureSlot_##Suffix *s,                    \
                                  const PgyToken_##Suffix *t)                   \
 {                                                                              \
-    if (s != NULL && t != NULL && s->token == t->id) {                         \
-        s->occupied = false;                                                   \
-        s->token = 0;                                                          \
-    }                                                                          \
+    if (s == NULL || t == NULL)                                                 \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,          \
+                          "null secure slot release operand");                 \
+    if (!s->occupied)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE,              \
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SECURE_SLOT_RELEASE); \
+    if (s->token != t->id)                                                      \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN,         \
+                          PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_RELEASE); \
+    s->occupied = false;                                                       \
+    s->token = 0;                                                              \
 }
 
 PGY_DEFINE_SECURE_SLOT_EXPORTS(Int, int32_t, 0)
@@ -183,23 +269,34 @@ PgyDeviceSlot_##Suffix pgy_claim_device_##Suffix(void)                          
                                                                                 \
 void pgy_device_write_##Suffix(PgyDeviceSlot_##Suffix *s, CType v)              \
 {                                                                               \
-    if (s != NULL && s->claimed)                                                \
-        s->value = v;                                                           \
+    if (s == NULL || !s->claimed) {                                             \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,                \
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_DEVICE_SLOT_WRITE); \
+    }                                                                           \
+    s->value = v;                                                               \
 }                                                                               \
                                                                                 \
 CType pgy_device_read_##Suffix(PgyDeviceSlot_##Suffix *s)                       \
 {                                                                               \
-    if (s != NULL && s->claimed)                                                \
-        return s->value;                                                        \
-    return (ZeroExpr);                                                          \
+    if (s == NULL || !s->claimed) {                                             \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,                \
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_DEVICE_SLOT_READ);  \
+    }                                                                           \
+    return s->value;                                                            \
 }                                                                               \
                                                                                 \
 void pgy_release_device_##Suffix(PgyDeviceSlot_##Suffix *s)                     \
 {                                                                               \
-    if (s != NULL) {                                                            \
-        s->value = (ZeroExpr);                                                  \
-        s->claimed = false;                                                     \
+    if (s == NULL) {                                                            \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,           \
+                          "device slot release on null slot");                 \
     }                                                                           \
+    if (!s->claimed) {                                                          \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE,               \
+                          PGY_RUNTIME_PANIC_REASON_DOUBLE_RELEASE_DEVICE_SLOT); \
+    }                                                                           \
+    s->value = (ZeroExpr);                                                      \
+    s->claimed = false;                                                         \
 }                                                                               \
                                                                                 \
 static void *pgy_device_read_task_##Suffix(void *raw)                           \
@@ -258,9 +355,17 @@ PgyArray_##Suffix pgy_array_new_##Suffix(size_t capacity)                       
     arr.length = 0;                                                              \
     arr.capacity = capacity;                                                     \
     arr.allocator = NULL;                                                        \
+    if (capacity > 0 && capacity > SIZE_MAX / sizeof(CType)) {                   \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,                           \
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);           \
+    }                                                                            \
     arr.data = capacity > 0                                                      \
         ? (CType *)malloc(sizeof(CType) * capacity)                              \
         : NULL;                                                                  \
+    if (arr.data == NULL && capacity > 0) {                                       \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,                           \
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);           \
+    }                                                                            \
     return arr;                                                                  \
 }                                                                                \
                                                                                  \
@@ -270,15 +375,60 @@ void pgy_array_push_##Suffix(PgyArray_##Suffix *arr, CType value)               
         return;                                                                  \
     if (arr->length == arr->capacity) {                                          \
         size_t next = arr->capacity == 0 ? 4 : arr->capacity * 2;                \
+        if (next < arr->capacity || next > SIZE_MAX / sizeof(CType)) {           \
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,                       \
+                              PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);       \
+        }                                                                        \
         CType *next_data = arr->data == NULL                                     \
             ? (CType *)malloc(sizeof(CType) * next)                              \
             : (CType *)realloc(arr->data, sizeof(CType) * next);                 \
-        if (next_data == NULL)                                                   \
-            return;                                                              \
+        if (next_data == NULL) {                                                 \
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,                       \
+                              PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);       \
+        }                                                                        \
         arr->data = next_data;                                                   \
         arr->capacity = next;                                                    \
     }                                                                            \
     arr->data[arr->length++] = value;                                            \
+}                                                                                \
+                                                                                 \
+CType pgy_array_get_##Suffix(PgyArray_##Suffix *arr, size_t index)               \
+{                                                                                \
+    if (arr == NULL) {                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "array get on null array");                            \
+    }                                                                            \
+    if (index >= arr->length) {                                                  \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
+                          PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);   \
+    }                                                                            \
+    return arr->data[index];                                                     \
+}                                                                                \
+                                                                                 \
+void pgy_array_set_##Suffix(PgyArray_##Suffix *arr, size_t index, CType value)   \
+{                                                                                \
+    if (arr == NULL) {                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "array set on null array");                            \
+    }                                                                            \
+    if (index >= arr->length) {                                                  \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
+                          PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);   \
+    }                                                                            \
+    arr->data[index] = value;                                                    \
+}                                                                                \
+                                                                                 \
+CType pgy_slice_get_##Suffix(PgySlice_##Suffix *slice, size_t index)             \
+{                                                                                \
+    if (slice == NULL) {                                                         \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "slice get on null slice");                            \
+    }                                                                            \
+    if (index >= slice->length) {                                                \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
+                          PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS);         \
+    }                                                                            \
+    return slice->data[index];                                                   \
 }                                                                                \
                                                                                  \
 PgySlice_##Suffix pgy_array_slice_##Suffix(PgyArray_##Suffix *arr,               \
@@ -287,12 +437,13 @@ PgySlice_##Suffix pgy_array_slice_##Suffix(PgyArray_##Suffix *arr,              
     PgySlice_##Suffix slice;                                                     \
     slice.data = NULL;                                                           \
     slice.length = 0;                                                            \
-    if (arr == NULL)                                                             \
-        return slice;                                                            \
+    if (arr == NULL) {                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "array slice on null array");                          \
+    }                                                                            \
     if (start + len > arr->length) {                                             \
-        pgy_runtime_warn_invalid_collection("array_slice",                       \
-            "slice out of bounds");                                              \
-        return slice;                                                            \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
+                          PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS);         \
     }                                                                            \
     slice.data = arr->data + start;                                              \
     slice.length = len;                                                          \

@@ -26,6 +26,7 @@ void semantic_format_function_signature(const Type *type,
                                         char *out,
                                         size_t out_cap);
 void semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask);
+void semantic_record_body_summary(SemanticContext *ctx, uint32_t summary_mask);
 Type *create_overlay_nominal_type(const char *name);
 size_t overlay_field_count(ASTNode *decl);
 ASTNode *overlay_field_decl_at(ASTNode *decl,
@@ -59,6 +60,8 @@ extern size_t g_resolve_type_node_cache_misses;
 
 bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
                          const char *action);
+bool type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx);
+bool type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx);
 Type *type_check_qubit_use(ASTNode *expr, SemanticContext *ctx);
 bool identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx);
 size_t count_subject_domain_slots(ASTNode **slots, size_t slot_count);
@@ -303,6 +306,9 @@ bool type_check_event_decl(ASTNode *node, SemanticContext *ctx);
 bool type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
                                    const char *op_name);
 bool type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx);
+bool semantic_check_body_flow(ASTNode *body,
+                              SemanticContext *ctx,
+                              bool *must_return_out);
 void semantic_type_resolution_precollect_relation_inventory(ASTNode *relation_decl,
                                                             SemanticContext *ctx);
 void semantic_type_resolution_precollect_effect_inventory(ASTNode *effect_decl,

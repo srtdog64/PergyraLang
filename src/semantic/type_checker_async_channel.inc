@@ -1,9 +1,159 @@
+static const char *
+spawn_direct_callee_name(ASTNode *spawned)
+{
+    ASTNode *callee;
+
+    if (spawned == NULL || spawned->type != AST_CALL)
+        return NULL;
+    callee = spawned->data.call.callee;
+    if (callee == NULL || callee->type != AST_IDENTIFIER)
+        return NULL;
+    return callee->data.identifier.name;
+}
+
+static FuncParam *
+spawn_callable_param_at(ASTNode *decl, size_t index)
+{
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
+        return NULL;
+    if (decl->is_async_decl) {
+        if (index >= decl->data.async_func_decl.param_count)
+            return NULL;
+        return decl->data.async_func_decl.params[index];
+    }
+    if (index >= decl->data.func_decl.param_count)
+        return NULL;
+    return decl->data.func_decl.params[index];
+}
+
+static ASTNode *
+spawn_find_callable_decl(ASTNode *program, const char *name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_FUNC_DECL)
+            continue;
+        if (stmt->is_async_decl) {
+            if (stmt->data.async_func_decl.name != NULL
+                && strcmp(stmt->data.async_func_decl.name, name) == 0)
+                return stmt;
+            continue;
+        }
+        if (stmt->data.func_decl.name != NULL
+            && strcmp(stmt->data.func_decl.name, name) == 0)
+            return stmt;
+    }
+    return NULL;
+}
+
+static void
+semantic_validate_spawn_ref_boundary(ASTNode *expr,
+                                     SemanticContext *ctx,
+                                     Type *inner)
+{
+    ASTNode *spawned;
+    const char *callee_name;
+    ASTNode *decl;
+
+    (void)inner;
+    if (expr == NULL || ctx == NULL)
+        return;
+
+    spawned = expr->data.spawn_expr.function;
+    callee_name = spawn_direct_callee_name(spawned);
+    if (callee_name == NULL)
+        return;
+
+    decl = spawn_find_callable_decl(ctx->program_root, callee_name);
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
+        return;
+
+    for (size_t i = 0; i < spawned->data.call.arg_count; i++) {
+        ASTNode *arg = spawned->data.call.arguments[i];
+        FuncParam *param = spawn_callable_param_at(decl, i);
+        Type *param_type;
+        OwnershipTypeClass ownership_class;
+        const char *arg_label;
+
+        if (arg == NULL || param == NULL || param->mode != PARAM_MODE_REF)
+            continue;
+
+        param_type = expr_resolve_type_ref(param->type, ctx);
+        ownership_class = semantic_classify_ownership_type(param_type, ctx);
+        if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
+            continue;
+
+        arg_label = "<argument>";
+        if (arg->type == AST_IDENTIFIER && arg->data.identifier.name != NULL)
+            arg_label = arg->data.identifier.name;
+
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE,
+            arg,
+            "Borrowed ref %s '%s' cannot cross spawn boundary.\n"
+            "Reason:\n"
+            "- spawn may continue after the current synchronous call frame advances\n"
+            "- ref is non-owning, so the spawned task would not own the %s provenance\n"
+            "- beta-stable task boundaries allow copy-only refs, or explicit ownership transfer\n"
+            "Fix:\n"
+            "- change parameter %llu of '%s' to 'own' and move the value into spawn\n"
+            "- or pass a copy/projection/value snapshot instead of a borrowed boundary value",
+            semantic_ownership_value_label(ownership_class),
+            arg_label,
+            semantic_ownership_provenance_label(ownership_class),
+            (unsigned long long)(i + 1),
+            callee_name);
+    }
+}
+
+static bool
+semantic_reject_anonymous_async_spawn(ASTNode *expr, SemanticContext *ctx)
+{
+    ASTNode *spawned;
+
+    if (expr == NULL || ctx == NULL)
+        return false;
+    spawned = expr->data.spawn_expr.function;
+    if (spawned == NULL
+        || spawned->type != AST_FUNC_DECL
+        || !spawned->is_async_decl)
+        return false;
+
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_REMOTE_FUTURE_MISUSE,
+        PGY_CAUSE_REMOTE_FUTURE_DIRECT_ACCESS,
+        PGY_FIX_MOVE_INTO_ASYNC_FUNCTION,
+        spawned,
+        "Anonymous async spawn bodies are beta-out-of-scope.\n"
+        "Reason:\n"
+        "- parser accepts 'spawn async () { ... }', but beta semantics only "
+        "close named async/function calls at the spawn boundary\n"
+        "- anonymous spawned bodies need closure capture and lifetime analysis "
+        "before they can be trusted\n"
+        "Fix:\n"
+        "- move the body into a named async function\n"
+        "- call it with 'spawn Worker(args...)' so parameter ownership and "
+        "effects are checked explicitly");
+    return true;
+}
+
 Type *
 type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
 {
+    semantic_record_body_summary(ctx, BODY_SUMMARY_SPAWNS_TASK);
     semantic_record_effect(ctx, EFFECT_REMOTE);
+    if (semantic_reject_anonymous_async_spawn(expr, ctx)) {
+        Type *unknown_args[1] = { TYPE_UNKNOWN };
+        return type_create_constructed(TYPE_FUTURE, unknown_args, 1);
+    }
     /* Type-check the spawned function/expression */
     Type *inner = type_check_expression(expr->data.spawn_expr.function, ctx);
+    semantic_validate_spawn_ref_boundary(expr, ctx, inner);
     Type *args[1] = { inner != NULL ? inner : TYPE_UNKNOWN };
     return type_create_constructed(TYPE_FUTURE, args, 1);
 }
@@ -17,6 +167,7 @@ semantic_channel_type_is_token(const Type *type)
 Type *
 type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
 {
+    semantic_record_body_summary(ctx, BODY_SUMMARY_SENDS_CHANNEL);
     semantic_record_effect(ctx, EFFECT_REMOTE);
     /* Check channel and value types */
     Type *channel_type = type_check_expression(expr->data.channel_send.channel, ctx);

@@ -26,7 +26,12 @@ Type *type_check_channel_send_builtin(ASTNode *expr, const char *name,
 Type *type_check_channel_recv_builtin(ASTNode *expr, const char *name,
                                       bool has_timeout, SemanticContext *ctx);
 
+Type *type_check_channel_close_builtin(ASTNode *expr, SemanticContext *ctx);
+
 Type *type_check_claim_device_slot(ASTNode *call, SemanticContext *ctx);
+
+bool type_check_cancel_rejects_payload(ASTNode *site, Type *task_type,
+                                       SemanticContext *ctx);
 
 Type *type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
                                    const char *builtin_name,

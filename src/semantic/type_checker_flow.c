@@ -1,14 +1,8 @@
-/*
- * Copyright (c) 2025 Pergyra Language Project
- * All rights reserved.
- *
- * Type Checker control-flow and ownership analysis
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "type_checker_internal.h"
+#include "type_checker_ownership_internal.h"
 #include "diag_codes.h"
 
 typedef enum
@@ -575,6 +569,33 @@ check_match_exhaustiveness(ASTNode *node, Type *subj_type, SemanticContext *ctx)
     }
 }
 
+static bool
+match_stmt_has_total_case_coverage(ASTNode *node, Type *subj_type,
+                                   SemanticContext *ctx)
+{
+    const char **variants = NULL;
+    size_t variant_count;
+
+    if (node == NULL || subj_type == NULL)
+        return false;
+    if (node->data.match_stmt.default_body != NULL)
+        return true;
+
+    variant_count = collect_match_variant_space(subj_type, ctx, &variants);
+    if (variants == NULL || variant_count == 0)
+        return false;
+
+    for (size_t i = 0; i < variant_count; i++) {
+        const char *variant = variants[i];
+        if (variant == NULL)
+            continue;
+        if (!case_list_covers_variant(node, subj_type, variant))
+            return false;
+    }
+
+    return true;
+}
+
 #include "type_checker_flow_loops.inc"
 
 static FlowFlags
@@ -589,8 +610,7 @@ type_check_block_flow(ASTNode *node, SemanticContext *ctx,
 
     FlowFlags flags = FLOW_FALLTHROUGH;
     for (size_t i = 0; i < node->data.block.count; i++) {
-        if ((flags & FLOW_FALLTHROUGH) == 0)
-            break;
+        if ((flags & FLOW_FALLTHROUGH) == 0) { flow_record_unreachable_statement(ctx, node->data.block.statements[i]); break; }
 
         FlowFlags stmt_flags =
             type_check_statement_flow(node->data.block.statements[i], ctx, loop_flow);
@@ -771,7 +791,7 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
             destroy_resource_snapshot(&default_snap);
             flags |= FLOW_FALLTHROUGH;
         }
-    } else {
+    } else if (!match_stmt_has_total_case_coverage(node, subj_type, ctx)) {
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
         flags |= FLOW_FALLTHROUGH;
     }
@@ -832,39 +852,15 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return type_check_match_stmt_flow(node, ctx, loop_flow);
     case AST_WITH_STMT:
         return type_check_with_stmt_flow(node, ctx, loop_flow);
+    case AST_PARALLEL_BLOCK:
+        (void)type_check_parallel_block_flow(node, ctx);
+        return FLOW_FALLTHROUGH;
     case AST_UNSAFE_BLOCK:
         if (node->data.unsafe_block.body != NULL)
             return type_check_block_flow(node->data.unsafe_block.body, ctx, loop_flow);
         return FLOW_FALLTHROUGH;
     case AST_DEFER_STMT:
-        /* Type-check deferred body, but save/restore slot states.
-         * Defer bodies run at scope exit, so their Release() calls
-         * should not affect the current scope's slot tracking. */
-        if (node->data.defer_stmt.body != NULL) {
-            /* Collect all slot symbols and their current states */
-            typedef struct { Symbol* sym; SlotState saved_state; } SlotStateSave;
-            SlotStateSave saves[256];
-            size_t save_count = 0;
-            Scope *cur = ctx->scope;
-            while (cur != NULL) {
-                for (size_t i = 0; i < cur->symbol_count && save_count < 256; i++) {
-                    Symbol *s = cur->symbols[i];
-                    if (s != NULL && s->kind == SYMBOL_SLOT) {
-                        saves[save_count].sym = s;
-                        saves[save_count].saved_state = s->slot_info.state;
-                        save_count++;
-                    }
-                }
-                cur = cur->parent;
-            }
-            /* Check the defer body */
-            FlowFlags body_flags = type_check_block_flow(node->data.defer_stmt.body, ctx, loop_flow);
-            /* Restore slot states */
-            for (size_t i = 0; i < save_count; i++) {
-                saves[i].sym->slot_info.state = saves[i].saved_state;
-            }
-            return body_flags;
-        }
+        (void)type_check_defer_body_flow(node->data.defer_stmt.body, ctx);
         return FLOW_FALLTHROUGH;
     case AST_RETURN:
         type_check_return_stmt(node, ctx);
@@ -893,7 +889,8 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
             ResourceConsumeSnapshot snap = snapshot_resource_states_from_scope(
                 loop_flow != NULL && loop_flow->loop_scope != NULL
                     ? loop_flow->loop_scope
-                    : ctx->scope);
+                    : ctx->scope,
+                ctx);
             loop_flow_record(loop_flow, true, &snap);
             destroy_resource_snapshot(&snap);
         }
@@ -922,7 +919,8 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
             ResourceConsumeSnapshot snap = snapshot_resource_states_from_scope(
                 loop_flow != NULL && loop_flow->loop_scope != NULL
                     ? loop_flow->loop_scope
-                    : ctx->scope);
+                    : ctx->scope,
+                ctx);
             loop_flow_record(loop_flow, false, &snap);
             destroy_resource_snapshot(&snap);
         }
@@ -933,6 +931,8 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
     }
 }
 
+#include "type_checker_flow_parallel.inc"
+
 bool
 type_check_block(ASTNode *node, SemanticContext *ctx)
 {
@@ -940,6 +940,18 @@ type_check_block(ASTNode *node, SemanticContext *ctx)
         return true;
 
     (void)type_check_block_flow(node, ctx, NULL);
+    return !ctx->has_error;
+}
+
+bool
+semantic_check_body_flow(ASTNode *body, SemanticContext *ctx,
+                         bool *must_return_out)
+{
+    FlowFlags flags = type_check_block_flow(body, ctx, NULL);
+    if (must_return_out != NULL)
+        *must_return_out =
+            ((flags & FLOW_RETURN) != 0)
+            && ((flags & FLOW_FALLTHROUGH) == 0);
     return !ctx->has_error;
 }
 

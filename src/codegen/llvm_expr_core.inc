@@ -200,6 +200,32 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
                                      llvm_tmp_name(ctx));
     }
 
+    if (!is_float && (node->data.binary.op.type == TOKEN_SLASH
+        || node->data.binary.op.type == TOKEN_PERCENT)) {
+        bool use_i64 = left_type == ctx->type_i64 || right_type == ctx->type_i64;
+        const char *helper = node->data.binary.op.type == TOKEN_SLASH
+            ? (use_i64 ? "pgy_checked_div_i64_export"
+                       : "pgy_checked_div_i32_export")
+            : (use_i64 ? "pgy_checked_mod_i64_export"
+                       : "pgy_checked_mod_i32_export");
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, helper);
+        if (fn != NULL) {
+            LLVMValueRef args[2];
+            if (use_i64) {
+                if (left_type == ctx->type_i32)
+                    left = LLVMBuildSExt(ctx->builder, left, ctx->type_i64,
+                                         llvm_tmp_name(ctx));
+                if (right_type == ctx->type_i32)
+                    right = LLVMBuildSExt(ctx->builder, right, ctx->type_i64,
+                                          llvm_tmp_name(ctx));
+            }
+            args[0] = left;
+            args[1] = right;
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                                  args, 2, llvm_tmp_name(ctx));
+        }
+    }
+
     const char *tmp = llvm_tmp_name(ctx);
 
     switch (node->data.binary.op.type) {

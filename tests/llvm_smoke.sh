@@ -21,7 +21,10 @@ run_case() {
     shift 2
     local output
 
-    output="$("$PGY" "$file" --run --backend=llvm 2>&1)"
+    output="$(
+        cd "$(dirname "$file")"
+        "$PGY" "$file" --run --backend=llvm 2>&1
+    )"
     for expected in "$@"; do
         if ! grep -Fq -- "$expected" <<<"$output"; then
             echo "[llvm-smoke] $name failed" >&2

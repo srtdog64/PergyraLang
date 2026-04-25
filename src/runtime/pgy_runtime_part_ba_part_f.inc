@@ -35,10 +35,12 @@ static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
 static inline char *pgy_queue_pop_string(PgyQueue_String *q)
 {
     char *out = NULL;
-    if (q == NULL || q->count == 0) {
-        pgy_runtime_warn_invalid_collection("queue_pop_string", "queue is empty");
-        return NULL;
-    }
+    if (q == NULL || q->data == NULL || q->capacity == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "queue pop on invalid queue");
+    if (q->count == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "queue pop from empty queue");
     out = q->data[q->head];
     q->head = (q->head + 1) % q->capacity;
     q->count--;
@@ -479,7 +481,8 @@ void pgy_zone_authority_check_export(void *zone_ptr, void *participant_ptr,
 #define PGY_ZONE_AUTHORITY_CHECK(zone_ptr, participant_ptr, zone_name, participant_name) do { \
     if (!pgy_zone_authority_validate((void *)(zone_ptr), (void *)(participant_ptr),           \
                                      (zone_name), (participant_name))) {                      \
-        PGY_PANIC("zone authority validation failed");                                         \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_AUTHORITY_MISMATCH,                         \
+                          PGY_RUNTIME_PANIC_REASON_AUTHORITY_MISMATCH);                       \
     }                                                                                          \
 } while (0)
 
@@ -559,7 +562,11 @@ typedef struct {                                                        \
 static inline void* pgy_ptr_new_impl(size_t size, const char *file, int line)
 {
     void *p = malloc(size);
-    if (!p) { fprintf(stderr, "pgy: out of memory at %s:%d\n", file, line); abort(); }
+    if (p == NULL && size > 0) {
+        pgy_runtime_panic_emit(PGY_RUNTIME_PANIC_CLASS_OOM,
+                               PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED,
+                               file, line);
+    }
     return p;
 }
 
@@ -630,7 +637,7 @@ static inline CType \
 pgy_result_unwrap_##SuffixName(PgyResult_##SuffixName* r) \
 { \
     if (r->tag != PgyResultOk) { \
-        PGY_PANIC("Result unwrap on Err value"); \
+        PGY_PANIC(PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR); \
     } \
     return r->ok; \
 } \
@@ -741,7 +748,7 @@ static inline CType \
 pgy_option_unwrap_##SuffixName(PgyOption_##SuffixName* o) \
 { \
     if (o->tag != PgyOptionSome) { \
-        PGY_PANIC("Option unwrap on None value"); \
+        PGY_PANIC(PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE); \
     } \
     return o->value; \
 }

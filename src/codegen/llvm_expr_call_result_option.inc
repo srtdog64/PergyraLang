@@ -1,4 +1,51 @@
 static LLVMValueRef
+llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, LLVMValueRef aggregate,
+                                       unsigned value_index,
+                                       const char *reason)
+{
+    LLVMValueRef tag;
+    LLVMValueRef ok;
+    LLVMValueRef current_fn;
+    LLVMBasicBlockRef ok_bb;
+    LLVMBasicBlockRef fail_bb;
+
+    if (ctx == NULL || aggregate == NULL)
+        return NULL;
+
+    tag = LLVMBuildExtractValue(ctx->builder, aggregate, 0, llvm_tmp_name(ctx));
+    ok = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+        LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
+    current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(ctx->builder));
+    if (current_fn == NULL)
+        return LLVMBuildExtractValue(ctx->builder, aggregate, value_index,
+            llvm_tmp_name(ctx));
+
+    ok_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
+        "unwrap.ok");
+    fail_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
+        "unwrap.panic");
+    LLVMBuildCondBr(ctx->builder, ok, ok_bb, fail_bb);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
+    {
+        LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
+            "pgy_runtime_panic_internal_invariant_export");
+        if (panic_fn != NULL) {
+            LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
+                reason != NULL ? reason : "runtime invariant failed",
+                llvm_tmp_name(ctx));
+            LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+                &reason_arg, 1, "");
+        }
+    }
+    LLVMBuildUnreachable(ctx->builder);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, ok_bb);
+    return LLVMBuildExtractValue(ctx->builder, aggregate, value_index,
+        llvm_tmp_name(ctx));
+}
+
+static LLVMValueRef
 llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
 {    /* Built-in: Ok(value) ??Result<T, E>; prefer active expected layout. */
     if (strcmp(callee_name, "Ok") == 0 && node->data.call.arg_count == 1) {
@@ -107,7 +154,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     /* Built-in: Unwrap(result) ??extract value field */
     if (strcmp(callee_name, "Unwrap") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        return LLVMBuildExtractValue(ctx->builder, r, 1, llvm_tmp_name(ctx));
+        return llvm_emit_checked_result_option_unwrap(ctx, r, 1,
+            "Result unwrap on Err value");
     }
 
     /* Built-in: UnwrapOr(result, default) ??ok ? value : default */
@@ -167,7 +215,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     /* Built-in: UnwrapOption(option) ??extract value field */
     if (strcmp(callee_name, "UnwrapOption") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef o = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        return LLVMBuildExtractValue(ctx->builder, o, 1, llvm_tmp_name(ctx));
+        return llvm_emit_checked_result_option_unwrap(ctx, o, 1,
+            "Option unwrap on None value");
     }
 
     return NULL;

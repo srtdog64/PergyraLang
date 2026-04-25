@@ -15,7 +15,6 @@
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
-#include "type_checker_ownership_internal.h"
 #include "type_checker_channel_transport_internal.h"
 #include "diag_codes.h"
 
@@ -813,6 +812,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (strcmp(name, "ReleaseDeviceSlot") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
+        semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
         ASTNode *slot_arg = expr->data.call.arguments[0];
         Type *slot_type = type_check_device_handle_arg(slot_arg, ctx, name, true);
         if (slot_type == TYPE_UNKNOWN)
@@ -965,17 +965,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         return TYPE_BOOL;
     }
     if (strcmp(name, "ChannelClose") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_REMOTE);
-        Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        if (!type_is_constructed_named(ch_type, "Channel")) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "ChannelClose requires Channel<T>, got '%s'",
-                ch_type != NULL ? ch_type->name : "<null>");
-            return TYPE_UNKNOWN;
-        }
-        return TYPE_VOID;
+        return type_check_channel_close_builtin(expr, ctx);
     }
     if (strcmp(name, "ChannelReady") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
@@ -999,6 +989,10 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "Cancel requires Future<T> or RemoteFuture<T>, got '%s'",
                 task_type != NULL ? task_type->name : "<null>");
+            return TYPE_UNKNOWN;
+        }
+        if (type_check_cancel_rejects_payload(expr->data.call.arguments[0],
+                task_type, ctx)) {
             return TYPE_UNKNOWN;
         }
         return TYPE_BOOL;
@@ -1102,6 +1096,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (strcmp(name, "ReleaseQubit") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
+        semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
         consume_qubit_value(expr->data.call.arguments[0], ctx, "released");
