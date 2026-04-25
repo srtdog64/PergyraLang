@@ -1032,6 +1032,7 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         memset(&step, 0, sizeof(step));
         step.index = i;
         step.name = step_node->data.intent_step.name;
+        step.ast = step_node;
         step.where_type_name = type_name(dir, step_node->data.intent_step.where_type);
         {
             ssize_t to = dir_find_zone_node_by_name(dir, step.where_type_name);

@@ -381,6 +381,7 @@ main() {
         "tests/cases/backend_compare/list_get_string"
         "tests/cases/backend_compare/map_get_string"
         "tests/cases/backend_compare/queue_pop_string"
+        "tests/cases/backend_compare/rc_weak_lifecycle"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_embedded_branch_projection_visibility"
         "tests/cases/backend_compare/world_embedded_action_frontier"

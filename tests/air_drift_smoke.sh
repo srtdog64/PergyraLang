@@ -1,0 +1,285 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="${PYTHON_BIN:-}"
+
+if [[ -z "$PYTHON_BIN" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python3)"
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python)"
+    else
+        echo "missing python for AIR drift smoke" >&2
+        exit 1
+    fi
+fi
+
+"$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+air_path = root / "docs" / "104_air_compiler_architecture.md"
+checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
+todo_path = root / "TODO.md"
+makefile_path = root / "Makefile"
+air_semantics_path = root / "docs" / "semantics" / "07_air_abstraction_safety.md"
+compiler_header_path = root / "src" / "compiler" / "compiler.h"
+driver_path = root / "src" / "compiler" / "driver_app.c"
+parser_intent_path = root / "src" / "parser" / "parser_intent.c"
+dir_header_path = root / "src" / "compiler" / "dir.h"
+dir_impl_path = root / "src" / "compiler" / "dir.c"
+air_header_path = root / "src" / "compiler" / "air.h"
+air_impl_path = root / "src" / "compiler" / "air.c"
+air_test_path = root / "src" / "test_air.c"
+diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
+air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
+diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
+
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, parser_intent_path, dir_header_path, dir_impl_path, air_header_path, air_impl_path, air_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+    if not path.exists():
+        raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
+
+air = air_path.read_text(encoding="utf-8")
+checklist = checklist_path.read_text(encoding="utf-8")
+todo = todo_path.read_text(encoding="utf-8")
+makefile = makefile_path.read_text(encoding="utf-8")
+air_semantics = air_semantics_path.read_text(encoding="utf-8")
+compiler_header = compiler_header_path.read_text(encoding="utf-8")
+driver = driver_path.read_text(encoding="utf-8")
+parser_intent = parser_intent_path.read_text(encoding="utf-8")
+dir_header = dir_header_path.read_text(encoding="utf-8")
+dir_impl = dir_impl_path.read_text(encoding="utf-8")
+air_header = air_header_path.read_text(encoding="utf-8")
+air_impl = air_impl_path.read_text(encoding="utf-8")
+air_test = air_test_path.read_text(encoding="utf-8")
+diag_docs = diag_docs_path.read_text(encoding="utf-8")
+air_backend_nonimpact = air_backend_nonimpact_path.read_text(encoding="utf-8")
+diagnostics_json = diagnostics_json_path.read_text(encoding="utf-8")
+
+required_air_terms = [
+    "AIR (Abstraction Intent Representation)",
+    "verification-only synthesis IR",
+    "AST → HIR → DIR → RIR → MIR → C / LLVM",
+    "AIR 는 이 codegen path 옆에 붙는 verification-only synthesis IR",
+    "Intent Node",
+    "Boundary Node",
+    "Drift Detection",
+    "PGY_SEM_INTENT_BOUNDARY_DRIFT",
+    "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+    "PGY_AIR_STRICT_EVIDENCE",
+    "AIR 는 codegen IR 이 아니다",
+    "AIR 는 ownership / borrow 검사의 home 이 아니다",
+    "AIR 는 type 검사의 home 이 아니다",
+    "AIR 는 effect propagation 자체의 home 이 아니다",
+    "AIR 는 새로운 keyword / syntax 를 추가하지 않는다",
+    "Phase 1 (베타 closure 안)",
+    "make air-drift-test-smoke",
+    "make air-backend-nonimpact-test-smoke",
+]
+missing_air = [term for term in required_air_terms if term not in air]
+if missing_air:
+    raise SystemExit("AIR architecture doc missing term(s): " + ", ".join(missing_air))
+
+required_checklist_terms = [
+    "현재 공식 beta readiness는 약 50%",
+    "## 0f. AIR Abstraction Safety Closure",
+    "Source of truth: `docs/104_air_compiler_architecture.md`",
+    "Status: `BLOCKER`",
+    "AIR 는 codegen path 위가 아니라 옆에 위치하는",
+    "make air-drift-test-smoke",
+    "make air-backend-nonimpact-test-smoke",
+    "PGY_SEM_INTENT_BOUNDARY_DRIFT",
+    "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+    "Strict evidence is now the default AIR validation mode",
+    "PGY_AIR_STRICT_EVIDENCE=0",
+]
+missing_checklist = [term for term in required_checklist_terms if term not in checklist]
+if missing_checklist:
+    raise SystemExit("beta checklist missing AIR term(s): " + ", ".join(missing_checklist))
+
+required_todo_terms = [
+    "베타 readiness 추정: 약 `50%`",
+    "AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline",
+    "strict evidence는 기본값으로 승격됐다",
+    "PGY_AIR_STRICT_EVIDENCE=0",
+    "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+    "docs/104_air_compiler_architecture.md",
+    "make air-drift-test-smoke",
+    "air-backend-nonimpact-test-smoke",
+]
+missing_todo = [term for term in required_todo_terms if term not in todo]
+if missing_todo:
+    raise SystemExit("TODO missing AIR beta gate term(s): " + ", ".join(missing_todo))
+
+for term in [
+    "TEST_AIR_SRC",
+    "test-air:",
+    "air-drift-test-smoke:",
+    "air-backend-nonimpact-test-smoke:",
+    "air-backend-nonimpact-full-test-smoke:",
+    "air-strict-backend-compare-test-smoke:",
+    "$(MAKE) test-air",
+    "tests/air_drift_smoke.sh",
+    "tests/air_backend_nonimpact_smoke.sh",
+    "air-drift-test-smoke",
+    "air-backend-nonimpact-test-smoke",
+    "air-backend-nonimpact-full-test-smoke",
+    "air-strict-backend-compare-test-smoke",
+]:
+    if term not in makefile:
+        raise SystemExit(f"Makefile missing AIR smoke wiring: {term}")
+
+required_header_terms = [
+    "AIRProgram",
+    "AIRIntentNode",
+    "AIRBoundaryNode",
+    "AIR_DRIFT_SYNC_ASYNC_CONFLICT",
+    "AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING",
+    "strict_evidence",
+    "has_hir_routine_evidence",
+    "has_rir_boundary_evidence",
+    "has_rir_authority_evidence",
+    "authority_names",
+    "authority_name_count",
+    "hir_routine_evidence_count",
+    "rir_boundary_evidence_count",
+    "rir_authority_evidence_count",
+    "air_synthesize",
+    "air_check_drift",
+]
+missing_header = [term for term in required_header_terms if term not in air_header]
+if missing_header:
+    raise SystemExit("AIR header missing term(s): " + ", ".join(missing_header))
+
+required_impl_terms = [
+    "air_synthesize",
+    "air_validate",
+    "air_check_drift",
+    "PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT",
+    "PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+    "PGY_AIR_STRICT_EVIDENCE",
+    "air_strict_evidence_enabled",
+    "air_sync_conflicts",
+    "air_collect_hir_evidence",
+    "air_collect_rir_evidence",
+    "air_strdup_owned",
+    "air_clear_drifts",
+    "air_format_authority_names",
+    "air_boundary_authority_matches",
+    "air_hir_routine_matches_boundary",
+    "air_rir_scope_matches_boundary",
+]
+missing_impl = [term for term in required_impl_terms if term not in air_impl]
+if missing_impl:
+    raise SystemExit("AIR implementation missing term(s): " + ", ".join(missing_impl))
+
+required_driver_terms = [
+    "air_synthesize(hir, dir, rir",
+    "driver_emit_air_drift_fail",
+    "driver_format_air_authority_names",
+    "PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT",
+    "PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+    "PGY_CAUSE_INTENT_BOUNDARY_DRIFT",
+    "PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE",
+    "PGY_FIX_ALIGN_INTENT_BOUNDARY_SYNC",
+    "PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE",
+    "expected authority participant(s):",
+    "Reason:",
+    "Fix:",
+]
+missing_driver = [term for term in required_driver_terms if term not in driver]
+if missing_driver:
+    raise SystemExit("driver AIR validation missing term(s): " + ", ".join(missing_driver))
+
+if "AIRProgram" in compiler_header:
+    raise SystemExit("CompilerIRBundle must not carry AIRProgram; AIR is verification-only and non-codegen")
+
+required_source_span_terms = [
+    (parser_intent, "step->line = name_tok.line", "parser intent step line"),
+    (parser_intent, "step->column = name_tok.column", "parser intent step column"),
+    (dir_header, "ASTNode    *ast;", "DIR intent step AST field"),
+    (dir_impl, "step.ast = step_node", "DIR intent step AST capture"),
+    (air_impl, "step->ast != NULL ? step->ast : owner_ast", "AIR step AST fallback"),
+    (air_test, "air->intents[0].ast->line > 0", "AIR parsed source intent span test"),
+    (air_test, "air->boundaries[0].ast->line > 0", "AIR parsed source boundary span test"),
+    (diagnostics_json, 'data[0].get("location", {}).get("line", 0) > 0', "AIR JSON line assertion"),
+    (diagnostics_json, 'data[0].get("location", {}).get("column", 0) > 0', "AIR JSON column assertion"),
+]
+missing_span_terms = [label for text, needle, label in required_source_span_terms if needle not in text]
+if missing_span_terms:
+    raise SystemExit("AIR source span gate missing term(s): " + ", ".join(missing_span_terms))
+
+backend_non_consumers = [
+    root / "src" / "compiler" / "compiler.c",
+    root / "src" / "compiler" / "c_runner.c",
+    root / "src" / "compiler" / "llvm_runner.c",
+]
+backend_non_consumers.extend((root / "src" / "codegen").glob("*.c"))
+for path in backend_non_consumers:
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    if "air.h" in text or "AIRProgram" in text or "air_synthesize" in text:
+        raise SystemExit(
+            f"backend/codegen file must not consume AIR directly: {path.relative_to(root)}"
+        )
+
+required_test_terms = [
+    "AIR synthesis creates intent and boundary nodes",
+    "AIR drift checker reports sync/async mismatch",
+    "AIR drift checker accepts matching async boundary",
+    "AIR strict evidence reports missing RIR boundary",
+    "AIR strict evidence rejects mismatched authority participant",
+    "expected authority participant(s): shipper",
+    "AIR synthesis collects HIR/RIR evidence without mutation",
+    "AIR lowers parsed intent source without drift",
+]
+missing_test = [term for term in required_test_terms if term not in air_test]
+if missing_test:
+    raise SystemExit("AIR test missing term(s): " + ", ".join(missing_test))
+
+required_diag_docs_terms = [
+    "PGY_SEM_INTENT_BOUNDARY_DRIFT",
+    "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+    "PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE",
+    "PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE",
+]
+missing_diag_docs = [term for term in required_diag_docs_terms if term not in diag_docs]
+if missing_diag_docs:
+    raise SystemExit("diagnostic docs missing AIR term(s): " + ", ".join(missing_diag_docs))
+
+required_nonimpact_terms = [
+    "PGY_AIR_STRICT_EVIDENCE=0",
+    "PGY_AIR_NONIMPACT_SOURCE",
+    "find tests/cases/backend_compare",
+    "intent_cross_world_transfer",
+    "handoff_projection_frontier",
+    "handoff_world_state_frontier",
+    "world_zone_projection_visibility",
+    "world_embedded_action_frontier",
+    "relation_effect_propagation",
+    "authority_failure_surface",
+    "--emit-c",
+    "--emit-llvm",
+    "generated $name output changed under default strict AIR",
+]
+missing_nonimpact = [term for term in required_nonimpact_terms if term not in air_backend_nonimpact]
+if missing_nonimpact:
+    raise SystemExit("AIR backend nonimpact smoke missing term(s): " + ", ".join(missing_nonimpact))
+
+required_semantics_terms = [
+    "## Theorem: AIR Synthesis Read-Only",
+    "## Theorem: Intent Node Coverage",
+    "## Theorem: Boundary Closure",
+    "## Theorem: Strict Evidence Failure Soundness",
+    "## Theorem: Drift Detection Soundness",
+    "## Theorem: Codegen Non-Impact",
+    "PGY_SEM_INTENT_BOUNDARY_DRIFT",
+    "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+]
+missing_semantics = [term for term in required_semantics_terms if term not in air_semantics]
+if missing_semantics:
+    raise SystemExit("AIR semantics doc missing term(s): " + ", ".join(missing_semantics))
+
+print("AIR drift smoke: ok")
+PY

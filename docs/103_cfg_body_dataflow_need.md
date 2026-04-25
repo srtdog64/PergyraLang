@@ -168,9 +168,23 @@ The migration should be incremental and gated:
   `body_summary_mask`. Semantic recording covers `may_return`,
   `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`,
   `effects`, `requires_zone`, `spawns_task`, and `sends_channel` as explicit
-  summary bits. This is not yet the final CFG evaluator, but it gives later
-  zone/effect/runtime propagation and backend parity gates a stable summary
-  seam instead of rediscovering facts by ad-hoc AST traversal.
+  summary bits. Direct function calls now consume callee summaries and propagate
+  the transitive facts that are meaningful to the caller (`may_escape_ref`,
+  `drops_resource`, `effects`, `requires_zone`, `spawns_task`, and
+  `sends_channel`) while intentionally not propagating callee-local
+  `may_return`. Direct function calls, method calls, and host calls now also
+  record declaration-known boundary facts (`effects`, `requires_zone`, and
+  `own/ref` parameter modes). This is not
+  yet the final CFG evaluator, but it gives later zone/effect/runtime
+  propagation and backend parity gates a stable summary seam instead of
+  rediscovering facts by ad-hoc AST traversal.
+- Done: lambda bodies now get an isolated function-summary lane. Effects and
+  body facts recorded while checking the lambda are stored on the lambda
+  function type, then the enclosing function's effect/body summary is restored.
+  This prevents lambda-local `return`, `spawn`, and channel facts from
+  polluting the outer routine before the lambda is actually called. Calling a
+  lambda through a function-typed binding consumes that stored summary through
+  the same callee-summary path as named functions.
 - Done: anonymous async spawn bodies are explicitly rejected for beta. The
   parser may accept `spawn async () { ... }`, but semantic now reports it as
   beta-out-of-scope until closure capture and lifetime facts are modeled. Named
@@ -213,8 +227,10 @@ The migration should be incremental and gated:
   branch-join state, `own subject` branch-join state, the current parallel
   task/channel-send resource-or-boundary consume boundary, and parallel
   `ref`+`own` boundary conflicts, plus direct named-call `spawn ref` boundary
-  rejection, first-stage interprocedural `body_summary_mask`, anonymous async
-  spawn explicit reject, timeout/status channel-send transport rejection,
+  rejection, first-stage interprocedural `body_summary_mask` with direct
+  function-call and method-declaration propagation, anonymous async spawn
+  explicit reject, timeout/status channel-send
+  transport rejection,
   non-blocking ownership-bearing receive explicit reject, copy-only
   cancellation payload reject, and copy-only channel close are closed baseline
   evidence, not remaining blocker text.

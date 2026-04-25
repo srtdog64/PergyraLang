@@ -30,6 +30,7 @@ Required shape for each proof document:
 - [04_ownership_abi.md](04_ownership_abi.md): anchored own/ref, slot handles, lifetime lanes, and ABI ownership proof obligations.
 - [05_parallel_execution.md](05_parallel_execution.md): `parallel`, execution conflict policy, cancellation/failure baseline, and fairness boundary.
 - [06_backend_parity.md](06_backend_parity.md): MIR, C, LLVM, declaration inventory, and observable backend parity.
+- [07_air_abstraction_safety.md](07_air_abstraction_safety.md): AIR verification-only synthesis IR, intent/boundary coverage, and abstraction drift proof obligations.
 
 ## Beta Proof Boundary
 
@@ -43,6 +44,7 @@ Stable proof scope:
 - Runtime observability: `last`, `history`, `active`, `recent`.
 - Execution: `parallel` conflict/failure baseline.
 - Backends: MIR-equivalent C and LLVM behavior for the frozen subset.
+- AIR abstraction safety: verification-only synthesis IR for stable intent/boundary drift checks.
 
 Out of beta proof scope:
 

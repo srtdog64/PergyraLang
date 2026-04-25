@@ -20,7 +20,9 @@
 
 #include "../common/string_compat.h"
 #include "../lexer/lexer.h"
+#include "../semantic/diag_codes.h"
 #include "../semantic/semantic.h"
+#include "air.h"
 #include "dir.h"
 #include "rir.h"
 #include "mir.h"
@@ -172,6 +174,42 @@ driver_emit_single_diag_json(const char *stage, const char *message)
     driver_emit_single_diag_json_full(stage, NULL, NULL, NULL, message);
 }
 
+static const char *
+driver_diag_code_from_message(const char *message)
+{
+    if (message == NULL)
+        return NULL;
+    if (strstr(message, PGY_CODE_LEX_INVALID_TOKEN) != NULL)
+        return PGY_CODE_LEX_INVALID_TOKEN;
+    if (strstr(message, PGY_CODE_PARSE_SYNTAX) != NULL)
+        return PGY_CODE_PARSE_SYNTAX;
+    return NULL;
+}
+
+static const char *
+driver_diag_cause_from_code(const char *code)
+{
+    if (code == NULL)
+        return NULL;
+    if (strcmp(code, PGY_CODE_LEX_INVALID_TOKEN) == 0)
+        return PGY_CAUSE_LEX_INVALID_TOKEN;
+    if (strcmp(code, PGY_CODE_PARSE_SYNTAX) == 0)
+        return PGY_CAUSE_PARSE_UNEXPECTED_TOKEN;
+    return NULL;
+}
+
+static const char *
+driver_diag_fix_from_code(const char *code)
+{
+    if (code == NULL)
+        return NULL;
+    if (strcmp(code, PGY_CODE_LEX_INVALID_TOKEN) == 0)
+        return PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER;
+    if (strcmp(code, PGY_CODE_PARSE_SYNTAX) == 0)
+        return PGY_FIX_CHECK_SYNTAX;
+    return NULL;
+}
+
 /* Mid-pipeline stage failure helper. Routes to JSON when --error-format=json
  * is active (so downstream consumers get a parseable array for HIR/DIR/
  * RIR/MIR lowering/validation failures), otherwise keeps the legacy
@@ -191,6 +229,121 @@ driver_emit_stage_fail(const DriverFlags *flags, const char *stage,
     }
 }
 
+static bool
+driver_format_air_authority_names(const AIRBoundaryNode *boundary,
+                                  char *out,
+                                  size_t out_size)
+{
+    size_t used = 0;
+    bool emitted = false;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+    if (boundary == NULL || boundary->authority_names == NULL)
+        return false;
+
+    for (size_t i = 0; i < boundary->authority_name_count; i++) {
+        const char *name = boundary->authority_names[i];
+        int written;
+
+        if (name == NULL || name[0] == '\0')
+            continue;
+        written = snprintf(out + used,
+                           out_size - used,
+                           "%s%s",
+                           emitted ? ", " : "",
+                           name);
+        if (written < 0)
+            return emitted;
+        if ((size_t)written >= out_size - used) {
+            out[out_size - 1] = '\0';
+            return true;
+        }
+        used += (size_t)written;
+        emitted = true;
+    }
+    return emitted;
+}
+
+static void
+driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
+{
+    const AIRDrift *drift = NULL;
+    const AIRIntentNode *intent = NULL;
+    const AIRBoundaryNode *boundary = NULL;
+    const ASTNode *site = NULL;
+    char message[4096];
+    const char *code = PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT;
+    const char *cause_ir = PGY_CAUSE_INTENT_BOUNDARY_DRIFT;
+    const char *fix_source = PGY_FIX_ALIGN_INTENT_BOUNDARY_SYNC;
+    const char *reason = "intent orchestration and implementation boundary disagree on sync/async behavior";
+    const char *fix = "align the intent step contract with the boundary or move the implementation through a matching boundary";
+    char authority_names[256];
+    char reason_with_authority[768];
+    unsigned line = 0;
+    unsigned column = 0;
+
+    if (air != NULL && air->drift_count > 0)
+        drift = &air->drifts[0];
+    if (drift != NULL && drift->intent_index < air->intent_count)
+        intent = &air->intents[drift->intent_index];
+    if (drift != NULL && drift->boundary_index < air->boundary_count)
+        boundary = &air->boundaries[drift->boundary_index];
+    if (intent != NULL && intent->ast != NULL)
+        site = intent->ast;
+    else if (boundary != NULL)
+        site = boundary->ast;
+    if (site != NULL) {
+        line = site->line;
+        column = site->column;
+    }
+    if (drift != NULL && drift->kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING) {
+        code = PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING;
+        cause_ir = PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE;
+        fix_source = PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE;
+        reason = "AIR strict-evidence mode could not reconcile the intent boundary with RIR boundary/authority evidence";
+        fix = "align the intent boundary with a lowering-visible zone/world boundary or extend AIR/RIR synthesis for this valid boundary";
+        if (boundary != NULL
+            && boundary->authority_required
+            && !boundary->has_rir_authority_evidence
+            && driver_format_air_authority_names(boundary,
+                                                 authority_names,
+                                                 sizeof(authority_names))) {
+            snprintf(reason_with_authority,
+                     sizeof(reason_with_authority),
+                     "%s; expected authority participant(s): %s",
+                     reason,
+                     authority_names);
+            reason = reason_with_authority;
+        }
+    }
+
+    snprintf(message, sizeof(message),
+             "AIR intent/boundary drift at line %u, column %u: intent '%s' step '%s' expects %s boundary but implementation boundary '%s' is %s. Reason: %s. Fix: %s.",
+             line,
+             column,
+             intent != NULL && intent->intent_owner != NULL ? intent->intent_owner : "<unknown>",
+             intent != NULL && intent->step_name != NULL ? intent->step_name : "<unknown>",
+             intent != NULL ? air_sync_class_name(intent->sync_class) : "unknown",
+             boundary != NULL && boundary->source_name != NULL ? boundary->source_name : "<unknown>",
+             boundary != NULL ? air_sync_class_name(boundary->sync_class) : "unknown",
+             reason,
+             fix);
+
+    if (flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {
+        driver_emit_single_diag_json_full("semantic",
+                                          code,
+                                          cause_ir,
+                                          fix_source,
+                                          message);
+    } else {
+        fprintf(stderr, "pgy: %s: %s\n",
+                code,
+                message);
+    }
+}
+
 const char *
 driver_route_stage(const char *default_stage, const char *code)
 {
@@ -206,6 +359,8 @@ driver_route_stage(const char *default_stage, const char *code)
         return "semantic";
     if (strncmp(code, "PGY_PARSE_", 10) == 0)
         return "parse";
+    if (strncmp(code, "PGY_LEX_", 8) == 0)
+        return "lex";
     /* Unknown prefix: runner's default_stage wins — avoids silent mis-routing
      * if prefix taxonomy is extended later. */
     return default_stage;
@@ -1045,6 +1200,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
     HIRProgram *hir = NULL;
+    AIRProgram *air = NULL;
     CompilerIRBundle bundle;
     int exit_code = 1;
     char *load_error = NULL;
@@ -1075,13 +1231,21 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (ast == NULL) {
         const char *msg = load_error != NULL ? load_error : "module loading failed";
         if (flags->diag_format == DIAG_FORMAT_JSON) {
+            const char *code = driver_diag_code_from_message(msg);
+            const char *cause_ir = driver_diag_cause_from_code(code);
+            const char *fix_source = driver_diag_fix_from_code(code);
             /* Distinguish parse errors from other module-load failures so AI
              * consumers can route syntax vs I/O vs resolution issues. Module
              * loader prefixes parse errors with "parse error in '<path>':". */
             const char *stage =
                 (strncmp(msg, "parse error in", 14) == 0) ? "parse"
                                                           : "module_load";
-            driver_emit_single_diag_json(stage, msg);
+            stage = driver_route_stage(stage, code);
+            driver_emit_single_diag_json_full(stage,
+                                              code,
+                                              cause_ir,
+                                              fix_source,
+                                              msg);
         } else {
             fprintf(stderr, "pgy: %s\n", msg);
         }
@@ -1205,6 +1369,19 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->rir_dir_validate = driver_now_seconds() - phase_start;
 
+    driver_debug_stage("air_synthesize");
+    phase_start = driver_now_seconds();
+    air = air_synthesize(hir, dir, rir, &hir_error);
+    if (air == NULL) {
+        driver_emit_stage_fail(flags, "air_synthesize",
+            "AIR synthesis failed", hir_error);
+        goto cleanup;
+    }
+    if (air->drift_count > 0) {
+        driver_emit_air_drift_fail(flags, air);
+        goto cleanup;
+    }
+
     driver_debug_stage("mir_lower");
     phase_start = driver_now_seconds();
     mir = mir_lower(hir, rir, &hir_error);
@@ -1301,6 +1478,7 @@ cleanup:
     free(load_error);
     free(hir_error);
     dir_destroy(dir);
+    air_destroy(air);
     mir_destroy(mir);
     rir_destroy(rir);
     hir_destroy(hir);

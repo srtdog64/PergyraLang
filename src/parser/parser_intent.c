@@ -278,6 +278,8 @@ parse_intent_step(Parser *parser)
 {
     Token name_tok = consume_decl_name_token(parser, "Expected step name");
     ASTNode *step = ast_create_intent_step(name_tok.text);
+    step->line = name_tok.line;
+    step->column = name_tok.column;
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after step name");
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {

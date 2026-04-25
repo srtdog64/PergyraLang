@@ -1,7 +1,7 @@
 static Type *
 program_body_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
 static Type *
@@ -314,11 +314,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         for (size_t gi = 0; gi < gp->count; gi++) {
             if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
                 continue;
-            Type *tp = calloc(1, sizeof(Type));
-            if (tp != NULL) {
-                tp->kind = TYPE_KIND_CLASS;
-                tp->name = pergyra_strdup(gp->params[gi]->name);
-            }
+            Type *tp = type_create_generic(gp->params[gi]->name);
             Symbol *s = symbol_create_variable(
                 gp->params[gi]->name,
                 tp != NULL ? tp : TYPE_UNKNOWN,

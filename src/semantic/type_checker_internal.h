@@ -27,6 +27,11 @@ void semantic_format_function_signature(const Type *type,
                                         size_t out_cap);
 void semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask);
 void semantic_record_body_summary(SemanticContext *ctx, uint32_t summary_mask);
+void semantic_record_callee_body_summary(SemanticContext *ctx,
+                                         const Type *callee_type);
+void semantic_record_callable_decl_summary(SemanticContext *ctx,
+                                           ASTNode *callable_decl,
+                                           uint32_t declared_effects);
 Type *create_overlay_nominal_type(const char *name);
 size_t overlay_field_count(ASTNode *decl);
 ASTNode *overlay_field_decl_at(ASTNode *decl,
@@ -256,6 +261,8 @@ Type *semantic_type_resolution_lookup_resolved_type(SemanticContext *ctx,
                                                     ASTNode *type_node);
 Type *semantic_type_resolution_resolve_or_fallback(SemanticContext *ctx,
                                                    ASTNode *type_node);
+Type *semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
+                                                     ASTNode *type_node);
 void semantic_type_resolution_free_metadata(SemanticContext *ctx);
 void semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx,
                                                                  ASTNode *type_node);

@@ -254,6 +254,29 @@ int main(void) {
              sizeof(pgy_abi_box_int) == sizeof(void*));
 
     /* ================================================================
+     * 8. Rc<T> / Weak<T>
+     * ================================================================ */
+    printf("\n[Rc<T> / Weak<T>]\n");
+
+    PRINT_LAYOUT(pgy_abi_rc_ctrl_int);
+    PRINT_LAYOUT(pgy_abi_rc_int);
+    PRINT_LAYOUT(pgy_abi_weak_int);
+    printf("\n");
+
+    ABI_TEST("Rc<Int>: handle size matches runtime",
+             sizeof(PgyRc_Int) == sizeof(pgy_abi_rc_int));
+    ABI_TEST("Weak<Int>: handle size matches runtime",
+             sizeof(PgyWeak_Int) == sizeof(pgy_abi_weak_int));
+    ABI_TEST("Rc<Int> ctrl: runtime size matches ABI spec",
+             sizeof(PgyRcControl_Int) == sizeof(pgy_abi_rc_ctrl_int));
+    ABI_TEST("Rc<Int> ctrl: strong offset matches",
+             offsetof(PgyRcControl_Int, strong_count) == offsetof(pgy_abi_rc_ctrl_int, strong_count));
+    ABI_TEST("Rc<Int> ctrl: weak offset matches",
+             offsetof(PgyRcControl_Int, weak_count) == offsetof(pgy_abi_rc_ctrl_int, weak_count));
+    ABI_TEST("Rc<Int> ctrl: alive offset matches",
+             offsetof(PgyRcControl_Int, alive) == offsetof(pgy_abi_rc_ctrl_int, alive));
+
+    /* ================================================================
      * 9. Array<T>
      * ================================================================ */
     printf("\n[Array<T>]\n");

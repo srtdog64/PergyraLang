@@ -2118,6 +2118,44 @@ test_statement_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("let shared: Rc<Long> = RcNew(42L) lowers with Long runtime ABI");
+    {
+        ASTNode *literal = make_number(42, 1);
+        ASTNode *args[1];
+        ASTNode *node;
+        const char *out;
+        literal->data.number.is_long = true;
+        args[0] = literal;
+        node = make_let("shared",
+                        make_generic_type("Rc", "Long"),
+                        make_call("RcNew", args, 1, 1), 1);
+        out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyRc_Long shared = pgy_rc_new_Long(42LL);");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let shared: Rc<Float> = RcNew(3.5) lowers with Float runtime ABI");
+    {
+        ASTNode *args[1] = { make_number(3.5, 1) };
+        ASTNode *node = make_let("shared",
+                                 make_generic_type("Rc", "Float"),
+                                 make_call("RcNew", args, 1, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyRc_Float shared = pgy_rc_new_Float(3.5);");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let shared: Rc<String> = RcNew(\"rc\") lowers with String runtime ABI");
+    {
+        ASTNode *args[1] = { make_string_lit("rc", 1) };
+        ASTNode *node = make_let("shared",
+                                 make_generic_type("Rc", "String"),
+                                 make_call("RcNew", args, 1, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyRc_String shared = pgy_rc_new_String(\"rc\");");
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("let alloc: Allocator = AllocatorPool(1024) → PgyAllocator alloc = pgy_allocator_pool(1024);");
     {
         ASTNode *args[1] = { make_number(1024, 1) };

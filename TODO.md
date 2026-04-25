@@ -1,5 +1,24 @@
 # Pergyra TODO (배포 준비)
 
+## UTF-8 Progress Note - 2026-04-26 - DAG Owner Seam Centralization
+
+- All owner-local type resolver seams now route through
+  `semantic_type_resolution_lookup_or_materialize(...)` instead of owning direct
+  `semantic_type_resolution_resolve_or_fallback(...)` calls.
+- `semantic_type_resolution_resolve_or_fallback(...)` is confined to the central
+  metadata implementation; `type-resolution-resolver-inventory-test-smoke` caps
+  active fallback seams at 1 and fails if new owner-local fallback users appear.
+- Latest DAG smoke stats: `graph-backed skips=3130 metadata_entries=1872
+  metadata_owned=110 metadata_hits=3260 legacy_alias=83 legacy_non_alias=0
+  alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0
+  alias_fallback_unresolved=78`.
+- This is still not full DAG source-of-truth. The remaining closure is replacing
+  the central fallback itself with graph/topo materialization for the imported
+  ability/default/bound/module/nominal cases that still need legacy
+  materialization.
+- Verified locally: `make type-resolution-resolver-inventory-test-smoke
+  type-resolution-dag-test-smoke` and `make test-semantic`.
+
 마지막 업데이트: 2026-04-25
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
@@ -11,6 +30,7 @@
 - 보정 이유:
   - 기능 표면만 보면 core/foundation 구현은 넓지만, beta는 기능 개수가 아니라 end-to-end 신뢰도다
   - HIR/MIR CFG skeleton은 이미 있지만, 함수/action/intent body 안전성의 semantic source-of-truth가 아직 CFG/dataflow로 승격되지 않았다. all-path return, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary를 AST/helper traversal만으로 닫으면 strict beta 신뢰도가 부족하다
+  - AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline과 driver semantic-validation wiring이 들어왔다. Intent ↔ implementation drift 검출은 `docs/104_air_compiler_architecture.md`와 `make air-drift-test-smoke`로 gate에 들어왔고, strict evidence는 기본값으로 승격됐다. missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 되며, `authorized by` participant 이름과 RIR authority fact / authorize op subject가 일치해야 한다. authority evidence 누락 진단은 `Reason:` 안에 expected authority participant list를 포함한다. AIR drift message는 owned lifetime으로 관리되고 repeated drift check가 이전 message를 안전하게 해제하는 회귀 테스트가 있다. parsed-source missing-authority-evidence negative는 full driver JSON path에서 step source span과 `stage/code/cause_ir/fix_source`까지 고정됐다. `PGY_AIR_STRICT_EVIDENCE=0`은 개발/디버그 opt-out이다. `make air-backend-nonimpact-test-smoke`는 relaxed AIR와 default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set에서 같은 C/LLVM 텍스트를 생성하는지 비교한다. `make air-backend-nonimpact-full-test-smoke`는 full frozen backend-compare fixture sweep을 같은 방식으로 돌리고 Linux CI gate로 승격됐다. `make air-strict-backend-compare-test-smoke`는 strict evidence 상태에서 C/LLVM 실행 parity까지 검증한다. parser/lexer baseline JSON routing은 `stage`, `code`, `cause_ir`, `fix_source`까지 닫혔다. 남은 blocker는 AIR source negative 확장, Windows native evidence, parser-specific code split / multi-error accumulation이다
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
   - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 50%로 본다
@@ -95,7 +115,12 @@
 Checklist source of truth:
 
 - `docs/100_beta_readiness_checklist.md`
+- AIR source of truth: `docs/104_air_compiler_architecture.md`
 - Drift gate: `make beta-readiness-checklist-test-smoke`
+- AIR drift gate: `make air-drift-test-smoke`
+- AIR backend non-impact gate: `make air-backend-nonimpact-test-smoke`
+- AIR full backend non-impact hardening: `make air-backend-nonimpact-full-test-smoke`
+- AIR strict backend execution parity: `make air-strict-backend-compare-test-smoke`
 
 ## 구조/운영 폐인 포인트 보드 (2026-04-20)
 
@@ -108,6 +133,8 @@ Checklist source of truth:
 - `P3`: type-category vocabulary를 2-3층으로 압축
 - `P4`: 빌드/샌드박스/중간-stage JSON/artifact 문제를 공식 경로 기준으로 정리
 - `P9`: arena 패턴을 scratch/result lifetime 기준으로 명시 도입
+- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access는 Pin/Lease 문서 기준으로 분리한다. 기본 path는 매 접근 검증이고, fast path는 scope-entry capability lease + automatic unpin cleanup이어야 한다. Runtime ABI baseline은 `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` 회귀로 시작했고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence를 닫았다. Candidate source syntax `pin slot as view { ... }`는 CFG cleanup/backend parity가 닫힐 때까지 parser explicit reject로 봉인했고 `make diagnostics-json-test-smoke`가 JSON route를 검증한다. Pin/Lease semantic diagnostic vocabulary는 `PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`로 registry/docs에 고정했고 `make diagnostic-registry-test-smoke`와 `make beta-readiness-checklist-test-smoke`가 drift를 막는다. Generic ownership baseline은 unresolved `TYPE_KIND_GENERIC`을 `BORROW_TRACKED`로 분류해 generic `own/ref`가 조용히 copy-only로 통과하지 못하게 막는다. 남은 것은 stable language surface, CFG cleanup edge, 실제 semantic emit, QubitSlot/await/parallel explicit rejects, C/LLVM parity다. Source of truth: `docs/74_slot_pinning_caching.md`
+- `P9c`: `Rc<T>` / `Weak<T>` 최소 subset은 beta-stable로 닫았다. 범위는 single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare다. 범위 밖 payload는 backend fallback이 아니라 semantic explicit reject다. `Arc<T>`, cross-thread shared ownership, generic/object payload 확장, default ARC는 beta 밖이다. Source of truth: `docs/100_beta_readiness_checklist.md`, `docs/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
 - `P10`: 모듈화/전파 고도화의 compile/runtime 속도 회귀를 별도 baseline으로 추적
 
 ### P0. Function CFG / Body Dataflow Closure
@@ -129,7 +156,7 @@ Checklist source of truth:
 - [~] owned resource drop/cleanup insertion point를 normal return, early return, break/continue, intent cancel/rollback/invalidation edge에서 같은 규칙으로 계산한다. `defer` cleanup terminator와 resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking은 닫혔고, full drop insertion/validation은 남아 있다.
 - [ ] zone/effect/relation transition facts를 path-sensitive summary로 올려 branch/join/handoff에서 stale state와 conflict를 같은 vocabulary로 진단한다.
 - [~] `parallel`/channel/task boundary에서 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact를 CFG summary로 검증한다. parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, copy-only cancellation payload reject, copy-only channel close는 닫혔고, broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact는 남아 있다.
-- [~] Interprocedural body summary를 고정한다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1차 구조로 function type의 `body_summary_mask`와 semantic recorder는 들어갔다. 남은 것은 zone/effect/runtime propagation과 C/LLVM lowering이 이 summary bit를 직접 소비하게 만드는 일이다.
+- [~] Interprocedural body summary를 고정한다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1차 구조로 function type의 `body_summary_mask`와 semantic recorder는 들어갔다. direct function call은 callee summary 중 caller-relevant transitive facts를 소비하고 declaration-known `own/ref` parameter boundary facts도 기록한다. method/host call도 같은 declaration-known summary facts를 기록한다. lambda body summary는 lambda function type에 격리되어 outer routine으로 새지 않고, function-typed lambda binding 호출은 같은 callee-summary path로 전파된다. 남은 것은 intent/helper call까지 넓히고 zone/effect/runtime propagation과 C/LLVM lowering이 이 summary bit를 직접 소비하게 만드는 일이다.
 - [ ] 진단은 block/path provenance를 포함한다: source path, branch/join edge, previous state, Reason, Fix.
 - [ ] MIR/C/LLVM lowering은 같은 CFG/dataflow facts를 소비하고, frozen subset parity regression으로 묶는다.
 
@@ -215,6 +242,7 @@ Source of truth:
   - 진행: role/class/party/roster declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고, relation/effect domain inventory precollector는 `type_checker_resolution_graph_domain.c`로 이동해 inventory `.inc`를 1,299 LOC까지 축소
   - 진행: intent declaration precollector는 `type_checker_resolution_graph_decl.c`로, world inventory precollector는 `type_checker_resolution_graph_world.c`로 이동해 inventory `.inc`를 870 LOC까지 축소
   - 진행: zone refresh projection field-map DAG collector는 `type_checker_resolution_graph_zone.c`로 이동했고, graph inventory body는 `type_checker_resolution_graph_inventory.c`로 승격했다. `type_checker_resolution_graph_inventory.inc`는 제거되어 DAG inventory include-order debt가 닫혔다
+  - 진행: projection builtin target-field resolver는 recursive fallback 대신 DAG metadata lookup-only seam으로 낮췄다. projection source/target mismatch 진단은 projection validator가 소유하고, target field type materialization은 DAG metadata가 소유한다. fallback seam cap은 31에서 30으로 내려갔다. 이후 type graph precollect를 top-level symbol pass 앞에 배치하고 `program_resolve_type_quiet(...)`를 metadata lookup-only로 낮춰 event/function placeholder가 recursive fallback 없이 DAG metadata를 쓰게 했다. fallback seam cap은 30에서 29로 내려갔다. domain query projection source-field resolver도 class/vessel field DAG metadata lookup-only로 낮춰 cap은 28로 내려갔다. party/roster shared-field resolver도 declaration metadata lookup-only로 낮춰 cap은 26으로 내려갔다. ability abstract method signature resolver와 role host-type resolver도 lookup-only로 낮춰 cap은 24로 내려갔다. function/action body expression/lambda/event handler precollect 확장 후 event/lambda handler resolver도 lookup-only로 낮춰 cap은 23으로 내려갔다. body flow resolver도 graph metadata lookup-only로 낮춰 cap은 22로 내려갔다. type-alias statement resolver도 DAG metadata lookup-only로 낮춰 cap은 21로 내려갔다. `world_decl` lookup-only 전환은 subject/zone nominal materialization이 아직 부족해 semantic 77개 실패를 만들었으므로 보류했다
   - 진행: world/zone local-contract stage replay는 `type_checker_resolution_stage_domain.c`로 이동했고, top-level DAG stage replay는 `type_checker_resolution_stage.c`로 승격해 `type_checker_resolution_stage.inc`를 제거
   - 진행: `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`는 standalone TU로 빌드되며 hidden include-order helper 의존을 internal/header 계약으로 승격
   - 진행: `type_checker_intent_decl.c` standalone TU 승격 중 드러난 implicit helper dependency를 internal/header 계약으로 승격하고, `-Werror=implicit-function-declaration -Werror=implicit-int`를 기본 CFLAGS로 고정해 같은 종류의 C 모듈화 버그를 빌드 단계에서 차단
@@ -1291,17 +1319,34 @@ Source of truth:
     - 진행: `resolve_type_node(...)` wrapper 자체가 metadata-first가 되어, 남은 explicit legacy allowlist도 recursive materialization 전에 DAG facts를 먼저 소비한다
     - 진행: `resolve_generic_type_arg(...)`도 metadata-first 조회 후 fallback으로 내려간다. constructed builtin/generic consumer path의 recursive resolver 의존 면적을 줄였다
     - 진행: owner-local resolver seams는 `semantic_type_resolution_resolve_or_fallback(...)` 공용 helper로 수렴했다. resolver 구현체와 공용 fallback helper 밖에서 직접 `resolve_type_node(...)`를 호출하면 `type-resolution-resolver-inventory-test-smoke`가 실패한다
-    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 metadata entries/owned/hits, zero non-alias stage legacy fallback, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3124 metadata_entries=1641 metadata_owned=50 metadata_hits=2513 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
+    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 metadata entries/owned/hits, zero non-alias stage legacy fallback, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3130 metadata_entries=1872 metadata_owned=110 metadata_hits=3260 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
     - 진행: DAG smoke는 이제 graph-backed skip/metadata entry/metadata hit/owned metadata가 단순히 0보다 큰지만 보지 않고 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)를 검사한다. DAG source-of-truth 사용량이 크게 후퇴하면 CI에서 즉시 잡는다
     - 진행: 남은 stage legacy surface는 alias-only로 고정됐다. 성공 alias materialization과 diagnostic fallback을 별도 계측하고 valid alias fallback은 0으로 gate한다. 남은 78건은 alias-cycle diagnostic coverage에서 나오는 unresolved fallback이며 hidden non-alias recursive resolution이 아니다
     - 진행: program-level symbol inventory가 ability declarations도 predeclare한다. `type_check_ability_decl(...)`은 자기 자신의 predeclare만 재사용하고 같은 이름의 다른 ability는 기존처럼 duplicate diagnostic으로 처리한다. forward source order에서 generic default/where, zone authority, party role-slot ability consumer가 provider 후행이어도 통과하는 regression을 추가했다
     - 진행: `tests/cases/backend_compare/forward_ability_order/main.pgy`를 backend compare suite에 추가했다. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering이 semantic-only가 아니라 C/LLVM 출력 동등성까지 유지되는지 검사한다
     - 진행: `tests/compare_backends.sh` 기본 실행은 `tests/cases/backend_compare/*/main.pgy`가 default case array에 빠져 있으면 실패한다. 명시 인자 기반 targeted run은 유지하되, CI/default path에서 새 parity case가 조용히 누락되는 drift를 차단했다. 이 gate로 기존 passing case 8개(array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)를 default C/LLVM parity suite에 편입했다
     - 진행: `type-resolution-resolver-inventory-test-smoke`가 direct resolver allowlist와 함께 metadata-first wrapper, execution/anchored-handle metadata materializer coverage를 static gate로 고정한다
-    - 진행: `type-resolution-resolver-inventory-test-smoke`가 새 `semantic_type_resolution_resolve_or_fallback(...)` 사용자를 explicit owner-seam allowlist 밖에서 금지하고 metadata-first fallback seam 총량을 31개 이하로 고정한다. gate 출력은 현재 fallback seam count를 직접 보여주며, remaining fallback consumers는 이제 unclassified discovery 대상이 아니라 shrink 대상이다
-    - 진행: fallback seam gate의 기존 하한선(`30개 미만이면 실패`)을 debt-reduction에 맞지 않는 규칙으로 보고 제거했다. 이제 31개 상한만 growth guard로 유지하며, seam 축소는 CI 성공 경로다
+    - 진행: `type-resolution-resolver-inventory-test-smoke`가 새 `semantic_type_resolution_resolve_or_fallback(...)` 사용자를 central metadata implementation 밖에서 금지하고 metadata-first fallback seam 총량을 1개 이하로 고정한다. gate 출력은 현재 fallback seam count를 직접 보여주며, remaining fallback consumer는 이제 unclassified discovery 대상이 아니라 central replacement 대상이다
+    - 진행: fallback seam gate의 기존 하한선(`30개 미만이면 실패`)을 debt-reduction에 맞지 않는 규칙으로 보고 제거했다. 이제 1개 상한만 growth guard로 유지하며, seam 축소는 CI 성공 경로다
     - 진행: `type_checker_module_contract.c`의 ability contract bookkeeping은 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only seam으로 낮췄다. ability 존재/visibility/generic arity/where provenance는 ability-specific validator가 계속 소유하며, fallback seam inventory는 39에서 38로 감소했다
     - 진행: `type_checker_ability_fields.c`의 ability `fields` requirement validation도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. field contract diagnostics는 ability-specific validator가 계속 소유하며, fallback seam cap은 32에서 31로 감소했다
+    - 진행: `type_checker_builtins_projection.c`의 projection target-field resolver도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. projection field diagnostics는 projection validator가 계속 소유하며, fallback seam cap은 31에서 30으로 감소했다
+    - 진행: `type_checker_program.c`의 quiet top-level placeholder resolver는 graph precollect 이후 metadata lookup-only로 전환했다. event/function forward placeholders가 recursive fallback 없이 precollected DAG facts를 소비하면서 fallback seam cap은 30에서 29로 감소했다
+    - 진행: `type_checker_builtins_query_domain.inc`의 projection source-field resolver도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. HasProjection/HasZoneProjection 계열 field diagnostics는 domain query validator가 계속 소유하며, fallback seam cap은 29에서 28로 감소했다
+    - 진행: `type_checker_party_decl.c`와 `type_checker_roster_decl.c`의 shared-field type resolver도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. party/roster shared field diagnostics는 각 declaration validator가 계속 소유하며, fallback seam cap은 28에서 26으로 감소했다
+    - 진행: `type_checker_ability_decl.c`의 abstract method signature resolver와 `type_checker_role_decl.c`의 host-type resolver도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. ability/role declaration diagnostics는 각 owner validator가 계속 소유하며, fallback seam cap은 26에서 24로 감소했다
+    - 진행: function/action body precollector가 local let / with-slot annotation뿐 아니라 expression subtree, call type args, lambda param/return/body, event subscription handler, spawn/channel/return/branch expressions까지 따라간다. 이 기반으로 `type_checker_event.c`의 event/lambda handler type-ref resolver를 DAG metadata lookup-only로 낮췄고 fallback seam cap은 24에서 23으로 감소했다. `type_checker_flow.c`의 flow-local type resolver도 DAG metadata lookup-only로 낮춰 cap은 22로 감소했다. `type_checker.c`의 type-alias statement resolver도 DAG metadata lookup-only로 낮춰 cap은 21로 감소했다
+    - 확인된 남은 blocker: `type_checker_program.inc`의 function body param/return/domain-slot materialization seam은 단순 lookup-only로 낮추면 direct semantic unit path에서 graph metadata bootstrap 없이 segfault가 난다. 이 seam은 direct semantic unit bootstrap 또는 null-safe diagnostic path가 먼저 필요하다
+    - 확인된 남은 blocker: `type_checker_intent_decl.c`의 intent participant/value/where resolver seam은 단순 lookup-only로 낮추면 semantic suite 후반 parallel execution path에서 segfault가 난다. intent declaration은 graph precollect가 있지만 direct semantic/bootstrap path와 step/local binding materialization이 아직 lookup-only 계약을 만족하지 않으므로 explicit fallback seam으로 남긴다
+    - 확인된 남은 blocker: `type_checker_helpers_host.inc`의 host helper resolver는 단순 lookup-only로 낮추면 intent/zone authority positive path가 subject-slot type metadata 부족으로 무너진다. 이 seam은 zone/world/host subject-slot nominal metadata를 DAG에 보존한 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_generic_validation.c`의 generic where/default validation resolver는 단순 lookup-only로 낮추면 default type argument where-bound validation positive path가 깨진다. 이 seam은 generic default effective-arg fact와 where-bound provenance를 DAG metadata에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_generic_support.inc`의 boundary type helper seam은 단순 lookup-only로 낮추면 `ref class` / `ref subject` escape diagnostics 150개가 빠진다. 이 seam은 generic/nominal boundary category fact와 ref/own escape classifier가 DAG metadata에서 같은 type category를 볼 수 있을 때 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_ability_where.c`의 ability where-bound resolver는 단순 lookup-only로 낮추면 generic ability multi-bound mismatch provenance가 사라져 `Cloneable` bound mismatch 진단 회귀가 난다. 이 seam은 ability where-bound effective-arg / multi-bound provenance fact를 DAG metadata에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_operator_expr.inc`의 operator overload method signature resolver는 단순 lookup-only로 낮추면 semantic suite가 event/misc path 진입 전후에 segfault할 수 있다. 이 seam은 method param/return signature metadata와 operator overload candidate summary를 DAG에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_zone_decl.c`의 zone authority subject-slot type seam은 단순 lookup-only로 낮추면 generic ability mismatch provenance가 사라진다. 이 seam은 zone authority generic ability fact를 DAG metadata에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_class_decl.c`의 class/vessel field resolver는 단순 lookup-only로 낮추면 vessel/subject-vessel field acceptance가 깨진다. 이 seam은 class/vessel field nominal flavor metadata를 DAG에 보존한 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_world_decl.c`의 shared/domain-slot resolver는 단순 lookup-only로 낮추면 zone/world/intent positive paths가 `subject slot ... requires a subject type`로 무너진다. 이 seam은 world domain-slot subject/zone nominal materialization을 DAG metadata에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_ownership_let.c`의 let annotation resolver는 단순 lookup-only로 낮추면 direct semantic unit path에서 graph metadata 없이 `ClaimSlot` annotation이 들어와 segfault할 수 있고, broader program path에서는 `Slot`/`ReadView`/`WriteView`/`QubitSlot`/anchored own-ref paths가 `<unknown>`으로 무너질 수 있다. 이 seam은 direct semantic unit bootstrap 또는 null-safe diagnostic path와 anchored-handle constructed-type metadata coverage를 같이 닫은 뒤 제거해야 한다
     - 진행: domain/intent declaration resolver는 owner-local type-ref seam으로 수렴했다. slot/shared/named domain refs와 intent involves/value/where refs가 각각 하나의 owner seam을 공유하면서 fallback seam inventory는 38에서 34로 감소했다
     - 진행: alias/generic-parameter helper와 resolution-stage diagnostic fallback도 owner-local seam으로 수렴했다. fallback seam inventory는 34에서 32로 감소했다
     - 진행: zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. 같은 타입 subject slot이 여럿 있어도 `authorized by rogue`가 실제 `subject slot rogue: Adventurer`로 concrete하게 닫히면 false-positive ambiguous로 떨어지지 않는다
@@ -1310,7 +1355,7 @@ Source of truth:
     - 진행: `type_checker_intent_helpers.c`의 direct resolver 호출은 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. transfer-derived using/where, ability generic arg, role-field checks는 이 seam을 통해 다음 DAG metadata 전환을 탄다
     - 진행: `type_checker_helpers_host.inc`의 direct resolver 호출은 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. projection source fields, hosted method return/param, zone authority/domain slot checks는 이 seam을 통해 다음 DAG metadata 전환을 탄다
     - 진행: `type_checker_program.c`의 forward-declaration type materialization은 quiet resolver seam 1개로 수렴했고, `type_checker_program.inc`의 function-body param/return/domain-slot materialization body resolver seam은 graph metadata-first 조회 후 fallback으로 내려간다
-    - 진행: `type_checker_event.c`의 event signature/lambda handler materialization은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 event signature metadata를 graph-backed result로 재사용하는 것이다
+    - 진행: `type_checker_event.c`의 event signature/lambda handler materialization은 graph-backed metadata lookup-only로 전환됐다. 다음 DAG slice는 ownership let / zone authority / world domain-slot / ability where-bound처럼 semantic provenance가 남은 owner seams다
     - 진행: `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. world shared/slot checks는 이 seam에서 graph-backed metadata로 교체할 수 있다
     - 진행: `type_checker_role_decl.c`, `type_checker_generic_contracts.inc`, `type_checker_helpers_late.c`, `type_checker_expr.inc`의 직접 resolver 호출도 각각 role/generic-contract/late-helper/expr local seam 1개로 수렴했다
     - 진행: `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 남은 direct count는 대부분 resolver 본체, 주석, 또는 명시 seam이다
@@ -2099,3 +2144,17 @@ Source of truth:
   `SecureSlot<T>`, `subject`, boundary-value aggregates, and `Token<T>`) are
   explicitly rejected until channel cleanup/backpressure summaries can prove
   drain/release behavior.
+## Progress Log - 2026-04-26 - DAG Fallback Seam Cap
+
+- Owner-local resolver files no longer own direct
+  `semantic_type_resolution_resolve_or_fallback(...)` seams. They now call
+  `semantic_type_resolution_lookup_or_materialize(...)`, which checks DAG
+  metadata, materializes stable constructed shells, then falls through to the
+  centralized resolver fallback only when imported ability/default/bound/module
+  cases still need legacy materialization.
+- `tests/type_resolution_resolver_inventory_smoke.sh` now caps active
+  metadata-first fallback seams at 1, down from 20. This is still not full DAG
+  source-of-truth, but it removes owner-local fallback seams and prevents the
+  count from growing outside the central metadata implementation.
+- Verified locally: `make type-resolution-resolver-inventory-test-smoke
+  type-resolution-dag-test-smoke` and `make test-semantic`.

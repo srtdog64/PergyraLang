@@ -101,6 +101,7 @@ typedef struct
     size_t      authorized_by_count;
     const char *causes_effect_name;
     size_t      causes_effect_node_id;
+    ASTNode    *ast;
 } DIRIntentStep;
 
 typedef struct

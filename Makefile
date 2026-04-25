@@ -229,6 +229,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/dir.c \
+                   $(COMPILER_DIR)/air.c \
                    $(COMPILER_DIR)/rir.c \
                    $(COMPILER_DIR)/mir.c \
                    $(COMPILER_DIR)/hir.c \
@@ -281,6 +282,7 @@ TEST_ABI_SRC            = $(SRC_DIR)/test_abi_spec.c
 TEST_ABI_PIPELINE_SRC   = $(SRC_DIR)/test_abi_pipeline.c
 TEST_CONCURRENCY_SRC    = $(SRC_DIR)/test_concurrency.c
 TEST_DIR_SRC            = $(SRC_DIR)/test_dir.c
+TEST_AIR_SRC            = $(SRC_DIR)/test_air.c
 TEST_RIR_SRC            = $(SRC_DIR)/test_rir.c
 TEST_MIR_SRC            = $(SRC_DIR)/test_mir.c
 TEST_HIR_SRC            = $(SRC_DIR)/test_hir.c
@@ -314,6 +316,7 @@ TEST_ABI_OBJ           = $(BUILD_DIR)/test_abi_spec.o
 TEST_ABI_PIPELINE_OBJ  = $(BUILD_DIR)/test_abi_pipeline.o
 TEST_CONCURRENCY_OBJ   = $(BUILD_DIR)/test_concurrency.o
 TEST_DIR_OBJ           = $(BUILD_DIR)/test_dir.o
+TEST_AIR_OBJ           = $(BUILD_DIR)/test_air.o
 TEST_RIR_OBJ           = $(BUILD_DIR)/test_rir.o
 TEST_MIR_OBJ           = $(BUILD_DIR)/test_mir.o
 TEST_HIR_OBJ           = $(BUILD_DIR)/test_hir.o
@@ -342,6 +345,7 @@ ABI_TEST            = $(BIN_DIR)/test_abi_spec$(EXEEXT)
 ABI_PIPELINE_TEST   = $(BIN_DIR)/test_abi_pipeline$(EXEEXT)
 CONCURRENCY_TEST    = $(BIN_DIR)/test_concurrency$(EXEEXT)
 DIR_TEST            = $(BIN_DIR)/test_dir$(EXEEXT)
+AIR_TEST            = $(BIN_DIR)/test_air$(EXEEXT)
 RIR_TEST            = $(BIN_DIR)/test_rir$(EXEEXT)
 MIR_TEST            = $(BIN_DIR)/test_mir$(EXEEXT)
 HIR_TEST            = $(BIN_DIR)/test_hir$(EXEEXT)
@@ -438,7 +442,12 @@ $(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJ
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
-# HIR lowering test
+# AIR synthesis and drift test
+$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/air.o $(TEST_AIR_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
+
+# RIR lowering test
 $(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
@@ -568,6 +577,10 @@ test-dir: $(DIR_TEST)
 	@echo "=== DIR Test ==="
 	$(DIR_TEST)
 
+test-air: $(AIR_TEST)
+	@echo "=== AIR Test ==="
+	$(AIR_TEST)
+
 test-rir: $(RIR_TEST)
 	@echo "=== RIR Test ==="
 	$(RIR_TEST)
@@ -582,7 +595,7 @@ test-hir: $(HIR_TEST)
 
 windows-build-smoke: $(PGY) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) \
 	$(MEMORY_TEST) $(ABI_TEST) $(ABI_PIPELINE_TEST) $(CONCURRENCY_TEST) $(DIR_TEST) \
-	$(RIR_TEST) $(MIR_TEST) $(HIR_TEST)
+	$(AIR_TEST) $(RIR_TEST) $(MIR_TEST) $(HIR_TEST)
 	@echo "=== Windows Build Smoke ==="
 	@echo "built compiler and frontend/runtime test binaries with CC=$(CC)"
 
@@ -595,6 +608,7 @@ test-all:
 	$(MAKE) test-abi
 	$(MAKE) test-concurrency
 	$(MAKE) test-dir
+	$(MAKE) test-air
 	$(MAKE) test-rir
 	$(MAKE) test-mir
 	$(MAKE) test-hir
@@ -675,6 +689,20 @@ beta-readiness-checklist-test-smoke:
 formal-semantics-test-smoke:
 	"$(BASH)" tests/formal_semantics_smoke.sh
 
+air-drift-test-smoke:
+	$(MAKE) test-air
+	"$(BASH)" tests/air_drift_smoke.sh
+
+air-backend-nonimpact-test-smoke:
+	$(MAKE) LLVM_ENABLED=1 $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/air_backend_nonimpact_smoke.sh
+
+air-backend-nonimpact-full-test-smoke:
+	$(MAKE) LLVM_ENABLED=1 $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_AIR_NONIMPACT_SOURCE=all \
+	"$(BASH)" tests/air_backend_nonimpact_smoke.sh
+
 semantic-inc-size-test-smoke:
 	"$(BASH)" tests/semantic_inc_size_smoke.sh
 
@@ -733,6 +761,16 @@ llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
 	"$(BASH)" tests/compare_backends.sh
 
+air-strict-backend-compare-test-smoke: $(ABI_PIPELINE_TEST)
+	$(MAKE) LLVM_ENABLED=1 $(PGY)
+	PGY_AIR_STRICT_EVIDENCE=1 \
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_CC="$(CC)" \
+	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
+	LLVM_INSTALL="$(LLVM_INSTALL)" \
+	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
+	"$(BASH)" tests/compare_backends.sh
+
 example-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/example_contract_smoke.sh
@@ -773,6 +811,8 @@ ci-linux:
 	$(MAKE) module-taxonomy-test-smoke
 	$(MAKE) beta-readiness-checklist-test-smoke
 	$(MAKE) formal-semantics-test-smoke
+	$(MAKE) air-drift-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" air-backend-nonimpact-full-test-smoke
 	$(MAKE) semantic-inc-size-test-smoke
 	$(MAKE) semantic-tu-size-test-smoke
 	$(MAKE) backend-inc-size-test-smoke
@@ -796,6 +836,7 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" example-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-abi-same-process
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-backend-compare
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" air-strict-backend-compare-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
 
@@ -888,8 +929,8 @@ memcheck: debug
 lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
-        test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke parallel-core-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
+        test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke parallel-core-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

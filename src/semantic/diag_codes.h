@@ -67,6 +67,9 @@
 #define PGY_CODE_SEM_REDECLARATION              "PGY_SEM_REDECLARATION"
 #define PGY_CODE_SEM_BORROW_ESCAPE              "PGY_SEM_BORROW_ESCAPE"
 #define PGY_CODE_SEM_INTENT_STEP_INVALID        "PGY_SEM_INTENT_STEP_INVALID"
+#define PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT      "PGY_SEM_INTENT_BOUNDARY_DRIFT"
+#define PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING \
+                                                "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING"
 #define PGY_CODE_SEM_ACTION_CONTRACT_INVALID    "PGY_SEM_ACTION_CONTRACT_INVALID"
 #define PGY_CODE_SEM_ABILITY_CONTRACT_INVALID   "PGY_SEM_ABILITY_CONTRACT_INVALID"
 #define PGY_CODE_SEM_ROLE_CONTRACT_INVALID      "PGY_SEM_ROLE_CONTRACT_INVALID"
@@ -85,6 +88,11 @@
 #define PGY_CODE_SEM_VISIBILITY_BOUNDARY        "PGY_SEM_VISIBILITY_BOUNDARY"
 #define PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE      "PGY_SEM_IMMUTABLE_FIELD_WRITE"
 #define PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID  "PGY_SEM_CHANNEL_TRANSPORT_INVALID"
+#define PGY_CODE_SEM_PIN_ESCAPE                 "PGY_SEM_PIN_ESCAPE"
+#define PGY_CODE_SEM_PIN_PARALLEL_CONFLICT      "PGY_SEM_PIN_PARALLEL_CONFLICT"
+#define PGY_CODE_SEM_PIN_AWAIT_BOUNDARY         "PGY_SEM_PIN_AWAIT_BOUNDARY"
+#define PGY_CODE_SEM_PIN_QUBIT_REJECT           "PGY_SEM_PIN_QUBIT_REJECT"
+#define PGY_CODE_SEM_PIN_TOKEN_INVALID          "PGY_SEM_PIN_TOKEN_INVALID"
 
 /* --- MIR (PGY_MIR_*) --- */
 #define PGY_CODE_MIR_INTENT_CARRIER_MISSING     "PGY_MIR_INTENT_CARRIER_MISSING"
@@ -147,6 +155,11 @@
 #define PGY_CAUSE_RELEASE_NON_OWNING_RECEIVER   "semantic:release:non_owning_receiver"
 #define PGY_CAUSE_DEVICE_SLOT_USE_AFTER_RELEASE "semantic:device_slot:use_after_release"
 #define PGY_CAUSE_VIEW_KIND_OP_MISMATCH         "semantic:view_kind:op_mismatch"
+#define PGY_CAUSE_PIN_ESCAPE                    "semantic:pin:escape"
+#define PGY_CAUSE_PIN_PARALLEL_CONFLICT         "semantic:pin:parallel_conflict"
+#define PGY_CAUSE_PIN_AWAIT_BOUNDARY            "semantic:pin:await_boundary"
+#define PGY_CAUSE_PIN_QUBIT_REJECT              "semantic:pin:qubit_reject"
+#define PGY_CAUSE_PIN_TOKEN_INVALID             "semantic:pin:token_invalid"
 
 /* --- Semantic: ownership / move / handles --- */
 #define PGY_CAUSE_BORROW_ESCAPE                 "semantic:borrow_escape"
@@ -209,6 +222,8 @@
 
 /* --- Semantic: intent / event / domain --- */
 #define PGY_CAUSE_INTENT_STEP                   "semantic:intent_step"
+#define PGY_CAUSE_INTENT_BOUNDARY_DRIFT         "semantic:intent:boundary_drift"
+#define PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE      "semantic:intent:boundary_evidence"
 #define PGY_CAUSE_INTENT_NON_BOOL_CLAUSE        "semantic:intent:non_bool_clause"
 #define PGY_CAUSE_INTENT_PRIORITY_NON_INT       "semantic:intent:priority_non_int"
 #define PGY_CAUSE_EVENT_SIGNATURE               "semantic:event:signature"
@@ -295,7 +310,9 @@
 #define PGY_FIX_ALIGN_RESOURCE_HANDLE_ARG       "align-resource-handle-arg"
 #define PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY    "align-role-impl-with-ability"
 #define PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS \
-                                                "align-step-with-zone-action-contracts"
+                                                   "align-step-with-zone-action-contracts"
+#define PGY_FIX_ALIGN_INTENT_BOUNDARY_SYNC       "align-intent-boundary-sync"
+#define PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE   "align-intent-boundary-evidence"
 #define PGY_FIX_ALIGN_SUBJECT_ARG_TYPE          "align-subject-arg-type"
 #define PGY_FIX_ALIGN_VALUE_TO_SLOT_INNER       "align-value-to-slot-inner"
 #define PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION \
@@ -350,6 +367,7 @@
 #define PGY_FIX_KEEP_HANDLE_LOCAL_OR_PROJECT    "keep-handle-local-or-project"
 #define PGY_FIX_KEEP_HANDLE_LOCAL_OR_SEND_INNER_VALUE \
                                                 "keep-handle-local-or-send-inner-value"
+#define PGY_FIX_KEEP_PIN_VIEW_LOCAL             "keep-pin-view-local"
 #define PGY_FIX_MOVE_DEFAULTS_TO_TRAILING       "move-defaults-to-trailing"
 #define PGY_FIX_MOVE_INTO_ASYNC_FUNCTION        "move-into-async-function"
 #define PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL     "move-into-loop-or-fix-label"
@@ -390,9 +408,13 @@
 #define PGY_FIX_REUSE_SHARED_ERROR_ENUM         "reuse-shared-error-enum"
 #define PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN  "satisfy-generic-bound-or-widen"
 #define PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL      "serialize-outside-parallel"
+#define PGY_FIX_SERIALIZE_PIN_ACCESS            "serialize-pin-access"
 #define PGY_FIX_SIMPLIFY_FUNCTION_SIGNATURE     "simplify-function-signature"
 #define PGY_FIX_SPLIT_EFFECT_FAMILIES           "split-effect-families"
 #define PGY_FIX_START_WITH_CHANNEL_RECV         "start-with-channel-recv"
+#define PGY_FIX_END_PIN_BEFORE_AWAIT            "end-pin-before-await"
+#define PGY_FIX_DO_NOT_PIN_QUBIT                "do-not-pin-qubit"
+#define PGY_FIX_PROVIDE_VALID_PIN_TOKEN         "provide-valid-pin-token"
 #define PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER "widen-visibility-or-move-caller"
 
 #endif /* PGY_DIAG_CODES_H */

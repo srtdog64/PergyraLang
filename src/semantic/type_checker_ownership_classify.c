@@ -12,6 +12,8 @@ semantic_classify_ownership_type(const Type *type, SemanticContext *ctx)
 {
     if (type == NULL || ctx == NULL)
         return OWNERSHIP_TYPE_COPY_ONLY;
+    if (type->kind == TYPE_KIND_GENERIC)
+        return OWNERSHIP_TYPE_BORROW_TRACKED;
     if (type_is_anchored_resource_handle(type))
         return OWNERSHIP_TYPE_ANCHORED_HANDLE;
     if (type_is_movable_resource_handle(type))

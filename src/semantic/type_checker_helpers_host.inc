@@ -13,7 +13,7 @@ create_overlay_nominal_type(const char *name)
 static Type *
 host_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
 static Type *
@@ -292,6 +292,7 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
 
     declared_effects = declared_effects_from_function_node(method, ctx, NULL);
     semantic_record_effect(ctx, declared_effects);
+    semantic_record_callable_decl_summary(ctx, method, declared_effects);
     if (ctx->in_parallel && type_effect_mask_has(declared_effects, EFFECT_SECURE)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
             "Parallel context does not permit calling secure-effect method '%s'; serialize authority-bearing operations outside the parallel block",

@@ -76,6 +76,48 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
     return pgy_arena_strdup(arena, "Int");
 }
 
+static const char *
+llvm_stmt_render_type_annotation_static(ASTNode *type_ann)
+{
+    static char buf[256];
+    size_t offset;
+
+    if (type_ann == NULL || type_ann->type != AST_TYPE
+        || type_ann->data.type.name == NULL)
+        return NULL;
+    if (type_ann->data.type.generic_args == NULL
+        || type_ann->data.type.generic_args->count == 0)
+        return type_ann->data.type.name;
+
+    offset = (size_t)snprintf(buf, sizeof(buf), "%s<",
+                              type_ann->data.type.name);
+    if (offset >= sizeof(buf))
+        offset = sizeof(buf) - 1;
+    for (size_t i = 0; i < type_ann->data.type.generic_args->count; i++) {
+        char *arg = llvm_stmt_render_type_arg(
+            type_ann->data.type.generic_args->params[i]);
+        int written = snprintf(buf + offset, sizeof(buf) - offset,
+                               "%s%s", i == 0 ? "" : ", ",
+                               arg != NULL ? arg : "Int");
+        free(arg);
+        if (written < 0)
+            break;
+        offset += (size_t)written;
+        if (offset >= sizeof(buf)) {
+            offset = sizeof(buf) - 1;
+            break;
+        }
+    }
+    if (offset + 1 < sizeof(buf)) {
+        buf[offset++] = '>';
+        buf[offset] = '\0';
+    } else {
+        buf[sizeof(buf) - 2] = '>';
+        buf[sizeof(buf) - 1] = '\0';
+    }
+    return buf;
+}
+
 static ASTNode *
 llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
 {
@@ -1797,7 +1839,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *saved_expected_name = ctx->expected_type_name;
         if (type_ann != NULL && type_ann->type == AST_TYPE
             && type_ann->data.type.name != NULL)
-            ctx->expected_type_name = type_ann->data.type.name;
+            ctx->expected_type_name =
+                llvm_stmt_render_type_annotation_static(type_ann);
         LLVMValueRef val = llvm_emit_expression(init, ctx);
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm let] name=%s phase=after-init val=%p\n",
@@ -1978,6 +2021,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             char *value_name = llvm_stmt_render_type_arg(
                 type_ann->data.type.generic_args->params[1]);
             llvm_register_map_var(ctx, name, key_name, value_name);
+        } else if (strcmp(ann_name, "Rc") == 0
+            || strcmp(ann_name, "Weak") == 0
+            || strncmp(ann_name, "Rc<", 3) == 0
+            || strncmp(ann_name, "Weak<", 5) == 0) {
+            llvm_register_typed_var(ctx, name, type_ann);
         }
     }
 

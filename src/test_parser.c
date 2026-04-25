@@ -1570,6 +1570,26 @@ main(void)
             1
         },
         {
+            "Pin Remains Ordinary Identifier Call",
+            "func pin(x: Int) -> Void {\n"
+            "    Log(x);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    pin(7);\n"
+            "}",
+            1
+        },
+        {
+            "Pin Lease Candidate Syntax Explicit Reject",
+            "func Main() -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view {\n"
+            "        Log(view);\n"
+            "    }\n"
+            "}",
+            0
+        },
+        {
             "Escaped String Literal",
             "func Main() -> Void {\n"
             "    Log(\"{\\\"ok\\\":true}\\n\");\n"

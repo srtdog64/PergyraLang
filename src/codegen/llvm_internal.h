@@ -189,6 +189,18 @@ typedef struct
 
 typedef struct
 {
+    const char *var_name;
+    const char *inner_type;
+} LLVMRcVarEntry;
+
+typedef struct
+{
+    const char *var_name;
+    const char *inner_type;
+} LLVMWeakVarEntry;
+
+typedef struct
+{
     const char  *field_name;
     LLVMTypeRef  field_type;
     int          index;
@@ -451,6 +463,14 @@ typedef struct LLVMGenCtx
     LLVMChannelVarEntry   *channel_vars;
     int                    channel_var_count;
     int                    channel_var_capacity;
+
+    LLVMRcVarEntry        *rc_vars;
+    int                    rc_var_count;
+    int                    rc_var_capacity;
+
+    LLVMWeakVarEntry      *weak_vars;
+    int                    weak_var_count;
+    int                    weak_var_capacity;
 
     LLVMClassTypeEntry   *class_types;
     int                   class_type_count;
@@ -1158,6 +1178,12 @@ bool          llvm_lookup_future_is_remote(LLVMGenCtx *ctx,
 void          llvm_register_channel_var(LLVMGenCtx *ctx, const char *var_name,
                                         const char *inner_type);
 const char   *llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name);
+void          llvm_register_rc_var(LLVMGenCtx *ctx, const char *var_name,
+                                   const char *inner_type);
+const char   *llvm_lookup_rc_inner(LLVMGenCtx *ctx, const char *var_name);
+void          llvm_register_weak_var(LLVMGenCtx *ctx, const char *var_name,
+                                     const char *inner_type);
+const char   *llvm_lookup_weak_inner(LLVMGenCtx *ctx, const char *var_name);
 
 /* =================================================================
  * Class type registry (llvm_backend.c)

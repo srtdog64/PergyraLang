@@ -496,6 +496,50 @@ llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name)
     return NULL;
 }
 
+void
+llvm_register_rc_var(LLVMGenCtx *ctx, const char *var_name,
+                     const char *inner_type)
+{
+    PGY_DYNARR_ENSURE(ctx->rc_vars, ctx->rc_var_count,
+                      ctx->rc_var_capacity, LLVMRcVarEntry);
+
+    ctx->rc_vars[ctx->rc_var_count].var_name = var_name;
+    ctx->rc_vars[ctx->rc_var_count].inner_type = inner_type;
+    ctx->rc_var_count++;
+}
+
+const char *
+llvm_lookup_rc_inner(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->rc_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->rc_vars[i].var_name, var_name) == 0)
+            return ctx->rc_vars[i].inner_type;
+    }
+    return NULL;
+}
+
+void
+llvm_register_weak_var(LLVMGenCtx *ctx, const char *var_name,
+                       const char *inner_type)
+{
+    PGY_DYNARR_ENSURE(ctx->weak_vars, ctx->weak_var_count,
+                      ctx->weak_var_capacity, LLVMWeakVarEntry);
+
+    ctx->weak_vars[ctx->weak_var_count].var_name = var_name;
+    ctx->weak_vars[ctx->weak_var_count].inner_type = inner_type;
+    ctx->weak_var_count++;
+}
+
+const char *
+llvm_lookup_weak_inner(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->weak_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->weak_vars[i].var_name, var_name) == 0)
+            return ctx->weak_vars[i].inner_type;
+    }
+    return NULL;
+}
+
 LLVMClassTypeEntry *
 llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
                     LLVMTypeRef struct_type,

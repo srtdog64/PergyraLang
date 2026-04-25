@@ -258,15 +258,24 @@ typedef struct { char     *ptr; } pgy_abi_box_string;
  * Rc Layout: { ctrl: PgyRcCtrl*, value: (none — ctrl holds data) }
  *   Actually: Rc is just a pointer to control block + data.
  *
- * Ctrl Block Layout: { strong: int64_t, weak: int64_t, data: T }
+ * Ctrl Block Layout: { strong_count: uint32_t, weak_count: uint32_t,
+ * alive: bool, data: T }
  *
  * Weak Layout: { ctrl: PgyRcCtrl* }
  * ================================================================ */
 
+/*
+ * Current runtime ABI note:
+ * - Rc/Weak handles are pointer-sized wrappers.
+ * - The control block uses uint32 strong/weak counts plus an alive bit.
+ * - The beta-stable shared ownership subset is single-thread
+ *   Int/Long/Float/Double/Bool/String with C/LLVM lifecycle parity.
+ */
 typedef struct {
-    int64_t strong_count;
-    int64_t weak_count;
-    int32_t data;  /* flexible array member follows in real impl */
+    uint32_t strong_count;
+    uint32_t weak_count;
+    bool     alive;
+    int32_t  data;
 } pgy_abi_rc_ctrl_int;
 
 typedef struct {
@@ -536,8 +545,14 @@ ABI_STATIC_ASSERT(sizeof(pgy_abi_box_string) == sizeof(void*),
  * STATIC ASSERTIONS — Rc/Weak
  * ================================================================= */
 
-ABI_STATIC_ASSERT(sizeof(pgy_abi_rc_ctrl_int) >= 20,
-                  rc_ctrl_int_min_size);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_rc_ctrl_int) >= 16,
+                  rc_ctrl_int_min_size_16);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_rc_ctrl_int, strong_count) == 0,
+                  rc_ctrl_int_strong_at_0);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_rc_ctrl_int, weak_count) == 4,
+                  rc_ctrl_int_weak_at_4);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_rc_ctrl_int, alive) == 8,
+                  rc_ctrl_int_alive_at_8);
 ABI_STATIC_ASSERT(sizeof(pgy_abi_rc_int) == sizeof(void*),
                   rc_int_size_ptr);
 ABI_STATIC_ASSERT(sizeof(pgy_abi_weak_int) == sizeof(void*),

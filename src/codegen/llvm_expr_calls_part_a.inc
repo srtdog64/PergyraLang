@@ -45,6 +45,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     {
+        LLVMValueRef rc_call = NULL;
+        if (llvm_emit_rc_builtin_call(node, ctx, callee_name, &rc_call))
+            return rc_call;
+    }
+
+    {
         LLVMValueRef slot_builtin = NULL;
         if (llvm_emit_slot_builtin_call(node, ctx, callee_name, &slot_builtin))
             return slot_builtin;

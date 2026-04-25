@@ -129,7 +129,7 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
 static Type *
 helpers_effects_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
 static uint32_t
@@ -276,6 +276,52 @@ semantic_record_body_summary(SemanticContext *ctx, uint32_t summary_mask)
     if (ctx == NULL || !ctx->tracking_function_effects)
         return;
     ctx->current_function_body_summary |= summary_mask;
+}
+
+void
+semantic_record_callee_body_summary(SemanticContext *ctx,
+                                    const Type *callee_type)
+{
+    uint32_t summary;
+    uint32_t transitive_mask =
+        BODY_SUMMARY_MAY_ESCAPE_REF
+        | BODY_SUMMARY_DROPS_RESOURCE
+        | BODY_SUMMARY_EFFECTS
+        | BODY_SUMMARY_REQUIRES_ZONE
+        | BODY_SUMMARY_SPAWNS_TASK
+        | BODY_SUMMARY_SENDS_CHANNEL;
+
+    if (ctx == NULL || callee_type == NULL)
+        return;
+    summary = type_function_body_summary(callee_type) & transitive_mask;
+    if (summary != BODY_SUMMARY_NONE)
+        semantic_record_body_summary(ctx, summary);
+}
+
+void
+semantic_record_callable_decl_summary(SemanticContext *ctx,
+                                      ASTNode *callable_decl,
+                                      uint32_t declared_effects)
+{
+    if (ctx == NULL || callable_decl == NULL
+        || callable_decl->type != AST_FUNC_DECL) {
+        return;
+    }
+
+    if (declared_effects != EFFECT_NONE)
+        semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
+    if (callable_decl->data.func_decl.within_zone != NULL)
+        semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
+
+    for (size_t i = 0; i < callable_decl->data.func_decl.param_count; i++) {
+        FuncParam *param = callable_decl->data.func_decl.params[i];
+        if (param == NULL)
+            continue;
+        if (param->mode == PARAM_MODE_OWN)
+            semantic_record_body_summary(ctx, BODY_SUMMARY_MOVES_PARAM);
+        else if (param->mode == PARAM_MODE_REF)
+            semantic_record_body_summary(ctx, BODY_SUMMARY_BORROWS_PARAM);
+    }
 }
 
 bool

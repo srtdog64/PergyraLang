@@ -138,6 +138,33 @@ semantic_type_resolution_resolve_or_fallback(SemanticContext *ctx,
     return resolve_type_node(type_node, ctx);
 }
 
+Type *
+semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
+                                               ASTNode *type_node)
+{
+    Type *resolved;
+
+    if (type_node == NULL)
+        return NULL;
+
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
+    if (resolved != NULL)
+        return resolved;
+
+    if (type_node->type == AST_TYPE)
+        resolved = metadata_builtin_singleton(type_node->data.type.name);
+    if (resolved != NULL)
+        return resolved;
+
+    semantic_type_resolution_try_record_stable_constructed_type(ctx,
+                                                                type_node);
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
+    if (resolved != NULL)
+        return resolved;
+
+    return resolve_type_node(type_node, ctx);
+}
+
 static Type *
 metadata_lookup_type_ref(SemanticContext *ctx, ASTNode *type_node)
 {

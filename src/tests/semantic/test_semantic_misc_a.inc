@@ -865,6 +865,30 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("generic own/ref parameter requires ownership classifier fact");
+    {
+        const char *source =
+            "func BorrowGeneric<T>(ref value: T) -> Void {\n"
+            "    return;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "parameter mode requires a boundary-visible type"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "type 'T' is not a copy-visible value"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("CFG spawn rejects anonymous async body until capture lifetime is closed");
     {
         const char *source =

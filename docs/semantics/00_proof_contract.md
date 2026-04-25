@@ -102,9 +102,11 @@ For accepted beta programs, C and LLVM must agree on:
 - hard-fail class.
 - panic class for OOM/divide-by-zero/out-of-bounds/slot violation/token mismatch/authority mismatch.
 
-## Evidence Boundary
+## Evidence Boundary & Formal Calculus
 
-Regression tests, smoke tests, and backend compare runs are evidence. They are not mathematical proof by themselves.
+While regression tests and backend compare runs provide implementation evidence, the core ownership and security semantics of Pergyra (Slot System, Tokens, Pinning) are transitioning towards **Strict Operational Semantics**.
+
+See [08. Slot Capability Calculus](08_slot_capability_calculus.md) for the rigorous mathematical rules and inference proofs governing dynamic capability leases. Any PR modifying the ABI, slot lifecycle, or token capabilities MUST ensure the calculus transition rules hold without logical contradiction.
 
 Proof status labels:
 

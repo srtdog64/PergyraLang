@@ -738,7 +738,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 
     switch (expr->type) {
     case AST_NUMBER:
-        return expr->data.number.is_long ? "Long" : "Int";
+        if (expr->data.number.is_long)
+            return "Long";
+        return expr->data.number.value == (int64_t)expr->data.number.value
+            ? "Int"
+            : "Float";
     case AST_STRING:
         return "String";
     case AST_BOOLEAN:

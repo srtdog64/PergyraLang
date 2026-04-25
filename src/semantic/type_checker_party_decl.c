@@ -11,7 +11,13 @@
 static Type *
 party_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    Type *resolved;
+
+    if (type_ref == NULL || ctx == NULL)
+        return TYPE_UNKNOWN;
+
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
 bool

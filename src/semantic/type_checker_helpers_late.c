@@ -29,7 +29,7 @@ declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
 static Type *
 late_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
 static ASTNode *
@@ -86,6 +86,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 const char *display_name,
                                 SemanticContext *ctx)
 {
+    ASTNode *callable_decl = NULL;
+
     if (sym == NULL) {
         if (name_looks_qualified(display_name)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
@@ -302,8 +304,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
     if (ctx->program_root != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
-        ASTNode *decl = find_callable_decl_by_name(ctx->program_root, display_name);
-        if (decl != NULL && !explicit_type_reference_allowed(decl, expr, ctx)) {
+        callable_decl = find_callable_decl_by_name(ctx->program_root, display_name);
+        if (callable_decl != NULL && !explicit_type_reference_allowed(callable_decl, expr, ctx)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY,
                 PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER,
                 expr,
@@ -314,6 +316,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
     sym->is_used = true;
     semantic_record_effect(ctx, type_function_effects(sym->type));
+    semantic_record_callee_body_summary(ctx, sym->type);
+    semantic_record_callable_decl_summary(ctx, callable_decl,
+        type_function_effects(sym->type));
     if (ctx->in_parallel
         && type_effect_mask_has(type_function_effects(sym->type), EFFECT_SECURE)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
@@ -324,7 +329,6 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
     size_t expected = sym->type->data.function.param_count;
     size_t provided = expr->data.call.arg_count;
-    ASTNode *callable_decl = NULL;
     GenericParams *callable_generic_params = NULL;
     Type **effective_generic_types = NULL;
     if (provided != expected) {

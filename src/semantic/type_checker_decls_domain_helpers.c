@@ -25,7 +25,7 @@
 static Type *
 domain_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
 static Type *

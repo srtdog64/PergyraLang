@@ -1,8 +1,10 @@
 # Beta Readiness Checklist
 
-마지막 업데이트: 2026-04-25
+마지막 업데이트: 2026-04-26
 
-이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety**다. 현재 공식 beta readiness는 약 50%로 본다.
+이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety**다. 현재 공식 beta readiness는 약 50%로 본다.
+
+베타 진입 후 약 1년간 코어 패치를 멈추고 생태계 (`pgy.compat.*`, `pgy.kit.*`, `pgy.std.*`, `pgy.accel.spray`, `pgy.render.skia` 등) 를 올리는 것이 다음 단계이므로, 베타 closure 는 **"이 1년동안 코어가 자력으로 버틸 수 있는가"** 기준으로 본다. 이 의미에서 AIR/CFG/runtime invariant 는 모두 closure 직전까지 실 구현이 끝나야 하며, 단순 문서 합의로 끝나지 않는다.
 
 상태 표기:
 
@@ -108,7 +110,12 @@ Closed now:
   `moves_param`, `borrows_param`, `drops_resource`, `effects`,
   `requires_zone`, `spawns_task`, and `sends_channel`, giving later CFG/runtime
   propagation and backend parity work one stable fact surface instead of
-  repeatedly rediscovering those facts from AST-shaped helpers.
+  repeatedly rediscovering those facts from AST-shaped helpers. Direct function
+  calls now consume callee summaries and propagate transitive caller-relevant
+  facts while keeping callee-local `may_return` local to the callee.
+  Direct function calls, method calls, and host calls also record
+  declaration-known summary facts (`effects`, `requires_zone`, and `own/ref`
+  parameter modes).
 - Parser-accepted anonymous async spawn bodies (`spawn async () { ... }`) are
   explicit beta rejects until closure capture/lifetime analysis is closed. The
   stable beta surface is named `spawn Worker(args...)`, where parameters,
@@ -159,10 +166,20 @@ Remaining:
   `ref` parameters.
 - Interprocedural body summaries must be fixed: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, and `sends_channel`.
   First-stage `body_summary_mask` storage and semantic recording exist now; the
-  remaining blocker is making downstream zone/effect/runtime/codegen consumers
-  use those bits instead of local rediscovery.
+  direct function-call consumer and method declaration-summary consumer also
+  exist. Lambda body checking is isolated now: lambda-local effect/body facts
+  are stored on the lambda function type and do not leak into the enclosing
+  routine before the lambda is called; function-typed lambda bindings propagate
+  those facts through the same callee-summary path as named functions. The
+  remaining blocker is making zone/effect/runtime/codegen consumers use those
+  bits instead of local rediscovery.
 - Diagnostics must report path provenance with branch/join edge, previous state, `Reason`, and `Fix`.
 - C and LLVM must lower the frozen subset from the same CFG/dataflow facts and be covered by backend compare.
+- Option C ownership lift must consume CFG facts before it is stable:
+  `WriteView<T>` exclusive access is the aliasing-XOR-mutability baseline,
+  `pin` cleanup edges must be inserted for every early exit, and pinned views
+  must be rejected across `await`, `spawn`, `async`, `parallel`, callback, and
+  channel boundaries.
 
 Evidence command:
 
@@ -202,6 +219,26 @@ Stable subset that must be frozen:
 - Ownership: anchored slot-handle boundary subset, boundary-visible aggregate provenance, copy-value trivial `own/ref`, explicit reject for `Token<T>` transport.
 - Collections: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, plus any currently implemented additional key families only if docs/tests/backend parity list them explicitly.
 - Observability: `last`, `history`, `active`, `recent` baseline.
+- Option C ownership lift decision: a generic param ownership classifier is a
+  beta blocker if ownership-sensitive generic code is accepted. Without that
+  classifier, generic `own/ref` uses that depend on unknown `T` ownership class
+  must be explicitly rejected instead of inferred.
+- Current conservative baseline: unresolved `TYPE_KIND_GENERIC` classifies as
+  `BORROW_TRACKED`, so generic `own/ref` boundaries are rejected unless a later
+  classifier can prove a stable ownership class for `T`.
+- Minimal single-thread `Rc<T>` / `Weak<T>` is beta-stable for
+  `Int`, `Long`, `Float`, `Double`, `Bool`, and `String`. The closed contract
+  includes resolver metadata, semantic builtin typing, C runtime, LLVM runtime
+  exports, C emitter lowering, LLVM builtin lowering parity, ABI layout tests,
+  and lifecycle backend-compare regression.
+  Fractional numeric literals infer as `Float`; `Rc<Double>` is stable through
+  explicit `Double`-typed values or annotations, not a separate double-literal
+  surface.
+  Payloads outside that set are explicitly rejected in semantic analysis before
+  backend lowering.
+  Gate phrase: shared ownership stable subset requires C/LLVM lifecycle parity.
+  `Arc<T>`, cross-thread shared ownership, generic/object payloads beyond the
+  frozen primitive/String set, and default ARC remain outside the beta contract.
 
 Intent closure:
 
@@ -317,6 +354,9 @@ Diagnostic quality gate:
 
 - Every user-facing parser, lexer, semantic, backend, and runtime error must have severity, stable code, source span when available, `Reason:`, and `Fix:`.
 - `diagnostic-registry-test-smoke` verifies code registry drift, but beta also requires representative quality checks for parser/lexer/backend/runtime messages.
+- Parser and lexer JSON routing now preserves `stage`, `code`, `cause_ir`, and
+  `fix_source` for `PGY_PARSE_SYNTAX` and `PGY_LEX_INVALID_TOKEN`; remaining
+  debt is richer parser code splitting and parser multi-error accumulation.
 
 Cross-platform support matrix:
 
@@ -377,6 +417,106 @@ make module-taxonomy-test-smoke
 make parallel-core-contract-test-smoke
 ```
 
+## 0f. AIR Abstraction Safety Closure
+
+Status: `BLOCKER`
+
+Source of truth: `docs/104_air_compiler_architecture.md`
+
+Goal:
+
+- Pergyra의 killer 기능인 abstraction safety (intent ↔ implementation drift 검출) 에 명시적 verification IR 을 가진다.
+- AST 기반 traversal 에 ownership 을 분산시켰다 사고친 패턴을 abstraction safety 도메인에서 반복하지 않는다. 분산된 metadata + cross-IR query 가 아니라 **단일 source of truth (AIR) + read-only synthesis** 로 푼다.
+- 베타 후 ~1년간 코어 패치 freeze 가 예정되어 있으므로 AIR Phase 1 은 **문서 합의가 아니라 실 구현 완료 + 회귀 smoke 통과** 까지 닫는다.
+- AIR 는 codegen path 위가 아니라 옆에 위치하는 **verification-only synthesis IR** 이다 (HIR + DIR + RIR → AIR, 단방향 read-only). codegen 출력에 영향이 없으므로 stale 위험이 codegen IR 보다 작다.
+
+Closed now:
+
+- AIR 컴파일러 아키텍처 결정과 단방향 synthesis IR 포지셔닝이 `docs/104_air_compiler_architecture.md` 에 고정됐다.
+- AIR 가 Rust MIR 과 의식적으로 다른 위치 (codegen path 옆) 에 산다는 architectural choice 가 명시됐다.
+- Phase 1 / 2 / 3 scope 가 명시적으로 분리됐고, Phase 1 은 Intent Node + Boundary Node + 1 개 drift check 로 좁혀졌다.
+- AIR 가 아닌 것 (codegen IR 아님, ownership/borrow 검사 home 아님, type 검사 home 아님, effect propagation 자체 아님, 새 keyword 추가 안 함) 이 명시적 negative space 로 docs 에 고정됐다.
+- CFG 사고 (AST 기반 ownership 분산) 와의 동형 비교가 docs 에 고정되어, 같은 함정에 빠지지 않는 이유가 추적 가능하다.
+- `src/compiler/air.{h,c}`가 AIR Phase 1 데이터 구조, DIR 기반 read-only synthesis, sync/async drift checker baseline을 제공한다.
+- AIR synthesis가 HIR routine evidence와 RIR boundary/authority evidence를 read-only로 수집하고 각 `Boundary Node`에 evidence flag를 부착한다. Default strict evidence에서 missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 된다.
+- `src/test_air.c`가 direct AIR 케이스와 parser/semantic/DIR/HIR/RIR source integration 케이스를 함께 고정한다: sync intent + sync boundary pass / sync intent + async boundary drift / async intent + async boundary pass / strict missing-boundary drift / mismatched authority participant drift / HIR+RIR evidence collection / parsed intent source no-drift.
+- AIR drift messages are owned by AIR and `air_check_drift()` clears existing
+  drift messages before recomputing; `src/test_air.c` covers repeated drift
+  checking on the same AIRProgram so the validation path does not leak or retain
+  stale diagnostics.
+- `tests/diagnostics_json_smoke.sh` now includes a parsed-source AIR negative
+  case: a valid semantic intent requiring `authorized by: buyer` without a
+  lowering-visible zone authority declaration is rejected by default strict AIR
+  as `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`, with JSON
+  `cause_ir`/`fix_source` and `expected authority participant(s): buyer`.
+- Intent step source locations now flow parser → DIR → AIR, so AIR driver
+  diagnostics for parsed sources report the offending step span instead of
+  falling back to `line 0, column 0`.
+- `docs/semantics/07_air_abstraction_safety.md`가 AIR synthesis read-only, Intent Node coverage, Boundary Closure, Drift Detection Soundness, Codegen Non-Impact proof obligation을 고정한다.
+- `src/compiler/driver_app.c`가 AIR를 MIR lowering 전에 semantic-validation 단계로 실행하고, drift 발생 시 `PGY_SEM_INTENT_BOUNDARY_DRIFT` + `PGY_CAUSE_INTENT_BOUNDARY_DRIFT` + `PGY_FIX_ALIGN_INTENT_BOUNDARY_SYNC`를 text/JSON diagnostic으로 노출한다.
+- `CompilerIRBundle`은 AIR를 담지 않는다. C / LLVM backend 가 AIR를 consume하지 못하게 막는 것이 Phase 1 설계다.
+- `make air-drift-test-smoke`가 AIR source-of-truth 문서, checklist section, TODO readiness gate, Makefile wiring, AIR implementation/test/driver validation presence를 함께 검사한다.
+- `make air-backend-nonimpact-test-smoke` compares generated C and LLVM text for
+  the intent/zone, cross-world transfer, handoff frontier, world projection,
+  relation/effect propagation, and authority-failure fixture set with relaxed AIR
+  (`PGY_AIR_STRICT_EVIDENCE=0`) and default strict AIR, proving the no-drift AIR
+  validation path does not mutate backend output.
+- `make air-backend-nonimpact-full-test-smoke` runs the full frozen
+  backend-compare fixture sweep (`PGY_AIR_NONIMPACT_SOURCE=all`) and is now the
+  CI Linux AIR backend non-impact gate.
+- `make air-strict-backend-compare-test-smoke` runs the normal C/LLVM backend
+  execution compare under default strict AIR validation, so strict AIR
+  validation is covered by real binary parity, not only generated text
+  comparison.
+
+Strict evidence update:
+
+- Strict evidence is now the default AIR validation mode.
+- Missing RIR boundary/authority evidence becomes
+  `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`, with dedicated
+  `PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE` and
+  `PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE`.
+- Authority evidence is participant-sensitive: a boundary declared with
+  `authorized by: X` is not satisfied by unrelated authority facts or authorize
+  ops in the same RIR scope.
+- Authority evidence diagnostics include the expected authority participant
+  list in `Reason:` when required RIR authority evidence is missing.
+- `PGY_AIR_STRICT_EVIDENCE=0` remains as a development/debug opt-out for
+  isolating AIR evidence coverage regressions; it is not the beta default.
+
+Remaining (Phase 1 — beta 진입 전 반드시 실 구현):
+
+- HIR + DIR + RIR synthesis edge coverage: stable intent subset evidence 누락은 default strict hard-fail로 승격됐다. Parsed-source negative baseline now exists for missing authority evidence through the full driver JSON path. Remaining work is expanding source-backed negatives beyond the authority case (missing boundary evidence, transfer/world boundary, and sync/async drift once source synthesis can express it).
+- backend non-consumption regression: source scanning and generated C/LLVM
+  non-impact smoke now cover the full frozen backend-compare fixture set in
+  Linux CI. Strict evidence also runs through the backend execution compare.
+  Remaining work is Windows native evidence and additional parsed-source
+  negative diagnostics beyond the baseline authority-evidence case.
+- Phase 1 invariant docs exist in `docs/semantics/07_air_abstraction_safety.md`
+  for drift detection soundness, synthesis read-only, codegen non-impact,
+  intent node coverage, boundary closure, and strict evidence failure
+  soundness. Remaining work is expanding source-backed negative regressions,
+  not writing the first invariant section.
+- Phase 1 schema 가 Phase 2 (Constraint Node, Effect Node) 와 Phase 3 (drift fact 종류 확장) 를 막지 않도록 **future-compatible 하게 enum/struct** 설계 (`drift_kind` 가 enum 1 종에서 시작해 추가 가능, Boundary `kind` 가 5 종에서 시작해 추가 가능).
+- AIR 를 codegen path 에 연결하지 않는다. AIR drift 검사는 semantic/compiler validation 단계에 머물고 C / LLVM output을 직접 바꾸지 않는다.
+
+Out of Phase 1 (베타 후 생태계 단계에서 추가 가능):
+
+- Phase 2: Constraint Node (sync/async, local/distributed, fallible/infallible, persistence), Effect Node (DB/Network/FS/External), 추가 drift fact (failure-class mismatch, transactional-scope mismatch).
+- Phase 3: AIR 가 안정되면 일부 metadata 의 단일 source-of-truth 화 (예: zone boundary 정보가 DIR 와 AIR 양쪽에 있던 것을 AIR 단일화).
+
+Evidence command:
+
+```sh
+make air-drift-test-smoke
+make air-backend-nonimpact-test-smoke
+make air-backend-nonimpact-full-test-smoke
+make air-strict-backend-compare-test-smoke
+make formal-semantics-test-smoke
+make diagnostic-registry-test-smoke
+make llvm-test-backend-compare
+```
+
 ## 1. Core Module / Module Boundary Closure
 
 상태: `IN PROGRESS / BLOCKER`
@@ -389,7 +529,7 @@ make parallel-core-contract-test-smoke
 
 현재 닫힌 것:
 
-- 2026-04-25 local acceptance: `make ci-linux` completed green on WSL/Linux after the DAG metadata floor gate, fallback seam cap reduction to 31, CFG/body dataflow gate, runtime panic contract gates, authority direct-slot fixes, C/LLVM MIR declaration inventory gate, and C backend active-inventory bootstrap. This covers `test-all`, LLVM smoke, fmt/stdlib/module/example smoke, taxonomy/inc-size/core-shape/DAG/MIR-inventory/diagnostic/parser-lexer/JSON/IR/AST gates, ABI same-process, and backend compare.
+- 2026-04-25 local acceptance: `make ci-linux` completed green on WSL/Linux after the DAG metadata floor gate, fallback seam cap reduction to 21, CFG/body dataflow gate, runtime panic contract gates, authority direct-slot fixes, parser/lexer JSON routing, AIR strict-evidence/default non-impact gates, AIR drift-message ownership cleanup, C/LLVM MIR declaration inventory gate, and C backend active-inventory bootstrap. This covers `test-all`, LLVM smoke, fmt/stdlib/module/example smoke, taxonomy/inc-size/core-shape/DAG/MIR-inventory/diagnostic/parser-lexer/JSON/IR/AST/AIR gates, ABI same-process, and backend compare.
 - `docs/99_language_module_taxonomy.md`로 core/foundation/execution/compat layer를 고정했다.
 - `docs/language_module_manifest.json`, `docs/language_module_cases.json`가 machine-readable source다.
 - `make module-taxonomy-test-smoke`가 taxonomy drift를 검사한다.
@@ -445,7 +585,7 @@ make parallel-core-contract-test-smoke
 - Tier 1 파일 크기 gate는 닫혔지만, 여러 slice는 include-order 보존 mechanical split이다. LLVM constructor owner처럼 일부 semantic-owner 추출은 시작됐고, 나머지 실제 TU/owner extraction은 아직 Tier 2 구조 부채다.
 - `type_checker.c`는 600 LOC 이하로 내려갔지만, 아직 일부 helper shim include가 남아 있어 완전한 orchestration-only는 아니다.
 - core module boundary와 compiler implementation module boundary가 아직 완전히 대응하지 않는다.
-- parser/lex error code routing은 아직 semantic diagnostic registry만큼 강하게 닫히지 않았다.
+- parser/lex baseline error code routing은 text + JSON 모두 닫혔다. 남은 것은 semantic diagnostic registry 수준의 세분화된 parser code split과 multi-error accumulation이다.
 - `pgy.accel.spray`는 아직 구현/stdlib/API가 없다. 베타 전에는 설계 경계만 유지하고, 베타 이후 CPU fallback + explicit device/context + owned buffer/tensor API부터 별도 closure로 진행한다.
 - `pgy.render.skia`와 `pgy.compat.dop`도 아직 구현/stdlib/API가 없다. 베타 전에는 module boundary만 유지하고, 베타 이후 render/shader graph 및 data-layout helper를 별도 closure로 진행한다.
 
@@ -480,18 +620,18 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - `resolve_type_node(...)` itself is now metadata-first, so the remaining explicit legacy allowlist also consumes DAG facts before recursive materialization.
 - Owner-local resolver seams now converge through `semantic_type_resolution_resolve_or_fallback(...)`; direct `resolve_type_node(...)` calls are statically blocked outside the resolver implementation and the shared fallback helper.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3124 metadata_entries=1641 metadata_owned=50 metadata_hits=2513 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3130 metadata_entries=1872 metadata_owned=110 metadata_hits=3260 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage (`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`) instead of accepting any non-zero metadata activity.
 - The remaining stage legacy surface is alias-only. Successful alias materialization and diagnostic fallback are reported separately, and valid alias fallback is gated at zero. The 78 unresolved fallback entries come from intentional alias-cycle diagnostic coverage, not hidden non-alias recursive resolution.
 - Ability declarations are now predeclared in the program-level symbol inventory, and `type_check_ability_decl(...)` reuses only its own predeclare. This closes the forward declaration-order gap for generic default/where consumers, zone authority ability consumers, and party role-slot ability consumers without weakening duplicate-ability diagnostics.
 - C/LLVM parity now includes `tests/cases/backend_compare/forward_ability_order/main.pgy`, which keeps provider-after-consumer ordering for generic defaults, aliases, zone authority ability consumers, and party role-slot ability consumers from regressing outside semantic-only tests.
 - `tests/compare_backends.sh` now fails its default run when a `tests/cases/backend_compare/*/main.pgy` directory is not registered in the default case array. Targeted runs with explicit arguments remain allowed for development, but CI can no longer silently skip a new parity case. The gate pulled eight previously passing but unregistered cases into the default C/LLVM parity suite: array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, and try-operator result.
-- `type-resolution-resolver-inventory-test-smoke` now treats the fallback seam count as a one-way debt cap instead of a coverage floor. The current 31-site cap blocks growth, prints the active fallback seam count, and shrinking below the old floor no longer fails CI.
+- `type-resolution-resolver-inventory-test-smoke` now treats the fallback seam count as a one-way debt cap instead of a coverage floor. The current 1-site cap blocks growth, prints the active fallback seam count, and shrinking below the old floor no longer fails CI.
 - `type_checker_module_contract.c` no longer calls the recursive fallback helper for ability contract bookkeeping. It records and checks ability contract shape/provenance through ability-specific logic and only performs DAG metadata lookup for already-materialized type facts, reducing the fallback seam inventory from 39 to 38.
 - `type_checker_ability_fields.c` now follows the same lookup-only pattern for ability `fields` requirements: the ability-specific validator owns field-contract diagnostics, while DAG metadata provides already-materialized type facts without recursive fallback.
 - Domain and intent declaration resolution now converge through owner-local type-reference seams. Domain slot/shared/named refs and intent involves/value/where refs share their local owner seam, reducing the fallback seam inventory from 38 to 34.
-- Alias/generic-parameter helpers and resolution-stage diagnostic fallback now converge through owner-local seams, reducing the fallback seam inventory from 34 to 32. Ability-field validation lookup-only resolution reduces the active seam cap to 31.
-- This is not full DAG source-of-truth yet. The remaining closure is graph/topo materialization for generic/default/bound/module/nominal references, then shrinking recursive fallback to explicit legacy-only seams.
+- Alias/generic-parameter helpers and resolution-stage diagnostic fallback now converge through owner-local seams, reducing the fallback seam inventory from 34 to 32. Ability-field validation lookup-only resolution reduced the active seam cap to 31. Projection builtin target-field resolution now follows the same lookup-only pattern: graph metadata owns the materialized target field type, while projection diagnostics own source/target field mismatch. This reduces the active fallback seam cap to 30. Program-level quiet placeholder resolution now uses precollected DAG metadata lookup only, so event/function forward placeholders no longer need recursive fallback and the active cap is 29. Domain query projection source-field resolution now follows class/vessel field metadata lookup-only and reduces the active cap to 28. Party/roster shared-field resolution now follows declaration metadata lookup-only and reduces the active cap to 26. Ability abstract method signature resolution and role host-type resolution now follow metadata lookup-only and reduce the active cap to 24. Function/action body precollect now walks expression subtrees, call type args, lambda param/return/body types, event subscription handlers, spawn/channel/return/branch expressions; event/lambda handler signature resolution now uses DAG metadata lookup-only and reduces the active cap to 23. Body flow type resolution now uses DAG metadata lookup-only and reduces the active cap to 22. Type-alias statement resolution now uses DAG metadata lookup-only and reduces the active cap to 21. Generic where/default validation moved to the shared metadata materialization API and every owner-local resolver seam now calls `semantic_type_resolution_lookup_or_materialize(...)`, reducing the active fallback cap to 1.
+- This is not full DAG source-of-truth yet, but the remaining recursive fallback is centralized in `type_checker_resolution_metadata.c`; owner files cannot add local fallback seams without failing `type-resolution-resolver-inventory-test-smoke`. The remaining closure is replacing that central fallback with graph/topo materialization for generic/default/bound/module/nominal references, direct semantic unit graph bootstrap or null-safe diagnostics for function-body, intent declaration, ownership-let, and operator-overload cases, anchored-handle constructed-type coverage, generic/default effective-arg facts, boundary type-category facts for ref/own escape classification, ability where-bound effective-arg/multi-bound provenance facts, method param/return signature summaries, class/vessel field nominal flavor metadata, world/zone/host subject-slot nominal materialization, and zone authority generic ability facts.
 - Authority direct-slot resolution now clears stale ambiguity when the participant alias resolves to a concrete zone subject slot after earlier same-type candidates. This keeps `authorized by rogue/mage` valid when the zone has matching `subject slot rogue/mage: Adventurer`, while still preserving the hard error for genuinely ambiguous same-type participants.
 
 상태: `IN PROGRESS / BLOCKER`
@@ -518,17 +658,17 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - graph precollect TU는 더 이상 stage runner를 호출하지 않는다. enum methods도 `semantic_stage_method_array(...)`가 아니라 precollect action contract 경로로 edge를 수집한다.
 - stage lookup과 stage stats helper는 `type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`로 분리됐다. `type_checker_resolution_stage.c`는 895 LOC로 내려가 stage replay 본체만 소유한다.
 - generic where/default validation은 `type_checker_generic_validation.c`가 소유한다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.inc`는 resolver-free graph layer로 고정됐고, `semantic-core-shape-test-smoke`가 graph layer의 직접 `resolve_type_node(...)` 호출을 금지한다.
-- intent declaration resolution은 participant/value/where local seam 3개로 수렴했고, 이제 graph metadata-first 조회 후 recursive fallback으로 내려간다.
+- intent declaration resolution은 participant/value/where local seam 3개로 수렴했고, 이제 graph metadata-first 조회 후 recursive fallback으로 내려간다. 단순 lookup-only 전환은 semantic suite 후반 parallel execution path에서 segfault를 만들었으므로, direct semantic/bootstrap path와 step/local binding materialization이 lookup-only 계약을 만족할 때까지 explicit fallback seam으로 남긴다.
 - domain contract resolution은 slot/shared/named-ref local seam 3개로 수렴했고, projection/relation/effect contract도 graph metadata-first 조회 후 fallback으로 내려간다.
 - intent helper resolution은 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. transfer-derived using/where, ability generic arg, role-field checks는 이 seam에서 graph-backed metadata로 교체할 수 있다.
 - host helper resolution은 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. projection source fields, hosted method return/param, zone authority/domain slot checks는 이 seam에서 graph-backed metadata로 교체할 수 있다.
 - program declaration/body resolution은 quiet/body resolver seam으로 수렴했다. function-body materialization seam은 graph metadata-first 조회 후 fallback으로 내려간다.
 - event signature resolution은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. event params, return type, lambda handler signature를 graph-backed signature metadata로 교체할 수 있다.
-- world shared/domain-slot resolution은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. world shared fields와 slot initializer checks는 이 seam에서 graph-backed metadata를 재사용할 수 있다.
+- world shared/domain-slot resolution은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. 단순 lookup-only 전환은 `subject slot ... requires a subject type` 계열 semantic regression을 만들었으므로, world domain-slot subject/zone nominal metadata가 DAG에 보존될 때까지 explicit fallback seam으로 남긴다.
 - role/generic-contract/late-helper/expr resolution은 각각 local seam 1개로 수렴했다. remaining direct resolver inventory에서 이 파일들은 이제 metadata replacement owner를 명확히 가진다.
 - generic validation, ability where/module contract/declaration, class field, operator overload, ownership destructure resolution도 local seam으로 수렴했다. remaining direct resolver inventory는 resolver implementation, comments, or explicit seam sites로 압축됐다.
 - statement, ability field, builtin projection/query, flow, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다.
-- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다. It also gates new `semantic_type_resolution_resolve_or_fallback(...)` users behind an explicit owner-seam allowlist and caps the metadata-first fallback seam inventory at 31, so remaining consumers are no longer unclassified and cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
+- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다. It also gates new `semantic_type_resolution_resolve_or_fallback(...)` users behind an explicit owner-seam allowlist and caps the metadata-first fallback seam inventory at 21, so remaining consumers are no longer unclassified and cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
 - `type_checker_decls_domain_helpers.c`의 zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. `dnd_tavern_campaign` 같은 multi-slot same-type zone에서 concrete participant alias가 false-positive ambiguous로 떨어지는 경로를 닫았다.
 - `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage legacy fallback inventory를 CI gate로 검사한다.
 - intent/standalone helper dependency는 internal headers와 hard CFLAGS로 고정되어 DAG split 중 hidden include-order failure를 즉시 잡는다.
@@ -623,6 +763,9 @@ Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/L
 현재 닫힌 것:
 
 - `docs/94_arena_index_lifetime_plan.md`로 `Arena + Index + 역할별 arena` 방향을 고정했다.
+- `docs/74_slot_pinning_caching.md`로 repeated slot access hot path의 Pin/Lease 계약을 고정했다. Pin은 보안 우회가 아니라 scope-entry capability lease이며, block-scoped `pin ... { ... }`만 beta 후보로 둔다.
+- `PgyPinnedView`, `PergyraSlotPin(...)`, `PergyraSlotUnpin(...)` runtime ABI baseline이 들어왔다. Normal slot pin은 release/scope-release/TTL-cleanup 파괴를 막고, secure slot write pin은 token 검증 후 sealed payload를 lease buffer로 열며 unpin 시 다시 seal한다. Invalid token, missing capability, concurrent secure write, and release while pinned are covered by `make test-security`.
+- Candidate source syntax `pin slot as view { ... }` is explicitly rejected in parser diagnostics until the semantic CFG cleanup edge and backend parity are implemented. This keeps runtime ABI experimentation from becoming accidental beta surface.
 - semantic scratch arena, diagnostic result-owned payload seam, HIR/MIR routine scratch, LLVM scratch/result-owned lane이 들어왔다.
 - `make test-abi-perf`와 `make perf-summary`로 speed baseline도 관리한다.
 - POSIX `realpath` implicit declaration warning을 제거했다.
@@ -634,18 +777,28 @@ Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/L
 - owner shell과 runtime ABI contract가 섞인 helper가 남아 있다.
 - helper payload, runtime-owned handle, and grow-array payload return helpers still need the same ownership audit.
 - runtime query/diagnostic string이 scratch teardown 이후에도 안전한지 회귀가 더 필요하다.
+- Slot Pin/Lease는 runtime primitive baseline과 candidate syntax explicit reject가 닫혔다. 남은 blocker는 stable language surface, pin/unpin CFG cleanup edge, view escape diagnostics, QubitSlot/await/parallel explicit rejects, C/LLVM lowering parity다.
+- Option C ownership lift keeps Pin/Lease narrow: `pin slot as view { ... }`
+  and `PinnedView<T>` are §4 ABI ownership blockers only after §0b proves
+  cleanup/escape facts. User-facing raw `void *` remains rejected; only typed
+  `ReadView<T>` / `WriteView<T>` may be exposed. `DeviceSlot<T>` pinning is a
+  candidate surface, not stable, until device mapping failure classes and C/LLVM
+  parity are implemented.
 
 완료 조건:
 
 - helper ownership이 `borrowed`, `scratch-owned`, `result-owned`, `persistent-owned`, `runtime-owned` 중 하나로 분류된다.
 - runtime ABI return ownership이 문서화되고 테스트된다.
 - frozen subset diagnostic/runtime query가 scratch lifetime 이후 dangling되지 않는다.
+- repeated slot access는 per-access validation path와 Pin/Lease path 중 하나로 명확히 분류되고, Pin/Lease는 manual raw pointer API 없이 scoped cleanup으로만 노출된다.
 
 증거 명령:
 
 ```sh
 make test-abi
 make runtime-abi-lifetime-test-smoke
+make test-security
+make diagnostics-json-test-smoke
 make test-abi-perf
 make perf-summary PERF_LOG=/path/to/test-abi-perf.log
 ```
@@ -744,4 +897,4 @@ make ast-dispatch-test-smoke
 - 새 코드: `PGY_PARSE_SYNTAX`, `PGY_LEX_INVALID_TOKEN`.
 - 새 gate: `make parser-lexer-diagnostic-test-smoke`.
 - CI 연결: `ci-linux`가 parser/lexer diagnostic gate를 실행한다.
-- 남은 beta debt: parse/lex message surface는 routable하지만, full JSON diagnostic object routing은 아직 driver/parser refactor가 필요하다.
+- 남은 beta debt: parse/lex baseline message surface와 JSON diagnostic object routing은 닫혔다. 남은 것은 parser-specific code split과 multi-error accumulation이다.

@@ -30,10 +30,12 @@ flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.i
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.inc"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.inc"
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.inc"
+helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.inc"
 builtins_query_channel_path = root / "src" / "semantic" / "type_checker_builtins_query_channel.inc"
 builtins_cancel_path = root / "src" / "semantic" / "type_checker_builtins_cancel.c"
 type_system_path = root / "src" / "semantic" / "type_system.h"
 type_system_impl_path = root / "src" / "semantic" / "type_system.c"
+expr_path = root / "src" / "semantic" / "type_checker_expr.inc"
 program_path = root / "src" / "semantic" / "type_checker_program.inc"
 diag_path = root / "src" / "semantic" / "diag_codes.h"
 diag_doc_path = root / "docs" / "72_diagnostic_codes.md"
@@ -54,10 +56,12 @@ for path in (
     flow_loops_path,
     flow_parallel_path,
     async_channel_path,
+    helpers_effects_path,
     builtins_query_channel_path,
     builtins_cancel_path,
     type_system_path,
     type_system_impl_path,
+    expr_path,
     program_path,
     diag_path,
     diag_doc_path,
@@ -86,6 +90,8 @@ flow = (
     + "\n"
     + async_channel_path.read_text(encoding="utf-8")
     + "\n"
+    + helpers_effects_path.read_text(encoding="utf-8")
+    + "\n"
     + builtins_query_channel_path.read_text(encoding="utf-8")
     + "\n"
     + builtins_cancel_path.read_text(encoding="utf-8")
@@ -93,6 +99,8 @@ flow = (
     + type_system_path.read_text(encoding="utf-8")
     + "\n"
     + type_system_impl_path.read_text(encoding="utf-8")
+    + "\n"
+    + expr_path.read_text(encoding="utf-8")
 )
 program = program_path.read_text(encoding="utf-8")
 diag = diag_path.read_text(encoding="utf-8")
@@ -166,6 +174,9 @@ required_flow_terms = [
     "type_check_cancel_rejects_payload",
     "body_summary_mask",
     "type_function_body_summary",
+    "semantic_record_callee_body_summary",
+    "semantic_record_callable_decl_summary",
+    "lambda_body_summary",
     "BODY_SUMMARY_SPAWNS_TASK",
     "BODY_SUMMARY_SENDS_CHANNEL",
     "BODY_SUMMARY_MAY_ESCAPE_REF",
@@ -254,6 +265,12 @@ for term in [
     "ChannelClose rejects movable resource channel payloads",
     "ChannelClose rejects authority Token channel payloads",
     "function body summary records param boundary modes",
+    "function call propagates callee body summary",
+    "direct function call records callable declaration boundary summary",
+    "method call records callable declaration body summary",
+    "lambda body summary stays on lambda type",
+    "lambda body summary does not leak to enclosing function",
+    "lambda call propagates lambda body summary",
 ]:
     if term not in semantic_tests:
         raise SystemExit(f"semantic regression must cover {term}")

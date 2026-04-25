@@ -713,6 +713,16 @@ semantic_type_resolution_precollect_program(ASTNode *program,
                 stmt->data.func_decl.name);
             break;
 
+        case AST_LET_DECL:
+            semantic_type_resolution_collect_type_refs(
+                stmt->data.let_decl.type,
+                ctx,
+                stmt,
+                stmt->data.let_decl.name != NULL
+                    ? stmt->data.let_decl.name : "<top-level-let>",
+                "top-level let annotation lookup");
+            break;
+
         case AST_EVENT_DECL:
             semantic_type_resolution_precollect_event_inventory(stmt, ctx);
             break;

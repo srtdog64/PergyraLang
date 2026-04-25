@@ -9,21 +9,12 @@
 static Type *
 program_resolve_type_quiet(ASTNode *type_node, SemanticContext *ctx)
 {
-    size_t saved_diag;
-    bool saved_err;
     Type *resolved;
 
     if (type_node == NULL || ctx == NULL)
         return TYPE_UNKNOWN;
 
-    saved_diag = ctx->diagnostic_count;
-    saved_err = ctx->has_error;
-    resolved = semantic_type_resolution_resolve_or_fallback(ctx, type_node);
-    if (ctx->diagnostic_count > saved_diag) {
-        ctx->diagnostic_count = saved_diag;
-        ctx->has_error = saved_err;
-        return TYPE_UNKNOWN;
-    }
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
@@ -61,6 +52,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         return false;
 
     ctx->program_root = program;
+    semantic_type_resolution_precollect_program(program, ctx);
 
     /*
      * Pass 1: collect all top-level function and class names
@@ -277,7 +269,6 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         }
     }
 
-    semantic_type_resolution_precollect_program(program, ctx);
     if (!type_resolution_validate_graph(ctx))
         return false;
     if (!type_resolution_build_topo_order(&ctx->type_resolution_graph,

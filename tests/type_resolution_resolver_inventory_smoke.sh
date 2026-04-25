@@ -39,37 +39,8 @@ grep -RIn 'semantic_type_resolution_resolve_or_fallback' src/semantic \
   | grep -v 'type_checker_internal.h' \
   | while IFS=: read -r path line text; do
   case "$path" in
-    src/semantic/type_checker.c|\
-    src/semantic/type_checker_ability_decl.c|\
-    src/semantic/type_checker_ability_where.c|\
-    src/semantic/type_checker_builtins_projection.c|\
-    src/semantic/type_checker_builtins_query_domain.inc|\
-    src/semantic/type_checker_class_decl.c|\
-    src/semantic/type_checker_decls_domain_helpers.c|\
-    src/semantic/type_checker_event.c|\
-    src/semantic/type_checker_expr.inc|\
-    src/semantic/type_checker_flow.c|\
-    src/semantic/type_checker_generic_contracts.inc|\
-    src/semantic/type_checker_generic_support.inc|\
-    src/semantic/type_checker_generic_validation.c|\
-    src/semantic/type_checker_helpers_effects.inc|\
-    src/semantic/type_checker_helpers_host.inc|\
-    src/semantic/type_checker_helpers_late.c|\
-    src/semantic/type_checker_helpers_resolution.inc|\
-    src/semantic/type_checker_intent_decl.c|\
-    src/semantic/type_checker_intent_helpers.c|\
-    src/semantic/type_checker_operator_expr.inc|\
-    src/semantic/type_checker_ownership_destructure.c|\
-    src/semantic/type_checker_ownership_let.c|\
-    src/semantic/type_checker_party_decl.c|\
     src/semantic/type_checker_program.c|\
-    src/semantic/type_checker_program.inc|\
-    src/semantic/type_checker_resolution_metadata.c|\
-    src/semantic/type_checker_resolution_stage.c|\
-    src/semantic/type_checker_role_decl.c|\
-    src/semantic/type_checker_roster_decl.c|\
-    src/semantic/type_checker_world_decl.c|\
-    src/semantic/type_checker_zone_decl.c)
+    src/semantic/type_checker_resolution_metadata.c)
       continue
       ;;
   esac
@@ -88,8 +59,8 @@ fallback_sites="$(
     | grep -v 'type_checker_internal.h' \
     | wc -l
 )"
-if [ "$fallback_sites" -gt 31 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first fallback seam inventory grew: $fallback_sites > 31" >&2
+if [ "$fallback_sites" -gt 1 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first fallback seam inventory grew: $fallback_sites > 1" >&2
   echo "Shrink or explicitly justify the fallback owner allowlist before adding new seams." >&2
   exit 1
 fi
@@ -130,4 +101,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=31; lower is better)"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=1; lower is better)"

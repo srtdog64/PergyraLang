@@ -3,7 +3,7 @@
 static Type *
 expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
 Type *
@@ -14,7 +14,11 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
     switch (expr->type) {
     case AST_NUMBER:
-        return expr->data.number.is_long ? TYPE_LONG : TYPE_INT;
+        if (expr->data.number.is_long)
+            return TYPE_LONG;
+        return expr->data.number.value == (int64_t)expr->data.number.value
+            ? TYPE_INT
+            : TYPE_FLOAT;
 
     case AST_STRING:
         return TYPE_STRING;
@@ -26,6 +30,11 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         size_t param_count = expr->data.lambda_expr.param_count;
         Type **param_types = calloc(param_count > 0 ? param_count : 1, sizeof(Type *));
         Type *return_type = TYPE_VOID;
+        uint32_t saved_effects = ctx->current_function_effects;
+        uint32_t saved_body_summary = ctx->current_function_body_summary;
+        bool saved_tracking = ctx->tracking_function_effects;
+        uint32_t lambda_effects = EFFECT_NONE;
+        uint32_t lambda_body_summary = BODY_SUMMARY_NONE;
         Type *result;
 
         if (param_types == NULL)
@@ -55,6 +64,10 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             param_types[i] = param_type;
         }
 
+        ctx->tracking_function_effects = true;
+        ctx->current_function_effects = EFFECT_NONE;
+        ctx->current_function_body_summary = BODY_SUMMARY_NONE;
+
         if (expr->data.lambda_expr.return_type != NULL) {
             return_type = expr_resolve_type_ref(
                 expr->data.lambda_expr.return_type, ctx);
@@ -75,9 +88,18 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             ctx->current_return = saved_return;
             ctx->in_async_func = saved_in_async;
         }
+        lambda_effects = ctx->current_function_effects;
+        lambda_body_summary = ctx->current_function_body_summary;
 
         scope_exit(&ctx->scope);
         result = type_create_function(param_types, param_count, return_type);
+        if (result != NULL) {
+            result->data.function.effect_mask = type_effect_mask_closure(lambda_effects);
+            result->data.function.body_summary_mask = lambda_body_summary;
+        }
+        ctx->current_function_effects = saved_effects;
+        ctx->current_function_body_summary = saved_body_summary;
+        ctx->tracking_function_effects = saved_tracking;
         free(param_types);
         return result != NULL ? result : TYPE_UNKNOWN;
     }
@@ -543,6 +565,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 return TYPE_UNKNOWN;
                             }
                             semantic_record_effect(ctx, method_effects);
+                            semantic_record_callable_decl_summary(
+                                ctx, method, method_effects);
                             if (ctx->in_parallel
                                 && type_effect_mask_has(method_effects, EFFECT_SECURE)) {
                                 semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,

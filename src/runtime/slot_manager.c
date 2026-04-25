@@ -60,6 +60,8 @@ slot_error_name(SlotError err)
     case SLOT_ERROR_PERMISSION_DENIED: return "permission-denied";
     case SLOT_ERROR_TTL_EXPIRED: return "ttl-expired";
     case SLOT_ERROR_THREAD_VIOLATION: return "thread-violation";
+    case SLOT_ERROR_PINNED: return "pinned";
+    case SLOT_ERROR_INVALID_PIN: return "invalid-pin";
     default: return "unknown";
     }
 }
@@ -122,6 +124,23 @@ slot_wipe_buffer(void *ptr, size_t size)
         return;
 
     SecureMemoryWipe(ptr, size);
+}
+
+static uint32_t
+slot_checksum_bytes(const void *ptr, size_t size)
+{
+    const uint8_t *bytes = (const uint8_t *)ptr;
+    uint32_t checksum = 0;
+
+    if (bytes == NULL)
+        return 0;
+
+    for (size_t i = 0; i < size; i++) {
+        checksum = (checksum << 5) | (checksum >> 27);
+        checksum ^= bytes[i];
+        checksum += bytes[i];
+    }
+    return checksum;
 }
 
 static void
@@ -214,6 +233,9 @@ slot_release_entry_locked(SlotManager *manager, SlotEntry *entry)
     if (entry == NULL || !entry->occupied)
         return SLOT_ERROR_SLOT_NOT_FOUND;
 
+    if (entry->pinCount > 0)
+        return SLOT_ERROR_PINNED;
+
     slot_reset_entry_locked(entry);
     manager->totalDeallocations++;
     if (manager->activeSlots > 0)
@@ -300,6 +322,13 @@ slot_write_common(SlotManager *manager, const SlotHandle *handle,
     if (entry->securityEnabled) {
         pthread_mutex_unlock(manager_mutex(manager));
         err = SLOT_ERROR_PERMISSION_DENIED;
+        slot_manager_warn("write", handle, err);
+        return err;
+    }
+
+    if (entry->pinCount > 0) {
+        pthread_mutex_unlock(manager_mutex(manager));
+        err = SLOT_ERROR_PINNED;
         slot_manager_warn("write", handle, err);
         return err;
     }
@@ -495,6 +524,178 @@ SlotRelease(SlotManager *manager, const SlotHandle *handle)
 }
 
 SlotError
+PergyraSlotPin(SlotManager *manager, const SlotHandle *handle,
+               PgySlotPinMode mode, const TokenCapability *token,
+               PgyPinnedView *outView)
+{
+    SlotEntry *entry;
+    SlotError result = SLOT_SUCCESS;
+    uint32_t tid = current_thread_id();
+
+    if (manager == NULL || handle == NULL || outView == NULL)
+        return SLOT_ERROR_INVALID_HANDLE;
+
+    memset(outView, 0, sizeof(*outView));
+    if (mode != PGY_SLOT_PIN_READ && mode != PGY_SLOT_PIN_WRITE)
+        return SLOT_ERROR_INVALID_PIN;
+
+    if (token != NULL && mode == PGY_SLOT_PIN_READ && !token->canRead)
+        return SLOT_ERROR_PERMISSION_DENIED;
+    if (token != NULL && mode == PGY_SLOT_PIN_WRITE
+        && (!token->canRead || !token->canWrite))
+        return SLOT_ERROR_PERMISSION_DENIED;
+
+    if (token != NULL && !SlotValidateToken(manager, handle, token)) {
+        manager->securityViolations++;
+        SlotManagerLogSecurityEvent(manager, "PIN_TOKEN_VALIDATION_FAILED",
+                                    handle->slotId,
+                                    "Pin denied because token validation failed");
+        return SLOT_ERROR_PERMISSION_DENIED;
+    }
+
+    pthread_mutex_lock(manager_mutex(manager));
+    entry = find_slot_entry_locked(manager, handle);
+    if (entry == NULL) {
+        manager->cacheMisses++;
+        result = SLOT_ERROR_SLOT_NOT_FOUND;
+        goto done;
+    }
+    if (entry->typeTag != handle->typeTag) {
+        result = SLOT_ERROR_TYPE_MISMATCH;
+        goto done;
+    }
+    if (slot_is_expired_locked(entry)) {
+        result = SLOT_ERROR_TTL_EXPIRED;
+        goto done;
+    }
+    if (entry->pinCount > 0) {
+        result = SLOT_ERROR_PINNED;
+        goto done;
+    }
+    if (entry->securityEnabled && token == NULL) {
+        result = SLOT_ERROR_PERMISSION_DENIED;
+        goto done;
+    }
+    if (!entry->securityEnabled && token != NULL) {
+        result = SLOT_ERROR_PERMISSION_DENIED;
+        goto done;
+    }
+
+    if (entry->securityEnabled) {
+        SecurityError secResult;
+        bool usedShadowRecovery = false;
+
+        if (!slot_reserve_storage(entry, entry->securePayload.size)) {
+            result = SLOT_ERROR_OUT_OF_MEMORY;
+            goto done;
+        }
+        secResult = SecureSealedPayloadOpen(manager->securityContext,
+                                            handle->slotId,
+                                            handle->generation,
+                                            &entry->securePayload,
+                                            entry->dataBlockRef,
+                                            entry->dataSize,
+                                            &entry->dataSize,
+                                            &usedShadowRecovery);
+        if (usedShadowRecovery) {
+            manager->securityViolations++;
+            SlotManagerLogSecurityEvent(manager, "PIN_SHADOW_RECOVERY_SUCCESS",
+                                        handle->slotId,
+                                        "Recovered secure slot payload while pinning");
+        }
+        if (secResult != SECURITY_SUCCESS) {
+            manager->securityViolations++;
+            SlotManagerLogSecurityEvent(manager, "PIN_SEALED_PAYLOAD_VERIFY_FAILED",
+                                        handle->slotId,
+                                        "Secure sealed payload verification failed while pinning");
+            result = SLOT_ERROR_PERMISSION_DENIED;
+            goto done;
+        }
+    }
+
+    entry->pinCount = 1;
+    entry->pinMode = (uint32_t)mode;
+    entry->pinThreadAffinity = tid;
+    entry->pinGeneration = handle->generation;
+    entry->threadAffinity = tid;
+    entry->lastAccessTime = slot_now_us();
+    entry->accessCount++;
+    manager->cacheHits++;
+
+    outView->ptr = entry->dataBlockRef;
+    outView->size = entry->dataSize;
+    outView->slotId = handle->slotId;
+    outView->generation = handle->generation;
+    outView->mode = mode;
+    outView->valid = true;
+
+done:
+    pthread_mutex_unlock(manager_mutex(manager));
+    return result;
+}
+
+SlotError
+PergyraSlotUnpin(SlotManager *manager, PgyPinnedView *view)
+{
+    SlotEntry *entry;
+    SlotError result = SLOT_SUCCESS;
+    uint32_t tid = current_thread_id();
+
+    if (manager == NULL || view == NULL || !view->valid)
+        return SLOT_ERROR_INVALID_PIN;
+
+    pthread_mutex_lock(manager_mutex(manager));
+    entry = NULL;
+    for (size_t i = 0; i < manager->tableSize; i++) {
+        SlotEntry *candidate = &manager->slotTable[i];
+        if (candidate->occupied && candidate->slotId == view->slotId) {
+            entry = candidate;
+            break;
+        }
+    }
+
+    if (entry == NULL) {
+        result = SLOT_ERROR_SLOT_NOT_FOUND;
+        goto done;
+    }
+    if (entry->pinCount == 0 || entry->pinThreadAffinity != tid
+        || entry->pinGeneration != view->generation
+        || entry->pinMode != (uint32_t)view->mode
+        || view->ptr != entry->dataBlockRef) {
+        result = SLOT_ERROR_INVALID_PIN;
+        goto done;
+    }
+    if (entry->securityEnabled && view->mode == PGY_SLOT_PIN_WRITE) {
+        SecurityError secResult = SecureSealedPayloadSeal(manager->securityContext,
+                                                          entry->slotId,
+                                                          view->generation,
+                                                          entry->dataBlockRef,
+                                                          entry->dataSize,
+                                                          &entry->securityPolicy,
+                                                          &entry->securePayload);
+        if (secResult != SECURITY_SUCCESS) {
+            result = SLOT_ERROR_PERMISSION_DENIED;
+            goto done;
+        }
+        entry->dataChecksum = slot_checksum_bytes(entry->dataBlockRef, entry->dataSize);
+    }
+
+    entry->pinCount = 0;
+    entry->pinMode = 0;
+    entry->pinThreadAffinity = 0;
+    entry->pinGeneration = 0;
+    entry->threadAffinity = 0;
+    entry->lastAccessTime = slot_now_us();
+    if (entry->securityEnabled)
+        slot_free_plain_buffer(entry);
+    memset(view, 0, sizeof(*view));
+
+done:
+    pthread_mutex_unlock(manager_mutex(manager));
+    return result;
+}
+
+SlotError
 SlotClaimScoped(SlotManager *manager, TypeTag type, uint32_t scopeId,
                 SlotHandle *handle)
 {
@@ -505,6 +706,7 @@ SlotError
 SlotReleaseScope(SlotManager *manager, uint32_t scopeId)
 {
     size_t i;
+    SlotError result = SLOT_SUCCESS;
 
     if (manager == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
@@ -512,11 +714,14 @@ SlotReleaseScope(SlotManager *manager, uint32_t scopeId)
     pthread_mutex_lock(manager_mutex(manager));
     for (i = 0; i < manager->tableSize; i++) {
         SlotEntry *entry = &manager->slotTable[i];
-        if (entry->occupied && entry->scopeId == scopeId)
-            slot_release_entry_locked(manager, entry);
+        if (entry->occupied && entry->scopeId == scopeId) {
+            SlotError releaseResult = slot_release_entry_locked(manager, entry);
+            if (releaseResult != SLOT_SUCCESS)
+                result = releaseResult;
+        }
     }
     pthread_mutex_unlock(manager_mutex(manager));
-    return SLOT_SUCCESS;
+    return result;
 }
 
 bool
@@ -604,7 +809,7 @@ SlotCleanupExpired(SlotManager *manager)
     pthread_mutex_lock(manager_mutex(manager));
     for (i = 0; i < manager->tableSize; i++) {
         SlotEntry *entry = &manager->slotTable[i];
-        if (entry->occupied && slot_is_expired_locked(entry))
+        if (entry->occupied && entry->pinCount == 0 && slot_is_expired_locked(entry))
             slot_release_entry_locked(manager, entry);
     }
     pthread_mutex_unlock(manager_mutex(manager));
@@ -1001,6 +1206,10 @@ SlotWriteSecure(SlotManager *manager, const SlotHandle *handle,
         pthread_mutex_unlock(manager_mutex(manager));
         return SLOT_ERROR_SLOT_NOT_FOUND;
     }
+    if (entry->pinCount > 0) {
+        pthread_mutex_unlock(manager_mutex(manager));
+        return SLOT_ERROR_PINNED;
+    }
     secResult = SecureSealedPayloadSeal(manager->securityContext,
                                         handle->slotId,
                                         handle->generation,
@@ -1048,6 +1257,10 @@ SlotReadSecure(SlotManager *manager, const SlotHandle *handle,
     if (entry == NULL) {
         pthread_mutex_unlock(manager_mutex(manager));
         return SLOT_ERROR_SLOT_NOT_FOUND;
+    }
+    if (entry->pinCount > 0) {
+        pthread_mutex_unlock(manager_mutex(manager));
+        return SLOT_ERROR_PINNED;
     }
     secResult = SecureSealedPayloadOpen(manager->securityContext,
                                         handle->slotId,

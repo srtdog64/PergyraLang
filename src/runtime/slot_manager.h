@@ -35,6 +35,12 @@
 #include <stddef.h>
 #include "slot_security.h"
 
+typedef enum
+{
+    PGY_SLOT_PIN_READ = 0,
+    PGY_SLOT_PIN_WRITE = 1
+} PgySlotPinMode;
+
 /*
  * Slot table entry structure
  */
@@ -60,6 +66,12 @@ typedef struct
     uint64_t lastAccessTime;         /* Last access timestamp */
     uint32_t accessCount;            /* Access counter for anomaly detection */
     uint32_t dataChecksum;           /* Checksum of un-obfuscated data for integrity checks */
+
+    /* Pin/lease state for hot-loop access */
+    uint32_t pinCount;
+    uint32_t pinMode;
+    uint32_t pinThreadAffinity;
+    uint32_t pinGeneration;
 } SlotEntry;
 
 /*
@@ -128,6 +140,16 @@ typedef struct
     bool isValid;
 } PergyraSecureSlot;
 
+typedef struct
+{
+    void *ptr;
+    size_t size;
+    uint32_t slotId;
+    uint32_t generation;
+    PgySlotPinMode mode;
+    bool valid;
+} PgyPinnedView;
+
 /*
  * Error codes for slot operations
  */
@@ -140,7 +162,9 @@ typedef enum
     SLOT_ERROR_SLOT_NOT_FOUND,
     SLOT_ERROR_PERMISSION_DENIED,
     SLOT_ERROR_TTL_EXPIRED,
-    SLOT_ERROR_THREAD_VIOLATION
+    SLOT_ERROR_THREAD_VIOLATION,
+    SLOT_ERROR_PINNED,
+    SLOT_ERROR_INVALID_PIN
 } SlotError;
 
 /*
@@ -158,6 +182,15 @@ SlotError SlotWrite(SlotManager *manager, const SlotHandle *handle,
 SlotError SlotRead(SlotManager *manager, const SlotHandle *handle, 
                    void *buffer, size_t bufferSize, size_t *bytesRead);
 SlotError SlotRelease(SlotManager *manager, const SlotHandle *handle);
+
+/*
+ * Scoped pin/lease operations for hot-loop access.
+ * User-facing language syntax must keep PgyPinnedView scope-bound.
+ */
+SlotError PergyraSlotPin(SlotManager *manager, const SlotHandle *handle,
+                        PgySlotPinMode mode, const TokenCapability *token,
+                        PgyPinnedView *outView);
+SlotError PergyraSlotUnpin(SlotManager *manager, PgyPinnedView *view);
 
 /*
  * Scope-based management

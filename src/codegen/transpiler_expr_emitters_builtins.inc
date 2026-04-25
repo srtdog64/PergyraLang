@@ -596,6 +596,20 @@ lookup_wrapped_inner_type(TranspilerCtx *ctx, ASTNode *arg, const char *wrapper)
     return "Int";
 }
 
+static const char *
+expected_wrapped_inner_type(TranspilerCtx *ctx, const char *wrapper)
+{
+    size_t wrapper_len;
+
+    if (ctx == NULL || ctx->expected_type == NULL || wrapper == NULL)
+        return NULL;
+    wrapper_len = strlen(wrapper);
+    if (strncmp(ctx->expected_type, wrapper, wrapper_len) == 0
+        && ctx->expected_type[wrapper_len] == '<')
+        return slot_inner_type_name(ctx->expected_type);
+    return NULL;
+}
+
 char *
 emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
@@ -608,12 +622,16 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: RcNew requires exactly one argument");
             return pergyra_strdup("0");
         }
-        if (arg->type == AST_NUMBER) inner = "Int";
-        else if (arg->type == AST_STRING) inner = "String";
-        else if (arg->type == AST_BOOLEAN) inner = "Bool";
-        else if (arg->type == AST_IDENTIFIER) {
-            const char *arg_type = lookup_typed_var(ctx, arg->data.identifier.name);
-            if (arg_type != NULL)
+        {
+            const char *expected_inner =
+                expected_wrapped_inner_type(ctx, "Rc");
+            const char *arg_type = NULL;
+            if (expected_inner != NULL)
+                inner = expected_inner;
+            else if (arg != NULL)
+                arg_type = infer_expression_type_name(ctx, arg);
+            if (expected_inner == NULL && arg_type != NULL
+                && strcmp(arg_type, "Unknown") != 0)
                 inner = arg_type;
         }
         break;

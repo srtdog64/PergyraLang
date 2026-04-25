@@ -390,6 +390,8 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     free(ctx->device_slot_vars);
     free(ctx->future_vars);
     free(ctx->channel_vars);
+    free(ctx->rc_vars);
+    free(ctx->weak_vars);
     free(ctx->class_types);
     free(ctx->var_classes);
     free(ctx->projection_borrows);
@@ -429,6 +431,26 @@ void
 llvm_set_type_render_ctx(LLVMGenCtx *ctx)
 {
     g_llvm_type_render_ctx = ctx;
+}
+
+static char *
+llvm_copy_first_constructed_arg_name(LLVMGenCtx *ctx, const char *type_name)
+{
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+
+    const char *lt = strchr(type_name, '<');
+    const char *gt = strrchr(type_name, '>');
+    if (lt == NULL || gt == NULL || gt <= lt + 1)
+        return NULL;
+
+    size_t len = (size_t)(gt - lt - 1);
+    char *copy = pgy_arena_alloc(&ctx->persistent, len + 1);
+    if (copy == NULL)
+        return NULL;
+    memcpy(copy, lt + 1, len);
+    copy[len] = '\0';
+    return copy;
 }
 
 void
@@ -530,6 +552,28 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         char *inner_name = llvm_render_type_name(
             type_node->data.type.generic_args->params[0]->constraint);
         llvm_register_channel_var(ctx, var_name, inner_name);
+        return;
+    }
+
+    if (strcmp(type_name, "Rc") == 0 || strcmp(type_name, "Weak") == 0
+        || strncmp(type_name, "Rc<", 3) == 0
+        || strncmp(type_name, "Weak<", 5) == 0) {
+        char *inner_name = NULL;
+        if (type_node->data.type.generic_args != NULL
+            && type_node->data.type.generic_args->count > 0
+            && type_node->data.type.generic_args->params[0] != NULL
+            && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+            inner_name = llvm_render_type_name(
+                type_node->data.type.generic_args->params[0]->constraint);
+        } else {
+            inner_name = llvm_copy_first_constructed_arg_name(ctx, type_name);
+        }
+        if (inner_name == NULL)
+            return;
+        if (strcmp(type_name, "Rc") == 0 || strncmp(type_name, "Rc<", 3) == 0)
+            llvm_register_rc_var(ctx, var_name, inner_name);
+        else
+            llvm_register_weak_var(ctx, var_name, inner_name);
         return;
     }
 

@@ -1,3 +1,33 @@
+static bool
+type_is_rc_weak_beta_payload(Type *type)
+{
+    return type_equals(type, TYPE_INT)
+        || type_equals(type, TYPE_LONG)
+        || type_equals(type, TYPE_FLOAT)
+        || type_equals(type, TYPE_DOUBLE)
+        || type_equals(type, TYPE_BOOL)
+        || type_equals(type, TYPE_STRING);
+}
+
+static bool
+require_rc_weak_beta_payload(ASTNode *node, SemanticContext *ctx,
+                             const char *builtin_name, Type *payload)
+{
+    if (payload == NULL || payload == TYPE_UNKNOWN)
+        return false;
+    if (type_is_rc_weak_beta_payload(payload))
+        return true;
+
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+        PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+        PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+        node,
+        "%s beta-stable shared ownership supports only Int, Long, Float, Double, Bool, or String payloads; got '%s'",
+        builtin_name,
+        type_name_or_unknown(payload));
+    return false;
+}
+
 static Type *
 type_check_rc_new(ASTNode *call, SemanticContext *ctx)
 {
@@ -5,8 +35,10 @@ type_check_rc_new(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcNew requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
-    return wrap_constructed(TYPE_RC,
-        type_check_expression(call->data.call.arguments[0], ctx));
+    Type *payload = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!require_rc_weak_beta_payload(call, ctx, "RcNew", payload))
+        return TYPE_UNKNOWN;
+    return wrap_constructed(TYPE_RC, payload);
 }
 
 static Type *
@@ -21,6 +53,9 @@ type_check_rc_clone(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcClone requires Rc<T>, got '%s'", rc_type->name);
         return TYPE_UNKNOWN;
     }
+    if (!require_rc_weak_beta_payload(call, ctx, "RcClone",
+            type_get_constructed_arg(rc_type, 0)))
+        return TYPE_UNKNOWN;
     return rc_type;
 }
 
@@ -36,7 +71,10 @@ type_check_rc_get(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcGet requires Rc<T>, got '%s'", rc_type->name);
         return TYPE_UNKNOWN;
     }
-    return type_get_constructed_arg(rc_type, 0);
+    Type *payload = type_get_constructed_arg(rc_type, 0);
+    if (!require_rc_weak_beta_payload(call, ctx, "RcGet", payload))
+        return TYPE_UNKNOWN;
+    return payload;
 }
 
 static Type *
@@ -51,7 +89,10 @@ type_check_rc_downgrade(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcDowngrade requires Rc<T>, got '%s'", rc_type->name);
         return TYPE_UNKNOWN;
     }
-    return wrap_constructed(TYPE_WEAK, type_get_constructed_arg(rc_type, 0));
+    Type *payload = type_get_constructed_arg(rc_type, 0);
+    if (!require_rc_weak_beta_payload(call, ctx, "RcDowngrade", payload))
+        return TYPE_UNKNOWN;
+    return wrap_constructed(TYPE_WEAK, payload);
 }
 
 static Type *
@@ -67,7 +108,10 @@ type_check_weak_upgrade(ASTNode *call, SemanticContext *ctx)
             weak_type->name);
         return TYPE_UNKNOWN;
     }
-    return wrap_constructed(TYPE_RC, type_get_constructed_arg(weak_type, 0));
+    Type *payload = type_get_constructed_arg(weak_type, 0);
+    if (!require_rc_weak_beta_payload(call, ctx, "WeakUpgrade", payload))
+        return TYPE_UNKNOWN;
+    return wrap_constructed(TYPE_RC, payload);
 }
 
 static Type *
@@ -82,6 +126,9 @@ type_check_weak_drop(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakDrop requires Weak<T>, got '%s'", weak_type->name);
         return TYPE_UNKNOWN;
     }
+    if (!require_rc_weak_beta_payload(call, ctx, "WeakDrop",
+            type_get_constructed_arg(weak_type, 0)))
+        return TYPE_UNKNOWN;
     return TYPE_VOID;
 }
 

@@ -2,10 +2,13 @@
 # diagnostics_json_smoke.sh
 #
 # Regression: verify `pgy --error-format=json` emits machine-readable
-# JSON on stderr. Covers three paths:
-#   (1) semantic error → stage="semantic", has line/column
-#   (2) parse error    → stage="module_load"
-#   (3) success path   → empty array "[]"
+# JSON on stderr. Covers representative paths:
+#   (1) semantic errors with stage/code/cause_ir/fix_source
+#   (2) parse errors routed as stage="parse"
+#   (3) lex errors routed as stage="lex"
+#   (4) AIR strict-evidence errors routed through semantic JSON
+#   (5) runtime/spec-limit errors with stable codes
+#   (6) success path → empty array "[]"
 #
 # Structured-tooling consumers rely on this being parseable without
 # falling back to regex on free-text messages. Shape is tight; breaking
@@ -104,7 +107,7 @@ check_json "semantic-code" "$SEM_ERR" \
 check_json "semantic-hints" "$SEM_ERR" \
   'isinstance(data, list) and data[0].get("cause_ir") == "semantic:assignability_check" and data[0].get("fix_source") == "annotate-or-convert"'
 
-# --- case 2: parse error (module_load stage) ---
+# --- case 2: parse error ---
 PARSE_SRC="$WORK_DIR/parse.pgy"
 cat > "$PARSE_SRC" <<'EOF'
 func Main() -> Void {
@@ -119,8 +122,83 @@ if "$PGY" "$PARSE_SRC" --backend=c --error-format=json 2>"$PARSE_ERR"; then
 fi
 check_json "parse" "$PARSE_ERR" \
   'isinstance(data, list) and len(data) == 1 and data[0].get("severity") == "error" and data[0].get("stage") == "parse"'
+check_json "parse-code" "$PARSE_ERR" \
+  'isinstance(data, list) and len(data) == 1 and data[0].get("code") == "PGY_PARSE_SYNTAX" and data[0].get("cause_ir") == "parse:unexpected_token" and data[0].get("fix_source") == "check-syntax"'
 
-# --- case 2b: slot lifecycle code routes through ---
+# --- case 2a: beta-out-of-scope pin syntax is explicitly rejected ---
+PIN_SRC="$WORK_DIR/pin_syntax.pgy"
+cat > "$PIN_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot<Int>();
+    pin scores as view {
+        Log(view);
+    }
+}
+EOF
+PIN_ERR="$WORK_DIR/pin_syntax.err"
+if "$PGY" "$PIN_SRC" --backend=c --error-format=json 2>"$PIN_ERR"; then
+    echo "[diag-json] pin-syntax: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_ERR" >&2
+    exit 1
+fi
+check_json "pin-syntax-reject" "$PIN_ERR" \
+  'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "parse" and data[0].get("code") == "PGY_PARSE_SYNTAX" and "Pin/Lease syntax is not beta-stable yet" in data[0].get("message", "")'
+
+# --- case 2a: lex error ---
+LEX_SRC="$WORK_DIR/lex.pgy"
+cat > "$LEX_SRC" <<'EOF'
+func Main() -> Void {
+    @
+}
+EOF
+LEX_ERR="$WORK_DIR/lex.err"
+if "$PGY" "$LEX_SRC" --backend=c --error-format=json 2>"$LEX_ERR"; then
+    echo "[diag-json] lex: FAIL ??expected non-zero exit" >&2
+    cat "$LEX_ERR" >&2
+    exit 1
+fi
+check_json "lex" "$LEX_ERR" \
+  'isinstance(data, list) and len(data) == 1 and data[0].get("severity") == "error" and data[0].get("stage") == "lex"'
+check_json "lex-code" "$LEX_ERR" \
+  'isinstance(data, list) and len(data) == 1 and data[0].get("code") == "PGY_LEX_INVALID_TOKEN" and data[0].get("cause_ir") == "lex:invalid_token" and data[0].get("fix_source") == "remove-or-escape-character"'
+
+# --- case 2b: AIR strict evidence from parsed source ---
+AIR_SRC="$WORK_DIR/air_missing_authority.pgy"
+cat > "$AIR_SRC" <<'EOF'
+subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }
+ability Payable { func Pay() -> Void; }
+role BuyerPay for Buyer {
+    impl ability Payable { func Pay() -> Void { return; } }
+}
+effect PaymentEffect for bearer: Buyer { }
+zone PaymentZone {
+    subject slot buyer: Buyer
+    effect slot paymentFx: PaymentEffect
+}
+intent Purchase(payment: PaymentZone, buyer: Buyer) {
+    step pay {
+        where: PaymentZone;
+        using: payment;
+        who: buyer;
+        requires: Payable;
+        authorized by: buyer;
+        causes: PaymentEffect;
+    }
+}
+func Main() -> Void { }
+EOF
+AIR_ERR="$WORK_DIR/air_missing_authority.err"
+if "$PGY" "$AIR_SRC" --backend=c --error-format=json 2>"$AIR_ERR"; then
+    echo "[diag-json] air: FAIL -- expected non-zero exit" >&2
+    cat "$AIR_ERR" >&2
+    exit 1
+fi
+check_json "air-evidence" "$AIR_ERR" \
+  'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "semantic" and data[0].get("code") == "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING" and data[0].get("location", {}).get("line", 0) > 0 and data[0].get("location", {}).get("column", 0) > 0'
+check_json "air-evidence-hints" "$AIR_ERR" \
+  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent:boundary_evidence" and data[0].get("fix_source") == "align-intent-boundary-evidence" and "expected authority participant(s): buyer" in data[0].get("message", "")'
+
+# --- case 2c: slot lifecycle code routes through ---
 SLOT_SRC="$WORK_DIR/slot.pgy"
 cat > "$SLOT_SRC" <<'EOF'
 func Main() -> Void {

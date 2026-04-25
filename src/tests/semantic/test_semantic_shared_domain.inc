@@ -52,6 +52,26 @@ test_shared_memory_features(void)
         ast_destroy(call);
     }
 
+    TEST("Rc beta stable subset rejects non-primitive payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *hero_type = type_create_primitive("Hero", 0, false);
+        Type *args[1] = { hero_type };
+        Type *rc_type = type_create_constructed(TYPE_RC, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("shared", rc_type, 1, 1));
+
+        ASTNode *call = make_call("RcGet", (ASTNode *[]){ make_identifier("shared", 2) }, 1, 2);
+        Type *resolved = type_check_expression(call, ctx);
+
+        EXPECT(resolved == TYPE_UNKNOWN && ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "beta-stable shared ownership supports only Int, Long, Float, Double, Bool, or String payloads"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
     TEST("AllocatorPool returns Allocator type");
     {
         SemanticContext *ctx = semantic_context_create();

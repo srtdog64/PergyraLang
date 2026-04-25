@@ -72,7 +72,7 @@ semantic_ctx_alias_resolution_pop(SemanticContext *ctx)
 static Type *
 resolution_helpers_resolve_type_ref(SemanticContext *ctx, ASTNode *type_ref)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
 static char *

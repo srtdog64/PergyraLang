@@ -336,6 +336,50 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
 
     for (size_t i = 0; i < sizeof(slot_types) / sizeof(slot_types[0]); i++) {
         const char *suffix = slot_types[i].suffix;
+        LLVMTypeRef val_ty = slot_types[i].val_ty;
+        LLVMTypeRef val_ptr_ty = LLVMPointerType(val_ty, 0);
+        LLVMTypeRef handle_ptr_ty = LLVMPointerType(ctx->type_i8ptr, 0);
+        char fn_name[64];
+
+        { LLVMTypeRef params[] = { val_ty };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_rc_new_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i8ptr); }
+        { LLVMTypeRef params[] = { ctx->type_i8ptr };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_rc_clone_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i8ptr); }
+        { LLVMTypeRef params[] = { ctx->type_i8ptr };
+          LLVMTypeRef ft = LLVMFunctionType(val_ptr_ty, params, 1, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_rc_get_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ptr_ty); }
+        { LLVMTypeRef params[] = { ctx->type_i8ptr };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_rc_downgrade_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i8ptr); }
+        { LLVMTypeRef params[] = { handle_ptr_ty };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_rc_drop_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        { LLVMTypeRef params[] = { ctx->type_i8ptr };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_weak_upgrade_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i8ptr); }
+        { LLVMTypeRef params[] = { handle_ptr_ty };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_weak_drop_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+    }
+
+    for (size_t i = 0; i < sizeof(slot_types) / sizeof(slot_types[0]); i++) {
+        const char *suffix = slot_types[i].suffix;
         LLVMTypeRef arr_ty = llvm_array_struct_type(ctx, suffix);
         LLVMTypeRef arr_ptr_ty = LLVMPointerType(arr_ty, 0);
         LLVMTypeRef val_ty = slot_types[i].val_ty;

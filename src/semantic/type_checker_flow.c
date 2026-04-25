@@ -45,7 +45,7 @@ static FlowFlags type_check_with_stmt_flow(ASTNode *node,
 static Type *
 flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
 }
 
 static bool

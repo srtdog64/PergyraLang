@@ -14,6 +14,7 @@ The mathematical proof source of truth has moved into the proof pack folder:
 - [docs/semantics/04_ownership_abi.md](semantics/04_ownership_abi.md)
 - [docs/semantics/05_parallel_execution.md](semantics/05_parallel_execution.md)
 - [docs/semantics/06_backend_parity.md](semantics/06_backend_parity.md)
+- [docs/semantics/07_air_abstraction_safety.md](semantics/07_air_abstraction_safety.md)
 
 This file remains as a stable English index for older references from the beta board and TODO.
 

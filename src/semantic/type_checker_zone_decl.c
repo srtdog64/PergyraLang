@@ -16,7 +16,7 @@ zone_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return NULL;
     type_ref = slot->data.domain_slot.type;
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_ref);
+    return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
 bool

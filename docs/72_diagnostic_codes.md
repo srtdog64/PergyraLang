@@ -67,7 +67,7 @@ Naming rules:
 - `semantic_error_with_hints` and `semantic_warning_with_hints` call sites must pass `PGY_CODE_*`, `PGY_CAUSE_*`, and `PGY_FIX_*` macros, or explicit `NULL` / `0` for unrouted fields.
 - Function declarations/definitions and comments are ignored; the gate is about real semantic diagnostic call sites.
 
-`make parser-lexer-diagnostic-test-smoke` enforces the first parser/lexer routing gate: lexer and parser errors must include `Code:`, `Reason:`, and `Fix:` fields backed by `diag_codes.h` macros.
+`make parser-lexer-diagnostic-test-smoke` enforces the parser/lexer routing gate: lexer and parser errors must include `Code:`, `Reason:`, and `Fix:` fields backed by `diag_codes.h` macros, and the driver must route those codes into JSON `stage`, `code`, `cause_ir`, and `fix_source` fields.
 
 ## Catalog
 
@@ -200,6 +200,62 @@ Read through `WriteView<T>` or Write through `ReadView<T>` — the view's capabi
 - **Reason**: view kinds are capability tags; `ReadView` permits Read only, `WriteView` permits Write only.
 - **Fix**: acquire the right view (`ReadView(slot)` / `WriteView(slot)`) or use the owning `Slot<T>` directly.
 
+#### `PGY_SEM_PIN_ESCAPE`
+
+Pin/Lease view escapes the lexical pin scope: return, outer assignment,
+collection storage, callback capture, channel send, or task capture.
+
+- **Reason**: a pinned view is a scoped capability lease and cannot outlive the
+  compiler-owned unpin edge.
+- **Fix**: keep the view inside the `pin` block; copy/project the required value
+  before leaving the block.
+- **cause_ir**: `semantic:pin:escape`
+- **fix_source**: `keep-pin-view-local`
+
+#### `PGY_SEM_PIN_PARALLEL_CONFLICT`
+
+Two parallel tasks attempt incompatible access to the same pinned slot, or a
+`WriteView<T>` overlaps with another pin/read/write/release path.
+
+- **Reason**: `WriteView<T>` is the aliasing-XOR-mutability baseline for
+  Pin/Lease.
+- **Fix**: serialize the pinned access, split the slot per task, or use a
+  channel/snapshot boundary.
+- **cause_ir**: `semantic:pin:parallel_conflict`
+- **fix_source**: `serialize-pin-access`
+
+#### `PGY_SEM_PIN_AWAIT_BOUNDARY`
+
+`await` appears while a pinned view is live.
+
+- **Reason**: suspension would extend the lease across an async boundary where
+  cleanup and authority ownership are not local.
+- **Fix**: end the pin block before `await`, or move the awaited work outside
+  the pinned access region.
+- **cause_ir**: `semantic:pin:await_boundary`
+- **fix_source**: `end-pin-before-await`
+
+#### `PGY_SEM_PIN_QUBIT_REJECT`
+
+Attempt to pin a `QubitSlot`.
+
+- **Reason**: qubit ownership and observation semantics cannot expose a stable
+  typed memory view.
+- **Fix**: do not pin qubit resources; use the quantum operation surface.
+- **cause_ir**: `semantic:pin:qubit_reject`
+- **fix_source**: `do-not-pin-qubit`
+
+#### `PGY_SEM_PIN_TOKEN_INVALID`
+
+Secure slot pin fails token/capability validation.
+
+- **Reason**: `SecureSlot<T>` pinning is a capability lease and requires a valid
+  token for the requested read/write mode.
+- **Fix**: provide a valid token with the required capability, or use a
+  non-secure slot path if security is not required.
+- **cause_ir**: `semantic:pin:token_invalid`
+- **fix_source**: `provide-valid-pin-token`
+
 #### `PGY_SEM_MOVE_TOKEN_MISUSE`
 
 Read or Write through a `MoveToken<T>`. Move tokens are one-shot ownership transfer handles with no in-place access.
@@ -271,6 +327,22 @@ Intent step declaration violates one or more contract requirements: missing `whe
 
 - **Reason**: intent step is over-constrained by the combined zone / action / participant / effect contracts and the declaration is inconsistent with that combination.
 - **Fix**: cross-check the zone's subject slots, ability impls, effect slots, and authority rules; align the step's `where`/`using`/`who`/`authorized by`/`causes` clauses accordingly, or adjust the matching action contract.
+
+#### `PGY_SEM_INTENT_BOUNDARY_DRIFT`
+
+AIR verification detects that an intent step's declared abstraction contract and the implementation boundary it crosses disagree on sync/async behavior. The baseline Phase 1 case is a sync intent step mapped to an async boundary, or an async intent step mapped to a sync-only boundary.
+
+- **Reason**: intent orchestration is a user-facing abstraction boundary; if the step contract and body boundary disagree, observability, compensation, and authority handoff can no longer be explained consistently.
+- **Fix**: align the intent step contract with the actual boundary (`align-intent-boundary-sync`), or move the implementation through a boundary with the declared sync class.
+
+#### `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`
+
+AIR strict-evidence mode detected that an intent boundary has no matching RIR boundary evidence, or an authority-required boundary has no matching RIR authority evidence.
+
+- **Reason**: AIR drift checks are only trustworthy when the declared boundary can be reconciled with the runtime/resource IR evidence that will explain authority and boundary behavior.
+- **Fix**: align the intent boundary with a zone/world boundary that lowers into RIR evidence (`align-intent-boundary-evidence`), or extend AIR/RIR synthesis if the boundary is valid but not yet represented.
+- **cause_ir**: `PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE`
+- **fix_source**: `PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE`
 
 #### `PGY_SEM_ACTION_CONTRACT_INVALID`
 
@@ -521,5 +593,5 @@ Heap allocation failed while growing an internal LLVM-backend data structure (e.
 ## Future Extensions
 
 - `cause_ir` and `fix_source` fields are wired (see field reference at the top). Coverage is partial: a handful of representative sites carry them today (type mismatch, slot lifecycle, view-through, LLVM spec limit). Remaining sites can be upgraded incrementally via `semantic_error_with_hints` / `llvm_set_error_with_hints`.
-- Parser/lexer stage errors now carry stage codes in their message surface. Full JSON diagnostic object routing for parse/lex remains a later parser-driver refactor.
+- Parser/lexer stage errors now carry stage codes in their message surface, and driver JSON routing preserves parse/lex `stage`, `code`, `cause_ir`, and `fix_source`. Remaining parser diagnostic work is richer multi-error accumulation and more precise parser-specific code splitting beyond the baseline `PGY_PARSE_SYNTAX`.
 - `related_rules` field will link each code to the language reference spec once that document exists.

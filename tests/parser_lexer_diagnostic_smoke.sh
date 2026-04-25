@@ -46,13 +46,26 @@ for path, code, cause, fix in checks:
 
 diag_header = root / "src" / "semantic" / "diag_codes.h"
 diag_doc = root / "docs" / "72_diagnostic_codes.md"
+driver = root / "src" / "compiler" / "driver_app.c"
 header = diag_header.read_text(encoding="utf-8", errors="ignore")
 doc = diag_doc.read_text(encoding="utf-8", errors="ignore")
+driver_text = driver.read_text(encoding="utf-8", errors="ignore")
 for literal in ("PGY_PARSE_SYNTAX", "PGY_LEX_INVALID_TOKEN"):
     if literal not in header:
         violations.append(f"diag_codes.h missing {literal}")
     if literal not in doc:
         violations.append(f"docs/72_diagnostic_codes.md missing {literal}")
+
+for literal in ("PGY_CODE_PARSE_SYNTAX", "PGY_CODE_LEX_INVALID_TOKEN",
+                "PGY_CAUSE_PARSE_UNEXPECTED_TOKEN", "PGY_CAUSE_LEX_INVALID_TOKEN",
+                "PGY_FIX_CHECK_SYNTAX", "PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER"):
+    if literal not in driver_text:
+        violations.append(f"driver_app.c missing JSON routing macro {literal}")
+
+for literal in ("driver_diag_code_from_message", "driver_diag_cause_from_code",
+                "driver_diag_fix_from_code", '"lex"', '"parse"'):
+    if literal not in driver_text:
+        violations.append(f"driver_app.c missing parser/lexer JSON routing term {literal}")
 
 if violations:
     raise SystemExit("parser/lexer diagnostic smoke violations:\n" + "\n".join(violations))

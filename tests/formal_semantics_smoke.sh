@@ -89,6 +89,15 @@ required_files = {
         "## Theorem: Runtime Panic Parity",
         "## Theorem: Structured Backend Failure",
     ],
+    "07_air_abstraction_safety.md": [
+        "Stable surface: AIR (Abstraction Intent Representation)",
+        "## Theorem: AIR Synthesis Read-Only",
+        "## Theorem: Intent Node Coverage",
+        "## Theorem: Boundary Closure",
+        "## Theorem: Drift Detection Soundness",
+        "## Theorem: Codegen Non-Impact",
+        "PGY_SEM_INTENT_BOUNDARY_DRIFT",
+    ],
 }
 
 for filename, required_terms in required_files.items():
@@ -108,6 +117,7 @@ required_scope_terms = [
     "Ownership: anchored slot-handle boundary subset only.",
     "Runtime observability",
     "Backends: MIR-equivalent C and LLVM behavior",
+    "AIR abstraction safety",
     "Full quantum resource model.",
     "Higher-kinded types and full FP functor/applicative/monad laws.",
     "GPU/Spray, Skia/render graph",

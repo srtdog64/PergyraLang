@@ -71,6 +71,20 @@ static TestStats g_testStats = {0, 0, 0, 0};
         } \
     } while(0)
 
+static SlotEntry *
+test_find_slot_entry(SlotManager *manager, const SlotHandle *handle)
+{
+    if (manager == NULL || handle == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < manager->tableSize; i++) {
+        SlotEntry *entry = &manager->slotTable[i];
+        if (entry->occupied && entry->slotId == handle->slotId)
+            return entry;
+    }
+    return NULL;
+}
+
 void print_test_results()
 {
     printf("\n=== TEST RESULTS ===\n");
@@ -626,7 +640,140 @@ void test_runtime_zone_authority_validation()
                 "Zone authority runtime accessor records missing-participant code");
     TEST_ASSERT(strcmp(pgy_zone_authority_last_reason_rt_export(),
                        "zone authority validation failed: null authority participant") == 0,
-                "Zone authority runtime accessor records missing-participant reason");
+                            "Zone authority runtime accessor records missing-participant reason");
+}
+
+void test_slot_pin_lease_runtime()
+{
+    SlotManager *plainManager;
+    SlotManager *secureManager;
+    SlotHandle plainHandle;
+    SlotHandle secureHandle;
+    TokenCapability token;
+    TokenCapability invalidToken;
+    PgyPinnedView view;
+    SlotEntry *entry;
+    int value;
+    int readValue;
+    size_t bytesRead = 0;
+    SlotError result;
+
+    printf("\n=== Test 12: Slot Pin Lease Runtime ===\n");
+
+    plainManager = SlotManagerCreate(16, 4096);
+    TEST_ASSERT(plainManager != NULL, "Plain slot manager for pin tests");
+    result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot claim for pin");
+    value = 42;
+    result = SlotWrite(plainManager, &plainHandle, &value, sizeof(value));
+    TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot write before pin");
+    result = PergyraSlotPin(plainManager, &plainHandle, PGY_SLOT_PIN_WRITE,
+                            &token, &view);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED
+                                && !view.valid,
+                            "Plain slot rejects token-bearing pin");
+    result = PergyraSlotPin(plainManager, &plainHandle, PGY_SLOT_PIN_READ,
+                            NULL, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS && view.valid && view.ptr != NULL,
+                "Plain slot read pin succeeds");
+    TEST_ASSERT(*(int *)view.ptr == 42, "Plain pinned read view exposes payload");
+    result = SlotRelease(plainManager, &plainHandle);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PINNED,
+                            "Pinned plain slot cannot be released");
+    result = PergyraSlotUnpin(plainManager, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS && !view.valid, "Plain slot unpin succeeds");
+    result = SlotRelease(plainManager, &plainHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot release after unpin succeeds");
+
+    result = SlotClaimScoped(plainManager, TYPE_INT, 77, &plainHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Scoped slot claim for pin");
+    value = 12;
+    result = SlotWrite(plainManager, &plainHandle, &value, sizeof(value));
+    TEST_ASSERT(result == SLOT_SUCCESS, "Scoped slot write before pin");
+    result = PergyraSlotPin(plainManager, &plainHandle, PGY_SLOT_PIN_READ,
+                            NULL, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS && view.valid,
+                "Scoped slot pin succeeds");
+    result = SlotReleaseScope(plainManager, 77);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PINNED,
+                            "Scope release reports pinned slot");
+    result = PergyraSlotUnpin(plainManager, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Scoped slot unpin succeeds");
+    result = SlotReleaseScope(plainManager, 77);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Scope release succeeds after unpin");
+
+    result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "TTL slot claim for pin cleanup");
+    value = 13;
+    result = SlotWrite(plainManager, &plainHandle, &value, sizeof(value));
+    TEST_ASSERT(result == SLOT_SUCCESS, "TTL slot write before pin");
+    result = SlotSetTtl(plainManager, &plainHandle, 1);
+    TEST_ASSERT(result == SLOT_SUCCESS, "TTL slot gets short lease");
+    result = PergyraSlotPin(plainManager, &plainHandle, PGY_SLOT_PIN_READ,
+                            NULL, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS && view.valid, "TTL slot pin succeeds");
+    entry = test_find_slot_entry(plainManager, &plainHandle);
+    TEST_ASSERT(entry != NULL, "TTL pinned slot entry is visible to test");
+    if (entry != NULL)
+        entry->allocationTime = 0;
+    SlotCleanupExpired(plainManager);
+    result = SlotRelease(plainManager, &plainHandle);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PINNED,
+                            "Expired pinned slot is not cleaned while pinned");
+    result = PergyraSlotUnpin(plainManager, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Expired pinned slot unpin succeeds");
+    SlotCleanupExpired(plainManager);
+    result = SlotRelease(plainManager, &plainHandle);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_SLOT_NOT_FOUND,
+                            "Expired unpinned slot is cleaned after unpin");
+    SlotManagerDestroy(plainManager);
+
+    secureManager = SlotManagerCreateSecure(16, 4096, true, SECURITY_LEVEL_BASIC);
+    TEST_ASSERT(secureManager != NULL, "Secure slot manager for pin tests");
+    result = SlotClaimSecure(secureManager, TYPE_INT, SECURITY_LEVEL_BASIC,
+                             &secureHandle, &token);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot claim for pin");
+    value = 7;
+    result = SlotWriteSecure(secureManager, &secureHandle, &value, sizeof(value),
+                             &token);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot write before pin");
+    invalidToken = token;
+    invalidToken.slotId += 1;
+    result = PergyraSlotPin(secureManager, &secureHandle, PGY_SLOT_PIN_READ,
+                            &invalidToken, &view);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED
+                                && !view.valid,
+                            "Secure slot pin rejects invalid token");
+    invalidToken = token;
+    invalidToken.canRead = false;
+    result = PergyraSlotPin(secureManager, &secureHandle, PGY_SLOT_PIN_READ,
+                            &invalidToken, &view);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED
+                                && !view.valid,
+                            "Secure slot read pin requires read capability");
+    result = PergyraSlotPin(secureManager, &secureHandle, PGY_SLOT_PIN_WRITE,
+                            &token, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS && view.valid && view.ptr != NULL,
+                "Secure slot write pin succeeds with token");
+    *(int *)view.ptr = 99;
+    result = SlotWriteSecure(secureManager, &secureHandle, &value, sizeof(value),
+                             &token);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PINNED,
+                            "Pinned secure slot rejects concurrent secure write");
+    result = SlotReleaseSecure(secureManager, &secureHandle, &token);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PINNED,
+                            "Pinned secure slot cannot be released");
+    result = PergyraSlotUnpin(secureManager, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS && !view.valid, "Secure slot unpin succeeds");
+    readValue = 0;
+    result = SlotReadSecure(secureManager, &secureHandle, &readValue,
+                            sizeof(readValue), &bytesRead, &token);
+    TEST_ASSERT(result == SLOT_SUCCESS && bytesRead == sizeof(readValue),
+                "Secure slot read after pin succeeds");
+    TEST_ASSERT(readValue == 99, "Secure write pin persists modified payload");
+    result = SlotReleaseSecure(secureManager, &secureHandle, &token);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot release after unpin succeeds");
+    SlotManagerDestroySecure(secureManager);
 }
 
 /*
@@ -654,6 +801,7 @@ int main(int argc, char *argv[])
     test_sealed_storage_and_shadow_recovery();
     test_runtime_file_io_policy();
     test_runtime_zone_authority_validation();
+    test_slot_pin_lease_runtime();
     
     /* Print final results */
     print_test_results();

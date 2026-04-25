@@ -303,6 +303,13 @@ void parser_error(Parser* parser, const char* format, ...) {
     char location[256];
     snprintf(location, sizeof(location), " at line %d, column %d",
              parser->current_token.line, parser->current_token.column);
+    if (parser->current_token.type == TOKEN_ERROR && parser->lexer != NULL) {
+        const char *lex_error = lexer_get_error(parser->lexer);
+        snprintf(parser->error_msg, sizeof(parser->error_msg), "%s%s",
+                 lex_error != NULL ? lex_error : "Lexer error",
+                 location);
+        return;
+    }
     snprintf(parser->error_msg, sizeof(parser->error_msg), "%s", message);
     strncat(parser->error_msg, "\nCode: ",
             sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
@@ -1234,6 +1241,26 @@ ASTNode* parser_parse_statement(Parser* parser) {
         alias_decl->data.let_decl.initializer = aliased_expr;
         alias_decl->data.let_decl.is_alias = true;
         return parser_finalize_statement(parser, alias_decl);
+    }
+
+    /*
+     * Pin/Lease has a runtime ABI baseline, but the language surface is not
+     * beta-stable yet. Reject only candidate block syntax; keep pin(...) as an
+     * ordinary call/identifier so this does not reserve a new keyword.
+     */
+    if (parser_check(parser, TOKEN_IDENTIFIER)
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "pin") == 0) {
+        Token next = parser_peek_next(parser);
+        if (next.type == TOKEN_IDENTIFIER || next.type == TOKEN_SLOT
+            || next.type == TOKEN_SECURE) {
+            parser_error(parser,
+                "Pin/Lease syntax is not beta-stable yet. "
+                "Use per-access Slot/SecureSlot operations for beta; "
+                "runtime PergyraSlotPin/PergyraSlotUnpin remains internal ABI "
+                "until CFG cleanup and C/LLVM lowering parity are complete.");
+            return NULL;
+        }
     }
 
     // with 문

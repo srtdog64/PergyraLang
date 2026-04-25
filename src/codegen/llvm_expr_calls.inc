@@ -8,6 +8,7 @@
 #include "llvm_expr_call_intent_observability.inc"
 #include "llvm_expr_call_log.inc"
 #include "llvm_expr_call_math.inc"
+#include "llvm_expr_call_rc.inc"
 #include "llvm_expr_call_result_option.inc"
 #include "llvm_expr_call_slots.inc"
 #include "llvm_expr_call_task_channel.inc"

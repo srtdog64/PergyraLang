@@ -108,6 +108,133 @@ void ReleaseQubit(int32_t id)
 }
 
 /* =================================================================
+ * Rc/Weak runtime exports for LLVM.
+ *
+ * The source-level C backend uses inline typed structs from pgy_runtime.h.
+ * LLVM stores Rc<T>/Weak<T> as opaque pointer-sized handles and calls these
+ * exported symbols. Layout and lifecycle match the inline implementation:
+ * { strong_count: u32, weak_count: u32, alive: bool, value: T }.
+ * ================================================================= */
+
+#define PGY_RC_EXPORT_DEFINE(SuffixName, CType)                                  \
+typedef struct {                                                                 \
+    uint32_t strong_count;                                                        \
+    uint32_t weak_count;                                                          \
+    bool     alive;                                                               \
+    CType    value;                                                               \
+} PgyRcExportControl_##SuffixName;                                                \
+                                                                                  \
+void *                                                                            \
+pgy_rc_new_##SuffixName(CType value)                                              \
+{                                                                                 \
+    PgyRcExportControl_##SuffixName *ctrl =                                       \
+        (PgyRcExportControl_##SuffixName *)malloc(sizeof(*ctrl));                 \
+    if (ctrl == NULL) {                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,                            \
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);            \
+    }                                                                             \
+    ctrl->strong_count = 1;                                                       \
+    ctrl->weak_count = 0;                                                         \
+    ctrl->alive = true;                                                           \
+    ctrl->value = value;                                                          \
+    return ctrl;                                                                  \
+}                                                                                 \
+                                                                                  \
+void *                                                                            \
+pgy_rc_clone_##SuffixName(void *handle)                                           \
+{                                                                                 \
+    PgyRcExportControl_##SuffixName *ctrl =                                       \
+        (PgyRcExportControl_##SuffixName *)handle;                                \
+    if (ctrl == NULL || !ctrl->alive || ctrl->strong_count == 0) {                \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,             \
+                          "RcClone on invalid Rc");                              \
+    }                                                                             \
+    ctrl->strong_count++;                                                         \
+    return ctrl;                                                                  \
+}                                                                                 \
+                                                                                  \
+CType *                                                                           \
+pgy_rc_get_##SuffixName(void *handle)                                             \
+{                                                                                 \
+    PgyRcExportControl_##SuffixName *ctrl =                                       \
+        (PgyRcExportControl_##SuffixName *)handle;                                \
+    if (ctrl == NULL || !ctrl->alive || ctrl->strong_count == 0) {                \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,             \
+                          "RcGet on invalid Rc");                                \
+    }                                                                             \
+    return &ctrl->value;                                                          \
+}                                                                                 \
+                                                                                  \
+void *                                                                            \
+pgy_rc_downgrade_##SuffixName(void *handle)                                       \
+{                                                                                 \
+    PgyRcExportControl_##SuffixName *ctrl =                                       \
+        (PgyRcExportControl_##SuffixName *)handle;                                \
+    if (ctrl == NULL || !ctrl->alive || ctrl->strong_count == 0) {                \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,             \
+                          "RcDowngrade on invalid Rc");                          \
+    }                                                                             \
+    ctrl->weak_count++;                                                           \
+    return ctrl;                                                                  \
+}                                                                                 \
+                                                                                  \
+void                                                                              \
+pgy_rc_drop_##SuffixName(void **handle)                                           \
+{                                                                                 \
+    PgyRcExportControl_##SuffixName *ctrl = handle != NULL                        \
+        ? (PgyRcExportControl_##SuffixName *)(*handle) : NULL;                    \
+    if (ctrl == NULL || ctrl->strong_count == 0) {                                \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,             \
+                          "RcDrop on invalid Rc");                               \
+    }                                                                             \
+    ctrl->strong_count--;                                                         \
+    if (ctrl->strong_count == 0)                                                   \
+        ctrl->alive = false;                                                      \
+    if (!ctrl->alive && ctrl->weak_count == 0)                                    \
+        free(ctrl);                                                               \
+    if (handle != NULL)                                                           \
+        *handle = NULL;                                                           \
+}                                                                                 \
+                                                                                  \
+void *                                                                            \
+pgy_weak_upgrade_##SuffixName(void *handle)                                       \
+{                                                                                 \
+    PgyRcExportControl_##SuffixName *ctrl =                                       \
+        (PgyRcExportControl_##SuffixName *)handle;                                \
+    if (ctrl == NULL || !ctrl->alive || ctrl->strong_count == 0) {                \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,             \
+                          "WeakUpgrade on expired Weak");                        \
+    }                                                                             \
+    ctrl->strong_count++;                                                         \
+    return ctrl;                                                                  \
+}                                                                                 \
+                                                                                  \
+void                                                                              \
+pgy_weak_drop_##SuffixName(void **handle)                                         \
+{                                                                                 \
+    PgyRcExportControl_##SuffixName *ctrl = handle != NULL                        \
+        ? (PgyRcExportControl_##SuffixName *)(*handle) : NULL;                    \
+    if (ctrl == NULL || ctrl->weak_count == 0) {                                  \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,             \
+                          "WeakDrop on invalid Weak");                           \
+    }                                                                             \
+    ctrl->weak_count--;                                                           \
+    if (!ctrl->alive && ctrl->weak_count == 0)                                    \
+        free(ctrl);                                                               \
+    if (handle != NULL)                                                           \
+        *handle = NULL;                                                           \
+}
+
+PGY_RC_EXPORT_DEFINE(Int,    int32_t)
+PGY_RC_EXPORT_DEFINE(Long,   int64_t)
+PGY_RC_EXPORT_DEFINE(Float,  float)
+PGY_RC_EXPORT_DEFINE(Double, double)
+PGY_RC_EXPORT_DEFINE(Bool,   bool)
+PGY_RC_EXPORT_DEFINE(String, char *)
+
+#undef PGY_RC_EXPORT_DEFINE
+
+/* =================================================================
  * Thread pool runtime (real pthread-based concurrency)
  *
  * These are non-inline exports of the pgy_parallel.h functions.
@@ -154,4 +281,3 @@ bool pgy_task_is_cancelled_export(void)
 {
     return pgy_task_is_cancelled();
 }
-

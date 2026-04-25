@@ -30,7 +30,7 @@ tc_strdup_fmt(const char *fmt, ...)
 static Type *
 semantic_stage_resolve_with_fallback(SemanticContext *ctx, ASTNode *type_node)
 {
-    return semantic_type_resolution_resolve_or_fallback(ctx, type_node);
+    return semantic_type_resolution_lookup_or_materialize(ctx, type_node);
 }
 
 static Type *

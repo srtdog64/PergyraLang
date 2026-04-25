@@ -1,0 +1,43 @@
+func Main() -> Void {
+    let int_value: Int = 42;
+    let long_value: Long = 42000000000L;
+    let float_value: Float = 1.5;
+    let double_value: Double = 2.5;
+    let bool_value: Bool = true;
+    let string_value: String = "rc";
+
+    let root: Rc<Int> = RcNew(int_value);
+    let cloned: Rc<Int> = RcClone(root);
+    let weak: Weak<Int> = RcDowngrade(root);
+    let upgraded: Rc<Int> = WeakUpgrade(weak);
+
+    Log(RcGet(root));
+    Log(RcGet(cloned));
+    Log(RcGet(upgraded));
+
+    RcDrop(upgraded);
+    WeakDrop(weak);
+    RcDrop(cloned);
+    RcDrop(root);
+
+    let long_rc: Rc<Long> = RcNew(long_value);
+    let float_rc: Rc<Float> = RcNew(float_value);
+    let float_literal_rc: Rc<Float> = RcNew(3.5);
+    let double_rc: Rc<Double> = RcNew(double_value);
+    let bool_rc: Rc<Bool> = RcNew(bool_value);
+    let string_rc: Rc<String> = RcNew(string_value);
+
+    Log(RcGet(long_rc));
+    Log(RcGet(float_rc));
+    Log(RcGet(float_literal_rc));
+    Log(RcGet(double_rc));
+    Log(RcGet(bool_rc));
+    Log(RcGet(string_rc));
+
+    RcDrop(string_rc);
+    RcDrop(bool_rc);
+    RcDrop(double_rc);
+    RcDrop(float_literal_rc);
+    RcDrop(float_rc);
+    RcDrop(long_rc);
+}
