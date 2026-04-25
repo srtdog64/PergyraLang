@@ -21,6 +21,31 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
     if (node == NULL || ctx == NULL || node->type != AST_PARALLEL_BLOCK)
         return ctx == NULL || !ctx->has_error;
 
+    {
+        const char *view_name = NULL;
+        const char *view_kind = NULL;
+        const char *source_slot = NULL;
+        if (semantic_find_active_slot_view(ctx->scope, &view_name,
+                                           &view_kind, &source_slot)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+                PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+                PGY_FIX_SERIALIZE_PIN_ACCESS,
+                node,
+                "Pinned view '%s' cannot cross a parallel boundary.\n"
+                "Reason:\n"
+                "- %s for slot '%s' is scoped to the current sequential frontier\n"
+                "- parallel tasks would make read/write aliasing and cleanup order path-dependent\n"
+                "Fix:\n"
+                "- end the view scope before entering parallel\n"
+                "- or acquire disjoint views inside serialized code",
+                view_name != NULL ? view_name : "<view>",
+                view_kind != NULL ? view_kind : "View",
+                source_slot != NULL ? source_slot : "<slot>");
+            return false;
+        }
+    }
+
     prev_parallel = ctx->in_parallel;
     ctx->in_parallel = true;
     base = snapshot_resource_states(ctx);

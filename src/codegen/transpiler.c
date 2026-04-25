@@ -13,6 +13,14 @@
 #include <limits.h>
 
 #include "transpiler.h"
+#include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
+#include "transpiler_enum.h"
+#include "transpiler_nominal.h"
+#include "transpiler_operator.h"
+#include "transpiler_projection.h"
+#include "transpiler_symbols.h"
+#include "transpiler_type_render.h"
 #include "../common/string_compat.h"
 #include "../semantic/type_checker.h"
 #include "../semantic/diag_codes.h"
@@ -303,7 +311,6 @@ static bool transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *c
                                                         bool require_non_cleanup,
                                                         char *reason,
                                                         size_t reason_cap);
-static const char *lookup_typed_var(TranspilerCtx *ctx, const char *var_name);
 static const char *transpiler_require_ast_c_type(TranspilerCtx *ctx,
                                                  ASTNode *type_ast,
                                                  const char *surface_desc);

@@ -1,3 +1,117 @@
+static void
+emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
+{
+    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
+        ASTNode *include_stmt = role->data.role_decl.includes[i];
+        ASTNode *included_role = find_role_decl(ctx, include_stmt->data.include_stmt.role_name);
+
+        if (included_role == NULL) {
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve included role '%s' while emitting role '%s'",
+                include_stmt->data.include_stmt.role_name != NULL
+                    ? include_stmt->data.include_stmt.role_name
+                    : "<role>",
+                role->data.role_decl.name != NULL
+                    ? role->data.role_decl.name
+                    : "<role>");
+            return;
+        }
+
+        for (size_t j = 0; j < included_role->data.role_decl.impl_count; j++) {
+            ASTNode *impl = included_role->data.role_decl.impl_abilities[j];
+            if (impl->type != AST_IMPL_ABILITY)
+                continue;
+
+            if (role_has_ability(role,
+                    (impl->data.impl_ability.ability_ref != NULL
+                     && impl->data.impl_ability.ability_ref->type == AST_TYPE)
+                        ? impl->data.impl_ability.ability_ref->data.type.name
+                        : NULL))
+                continue;
+
+            for (size_t k = 0; k < impl->data.impl_ability.method_count; k++) {
+                ASTNode *method = impl->data.impl_ability.methods[k];
+                if (method->type != AST_FUNC_DECL)
+                    continue;
+                if (role_has_method(role, method->data.func_decl.name))
+                    continue;
+                emit_role_method_impl(role->data.role_decl.name, method, ctx);
+            }
+
+            emit_role_vtable_instance(role->data.role_decl.name, impl, ctx);
+        }
+    }
+}
+
+/*
+ * Ability → vtable struct typedef
+ *
+ *   typedef struct {
+ *       RetType (*MethodName)(void* self, ParamType p1, ...);
+ *       ...
+ *   } AbilityName_vtable;
+ */
+void
+emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    const char *name = node->data.ability_decl.name;
+
+    codebuf_write(ctx->out, "\n/* Ability: %s */\n", name);
+    codebuf_write(ctx->out, "typedef struct\n{\n");
+
+    for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
+        ASTNode *method = node->data.ability_decl.methods[i];
+        if (method->type != AST_FUNC_DECL)
+            continue;
+
+        const char *method_name = method->data.func_decl.name;
+        const char *ret_type = "void";
+        if (method->data.func_decl.return_type != NULL)
+            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+
+        codebuf_write(ctx->out, "    %s (*%s)(void *self", ret_type, method_name);
+
+        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+            FuncParam *p = method->data.func_decl.params[j];
+            char *param_name = NULL;
+            if (strcmp(p->name, "self") == 0 && p->type == NULL)
+                continue;
+            const char *pt = NULL;
+            bool pointer_param = false;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "ability method parameter '%s.%s(%s)'",
+                name != NULL ? name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
+            if (p != NULL && p->type != NULL)
+                param_name = render_type_name(p->type);
+            pointer_param = param_name != NULL
+                && is_pointer_self_host_type_name(ctx, param_name);
+            codebuf_write(ctx->out, ", %s%s %s", pt, pointer_param ? " *" : "", p->name);
+            free(param_name);
+        }
+        codebuf_write(ctx->out, ");\n");
+    }
+
+    codebuf_write(ctx->out, "} %s_vtable;\n", name);
+}
+
+/*
+ * Role → vtable instance + free functions
+ *
+ *   static RetType RoleName_MethodName(void* self, ...) { body }
+ *   static const AbilityName_vtable RoleName_AbilityName_vtable_instance = {
+ *       .MethodName = RoleName_MethodName,
+ *   };
+ */
+void
+emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    const char *name = node->data.role_decl.name;
+
 
     codebuf_write(ctx->out, "\n/* Role: %s */\n", name);
     emit_included_role_impls(node, ctx);
@@ -411,390 +525,3 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         "effect", node->data.effect_decl.methods,
         node->data.effect_decl.method_count, ctx);
 }
-
-void
-emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
-{
-    const char *name = node->data.zone_decl.name;
-    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_ZONE_DECL, name);
-
-    if (inventory_decl != NULL)
-        node = inventory_decl;
-
-    for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.slots[i];
-        if (slot != NULL)
-            ensure_type_specializations_from_ast_to(ctx, ctx->out,
-                slot->data.domain_slot.type);
-    }
-    for (size_t i = 0; i < node->data.zone_decl.shared_count; i++) {
-        ASTNode *shared = node->data.zone_decl.shared_fields[i];
-        if (shared != NULL)
-            ensure_type_specializations_from_ast_to(ctx, ctx->out,
-                shared->data.party_shared.type);
-    }
-    for (size_t i = 0; i < node->data.zone_decl.method_count; i++)
-        ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
-            node->data.zone_decl.methods[i]);
-
-    codebuf_write(ctx->out, "\n/* Zone: %s */\n", name);
-    codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
-
-    for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.slots[i];
-        const char *ft = NULL;
-        char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "zone slot '%s.%s'",
-            name != NULL ? name : "(anonymous)",
-            slot != NULL && slot->data.domain_slot.slot_name != NULL
-                ? slot->data.domain_slot.slot_name
-                : "(anonymous)");
-        ft = transpiler_require_ast_c_type(
-            ctx,
-            slot != NULL ? slot->data.domain_slot.type : NULL,
-            surface_desc);
-        if (ft == NULL)
-            return;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (!slot->data.domain_slot.is_subject) {
-            codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
-                slot->data.domain_slot.slot_name);
-            codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
-                slot->data.domain_slot.slot_name);
-            emit_hidden_provenance_fields(ctx, "projection",
-                slot->data.domain_slot.slot_name);
-        }
-    }
-
-    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.layer_slots[i];
-        if (slot->data.zone_layer_slot.is_pool) {
-            int cap = slot->data.zone_layer_slot.pool_capacity;
-            if (cap <= 0)
-                cap = 1;
-            codebuf_write(ctx->out,
-                "    struct { %s items[%d]; bool active[%d]; uint8_t count; uint8_t cap; } %s;\n",
-                slot->data.zone_layer_slot.layer_type,
-                cap,
-                cap,
-                slot->data.zone_layer_slot.slot_name);
-        } else {
-            codebuf_write(ctx->out, "    %s %s;\n",
-                slot->data.zone_layer_slot.layer_type,
-                slot->data.zone_layer_slot.slot_name);
-        }
-        codebuf_write(ctx->out, "    bool __layer_active_%s;\n",
-            slot->data.zone_layer_slot.slot_name);
-        emit_hidden_provenance_fields(ctx, "layer",
-            slot->data.zone_layer_slot.slot_name);
-    }
-
-    for (size_t i = 0; i < node->data.zone_decl.shared_count; i++) {
-        ASTNode *shared = node->data.zone_decl.shared_fields[i];
-        const char *ft = NULL;
-        char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "zone shared field '%s.%s'",
-            name != NULL ? name : "(anonymous)",
-            shared != NULL && shared->data.party_shared.name != NULL
-                ? shared->data.party_shared.name
-                : "(anonymous)");
-        ft = transpiler_require_ast_c_type(
-            ctx,
-            shared != NULL ? shared->data.party_shared.type : NULL,
-            surface_desc);
-        if (ft == NULL)
-            return;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
-    }
-
-    for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
-        ASTNode *state = node->data.zone_decl.states[i];
-        codebuf_write(ctx->out, "    bool __state_%s;\n",
-            state->data.zone_state.state_name);
-        emit_hidden_provenance_fields(ctx, "state",
-            state->data.zone_state.state_name);
-    }
-
-    /* Concurrency protection + stale-state detection */
-    codebuf_write(ctx->out, "    PGY_ZONE_LOCK_FIELD\n");
-    codebuf_write(ctx->out, "    PGY_ZONE_GENERATION_FIELD\n");
-    codebuf_write(ctx->out, "} %s;\n", name);
-
-    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.layer_slots[i];
-        const char *slot_name = slot->data.zone_layer_slot.slot_name;
-
-        if (slot_name == NULL)
-            continue;
-
-        codebuf_write(ctx->out,
-            "\nstatic inline bool\n%s_has_layer_%s(%s *self, uint32_t expected_gen)\n{\n",
-            name, slot_name, name);
-        ctx->indent++;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "bool result;\n");
-        write_indent(ctx);
-        codebuf_write(ctx->out, "PGY_ZONE_RDLOCK(self);\n");
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "PGY_ZONE_GENERATION_WARN_IF_STALE(self, expected_gen, \"%s.%s\");\n",
-            name, slot_name);
-        write_indent(ctx);
-        codebuf_write(ctx->out, "result = self->__layer_active_%s;\n", slot_name);
-        write_indent(ctx);
-        codebuf_write(ctx->out, "PGY_ZONE_UNLOCK(self);\n");
-        write_indent(ctx);
-        codebuf_write(ctx->out, "return result;\n");
-        ctx->indent--;
-        codebuf_write(ctx->out, "}\n");
-    }
-
-    codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
-                  name, name);
-    ctx->indent++;
-
-    /* Acquire write lock + bump generation for stale-state detection */
-    write_indent(ctx);
-    codebuf_write(ctx->out, "PGY_ZONE_WRLOCK(self);\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "PGY_ZONE_GENERATION_INC(self);\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "size_t _pgy_zone_frontier_pass = 0;\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "size_t _pgy_zone_frontier_pass_limit = %zu;\n",
-        node->data.zone_decl.state_count + node->data.zone_decl.layer_slot_count + 1);
-    write_indent(ctx);
-    codebuf_write(ctx->out, "bool _pgy_zone_frontier_continue = true;\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out,
-        "while (_pgy_zone_frontier_continue && _pgy_zone_frontier_pass < _pgy_zone_frontier_pass_limit) {\n");
-    ctx->indent++;
-    write_indent(ctx);
-    codebuf_write(ctx->out, "_pgy_zone_frontier_continue = false;\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "_pgy_zone_frontier_pass++;\n");
-
-    for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
-        ASTNode *state = node->data.zone_decl.states[i];
-        write_indent(ctx);
-        codebuf_write(ctx->out, "bool _pgy_prev_state_%s = self->__state_%s;\n",
-            state->data.zone_state.state_name,
-            state->data.zone_state.state_name);
-    }
-    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.layer_slots[i];
-        write_indent(ctx);
-        codebuf_write(ctx->out, "bool _pgy_prev_layer_%s = self->__layer_active_%s;\n",
-            slot->data.zone_layer_slot.slot_name,
-            slot->data.zone_layer_slot.slot_name);
-    }
-
-    for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
-        ASTNode *state = node->data.zone_decl.states[i];
-        write_indent(ctx);
-        codebuf_write(ctx->out, "self->__state_%s = false;\n",
-            state->data.zone_state.state_name);
-    }
-    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.layer_slots[i];
-        if (slot->data.zone_layer_slot.is_pool) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "PGY_EFFECT_POOL_INIT(self->%s);\n",
-                slot->data.zone_layer_slot.slot_name);
-        }
-        write_indent(ctx);
-        codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
-            slot->data.zone_layer_slot.slot_name);
-    }
-
-    emit_domain_projection_sync_loop(ctx,
-        node->data.zone_decl.slots,
-        node->data.zone_decl.slot_count,
-        node->data.zone_decl.refreshes,
-        node->data.zone_decl.refresh_count,
-        "zone_projection",
-        false);
-
-    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.layer_slots[i];
-        const char *layer_name;
-        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot->data.zone_layer_slot.is_relation
-            || slot->data.zone_layer_slot.slot_name == NULL) {
-            continue;
-        }
-        layer_name = slot->data.zone_layer_slot.slot_name;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "if (self->__layer_cause_%s == %d) {\n",
-            layer_name, PGY_PROP_CAUSE_ACTION);
-        ctx->indent++;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n", layer_name);
-        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
-            ASTNode *state = node->data.zone_decl.states[j];
-            if (state == NULL || state->type != AST_ZONE_STATE
-                || state->data.zone_state.is_relation
-                || state->data.zone_state.layer_slot_name == NULL
-                || state->data.zone_state.state_name == NULL
-                || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
-                continue;
-            }
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__state_%s = true;\n",
-                state->data.zone_state.state_name);
-        }
-        ctx->indent--;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "}\n");
-    }
-
-    for (size_t i = 0; i < node->data.zone_decl.apply_count; i++) {
-        ASTNode *apply = node->data.zone_decl.applies[i];
-        if (apply->data.zone_apply.state_name != NULL) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__state_%s = true;\n",
-                apply->data.zone_apply.state_name);
-            emit_hidden_provenance_stamp(ctx, "self", "state",
-                apply->data.zone_apply.state_name, PGY_PROP_CAUSE_APPLY);
-            for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
-                ASTNode *state = node->data.zone_decl.states[j];
-                if (!state->data.zone_state.is_relation
-                    && strcmp(state->data.zone_state.state_name,
-                              apply->data.zone_apply.state_name) == 0) {
-                    write_indent(ctx);
-                    codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
-                        state->data.zone_state.layer_slot_name);
-                    emit_hidden_provenance_stamp(ctx, "self", "layer",
-                        state->data.zone_state.layer_slot_name,
-                        PGY_PROP_CAUSE_APPLY);
-                    emit_zone_bind_effect_layer(ctx->out, node,
-                        state->data.zone_state.layer_slot_name,
-                        state->data.zone_state.left_or_target_slot_name, ctx);
-                }
-            }
-            continue;
-        }
-        write_indent(ctx);
-        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
-            apply->data.zone_apply.effect_slot_name);
-        emit_hidden_provenance_stamp(ctx, "self", "layer",
-            apply->data.zone_apply.effect_slot_name, PGY_PROP_CAUSE_APPLY);
-        emit_zone_bind_effect_layer(ctx->out, node,
-            apply->data.zone_apply.effect_slot_name,
-            apply->data.zone_apply.target_slot_name, ctx);
-        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
-            ASTNode *state = node->data.zone_decl.states[j];
-            if (!state->data.zone_state.is_relation
-                && strcmp(state->data.zone_state.layer_slot_name,
-                          apply->data.zone_apply.effect_slot_name) == 0
-                && strcmp(state->data.zone_state.left_or_target_slot_name,
-                          apply->data.zone_apply.target_slot_name) == 0) {
-                write_indent(ctx);
-                codebuf_write(ctx->out, "self->__state_%s = true;\n",
-                    state->data.zone_state.state_name);
-                emit_hidden_provenance_stamp(ctx, "self", "state",
-                    state->data.zone_state.state_name, PGY_PROP_CAUSE_APPLY);
-            }
-        }
-    }
-
-    for (size_t i = 0; i < node->data.zone_decl.maintained_effect_count; i++) {
-        ASTNode *maintain = node->data.zone_decl.maintained_effects[i];
-        write_indent(ctx);
-        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
-            maintain->data.zone_maintain_effect.effect_slot_name);
-        emit_hidden_provenance_stamp(ctx, "self", "layer",
-            maintain->data.zone_maintain_effect.effect_slot_name,
-            PGY_PROP_CAUSE_MAINTAIN);
-        emit_zone_bind_effect_layer(ctx->out, node,
-            maintain->data.zone_maintain_effect.effect_slot_name,
-            maintain->data.zone_maintain_effect.target_slot_name, ctx);
-        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
-            ASTNode *state = node->data.zone_decl.states[j];
-            if (!state->data.zone_state.is_relation
-                && strcmp(state->data.zone_state.layer_slot_name,
-                          maintain->data.zone_maintain_effect.effect_slot_name) == 0
-                && strcmp(state->data.zone_state.left_or_target_slot_name,
-                          maintain->data.zone_maintain_effect.target_slot_name) == 0) {
-                write_indent(ctx);
-                codebuf_write(ctx->out, "self->__state_%s = true;\n",
-                    state->data.zone_state.state_name);
-                emit_hidden_provenance_stamp(ctx, "self", "state",
-                    state->data.zone_state.state_name,
-                    PGY_PROP_CAUSE_MAINTAIN);
-            }
-        }
-    }
-
-    for (size_t i = 0; i < node->data.zone_decl.maintained_state_count; i++) {
-        ASTNode *maintain = node->data.zone_decl.maintained_states[i];
-        write_indent(ctx);
-        codebuf_write(ctx->out, "self->__state_%s = true;\n",
-            maintain->data.zone_maintain_state.state_name);
-        emit_hidden_provenance_stamp(ctx, "self", "state",
-            maintain->data.zone_maintain_state.state_name,
-            PGY_PROP_CAUSE_MAINTAIN);
-        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
-            ASTNode *state = node->data.zone_decl.states[j];
-            if (strcmp(state->data.zone_state.state_name,
-                       maintain->data.zone_maintain_state.state_name) == 0) {
-                write_indent(ctx);
-                codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
-                    state->data.zone_state.layer_slot_name);
-                emit_hidden_provenance_stamp(ctx, "self", "layer",
-                    state->data.zone_state.layer_slot_name,
-                    PGY_PROP_CAUSE_MAINTAIN);
-                if (!state->data.zone_state.is_relation) {
-                    emit_zone_bind_effect_layer(ctx->out, node,
-                        state->data.zone_state.layer_slot_name,
-                        state->data.zone_state.left_or_target_slot_name, ctx);
-                } else {
-                    emit_zone_bind_relation_layer(ctx->out, node,
-                        state->data.zone_state.layer_slot_name,
-                        state->data.zone_state.left_or_target_slot_name,
-                        state->data.zone_state.right_slot_name, ctx);
-                }
-            }
-        }
-    }
-
-    for (size_t i = 0; i < node->data.zone_decl.detach_count; i++) {
-        ASTNode *detach = node->data.zone_decl.detaches[i];
-        if (detach->data.zone_detach.state_name != NULL) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__state_%s = false;\n",
-                detach->data.zone_detach.state_name);
-            emit_hidden_provenance_stamp(ctx, "self", "state",
-                detach->data.zone_detach.state_name, PGY_PROP_CAUSE_DETACH);
-            for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
-                ASTNode *state = node->data.zone_decl.states[j];
-                if (!state->data.zone_state.is_relation
-                    && strcmp(state->data.zone_state.state_name,
-                              detach->data.zone_detach.state_name) == 0) {
-                    write_indent(ctx);
-                    codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
-                        state->data.zone_state.layer_slot_name);
-                    emit_hidden_provenance_stamp(ctx, "self", "layer",
-                        state->data.zone_state.layer_slot_name,
-                        PGY_PROP_CAUSE_DETACH);
-                }
-            }
-            continue;
-        }
-        write_indent(ctx);
-        codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
-            detach->data.zone_detach.effect_slot_name);
-        emit_hidden_provenance_stamp(ctx, "self", "layer",
-            detach->data.zone_detach.effect_slot_name, PGY_PROP_CAUSE_DETACH);
-        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
-            ASTNode *state = node->data.zone_decl.states[j];
-            if (!state->data.zone_state.is_relation
-                && strcmp(state->data.zone_state.layer_slot_name,
-                          detach->data.zone_detach.effect_slot_name) == 0
-                && strcmp(state->data.zone_state.left_or_target_slot_name,
-                          detach->data.zone_detach.target_slot_name) == 0) {
-                write_indent(ctx);
-                codebuf_write(ctx->out, "self->__state_%s = false;\n",

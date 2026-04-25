@@ -1,85 +1,3 @@
-            free(left);
-            free(right);
-            return result;
-        }
-    }
-
-    if (expr->data.binary.op.type == TOKEN_EQUAL
-        || expr->data.binary.op.type == TOKEN_NOT_EQUAL) {
-        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
-        const char *rt = infer_expression_type_name(ctx, expr->data.binary.right);
-        if ((lt != NULL && strcmp(lt, "String") == 0)
-            || (rt != NULL && strcmp(rt, "String") == 0)) {
-            char *left = emit_expression(expr->data.binary.left, ctx);
-            char *right = emit_expression(expr->data.binary.right, ctx);
-            char *result = NULL;
-            if (expr->data.binary.op.type == TOKEN_EQUAL)
-                result = strdup_fmt("pgy_string_equals(%s, %s)", left, right);
-            else
-                result = strdup_fmt("(!pgy_string_equals(%s, %s))", left, right);
-            free(left);
-            free(right);
-            return result;
-        }
-    }
-
-    {
-        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
-        char lt_buf[128];
-        const char *stable_lt = lt;
-        ASTNode *overload;
-
-        if (lt != NULL) {
-            snprintf(lt_buf, sizeof(lt_buf), "%s", lt);
-            stable_lt = lt_buf;
-        }
-
-        overload = find_operator_overload_decl(ctx, stable_lt,
-            expr->data.binary.op.type);
-        if (overload != NULL) {
-            char *left  = emit_expression(expr->data.binary.left, ctx);
-            char *right = emit_expression(expr->data.binary.right, ctx);
-            const char *suffix = operator_overload_suffix(expr->data.binary.op.type);
-            char *result = strdup_fmt("operator_%s_%s(%s, %s)",
-                suffix, stable_lt, left, right);
-            free(left);
-            free(right);
-            return result;
-        }
-    }
-
-    char *left  = emit_expression(expr->data.binary.left,  ctx);
-    char *right = emit_expression(expr->data.binary.right, ctx);
-    const char *op = binary_op_to_c(expr->data.binary.op.type);
-    char *result;
-    if (expr->data.binary.op.type == TOKEN_SLASH
-        || expr->data.binary.op.type == TOKEN_PERCENT) {
-        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
-        const char *rt = infer_expression_type_name(ctx, expr->data.binary.right);
-        bool is_float_div = (lt != NULL
-                && (strcmp(lt, "Float") == 0 || strcmp(lt, "Double") == 0))
-            || (rt != NULL
-                && (strcmp(rt, "Float") == 0 || strcmp(rt, "Double") == 0));
-        bool is_long_div = (lt != NULL && strcmp(lt, "Long") == 0)
-            || (rt != NULL && strcmp(rt, "Long") == 0);
-        if (!is_float_div) {
-            const char *helper = expr->data.binary.op.type == TOKEN_SLASH
-                ? (is_long_div ? "pgy_checked_div_i64_export"
-                               : "pgy_checked_div_i32_export")
-                : (is_long_div ? "pgy_checked_mod_i64_export"
-                               : "pgy_checked_mod_i32_export");
-            result = strdup_fmt("%s(%s, %s)", helper, left, right);
-        } else {
-            result = strdup_fmt("(%s %s %s)", left, op, right);
-        }
-    } else {
-        result = strdup_fmt("(%s %s %s)", left, op, right);
-    }
-    free(left);
-    free(right);
-    return result;
-}
-
 char *
 emit_unary(ASTNode *expr, TranspilerCtx *ctx)
 {
@@ -104,22 +22,10 @@ emit_unary(ASTNode *expr, TranspilerCtx *ctx)
     free(operand);
     return result;
 }
-
-char *
-emit_call(ASTNode *call, TranspilerCtx *ctx)
+static char *
+emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bool *handled)
 {
-    ASTNode    *callee = call->data.call.callee;
-    BuiltinKind bk     = BUILTIN_NOT_BUILTIN;
-
-    if (callee->type == AST_IDENTIFIER) {
-        const char *callee_name = callee->data.identifier.name;
-        bk = builtin_resolve(callee_name);
-        if ((bk == BUILTIN_BOX || bk == BUILTIN_RC_NEW)
-            && find_class_decl(ctx, callee_name) != NULL) {
-            bk = BUILTIN_NOT_BUILTIN;
-        }
-    }
-
+    *handled = true;
     switch (bk) {
     case BUILTIN_CLAIM_SLOT:
     case BUILTIN_CLAIM_SECURE_SLOT:
@@ -236,7 +142,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     state_name = call->data.call.arguments[0]->data.identifier.name;
                 else if (call->data.call.arguments[0]->type == AST_STRING)
                     state_name = call->data.call.arguments[0]->data.string.value;
-                state_decl = find_zone_state_decl(zone_decl, state_name);
+                state_decl = transpiler_find_zone_state_decl(zone_decl, state_name);
                 if (state_decl != NULL && state_name != NULL)
                     return strdup_fmt("self->__state_%s", state_name);
             }
@@ -261,7 +167,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 state_decl = find_world_state_decl(world_decl, name);
                 if (state_decl != NULL && name != NULL)
                     return strdup_fmt("self->__zone_state_%s", name);
-                if (world_has_zone_slot(world_decl, name))
+                if (transpiler_world_has_zone_slot(world_decl, name))
                     return strdup_fmt("self->__zone_active_%s", name);
             }
         }
@@ -289,9 +195,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     slot_name = call->data.call.arguments[1]->data.identifier.name;
                 else if (call->data.call.arguments[1]->type == AST_STRING)
                     slot_name = call->data.call.arguments[1]->data.string.value;
-                zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
+                zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name);
                 slot_decl = zone_decl != NULL && slot_name != NULL
-                    ? find_zone_domain_slot(zone_decl, slot_name)
+                    ? transpiler_find_zone_domain_slot(zone_decl, slot_name)
                     : NULL;
                 if (zone_decl != NULL && slot_decl != NULL
                     && !slot_decl->data.domain_slot.is_subject) {
@@ -322,9 +228,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     layer_name = call->data.call.arguments[1]->data.identifier.name;
                 else if (call->data.call.arguments[1]->type == AST_STRING)
                     layer_name = call->data.call.arguments[1]->data.string.value;
-                zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
+                zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name);
                 if (zone_decl != NULL && layer_name != NULL
-                    && find_zone_layer_slot(zone_decl, layer_name) != NULL) {
+                    && transpiler_find_zone_layer_slot(zone_decl, layer_name) != NULL) {
                     return strdup_fmt("self->%s.__layer_active_%s", zone_name, layer_name);
                 }
             }
@@ -352,9 +258,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     state_name = call->data.call.arguments[1]->data.identifier.name;
                 else if (call->data.call.arguments[1]->type == AST_STRING)
                     state_name = call->data.call.arguments[1]->data.string.value;
-                zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
+                zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name);
                 if (zone_decl != NULL && state_name != NULL
-                    && find_zone_state_decl(zone_decl, state_name) != NULL) {
+                    && transpiler_find_zone_state_decl(zone_decl, state_name) != NULL) {
                     return strdup_fmt("self->%s.__state_%s", zone_name, state_name);
                 }
             }
@@ -799,125 +705,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
          * If encountered as expression, emit empty compound literal. */
         return pergyra_strdup("((void)0)");
     default:
-        break;
+        *handled = false;
+        return NULL;
     }
-
-    /* Tagged union variant constructors: Circle(42) ??Shape_Circle(42) */
-    if (callee->type == AST_IDENTIFIER) {
-        const char *fn = callee->data.identifier.name;
-        ASTNode *class_decl = find_class_decl(ctx, fn);
-        if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
-            const char *ctor_type = fn;
-            size_t argc = call->data.call.arg_count;
-            CodeBuf *fields = codebuf_create();
-            if (class_has_generic_params(class_decl)) {
-                ASTNode synthetic_type = {0};
-                synthetic_type.type = AST_TYPE;
-                synthetic_type.data.type.name = (char *)fn;
-                synthetic_type.data.type.generic_args = NULL;
-                {
-                    const char *spec_name =
-                        ensure_generic_class_specialization(ctx, class_decl, &synthetic_type);
-                    if (spec_name != NULL)
-                        ctor_type = spec_name;
-                }
-            }
-            for (size_t i = 0; i < argc && i < class_decl->data.class_decl.field_count; i++) {
-                ClassField *field = class_decl->data.class_decl.fields[i];
-                char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                if (i > 0)
-                    codebuf_write(fields, ", ");
-                codebuf_write(fields, ".%s = %s",
-                    field != NULL && field->name != NULL ? field->name : "field",
-                    arg != NULL ? arg : "0");
-                free(arg);
-            }
-            char *result;
-            if (fields->len > 0)
-                result = strdup_fmt("(%s){ %s }", ctor_type, fields->data);
-            else
-                result = strdup_fmt("(%s){0}", ctor_type);
-            codebuf_destroy(fields);
-            return result;
-        }
-        {
-            ASTNode *party_decl = find_party_decl(ctx, fn);
-            if (party_decl != NULL && party_decl->type == AST_PARTY_DECL) {
-                size_t argc = call->data.call.arg_count;
-                size_t shared_count = party_decl->data.party_decl.shared_count;
-                CodeBuf *fields = codebuf_create();
-                for (size_t i = 0; i < argc && i < shared_count; i++) {
-                    ASTNode *shared = party_decl->data.party_decl.shared_fields[i];
-                    const char *field_name = shared != NULL ? shared->data.party_shared.name : "field";
-                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        arg != NULL ? arg : "0");
-                    free(arg);
-                }
-                for (size_t i = 0; i < shared_count; i++) {
-                    ASTNode *shared;
-                    const char *field_name;
-                    char *init_expr;
-                    if (i < argc)
-                        continue;
-                    shared = party_decl->data.party_decl.shared_fields[i];
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
-                        continue;
-                    field_name = shared->data.party_shared.name;
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
-                    if (fields->len > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        init_expr != NULL ? init_expr : "0");
-                    free(init_expr);
-                }
-                {
-                    char *result = fields->len > 0
-                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
-                        : strdup_fmt("(%s){0}", fn);
-                    codebuf_destroy(fields);
-                    return result;
-                }
-            }
-        }
-        {
-            ASTNode *roster_decl = find_roster_decl(ctx, fn);
-            if (roster_decl != NULL && roster_decl->type == AST_ROSTER_DECL) {
-                size_t argc = call->data.call.arg_count;
-                size_t exposed = roster_decl->data.roster_decl.party_count
-                    + roster_decl->data.roster_decl.shared_count;
-                CodeBuf *fields = codebuf_create();
-                for (size_t i = 0; i < argc && i < exposed; i++) {
-                    const char *field_name = NULL;
-                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i < roster_decl->data.roster_decl.party_count) {
-                        ASTNode *slot = roster_decl->data.roster_decl.party_slots[i];
-                        field_name = slot != NULL ? slot->data.roster_slot.slot_name : "field";
-                    } else {
-                        ASTNode *shared = roster_decl->data.roster_decl.shared_fields[
-                            i - roster_decl->data.roster_decl.party_count];
-                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
-                    }
-                    if (i > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        arg != NULL ? arg : "0");
-                    free(arg);
-                }
-                for (size_t i = 0; i < roster_decl->data.roster_decl.shared_count; i++) {
-                    size_t absolute_index = roster_decl->data.roster_decl.party_count + i;
-                    ASTNode *shared;
-                    const char *field_name;
-                    char *init_expr;
-                    if (absolute_index < argc)
-                        continue;
-                    shared = roster_decl->data.roster_decl.shared_fields[i];
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
-                        continue;
-                    field_name = shared->data.party_shared.name;
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+}

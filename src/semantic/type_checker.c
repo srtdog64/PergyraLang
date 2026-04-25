@@ -170,6 +170,7 @@ type_get_constructed_arg(const Type *type, size_t index)
 }
 
 #include "type_checker_expr.inc"
+#include "type_checker_assignment.inc"
 
 
 bool

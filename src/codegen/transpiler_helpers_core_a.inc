@@ -3,4 +3,3 @@
 #include "transpiler_helpers_core_a_part_a.inc"
 #include "transpiler_helpers_core_a_part_b.inc"
 #include "transpiler_helpers_core_a_part_c.inc"
-#include "transpiler_helpers_core_a_part_d.inc"

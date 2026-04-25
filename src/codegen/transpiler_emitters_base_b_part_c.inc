@@ -1,212 +1,3 @@
-        if (!transpiler_parallel_capture_has_name(slot_names,
-                slot_count != NULL ? *slot_count : 0, name)
-            && slot_count != NULL && *slot_count < MAX_SLOT_VARS) {
-            strncpy(slot_names[*slot_count], name, sizeof(slot_names[*slot_count]) - 1);
-            slot_names[*slot_count][sizeof(slot_names[*slot_count]) - 1] = '\0';
-            (*slot_count)++;
-        }
-        return;
-    }
-
-    if (lookup_typed_entry(ctx, name) != NULL) {
-        const char *type_name = lookup_typed_var(ctx, name);
-        if ((type_name == NULL || strcmp(type_name, "Unknown") == 0)
-            ) {
-            type_name = transpiler_current_local_type_name(ctx, name);
-            if (type_name != NULL && type_name[0] != '\0'
-                && strcmp(type_name, "Unknown") != 0) {
-                register_typed_var(ctx, name, type_name);
-            }
-        }
-        if (!transpiler_parallel_capture_has_name(slot_names,
-                slot_count != NULL ? *slot_count : 0, name)
-            && !transpiler_parallel_capture_has_name(typed_names,
-                typed_count != NULL ? *typed_count : 0, name)
-            && typed_count != NULL && *typed_count < MAX_SLOT_VARS) {
-            strncpy(typed_names[*typed_count], name, sizeof(typed_names[*typed_count]) - 1);
-            typed_names[*typed_count][sizeof(typed_names[*typed_count]) - 1] = '\0';
-            (*typed_count)++;
-        }
-    } else {
-        const char *type_name = transpiler_current_local_type_name(ctx, name);
-        if (type_name != NULL && type_name[0] != '\0'
-            && strcmp(type_name, "Unknown") != 0
-            && !transpiler_parallel_capture_has_name(slot_names,
-                    slot_count != NULL ? *slot_count : 0, name)
-            && !transpiler_parallel_capture_has_name(typed_names,
-                    typed_count != NULL ? *typed_count : 0, name)
-            && typed_count != NULL && *typed_count < MAX_SLOT_VARS) {
-            register_typed_var(ctx, name, type_name);
-            strncpy(typed_names[*typed_count], name, sizeof(typed_names[*typed_count]) - 1);
-            typed_names[*typed_count][sizeof(typed_names[*typed_count]) - 1] = '\0';
-            (*typed_count)++;
-        }
-    }
-}
-
-static void
-transpiler_parallel_collect_stmt_captures(ASTNode *node,
-                                          TranspilerCtx *ctx,
-                                          char slot_names[MAX_SLOT_VARS][64],
-                                          int *slot_count,
-                                          char typed_names[MAX_SLOT_VARS][64],
-                                          int *typed_count)
-{
-    if (node == NULL || ctx == NULL)
-        return;
-
-    switch (node->type) {
-    case AST_IDENTIFIER:
-        transpiler_parallel_add_capture_name(ctx, node->data.identifier.name,
-            slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_LET_DECL:
-        transpiler_parallel_collect_stmt_captures(node->data.let_decl.initializer,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_ASSIGNMENT:
-        transpiler_parallel_collect_stmt_captures(node->data.assignment.target,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(node->data.assignment.value,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_CHANNEL_SEND:
-        transpiler_parallel_collect_stmt_captures(node->data.channel_send.channel,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(node->data.channel_send.value,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_CHANNEL_RECV:
-        transpiler_parallel_collect_stmt_captures(node->data.channel_recv.channel,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_CALL:
-        transpiler_parallel_collect_stmt_captures(node->data.call.callee,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        for (size_t i = 0; i < node->data.call.arg_count; i++) {
-            transpiler_parallel_collect_stmt_captures(node->data.call.arguments[i],
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    case AST_MEMBER_ACCESS:
-        transpiler_parallel_collect_stmt_captures(node->data.member.object,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_ARRAY_ACCESS:
-        transpiler_parallel_collect_stmt_captures(node->data.array_access.array,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(node->data.array_access.index,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_ARRAY_LITERAL:
-        for (size_t i = 0; i < node->data.array_literal.count; i++) {
-            transpiler_parallel_collect_stmt_captures(node->data.array_literal.elements[i],
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    case AST_BINARY:
-        transpiler_parallel_collect_stmt_captures(node->data.binary.left,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(node->data.binary.right,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_UNARY:
-        transpiler_parallel_collect_stmt_captures(node->data.unary.operand,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_AWAIT_EXPR:
-        transpiler_parallel_collect_stmt_captures(node->data.await_expr.expression,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_SPAWN_EXPR:
-        transpiler_parallel_collect_stmt_captures(node->data.spawn_expr.function,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        for (size_t i = 0; i < node->data.spawn_expr.arg_count; i++) {
-            transpiler_parallel_collect_stmt_captures(node->data.spawn_expr.arguments[i],
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    case AST_IF_STMT:
-        transpiler_parallel_collect_stmt_captures(node->data.if_stmt.condition,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(node->data.if_stmt.then_branch,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(node->data.if_stmt.else_branch,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_RETURN:
-        transpiler_parallel_collect_stmt_captures(node->data.return_stmt.value,
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++) {
-            transpiler_parallel_collect_stmt_captures(node->data.block.statements[i],
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    case AST_PARALLEL_BLOCK:
-        for (size_t i = 0; i < node->data.parallel.task_count; i++) {
-            transpiler_parallel_collect_stmt_captures(node->data.parallel.tasks[i],
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    case AST_ASYNC_BLOCK:
-        for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
-            transpiler_parallel_collect_stmt_captures(
-                node->data.async_block.statements[i],
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    default:
-        break;
-    }
-}
-
-#include "transpiler_emitters_async_parallel.inc"
-
-#include "transpiler_emitters_enum_decl.inc"
-
-/* -----------------------------------------------------------------
- * Control flow
- * ----------------------------------------------------------------- */
-
-#include "transpiler_emitters_control_flow_loops.inc"
-
-#include "transpiler_emitters_match.inc"
-
-void
-emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
-{
-    write_indent(ctx);
-    if (node->data.return_stmt.value != NULL) {
-        if (ctx->current_return_type[0] != '\0'
-            && strncmp(ctx->current_return_type, "Option<", 7) == 0) {
-            const char *inner = slot_inner_type_name(ctx->current_return_type);
-            ASTNode *value = node->data.return_stmt.value;
-            if (value->type == AST_CALL
-                && value->data.call.callee != NULL
-                && value->data.call.callee->type == AST_IDENTIFIER) {
-                const char *callee_name = value->data.call.callee->data.identifier.name;
-                if (strcmp(callee_name, "Some") == 0 && value->data.call.arg_count == 1) {
-                    char *arg = emit_expression(value->data.call.arguments[0], ctx);
-                    codebuf_write(ctx->out, "return Some_%s(%s);\n", inner, arg);
-                    free(arg);
-                    return;
-                }
-                if (strcmp(callee_name, "None") == 0 && value->data.call.arg_count == 0) {
-                    codebuf_write(ctx->out, "return None_%s();\n", inner);
-                    return;
-                }
-            }
-        }
-        char *val = emit_expression(node->data.return_stmt.value, ctx);
-        codebuf_write(ctx->out, "return %s;\n", val);
-        free(val);
-    } else {
-        codebuf_write(ctx->out, "return;\n");
-    }
-}
-
 /* -----------------------------------------------------------------
  * Statement dispatcher
  * ----------------------------------------------------------------- */
@@ -798,3 +589,410 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
     from_zone_type = intent_zone_binding_type_name(intent, from_alias);
 
     if (from_alias != NULL && from_zone_type != NULL) {
+
+        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+            const char *alias = step->data.intent_step.who_names[i];
+            const char *from_slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent,
+                from_zone_type, alias);
+            const char *to_slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent,
+                zone_type, alias);
+            if (alias == NULL)
+                continue;
+            if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
+                write_indent(ctx);
+                codebuf_write(out, "%s->%s = *%s;\n", from_alias, from_slot_name, alias);
+                write_indent(ctx);
+                codebuf_write(out,
+                    "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+                    alias, from_slot_name, from_zone_type);
+            }
+            if (to_slot_name != NULL && strcmp(to_slot_name, "<unbound>") != 0) {
+                write_indent(ctx);
+                codebuf_write(out, "%s->%s = *%s;\n", zone_alias, to_slot_name, alias);
+                write_indent(ctx);
+                codebuf_write(out,
+                    "pgy_intent_trace_transfer_export(__intent_handle, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
+                    alias,
+                    from_zone_type != NULL ? from_zone_type : "<zone>",
+                    from_slot_name != NULL ? from_slot_name : "<unbound>",
+                    zone_type,
+                    to_slot_name);
+            }
+        }
+        write_indent(ctx);
+        codebuf_write(out, "%s_sync(%s);\n", from_zone_type, from_alias);
+        if (strcmp(from_alias, zone_alias) != 0 || strcmp(from_zone_type, zone_type) != 0) {
+            write_indent(ctx);
+            codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
+        }
+        return;
+    }
+
+    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+        const char *alias = step->data.intent_step.who_names[i];
+        const char *slot_name = resolve_intent_zone_slot_name(ctx, intent, step, alias);
+        if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
+            continue;
+        write_indent(ctx);
+        codebuf_write(out, "%s->%s = *%s;\n", zone_alias, slot_name, alias);
+        write_indent(ctx);
+        codebuf_write(out,
+            "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+            alias, slot_name, zone_type);
+    }
+    write_indent(ctx);
+    codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
+}
+
+static void
+emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
+                                               ASTNode *intent,
+                                               const char *zone_type,
+                                               const char *zone_alias,
+                                               const char *from_alias,
+                                               const char **who_aliases,
+                                               size_t who_alias_count,
+                                               const char **participant_aliases,
+                                               const char **participant_types,
+                                               size_t participant_count)
+{
+    const char *from_zone_type;
+
+    if (out == NULL || ctx == NULL || intent == NULL
+        || zone_alias == NULL || zone_type == NULL) {
+        return;
+    }
+
+    from_zone_type = intent_zone_binding_type_name_with_metadata(
+        intent, from_alias, participant_aliases, participant_types, participant_count);
+
+    if (from_alias != NULL && from_zone_type != NULL) {
+        for (size_t i = 0; i < who_alias_count; i++) {
+            const char *alias = who_aliases[i];
+            const char *from_slot_name = resolve_intent_zone_slot_name_for_zone(
+                ctx, intent, from_zone_type, alias);
+            const char *to_slot_name = resolve_intent_zone_slot_name_for_zone(
+                ctx, intent, zone_type, alias);
+            if (alias == NULL)
+                continue;
+            if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
+                write_indent(ctx);
+                codebuf_write(out, "%s->%s = *%s;\n", from_alias, from_slot_name, alias);
+                write_indent(ctx);
+                codebuf_write(out,
+                    "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+                    alias, from_slot_name, from_zone_type);
+            }
+            if (to_slot_name != NULL && strcmp(to_slot_name, "<unbound>") != 0) {
+                write_indent(ctx);
+                codebuf_write(out, "%s->%s = *%s;\n", zone_alias, to_slot_name, alias);
+                write_indent(ctx);
+                codebuf_write(out,
+                    "pgy_intent_trace_transfer_export(__intent_handle, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
+                    alias,
+                    from_zone_type != NULL ? from_zone_type : "<zone>",
+                    from_slot_name != NULL ? from_slot_name : "<unbound>",
+                    zone_type,
+                    to_slot_name);
+            }
+        }
+        write_indent(ctx);
+        codebuf_write(out, "%s_sync(%s);\n", from_zone_type, from_alias);
+        if (strcmp(from_alias, zone_alias) != 0 || strcmp(from_zone_type, zone_type) != 0) {
+            write_indent(ctx);
+            codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
+        }
+        return;
+    }
+
+    for (size_t i = 0; i < who_alias_count; i++) {
+        const char *alias = who_aliases[i];
+        const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
+        if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
+            continue;
+        write_indent(ctx);
+        codebuf_write(out, "%s->%s = *%s;\n", zone_alias, slot_name, alias);
+        write_indent(ctx);
+        codebuf_write(out,
+            "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+            alias, slot_name, zone_type);
+    }
+    write_indent(ctx);
+    codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
+}
+
+static bool
+emit_intent_step_rebind_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
+                                           ASTNode *intent, ASTNode *step,
+                                           size_t step_index)
+{
+    const char *zone_alias;
+    const char *zone_type;
+    bool rebound = false;
+
+    if (out == NULL || ctx == NULL || intent == NULL || step == NULL
+        || step->type != AST_INTENT_STEP
+        || step->data.intent_step.where_type == NULL
+        || step->data.intent_step.where_type->type != AST_TYPE) {
+        return false;
+    }
+
+    zone_alias = intent_step_effective_zone_alias(step);
+    zone_type = step->data.intent_step.where_type->data.type.name;
+    if (zone_alias == NULL || zone_type == NULL)
+        return false;
+
+    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+        const char *alias = step->data.intent_step.who_names[i];
+        const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
+        ASTNode *involves = find_intent_participant_local(intent, alias);
+        const char *participant_c_type;
+
+        if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0
+            || involves == NULL || involves->data.intent_involves.subject_type == NULL) {
+            continue;
+        }
+
+        participant_c_type = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
+        write_indent(ctx);
+        codebuf_write(out, "%s *__intent_saved_%zu_%s = %s;\n",
+            participant_c_type, step_index, alias, alias);
+        write_indent(ctx);
+        codebuf_write(out, "%s = &%s->%s;\n", alias, zone_alias, slot_name);
+        rebound = true;
+    }
+
+    return rebound;
+}
+
+static bool
+emit_intent_step_rebind_bound_zone_aliases_with_metadata(CodeBuf *out,
+                                                         TranspilerCtx *ctx,
+                                                         ASTNode *intent,
+                                                         const char *zone_type,
+                                                         const char *zone_alias,
+                                                         const char **who_aliases,
+                                                         size_t who_alias_count,
+                                                         size_t step_index,
+                                                         const char **participant_aliases,
+                                                         const char **participant_types,
+                                                         size_t participant_count)
+{
+    bool rebound = false;
+
+    if (out == NULL || ctx == NULL || intent == NULL
+        || zone_alias == NULL || zone_type == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < who_alias_count; i++) {
+        const char *alias = who_aliases[i];
+        const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
+        const char *participant_type = intent_zone_binding_type_name_with_metadata(
+            intent, alias, participant_aliases, participant_types, participant_count);
+        const char *participant_c_type;
+
+        if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0
+            || participant_type == NULL) {
+            continue;
+        }
+
+        participant_c_type = pergyra_type_to_c(participant_type);
+        if (participant_c_type == NULL)
+            continue;
+        write_indent(ctx);
+        codebuf_write(out, "%s *__intent_saved_%zu_%s = %s;\n",
+            participant_c_type, step_index, alias, alias);
+        write_indent(ctx);
+        codebuf_write(out, "%s = &%s->%s;\n", alias, zone_alias, slot_name);
+        rebound = true;
+    }
+
+    return rebound;
+}
+
+static void
+emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
+                                    const char *zone_type,
+                                    const char *zone_alias,
+                                    const char *causes_effect)
+{
+    ASTNode *zone_decl;
+
+    if (out == NULL || ctx == NULL || zone_type == NULL || zone_alias == NULL
+        || causes_effect == NULL) {
+        return;
+    }
+
+    zone_decl = find_zone_decl(ctx, zone_type);
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
+        return;
+
+    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+        const char *layer_name;
+
+        if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
+            || layer_slot->data.zone_layer_slot.is_relation
+            || layer_slot->data.zone_layer_slot.slot_name == NULL
+            || layer_slot->data.zone_layer_slot.layer_type == NULL
+            || strcmp(layer_slot->data.zone_layer_slot.layer_type, causes_effect) != 0) {
+            continue;
+        }
+
+        layer_name = layer_slot->data.zone_layer_slot.slot_name;
+        write_indent(ctx);
+        codebuf_write(out, "%s->__layer_epoch_%s++;\n", zone_alias, layer_name);
+        write_indent(ctx);
+        codebuf_write(out, "%s->__layer_cause_%s = 11;\n", zone_alias, layer_name);
+
+        for (size_t j = 0; j < zone_decl->data.zone_decl.state_count; j++) {
+            ASTNode *state = zone_decl->data.zone_decl.states[j];
+            if (state == NULL || state->type != AST_ZONE_STATE
+                || state->data.zone_state.is_relation
+                || state->data.zone_state.state_name == NULL
+                || state->data.zone_state.layer_slot_name == NULL
+                || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
+                continue;
+            }
+            write_indent(ctx);
+            codebuf_write(out, "%s->__state_epoch_%s++;\n",
+                zone_alias, state->data.zone_state.state_name);
+            write_indent(ctx);
+            codebuf_write(out, "%s->__state_cause_%s = 11;\n",
+                zone_alias, state->data.zone_state.state_name);
+        }
+    }
+}
+
+static void
+emit_intent_step_validate_authority(CodeBuf *out,
+                                    TranspilerCtx *ctx,
+                                    const char *intent_name,
+                                    const char *step_name,
+                                    const char *zone_type,
+                                    const char *zone_alias,
+                                    const char **authorized_aliases,
+                                    size_t authorized_alias_count,
+                                    bool emit_cleanup_from_mir,
+                                    size_t cleanup_block)
+{
+    if (out == NULL || ctx == NULL || zone_type == NULL
+        || authorized_aliases == NULL || authorized_alias_count == 0) {
+        return;
+    }
+
+    for (size_t i = 0; i < authorized_alias_count; i++) {
+        const char *alias = authorized_aliases[i];
+        TypedVarEntry *entry;
+        const char *participant_present = "true";
+        const char *zone_present = "true";
+
+        if (alias == NULL)
+            continue;
+
+        entry = lookup_typed_entry(ctx, alias);
+        if (entry != NULL && entry->is_subject_ref)
+            participant_present = transpiler_scratch_fmt(ctx, "(%s != NULL)", alias);
+        if (zone_alias != NULL)
+            zone_present = transpiler_scratch_fmt(ctx, "(%s != NULL)", zone_alias);
+
+        write_indent(ctx);
+        codebuf_write(out,
+            "if (!pgy_zone_authority_validate_flags_export(%s, %s, \"%s\", \"%s\")) { ",
+            zone_present,
+            participant_present,
+            zone_type,
+            alias);
+        codebuf_write(out, "__intent_failed = true; ");
+        codebuf_write(out,
+            "pgy_intent_trace_fail_export(__intent_handle, \"authority:%s\"); __intent_result = false; ",
+            step_name != NULL ? step_name : "<step>");
+        if (emit_cleanup_from_mir) {
+            codebuf_write(out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                intent_name != NULL ? intent_name : "intent", cleanup_block);
+        } else {
+            codebuf_write(out, "goto __intent_cleanup; }\n");
+        }
+    }
+}
+
+static const char *
+infer_intent_step_causes_from_on_exprs(TranspilerCtx *ctx,
+                                       ASTNode *intent,
+                                       ASTNode **on_exprs,
+                                       size_t on_expr_count,
+                                       const char **participant_aliases,
+                                       const char **participant_types,
+                                       size_t participant_count)
+{
+    if (ctx == NULL || intent == NULL || on_exprs == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < on_expr_count; i++) {
+        ASTNode *expr = on_exprs[i];
+        ASTNode *callee;
+        ASTNode *receiver;
+        const char *alias;
+        const char *method_name;
+        const char *subject_name;
+        ASTNode *action_decl;
+
+        if (expr == NULL || expr->type != AST_CALL)
+            continue;
+        callee = expr->data.call.callee;
+        if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
+            continue;
+        receiver = callee->data.member.object;
+        method_name = callee->data.member.name;
+        if (receiver == NULL || receiver->type != AST_IDENTIFIER
+            || receiver->data.identifier.name == NULL || method_name == NULL) {
+            continue;
+        }
+
+        alias = receiver->data.identifier.name;
+        subject_name = intent_zone_binding_type_name_with_metadata(
+            intent, alias, participant_aliases, participant_types, participant_count);
+        action_decl = find_subject_action_decl(ctx, subject_name, method_name);
+        if (action_decl != NULL && action_decl->type == AST_FUNC_DECL
+            && action_decl->data.func_decl.causes_effect != NULL) {
+            return action_decl->data.func_decl.causes_effect;
+        }
+    }
+
+    return NULL;
+}
+
+static void
+emit_intent_step_sync_effective_zone(CodeBuf *out, TranspilerCtx *ctx,
+                                     ASTNode *step)
+{
+    const char *zone_alias;
+    const char *zone_type;
+
+    if (out == NULL || ctx == NULL || step == NULL || step->type != AST_INTENT_STEP
+        || step->data.intent_step.where_type == NULL
+        || step->data.intent_step.where_type->type != AST_TYPE) {
+        return;
+    }
+
+    zone_alias = intent_step_effective_zone_alias(step);
+    zone_type = step->data.intent_step.where_type->data.type.name;
+    if (zone_alias == NULL || zone_type == NULL)
+        return;
+
+    write_indent(ctx);
+    codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
+}
+
+static void
+emit_intent_step_sync_effective_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
+                                                   const char *zone_type,
+                                                   const char *zone_alias)
+{
+    if (out == NULL || ctx == NULL || zone_alias == NULL || zone_type == NULL)
+        return;
+
+    write_indent(ctx);
+    codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
+}

@@ -21,6 +21,7 @@
 
 > **Current Status**: Executable experimental alpha, currently in a **late-stage alpha / beta-closure sprint**. The remaining beta work is not about widening the language surface; it is about freezing a narrower stable subset and aligning `syntax -> semantic -> runtime -> C -> LLVM -> diagnostics -> regression -> docs` on that subset.
 > **Stable subset being frozen for beta**: generics (`exact/ability/multi-bound` plus implemented default type argument actual resolution), `own/ref` anchored slot-handle boundaries with generalized provenance/escape diagnostics, collections (`List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`), and runtime observability (`last / history / active / recent`).
+> **Stable subset source of truth**: `docs/107_beta_stable_subset.md`.
 > **Explicit reject / beta-out-of-scope**: unsupported map key kinds, broader generic generalization, richer multi-instance observability queries, the full quantum resource model, and any ownership combination that still escapes the current semantic contract. `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` remain a partial `v2 / experimental` surface.
 
 ---
@@ -137,6 +138,13 @@ make llvm-test-backend-compare
 make example-test-smoke
 make ir-pipeline-test-smoke
 make fmt-test-smoke
+make stdlib-test-smoke
+make package-module-resolver-test-smoke
+make unicode-policy-test-smoke
+make beta-test-suite-freeze-test-smoke
+make observability-schema-test-smoke
+make memory-concurrency-model-test-smoke
+make tooling-conformance-test-smoke
 ```
 
 Propagation parity is currently locked through `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `intent_authority_snapshot_abi`, `handoff_projection_frontier_abi`, `handoff_world_state_frontier_abi`, `handoff_layer_state_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`, `world_embedded_action_frontier_abi`, and `world_embedded_action_pool_frontier_abi` in `make test-abi`, with zone lifecycle bounded frontier emission and C/LLVM runtime parity checked again in `make llvm-test-backend-compare`.
@@ -147,7 +155,7 @@ Current CI support matrix:
 
 - Linux: C backend + LLVM backend regression coverage
 - Windows: C backend regression coverage always; LLVM smoke + backend compare run only when executable `llvm-config --libs core` evidence is present. A `C:/Program Files/LLVM/lib` directory alone is not beta support evidence.
-- macOS: out-of-beta until a dedicated runner and support contract are added.
+- macOS: C-only CI preflight through `make ci-macos`; macOS LLVM/backend parity remains out-of-beta until a dedicated LLVM support contract is green.
 
 Official build/runtime paths:
 

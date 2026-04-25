@@ -1,3 +1,398 @@
+static bool
+transpiler_seed_expr_identifier_mappings(const MIRBasicBlock *block,
+                                         size_t inst_index,
+                                         const ASTNode *expr,
+                                         TranspilerSSANameMap *ssa_map_out)
+{
+    if (block == NULL || expr == NULL || ssa_map_out == NULL)
+        return true;
+
+    if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
+        const char *name = expr->data.identifier.name;
+        const char *mapped_value;
+        if (transpiler_resolve_ssa_name(
+                (const TranspilerSSANameMap *)ssa_map_out, name) != NULL) {
+            return true;
+        }
+        mapped_value = transpiler_find_prior_block_ssa_name(block, inst_index, name);
+        if (mapped_value == NULL)
+            mapped_value = transpiler_find_block_exit_ssa_name(block, name);
+        if (mapped_value != NULL)
+            return transpiler_ssa_name_map_set(ssa_map_out, name, mapped_value);
+        return true;
+    }
+
+    switch (expr->type) {
+        case AST_BINARY:
+            return transpiler_seed_expr_identifier_mappings(
+                       block, inst_index, expr->data.binary.left, ssa_map_out)
+                && transpiler_seed_expr_identifier_mappings(
+                       block, inst_index, expr->data.binary.right, ssa_map_out);
+        case AST_UNARY:
+            return transpiler_seed_expr_identifier_mappings(
+                block, inst_index, expr->data.unary.operand, ssa_map_out);
+        case AST_CALL:
+            if (expr->data.call.callee != NULL
+                && expr->data.call.callee->type != AST_IDENTIFIER
+                && !transpiler_seed_expr_identifier_mappings(
+                       block, inst_index, expr->data.call.callee, ssa_map_out)) {
+                return false;
+            }
+            for (size_t i = 0; i < expr->data.call.arg_count; i++) {
+                if (!transpiler_seed_expr_identifier_mappings(
+                        block, inst_index, expr->data.call.arguments[i], ssa_map_out)) {
+                    return false;
+                }
+            }
+            return true;
+        case AST_MEMBER_ACCESS:
+            return transpiler_seed_expr_identifier_mappings(
+                block, inst_index, expr->data.member.object, ssa_map_out);
+        case AST_ARRAY_ACCESS:
+            return transpiler_seed_expr_identifier_mappings(
+                       block, inst_index, expr->data.array_access.array, ssa_map_out)
+                && transpiler_seed_expr_identifier_mappings(
+                       block, inst_index, expr->data.array_access.index, ssa_map_out);
+        case AST_ARRAY_LITERAL:
+            for (size_t i = 0; i < expr->data.array_literal.count; i++) {
+                if (!transpiler_seed_expr_identifier_mappings(
+                        block, inst_index, expr->data.array_literal.elements[i], ssa_map_out)) {
+                    return false;
+                }
+            }
+            return true;
+        case AST_ASSIGNMENT:
+            return transpiler_seed_expr_identifier_mappings(
+                       block, inst_index, expr->data.assignment.target, ssa_map_out)
+                && transpiler_seed_expr_identifier_mappings(
+                       block, inst_index, expr->data.assignment.value, ssa_map_out);
+        case AST_AWAIT_EXPR:
+            return transpiler_seed_expr_identifier_mappings(
+                block, inst_index, expr->data.await_expr.expression, ssa_map_out);
+        case AST_CHANNEL_SEND:
+            return transpiler_seed_expr_identifier_mappings(
+                       block, inst_index, expr->data.channel_send.channel, ssa_map_out)
+                && transpiler_seed_expr_identifier_mappings(
+                       block, inst_index, expr->data.channel_send.value, ssa_map_out);
+        case AST_CHANNEL_RECV:
+            return transpiler_seed_expr_identifier_mappings(
+                block, inst_index, expr->data.channel_recv.channel, ssa_map_out);
+        default:
+            return true;
+    }
+}
+
+static bool
+transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
+                                  const ASTNode *expr,
+                                  const TranspilerSSANameMap *ssa_map,
+                                  const char *routine_name,
+                                  char *reason,
+                                  size_t reason_cap)
+{
+    if (expr == NULL)
+        return true;
+    if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
+        const char *name = expr->data.identifier.name;
+        const char *existing_type = NULL;
+        if (transpiler_resolve_ssa_name(ssa_map, expr->data.identifier.name) != NULL)
+            return true;
+        if (transpiler_name_is_token_local(name))
+            return true;
+        if (ctx != NULL) {
+            existing_type = lookup_typed_var((TranspilerCtx *)ctx, name);
+            if (is_slot_var((TranspilerCtx *)ctx, name))
+                return true;
+            if (existing_type != NULL
+                && (transpiler_type_name_is_slot_like(existing_type)
+                    || transpiler_type_name_is_claim_shape(existing_type)
+                    || strncmp(existing_type, "Channel<", 8) == 0)) {
+                return true;
+            }
+        }
+        if (ctx != NULL && find_enum_decl((TranspilerCtx *)ctx, name) != NULL)
+            return true;
+        if (ctx != NULL && lookup_enum_variant_qualified_name((TranspilerCtx *)ctx, name) != NULL)
+            return true;
+        if (ctx != NULL && find_function_decl((TranspilerCtx *)ctx, name) != NULL)
+            return true;
+        if (reason != NULL && reason_cap > 0) {
+            snprintf(reason, reason_cap,
+                     "MIR contract breach in %s at line %u: unresolved identifier `%s` (expected SSA-mapped local)",
+                     routine_name != NULL ? routine_name : "<routine>",
+                     expr->line,
+                     expr->data.identifier.name);
+        }
+        return false;
+    }
+
+    switch (expr->type) {
+        case AST_BINARY:
+            if (!transpiler_expr_identifiers_mapped(ctx, expr->data.binary.left, ssa_map,
+                                                   routine_name, reason, reason_cap))
+                return false;
+            return transpiler_expr_identifiers_mapped(ctx, expr->data.binary.right, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_UNARY:
+            return transpiler_expr_identifiers_mapped(ctx, expr->data.unary.operand, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_CALL:
+            if (expr->data.call.callee != NULL
+                && expr->data.call.callee->type == AST_IDENTIFIER
+                && expr->data.call.callee->data.identifier.name != NULL
+                && (strcmp(expr->data.call.callee->data.identifier.name, "ToObject") == 0
+                    || strcmp(expr->data.call.callee->data.identifier.name, "ToTObject") == 0)) {
+                for (size_t i = 1; i < expr->data.call.arg_count; i++) {
+                    if (!transpiler_expr_identifiers_mapped(ctx, expr->data.call.arguments[i], ssa_map,
+                                                           routine_name, reason, reason_cap))
+                        return false;
+                }
+                return true;
+            }
+            if (expr->data.call.callee != NULL
+                && expr->data.call.callee->type != AST_IDENTIFIER) {
+                if (!transpiler_expr_identifiers_mapped(ctx, expr->data.call.callee, ssa_map,
+                                                       routine_name, reason, reason_cap))
+                    return false;
+            } else if (expr->data.call.callee != NULL
+                       && expr->data.call.callee->type == AST_IDENTIFIER
+                       && expr->data.call.callee->data.identifier.name != NULL) {
+                const char *call_target = expr->data.call.callee->data.identifier.name;
+                if (transpiler_resolve_ssa_name(ssa_map, call_target) != NULL
+                    && !transpiler_expr_identifiers_mapped(ctx, expr->data.call.callee, ssa_map,
+                                                          routine_name, reason, reason_cap))
+                    return false;
+            }
+            for (size_t i = 0; i < expr->data.call.arg_count; i++) {
+                if (!transpiler_expr_identifiers_mapped(ctx, expr->data.call.arguments[i], ssa_map,
+                                                       routine_name, reason, reason_cap))
+                    return false;
+            }
+            return true;
+        case AST_MEMBER_ACCESS:
+            return transpiler_expr_identifiers_mapped(ctx, expr->data.member.object, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_ARRAY_ACCESS:
+            if (!transpiler_expr_identifiers_mapped(ctx, expr->data.array_access.array, ssa_map,
+                                                   routine_name, reason, reason_cap))
+                return false;
+            return transpiler_expr_identifiers_mapped(ctx, expr->data.array_access.index, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_ARRAY_LITERAL: {
+            for (size_t i = 0; i < expr->data.array_literal.count; i++) {
+                if (!transpiler_expr_identifiers_mapped(ctx, expr->data.array_literal.elements[i], ssa_map,
+                                                       routine_name, reason, reason_cap))
+                    return false;
+            }
+            return true;
+        }
+        case AST_ASSIGNMENT:
+            return transpiler_expr_identifiers_mapped(ctx, expr->data.assignment.target, ssa_map,
+                                                     routine_name, reason, reason_cap)
+                && transpiler_expr_identifiers_mapped(ctx, expr->data.assignment.value, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_AWAIT_EXPR:
+            return transpiler_expr_identifiers_mapped(ctx, expr->data.await_expr.expression, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_CHANNEL_SEND:
+            return transpiler_expr_identifiers_mapped(ctx, expr->data.channel_send.channel, ssa_map,
+                                                     routine_name, reason, reason_cap)
+                && transpiler_expr_identifiers_mapped(ctx, expr->data.channel_send.value, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_CHANNEL_RECV:
+            return transpiler_expr_identifiers_mapped(ctx, expr->data.channel_recv.channel, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        default:
+            return true;
+    }
+}
+
+static bool
+transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
+                                             const MIRRoutine *routine,
+                                             const ASTNode *func_decl,
+                                             bool require_non_cleanup,
+                                             char *reason,
+                                             size_t reason_cap)
+{
+    const char *routine_name = routine != NULL && routine->name != NULL ? routine->name : "<routine>";
+    if (routine == NULL || routine->blocks == NULL)
+        return false;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        TranspilerSSANameMap ssa_map = {0};
+
+        if (block == NULL || (require_non_cleanup && block->is_cleanup)
+            || !block->is_reachable)
+            continue;
+        if (!transpiler_emit_mir_block_with_ssa_map(&ssa_map, block))
+            return false;
+        /* Add function/intent parameters to SSA map - they're valid C identifiers, not SSA vars */
+        if (func_decl != NULL) {
+            if (func_decl->type == AST_FUNC_DECL) {
+                for (size_t p = 0; p < func_decl->data.func_decl.param_count; p++) {
+                    FuncParam *param = func_decl->data.func_decl.params[p];
+                    if (param != NULL && param->name != NULL) {
+                        transpiler_ssa_name_map_set(&ssa_map, param->name, param->name);
+                    }
+                }
+                transpiler_register_with_alias_bindings_in_block(&ssa_map,
+                    func_decl->data.func_decl.body);
+            } else if (func_decl->type == AST_INTENT_DECL) {
+                /* For intent, extract alias from involves/value bindings */
+                for (size_t p = 0; p < func_decl->data.intent_decl.involve_count; p++) {
+                    ASTNode *involves = func_decl->data.intent_decl.involves[p];
+                    if (involves != NULL && involves->type == AST_INTENT_INVOLVES
+                        && involves->data.intent_involves.alias != NULL) {
+                        transpiler_ssa_name_map_set(&ssa_map, involves->data.intent_involves.alias, involves->data.intent_involves.alias);
+                    }
+                }
+                for (size_t p = 0; p < func_decl->data.intent_decl.value_count; p++) {
+                    ASTNode *value = func_decl->data.intent_decl.values[p];
+                    if (value != NULL && value->type == AST_INTENT_VALUE
+                        && value->data.intent_value.alias != NULL) {
+                        transpiler_ssa_name_map_set(&ssa_map, value->data.intent_value.alias,
+                            value->data.intent_value.alias);
+                    }
+                }
+            }
+        }
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            if (inst->kind == MIR_INST_STMT && inst->ast != NULL) {
+                if (inst->ast->type == AST_LET_DECL
+                    && inst->ast->data.let_decl.name != NULL) {
+                    const char *versioned_name =
+                        transpiler_find_block_exit_ssa_name(
+                            block, inst->ast->data.let_decl.name);
+                    if (versioned_name != NULL) {
+                        if (!transpiler_ssa_name_map_set(
+                                &ssa_map,
+                                inst->ast->data.let_decl.name,
+                                versioned_name)) {
+                            return false;
+                        }
+                    }
+                } else if (inst->ast->type == AST_LET_DESTRUCTURE
+                           && inst->ast->data.let_destructure.names != NULL) {
+                    for (size_t dn = 0;
+                         dn < inst->ast->data.let_destructure.name_count;
+                         dn++) {
+                        const char *binding =
+                            inst->ast->data.let_destructure.names[dn];
+                        const char *versioned_name;
+                        if (binding == NULL)
+                            continue;
+                        versioned_name =
+                            transpiler_find_block_exit_ssa_name(block, binding);
+                        if (versioned_name != NULL) {
+                            if (!transpiler_ssa_name_map_set(&ssa_map,
+                                                             binding,
+                                                             versioned_name)) {
+                                return false;
+                            }
+                        }
+                    }
+                } else if (inst->ast->type == AST_ASSIGNMENT
+                           && inst->ast->data.assignment.target != NULL
+                           && inst->ast->data.assignment.target->type == AST_IDENTIFIER
+                           && inst->ast->data.assignment.target->data.identifier.name != NULL) {
+                    const char *target_name =
+                        inst->ast->data.assignment.target->data.identifier.name;
+                    const char *versioned_name =
+                        transpiler_find_block_exit_ssa_name(block, target_name);
+                    if (versioned_name != NULL) {
+                        if (!transpiler_ssa_name_map_set(&ssa_map,
+                                                         target_name,
+                                                         versioned_name)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            if (!transpiler_materialize_pending_inst_uses(NULL,
+                                                          (TranspilerCtx *)ctx,
+                                                          func_decl,
+                                                          block,
+                                                          inst,
+                                                          &ssa_map,
+                                                          0,
+                                                          false,
+                                                          reason,
+                                                          reason_cap)) {
+                return false;
+            }
+            if ((inst->kind == MIR_INST_BRANCH || inst->kind == MIR_INST_RETURN
+                 || inst->kind == MIR_INST_RESOURCE_OP || inst->kind == MIR_INST_CLEANUP_EDGE)
+                && inst->ast != NULL) {
+                if (!transpiler_expr_identifiers_mapped(ctx, inst->ast, &ssa_map, routine_name,
+                                                       reason, reason_cap))
+                    return false;
+            }
+            if (inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI) {
+                char base[128];
+                size_t version = 0;
+                const char *base_name = (inst->kind == MIR_INST_PHI
+                                         ? inst->name : inst->arg0);
+                if (base_name != NULL && base_name[0] != '\0'
+                    && inst->result_name != NULL
+                    && transpiler_parse_versioned_name(inst->result_name, base, sizeof(base), &version)) {
+                    if (!transpiler_ssa_name_map_set(&ssa_map, base_name, inst->result_name))
+                        return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
+                                         const MIRRoutine *routine,
+                                         const ASTNode *decl,
+                                         bool require_cleanup,
+                                         bool require_cleanup_blocks,
+                                         char *reason,
+                                         size_t reason_cap)
+{
+    const char *routine_name = "<routine>";
+    const char *decl_name = NULL;
+
+    if (decl != NULL) {
+        if (decl->type == AST_FUNC_DECL && decl->data.func_decl.name != NULL)
+            decl_name = decl->data.func_decl.name;
+        if (decl->type == AST_INTENT_DECL && decl->data.intent_decl.name != NULL)
+            decl_name = decl->data.intent_decl.name;
+    }
+    routine_name = decl_name != NULL ? decl_name
+        : (routine != NULL && routine->name != NULL ? routine->name : "<routine>");
+
+    if (routine == NULL || routine->blocks == NULL) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "MIR contract invalid for %s: no routine", routine_name);
+        return false;
+    }
+
+    {
+        char *topology_error = NULL;
+        if (!mir_validate_emission_topology(routine,
+                                           require_cleanup,
+                                           !require_cleanup_blocks,
+                                           &topology_error)) {
+            if (reason != NULL && reason_cap > 0) {
+                if (topology_error != NULL)
+                    snprintf(reason, reason_cap, "%s", topology_error);
+                else
+                    snprintf(reason, reason_cap,
+                             "MIR contract invalid for %s: topology validation failed",
+                             routine_name);
+            }
+            free(topology_error);
+            return false;
+        }
+        free(topology_error);
+    }
+
 
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];

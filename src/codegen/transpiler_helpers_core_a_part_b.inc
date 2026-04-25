@@ -1,201 +1,3 @@
-find_subject_host_decl(TranspilerCtx *ctx, const char *subject_name)
-{
-    ASTNode *decl = find_class_decl(ctx, subject_name);
-    if (decl != NULL && decl->type == AST_CLASS_DECL
-        && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
-        return decl;
-    }
-    return NULL;
-}
-
-static ASTNode *
-find_zone_decl(TranspilerCtx *ctx, const char *zone_name)
-{
-    return transpiler_find_named_decl_local(ctx, AST_ZONE_DECL, zone_name);
-}
-
-static bool
-transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        return false;
-
-    if (find_class_decl(ctx, name) != NULL
-        || find_zone_decl(ctx, name) != NULL
-        || find_party_decl(ctx, name) != NULL
-        || find_roster_decl(ctx, name) != NULL
-        || find_world_decl(ctx, name) != NULL
-        || find_relation_decl(ctx, name) != NULL
-        || find_effect_decl(ctx, name) != NULL)
-        return true;
-    return false;
-}
-
-static ASTNode *
-find_world_decl(TranspilerCtx *ctx, const char *world_name)
-{
-    return transpiler_find_named_decl_local(ctx, AST_WORLD_DECL, world_name);
-}
-
-static ASTNode *
-find_relation_decl(TranspilerCtx *ctx, const char *relation_name)
-{
-    return transpiler_find_named_decl_local(ctx, AST_RELATION_DECL,
-                                            relation_name);
-}
-
-static ASTNode *
-find_effect_decl(TranspilerCtx *ctx, const char *effect_name)
-{
-    return transpiler_find_named_decl_local(ctx, AST_EFFECT_DECL, effect_name);
-}
-
-static size_t
-projection_source_field_count_local(ASTNode *decl)
-{
-    if (decl == NULL)
-        return 0;
-    if (decl->type == AST_CLASS_DECL)
-        return decl->data.class_decl.field_count;
-    return 0;
-}
-
-static ClassField *
-projection_source_field_at_local(ASTNode *decl, size_t index)
-{
-    if (decl == NULL)
-        return NULL;
-    if (decl->type == AST_CLASS_DECL) {
-        if (index < decl->data.class_decl.field_count)
-            return decl->data.class_decl.fields[index];
-        return NULL;
-    }
-    return NULL;
-}
-
-static int
-resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
-                                   const char *field_name, unsigned depth,
-                                   char **path_out)
-{
-    size_t field_count;
-    int match_count = 0;
-    char *resolved_path = NULL;
-
-    if (path_out != NULL)
-        *path_out = NULL;
-    if (ctx == NULL || source_decl == NULL || field_name == NULL || depth > 8)
-        return 0;
-
-    field_count = projection_source_field_count_local(source_decl);
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = projection_source_field_at_local(source_decl, i);
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
-            if (path_out != NULL)
-                *path_out = pergyra_strdup(field_name);
-            return 1;
-        }
-    }
-
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = projection_source_field_at_local(source_decl, i);
-        ASTNode *vessel_decl;
-        char *nested_path = NULL;
-        char *prefixed_path;
-        int nested_status;
-
-        if (field == NULL
-            || field->type == NULL || field->type->type != AST_TYPE
-            || field->type->data.type.name == NULL) {
-            continue;
-        }
-
-        vessel_decl = find_class_decl(ctx, field->type->data.type.name);
-        if (vessel_decl == NULL
-            || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
-            continue;
-        }
-
-        nested_status = resolve_projection_source_path_rec(
-            ctx, vessel_decl, field_name, depth + 1, &nested_path);
-        if (nested_status != 1) {
-            if (nested_path != NULL)
-                free(nested_path);
-            if (nested_status == 2)
-                match_count = 2;
-            continue;
-        }
-
-        prefixed_path = strdup_fmt("%s.%s", field->name, nested_path);
-        free(nested_path);
-        if (prefixed_path == NULL)
-            continue;
-
-        match_count++;
-        if (match_count == 1) {
-            resolved_path = prefixed_path;
-        } else {
-            free(prefixed_path);
-            free(resolved_path);
-            resolved_path = NULL;
-        }
-    }
-
-    if (match_count == 1) {
-        if (path_out != NULL)
-            *path_out = resolved_path;
-        else
-            free(resolved_path);
-        return 1;
-    }
-
-    if (resolved_path != NULL)
-        free(resolved_path);
-    return match_count > 1 ? 2 : 0;
-}
-
-static bool
-is_subject_type_name(TranspilerCtx *ctx, const char *type_name)
-{
-    ASTNode *decl = find_class_decl(ctx, type_name);
-    if (decl != NULL && !decl->data.class_decl.is_struct)
-        return decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
-    /* Also check monomorphized generic class specializations */
-    for (int i = 0; i < ctx->generic_class_spec_count; i++) {
-        if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
-            const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
-            return orig != NULL && !orig->data.class_decl.is_struct
-                && orig->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
-        }
-    }
-    return false;
-}
-
-static bool
-is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
-{
-    if (find_enum_decl(ctx, type_name) != NULL)
-        return true;
-    ASTNode *decl = find_class_decl(ctx, type_name);
-    if (decl != NULL && (!decl->data.class_decl.is_struct
-        || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL
-        || decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT))
-        return true;
-    if (find_relation_decl(ctx, type_name) != NULL
-        || find_effect_decl(ctx, type_name) != NULL
-        || find_zone_decl(ctx, type_name) != NULL
-        || find_world_decl(ctx, type_name) != NULL)
-        return true;
-    for (int i = 0; i < ctx->generic_class_spec_count; i++) {
-        if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
-            const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
-            return orig != NULL && !orig->data.class_decl.is_struct;
-        }
-    }
-    return false;
-}
-
 static bool
 is_pointer_self_host_type_name(TranspilerCtx *ctx, const char *type_name)
 {
@@ -654,12 +456,6 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
     return NULL;
 }
 
-static ASTNode *
-find_roster_decl(TranspilerCtx *ctx, const char *roster_name)
-{
-    return transpiler_find_named_decl_local(ctx, AST_ROSTER_DECL, roster_name);
-}
-
 static const char *
 assignment_target_root_slot_name(ASTNode *target)
 {
@@ -730,7 +526,7 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
         }
     }
     if (decl != NULL && decl->type == AST_ZONE_DECL)
-        return find_zone_domain_slot(decl, slot_name);
+        return transpiler_find_zone_domain_slot(decl, slot_name);
 
     return NULL;
 }
@@ -798,3 +594,332 @@ emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
     size_t refresh_count = 0;
     CodeBuf *buf;
     const char *receiver_expr;
+
+
+    if (ctx == NULL || source_slot_name == NULL)
+        return NULL;
+
+    receiver_expr = ctx->current_overlay_receiver_expr != NULL
+        ? ctx->current_overlay_receiver_expr
+        : "self";
+
+    refreshes = current_overlay_refresh_list(ctx, &refresh_count);
+    if (refreshes == NULL || refresh_count == 0)
+        return NULL;
+
+    buf = codebuf_create();
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
+        const char *target_name;
+        const char *refresh_source_name;
+
+        if (refresh == NULL)
+            continue;
+        target_name = refresh->data.zone_refresh.object_slot_name;
+        refresh_source_name = refresh->data.zone_refresh.source_slot_name;
+        if (target_name == NULL || refresh_source_name == NULL
+            || strcmp(refresh_source_name, source_slot_name) != 0) {
+            continue;
+        }
+        if (!projection_target_mentions_source_field(ctx, refresh,
+                target_name, source_field_name))
+            continue;
+        codebuf_write(buf,
+            "%s->__projection_dirty_%s = true; "
+            "%s->__projection_ready_%s = false; ",
+            receiver_expr,
+            target_name,
+            receiver_expr,
+            target_name);
+    }
+
+    if (buf->len == 0) {
+        codebuf_destroy(buf);
+        return NULL;
+    }
+
+    {
+        char *result = pergyra_strdup(buf->data);
+        codebuf_destroy(buf);
+        return result;
+    }
+}
+
+static bool
+resolve_world_embedded_projection_invalidation(TranspilerCtx *ctx,
+                                               ASTNode *target,
+                                               const char **zone_slot_name_out,
+                                               const char **zone_type_name_out,
+                                               const char **source_slot_name_out,
+                                               const char **source_field_name_out)
+{
+    ASTNode *cursor = target;
+    const char *source_field_name = NULL;
+
+    if (zone_slot_name_out != NULL)
+        *zone_slot_name_out = NULL;
+    if (zone_type_name_out != NULL)
+        *zone_type_name_out = NULL;
+    if (source_slot_name_out != NULL)
+        *source_slot_name_out = NULL;
+    if (source_field_name_out != NULL)
+        *source_field_name_out = NULL;
+
+    if (ctx == NULL || target == NULL)
+        return false;
+
+    while (cursor != NULL && cursor->type == AST_MEMBER_ACCESS) {
+        const char *zone_slot_name = NULL;
+        const char *zone_type_name = NULL;
+        const char *source_slot_name = NULL;
+        const char *source_type_name = NULL;
+
+        if (resolve_world_zone_subject_receiver(ctx, cursor,
+                &zone_slot_name, &zone_type_name,
+                &source_slot_name, &source_type_name)
+            && zone_slot_name != NULL
+            && zone_type_name != NULL
+            && source_slot_name != NULL) {
+            if (zone_slot_name_out != NULL)
+                *zone_slot_name_out = zone_slot_name;
+            if (zone_type_name_out != NULL)
+                *zone_type_name_out = zone_type_name;
+            if (source_slot_name_out != NULL)
+                *source_slot_name_out = source_slot_name;
+            if (source_field_name_out != NULL)
+                *source_field_name_out = source_field_name;
+            return true;
+        }
+
+        source_field_name = cursor->data.member.name;
+        cursor = cursor->data.member.object;
+    }
+
+    return false;
+}
+
+static char *
+emit_assignment_projection_invalidation(TranspilerCtx *ctx, ASTNode *target)
+{
+    const char *root_slot_name;
+    const char *root_subfield_name;
+    char *invalidation;
+
+    if (ctx == NULL || target == NULL)
+        return NULL;
+
+    root_slot_name = assignment_target_root_slot_name(target);
+    root_subfield_name = assignment_target_root_subfield_name(target);
+    invalidation = emit_current_overlay_projection_invalidation(
+        ctx, root_slot_name, root_subfield_name);
+    if (invalidation != NULL)
+        return invalidation;
+
+    {
+        ASTNode *saved_host_decl = transpiler_current_host_decl_local(ctx);
+        const char *saved_receiver_expr = ctx->current_overlay_receiver_expr;
+
+        if (saved_host_decl != NULL && saved_host_decl->type == AST_WORLD_DECL) {
+            const char *zone_slot_name = NULL;
+            const char *zone_type_name = NULL;
+            const char *source_slot_name = NULL;
+            const char *source_field_name = NULL;
+
+            if (resolve_world_embedded_projection_invalidation(ctx, target,
+                    &zone_slot_name, &zone_type_name,
+                    &source_slot_name, &source_field_name)
+                && zone_slot_name != NULL
+                && zone_type_name != NULL
+                && source_slot_name != NULL) {
+                ASTNode *zone_decl = find_zone_decl(ctx, zone_type_name);
+                if (zone_decl != NULL)
+                    transpiler_bind_current_host_decl_local(ctx, zone_decl);
+                ctx->current_overlay_receiver_expr =
+                    strdup_fmt("(&self->%s)", zone_slot_name);
+                invalidation = emit_current_overlay_projection_invalidation(
+                    ctx, source_slot_name, source_field_name);
+                if (ctx->current_overlay_receiver_expr != NULL
+                    && ctx->current_overlay_receiver_expr != saved_receiver_expr) {
+                    free((char *)ctx->current_overlay_receiver_expr);
+                }
+                ctx->current_overlay_receiver_expr = saved_receiver_expr;
+                transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
+                return invalidation;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static char *
+emit_world_embedded_assignment_sync(TranspilerCtx *ctx, ASTNode *target)
+{
+    ASTNode *host_decl;
+    const char *zone_slot_name = NULL;
+    const char *zone_type_name = NULL;
+    const char *source_slot_name = NULL;
+    const char *source_field_name = NULL;
+
+    if (ctx == NULL || target == NULL)
+        return NULL;
+
+    host_decl = transpiler_current_host_decl_local(ctx);
+    if (host_decl == NULL || host_decl->type != AST_WORLD_DECL)
+        return NULL;
+
+    if (!resolve_world_embedded_projection_invalidation(ctx, target,
+            &zone_slot_name, &zone_type_name,
+            &source_slot_name, &source_field_name)
+        || zone_slot_name == NULL
+        || zone_type_name == NULL
+        || source_slot_name == NULL) {
+        return NULL;
+    }
+
+    return strdup_fmt("%s_sync(&self->%s); ", zone_type_name, zone_slot_name);
+}
+
+static char *
+emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx, ASTNode *receiver)
+{
+    ASTNode *host_decl;
+    ASTNode *zone_decl;
+    CodeBuf *buf;
+    const char *zone_slot_name = NULL;
+    const char *zone_type_name = NULL;
+    const char *source_slot_name = NULL;
+    const char *source_type_name = NULL;
+
+    if (ctx == NULL || receiver == NULL)
+        return NULL;
+
+    host_decl = transpiler_current_host_decl_local(ctx);
+    if (host_decl == NULL || host_decl->type != AST_WORLD_DECL)
+        return NULL;
+
+    if (!resolve_world_zone_subject_receiver(ctx, receiver,
+            &zone_slot_name, &zone_type_name,
+            &source_slot_name, &source_type_name)
+        || zone_slot_name == NULL
+        || zone_type_name == NULL) {
+        return NULL;
+    }
+
+    zone_decl = find_zone_decl(ctx, zone_type_name);
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
+        return NULL;
+
+    buf = codebuf_create();
+    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || slot->data.domain_slot.slot_name == NULL
+            || slot->data.domain_slot.is_subject) {
+            continue;
+        }
+        codebuf_write(buf,
+            "self->%s.__projection_dirty_%s = true; "
+            "self->%s.__projection_ready_%s = false; ",
+            zone_slot_name, slot->data.domain_slot.slot_name,
+            zone_slot_name, slot->data.domain_slot.slot_name);
+    }
+    codebuf_write(buf,
+        "%s_sync(&self->%s); "
+        "self->__zone_dirty_%s = true; "
+        "self->__world_derived_dirty = true; "
+        "%s_sync(self); ",
+        zone_type_name, zone_slot_name,
+        zone_slot_name,
+        host_decl->data.world_decl.name != NULL
+            ? host_decl->data.world_decl.name : "World");
+
+    {
+        char *result = pergyra_strdup(buf->data);
+        codebuf_destroy(buf);
+        return result;
+    }
+}
+
+static bool
+host_projection_relevant_field_exists(TranspilerCtx *ctx,
+                                      const char *host_type_name,
+                                      const char *field_name)
+{
+    ASTNode *host_decl;
+
+    if (ctx == NULL || host_type_name == NULL || field_name == NULL)
+        return false;
+
+    host_decl = find_class_decl(ctx, host_type_name);
+    if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
+        return false;
+
+    for (size_t i = 0; i < host_decl->data.class_decl.field_count; i++) {
+        ClassField *field = host_decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            return !field->is_vessel_field;
+        }
+    }
+
+    return false;
+}
+
+static ClassField *
+find_host_field_by_name_local(ASTNode *host_decl, const char *field_name)
+{
+    if (host_decl == NULL || host_decl->type != AST_CLASS_DECL
+        || field_name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < host_decl->data.class_decl.field_count; i++) {
+        ClassField *field = host_decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            return field;
+        }
+    }
+
+    return NULL;
+}
+
+static const char *
+method_assignment_projection_field_name(TranspilerCtx *ctx,
+                                        const char *host_type_name,
+                                        ASTNode *target)
+{
+    ASTNode *cursor = target;
+    ASTNode *host_decl;
+
+    if (ctx == NULL || host_type_name == NULL || target == NULL)
+        return NULL;
+
+    host_decl = find_class_decl(ctx, host_type_name);
+    if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
+        return NULL;
+
+    if (target->type == AST_IDENTIFIER
+        && host_projection_relevant_field_exists(ctx, host_type_name,
+            target->data.identifier.name)) {
+        return target->data.identifier.name;
+    }
+
+    while (cursor != NULL && cursor->type == AST_MEMBER_ACCESS) {
+        ASTNode *obj = cursor->data.member.object;
+        if (obj != NULL && obj->type == AST_IDENTIFIER
+            && obj->data.identifier.name != NULL) {
+            ClassField *field = find_host_field_by_name_local(
+                host_decl, obj->data.identifier.name);
+            if (field != NULL) {
+                if (field->is_vessel_field)
+                    return cursor->data.member.name;
+                return obj->data.identifier.name;
+            }
+        }
+        cursor = obj;
+    }
+
+    return NULL;
+}

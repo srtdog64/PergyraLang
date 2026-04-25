@@ -640,12 +640,21 @@ int32_t pgy_file_open(const char *path, const char *mode)
     FILE *fp = fopen(path, mode);
     if (fp == NULL)
         return -1;
-    if (pgy_runtime_ftable_next >= PGY_MAX_OPEN_FILES) {
+
+    int fd = -1;
+    for (int i = 3; i < PGY_MAX_OPEN_FILES; i++) {
+        if (pgy_runtime_ftable[i] == NULL) {
+            fd = i;
+            break;
+        }
+    }
+    if (fd < 0) {
         fclose(fp);
         return -1;
     }
 
-    int fd = pgy_runtime_ftable_next++;
+    if (fd >= pgy_runtime_ftable_next)
+        pgy_runtime_ftable_next = fd + 1;
     pgy_runtime_ftable[fd] = fp;
     return (int32_t)fd;
 }
@@ -936,22 +945,3 @@ PgyArray_String StringSplit(const char *s, const char *delim)
     }
     return result;
 }
-
-/* StringJoin(arr, sep) → String */
-char *StringJoin(PgyArray_String *arr, const char *sep)
-{
-    if (arr == NULL || arr->length == 0)
-        return pgy_runtime_lib_strdup("");
-    size_t slen = (sep != NULL) ? strlen(sep) : 0;
-    size_t total = 0;
-    for (size_t i = 0; i < arr->length; i++) {
-        if (arr->data[i] != NULL) total += strlen(arr->data[i]);
-        if (i > 0) total += slen;
-    }
-    char *buf = (char *)malloc(total + 1);
-    if (buf == NULL) return pgy_runtime_lib_strdup("");
-    char *wp = buf;
-    for (size_t i = 0; i < arr->length; i++) {
-        if (i > 0 && slen > 0) { memcpy(wp, sep, slen); wp += slen; }
-        if (arr->data[i] != NULL) {
-            size_t l = strlen(arr->data[i]);

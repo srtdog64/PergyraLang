@@ -19,6 +19,76 @@ ownership_let_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
+static bool
+ownership_let_view_init_info(ASTNode *init,
+                             const char **source_slot,
+                             bool *is_write_view)
+{
+    const char *callee_name;
+
+    if (source_slot != NULL)
+        *source_slot = NULL;
+    if (is_write_view != NULL)
+        *is_write_view = false;
+    if (init == NULL || init->type != AST_CALL
+        || init->data.call.callee == NULL
+        || init->data.call.callee->type != AST_IDENTIFIER
+        || init->data.call.arg_count < 1
+        || init->data.call.arguments[0] == NULL
+        || init->data.call.arguments[0]->type != AST_IDENTIFIER) {
+        return false;
+    }
+
+    callee_name = init->data.call.callee->data.identifier.name;
+    if (callee_name == NULL)
+        return false;
+    if (strcmp(callee_name, "ViewRead") != 0
+        && strcmp(callee_name, "ViewWrite") != 0) {
+        return false;
+    }
+
+    if (source_slot != NULL)
+        *source_slot = init->data.call.arguments[0]->data.identifier.name;
+    if (is_write_view != NULL)
+        *is_write_view = strcmp(callee_name, "ViewWrite") == 0;
+    return true;
+}
+
+static bool
+ownership_let_find_conflicting_view(Scope *scope,
+                                    const char *source_slot,
+                                    bool new_write_view,
+                                    const char **existing_name,
+                                    const char **existing_kind)
+{
+    for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
+        for (size_t i = 0; i < cur->symbol_count; i++) {
+            Symbol *sym = cur->symbols[i];
+            bool existing_read;
+            bool existing_write;
+
+            if (sym == NULL || sym->slot_info.paired_slot_name == NULL
+                || source_slot == NULL
+                || strcmp(sym->slot_info.paired_slot_name, source_slot) != 0) {
+                continue;
+            }
+            existing_read = type_is_read_view(sym->type);
+            existing_write = type_is_write_view(sym->type);
+            if (!existing_read && !existing_write)
+                continue;
+            if (!new_write_view && !existing_write)
+                continue;
+
+            if (existing_name != NULL)
+                *existing_name = sym->name;
+            if (existing_kind != NULL)
+                *existing_kind = existing_write ? "WriteView" : "ReadView";
+            return true;
+        }
+    }
+    return false;
+}
+
 bool
 type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -324,6 +394,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT
         && decl_type->data.slot.access_mode != SLOT_ACCESS_OWNED) {
         const char *source_slot = NULL;
+        bool new_write_view = false;
+        bool view_init = false;
         if (init != NULL && init->type == AST_CALL
             && init->data.call.callee != NULL
             && init->data.call.callee->type == AST_IDENTIFIER
@@ -336,6 +408,52 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                     || strcmp(callee_name, "ViewWrite") == 0
                     || strcmp(callee_name, "Move") == 0)) {
                 source_slot = init->data.call.arguments[0]->data.identifier.name;
+            }
+        }
+        view_init = ownership_let_view_init_info(init, &source_slot,
+                                                 &new_write_view);
+        if (view_init && source_slot != NULL) {
+            const char *existing_name = NULL;
+            const char *existing_kind = NULL;
+            if (ctx->in_parallel) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+                    PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+                    PGY_FIX_SERIALIZE_PIN_ACCESS,
+                    node,
+                    "%s for slot '%s' cannot be acquired inside a parallel task.\n"
+                    "Reason:\n"
+                    "- pinned views are scoped capability leases for the stable beta ownership subset\n"
+                    "- parallel tasks would make view cleanup and aliasing order depend on task scheduling\n"
+                    "Fix:\n"
+                    "- acquire the view outside parallel only for sequential work\n"
+                    "- or serialize the slot access before/after the parallel block",
+                    new_write_view ? "WriteView<T>" : "ReadView<T>",
+                    source_slot);
+                return false;
+            }
+            if (ownership_let_find_conflicting_view(ctx->scope,
+                                                    source_slot,
+                                                    new_write_view,
+                                                    &existing_name,
+                                                    &existing_kind)) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+                    PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+                    PGY_FIX_SERIALIZE_PIN_ACCESS,
+                    node,
+                    "%s for slot '%s' conflicts with existing %s '%s'.\n"
+                    "Reason:\n"
+                    "- WriteView<T> is exclusive for the stable beta ownership subset\n"
+                    "- overlapping read/write views would hide aliasing and cleanup order from CFG dataflow\n"
+                    "Fix:\n"
+                    "- keep the write view in a smaller scope\n"
+                    "- or finish/drop the existing view before acquiring a WriteView<T>",
+                    new_write_view ? "WriteView<T>" : "ReadView<T>",
+                    source_slot,
+                    existing_kind != NULL ? existing_kind : "view",
+                    existing_name != NULL ? existing_name : "<view>");
+                return false;
             }
         }
 

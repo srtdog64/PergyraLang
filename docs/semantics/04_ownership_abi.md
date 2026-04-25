@@ -74,6 +74,15 @@ Current evidence:
   capability tests.
 - Forged zero-token read/write/release is covered for both inline C runtime and
   exported C/LLVM-linkable runtime entrypoints.
+- SecureSlot token ABI is build-mode stable: debug/release inline C, exported
+  runtime, and LLVM-linkable runtime all use the same `PgyToken<T>` layout with
+  `can_write` and `can_read` capability bits. Release-mode inline secure-slot
+  reads/writes/releases keep hard-fail token and occupancy checks, and the
+  legacy release-mode SecureSlot macro has been removed; only plain `Slot<T>`
+  has a zero-overhead release layout.
+- The ABI spec carries matching debug/release SecureSlot layout rows for every
+  stable primitive payload (`Int`, `Long`, `Float`, `Double`, `Bool`, `String`),
+  and `make test-abi` checks runtime size and token offsets against that spec.
 - Runtime authority failure surface exposes reason/code state for missing-zone,
   missing-participant, and authority-token-mismatch without exposing secret
   token material.
@@ -123,11 +132,26 @@ Current evidence:
 - Arena direction is fixed as `Arena + Index reference + lane-specific arena separation`.
 - Several semantic and backend scratch/result paths have been split.
 - Stable runtime string ABI exports are documented as `runtime-borrowed string` values: the caller must not free them, and they are valid until the next mutation of the corresponding runtime registry or snapshot.
-- `runtime-abi-lifetime-test-smoke` verifies that stable intent/authority string export functions return borrowed runtime state and do not allocate or free in the export body.
+- `runtime-abi-lifetime-test-smoke` verifies that stable intent last/history/active/recent and authority string export functions return borrowed runtime state and do not allocate or free in the export body.
+- Stable string helper returns are `result-owned string` values: the caller owns
+  and must eventually release the returned pointer unless a higher-level Pergyra
+  runtime owner consumes it immediately.
+- Stable string-array helper returns are `result-owned array` values: the array
+  shell and its string payload elements are copied into result-owned runtime
+  memory, not borrowed from source inputs or map storage.
+- Stable integer file descriptors are `runtime-owned handle` values: the caller
+  receives a numeric handle, while the runtime owns the backing `FILE *` table
+  entry until `pgy_file_close` releases that slot for reuse.
+- `runtime-abi-lifetime-test-smoke` also verifies that result-owned string and
+  string-array helpers allocate/copy their payloads and do not return string
+  literals, stack buffers, or source input pointers.
+- The same smoke verifies that `pgy_file_open` reuses released runtime-owned
+  handle slots and that `pgy_file_close` clears the runtime table entry.
 
 Remaining proof obligation:
 
-- Extend the same lifetime gate to additional helper payloads and runtime-owned handles as they become beta-stable.
+- Extend the same lifetime gate to additional runtime-owned handles as they
+  become beta-stable.
 
 ## Theorem: ABI Ownership Parity
 
@@ -137,7 +161,12 @@ Current evidence:
 
 - ABI same-process and backend compare tests cover many current runtime paths.
 - Runtime-borrowed string exports for intent observability and authority failure snapshots now have an explicit smoke gate.
+- Result-owned string and string-array helper payloads now have an explicit
+  allocation/copy smoke gate.
+- The file-descriptor runtime-owned handle table now has an explicit release and
+  reuse smoke gate.
 
 Remaining proof obligation:
 
-- Add explicit ownership assertions for helper payloads and runtime-owned handles beyond the current string export surface.
+- Add explicit ownership assertions for runtime-owned handles beyond the current
+  file-descriptor surface.

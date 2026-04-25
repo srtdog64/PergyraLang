@@ -41,6 +41,18 @@ groups = {
             "pgy_intent_history_step_failure_export",
         ],
     ),
+    "inline-intent-active-recent": (
+        root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc",
+        [
+            "pgy_intent_active_name_export",
+            "pgy_intent_active_trace_export",
+            "pgy_intent_active_failure_export",
+            "pgy_intent_active_step_name_export",
+            "pgy_intent_recent_name_export",
+            "pgy_intent_recent_trace_export",
+            "pgy_intent_recent_failure_export",
+        ],
+    ),
     "llvm-intent": (
         root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_c.inc",
         [
@@ -87,6 +99,89 @@ groups = {
             "pgy_zone_authority_last_code_rt_export",
             "pgy_zone_authority_last_reason_rt_export",
         ],
+    ),
+}
+
+macro_exports = {
+    "inline-intent-active-step": (
+        root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc",
+        "PGY_INTENT_ACTIVE_STEP_STRING_EXPORT",
+        [
+            "pgy_intent_active_step_zone_export",
+            "pgy_intent_active_step_phase_export",
+            "pgy_intent_active_step_participant_export",
+            "pgy_intent_active_step_slot_export",
+            "pgy_intent_active_step_from_zone_export",
+            "pgy_intent_active_step_from_slot_export",
+            "pgy_intent_active_step_to_zone_export",
+            "pgy_intent_active_step_to_slot_export",
+            "pgy_intent_active_step_failure_export",
+        ],
+    ),
+    "llvm-intent-active-step": (
+        root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_c.inc",
+        "PGY_INTENT_ACTIVE_STEP_STRING_EXPORT",
+        [
+            "pgy_intent_active_step_zone_export",
+            "pgy_intent_active_step_phase_export",
+            "pgy_intent_active_step_participant_export",
+            "pgy_intent_active_step_slot_export",
+            "pgy_intent_active_step_from_zone_export",
+            "pgy_intent_active_step_from_slot_export",
+            "pgy_intent_active_step_to_zone_export",
+            "pgy_intent_active_step_to_slot_export",
+            "pgy_intent_active_step_failure_export",
+        ],
+    ),
+}
+
+result_owned_strings = {
+    "inline-string-helpers": (
+        root / "src" / "runtime" / "pgy_runtime_part_c.inc",
+        [
+            "Substring",
+            "StringReplace",
+            "StringTrim",
+            "ToUpper",
+            "ToLower",
+            "StringConcat",
+            "StringJoin",
+        ],
+        "pgy_runtime_strdup",
+    ),
+    "llvm-string-helpers": (
+        root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_d.inc",
+        [
+            "pgy_file_read",
+            "pgy_read_file",
+            "pgy_input",
+            "Substring",
+            "StringReplace",
+            "StringTrim",
+            "ToUpper",
+            "ToLower",
+            "StringConcat",
+            "StringJoin",
+        ],
+        "pgy_runtime_lib_strdup",
+    ),
+}
+
+result_owned_arrays = {
+    "inline-string-array-helpers": (
+        root / "src" / "runtime" / "pgy_runtime_part_c.inc",
+        [
+            "StringSplit",
+        ],
+        "pgy_runtime_strdup",
+    ),
+    "llvm-string-array-helpers": (
+        root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_d.inc",
+        [
+            "StringSplit",
+            "pgy_map_keys_raw_export",
+        ],
+        "pgy_runtime_lib_strdup",
     ),
 }
 
@@ -145,10 +240,47 @@ def find_function_body(text: str, name: str) -> str:
     raise SystemExit(f"unterminated function body for {name}")
 
 
+def read_runtime_text(path: pathlib.Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    if path.name.startswith("pgy_runtime_part_ba_part_"):
+        parts = [
+            path.with_name(f"pgy_runtime_part_ba_part_{suffix}.inc")
+            for suffix in ("a", "b", "c", "d", "e", "f")
+        ]
+        missing = [part for part in parts if not part.exists()]
+        if missing:
+            raise SystemExit(
+                "missing split continuation for runtime ABI helper source: "
+                + ", ".join(str(part.relative_to(root)) for part in missing)
+            )
+        return "\n".join(part.read_text(encoding="utf-8") for part in parts)
+    if path.name.startswith("pgy_runtime_lib_part_b_part_"):
+        parts = [
+            path.with_name(f"pgy_runtime_lib_part_b_part_{suffix}.inc")
+            for suffix in ("a", "b", "c", "d", "e", "f")
+        ]
+        missing = [part for part in parts if not part.exists()]
+        if missing:
+            raise SystemExit(
+                "missing split continuation for runtime ABI helper source: "
+                + ", ".join(str(part.relative_to(root)) for part in missing)
+            )
+        return "\n".join(part.read_text(encoding="utf-8") for part in parts)
+    if path.name == "pgy_runtime_lib_part_b_part_d.inc":
+        continuation = path.with_name("pgy_runtime_lib_part_b_part_e.inc")
+        if not continuation.exists():
+            raise SystemExit(
+                "missing split continuation for runtime ABI helper source: "
+                + str(continuation.relative_to(root))
+            )
+        text += "\n" + continuation.read_text(encoding="utf-8")
+    return text
+
+
 for group_name, (path, functions) in groups.items():
     if not path.exists():
         raise SystemExit(f"missing runtime ABI lifetime source: {path.relative_to(root)}")
-    text = path.read_text(encoding="utf-8")
+    text = read_runtime_text(path)
     for fn in functions:
         body = find_function_body(text, fn)
         offenders = [
@@ -163,12 +295,115 @@ for group_name, (path, functions) in groups.items():
         if "return" not in body:
             raise SystemExit(f"{path.relative_to(root)}:{fn} has no return statement")
 
+result_owned_forbidden_returns = [
+    'return ""',
+    "return s;",
+    "return tmp;",
+    "return stack_buf;",
+    "return resolved;",
+]
+
+for group_name, (path, functions, dup_helper) in result_owned_strings.items():
+    if not path.exists():
+        raise SystemExit(f"missing runtime ABI result-owned source: {path.relative_to(root)}")
+    text = read_runtime_text(path)
+    for fn in functions:
+        body = find_function_body(text, fn)
+        if (dup_helper not in body
+                and "pgy_runtime_strdup_export" not in body
+                and "malloc" not in body):
+            raise SystemExit(
+                f"{path.relative_to(root)}:{fn} does not allocate/copy a result-owned string"
+            )
+        bad_returns = [term for term in result_owned_forbidden_returns if term in body]
+        if bad_returns:
+            raise SystemExit(
+                f"{path.relative_to(root)}:{fn} returns borrowed/stack data in result-owned ABI: "
+                + ", ".join(bad_returns)
+            )
+
+for group_name, (path, functions, dup_helper) in result_owned_arrays.items():
+    if not path.exists():
+        raise SystemExit(f"missing runtime ABI result-owned array source: {path.relative_to(root)}")
+    text = read_runtime_text(path)
+    for fn in functions:
+        body = find_function_body(text, fn)
+        if "PgyArray_String" not in body and "pgy_array_new_String" not in body:
+            raise SystemExit(
+                f"{path.relative_to(root)}:{fn} does not materialize a string array payload"
+            )
+        if (dup_helper not in body
+                and "pgy_runtime_strdup_export" not in body
+                and "malloc" not in body):
+            raise SystemExit(
+                f"{path.relative_to(root)}:{fn} does not allocate/copy string array payloads"
+            )
+        if "pgy_array_push_String(&result, s)" in body or "pgy_array_push_String(&result, p)" in body:
+            raise SystemExit(
+                f"{path.relative_to(root)}:{fn} pushes borrowed source strings into result-owned array"
+            )
+
+handle_source = root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_d.inc"
+handle_text = read_runtime_text(handle_source)
+file_open_body = find_function_body(handle_text, "pgy_file_open")
+file_close_body = find_function_body(handle_text, "pgy_file_close")
+required_handle_terms = [
+    "for (int i = 3; i < PGY_MAX_OPEN_FILES; i++)",
+    "pgy_runtime_ftable[i] == NULL",
+    "fd = i",
+    "pgy_runtime_ftable[fd] = fp",
+]
+missing_handle_terms = [term for term in required_handle_terms if term not in file_open_body]
+if missing_handle_terms:
+    raise SystemExit(
+        "pgy_file_open must reuse closed runtime-owned handle slots; missing "
+        + ", ".join(missing_handle_terms)
+    )
+if "pgy_runtime_ftable[fd] = NULL" not in file_close_body:
+    raise SystemExit("pgy_file_close must release the runtime-owned handle slot")
+
+for group_name, (path, macro_name, functions) in macro_exports.items():
+    if not path.exists():
+        raise SystemExit(f"missing runtime ABI lifetime source: {path.relative_to(root)}")
+    text = read_runtime_text(path)
+    macro_marker = f"#define {macro_name}"
+    macro_index = text.find(macro_marker)
+    if macro_index < 0:
+        raise SystemExit(f"{path.relative_to(root)} missing {macro_name} macro")
+    next_export = text.find(f"\n{macro_name}(", macro_index + len(macro_marker))
+    if next_export < 0:
+        raise SystemExit(f"{path.relative_to(root)}:{macro_name} has no export invocations")
+    macro_body = text[macro_index:next_export]
+    if "return result" not in macro_body:
+        raise SystemExit(f"{path.relative_to(root)}:{macro_name} has no borrowed return")
+    offenders = [
+        token for token in forbidden
+        if re.search(r"\b" + re.escape(token) + r"\b", macro_body)
+    ]
+    if offenders:
+        raise SystemExit(
+            f"{path.relative_to(root)}:{macro_name} performs ownership-changing work: "
+            + ", ".join(offenders)
+        )
+    for fn in functions:
+        needle = f"{macro_name}({fn},"
+        if needle not in text:
+            raise SystemExit(
+                f"{path.relative_to(root)} missing borrowed string macro export {fn}"
+            )
+
 proof_doc = root / "docs" / "semantics" / "04_ownership_abi.md"
 proof_text = proof_doc.read_text(encoding="utf-8")
 required_doc_terms = [
     "runtime-borrowed string",
+    "result-owned string",
+    "result-owned array",
+    "runtime-owned handle",
     "caller must not free",
+    "caller owns",
+    "must eventually release",
     "valid until the next mutation of the corresponding runtime registry",
+    "last/history/active/recent",
     "runtime-abi-lifetime-test-smoke",
 ]
 missing = [term for term in required_doc_terms if term not in proof_text]
@@ -178,6 +413,5 @@ if missing:
         + ", ".join(missing)
     )
 
-print("[runtime-abi-lifetime] runtime string exports are borrowed and allocation-free")
+print("[runtime-abi-lifetime] borrowed exports, result-owned payloads, and file handles are gated")
 PY
-

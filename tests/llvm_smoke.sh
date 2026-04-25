@@ -224,13 +224,15 @@ run_case "async_func_decl" "$TMPDIR/async_func_decl.pgy" "5"
 
 cat > "$TMPDIR/secure_slot_view.pgy" <<'EOF'
 func Main() -> Void {
-    let ss: SecureSlot<Int> = ClaimSecureSlot();
-    let rv: ReadView<Int> = ViewRead(ss);
-    let wv: WriteView<Int> = ViewWrite(ss);
+    let rs: SecureSlot<Int> = ClaimSecureSlot();
+    let ws: SecureSlot<Int> = ClaimSecureSlot();
+    Write(rs, 5, rs_token);
+    let rv: ReadView<Int> = ViewRead(rs);
+    let wv: WriteView<Int> = ViewWrite(ws);
     Write(wv, 5);
     Log(Read(rv));
     Write(wv, 9);
-    Log(Read(rv));
+    Log(Read(ws, ws_token));
 }
 EOF
 run_case "secure_slot_view" "$TMPDIR/secure_slot_view.pgy" "5" "9"

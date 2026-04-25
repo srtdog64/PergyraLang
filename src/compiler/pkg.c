@@ -1,5 +1,5 @@
 /*
- * pgy init / pgy install — package manager
+ * pgy init — beta manifest scaffold
  *
  * pgy.toml format:
  *   [package]
@@ -7,11 +7,9 @@
  *   version = "0.1.0"
  *   pergyra = "1.0"
  *
- *   [dependencies]
- *   # name = "version"
- *
- *   [dev-dependencies]
- *   # name = "version"
+ * Dependency resolution, package installation, lockfiles, registries, and
+ * supply-chain integrity are deliberately out-of-beta.  Keep this file narrow:
+ * it owns the manifest scaffold only.
  */
 
 #include "pkg.h"

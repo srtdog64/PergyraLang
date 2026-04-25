@@ -798,3 +798,168 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             if (!routine->has_rollback_block || block->rollback_succ != routine->rollback_block) {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
+
+                        "MIR routine '%s' block[%zu] rollback successor must target routine rollback block",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+        if (routine->has_invalidation_block && block->has_invalidation_succ) {
+            if (!routine->has_invalidation_block
+                || block->invalidation_succ != routine->invalidation_block) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] invalidation successor must target routine invalidation block",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+
+        if (block->has_succ_true) {
+            const MIRBasicBlock *succ_block = &routine->blocks[block->succ_true];
+            if (!mir_block_has_predecessor(succ_block, i)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] missing predecessor link to true successor %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i,
+                        block->succ_true);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+        if (block->has_succ_false) {
+            const MIRBasicBlock *succ_block = &routine->blocks[block->succ_false];
+            if (!mir_block_has_predecessor(succ_block, i)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] missing predecessor link to false successor %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i,
+                        block->succ_false);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+        if (block->has_cleanup_succ) {
+            const MIRBasicBlock *cleanup_block = &routine->blocks[block->cleanup_succ];
+            if (!mir_block_has_predecessor(cleanup_block, i)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] missing predecessor link to cleanup successor %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i,
+                        block->cleanup_succ);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+        if (block->has_rollback_succ) {
+            const MIRBasicBlock *rollback_block = &routine->blocks[block->rollback_succ];
+            if (!mir_block_has_predecessor(rollback_block, i)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] missing predecessor link to rollback successor %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i,
+                        block->rollback_succ);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+        if (block->has_invalidation_succ) {
+            const MIRBasicBlock *invalidation_block = &routine->blocks[block->invalidation_succ];
+            if (!mir_block_has_predecessor(invalidation_block, i)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] missing predecessor link to invalidation successor %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i,
+                        block->invalidation_succ);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+    }
+
+    if (routine->has_cleanup_block) {
+        const MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
+
+        if (routine->has_rollback_block
+            && (!cleanup->has_rollback_succ || cleanup->rollback_succ != routine->rollback_block)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' cleanup block does not converge to rollback block",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            }
+            free(hir_block_seen);
+            return false;
+        }
+        if (routine->has_invalidation_block
+            && (!cleanup->has_invalidation_succ
+                || cleanup->invalidation_succ != routine->invalidation_block)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' cleanup block does not converge to invalidation block",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            }
+            free(hir_block_seen);
+            return false;
+        }
+        if (routine->has_rollback_block && routine->has_invalidation_block) {
+            const MIRBasicBlock *rollback = &routine->blocks[routine->rollback_block];
+            if (!rollback->has_invalidation_succ
+                || rollback->invalidation_succ != routine->invalidation_block
+                || !rollback->has_cleanup_succ
+                || rollback->cleanup_succ != routine->invalidation_block) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' rollback block does not converge to invalidation block",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+    }
+
+    free(hir_block_seen);
+    return true;
+}
+
+const char *
+mir_scope_kind_name(MIRScopeKind kind)
+{
+    switch (kind) {
+        case MIR_SCOPE_FUNCTION: return "function";
+        case MIR_SCOPE_METHOD: return "method";
+        case MIR_SCOPE_INTENT: return "intent";
+        default: return "unknown";
+    }
+}
+
+const char *
+mir_inst_kind_name(MIRInstKind kind)
+{
+    switch (kind) {
+        case MIR_INST_DEF: return "def";
+        case MIR_INST_RESOURCE_OP: return "resource-op";
+        case MIR_INST_PHI: return "phi";
+        case MIR_INST_BRANCH: return "branch";
+        case MIR_INST_RETURN: return "return";
+        case MIR_INST_CLEANUP_EDGE: return "cleanup";
+        case MIR_INST_STMT: return "stmt";
+        default: return "unknown";
+    }
+}

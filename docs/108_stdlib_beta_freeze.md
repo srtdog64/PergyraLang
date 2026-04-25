@@ -1,0 +1,95 @@
+# Stdlib Beta Freeze
+
+Status: beta-freeze-source-of-truth.
+
+This document defines the standard-library surface that can be treated as
+beta-stable. Anything not listed here is experimental or out-of-beta even if a
+file exists under `stdlib/` or a parser/compiler path recognizes the name.
+
+Completion rule:
+
+- A stable stdlib item must have syntax, semantic typing, C backend behavior,
+  LLVM backend behavior, diagnostics, smoke coverage, and docs aligned.
+- `make stdlib-test-smoke` is the executable gate for this document.
+- The stable list must stay aligned with `type_checker_stdlib_use.c`.
+
+## Stable Builtin Stdlib Surface
+
+These are compiler/runtime builtins, not `use` modules:
+
+- Logging and console: `Log`, `LogBlock`, `LogBanner`, `LogRaw`, `Print`,
+  `ReadLine`.
+- File IO: `ReadFile`, `WriteFile`.
+- Strings: `Concat`, `StringLength`, `Contains`, `Replace`, `Substring`,
+  `Trim`, `Split`, `Join`, `Upper`, `Lower`, `ToString`.
+- Numeric helpers: `Abs`, `Min`, `Max`.
+- Time helpers: `Now`, `Sleep`.
+- Collections frozen for beta: `Array<T>`, `List<T>`, `Set<T>`, `Queue<T>`,
+  `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`,
+  `HashMap<Bool, T>`.
+- Result/Option baseline: `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`,
+  `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`.
+
+## Stable `use` Modules
+
+These modules are beta-stable when imported through `use <module>;`:
+
+- `datetime`: `LocalDate`, `LocalTime`, `DateTime`, `Duration`, `Instant`,
+  `SameDate`, `FormatDate`, `FormatTime`, `FormatDateTime`,
+  `DateTimeOnDate`, `DurationMs`, `DurationSeconds`, `DurationMinutes`,
+  `FormatDuration`, `InstantNow`, `InstantAdd`, `DurationBetween`,
+  `DeadlineReached`.
+- `money`: `Money`, `MoneyOf`, `MoneyZero`, `MoneySameCurrency`, `MoneyAdd`,
+  `MoneySub`, `MoneyNeg`, `MoneyEq`, `MoneyGte`, `RenderMoney`.
+- `timer`: `TimerSpec`, `TimerAfter`, `TimerEvery`, `TimerExpired`,
+  `TimerRemaining`, `TimerTick`, `RenderTimer`.
+- `versioning`: `VersionStamp`, `IdempotencyKey`, `VersionInitial`,
+  `VersionNext`, `SameVersion`, `MakeIdempotencyKey`,
+  `SameIdempotencyKey`, `RenderVersion`, `RenderIdempotencyKey`.
+- `ledger`: `LedgerEntry`, `LedgerPosting`, `DebitEntry`, `CreditEntry`,
+  `BuildTransferPosting`, `LedgerBalanced`, `RenderLedgerEntry`,
+  `RenderLedgerPosting`.
+- `obligation`: `Obligation`, `Violation`, `ObligationCheck`,
+  `OpenObligation`, `FulfillObligation`, `ObligationDue`,
+  `EvaluateObligation`, `RenderObligation`, `RenderViolation`.
+- `device_adapter`: `DeviceRegister`, `DeviceSample`, `DeviceCommand`,
+  `Register`, `SampleDevice`, `WriteDevice`, `SampleEventTopic`,
+  `RenderDeviceSample`, `RenderDeviceCommand`.
+
+The stable module smoke covers these modules together because several domain-kit
+modules intentionally depend on common modules such as `money` and
+`versioning`.
+
+## Known But Experimental Modules
+
+These module names may be recognized by the compiler so examples and future
+work do not fail at the `use` boundary, but they are not beta-stable:
+
+- `http`: transport adapter draft.
+- `storage`: persistence adapter draft.
+- `page`: UI/page adapter draft.
+- `spray`: GPU/Spray design placeholder.
+
+Experimental modules must not be advertised as stable. Their APIs can change
+without beta compatibility guarantees.
+
+## Out Of Beta
+
+- Package-manager distribution of stdlib modules.
+- Version-resolution policy for third-party modules.
+- Supply-chain integrity and signing.
+- GPU/Spray runtime and shader/render integration.
+- Skia/render graph adapters.
+- Rich storage/page/http production adapters.
+- Full FP/HKT/functor library surface.
+
+## Regression Gate
+
+`make stdlib-test-smoke` must:
+
+- Run the stable builtin stdlib probe on the C backend.
+- Run the same builtin probe on the LLVM backend when requested.
+- Run the stable `use` module probe on the C backend.
+- Run the same stable `use` module probe on the LLVM backend when requested.
+- Check this document contains the stable/experimental module taxonomy.
+

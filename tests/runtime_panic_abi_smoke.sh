@@ -23,6 +23,11 @@ case "$(uname -s 2>/dev/null || echo unknown)" in
     MINGW*|MSYS*|CYGWIN*) EXE_EXT=".exe" ;;
 esac
 
+if grep -q "PGY_SECURE_SLOT_DEFINE_RELEASE" "$ROOT_DIR/src/runtime/pgy_runtime_part_ba_part_c.inc"; then
+    echo "runtime panic ABI smoke: SecureSlot release-mode macro must not exist" >&2
+    exit 1
+fi
+
 compile_case() {
     local name="$1"
     local source="$2"
@@ -151,6 +156,28 @@ int main(void) {
     PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
     pgy_secure_release_Int(&slot, &token);
     pgy_secure_release_Int(&slot, &token);
+    return 0;
+}
+')"
+
+inline_release_mode_secure_token_denied_bin="$(compile_case inline_release_mode_secure_token_denied '
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    token.can_read = false;
+    (void)pgy_secure_read_Int(&slot, &token);
+    return 0;
+}
+')"
+
+inline_release_mode_secure_released_bin="$(compile_case inline_release_mode_secure_released '
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    pgy_secure_release_Int(&slot, &token);
+    (void)pgy_secure_read_Int(&slot, &token);
     return 0;
 }
 ')"
@@ -365,6 +392,8 @@ expect_panic inline_forged_secure_token_write "$inline_forged_token_write_bin" "
 expect_panic inline_forged_secure_token_release "$inline_forged_token_release_bin" "invalid-secure-token"
 expect_panic inline_double_release "$inline_double_release_bin" "double-release"
 expect_panic inline_secure_double_release "$inline_secure_double_release_bin" "double-release"
+expect_panic inline_release_mode_secure_token_denied "$inline_release_mode_secure_token_denied_bin" "invalid-secure-token"
+expect_panic inline_release_mode_secure_released "$inline_release_mode_secure_released_bin" "released-slot"
 expect_panic inline_array_oob "$inline_array_oob_bin" "out-of-bounds"
 expect_panic inline_authority_mismatch "$inline_authority_mismatch_bin" "authority-mismatch"
 expect_panic inline_oom "$inline_oom_bin" "oom"

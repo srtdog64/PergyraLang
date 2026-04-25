@@ -496,13 +496,10 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
 }
 
 static LLVMValueRef
-llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
+llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
+                                      ASTNode *obj_node,
+                                      const char *method_name)
 {
-    ASTNode *obj_node = node->data.call.callee->data.member.object;
-    const char *method_name = node->data.call.callee->data.member.name;
-
-    /* Dynamic vtable dispatch: party.slot.method()
-     * AST: call(member(member(party_var, slot_name), method_name)) */
     if (obj_node != NULL && obj_node->type == AST_MEMBER_ACCESS
         && method_name != NULL) {
         ASTNode *party_node = obj_node->data.member.object;
@@ -516,10 +513,9 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 ? llvm_lookup_class(ctx, party_class) : NULL;
 
             if (cls != NULL) {
-                /* Find vtable pointer field: slot_name + "_vtable" */
                 char vt_field[256];
-                snprintf(vt_field, sizeof(vt_field), "%s_vtable", slot_name);
                 int vt_idx = -1;
+                snprintf(vt_field, sizeof(vt_field), "%s_vtable", slot_name);
                 for (int fi = 0; fi < cls->field_count; fi++) {
                     if (strcmp(cls->fields[fi].field_name, vt_field) == 0) {
                         vt_idx = cls->fields[fi].index;
@@ -528,18 +524,15 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 }
 
                 if (vt_idx >= 0) {
-                    /* Find which ability this slot requires, then look up
-                     * the method index in that ability's vtable struct */
                     int method_idx = -1;
                     LLVMClassTypeEntry *vt_cls = NULL;
 
-                    /* Search for *_vtable class that has this method */
                     for (int ci = 0; ci < ctx->class_type_count; ci++) {
                         const char *cn = ctx->class_types[ci].class_name;
                         if (cn != NULL && strstr(cn, "_vtable") != NULL) {
                             for (int fi = 0; fi < ctx->class_types[ci].field_count; fi++) {
                                 if (strcmp(ctx->class_types[ci].fields[fi].field_name,
-                                          method_name) == 0) {
+                                           method_name) == 0) {
                                     vt_cls = &ctx->class_types[ci];
                                     method_idx = ctx->class_types[ci].fields[fi].index;
                                     break;
@@ -553,37 +546,29 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     if (vt_cls != NULL && method_idx >= 0) {
                         LLVMVarEntry *pvar = llvm_scope_lookup(ctx, party_var);
                         if (pvar != NULL) {
-                            /* Load vtable pointer from party struct */
                             LLVMValueRef vt_ptr_field = LLVMBuildStructGEP2(
                                 ctx->builder, cls->struct_type, pvar->alloca,
                                 (unsigned)vt_idx, llvm_tmp_name(ctx));
                             LLVMValueRef vt_raw = LLVMBuildLoad2(ctx->builder,
                                 ctx->type_i8ptr, vt_ptr_field, llvm_tmp_name(ctx));
-
-                            /* Cast to vtable struct pointer */
                             LLVMTypeRef vt_ptr_ty = LLVMPointerType(
                                 vt_cls->struct_type, 0);
                             LLVMValueRef vt_typed = LLVMBuildBitCast(
                                 ctx->builder, vt_raw, vt_ptr_ty,
                                 llvm_tmp_name(ctx));
-
-                            /* GEP to method function pointer */
                             LLVMValueRef fn_ptr_field = LLVMBuildStructGEP2(
                                 ctx->builder, vt_cls->struct_type, vt_typed,
                                 (unsigned)method_idx, llvm_tmp_name(ctx));
-
                             size_t argc = node->data.call.arg_count;
                             LLVMTypeRef fn_ptr_ty = vt_cls->fields[method_idx].field_type;
                             LLVMTypeRef fn_type = LLVMGetElementType(fn_ptr_ty);
                             LLVMTypeRef ret_type = LLVMGetReturnType(fn_type);
-
-                            /* Load the function pointer from vtable */
                             LLVMValueRef fn_ptr = LLVMBuildLoad2(ctx->builder,
                                 fn_ptr_ty, fn_ptr_field, llvm_tmp_name(ctx));
-
-                            /* Build args: self (party_alloca as i8*) + user args */
                             LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
                                 (argc + 1) * sizeof(LLVMValueRef));
+                            LLVMValueRef result;
+
                             args[0] = LLVMBuildBitCast(ctx->builder,
                                 pvar->alloca, ctx->type_i8ptr,
                                 llvm_tmp_name(ctx));
@@ -591,7 +576,6 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                 args[ai + 1] = llvm_emit_expression(
                                     node->data.call.arguments[ai], ctx);
 
-                            LLVMValueRef result;
                             if (ret_type == ctx->type_void) {
                                 LLVMBuildCall2(ctx->builder, fn_type, fn_ptr,
                                     args, (unsigned)(argc + 1), "");
@@ -609,6 +593,14 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    return NULL;
+}
+
+static LLVMValueRef
+llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
+                                  ASTNode *obj_node,
+                                  const char *method_name)
+{
     if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
         && method_name != NULL
         && (strcmp(method_name, "Write") == 0
@@ -721,14 +713,20 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    return NULL;
+}
+
+static LLVMValueRef
+llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
+                            ASTNode *obj_node,
+                            const char *method_name)
+{
     if (obj_node != NULL && method_name != NULL
         && strcmp(method_name, "Slice") == 0
         && node->data.call.arg_count == 2) {
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
-            fprintf(stderr, "[llvm slice] phase=begin\n");
-        LLVMValueRef receiver = llvm_emit_expression(obj_node, ctx);
-        LLVMValueRef start = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        LLVMValueRef len = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        LLVMValueRef receiver;
+        LLVMValueRef start;
+        LLVMValueRef len;
         const char *suffix = NULL;
         LLVMTypeRef elem_type = NULL;
         LLVMTypeRef slice_type = NULL;
@@ -738,6 +736,12 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef offset_ptr;
         LLVMValueRef result;
         unsigned field_count = 0;
+
+        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            fprintf(stderr, "[llvm slice] phase=begin\n");
+        receiver = llvm_emit_expression(obj_node, ctx);
+        start = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        len = llvm_emit_expression(node->data.call.arguments[1], ctx);
 
         if (receiver == NULL || start == NULL || len == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
@@ -777,11 +781,6 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             ? len
             : LLVMBuildSExt(ctx->builder, len, ctx->type_i64, llvm_tmp_name(ctx));
 
-        /* Emit slices directly in LLVM IR instead of calling the runtime
-         * aggregate-return helper. This keeps Array<T>.Slice(...) and
-         * Slice<T>.Slice(...) on the same lowering path and avoids Windows-
-         * specific ABI sensitivity around returning PgySlice_* structs from
-         * external C helpers. */
         offset_ptr = LLVMBuildGEP2(ctx->builder, elem_type, data_ptr, &start64, 1,
             llvm_tmp_name(ctx));
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
@@ -792,9 +791,5 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         return result;
     }
 
-    if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
-        && method_name != NULL) {
-        if (llvm_is_upper_ident(obj_node)) {
-            size_t fn_len = strlen(obj_node->data.identifier.name) + 1 + strlen(method_name) + 1;
-            char *full_name = pgy_arena_alloc(&ctx->scratch, fn_len);
-            if (full_name == NULL)
+    return NULL;
+}

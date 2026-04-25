@@ -798,3 +798,14 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     } else {
                         write_indent(ctx);
                         codebuf_write(ctx->out, "return;\n");
+
+                    }
+                }
+            }
+        }
+    }
+
+    ctx->indent--;
+    codebuf_write(ctx->out, "}\n");
+    transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+}

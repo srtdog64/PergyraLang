@@ -139,6 +139,27 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
 - Synthesis pass: HIR + DIR + RIR 에서 AIR 합성 (read-only)
 - Drift check pass: sync/async constraint vs boundary 충돌
 - Strict evidence pass: default strict AIR에서 missing RIR boundary/authority evidence hard-fail. `PGY_AIR_STRICT_EVIDENCE=0`은 development/debug opt-out이다.
+- Execution boundary scan: Phase 1 synthesis now walks intent-step AST clauses
+  (`using`, `intent`, `pre`, `guard`, `post`, `invariant`, `expect`, `on`,
+  `compensate`) and promotes `spawn` / `async` / `parallel`, `channel` /
+  `select`, and known IO calls (`ReadFile`, `WriteFile`, `ReadLine`) into AIR
+  `Boundary Node`s before drift checking.
+- Expression boundary evidence is source-specific: `spawn` / `async` /
+  `parallel`, `channel` / `select`, and IO boundaries are not satisfied by a
+  generic RIR scope with the same intent owner. They need matching
+  boundary-source evidence, otherwise default strict AIR emits
+  `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`.
+- Transfer boundary synthesis is split: a step with both `where: ZoneType` and
+  `transfer: from -> to` emits a `Zone` boundary for the `where` type and a
+  separate `World` boundary for the handoff. The world boundary source is the
+  transfer target alias when present, otherwise the source alias.
+- World boundary evidence is transfer-op specific: a matching RIR intent/world
+  scope is not enough. AIR accepts the boundary only when RIR exposes the
+  corresponding `Move(from -> to)` or `Claim(to <- from)` evidence for the world
+  boundary source.
+- AIR owns synthesized names (`intent_owner`, `step_name`, boundary
+  `owner_name`, `source_name`, and authority participants). AIR diagnostics and
+  tests must not depend on DIR/AST string lifetime after parser teardown.
 - Authority evidence match: `authorized by` participant 이름과 RIR authority
   fact / authorize op subject가 일치해야 한다. 같은 scope 안의 unrelated
   authority evidence는 boundary를 만족시키지 않는다.

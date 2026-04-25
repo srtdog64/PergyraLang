@@ -798,3 +798,192 @@ pgy_intent_active_count_export(void)
             count++;
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
+
+    return count;
+}
+
+static inline char *
+pgy_intent_active_name_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL && entry->name != NULL)
+        result = entry->name;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_handle_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->handle;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_priority_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL)
+        result = entry->priority;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_trace_id_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL)
+        result = entry->trace_id;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline bool
+pgy_intent_active_concurrent_export(int32_t index)
+{
+    bool result = false;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL)
+        result = entry->is_concurrent;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline char *
+pgy_intent_active_trace_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL && entry->trace != NULL)
+        result = entry->trace;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_parent_handle_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL)
+        result = entry->parent_handle;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_subject_count_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL)
+        result = entry->subject_count;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_step_count_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL)
+        result = entry->step_count;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline bool
+pgy_intent_active_failed_export(int32_t index)
+{
+    bool result = false;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL)
+        result = entry->failed;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline char *
+pgy_intent_active_failure_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    if (entry != NULL && entry->failure_reason != NULL)
+        result = entry->failure_reason;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_current_handle_export(void)
+{
+    return pgy_intent_current_handle();
+}
+
+static inline char *
+pgy_intent_active_step_name_export(int32_t intent_index, int32_t step_index)
+{
+    char *result = "";
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentHistoryStep *step =
+        pgy_intent_active_step_by_index_export(intent_index, step_index);
+    if (step != NULL && step->name != NULL)
+        result = step->name;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+#define PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(fn_name, field_name) \
+static inline char * \
+fn_name(int32_t intent_index, int32_t step_index) \
+{ \
+    char *result = ""; \
+    pthread_mutex_lock(&pgy_intent_registry_mutex); \
+    PgyIntentHistoryStep *step = \
+        pgy_intent_active_step_by_index_export(intent_index, step_index); \
+    if (step != NULL && step->field_name != NULL) \
+        result = step->field_name; \
+    pthread_mutex_unlock(&pgy_intent_registry_mutex); \
+    return result; \
+}
+
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_zone_export, zone)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_phase_export, phase)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_participant_export, participant)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_slot_export, slot)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_from_zone_export, from_zone)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_from_slot_export, from_slot)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_to_zone_export, to_zone)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_to_slot_export, to_slot)
+PGY_INTENT_ACTIVE_STEP_STRING_EXPORT(pgy_intent_active_step_failure_export, failure_reason)

@@ -846,10 +846,6 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     }
 }
 
-/* -----------------------------------------------------------------
- * Token operator helpers
- * ----------------------------------------------------------------- */
-
 static const char *
 binary_op_to_c(PgyTokenType op)
 {
@@ -870,10 +866,6 @@ binary_op_to_c(PgyTokenType op)
     default:                  return "?";
     }
 }
-
-/* -----------------------------------------------------------------
- * Expression emitters
- * ----------------------------------------------------------------- */
 
 char *
 emit_binary(ASTNode *expr, TranspilerCtx *ctx)
@@ -916,3 +908,84 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
             char *left  = emit_expression(expr->data.binary.left,  ctx);
             char *right = emit_expression(expr->data.binary.right, ctx);
             char *result = strdup_fmt("StringConcat(%s, %s)", left, right);
+            free(left);
+            free(right);
+            return result;
+        }
+    }
+
+    if (expr->data.binary.op.type == TOKEN_EQUAL
+        || expr->data.binary.op.type == TOKEN_NOT_EQUAL) {
+        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
+        const char *rt = infer_expression_type_name(ctx, expr->data.binary.right);
+        if ((lt != NULL && strcmp(lt, "String") == 0)
+            || (rt != NULL && strcmp(rt, "String") == 0)) {
+            char *left = emit_expression(expr->data.binary.left, ctx);
+            char *right = emit_expression(expr->data.binary.right, ctx);
+            char *result = NULL;
+            if (expr->data.binary.op.type == TOKEN_EQUAL)
+                result = strdup_fmt("pgy_string_equals(%s, %s)", left, right);
+            else
+                result = strdup_fmt("(!pgy_string_equals(%s, %s))", left, right);
+            free(left);
+            free(right);
+            return result;
+        }
+    }
+
+    {
+        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
+        char lt_buf[128];
+        const char *stable_lt = lt;
+        ASTNode *overload;
+
+        if (lt != NULL) {
+            snprintf(lt_buf, sizeof(lt_buf), "%s", lt);
+            stable_lt = lt_buf;
+        }
+
+        overload = find_operator_overload_decl(ctx, stable_lt,
+            expr->data.binary.op.type);
+        if (overload != NULL) {
+            char *left  = emit_expression(expr->data.binary.left, ctx);
+            char *right = emit_expression(expr->data.binary.right, ctx);
+            const char *suffix = operator_overload_suffix(expr->data.binary.op.type);
+            char *result = strdup_fmt("operator_%s_%s(%s, %s)",
+                suffix, stable_lt, left, right);
+            free(left);
+            free(right);
+            return result;
+        }
+    }
+
+    char *left  = emit_expression(expr->data.binary.left,  ctx);
+    char *right = emit_expression(expr->data.binary.right, ctx);
+    const char *op = binary_op_to_c(expr->data.binary.op.type);
+    char *result;
+    if (expr->data.binary.op.type == TOKEN_SLASH
+        || expr->data.binary.op.type == TOKEN_PERCENT) {
+        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
+        const char *rt = infer_expression_type_name(ctx, expr->data.binary.right);
+        bool is_float_div = (lt != NULL
+                && (strcmp(lt, "Float") == 0 || strcmp(lt, "Double") == 0))
+            || (rt != NULL
+                && (strcmp(rt, "Float") == 0 || strcmp(rt, "Double") == 0));
+        bool is_long_div = (lt != NULL && strcmp(lt, "Long") == 0)
+            || (rt != NULL && strcmp(rt, "Long") == 0);
+        if (!is_float_div) {
+            const char *helper = expr->data.binary.op.type == TOKEN_SLASH
+                ? (is_long_div ? "pgy_checked_div_i64_export"
+                               : "pgy_checked_div_i32_export")
+                : (is_long_div ? "pgy_checked_mod_i64_export"
+                               : "pgy_checked_mod_i32_export");
+            result = strdup_fmt("%s(%s, %s)", helper, left, right);
+        } else {
+            result = strdup_fmt("(%s %s %s)", left, op, right);
+        }
+    } else {
+        result = strdup_fmt("(%s %s %s)", left, op, right);
+    }
+    free(left);
+    free(right);
+    return result;
+}

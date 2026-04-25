@@ -115,6 +115,12 @@ main(int argc, char *argv[])
             return driver_run_fmt_command(argc - 1, argv + 1);
         if (strcmp(argv[1], "init") == 0)
             return driver_run_pkg_init(argc - 2, argv + 2);
+        if (strcmp(argv[1], "install") == 0) {
+            fprintf(stderr,
+                "pgy install: package resolution and registry install are out-of-beta. "
+                "Use file imports and compiler-known `use` modules for the beta surface.\n");
+            return 1;
+        }
         if (strcmp(argv[1], "debug") == 0)
             return driver_run_debug_command(argc - 1, argv + 1);
         if (strcmp(argv[1], "scaffold") == 0)

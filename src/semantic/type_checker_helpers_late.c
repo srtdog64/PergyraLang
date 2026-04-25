@@ -32,6 +32,45 @@ late_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
+bool
+semantic_find_active_slot_view(Scope *scope,
+                               const char **view_name_out,
+                               const char **view_kind_out,
+                               const char **source_slot_out)
+{
+    if (view_name_out != NULL)
+        *view_name_out = NULL;
+    if (view_kind_out != NULL)
+        *view_kind_out = NULL;
+    if (source_slot_out != NULL)
+        *source_slot_out = NULL;
+
+    for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
+        for (size_t i = 0; i < cur->symbol_count; i++) {
+            Symbol *sym = cur->symbols[i];
+            bool is_read;
+            bool is_write;
+
+            if (sym == NULL || sym->type == NULL)
+                continue;
+            is_read = type_is_read_view(sym->type);
+            is_write = type_is_write_view(sym->type);
+            if (!is_read && !is_write)
+                continue;
+
+            if (view_name_out != NULL)
+                *view_name_out = sym->name;
+            if (view_kind_out != NULL)
+                *view_kind_out = is_write ? "WriteView" : "ReadView";
+            if (source_slot_out != NULL)
+                *source_slot_out = sym->slot_info.paired_slot_name;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static ASTNode *
 lookup_function_param_contract_local(SemanticContext *ctx,
                                      const char *display_name,

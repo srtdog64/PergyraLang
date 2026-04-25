@@ -1,3 +1,78 @@
+static const char *
+infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
+{
+    static char derived_call_type[128];
+
+    if (expr == NULL)
+        return "Unknown";
+
+    switch (expr->type) {
+    case AST_NUMBER:
+        if (expr->data.number.is_long)
+            return "Long";
+        return expr->data.number.value == (int64_t)expr->data.number.value
+            ? "Int"
+            : "Float";
+    case AST_STRING:
+        return "String";
+    case AST_BOOLEAN:
+        return "Bool";
+    case AST_ARRAY_LITERAL: {
+        const char *inner = "Int";
+        if (expr->data.array_literal.count > 0)
+            inner = infer_expression_type_name(ctx, expr->data.array_literal.elements[0]);
+        static char buf[128];
+        snprintf(buf, sizeof(buf), "Array<%s>", inner);
+        return buf;
+    }
+    case AST_ARRAY_ACCESS: {
+        const char *array_type = infer_expression_type_name(ctx, expr->data.array_access.array);
+        if (strncmp(array_type, "Array<", 6) == 0 || strncmp(array_type, "Slice<", 6) == 0)
+            return slot_inner_type_name(array_type);
+        return "Unknown";
+    }
+    case AST_IDENTIFIER: {
+        ASTNode *alias_expr = lookup_alias_expr(ctx, expr->data.identifier.name);
+        if (alias_expr != NULL)
+            return infer_expression_type_name(ctx, alias_expr);
+        const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
+        if (type_name != NULL)
+            return type_name;
+        type_name = transpiler_current_field_type_name(ctx, expr->data.identifier.name);
+        if (type_name != NULL)
+            return type_name;
+        {
+            const char *enum_variant = lookup_enum_variant_qualified_name(ctx,
+                expr->data.identifier.name);
+            if (enum_variant != NULL) {
+                size_t len = strcspn(enum_variant, "_");
+                static char enum_name[128];
+                if (len >= sizeof(enum_name))
+                    len = sizeof(enum_name) - 1;
+                memcpy(enum_name, enum_variant, len);
+                enum_name[len] = '\0';
+                return enum_name;
+            }
+        }
+        return "Unknown";
+    }
+    case AST_CHANNEL_RECV: {
+        ASTNode *channel = expr->data.channel_recv.channel;
+        if (channel != NULL && channel->type == AST_IDENTIFIER) {
+            const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
+            if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
+                return slot_inner_type_name(type_name);
+        }
+        return "Unknown";
+    }
+    case AST_MEMBER_ACCESS: {
+        const char *resolved = transpiler_resolve_nominal_host_expr_type_name(ctx, expr);
+        if (resolved != NULL)
+            return resolved;
+        if (expr->data.member.object != NULL && expr->data.member.name != NULL) {
+            const char *obj_type = infer_expression_type_name(ctx, expr->data.member.object);
+            if (obj_type != NULL) {
+
                 ASTNode *obj_decl = find_class_decl(ctx, obj_type);
                 if (obj_decl != NULL) {
                     for (size_t fi = 0; fi < obj_decl->data.class_decl.field_count; fi++) {
@@ -98,7 +173,7 @@
                 }
             }
             ASTNode *method_decl = NULL;
-            receiver_type = resolve_nominal_host_expr_type_name(ctx, receiver);
+            receiver_type = transpiler_resolve_nominal_host_expr_type_name(ctx, receiver);
             if (receiver_type != NULL) {
                 method_decl = find_nominal_host_method_decl(ctx, receiver_type,
                     method_name);
@@ -798,3 +873,120 @@ find_generic_param_index(ASTNode *decl, const char *name)
 }
 
 static bool
+
+infer_generic_call_bindings(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call,
+                            GenericBindingEntry *bindings, size_t *binding_count)
+{
+    if (!func_has_generic_params(decl)
+        || call == NULL
+        || call->type != AST_CALL
+        || bindings == NULL
+        || binding_count == NULL) {
+        return false;
+    }
+
+    size_t generic_count = decl->data.func_decl.generic_params->count;
+    memset(bindings, 0, sizeof(GenericBindingEntry) * generic_count);
+
+    for (size_t i = 0; i < generic_count; i++) {
+        GenericParam *param = decl->data.func_decl.generic_params->params[i];
+        if (param != NULL && param->name != NULL) {
+            strncpy(bindings[i].name, param->name, sizeof(bindings[i].name) - 1);
+            bindings[i].name[sizeof(bindings[i].name) - 1] = '\0';
+        }
+    }
+
+    for (size_t i = 0; i < decl->data.func_decl.param_count && i < call->data.call.arg_count; i++) {
+        FuncParam *param = decl->data.func_decl.params[i];
+        if (param == NULL || param->type == NULL || param->type->type != AST_TYPE)
+            continue;
+        if (param->type->data.type.generic_args != NULL)
+            continue;
+
+        int generic_index = find_generic_param_index(decl, param->type->data.type.name);
+        if (generic_index < 0)
+            continue;
+
+        const char *arg_type = infer_expression_type_name(ctx, call->data.call.arguments[i]);
+        if (arg_type == NULL)
+            continue;
+
+        if (bindings[generic_index].concrete_type[0] != '\0'
+            && strcmp(bindings[generic_index].concrete_type, arg_type) != 0) {
+            return false;
+        }
+
+        strncpy(bindings[generic_index].concrete_type, arg_type,
+            sizeof(bindings[generic_index].concrete_type) - 1);
+        bindings[generic_index].concrete_type[sizeof(bindings[generic_index].concrete_type) - 1] = '\0';
+    }
+
+    for (size_t i = 0; i < generic_count; i++) {
+        if (bindings[i].name[0] == '\0' || bindings[i].concrete_type[0] == '\0')
+            return false;
+    }
+
+    *binding_count = generic_count;
+    return true;
+}
+
+static void
+emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
+                             CodeBuf *buf, TranspilerCtx *ctx);
+
+static void
+emit_func_decl_named(ASTNode *node, const char *emitted_name,
+                     CodeBuf *buf, TranspilerCtx *ctx);
+
+static void
+emit_hosted_method_forward_decl_named(const char *host_name, ASTNode *method,
+                                      bool pointer_self, CodeBuf *buf,
+                                      TranspilerCtx *ctx)
+{
+    if (host_name == NULL || method == NULL || buf == NULL || ctx == NULL
+        || method->type != AST_FUNC_DECL)
+        return;
+
+    const char *method_name = method->data.func_decl.name;
+    const char *ret_type = "void";
+    if (method_name == NULL)
+        return;
+    ensure_type_specializations_from_ast(ctx, method->data.func_decl.return_type);
+    if (method->data.func_decl.return_type != NULL)
+        ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+
+    codebuf_write(buf, "\n%s\n%s_%s(%s%s",
+                  ret_type, host_name, method_name, host_name,
+                  pointer_self ? " *self" : " self");
+
+    for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+        FuncParam *p = method->data.func_decl.params[j];
+        if (p == NULL || p->name == NULL)
+            continue;
+        if (strcmp(p->name, "self") == 0)
+            continue;
+
+        const char *pt = NULL;
+        char surface_desc[256];
+        if (p->type != NULL)
+            ensure_type_specializations_from_ast(ctx, p->type);
+        snprintf(surface_desc, sizeof(surface_desc),
+            "hosted method parameter '%s.%s(%s)'",
+            host_name != NULL ? host_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)",
+            p->name != NULL ? p->name : "(anonymous)");
+        pt = transpiler_require_ast_c_type(ctx, p->type, surface_desc);
+        if (pt == NULL)
+            return;
+        {
+            char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
+            bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
+            if (subj_param)
+                codebuf_write(buf, ", %s *%s", pt, p->name);
+            else
+                codebuf_write(buf, ", %s %s", pt, p->name);
+            free(ptn);
+        }
+    }
+    codebuf_write(buf, ");\n");
+}

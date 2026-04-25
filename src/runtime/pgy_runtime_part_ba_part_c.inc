@@ -1,379 +1,3 @@
-
-#define PGY_ARRAY_DEFINE(SuffixName, CType) \
-typedef struct { \
-    CType        *data; \
-    size_t        length; \
-    size_t        capacity; \
-    PgyAllocator *allocator; \
-} PgyArray_##SuffixName; \
-\
-typedef struct { \
-    CType  *data; \
-    size_t  length; \
-} PgySlice_##SuffixName; \
-\
-static inline PgyArray_##SuffixName \
-pgy_array_new_in_##SuffixName(PgyAllocator *alloc, size_t capacity) \
-{ \
-    PgyArray_##SuffixName arr; \
-    arr.length = 0; \
-    arr.capacity = capacity; \
-    arr.allocator = alloc; \
-    if (capacity > 0 && capacity > SIZE_MAX / sizeof(CType)) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, \
-                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); \
-    arr.data = capacity > 0 \
-        ? (CType*)pgy_alloc(alloc, sizeof(CType) * capacity, _Alignof(CType)) \
-        : NULL; \
-    return arr; \
-} \
-\
-static inline PgyArray_##SuffixName \
-pgy_array_new_##SuffixName(size_t capacity) \
-{ \
-    return pgy_array_new_in_##SuffixName(NULL, capacity); \
-} \
-\
-static inline void \
-pgy_array_drop_##SuffixName(PgyArray_##SuffixName *arr) \
-{ \
-    if (arr->data != NULL) { \
-        pgy_free(arr->allocator, arr->data, sizeof(CType) * arr->capacity); \
-        arr->data = NULL; \
-    } \
-    arr->length = 0; \
-    arr->capacity = 0; \
-} \
-\
-static inline void \
-pgy_array_reserve_##SuffixName(PgyArray_##SuffixName *arr, size_t new_capacity) \
-{ \
-    if (new_capacity <= arr->capacity) \
-        return; \
-    if (new_capacity > SIZE_MAX / sizeof(CType)) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, \
-                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); \
-    size_t old_size = sizeof(CType) * arr->capacity; \
-    size_t new_size = sizeof(CType) * new_capacity; \
-    arr->data = arr->data == NULL \
-        ? (CType*)pgy_alloc(arr->allocator, new_size, _Alignof(CType)) \
-        : (CType*)pgy_realloc(arr->allocator, arr->data, old_size, new_size); \
-    arr->capacity = new_capacity; \
-} \
-\
-static inline void \
-pgy_array_push_##SuffixName(PgyArray_##SuffixName *arr, CType value) \
-{ \
-    if (arr->length == arr->capacity) { \
-        size_t next = arr->capacity == 0 ? 4 : arr->capacity * 2; \
-        pgy_array_reserve_##SuffixName(arr, next); \
-    } \
-    arr->data[arr->length++] = value; \
-} \
-\
-static inline CType \
-pgy_array_get_##SuffixName(PgyArray_##SuffixName *arr, size_t index) \
-{ \
-    if (index >= arr->length) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, \
-                          PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS); \
-    return arr->data[index]; \
-} \
-\
-static inline void \
-pgy_array_set_##SuffixName(PgyArray_##SuffixName *arr, size_t index, CType value) \
-{ \
-    if (index >= arr->length) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, \
-                          PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS); \
-    arr->data[index] = value; \
-} \
-\
-static inline CType \
-pgy_slice_get_##SuffixName(PgySlice_##SuffixName *slice, size_t index) \
-{ \
-    if (slice == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
-                          "slice get on null slice"); \
-    if (index >= slice->length) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, \
-                          PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); \
-    return slice->data[index]; \
-} \
-\
-static inline PgySlice_##SuffixName \
-pgy_array_slice_##SuffixName(PgyArray_##SuffixName *arr, size_t start, size_t len) \
-{ \
-    PgySlice_##SuffixName slice; \
-    if (start + len > arr->length) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, \
-                          PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); \
-    slice.data = arr->data + start; \
-    slice.length = len; \
-    return slice; \
-}
-
-/* =================================================================
- * Rc / Weak
- * ================================================================= */
-
-#define PGY_RC_DEFINE(SuffixName, CType) \
-typedef struct { \
-    uint32_t strong_count; \
-    uint32_t weak_count; \
-    bool     alive; \
-    CType    value; \
-} PgyRcControl_##SuffixName; \
-\
-typedef struct { \
-    PgyRcControl_##SuffixName *ctrl; \
-} PgyRc_##SuffixName; \
-\
-typedef struct { \
-    PgyRcControl_##SuffixName *ctrl; \
-} PgyWeak_##SuffixName; \
-\
-static inline PgyRc_##SuffixName \
-pgy_rc_new_##SuffixName(CType value) \
-{ \
-    PgyRc_##SuffixName rc; \
-    rc.ctrl = (PgyRcControl_##SuffixName*)malloc(sizeof(PgyRcControl_##SuffixName)); \
-    if (rc.ctrl == NULL) \
-        PGY_PANIC("Rc allocation failed"); \
-    rc.ctrl->strong_count = 1; \
-    rc.ctrl->weak_count = 0; \
-    rc.ctrl->alive = true; \
-    rc.ctrl->value = value; \
-    return rc; \
-} \
-\
-static inline PgyRc_##SuffixName \
-pgy_rc_clone_##SuffixName(PgyRc_##SuffixName rc) \
-{ \
-    if (rc.ctrl == NULL || !rc.ctrl->alive || rc.ctrl->strong_count == 0) \
-        PGY_PANIC("RcClone on invalid Rc"); \
-    rc.ctrl->strong_count++; \
-    return rc; \
-} \
-\
-static inline CType * \
-pgy_rc_get_##SuffixName(PgyRc_##SuffixName *rc) \
-{ \
-    if (rc->ctrl == NULL || !rc->ctrl->alive || rc->ctrl->strong_count == 0) \
-        PGY_PANIC("RcGet on invalid Rc"); \
-    return &rc->ctrl->value; \
-} \
-\
-static inline PgyWeak_##SuffixName \
-pgy_rc_downgrade_##SuffixName(PgyRc_##SuffixName rc) \
-{ \
-    PgyWeak_##SuffixName weak; \
-    if (rc.ctrl == NULL) \
-        PGY_PANIC("RcDowngrade on null Rc"); \
-    rc.ctrl->weak_count++; \
-    weak.ctrl = rc.ctrl; \
-    return weak; \
-} \
-\
-static inline void \
-pgy_rc_drop_##SuffixName(PgyRc_##SuffixName *rc) \
-{ \
-    if (rc->ctrl == NULL) \
-        return; \
-    if (rc->ctrl->strong_count == 0) \
-        PGY_PANIC("RcDrop on empty Rc"); \
-    rc->ctrl->strong_count--; \
-    if (rc->ctrl->strong_count == 0) { \
-        rc->ctrl->alive = false; \
-        if (rc->ctrl->weak_count == 0) \
-            free(rc->ctrl); \
-    } \
-    rc->ctrl = NULL; \
-} \
-\
-static inline PgyRc_##SuffixName \
-pgy_weak_upgrade_##SuffixName(PgyWeak_##SuffixName weak) \
-{ \
-    if (weak.ctrl == NULL || !weak.ctrl->alive || weak.ctrl->strong_count == 0) \
-        PGY_PANIC("WeakUpgrade on expired Weak"); \
-    weak.ctrl->strong_count++; \
-    PgyRc_##SuffixName rc; \
-    rc.ctrl = weak.ctrl; \
-    return rc; \
-} \
-\
-static inline void \
-pgy_weak_drop_##SuffixName(PgyWeak_##SuffixName *weak) \
-{ \
-    if (weak->ctrl == NULL) \
-        return; \
-    if (weak->ctrl->weak_count == 0) \
-        PGY_PANIC("WeakDrop on empty Weak"); \
-    weak->ctrl->weak_count--; \
-    if (weak->ctrl->weak_count == 0 && weak->ctrl->strong_count == 0) \
-        free(weak->ctrl); \
-    weak->ctrl = NULL; \
-}
-
-/* =================================================================
- * Box<Array<T>> fused allocation
- * ================================================================= */
-
-#define PGY_BOX_ARRAY_DEFINE(SuffixName, CType) \
-typedef struct { \
-    PgyArray_##SuffixName *ptr; \
-} PgyBoxArray_##SuffixName; \
-\
-typedef struct { \
-    PgyArray_##SuffixName array; \
-    CType storage[]; \
-} PgyBoxArrayStorage_##SuffixName; \
-\
-static inline PgyBoxArray_##SuffixName \
-pgy_box_array_new_##SuffixName(size_t capacity, PgyAllocator *alloc) \
-{ \
-    size_t bytes = sizeof(PgyBoxArrayStorage_##SuffixName) + sizeof(CType) * capacity; \
-    PgyBoxArrayStorage_##SuffixName *storage = \
-        (PgyBoxArrayStorage_##SuffixName*)pgy_alloc(alloc, bytes, _Alignof(PgyBoxArrayStorage_##SuffixName)); \
-    storage->array.data = storage->storage; \
-    storage->array.length = 0; \
-    storage->array.capacity = capacity; \
-    storage->array.allocator = alloc; \
-    PgyBoxArray_##SuffixName box; \
-    box.ptr = &storage->array; \
-    return box; \
-} \
-\
-static inline PgyArray_##SuffixName * \
-pgy_box_array_get_##SuffixName(PgyBoxArray_##SuffixName *box) \
-{ \
-    if (box->ptr == NULL) \
-        PGY_PANIC("BoxArray access after drop"); \
-    return box->ptr; \
-} \
-\
-static inline void \
-pgy_box_array_drop_##SuffixName(PgyBoxArray_##SuffixName *box) \
-{ \
-    if (box->ptr == NULL) \
-        return; \
-    PgyBoxArrayStorage_##SuffixName *storage = \
-        (PgyBoxArrayStorage_##SuffixName*)((char*)box->ptr - offsetof(PgyBoxArrayStorage_##SuffixName, array)); \
-    size_t bytes = sizeof(PgyBoxArrayStorage_##SuffixName) + sizeof(CType) * box->ptr->capacity; \
-    pgy_free(box->ptr->allocator, storage, bytes); \
-    box->ptr = NULL; \
-}
-
-/* =================================================================
- * Slot Memory (Optional Safety Wrapper)
- *
- * Debug mode: Full safety checks (occupied flag, panic on invalid access)
- * Release mode: Zero-overhead passthrough (no occupied flag)
- * ================================================================= */
-
-/* Debug mode slot — with safety checks */
-#define PGY_SLOT_DEFINE_DEBUG(SuffixName, CType) \
-\
-typedef struct { \
-    CType   value; \
-    bool    occupied; \
-} PgySlot_##SuffixName; \
-\
-static inline PgySlot_##SuffixName \
-__attribute__((unused)) \
-pgy_claim_##SuffixName(void) \
-{ \
-    PgySlot_##SuffixName s; \
-    memset(&s, 0, sizeof(s)); \
-    s.occupied = true; \
-    return s; \
-} \
-\
-static inline void \
-__attribute__((unused)) \
-pgy_write_##SuffixName(PgySlot_##SuffixName* s, CType v) \
-{ \
-    if (s == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
-                          "null slot write"); \
-    if (!s->occupied) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT, \
-                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE); \
-    s->value = v; \
-} \
-\
-static inline CType \
-__attribute__((unused)) \
-pgy_read_##SuffixName(PgySlot_##SuffixName* s) \
-{ \
-    if (s == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
-                          "null slot read"); \
-    if (!s->occupied) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT, \
-                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ); \
-    return s->value; \
-} \
-\
-static inline void \
-__attribute__((unused)) \
-pgy_release_##SuffixName(PgySlot_##SuffixName* s) \
-{ \
-    if (s == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
-                          "null slot release"); \
-    if (!s->occupied) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE, \
-                          PGY_RUNTIME_PANIC_REASON_DOUBLE_RELEASE_SLOT); \
-    s->occupied = false; \
-}
-
-/* Release mode slot — zero overhead (just a wrapper around the value) */
-#define PGY_SLOT_DEFINE_RELEASE(SuffixName, CType) \
-\
-typedef struct { \
-    CType   value; \
-} PgySlot_##SuffixName; \
-\
-static inline PgySlot_##SuffixName \
-__attribute__((unused)) \
-pgy_claim_##SuffixName(void) \
-{ \
-    PgySlot_##SuffixName s; \
-    memset(&s, 0, sizeof(s)); \
-    return s; \
-} \
-\
-static inline void \
-__attribute__((unused)) \
-pgy_write_##SuffixName(PgySlot_##SuffixName* s, CType v) \
-{ \
-    s->value = v; \
-} \
-\
-static inline CType \
-__attribute__((unused)) \
-pgy_read_##SuffixName(PgySlot_##SuffixName* s) \
-{ \
-    return s->value; \
-} \
-\
-static inline void \
-__attribute__((unused)) \
-pgy_release_##SuffixName(PgySlot_##SuffixName* s) \
-{ \
-    (void)s; /* no-op in release mode */ \
-}
-
-/* Conditional definition based on build mode */
-#if PGY_WITH_SLOT_CHECKS
-#  define PGY_SLOT_DEFINE(SuffixName, CType) \
-       PGY_SLOT_DEFINE_DEBUG(SuffixName, CType)
-#else
-#  define PGY_SLOT_DEFINE(SuffixName, CType) \
-       PGY_SLOT_DEFINE_RELEASE(SuffixName, CType)
-#endif
-
 /* =================================================================
  * Device Slot (Anchored external resource cell)
  *
@@ -557,85 +181,10 @@ pgy_secure_release_##SuffixName(PgySecureSlot_##SuffixName* s, \
     s->token    = 0; \
 }
 
-/* Release mode secure slot — minimal checks */
-#define PGY_SECURE_SLOT_DEFINE_RELEASE(SuffixName, CType) \
-\
-typedef struct { \
-    CType    value; \
-    bool     occupied; \
-    uint64_t token; \
-} PgySecureSlot_##SuffixName; \
-\
-typedef struct { \
-    uint64_t id; \
-} PgyToken_##SuffixName; \
-\
-static inline void \
-pgy_make_token_##SuffixName(PgySecureSlot_##SuffixName* s, \
-                             PgyToken_##SuffixName* t) \
-{ \
-    uint64_t id = (uint64_t)(uintptr_t)s ^ 0xDEADBEEFCAFEBABEULL; \
-    s->token    = id; \
-    t->id       = id; \
-} \
-\
-static inline PgySecureSlot_##SuffixName \
-pgy_claim_secure_##SuffixName(PgyToken_##SuffixName* out_token) \
-{ \
-    PgySecureSlot_##SuffixName s; \
-    memset(&s, 0, sizeof(s)); \
-    s.occupied = true; \
-    pgy_make_token_##SuffixName(&s, out_token); \
-    return s; \
-} \
-\
-static inline void \
-pgy_secure_write_##SuffixName(PgySecureSlot_##SuffixName* s, \
-                               CType v, \
-                               const PgyToken_##SuffixName* t) \
-{ \
-    if (s == NULL || t == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
-                          "null secure slot write operand"); \
-    if (s->token != t->id) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN, \
-                          PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE); \
-    s->value = v; \
-} \
-\
-static inline CType \
-pgy_secure_read_##SuffixName(PgySecureSlot_##SuffixName* s, \
-                              const PgyToken_##SuffixName* t) \
-{ \
-    if (s == NULL || t == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
-                          "null secure slot read operand"); \
-    if (s->token != t->id) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN, \
-                          PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_READ); \
-    return s->value; \
-} \
-\
-static inline void \
-pgy_secure_release_##SuffixName(PgySecureSlot_##SuffixName* s, \
-                                 const PgyToken_##SuffixName* t) \
-{ \
-    if (s == NULL || t == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
-                          "null secure slot release operand"); \
-    if (s->token != t->id) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN, \
-                          PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_RELEASE); \
-    s->occupied = false; \
-}
-
-#if PGY_WITH_SLOT_CHECKS
-#  define PGY_SECURE_SLOT_DEFINE(SuffixName, CType) \
-       PGY_SECURE_SLOT_DEFINE_DEBUG(SuffixName, CType)
-#else
-#  define PGY_SECURE_SLOT_DEFINE(SuffixName, CType) \
-       PGY_SECURE_SLOT_DEFINE_RELEASE(SuffixName, CType)
-#endif
+/* SecureSlot<T> is always checked: it is a security boundary, not a
+ * zero-overhead Slot<T> wrapper. */
+#define PGY_SECURE_SLOT_DEFINE(SuffixName, CType) \
+    PGY_SECURE_SLOT_DEFINE_DEBUG(SuffixName, CType)
 
 /* =================================================================
  * Instantiate Built-in Slot Types
@@ -890,3 +439,558 @@ static inline void SeedRandom(int32_t seed)   { srand((unsigned int)seed); }
 static inline char* pgy_int_to_string(int32_t val) {
     char stack_buf[32];
     int len = snprintf(stack_buf, sizeof(stack_buf), "%d", val);
+
+    if (len < 0) {
+        char *fallback = (char *)malloc(2);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '\0';
+        }
+        return fallback;
+    }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+static inline char* pgy_long_to_string(int64_t val) {
+    char stack_buf[32];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%lld", (long long)val);
+    if (len < 0) {
+        char *fallback = (char *)malloc(2);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '\0';
+        }
+        return fallback;
+    }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+static inline char* pgy_float_to_string(float val) {
+    char stack_buf[32];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%g", (double)val);
+    if (len < 0) {
+        char *fallback = (char *)malloc(4);
+        if (fallback != NULL) { fallback[0] = '0'; fallback[1] = '.'; fallback[2] = '0'; fallback[3] = '\0'; }
+        return fallback;
+    }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+static inline char* pgy_bool_to_string(bool val) {
+    const char *s = val ? "true" : "false";
+    size_t len = strlen(s);
+    char *buf = (char *)malloc(len + 1);
+    if (buf != NULL) memcpy(buf, s, len + 1);
+    return buf;
+}
+
+/* Console I/O: Input(prompt), Print(msg) are already defined below as
+ * pgy_input() and pgy_print(). See type_checker_builtins.c for semantic. */
+
+/* =================================================================
+ * HashMap<String, T> / HashMap<Int, T> / HashMap<Long, T> /
+ * HashMap<Bool, T> — stable key subset over open-addressing
+ * ================================================================= */
+
+#define PGY_HASHMAP_INIT_CAP 16
+#define PGY_HASHMAP_LOAD_FACTOR 0.75
+
+typedef struct
+{
+    char   **keys;
+    int32_t *values;
+    uint8_t *occupied;
+    size_t   count;
+    size_t   capacity;
+} PgyHashMap_Int;
+
+static inline uint32_t pgy_hash_string(const char *s)
+{
+    uint32_t h = 5381;
+    if (s == NULL) return h;
+    while (*s) { h = ((h << 5) + h) ^ (uint32_t)*s++; }
+    return h;
+}
+
+static inline char *pgy_map_format_i32_key(int32_t key)
+{
+    return pgy_int_to_string(key);
+}
+
+static inline char *pgy_map_format_i64_key(int64_t key)
+{
+    return pgy_long_to_string(key);
+}
+
+static inline char *pgy_map_format_bool_key(bool key)
+{
+    return pgy_bool_to_string(key);
+}
+
+#define PGY_HASHMAP_DEFINE(SuffixName, CType) \
+typedef struct \
+{ \
+    char    **keys; \
+    CType    *values; \
+    uint8_t  *occupied; \
+    size_t    count; \
+    size_t    capacity; \
+} PgyHashMap_##SuffixName; \
+\
+static inline PgyHashMap_##SuffixName pgy_map_new_##SuffixName(void) \
+{ \
+    PgyHashMap_##SuffixName m; \
+    m.capacity = PGY_HASHMAP_INIT_CAP; \
+    m.count = 0; \
+    m.keys = (char **)calloc(m.capacity, sizeof(char *)); \
+    m.values = (CType *)calloc(m.capacity, sizeof(CType)); \
+    m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t)); \
+    if (m.keys == NULL || m.values == NULL || m.occupied == NULL) { \
+        free(m.keys); free(m.values); free(m.occupied); \
+        m.keys = NULL; m.values = NULL; m.occupied = NULL; \
+        m.capacity = 0; \
+        pgy_runtime_warn_invalid_collection("map_new_" #SuffixName, "allocation failed"); \
+    } \
+    return m; \
+} \
+\
+static inline void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
+{ \
+    size_t old_cap = m->capacity; \
+    char **old_keys = m->keys; \
+    CType *old_vals = m->values; \
+    uint8_t *old_occ = m->occupied; \
+    size_t new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2; \
+    char **new_keys = (char **)calloc(new_capacity, sizeof(char *)); \
+    CType *new_values = (CType *)calloc(new_capacity, sizeof(CType)); \
+    uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t)); \
+    if (new_keys == NULL || new_values == NULL || new_occupied == NULL) { \
+        free(new_keys); free(new_values); free(new_occupied); \
+        pgy_runtime_warn_invalid_collection("map_grow_" #SuffixName, "allocation failed"); \
+        return; \
+    } \
+    m->capacity = new_capacity; \
+    m->keys = new_keys; \
+    m->values = new_values; \
+    m->occupied = new_occupied; \
+    m->count = 0; \
+    for (size_t i = 0; i < old_cap; i++) { \
+        if (old_occ[i]) { \
+            uint32_t h = pgy_hash_string(old_keys[i]) % (uint32_t)m->capacity; \
+            while (m->occupied[h]) h = (h + 1) % (uint32_t)m->capacity; \
+            m->keys[h] = old_keys[i]; \
+            m->values[h] = old_vals[i]; \
+            m->occupied[h] = 1; \
+            m->count++; \
+        } \
+    } \
+    free(old_keys); free(old_vals); free(old_occ); \
+} \
+\
+static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const char *key, CType val) \
+{ \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "map is not initialized"); \
+        return; \
+    } \
+    if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR) \
+        pgy_map_grow_##SuffixName(m); \
+    if (m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "map growth failed"); \
+        return; \
+    } \
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
+    while (m->occupied[h]) { \
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) { \
+            m->values[h] = val; \
+            return; \
+        } \
+        h = (h + 1) % (uint32_t)m->capacity; \
+    } \
+    m->keys[h] = pgy_runtime_strdup(key); \
+    if (m->keys[h] == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "key duplication failed"); \
+        return; \
+    } \
+    m->values[h] = val; \
+    m->occupied[h] = 1; \
+    m->count++; \
+} \
+\
+static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
+{ \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map"); \
+    if (key == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get with null key"); \
+    if (m->count == 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found"); \
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
+    size_t probes = 0; \
+    while (m->occupied[h] && probes < m->capacity) { \
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) \
+            return m->values[h]; \
+        h = (h + 1) % (uint32_t)m->capacity; \
+        probes++; \
+    } \
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found"); \
+} \
+\
+static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
+{ \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return false; \
+    if (m->count == 0) return false; \
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
+    size_t probes = 0; \
+    while (m->occupied[h] && probes < m->capacity) { \
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) \
+            return true; \
+        h = (h + 1) % (uint32_t)m->capacity; \
+        probes++; \
+    } \
+    return false; \
+} \
+\
+static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
+{ \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove on invalid map"); \
+    if (key == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove with null key"); \
+    if (m->count == 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found"); \
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
+    size_t probes = 0; \
+    while (m->occupied[h] && probes < m->capacity) { \
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) { \
+            free(m->keys[h]); \
+            m->keys[h] = NULL; \
+            memset(&m->values[h], 0, sizeof(CType)); \
+            m->occupied[h] = 0; \
+            m->count--; \
+            return; \
+        } \
+        h = (h + 1) % (uint32_t)m->capacity; \
+        probes++; \
+    } \
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found"); \
+} \
+\
+static inline int32_t pgy_map_size_##SuffixName(PgyHashMap_##SuffixName *m) \
+{ \
+    return (int32_t)m->count; \
+} \
+\
+static inline void pgy_map_set_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key, CType val) \
+{ \
+    char *key_str = pgy_map_format_i32_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_i32_" #SuffixName, "key formatting failed"); \
+        return; \
+    } \
+    pgy_map_set_##SuffixName(m, key_str, val); \
+    free(key_str); \
+} \
+\
+static inline CType pgy_map_get_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
+{ \
+    CType value; \
+    char *key_str = pgy_map_format_i32_key(key); \
+    memset(&value, 0, sizeof(CType)); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_get_i32_" #SuffixName, "key formatting failed"); \
+        return value; \
+    } \
+    value = pgy_map_get_##SuffixName(m, key_str); \
+    free(key_str); \
+    return value; \
+} \
+\
+static inline bool pgy_map_has_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
+{ \
+    bool result; \
+    char *key_str = pgy_map_format_i32_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_has_i32_" #SuffixName, "key formatting failed"); \
+        return false; \
+    } \
+    result = pgy_map_has_##SuffixName(m, key_str); \
+    free(key_str); \
+    return result; \
+} \
+\
+static inline void pgy_map_remove_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
+{ \
+    char *key_str = pgy_map_format_i32_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_remove_i32_" #SuffixName, "key formatting failed"); \
+        return; \
+    } \
+    pgy_map_remove_##SuffixName(m, key_str); \
+    free(key_str); \
+} \
+\
+static inline void pgy_map_set_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key, CType val) \
+{ \
+    char *key_str = pgy_map_format_i64_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_i64_" #SuffixName, "key formatting failed"); \
+        return; \
+    } \
+    pgy_map_set_##SuffixName(m, key_str, val); \
+    free(key_str); \
+} \
+\
+static inline CType pgy_map_get_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key) \
+{ \
+    CType value; \
+    char *key_str = pgy_map_format_i64_key(key); \
+    memset(&value, 0, sizeof(CType)); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_get_i64_" #SuffixName, "key formatting failed"); \
+        return value; \
+    } \
+    value = pgy_map_get_##SuffixName(m, key_str); \
+    free(key_str); \
+    return value; \
+} \
+\
+static inline bool pgy_map_has_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key) \
+{ \
+    bool result = false; \
+    char *key_str = pgy_map_format_i64_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_has_i64_" #SuffixName, "key formatting failed"); \
+        return false; \
+    } \
+    result = pgy_map_has_##SuffixName(m, key_str); \
+    free(key_str); \
+    return result; \
+} \
+\
+static inline void pgy_map_remove_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key) \
+{ \
+    char *key_str = pgy_map_format_i64_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_remove_i64_" #SuffixName, "key formatting failed"); \
+        return; \
+    } \
+    pgy_map_remove_##SuffixName(m, key_str); \
+    free(key_str); \
+} \
+\
+static inline void pgy_map_set_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key, CType val) \
+{ \
+    char *key_str = pgy_map_format_bool_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_bool_" #SuffixName, "key formatting failed"); \
+        return; \
+    } \
+    pgy_map_set_##SuffixName(m, key_str, val); \
+    free(key_str); \
+} \
+\
+static inline CType pgy_map_get_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key) \
+{ \
+    CType value; \
+    char *key_str = pgy_map_format_bool_key(key); \
+    memset(&value, 0, sizeof(CType)); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_get_bool_" #SuffixName, "key formatting failed"); \
+        return value; \
+    } \
+    value = pgy_map_get_##SuffixName(m, key_str); \
+    free(key_str); \
+    return value; \
+} \
+\
+static inline bool pgy_map_has_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key) \
+{ \
+    bool result = false; \
+    char *key_str = pgy_map_format_bool_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_has_bool_" #SuffixName, "key formatting failed"); \
+        return false; \
+    } \
+    result = pgy_map_has_##SuffixName(m, key_str); \
+    free(key_str); \
+    return result; \
+} \
+\
+static inline void pgy_map_remove_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key) \
+{ \
+    char *key_str = pgy_map_format_bool_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_remove_bool_" #SuffixName, "key formatting failed"); \
+        return; \
+    } \
+    pgy_map_remove_##SuffixName(m, key_str); \
+    free(key_str); \
+}
+
+static inline PgyHashMap_Int pgy_map_new_int(void)
+{
+    PgyHashMap_Int m;
+    m.capacity = PGY_HASHMAP_INIT_CAP;
+    m.count = 0;
+    m.keys     = (char **)calloc(m.capacity, sizeof(char *));
+    m.values   = (int32_t *)calloc(m.capacity, sizeof(int32_t));
+    m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t));
+    if (m.keys == NULL || m.values == NULL || m.occupied == NULL) {
+        free(m.keys); free(m.values); free(m.occupied);
+        m.keys = NULL; m.values = NULL; m.occupied = NULL; m.capacity = 0;
+        pgy_runtime_warn_invalid_collection("map_new_int", "allocation failed");
+    }
+    return m;
+}
+
+static inline void pgy_map_grow_int(PgyHashMap_Int *m)
+{
+    size_t old_cap = m->capacity;
+    char **old_keys = m->keys;
+    int32_t *old_vals = m->values;
+    uint8_t *old_occ = m->occupied;
+    size_t new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2;
+    char **new_keys = (char **)calloc(new_capacity, sizeof(char *));
+    int32_t *new_values = (int32_t *)calloc(new_capacity, sizeof(int32_t));
+    uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
+    if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
+        free(new_keys); free(new_values); free(new_occupied);
+        pgy_runtime_warn_invalid_collection("map_grow_int", "allocation failed");
+        return;
+    }
+    m->capacity = new_capacity;
+    m->keys     = new_keys;
+    m->values   = new_values;
+    m->occupied = new_occupied;
+    m->count = 0;
+
+    for (size_t i = 0; i < old_cap; i++) {
+        if (old_occ[i]) {
+            uint32_t h = pgy_hash_string(old_keys[i]) % (uint32_t)m->capacity;
+            while (m->occupied[h]) h = (h + 1) % (uint32_t)m->capacity;
+            m->keys[h] = old_keys[i];
+            m->values[h] = old_vals[i];
+            m->occupied[h] = 1;
+            m->count++;
+        }
+    }
+    free(old_keys); free(old_vals); free(old_occ);
+}
+
+static inline void pgy_map_set_int(PgyHashMap_Int *m, const char *key, int32_t val)
+{
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_int", "map is not initialized");
+        return;
+    }
+    if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR)
+        pgy_map_grow_int(m);
+    if (m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_int", "map growth failed");
+        return;
+    }
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    while (m->occupied[h]) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) {
+            m->values[h] = val;
+            return;
+        }
+        h = (h + 1) % (uint32_t)m->capacity;
+    }
+    m->keys[h] = pgy_runtime_strdup(key);
+    if (m->keys[h] == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_int", "key duplication failed");
+        return;
+    }
+    m->values[h] = val;
+    m->occupied[h] = 1;
+    m->count++;
+}
+
+static inline int32_t pgy_map_get_int(PgyHashMap_Int *m, const char *key)
+{
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map");
+    if (key == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get with null key");
+    if (m->count == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    size_t probes = 0;
+    while (m->occupied[h] && probes < m->capacity) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0)
+            return m->values[h];
+        h = (h + 1) % (uint32_t)m->capacity;
+        probes++;
+    }
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
+}
+
+static inline bool pgy_map_has_int(PgyHashMap_Int *m, const char *key)
+{
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return false;
+    if (m->count == 0) return false;
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    size_t probes = 0;
+    while (m->occupied[h] && probes < m->capacity) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0)
+            return true;
+        h = (h + 1) % (uint32_t)m->capacity;
+        probes++;
+    }
+    return false;
+}
+
+static inline void pgy_map_remove_int(PgyHashMap_Int *m, const char *key)
+{
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove on invalid map");
+    if (key == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove with null key");
+    if (m->count == 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found");
+    uint32_t cap = (uint32_t)m->capacity;
+    uint32_t h = pgy_hash_string(key) % cap;
+    size_t probes = 0;
+    while (m->occupied[h] && probes < m->capacity) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) {
+            free(m->keys[h]);
+            m->keys[h] = NULL;
+            m->values[h] = 0;
+            m->occupied[h] = 0;
+            m->count--;
+            /* Backward-shift: rehash subsequent entries to fill the gap */
+            uint32_t gap = h;
+            uint32_t j = (gap + 1) % cap;
+            while (m->occupied[j]) {
+                uint32_t ideal = pgy_hash_string(m->keys[j]) % cap;
+                uint32_t dist_to_j   = (j - ideal + cap) % cap;
+                uint32_t dist_to_gap = (gap - ideal + cap) % cap;
+                if (dist_to_gap < dist_to_j) {
+                    m->keys[gap]     = m->keys[j];
+                    m->values[gap]   = m->values[j];
+                    m->occupied[gap] = 1;
+                    m->keys[j]      = NULL;
+                    m->values[j]    = 0;
+                    m->occupied[j]  = 0;
+                    gap = j;
+                }
+                j = (j + 1) % cap;
+            }
+            return;
+        }
+        h = (h + 1) % cap;
+        probes++;
+    }
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found");
+}

@@ -39,6 +39,15 @@ Closed now:
 - Slot capability runtime evidence was rechecked with `make test-security` (132/132 passed): stale-generation read/write/pin/release rejection, stale `SlotIsValid` false, release-while-pinned, TTL cleanup skip while pinned, invalid secure token rejection, revoked-token rejection, raw secure-slot release rejection, concurrent secure write rejection, and release-after-unpin are covered.
 - `runtime-panic-abi-test-smoke` now covers forged zero-token read/write/release
   rejection for inline C and exported C/LLVM-linkable secure-slot entrypoints.
+- SecureSlot token ABI is now build-mode stable: inline C, exported runtime, and
+  LLVM-linkable runtime all use the same `PgyToken<T>` layout with read/write
+  capability bits. The old release-mode SecureSlot macro has been removed, and
+  `runtime-panic-abi-test-smoke` covers no-`PGY_SAFE_SLOTS` invalid-token and
+  released-slot hard-fail paths.
+- `pgy_abi_spec.h` now carries matching debug/release SecureSlot layout rows for
+  all stable primitive payloads (`Int`, `Long`, `Float`, `Double`, `Bool`,
+  `String`), and `make test-abi` checks runtime size/token offsets against the
+  ABI spec.
 - Authority token mismatch now has a shared runtime contract code/reason
   (`authority-token-mismatch`), queryable runtime state, C/LLVM ABI coverage in
   `authority_failure_abi`, backend-compare coverage in `authority_failure_surface`,
@@ -191,6 +200,10 @@ Remaining:
   `pin` cleanup edges must be inserted for every early exit, and pinned views
   must be rejected across `await`, `spawn`, `async`, `parallel`, callback, and
   channel boundaries.
+- Existing `ViewRead(...)` / `ViewWrite(...)` semantic constructors now enforce
+  the first slice of that baseline: `WriteView<T>` conflicts with any active
+  view of the same slot, while `ReadView<T>` conflicts with an active
+  `WriteView<T>`. Shared `ReadView<T>` / `ReadView<T>` remains accepted.
 
 Evidence command:
 
@@ -221,6 +234,7 @@ Goal:
 - The beta stable subset must be defined in one place, not inferred from scattered README/TODO/status notes.
 - Intent, zone/world/authority/handoff, and projection freshness are core language semantics, not library polish.
 - This section is the checklist entry for the formal proof documents under `docs/semantics/01_intent_world_zone.md` and the stable subset contract.
+- Stable subset source of truth: `docs/107_beta_stable_subset.md`.
 
 Stable subset that must be frozen:
 
@@ -392,47 +406,82 @@ Diagnostic quality gate:
 - Parser and lexer JSON routing now preserves `stage`, `code`, `cause_ir`, and
   `fix_source` for `PGY_PARSE_SYNTAX` and `PGY_LEX_INVALID_TOKEN`; remaining
   debt is richer parser code splitting and parser multi-error accumulation.
+- Intent clause explicit rejects for control-transfer constructs now preserve
+  source span through parser AST nodes. `make diagnostics-json-test-smoke`
+  covers `PGY_SEM_INTENT_STEP_INVALID` for `on: spawn ...` and
+  `on: ch <- value` with line/column, `cause_ir`, and `fix_source`.
 
 Cross-platform support matrix:
 
 - Linux/WSL native: required beta gate for C + LLVM.
 - Windows native/MSYS2/MinGW: required support matrix entry; LLVM may be marked unsupported until a real runner is green.
-- macOS: must be either explicitly supported, experimental, or out-of-beta before release wording.
+- macOS: C-only CI preflight is required through `make ci-macos`; macOS LLVM/backend parity remains out-of-beta until a dedicated LLVM support contract is green.
 - 2026-04-25 local check: `make ci-windows` was not runnable in this WSL/Linux shell because `gcc -dumpmachine` reports `x86_64-linux-gnu`, not MSYS2/MinGW. This is an environment gap, not a code green signal; Windows beta evidence still requires a real MSYS2/MinGW runner.
 - 2026-04-26 support-matrix guard: `WINDOWS_LLVM_READY` now requires executable `llvm-config --libs core` evidence. A `C:/Program Files/LLVM/lib` directory alone is not accepted as Windows LLVM support because it can make MSYS2 CI run LLVM smoke/backend-compare without runnable LLVM tooling and fail with command-not-found status 127.
-- 2026-04-26 release wording: macOS is explicitly out-of-beta until a dedicated runner and support contract are added.
+- 2026-04-26 release wording: macOS now has a C-only CI preflight (`make ci-macos`) while macOS LLVM/backend parity remains out-of-beta.
 
 Stdlib beta freeze:
 
-- The stable stdlib API list must identify beta-stable, experimental, and out-of-beta APIs.
-- Breaking-change policy must state whether beta APIs can change before v1.
-- `type_checker_stdlib_use.c` should be aligned with the public freeze list.
+- Source of truth: `docs/108_stdlib_beta_freeze.md`.
+- The stable stdlib API list identifies beta-stable builtin helpers, stable
+  `use` modules, known experimental modules, and out-of-beta ecosystem work.
+- `make stdlib-test-smoke` gates stable builtin stdlib behavior and stable
+  `use` module behavior on C and LLVM when both backends are requested.
+- `type_checker_stdlib_use.c` must stay aligned with the public freeze list.
 
 Tooling beta conformance:
 
-- LSP must list which of diagnostics, hover, goto-def, completion, and formatting hooks are beta-stable.
-- Formatter must state whether format is idempotent and whether parse -> fmt -> parse is required.
-- Debugger must state whether DAP, breakpoints, stepping, or variable inspection are beta-stable, experimental, or out-of-beta.
+- Stable tooling subset is executable through `make tooling-conformance-test-smoke`.
+- LSP beta-stable: initialize capability response, keyword hover, and keyword completion.
+- Formatter beta-stable: `--check` detects drift, `--write` is idempotent, and formatted code compiles.
+- Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interactive quit path.
+- Out-of-beta: DAP, binary breakpoints, variable watch, multi-file workspace indexing, refactor edits, full editor-grade diagnostic streaming.
 
 Package/module resolver beta surface:
 
-- Manifest format, import path resolution, version resolution, and supply-chain integrity rules must be stable or explicitly out-of-beta.
+- Source of truth: `docs/109_package_module_resolver_contract.md`.
+- Stable module surface is `import "relative/path.pgy";`, resolved relative
+  to the importing file with namespace/export visibility and circular import
+  rejection.
+- Stable package surface is only `pgy init <name>` manifest/project
+  scaffolding.
+- `pgy install`, dependency version solving, lockfiles, registries, remote
+  imports, checksum/signature verification, and supply-chain integrity are
+  explicitly out-of-beta.
+- `make package-module-resolver-test-smoke` gates the doc contract, `pgy init`,
+  explicit `pgy install` rejection, and JSON diagnostics for module-load
+  failures.
 
 Test quality gate:
 
-- A beta-freeze test suite list must identify mandatory pre-beta tests.
-- Fuzz/property tests can be out-of-beta, but their absence must be documented.
-- Coverage and perf baselines must be tracked as explicit quality signals, not implied by test count.
+- Source of truth: `docs/111_beta_test_suite_freeze.md`.
+- `make beta-test-suite-freeze-test-smoke` checks that the mandatory pre-beta
+  gates have a stable target and remain listed in the freeze doc.
+- Fuzz/property tests remain out-of-beta until they have a seed corpus,
+  minimization policy, and proof-pack property mapping.
+- Coverage percentage is not yet a beta acceptance metric; named stable-surface
+  coverage is the beta gate.
 
 Performance gate:
 
 - Compile/runtime perf baselines must be captured before major CFG/DAG/runtime propagation rewrites.
 - Regressions beyond the chosen threshold must block beta unless explicitly waived.
 - `make perf-contract-test-smoke` gates the `perf_summary` log grammar and C/LLVM average/worst-case summary output so `test-abi-perf` evidence remains machine-readable.
+- `make tooling-conformance-test-smoke` gates the tested formatter/LSP/debugger beta subset so tool maturity is not inferred from binaries merely existing.
 
 Observability/tracing schema gate:
 
-- Intent history, authority failure state, runtime registry state, event schema, and trace format need a stable beta schema or explicit experimental label.
+- Source of truth: `docs/112_observability_trace_schema.md`.
+- Stable schema is intentionally narrow: `IntentLast*`, `IntentHistory*`,
+  `IntentActive*`, `IntentRecent*`, authority failure snapshot
+  (`ok/zone/participant/code/reason`), and backend-identical trace strings.
+- Runtime string exports are `runtime-borrowed string` values: callers must not
+  free them, and values are valid until the next registry/snapshot mutation.
+- Rich event streaming, structured JSON trace export, distributed trace
+  correlation, user-code registry hooks, stable binary trace format, and richer
+  multi-instance timeline queries are explicitly out-of-beta.
+- `make observability-schema-test-smoke` gates the C/LLVM stable schema
+  fixtures.
 
 Docs freeze:
 
@@ -440,11 +489,33 @@ Docs freeze:
 
 Memory/concurrency model gate:
 
-- `parallel`, task, channel, cancellation, and shared runtime visibility need a minimal happens-before/channel buffering contract.
+- Source of truth: `docs/113_memory_concurrency_model.md`.
+- Stable contract: `parallel` joins before following control flow, accepted
+  writes become visible after join, shared `ref`/`ref` reads are allowed, and
+  `ref`/`own` plus `own`/`own` task-boundary conflicts are rejected.
+- Stable channel contract: blocking send/receive is the ownership-transfer path;
+  non-blocking/timeout receive, status send helpers, cancellation payloads, and
+  channel close are copy-only for beta.
+- Anonymous async spawn bodies, full weak-memory vocabulary, user-selectable
+  memory orders, scheduler fairness guarantees, lock-free correctness claims,
+  and cross-thread `Arc<T>` / `Send` / `Sync` style trait systems are
+  explicitly out-of-beta.
+- `make memory-concurrency-model-test-smoke` gates the contract with
+  `parallel-core-contract-test-smoke` plus targeted C/LLVM backend compare for
+  `parallel_channel_sum`, `parallel_channel_dual`, and `triple_paradigm`.
 
 String/unicode policy:
 
-- String literal syntax is stable only if comparison, normalization, escape handling, and locale/non-locale behavior are documented or explicitly deferred.
+- Source of truth: `docs/110_string_unicode_policy.md`.
+- Beta-stable string policy is UTF-8 payload preservation in string literals and
+  generated C/LLVM output.
+- `StringLength` is byte-length for beta; equality/search are byte-exact and
+  normalization-blind.
+- Unicode identifiers, Unicode normalization, locale-sensitive comparison,
+  case folding, collation, grapheme iteration, display width, and mixed-encoding
+  source files are explicitly out-of-beta.
+- `make unicode-policy-test-smoke` gates C/LLVM UTF-8 string execution and
+  explicit Unicode identifier rejection.
 
 Evidence command:
 
@@ -452,6 +523,11 @@ Evidence command:
 make diagnostic-registry-test-smoke
 make parser-lexer-diagnostic-test-smoke
 make module-taxonomy-test-smoke
+make package-module-resolver-test-smoke
+make unicode-policy-test-smoke
+make beta-test-suite-freeze-test-smoke
+make observability-schema-test-smoke
+make memory-concurrency-model-test-smoke
 make parallel-core-contract-test-smoke
 ```
 
@@ -478,15 +554,36 @@ Closed now:
 - `src/compiler/air.{h,c}`가 AIR Phase 1 데이터 구조, DIR 기반 read-only synthesis, sync/async drift checker baseline을 제공한다.
 - AIR synthesis가 HIR routine evidence와 RIR boundary/authority evidence를 read-only로 수집하고 각 `Boundary Node`에 evidence flag를 부착한다. Default strict evidence에서 missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 된다.
 - `src/test_air.c`가 direct AIR 케이스와 parser/semantic/DIR/HIR/RIR source integration 케이스를 함께 고정한다: sync intent + sync boundary pass / sync intent + async boundary drift / async intent + async boundary pass / strict missing-boundary drift / mismatched authority participant drift / HIR+RIR evidence collection / parsed intent source no-drift.
+- AIR synthesis now scans stable intent-step execution clauses (`using`,
+  `intent`, `pre`, `guard`, `post`, `invariant`, `expect`, `on`,
+  `compensate`) for `spawn` / `async` / `parallel`, `channel` / `select`, and
+  known IO calls. `src/test_air.c` covers AST-backed spawn boundary drift and
+  IO `either` boundary non-drift.
 - AIR drift messages are owned by AIR and `air_check_drift()` clears existing
   drift messages before recomputing; `src/test_air.c` covers repeated drift
   checking on the same AIRProgram so the validation path does not leak or retain
   stale diagnostics.
+- AIR now owns synthesized intent/boundary/authority names instead of borrowing
+  DIR/AST strings. Parsed-source AIR remains valid after DIR/parser teardown,
+  and the parsed `where + transfer` regression asserts `PaymentZone` zone source
+  plus `payment` world-handoff source.
+- `where + transfer` no longer collapses to only a zone boundary. AIR emits a
+  zone boundary for `where: Type` and a separate world boundary for the transfer
+  handoff, with the world source anchored to the transfer target alias when
+  present.
+- World boundary evidence is now source/op-specific. A matching RIR intent
+  scope alone does not discharge a transfer boundary; AIR requires RIR `Move` or
+  `Claim` evidence for the boundary source alias.
 - `tests/diagnostics_json_smoke.sh` now includes a parsed-source AIR negative
   case: a valid semantic intent requiring `authorized by: buyer` without a
   lowering-visible zone authority declaration is rejected by default strict AIR
   as `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`, with JSON
   `cause_ir`/`fix_source` and `expected authority participant(s): buyer`.
+- `tests/diagnostics_json_smoke.sh` also covers a parsed-source execution
+  boundary negative: an intent step calling `ReadFile(...)` is rejected by
+  default strict AIR until AIR/RIR synthesis exposes real IO boundary evidence.
+  This prevents owner-name-only RIR scope matching from falsely satisfying
+  expression boundary evidence.
 - Intent step source locations now flow parser → DIR → AIR, so AIR driver
   diagnostics for parsed sources report the offending step span instead of
   falling back to `line 0, column 0`.
@@ -524,17 +621,18 @@ Strict evidence update:
 
 Remaining (Phase 1 — beta 진입 전 반드시 실 구현):
 
-- HIR + DIR + RIR synthesis edge coverage: stable intent subset evidence 누락은 default strict hard-fail로 승격됐다. Parsed-source negative baseline now exists for missing authority evidence through the full driver JSON path. Remaining work is expanding source-backed negatives beyond the authority case (missing boundary evidence, transfer/world boundary, and sync/async drift once source synthesis can express it).
+- HIR + DIR + RIR synthesis edge coverage: stable intent subset evidence 누락은 default strict hard-fail로 승격됐다. Direct AST-backed execution-boundary coverage now exists for `spawn` and IO. Direct AIR coverage now verifies world boundaries require source-specific RIR transfer op evidence. Parsed-source positive coverage now verifies `where + transfer` emits both zone and world boundaries with owned source names. Parsed-source negative baseline now exists for missing authority evidence and missing IO execution-boundary evidence through the full driver JSON path. Remaining work is expanding source-backed negatives to transfer/world boundary drift and any later parsed execution-boundary drift that becomes semantically valid instead of pre-AIR rejected.
 - backend non-consumption regression: source scanning and generated C/LLVM
   non-impact smoke now cover the full frozen backend-compare fixture set in
   Linux CI. Strict evidence also runs through the backend execution compare.
   Remaining work is Windows native evidence and additional parsed-source
-  negative diagnostics beyond the baseline authority-evidence case.
+  negative diagnostics beyond the current authority-evidence and IO-boundary
+  evidence cases.
 - Phase 1 invariant docs exist in `docs/semantics/07_air_abstraction_safety.md`
   for drift detection soundness, synthesis read-only, codegen non-impact,
   intent node coverage, boundary closure, and strict evidence failure
-  soundness. Remaining work is expanding source-backed negative regressions,
-  not writing the first invariant section.
+  soundness. Remaining work is expanding source-backed transfer/world boundary
+  negative regressions, not writing the first invariant section.
 - Phase 1 schema 가 Phase 2 (Constraint Node, Effect Node) 와 Phase 3 (drift fact 종류 확장) 를 막지 않도록 **future-compatible 하게 enum/struct** 설계 (`drift_kind` 가 enum 1 종에서 시작해 추가 가능, Boundary `kind` 가 5 종에서 시작해 추가 가능).
 - AIR 를 codegen path 에 연결하지 않는다. AIR drift 검사는 semantic/compiler validation 단계에 머물고 C / LLVM output을 직접 바꾸지 않는다.
 
@@ -645,6 +743,25 @@ make backend-inc-size-test-smoke
 find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l | sort -nr | head
 ```
 
+2026-04-26 include-cleanup update:
+
+- `transpiler_expr_emitters.inc` is now a small shim over
+  `transpiler_expr_emitters_part_a.inc` through
+  `transpiler_expr_emitters_part_f.inc`. The old split that crossed
+  `emit_call` was replaced with helper owners for builtin dispatch, domain
+  constructors, `Result`/`Option`, stdlib, event, member-call, and user-call
+  lowering. Each part is under 1,000 LOC.
+- `transpiler_emitters_base_b_part_d.inc` and
+  `transpiler_emitters_intent.inc` no longer leave dangling `static void`
+  return-type fragments across include boundaries.
+- All `src/**/*.inc` files are now under 1,000 LOC. Production code remains
+  guarded by `make backend-inc-size-test-smoke` and semantic code by
+  `make semantic-inc-size-test-smoke`.
+- Test fixtures are now guarded by `make test-inc-size-test-smoke`; the large
+  semantic/transpile fixture includes were split into ordered part shims and
+  rechecked with `make test-semantic test-transpile`.
+- Detailed ledger: `docs/115_inc_cleanup_status.md`.
+
 ---
 
 ## 2. Type-Resolution DAG Closure
@@ -658,8 +775,8 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - `resolve_type_node(...)` itself is now metadata-first, so the remaining explicit legacy allowlist also consumes DAG facts before recursive materialization.
 - Owner-local resolver seams now converge through `semantic_type_resolution_lookup_or_materialize(...)`; direct `resolve_type_node(...)` calls are statically blocked outside the resolver implementation and the central metadata materializer.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3133 metadata_entries=1877 metadata_owned=111 metadata_hits=3267 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
-- The DAG smoke now enforces beta floors for graph-backed usage (`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`) instead of accepting any non-zero metadata activity.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
+- The DAG smoke now enforces beta floors for graph-backed usage (`skips>=3000`, `entries>=2000`, `hits>=2400`, `owned>=45`) instead of accepting any non-zero metadata activity.
 - The central metadata materializer fallback is now visible and capped. Current beta cap: `materializer_fallbacks<=4135` across the semantic suite. This is a growth guard, not an acceptance that the fallback is final.
 - The remaining stage legacy surface is alias-only. Successful alias materialization and diagnostic fallback are reported separately, and valid alias fallback is gated at zero. The 78 unresolved fallback entries come from intentional alias-cycle diagnostic coverage, not hidden non-alias recursive resolution.
 - Ability declarations are now predeclared in the program-level symbol inventory, and `type_check_ability_decl(...)` reuses only its own predeclare. This closes the forward declaration-order gap for generic default/where consumers, zone authority ability consumers, and party role-slot ability consumers without weakening duplicate-ability diagnostics.
@@ -787,6 +904,8 @@ make ast-dispatch-test-smoke
 
 Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/LLVM declaration-side codegen on the active MIR inventory helper path. It verifies the nominal/domain/declaration helper seam and blocks new raw MIR declaration array reads outside the current owner files. C backend `emit_program(...)` now gets ability/type/extern/function/intent/domain/event declaration views through `transpiler_active_inventory(...)` / `transpiler_active_externs(...)`, not direct `mir->...` declaration arrays.
 
+2026-04-26 C backend structure update: `src/codegen/transpiler_context.c` now owns the output/context primitive layer that had been carried by `transpiler_helpers_core_a_part_a.inc`: `CodeBuf`, `TranspilerCtx` create/destroy, indentation, backend error/hint allocation, and scratch arena string helpers. The private seam is `src/codegen/transpiler_context.h`; `transpiler_helpers_core_a_part_a.inc` is down to 710 LOC and no longer owns those cross-cutting context helpers.
+
 ---
 
 ## 4. ABI Ownership / Arena Lifetime Closure
@@ -804,19 +923,42 @@ Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/L
 - `docs/94_arena_index_lifetime_plan.md`로 `Arena + Index + 역할별 arena` 방향을 고정했다.
 - `docs/74_slot_pinning_caching.md`로 repeated slot access hot path의 Pin/Lease 계약을 고정했다. Pin은 보안 우회가 아니라 scope-entry capability lease이며, block-scoped `pin ... { ... }`만 beta 후보로 둔다.
 - `PgyPinnedView`, `PergyraSlotPin(...)`, `PergyraSlotUnpin(...)` runtime ABI baseline이 들어왔다. Normal slot pin은 release/scope-release/TTL-cleanup 파괴를 막고, secure slot write pin은 token 검증 후 sealed payload를 lease buffer로 열며 unpin 시 다시 seal한다. Invalid token, missing capability, concurrent secure write, and release while pinned are covered by `make test-security`.
+- `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces
+  `WriteView<T>` exclusive access for the same source slot and keeps
+  `ReadView<T>` / `ReadView<T>` sharing accepted.
+- The existing view surface now also uses pin-specific diagnostics for the
+  first escape/boundary cases: return escape (`PGY_SEM_PIN_ESCAPE`),
+  await boundary (`PGY_SEM_PIN_AWAIT_BOUNDARY`), parallel boundary/acquisition
+  (`PGY_SEM_PIN_PARALLEL_CONFLICT`), and QubitSlot rejection
+  (`PGY_SEM_PIN_QUBIT_REJECT`). These codes are now covered through both
+  semantic regression and `make diagnostics-json-test-smoke`.
 - Candidate source syntax `pin slot as view { ... }` is explicitly rejected in parser diagnostics until the semantic CFG cleanup edge and backend parity are implemented. This keeps runtime ABI experimentation from becoming accidental beta surface.
 - semantic scratch arena, diagnostic result-owned payload seam, HIR/MIR routine scratch, LLVM scratch/result-owned lane이 들어왔다.
 - `make test-abi-perf`와 `make perf-summary`로 speed baseline도 관리한다.
 - POSIX `realpath` implicit declaration warning을 제거했다.
-- intent observability and authority failure stable string exports are `runtime-borrowed string` ABI values: callers must not free them, and values are valid until the next mutation of the corresponding runtime registry/snapshot.
-- `runtime-abi-lifetime-test-smoke` gates stable intent/authority string export bodies so they do not allocate/free/strdup in the ABI return path.
+- intent observability (`last/history/active/recent`) and authority failure stable string exports are `runtime-borrowed string` ABI values: callers must not free them, and values are valid until the next mutation of the corresponding runtime registry/snapshot.
+- `runtime-abi-lifetime-test-smoke` gates stable intent last/history/active/recent and authority string export bodies so they do not allocate/free/strdup in the ABI return path.
+- stable string helper returns are `result-owned string` ABI values and stable
+  string-array helper returns are `result-owned array` ABI values; callers own
+  and must eventually release the returned payloads unless a higher-level
+  runtime owner consumes them immediately.
+- stable file descriptors are `runtime-owned handle` ABI values: callers receive
+  numeric handles, while the runtime owns the backing `FILE *` table slot until
+  `pgy_file_close` releases it for reuse.
+- `runtime-abi-lifetime-test-smoke` also gates result-owned string and
+  string-array helpers so they allocate/copy payloads instead of returning
+  borrowed input pointers, stack buffers, or string literals.
+- `runtime-abi-lifetime-test-smoke` gates runtime-owned file handles so
+  `pgy_file_open` reuses closed slots and `pgy_file_close` clears the runtime
+  table entry.
 
 남은 것:
 
 - owner shell과 runtime ABI contract가 섞인 helper가 남아 있다.
-- helper payload, runtime-owned handle, and grow-array payload return helpers still need the same ownership audit.
+- runtime-owned handle return helpers beyond file descriptors still need the
+  same ownership audit.
 - runtime query/diagnostic string이 scratch teardown 이후에도 안전한지 회귀가 더 필요하다.
-- Slot Pin/Lease는 runtime primitive baseline과 candidate syntax explicit reject가 닫혔다. 남은 blocker는 stable language surface, pin/unpin CFG cleanup edge, view escape diagnostics, QubitSlot/await/parallel explicit rejects, C/LLVM lowering parity다.
+- Slot Pin/Lease는 runtime primitive baseline, candidate syntax explicit reject, existing `WriteView<T>` exclusive semantic gate, return escape diagnostic, QubitSlot reject, await boundary reject, and parallel boundary/acquisition reject가 닫혔다. 남은 blocker는 stable language surface, block-scoped pin/unpin CFG cleanup edge, secure-token source diagnostic, and C/LLVM lowering parity다.
 - Option C ownership lift keeps Pin/Lease narrow: `pin slot as view { ... }`
   and `PinnedView<T>` are §4 ABI ownership blockers only after §0b proves
   cleanup/escape facts. User-facing raw `void *` remains rejected; only typed

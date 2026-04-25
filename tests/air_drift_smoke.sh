@@ -166,6 +166,11 @@ required_impl_terms = [
     "air_collect_rir_evidence",
     "air_strdup_owned",
     "air_clear_drifts",
+    "air_boundary_from_ast_node",
+    "air_count_step_expr_boundaries",
+    "air_append_step_expr_boundaries",
+    "air_sync_from_boundary_kind",
+    "air_call_is_io_boundary",
     "air_format_authority_names",
     "air_boundary_authority_matches",
     "air_hir_routine_matches_boundary",
@@ -206,6 +211,8 @@ required_source_span_terms = [
     (air_test, "air->boundaries[0].ast->line > 0", "AIR parsed source boundary span test"),
     (diagnostics_json, 'data[0].get("location", {}).get("line", 0) > 0', "AIR JSON line assertion"),
     (diagnostics_json, 'data[0].get("location", {}).get("column", 0) > 0', "AIR JSON column assertion"),
+    (diagnostics_json, "air-io-evidence", "AIR JSON parsed IO boundary evidence case"),
+    (diagnostics_json, "ReadFile", "AIR JSON parsed IO boundary source"),
 ]
 missing_span_terms = [label for text, needle, label in required_source_span_terms if needle not in text]
 if missing_span_terms:
@@ -230,9 +237,15 @@ required_test_terms = [
     "AIR drift checker accepts matching async boundary",
     "AIR strict evidence reports missing RIR boundary",
     "AIR strict evidence rejects mismatched authority participant",
+    "AIR world boundary requires transfer evidence",
+    "AIR world boundary accepts transfer evidence",
     "expected authority participant(s): shipper",
     "AIR synthesis collects HIR/RIR evidence without mutation",
     "AIR lowers parsed intent source without drift",
+    "AIR synthesis captures spawn boundary from intent step AST",
+    "AIR synthesis captures IO boundary without sync drift",
+    "AIR parsed IO boundary reports missing evidence",
+    "AIR parsed transfer emits zone and world boundaries",
 ]
 missing_test = [term for term in required_test_terms if term not in air_test]
 if missing_test:

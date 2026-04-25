@@ -294,7 +294,7 @@ transpiler_lookup_current_owner_member_type_name(TranspilerCtx *ctx,
             break;
         }
         if (host_name != NULL) {
-            member_type = lookup_nominal_host_member_type_name(ctx,
+            member_type = transpiler_lookup_nominal_host_member_type_name(ctx,
                 host_name, member_name);
             if (member_type != NULL)
                 return member_type;

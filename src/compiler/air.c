@@ -56,6 +56,70 @@ air_strdup_owned(const char *text)
     return copy;
 }
 
+static const char *
+air_program_owned_name(AIRProgram *air, const char *text)
+{
+    char *copy;
+    char **next;
+
+    if (air == NULL || text == NULL)
+        return NULL;
+
+    copy = air_strdup_owned(text);
+    if (copy == NULL)
+        return NULL;
+
+    next = (char **)realloc(air->owned_names,
+                            sizeof(char *) * (air->owned_name_count + 1));
+    if (next == NULL) {
+        free(copy);
+        return NULL;
+    }
+
+    air->owned_names = next;
+    air->owned_names[air->owned_name_count++] = copy;
+    return copy;
+}
+
+static bool
+air_assign_owned_name(AIRProgram *air, const char **slot, const char *text)
+{
+    if (slot == NULL)
+        return false;
+    *slot = NULL;
+    if (text == NULL)
+        return true;
+    *slot = air_program_owned_name(air, text);
+    return *slot != NULL;
+}
+
+static bool
+air_assign_authority_names(AIRProgram *air,
+                           AIRBoundaryNode *boundary,
+                           const char **names,
+                           size_t name_count)
+{
+    if (boundary == NULL)
+        return false;
+    boundary->authority_names = NULL;
+    boundary->authority_name_count = 0;
+    if (name_count == 0)
+        return true;
+
+    boundary->authority_names = (const char **)calloc(name_count, sizeof(char *));
+    if (boundary->authority_names == NULL)
+        return false;
+
+    for (size_t i = 0; i < name_count; i++) {
+        const char *copy = air_program_owned_name(air, names != NULL ? names[i] : NULL);
+        if (copy == NULL)
+            return false;
+        boundary->authority_names[i] = copy;
+    }
+    boundary->authority_name_count = name_count;
+    return true;
+}
+
 static void
 air_clear_drifts(AIRProgram *air)
 {
@@ -112,16 +176,17 @@ air_failure_from_dir_step(const DIRIntentStep *step)
     return AIR_FAILURE_RECOVERABLE;
 }
 
-static AIRBoundaryKind
-air_boundary_from_dir_step(const DIRIntentStep *step)
+static bool
+air_step_has_zone_boundary(const DIRIntentStep *step)
 {
-    if (step == NULL)
-        return AIR_BOUNDARY_UNKNOWN;
-    if (step->where_type_name != NULL)
-        return AIR_BOUNDARY_ZONE;
-    if (step->transfer_from_alias != NULL || step->transfer_to_alias != NULL)
-        return AIR_BOUNDARY_WORLD;
-    return AIR_BOUNDARY_UNKNOWN;
+    return step != NULL && step->where_type_name != NULL;
+}
+
+static bool
+air_step_has_world_boundary(const DIRIntentStep *step)
+{
+    return step != NULL
+        && (step->transfer_from_alias != NULL || step->transfer_to_alias != NULL);
 }
 
 static const char *
@@ -232,8 +297,18 @@ air_count_expr_boundaries(ASTNode *node)
         count++;
     switch (node->type) {
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.statement_count; i++)
+        for (size_t i = 0; i < node->data.block.count; i++)
             count += air_count_expr_boundaries(node->data.block.statements[i]);
+        break;
+    case AST_FOR_LOOP:
+        count += air_count_expr_boundaries(node->data.for_loop.range_start);
+        count += air_count_expr_boundaries(node->data.for_loop.range_end);
+        count += air_count_expr_boundaries(node->data.for_loop.iterable);
+        count += air_count_expr_boundaries(node->data.for_loop.body);
+        break;
+    case AST_WHILE_LOOP:
+        count += air_count_expr_boundaries(node->data.while_loop.condition);
+        count += air_count_expr_boundaries(node->data.while_loop.body);
         break;
     case AST_PARALLEL_BLOCK:
         for (size_t i = 0; i < node->data.parallel.task_count; i++)
@@ -260,6 +335,14 @@ air_count_expr_boundaries(ASTNode *node)
         count += air_count_expr_boundaries(node->data.array_access.array);
         count += air_count_expr_boundaries(node->data.array_access.index);
         break;
+    case AST_ARRAY_LITERAL:
+        for (size_t i = 0; i < node->data.array_literal.count; i++)
+            count += air_count_expr_boundaries(node->data.array_literal.elements[i]);
+        break;
+    case AST_TUPLE_LITERAL:
+        for (size_t i = 0; i < node->data.tuple_literal.count; i++)
+            count += air_count_expr_boundaries(node->data.tuple_literal.elements[i]);
+        break;
     case AST_ASSIGNMENT:
         count += air_count_expr_boundaries(node->data.assignment.target);
         count += air_count_expr_boundaries(node->data.assignment.value);
@@ -281,6 +364,24 @@ air_count_expr_boundaries(ASTNode *node)
     case AST_CHANNEL_RECV:
         count += air_count_expr_boundaries(node->data.channel_recv.channel);
         break;
+    case AST_SELECT_STMT:
+        for (size_t i = 0; i < node->data.select_stmt.case_count; i++)
+            count += air_count_expr_boundaries(node->data.select_stmt.cases[i]);
+        count += air_count_expr_boundaries(node->data.select_stmt.default_case);
+        break;
+    case AST_MATCH_STMT:
+        count += air_count_expr_boundaries(node->data.match_stmt.subject);
+        for (size_t i = 0; i < node->data.match_stmt.case_count; i++)
+            count += air_count_expr_boundaries(node->data.match_stmt.cases[i]);
+        count += air_count_expr_boundaries(node->data.match_stmt.default_body);
+        break;
+    case AST_MATCH_CASE:
+        count += air_count_expr_boundaries(node->data.match_case.pattern);
+        for (size_t i = 0; i < node->data.match_case.pattern_count; i++)
+            count += air_count_expr_boundaries(node->data.match_case.patterns[i]);
+        count += air_count_expr_boundaries(node->data.match_case.guard);
+        count += air_count_expr_boundaries(node->data.match_case.body);
+        break;
     case AST_IF_STMT:
         count += air_count_expr_boundaries(node->data.if_stmt.condition);
         count += air_count_expr_boundaries(node->data.if_stmt.then_branch);
@@ -288,6 +389,24 @@ air_count_expr_boundaries(ASTNode *node)
         break;
     case AST_RETURN:
         count += air_count_expr_boundaries(node->data.return_stmt.value);
+        break;
+    case AST_TASK_GROUP:
+        for (size_t i = 0; i < node->data.task_group.task_count; i++)
+            count += air_count_expr_boundaries(node->data.task_group.tasks[i]);
+        break;
+    case AST_EVENT_INVOKE:
+        count += air_count_expr_boundaries(node->data.event_invoke.event);
+        for (size_t i = 0; i < node->data.event_invoke.arg_count; i++)
+            count += air_count_expr_boundaries(node->data.event_invoke.arguments[i]);
+        break;
+    case AST_LAMBDA_EXPR:
+        count += air_count_expr_boundaries(node->data.lambda_expr.body);
+        break;
+    case AST_UNSAFE_BLOCK:
+        count += air_count_expr_boundaries(node->data.unsafe_block.body);
+        break;
+    case AST_DEFER_STMT:
+        count += air_count_expr_boundaries(node->data.defer_stmt.body);
         break;
     default:
         break;
@@ -335,10 +454,12 @@ air_append_expr_boundaries(AIRProgram *air,
     kind = air_boundary_from_ast_node(node);
     if (kind != AIR_BOUNDARY_UNKNOWN) {
         AIRBoundaryNode *boundary = &boundaries[*boundary_index];
+        const char *source = air_boundary_source_from_ast(node);
         memset(boundary, 0, sizeof(*boundary));
         boundary->kind = kind;
-        boundary->owner_name = owner;
-        boundary->source_name = air_boundary_source_from_ast(node);
+        if (!air_assign_owned_name(air, &boundary->owner_name, owner)
+            || !air_assign_owned_name(air, &boundary->source_name, source))
+            return false;
         boundary->intent_index = intent_index;
         boundary->step_index = step != NULL ? step->index : 0;
         boundary->ast = node;
@@ -348,10 +469,18 @@ air_append_expr_boundaries(AIRProgram *air,
 
     switch (node->type) {
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.statement_count; i++)
+        for (size_t i = 0; i < node->data.block.count; i++)
             if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.block.statements[i]))
                 return false;
         break;
+    case AST_FOR_LOOP:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.for_loop.range_start)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.for_loop.range_end)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.for_loop.iterable)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.for_loop.body);
+    case AST_WHILE_LOOP:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.while_loop.condition)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.while_loop.body);
     case AST_PARALLEL_BLOCK:
         for (size_t i = 0; i < node->data.parallel.task_count; i++)
             if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.parallel.tasks[i]))
@@ -381,6 +510,16 @@ air_append_expr_boundaries(AIRProgram *air,
     case AST_ARRAY_ACCESS:
         return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.array_access.array)
             && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.array_access.index);
+    case AST_ARRAY_LITERAL:
+        for (size_t i = 0; i < node->data.array_literal.count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.array_literal.elements[i]))
+                return false;
+        break;
+    case AST_TUPLE_LITERAL:
+        for (size_t i = 0; i < node->data.tuple_literal.count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.tuple_literal.elements[i]))
+                return false;
+        break;
     case AST_ASSIGNMENT:
         return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.assignment.target)
             && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.assignment.value);
@@ -396,12 +535,50 @@ air_append_expr_boundaries(AIRProgram *air,
             && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.channel_send.value);
     case AST_CHANNEL_RECV:
         return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.channel_recv.channel);
+    case AST_SELECT_STMT:
+        for (size_t i = 0; i < node->data.select_stmt.case_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.select_stmt.cases[i]))
+                return false;
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.select_stmt.default_case);
+    case AST_MATCH_STMT:
+        if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.match_stmt.subject))
+            return false;
+        for (size_t i = 0; i < node->data.match_stmt.case_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.match_stmt.cases[i]))
+                return false;
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.match_stmt.default_body);
+    case AST_MATCH_CASE:
+        if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.match_case.pattern))
+            return false;
+        for (size_t i = 0; i < node->data.match_case.pattern_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.match_case.patterns[i]))
+                return false;
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.match_case.guard)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.match_case.body);
     case AST_IF_STMT:
         return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.if_stmt.condition)
             && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.if_stmt.then_branch)
             && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.if_stmt.else_branch);
     case AST_RETURN:
         return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.return_stmt.value);
+    case AST_TASK_GROUP:
+        for (size_t i = 0; i < node->data.task_group.task_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.task_group.tasks[i]))
+                return false;
+        break;
+    case AST_EVENT_INVOKE:
+        if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.event_invoke.event))
+            return false;
+        for (size_t i = 0; i < node->data.event_invoke.arg_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.event_invoke.arguments[i]))
+                return false;
+        break;
+    case AST_LAMBDA_EXPR:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.lambda_expr.body);
+    case AST_UNSAFE_BLOCK:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.unsafe_block.body);
+    case AST_DEFER_STMT:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.defer_stmt.body);
     default:
         break;
     }
@@ -422,21 +599,29 @@ air_append_step_expr_boundaries(AIRProgram *air,
     if (step == NULL || step->ast == NULL || step->ast->type != AST_INTENT_STEP)
         return true;
     ast = step->ast;
-    return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.using_expr)
-        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.intent_expr)
-        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.pre_expr)
-        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.guard_expr)
-        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.post_expr)
-        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.invariant_expr)
-        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.expect_expr)
-        && ({
-            bool ok = true;
-            for (size_t i = 0; ok && i < ast->data.intent_step.on_expr_count; i++)
-                ok = air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.on_exprs[i]);
-            for (size_t i = 0; ok && i < ast->data.intent_step.compensate_expr_count; i++)
-                ok = air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.compensate_exprs[i]);
-            ok;
-        });
+    if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.using_expr))
+        return false;
+    if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.intent_expr))
+        return false;
+    if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.pre_expr))
+        return false;
+    if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.guard_expr))
+        return false;
+    if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.post_expr))
+        return false;
+    if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.invariant_expr))
+        return false;
+    if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.expect_expr))
+        return false;
+    for (size_t i = 0; i < ast->data.intent_step.on_expr_count; i++) {
+        if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.on_exprs[i]))
+            return false;
+    }
+    for (size_t i = 0; i < ast->data.intent_step.compensate_expr_count; i++) {
+        if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.compensate_exprs[i]))
+            return false;
+    }
+    return true;
 }
 
 static bool
@@ -577,9 +762,44 @@ air_rir_scope_matches_boundary(const RIRScope *scope, const AIRBoundaryNode *bou
           || scope->kind == RIR_SCOPE_WORLD)) {
         return false;
     }
+    if (boundary->kind == AIR_BOUNDARY_PARALLEL
+        || boundary->kind == AIR_BOUNDARY_IO
+        || boundary->kind == AIR_BOUNDARY_CHANNEL) {
+        return air_name_matches(scope->name, boundary->source_name);
+    }
+    if (boundary->kind == AIR_BOUNDARY_WORLD) {
+        return air_name_matches(scope->name, boundary->source_name)
+            || air_name_matches(scope->name, boundary->owner_name)
+            || air_name_matches(scope->owner_name, boundary->owner_name)
+            || air_name_matches(scope->owner_name, boundary->source_name);
+    }
     return air_name_matches(scope->name, boundary->source_name)
         || air_name_matches(scope->owner_name, boundary->owner_name)
         || air_name_matches(scope->owner_name, boundary->source_name);
+}
+
+static bool
+air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
+                                         const AIRBoundaryNode *boundary)
+{
+    if (!air_rir_scope_matches_boundary(scope, boundary))
+        return false;
+
+    if (boundary->kind != AIR_BOUNDARY_WORLD)
+        return true;
+
+    for (size_t i = 0; i < scope->op_count; i++) {
+        const RIROp *op = &scope->ops[i];
+        if (op->kind == RIR_OP_CLAIM
+            && air_name_matches(op->subject, boundary->source_name)) {
+            return true;
+        }
+        if (op->kind == RIR_OP_MOVE
+            && air_name_matches(op->arg0, boundary->source_name)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static void
@@ -601,7 +821,7 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir)
         }
         for (size_t j = 0; j < air->boundary_count; j++) {
             AIRBoundaryNode *boundary = &air->boundaries[j];
-            if (!air_rir_scope_matches_boundary(scope, boundary))
+            if (!air_rir_scope_provides_boundary_evidence(scope, boundary))
                 continue;
             boundary->has_rir_boundary_evidence = true;
             air->rir_boundary_evidence_count++;
@@ -646,8 +866,11 @@ air_synthesize(const HIRProgram *hir,
     for (size_t i = 0; i < dir->intent_count; i++) {
         intent_node_count += dir->intents[i].step_count;
         for (size_t j = 0; j < dir->intents[i].step_count; j++) {
-            if (air_boundary_from_dir_step(&dir->intents[i].steps[j]) != AIR_BOUNDARY_UNKNOWN)
+            if (air_step_has_zone_boundary(&dir->intents[i].steps[j]))
                 boundary_node_count++;
+            if (air_step_has_world_boundary(&dir->intents[i].steps[j]))
+                boundary_node_count++;
+            boundary_node_count += air_count_step_expr_boundaries(&dir->intents[i].steps[j]);
         }
     }
 
@@ -667,44 +890,92 @@ air_synthesize(const HIRProgram *hir,
             return NULL;
         }
     }
+    air->intent_count = intent_node_count;
+    air->boundary_count = boundary_node_count;
 
     size_t intent_index = 0;
     size_t boundary_index = 0;
     for (size_t i = 0; i < dir->intent_count; i++) {
         const DIRIntentInfo *info = &dir->intents[i];
-        const char *owner = air_dir_node_name(dir, info->node_id);
+        const char *owner_source = air_dir_node_name(dir, info->node_id);
+        const char *owner = air_program_owned_name(air, owner_source);
         ASTNode *owner_ast = air_dir_node_ast(dir, info->node_id);
+        if (owner_source != NULL && owner == NULL) {
+            air_destroy(air);
+            air_set_error(error_message, "AIR owner name allocation failed");
+            return NULL;
+        }
         for (size_t j = 0; j < info->step_count; j++) {
             const DIRIntentStep *step = &info->steps[j];
             AIRSyncClass sync_class = air_sync_from_dir_step(step);
             air->intents[intent_index].intent_owner = owner;
-            air->intents[intent_index].step_name = step->name;
+            if (!air_assign_owned_name(air, &air->intents[intent_index].step_name, step->name)) {
+                air_destroy(air);
+                air_set_error(error_message, "AIR intent step name allocation failed");
+                return NULL;
+            }
             air->intents[intent_index].step_index = step->index;
             air->intents[intent_index].ast = step->ast != NULL ? step->ast : owner_ast;
             air->intents[intent_index].sync_class = sync_class;
             air->intents[intent_index].failure_class = air_failure_from_dir_step(step);
 
-            AIRBoundaryKind boundary_kind = air_boundary_from_dir_step(step);
-            if (boundary_kind != AIR_BOUNDARY_UNKNOWN) {
-                air->boundaries[boundary_index].kind = boundary_kind;
+            if (air_step_has_zone_boundary(step)) {
+                air->boundaries[boundary_index].kind = AIR_BOUNDARY_ZONE;
                 air->boundaries[boundary_index].owner_name = owner;
-                air->boundaries[boundary_index].source_name = step->where_type_name != NULL
-                    ? step->where_type_name
-                    : step->using_alias;
+                if (!air_assign_owned_name(air,
+                                           &air->boundaries[boundary_index].source_name,
+                                           step->where_type_name)
+                    || !air_assign_authority_names(air,
+                                                   &air->boundaries[boundary_index],
+                                                   step->authorized_by,
+                                                   step->authorized_by_count)) {
+                    air_destroy(air);
+                    air_set_error(error_message, "AIR zone boundary allocation failed");
+                    return NULL;
+                }
                 air->boundaries[boundary_index].intent_index = intent_index;
                 air->boundaries[boundary_index].step_index = step->index;
                 air->boundaries[boundary_index].ast = step->ast != NULL ? step->ast : owner_ast;
                 air->boundaries[boundary_index].sync_class = sync_class;
                 air->boundaries[boundary_index].authority_required = step->authorized_by_count > 0;
-                air->boundaries[boundary_index].authority_names = step->authorized_by;
-                air->boundaries[boundary_index].authority_name_count = step->authorized_by_count;
                 boundary_index++;
+            }
+            if (air_step_has_world_boundary(step)) {
+                air->boundaries[boundary_index].kind = AIR_BOUNDARY_WORLD;
+                air->boundaries[boundary_index].owner_name = owner;
+                if (!air_assign_owned_name(air,
+                                           &air->boundaries[boundary_index].source_name,
+                                           step->transfer_to_alias != NULL
+                                               ? step->transfer_to_alias
+                                               : step->transfer_from_alias)
+                    || !air_assign_authority_names(air,
+                                                   &air->boundaries[boundary_index],
+                                                   step->authorized_by,
+                                                   step->authorized_by_count)) {
+                    air_destroy(air);
+                    air_set_error(error_message, "AIR world boundary allocation failed");
+                    return NULL;
+                }
+                air->boundaries[boundary_index].intent_index = intent_index;
+                air->boundaries[boundary_index].step_index = step->index;
+                air->boundaries[boundary_index].ast = step->ast != NULL ? step->ast : owner_ast;
+                air->boundaries[boundary_index].sync_class = sync_class;
+                air->boundaries[boundary_index].authority_required = step->authorized_by_count > 0;
+                boundary_index++;
+            }
+            if (!air_append_step_expr_boundaries(air,
+                                                air->boundaries,
+                                                &boundary_index,
+                                                intent_index,
+                                                owner,
+                                                step)) {
+                air_destroy(air);
+                air_set_error(error_message, "AIR boundary synthesis failed for intent step %s", step->name);
+                return NULL;
             }
             intent_index++;
         }
     }
-    air->intent_count = intent_node_count;
-    air->boundary_count = boundary_node_count;
     air_collect_hir_evidence(air, hir);
     air_collect_rir_evidence(air, rir);
 
@@ -771,12 +1042,18 @@ air_check_drift(AIRProgram *air, char **error_message)
             }
         }
         if (air->strict_evidence && !boundary->has_rir_boundary_evidence) {
+            char message[512];
+            snprintf(message,
+                     sizeof(message),
+                     PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                     ": AIR boundary has no matching RIR boundary evidence; implementation boundary '%s' (%s)",
+                     boundary->source_name != NULL ? boundary->source_name : "<unknown>",
+                     air_boundary_kind_name(boundary->kind));
             if (!air_append_drift(air,
                                   AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
                                   boundary->intent_index,
                                   i,
-                                  PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                                  ": AIR boundary has no matching RIR boundary evidence",
+                                  message,
                                   error_message)) {
                 return false;
             }
@@ -819,6 +1096,11 @@ air_destroy(AIRProgram *air)
     if (air == NULL)
         return;
     air_clear_drifts(air);
+    for (size_t i = 0; i < air->boundary_count; i++)
+        free((void *)air->boundaries[i].authority_names);
+    for (size_t i = 0; i < air->owned_name_count; i++)
+        free(air->owned_names[i]);
+    free(air->owned_names);
     free(air->intents);
     free(air->boundaries);
     free(air);

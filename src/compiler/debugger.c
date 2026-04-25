@@ -255,6 +255,8 @@ driver_run_debug_command(int argc, char *argv[])
     const char *path = NULL;
     SemanticResult *sem = NULL;
     for (int i = 0; i < argc; i++) {
+        if (i == 0 && strcmp(argv[i], "debug") == 0)
+            continue;
         if (argv[i][0] != '-') { path = argv[i]; break; }
     }
 

@@ -154,6 +154,21 @@ type_check_view_read(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
 
     Type *slot_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (type_is_qubit(slot_type)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_PIN_QUBIT_REJECT,
+            PGY_CAUSE_PIN_QUBIT_REJECT,
+            PGY_FIX_DO_NOT_PIN_QUBIT,
+            call->data.call.arguments[0],
+            "ViewRead cannot pin QubitSlot resources.\n"
+            "Reason:\n"
+            "- QubitSlot has a movable quantum state machine, not a stable memory lease\n"
+            "- pinning it would bypass measurement/entanglement lifecycle checks\n"
+            "Fix:\n"
+            "- use the quantum operations directly\n"
+            "- or convert to a classical value before creating a view");
+        return TYPE_UNKNOWN;
+    }
     if (!type_is_owned_slot_handle(slot_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_BUILTIN_SLOT_TYPE_REQUIRED, PGY_FIX_PASS_OWNING_SLOT,
@@ -172,6 +187,21 @@ type_check_view_write(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
 
     Type *slot_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (type_is_qubit(slot_type)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_PIN_QUBIT_REJECT,
+            PGY_CAUSE_PIN_QUBIT_REJECT,
+            PGY_FIX_DO_NOT_PIN_QUBIT,
+            call->data.call.arguments[0],
+            "ViewWrite cannot pin QubitSlot resources.\n"
+            "Reason:\n"
+            "- QubitSlot has a movable quantum state machine, not a stable memory lease\n"
+            "- pinning it would bypass measurement/entanglement lifecycle checks\n"
+            "Fix:\n"
+            "- use the quantum operations directly\n"
+            "- or convert to a classical value before creating a view");
+        return TYPE_UNKNOWN;
+    }
     if (!type_is_owned_slot_handle(slot_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_BUILTIN_SLOT_TYPE_REQUIRED, PGY_FIX_PASS_OWNING_SLOT,

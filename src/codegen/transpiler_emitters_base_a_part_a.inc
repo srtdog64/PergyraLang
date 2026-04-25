@@ -1,6 +1,5 @@
 static int transpiler_find_loop_label_depth(const TranspilerCtx *ctx,
                                             const char *label);
-static ASTNode *transpiler_current_host_decl_local(TranspilerCtx *ctx);
 static bool transpiler_is_implicit_field(TranspilerCtx *ctx,
                                          const char *base_name);
 static bool transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
@@ -798,3 +797,112 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         if (init != NULL) {
             ctx->expected_type = ann_type_name;
             char *init_expr = emit_expression(init, ctx);
+
+            ctx->expected_type = NULL;
+            codebuf_write(ctx->out, "%s = %s;\n", decl, init_expr);
+            free(init_expr);
+        } else {
+            codebuf_write(ctx->out, "%s = 0;\n", decl);
+        }
+        free(decl);
+    } else if (init != NULL) {
+        ctx->expected_type = ann_type_name;
+        char *init_expr = emit_expression(init, ctx);
+        ctx->expected_type = NULL;
+        codebuf_write(ctx->out, "%s %s = %s;\n", c_type, name, init_expr);
+        free(init_expr);
+    } else if (transpiler_c_type_uses_scalar_zero(c_type)) {
+        /* Scalar / pointer default. */
+        codebuf_write(ctx->out, "%s %s = 0;\n", c_type, name);
+    } else {
+        /* Aggregate default.  Plain `= 0` is not a valid struct initializer
+         * in C99, so emit a compound literal zero.  Semantic currently
+         * rejects uninitialized locals before reaching this path, but this
+         * keeps the fallback well-formed as defense in depth. */
+        codebuf_write(ctx->out, "%s %s = (%s){0};\n", c_type, name, c_type);
+    }
+
+    if (ann_type_name != NULL) {
+        register_typed_var(ctx, name, ann_type_name);
+        free(ann_type_name);
+    } else if (init != NULL && init->type == AST_CALL) {
+        register_typed_var(ctx, name, infer_expression_type_name(ctx, init));
+    } else if (init != NULL && init->type == AST_SPAWN_EXPR) {
+        char *future_type = infer_spawn_return_type_name(ctx, init);
+        char *wrapped = strdup_fmt("Future<%s>", future_type);
+        register_typed_var(ctx, name, wrapped);
+        free(future_type);
+        free(wrapped);
+    } else if (init != NULL && init->type == AST_CHANNEL_RECV) {
+        const char *inner = infer_expression_type_name(ctx, init);
+        register_typed_var(ctx, name, inner);
+    } else if (init != NULL) {
+        /* Fallback: infer from any initializer (string literals, binary exprs, etc.) */
+        const char *inferred = infer_expression_type_name(ctx, init);
+        if (inferred != NULL) {
+            register_typed_var(ctx, name, inferred);
+        }
+    }
+}
+
+/* -----------------------------------------------------------------
+ * Function declaration emitter
+ * ----------------------------------------------------------------- */
+
+#include "transpiler_emitters_mir_inventory_ssa.inc"
+
+static ASTNode *
+transpiler_find_let_decl_by_name_in_block(ASTNode *body, const char *name)
+{
+    if (body == NULL || name == NULL)
+        return NULL;
+
+    if (body->type == AST_BLOCK) {
+        for (size_t i = 0; i < body->data.block.count; i++) {
+            ASTNode *found = transpiler_find_let_decl_by_name_in_block(
+                body->data.block.statements[i], name);
+            if (found != NULL)
+                return found;
+        }
+        return NULL;
+    }
+
+    if (body->type == AST_LET_DECL
+        && body->data.let_decl.name != NULL
+        && strcmp(body->data.let_decl.name, name) == 0) {
+        return body;
+    }
+
+    if (body->type == AST_WITH_STMT)
+        return transpiler_find_let_decl_by_name_in_block(
+            body->data.with_stmt.body, name);
+    if (body->type == AST_IF_STMT) {
+        ASTNode *found = transpiler_find_let_decl_by_name_in_block(
+            body->data.if_stmt.then_branch, name);
+        if (found != NULL)
+            return found;
+        return transpiler_find_let_decl_by_name_in_block(
+            body->data.if_stmt.else_branch, name);
+    }
+    if (body->type == AST_WHILE_LOOP)
+        return transpiler_find_let_decl_by_name_in_block(
+            body->data.while_loop.body, name);
+    if (body->type == AST_FOR_LOOP)
+        return transpiler_find_let_decl_by_name_in_block(
+            body->data.for_loop.body, name);
+
+    return NULL;
+}
+
+static ASTNode *
+transpiler_find_let_decl_by_name(const ASTNode *func_decl, const char *name)
+{
+    if (func_decl == NULL
+        || func_decl->type != AST_FUNC_DECL
+        || func_decl->data.func_decl.body == NULL) {
+        return NULL;
+    }
+
+    return transpiler_find_let_decl_by_name_in_block(
+        func_decl->data.func_decl.body, name);
+}

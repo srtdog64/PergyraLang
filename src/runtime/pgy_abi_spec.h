@@ -23,7 +23,7 @@
  * BUILD:
  *   make test-abi   →   compiles and runs src/test_abi_spec.c
  *
- * LAST UPDATED: 2026-04-08
+ * LAST UPDATED: 2026-04-26
  */
 
 #ifndef PERGYRA_ABI_SPEC_H
@@ -95,11 +95,12 @@ typedef struct { char    *value; } pgy_abi_slot_string_rel;
 /* ================================================================
  * 2. SecureSlot<T> — Token-Based Access Control
  *
- * Layout (Debug): { value: CType, occupied: bool, [padding], token: uint64_t }
- * Layout (Release): same struct, fewer assert checks
+ * Layout: { value: CType, occupied: bool, [padding], token: uint64_t }
  *
  * The token is a capability that gates read/write/release operations.
- * Wrong token → PGY_PANIC.
+ * SecureSlot<T> keeps the same token layout and hard-fail checks across
+ * debug/release builds; only plain Slot<T> has a zero-overhead release layout.
+ * Wrong token causes PGY_PANIC.
  * ================================================================ */
 
 /* --- SecureSlot<T> Debug --- */
@@ -112,11 +113,15 @@ typedef struct { char   *value; bool occupied; uint64_t token; } pgy_abi_secure_
 
 /* --- SecureSlot<T> Release --- */
 typedef struct { int32_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_int_rel;
+typedef struct { int64_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_long_rel;
+typedef struct { float   value; bool occupied; uint64_t token; } pgy_abi_secure_slot_float_rel;
+typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_slot_double_rel;
+typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool_rel;
 typedef struct { char   *value; bool occupied; uint64_t token; } pgy_abi_secure_slot_string_rel;
 
-/* --- Capability Token --- */
+/* --- Capability Token (stable in every build mode) --- */
 typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_dbg;
-typedef struct { uint64_t id; } pgy_abi_token_int_rel;
+typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_rel;
 
 /* ================================================================
  * 3. DeviceSlot<T> — Anchored External Resource Cell
@@ -473,9 +478,39 @@ ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int_dbg) > sizeof(pgy_abi_slot_int_
                   secure_slot_int_dbg_larger_than_slot);
 ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int_dbg) >= 16,
                   secure_slot_int_dbg_min_size_16);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_int_rel) == sizeof(pgy_abi_secure_slot_int_dbg),
+                  secure_slot_int_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_int_rel, token) == offsetof(pgy_abi_secure_slot_int_dbg, token),
+                  secure_slot_int_rel_same_token_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_long_rel) == sizeof(pgy_abi_secure_slot_long_dbg),
+                  secure_slot_long_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_long_rel, token) == offsetof(pgy_abi_secure_slot_long_dbg, token),
+                  secure_slot_long_rel_same_token_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_float_rel) == sizeof(pgy_abi_secure_slot_float_dbg),
+                  secure_slot_float_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_float_rel, token) == offsetof(pgy_abi_secure_slot_float_dbg, token),
+                  secure_slot_float_rel_same_token_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_double_rel) == sizeof(pgy_abi_secure_slot_double_dbg),
+                  secure_slot_double_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_double_rel, token) == offsetof(pgy_abi_secure_slot_double_dbg, token),
+                  secure_slot_double_rel_same_token_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_bool_rel) == sizeof(pgy_abi_secure_slot_bool_dbg),
+                  secure_slot_bool_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_bool_rel, token) == offsetof(pgy_abi_secure_slot_bool_dbg, token),
+                  secure_slot_bool_rel_same_token_offset_as_dbg);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_secure_slot_string_rel) == sizeof(pgy_abi_secure_slot_string_dbg),
+                  secure_slot_string_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_secure_slot_string_rel, token) == offsetof(pgy_abi_secure_slot_string_dbg, token),
+                  secure_slot_string_rel_same_token_offset_as_dbg);
 
 ABI_STATIC_ASSERT(sizeof(pgy_abi_token_int_dbg) >= 16,
                   token_int_dbg_min_size_16);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_token_int_rel) == sizeof(pgy_abi_token_int_dbg),
+                  token_int_rel_same_size_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_token_int_rel, can_write) == offsetof(pgy_abi_token_int_dbg, can_write),
+                  token_int_rel_can_write_same_offset_as_dbg);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_token_int_rel, can_read) == offsetof(pgy_abi_token_int_dbg, can_read),
+                  token_int_rel_can_read_same_offset_as_dbg);
 
 /* =================================================================
  * STATIC ASSERTIONS — DeviceSlot<T>

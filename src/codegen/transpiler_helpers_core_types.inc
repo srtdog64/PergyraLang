@@ -634,3 +634,24 @@ render_type_name(ASTNode *type_node)
     append_type_name(buf, type_node);
     char *result = pergyra_strdup(buf->data);
     codebuf_destroy(buf);
+    return result;
+}
+
+const char *
+transpiler_render_type_name_local(TranspilerCtx *ctx, ASTNode *type_node)
+{
+    TranspilerCtx *saved_render_ctx = g_type_render_ctx;
+    char *owned;
+    char *stable;
+
+    if (ctx != NULL)
+        g_type_render_ctx = ctx;
+    owned = render_type_name(type_node);
+    g_type_render_ctx = saved_render_ctx;
+    if (owned == NULL)
+        return NULL;
+
+    stable = ctx != NULL ? pgy_arena_strdup(&ctx->arena, owned) : NULL;
+    free(owned);
+    return stable;
+}

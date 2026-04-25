@@ -144,6 +144,81 @@ fi
 check_json "pin-syntax-reject" "$PIN_ERR" \
   'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "parse" and data[0].get("code") == "PGY_PARSE_SYNTAX" and "Pin/Lease syntax is not beta-stable yet" in data[0].get("message", "")'
 
+# --- case 2b: stable view surface uses pin semantic diagnostics ---
+PIN_RETURN_SRC="$WORK_DIR/pin_return_escape.pgy"
+cat > "$PIN_RETURN_SRC" <<'EOF'
+func Leak() -> ReadView<Int> {
+    let scores: Slot<Int> = ClaimSlot();
+    let view: ReadView<Int> = ViewRead(scores);
+    return view;
+}
+func Main() -> Void {
+    Log(1);
+}
+EOF
+PIN_RETURN_ERR="$WORK_DIR/pin_return_escape.err"
+if "$PGY" "$PIN_RETURN_SRC" --backend=c --error-format=json 2>"$PIN_RETURN_ERR"; then
+    echo "[diag-json] pin-return-escape: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_RETURN_ERR" >&2
+    exit 1
+fi
+check_json "pin-return-escape" "$PIN_RETURN_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_ESCAPE" and d.get("cause_ir") == "semantic:pin:escape" and d.get("fix_source") == "change-ref-to-own-or-stop-escape" for d in data)'
+
+PIN_PARALLEL_SRC="$WORK_DIR/pin_parallel_boundary.pgy"
+cat > "$PIN_PARALLEL_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let view: ReadView<Int> = ViewRead(scores);
+    parallel {
+        Log(1);
+    }
+}
+EOF
+PIN_PARALLEL_ERR="$WORK_DIR/pin_parallel_boundary.err"
+if "$PGY" "$PIN_PARALLEL_SRC" --backend=c --error-format=json 2>"$PIN_PARALLEL_ERR"; then
+    echo "[diag-json] pin-parallel-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_PARALLEL_ERR" >&2
+    exit 1
+fi
+check_json "pin-parallel-boundary" "$PIN_PARALLEL_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" for d in data)'
+
+PIN_AWAIT_SRC="$WORK_DIR/pin_await_boundary.pgy"
+cat > "$PIN_AWAIT_SRC" <<'EOF'
+async func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let view: ReadView<Int> = ViewRead(scores);
+    let pending = spawn 42;
+    let value = await pending;
+    Log(value);
+}
+EOF
+PIN_AWAIT_ERR="$WORK_DIR/pin_await_boundary.err"
+if "$PGY" "$PIN_AWAIT_SRC" --backend=c --error-format=json 2>"$PIN_AWAIT_ERR"; then
+    echo "[diag-json] pin-await-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_AWAIT_ERR" >&2
+    exit 1
+fi
+check_json "pin-await-boundary" "$PIN_AWAIT_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" for d in data)'
+
+PIN_QUBIT_SRC="$WORK_DIR/pin_qubit_reject.pgy"
+cat > "$PIN_QUBIT_SRC" <<'EOF'
+func Main() -> Void {
+    let q: QubitSlot = ClaimQubit();
+    let view: ReadView<QubitSlot> = ViewRead(q);
+}
+EOF
+PIN_QUBIT_ERR="$WORK_DIR/pin_qubit_reject.err"
+if "$PGY" "$PIN_QUBIT_SRC" --backend=c --error-format=json 2>"$PIN_QUBIT_ERR"; then
+    echo "[diag-json] pin-qubit-reject: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_QUBIT_ERR" >&2
+    exit 1
+fi
+check_json "pin-qubit-reject" "$PIN_QUBIT_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_QUBIT_REJECT" and d.get("cause_ir") == "semantic:pin:qubit_reject" and d.get("fix_source") == "do-not-pin-qubit" for d in data)'
+
 # --- case 2a: lex error ---
 LEX_SRC="$WORK_DIR/lex.pgy"
 cat > "$LEX_SRC" <<'EOF'
@@ -198,7 +273,101 @@ check_json "air-evidence" "$AIR_ERR" \
 check_json "air-evidence-hints" "$AIR_ERR" \
   'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent:boundary_evidence" and data[0].get("fix_source") == "align-intent-boundary-evidence" and "expected authority participant(s): buyer" in data[0].get("message", "")'
 
-# --- case 2c: slot lifecycle code routes through ---
+# --- case 2c: AIR strict evidence from parsed IO boundary ---
+AIR_IO_SRC="$WORK_DIR/air_missing_io_boundary.pgy"
+cat > "$AIR_IO_SRC" <<'EOF'
+subject Loader { let hp: Int; }
+zone LoadZone {
+    subject slot loader: Loader
+}
+intent Load(load: LoadZone, loader: Loader) {
+    step read {
+        where: LoadZone;
+        using: load;
+        who: loader;
+        on: ReadFile("missing.txt");
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void { }
+EOF
+AIR_IO_ERR="$WORK_DIR/air_missing_io_boundary.err"
+if "$PGY" "$AIR_IO_SRC" --backend=c --error-format=json 2>"$AIR_IO_ERR"; then
+    echo "[diag-json] air-io: FAIL -- expected non-zero exit" >&2
+    cat "$AIR_IO_ERR" >&2
+    exit 1
+fi
+check_json "air-io-evidence" "$AIR_IO_ERR" \
+  'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "semantic" and data[0].get("code") == "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING" and data[0].get("location", {}).get("line", 0) > 0 and data[0].get("location", {}).get("column", 0) > 0'
+check_json "air-io-evidence-hints" "$AIR_IO_ERR" \
+  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent:boundary_evidence" and data[0].get("fix_source") == "align-intent-boundary-evidence" and "implementation boundary" in data[0].get("message", "") and "ReadFile" in data[0].get("message", "")'
+
+# --- case 2d: intent control-transfer explicit reject keeps source span ---
+INTENT_CONTROL_SRC="$WORK_DIR/intent_control_transfer_reject.pgy"
+cat > "$INTENT_CONTROL_SRC" <<'EOF'
+subject Worker { let hp: Int; }
+zone WorkZone {
+    subject slot worker: Worker
+}
+func DoWork() -> Int { return 1; }
+intent Dispatch(work: WorkZone, worker: Worker) {
+    step run {
+        where: WorkZone;
+        using: work;
+        who: worker;
+        on: spawn DoWork();
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void { }
+EOF
+INTENT_CONTROL_ERR="$WORK_DIR/intent_control_transfer_reject.err"
+if "$PGY" "$INTENT_CONTROL_SRC" --backend=c --error-format=json 2>"$INTENT_CONTROL_ERR"; then
+    echo "[diag-json] intent-control-transfer: FAIL -- expected non-zero exit" >&2
+    cat "$INTENT_CONTROL_ERR" >&2
+    exit 1
+fi
+check_json "intent-control-transfer" "$INTENT_CONTROL_ERR" \
+  'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "semantic" and data[0].get("code") == "PGY_SEM_INTENT_STEP_INVALID" and data[0].get("location", {}).get("line", 0) > 0 and data[0].get("location", {}).get("column", 0) > 0'
+check_json "intent-control-transfer-hints" "$INTENT_CONTROL_ERR" \
+  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent_step" and data[0].get("fix_source") == "align-step-with-zone-action-contracts" and "cannot contain" in data[0].get("message", "") and "spawn" in data[0].get("message", "")'
+
+# --- case 2e: intent channel control-transfer explicit reject keeps source span ---
+INTENT_CHANNEL_SRC="$WORK_DIR/intent_channel_transfer_reject.pgy"
+cat > "$INTENT_CHANNEL_SRC" <<'EOF'
+subject Worker { let hp: Int; }
+zone WorkZone {
+    subject slot worker: Worker
+}
+intent Dispatch(work: WorkZone, worker: Worker, ch: Channel<Int>) {
+    step run {
+        where: WorkZone;
+        using: work;
+        who: worker;
+        on: ch <- 1;
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void { }
+EOF
+INTENT_CHANNEL_ERR="$WORK_DIR/intent_channel_transfer_reject.err"
+if "$PGY" "$INTENT_CHANNEL_SRC" --backend=c --error-format=json 2>"$INTENT_CHANNEL_ERR"; then
+    echo "[diag-json] intent-channel-transfer: FAIL -- expected non-zero exit" >&2
+    cat "$INTENT_CHANNEL_ERR" >&2
+    exit 1
+fi
+check_json "intent-channel-transfer" "$INTENT_CHANNEL_ERR" \
+  'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "semantic" and data[0].get("code") == "PGY_SEM_INTENT_STEP_INVALID" and data[0].get("location", {}).get("line", 0) > 0 and data[0].get("location", {}).get("column", 0) > 0'
+check_json "intent-channel-transfer-hints" "$INTENT_CHANNEL_ERR" \
+  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent_step" and data[0].get("fix_source") == "align-step-with-zone-action-contracts" and "cannot contain" in data[0].get("message", "") and "channel send" in data[0].get("message", "")'
+
+# --- case 2f: slot lifecycle code routes through ---
 SLOT_SRC="$WORK_DIR/slot.pgy"
 cat > "$SLOT_SRC" <<'EOF'
 func Main() -> Void {

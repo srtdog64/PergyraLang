@@ -1,3 +1,21 @@
+/* StringJoin(arr, sep) -> String */
+char *StringJoin(PgyArray_String *arr, const char *sep)
+{
+    if (arr == NULL || arr->length == 0)
+        return pgy_runtime_lib_strdup("");
+    size_t slen = (sep != NULL) ? strlen(sep) : 0;
+    size_t total = 0;
+    for (size_t i = 0; i < arr->length; i++) {
+        if (arr->data[i] != NULL) total += strlen(arr->data[i]);
+        if (i > 0) total += slen;
+    }
+    char *buf = (char *)malloc(total + 1);
+    if (buf == NULL) return pgy_runtime_lib_strdup("");
+    char *wp = buf;
+    for (size_t i = 0; i < arr->length; i++) {
+        if (i > 0 && slen > 0) { memcpy(wp, sep, slen); wp += slen; }
+        if (arr->data[i] != NULL) {
+            size_t l = strlen(arr->data[i]);
             memcpy(wp, arr->data[i], l);
             wp += l;
         }

@@ -1,0 +1,42 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Internal C backend projection provenance and nominal type predicates.
+ */
+
+#ifndef PERGYRA_TRANSPILER_PROJECTION_H
+#define PERGYRA_TRANSPILER_PROJECTION_H
+
+#include "transpiler.h"
+
+ASTNode *transpiler_find_zone_domain_slot(ASTNode *zone_decl,
+                                          const char *slot_name);
+bool transpiler_current_world_has_field(TranspilerCtx *ctx,
+                                        const char *field_name);
+ASTNode *transpiler_find_zone_state_decl(ASTNode *zone_decl,
+                                         const char *state_name);
+ASTNode *transpiler_find_zone_layer_slot(ASTNode *zone_decl,
+                                         const char *slot_name);
+ASTNode *transpiler_find_world_zone_slot_decl(ASTNode *world_decl,
+                                              const char *slot_name);
+bool transpiler_world_has_zone_slot(ASTNode *world_decl,
+                                    const char *slot_name);
+ASTNode *transpiler_resolve_world_zone_decl(TranspilerCtx *ctx,
+                                            ASTNode *world_decl,
+                                            const char *slot_name);
+int resolve_projection_source_path_rec(TranspilerCtx *ctx,
+                                       ASTNode *source_decl,
+                                       const char *field_name,
+                                       unsigned depth,
+                                       char **path_out);
+char *emit_projection_literal(TranspilerCtx *ctx,
+                              ASTNode *target_decl,
+                              ASTNode *source_decl,
+                              ASTNode *refresh,
+                              const char *target_type_name,
+                              const char *source_expr);
+bool is_subject_type_name(TranspilerCtx *ctx, const char *type_name);
+bool is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name);
+
+#endif /* PERGYRA_TRANSPILER_PROJECTION_H */

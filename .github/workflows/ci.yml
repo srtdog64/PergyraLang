@@ -37,3 +37,11 @@ jobs:
       - name: Run Windows CI target
         shell: msys2 {0}
         run: CC=gcc make ci-windows
+
+  build-macos-c-only:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run macOS C-only CI target
+        run: CC=cc make ci-macos

@@ -1,3 +1,4 @@
+static void
 emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 {
     TranspilerMirEmitState saved_emit_state;

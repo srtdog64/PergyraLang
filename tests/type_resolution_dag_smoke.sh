@@ -123,8 +123,8 @@ if [ "$metadata_entries" -le 0 ]; then
   exit 1
 fi
 
-if [ "$metadata_entries" -lt 1500 ]; then
-  echo "graph-backed metadata inventory regressed below beta floor: $metadata_entries < 1500" >&2
+if [ "$metadata_entries" -lt 2000 ]; then
+  echo "graph-backed metadata inventory regressed below beta floor: $metadata_entries < 2000" >&2
   exit 1
 fi
 

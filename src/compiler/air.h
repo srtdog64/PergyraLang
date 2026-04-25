@@ -91,6 +91,8 @@ typedef struct AIRProgram
     size_t           hir_routine_evidence_count;
     size_t           rir_boundary_evidence_count;
     size_t           rir_authority_evidence_count;
+    char           **owned_names;
+    size_t           owned_name_count;
 } AIRProgram;
 
 AIRProgram *air_synthesize(const HIRProgram *hir,

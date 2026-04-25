@@ -24,6 +24,16 @@ Current beta status:
 
 - Runtime ABI baseline exists: `PgyPinnedView`, `PergyraSlotPin(...)`, and
   `PergyraSlotUnpin(...)`.
+- `WriteView<T>` exclusive access is now enforced for the existing
+  `ViewRead(...)` / `ViewWrite(...)` semantic surface: a new `WriteView<T>`
+  conflicts with any active view of the same slot, and a new `ReadView<T>`
+  conflicts with an active `WriteView<T>`.
+- The existing view surface now emits the pin-specific diagnostics for the
+  first stable escape/boundary cases: returning a view reports
+  `PGY_SEM_PIN_ESCAPE`, crossing `await` reports
+  `PGY_SEM_PIN_AWAIT_BOUNDARY`, crossing/acquiring inside `parallel` reports
+  `PGY_SEM_PIN_PARALLEL_CONFLICT`, and `ViewRead/ViewWrite(QubitSlot)` reports
+  `PGY_SEM_PIN_QUBIT_REJECT`.
 - Parser explicitly rejects candidate source syntax with
   `Pin/Lease syntax is not beta-stable yet`.
 - The stable source surface is not shipped until CFG cleanup edges, escape
@@ -125,7 +135,12 @@ Current implementation note:
 
 - Candidate syntax is still rejected in the parser as `PGY_PARSE_SYNTAX` with
   the message `Pin/Lease syntax is not beta-stable yet`.
-- The five semantic codes above are registered in `diag_codes.h` and
+- Four of the five semantic codes above are active on the existing
+  `ViewRead(...)` / `ViewWrite(...)` surface and covered by `make test-semantic`;
+  their user-facing JSON routing is covered by
+  `make diagnostics-json-test-smoke`;
+  `PGY_SEM_PIN_TOKEN_INVALID` remains a runtime/API capability-path diagnostic
+  until source-level secure pin syntax is promoted.
   `docs/72_diagnostic_codes.md`, but stable source syntax does not emit them
   yet. They become active only when semantic Pin/Lease syntax and CFG checks are
   implemented.
@@ -214,8 +229,10 @@ Backend requirements:
 7. Stable surface decision: either promote the block syntax or keep it explicitly
    experimental.
 
-Steps 1 and 2 are implemented. Steps 3 to 7 are beta blockers if the language
-chooses to ship Pin/Lease syntax in beta.
+Steps 1 and 2 are implemented. The existing view constructor surface now has
+exclusive-write, return escape, await-boundary, parallel-boundary, and QubitSlot
+reject semantic gates covered by `make test-semantic`. Steps 3 to 7 remain beta
+blockers if the language chooses to ship block-scoped Pin/Lease syntax in beta.
 
 ## 10. Beta Position
 

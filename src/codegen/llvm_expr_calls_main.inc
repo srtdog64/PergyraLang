@@ -1,3 +1,321 @@
+static LLVMValueRef
+llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
+{
+    if (node->data.call.callee == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    /* Method call: obj.method(args) */
+    if (node->data.call.callee->type == AST_MEMBER_ACCESS)
+        return llvm_emit_member_call(node, ctx);
+
+    /* Get callee name */
+    const char *callee_name = NULL;
+    if (node->data.call.callee->type == AST_IDENTIFIER)
+        callee_name = node->data.call.callee->data.identifier.name;
+
+    if (callee_name == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    if (strcmp(callee_name, "Clone") == 0 && node->data.call.arg_count == 1) {
+        return llvm_emit_expression(node->data.call.arguments[0], ctx);
+    }
+
+    {
+        LLVMValueRef constructor_value =
+            llvm_emit_constructor_call(node, ctx, callee_name);
+        if (constructor_value != NULL)
+            return constructor_value;
+    }
+
+    if ((strcmp(callee_name, "ToTObject") == 0 || strcmp(callee_name, "ToObject") == 0)
+        && node->data.call.arg_count == 2) {
+        return llvm_emit_subject_projection(node, ctx);
+    }
+
+    {
+        LLVMValueRef domain_query = NULL;
+        if (llvm_emit_domain_query_call(node, ctx, callee_name, &domain_query))
+            return domain_query;
+    }
+
+    {
+        LLVMValueRef log_call = NULL;
+        if (llvm_emit_log_family_call(node, ctx, callee_name, &log_call))
+            return log_call;
+    }
+
+    {
+        LLVMValueRef rc_call = NULL;
+        if (llvm_emit_rc_builtin_call(node, ctx, callee_name, &rc_call))
+            return rc_call;
+    }
+
+    {
+        LLVMValueRef slot_builtin = NULL;
+        if (llvm_emit_slot_builtin_call(node, ctx, callee_name, &slot_builtin))
+            return slot_builtin;
+    }
+
+    {
+        LLVMValueRef event_call = NULL;
+        if (llvm_emit_event_invocation_call(node, ctx, callee_name, &event_call))
+            return event_call;
+    }
+
+    {
+        LLVMValueRef math_call = NULL;
+        if (llvm_emit_scalar_math_call(node, ctx, callee_name, &math_call))
+            return math_call;
+    }
+
+    {
+        LLVMValueRef array_call = NULL;
+        if (llvm_emit_array_builtin_call(node, ctx, callee_name, &array_call))
+            return array_call;
+    }
+
+    {
+        LLVMValueRef collection_call = NULL;
+        if (llvm_emit_collection_base_call(node, ctx, callee_name, &collection_call))
+            return collection_call;
+    }
+
+    {
+        LLVMValueRef collection_ext = NULL;
+        if (llvm_emit_collection_extended_call(node, ctx, callee_name, &collection_ext))
+            return collection_ext;
+    }
+
+    if (strcmp(callee_name, "StringLength") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef s = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        /* Declare strlen if not already */
+        LLVMFuncEntry *strlen_fn = llvm_lookup_function(ctx, "strlen");
+        if (strlen_fn == NULL) {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i64, params, 1, 0);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, "strlen", ft);
+            llvm_register_function(ctx, "strlen", fn, ft, ctx->type_i64);
+            strlen_fn = llvm_lookup_function(ctx, "strlen");
+        }
+        LLVMValueRef args[] = { s };
+        LLVMValueRef len = LLVMBuildCall2(ctx->builder, strlen_fn->fn_type,
+            strlen_fn->fn, args, 1, llvm_tmp_name(ctx));
+        return LLVMBuildTrunc(ctx->builder, len, ctx->type_i32, llvm_tmp_name(ctx));
+    }
+
+    if ((strcmp(callee_name, "Contains") == 0
+         || strcmp(callee_name, "StringContains") == 0)
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringContains");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if ((strcmp(callee_name, "Replace") == 0
+         || strcmp(callee_name, "StringReplace") == 0)
+        && node->data.call.arg_count == 3) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringReplace");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 3);
+    }
+
+    if (strcmp(callee_name, "Substring") == 0
+        && node->data.call.arg_count == 3) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "Substring");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 3);
+    }
+
+    if ((strcmp(callee_name, "Trim") == 0
+         || strcmp(callee_name, "StringTrim") == 0)
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringTrim");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if ((strcmp(callee_name, "Upper") == 0
+         || strcmp(callee_name, "ToUpper") == 0)
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "ToUpper");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if ((strcmp(callee_name, "Lower") == 0
+         || strcmp(callee_name, "ToLower") == 0)
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "ToLower");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if ((strcmp(callee_name, "Concat") == 0
+         || strcmp(callee_name, "StringConcat") == 0)
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringConcat");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if (strcmp(callee_name, "ReadFile") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_read_file");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "ToString") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMValueRef value = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        return llvm_coerce_value_to_string(value, ctx);
+    }
+
+    if (strcmp(callee_name, "ToInt") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "ToInt");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "ToFloat") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "ToFloat");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "Random") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "Random");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "WriteFile") == 0
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_write_file");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if (strcmp(callee_name, "Input") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_input");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    {
+        LLVMValueRef intent_call = NULL;
+        if (llvm_emit_intent_observability_call(node, ctx, callee_name, &intent_call))
+            return intent_call;
+    }
+    if (strcmp(callee_name, "SeedRandom") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "SeedRandom");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "FileOpen") == 0
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_file_open");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if (strcmp(callee_name, "FileRead") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_file_read");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "FileWrite") == 0
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_file_write");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if (strcmp(callee_name, "FileClose") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_file_close");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    /* Built-in: Print(s) ??printf("%s", s) */
+    if (strcmp(callee_name, "Print") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMTypeRef vt = LLVMTypeOf(val);
+        LLVMFuncEntry *pf = llvm_lookup_function(ctx, "printf");
+        if (pf != NULL) {
+            if (vt == ctx->type_i8ptr) {
+                LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
+                    "%s", ".fmt_s");
+                LLVMValueRef args[] = { fmt, val };
+                LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
+            } else {
+                LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
+                    "%d", ".fmt_d");
+                LLVMValueRef args[] = { fmt, val };
+                LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
+            }
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "ReadLine") == 0 && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_input");
+        if (fn != NULL) {
+            LLVMValueRef empty = LLVMBuildGlobalStringPtr(ctx->builder, "", ".readline_empty");
+            LLVMValueRef args[] = { empty };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+        }
+    }
+
+    if (strcmp(callee_name, "Now") == 0 && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_now_ms");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, "");
+    }
+
+    if (strcmp(callee_name, "Sleep") == 0 && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_sleep_ms");
+        if (fn != NULL) {
+            LLVMValueRef arg = llvm_emit_expression(node->data.call.arguments[0], ctx);
+            LLVMValueRef args[] = { arg };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    {
+        LLVMValueRef result_option_call = llvm_emit_result_option_call(node, ctx, callee_name);
+        if (result_option_call != NULL)
+            return result_option_call;
+    }
+
     {
         LLVMValueRef task_channel_call = llvm_emit_task_channel_call(node, ctx, callee_name);
         if (task_channel_call != NULL)

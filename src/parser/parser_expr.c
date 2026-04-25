@@ -519,6 +519,7 @@ ASTNode* parser_parse_primary(Parser* parser) {
 
     // 식별자 또는 슬롯 연산
     if (parser_match_expr_name_token(parser)) {
+        Token name_token = parser->previous_token;
         char* name = pergyra_strdup(parser->previous_token.text);
 
         if ((strcmp(name, "ClaimSlot") == 0 ||
@@ -545,11 +546,20 @@ ASTNode* parser_parse_primary(Parser* parser) {
 
         // 채널 송신 체크: channel <- value
         ASTNode* ident = ast_create_identifier(name);
+        if (ident != NULL) {
+            ident->line = name_token.line;
+            ident->column = name_token.column;
+        }
         free(name);
         if (parser_check(parser, TOKEN_CHANNEL_OP)) {
-            parser_advance(parser);
+            Token op = parser_advance(parser);
             ASTNode* value = parser_parse_expression(parser);
-            return ast_create_channel_send(ident, value);
+            ASTNode *send = ast_create_channel_send(ident, value);
+            if (send != NULL) {
+                send->line = op.line;
+                send->column = op.column;
+            }
+            return send;
         }
 
         return ident;

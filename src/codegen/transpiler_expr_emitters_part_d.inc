@@ -1,417 +1,6 @@
-                    if (fields->len > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        init_expr != NULL ? init_expr : "0");
-                    free(init_expr);
-                }
-                {
-                    char *result = fields->len > 0
-                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
-                        : strdup_fmt("(%s){0}", fn);
-                    codebuf_destroy(fields);
-                    return result;
-                }
-            }
-        }
-        {
-            ASTNode *relation_decl = find_relation_decl(ctx, fn);
-            ASTNode *effect_decl = find_effect_decl(ctx, fn);
-            ASTNode *overlay_decl = relation_decl != NULL ? relation_decl : effect_decl;
-            if (overlay_decl != NULL) {
-                size_t argc = call->data.call.arg_count;
-                size_t slot_count = overlay_decl->type == AST_RELATION_DECL
-                    ? overlay_decl->data.relation_decl.slot_count
-                    : overlay_decl->data.effect_decl.slot_count;
-                size_t shared_count = overlay_decl->type == AST_RELATION_DECL
-                    ? overlay_decl->data.relation_decl.shared_count
-                    : overlay_decl->data.effect_decl.shared_count;
-                CodeBuf *fields = codebuf_create();
-                for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
-                    const char *field_name = NULL;
-                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i < slot_count) {
-                        ASTNode *slot = overlay_decl->type == AST_RELATION_DECL
-                            ? overlay_decl->data.relation_decl.slots[i]
-                            : overlay_decl->data.effect_decl.slots[i];
-                        field_name = slot != NULL ? slot->data.domain_slot.slot_name : "field";
-                    } else {
-                        ASTNode *shared = overlay_decl->type == AST_RELATION_DECL
-                            ? overlay_decl->data.relation_decl.shared_fields[i - slot_count]
-                            : overlay_decl->data.effect_decl.shared_fields[i - slot_count];
-                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
-                    }
-                    if (i > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        arg != NULL ? arg : "0");
-                    free(arg);
-                }
-                for (size_t i = 0; i < shared_count; i++) {
-                    size_t absolute_index = slot_count + i;
-                    ASTNode *shared;
-                    const char *field_name;
-                    char *init_expr;
-                    if (absolute_index < argc)
-                        continue;
-                    shared = overlay_decl->type == AST_RELATION_DECL
-                        ? overlay_decl->data.relation_decl.shared_fields[i]
-                        : overlay_decl->data.effect_decl.shared_fields[i];
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
-                        continue;
-                    field_name = shared->data.party_shared.name;
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
-                    if (fields->len > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        init_expr != NULL ? init_expr : "0");
-                    free(init_expr);
-                }
-                for (size_t i = 0; i < slot_count; i++) {
-                    ASTNode *slot = overlay_decl->type == AST_RELATION_DECL
-                        ? overlay_decl->data.relation_decl.slots[i]
-                        : overlay_decl->data.effect_decl.slots[i];
-                    const char *slot_name = slot != NULL
-                        ? slot->data.domain_slot.slot_name
-                        : NULL;
-                    bool projection_slot = slot != NULL
-                        && (slot->data.domain_slot.is_tobject
-                            || domain_slot_is_projection_target_local(
-                                slot,
-                                overlay_decl->type == AST_RELATION_DECL
-                                    ? overlay_decl->data.relation_decl.refreshes
-                                    : overlay_decl->data.effect_decl.refreshes,
-                                overlay_decl->type == AST_RELATION_DECL
-                                    ? overlay_decl->data.relation_decl.refresh_count
-                                    : overlay_decl->data.effect_decl.refresh_count));
-                    if (!projection_slot || slot_name == NULL)
-                        continue;
-                    if (fields->len > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".__projection_dirty_%s = true", slot_name);
-                }
-                {
-                    char *result = fields->len > 0
-                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
-                        : strdup_fmt("(%s){0}", fn);
-                    codebuf_destroy(fields);
-                    return result;
-                }
-            }
-        }
-        {
-            ASTNode *zone_decl = find_zone_decl(ctx, fn);
-            if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL) {
-                size_t argc = call->data.call.arg_count;
-                CodeBuf *fields = codebuf_create();
-                for (size_t i = 0; i < argc
-                        && i < zone_decl->data.zone_decl.slot_count
-                               + zone_decl->data.zone_decl.shared_count; i++) {
-                    const char *field_name = NULL;
-                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i < zone_decl->data.zone_decl.slot_count) {
-                        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
-                        field_name = slot != NULL ? slot->data.domain_slot.slot_name : "field";
-                    } else {
-                        ASTNode *shared = zone_decl->data.zone_decl.shared_fields[
-                            i - zone_decl->data.zone_decl.slot_count];
-                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
-                    }
-                    if (i > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        arg != NULL ? arg : "0");
-                    free(arg);
-                }
-                for (size_t i = 0; i < zone_decl->data.zone_decl.shared_count; i++) {
-                    size_t absolute_index = zone_decl->data.zone_decl.slot_count + i;
-                    ASTNode *shared;
-                    const char *field_name;
-                    char *init_expr;
-                    if (absolute_index < argc)
-                        continue;
-                    shared = zone_decl->data.zone_decl.shared_fields[i];
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
-                        continue;
-                    field_name = shared != NULL ? shared->data.party_shared.name : "field";
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
-                    if (fields->len > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        init_expr != NULL ? init_expr : "0");
-                    free(init_expr);
-                }
-                for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-                    ASTNode *slot = zone_decl->data.zone_decl.slots[i];
-                    const char *slot_name = slot != NULL
-                        ? slot->data.domain_slot.slot_name
-                        : NULL;
-                    bool projection_slot = slot != NULL
-                        && (slot->data.domain_slot.is_tobject
-                            || domain_slot_is_projection_target_local(
-                                slot,
-                                zone_decl->data.zone_decl.refreshes,
-                                zone_decl->data.zone_decl.refresh_count));
-                    if (!projection_slot || slot_name == NULL)
-                        continue;
-                    if (fields->len > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".__projection_dirty_%s = true", slot_name);
-                }
-                {
-                    char *result = fields->len > 0
-                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
-                        : strdup_fmt("(%s){0}", fn);
-                    codebuf_destroy(fields);
-                    return result;
-                }
-            }
-        }
-        {
-            ASTNode *world_decl = find_world_decl(ctx, fn);
-            if (world_decl != NULL && world_decl->type == AST_WORLD_DECL) {
-                size_t argc = call->data.call.arg_count;
-                CodeBuf *fields = codebuf_create();
-                size_t exposed = world_decl->data.world_decl.roster_count
-                    + world_decl->data.world_decl.zone_count
-                    + world_decl->data.world_decl.shared_count;
-                for (size_t i = 0; i < argc && i < exposed; i++) {
-                    const char *field_name = NULL;
-                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i < world_decl->data.world_decl.roster_count) {
-                        ASTNode *slot = world_decl->data.world_decl.rosters[i];
-                        field_name = slot != NULL ? slot->data.world_roster.slot_name : "field";
-                    } else if (i < world_decl->data.world_decl.roster_count
-                                   + world_decl->data.world_decl.zone_count) {
-                        ASTNode *slot = world_decl->data.world_decl.zones[
-                            i - world_decl->data.world_decl.roster_count];
-                        field_name = slot != NULL ? slot->data.world_zone.slot_name : "field";
-                    } else {
-                        ASTNode *shared = world_decl->data.world_decl.shared_fields[
-                            i - world_decl->data.world_decl.roster_count
-                              - world_decl->data.world_decl.zone_count];
-                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
-                    }
-                    if (i > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        arg != NULL ? arg : "0");
-                    free(arg);
-                }
-                for (size_t i = 0; i < world_decl->data.world_decl.shared_count; i++) {
-                    size_t absolute_index = world_decl->data.world_decl.roster_count
-                        + world_decl->data.world_decl.zone_count + i;
-                    ASTNode *shared;
-                    const char *field_name;
-                    char *init_expr;
-                    if (absolute_index < argc)
-                        continue;
-                    shared = world_decl->data.world_decl.shared_fields[i];
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
-                        continue;
-                    field_name = shared != NULL ? shared->data.party_shared.name : "field";
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
-                    if (fields->len > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".%s = %s",
-                        field_name != NULL ? field_name : "field",
-                        init_expr != NULL ? init_expr : "0");
-                    free(init_expr);
-                }
-                for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-                    ASTNode *zone = world_decl->data.world_decl.zones[i];
-                    const char *slot_name = zone != NULL
-                        ? zone->data.world_zone.slot_name
-                        : NULL;
-                    if (slot_name == NULL)
-                        continue;
-                    if (fields->len > 0)
-                        codebuf_write(fields, ", ");
-                    codebuf_write(fields, ".__zone_dirty_%s = true", slot_name);
-                }
-                if (fields->len > 0)
-                    codebuf_write(fields, ", ");
-                codebuf_write(fields, ".__world_derived_dirty = true");
-                {
-                    char *result = fields->len > 0
-                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
-                        : strdup_fmt("(%s){0}", fn);
-                    codebuf_destroy(fields);
-                    return result;
-                }
-            }
-        }
-
-        const char *qualified = lookup_enum_variant_qualified_name(ctx, fn);
-        if (qualified != NULL) {
-            /* Emit: EnumName_VariantName(args...) */
-            size_t argc = call->data.call.arg_count;
-            char **arg_strs = calloc(argc > 0 ? argc : 1, sizeof(char *));
-            for (size_t i = 0; i < argc; i++)
-                arg_strs[i] = emit_expression(call->data.call.arguments[i], ctx);
-            /* Build argument list string */
-            size_t buf_len = strlen(qualified) + 3;
-            for (size_t i = 0; i < argc; i++) {
-                if (arg_strs[i] == NULL) {
-                    for (size_t j = 0; j < i; j++)
-                        free(arg_strs[j]);
-                    free(arg_strs);
-                    return NULL;
-                }
-                buf_len += strlen(arg_strs[i]) + 2;
-            }
-            char *result = malloc(buf_len);
-            if (result == NULL) {
-                for (size_t i = 0; i < argc; i++)
-                    free(arg_strs[i]);
-                free(arg_strs);
-                return NULL;
-            }
-            {
-                size_t offset = 0;
-                size_t qual_len = strlen(qualified);
-                memcpy(result + offset, qualified, qual_len);
-                offset += qual_len;
-                result[offset++] = '(';
-                for (size_t i = 0; i < argc; i++) {
-                    if (i > 0) {
-                        result[offset++] = ',';
-                        result[offset++] = ' ';
-                    }
-                    {
-                        size_t arg_len = strlen(arg_strs[i]);
-                        memcpy(result + offset, arg_strs[i], arg_len);
-                        offset += arg_len;
-                    }
-                    free(arg_strs[i]);
-                }
-                result[offset++] = ')';
-                result[offset] = '\0';
-            }
-            free(arg_strs);
-            return result;
-        }
-    }
-
-    /* Result<T, E> built-in functions:
-     * - Ok/Err require explicit Result context from the surrounding type.
-     * - IsOk/IsErr/Unwrap/UnwrapOr may also derive suffix from their Result
-     *   operand when the surrounding expression context is not specific. */
-    if (callee->type == AST_IDENTIFIER) {
-        const char *fn = callee->data.identifier.name;
-        bool is_result_ctor = false;
-        bool is_result_consumer = false;
-        char result_suffix[128] = {0};
-        bool have_result_suffix = transpiler_result_suffix_from_context(
-            ctx, result_suffix, sizeof(result_suffix));
-        is_result_ctor = strcmp(fn, "Ok") == 0 || strcmp(fn, "Err") == 0;
-        is_result_consumer = strcmp(fn, "IsOk") == 0
-            || strcmp(fn, "IsErr") == 0
-            || strcmp(fn, "Unwrap") == 0
-            || strcmp(fn, "UnwrapOr") == 0;
-
-        if (!have_result_suffix && is_result_consumer
-            && call->data.call.arg_count >= 1
-            && call->data.call.arguments[0] != NULL) {
-            const char *arg_type = infer_expression_type_name(
-                ctx, call->data.call.arguments[0]);
-            have_result_suffix = transpiler_result_suffix_from_type_name(
-                arg_type, result_suffix, sizeof(result_suffix));
-        }
-
-        if ((is_result_ctor || is_result_consumer) && !have_result_suffix) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot derive Result<T, E> specialization for %s(); add explicit Result<T, E> type context",
-                fn);
-            return pergyra_strdup("0");
-        }
-
-        if (strcmp(fn, "Ok") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("Ok_%s(%s)", result_suffix, arg);
-            free(arg);
-            return result;
-        }
-        if (strcmp(fn, "Err") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("Err_%s(%s)", result_suffix, arg);
-            free(arg);
-            return result;
-        }
-        if (strcmp(fn, "IsOk") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("IsOk_%s(%s)", result_suffix, arg);
-            free(arg);
-            return result;
-        }
-        if (strcmp(fn, "IsErr") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("IsErr_%s(%s)", result_suffix, arg);
-            free(arg);
-            return result;
-        }
-        if (strcmp(fn, "Unwrap") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("Unwrap_%s(%s)", result_suffix, arg);
-            free(arg);
-            return result;
-        }
-        if (strcmp(fn, "UnwrapOr") == 0 && call->data.call.arg_count == 2) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *fallback = emit_expression(call->data.call.arguments[1], ctx);
-            char *result = strdup_fmt("UnwrapOr_%s(%s, %s)", result_suffix, arg, fallback);
-            free(arg);
-            free(fallback);
-            return result;
-        }
-        if (strcmp(fn, "Some") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            char *result = strdup_fmt("Some_%s(%s)", inner, arg);
-            free(arg);
-            return result;
-        }
-        if (strcmp(fn, "None") == 0 && call->data.call.arg_count == 0) {
-            /* Use expected target type from enclosing let declaration if available */
-            const char *inner = "Int";
-            if (ctx->expected_type != NULL && strncmp(ctx->expected_type, "Option<", 7) == 0) {
-                inner = slot_inner_type_name(ctx->expected_type);
-            }
-            return strdup_fmt("None_%s()", inner);
-        }
-        if (strcmp(fn, "IsSome") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *inner = strncmp(opt_type, "Option<", 7) == 0
-                ? slot_inner_type_name(opt_type) : "Int";
-            char *result = strdup_fmt("IsSome_%s(%s)", inner, arg);
-            free(arg);
-            return result;
-        }
-        if (strcmp(fn, "IsNone") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *inner = strncmp(opt_type, "Option<", 7) == 0
-                ? slot_inner_type_name(opt_type) : "Int";
-            char *result = strdup_fmt("IsNone_%s(%s)", inner, arg);
-            free(arg);
-            return result;
-        }
-        if (strcmp(fn, "UnwrapOption") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *inner = strncmp(opt_type, "Option<", 7) == 0
-                ? slot_inner_type_name(opt_type) : "Int";
-            char *result = strdup_fmt("UnwrapOption_%s(%s)", inner, arg);
-            free(arg);
-            return result;
-        }
-    }
-
+static char *
+emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
+{
     /* Standard library built-in functions */
     if (callee->type == AST_IDENTIFIER) {
         const char *fn = callee->data.identifier.name;
@@ -903,3 +492,455 @@
             }
             free(arg);
             return result;
+        }
+        /* HashMap builtins */
+        if (strcmp(fn, "MapNew") == 0) {
+            const char *hint = ctx->active_type_hint;
+            const char *value = "Int";
+            if (hint != NULL && strncmp(hint, "HashMap<", 8) == 0) {
+                const char *hint_value = constructed_arg_name_at(hint, 1);
+                if (hint_value != NULL)
+                    value = hint_value;
+            }
+            ensure_collection_specialization(ctx, "Map", value);
+            return strdup_fmt("pgy_map_new_%s()", collection_runtime_suffix(value));
+        }
+        if (strcmp(fn, "MapSet") == 0 && call->data.call.arg_count == 3) {
+            char *m = emit_expression(call->data.call.arguments[0], ctx);
+            char *k = emit_expression(call->data.call.arguments[1], ctx);
+            char *v = emit_expression(call->data.call.arguments[2], ctx);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0 ? "pgy_map_set_i32_%s(&%s, %s, %s)"
+                : strcmp(key, "Long") == 0 ? "pgy_map_set_i64_%s(&%s, %s, %s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_set_bool_%s(&%s, %s, %s)"
+                : "pgy_map_set_%s(&%s, %s, %s)",
+                collection_runtime_suffix(value), m, k, v);
+            free(m); free(k); free(v);
+            return result;
+        }
+        if (strcmp(fn, "MapGet") == 0 && call->data.call.arg_count == 2) {
+            char *m = emit_expression(call->data.call.arguments[0], ctx);
+            char *k = emit_expression(call->data.call.arguments[1], ctx);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0 ? "pgy_map_get_i32_%s(&%s, %s)"
+                : strcmp(key, "Long") == 0 ? "pgy_map_get_i64_%s(&%s, %s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_get_bool_%s(&%s, %s)"
+                : "pgy_map_get_%s(&%s, %s)",
+                collection_runtime_suffix(value), m, k);
+            free(m); free(k);
+            return result;
+        }
+        if (strcmp(fn, "MapHas") == 0 && call->data.call.arg_count == 2) {
+            char *m = emit_expression(call->data.call.arguments[0], ctx);
+            char *k = emit_expression(call->data.call.arguments[1], ctx);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0 ? "pgy_map_has_i32_%s(&%s, %s)"
+                : strcmp(key, "Long") == 0 ? "pgy_map_has_i64_%s(&%s, %s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_has_bool_%s(&%s, %s)"
+                : "pgy_map_has_%s(&%s, %s)",
+                collection_runtime_suffix(value), m, k);
+            free(m); free(k);
+            return result;
+        }
+        if (strcmp(fn, "MapRemove") == 0 && call->data.call.arg_count == 2) {
+            char *m = emit_expression(call->data.call.arguments[0], ctx);
+            char *k = emit_expression(call->data.call.arguments[1], ctx);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0 ? "pgy_map_remove_i32_%s(&%s, %s)"
+                : strcmp(key, "Long") == 0 ? "pgy_map_remove_i64_%s(&%s, %s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_remove_bool_%s(&%s, %s)"
+                : "pgy_map_remove_%s(&%s, %s)",
+                collection_runtime_suffix(value), m, k);
+            free(m); free(k);
+            return result;
+        }
+        if (strcmp(fn, "MapSize") == 0 && call->data.call.arg_count == 1) {
+            char *m = emit_expression(call->data.call.arguments[0], ctx);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 1)
+                : "Int";
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt("pgy_map_size_%s(&%s)",
+                collection_runtime_suffix(value), m);
+            free(m);
+            return result;
+        }
+        if (strcmp(fn, "MapKeys") == 0 && call->data.call.arg_count == 1) {
+            char *m = emit_expression(call->data.call.arguments[0], ctx);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            char key_buf[64];
+            char value_buf[64];
+            const char *key = "String";
+            const char *value = "Int";
+            if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                copy_constructed_arg_name_at(map_type, 0, key_buf, sizeof(key_buf));
+                copy_constructed_arg_name_at(map_type, 1, value_buf, sizeof(value_buf));
+                key = key_buf;
+                value = value_buf;
+            }
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0 ? "pgy_map_keys_i32_%s(&%s)"
+                : strcmp(key, "Long") == 0 ? "pgy_map_keys_i64_%s(&%s)"
+                : strcmp(key, "Bool") == 0 ? "pgy_map_keys_bool_%s(&%s)"
+                : "pgy_map_keys_%s(&%s)",
+                collection_runtime_suffix(value), m);
+            free(m);
+            return result;
+        }
+        /* List builtins */
+        if (strcmp(fn, "ListNew") == 0)
+        {
+            const char *hint = ctx->active_type_hint;
+            const char *inner = (hint != NULL && strncmp(hint, "List<", 5) == 0)
+                ? slot_inner_type_name(hint)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            return strdup_fmt("pgy_list_new_%s()", collection_runtime_suffix(inner));
+        }
+        if (strcmp(fn, "ListPush") == 0 && call->data.call.arg_count == 2) {
+            char *l = emit_expression(call->data.call.arguments[0], ctx);
+            char *v = emit_expression(call->data.call.arguments[1], ctx);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_push_%s(&%s, %s)",
+                collection_runtime_suffix(inner), l, v);
+            free(l); free(v); return r;
+        }
+        if (strcmp(fn, "ListGet") == 0 && call->data.call.arg_count == 2) {
+            char *l = emit_expression(call->data.call.arguments[0], ctx);
+            char *i = emit_expression(call->data.call.arguments[1], ctx);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_get_%s(&%s, %s)",
+                collection_runtime_suffix(inner), l, i);
+            free(l); free(i); return r;
+        }
+        if (strcmp(fn, "ListSet") == 0 && call->data.call.arg_count == 3) {
+            char *l = emit_expression(call->data.call.arguments[0], ctx);
+            char *i = emit_expression(call->data.call.arguments[1], ctx);
+            char *v = emit_expression(call->data.call.arguments[2], ctx);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_set_%s(&%s, %s, %s)",
+                collection_runtime_suffix(inner), l, i, v);
+            free(l); free(i); free(v); return r;
+        }
+        if (strcmp(fn, "ListSize") == 0 && call->data.call.arg_count == 1) {
+            char *l = emit_expression(call->data.call.arguments[0], ctx);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_size_%s(&%s)",
+                collection_runtime_suffix(inner), l);
+            free(l); return r;
+        }
+        if (strcmp(fn, "ListRemove") == 0 && call->data.call.arg_count == 2) {
+            char *l = emit_expression(call->data.call.arguments[0], ctx);
+            char *i = emit_expression(call->data.call.arguments[1], ctx);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_remove_%s(&%s, %s)",
+                collection_runtime_suffix(inner), l, i);
+            free(l); free(i); return r;
+        }
+        /* Set builtins ??generic (type inferred from Set<T> annotation) */
+        #define SET_INFER_INNER(arg0) do { \
+            const char *_st = infer_expression_type_name(ctx, arg0); \
+            if (_st != NULL && strncmp(_st, "Set<", 4) == 0) \
+                set_inner = slot_inner_type_name(_st); \
+        } while (0)
+
+        if (strcmp(fn, "SetNew") == 0) {
+            const char *hint = ctx->active_type_hint;
+            const char *set_inner = (hint != NULL && strncmp(hint, "Set<", 4) == 0)
+                ? slot_inner_type_name(hint)
+                : "String";
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            return strdup_fmt("pgy_set_new_%s()", collection_runtime_suffix(set_inner));
+        }
+        if (strcmp(fn, "SetAdd") == 0 && call->data.call.arg_count == 2) {
+            const char *set_inner = "String";
+            SET_INFER_INNER(call->data.call.arguments[0]);
+            char *s = emit_expression(call->data.call.arguments[0], ctx);
+            char *k = emit_expression(call->data.call.arguments[1], ctx);
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            char *r = strdup_fmt("pgy_set_add_%s(&%s, %s)",
+                collection_runtime_suffix(set_inner), s, k);
+            free(s); free(k); return r;
+        }
+        if (strcmp(fn, "SetHas") == 0 && call->data.call.arg_count == 2) {
+            const char *set_inner = "String";
+            SET_INFER_INNER(call->data.call.arguments[0]);
+            char *s = emit_expression(call->data.call.arguments[0], ctx);
+            char *k = emit_expression(call->data.call.arguments[1], ctx);
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            char *r = strdup_fmt("pgy_set_has_%s(&%s, %s)",
+                collection_runtime_suffix(set_inner), s, k);
+            free(s); free(k); return r;
+        }
+        if (strcmp(fn, "SetRemove") == 0 && call->data.call.arg_count == 2) {
+            const char *set_inner = "String";
+            SET_INFER_INNER(call->data.call.arguments[0]);
+            char *s = emit_expression(call->data.call.arguments[0], ctx);
+            char *k = emit_expression(call->data.call.arguments[1], ctx);
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            char *r = strdup_fmt("pgy_set_remove_%s(&%s, %s)",
+                collection_runtime_suffix(set_inner), s, k);
+            free(s); free(k); return r;
+        }
+        if (strcmp(fn, "SetSize") == 0 && call->data.call.arg_count == 1) {
+            const char *set_inner = "String";
+            SET_INFER_INNER(call->data.call.arguments[0]);
+            char *s = emit_expression(call->data.call.arguments[0], ctx);
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            char *r = strdup_fmt("pgy_set_size_%s(&%s)",
+                collection_runtime_suffix(set_inner), s);
+            free(s); return r;
+        }
+        #undef SET_INFER_INNER
+        /* Queue builtins */
+        if (strcmp(fn, "QueueNew") == 0)
+        {
+            const char *hint = ctx->active_type_hint;
+            const char *inner = (hint != NULL && strncmp(hint, "Queue<", 6) == 0)
+                ? slot_inner_type_name(hint)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            return strdup_fmt("pgy_queue_new_%s()", collection_runtime_suffix(inner));
+        }
+        if (strcmp(fn, "QueuePush") == 0 && call->data.call.arg_count == 2) {
+            char *q = emit_expression(call->data.call.arguments[0], ctx);
+            char *v = emit_expression(call->data.call.arguments[1], ctx);
+            const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (queue_type != NULL && strncmp(queue_type, "Queue<", 6) == 0)
+                ? slot_inner_type_name(queue_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            char *r = strdup_fmt("pgy_queue_push_%s(&%s, %s)",
+                collection_runtime_suffix(inner), q, v);
+            free(q); free(v); return r;
+        }
+        if (strcmp(fn, "QueuePop") == 0 && call->data.call.arg_count == 1) {
+            char *q = emit_expression(call->data.call.arguments[0], ctx);
+            const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (queue_type != NULL && strncmp(queue_type, "Queue<", 6) == 0)
+                ? slot_inner_type_name(queue_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            char *r = strdup_fmt("pgy_queue_pop_%s(&%s)",
+                collection_runtime_suffix(inner), q);
+            free(q); return r;
+        }
+        if (strcmp(fn, "QueueSize") == 0 && call->data.call.arg_count == 1) {
+            char *q = emit_expression(call->data.call.arguments[0], ctx);
+            const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (queue_type != NULL && strncmp(queue_type, "Queue<", 6) == 0)
+                ? slot_inner_type_name(queue_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            char *r = strdup_fmt("pgy_queue_size_%s(&%s)",
+                collection_runtime_suffix(inner), q);
+            free(q); return r;
+        }
+        if (strcmp(fn, "QueueEmpty") == 0 && call->data.call.arg_count == 1) {
+            char *q = emit_expression(call->data.call.arguments[0], ctx);
+            const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (queue_type != NULL && strncmp(queue_type, "Queue<", 6) == 0)
+                ? slot_inner_type_name(queue_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            char *r = strdup_fmt("pgy_queue_empty_%s(&%s)",
+                collection_runtime_suffix(inner), q);
+            free(q); return r;
+        }
+        /* FSM builtins */
+        if (strcmp(fn, "FsmNew") == 0)
+            return pergyra_strdup("pgy_fsm_new()");
+        if (strcmp(fn, "FsmAddState") == 0 && call->data.call.arg_count == 2) {
+            char *f = emit_expression(call->data.call.arguments[0], ctx);
+            char *n = emit_expression(call->data.call.arguments[1], ctx);
+            char *r = strdup_fmt("pgy_fsm_add_state(&%s, %s)", f, n);
+            free(f); free(n); return r;
+        }
+        if (strcmp(fn, "FsmTransition") == 0 && call->data.call.arg_count == 4) {
+            char *f = emit_expression(call->data.call.arguments[0], ctx);
+            char *from = emit_expression(call->data.call.arguments[1], ctx);
+            char *inp = emit_expression(call->data.call.arguments[2], ctx);
+            char *to = emit_expression(call->data.call.arguments[3], ctx);
+            char *r = strdup_fmt("pgy_fsm_add_transition(&%s, %s, %s, %s)", f, from, inp, to);
+            free(f); free(from); free(inp); free(to); return r;
+        }
+        if (strcmp(fn, "FsmStep") == 0 && call->data.call.arg_count == 2) {
+            char *f = emit_expression(call->data.call.arguments[0], ctx);
+            char *i = emit_expression(call->data.call.arguments[1], ctx);
+            char *r = strdup_fmt("pgy_fsm_step(&%s, %s)", f, i);
+            free(f); free(i); return r;
+        }
+        if (strcmp(fn, "FsmCurrent") == 0 && call->data.call.arg_count == 1) {
+            char *f = emit_expression(call->data.call.arguments[0], ctx);
+            char *r = strdup_fmt("pgy_fsm_current(&%s)", f);
+            free(f); return r;
+        }
+        if (strcmp(fn, "FsmCurrentName") == 0 && call->data.call.arg_count == 1) {
+            char *f = emit_expression(call->data.call.arguments[0], ctx);
+            char *r = strdup_fmt("pgy_fsm_current_name(&%s)", f);
+            free(f); return r;
+        }
+        /* Timer builtins */
+        if (strcmp(fn, "TimerNew") == 0 && call->data.call.arg_count == 1) {
+            char *d = emit_expression(call->data.call.arguments[0], ctx);
+            char *r = strdup_fmt("pgy_timer_new(%s)", d);
+            free(d); return r;
+        }
+        if (strcmp(fn, "TimerTick") == 0 && call->data.call.arg_count == 2) {
+            char *t = emit_expression(call->data.call.arguments[0], ctx);
+            char *d = emit_expression(call->data.call.arguments[1], ctx);
+            char *r = strdup_fmt("pgy_timer_tick(&%s, %s)", t, d);
+            free(t); free(d); return r;
+        }
+        if (strcmp(fn, "TimerRemaining") == 0 && call->data.call.arg_count == 1) {
+            char *t = emit_expression(call->data.call.arguments[0], ctx);
+            char *r = strdup_fmt("pgy_timer_remaining(&%s)", t);
+            free(t); return r;
+        }
+        if (strcmp(fn, "TimerDone") == 0 && call->data.call.arg_count == 1) {
+            char *t = emit_expression(call->data.call.arguments[0], ctx);
+            char *r = strdup_fmt("pgy_timer_done(&%s)", t);
+            free(t); return r;
+        }
+        if (strcmp(fn, "TimerReset") == 0 && call->data.call.arg_count == 1) {
+            char *t = emit_expression(call->data.call.arguments[0], ctx);
+            char *r = strdup_fmt("pgy_timer_reset(&%s)", t);
+            free(t); return r;
+        }
+        if (strcmp(fn, "CooldownNew") == 0 && call->data.call.arg_count == 1) {
+            char *c = emit_expression(call->data.call.arguments[0], ctx);
+            char *r = strdup_fmt("pgy_cooldown_new(%s)", c);
+            free(c); return r;
+        }
+        if (strcmp(fn, "CooldownTick") == 0 && call->data.call.arg_count == 2) {
+            char *c = emit_expression(call->data.call.arguments[0], ctx);
+            char *d = emit_expression(call->data.call.arguments[1], ctx);
+            char *r = strdup_fmt("pgy_cooldown_tick(&%s, %s)", c, d);
+            free(c); free(d); return r;
+        }
+        if (strcmp(fn, "CooldownReady") == 0 && call->data.call.arg_count == 1) {
+            char *c = emit_expression(call->data.call.arguments[0], ctx);
+            char *r = strdup_fmt("pgy_cooldown_ready(&%s)", c);
+            free(c); return r;
+        }
+        if (strcmp(fn, "CooldownTrigger") == 0 && call->data.call.arg_count == 1) {
+            char *c = emit_expression(call->data.call.arguments[0], ctx);
+            char *r = strdup_fmt("pgy_cooldown_trigger(&%s)", c);
+            free(c); return r;
+        }
+        if (strcmp(fn, "MapSetStr") == 0 && call->data.call.arg_count == 3) {
+            char *m = emit_expression(call->data.call.arguments[0], ctx);
+            char *k = emit_expression(call->data.call.arguments[1], ctx);
+            char *v = emit_expression(call->data.call.arguments[2], ctx);
+            char *result = strdup_fmt("pgy_map_set_string(&%s, %s, %s)", m, k, v);
+            free(m); free(k); free(v);
+            return result;
+        }
+        if (strcmp(fn, "MapGetStr") == 0 && call->data.call.arg_count == 2) {
+            char *m = emit_expression(call->data.call.arguments[0], ctx);
+            char *k = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("pgy_map_get_string(&%s, %s)", m, k);
+            free(m); free(k);
+            return result;
+        }
+    }
+
+    return NULL;
+}
+
+static char *
+emit_call_event_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
+{
+    if (callee->type == AST_IDENTIFIER) {
+        const char *name = callee->data.identifier.name;
+        if (find_event_decl(ctx, name) != NULL) {
+            CodeBuf *args_buf = codebuf_create();
+            for (size_t i = 0; i < call->data.call.arg_count; i++) {
+                char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                if (i > 0)
+                    codebuf_write(args_buf, ", ");
+                codebuf_write(args_buf, "%s", arg);
+                free(arg);
+            }
+
+            char *result = strdup_fmt("%s_INVOKE(&%s%s%s)",
+                                      name, name,
+                                      args_buf->len > 0 ? ", " : "",
+                                      args_buf->data);
+            codebuf_destroy(args_buf);
+            return result;
+        }
+    }
+
+    return NULL;
+}

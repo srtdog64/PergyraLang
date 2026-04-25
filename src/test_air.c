@@ -464,6 +464,121 @@ test_air_rejects_mismatched_authority_evidence(void)
 }
 
 static bool
+test_air_world_boundary_requires_transfer_evidence(void)
+{
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "Checkout", .ast = NULL },
+    };
+    DIRIntentStep steps[] = {
+        {
+            .index = 0,
+            .name = "Handoff",
+            .transfer_from_alias = "cart",
+            .transfer_to_alias = "payment",
+        },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    RIROp unrelated_ops[] = {
+        { .kind = RIR_OP_AUTHORIZE, .subject = "buyer" },
+    };
+    RIRScope scopes[] = {
+        {
+            .kind = RIR_SCOPE_INTENT,
+            .name = "Checkout",
+            .ops = unrelated_ops,
+            .op_count = 1,
+        },
+    };
+    RIRProgram rir = {
+        .scopes = scopes,
+        .scope_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air = air_synthesize(NULL, &dir, &rir, &error);
+    bool found = false;
+
+    if (air != NULL) {
+        for (size_t i = 0; i < air->drift_count; i++) {
+            if (air->drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+                && strstr(air->drifts[i].message,
+                          "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING") != NULL
+                && strstr(air->drifts[i].message, "implementation boundary 'payment'") != NULL) {
+                found = true;
+                break;
+            }
+        }
+    }
+
+    bool ok = air != NULL
+        && air->boundary_count == 1
+        && air->boundaries[0].kind == AIR_BOUNDARY_WORLD
+        && !air->boundaries[0].has_rir_boundary_evidence
+        && found;
+    air_destroy(air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_world_boundary_accepts_transfer_evidence(void)
+{
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "Checkout", .ast = NULL },
+    };
+    DIRIntentStep steps[] = {
+        {
+            .index = 0,
+            .name = "Handoff",
+            .transfer_from_alias = "cart",
+            .transfer_to_alias = "payment",
+        },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    RIROp transfer_ops[] = {
+        { .kind = RIR_OP_MOVE, .subject = "cart", .arg0 = "payment", .arg1 = "Handoff" },
+        { .kind = RIR_OP_CLAIM, .subject = "payment", .arg0 = "cart", .arg1 = "Handoff" },
+    };
+    RIRScope scopes[] = {
+        {
+            .kind = RIR_SCOPE_INTENT,
+            .name = "Checkout",
+            .ops = transfer_ops,
+            .op_count = 2,
+        },
+    };
+    RIRProgram rir = {
+        .scopes = scopes,
+        .scope_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air = air_synthesize(NULL, &dir, &rir, &error);
+    bool ok = air != NULL
+        && air->boundary_count == 1
+        && air->boundaries[0].kind == AIR_BOUNDARY_WORLD
+        && air->boundaries[0].has_rir_boundary_evidence
+        && air->drift_count == 0;
+    air_destroy(air);
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_lowers_from_source_without_drift(void)
 {
     const char *source =
@@ -504,6 +619,237 @@ test_air_lowers_from_source_without_drift(void)
     return ok;
 }
 
+static bool
+test_air_synthesizes_spawn_boundary_from_step_ast(void)
+{
+    ASTNode intent_ast = { .line = 20, .column = 1 };
+    ASTNode *step_ast = ast_create_intent_step("dispatch");
+    ASTNode *call = ast_create_call(ast_create_identifier("Worker"));
+    ASTNode *spawn = ast_create_spawn_expression(call);
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "ShipOrder", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        { .index = 0, .name = "dispatch", .ast = step_ast },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air;
+    bool found_sync_drift = false;
+    bool found_evidence_drift = false;
+    bool ok;
+
+    if (step_ast == NULL || call == NULL || spawn == NULL) {
+        ast_destroy(step_ast);
+        if (spawn == NULL)
+            ast_destroy(call);
+        ast_destroy(spawn);
+        return false;
+    }
+    step_ast->line = 21;
+    step_ast->column = 5;
+    spawn->line = 22;
+    spawn->column = 9;
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(1, sizeof(ASTNode *));
+    if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(step_ast);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs[0] = spawn;
+    step_ast->data.intent_step.on_expr_count = 1;
+
+    air = air_synthesize(NULL, &dir, NULL, &error);
+    if (air != NULL) {
+        for (size_t i = 0; i < air->drift_count; i++) {
+            if (air->drifts[i].kind == AIR_DRIFT_SYNC_ASYNC_CONFLICT)
+                found_sync_drift = true;
+            if (air->drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING)
+                found_evidence_drift = true;
+        }
+    }
+
+    ok = air != NULL
+        && air->intent_count == 1
+        && air->boundary_count == 1
+        && air->boundaries[0].kind == AIR_BOUNDARY_PARALLEL
+        && strcmp(air->boundaries[0].source_name, "spawn") == 0
+        && air->boundaries[0].ast == spawn
+        && air->boundaries[0].sync_class == AIR_SYNC_ASYNC
+        && found_sync_drift
+        && found_evidence_drift;
+    air_destroy(air);
+    free(error);
+    ast_destroy(step_ast);
+    return ok;
+}
+
+static bool
+test_air_synthesizes_io_boundary_without_sync_drift(void)
+{
+    ASTNode intent_ast = { .line = 30, .column = 1 };
+    ASTNode *step_ast = ast_create_intent_step("load");
+    ASTNode *call = ast_create_call(ast_create_identifier("ReadFile"));
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "LoadConfig", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        { .index = 0, .name = "load", .ast = step_ast },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air;
+    bool found_sync_drift = false;
+    bool ok;
+
+    if (step_ast == NULL || call == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(call);
+        return false;
+    }
+    step_ast->line = 31;
+    step_ast->column = 5;
+    call->line = 32;
+    call->column = 9;
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(1, sizeof(ASTNode *));
+    if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(call);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs[0] = call;
+    step_ast->data.intent_step.on_expr_count = 1;
+
+    air = air_synthesize(NULL, &dir, NULL, &error);
+    if (air != NULL) {
+        for (size_t i = 0; i < air->drift_count; i++) {
+            if (air->drifts[i].kind == AIR_DRIFT_SYNC_ASYNC_CONFLICT)
+                found_sync_drift = true;
+        }
+    }
+
+    ok = air != NULL
+        && air->intent_count == 1
+        && air->boundary_count == 1
+        && air->boundaries[0].kind == AIR_BOUNDARY_IO
+        && strcmp(air->boundaries[0].source_name, "ReadFile") == 0
+        && air->boundaries[0].ast == call
+        && air->boundaries[0].sync_class == AIR_SYNC_EITHER
+        && !found_sync_drift;
+    air_destroy(air);
+    free(error);
+    ast_destroy(step_ast);
+    return ok;
+}
+
+static bool
+test_air_parsed_io_boundary_reports_missing_evidence(void)
+{
+    const char *source =
+        "subject Loader { let hp: Int; }\n"
+        "zone LoadZone {\n"
+        "    subject slot loader: Loader\n"
+        "}\n"
+        "intent Load(load: LoadZone, loader: Loader) {\n"
+        "    step read {\n"
+        "        where: LoadZone;\n"
+        "        using: load;\n"
+        "        who: loader;\n"
+        "        on: ReadFile(\"missing.txt\");\n"
+        "        expect: true;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n";
+    AIRProgram *air = lower_air_from_source(source);
+    bool found = false;
+
+    if (air != NULL) {
+        for (size_t i = 0; i < air->drift_count; i++) {
+            if (air->drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+                && strstr(air->drifts[i].message,
+                          "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING") != NULL) {
+                found = true;
+                break;
+            }
+        }
+    }
+
+    bool ok = air != NULL
+        && air->boundary_count >= 2
+        && air->drift_count >= 1
+        && found;
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_parsed_transfer_emits_zone_and_world_boundaries(void)
+{
+    const char *source =
+        "subject Buyer { let hp: Int; action Promote(self) -> Void { hp = hp + 1; } }\n"
+        "zone CartZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    authority buyer\n"
+        "}\n"
+        "zone PaymentZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    authority buyer\n"
+        "}\n"
+        "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+        "    step Handoff {\n"
+        "        where: PaymentZone;\n"
+        "        using: payment;\n"
+        "        transfer: cart -> payment;\n"
+        "        who: buyer;\n"
+        "        authorized by: buyer;\n"
+        "        on: buyer.Promote();\n"
+        "        expect: true;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n";
+    AIRProgram *air = lower_air_from_source(source);
+    bool found_zone = false;
+    bool found_world = false;
+
+    if (air != NULL) {
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            if (air->boundaries[i].kind == AIR_BOUNDARY_ZONE
+                && strcmp(air->boundaries[i].source_name, "PaymentZone") == 0) {
+                found_zone = true;
+            }
+            if (air->boundaries[i].kind == AIR_BOUNDARY_WORLD
+                && strcmp(air->boundaries[i].source_name, "payment") == 0) {
+                found_world = true;
+            }
+        }
+    }
+
+    bool ok = air != NULL
+        && air->drift_count == 0
+        && air->boundary_count >= 2
+        && found_zone
+        && found_world;
+    air_destroy(air);
+    return ok;
+}
+
 int
 main(void)
 {
@@ -530,8 +876,26 @@ main(void)
     TEST("AIR strict evidence rejects mismatched authority participant");
     EXPECT(test_air_rejects_mismatched_authority_evidence());
 
+    TEST("AIR world boundary requires transfer evidence");
+    EXPECT(test_air_world_boundary_requires_transfer_evidence());
+
+    TEST("AIR world boundary accepts transfer evidence");
+    EXPECT(test_air_world_boundary_accepts_transfer_evidence());
+
     TEST("AIR lowers parsed intent source without drift");
     EXPECT(test_air_lowers_from_source_without_drift());
+
+    TEST("AIR synthesis captures spawn boundary from intent step AST");
+    EXPECT(test_air_synthesizes_spawn_boundary_from_step_ast());
+
+    TEST("AIR synthesis captures IO boundary without sync drift");
+    EXPECT(test_air_synthesizes_io_boundary_without_sync_drift());
+
+    TEST("AIR parsed IO boundary reports missing evidence");
+    EXPECT(test_air_parsed_io_boundary_reports_missing_evidence());
+
+    TEST("AIR parsed transfer emits zone and world boundaries");
+    EXPECT(test_air_parsed_transfer_emits_zone_and_world_boundaries());
 
     printf("\nAIR tests: %d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

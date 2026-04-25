@@ -7,6 +7,7 @@ Related documents:
 - `docs/74_slot_pinning_caching.md`
 - `docs/100_beta_readiness_checklist.md`
 - `docs/104_air_compiler_architecture.md`
+- `docs/114_async_model_positioning.md` — sister positioning doc for concurrency
 - `docs/semantics/04_ownership_abi.md`
 
 ## 1. Purpose

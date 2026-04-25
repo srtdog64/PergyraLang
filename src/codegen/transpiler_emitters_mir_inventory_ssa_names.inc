@@ -231,7 +231,7 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
         if (lookup_typed_var(ctx, base_name) == NULL && !is_slot_var(ctx, base_name))
             return true;
     }
-    if (current_world_has_field(ctx, base_name))
+    if (transpiler_current_world_has_field(ctx, base_name))
         return true;
     if (!in_zone_context && host_name != NULL) {
         ASTNode *zone_decl = find_zone_decl(ctx, host_name);
@@ -359,7 +359,7 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
         case AST_IDENTIFIER:
             return transpiler_find_local_type_name(ctx, func_decl, expr->data.identifier.name);
         case AST_MEMBER_ACCESS: {
-            const char *resolved = resolve_nominal_host_expr_type_name(ctx, expr);
+            const char *resolved = transpiler_resolve_nominal_host_expr_type_name(ctx, expr);
             if (resolved != NULL && resolved[0] != '\0')
                 return resolved;
             if (expr->data.member.object != NULL && expr->data.member.name != NULL) {

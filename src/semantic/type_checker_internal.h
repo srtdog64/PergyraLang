@@ -13,6 +13,10 @@ bool type_is_move_token(const Type *type);
 bool type_is_resource_handle(const Type *type);
 bool type_is_anchored_resource_handle(const Type *type);
 bool type_is_movable_resource_handle(const Type *type);
+bool semantic_find_active_slot_view(Scope *scope,
+                                    const char **view_name_out,
+                                    const char **view_kind_out,
+                                    const char **source_slot_out);
 bool type_is_general_boundary_type(const Type *type, SemanticContext *ctx);
 bool type_is_capability_bearing(const Type *type);
 bool type_is_subject_type(const Type *type, SemanticContext *ctx);

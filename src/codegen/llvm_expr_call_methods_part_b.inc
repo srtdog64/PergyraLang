@@ -1,3 +1,28 @@
+static LLVMValueRef
+llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
+{
+    ASTNode *obj_node = node->data.call.callee->data.member.object;
+    const char *method_name = node->data.call.callee->data.member.name;
+    LLVMValueRef handled;
+
+    handled = llvm_emit_member_call_vtable_dispatch(node, ctx, obj_node, method_name);
+    if (handled != NULL)
+        return handled;
+
+    handled = llvm_emit_member_call_slot_method(node, ctx, obj_node, method_name);
+    if (handled != NULL)
+        return handled;
+
+    handled = llvm_emit_member_call_slice(node, ctx, obj_node, method_name);
+    if (handled != NULL)
+        return handled;
+
+    if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
+        && method_name != NULL) {
+        if (llvm_is_upper_ident(obj_node)) {
+            size_t fn_len = strlen(obj_node->data.identifier.name) + 1 + strlen(method_name) + 1;
+            char *full_name = pgy_arena_alloc(&ctx->scratch, fn_len);
+            if (full_name == NULL)
                 return LLVMConstInt(ctx->type_i32, 0, 0);
             snprintf(full_name, fn_len, "%s_%s",
                      obj_node->data.identifier.name, method_name);

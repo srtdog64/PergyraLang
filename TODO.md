@@ -21,7 +21,16 @@
   release-after-unpin.
 - `runtime-panic-abi-test-smoke` now covers forged zero-token read/write/release
   rejection for inline C runtime and exported C/LLVM-linkable secure-slot
-  entrypoints. Authority-token mismatch is now a real runtime contract surface:
+  entrypoints. SecureSlot token ABI is now build-mode stable: inline C,
+  exported runtime, and LLVM-linkable runtime use the same `PgyToken<T>` layout
+  with read/write capability bits, and no-`PGY_SAFE_SLOTS` invalid-token /
+  released-slot secure paths remain hard-fail checked. The old release-mode
+  SecureSlot macro has been removed so future inline ABI drift is blocked.
+  `pgy_abi_spec.h` now includes debug/release SecureSlot layout rows for all
+  stable primitive payloads (`Int`, `Long`, `Float`, `Double`, `Bool`,
+  `String`), and `make test-abi` checks runtime size/token offsets against the
+  spec.
+  Authority-token mismatch is now a real runtime contract surface:
   `authority-token-mismatch` code/reason, queryable snapshot state, `make
   test-security` direct coverage, `authority_failure_abi` C/LLVM ABI coverage,
   and `authority_failure_surface` backend-compare coverage. The remaining
@@ -42,8 +51,8 @@
 - The old `semantic_type_resolution_resolve_or_fallback(...)` helper is removed;
   `type-resolution-resolver-inventory-test-smoke` caps named fallback seams at 0
   and fails if new owner-local fallback users appear.
-- Latest DAG smoke stats: `graph-backed skips=3133 metadata_entries=1877
-  metadata_owned=111 metadata_hits=3267 materializer_fallbacks=4135
+- Latest DAG smoke stats: `graph-backed skips=3137 metadata_entries=2044
+  metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135
   legacy_alias=83 legacy_non_alias=0 alias_materialized=5
   alias_diagnostic_fallback=78 alias_fallback_resolved=0
   alias_fallback_unresolved=78`.
@@ -65,7 +74,7 @@
 - 보정 이유:
   - 기능 표면만 보면 core/foundation 구현은 넓지만, beta는 기능 개수가 아니라 end-to-end 신뢰도다
   - HIR/MIR CFG skeleton은 이미 있지만, 함수/action/intent body 안전성의 semantic source-of-truth가 아직 CFG/dataflow로 승격되지 않았다. all-path return, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary를 AST/helper traversal만으로 닫으면 strict beta 신뢰도가 부족하다
-  - AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline과 driver semantic-validation wiring이 들어왔다. Intent ↔ implementation drift 검출은 `docs/104_air_compiler_architecture.md`와 `make air-drift-test-smoke`로 gate에 들어왔고, strict evidence는 기본값으로 승격됐다. missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 되며, `authorized by` participant 이름과 RIR authority fact / authorize op subject가 일치해야 한다. authority evidence 누락 진단은 `Reason:` 안에 expected authority participant list를 포함한다. AIR drift message는 owned lifetime으로 관리되고 repeated drift check가 이전 message를 안전하게 해제하는 회귀 테스트가 있다. parsed-source missing-authority-evidence negative는 full driver JSON path에서 step source span과 `stage/code/cause_ir/fix_source`까지 고정됐다. `PGY_AIR_STRICT_EVIDENCE=0`은 개발/디버그 opt-out이다. `make air-backend-nonimpact-test-smoke`는 relaxed AIR와 default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set에서 같은 C/LLVM 텍스트를 생성하는지 비교한다. `make air-backend-nonimpact-full-test-smoke`는 full frozen backend-compare fixture sweep을 같은 방식으로 돌리고 Linux CI gate로 승격됐다. `make air-strict-backend-compare-test-smoke`는 strict evidence 상태에서 C/LLVM 실행 parity까지 검증한다. parser/lexer baseline JSON routing은 `stage`, `code`, `cause_ir`, `fix_source`까지 닫혔다. 남은 blocker는 AIR source negative 확장, Windows native evidence, parser-specific code split / multi-error accumulation이다
+  - AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline과 driver semantic-validation wiring이 들어왔다. Intent ↔ implementation drift 검출은 `docs/104_air_compiler_architecture.md`와 `make air-drift-test-smoke`로 gate에 들어왔고, strict evidence는 기본값으로 승격됐다. missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 되며, `authorized by` participant 이름과 RIR authority fact / authorize op subject가 일치해야 한다. authority evidence 누락 진단은 `Reason:` 안에 expected authority participant list를 포함한다. AIR drift message와 synthesized intent/boundary/authority name은 owned lifetime으로 관리되고, repeated drift check가 이전 message를 안전하게 해제하는 회귀 테스트와 parsed-source AIR teardown-safe boundary source 회귀가 있다. `where + transfer`는 더 이상 zone boundary 하나로 접히지 않고 zone boundary와 world-handoff boundary를 모두 합성한다. world-handoff evidence는 이제 matching RIR intent scope만으로 통과하지 않고 boundary source alias에 대한 RIR `Move`/`Claim` transfer op를 요구한다. parsed-source missing-authority-evidence negative와 parsed-source IO execution-boundary missing-evidence negative는 full driver JSON path에서 step source span과 `stage/code/cause_ir/fix_source`까지 고정됐다. expression boundary evidence는 더 이상 owner-name-only RIR scope match로 통과하지 않는다. `PGY_AIR_STRICT_EVIDENCE=0`은 개발/디버그 opt-out이다. `make air-backend-nonimpact-test-smoke`는 relaxed AIR와 default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set에서 같은 C/LLVM 텍스트를 생성하는지 비교한다. `make air-backend-nonimpact-full-test-smoke`는 full frozen backend-compare fixture sweep을 같은 방식으로 돌리고 Linux CI gate로 승격됐다. `make air-strict-backend-compare-test-smoke`는 strict evidence 상태에서 C/LLVM 실행 parity까지 검증한다. parser/lexer baseline JSON routing은 `stage`, `code`, `cause_ir`, `fix_source`까지 닫혔다. 남은 blocker는 AIR transfer/world source negative 확장, Windows native evidence, parser-specific code split / multi-error accumulation이다
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
   - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 50%로 본다
@@ -137,17 +146,34 @@
 - [ ] Intent formal closure: step ordering, compensation/rollback/invalidation, effect propagation, observability ABI stability를 beta-stable contract로 고정한다.
 - [ ] Zone/world/authority/handoff formal closure: zone generation, world embedding, handoff frontier, projection freshness, authority rejection query surface를 beta-stable contract로 고정한다.
 - [ ] Diagnostic quality gate: 모든 user-facing error가 severity, stable code, source span when available, `Reason:`, `Fix:`를 갖도록 품질 기준을 registry smoke와 별도 gate로 둔다.
+  - 진행: intent clause explicit reject 중 `spawn`/channel control-transfer AST가 parser source span을 보존하도록 고쳤고, `make diagnostics-json-test-smoke`가 `on: spawn ...`와 `on: ch <- value`의 `PGY_SEM_INTENT_STEP_INVALID` JSON line/column + `cause_ir` + `fix_source`를 고정한다.
 - [ ] Cross-platform CI matrix: Linux/WSL, Windows native/MSYS2/MinGW, macOS의 support level을 stable/experimental/out-of-beta로 명시한다.
   - 진행: Windows LLVM support detection은 executable `llvm-config --libs core` evidence가 있을 때만 `WINDOWS_LLVM_READY=1`이 되도록 좁혔다. `C:/Program Files/LLVM/lib` 같은 library folder 존재만으로 LLVM smoke/backend-compare를 실행하지 않는다. 현재 beta 계약은 Linux C+LLVM, Windows C-only이며 Windows LLVM은 실제 MSYS2 runner green evidence가 생길 때만 승격한다.
   - 진행: README support matrix에 macOS는 dedicated runner/support contract가 생길 때까지 out-of-beta로 명시했다.
-- [ ] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 범위를 한 곳에서 freeze한다.
-- [ ] Stdlib beta freeze list: stable/experimental/out-of-beta API와 breaking-change policy를 명시한다.
-- [ ] Tooling conformance: LSP/fmt/debugger의 beta-stable 범위를 명시한다.
-- [ ] Package/module resolver surface: manifest, version resolution, import path, supply-chain integrity를 stable/experimental/out-of-beta로 분류한다.
-- [ ] Test quality gate: pre-beta mandatory suite, fuzz/property status, coverage/perf baseline을 추적한다.
-- [ ] Observability/tracing schema: event schema, intent history, authority failure state, runtime registry, trace format version을 고정한다.
-- [ ] Memory/concurrency model: `parallel`, task, channel, cancellation, visibility/happens-before 최소 계약을 문서화한다.
-- [ ] String/unicode policy: normalization, comparison, locale, escape handling, unsupported policy를 명시한다.
+- [~] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 범위를 `docs/107_beta_stable_subset.md`에서 freeze한다. 남은 일은 이 문서의 각 stable 항목을 해당 semantic/runtime/C/LLVM regression row와 1:1로 연결하는 것이다.
+- [~] Stdlib beta freeze list: stable/experimental/out-of-beta API와 breaking-change policy를 명시한다.
+  - 진행: `docs/108_stdlib_beta_freeze.md`가 builtin stdlib, stable `use` modules, known experimental modules, out-of-beta ecosystem work를 분리한다. `make stdlib-test-smoke`가 builtin stdlib probe와 stable `use` module probe를 C/LLVM 양쪽에서 고정한다. 남은 일은 third-party package/version/supply-chain policy다.
+- [~] Tooling conformance: LSP/fmt/debugger의 beta-stable 범위를 명시한다.
+  - 진행: `make tooling-conformance-test-smoke`가 formatter idempotence/compile smoke, LSP initialize/hover/completion capability, debugger CLI parse+semantic+quit path를 executable gate로 고정한다. DAP, binary breakpoint, variable watch, rich refactor, multi-file workspace LSP는 아직 beta-stable tooling subset이 아니다.
+- [~] Package/module resolver surface: manifest, version resolution, import path, supply-chain integrity를 stable/experimental/out-of-beta로 분류한다.
+  - 진행: `docs/109_package_module_resolver_contract.md`가 beta-stable module surface를 `import "relative/path.pgy";`, importing-file-relative resolution, namespace/export visibility, circular import rejection으로 고정했다. package surface는 `pgy init <name>` scaffolding만 stable이다.
+  - 진행: `pgy install`은 더 이상 소스 파일 경로로 오인되지 않고 explicit out-of-beta rejection을 낸다. `make package-module-resolver-test-smoke`가 doc contract, `pgy init`, `pgy install` reject, missing import JSON, circular import JSON을 고정한다.
+  - 남음: dependency version solving, lockfile, registry, checksum/signature verification, remote import, supply-chain integrity는 beta 이후 resolver/package-manager track으로 유지한다.
+- [~] Test quality gate: pre-beta mandatory suite, fuzz/property status, coverage/perf baseline을 추적한다.
+  - 진행: `docs/111_beta_test_suite_freeze.md`가 mandatory pre-beta gates, platform gates, fuzz/property/coverage non-claims, regression policy를 freeze했다. `make beta-test-suite-freeze-test-smoke`가 freeze doc과 Makefile target 존재를 검사한다.
+  - 남음: 실제 fuzz corpus, property-based generator, coverage percentage threshold는 beta 이후 품질 트랙으로 유지한다. 현재 beta gate는 named stable-surface coverage다.
+- [~] Observability/tracing schema: event schema, intent history, authority failure state, runtime registry, trace format version을 고정한다.
+  - 진행: `docs/112_observability_trace_schema.md`가 beta-stable schema를 `IntentLast*`, `IntentHistory*`, `IntentActive*`, `IntentRecent*`, authority failure snapshot(`ok/zone/participant/code/reason`), runtime-borrowed string ABI, C/LLVM identical trace output으로 고정했다.
+  - 진행: `make observability-schema-test-smoke`가 `intent_trace_abi`, `intent_recent_abi`, `intent_active_abi`, `intent_failure_abi`, `authority_failure_abi`를 C/LLVM 양쪽에서 expected stdout과 비교한다.
+  - 남음: general event streaming, structured JSON trace export, distributed trace correlation, user-code registry hooks, stable binary trace format, richer multi-instance timeline query는 beta 이후로 유지한다.
+- [~] Memory/concurrency model: `parallel`, task, channel, cancellation, visibility/happens-before 최소 계약을 문서화한다.
+  - 진행: `docs/113_memory_concurrency_model.md`가 beta-stable happens-before, channel, cancellation, explicit out-of-beta memory model 범위를 고정했다. `parallel` join visibility, shared `ref`/`ref` 허용, `ref`/`own` 및 `own`/`own` task-boundary reject, copy-only non-blocking receive/cancel/close를 stable contract로 묶었다.
+  - 진행: `make memory-concurrency-model-test-smoke`가 `parallel-core-contract-test-smoke`와 targeted C/LLVM backend compare(`parallel_channel_sum`, `parallel_channel_dual`, `triple_paradigm`)를 실행한다.
+  - 남음: full weak-memory ordering, user-selectable memory order, scheduler fairness guarantee, lock-free correctness, anonymous async closure capture/lifetime, cross-thread `Arc<T>` / `Send` / `Sync` trait system은 beta 이후로 유지한다.
+- [~] String/unicode policy: normalization, comparison, locale, escape handling, unsupported policy를 명시한다.
+  - 진행: `docs/110_string_unicode_policy.md`가 UTF-8 string payload preservation, byte-length `StringLength`, byte-exact/normalization-blind equality/search를 beta-stable로 고정했다.
+  - 진행: Unicode identifiers, normalization, locale-sensitive collation/case folding, grapheme iteration, display width, mixed-encoding source files는 explicit out-of-beta로 고정했다. `make unicode-policy-test-smoke`가 C/LLVM UTF-8 string execution과 Unicode identifier reject를 검증한다.
+  - 남음: full Unicode text model을 도입하려면 post-beta에 scalar/grapheme/locale vocabulary와 별도 stdlib text module을 설계한다.
 
 Checklist source of truth:
 
@@ -170,7 +196,7 @@ Checklist source of truth:
 - `P3`: type-category vocabulary를 2-3층으로 압축
 - `P4`: 빌드/샌드박스/중간-stage JSON/artifact 문제를 공식 경로 기준으로 정리
 - `P9`: arena 패턴을 scratch/result lifetime 기준으로 명시 도입
-- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access는 Pin/Lease 문서 기준으로 분리한다. 기본 path는 매 접근 검증이고, fast path는 scope-entry capability lease + automatic unpin cleanup이어야 한다. Runtime ABI baseline은 `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` 회귀로 시작했고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence를 닫았다. Candidate source syntax `pin slot as view { ... }`는 CFG cleanup/backend parity가 닫힐 때까지 parser explicit reject로 봉인했고 `make diagnostics-json-test-smoke`가 JSON route를 검증한다. Pin/Lease semantic diagnostic vocabulary는 `PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`로 registry/docs에 고정했고 `make diagnostic-registry-test-smoke`와 `make beta-readiness-checklist-test-smoke`가 drift를 막는다. Generic ownership baseline은 unresolved `TYPE_KIND_GENERIC`을 `BORROW_TRACKED`로 분류해 generic `own/ref`가 조용히 copy-only로 통과하지 못하게 막는다. 남은 것은 stable language surface, CFG cleanup edge, 실제 semantic emit, QubitSlot/await/parallel explicit rejects, C/LLVM parity다. Source of truth: `docs/74_slot_pinning_caching.md`
+- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access는 Pin/Lease 문서 기준으로 분리한다. 기본 path는 매 접근 검증이고, fast path는 scope-entry capability lease + automatic unpin cleanup이어야 한다. Runtime ABI baseline은 `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` 회귀로 시작했고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence를 닫았다. Candidate source syntax `pin slot as view { ... }`는 CFG cleanup/backend parity가 닫힐 때까지 parser explicit reject로 봉인했고 `make diagnostics-json-test-smoke`가 JSON route를 검증한다. Pin/Lease semantic diagnostic vocabulary는 `PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`로 registry/docs에 고정했고 `make diagnostic-registry-test-smoke`와 `make beta-readiness-checklist-test-smoke`가 drift를 막는다. Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for return escape, await boundary, parallel boundary/acquisition, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline은 unresolved `TYPE_KIND_GENERIC`을 `BORROW_TRACKED`로 분류해 generic `own/ref`가 조용히 copy-only로 통과하지 못하게 막는다. 남은 것은 stable source syntax, block-scoped CFG cleanup edge, secure-token source diagnostic, C/LLVM parity다. Source of truth: `docs/74_slot_pinning_caching.md`
 - `P9c`: `Rc<T>` / `Weak<T>` 최소 subset은 beta-stable로 닫았다. 범위는 single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare다. 범위 밖 payload는 backend fallback이 아니라 semantic explicit reject다. `Arc<T>`, cross-thread shared ownership, generic/object payload 확장, default ARC는 beta 밖이다. Source of truth: `docs/100_beta_readiness_checklist.md`, `docs/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
 - `P10`: 모듈화/전파 고도화의 compile/runtime 속도 회귀를 별도 baseline으로 추적
 
@@ -489,9 +515,11 @@ Source of truth:
     - synthetic event-handler AST field 저장은 callable signature registry로 치환
     - `*error_message` heap return contract는 result-owned lane으로 수렴
     - 남은 heap 경계는 owner shell(`ctx`, registry destroy, result outer shell)과 runtime ABI contract 수준으로 축소
-    - 진행: intent observability와 authority failure snapshot의 stable runtime string exports는 `runtime-borrowed string` ABI로 고정했다. caller는 free하지 않고 다음 runtime registry/snapshot mutation 전까지만 유효하다
-    - 진행: `runtime-abi-lifetime-test-smoke`가 stable intent/authority 문자열 export body에서 allocation/free/strdup이 발생하지 않도록 검사한다
-    - 남음: helper payload와 runtime-owned handle ownership도 같은 수준의 smoke/문서 계약으로 확장해야 한다
+    - 진행: intent observability(`last/history/active/recent`)와 authority failure snapshot의 stable runtime string exports는 `runtime-borrowed string` ABI로 고정했다. caller는 free하지 않고 다음 runtime registry/snapshot mutation 전까지만 유효하다
+    - 진행: `runtime-abi-lifetime-test-smoke`가 stable intent last/history/active/recent 및 authority 문자열 export body에서 allocation/free/strdup이 발생하지 않도록 검사한다
+    - 진행: stable string helper returns는 `result-owned string`, stable string-array helper returns는 `result-owned array` ABI로 고정했다. `runtime-abi-lifetime-test-smoke`가 helper payload가 borrowed input pointer, stack buffer, string literal을 반환하지 않고 allocation/copy된 payload를 반환하는지 검사한다
+    - 진행: stable file descriptor는 `runtime-owned handle` ABI로 고정했다. `pgy_file_open`은 닫힌 runtime table slot을 재사용하고, `pgy_file_close`는 table entry를 NULL로 비워 재사용 가능 상태로 만든다. `runtime-abi-lifetime-test-smoke`가 이 release/reuse contract를 검사한다
+    - 남음: file descriptor 외 runtime-owned handle ownership도 같은 수준의 smoke/문서 계약으로 확장해야 한다
   - 주의: 반환 계약이 있는 expression string은 아직 arena로 옮기지 않음
   - 주의: `slot_ref_expr(...)` scratch 전환 시도는 되돌림. 반환 ownership 경계를 먼저 나눠야 함
 

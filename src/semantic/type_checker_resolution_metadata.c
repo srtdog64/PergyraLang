@@ -165,8 +165,10 @@ semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
 
     if (type_node->type == AST_TYPE)
         resolved = metadata_builtin_singleton(type_node->data.type.name);
-    if (resolved != NULL)
+    if (resolved != NULL) {
+        semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
         return resolved;
+    }
 
     resolved = metadata_scope_named_type(ctx, type_node);
     if (resolved != NULL)
@@ -196,7 +198,11 @@ metadata_lookup_type_ref(SemanticContext *ctx, ASTNode *type_node)
         return resolved;
 
     if (type_node->type == AST_TYPE)
-        return metadata_builtin_singleton(type_node->data.type.name);
+        resolved = metadata_builtin_singleton(type_node->data.type.name);
+    if (resolved != NULL) {
+        semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
+        return resolved;
+    }
 
     resolved = metadata_scope_named_type(ctx, type_node);
     if (resolved != NULL)
@@ -287,6 +293,8 @@ metadata_builtin_singleton(const char *name)
         return TYPE_QUBIT;
     if (strcmp(name, "Void") == 0)
         return TYPE_VOID;
+    if (strcmp(name, "Allocator") == 0)
+        return TYPE_ALLOCATOR;
     return NULL;
 }
 

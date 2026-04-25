@@ -144,18 +144,30 @@ ASTNode* parser_parse_channel_expression(Parser* parser)
     // Handle channel operations: <- channel or channel <- value
     
     if (parser_match(parser, TOKEN_CHANNEL_OP)) {
+        Token op = parser->previous_token;
         // Receive: <-channel
         ASTNode* channel = parser_parse_primary(parser);
-        return ast_create_channel_recv(channel);
+        ASTNode *recv = ast_create_channel_recv(channel);
+        if (recv != NULL) {
+            recv->line = op.line;
+            recv->column = op.column;
+        }
+        return recv;
     }
     
     // Otherwise, parse as normal expression and check for send
     ASTNode* expr = parser_parse_primary(parser);
     
     if (parser_match(parser, TOKEN_CHANNEL_OP)) {
+        Token op = parser->previous_token;
         // Send: channel <- value
         ASTNode* value = parser_parse_expression(parser);
-        return ast_create_channel_send(expr, value);
+        ASTNode *send = ast_create_channel_send(expr, value);
+        if (send != NULL) {
+            send->line = op.line;
+            send->column = op.column;
+        }
+        return send;
     }
     
     return expr;
@@ -165,6 +177,7 @@ ASTNode* parser_parse_channel_expression(Parser* parser)
 ASTNode* parser_parse_spawn_expression(Parser* parser)
 {
     // 'spawn' keyword already consumed
+    Token spawn_token = parser->previous_token;
 
     // Check for 'spawn blocking <expr>' — offload to blocking thread pool
     bool is_blocking = false;
@@ -202,8 +215,11 @@ ASTNode* parser_parse_spawn_expression(Parser* parser)
         result = ast_create_spawn_expression(func_call);
     }
 
-    if (result != NULL)
+    if (result != NULL) {
         result->data.spawn_expr.is_blocking = is_blocking;
+        result->line = spawn_token.line;
+        result->column = spawn_token.column;
+    }
     return result;
 }
 

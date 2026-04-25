@@ -21,6 +21,13 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
+stable_subset_path = root / "docs" / "107_beta_stable_subset.md"
+stdlib_freeze_path = root / "docs" / "108_stdlib_beta_freeze.md"
+package_module_path = root / "docs" / "109_package_module_resolver_contract.md"
+unicode_policy_path = root / "docs" / "110_string_unicode_policy.md"
+test_suite_path = root / "docs" / "111_beta_test_suite_freeze.md"
+observability_schema_path = root / "docs" / "112_observability_trace_schema.md"
+memory_concurrency_path = root / "docs" / "113_memory_concurrency_model.md"
 readme_path = root / "README.md"
 slot_pin_path = root / "docs" / "74_slot_pinning_caching.md"
 ownership_path = root / "docs" / "106_ownership_model_comparison.md"
@@ -31,6 +38,20 @@ ci_path = root / ".github" / "workflows" / "ci.yml"
 makefile_path = root / "Makefile"
 if not checklist_path.exists():
     raise SystemExit("missing docs/100_beta_readiness_checklist.md")
+if not stable_subset_path.exists():
+    raise SystemExit("missing docs/107_beta_stable_subset.md")
+if not stdlib_freeze_path.exists():
+    raise SystemExit("missing docs/108_stdlib_beta_freeze.md")
+if not package_module_path.exists():
+    raise SystemExit("missing docs/109_package_module_resolver_contract.md")
+if not unicode_policy_path.exists():
+    raise SystemExit("missing docs/110_string_unicode_policy.md")
+if not test_suite_path.exists():
+    raise SystemExit("missing docs/111_beta_test_suite_freeze.md")
+if not observability_schema_path.exists():
+    raise SystemExit("missing docs/112_observability_trace_schema.md")
+if not memory_concurrency_path.exists():
+    raise SystemExit("missing docs/113_memory_concurrency_model.md")
 if not readme_path.exists():
     raise SystemExit("missing README.md")
 if not slot_pin_path.exists():
@@ -49,6 +70,13 @@ if not makefile_path.exists():
     raise SystemExit("missing Makefile")
 
 text = checklist_path.read_text(encoding="utf-8")
+stable_subset = stable_subset_path.read_text(encoding="utf-8")
+stdlib_freeze = stdlib_freeze_path.read_text(encoding="utf-8")
+package_module = package_module_path.read_text(encoding="utf-8")
+unicode_policy = unicode_policy_path.read_text(encoding="utf-8")
+test_suite = test_suite_path.read_text(encoding="utf-8")
+observability_schema = observability_schema_path.read_text(encoding="utf-8")
+memory_concurrency = memory_concurrency_path.read_text(encoding="utf-8")
 readme = readme_path.read_text(encoding="utf-8")
 slot_pin = slot_pin_path.read_text(encoding="utf-8")
 ownership = ownership_path.read_text(encoding="utf-8")
@@ -96,7 +124,25 @@ required_terms = [
     "shared ownership stable subset requires C/LLVM lifecycle parity",
     "explicitly rejected in semantic analysis",
     "Linux CI now installs `coq`",
+    "SecureSlot token ABI is now build-mode stable",
+    "old release-mode SecureSlot macro has been removed",
+    "docs/108_stdlib_beta_freeze.md",
+    "docs/109_package_module_resolver_contract.md",
+    "docs/110_string_unicode_policy.md",
+    "docs/111_beta_test_suite_freeze.md",
+    "docs/112_observability_trace_schema.md",
+    "docs/113_memory_concurrency_model.md",
+    "make stdlib-test-smoke",
+    "make package-module-resolver-test-smoke",
+    "make unicode-policy-test-smoke",
+    "make beta-test-suite-freeze-test-smoke",
+    "make observability-schema-test-smoke",
+    "make memory-concurrency-model-test-smoke",
     "make perf-contract-test-smoke",
+    "make tooling-conformance-test-smoke",
+    "LSP beta-stable: initialize capability response, keyword hover, and keyword completion",
+    "Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interactive quit path",
+    "DAP, binary breakpoints, variable watch, multi-file workspace indexing",
 ]
 
 missing_sections = [section for section in required_sections if section not in text]
@@ -106,6 +152,181 @@ if missing_sections:
 missing_terms = [term for term in required_terms if term not in text]
 if missing_terms:
     raise SystemExit("beta checklist missing gate term(s): " + ", ".join(missing_terms))
+
+stable_subset_terms = [
+    "Beta Stable Subset Contract",
+    "beta-freeze-source-of-truth",
+    "syntax -> semantic -> runtime ->",
+    "Core Stable Surface",
+    "Generic Contract Stable Subset",
+    "Ownership Stable Subset",
+    "Option C ownership lift",
+    "Collections Stable Subset",
+    "Intent / Zone / World / AIR Stable Subset",
+    "Backend And Tooling Contract",
+    "HashMap<String, T>",
+    "HashMap<Int, T>",
+    "HashMap<Long, T>",
+    "HashMap<Bool, T>",
+    "Token<T>` transport",
+    "SecureSlot<T>` token ABI is beta-stable across build modes and backends",
+    "WriteView<T>` is exclusive",
+    "pin slot as view { ... }",
+    "AIR Phase 1",
+    "Tooling beta-stable subset is exactly the `make tooling-conformance-test-smoke`",
+    "make air-strict-backend-compare-test-smoke",
+    "make stdlib-test-smoke",
+    "make package-module-resolver-test-smoke",
+    "make unicode-policy-test-smoke",
+    "make beta-test-suite-freeze-test-smoke",
+    "make observability-schema-test-smoke",
+    "make memory-concurrency-model-test-smoke",
+    "make tooling-conformance-test-smoke",
+    "macOS: C-only CI preflight",
+]
+missing_stable_subset_terms = [
+    term for term in stable_subset_terms if term not in stable_subset
+]
+if missing_stable_subset_terms:
+    raise SystemExit(
+        "stable subset doc missing term(s): "
+        + ", ".join(missing_stable_subset_terms)
+    )
+
+stdlib_freeze_terms = [
+    "Stdlib Beta Freeze",
+    "beta-freeze-source-of-truth",
+    "Stable Builtin Stdlib Surface",
+    "Stable `use` Modules",
+    "Known But Experimental Modules",
+    "`datetime`",
+    "`money`",
+    "`timer`",
+    "`versioning`",
+    "`ledger`",
+    "`obligation`",
+    "`device_adapter`",
+    "`http`: transport adapter draft",
+    "`storage`: persistence adapter draft",
+    "`page`: UI/page adapter draft",
+    "`spray`: GPU/Spray design placeholder",
+]
+missing_stdlib_terms = [
+    term for term in stdlib_freeze_terms if term not in stdlib_freeze
+]
+if missing_stdlib_terms:
+    raise SystemExit(
+        "stdlib freeze doc missing term(s): "
+        + ", ".join(missing_stdlib_terms)
+    )
+
+package_module_terms = [
+    "Package And Module Resolver Beta Contract",
+    "beta-freeze-source-of-truth",
+    "import \"relative/path.pgy\";",
+    "relative to the importing file",
+    "Only manifest scaffolding is beta-stable",
+    "`pgy install`",
+    "Dependency version solving",
+    "supply-chain integrity",
+    "remote imports",
+    "JSON diagnostics for module-load failures",
+    "make package-module-resolver-test-smoke",
+]
+missing_package_module_terms = [
+    term for term in package_module_terms if term not in package_module
+]
+if missing_package_module_terms:
+    raise SystemExit(
+        "package/module resolver doc missing term(s): "
+        + ", ".join(missing_package_module_terms)
+    )
+
+unicode_policy_terms = [
+    "String And Unicode Beta Policy",
+    "beta-freeze-source-of-truth",
+    "UTF-8 string payloads",
+    "StringLength` is byte-length for beta",
+    "byte-exact and normalization-blind",
+    "Unicode identifiers are not beta-stable",
+    "Locale-sensitive comparison",
+    "Grapheme-cluster iteration",
+    "make unicode-policy-test-smoke",
+]
+missing_unicode_policy_terms = [
+    term for term in unicode_policy_terms if term not in unicode_policy
+]
+if missing_unicode_policy_terms:
+    raise SystemExit(
+        "unicode policy doc missing term(s): "
+        + ", ".join(missing_unicode_policy_terms)
+    )
+
+test_suite_terms = [
+    "Beta Test Suite Freeze",
+    "beta-freeze-source-of-truth",
+    "Mandatory Pre-Beta Gates",
+    "Platform Gates",
+    "Explicitly Not Claimed Yet",
+    "Fuzz testing is out-of-beta",
+    "Property-based testing is out-of-beta",
+    "Coverage percentage is not yet a beta acceptance metric",
+    "make beta-test-suite-freeze-test-smoke",
+]
+missing_test_suite_terms = [
+    term for term in test_suite_terms if term not in test_suite
+]
+if missing_test_suite_terms:
+    raise SystemExit(
+        "beta test suite freeze doc missing term(s): "
+        + ", ".join(missing_test_suite_terms)
+    )
+
+observability_schema_terms = [
+    "Observability And Trace Schema Beta Contract",
+    "beta-freeze-source-of-truth",
+    "IntentLast*",
+    "IntentHistory*",
+    "IntentActive*",
+    "IntentRecent*",
+    "runtime-borrowed strings",
+    "authority-token-mismatch",
+    "newest-first",
+    "General event streaming schema",
+    "Structured JSON trace export",
+    "make observability-schema-test-smoke",
+]
+missing_observability_schema_terms = [
+    term for term in observability_schema_terms if term not in observability_schema
+]
+if missing_observability_schema_terms:
+    raise SystemExit(
+        "observability schema doc missing term(s): "
+        + ", ".join(missing_observability_schema_terms)
+    )
+
+memory_concurrency_terms = [
+    "Memory And Concurrency Model Beta Contract",
+    "beta-freeze-source-of-truth",
+    "parallel` is the core execution primitive",
+    "Named `spawn Worker(args...)`",
+    "A `parallel { ... }` block joins before control continues",
+    "Shared `ref`/`ref` reads",
+    "`ref`/`own` and `own`/`own` task-boundary conflicts are rejected",
+    "Non-blocking/timeout receive is copy-only for beta",
+    "ChannelClose(Channel<T>)` is copy-only for beta",
+    "Cancel(Future<T>)` and `Cancel(RemoteFuture<T>)` are copy-only",
+    "Full weak-memory ordering vocabulary",
+    "make memory-concurrency-model-test-smoke",
+]
+missing_memory_concurrency_terms = [
+    term for term in memory_concurrency_terms if term not in memory_concurrency
+]
+if missing_memory_concurrency_terms:
+    raise SystemExit(
+        "memory/concurrency model doc missing term(s): "
+        + ", ".join(missing_memory_concurrency_terms)
+    )
 
 if "현재 공식 beta readiness는 약 50%" not in text:
     raise SystemExit("beta readiness checklist must keep strict 50% readiness wording")
@@ -182,6 +403,16 @@ if missing_ownership_terms:
 
 abi_terms = [
     "Current runtime ABI note:",
+    "SecureSlot<T> keeps the same token layout and hard-fail checks across",
+    "typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_rel;",
+    "typedef struct { int64_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_long_rel;",
+    "typedef struct { float   value; bool occupied; uint64_t token; } pgy_abi_secure_slot_float_rel;",
+    "typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_slot_double_rel;",
+    "typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool_rel;",
+    "secure_slot_string_rel_same_token_offset_as_dbg",
+    "token_int_rel_same_size_as_dbg",
+    "token_int_rel_can_write_same_offset_as_dbg",
+    "token_int_rel_can_read_same_offset_as_dbg",
     "uint32 strong/weak counts plus an alive bit",
     "beta-stable shared ownership subset",
     "uint32_t strong_count;",
@@ -192,13 +423,15 @@ abi_terms = [
 missing_abi_terms = [term for term in abi_terms if term not in abi_spec]
 if missing_abi_terms:
     raise SystemExit(
-        "ABI spec missing Rc/Weak beta/shape term(s): "
+        "ABI spec missing beta ownership/shape term(s): "
         + ", ".join(missing_abi_terms)
     )
 
 ci_terms = [
     "sudo apt-get install -y gcc make llvm-dev llvm coq",
     "make ci-linux",
+    "build-macos-c-only",
+    "make ci-macos",
 ]
 missing_ci_terms = [term for term in ci_terms if term not in ci]
 if missing_ci_terms:
@@ -210,7 +443,15 @@ if missing_ci_terms:
 makefile_terms = [
     "WINDOWS_LLVM_READY :=",
     '"$(LLVM_CONFIG)" --libs core',
+    "ci-macos:",
+    "check-macos-toolchain:",
     "perf-contract-test-smoke:",
+    "tooling-conformance-test-smoke:",
+    "package-module-resolver-test-smoke:",
+    "unicode-policy-test-smoke:",
+    "beta-test-suite-freeze-test-smoke:",
+    "observability-schema-test-smoke:",
+    "memory-concurrency-model-test-smoke:",
     "ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare",
     "ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare",
 ]
@@ -229,7 +470,7 @@ readme_support_terms = [
     "Current CI support matrix:",
     "Linux: C backend + LLVM backend regression coverage",
     "Windows: C backend regression coverage always; LLVM smoke + backend compare run only when executable `llvm-config --libs core` evidence is present",
-    "macOS: out-of-beta until a dedicated runner and support contract are added",
+    "macOS: C-only CI preflight through `make ci-macos`; macOS LLVM/backend parity remains out-of-beta",
 ]
 missing_readme_terms = [term for term in readme_support_terms if term not in readme]
 if missing_readme_terms:

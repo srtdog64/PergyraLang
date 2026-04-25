@@ -30,7 +30,11 @@
 CC      = gcc
 CC_DUMP_MACHINE := $(shell $(CC) -dumpmachine 2>/dev/null || echo unknown)
 CC_MACHINE := $(CC_DUMP_MACHINE)
-ifeq ($(or $(findstring mingw,$(CC_DUMP_MACHINE)),$(MSYSTEM)),)
+ifneq ($(findstring darwin,$(CC_DUMP_MACHINE)),)
+OPENMP_FLAGS =
+THREAD_LINK_LIB =
+PLATFORM_CFLAGS =
+else ifeq ($(or $(findstring mingw,$(CC_DUMP_MACHINE)),$(MSYSTEM)),)
 OPENMP_FLAGS = -fopenmp
 THREAD_LINK_LIB = -lpthread
 PLATFORM_CFLAGS =
@@ -61,6 +65,9 @@ CI_LINUX_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-linux-build
 CI_LINUX_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-linux-bin
 CI_WINDOWS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-windows-build
 CI_WINDOWS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-windows-bin
+CI_MACOS_CC := $(or $(shell command -v cc 2>/dev/null),$(CC))
+CI_MACOS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-macos-build
+CI_MACOS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-macos-bin
 BASH := $(shell command -v bash 2>/dev/null)
 ifeq ($(strip $(BASH)),)
 BASH := bash
@@ -226,7 +233,14 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \
                    $(SEMANTIC_DIR)/slot_analyzer.c \
                    $(SEMANTIC_DIR)/semantic.c
-CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler.c
+CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
+                   $(CODEGEN_DIR)/transpiler_symbols.c \
+                   $(CODEGEN_DIR)/transpiler_decl_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_enum.c \
+                   $(CODEGEN_DIR)/transpiler_nominal.c \
+                   $(CODEGEN_DIR)/transpiler_operator.c \
+                   $(CODEGEN_DIR)/transpiler_projection.c \
+                   $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/dir.c \
                    $(COMPILER_DIR)/air.c \
@@ -661,6 +675,9 @@ fmt-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/fmt_smoke.sh
 
+tooling-conformance-test-smoke: $(PGY) $(PGY_LSP)
+	PGY_BIN="$(abspath $(PGY))" PGY_LSP_BIN="$(abspath $(PGY_LSP))" PGY_CC="$(CC)" "$(BASH)" tests/tooling_conformance_smoke.sh
+
 stdlib-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/stdlib_surface_smoke.sh
@@ -685,6 +702,21 @@ mir-declaration-inventory-test-smoke:
 
 module-taxonomy-test-smoke:
 	"$(BASH)" tests/module_taxonomy_smoke.sh
+
+package-module-resolver-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/package_module_resolver_smoke.sh
+
+unicode-policy-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/unicode_policy_smoke.sh
+
+beta-test-suite-freeze-test-smoke:
+	"$(BASH)" tests/beta_test_suite_freeze_smoke.sh
+
+observability-schema-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/observability_schema_smoke.sh
+
+memory-concurrency-model-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/memory_concurrency_model_smoke.sh
 
 beta-readiness-checklist-test-smoke:
 	"$(BASH)" tests/beta_readiness_checklist_smoke.sh
@@ -714,6 +746,12 @@ semantic-tu-size-test-smoke:
 
 backend-inc-size-test-smoke:
 	"$(BASH)" tests/backend_inc_size_smoke.sh
+
+test-inc-size-test-smoke:
+	"$(BASH)" tests/test_inc_size_smoke.sh
+
+inc-sentinel-test-smoke:
+	"$(BASH)" tests/inc_sentinel_smoke.sh
 
 semantic-core-shape-test-smoke:
 	"$(BASH)" tests/semantic_core_shape_smoke.sh
@@ -806,15 +844,32 @@ check-linux-toolchain:
 		exit 1; \
 	fi
 
+check-macos-toolchain:
+	@cc_machine="$$( $(CI_MACOS_CC) -dumpmachine 2>/dev/null || true )"; \
+	if echo "$$cc_machine" | grep -qi 'darwin'; then \
+		exit 0; \
+	fi; \
+	echo "ci-macos requires a native macOS/Darwin toolchain." >&2; \
+	echo "current CC: $(CI_MACOS_CC)" >&2; \
+	echo "detected target: $${cc_machine:-unknown}" >&2; \
+	echo "hint: run under GitHub Actions macos-latest or a native macOS shell." >&2; \
+	exit 1
+
 ci-linux:
 	$(MAKE) check-linux-toolchain
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" fmt-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" tooling-conformance-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" stdlib-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" module-test-smoke
 	$(MAKE) module-taxonomy-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" package-module-resolver-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" unicode-policy-test-smoke
+	$(MAKE) beta-test-suite-freeze-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" observability-schema-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" memory-concurrency-model-test-smoke
 	$(MAKE) beta-readiness-checklist-test-smoke
 	$(MAKE) formal-semantics-test-smoke
 	$(MAKE) air-drift-test-smoke
@@ -822,6 +877,8 @@ ci-linux:
 	$(MAKE) semantic-inc-size-test-smoke
 	$(MAKE) semantic-tu-size-test-smoke
 	$(MAKE) backend-inc-size-test-smoke
+	$(MAKE) test-inc-size-test-smoke
+	$(MAKE) inc-sentinel-test-smoke
 	$(MAKE) semantic-core-shape-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" type-resolution-dag-test-smoke
 	$(MAKE) type-resolution-resolver-inventory-test-smoke
@@ -848,6 +905,27 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
 
+ci-macos:
+	$(MAKE) check-macos-toolchain
+	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" clean
+	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" test-all
+	PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" fmt-test-smoke
+	PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" tooling-conformance-test-smoke
+	PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" stdlib-test-smoke
+	$(MAKE) module-taxonomy-test-smoke
+	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" package-module-resolver-test-smoke
+	PGY_UNICODE_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" unicode-policy-test-smoke
+	$(MAKE) beta-test-suite-freeze-test-smoke
+	PGY_OBSERVABILITY_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" observability-schema-test-smoke
+	PGY_MEMORY_CONCURRENCY_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" parallel-core-contract-test-smoke
+	$(MAKE) beta-readiness-checklist-test-smoke
+	$(MAKE) formal-semantics-test-smoke
+	$(MAKE) perf-contract-test-smoke
+	$(MAKE) test-inc-size-test-smoke
+	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" diagnostics-json-test-smoke
+	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" cfg-body-dataflow-test-smoke
+	$(MAKE) parser-lexer-diagnostic-test-smoke
+
 check-windows-toolchain:
 	@cc_machine="$$( $(CI_WINDOWS_CC) -dumpmachine 2>/dev/null || true )"; \
 	if [ -n "$${MSYSTEM:-}" ] || echo "$$cc_machine" | grep -qi 'mingw'; then \
@@ -869,6 +947,7 @@ ci-windows:
 		PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" fmt-test-smoke; \
 		PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" stdlib-test-smoke; \
 		PGY_EXAMPLE_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" example-test-smoke; \
+		$(MAKE) test-inc-size-test-smoke; \
 	elif echo "$(CI_WINDOWS_CC_MACHINE)" | grep -qi 'mingw'; then \
 		echo "ci-windows: cross MinGW toolchain detected; running build-only smoke"; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" windows-build-smoke; \
@@ -938,7 +1017,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke runtime-frontier-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke runtime-frontier-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

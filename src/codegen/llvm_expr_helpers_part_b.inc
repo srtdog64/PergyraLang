@@ -1,3 +1,110 @@
+static LLVMValueRef
+llvm_current_self_base_ptr(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls)
+{
+    LLVMVarEntry *self_var;
+
+    if (ctx == NULL || cls == NULL)
+        return NULL;
+
+    self_var = llvm_scope_lookup(ctx, "self");
+    if (self_var == NULL)
+        return NULL;
+
+    if (self_var->type == LLVMPointerType(cls->struct_type, 0))
+        return LLVMBuildLoad2(ctx->builder, self_var->type, self_var->alloca,
+            llvm_tmp_name(ctx));
+    return self_var->alloca;
+}
+
+static LLVMValueRef
+llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name, LLVMClassTypeEntry *cls)
+{
+    LLVMVarEntry *var;
+
+    if (ctx == NULL || name == NULL || cls == NULL)
+        return NULL;
+
+    var = llvm_scope_lookup(ctx, name);
+    if (var != NULL) {
+        LLVMValueRef base_ptr = var->alloca;
+        if (var->type == LLVMPointerType(cls->struct_type, 0)) {
+            base_ptr = LLVMBuildLoad2(ctx->builder, var->type, var->alloca,
+                llvm_tmp_name(ctx));
+        }
+        return base_ptr;
+    }
+
+    {
+        const char *host_name = llvm_current_host_class_name(ctx);
+        LLVMClassTypeEntry *parent_cls = host_name != NULL
+            ? llvm_lookup_class(ctx, host_name) : NULL;
+        int parent_field_idx;
+        LLVMValueRef self_ptr;
+        if (parent_cls == NULL)
+            return NULL;
+        parent_field_idx = llvm_class_field_index(parent_cls, name);
+        if (parent_field_idx < 0)
+            return NULL;
+        self_ptr = llvm_current_self_base_ptr(ctx, parent_cls);
+        if (self_ptr == NULL)
+            return NULL;
+        return LLVMBuildStructGEP2(ctx->builder, parent_cls->struct_type, self_ptr,
+            (unsigned)parent_field_idx, llvm_tmp_name(ctx));
+    }
+
+    return NULL;
+}
+
+static LLVMValueRef
+llvm_emit_projection_from_binding(LLVMGenCtx *ctx,
+                                  const char *target_class_name,
+                                  const char *source_name)
+{
+    const char *source_class_name;
+    LLVMClassTypeEntry *target_cls;
+    LLVMClassTypeEntry *source_cls;
+    ASTNode *source_decl;
+    LLVMVarEntry *source_var;
+    LLVMValueRef source_base;
+    LLVMValueRef projected;
+
+    if (ctx == NULL || target_class_name == NULL || source_name == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    target_cls = llvm_lookup_class(ctx, target_class_name);
+    source_var = llvm_scope_lookup(ctx, source_name);
+    source_class_name = llvm_lookup_var_class(ctx, source_name);
+    source_cls = source_class_name != NULL
+        ? llvm_lookup_class(ctx, source_class_name) : NULL;
+    source_decl = source_class_name != NULL
+        ? llvm_find_projection_nominal_decl(ctx, source_class_name) : NULL;
+    if (target_cls == NULL || source_var == NULL || source_cls == NULL || source_decl == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    source_base = source_var->alloca;
+    if (source_var->type == LLVMPointerType(source_cls->struct_type, 0)) {
+        source_base = LLVMBuildLoad2(ctx->builder, source_var->type,
+            source_var->alloca, llvm_tmp_name(ctx));
+    }
+
+    projected = LLVMGetUndef(target_cls->struct_type);
+    for (int i = 0; i < target_cls->field_count; i++) {
+        LLVMClassFieldInfo *field = &target_cls->fields[i];
+        LLVMValueRef field_val = llvm_load_projection_path_value(ctx, source_decl,
+            source_cls, source_base, field->field_name);
+        projected = LLVMBuildInsertValue(ctx->builder, projected, field_val,
+            (unsigned)field->index, llvm_tmp_name(ctx));
+    }
+    return projected;
+}
+
+static ASTNode *
+llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
+{
+    const char *host_name;
+
+    host_name = llvm_current_host_class_name(ctx);
+
     if (ctx == NULL || method_name == NULL || host_name == NULL)
         return NULL;
     return llvm_find_nominal_host_method_decl(ctx, host_name,
@@ -589,212 +696,3 @@ llvm_line_is_empty_with_only_ws(const char *line_start, const char *line_end)
 
 static char *llvm_normalize_banner_string_literal_scratch(const char *src,
                                                           PgyArena *arena);
-
-static char *
-llvm_normalize_banner_string_literal_scratch(const char *src, PgyArena *arena)
-{
-    const char *cursor = src;
-    const char *end;
-    size_t min_indent = 0;
-    bool found_content_line = false;
-    char *output = NULL;
-    size_t output_cap = 0;
-    size_t output_len = 0;
-
-    if (src == NULL)
-        return NULL;
-
-    if (cursor[0] == '\n')
-        cursor++;
-    else if (cursor[0] == '\r') {
-        cursor += (cursor[1] == '\n') ? 2 : 1;
-    }
-
-    end = cursor + strlen(cursor);
-    while (end > cursor && (end[-1] == '\n' || end[-1] == '\r'))
-        end--;
-
-    for (const char *line = cursor; line < end; ) {
-        const char *line_end = line;
-        while (line_end < end && *line_end != '\n' && *line_end != '\r')
-            line_end++;
-
-        if (!llvm_line_is_empty_with_only_ws(line, line_end)) {
-            size_t indent = llvm_count_banner_line_indent(line, line_end);
-            if (!found_content_line || indent < min_indent) {
-                min_indent = indent;
-                found_content_line = true;
-            }
-        }
-
-        if (line_end == end)
-            break;
-        if (*line_end == '\r' && line_end + 1 < end && *(line_end + 1) == '\n')
-            line = line_end + 2;
-        else
-            line = line_end + 1;
-    }
-
-    if (!found_content_line)
-        min_indent = 0;
-
-    output_cap = (size_t)(end - cursor + 1);
-    if (output_cap == 0)
-        output_cap = 1;
-    output = pgy_arena_alloc(arena, output_cap);
-    if (output == NULL)
-        return NULL;
-
-    for (const char *line = cursor; line < end; ) {
-        const char *line_end = line;
-        while (line_end < end && *line_end != '\n' && *line_end != '\r')
-            line_end++;
-
-        const char *body_start = line;
-        if (llvm_line_is_empty_with_only_ws(line, line_end))
-            body_start = line_end;
-        else {
-            for (size_t i = 0; i < min_indent && body_start < line_end; i++) {
-                if (*body_start == ' ' || *body_start == '\t')
-                    body_start++;
-                else
-                    break;
-            }
-        }
-
-        if (line_end > body_start) {
-            size_t seg_len = (size_t)(line_end - body_start);
-            if (output_len + seg_len + 2 > output_cap) {
-                size_t new_cap = (output_cap * 2 > output_len + seg_len + 2)
-                                 ? output_cap * 2
-                                 : output_len + seg_len + 2;
-                char *grown = pgy_arena_alloc(arena, new_cap);
-                if (grown == NULL)
-                    break;
-                memcpy(grown, output, output_len);
-                output = grown;
-                output_cap = new_cap;
-            }
-            memcpy(output + output_len, body_start, seg_len);
-            output_len += seg_len;
-        }
-
-        if (line_end < end) {
-            if (output_len + 2 > output_cap) {
-                size_t new_cap = output_cap * 2;
-                char *grown = pgy_arena_alloc(arena, new_cap);
-                if (grown == NULL)
-                    break;
-                memcpy(grown, output, output_len);
-                output = grown;
-                output_cap = new_cap;
-            }
-            output[output_len++] = '\n';
-            if (*line_end == '\r' && line_end + 1 < end && *(line_end + 1) == '\n')
-                line = line_end + 2;
-            else
-                line = line_end + 1;
-        } else {
-            break;
-        }
-    }
-
-    if (output_len >= output_cap) {
-        char *grown = pgy_arena_alloc(arena, output_len + 1);
-        if (grown != NULL) {
-            memcpy(grown, output, output_len);
-            output = grown;
-            output_cap = output_len + 1;
-        }
-    }
-    if (output == NULL)
-        return NULL;
-
-    output[output_len] = '\0';
-    return output;
-}
-
-static LLVMValueRef
-llvm_emit_boolean(ASTNode *node, LLVMGenCtx *ctx)
-{
-    return LLVMConstInt(ctx->type_i1, node->data.boolean.value ? 1 : 0, 0);
-}
-
-static LLVMValueRef
-llvm_direct_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
-                      const char *inner)
-{
-    LLVMTypeRef inner_ty;
-    LLVMValueRef value_ptr;
-
-    if (slot_var == NULL || inner == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
-
-    inner_ty = pergyra_type_to_llvm(ctx, inner);
-    value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
-        slot_var->alloca, 0, llvm_tmp_name(ctx));
-    return LLVMBuildLoad2(ctx->builder, inner_ty, value_ptr, llvm_tmp_name(ctx));
-}
-
-static void
-llvm_direct_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
-                       LLVMValueRef value);
-
-static void
-llvm_direct_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var);
-
-static void
-llvm_direct_secure_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
-                              LLVMValueRef value)
-{
-    llvm_direct_slot_write(ctx, slot_var, value);
-}
-
-static LLVMValueRef
-llvm_direct_secure_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
-                             const char *inner)
-{
-    return llvm_direct_slot_read(ctx, slot_var, inner);
-}
-
-static void
-llvm_direct_secure_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
-{
-    LLVMValueRef token_ptr;
-
-    llvm_direct_slot_release(ctx, slot_var);
-    if (slot_var == NULL)
-        return;
-
-    token_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
-        slot_var->alloca, 2, llvm_tmp_name(ctx));
-    LLVMBuildStore(ctx->builder,
-        LLVMConstInt(ctx->type_i64, 0, 0), token_ptr);
-}
-
-static void
-llvm_direct_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
-                       LLVMValueRef value)
-{
-    LLVMValueRef value_ptr;
-    LLVMValueRef occupied_ptr;
-
-    if (slot_var == NULL || value == NULL)
-        return;
-
-    value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
-        slot_var->alloca, 0, llvm_tmp_name(ctx));
-    occupied_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
-        slot_var->alloca, 1, llvm_tmp_name(ctx));
-    LLVMBuildStore(ctx->builder, value, value_ptr);
-    LLVMBuildStore(ctx->builder,
-        LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
-        occupied_ptr);
-}
-
-static void
-llvm_direct_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
-{
-    LLVMValueRef occupied_ptr;
-
-    if (slot_var == NULL)
