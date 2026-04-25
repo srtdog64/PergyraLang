@@ -6,7 +6,8 @@ cd "$ROOT"
 
 bad_direct="$(mktemp)"
 bad_fallback="$(mktemp)"
-trap 'rm -f "$bad_direct" "$bad_fallback"' EXIT
+fallback_matches="$(mktemp)"
+trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches"' EXIT
 
 grep -RIn "resolve_type_node(" src/semantic | while IFS=: read -r path line text; do
   case "$path" in
@@ -36,8 +37,10 @@ if [ -s "$bad_direct" ]; then
 fi
 
 grep -RIn 'semantic_type_resolution_resolve_or_fallback' src/semantic \
-  | grep -v 'type_checker_internal.h' \
-  | while IFS=: read -r path line text; do
+  | grep -v 'type_checker_internal.h' >"$fallback_matches" || true
+
+while IFS=: read -r path line text; do
+  [ -n "$path" ] || continue
   case "$path" in
     src/semantic/type_checker_program.c|\
     src/semantic/type_checker_resolution_metadata.c)
@@ -45,7 +48,7 @@ grep -RIn 'semantic_type_resolution_resolve_or_fallback' src/semantic \
       ;;
   esac
   printf '%s:%s: %s\n' "$path" "$line" "$text" >>"$bad_fallback"
-done
+done <"$fallback_matches"
 
 if [ -s "$bad_fallback" ]; then
   echo "[type-resolution-resolver-inventory] unclassified metadata-first fallback seam(s):" >&2
@@ -55,12 +58,10 @@ if [ -s "$bad_fallback" ]; then
 fi
 
 fallback_sites="$(
-  grep -RIn 'semantic_type_resolution_resolve_or_fallback' src/semantic \
-    | grep -v 'type_checker_internal.h' \
-    | wc -l
+  wc -l <"$fallback_matches"
 )"
-if [ "$fallback_sites" -gt 1 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first fallback seam inventory grew: $fallback_sites > 1" >&2
+if [ "$fallback_sites" -gt 0 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first fallback seam inventory grew: $fallback_sites > 0" >&2
   echo "Shrink or explicitly justify the fallback owner allowlist before adding new seams." >&2
   exit 1
 fi
@@ -101,4 +102,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=1; lower is better)"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0)"

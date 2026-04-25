@@ -24,15 +24,19 @@ index_path = root / "docs" / "102_formal_semantics_and_proof_obligations.md"
 proof_dir = root / "docs" / "semantics"
 checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
 todo_path = root / "TODO.md"
+ci_path = root / ".github" / "workflows" / "ci.yml"
 
 if not index_path.exists():
     raise SystemExit("missing docs/102_formal_semantics_and_proof_obligations.md")
 if not proof_dir.is_dir():
     raise SystemExit("missing docs/semantics proof folder")
+if not ci_path.exists():
+    raise SystemExit("missing .github/workflows/ci.yml")
 
 index_doc = index_path.read_text(encoding="utf-8")
 checklist = checklist_path.read_text(encoding="utf-8")
 todo = todo_path.read_text(encoding="utf-8")
+ci = ci_path.read_text(encoding="utf-8")
 
 required_files = {
     "README.md": [
@@ -41,6 +45,9 @@ required_files = {
         "Stable proof scope:",
         "Out of beta proof scope:",
         "Regression tests, smoke tests, and backend compare runs are proof evidence, not proof itself.",
+        "08_slot_capability_calculus.md",
+        "proofs/SlotCalculus.v",
+        "not beta-closure evidence unless a CI",
     ],
     "00_proof_contract.md": [
         "## Semantic Domains",
@@ -98,6 +105,16 @@ required_files = {
         "## Theorem: Codegen Non-Impact",
         "PGY_SEM_INTENT_BOUNDARY_DRIFT",
     ],
+    "08_slot_capability_calculus.md": [
+        "Status: `IN PROGRESS / PROOF-SKETCH`",
+        "## Stable Surface",
+        "## Semantic Domains",
+        "## Theorem: ABA Safety",
+        "## Theorem: Token Unforgeability",
+        "## Theorem: Pin Non-Eviction",
+        "proof sketch, not completed",
+        "Source-level `pin slot as view { ... }` remains an explicit reject",
+    ],
 }
 
 for filename, required_terms in required_files.items():
@@ -118,6 +135,7 @@ required_scope_terms = [
     "Runtime observability",
     "Backends: MIR-equivalent C and LLVM behavior",
     "AIR abstraction safety",
+    "Slot capability calculus",
     "Full quantum resource model.",
     "Higher-kinded types and full FP functor/applicative/monad laws.",
     "GPU/Spray, Skia/render graph",
@@ -141,11 +159,73 @@ if folder_ref not in todo:
     raise SystemExit("TODO does not reference docs/semantics/")
 if "docs/semantics/README.md" not in index_doc:
     raise SystemExit("formal semantics index does not point at proof pack README")
+if "docs/semantics/08_slot_capability_calculus.md" not in index_doc:
+    raise SystemExit("formal semantics index does not point at slot capability calculus")
+if "docs/semantics/proofs/SlotCalculus.v" not in index_doc:
+    raise SystemExit("formal semantics index does not point at SlotCalculus.v")
 
 if "Do not advertise mechanized proof for beta" not in checklist:
     raise SystemExit("checklist must forbid advertising mechanized proof before an artifact exists")
-if "proof evidence" not in todo or "proof 자체" not in todo:
+if "proof evidence" not in todo or "beta proof line honest" not in todo:
     raise SystemExit("TODO must preserve proof-evidence boundary wording")
+
+slot_coq = proof_dir / "proofs" / "SlotCalculus.v"
+if not slot_coq.exists():
+    raise SystemExit("missing docs/semantics/proofs/SlotCalculus.v")
+slot_coq_text = slot_coq.read_text(encoding="utf-8")
+for forbidden in [
+    "Status: Beta",
+    "Level 4 Mechanized Proof",
+    "Safe Core Mechanized Proof",
+]:
+    if forbidden in slot_coq_text:
+        raise SystemExit(
+            "SlotCalculus.v overclaims mechanized proof status: " + forbidden
+        )
+for required in [
+    "Status: proof-sketch; not beta-closure evidence unless checked by CI",
+    "Require Import Coq.Arith.PeanoNat.",
+    "Lemma stale_handle_read_impossible",
+    "Lemma handle_read_requires_issued_token",
+    "Lemma unissued_token_read_impossible",
+    "Lemma handle_pin_requires_issued_token",
+    "Lemma unissued_token_pin_impossible",
+    "Lemma pin_non_eviction",
+    "Qed.",
+]:
+    if required not in slot_coq_text:
+        raise SystemExit("SlotCalculus.v missing required proof boundary term: " + required)
+
+for filename in [
+    "00_proof_contract.md",
+    "08_slot_capability_calculus.md",
+    "README.md",
+]:
+    text = (proof_dir / filename).read_text(encoding="utf-8")
+    for forbidden in [
+        "proof sketch for one invariant",
+        "proof sketch for two invariants",
+        "minimal mechanized sketch for two invariants",
+    ]:
+        if forbidden in text:
+            raise SystemExit(
+                f"docs/semantics/{filename} has stale SlotCalculus scope wording: "
+                + forbidden
+            )
+
+for required in [
+    "sudo apt-get install -y gcc make llvm-dev llvm coq",
+    "make ci-linux",
+]:
+    if required not in ci:
+        raise SystemExit("CI workflow missing formal semantics Coq gate term: " + required)
 
 print("formal semantics smoke: ok")
 PY
+
+if command -v coqc >/dev/null 2>&1; then
+    (cd "$ROOT_DIR" && coqc docs/semantics/proofs/SlotCalculus.v)
+    echo "formal semantics Coq smoke: ok"
+else
+    echo "formal semantics Coq smoke: skipped (coqc not found)"
+fi

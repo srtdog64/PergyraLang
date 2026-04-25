@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm
+          sudo apt-get install -y gcc make llvm-dev llvm coq
 
       - name: Run Linux CI target
         run: make ci-linux

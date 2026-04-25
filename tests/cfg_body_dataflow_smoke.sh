@@ -44,6 +44,7 @@ let_path = root / "src" / "semantic" / "type_checker_ownership_let.c"
 semantic_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a.inc"
 semantic_async_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_async.inc"
 semantic_effect_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_effects.inc"
+semantic_parallel_context_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_parallel_context.inc"
 
 for path in (
     doc_path,
@@ -70,6 +71,7 @@ for path in (
     semantic_tests_path,
     semantic_async_tests_path,
     semantic_effect_tests_path,
+    semantic_parallel_context_tests_path,
 ):
     if not path.exists():
         raise SystemExit(f"missing required cfg/body dataflow document: {path.relative_to(root)}")
@@ -113,6 +115,8 @@ semantic_tests = (
     + semantic_async_tests_path.read_text(encoding="utf-8")
     + "\n"
     + semantic_effect_tests_path.read_text(encoding="utf-8")
+    + "\n"
+    + semantic_parallel_context_tests_path.read_text(encoding="utf-8")
 )
 
 required_doc_terms = [
@@ -246,9 +250,11 @@ for term in [
     "CFG parallel tasks allow shared ref subject boundary reads",
     "CFG spawn rejects borrowed subject boundary crossing",
     "CFG spawn allows copy ref boundary crossing",
+    "CFG spawn rejects authority Token boundary crossing",
     "CFG spawn rejects anonymous async body until capture lifetime is closed",
     "CFG parallel channel send consumes resource after join",
     "CFG parallel channel sends reject double resource consume",
+    "channel send rejects authority Token payload",
     "TryRecv rejects movable resource channel payloads",
     "RecvTimeout rejects movable resource channel payloads",
     "TryRecv rejects anchored slot-handle channel payloads",

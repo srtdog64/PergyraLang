@@ -70,7 +70,7 @@
 Current execution truth override:
 
 - Linux: C + LLVM
-- Windows: C regression always, plus LLVM smoke/backend-compare when an LLVM toolchain is detected
+- Windows: C regression always, plus LLVM smoke/backend-compare only when executable `llvm-config --libs core` evidence is available
 
 목표:
 
@@ -79,7 +79,7 @@ Current execution truth override:
 현재 baseline:
 
 - Linux: C + LLVM
-- Windows: C regression always, plus LLVM smoke/backend-compare when an LLVM toolchain is detected
+- Windows: C regression always, plus LLVM smoke/backend-compare only when executable `llvm-config --libs core` evidence is available
 
 완료 조건:
 
@@ -297,7 +297,7 @@ explicit reject:
 Current pipeline truth override:
 
 - `make ci-linux` keeps Linux on mandatory C + LLVM coverage.
-- `make ci-windows` runs C regression unconditionally and adds Windows LLVM smoke/backend-compare when the LLVM toolchain is available.
+- `make ci-windows` runs C regression unconditionally and adds Windows LLVM smoke/backend-compare only when executable `llvm-config --libs core` evidence is available.
 
 목표:
 

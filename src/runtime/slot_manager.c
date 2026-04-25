@@ -98,6 +98,8 @@ find_slot_entry_locked(SlotManager *manager, const SlotHandle *handle)
             continue;
         if (entry->slotId != handle->slotId)
             continue;
+        if (entry->generation != handle->generation)
+            continue;
         return entry;
     }
 
@@ -228,10 +230,14 @@ slot_reset_entry_locked(SlotEntry *entry)
 }
 
 static SlotError
-slot_release_entry_locked(SlotManager *manager, SlotEntry *entry)
+slot_release_entry_locked(SlotManager *manager, SlotEntry *entry,
+                          bool allowSecure)
 {
     if (entry == NULL || !entry->occupied)
         return SLOT_ERROR_SLOT_NOT_FOUND;
+
+    if (entry->securityEnabled && !allowSecure)
+        return SLOT_ERROR_PERMISSION_DENIED;
 
     if (entry->pinCount > 0)
         return SLOT_ERROR_PINNED;
@@ -269,6 +275,7 @@ slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
     memset(entry, 0, sizeof(*entry));
     entry->occupied = true;
     entry->slotId = manager->nextSlotId++;
+    entry->generation = 1;
     entry->typeTag = (uint32_t)type;
     entry->scopeId = scopeId;
     entry->threadAffinity = 0;
@@ -279,7 +286,7 @@ slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
 
     handle->slotId = entry->slotId;
     handle->typeTag = entry->typeTag;
-    handle->generation = 1;
+    handle->generation = entry->generation;
 
     manager->totalAllocations++;
     manager->activeSlots++;
@@ -518,7 +525,7 @@ SlotRelease(SlotManager *manager, const SlotHandle *handle)
 
     pthread_mutex_lock(manager_mutex(manager));
     entry = find_slot_entry_locked(manager, handle);
-    result = slot_release_entry_locked(manager, entry);
+    result = slot_release_entry_locked(manager, entry, false);
     pthread_mutex_unlock(manager_mutex(manager));
     return result;
 }
@@ -715,7 +722,7 @@ SlotReleaseScope(SlotManager *manager, uint32_t scopeId)
     for (i = 0; i < manager->tableSize; i++) {
         SlotEntry *entry = &manager->slotTable[i];
         if (entry->occupied && entry->scopeId == scopeId) {
-            SlotError releaseResult = slot_release_entry_locked(manager, entry);
+            SlotError releaseResult = slot_release_entry_locked(manager, entry, false);
             if (releaseResult != SLOT_SUCCESS)
                 result = releaseResult;
         }
@@ -810,7 +817,7 @@ SlotCleanupExpired(SlotManager *manager)
     for (i = 0; i < manager->tableSize; i++) {
         SlotEntry *entry = &manager->slotTable[i];
         if (entry->occupied && entry->pinCount == 0 && slot_is_expired_locked(entry))
-            slot_release_entry_locked(manager, entry);
+            slot_release_entry_locked(manager, entry, true);
     }
     pthread_mutex_unlock(manager_mutex(manager));
 }
@@ -1168,14 +1175,26 @@ bool
 SlotValidateToken(SlotManager *manager, const SlotHandle *handle,
                   const TokenCapability *token)
 {
+    SlotEntry *entry;
+    bool valid = false;
+
     if (manager == NULL || handle == NULL || token == NULL)
         return false;
 
     if (!SlotManagerIsSecurityEnabled(manager))
         return false;
 
-    return TokenValidate(manager->securityContext, handle->slotId, token) ==
-           SECURITY_SUCCESS;
+    if (TokenValidate(manager->securityContext, handle->slotId, token) !=
+        SECURITY_SUCCESS)
+        return false;
+
+    pthread_mutex_lock(manager_mutex(manager));
+    entry = find_slot_entry_locked(manager, handle);
+    if (entry != NULL && entry->securityEnabled && entry->tokenGeneration != 0 &&
+        entry->tokenGeneration == token->token.generation)
+        valid = true;
+    pthread_mutex_unlock(manager_mutex(manager));
+    return valid;
 }
 
 SlotError
@@ -1295,6 +1314,9 @@ SlotError
 SlotReleaseSecure(SlotManager *manager, const SlotHandle *handle,
                   const TokenCapability *token)
 {
+    SlotEntry *entry;
+    SlotError result;
+
     if (manager == NULL || handle == NULL || token == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
 
@@ -1306,7 +1328,11 @@ SlotReleaseSecure(SlotManager *manager, const SlotHandle *handle,
         return SLOT_ERROR_PERMISSION_DENIED;
     }
 
-    return SlotRelease(manager, handle);
+    pthread_mutex_lock(manager_mutex(manager));
+    entry = find_slot_entry_locked(manager, handle);
+    result = slot_release_entry_locked(manager, entry, true);
+    pthread_mutex_unlock(manager_mutex(manager));
+    return result;
 }
 
 SlotError

@@ -106,6 +106,41 @@ pgy_runtime_zone_authority_validate_core(void *zone_ptr, void *participant_ptr,
     return true;
 }
 
+static bool
+pgy_runtime_zone_authority_validate_token_core(void *zone_ptr,
+                                               void *participant_ptr,
+                                               int64_t expected_token,
+                                               int64_t provided_token,
+                                               const char *zone_name,
+                                               const char *participant_name,
+                                               bool emit_stderr)
+{
+    const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
+    const char *resolved_participant =
+        participant_name != NULL ? participant_name : "<participant>";
+
+    if (!pgy_runtime_zone_authority_validate_core(zone_ptr, participant_ptr,
+            resolved_zone, resolved_participant, emit_stderr)) {
+        return false;
+    }
+
+    if (expected_token <= 0 || provided_token <= 0
+        || expected_token != provided_token) {
+        pgy_runtime_record_zone_authority_last(false, resolved_zone,
+            resolved_participant, PGY_ZONE_AUTHORITY_CODE_TOKEN_MISMATCH,
+            PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH);
+        if (emit_stderr) {
+            fprintf(stderr, PGY_ZONE_AUTHORITY_STDERR_TOKEN_MISMATCH,
+                resolved_zone, resolved_participant);
+        }
+        return false;
+    }
+
+    pgy_runtime_record_zone_authority_last(true, resolved_zone,
+        resolved_participant, PGY_ZONE_AUTHORITY_CODE_OK, "");
+    return true;
+}
+
 static void
 pgy_runtime_warn_invalid_channel(const char *op, const char *reason)
 {
@@ -179,6 +214,20 @@ pgy_zone_authority_check_export(void *zone_ptr, void *participant_ptr,
 }
 
 void
+pgy_zone_authority_check_token_export(void *zone_ptr, void *participant_ptr,
+                                      int64_t expected_token,
+                                      int64_t provided_token,
+                                      const char *zone_name,
+                                      const char *participant_name)
+{
+    if (!pgy_runtime_zone_authority_validate_token_core(zone_ptr, participant_ptr,
+            expected_token, provided_token, zone_name, participant_name, true)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_AUTHORITY_MISMATCH,
+                          PGY_RUNTIME_PANIC_REASON_AUTHORITY_MISMATCH);
+    }
+}
+
+void
 pgy_runtime_panic_internal_invariant_export(const char *reason)
 {
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
@@ -231,6 +280,22 @@ pgy_zone_authority_validate_flags_export(bool has_zone, bool has_participant,
         has_participant ? (void *)pgy_zone_authority_last_zone : NULL;
     return pgy_runtime_zone_authority_validate_core(zone_ptr, participant_ptr,
         zone_name, participant_name, false);
+}
+
+bool
+pgy_zone_authority_validate_token_flags_export(bool has_zone,
+                                               bool has_participant,
+                                               int64_t expected_token,
+                                               int64_t provided_token,
+                                               char *zone_name,
+                                               char *participant_name)
+{
+    void *zone_ptr = has_zone ? (void *)&pgy_zone_authority_last_ok : NULL;
+    void *participant_ptr =
+        has_participant ? (void *)pgy_zone_authority_last_zone : NULL;
+    return pgy_runtime_zone_authority_validate_token_core(zone_ptr,
+        participant_ptr, expected_token, provided_token, zone_name,
+        participant_name, false);
 }
 
 bool

@@ -874,7 +874,7 @@ test_parallel_execution_semantics(void)
         ast_destroy(send);
     }
 
-    TEST("channel send rejects capability token payload");
+    TEST("channel send rejects authority Token payload");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);

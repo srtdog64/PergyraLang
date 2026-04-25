@@ -1,6 +1,6 @@
 # 01. Intent / World / Zone Proof Obligations
 
-Last updated: 2026-04-25
+Last updated: 2026-04-26
 
 Status: `IN PROGRESS / BLOCKER`
 
@@ -47,13 +47,13 @@ Current evidence:
 - Direct subject-slot alias resolution handles same-type zone participants without stale ambiguity.
 - Authority diagnostics distinguish concrete slot resolution from genuinely ambiguous same-type participants.
 - Example smoke covers direct authority aliases in a multi-subject same-type zone.
-- Runtime authority rejection exposes queryable `last_ok`, `last_zone`, `last_participant`, `last_code`, and `last_reason` state for missing-zone and missing-participant failures.
+- Runtime authority rejection exposes queryable `last_ok`, `last_zone`, `last_participant`, `last_code`, and `last_reason` state for missing-zone, missing-participant, and authority-token-mismatch failures.
 - `pgy_runtime_authority_contract.h` is the shared source of truth for authority failure codes, reasons, and stderr formats across inline C runtime and LLVM runtime library exports.
-- `runtime-authority-contract-test-smoke`, `authority_failure_abi`, and `authority_failure_surface` keep the C/LLVM surface aligned.
+- `runtime-authority-contract-test-smoke`, `authority_failure_abi`, and `authority_failure_surface` keep the C/LLVM surface aligned, including the token-mismatch query state.
 
 Remaining proof obligation:
 
-- Extend the same queryable rejection model beyond missing-zone/missing-participant into richer authority mismatch and domain-boundary denial reasons.
+- Extend the same queryable rejection model into domain-boundary denial reasons.
 
 ## Theorem: Intent Step Progress
 
@@ -87,7 +87,11 @@ Current evidence:
 
 - Dirty/ready plus epoch/cause provenance exists for covered world-derived and embedded-zone slices.
 - Bounded recompute paths have C/LLVM parity smoke coverage.
+- `runtime-frontier-contract-test-smoke` gates the C and LLVM emitter contracts
+  for world derived-state bounded recompute, zone lifecycle bounded frontier
+  loop, projection-chain bounded recompute, pass-limit overflow hard-fail, ABI
+  smoke registration, and backend-compare registration.
 
 Remaining proof obligation:
 
-- General transitive frontier scheduler across the full world/zone graph is still the main runtime propagation blocker.
+- General transitive frontier scheduler across the full world/zone graph is still the main runtime propagation blocker. The remaining work is broader authority/failure handoff and world-zone propagation generalization, not the absence of bounded frontier loops in the covered slices.

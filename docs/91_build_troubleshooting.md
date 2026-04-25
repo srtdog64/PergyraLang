@@ -107,7 +107,7 @@ mingw32-make rebuild
 mingw32-make ci-windows         # 또는 ci-linux
 ```
 
-`ci-windows`는 `test-all` + `llvm-test-*` + `*-smoke` 전부 실행. 통과해야 PR가 안전.
+`ci-windows`는 Windows C regression(`test-all`, `fmt-test-smoke`, `stdlib-test-smoke`, `example-test-smoke`)을 기본 실행한다. Windows LLVM smoke/backend-compare는 executable `llvm-config --libs core` evidence가 있을 때만 추가 실행하며, 단순 `C:/Program Files/LLVM/lib` 폴더 존재는 beta support evidence가 아니다.
 
 ---
 

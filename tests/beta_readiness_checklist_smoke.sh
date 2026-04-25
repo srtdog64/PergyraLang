@@ -21,13 +21,18 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
+readme_path = root / "README.md"
 slot_pin_path = root / "docs" / "74_slot_pinning_caching.md"
 ownership_path = root / "docs" / "106_ownership_model_comparison.md"
 diag_header_path = root / "src" / "semantic" / "diag_codes.h"
 diag_doc_path = root / "docs" / "72_diagnostic_codes.md"
 abi_spec_path = root / "src" / "runtime" / "pgy_abi_spec.h"
+ci_path = root / ".github" / "workflows" / "ci.yml"
+makefile_path = root / "Makefile"
 if not checklist_path.exists():
     raise SystemExit("missing docs/100_beta_readiness_checklist.md")
+if not readme_path.exists():
+    raise SystemExit("missing README.md")
 if not slot_pin_path.exists():
     raise SystemExit("missing docs/74_slot_pinning_caching.md")
 if not ownership_path.exists():
@@ -38,13 +43,20 @@ if not diag_doc_path.exists():
     raise SystemExit("missing docs/72_diagnostic_codes.md")
 if not abi_spec_path.exists():
     raise SystemExit("missing src/runtime/pgy_abi_spec.h")
+if not ci_path.exists():
+    raise SystemExit("missing .github/workflows/ci.yml")
+if not makefile_path.exists():
+    raise SystemExit("missing Makefile")
 
 text = checklist_path.read_text(encoding="utf-8")
+readme = readme_path.read_text(encoding="utf-8")
 slot_pin = slot_pin_path.read_text(encoding="utf-8")
 ownership = ownership_path.read_text(encoding="utf-8")
 diag_header = diag_header_path.read_text(encoding="utf-8")
 diag_doc = diag_doc_path.read_text(encoding="utf-8")
 abi_spec = abi_spec_path.read_text(encoding="utf-8")
+ci = ci_path.read_text(encoding="utf-8")
+makefile = makefile_path.read_text(encoding="utf-8")
 
 required_sections = [
     "## 0. Formal Semantics / Proof Obligations",
@@ -83,6 +95,8 @@ required_terms = [
     "LLVM builtin lowering parity",
     "shared ownership stable subset requires C/LLVM lifecycle parity",
     "explicitly rejected in semantic analysis",
+    "Linux CI now installs `coq`",
+    "make perf-contract-test-smoke",
 ]
 
 missing_sections = [section for section in required_sections if section not in text]
@@ -180,6 +194,48 @@ if missing_abi_terms:
     raise SystemExit(
         "ABI spec missing Rc/Weak beta/shape term(s): "
         + ", ".join(missing_abi_terms)
+    )
+
+ci_terms = [
+    "sudo apt-get install -y gcc make llvm-dev llvm coq",
+    "make ci-linux",
+]
+missing_ci_terms = [term for term in ci_terms if term not in ci]
+if missing_ci_terms:
+    raise SystemExit(
+        "CI workflow missing formal-semantics proof gate term(s): "
+        + ", ".join(missing_ci_terms)
+    )
+
+makefile_terms = [
+    "WINDOWS_LLVM_READY :=",
+    '"$(LLVM_CONFIG)" --libs core',
+    "perf-contract-test-smoke:",
+    "ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare",
+    "ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare",
+]
+missing_makefile_terms = [term for term in makefile_terms if term not in makefile]
+if missing_makefile_terms:
+    raise SystemExit(
+        "Makefile missing Windows LLVM support-matrix guard term(s): "
+        + ", ".join(missing_makefile_terms)
+    )
+if "WINDOWS_LLVM_READY := $(shell if [ -n \"$(LLVM_CONFIG)\" ] ||" in makefile:
+    raise SystemExit("WINDOWS_LLVM_READY must not treat LLVM library folders as runnable LLVM support")
+if "/c/Program\\ Files/LLVM/lib" in makefile or "C:/Program Files/LLVM/lib" in makefile:
+    raise SystemExit("Windows LLVM support detection must not rely on Program Files library folders")
+
+readme_support_terms = [
+    "Current CI support matrix:",
+    "Linux: C backend + LLVM backend regression coverage",
+    "Windows: C backend regression coverage always; LLVM smoke + backend compare run only when executable `llvm-config --libs core` evidence is present",
+    "macOS: out-of-beta until a dedicated runner and support contract are added",
+]
+missing_readme_terms = [term for term in readme_support_terms if term not in readme]
+if missing_readme_terms:
+    raise SystemExit(
+        "README support matrix missing term(s): "
+        + ", ".join(missing_readme_terms)
     )
 
 print("beta readiness checklist smoke: ok")

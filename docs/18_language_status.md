@@ -178,8 +178,9 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
   - beta support contract: C backend + LLVM backend
   - CI truth: `make ci-linux`가 `test-all`, `fmt-test-smoke`, `stdlib-test-smoke`, `module-test-smoke`, `example-test-smoke`, `llvm-test-backend-compare`를 돈다
 - Windows
-  - beta support contract: C backend는 기본 지원, LLVM backend는 toolchain이 잡힌 환경에서 smoke/backend-compare 기준으로 지원
-  - CI truth: `make ci-windows`가 항상 C regression(`test-all`, `fmt-test-smoke`, `stdlib-test-smoke`, `example-test-smoke`)을 돌리고, Windows LLVM toolchain이 감지되면 `llvm-test-smoke`와 `llvm-test-backend-compare`까지 추가로 돈다
+  - beta support contract: C backend는 기본 지원, LLVM backend는 아직 beta support 계약 밖이다
+  - CI truth: `make ci-windows`가 항상 C regression(`test-all`, `fmt-test-smoke`, `stdlib-test-smoke`, `example-test-smoke`)을 돌리고, executable `llvm-config --libs core` evidence가 있는 Windows LLVM toolchain에서만 `llvm-test-smoke`와 `llvm-test-backend-compare`를 추가로 돈다
+  - guard: `C:/Program Files/LLVM/lib` 같은 library directory 존재만으로 Windows LLVM support를 선언하지 않는다
 
 이 문서 기준으로는 아직 Windows LLVM parity를 beta 지원 계약에 올리지 않는다.
 Windows LLVM을 공식 beta support로 올리려면 README, TODO, CI, backend parity regressions가 함께 바뀌어야 한다.

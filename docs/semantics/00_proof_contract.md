@@ -1,10 +1,10 @@
 # 00. Global Proof Contract
 
-Last updated: 2026-04-25
+Last updated: 2026-04-26
 
 Status: `beta-proof-obligation`
 
-This document defines the shared notation for all keyword-level proof documents in `docs/증명/`.
+This document defines the shared notation for all keyword-level proof documents in `docs/semantics/`.
 
 ## Semantic Domains
 
@@ -106,7 +106,7 @@ For accepted beta programs, C and LLVM must agree on:
 
 While regression tests and backend compare runs provide implementation evidence, the core ownership and security semantics of Pergyra (Slot System, Tokens, Pinning) are transitioning towards **Strict Operational Semantics**.
 
-See [08. Slot Capability Calculus](08_slot_capability_calculus.md) for the rigorous mathematical rules and inference proofs governing dynamic capability leases. Any PR modifying the ABI, slot lifecycle, or token capabilities MUST ensure the calculus transition rules hold without logical contradiction.
+See [08. Slot Capability Calculus](08_slot_capability_calculus.md) for the mathematical rules governing dynamic capability leases. The checked-in Coq file is a proof sketch for selected Slot capability invariants until CI type-checks it; do not present it as completed mechanized proof for beta or as a whole-language proof.
 
 Proof status labels:
 

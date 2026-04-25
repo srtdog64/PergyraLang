@@ -66,6 +66,12 @@ metadata_owned="$(
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
+materializer_fallbacks="$(
+  grep -a '\[type-res-stats\] metadata:' "$log" \
+    | sed -E 's/.*materializer_fallbacks=([0-9]+).*/\1/' \
+    | awk '{ total += $1 } END { print total + 0 }'
+)"
+
 legacy_alias="$(
   grep -a '\[type-res-stats\] stage-legacy-family:' "$log" \
     | sed -E 's/.*alias=([0-9]+).*/\1/' \
@@ -142,6 +148,11 @@ if [ "$metadata_owned" -lt 45 ]; then
   exit 1
 fi
 
+if [ "$materializer_fallbacks" -gt 4135 ]; then
+  echo "metadata materializer fallback inventory regressed above beta cap: $materializer_fallbacks > 4135" >&2
+  exit 1
+fi
+
 if [ "$legacy_non_alias" -ne 0 ]; then
   echo "non-alias DAG stage legacy fallback regressed: $legacy_non_alias" >&2
   exit 1
@@ -177,4 +188,4 @@ grep -a -q 'topo_ok=1' "$log" || {
   exit 1
 }
 
-echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits legacy_alias=$legacy_alias legacy_non_alias=$legacy_non_alias alias_materialized=$alias_materialized alias_diagnostic_fallback=$alias_diagnostic_fallback alias_fallback_resolved=$alias_fallback_resolved alias_fallback_unresolved=$alias_fallback_unresolved)"
+echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks legacy_alias=$legacy_alias legacy_non_alias=$legacy_non_alias alias_materialized=$alias_materialized alias_diagnostic_fallback=$alias_diagnostic_fallback alias_fallback_resolved=$alias_fallback_resolved alias_fallback_unresolved=$alias_fallback_unresolved)"

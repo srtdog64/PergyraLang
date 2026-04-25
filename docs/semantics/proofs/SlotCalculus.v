@@ -1,10 +1,12 @@
 (* 
-  Pergyra Formal Semantics - Level 4 Mechanized Proof
-  Target: Slot Capability Calculus & Pin Non-Eviction Proof
-  Status: Beta
+  Pergyra Formal Semantics - Mechanized Sketch
+  Target: Slot Capability Calculus & Pin Non-Eviction Lemma
+  Status: proof-sketch; not beta-closure evidence unless checked by CI
+  Scope: this file models one small-step invariant, not the full language.
 *)
 
 Require Import Coq.Init.Nat.
+Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Bool.Bool.
 
 (* ========================================== *)
@@ -24,6 +26,11 @@ Record Slot : Type := mkSlot {
   s_val : Value;
   s_gen : Generation;
   s_pin : PinState
+}.
+
+Record Handle : Type := mkHandle {
+  h_slot : SlotId;
+  h_gen : Generation
 }.
 
 (* 
@@ -87,11 +94,95 @@ Inductive Step (h: Heap) (caps: CapEnv) : Heap -> Prop :=
       h' = update_heap h id None ->
       Step h caps h'.
 
+Definition HandleRead (h: Heap) (caps: CapEnv) (handle: Handle) (tok: Token) : Prop :=
+  exists s,
+    h (h_slot handle) = Some s /\
+    h_gen handle = s_gen s /\
+    caps tok = true /\
+    verify_token tok (h_slot handle) (h_gen handle) = true.
+
+Definition HandlePin (h: Heap) (caps: CapEnv) (handle: Handle) (tok: Token) : Prop :=
+  exists s,
+    h (h_slot handle) = Some s /\
+    h_gen handle = s_gen s /\
+    s_pin s = Unpinned /\
+    caps tok = true /\
+    verify_token tok (h_slot handle) (h_gen handle) = true.
+
 (* ========================================== *)
 (* 3. Core Theorems & Lemmas                  *)
 (* ========================================== *)
 
 (* 
+  Lemma: Stale Handle Read Impossible
+  Proof Obligation: a handle whose generation differs from the current slot
+  generation cannot satisfy the read rule.
+*)
+Lemma stale_handle_read_impossible : forall h caps handle s tok,
+  h (h_slot handle) = Some s ->
+  h_gen handle <> s_gen s ->
+  ~ HandleRead h caps handle tok.
+Proof.
+  intros h caps handle s tok H_slot H_stale H_read.
+  unfold HandleRead in H_read.
+  destruct H_read as [read_slot [H_read_slot [H_read_gen [_ H_verify]]]].
+  rewrite H_slot in H_read_slot.
+  inversion H_read_slot; subst.
+  apply H_stale.
+  exact H_read_gen.
+Qed.
+
+(*
+  Lemma: Handle Read Requires Issued Token
+  Proof Obligation: every successful handle read must use a capability that is
+  present in the current capability environment.
+*)
+Lemma handle_read_requires_issued_token : forall h caps handle tok,
+  HandleRead h caps handle tok ->
+  caps tok = true.
+Proof.
+  intros h caps handle tok H_read.
+  unfold HandleRead in H_read.
+  destruct H_read as [_ [_ [_ [H_cap _]]]].
+  exact H_cap.
+Qed.
+
+(*
+  Lemma: Unissued Token Read Impossible
+  Proof Obligation: source code cannot satisfy the stable read rule with a token
+  absent from the runtime-issued capability environment.
+*)
+Lemma unissued_token_read_impossible : forall h caps handle tok,
+  caps tok = false ->
+  ~ HandleRead h caps handle tok.
+Proof.
+  intros h caps handle tok H_unissued H_read.
+  apply handle_read_requires_issued_token in H_read.
+  rewrite H_unissued in H_read.
+  discriminate.
+Qed.
+
+Lemma handle_pin_requires_issued_token : forall h caps handle tok,
+  HandlePin h caps handle tok ->
+  caps tok = true.
+Proof.
+  intros h caps handle tok H_pin.
+  unfold HandlePin in H_pin.
+  destruct H_pin as [_ [_ [_ [_ [H_cap _]]]]].
+  exact H_cap.
+Qed.
+
+Lemma unissued_token_pin_impossible : forall h caps handle tok,
+  caps tok = false ->
+  ~ HandlePin h caps handle tok.
+Proof.
+  intros h caps handle tok H_unissued H_pin.
+  apply handle_pin_requires_issued_token in H_pin.
+  rewrite H_unissued in H_pin.
+  discriminate.
+Qed.
+
+(*
   Lemma: Pin Non-Eviction
   Proof Obligation: "A Pinned slot cannot be released or evicted by any Step rule."
 *)
@@ -101,30 +192,37 @@ Lemma pin_non_eviction : forall h caps id s h',
   Step h caps h' ->
   h' id <> None.
 Proof.
-  intros h caps id s h' H_some H_pinned H_step.
-  
-  (* Analyze how the state transitioned to h' *)
-  inversion H_step; subst.
-  
-  - (* Case: Step_Read *) 
-    (* Heap doesn't change, so it's still Some s *)
-    rewrite H_some. discriminate.
-    
-  - (* Case: Step_Pin *)
-    (* We cannot Pin a slot that is already Pinned. Unpinned <> Pinned. Contradiction. *)
-    congruence.
-    
-  - (* Case: Step_Unpin *)
-    (* Unpin updates the heap with Some Unpinned Slot. So it's not None. *)
-    unfold update_heap.
-    destruct (id =? id) eqn:E_eq.
+  intros h caps pinned_id pinned_slot next_heap H_some H_pinned H_step H_none.
+  destruct H_step as
+    [ read_id read_slot tok H_read H_cap H_verify
+    | pin_id pin_slot tok pin_heap H_pin H_cap H_verify H_unpinned H_heap
+    | unpin_id unpin_slot unpin_heap H_unpin H_was_pinned H_heap
+    | release_id release_slot tok release_heap H_release H_cap H_verify H_unpinned H_heap
+    ]; subst.
+
+  - (* Step_Read: the heap is unchanged. *)
+    rewrite H_some in H_none. discriminate.
+
+  - (* Step_Pin: updates either this slot to Some Pinned or another slot. *)
+    unfold update_heap in H_none.
+    destruct (Nat.eqb pinned_id pin_id) eqn:E_eq.
     + discriminate.
-    + apply Nat.eqb_neq in E_eq. contradiction.
-    
-  - (* Case: Step_Release *)
-    (* Release requires the state to be Unpinned! 
-       But our hypothesis H_pinned states it is Pinned. Contradiction. *)
-    congruence.
+    + rewrite H_some in H_none. discriminate.
+
+  - (* Step_Unpin: updates either this slot to Some Unpinned or another slot. *)
+    unfold update_heap in H_none.
+    destruct (Nat.eqb pinned_id unpin_id) eqn:E_eq.
+    + discriminate.
+    + rewrite H_some in H_none. discriminate.
+
+  - (* Step_Release: a release of this pinned slot is impossible; another slot
+       release preserves this slot. *)
+    unfold update_heap in H_none.
+    destruct (Nat.eqb pinned_id release_id) eqn:E_eq.
+    + apply Nat.eqb_eq in E_eq. subst.
+      rewrite H_some in H_release. inversion H_release; subst.
+      rewrite H_pinned in H_unpinned. discriminate.
+    + rewrite H_some in H_none. discriminate.
 Qed.
 
-(* End of Pergyra Safe Core Mechanized Proof *)
+(* End of Pergyra Slot Capability Calculus sketch. *)

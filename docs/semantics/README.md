@@ -1,6 +1,6 @@
 # Pergyra Proof Pack
 
-Last updated: 2026-04-25
+Last updated: 2026-04-26
 
 Status: `beta-proof-obligation`
 
@@ -31,6 +31,16 @@ Required shape for each proof document:
 - [05_parallel_execution.md](05_parallel_execution.md): `parallel`, execution conflict policy, cancellation/failure baseline, and fairness boundary.
 - [06_backend_parity.md](06_backend_parity.md): MIR, C, LLVM, declaration inventory, and observable backend parity.
 - [07_air_abstraction_safety.md](07_air_abstraction_safety.md): AIR verification-only synthesis IR, intent/boundary coverage, and abstraction drift proof obligations.
+- [08_slot_capability_calculus.md](08_slot_capability_calculus.md): Slot capability calculus, token invariants, generation checks, and Pin/Lease proof obligations.
+
+Mechanized artifacts:
+
+- [proofs/SlotCalculus.v](proofs/SlotCalculus.v): Coq proof sketch for the
+  `stale_handle_read_impossible`, `handle_read_requires_issued_token`,
+  `unissued_token_read_impossible`, `handle_pin_requires_issued_token`,
+  `unissued_token_pin_impossible`, and `pin_non_eviction` invariants. This is
+  not beta-closure evidence unless a CI gate type-checks it with Coq, and it
+  does not prove the whole language.
 
 ## Beta Proof Boundary
 
@@ -41,6 +51,8 @@ Stable proof scope:
 - Stable collections: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`.
 - Generic contracts: exact type arguments, ability bounds, multi-bound `where T: A + B`, default type argument actual resolution.
 - Ownership: anchored slot-handle boundary subset only.
+- Slot capability calculus: generation checks, secure token invariants, and
+  Pin/Lease non-eviction for the runtime ABI subset.
 - Runtime observability: `last`, `history`, `active`, `recent`.
 - Execution: `parallel` conflict/failure baseline.
 - Backends: MIR-equivalent C and LLVM behavior for the frozen subset.

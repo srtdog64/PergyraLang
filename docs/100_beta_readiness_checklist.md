@@ -34,14 +34,22 @@ Closed now:
 - Out-of-beta proof claims are sealed for full quantum, full FP/HKT/functor algebra, arbitrary ownership, arbitrary map keys, GPU/Spray, Skia/render, package manager, and advanced debugger semantics.
 - `Runtime Panic Parity` now has a formal theorem slot in `docs/semantics/06_backend_parity.md`.
 - Secure token unforgeability and authority transfer single-owner now have formal theorem slots in `docs/semantics/04_ownership_abi.md`.
+- Slot capability calculus now has a formal theorem slot in `docs/semantics/08_slot_capability_calculus.md`; `docs/semantics/proofs/SlotCalculus.v` is explicitly proof-sketch only until a Coq CI gate type-checks it.
+- Linux CI now installs `coq`, so `make formal-semantics-test-smoke` type-checks `docs/semantics/proofs/SlotCalculus.v` in CI instead of only checking proof-pack text.
+- Slot capability runtime evidence was rechecked with `make test-security` (132/132 passed): stale-generation read/write/pin/release rejection, stale `SlotIsValid` false, release-while-pinned, TTL cleanup skip while pinned, invalid secure token rejection, revoked-token rejection, raw secure-slot release rejection, concurrent secure write rejection, and release-after-unpin are covered.
+- `runtime-panic-abi-test-smoke` now covers forged zero-token read/write/release
+  rejection for inline C and exported C/LLVM-linkable secure-slot entrypoints.
+- Authority token mismatch now has a shared runtime contract code/reason
+  (`authority-token-mismatch`), queryable runtime state, C/LLVM ABI coverage in
+  `authority_failure_abi`, backend-compare coverage in `authority_failure_surface`,
+  and direct runtime coverage in `make test-security` (138/138 passed).
 
 Remaining:
 
 - Tie each B0 closure item to a theorem/invariant row before calling that item beta-complete.
 - Keep DAG, runtime propagation, MIR declaration inventory, ABI ownership, panic parity, secure token invariants, and backend parity blockers open until their theorem statements and regression evidence match.
-- Do not advertise mechanized proof for beta unless a separate Lean/Coq or executable small-step model is actually added.
+- Do not advertise mechanized proof for beta unless a separate Lean/Coq or executable small-step model is added and CI type-checks it.
 - Keep C/LLVM panic-class regressions green for divide-by-zero, out-of-bounds, released slot, double release, invalid secure-slot token, OOM, authority token mismatch, and internal-invariant unwrap misuse.
-- Add invalid-token / authority-mismatch semantic or ABI regressions that prove secure token invariants are not just documented.
 - **[NEW]** Add state-machine proofs for the Intent system's rollback and cleanup closure.
 
 Evidence command:
@@ -105,6 +113,9 @@ Closed now:
   ownership-bearing values (`subject`, borrow-tracked aggregate, movable
   resource, anchored handle). Copy-only `ref` arguments remain accepted, and
   the diagnostic uses `PGY_SEM_BORROW_ESCAPE` with `Reason:` / `Fix:` wording.
+- Direct named `spawn` boundaries now also reject authority-bearing `Token<T>`
+  parameters. This closes the stable beta token-transport rule across channel
+  send/receive helpers, cancellation payloads, channel close, and spawn.
 - Function types now carry first-stage interprocedural body summaries through
   `body_summary_mask`. The current seam records `may_return`, `may_escape_ref`,
   `moves_param`, `borrows_param`, `drops_resource`, `effects`,
@@ -254,11 +265,26 @@ Zone/world/authority/handoff closure:
 - Projection freshness must state when `refresh`, `publish`, and `bind` make data visible.
 - Authority rejection must expose queryable recoverable state for beta-stable recoverable failures.
 
+Runtime frontier scheduler closure:
+
+- The current beta evidence covers world derived-state bounded recompute, zone
+  lifecycle bounded frontier loop, projection-chain bounded recompute, embedded
+  world-zone projection freshness, embedded world-zone action-caused layer/state
+  freshness, and v1 handoff projection/world/layer-state freshness.
+- `make runtime-frontier-contract-test-smoke` gates that C and LLVM both keep
+  bounded frontier loops, pass limits, and hard-fail overflow boundaries for the
+  covered world/zone/projection slices.
+- The full bounded fixpoint / transitive frontier scheduler remains a blocker
+  until the remaining authority/failure handoff family and broader world-zone
+  propagation family use the same source-of-truth policy instead of growing
+  helper-specific edge paths.
+
 Evidence command:
 
 ```sh
 make formal-semantics-test-smoke
 make runtime-authority-contract-test-smoke
+make runtime-frontier-contract-test-smoke
 make projection-diagnostic-contract-test-smoke
 make llvm-test-backend-compare
 ```
@@ -315,6 +341,15 @@ Implementation progress:
 - `runtime-panic-abi-test-smoke` executes inline and exported runtime harnesses
   for released-slot, invalid-secure-token, double-release, device-slot,
   authority-mismatch, OOM, and divide-by-zero panic classes.
+- Authority token mismatch now records a stable recoverable query state before
+  hard-fail use: code `authority-token-mismatch`, reason `zone authority
+  validation failed: authority token mismatch`, and stderr without secret token
+  material. `authority_failure_abi` and `authority_failure_surface` keep the
+  C/LLVM ABI and backend outputs aligned.
+- Authority-bearing `Token<T>` transport is explicitly rejected on the current
+  beta transport surfaces: blocking channel send/receive, non-blocking/timeout
+  channel helpers, channel close, cancellation payloads, and direct named
+  `spawn` boundaries.
 
 Required policy decision:
 
@@ -364,6 +399,8 @@ Cross-platform support matrix:
 - Windows native/MSYS2/MinGW: required support matrix entry; LLVM may be marked unsupported until a real runner is green.
 - macOS: must be either explicitly supported, experimental, or out-of-beta before release wording.
 - 2026-04-25 local check: `make ci-windows` was not runnable in this WSL/Linux shell because `gcc -dumpmachine` reports `x86_64-linux-gnu`, not MSYS2/MinGW. This is an environment gap, not a code green signal; Windows beta evidence still requires a real MSYS2/MinGW runner.
+- 2026-04-26 support-matrix guard: `WINDOWS_LLVM_READY` now requires executable `llvm-config --libs core` evidence. A `C:/Program Files/LLVM/lib` directory alone is not accepted as Windows LLVM support because it can make MSYS2 CI run LLVM smoke/backend-compare without runnable LLVM tooling and fail with command-not-found status 127.
+- 2026-04-26 release wording: macOS is explicitly out-of-beta until a dedicated runner and support contract are added.
 
 Stdlib beta freeze:
 
@@ -391,6 +428,7 @@ Performance gate:
 
 - Compile/runtime perf baselines must be captured before major CFG/DAG/runtime propagation rewrites.
 - Regressions beyond the chosen threshold must block beta unless explicitly waived.
+- `make perf-contract-test-smoke` gates the `perf_summary` log grammar and C/LLVM average/worst-case summary output so `test-abi-perf` evidence remains machine-readable.
 
 Observability/tracing schema gate:
 
@@ -618,20 +656,21 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - Graph metadata now also materializes tuple shells and event-handler/function shells when all element/parameter/return facts are available. Channel/future AST nodes now record their constructed shell during graph collect instead of waiting for recursive fallback.
 - Pass-2 owner resolver seams now query `semantic_type_resolution_lookup_resolved_type(...)` before falling back to recursive `resolve_type_node(...)`.
 - `resolve_type_node(...)` itself is now metadata-first, so the remaining explicit legacy allowlist also consumes DAG facts before recursive materialization.
-- Owner-local resolver seams now converge through `semantic_type_resolution_resolve_or_fallback(...)`; direct `resolve_type_node(...)` calls are statically blocked outside the resolver implementation and the shared fallback helper.
+- Owner-local resolver seams now converge through `semantic_type_resolution_lookup_or_materialize(...)`; direct `resolve_type_node(...)` calls are statically blocked outside the resolver implementation and the central metadata materializer.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3130 metadata_entries=1872 metadata_owned=110 metadata_hits=3260 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3133 metadata_entries=1877 metadata_owned=111 metadata_hits=3267 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage (`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`) instead of accepting any non-zero metadata activity.
+- The central metadata materializer fallback is now visible and capped. Current beta cap: `materializer_fallbacks<=4135` across the semantic suite. This is a growth guard, not an acceptance that the fallback is final.
 - The remaining stage legacy surface is alias-only. Successful alias materialization and diagnostic fallback are reported separately, and valid alias fallback is gated at zero. The 78 unresolved fallback entries come from intentional alias-cycle diagnostic coverage, not hidden non-alias recursive resolution.
 - Ability declarations are now predeclared in the program-level symbol inventory, and `type_check_ability_decl(...)` reuses only its own predeclare. This closes the forward declaration-order gap for generic default/where consumers, zone authority ability consumers, and party role-slot ability consumers without weakening duplicate-ability diagnostics.
 - C/LLVM parity now includes `tests/cases/backend_compare/forward_ability_order/main.pgy`, which keeps provider-after-consumer ordering for generic defaults, aliases, zone authority ability consumers, and party role-slot ability consumers from regressing outside semantic-only tests.
 - `tests/compare_backends.sh` now fails its default run when a `tests/cases/backend_compare/*/main.pgy` directory is not registered in the default case array. Targeted runs with explicit arguments remain allowed for development, but CI can no longer silently skip a new parity case. The gate pulled eight previously passing but unregistered cases into the default C/LLVM parity suite: array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, and try-operator result.
-- `type-resolution-resolver-inventory-test-smoke` now treats the fallback seam count as a one-way debt cap instead of a coverage floor. The current 1-site cap blocks growth, prints the active fallback seam count, and shrinking below the old floor no longer fails CI.
+- `type-resolution-resolver-inventory-test-smoke` now treats the fallback seam count as a one-way debt cap instead of a coverage floor. The current named fallback seam cap is 0, prints the active fallback seam count, and shrinking below the old floor no longer fails CI.
 - `type_checker_module_contract.c` no longer calls the recursive fallback helper for ability contract bookkeeping. It records and checks ability contract shape/provenance through ability-specific logic and only performs DAG metadata lookup for already-materialized type facts, reducing the fallback seam inventory from 39 to 38.
 - `type_checker_ability_fields.c` now follows the same lookup-only pattern for ability `fields` requirements: the ability-specific validator owns field-contract diagnostics, while DAG metadata provides already-materialized type facts without recursive fallback.
 - Domain and intent declaration resolution now converge through owner-local type-reference seams. Domain slot/shared/named refs and intent involves/value/where refs share their local owner seam, reducing the fallback seam inventory from 38 to 34.
-- Alias/generic-parameter helpers and resolution-stage diagnostic fallback now converge through owner-local seams, reducing the fallback seam inventory from 34 to 32. Ability-field validation lookup-only resolution reduced the active seam cap to 31. Projection builtin target-field resolution now follows the same lookup-only pattern: graph metadata owns the materialized target field type, while projection diagnostics own source/target field mismatch. This reduces the active fallback seam cap to 30. Program-level quiet placeholder resolution now uses precollected DAG metadata lookup only, so event/function forward placeholders no longer need recursive fallback and the active cap is 29. Domain query projection source-field resolution now follows class/vessel field metadata lookup-only and reduces the active cap to 28. Party/roster shared-field resolution now follows declaration metadata lookup-only and reduces the active cap to 26. Ability abstract method signature resolution and role host-type resolution now follow metadata lookup-only and reduce the active cap to 24. Function/action body precollect now walks expression subtrees, call type args, lambda param/return/body types, event subscription handlers, spawn/channel/return/branch expressions; event/lambda handler signature resolution now uses DAG metadata lookup-only and reduces the active cap to 23. Body flow type resolution now uses DAG metadata lookup-only and reduces the active cap to 22. Type-alias statement resolution now uses DAG metadata lookup-only and reduces the active cap to 21. Generic where/default validation moved to the shared metadata materialization API and every owner-local resolver seam now calls `semantic_type_resolution_lookup_or_materialize(...)`, reducing the active fallback cap to 1.
-- This is not full DAG source-of-truth yet, but the remaining recursive fallback is centralized in `type_checker_resolution_metadata.c`; owner files cannot add local fallback seams without failing `type-resolution-resolver-inventory-test-smoke`. The remaining closure is replacing that central fallback with graph/topo materialization for generic/default/bound/module/nominal references, direct semantic unit graph bootstrap or null-safe diagnostics for function-body, intent declaration, ownership-let, and operator-overload cases, anchored-handle constructed-type coverage, generic/default effective-arg facts, boundary type-category facts for ref/own escape classification, ability where-bound effective-arg/multi-bound provenance facts, method param/return signature summaries, class/vessel field nominal flavor metadata, world/zone/host subject-slot nominal materialization, and zone authority generic ability facts.
+- Alias/generic-parameter helpers and resolution-stage diagnostic fallback now converge through owner-local seams, reducing the fallback seam inventory from 34 to 32. Ability-field validation lookup-only resolution reduced the active seam cap to 31. Projection builtin target-field resolution now follows the same lookup-only pattern: graph metadata owns the materialized target field type, while projection diagnostics own source/target field mismatch. This reduces the active fallback seam cap to 30. Program-level quiet placeholder resolution now uses precollected DAG metadata lookup only, so event/function forward placeholders no longer need recursive fallback and the active cap is 29. Domain query projection source-field resolution now follows class/vessel field metadata lookup-only and reduces the active cap to 28. Party/roster shared-field resolution now follows declaration metadata lookup-only and reduces the active cap to 26. Ability abstract method signature resolution and role host-type resolution now follow metadata lookup-only and reduce the active cap to 24. Function/action body precollect now walks expression subtrees, call type args, lambda param/return/body types, event subscription handlers, spawn/channel/return/branch expressions; event/lambda handler signature resolution now uses DAG metadata lookup-only and reduces the active cap to 23. Body flow type resolution now uses DAG metadata lookup-only and reduces the active cap to 22. Type-alias statement resolution now uses DAG metadata lookup-only and reduces the active cap to 21. Generic where/default validation moved to the shared metadata materialization API and every owner-local resolver seam now calls `semantic_type_resolution_lookup_or_materialize(...)`; the old named fallback helper is removed and its cap is 0.
+- This is not full DAG source-of-truth yet, but the remaining recursive fallback is only the final escape hatch inside `semantic_type_resolution_lookup_or_materialize(...)`; owner files cannot add local fallback seams without failing `type-resolution-resolver-inventory-test-smoke`. The remaining closure is replacing that central escape hatch with graph/topo materialization for generic/default/bound/module/nominal references, direct semantic unit graph bootstrap or null-safe diagnostics for function-body, intent declaration, ownership-let, and operator-overload cases, anchored-handle constructed-type coverage, generic/default effective-arg facts, boundary type-category facts for ref/own escape classification, ability where-bound effective-arg/multi-bound provenance facts, method param/return signature summaries, class/vessel field nominal flavor metadata, world/zone/host subject-slot nominal materialization, and zone authority generic ability facts.
 - Authority direct-slot resolution now clears stale ambiguity when the participant alias resolves to a concrete zone subject slot after earlier same-type candidates. This keeps `authorized by rogue/mage` valid when the zone has matching `subject slot rogue/mage: Adventurer`, while still preserving the hard error for genuinely ambiguous same-type participants.
 
 상태: `IN PROGRESS / BLOCKER`
@@ -668,7 +707,7 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - role/generic-contract/late-helper/expr resolution은 각각 local seam 1개로 수렴했다. remaining direct resolver inventory에서 이 파일들은 이제 metadata replacement owner를 명확히 가진다.
 - generic validation, ability where/module contract/declaration, class field, operator overload, ownership destructure resolution도 local seam으로 수렴했다. remaining direct resolver inventory는 resolver implementation, comments, or explicit seam sites로 압축됐다.
 - statement, ability field, builtin projection/query, flow, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다.
-- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다. It also gates new `semantic_type_resolution_resolve_or_fallback(...)` users behind an explicit owner-seam allowlist and caps the metadata-first fallback seam inventory at 21, so remaining consumers are no longer unclassified and cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
+- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다. It also blocks any new `semantic_type_resolution_resolve_or_fallback(...)` users and caps the named fallback seam inventory at 0, so owner-local fallback consumers cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
 - `type_checker_decls_domain_helpers.c`의 zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. `dnd_tavern_campaign` 같은 multi-slot same-type zone에서 concrete participant alias가 false-positive ambiguous로 떨어지는 경로를 닫았다.
 - `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage legacy fallback inventory를 CI gate로 검사한다.
 - intent/standalone helper dependency는 internal headers와 hard CFLAGS로 고정되어 DAG split 중 hidden include-order failure를 즉시 잡는다.

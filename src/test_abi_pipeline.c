@@ -1294,6 +1294,7 @@ main(void)
     static const char *authority_failure_source =
         "extern \"C\" {\n"
         "    func pgy_zone_authority_validate_flags_export(hasZone: Bool, hasParticipant: Bool, zone: String, participant: String) -> Bool;\n"
+        "    func pgy_zone_authority_validate_token_flags_export(hasZone: Bool, hasParticipant: Bool, expectedToken: Long, providedToken: Long, zone: String, participant: String) -> Bool;\n"
         "    func pgy_zone_authority_last_ok_rt_export() -> Bool;\n"
         "    func pgy_zone_authority_last_zone_rt_export() -> String;\n"
         "    func pgy_zone_authority_last_participant_rt_export() -> String;\n"
@@ -1314,6 +1315,12 @@ main(void)
         "    Log(pgy_zone_authority_last_ok_rt_export());\n"
         "    Log(pgy_zone_authority_last_code_rt_export());\n"
         "    Log(pgy_zone_authority_last_reason_rt_export());\n"
+        "    Log(pgy_zone_authority_validate_token_flags_export(true, true, 777L, 777L, \"BattleZone\", \"owner\"));\n"
+        "    Log(pgy_zone_authority_last_code_rt_export());\n"
+        "    Log(pgy_zone_authority_validate_token_flags_export(true, true, 777L, 888L, \"BattleZone\", \"owner\"));\n"
+        "    Log(pgy_zone_authority_last_ok_rt_export());\n"
+        "    Log(pgy_zone_authority_last_code_rt_export());\n"
+        "    Log(pgy_zone_authority_last_reason_rt_export());\n"
         "}\n";
     static const char *authority_failure_expected =
         "true\n"
@@ -1328,7 +1335,13 @@ main(void)
         "false\n"
         "false\n"
         "missing-participant\n"
-        "zone authority validation failed: null authority participant\n";
+        "zone authority validation failed: null authority participant\n"
+        "true\n"
+        "ok\n"
+        "false\n"
+        "false\n"
+        "authority-token-mismatch\n"
+        "zone authority validation failed: authority token mismatch\n";
     static const char *intent_authority_snapshot_source =
         "extern \"C\" {\n"
         "    func pgy_zone_authority_last_ok_rt_export() -> Bool;\n"

@@ -1,16 +1,51 @@
 # Pergyra TODO (배포 준비)
 
+## UTF-8 Progress Note - 2026-04-26 - Formal Semantics Proof Boundary
+
+- Slot capability calculus is now part of the formal proof pack via
+  `docs/semantics/08_slot_capability_calculus.md`.
+- `docs/semantics/proofs/SlotCalculus.v` is intentionally labeled as a
+  proof-sketch, not completed beta mechanized proof. It now models selected
+  Slot capability invariants: stale handle rejection, issued-token read/pin
+  requirements, unissued-token rejection, and pin non-eviction.
+- `make formal-semantics-test-smoke` now forbids overclaim terms in the Coq
+  artifact and runs `coqc` when the local toolchain provides it.
+- Linux GitHub Actions now installs `coq`, so the formal semantics smoke becomes
+  an actual Coq type-check gate in CI instead of a local optional check.
+- Runtime evidence for the Slot capability calculus was rechecked with
+  `make test-security` (132/132 passed): generation guard coverage now includes stale-generation
+  read/write/pin/release rejection and `SlotIsValid` false, plus
+  release-while-pinned, scope-release-while-pinned, TTL cleanup skip while
+  pinned, secure invalid token rejection, revoked-token rejection, concurrent
+  secure write rejection, raw secure-slot release rejection, and
+  release-after-unpin.
+- `runtime-panic-abi-test-smoke` now covers forged zero-token read/write/release
+  rejection for inline C runtime and exported C/LLVM-linkable secure-slot
+  entrypoints. Authority-token mismatch is now a real runtime contract surface:
+  `authority-token-mismatch` code/reason, queryable snapshot state, `make
+  test-security` direct coverage, `authority_failure_abi` C/LLVM ABI coverage,
+  and `authority_failure_surface` backend-compare coverage. The remaining
+  secure/authority invariant parity work is richer domain-boundary denial.
+  Unsupported authority-token transport is now explicitly rejected on the
+  current beta transport surfaces: blocking channel send/receive,
+  non-blocking/timeout channel helpers, channel close, cancellation payloads,
+  and direct named `spawn` boundaries.
+- This keeps the beta proof line honest: theorem statements and regression
+  evidence are required now; completed machine-checked proof remains a separate
+  hardening gate until CI type-checks it.
+
 ## UTF-8 Progress Note - 2026-04-26 - DAG Owner Seam Centralization
 
 - All owner-local type resolver seams now route through
   `semantic_type_resolution_lookup_or_materialize(...)` instead of owning direct
-  `semantic_type_resolution_resolve_or_fallback(...)` calls.
-- `semantic_type_resolution_resolve_or_fallback(...)` is confined to the central
-  metadata implementation; `type-resolution-resolver-inventory-test-smoke` caps
-  active fallback seams at 1 and fails if new owner-local fallback users appear.
-- Latest DAG smoke stats: `graph-backed skips=3130 metadata_entries=1872
-  metadata_owned=110 metadata_hits=3260 legacy_alias=83 legacy_non_alias=0
-  alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0
+  fallback helper calls.
+- The old `semantic_type_resolution_resolve_or_fallback(...)` helper is removed;
+  `type-resolution-resolver-inventory-test-smoke` caps named fallback seams at 0
+  and fails if new owner-local fallback users appear.
+- Latest DAG smoke stats: `graph-backed skips=3133 metadata_entries=1877
+  metadata_owned=111 metadata_hits=3267 materializer_fallbacks=4135
+  legacy_alias=83 legacy_non_alias=0 alias_materialized=5
+  alias_diagnostic_fallback=78 alias_fallback_resolved=0
   alias_fallback_unresolved=78`.
 - This is still not full DAG source-of-truth. The remaining closure is replacing
   the central fallback itself with graph/topo materialization for the imported
@@ -98,11 +133,13 @@
 현재 strict beta 기준에서는 다음 항목을 별도 gate로 본다. 이 항목들은 기능 확장이 아니라 이미 있는 core/runtime/tooling 표면의 신뢰도 계약이다.
 
 - [~] Runtime panic / unwinding model: OOM, divide-by-zero, out-of-bounds, slot violation, token mismatch, authority mismatch, invariant break의 abort/unwind/recoverable 정책을 `Runtime Panic Parity` proof obligation으로 올렸다. `src/runtime/pgy_runtime_panic_contract.h`가 panic class vocabulary를 소유하고, inline/exported typed slot read/write/release는 released-slot 및 double-release에서 더 이상 기본값/no-op로 빠지지 않는다. `make runtime-panic-abi-test-smoke`가 released-slot, invalid-secure-token, double-release, device-slot, out-of-bounds, authority-mismatch, OOM, divide-by-zero executable evidence를 제공한다. `make runtime-panic-codegen-test-smoke`는 generated C/LLVM divide/modulo-by-zero와 `Array<T>`/`Slice<T>` index, temporary function-return index, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access, `Unwrap(Err)`, `UnwrapOption(None)` parity를 검증한다. 남은 것은 새 hard-fail class가 추가될 때마다 같은 executable parity gate를 요구하는 것이다.
-- [~] Secure slot / authority secret invariant: token unforgeability, secure-slot mismatch denial, authority token non-forgeability, authority transfer single-owner invariant, runtime snapshot secret non-exposure를 `Secure Token Unforgeability` / `Authority Transfer Single-Owner` proof obligation으로 올렸다. inline/exported secure slot read/write/release invalid-token 및 denied-capability path는 `PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN`로 고정했고 secure-slot double-release도 `PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE`로 고정했다. `make runtime-panic-abi-test-smoke`가 invalid-token/double-release executable evidence를 제공한다. 남은 것은 authority-mismatch parity regression이다.
+- [~] Secure slot / authority secret invariant: token unforgeability, secure-slot mismatch denial, authority token non-forgeability, authority transfer single-owner invariant, runtime snapshot secret non-exposure를 `Secure Token Unforgeability` / `Authority Transfer Single-Owner` proof obligation으로 올렸다. inline/exported secure slot read/write/release invalid-token 및 denied-capability path는 `PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN`로 고정했고 secure-slot double-release도 `PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE`로 고정했다. `make runtime-panic-abi-test-smoke`가 invalid-token/double-release executable evidence를 제공한다. authority-token mismatch는 `authority-token-mismatch` runtime code/reason, `make test-security`, `authority_failure_abi`, `authority_failure_surface`로 C/LLVM parity regression까지 닫았다. unsupported authority-token transport는 channel send/receive/helper/close, cancellation payload, direct named `spawn`에서 explicit reject로 닫았다. 남은 것은 richer domain-boundary denial이다.
 - [ ] Intent formal closure: step ordering, compensation/rollback/invalidation, effect propagation, observability ABI stability를 beta-stable contract로 고정한다.
 - [ ] Zone/world/authority/handoff formal closure: zone generation, world embedding, handoff frontier, projection freshness, authority rejection query surface를 beta-stable contract로 고정한다.
 - [ ] Diagnostic quality gate: 모든 user-facing error가 severity, stable code, source span when available, `Reason:`, `Fix:`를 갖도록 품질 기준을 registry smoke와 별도 gate로 둔다.
 - [ ] Cross-platform CI matrix: Linux/WSL, Windows native/MSYS2/MinGW, macOS의 support level을 stable/experimental/out-of-beta로 명시한다.
+  - 진행: Windows LLVM support detection은 executable `llvm-config --libs core` evidence가 있을 때만 `WINDOWS_LLVM_READY=1`이 되도록 좁혔다. `C:/Program Files/LLVM/lib` 같은 library folder 존재만으로 LLVM smoke/backend-compare를 실행하지 않는다. 현재 beta 계약은 Linux C+LLVM, Windows C-only이며 Windows LLVM은 실제 MSYS2 runner green evidence가 생길 때만 승격한다.
+  - 진행: README support matrix에 macOS는 dedicated runner/support contract가 생길 때까지 out-of-beta로 명시했다.
 - [ ] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 범위를 한 곳에서 freeze한다.
 - [ ] Stdlib beta freeze list: stable/experimental/out-of-beta API와 breaking-change policy를 명시한다.
 - [ ] Tooling conformance: LSP/fmt/debugger의 beta-stable 범위를 명시한다.
@@ -155,7 +192,7 @@ Checklist source of truth:
 - [~] move/use-after-move, borrow/ref lifetime, boundary escape를 CFG join facts로 계산한다. `QubitSlot` loop break/continue join regression, anchored `Slot<T>` branch/join release-state regression, `own subject` branch/join consumed-state regression, parallel subject transfer join/conflict regression, parallel `ref`+`own` boundary conflict regression, parallel `ref`+`ref` shared-read acceptance regression, direct named-call `spawn ref` ownership-boundary rejection regression, anonymous async spawn explicit reject regression은 닫혔고, closure/lambda/general longer-lived borrow lifetime은 남아 있다. `mut ref`/`ref mut` surface가 없으므로 mutable-borrow overlap은 beta-out-of-scope로 봉인한다.
 - [~] owned resource drop/cleanup insertion point를 normal return, early return, break/continue, intent cancel/rollback/invalidation edge에서 같은 규칙으로 계산한다. `defer` cleanup terminator와 resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking은 닫혔고, full drop insertion/validation은 남아 있다.
 - [ ] zone/effect/relation transition facts를 path-sensitive summary로 올려 branch/join/handoff에서 stale state와 conflict를 같은 vocabulary로 진단한다.
-- [~] `parallel`/channel/task boundary에서 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact를 CFG summary로 검증한다. parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, copy-only cancellation payload reject, copy-only channel close는 닫혔고, broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact는 남아 있다.
+- [~] `parallel`/channel/task boundary에서 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact를 CFG summary로 검증한다. parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, direct named-call `spawn Token<T>` authority-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, authority `Token<T>` channel helper rejection, copy-only cancellation payload reject, copy-only channel close는 닫혔고, broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact는 남아 있다.
 - [~] Interprocedural body summary를 고정한다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1차 구조로 function type의 `body_summary_mask`와 semantic recorder는 들어갔다. direct function call은 callee summary 중 caller-relevant transitive facts를 소비하고 declaration-known `own/ref` parameter boundary facts도 기록한다. method/host call도 같은 declaration-known summary facts를 기록한다. lambda body summary는 lambda function type에 격리되어 outer routine으로 새지 않고, function-typed lambda binding 호출은 같은 callee-summary path로 전파된다. 남은 것은 intent/helper call까지 넓히고 zone/effect/runtime propagation과 C/LLVM lowering이 이 summary bit를 직접 소비하게 만드는 일이다.
 - [ ] 진단은 block/path provenance를 포함한다: source path, branch/join edge, previous state, Reason, Fix.
 - [ ] MIR/C/LLVM lowering은 같은 CFG/dataflow facts를 소비하고, frozen subset parity regression으로 묶는다.
@@ -291,6 +328,7 @@ Source of truth:
   - `make test-abi-perf`: 320 passed, 0 failed
   - `perf-summary`: C 32 cases, avg compile 0.569s, max 1.783s (`intent_authority_snapshot_abi`), avg run 0.001s
   - `perf-summary`: LLVM 32 cases, avg compile 0.187s, max 0.251s (`projection_abi`), avg run 0.002s
+- 진행: `make perf-contract-test-smoke`가 synthetic `test-abi-perf` log를 통해 `perf_summary` log grammar, C/LLVM case count, average compile/run, worst-case compile/run case selection을 CI에서 고정한다. 이 gate는 baseline 숫자 자체를 고정하지 않고, perf evidence가 machine-readable 상태를 유지하는지 검사한다.
   - representative `relation_effect_propagation/main.pgy`: C dev 1.03s / 46MB, LLVM dev 0.72s / 60MB after `realpath` warning fix
 - 진행:
   - [x] `tests/perf_summary.sh` 추가
@@ -512,6 +550,7 @@ Source of truth:
 - 강한 남은 과제: full bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. 다만 남은 debt는 zone/world frontier loop의 부재가 아니라 remaining authority/failure handoff family와 더 넓은 world-zone propagation family를 같은 source-of-truth로 일반화하는 일이다
 - 추가 closure: relation/effect/zone projection sync도 bounded transitive recompute loop로 올라왔고 declaration order에 기대지 않는다
 - 추가 회귀: `projection_chain_abi`가 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`에서 잠겼다
+- 추가 gate: `make runtime-frontier-contract-test-smoke`가 C emitter와 LLVM emitter에서 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, pass-limit overflow hard-fail, ABI smoke 등록, backend-compare 등록을 검사한다. 이 gate는 full bounded fixpoint / transitive frontier scheduler가 다시 single-pass 구현으로 후퇴하지 못하게 막는 beta blocker gate다. 남은 runtime propagation closure는 remaining authority/failure handoff family와 broader world-zone propagation family를 같은 source-of-truth frontier policy로 일반화하는 일이다
 - Beta readiness audit: `docs/98_beta_closure_readiness_report.md` records the current codebase verdict, remaining blockers, and concrete closure order. It narrows the next highest-value implementation target to handoff propagation and broader world-zone scheduler generalization.
 
 ### 최근 closure 진행 (2026-04-23)
@@ -1318,16 +1357,17 @@ Source of truth:
     - 진행: graph metadata가 tuple shell과 event-handler/function shell도 materialize한다. channel/future AST node는 inner fact collect 직후 constructed shell을 기록하므로 recursive fallback에 덜 의존한다
     - 진행: `resolve_type_node(...)` wrapper 자체가 metadata-first가 되어, 남은 explicit legacy allowlist도 recursive materialization 전에 DAG facts를 먼저 소비한다
     - 진행: `resolve_generic_type_arg(...)`도 metadata-first 조회 후 fallback으로 내려간다. constructed builtin/generic consumer path의 recursive resolver 의존 면적을 줄였다
-    - 진행: owner-local resolver seams는 `semantic_type_resolution_resolve_or_fallback(...)` 공용 helper로 수렴했다. resolver 구현체와 공용 fallback helper 밖에서 직접 `resolve_type_node(...)`를 호출하면 `type-resolution-resolver-inventory-test-smoke`가 실패한다
-    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 metadata entries/owned/hits, zero non-alias stage legacy fallback, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3130 metadata_entries=1872 metadata_owned=110 metadata_hits=3260 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
+    - 진행: owner-local resolver seams는 `semantic_type_resolution_lookup_or_materialize(...)` 공용 materializer로 수렴했다. resolver 구현체와 central metadata materializer 밖에서 직접 `resolve_type_node(...)`를 호출하면 `type-resolution-resolver-inventory-test-smoke`가 실패한다
+    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 metadata entries/owned/hits, metadata materializer fallback count, zero non-alias stage legacy fallback, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3133 metadata_entries=1877 metadata_owned=111 metadata_hits=3267 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
     - 진행: DAG smoke는 이제 graph-backed skip/metadata entry/metadata hit/owned metadata가 단순히 0보다 큰지만 보지 않고 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)를 검사한다. DAG source-of-truth 사용량이 크게 후퇴하면 CI에서 즉시 잡는다
+    - 진행: 중앙 metadata materializer의 마지막 recursive fallback도 `materializer_fallbacks` 통계로 노출하고 semantic suite 합산 cap을 4135로 낮췄다. 이 cap은 성장 방지용이며, 다음 DAG 작업은 이 값을 계속 낮추는 것이다
     - 진행: 남은 stage legacy surface는 alias-only로 고정됐다. 성공 alias materialization과 diagnostic fallback을 별도 계측하고 valid alias fallback은 0으로 gate한다. 남은 78건은 alias-cycle diagnostic coverage에서 나오는 unresolved fallback이며 hidden non-alias recursive resolution이 아니다
     - 진행: program-level symbol inventory가 ability declarations도 predeclare한다. `type_check_ability_decl(...)`은 자기 자신의 predeclare만 재사용하고 같은 이름의 다른 ability는 기존처럼 duplicate diagnostic으로 처리한다. forward source order에서 generic default/where, zone authority, party role-slot ability consumer가 provider 후행이어도 통과하는 regression을 추가했다
     - 진행: `tests/cases/backend_compare/forward_ability_order/main.pgy`를 backend compare suite에 추가했다. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering이 semantic-only가 아니라 C/LLVM 출력 동등성까지 유지되는지 검사한다
     - 진행: `tests/compare_backends.sh` 기본 실행은 `tests/cases/backend_compare/*/main.pgy`가 default case array에 빠져 있으면 실패한다. 명시 인자 기반 targeted run은 유지하되, CI/default path에서 새 parity case가 조용히 누락되는 drift를 차단했다. 이 gate로 기존 passing case 8개(array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)를 default C/LLVM parity suite에 편입했다
     - 진행: `type-resolution-resolver-inventory-test-smoke`가 direct resolver allowlist와 함께 metadata-first wrapper, execution/anchored-handle metadata materializer coverage를 static gate로 고정한다
-    - 진행: `type-resolution-resolver-inventory-test-smoke`가 새 `semantic_type_resolution_resolve_or_fallback(...)` 사용자를 central metadata implementation 밖에서 금지하고 metadata-first fallback seam 총량을 1개 이하로 고정한다. gate 출력은 현재 fallback seam count를 직접 보여주며, remaining fallback consumer는 이제 unclassified discovery 대상이 아니라 central replacement 대상이다
-    - 진행: fallback seam gate의 기존 하한선(`30개 미만이면 실패`)을 debt-reduction에 맞지 않는 규칙으로 보고 제거했다. 이제 1개 상한만 growth guard로 유지하며, seam 축소는 CI 성공 경로다
+    - 진행: `type-resolution-resolver-inventory-test-smoke`가 새 `semantic_type_resolution_resolve_or_fallback(...)` 사용자를 금지하고 named fallback seam 총량을 0개로 고정한다. gate 출력은 현재 fallback seam count를 직접 보여주며, remaining fallback은 `semantic_type_resolution_lookup_or_materialize(...)` 내부의 central escape hatch 교체 대상이다
+    - 진행: fallback seam gate의 기존 하한선(`30개 미만이면 실패`)을 debt-reduction에 맞지 않는 규칙으로 보고 제거했다. 이제 0개 상한만 growth guard로 유지하며, seam 축소는 CI 성공 경로다
     - 진행: `type_checker_module_contract.c`의 ability contract bookkeeping은 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only seam으로 낮췄다. ability 존재/visibility/generic arity/where provenance는 ability-specific validator가 계속 소유하며, fallback seam inventory는 39에서 38로 감소했다
     - 진행: `type_checker_ability_fields.c`의 ability `fields` requirement validation도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. field contract diagnostics는 ability-specific validator가 계속 소유하며, fallback seam cap은 32에서 31로 감소했다
     - 진행: `type_checker_builtins_projection.c`의 projection target-field resolver도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. projection field diagnostics는 projection validator가 계속 소유하며, fallback seam cap은 31에서 30으로 감소했다
@@ -2146,15 +2186,14 @@ Source of truth:
   drain/release behavior.
 ## Progress Log - 2026-04-26 - DAG Fallback Seam Cap
 
-- Owner-local resolver files no longer own direct
-  `semantic_type_resolution_resolve_or_fallback(...)` seams. They now call
+- Owner-local resolver files no longer own direct fallback helper seams. They now call
   `semantic_type_resolution_lookup_or_materialize(...)`, which checks DAG
   metadata, materializes stable constructed shells, then falls through to the
   centralized resolver fallback only when imported ability/default/bound/module
   cases still need legacy materialization.
 - `tests/type_resolution_resolver_inventory_smoke.sh` now caps active
-  metadata-first fallback seams at 1, down from 20. This is still not full DAG
-  source-of-truth, but it removes owner-local fallback seams and prevents the
-  count from growing outside the central metadata implementation.
+  named fallback seams at 0, down from 20. This is still not full DAG
+  source-of-truth, but it removes the old fallback helper API and prevents
+  owner-local fallback seams from returning.
 - Verified locally: `make type-resolution-resolver-inventory-test-smoke
   type-resolution-dag-test-smoke` and `make test-semantic`.

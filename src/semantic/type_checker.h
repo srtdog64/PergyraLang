@@ -190,6 +190,7 @@ struct SemanticContext
     } type_resolution_metadata;
     size_t type_resolution_metadata_hits;
     size_t type_resolution_metadata_misses;
+    size_t type_resolution_metadata_materializer_fallbacks;
 
     bool         has_error;
 };

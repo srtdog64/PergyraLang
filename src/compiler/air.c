@@ -124,6 +124,94 @@ air_boundary_from_dir_step(const DIRIntentStep *step)
     return AIR_BOUNDARY_UNKNOWN;
 }
 
+static const char *
+air_call_callee_name(const ASTNode *node)
+{
+    if (node == NULL || node->type != AST_CALL || node->data.call.callee == NULL)
+        return NULL;
+    if (node->data.call.callee->type == AST_IDENTIFIER)
+        return node->data.call.callee->data.identifier.name;
+    if (node->data.call.callee->type == AST_MEMBER_ACCESS)
+        return node->data.call.callee->data.member.name;
+    return NULL;
+}
+
+static bool
+air_call_is_io_boundary(const ASTNode *node)
+{
+    const char *name = air_call_callee_name(node);
+    if (name == NULL)
+        return false;
+    return strcmp(name, "ReadFile") == 0
+        || strcmp(name, "WriteFile") == 0
+        || strcmp(name, "ReadLine") == 0;
+}
+
+static AIRBoundaryKind
+air_boundary_from_ast_node(const ASTNode *node)
+{
+    if (node == NULL)
+        return AIR_BOUNDARY_UNKNOWN;
+    switch (node->type) {
+    case AST_PARALLEL_BLOCK:
+    case AST_ASYNC_BLOCK:
+    case AST_SPAWN_EXPR:
+        return AIR_BOUNDARY_PARALLEL;
+    case AST_CHANNEL_SEND:
+    case AST_CHANNEL_RECV:
+    case AST_SELECT_STMT:
+        return AIR_BOUNDARY_CHANNEL;
+    case AST_CALL:
+        return air_call_is_io_boundary(node) ? AIR_BOUNDARY_IO : AIR_BOUNDARY_UNKNOWN;
+    default:
+        return AIR_BOUNDARY_UNKNOWN;
+    }
+}
+
+static AIRSyncClass
+air_sync_from_boundary_kind(AIRBoundaryKind kind)
+{
+    switch (kind) {
+    case AIR_BOUNDARY_PARALLEL:
+    case AIR_BOUNDARY_CHANNEL:
+        return AIR_SYNC_ASYNC;
+    case AIR_BOUNDARY_IO:
+        return AIR_SYNC_EITHER;
+    case AIR_BOUNDARY_ZONE:
+    case AIR_BOUNDARY_WORLD:
+        return AIR_SYNC_SYNC;
+    case AIR_BOUNDARY_UNKNOWN:
+    default:
+        return AIR_SYNC_UNKNOWN;
+    }
+}
+
+static const char *
+air_boundary_source_from_ast(const ASTNode *node)
+{
+    AIRBoundaryKind kind = air_boundary_from_ast_node(node);
+    if (kind == AIR_BOUNDARY_IO) {
+        const char *name = air_call_callee_name(node);
+        return name != NULL ? name : "io";
+    }
+    switch (kind) {
+    case AIR_BOUNDARY_PARALLEL:
+        if (node != NULL && node->type == AST_SPAWN_EXPR)
+            return "spawn";
+        if (node != NULL && node->type == AST_ASYNC_BLOCK)
+            return "async";
+        return "parallel";
+    case AIR_BOUNDARY_CHANNEL:
+        if (node != NULL && node->type == AST_CHANNEL_SEND)
+            return "channel-send";
+        if (node != NULL && node->type == AST_CHANNEL_RECV)
+            return "channel-recv";
+        return "select";
+    default:
+        return "boundary";
+    }
+}
+
 static bool
 air_sync_conflicts(AIRSyncClass expected, AIRSyncClass actual)
 {
@@ -132,6 +220,223 @@ air_sync_conflicts(AIRSyncClass expected, AIRSyncClass actual)
     if (expected == AIR_SYNC_EITHER || actual == AIR_SYNC_EITHER)
         return false;
     return expected != actual;
+}
+
+static size_t
+air_count_expr_boundaries(ASTNode *node)
+{
+    size_t count = 0;
+    if (node == NULL)
+        return 0;
+    if (air_boundary_from_ast_node(node) != AIR_BOUNDARY_UNKNOWN)
+        count++;
+    switch (node->type) {
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.statement_count; i++)
+            count += air_count_expr_boundaries(node->data.block.statements[i]);
+        break;
+    case AST_PARALLEL_BLOCK:
+        for (size_t i = 0; i < node->data.parallel.task_count; i++)
+            count += air_count_expr_boundaries(node->data.parallel.tasks[i]);
+        break;
+    case AST_ASYNC_BLOCK:
+        for (size_t i = 0; i < node->data.async_block.statement_count; i++)
+            count += air_count_expr_boundaries(node->data.async_block.statements[i]);
+        break;
+    case AST_SPAWN_EXPR:
+        count += air_count_expr_boundaries(node->data.spawn_expr.function);
+        for (size_t i = 0; i < node->data.spawn_expr.arg_count; i++)
+            count += air_count_expr_boundaries(node->data.spawn_expr.arguments[i]);
+        break;
+    case AST_CALL:
+        count += air_count_expr_boundaries(node->data.call.callee);
+        for (size_t i = 0; i < node->data.call.arg_count; i++)
+            count += air_count_expr_boundaries(node->data.call.arguments[i]);
+        break;
+    case AST_MEMBER_ACCESS:
+        count += air_count_expr_boundaries(node->data.member.object);
+        break;
+    case AST_ARRAY_ACCESS:
+        count += air_count_expr_boundaries(node->data.array_access.array);
+        count += air_count_expr_boundaries(node->data.array_access.index);
+        break;
+    case AST_ASSIGNMENT:
+        count += air_count_expr_boundaries(node->data.assignment.target);
+        count += air_count_expr_boundaries(node->data.assignment.value);
+        break;
+    case AST_BINARY:
+        count += air_count_expr_boundaries(node->data.binary.left);
+        count += air_count_expr_boundaries(node->data.binary.right);
+        break;
+    case AST_UNARY:
+        count += air_count_expr_boundaries(node->data.unary.operand);
+        break;
+    case AST_AWAIT_EXPR:
+        count += air_count_expr_boundaries(node->data.await_expr.expression);
+        break;
+    case AST_CHANNEL_SEND:
+        count += air_count_expr_boundaries(node->data.channel_send.channel);
+        count += air_count_expr_boundaries(node->data.channel_send.value);
+        break;
+    case AST_CHANNEL_RECV:
+        count += air_count_expr_boundaries(node->data.channel_recv.channel);
+        break;
+    case AST_IF_STMT:
+        count += air_count_expr_boundaries(node->data.if_stmt.condition);
+        count += air_count_expr_boundaries(node->data.if_stmt.then_branch);
+        count += air_count_expr_boundaries(node->data.if_stmt.else_branch);
+        break;
+    case AST_RETURN:
+        count += air_count_expr_boundaries(node->data.return_stmt.value);
+        break;
+    default:
+        break;
+    }
+    return count;
+}
+
+static size_t
+air_count_step_expr_boundaries(const DIRIntentStep *step)
+{
+    size_t count = 0;
+    ASTNode *ast;
+
+    if (step == NULL || step->ast == NULL || step->ast->type != AST_INTENT_STEP)
+        return 0;
+    ast = step->ast;
+    count += air_count_expr_boundaries(ast->data.intent_step.using_expr);
+    count += air_count_expr_boundaries(ast->data.intent_step.intent_expr);
+    count += air_count_expr_boundaries(ast->data.intent_step.pre_expr);
+    count += air_count_expr_boundaries(ast->data.intent_step.guard_expr);
+    count += air_count_expr_boundaries(ast->data.intent_step.post_expr);
+    count += air_count_expr_boundaries(ast->data.intent_step.invariant_expr);
+    count += air_count_expr_boundaries(ast->data.intent_step.expect_expr);
+    for (size_t i = 0; i < ast->data.intent_step.on_expr_count; i++)
+        count += air_count_expr_boundaries(ast->data.intent_step.on_exprs[i]);
+    for (size_t i = 0; i < ast->data.intent_step.compensate_expr_count; i++)
+        count += air_count_expr_boundaries(ast->data.intent_step.compensate_exprs[i]);
+    return count;
+}
+
+static bool
+air_append_expr_boundaries(AIRProgram *air,
+                           AIRBoundaryNode *boundaries,
+                           size_t *boundary_index,
+                           size_t intent_index,
+                           const char *owner,
+                           const DIRIntentStep *step,
+                           ASTNode *node)
+{
+    AIRBoundaryKind kind;
+
+    if (node == NULL)
+        return true;
+
+    kind = air_boundary_from_ast_node(node);
+    if (kind != AIR_BOUNDARY_UNKNOWN) {
+        AIRBoundaryNode *boundary = &boundaries[*boundary_index];
+        memset(boundary, 0, sizeof(*boundary));
+        boundary->kind = kind;
+        boundary->owner_name = owner;
+        boundary->source_name = air_boundary_source_from_ast(node);
+        boundary->intent_index = intent_index;
+        boundary->step_index = step != NULL ? step->index : 0;
+        boundary->ast = node;
+        boundary->sync_class = air_sync_from_boundary_kind(kind);
+        (*boundary_index)++;
+    }
+
+    switch (node->type) {
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.statement_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.block.statements[i]))
+                return false;
+        break;
+    case AST_PARALLEL_BLOCK:
+        for (size_t i = 0; i < node->data.parallel.task_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.parallel.tasks[i]))
+                return false;
+        break;
+    case AST_ASYNC_BLOCK:
+        for (size_t i = 0; i < node->data.async_block.statement_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.async_block.statements[i]))
+                return false;
+        break;
+    case AST_SPAWN_EXPR:
+        if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.spawn_expr.function))
+            return false;
+        for (size_t i = 0; i < node->data.spawn_expr.arg_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.spawn_expr.arguments[i]))
+                return false;
+        break;
+    case AST_CALL:
+        if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.call.callee))
+            return false;
+        for (size_t i = 0; i < node->data.call.arg_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.call.arguments[i]))
+                return false;
+        break;
+    case AST_MEMBER_ACCESS:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.member.object);
+    case AST_ARRAY_ACCESS:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.array_access.array)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.array_access.index);
+    case AST_ASSIGNMENT:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.assignment.target)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.assignment.value);
+    case AST_BINARY:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.binary.left)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.binary.right);
+    case AST_UNARY:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.unary.operand);
+    case AST_AWAIT_EXPR:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.await_expr.expression);
+    case AST_CHANNEL_SEND:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.channel_send.channel)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.channel_send.value);
+    case AST_CHANNEL_RECV:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.channel_recv.channel);
+    case AST_IF_STMT:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.if_stmt.condition)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.if_stmt.then_branch)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.if_stmt.else_branch);
+    case AST_RETURN:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.return_stmt.value);
+    default:
+        break;
+    }
+    (void)air;
+    return true;
+}
+
+static bool
+air_append_step_expr_boundaries(AIRProgram *air,
+                                AIRBoundaryNode *boundaries,
+                                size_t *boundary_index,
+                                size_t intent_index,
+                                const char *owner,
+                                const DIRIntentStep *step)
+{
+    ASTNode *ast;
+
+    if (step == NULL || step->ast == NULL || step->ast->type != AST_INTENT_STEP)
+        return true;
+    ast = step->ast;
+    return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.using_expr)
+        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.intent_expr)
+        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.pre_expr)
+        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.guard_expr)
+        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.post_expr)
+        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.invariant_expr)
+        && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.expect_expr)
+        && ({
+            bool ok = true;
+            for (size_t i = 0; ok && i < ast->data.intent_step.on_expr_count; i++)
+                ok = air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.on_exprs[i]);
+            for (size_t i = 0; ok && i < ast->data.intent_step.compensate_expr_count; i++)
+                ok = air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, ast->data.intent_step.compensate_exprs[i]);
+            ok;
+        });
 }
 
 static bool

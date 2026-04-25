@@ -1,6 +1,6 @@
 # 04. Ownership / ABI Proof Obligations
 
-Last updated: 2026-04-25
+Last updated: 2026-04-26
 
 Status: `IN PROGRESS / BLOCKER`
 
@@ -67,14 +67,27 @@ Required invariants:
 
 Current evidence:
 
-- Secure slot read/write paths already validate token pairing.
-- Runtime authority failure surface exposes reason/code state without exposing secret token material.
+- Secure slot read/write/pin/release paths validate token pairing.
+- Raw `SlotRelease` cannot release secure slots; secure release requires
+  `SlotReleaseSecure` after token validation.
+- Stale-generation handles and revoked tokens are rejected by the runtime Slot
+  capability tests.
+- Forged zero-token read/write/release is covered for both inline C runtime and
+  exported C/LLVM-linkable runtime entrypoints.
+- Runtime authority failure surface exposes reason/code state for missing-zone,
+  missing-participant, and authority-token-mismatch without exposing secret
+  token material.
+- Authority token mismatch has C/LLVM ABI and backend-compare coverage through
+  `authority_failure_abi` and `authority_failure_surface`.
+- Unsupported beta transport of authority-bearing `Token<T>` is rejected on
+  blocking channel send/receive, non-blocking and timeout channel helpers,
+  channel close, cancellation payloads, and direct named `spawn` boundaries.
 - `runtime-authority-contract-test-smoke` and `runtime-abi-lifetime-test-smoke` guard parts of the runtime ABI vocabulary and borrowed-string lifetime surface.
 
 Remaining proof obligation:
 
-- Add C/LLVM parity regressions for invalid secure-slot token and authority-token mismatch paths.
-- Make unsupported authority token transport an explicit semantic reject everywhere the beta surface accepts transport syntax.
+- Extend the same token-transport reject gate whenever a new beta transport
+  surface is admitted.
 
 ## Theorem: Authority Transfer Single-Owner
 

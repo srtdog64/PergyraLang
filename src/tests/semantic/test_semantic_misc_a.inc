@@ -865,6 +865,42 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("CFG spawn rejects authority Token boundary crossing");
+    {
+        ASTNode *program = ast_create_program();
+        ASTNode *worker = ast_create_function("UseToken");
+        ASTNode *main_func = ast_create_function("Main");
+        ASTNode *call = ast_create_call(ast_create_identifier("UseToken"));
+        ASTNode *spawn = ast_create_spawn_expression(call);
+        SemanticResult *result;
+
+        worker->data.func_decl.return_type = ast_create_type("Void");
+        worker->data.func_decl.body = ast_create_block();
+        worker->data.func_decl.param_count = 1;
+        worker->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        worker->data.func_decl.params[0] =
+            make_func_param("token", make_generic_type("Token", "Int"));
+        worker->data.func_decl.params[0]->mode = PARAM_MODE_OWN;
+
+        main_func->data.func_decl.return_type = ast_create_type("Void");
+        main_func->data.func_decl.body = ast_create_block();
+        main_func->data.func_decl.has_effects_clause = true;
+        main_func->data.func_decl.declared_effects = EFFECT_REMOTE;
+        ast_add_argument(call, ast_create_identifier("token"));
+        ast_add_statement(main_func->data.func_decl.body, spawn);
+
+        ast_add_statement(program, worker);
+        ast_add_statement(program, main_func);
+        result = semantic_analyze(program);
+
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Authority-bearing Token parameter cannot cross spawn boundary"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+    }
+
     TEST("generic own/ref parameter requires ownership classifier fact");
     {
         const char *source =
@@ -1183,4 +1219,3 @@ test_misc_grammar_edges(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
-

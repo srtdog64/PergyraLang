@@ -641,6 +641,23 @@ void test_runtime_zone_authority_validation()
     TEST_ASSERT(strcmp(pgy_zone_authority_last_reason_rt_export(),
                        "zone authority validation failed: null authority participant") == 0,
                             "Zone authority runtime accessor records missing-participant reason");
+    TEST_ASSERT(pgy_zone_authority_validate_token_flags_export(true, true,
+                                                               777, 777,
+                                                               "BattleZone", "owner"),
+                "Zone authority token flag export accepts matching token");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_code_rt_export(), "ok") == 0,
+                "Zone authority token flag export records ok code");
+    TEST_SECURITY_VIOLATION(!pgy_zone_authority_validate_token_flags_export(true, true,
+                                                                            777, 888,
+                                                                            "BattleZone", "owner"),
+                            "Zone authority token flag export rejects mismatched token");
+    TEST_ASSERT(!pgy_zone_authority_last_ok_rt_export(),
+                "Zone authority runtime accessor records failed state for token mismatch");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_code_rt_export(), "authority-token-mismatch") == 0,
+                "Zone authority runtime accessor records token-mismatch code");
+    TEST_ASSERT(strcmp(pgy_zone_authority_last_reason_rt_export(),
+                       "zone authority validation failed: authority token mismatch") == 0,
+                "Zone authority runtime accessor records token-mismatch reason");
 }
 
 void test_slot_pin_lease_runtime()
@@ -648,8 +665,11 @@ void test_slot_pin_lease_runtime()
     SlotManager *plainManager;
     SlotManager *secureManager;
     SlotHandle plainHandle;
+    SlotHandle staleHandle;
     SlotHandle secureHandle;
+    SlotHandle revokedHandle;
     TokenCapability token;
+    TokenCapability revokedToken;
     TokenCapability invalidToken;
     PgyPinnedView view;
     SlotEntry *entry;
@@ -684,6 +704,35 @@ void test_slot_pin_lease_runtime()
     TEST_ASSERT(result == SLOT_SUCCESS && !view.valid, "Plain slot unpin succeeds");
     result = SlotRelease(plainManager, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot release after unpin succeeds");
+
+    result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Generation guard slot claim");
+    value = 77;
+    result = SlotWrite(plainManager, &plainHandle, &value, sizeof(value));
+    TEST_ASSERT(result == SLOT_SUCCESS, "Generation guard slot write");
+    staleHandle = plainHandle;
+    staleHandle.generation++;
+    readValue = 0;
+    result = SlotRead(plainManager, &staleHandle, &readValue, sizeof(readValue),
+                      &bytesRead);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_SLOT_NOT_FOUND,
+                            "Stale generation handle cannot read");
+    value = 88;
+    result = SlotWrite(plainManager, &staleHandle, &value, sizeof(value));
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_SLOT_NOT_FOUND,
+                            "Stale generation handle cannot write");
+    result = PergyraSlotPin(plainManager, &staleHandle, PGY_SLOT_PIN_READ,
+                            NULL, &view);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_SLOT_NOT_FOUND && !view.valid,
+                            "Stale generation handle cannot pin");
+    TEST_ASSERT(!SlotIsValid(plainManager, &staleHandle),
+                "Stale generation handle is not valid");
+    result = SlotRelease(plainManager, &staleHandle);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_SLOT_NOT_FOUND,
+                            "Stale generation handle cannot release");
+    result = SlotRelease(plainManager, &plainHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS,
+                "Generation guard original handle still releases");
 
     result = SlotClaimScoped(plainManager, TYPE_INT, 77, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS, "Scoped slot claim for pin");
@@ -771,8 +820,41 @@ void test_slot_pin_lease_runtime()
     TEST_ASSERT(result == SLOT_SUCCESS && bytesRead == sizeof(readValue),
                 "Secure slot read after pin succeeds");
     TEST_ASSERT(readValue == 99, "Secure write pin persists modified payload");
+    result = SlotRelease(secureManager, &secureHandle);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED,
+                            "Raw release cannot release secure slot");
     result = SlotReleaseSecure(secureManager, &secureHandle, &token);
     TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot release after unpin succeeds");
+
+    result = SlotClaimSecure(secureManager, TYPE_INT, SECURITY_LEVEL_BASIC,
+                             &revokedHandle, &revokedToken);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Revocation guard secure slot claim");
+    value = 111;
+    result = SlotWriteSecure(secureManager, &revokedHandle, &value, sizeof(value),
+                             &revokedToken);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Revocation guard secure slot write");
+    result = SlotRevokeToken(secureManager, &revokedHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Revocation guard token revoke");
+    readValue = 0;
+    result = SlotReadSecure(secureManager, &revokedHandle, &readValue,
+                            sizeof(readValue), &bytesRead, &revokedToken);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED,
+                            "Revoked token cannot read secure slot");
+    value = 222;
+    result = SlotWriteSecure(secureManager, &revokedHandle, &value, sizeof(value),
+                             &revokedToken);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED,
+                            "Revoked token cannot write secure slot");
+    result = PergyraSlotPin(secureManager, &revokedHandle, PGY_SLOT_PIN_READ,
+                            &revokedToken, &view);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED && !view.valid,
+                            "Revoked token cannot pin secure slot");
+    result = SlotReleaseSecure(secureManager, &revokedHandle, &revokedToken);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED,
+                            "Revoked token cannot release secure slot");
+    result = SlotRelease(secureManager, &revokedHandle);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED,
+                            "Raw release cannot bypass secure token revocation");
     SlotManagerDestroySecure(secureManager);
 }
 

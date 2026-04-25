@@ -66,7 +66,7 @@ ifeq ($(strip $(BASH)),)
 BASH := bash
 endif
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
-WINDOWS_LLVM_READY := $(shell if [ -n "$(LLVM_CONFIG)" ] || [ -d /c/Program\ Files/LLVM/lib ] || [ -d "C:/Program Files/LLVM/lib" ]; then echo 1; else echo 0; fi)
+WINDOWS_LLVM_READY := $(shell if [ -n "$(LLVM_CONFIG)" ] && "$(LLVM_CONFIG)" --libs core >/dev/null 2>&1; then echo 1; else echo 0; fi)
 LLD := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
 PROJECT_ROOT := $(CURDIR)
 CFLAGS  += -DPGY_PROJECT_ROOT=\"$(PROJECT_ROOT)\"
@@ -569,6 +569,9 @@ perf-summary:
 	@test -n "$(PERF_LOG)" || { echo "usage: make perf-summary PERF_LOG=/path/to/test-abi-perf.log" >&2; exit 1; }
 	$(BASH) tests/perf_summary.sh "$(PERF_LOG)"
 
+perf-contract-test-smoke:
+	"$(BASH)" tests/perf_contract_smoke.sh
+
 test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="
 	$(CONCURRENCY_TEST)
@@ -742,6 +745,9 @@ projection-diagnostic-contract-test-smoke:
 runtime-abi-lifetime-test-smoke:
 	"$(BASH)" tests/runtime_abi_lifetime_smoke.sh
 
+runtime-frontier-contract-test-smoke:
+	"$(BASH)" tests/runtime_frontier_contract_smoke.sh
+
 parallel-core-contract-test-smoke:
 	"$(BASH)" tests/parallel_core_contract_smoke.sh
 
@@ -826,7 +832,9 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" runtime-panic-codegen-test-smoke
 	$(MAKE) projection-diagnostic-contract-test-smoke
 	$(MAKE) runtime-abi-lifetime-test-smoke
+	$(MAKE) runtime-frontier-contract-test-smoke
 	$(MAKE) parallel-core-contract-test-smoke
+	$(MAKE) perf-contract-test-smoke
 	$(MAKE) parser-lexer-diagnostic-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" diagnostics-json-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" ir-pipeline-test-smoke
@@ -930,7 +938,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke parallel-core-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke backend-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke runtime-frontier-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

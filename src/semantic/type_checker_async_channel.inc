@@ -49,6 +49,80 @@ spawn_find_callable_decl(ASTNode *program, const char *name)
     return NULL;
 }
 
+static bool
+semantic_channel_type_is_token(const Type *type);
+
+static bool
+semantic_type_ref_names_token(ASTNode *type_ref)
+{
+    if (type_ref == NULL)
+        return false;
+    if (type_ref->type == AST_TYPE)
+        return type_ref->data.type.name != NULL
+            && strcmp(type_ref->data.type.name, "Token") == 0;
+    if (type_ref->type == AST_IDENTIFIER)
+        return type_ref->data.identifier.name != NULL
+            && strcmp(type_ref->data.identifier.name, "Token") == 0;
+    return false;
+}
+
+static bool
+semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
+{
+    ASTNode *spawned;
+    const char *callee_name;
+    ASTNode *decl;
+    bool rejected = false;
+
+    if (expr == NULL || ctx == NULL)
+        return false;
+
+    spawned = expr->data.spawn_expr.function;
+    callee_name = spawn_direct_callee_name(spawned);
+    if (callee_name == NULL)
+        return false;
+
+    decl = spawn_find_callable_decl(ctx->program_root, callee_name);
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
+        return false;
+
+    for (size_t i = 0; i < spawned->data.call.arg_count; i++) {
+        ASTNode *arg = spawned->data.call.arguments[i];
+        FuncParam *param = spawn_callable_param_at(decl, i);
+        Type *param_type = NULL;
+        bool param_is_token;
+
+        if (arg == NULL || param == NULL)
+            continue;
+
+        param_is_token = semantic_type_ref_names_token(param->type);
+        if (!param_is_token) {
+            param_type = semantic_type_resolution_lookup_resolved_type(ctx,
+                param->type);
+            param_is_token = semantic_channel_type_is_token(param_type);
+        }
+        if (!param_is_token)
+            continue;
+
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_REMOTE_FUTURE_MISUSE,
+            PGY_CAUSE_REMOTE_FUTURE_DIRECT_ACCESS,
+            PGY_FIX_MOVE_INTO_ASYNC_FUNCTION,
+            arg,
+            "Authority-bearing Token parameter cannot cross spawn boundary.\n"
+            "Reason:\n"
+            "- spawn may move execution to another task before authority provenance is observed\n"
+            "- beta authority tokens are local to the issuing authorized flow\n"
+            "- unsupported token transport would make authority rejection non-queryable\n"
+            "Fix:\n"
+            "- keep Token<T> use in the synchronous authorized flow\n"
+            "- or pass a plain projection/value result into '%s' instead",
+            callee_name);
+        rejected = true;
+    }
+    return rejected;
+}
+
 static void
 semantic_validate_spawn_ref_boundary(ASTNode *expr,
                                      SemanticContext *ctx,
@@ -145,16 +219,23 @@ semantic_reject_anonymous_async_spawn(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
 {
+    Type *args[1];
+    Type *inner;
+
     semantic_record_body_summary(ctx, BODY_SUMMARY_SPAWNS_TASK);
     semantic_record_effect(ctx, EFFECT_REMOTE);
     if (semantic_reject_anonymous_async_spawn(expr, ctx)) {
         Type *unknown_args[1] = { TYPE_UNKNOWN };
         return type_create_constructed(TYPE_FUTURE, unknown_args, 1);
     }
+    if (semantic_validate_spawn_token_boundary(expr, ctx)) {
+        args[0] = TYPE_UNKNOWN;
+        return type_create_constructed(TYPE_FUTURE, args, 1);
+    }
     /* Type-check the spawned function/expression */
-    Type *inner = type_check_expression(expr->data.spawn_expr.function, ctx);
+    inner = type_check_expression(expr->data.spawn_expr.function, ctx);
     semantic_validate_spawn_ref_boundary(expr, ctx, inner);
-    Type *args[1] = { inner != NULL ? inner : TYPE_UNKNOWN };
+    args[0] = inner != NULL ? inner : TYPE_UNKNOWN;
     return type_create_constructed(TYPE_FUTURE, args, 1);
 }
 

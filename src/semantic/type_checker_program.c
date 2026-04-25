@@ -359,11 +359,12 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (ctx->type_resolution_metadata.owned[i])
                     metadata_owned_count++;
             }
-            fprintf(stderr, "[type-res-stats] metadata: entries=%llu owned=%llu hits=%llu misses=%llu\n",
+            fprintf(stderr, "[type-res-stats] metadata: entries=%llu owned=%llu hits=%llu misses=%llu materializer_fallbacks=%llu\n",
                     (unsigned long long) ctx->type_resolution_metadata.count,
                     (unsigned long long) metadata_owned_count,
                     (unsigned long long) ctx->type_resolution_metadata_hits,
-                    (unsigned long long) ctx->type_resolution_metadata_misses);
+                    (unsigned long long) ctx->type_resolution_metadata_misses,
+                    (unsigned long long) ctx->type_resolution_metadata_materializer_fallbacks);
             fprintf(stderr, "[type-res-stats] stage-legacy-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_legacy_generic_contract_count,
                     (unsigned long long) ctx->type_resolution_stage_legacy_signature_count,

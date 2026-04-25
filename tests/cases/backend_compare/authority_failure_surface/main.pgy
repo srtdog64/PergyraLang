@@ -1,5 +1,6 @@
 extern "C" {
     func pgy_zone_authority_validate_flags_export(hasZone: Bool, hasParticipant: Bool, zone: String, participant: String) -> Bool;
+    func pgy_zone_authority_validate_token_flags_export(hasZone: Bool, hasParticipant: Bool, expectedToken: Long, providedToken: Long, zone: String, participant: String) -> Bool;
     func pgy_zone_authority_last_ok_rt_export() -> Bool;
     func pgy_zone_authority_last_zone_rt_export() -> String;
     func pgy_zone_authority_last_participant_rt_export() -> String;
@@ -23,4 +24,11 @@ func Main() -> Void {
     Log("missing.participant.ok=" + ToString(pgy_zone_authority_last_ok_rt_export()));
     Log("missing.participant.code=" + pgy_zone_authority_last_code_rt_export());
     Log("missing.participant.reason=" + pgy_zone_authority_last_reason_rt_export());
+
+    Log("token.ok=" + ToString(pgy_zone_authority_validate_token_flags_export(true, true, 777L, 777L, "BattleZone", "owner")));
+    Log("token.ok.code=" + pgy_zone_authority_last_code_rt_export());
+    Log("token.mismatch=" + ToString(pgy_zone_authority_validate_token_flags_export(true, true, 777L, 888L, "BattleZone", "owner")));
+    Log("token.mismatch.ok=" + ToString(pgy_zone_authority_last_ok_rt_export()));
+    Log("token.mismatch.code=" + pgy_zone_authority_last_code_rt_export());
+    Log("token.mismatch.reason=" + pgy_zone_authority_last_reason_rt_export());
 }

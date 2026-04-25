@@ -11,3 +11,9 @@ false
 false
 missing-participant
 zone authority validation failed: null authority participant
+true
+ok
+false
+false
+authority-token-mismatch
+zone authority validation failed: authority token mismatch

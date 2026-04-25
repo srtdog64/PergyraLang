@@ -21,6 +21,34 @@ semantic_type_resolution_free_owned_type(Type *type)
 static Type *
 metadata_builtin_singleton(const char *name);
 
+static Type *
+metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
+{
+    const char *name;
+    Symbol *sym;
+
+    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
+        return NULL;
+    if (type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0)
+        return NULL;
+
+    name = type_node->data.type.name;
+    if (name == NULL)
+        return NULL;
+
+    sym = scope_lookup(ctx->scope, name);
+    if (sym == NULL || sym->kind != SYMBOL_TYPE_PARAM || sym->type == NULL
+        || sym->type == TYPE_UNKNOWN)
+        return NULL;
+
+    semantic_type_resolution_record_named_dependency(
+        ctx, type_node, name, TYPE_RES_NODE_GENERIC_PARAM, NULL, name,
+        "metadata scope-type lookup");
+    semantic_type_resolution_record_resolved_type(ctx, type_node, sym->type);
+    return sym->type;
+}
+
 static void
 semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
                                                    ASTNode *type_node,
@@ -123,22 +151,6 @@ semantic_type_resolution_lookup_resolved_type(SemanticContext *ctx,
 }
 
 Type *
-semantic_type_resolution_resolve_or_fallback(SemanticContext *ctx,
-                                             ASTNode *type_node)
-{
-    Type *resolved;
-
-    if (type_node == NULL)
-        return NULL;
-
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
-    if (resolved != NULL)
-        return resolved;
-
-    return resolve_type_node(type_node, ctx);
-}
-
-Type *
 semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
                                                ASTNode *type_node)
 {
@@ -156,12 +168,18 @@ semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
     if (resolved != NULL)
         return resolved;
 
+    resolved = metadata_scope_named_type(ctx, type_node);
+    if (resolved != NULL)
+        return resolved;
+
     semantic_type_resolution_try_record_stable_constructed_type(ctx,
                                                                 type_node);
     resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
     if (resolved != NULL)
         return resolved;
 
+    if (ctx != NULL)
+        ctx->type_resolution_metadata_materializer_fallbacks++;
     return resolve_type_node(type_node, ctx);
 }
 
@@ -179,6 +197,10 @@ metadata_lookup_type_ref(SemanticContext *ctx, ASTNode *type_node)
 
     if (type_node->type == AST_TYPE)
         return metadata_builtin_singleton(type_node->data.type.name);
+
+    resolved = metadata_scope_named_type(ctx, type_node);
+    if (resolved != NULL)
+        return resolved;
 
     return NULL;
 }

@@ -146,7 +146,8 @@ Current beta-readiness audit: [docs/98_beta_closure_readiness_report.md](docs/98
 Current CI support matrix:
 
 - Linux: C backend + LLVM backend regression coverage
-- Windows: C backend regression coverage always; LLVM smoke + backend compare run when the Windows LLVM toolchain is present (`make ci-windows` now capability-detects LLVM instead of forcing `LLVM_ENABLED=0`)
+- Windows: C backend regression coverage always; LLVM smoke + backend compare run only when executable `llvm-config --libs core` evidence is present. A `C:/Program Files/LLVM/lib` directory alone is not beta support evidence.
+- macOS: out-of-beta until a dedicated runner and support contract are added.
 
 Official build/runtime paths:
 

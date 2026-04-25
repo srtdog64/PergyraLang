@@ -47,6 +47,7 @@ typedef enum
 typedef struct
 {
     uint32_t slotId;
+    uint32_t generation;       /* Handle generation for stale-handle rejection */
     uint32_t typeTag;          /* Type identifier hash */
     bool     occupied;
     void    *dataBlockRef;     /* Plain payload for normal slots */

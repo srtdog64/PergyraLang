@@ -31,10 +31,13 @@ required_macros = {
     "PGY_ZONE_AUTHORITY_CODE_UNKNOWN": "unknown",
     "PGY_ZONE_AUTHORITY_CODE_MISSING_ZONE": "missing-zone",
     "PGY_ZONE_AUTHORITY_CODE_MISSING_PARTICIPANT": "missing-participant",
+    "PGY_ZONE_AUTHORITY_CODE_TOKEN_MISMATCH": "authority-token-mismatch",
     "PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE": "zone authority validation failed: null zone self",
     "PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT": "zone authority validation failed: null authority participant",
+    "PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH": "zone authority validation failed: authority token mismatch",
     "PGY_ZONE_AUTHORITY_STDERR_MISSING_ZONE": "[pgy][authority] zone '%s' entered with null self while validating '%s'\\n",
     "PGY_ZONE_AUTHORITY_STDERR_MISSING_PARTICIPANT": "[pgy][authority] zone '%s' has null authority participant '%s'\\n",
+    "PGY_ZONE_AUTHORITY_STDERR_TOKEN_MISMATCH": "[pgy][authority] zone '%s' rejected authority token for '%s'\\n",
 }
 
 if not header.exists():
@@ -60,10 +63,13 @@ for path in [inline_part, lib_part]:
         "PGY_ZONE_AUTHORITY_CODE_UNKNOWN",
         "PGY_ZONE_AUTHORITY_CODE_MISSING_ZONE",
         "PGY_ZONE_AUTHORITY_CODE_MISSING_PARTICIPANT",
+        "PGY_ZONE_AUTHORITY_CODE_TOKEN_MISMATCH",
         "PGY_ZONE_AUTHORITY_REASON_MISSING_ZONE",
         "PGY_ZONE_AUTHORITY_REASON_MISSING_PARTICIPANT",
+        "PGY_ZONE_AUTHORITY_REASON_TOKEN_MISMATCH",
         "PGY_ZONE_AUTHORITY_STDERR_MISSING_ZONE",
         "PGY_ZONE_AUTHORITY_STDERR_MISSING_PARTICIPANT",
+        "PGY_ZONE_AUTHORITY_STDERR_TOKEN_MISMATCH",
     ]
     missing = [macro for macro in required_uses if macro not in text]
     if missing:
@@ -74,8 +80,10 @@ for path in [inline_part, lib_part]:
     raw_literals = [
         '"missing-zone"',
         '"missing-participant"',
+        '"authority-token-mismatch"',
         '"zone authority validation failed: null zone self"',
         '"zone authority validation failed: null authority participant"',
+        '"zone authority validation failed: authority token mismatch"',
         '"[pgy][authority] zone',
     ]
     offenders = [literal for literal in raw_literals if literal in text]
@@ -90,6 +98,16 @@ if re.search(r'pgy_zone_authority_last_code\[[^\]]+\]\s*=\s*"ok"', top_text):
     raise SystemExit("inline runtime initializes authority code with raw \"ok\"")
 if "PGY_ZONE_AUTHORITY_CODE_OK" not in top_text:
     raise SystemExit("inline runtime top part does not use PGY_ZONE_AUTHORITY_CODE_OK")
+
+runtime_decl = root / "src" / "codegen" / "llvm_runtime.c"
+runtime_text = runtime_decl.read_text(encoding="utf-8")
+required_exports = [
+    "pgy_zone_authority_check_token_export",
+    "pgy_zone_authority_validate_token_flags_export",
+]
+for export in required_exports:
+    if export not in runtime_text:
+        raise SystemExit(f"LLVM runtime registry missing authority token export {export}")
 
 print("[runtime-authority-contract] authority failure surface is contract-backed")
 PY

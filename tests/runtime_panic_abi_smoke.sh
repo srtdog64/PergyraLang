@@ -90,6 +90,48 @@ int main(void) {
 }
 ')"
 
+inline_forged_token_read_bin="$(compile_case inline_forged_secure_token_read '
+#define PGY_SAFE_SLOTS 1
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    PgyToken_Int forged = {0};
+    forged.can_read = true;
+    forged.can_write = true;
+    (void)pgy_secure_read_Int(&slot, &forged);
+    return 0;
+}
+')"
+
+inline_forged_token_write_bin="$(compile_case inline_forged_secure_token_write '
+#define PGY_SAFE_SLOTS 1
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    PgyToken_Int forged = {0};
+    forged.can_read = true;
+    forged.can_write = true;
+    pgy_secure_write_Int(&slot, 7, &forged);
+    return 0;
+}
+')"
+
+inline_forged_token_release_bin="$(compile_case inline_forged_secure_token_release '
+#define PGY_SAFE_SLOTS 1
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    PgyToken_Int forged = {0};
+    forged.can_read = true;
+    forged.can_write = true;
+    pgy_secure_release_Int(&slot, &forged);
+    return 0;
+}
+')"
+
 inline_double_release_bin="$(compile_case inline_double_release '
 #define PGY_SAFE_SLOTS 1
 #include "runtime/pgy_runtime.h"
@@ -202,6 +244,48 @@ int main(void) {
 }
 ')"
 
+exported_forged_token_read_bin="$(compile_case exported_forged_secure_token_read '
+#define PGY_LLVM_ENABLED 1
+#include "runtime/pgy_runtime_lib.c"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    PgyToken_Int forged = {0};
+    forged.can_read = true;
+    forged.can_write = true;
+    (void)pgy_secure_read_Int(&slot, &forged);
+    return 0;
+}
+')"
+
+exported_forged_token_write_bin="$(compile_case exported_forged_secure_token_write '
+#define PGY_LLVM_ENABLED 1
+#include "runtime/pgy_runtime_lib.c"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    PgyToken_Int forged = {0};
+    forged.can_read = true;
+    forged.can_write = true;
+    pgy_secure_write_Int(&slot, 7, &forged);
+    return 0;
+}
+')"
+
+exported_forged_token_release_bin="$(compile_case exported_forged_secure_token_release '
+#define PGY_LLVM_ENABLED 1
+#include "runtime/pgy_runtime_lib.c"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    PgyToken_Int forged = {0};
+    forged.can_read = true;
+    forged.can_write = true;
+    pgy_secure_release_Int(&slot, &forged);
+    return 0;
+}
+')"
+
 exported_secure_double_release_bin="$(compile_case exported_secure_double_release '
 #define PGY_LLVM_ENABLED 1
 #include "runtime/pgy_runtime_lib.c"
@@ -276,6 +360,9 @@ int main(void) {
 
 expect_panic inline_released_slot "$inline_released_bin" "released-slot"
 expect_panic inline_invalid_secure_token "$inline_invalid_token_bin" "invalid-secure-token"
+expect_panic inline_forged_secure_token_read "$inline_forged_token_read_bin" "invalid-secure-token"
+expect_panic inline_forged_secure_token_write "$inline_forged_token_write_bin" "invalid-secure-token"
+expect_panic inline_forged_secure_token_release "$inline_forged_token_release_bin" "invalid-secure-token"
 expect_panic inline_double_release "$inline_double_release_bin" "double-release"
 expect_panic inline_secure_double_release "$inline_secure_double_release_bin" "double-release"
 expect_panic inline_array_oob "$inline_array_oob_bin" "out-of-bounds"
@@ -286,6 +373,9 @@ expect_panic inline_device_released "$inline_device_released_bin" "released-slot
 expect_panic inline_device_double_release "$inline_device_double_release_bin" "double-release"
 expect_panic exported_released_slot "$exported_released_bin" "released-slot"
 expect_panic exported_invalid_secure_token "$exported_invalid_token_bin" "invalid-secure-token"
+expect_panic exported_forged_secure_token_read "$exported_forged_token_read_bin" "invalid-secure-token"
+expect_panic exported_forged_secure_token_write "$exported_forged_token_write_bin" "invalid-secure-token"
+expect_panic exported_forged_secure_token_release "$exported_forged_token_release_bin" "invalid-secure-token"
 expect_panic exported_double_release "$exported_double_release_bin" "double-release"
 expect_panic exported_secure_double_release "$exported_secure_double_release_bin" "double-release"
 expect_panic exported_authority_mismatch "$exported_authority_mismatch_bin" "authority-mismatch"

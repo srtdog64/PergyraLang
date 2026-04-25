@@ -160,6 +160,8 @@ void pgy_release_String(PgySlot_String *s)
  * ================================================================= */
 
 #define PGY_DEFINE_SECURE_SLOT_EXPORTS(Suffix, CType, ZeroExpr)                \
+static uint64_t pgy_secure_token_counter_##Suffix = 0x9e3779b97f4a7c15ULL;     \
+                                                                               \
 typedef struct {                                                               \
     CType    value;                                                            \
     bool     occupied;                                                         \
@@ -175,11 +177,15 @@ typedef struct {                                                               \
 PgySecureSlot_##Suffix pgy_claim_secure_##Suffix(PgyToken_##Suffix *out_token) \
 {                                                                              \
     PgySecureSlot_##Suffix s;                                                  \
+    uint64_t id = ++pgy_secure_token_counter_##Suffix;                         \
+    if (id == 0) {                                                             \
+        id = ++pgy_secure_token_counter_##Suffix;                              \
+    }                                                                          \
     s.value = (ZeroExpr);                                                      \
     s.occupied = true;                                                         \
-    s.token = 0;                                                               \
+    s.token = id;                                                              \
     if (out_token != NULL) {                                                   \
-        out_token->id = 0;                                                     \
+        out_token->id = id;                                                    \
         out_token->can_write = true;                                           \
         out_token->can_read = true;                                            \
     }                                                                          \
