@@ -6,6 +6,9 @@
 // - Rust-like receiver syntax such as `&self` / `&mut self`
 // - collection combinators such as `Map` / `Filter` / `MaxBy` / `MapValues`
 // - scheduler-flavored `parallel on (...)` and `every (...)`
+// - capture-bearing detached `async { ... }` block as a task handle
+// - direct `await Delay(...)` loop scheduling instead of beta `parallel` /
+//   named `spawn` / checked `await Future<T>` decomposition
 // - richer typed `context.GetRole<T>(...)` lookup patterns
 // - wider role/party collaboration syntax than the current smoke-covered subset
 

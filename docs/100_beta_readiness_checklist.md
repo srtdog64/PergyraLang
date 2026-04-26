@@ -212,6 +212,8 @@ make cfg-body-dataflow-test-smoke
 make ir-pipeline-test-smoke
 make test-semantic
 make llvm-test-backend-compare
+make llvm-campaign-projection-test-smoke
+make llvm-dnd-campaign-test-smoke
 ```
 
 Step skeleton:
@@ -486,10 +488,17 @@ Observability/tracing schema gate:
 Docs freeze:
 
 - Language reference, getting-started tutorial, and migration/release notes must describe the frozen beta subset without overclaiming future surfaces.
+- Documentation quality audit: `docs/116_documentation_quality_audit.md`
+  records stale-path, mojibake, and async wording risks. User-facing docs should
+  prefer 100-series source-of-truth contracts over older alpha-era design notes.
 
 Memory/concurrency model gate:
 
 - Source of truth: `docs/113_memory_concurrency_model.md`.
+- Async positioning rationale: `docs/114_async_model_positioning.md`.
+- Beta promise: Pergyra keeps suspension visibility but decomposes coloring;
+  `await` is a completion join only, and `Future<T>` / `RemoteFuture<T>` are
+  typed completion handles rather than a general user-level effect system.
 - Stable contract: `parallel` joins before following control flow, accepted
   writes become visible after join, shared `ref`/`ref` reads are allowed, and
   `ref`/`own` plus `own`/`own` task-boundary conflicts are rejected.
@@ -498,11 +507,13 @@ Memory/concurrency model gate:
   channel close are copy-only for beta.
 - Anonymous async spawn bodies, full weak-memory vocabulary, user-selectable
   memory orders, scheduler fairness guarantees, lock-free correctness claims,
-  and cross-thread `Arc<T>` / `Send` / `Sync` style trait systems are
-  explicitly out-of-beta.
+  capture-bearing detached async block stability, and cross-thread `Arc<T>` /
+  `Send` / `Sync` style trait systems are explicitly out-of-beta.
 - `make memory-concurrency-model-test-smoke` gates the contract with
-  `parallel-core-contract-test-smoke` plus targeted C/LLVM backend compare for
-  `parallel_channel_sum`, `parallel_channel_dual`, and `triple_paradigm`.
+  `make async-model-positioning-test-smoke`,
+  `parallel-core-contract-test-smoke`, and targeted C/LLVM backend compare for
+  `parallel_channel_sum`,
+  `parallel_channel_dual`, and `triple_paradigm`.
 
 String/unicode policy:
 
@@ -529,6 +540,7 @@ make beta-test-suite-freeze-test-smoke
 make observability-schema-test-smoke
 make memory-concurrency-model-test-smoke
 make parallel-core-contract-test-smoke
+make documentation-quality-test-smoke
 ```
 
 ## 0f. AIR Abstraction Safety Closure
@@ -563,6 +575,10 @@ Closed now:
   drift messages before recomputing; `src/test_air.c` covers repeated drift
   checking on the same AIRProgram so the validation path does not leak or retain
   stale diagnostics.
+- AIR synthesis now hard-fails if the precomputed intent/boundary node counts
+  diverge from the actual append counts. `make air-drift-test-smoke` gates the
+  invariant so future boundary scanners cannot silently underfill or overrun the
+  AIR node inventory.
 - AIR now owns synthesized intent/boundary/authority names instead of borrowing
   DIR/AST strings. Parsed-source AIR remains valid after DIR/parser teardown,
   and the parsed `where + transfer` regression asserts `PaymentZone` zone source
@@ -666,6 +682,8 @@ make llvm-test-backend-compare
 현재 닫힌 것:
 
 - 2026-04-25 local acceptance: `make ci-linux` completed green on WSL/Linux after the DAG metadata floor gate, fallback seam cap reduction to 21, CFG/body dataflow gate, runtime panic contract gates, authority direct-slot fixes, parser/lexer JSON routing, AIR strict-evidence/default non-impact gates, AIR drift-message ownership cleanup, C/LLVM MIR declaration inventory gate, and C backend active-inventory bootstrap. This covers `test-all`, LLVM smoke, fmt/stdlib/module/example smoke, taxonomy/inc-size/core-shape/DAG/MIR-inventory/diagnostic/parser-lexer/JSON/IR/AST/AIR gates, ABI same-process, and backend compare.
+- 2026-04-26 LLVM projection parity update: current-zone subject method calls now dirty and sync zone projection targets in the LLVM backend, matching the C backend for `campaign_graph_fsm`. `make llvm-campaign-projection-test-smoke` locks the exact stdout against the stable C expectation.
+- 2026-04-26 DND campaign parity update: LLVM MIR `with slot` lowering now emits claim setup without re-emitting the already-flattened body, and the LLVM field registry cap now covers larger zone/class layouts with hidden projection fields. `make llvm-dnd-campaign-test-smoke` locks exact C/LLVM stdout, one epilogue, five choice lines, and final `ready=true/true`.
 - `docs/99_language_module_taxonomy.md`로 core/foundation/execution/compat layer를 고정했다.
 - `docs/language_module_manifest.json`, `docs/language_module_cases.json`가 machine-readable source다.
 - `make module-taxonomy-test-smoke`가 taxonomy drift를 검사한다.
@@ -694,10 +712,10 @@ make llvm-test-backend-compare
 - `make semantic-inc-size-test-smoke`가 `src/semantic/**/*.inc <= 800 LOC`를 검사한다.
 - `make semantic-core-shape-test-smoke`가 `type_checker.c <= 600 LOC`, DAG inventory `.c` ownership, event/qubit owner TU 존재를 검사한다.
 - `transpiler_emitters_mir_inventory_ssa.inc`는 5-line shim으로 축소됐고, MIR intent inventory / SSA name / SSA emit slice가 각각 1,000 LOC 아래 하위 include로 분리됐다.
-- `transpiler_expr_emitters.inc`는 7-line shim으로 축소됐고, builtin / call A / call B / member / tail slice가 각각 1,000 LOC 아래 하위 include로 분리됐다. 현재는 include-order 보존 split이며, beta+1 수준의 실제 TU/owner 추출은 별도 과제다.
+- `transpiler_expr_emitters.inc` pass-through shim은 제거됐고, `transpiler.c`가 concrete emitter chunks를 직접 include한다. 남은 과제는 call/member/builtin owner 경계를 실제 `.c` 또는 더 작은 feature include로 정리하는 것이다.
 - `llvm_expr_calls.inc`는 17-line shim + constructor / array / collection-base / domain query / event invocation / intent observability / log / scalar math / result-option / slot-device / task-channel owner + 네 개의 call slice로 축소됐고, 각 slice가 1,000 LOC 아래로 내려갔다. `llvm_emit_call` 앞단의 enum/class constructor lowering은 `llvm_expr_call_constructors.inc`로, array builtin은 `llvm_expr_call_arrays.inc`로, `ListNew`/`Set*` base collection family는 `llvm_expr_call_collections_base.inc`로, `HasProjection` / `HasLayer` / `HasState` / `HasZone*` lowering은 `llvm_expr_call_domain_queries.inc`로, event invocation은 `llvm_expr_call_events.inc`로, intent observability runtime calls는 `llvm_expr_call_intent_observability.inc`로, `Log*`는 `llvm_expr_call_log.inc`로, `Abs`/`Min`/`Max`는 `llvm_expr_call_math.inc`로, Result/Option builtin lowering은 `llvm_expr_call_result_option.inc`로, `ClaimSlot` / `Write` / `Read` / `Release` / `Device*` lowering은 `llvm_expr_call_slots.inc`로, task cancellation/channel operations는 `llvm_expr_call_task_channel.inc`로 이동했다. 단, list/map/queue continuation / stdlib IO/file/time / user function fallback owner 추출은 남아 있다.
 - `transpiler_emitters_base_b.inc`는 6-line shim으로 축소됐고, 네 개의 mechanical slice가 각각 1,000 LOC 아래로 내려갔다. 단, statement/block/intent forward-declare owner extraction은 남아 있다.
-- Tier 1 runtime/codegen/compiler `.inc` split gate를 닫았다. `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`, `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a.inc`, `transpiler_helpers_core_b.inc`, `transpiler_domain_role.inc`, `llvm_expr_helpers.inc`, `mir_public.inc`, `llvm_expr_call_methods.inc`, `llvm_domain_helpers.inc`는 모두 shim + sub-1,000 LOC slice로 내려갔다.
+- Tier 1 runtime/codegen/compiler `.inc` split gate를 닫았다. Pass-through shim `.inc` files for runtime part B, LLVM expr helpers, LLVM method calls, LLVM domain helpers, MIR public API, and C transpiler emitter/helper seams have now been removed; owning `.c` / `.h` files include concrete sub-1,000 LOC chunks directly.
 - `make backend-inc-size-test-smoke`가 `src/runtime`, `src/codegen`, `src/compiler`의 `.inc <= 1000 LOC`를 검사한다.
 - `type_checker_helpers_late.c` standalone TU가 hidden include-order helper 없이 빌드되도록 call-path helper prototypes와 slot analyzer / visibility / generic diagnostic include 계약을 명시했다.
 - string literal / interpolation stable subset을 grammar docs에 고정했다. Stable은 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace까지이며 nested brace matching / format specifier / multiline interpolation은 beta-out-of-scope다.
@@ -729,6 +747,8 @@ make llvm-test-backend-compare
 
 - `src/semantic`에 800 LOC 초과 `.inc`가 없다. 현재 `make semantic-inc-size-test-smoke`로 고정한다.
 - `src/codegen`, `src/runtime`, `src/compiler`에 1,000 LOC 초과 `.inc`가 없다. 현재 `make backend-inc-size-test-smoke`로 고정한다.
+- 신규 `.inc` 증가는 금지한다. 현재 `make inc-sentinel-test-smoke`가
+  empty `.inc` 금지와 `src/**/*.inc <= 160` file-count cap을 함께 검사한다.
 - core semantic/DAG/backend/runtime owner boundary가 문서와 파일 구조에서 추적 가능하다.
 - `.inc`는 generated table, local macro table, private test fixture 용도로만 남는다.
 
@@ -740,17 +760,17 @@ make test-semantic
 make test-all
 make llvm-test-backend-compare
 make backend-inc-size-test-smoke
+make inc-sentinel-test-smoke
 find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l | sort -nr | head
 ```
 
 2026-04-26 include-cleanup update:
 
-- `transpiler_expr_emitters.inc` is now a small shim over
-  `transpiler_expr_emitters_part_a.inc` through
-  `transpiler_expr_emitters_part_f.inc`. The old split that crossed
-  `emit_call` was replaced with helper owners for builtin dispatch, domain
-  constructors, `Result`/`Option`, stdlib, event, member-call, and user-call
-  lowering. Each part is under 1,000 LOC.
+- `transpiler_expr_emitters.inc` pass-through shim has been removed.
+  `transpiler.c` includes the concrete emitter chunks directly. The old split
+  that crossed `emit_call` was replaced with helper owners for builtin
+  dispatch, domain constructors, `Result`/`Option`, stdlib, event, member-call,
+  and user-call lowering. Each part is under 1,000 LOC.
 - `transpiler_emitters_base_b_part_d.inc` and
   `transpiler_emitters_intent.inc` no longer leave dangling `static void`
   return-type fragments across include boundaries.
@@ -878,6 +898,11 @@ grep -R "resolve_type_node" -n src/semantic
 - `make mir-declaration-inventory-test-smoke`가 C/LLVM declaration-side codegen을 active inventory helper path에 묶는다.
 - C backend `emit_program(...)`는 ability/type/extern/function/intent/domain/event bootstrap을 `transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view로 소비한다. Direct declaration-array reads are now confined to the helper owner in `transpiler.h`.
 - LLVM declaration raw inventory reads are confined to the helper owner in `llvm_internal.h`; pipeline/domain/intent emitters must go through active inventory and lookup helpers.
+- LLVM routine traversal in pipeline/domain/intent now goes through `llvm_active_routine_inventory(...)`; direct `mir->routine_count` / `mir->routines` traversal is confined to the helper owner.
+- LLVM host method lookup now uses `llvm_find_host_decl_header_in_context(...)` / `llvm_host_decl_methods(...)` metadata-first. AST union method-array fallback remains only when a MIR declaration header is absent.
+- `MIRDeclMethod` now carries method `name`, `owner_name`, `is_action_like`, and `within_zone` metadata beside the temporary AST payload. LLVM host method lookup compares `MIRDeclMethod.name` before falling back to AST method arrays.
+- `MIRDeclMethod` also links to method body MIR through `has_routine` / `routine_index`, so LLVM method emission can consume the declaration-header method row before falling back to AST-method based routine lookup.
+- `MIRDeclMethod` now carries hosted method signature metadata (`params`, `param_count`, `return_type`). LLVM nominal/enum method prototype registration consumes this metadata through helper accessors before falling back to AST method payloads.
 
 남은 것:
 
@@ -904,7 +929,17 @@ make ast-dispatch-test-smoke
 
 Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/LLVM declaration-side codegen on the active MIR inventory helper path. It verifies the nominal/domain/declaration helper seam and blocks new raw MIR declaration array reads outside the current owner files. C backend `emit_program(...)` now gets ability/type/extern/function/intent/domain/event declaration views through `transpiler_active_inventory(...)` / `transpiler_active_externs(...)`, not direct `mir->...` declaration arrays.
 
-2026-04-26 C backend structure update: `src/codegen/transpiler_context.c` now owns the output/context primitive layer that had been carried by `transpiler_helpers_core_a_part_a.inc`: `CodeBuf`, `TranspilerCtx` create/destroy, indentation, backend error/hint allocation, and scratch arena string helpers. The private seam is `src/codegen/transpiler_context.h`; `transpiler_helpers_core_a_part_a.inc` is down to 710 LOC and no longer owns those cross-cutting context helpers.
+2026-04-26 LLVM routine inventory update: `llvm_active_routine_inventory(...)` is now the single reader for MIR routine traversal in LLVM pipeline/domain/intent code. This is not a dedicated declaration IR yet, but it removes another raw bootstrap seam before the final `MIRDeclInventory` representation work.
+
+2026-04-26 LLVM declaration metadata update: host method lookup now consumes `MIRDeclHeader` methods before falling back to AST union method arrays. This keeps method inventory access behind the declaration-header seam while the remaining AST-carried method payload is replaced by dedicated decl IR.
+
+2026-04-26 MIR method metadata update: `MIRDeclHeader` now owns `MIRDeclMethod` rows for hosted methods. The row still carries an AST pointer for body/type payload compatibility, but lookup-visible method identity is now a dedicated MIR metadata field. This is the next concrete step toward replacing AST-carried declaration inventory with `MIRDeclInventory`.
+
+2026-04-26 MIR method routine-link update: `mir_link_decl_method_routines(...)` connects each `MIRDeclMethod` to its method body routine by stable `routine_index` after routine lowering completes. LLVM method emission now uses this row-level link first, keeping AST method lookup as compatibility fallback only.
+
+2026-04-26 MIR method signature update: hosted method prototype registration now reads `MIRDeclMethod` signature fields through `llvm_mir_decl_method_*` helpers. The remaining AST pointer is compatibility payload for body/type nodes, not the primary lookup-visible method row.
+
+2026-04-26 C backend structure update: `src/codegen/transpiler_context.c` now owns the output/context primitive layer that had been carried by `transpiler_helpers_core_a_part_a.inc`: `CodeBuf`, `TranspilerCtx` create/destroy, indentation, backend error/hint allocation, and scratch arena string helpers. The private seam is `src/codegen/transpiler_context.h`; the remaining forward declarations were folded into `transpiler_helpers_core_a.inc`, so `transpiler_helpers_core_a_part_a.inc` has been deleted.
 
 ---
 

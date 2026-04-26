@@ -22,7 +22,7 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 header = root / "src" / "runtime" / "pgy_runtime_authority_contract.h"
-inline_part = root / "src" / "runtime" / "pgy_runtime_part_ba_part_f.inc"
+inline_part = root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc"
 lib_part = root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc"
 top_part = root / "src" / "runtime" / "pgy_runtime_part_a.inc"
 

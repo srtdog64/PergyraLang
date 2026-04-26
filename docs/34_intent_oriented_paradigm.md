@@ -1218,9 +1218,9 @@ intent Browse(user: Member)
 }
 ```
 
-규���:
+규칙:
 - 기본은 `exclusive` — 한 subject가 이 intent 실행 중이면 다른 intent 대기
-- `concurrent`를 명시하면 — 다른 intent와 동시 실��� 가능
+- `concurrent`를 명시하면 — 다른 intent와 동시 실행 가능
 
 ---
 

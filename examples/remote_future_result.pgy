@@ -1,20 +1,16 @@
-// remote_future_result.pgy — RemoteFuture<T> → Result<T> 패턴
+// remote_future_result.pgy - RemoteFuture<T> -> await -> Result<T>
 //
-// 원격 자원은 실패할 수 있으므로 await가 Result<T>를 반환한다.
-// Future<T> (로컬) → await → T
-// RemoteFuture<T> (원격) → await → Result<T>
+// Remote/device completion is fallible by contract. Awaiting a
+// RemoteFuture<T> returns Result<T>, while awaiting a local Future<T> returns T.
 
-func Main() -> Void {
+async func Main() -> Void {
     let gpu: DeviceSlot<Int> = ClaimDeviceSlot();
     DeviceWrite(gpu, 42);
 
-    // SubmitDeviceRead → RemoteFuture<Int>
     let pending: RemoteFuture<Int> = SubmitDeviceRead(gpu);
-
-    // RemoteFuture에는 Read/Write/Release 불가 (컴파일 에러)
-    // Read(pending);     // 에러!
-    // Write(pending, 7); // 에러!
-    // Release(pending);  // 에러!
-
+    let result: Result<Int> = await pending;
     ReleaseDeviceSlot(gpu);
+
+    let value: Int = Unwrap(result);
+    Log(value);
 }

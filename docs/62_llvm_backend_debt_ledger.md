@@ -80,7 +80,8 @@ LLVM backend는 이제 MIR path에서 원본 `HIRProgram`을 직접 필요로 �
 
 근거:
 
-- [llvm_expr_call_methods.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods.inc)
+- [llvm_expr_call_methods_part_a.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods_part_a.inc)
+- [llvm_expr_call_methods_part_b.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods_part_b.inc)
 
 ### 3.3 local placement / escape debt
 
@@ -106,7 +107,9 @@ LLVM backend는 이제 MIR path에서 원본 `HIRProgram`을 직접 필요로 �
 근거:
 
 - [llvm_internal.h](/mnt/e/PergyraLang/src/codegen/llvm_internal.h)
-- [llvm_expr_helpers.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_helpers.inc)
+- [llvm_expr_helpers_part_a.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_helpers_part_a.inc)
+- [llvm_expr_helpers_part_b.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_helpers_part_b.inc)
+- [llvm_expr_helpers_part_c.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_helpers_part_c.inc)
 - [test_memory_layout.c](/mnt/e/PergyraLang/src/test_memory_layout.c)
 
 ## 4. “11건 누락” 주장과 현재 상태 대조

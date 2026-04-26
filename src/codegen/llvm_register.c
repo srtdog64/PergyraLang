@@ -97,18 +97,28 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     for (size_t j = 0; j < stmt->data.enum_decl.method_count; j++) {
         ASTNode *method = stmt->data.enum_decl.methods[j];
+        const MIRDeclMethod *method_meta = NULL;
+        const char *method_name = NULL;
+        size_t pc = 0;
+        ASTNode *return_type = NULL;
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
 
-        const char *method_name = method->data.func_decl.name;
-        size_t pc = method->data.func_decl.param_count;
+        method_meta = llvm_find_host_method_metadata_in_context(
+            ctx, enum_name, method->data.func_decl.name);
+        method_name = llvm_mir_decl_method_name(method_meta, method);
+        pc = llvm_mir_decl_method_param_count(method_meta, method);
+        return_type = llvm_mir_decl_method_return_type(method_meta, method);
+        if (method_name == NULL)
+            continue;
+
         LLVMTypeRef ret_type = ctx->type_void;
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
+        if (return_type != NULL)
+            ret_type = ast_type_to_llvm(ctx, return_type);
 
         size_t user_pc = 0;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = method->data.func_decl.params[k];
+            FuncParam *p = llvm_mir_decl_method_param(method_meta, method, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             user_pc++;
@@ -124,7 +134,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         param_types[0] = self_type;
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = method->data.func_decl.params[k];
+            FuncParam *p = llvm_mir_decl_method_param(method_meta, method, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             param_types[pidx++] = (p->type != NULL) ? ast_type_to_llvm(ctx, p->type)
@@ -188,18 +198,30 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
         ASTNode *method = stmt->data.class_decl.methods[j];
+        const MIRDeclMethod *method_meta = NULL;
+        const char *method_name = NULL;
+        size_t pc = 0;
+        ASTNode *return_type = NULL;
+        bool method_is_action = false;
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
 
-        const char *method_name = method->data.func_decl.name;
-        size_t pc = method->data.func_decl.param_count;
+        method_meta = llvm_find_host_method_metadata_in_context(
+            ctx, cls_name, method->data.func_decl.name);
+        method_name = llvm_mir_decl_method_name(method_meta, method);
+        pc = llvm_mir_decl_method_param_count(method_meta, method);
+        return_type = llvm_mir_decl_method_return_type(method_meta, method);
+        method_is_action = llvm_mir_decl_method_is_action_like(method_meta, method);
+        if (method_name == NULL)
+            continue;
+
         LLVMTypeRef ret_type = ctx->type_void;
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
+        if (return_type != NULL)
+            ret_type = ast_type_to_llvm(ctx, return_type);
 
         size_t user_pc = 0;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = method->data.func_decl.params[k];
+            FuncParam *p = llvm_mir_decl_method_param(method_meta, method, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             user_pc++;
@@ -211,7 +233,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         param_types[0] = is_pointer_self_host ? LLVMPointerType(struct_ty, 0) : struct_ty;
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = method->data.func_decl.params[k];
+            FuncParam *p = llvm_mir_decl_method_param(method_meta, method, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             param_types[pidx++] = (p->type != NULL) ? ast_type_to_llvm(ctx, p->type)
@@ -224,8 +246,8 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, ft);
         llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret_type);
         llvm_set_function_flags(ctx, LLVMGetValueName(fn),
-                                method->data.func_decl.is_action,
-                                method->data.func_decl.is_action && user_pc == 0);
+                                method_is_action,
+                                method_is_action && user_pc == 0);
         /* param_types is ctx->scratch-owned. */
     }
 }

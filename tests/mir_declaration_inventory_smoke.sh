@@ -58,6 +58,13 @@ errors = []
 
 required_internal_terms = [
     "llvm_active_inventory",
+    "llvm_active_routine_inventory",
+    "llvm_mir_routine_inventory_from_program",
+    "llvm_find_decl_header_in_context",
+    "llvm_find_host_decl_header_in_context",
+    "llvm_host_decl_method_metadata",
+    "llvm_find_host_method_metadata_in_context",
+    "llvm_routine_inventory_get",
     "llvm_find_decl_in_active_inventory",
     "llvm_find_host_decl_in_active_inventory",
     "llvm_find_host_method_decl_in_context",
@@ -115,6 +122,71 @@ for term in [
 ]:
     if term not in transpiler:
         errors.append(f"transpiler.c must consume active executable metadata helper: {term}")
+
+routine_raw_hits = []
+for path in [
+    root / "src" / "codegen" / "llvm_pipeline.c",
+    root / "src" / "codegen" / "llvm_domain.c",
+    root / "src" / "codegen" / "llvm_intent.c",
+]:
+    rel = path.relative_to(root).as_posix()
+    text_for_routine = path.read_text(encoding="utf-8")
+    if re.search(r"\bctx->mir->routine_count\b|\bctx->mir->routines\b|\bmir->routine_count\b|\bmir->routines\b", text_for_routine):
+        routine_raw_hits.append(rel)
+
+if routine_raw_hits:
+    errors.append(
+        "LLVM routine inventory must go through llvm_active_routine_inventory outside the helper owner: "
+        + ", ".join(sorted(routine_raw_hits))
+    )
+
+if "decl_header->ast == decl" in internal:
+    errors.append(
+        "llvm_host_decl_methods must be MIRDeclHeader metadata-first; do not require decl_header->ast == decl"
+    )
+
+for term in [
+    "llvm_mir_decl_method_name",
+    "llvm_mir_decl_method_param_count",
+    "llvm_mir_decl_method_param",
+    "llvm_mir_decl_method_return_type",
+    "llvm_mir_decl_method_is_action_like",
+]:
+    if term not in internal:
+        errors.append(f"llvm_internal.h missing MIR method signature helper: {term}")
+
+llvm_register = (root / "src" / "codegen" / "llvm_register.c").read_text(encoding="utf-8")
+for term in [
+    "llvm_mir_decl_method_param_count(method_meta, method)",
+    "llvm_mir_decl_method_return_type(method_meta, method)",
+    "llvm_mir_decl_method_is_action_like(method_meta, method)",
+]:
+    if term not in llvm_register:
+        errors.append(f"llvm_register.c must consume MIR method signature metadata: {term}")
+
+required_mir_terms = [
+    "MIRDeclMethod",
+    "method_metadata",
+    "method_metadata_count",
+    "mir_decl_header_set_methods",
+    "mir_link_decl_method_routines",
+    "params",
+    "param_count",
+    "return_type",
+    "has_routine",
+    "routine_index",
+]
+mir_header = (root / "src" / "compiler" / "mir.h").read_text(encoding="utf-8")
+mir_public = (root / "src" / "compiler" / "mir_public_part_a.inc").read_text(encoding="utf-8")
+for term in required_mir_terms:
+    if term not in mir_header and term not in mir_public:
+        errors.append(f"MIR declaration method metadata missing term: {term}")
+
+metadata_branch = internal.split("decl = decl_header->ast;", 1)[0]
+if "method->data.func_decl.name != NULL" in metadata_branch:
+    errors.append(
+        "LLVM host method lookup must compare MIRDeclMethod.name before AST func_decl name"
+    )
 
 for term in [
     "MIR Declaration Debt Removal",

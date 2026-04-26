@@ -206,11 +206,27 @@ typedef struct
 
 typedef struct
 {
+    ASTNode    *ast;
+    const char *owner_name;
+    const char *name;
+    FuncParam **params;
+    size_t      param_count;
+    ASTNode    *return_type;
+    bool        is_action_like;
+    const char *within_zone;
+    bool        has_routine;
+    size_t      routine_index;
+} MIRDeclMethod;
+
+typedef struct
+{
     ASTNode     *ast;
     ASTNodeType  ast_type;
     const char  *name;
     ASTNode    **methods;
     size_t       method_count;
+    MIRDeclMethod *method_metadata;
+    size_t       method_metadata_count;
     bool         uses_pointer_self;
 } MIRDeclHeader;
 

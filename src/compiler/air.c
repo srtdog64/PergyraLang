@@ -976,6 +976,16 @@ air_synthesize(const HIRProgram *hir,
             intent_index++;
         }
     }
+    if (intent_index != intent_node_count || boundary_index != boundary_node_count) {
+        air_destroy(air);
+        air_set_error(error_message,
+                      "AIR synthesis count mismatch: intents %zu/%zu boundaries %zu/%zu",
+                      intent_index,
+                      intent_node_count,
+                      boundary_index,
+                      boundary_node_count);
+        return NULL;
+    }
     air_collect_hir_evidence(air, hir);
     air_collect_rir_evidence(air, rir);
 

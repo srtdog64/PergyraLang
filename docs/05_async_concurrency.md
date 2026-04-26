@@ -1,83 +1,126 @@
-# Pergyra 병렬 실행 시스템 (현재 구현 기준)
+# Async And Concurrency
 
-이 문서는 현재 구현된 문법/시맨틱에 맞춘 **실제 동작 기준**이다.  
-아래 예시는 현재 C/LLVM 공통 surface를 기준으로 정리했다.
-전체 언어 기능 parity가 완전히 닫힌 것은 아니며, parity는 smoke/compare 대상에서 계속 확인한다.
+Last updated: 2026-04-26
 
-## 1. parallel
+This document is the user-facing guide for the current beta async/concurrency
+surface. The frozen contract is `docs/113_memory_concurrency_model.md`; the
+design rationale is `docs/114_async_model_positioning.md`.
 
-`parallel`은 Pergyra의 코어 실행 primitive다.
+Pergyra does not treat `async` as the umbrella concept for every concurrent
+operation. The model is decomposed:
 
-- 실제 병렬 실행을 뜻한다
-- semantic 단계에서 slot/resource 충돌 검사를 요구한다
-- backend/runtime lowering을 직접 가진다
-- `spawn`, `async`, `await`, `select`는 이 병렬 실행 계층 아래의 표면이다
+- `parallel` expresses structured parallel execution.
+- named `spawn Worker(args...)` creates a task and returns a checked future.
+- `await` joins a future; it is not a lifetime or cancellation policy.
+- `Channel<T>` / `select` express streaming transport.
+- `Cancel` / `IsCancelled` express cooperative cancellation.
+- `Result<T>` expresses fallible completion.
+- `pin` / `ReadView<T>` / `WriteView<T>` express resource lifetime across
+  suspension boundaries.
+
+## 1. `parallel`
+
+`parallel` is the core execution primitive. A `parallel` block joins before
+control continues after the block.
 
 ```pergyra
-let s: Slot<Int> = 0;
-parallel {
-    s = s + 1;
-    s = s + 1; // write/write 충돌: 에러 또는 경고
+func Main() -> Void {
+    parallel {
+        Log("left");
+        Log("right");
+    }
+    Log("joined");
 }
 ```
 
-## 2. spawn / Future
+Semantic analysis rejects ownership-bearing conflicts across parallel tasks,
+including `own`/`own`, `ref`/`own`, and `WriteView<T>` conflicts. Shared
+copy-only reads and accepted `ref`/`ref` reads remain valid.
 
-`spawn`은 병렬 task를 생성하는 surface다. `Future<T>`를 반환하고, 결과는 `await`로 join한다.
+## 2. Named `spawn` And `Future<T>`
+
+Named `spawn` is the stable beta task-producing surface:
 
 ```pergyra
-func Work(x: Int) -> Int { return x + 1; }
+func Work(x: Int) -> Int {
+    return x + 1;
+}
 
-async func Main() -> Void {
-    let f: Future<Int> = spawn Work(10);
-    let out: Int = await f;
+func Main() -> Void {
+    let pending: Future<Int> = spawn Work(10);
+    let out: Int = await pending;
     Log(out);
 }
 ```
 
-## 3. async / await
+Beta intentionally keeps the stable task-producing form named. Anonymous async
+spawn bodies are parser-accepted in some places but semantically rejected for
+beta because capture lifetime and cleanup summaries are not closed.
+
+## 3. `async` / `await`
+
+`async func` marks a coroutine/suspension-capable declaration. `await` joins a
+future.
 
 ```pergyra
-async func Fetch() -> Int {
-    let ch: Channel<Int> = Channel(4);
-    async { ch <- 11; }
-    let value: Int = await spawn ReadOnce(ch);
-    return value;
+async func Worker() -> Int {
+    return 7;
 }
 
-func ReadOnce(ch: Channel<Int>) -> Int {
-    select {
-        case v = <-ch:
-            return v;
-        default:
-            return 0;
-    }
+func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    let value: Int = await pending;
+    Log(value);
 }
 ```
 
-### RemoteFuture와 Result
+The important rule is that `await` only owns completion join. It does not own
+resource lifetime, cancellation, error classification, or parallel structure.
+Those are separate contracts.
 
-`RemoteFuture<T>`는 실패 가능성이 있으므로 `await` 결과가 `Result<T>`로 래핑된다.
+Anonymous detached async blocks are implemented in the runtime path, but they
+are not the beta-stable task creation model when they capture local state. Use
+named `spawn Worker(args...)` for beta-stable task creation so parameter,
+ownership, and cleanup facts have a declaration boundary.
+
+Use named `spawn Worker(args...)` for beta-stable task creation.
+
+## 4. `RemoteFuture<T>` And `Result<T>`
+
+Local and remote futures have different join results:
+
+- `Future<T> -> await -> T`
+- `RemoteFuture<T> -> await -> Result<T>`
 
 ```pergyra
-async func FetchDevice() -> Void {
+func FetchDevice() -> Void {
     let dev: DeviceSlot<Int> = ClaimDeviceSlot();
     DeviceWrite(dev, 11);
+
     let pending: RemoteFuture<Int> = SubmitDeviceRead(dev);
-    let value: Int = (await pending)?;
+    let result: Result<Int> = await pending;
+    let value: Int = Unwrap(result);
+
     ReleaseDeviceSlot(dev);
     Log(value);
 }
 ```
 
-## 4. select / channel
+Remote completion is fallible by contract. The failure is data, not an
+implicit exception path hidden inside `await`.
+
+## 5. `select` And `Channel<T>`
+
+Channels are the stable streaming transport surface.
 
 ```pergyra
 func Main() -> Void {
     let ch: Channel<Int> = Channel(4);
+
     parallel {
         ch <- 7;
     }
+
     select {
         case v = <-ch:
             Log(v);
@@ -87,46 +130,19 @@ func Main() -> Void {
 }
 ```
 
-`select`는 현재 readiness 기반이며 `default`는 논블로킹 경로다.
-여러 case가 동시에 준비되어 있으면 고정 우선순위 대신 **round-robin 시작 인덱스**로 검사해 앞 case starvation을 줄인다.
+Beta channel rules:
 
-```pergyra
-select {
-    case v = <-ch:
-        Log(v);
-    default:
-        Log(0);
-}
-```
+- Blocking send/receive is the stable ownership-transfer path for named
+  ownership-bearing payloads.
+- Non-blocking and timeout receive are copy-only.
+- `TrySend`, send-timeout, and status send helpers reject movable resources
+  and authority-bearing tokens.
+- Channel buffering/fairness beyond current FIFO/runtime behavior is not a
+  beta promise unless covered by a named backend-compare fixture.
 
-채널 convenience built-in도 있다.
+## 6. Cancellation
 
-```pergyra
-func Poll(ch: Channel<Int>) -> Void {
-    let maybe: Option<Int> = TryRecv(ch);
-    let timed: Option<Int> = RecvTimeout(ch, 1_000_000);
-    let ok: Bool = TrySend(ch, 7);
-    let sent: Bool = SendTimeout(ch, 9, 1_000_000);
-    let tryStatus: Option<Bool> = TrySendStatus(ch, 7);
-    let timeoutStatus: Option<Bool> = SendTimeoutStatus(ch, 9, 1_000_000);
-    let len: Int = ChannelLength(ch);
-    let cap: Int = ChannelCapacity(ch);
-    let space: Int = ChannelSpace(ch);
-    let full: Bool = ChannelFull(ch);
-    let closed: Bool = ChannelClosed(ch);
-
-    match maybe {
-        case .Some(v):
-            Log(v);
-        case .None:
-            Log(0);
-    }
-}
-```
-
-## 5. cancellation
-
-현재 cancellation 표면은 cooperative/best-effort다.
+Cancellation is cooperative and explicit:
 
 ```pergyra
 func Worker() -> Int {
@@ -138,61 +154,70 @@ func Worker() -> Int {
 
 func Main() -> Void {
     let pending: Future<Int> = spawn Worker();
-    let cancelled: Bool = Cancel(pending);
-    Log(cancelled);
+    let requested: Bool = Cancel(pending);
+    Log(requested);
 }
 ```
 
-- `Cancel(task)`는 `Future<T>` / `RemoteFuture<T>`에 취소 요청을 건다.
-- `IsCancelled()`는 현재 실행 중 task 안에서 그 요청을 읽는다.
-- spawned child task는 부모 task의 cancellation chain을 상속한다.
-- 그래서 `Cancel(parent)` 이후 child가 `IsCancelled()`를 확인하면 `true`를 관측할 수 있다.
-- 현재 모델은 cooperative다. task가 `IsCancelled()`를 확인하거나 자연스럽게 종료해야 실제 종료로 이어진다.
+Rules:
 
-## 6. 계층 정리
+- `Cancel(Future<T>)` and `Cancel(RemoteFuture<T>)` request cancellation.
+- `IsCancelled()` observes cancellation inside the current task.
+- Spawned async descendants inherit the cancellation chain in the current
+  runtime model.
+- Cancellation payloads are copy-only for beta.
+- Preemptive cancellation and blocked-thread interruption are out-of-beta.
 
-현재 실행 계층은 다음 순서로 읽는다.
+## 7. Pin/View Boundaries
 
-1. `parallel`
-2. `spawn`
-3. `async`
-4. `await`
-5. `select`
-6. `channel`
-7. `cancel`
+Pinned views and slot views cannot cross suspension or task boundaries.
 
-의미:
+Rejected patterns include:
 
-- `parallel`은 core execution primitive
-- `spawn`은 task-producing surface
-- `async`는 suspension/coroutine surface
-- `await`는 completion join surface
-- `select`는 readiness arbitration surface
+- returning a `ReadView<T>` / `WriteView<T>` from its valid scope,
+- holding a view across `await`,
+- sending a view through a channel,
+- moving a token through `spawn`,
+- acquiring conflicting views inside `parallel`.
 
-## 7. 현재 지원 / 미지원
+These checks are the reason Pergyra preserves suspension visibility: the
+compiler needs the boundary to reject futurelock-class bugs.
 
-지원:
+## 8. Stable vs Out Of Beta
+
+Stable beta surface:
+
 - `parallel`
-- `spawn`, `async func`, `await`
-- `async { ... }` 블록
-- `Channel<T>`, `select`
-- `TryRecv/RecvTimeout -> Option<T>`
-- `TrySend/SendTimeout -> Bool`
-- `TrySendStatus/SendTimeoutStatus -> Option<Bool>`
-- `ChannelLength/ChannelCapacity/ChannelSpace -> Int`
-- `ChannelFull/ChannelClosed -> Bool`
-- `Cancel(task)` / `IsCancelled()` cooperative cancellation
-- spawned descendant에 대한 cancellation propagation
-- `RemoteFuture<T>` → `Result<T>`
+- named `spawn`
+- `async func`
+- checked `await`
+- `Future<T>`
+- `RemoteFuture<T> -> await -> Result<T>`
+- `Channel<T>`
+- `select`
+- copy-only non-blocking channel helpers
+- `Cancel(task)` / `IsCancelled()`
+- descendant cancellation propagation
 
-`TrySendStatus/SendTimeoutStatus`는 send 실패를 한 가지 `false`로 뭉개지 않고 값으로 분리한다.
+Out of beta:
 
-- `Some(true)` = send 성공
-- `Some(false)` = channel closed
-- `None` = 아직 열려 있지만 full 또는 timeout
+- anonymous async spawn capture/lifetime analysis,
+- capture-bearing detached async block stability,
+- `await for`,
+- `TaskGroup`,
+- user-visible cancellation token lattice,
+- ownership-bearing non-blocking receive,
+- ownership-bearing cancellation payload cleanup,
+- preemptive cancellation,
+- user-selectable memory ordering,
+- scheduler fairness guarantees beyond tested fixtures.
 
-미지원 또는 비공식:
-- `await for`, `TaskGroup`, `CancellationToken` 같은 구조화된 동시성 API
-- OS 전용 I/O 스케줄러 강결합
-- movable resource channel에 대한 non-blocking/timeout transfer surface
-- preemptive cancellation, blocked thread task interruption, structured cancellation scope/lattice
+## 9. Mental Model
+
+Do not read Pergyra as "async without coloring." Read it as "colored
+boundaries split by responsibility."
+
+`async` and `await` are only one part of the execution family. Resource
+lifetime belongs to pin/view rules, failure belongs to `Result<T>`,
+streaming belongs to channels, cancellation belongs to `Cancel` and intent
+compensation, and parallel structure belongs to `parallel` or intent step DAGs.

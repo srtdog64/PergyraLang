@@ -160,6 +160,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     if (ret_type == ctx->type_void) {
                         LLVMBuildCall2(ctx->builder, fn_type,
                             fn_value, args, (unsigned)(argc + 1), "");
+                        llvm_emit_current_zone_subject_projection_sync(ctx, obj_node);
                         llvm_emit_world_embedded_action_effect_sync(ctx, obj_node, method_decl);
                         llvm_emit_world_embedded_receiver_projection_sync(ctx, obj_node);
                         result = LLVMConstInt(ctx->type_i32, 0, 0);
@@ -167,6 +168,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         result = LLVMBuildCall2(ctx->builder,
                             fn_type, fn_value, args,
                             (unsigned)(argc + 1), llvm_tmp_name(ctx));
+                        llvm_emit_current_zone_subject_projection_sync(ctx, obj_node);
                         llvm_emit_world_embedded_action_effect_sync(ctx, obj_node, method_decl);
                         llvm_emit_world_embedded_receiver_projection_sync(ctx, obj_node);
                     }

@@ -639,10 +639,6 @@ async func Fetch() -> Int {
     let value: Int = await task;
     return value;
 }
-
-async {
-    ch <- 11;
-}
 ```
 
 지원:
@@ -650,7 +646,12 @@ async {
 - `spawn expr`
 - `spawn blocking expr`
 - `await expr`
-- `async { ... }` 블록
+
+베타 안정 표면:
+- 새 태스크 생성은 named `spawn Worker(args...)`를 사용한다.
+- `await`는 `Future<T>` / `RemoteFuture<T>` completion join만 담당한다.
+- capture-bearing detached `async { ... }` 블록은 파서/런타임 실험 경로가
+  남아 있지만, lifetime/cancel/error 경계가 아직 고정되지 않아 베타 안정 태스크 생성 표면이 아니다.
 
 `spawn blocking`은 블로킹 작업을 별도 스레드에서 실행한다:
 

@@ -291,8 +291,8 @@ world TavernCampaignWorld
 
     func ResolveSkirmishSeat(self, stateId: Int, seat: Int, option: Int, pulse: Int) -> Int
     {
-        let weapon = MemberWeapon(seat);
-        let strategy = CombatStrategyFactory(stateId, option, MemberClassCode(seat), pulse);
+        let weapon: WeaponCard = MemberWeapon(seat);
+        let strategy: CombatStrategyCard = CombatStrategyFactory(stateId, option, MemberClassCode(seat), pulse);
         let strain = Max(weapon.SkirmishStrain(stateId, strategy, pulse), 1);
         let loot = Max(weapon.SkirmishLoot(stateId, strategy, pulse), 1);
         let xp = Max(weapon.SkirmishXP(stateId, strategy, pulse), 1);
@@ -328,8 +328,8 @@ world TavernCampaignWorld
 
     func ResolveDragonSeat(self, seat: Int, option: Int, pulse: Int) -> Int
     {
-        let weapon = MemberWeapon(seat);
-        let strategy = CombatStrategyFactory(4, option, MemberClassCode(seat), pulse);
+        let weapon: WeaponCard = MemberWeapon(seat);
+        let strategy: CombatStrategyCard = CombatStrategyFactory(4, option, MemberClassCode(seat), pulse);
         let pressure = Max(weapon.BossPressure(strategy, pulse), 1);
         let burn = weapon.BossBurn(strategy, pulse);
         let xp = 3 + strategy.aggression + weapon.power + pulse;
@@ -372,11 +372,11 @@ world TavernCampaignWorld
         let beat = 1;
         while beat <= 6
         {
-            let sceneCard = SceneChoiceCardFor(stateId, option, beat);
-            let fighterEvent = CompanionEventCardFor(stateId, option, 0, beat);
-            let clericEvent = CompanionEventCardFor(stateId, option, 1, beat);
-            let rogueEvent = CompanionEventCardFor(stateId, option, 2, beat);
-            let mageEvent = CompanionEventCardFor(stateId, option, 3, beat);
+            let sceneCard: SceneChoiceCard = SceneChoiceCardFor(stateId, option, beat);
+            let fighterEvent: CompanionEventCard = CompanionEventCardFor(stateId, option, 0, beat);
+            let clericEvent: CompanionEventCard = CompanionEventCardFor(stateId, option, 1, beat);
+            let rogueEvent: CompanionEventCard = CompanionEventCardFor(stateId, option, 2, beat);
+            let mageEvent: CompanionEventCard = CompanionEventCardFor(stateId, option, 3, beat);
             Broadcast("  [Scene " + ToString(beat) + "] " + StoryBeat(stateId, option, beat));
             Broadcast("    [GM] " + sceneCard.gmPrompt);
             Broadcast("    [Stakes] " + sceneCard.stakes);
@@ -406,7 +406,7 @@ world TavernCampaignWorld
         let node = 1;
         while node <= 5
         {
-            let sceneCard = SceneChoiceCardFor(stateId, option, node);
+            let sceneCard: SceneChoiceCard = SceneChoiceCardFor(stateId, option, node);
             Broadcast("  [Node " + ToString(node) + "] " + EventNodeLine(stateId, node, option));
             Broadcast("    [Resolution] " + EventResolutionLine(stateId, node, option));
             Broadcast("    [Pressure] " + sceneCard.stakes);
@@ -575,14 +575,14 @@ world TavernCampaignWorld
         while round <= 3
         {
             let pulse = CombatRoll(stateId, round, option);
-            let fighterWeapon = journey.fighter.weapon;
-            let clericWeapon = journey.cleric.weapon;
-            let rogueWeapon = journey.rogue.weapon;
-            let mageWeapon = journey.mage.weapon;
-            let fighterStrategy = CombatStrategyFactory(stateId, option, 0, pulse);
-            let clericStrategy = CombatStrategyFactory(stateId, option, 1, pulse);
-            let rogueStrategy = CombatStrategyFactory(stateId, option, 2, pulse);
-            let mageStrategy = CombatStrategyFactory(stateId, option, 3, pulse);
+            let fighterWeapon: WeaponCard = journey.fighter.weapon;
+            let clericWeapon: WeaponCard = journey.cleric.weapon;
+            let rogueWeapon: WeaponCard = journey.rogue.weapon;
+            let mageWeapon: WeaponCard = journey.mage.weapon;
+            let fighterStrategy: CombatStrategyCard = CombatStrategyFactory(stateId, option, 0, pulse);
+            let clericStrategy: CombatStrategyCard = CombatStrategyFactory(stateId, option, 1, pulse);
+            let rogueStrategy: CombatStrategyCard = CombatStrategyFactory(stateId, option, 2, pulse);
+            let mageStrategy: CombatStrategyCard = CombatStrategyFactory(stateId, option, 3, pulse);
             Broadcast("  [Round " + ToString(round) + "] pulse=" + ToString(pulse));
             Broadcast("    [Action] " + journey.fighter.name + " " + fighterWeapon.ActionLine(fighterStrategy) + " into " + CombatTarget(stateId, round, 0));
             Broadcast("    [Effect] " + fighterWeapon.EffectLine(fighterStrategy));
@@ -620,15 +620,15 @@ world TavernCampaignWorld
         while round <= 4
         {
             let pulse = CombatRoll(4, round, option);
-            let phaseCard = BossPhaseCardFor(round, option);
-            let fighterWeapon = journey.fighter.weapon;
-            let clericWeapon = journey.cleric.weapon;
-            let rogueWeapon = journey.rogue.weapon;
-            let mageWeapon = journey.mage.weapon;
-            let fighterStrategy = CombatStrategyFactory(4, option, 0, pulse);
-            let clericStrategy = CombatStrategyFactory(4, option, 1, pulse);
-            let rogueStrategy = CombatStrategyFactory(4, option, 2, pulse);
-            let mageStrategy = CombatStrategyFactory(4, option, 3, pulse);
+            let phaseCard: BossPhaseCard = BossPhaseCardFor(round, option);
+            let fighterWeapon: WeaponCard = journey.fighter.weapon;
+            let clericWeapon: WeaponCard = journey.cleric.weapon;
+            let rogueWeapon: WeaponCard = journey.rogue.weapon;
+            let mageWeapon: WeaponCard = journey.mage.weapon;
+            let fighterStrategy: CombatStrategyCard = CombatStrategyFactory(4, option, 0, pulse);
+            let clericStrategy: CombatStrategyCard = CombatStrategyFactory(4, option, 1, pulse);
+            let rogueStrategy: CombatStrategyCard = CombatStrategyFactory(4, option, 2, pulse);
+            let mageStrategy: CombatStrategyCard = CombatStrategyFactory(4, option, 3, pulse);
             Broadcast("  [BossPhase " + ToString(round) + "] " + BossPhaseName(round) + " :: " + phaseCard.title);
             Broadcast("    [Narration] " + StoryBeat(4, option, round));
             Broadcast("    [DragonIntent] " + phaseCard.dragonIntent);
@@ -707,10 +707,10 @@ world TavernCampaignWorld
     {
         with slot<Int> as moraleLedger
         {
-            let fighterCard = TavernCardForClass(0);
-            let clericCard = TavernCardForClass(1);
-            let rogueCard = TavernCardForClass(2);
-            let mageCard = TavernCardForClass(3);
+            let fighterCard: TavernCard = TavernCardForClass(0);
+            let clericCard: TavernCard = TavernCardForClass(1);
+            let rogueCard: TavernCard = TavernCardForClass(2);
+            let mageCard: TavernCard = TavernCardForClass(3);
 
             transcript = "";
             gameState = 0;
@@ -778,7 +778,7 @@ world TavernCampaignWorld
                 }
                 else if gameState == 1
                 {
-                    let floorOneScript = FloorScriptFor(1, omen, journey.affinityPulse);
+                    let floorOneScript: FloorScript = FloorScriptFor(1, omen, journey.affinityPulse);
                     Broadcast("[Substate] floor1.briefing");
                     RunSceneBeats(gameState, rolledChoice);
                     BroadcastIntent("DelveThreeFloors", DelveThreeFloors(journey, journey.fighter, journey.cleric, journey.rogue, journey.mage));
@@ -800,7 +800,7 @@ world TavernCampaignWorld
                 }
                 else if gameState == 2
                 {
-                    let floorTwoScript = FloorScriptFor(2, omen, journey.affinityPulse);
+                    let floorTwoScript: FloorScript = FloorScriptFor(2, omen, journey.affinityPulse);
                     Broadcast("[Substate] floor2.briefing");
                     RunSceneBeats(gameState, rolledChoice);
                     Broadcast("[Substate] floor2.travel");
@@ -821,7 +821,7 @@ world TavernCampaignWorld
                 }
                 else if gameState == 3
                 {
-                    let floorThreeScript = FloorScriptFor(3, omen, journey.affinityPulse);
+                    let floorThreeScript: FloorScript = FloorScriptFor(3, omen, journey.affinityPulse);
                     Broadcast("[Substate] floor3.briefing");
                     RunSceneBeats(gameState, rolledChoice);
                     Broadcast("[Substate] floor3.travel");
@@ -842,7 +842,7 @@ world TavernCampaignWorld
                 }
                 else
                 {
-                    let dragonScript = DragonScriptFor(omen, journey.affinityPulse);
+                    let dragonScript: DragonScript = DragonScriptFor(omen, journey.affinityPulse);
                     Broadcast("[Substate] dragon.briefing");
                     RunSceneBeats(gameState, rolledChoice);
                     BroadcastIntent("SlayDragon", SlayDragon(journey, journey.fighter, journey.cleric, journey.rogue, journey.mage));

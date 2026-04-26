@@ -322,7 +322,9 @@ static const char *ensure_generic_class_specialization(
     TranspilerCtx *ctx, ASTNode *class_decl, ASTNode *ann);
 
 #include "transpiler_helpers.inc"
-#include "transpiler_emitters.inc"
+#include "transpiler_emitters_base_a.inc"
+#include "transpiler_emitters_base_b.inc"
+#include "transpiler_emitters_intent.inc"
 
 /* -----------------------------------------------------------------
  * Program emitter

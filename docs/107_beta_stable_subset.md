@@ -29,6 +29,14 @@ Stable core:
   `docs/109_package_module_resolver_contract.md`: file-local
   `import "relative/path.pgy";` resolution, namespace/export visibility,
   circular import rejection, and `pgy init <name>` manifest scaffolding.
+- Async/concurrency stable subset is decomposition-based, not coloring
+  avoidance: `parallel` owns structured execution, named `spawn` owns task
+  creation, `await` owns completion join only, `Result<T>` owns fallible
+  completion, `Channel<T>` owns streaming transport, and pin/view rules own
+  resource lifetime across suspension. Source of truth:
+  `docs/113_memory_concurrency_model.md`; rationale:
+  `docs/114_async_model_positioning.md`. Regression gate:
+  `make async-model-positioning-test-smoke`.
 
 Explicit reject:
 
@@ -161,8 +169,8 @@ Explicit reject:
   user-code registry hooks, and stable binary trace format.
 - Full weak-memory vocabulary, user-selectable memory orders, scheduler
   fairness guarantees, lock-free correctness claims, anonymous async closure
-  capture/lifetime analysis, and cross-thread `Arc<T>` / `Send` / `Sync` style
-  trait systems.
+  capture/lifetime analysis, capture-bearing detached async block stability,
+  and cross-thread `Arc<T>` / `Send` / `Sync` style trait systems.
 
 ## 6. Backend And Tooling Contract
 

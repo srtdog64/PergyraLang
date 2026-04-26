@@ -149,7 +149,7 @@ if "s != NULL && t != NULL" in macro_body:
     raise SystemExit("secure slot export macro still uses silent guard-only validation")
 
 authority_text = (root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc").read_text(encoding="utf-8")
-inline_authority_text = (root / "src" / "runtime" / "pgy_runtime_part_ba_part_f.inc").read_text(encoding="utf-8")
+inline_authority_text = (root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc").read_text(encoding="utf-8")
 for label, text in [
     ("exported authority", authority_text),
     ("inline authority", inline_authority_text),
@@ -163,7 +163,10 @@ for label, text in [
 if re.search(r"pgy_zone_authority_check_export.*?abort\s*\(", authority_text, flags=re.S):
     raise SystemExit("exported authority check still aborts outside panic contract")
 
-array_text = (root / "src" / "runtime" / "pgy_runtime_part_ba_part_c.inc").read_text(encoding="utf-8")
+array_text = "\n".join([
+    (root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_part_ba_part_c.inc").read_text(encoding="utf-8"),
+])
 for token in [
     "PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS",
     "PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS",
@@ -199,7 +202,6 @@ for token in [
 inline_collection_text = "\n".join([
     (root / "src" / "runtime" / "pgy_runtime_part_ba_part_d.inc").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc").read_text(encoding="utf-8"),
-    (root / "src" / "runtime" / "pgy_runtime_part_ba_part_f.inc").read_text(encoding="utf-8"),
 ])
 for token in [
     "list index out of bounds",
@@ -244,7 +246,7 @@ for label, text in [
             raise SystemExit(f"{label} missing {token}")
 
 for path in [
-    root / "src" / "codegen" / "transpiler_expr_emitters_call_a.inc",
+    root / "src" / "codegen" / "transpiler_expr_emitters_part_a.inc",
     root / "src" / "codegen" / "llvm_expr_core.inc",
     root / "src" / "codegen" / "llvm_runtime.c",
 ]:
@@ -254,7 +256,7 @@ for path in [
             raise SystemExit(f"{path.relative_to(root)} missing checked arithmetic lowering {token}")
 
 unwrap_lowering_paths = {
-    root / "src" / "runtime" / "pgy_runtime_part_ba_part_f.inc": [
+    root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc": [
         "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR",
         "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE",
     ],
@@ -283,8 +285,8 @@ for path, tokens in unwrap_lowering_paths.items():
             raise SystemExit(f"{path.relative_to(root)} missing unwrap panic token {token}")
 
 array_lowering_paths = {
-    root / "src" / "codegen" / "transpiler_expr_emitters_call_b.inc": ["pgy_array_set_"],
-    root / "src" / "codegen" / "transpiler_expr_emitters_tail.inc": ["pgy_array_get_", "pgy_slice_get_"],
+    root / "src" / "codegen" / "transpiler_expr_emitters_part_d.inc": ["pgy_array_set_"],
+    root / "src" / "codegen" / "transpiler_expr_emitters_part_f.inc": ["pgy_array_get_", "pgy_slice_get_"],
     root / "src" / "codegen" / "llvm_expr.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get"],
     root / "src" / "codegen" / "llvm_expr_call_arrays.inc": ["pgy_array_set_"],
     root / "src" / "codegen" / "llvm_runtime.c": ["pgy_array_get_", "pgy_array_set_", "pgy_slice_get_"],

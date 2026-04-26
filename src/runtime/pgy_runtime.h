@@ -9,7 +9,8 @@
 #define PGY_RUNTIME_H
 
 #include "pgy_runtime_part_a.inc"
-#include "pgy_runtime_part_b.inc"
+#include "pgy_runtime_part_ba.inc"
+#include "pgy_runtime_part_bb.inc"
 #include "pgy_runtime_part_c.inc"
 
 #endif /* PGY_RUNTIME_H */

@@ -73,13 +73,13 @@ progress ledger, not a new language surface.
 - The empty C backend tail include
   `src/codegen/transpiler_helpers_core_a_part_d.inc` was removed from the
   `transpiler_helpers_core_a.inc` shim.
-- Empty compiler/runtime tail sentinels remain in place for the current split
+- The empty compiler/runtime tail sentinels were removed from the current split
   families:
   - `src/compiler/mir_public_part_c.inc`
   - `src/runtime/pgy_runtime_part_ba_part_f.inc`
-  These must be removed only with their shim/order contract and tests in the
-  same change; restoring old HEAD content is wrong because those bodies have
-  already moved into earlier split parts in the current working tree.
+  Their shims now include only files that carry real implementation content,
+  and contract tests point at the implementation-owning parts instead of empty
+  tail placeholders.
 - `src/codegen/transpiler_expr_emitters.inc` is now a shim over top-level
   function-boundary parts:
   - `transpiler_expr_emitters_part_a.inc` through
@@ -116,20 +116,15 @@ The test fixture include-size gate is also green:
 make test-inc-size-test-smoke
 ```
 
-Empty include sentinels are now guarded explicitly:
+Empty include sentinels are now rejected:
 
 ```sh
 make inc-sentinel-test-smoke
 ```
 
-This gate rejects any zero-byte `.inc` file unless it is listed as an
-intentional split-family sentinel and verified against its owning shim. The
-current allowlist is deliberately narrow:
-
-```text
-src/compiler/mir_public_part_c.inc -> src/compiler/mir_public.inc
-src/runtime/pgy_runtime_part_ba_part_f.inc -> src/runtime/pgy_runtime_part_ba.inc
-```
+This gate rejects any zero-byte `.inc` file and rejects any increase above the
+current `src/**/*.inc` file cap of 160, so new `.inc` splits are blocked by
+default. There is no empty-sentinel allowlist.
 
 The expression emitter parts are currently below the beta 1,000 LOC cap:
 
@@ -145,9 +140,9 @@ src/codegen/transpiler_expr_emitters_part_f.inc 472
 The related intent/base emitter seams are also below the cap:
 
 ```text
-src/codegen/transpiler_helpers_core_a_part_a.inc 14
+src/codegen/transpiler_helpers_core_a.inc 29
 src/codegen/transpiler_helpers_core_a_part_c.inc 577
-src/codegen/transpiler_helpers_core_b_part_a.inc 70
+src/codegen/transpiler_helpers_core_b.inc 82
 src/codegen/transpiler_helpers_core_b_part_b.inc 519
 src/codegen/transpiler_context.c 284
 src/codegen/transpiler_context.h 36
@@ -175,6 +170,9 @@ After the declaration lookup extraction, it is down further to the remaining
 projection/type predicate helpers at 169 LOC.
 After the projection/type predicate extraction, it is now a forward-declaration
 shim only at 14 LOC.
+That forward-declaration part file has now been folded into
+`src/codegen/transpiler_helpers_core_a.inc`, deleting
+`src/codegen/transpiler_helpers_core_a_part_a.inc`.
 After the declaration cache/current-host extraction,
 `src/codegen/transpiler_helpers_core_b_part_a.inc` is down to 687 LOC.
 After the current-host/nominal-host method lookup extraction and world/zone
@@ -186,12 +184,17 @@ After the ability/event declaration lookup extraction,
 After the nominal member type lookup extraction, it is down to 298 LOC.
 After the enum/operator lookup extraction, it is down to 161 LOC.
 After the projection literal lowering extraction, it is down to 70 LOC.
+That remaining small part file has now been folded into
+`src/codegen/transpiler_helpers_core_b.inc`, deleting
+`src/codegen/transpiler_helpers_core_b_part_a.inc`.
 
 The codegen helper shim now has no empty tail part:
 
 ```text
 src/codegen/transpiler_helpers_core_a.inc
-  -> part_a, part_b, part_c
+  -> inline declarations, part_b, part_c
+src/codegen/transpiler_helpers_core_b.inc
+  -> inline small bridge helpers, part_b, part_c, part_d
 ```
 
 ## Verification
@@ -223,12 +226,22 @@ Observed results:
 - Latest projection-literal extraction reran `make pgy`,
   `make test-transpile backend-inc-size-test-smoke inc-sentinel-test-smoke`,
   and `make LLVM_ENABLED=1 llvm-test-smoke`.
+- Latest `.inc` count reduction deleted
+  `transpiler_helpers_core_a_part_a.inc` and
+  `transpiler_helpers_core_b_part_a.inc`, reran `make pgy`, and tightened
+  `make inc-sentinel-test-smoke` with a source `.inc` file-count cap.
+- Latest pass-through shim reduction deleted `transpiler_emitters.inc`,
+  `transpiler_emitters_base.inc`, `transpiler_helpers_core.inc`,
+  `llvm_expr_helpers.inc`, `llvm_expr_call_methods.inc`,
+  `llvm_domain_helpers.inc`, `mir_public.inc`, `pgy_runtime_part_b.inc`, and
+  `pgy_runtime_lib_part_b.inc`. Their owning `.c` / `.h` files now include the
+  concrete implementation chunks directly.
 - `test-abi`: ABI spec 49 passed, 0 failed, plus C/LLVM ABI pipeline smoke.
 - `runtime-abi-lifetime-test-smoke`: passed.
 - `test-inc-size-test-smoke`: all `src/tests/**/*.inc` files are below
   1,000 LOC.
-- `inc-sentinel-test-smoke`: only the two documented empty split-family
-  sentinels are allowed, and both are still included by their shims.
+- `inc-sentinel-test-smoke`: no empty `.inc` files are allowed, and the source
+  `.inc` count must not increase above 160.
 - `git diff --check`: passed; only line-ending warnings were reported.
 
 ## Remaining Include Debt
@@ -239,6 +252,8 @@ Observed results:
   families. The current state removes the worst function-boundary and size
   debt, but `.inc` should continue shrinking toward generated tables, private
   macro tables, or test fixtures only.
+- New `.inc` split files are not allowed by default. Raising the file-count cap
+  must be treated as beta debt and justified in this ledger.
 - C backend context and local symbol tracking now have real TU owners:
   `transpiler_context.c`, `transpiler_symbols.c`, and
   `transpiler_decl_lookup.c`, `transpiler_projection.c`,
@@ -246,10 +261,9 @@ Observed results:
   `transpiler_operator.c`. The next high-value extraction candidate is not more
   blind line-count splitting; it is choosing a real owner seam for generic
   binding/type-specialization helpers.
-- Empty `.inc` tails are not a general pattern. They are allowed only as a
-  temporary split-order sentinel when removing them would also require a shim
-  contract change; each such file must be named in
-  `tests/inc_sentinel_smoke.sh`.
+- Empty `.inc` tails are no longer allowed. A split-order shim may include only
+  real implementation chunks; if a tail becomes empty, remove it and update the
+  shim, dependency list, tests, and this ledger in the same change.
 - Future splits must not move dangling return-type fragments across include
   boundaries. The build now enforces this through
   `-Werror=implicit-function-declaration` and `-Werror=implicit-int`.

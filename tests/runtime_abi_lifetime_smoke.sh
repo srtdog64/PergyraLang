@@ -79,7 +79,7 @@ groups = {
         ],
     ),
     "inline-authority": (
-        root / "src" / "runtime" / "pgy_runtime_part_ba_part_f.inc",
+        root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc",
         [
             "pgy_zone_authority_last_zone_export",
             "pgy_zone_authority_last_participant_export",
@@ -245,7 +245,7 @@ def read_runtime_text(path: pathlib.Path) -> str:
     if path.name.startswith("pgy_runtime_part_ba_part_"):
         parts = [
             path.with_name(f"pgy_runtime_part_ba_part_{suffix}.inc")
-            for suffix in ("a", "b", "c", "d", "e", "f")
+            for suffix in ("a", "b", "c", "d", "e")
         ]
         missing = [part for part in parts if not part.exists()]
         if missing:

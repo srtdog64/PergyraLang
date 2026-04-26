@@ -1,4 +1,4 @@
-// word_count.pgy — 문자열 단어 수 세기 (Split + for-in + destructuring)
+// word_count.pgy - string split, for-in, and destructuring sketch.
 
 func CountWords(text: String) -> Int {
     let words: Array<String> = Split(text, " ");
@@ -10,13 +10,13 @@ func Main() -> Void {
     let count: Int = CountWords(text);
     Log(count);
 
-    // 각 단어 출력
     let words: Array<String> = Split(text, " ");
     for word in words {
         Log(word);
     }
 
-    // 첫 세 단어만 추���
     let (first, second, third) = words;
-    Log(Join([first, second, third], "-"));
+    Log(first);
+    Log(second);
+    Log(third);
 }

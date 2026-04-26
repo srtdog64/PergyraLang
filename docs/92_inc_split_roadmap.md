@@ -65,7 +65,7 @@ Recently closed:
   `transpiler_emitters_mir_inventory_intent.inc`,
   `transpiler_emitters_mir_inventory_ssa_names.inc`,
   `transpiler_emitters_mir_inventory_ssa_emit.inc`.
-- `codegen/transpiler_expr_emitters.inc` — reduced to a seven-line shim that includes five sub-1,000 LOC slices:
+- `codegen/transpiler_expr_emitters.inc` — removed as a pass-through shim; `transpiler.c` now includes the concrete emitter chunks directly:
   `transpiler_expr_emitters_builtins.inc`,
   `transpiler_expr_emitters_call_a.inc`,
   `transpiler_expr_emitters_call_b.inc`,
@@ -94,15 +94,19 @@ Recently closed:
   `transpiler_emitters_base_b_part_d.inc`.
 - Tier 1 runtime/codegen/compiler `.inc` gate — closed by safe mechanical split that avoids block-comment and continuation-line boundaries:
   `runtime/pgy_runtime_part_ba.inc`,
-  `runtime/pgy_runtime_lib_part_b.inc`,
+  `runtime/pgy_runtime_lib_part_b_part_a.inc` through
+  `runtime/pgy_runtime_lib_part_b_part_f.inc`,
   `codegen/transpiler_emitters_base_a.inc`,
   `codegen/transpiler_helpers_core_a.inc`,
   `codegen/transpiler_helpers_core_b.inc`,
   `codegen/transpiler_domain_role.inc`,
-  `codegen/llvm_expr_helpers.inc`,
-  `compiler/mir_public.inc`,
-  `codegen/llvm_expr_call_methods.inc`,
-  `codegen/llvm_domain_helpers.inc`.
+  `codegen/llvm_expr_helpers_part_a.inc` through
+  `codegen/llvm_expr_helpers_part_c.inc`,
+  `compiler/mir_public_part_a.inc` / `compiler/mir_public_part_b.inc`,
+  `codegen/llvm_expr_call_methods_part_a.inc` /
+  `codegen/llvm_expr_call_methods_part_b.inc`,
+  `codegen/llvm_domain_helpers_part_a.inc` /
+  `codegen/llvm_domain_helpers_part_b.inc`.
 - `semantic/type_checker_helpers_late.c` — standalone TU hidden include-order dependency fixed by promoting call-path helpers to `type_checker_internal.h` and explicitly including slot analyzer / visibility / generic diagnostic contracts.
 
 ---
@@ -169,10 +173,10 @@ files were deleted. Current `src/semantic/**/*.inc` total is 8,215 LOC, and
 
 Backend 진행:
 - `transpiler_emitters_mir_inventory_ssa.inc`는 1,998 LOC 단일 include에서 5 LOC shim + 760/626/610 LOC 하위 slice로 분리됐다.
-- `transpiler_expr_emitters.inc`는 4,334 LOC 단일 include에서 7 LOC shim + 900/900/900/900/734 LOC 하위 slice로 분리됐다. 이 slice는 의미 단위 TU 승격이 아니라 include-order 보존 mechanical split이므로, 다음 단계는 call/member/builtin owner 경계를 실제 `.c` 또는 더 작은 feature include로 정리하는 것이다.
+- `transpiler_expr_emitters.inc` pass-through shim은 제거됐고, `transpiler.c`가 concrete emitter chunks를 직접 include한다. 남은 과제는 call/member/builtin owner 경계를 실제 `.c` 또는 더 작은 feature include로 정리하는 것이다.
 - `llvm_expr_calls.inc`는 3,129 LOC 단일 include에서 17 LOC shim + feature owners + 51/387/380/360 LOC 하위 slice로 분리됐다. `llvm_emit_call` 앞단의 enum/class constructor lowering은 `llvm_expr_call_constructors.inc`로, `ArrayLength` / `ArrayPush` / `ArraySet` / `ArrayPop`은 `llvm_expr_call_arrays.inc`로, `ListNew` / `SetNew` / `SetAdd` / `SetHas` / `SetRemove` / `SetSize`는 `llvm_expr_call_collections_base.inc`로, `HasProjection` / `HasLayer` / `HasState` / `HasZone*` lowering은 `llvm_expr_call_domain_queries.inc`로, event invocation은 `llvm_expr_call_events.inc`로, `IntentLast*` / `IntentHistory*` / `IntentActive*` / `IntentRecent*` observability runtime calls는 `llvm_expr_call_intent_observability.inc`로, `Log*`는 `llvm_expr_call_log.inc`로, `Abs` / `Min` / `Max`는 `llvm_expr_call_math.inc`로, `Ok` / `Err` / `IsOk` / `IsErr` / `Unwrap` / `UnwrapOr` / `Some` / `None` / `IsSome` / `IsNone` / `UnwrapOption` lowering은 `llvm_expr_call_result_option.inc`로, `ClaimSlot` / `Write` / `Read` / `Release` / `Device*` lowering은 `llvm_expr_call_slots.inc`로, task cancellation/channel operations는 `llvm_expr_call_task_channel.inc`로 이동했다. 남은 dispatcher debt는 list/map/queue continuation 일부, stdlib IO/file/time, host/user function fallback owner 추출이다.
 - `transpiler_emitters_base_b.inc`는 3,068 LOC 단일 include에서 6 LOC shim + 800/800/800/668 LOC 하위 slice로 분리됐다. `emit_statement`, `emit_block`, intent forward declaration family는 아직 include-order preserved 상태라서 다음 실제 owner extraction 후보로 남는다.
-- Tier 1 remaining split은 runtime/codegen/compiler 전체 1,000 LOC gate를 닫는 데 집중했다. `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`, `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a.inc`, `transpiler_helpers_core_b.inc`, `transpiler_domain_role.inc`, `llvm_expr_helpers.inc`, `mir_public.inc`, `llvm_expr_call_methods.inc`, `llvm_domain_helpers.inc`는 모두 shim + sub-1,000 LOC slice로 내려갔다.
+- Tier 1 remaining split은 runtime/codegen/compiler 전체 1,000 LOC gate를 닫는 데 집중했다. Pass-through shim `.inc` files for runtime part B, LLVM expr helpers, LLVM method calls, LLVM domain helpers, MIR public API, and C transpiler emitter/helper seams have now been removed; owning `.c` / `.h` files include concrete sub-1,000 LOC chunks directly.
 - 검증: `make backend-inc-size-test-smoke`, `make test-mir test-transpile test-abi -j2`, `make test-semantic -j2`, `make llvm-test-backend-compare -j2`.
 
 ---
@@ -232,7 +236,7 @@ Semantic stop condition:
 ### Target State B — Backend Emitters
 
 - C transpiler와 LLVM은 각각 expression/statement/declaration/domain/runtime-call emitter를 실제 `.c` 단위로 소유한다.
-- `transpiler_expr_emitters.inc`, `llvm_expr_calls.inc`, `llvm_expr_helpers.inc`는 500~800 LOC 이하의 feature module로 쪼갠다.
+- `llvm_expr_calls.inc` and the concrete transpiler/LLVM expr helper chunks should continue shrinking toward 500-800 LOC feature modules; pass-through shim files should not be reintroduced.
 - backend declaration inventory는 AST-carried helper에 직접 기대지 않고 MIR/DIR/RIR metadata reader API를 통한다.
 - C/LLVM 공통 ABI naming, projection labels, runtime symbol lookup은 중복 helper가 아니라 공유 contract module에서 읽는다.
 

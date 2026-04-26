@@ -18,7 +18,7 @@ metrics: compile=1.750s run=0.004s
 metrics: compile=0.250s run=0.003s
 EOF
 
-"$ROOT_DIR/tests/perf_summary.sh" "$LOG" > "$SUMMARY"
+bash "$ROOT_DIR/tests/perf_summary.sh" "$LOG" > "$SUMMARY"
 
 grep -Fq "backend cases compile_avg_s compile_max_s compile_max_case run_avg_s run_max_s run_max_case" "$SUMMARY"
 grep -Fq "c 2 1.125 1.750 intent_authority_snapshot_abi 0.003 0.004 intent_authority_snapshot_abi" "$SUMMARY"

@@ -161,12 +161,14 @@ static bool
 llvm_requires_thread_pool(const LLVMGenCtx *ctx)
 {
     ASTNode *synthetic_executable_func = NULL;
+    LLVMMIRRoutineInventory routine_inventory;
 
     if (ctx == NULL || ctx->mir == NULL)
         return false;
 
-    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
-        if (llvm_mir_routine_uses_thread_pool(&ctx->mir->routines[i]))
+    llvm_active_routine_inventory(ctx, &routine_inventory);
+    for (size_t i = 0; i < routine_inventory.count; i++) {
+        if (llvm_mir_routine_uses_thread_pool(&routine_inventory.routines[i]))
             return true;
     }
 
@@ -234,6 +236,7 @@ llvm_find_mir_method_routine(const MIRProgram *mir,
                              ASTNode *method)
 {
     const char *method_name;
+    LLVMMIRRoutineInventory routine_inventory;
 
     if (mir == NULL || owner_name == NULL || method == NULL || method->type != AST_FUNC_DECL)
         return NULL;
@@ -241,8 +244,9 @@ llvm_find_mir_method_routine(const MIRProgram *mir,
     if (method_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    llvm_mir_routine_inventory_from_program(mir, &routine_inventory);
+    for (size_t i = 0; i < routine_inventory.count; i++) {
+        const MIRRoutine *routine = &routine_inventory.routines[i];
         if (routine->kind != MIR_SCOPE_METHOD)
             continue;
         if (routine->ast == method)
@@ -355,11 +359,14 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
 LLVMGenResult *
 llvm_validate_mir_for_codegen(const MIRProgram *mir)
 {
+    LLVMMIRRoutineInventory routine_inventory;
+
     if (mir == NULL)
         return llvm_result_error("MIR program is NULL");
 
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    llvm_mir_routine_inventory_from_program(mir, &routine_inventory);
+    for (size_t i = 0; i < routine_inventory.count; i++) {
+        const MIRRoutine *routine = &routine_inventory.routines[i];
         char *topology_error = NULL;
 
         if (routine->name == NULL) {
@@ -383,8 +390,11 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir)
 bool
 llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 {
+    LLVMMIRRoutineInventory routine_inventory;
+
     if (mir == NULL || ctx == NULL)
         return false;
+    llvm_active_routine_inventory(ctx, &routine_inventory);
 
     /* MIR-only backend entry:
      *
@@ -420,8 +430,8 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     llvm_emit_domain_passes(ctx);
 
     llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_funcs");
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    for (size_t i = 0; i < routine_inventory.count; i++) {
+        const MIRRoutine *routine = &routine_inventory.routines[i];
         ASTNode *stmt = routine->ast;
         if (routine->kind != MIR_SCOPE_FUNCTION
             || stmt == NULL
@@ -438,8 +448,8 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     }
 
     llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_intents");
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    for (size_t i = 0; i < routine_inventory.count; i++) {
+        const MIRRoutine *routine = &routine_inventory.routines[i];
         ASTNode *stmt = routine->ast;
         if (routine->kind != MIR_SCOPE_INTENT
             || stmt == NULL
@@ -450,8 +460,8 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     }
 
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_function_routines");
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    for (size_t i = 0; i < routine_inventory.count; i++) {
+        const MIRRoutine *routine = &routine_inventory.routines[i];
         if (routine->kind != MIR_SCOPE_FUNCTION)
             continue;
 
@@ -474,8 +484,8 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     }
 
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_residual_decls");
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    for (size_t i = 0; i < routine_inventory.count; i++) {
+        const MIRRoutine *routine = &routine_inventory.routines[i];
         ASTNode *stmt = routine->ast;
         if (routine->kind == MIR_SCOPE_FUNCTION
             && stmt != NULL
@@ -521,10 +531,21 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             llvm_find_host_decl_methods_in_context(ctx, cls_name, &methods, &method_count);
             for (size_t j = 0; j < method_count; j++) {
                 ASTNode *method = methods != NULL ? methods[j] : NULL;
+                const MIRDeclMethod *method_meta;
+                const char *method_name;
                 const MIRRoutine *mir_method;
                 if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
-                mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
+                method_name = method->data.func_decl.name;
+                method_meta = llvm_find_host_method_metadata_in_context(
+                    ctx, cls_name, method_name);
+                method_name = llvm_mir_decl_method_name(method_meta, method);
+                mir_method = method_meta != NULL && method_meta->has_routine
+                    ? llvm_routine_inventory_get(
+                        &routine_inventory, method_meta->routine_index)
+                    : NULL;
+                if (mir_method == NULL)
+                    mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
                 if (mir_method != NULL) {
                     llvm_emit_func_from_mir(mir_method, ctx);
                     continue;
@@ -534,9 +555,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                     snprintf(msg, sizeof(msg),
                              "MIR-only LLVM path missing routine for class method '%s.%s'",
                              cls_name != NULL ? cls_name : "(anonymous-class)",
-                             method->data.func_decl.name != NULL
-                                 ? method->data.func_decl.name
-                                 : "(anonymous)");
+                             method_name != NULL ? method_name : "(anonymous)");
                     llvm_set_error(ctx, msg);
                     return false;
                 }

@@ -678,7 +678,7 @@ Step 10: C 매크로 제거 및 명시적 런타임 라이브러리 전환 [최�
 | `src/test_memory_layout.c` | 테스트 존재 but ABI 고정 아님 | Step 2 | test_abi_spec.c로 업그레이드 |
 | `src/compiler/mir.h` | 타입 레이아웃 정보 없음 | Rule 2-3 | `MIRTypeLayout` 필드 추가 |
 | `src/codegen/llvm_backend.c` (330-350) | 백엔드가 직접 struct 생성 | Rule 3 | MIR에서 레이아웃 수신으로 변경 |
-| `src/codegen/llvm_expr_helpers.inc` (230) | 백엔드가 Option 레이아웃 결정 | Rule 6 | MIR에서 레이아웃 수신 |
+| `src/codegen/llvm_expr_helpers_part_*.inc` | 백엔드가 Option 레이아웃 결정 | Rule 6 | MIR에서 레이아웃 수신 |
 | `src/codegen/transpiler.c` (293,570) | 백엔드가 직접 타입 이름 생성 | Rule 3,8 | MIR에서 레이아웃 수신 |
 | `src/runtime/pgy_channel.h` | _Generic 매크로 | Rule 8 | 명시적 함수 호출로 전환 |
 

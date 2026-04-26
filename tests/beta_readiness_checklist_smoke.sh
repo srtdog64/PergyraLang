@@ -28,6 +28,7 @@ unicode_policy_path = root / "docs" / "110_string_unicode_policy.md"
 test_suite_path = root / "docs" / "111_beta_test_suite_freeze.md"
 observability_schema_path = root / "docs" / "112_observability_trace_schema.md"
 memory_concurrency_path = root / "docs" / "113_memory_concurrency_model.md"
+async_positioning_path = root / "docs" / "114_async_model_positioning.md"
 readme_path = root / "README.md"
 slot_pin_path = root / "docs" / "74_slot_pinning_caching.md"
 ownership_path = root / "docs" / "106_ownership_model_comparison.md"
@@ -52,6 +53,8 @@ if not observability_schema_path.exists():
     raise SystemExit("missing docs/112_observability_trace_schema.md")
 if not memory_concurrency_path.exists():
     raise SystemExit("missing docs/113_memory_concurrency_model.md")
+if not async_positioning_path.exists():
+    raise SystemExit("missing docs/114_async_model_positioning.md")
 if not readme_path.exists():
     raise SystemExit("missing README.md")
 if not slot_pin_path.exists():
@@ -77,6 +80,7 @@ unicode_policy = unicode_policy_path.read_text(encoding="utf-8")
 test_suite = test_suite_path.read_text(encoding="utf-8")
 observability_schema = observability_schema_path.read_text(encoding="utf-8")
 memory_concurrency = memory_concurrency_path.read_text(encoding="utf-8")
+async_positioning = async_positioning_path.read_text(encoding="utf-8")
 readme = readme_path.read_text(encoding="utf-8")
 slot_pin = slot_pin_path.read_text(encoding="utf-8")
 ownership = ownership_path.read_text(encoding="utf-8")
@@ -132,11 +136,17 @@ required_terms = [
     "docs/111_beta_test_suite_freeze.md",
     "docs/112_observability_trace_schema.md",
     "docs/113_memory_concurrency_model.md",
+    "docs/114_async_model_positioning.md",
+    "make async-model-positioning-test-smoke",
+    "decomposes coloring",
+    "`await` is a completion join only",
+    "`Future<T>` / `RemoteFuture<T>` are",
     "make stdlib-test-smoke",
     "make package-module-resolver-test-smoke",
     "make unicode-policy-test-smoke",
     "make beta-test-suite-freeze-test-smoke",
     "make observability-schema-test-smoke",
+    "make async-model-positioning-test-smoke",
     "make memory-concurrency-model-test-smoke",
     "make perf-contract-test-smoke",
     "make tooling-conformance-test-smoke",
@@ -164,6 +174,9 @@ stable_subset_terms = [
     "Collections Stable Subset",
     "Intent / Zone / World / AIR Stable Subset",
     "Backend And Tooling Contract",
+    "Async/concurrency stable subset is decomposition-based",
+    "`await` owns completion join only",
+    "docs/114_async_model_positioning.md",
     "HashMap<String, T>",
     "HashMap<Int, T>",
     "HashMap<Long, T>",
@@ -181,6 +194,7 @@ stable_subset_terms = [
     "make beta-test-suite-freeze-test-smoke",
     "make observability-schema-test-smoke",
     "make memory-concurrency-model-test-smoke",
+    "make async-model-positioning-test-smoke",
     "make tooling-conformance-test-smoke",
     "macOS: C-only CI preflight",
 ]
@@ -310,6 +324,9 @@ memory_concurrency_terms = [
     "beta-freeze-source-of-truth",
     "parallel` is the core execution primitive",
     "Named `spawn Worker(args...)`",
+    "coloring decomposition",
+    "`await` is a completion join only",
+    "user-level effect system",
     "A `parallel { ... }` block joins before control continues",
     "Shared `ref`/`ref` reads",
     "`ref`/`own` and `own`/`own` task-boundary conflicts are rejected",
@@ -326,6 +343,26 @@ if missing_memory_concurrency_terms:
     raise SystemExit(
         "memory/concurrency model doc missing term(s): "
         + ", ".join(missing_memory_concurrency_terms)
+    )
+
+async_positioning_terms = [
+    "Async Model Positioning",
+    "coloring decomposition",
+    "Each concern has an owner",
+    "Widening one cell must not silently widen the others",
+    "For beta, await is a completion join for checked futures",
+    "Future<T> and RemoteFuture<T> are typed completion handles",
+    "not a general user-level effect system",
+    "visibility-high / decomposition-high",
+    "AIR Phase 1 sync/async drift detection",
+]
+missing_async_positioning_terms = [
+    term for term in async_positioning_terms if term not in async_positioning
+]
+if missing_async_positioning_terms:
+    raise SystemExit(
+        "async positioning doc missing term(s): "
+        + ", ".join(missing_async_positioning_terms)
     )
 
 if "현재 공식 beta readiness는 약 50%" not in text:

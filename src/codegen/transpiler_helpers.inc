@@ -1,4 +1,5 @@
-#include "transpiler_helpers_core.inc"
+#include "transpiler_helpers_core_a.inc"
+#include "transpiler_helpers_core_b.inc"
 
 /* -----------------------------------------------------------------
  * Expression emitters — return heap-allocated C expression string

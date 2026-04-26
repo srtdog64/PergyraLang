@@ -8,8 +8,8 @@ full formal memory model; the beta promise is a narrow, executable contract for
 ownership-bearing payload boundaries.
 
 For *why* this contract is shaped the way it is (positioning vs callback /
-promise / async-await waves, function coloring, sequential trap,
-futurelock-class deadlocks), see
+promise / async-await waves, function coloring, coloring decomposition,
+sequential trap, futurelock-class deadlocks), see
 `docs/114_async_model_positioning.md`. This file is the contract; that file
 is the rationale.
 
@@ -20,10 +20,17 @@ Executable gate: `make memory-concurrency-model-test-smoke`.
 - `parallel` is the core execution primitive.
 - Named `spawn Worker(args...)` is beta-stable when the callee declaration
   exposes parameter, effect, and ownership facts.
-- `async`/`await` is beta-stable for copy-only values and checked futures.
+- `async func`/`await` is beta-stable for copy-only values and checked futures.
+  `await` is a completion join only; it does not own lifetime, cancellation,
+  failure classification, or parallel structure.
+- `Future<T>` and `RemoteFuture<T>` are typed completion handles, not a general
+  user-level effect system.
 - `select` and `channel` are beta-stable for the currently implemented typed
   channel families and copy-only non-blocking receive surface.
-- Anonymous async spawn bodies are explicitly rejected for beta.
+- Anonymous async spawn bodies are explicitly rejected for beta. Detached
+  anonymous async blocks with local captures are not the stable task-creation
+  model; use named `spawn Worker(args...)` so ownership and cleanup facts cross
+  a declaration boundary.
 
 ## Happens-Before Contract
 
@@ -71,5 +78,6 @@ Executable gate: `make memory-concurrency-model-test-smoke`.
 - Lock-free data structure correctness claims.
 - Scheduler fairness guarantees beyond current tested fixtures.
 - Anonymous async closure capture/lifetime analysis.
+- Capture-bearing detached async block stability.
 - Cross-thread `Arc<T>` / `Send` / `Sync` style trait system.
 - Ownership-bearing non-blocking receive and cancellation payload cleanup.

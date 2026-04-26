@@ -778,6 +778,8 @@ test_air_parsed_io_boundary_reports_missing_evidence(void)
         "}\n";
     AIRProgram *air = lower_air_from_source(source);
     bool found = false;
+    bool found_io = false;
+    bool found_io_drift = false;
 
     if (air != NULL) {
         for (size_t i = 0; i < air->drift_count; i++) {
@@ -785,7 +787,26 @@ test_air_parsed_io_boundary_reports_missing_evidence(void)
                 && strstr(air->drifts[i].message,
                           "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING") != NULL) {
                 found = true;
-                break;
+                if (air->drifts[i].boundary_index < air->boundary_count) {
+                    const AIRBoundaryNode *boundary =
+                        &air->boundaries[air->drifts[i].boundary_index];
+                    if (boundary->kind == AIR_BOUNDARY_IO
+                        && boundary->source_name != NULL
+                        && strcmp(boundary->source_name, "ReadFile") == 0) {
+                        found_io_drift = true;
+                    }
+                }
+            }
+        }
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            const AIRBoundaryNode *boundary = &air->boundaries[i];
+            if (boundary->kind == AIR_BOUNDARY_IO
+                && boundary->source_name != NULL
+                && strcmp(boundary->source_name, "ReadFile") == 0
+                && boundary->sync_class == AIR_SYNC_EITHER
+                && boundary->ast != NULL
+                && boundary->ast->line > 0) {
+                found_io = true;
             }
         }
     }
@@ -793,7 +814,9 @@ test_air_parsed_io_boundary_reports_missing_evidence(void)
     bool ok = air != NULL
         && air->boundary_count >= 2
         && air->drift_count >= 1
-        && found;
+        && found
+        && found_io
+        && found_io_drift;
     air_destroy(air);
     return ok;
 }

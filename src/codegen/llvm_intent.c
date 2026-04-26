@@ -955,14 +955,17 @@ llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
 static const MIRRoutine *
 llvm_find_mir_intent_routine(const LLVMGenCtx *ctx, ASTNode *intent_decl)
 {
+    LLVMMIRRoutineInventory routine_inventory;
+
     if (ctx == NULL || ctx->mir == NULL || intent_decl == NULL
         || intent_decl->type != AST_INTENT_DECL
         || intent_decl->data.intent_decl.name == NULL) {
         return NULL;
     }
 
-    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
-        const MIRRoutine *routine = &ctx->mir->routines[i];
+    llvm_active_routine_inventory(ctx, &routine_inventory);
+    for (size_t i = 0; i < routine_inventory.count; i++) {
+        const MIRRoutine *routine = &routine_inventory.routines[i];
         if (routine->kind != MIR_SCOPE_INTENT || routine->name == NULL)
             continue;
         if (strcmp(routine->name, intent_decl->data.intent_decl.name) == 0)

@@ -175,6 +175,9 @@ required_impl_terms = [
     "air_boundary_authority_matches",
     "air_hir_routine_matches_boundary",
     "air_rir_scope_matches_boundary",
+    "AIR synthesis count mismatch",
+    "intent_index != intent_node_count",
+    "boundary_index != boundary_node_count",
 ]
 missing_impl = [term for term in required_impl_terms if term not in air_impl]
 if missing_impl:

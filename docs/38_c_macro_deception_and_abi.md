@@ -98,7 +98,7 @@ LLVMStructTypeInContext(ctx->context,
     (LLVMTypeRef[]){ ctx->type_i32, inner_ty }, 2, 0);  // Option<T> 레이아웃
 ```
 
-**`src/codegen/llvm_expr_helpers.inc`의 예:**
+**`src/codegen/llvm_expr_helpers_part_*.inc`의 예:**
 
 ```c
 // 라인 230: LLVM 백엔드가 Option struct 레이아웃을 직접 결정
@@ -308,7 +308,7 @@ typedef CONDITION_VARIABLE pgy_condvar_t;
 | 3189-3280 | Slot 함수 시그니처를 백엔드가 직접 조립. MIR에 명시적 Call이 있어야 함. |
 | 3741+ | main wrapper는 이제 active inventory를 읽는다. 남은 debt는 HIR direct read가 아니라 entry metadata가 별도 declaration IR이 아니라는 점이다. |
 
-### 4.2 LLVM 표현식 헬퍼 (`src/codegen/llvm_expr_helpers.inc`)
+### 4.2 LLVM 표현식 헬퍼 (`src/codegen/llvm_expr_helpers_part_*.inc`)
 
 | 라인 | 문제 |
 |------|------|
@@ -363,7 +363,7 @@ typedef CONDITION_VARIABLE pgy_condvar_t;
 | `src/compiler/mir.h` | MIR 구조 정의 (161 라인) |
 | `src/codegen/llvm_backend.c` | LLVM 백엔드 (5272 라인) |
 | `src/codegen/transpiler.c` | C 백엔드 (5396 라인) |
-| `src/codegen/llvm_expr_helpers.inc` | LLVM 표현식 헬퍼 (1890 라인) |
+| `src/codegen/llvm_expr_helpers_part_*.inc` | LLVM 표현식 헬퍼 split chunks |
 | `docs/20_compiler_pipeline_guide.md` | 컴파일러 파이프라인 가이드 |
 | `docs/36_ir_pipeline_architecture.md` | IR 아키텍처 설계 문서 |
 

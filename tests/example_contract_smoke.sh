@@ -264,6 +264,10 @@ run_stable_examples() {
         "$ROOT_DIR/examples/composite_intent_orchestration" "[Intent] ProcessOrder=true" "[CanonicalClerk] reserved=1 charged=1 shipped=1" "[Step] fulfill phase=ok participant= ok=true"
     run_expect_lines "resource_scheduler_async_probe" "$backend" \
         "$ROOT_DIR/examples/resource_scheduler_async_probe" "=== ASYNC RESOURCE SCHEDULER PROBE ===" "[Dispatch] laneA=3 laneA=5 laneB=7 laneB=11" "[Remote] 103 105 207 211" "[Score] 144 147 240 245 total=776" "saving examples/resource_scheduler_async_probe/results.txt"
+    run_expect_lines "async_demo" "$backend" \
+        "$ROOT_DIR/examples/async_demo.pgy" "async beta decomposition" "5" "11" "14" "9" "true"
+    run_expect_lines "remote_future_result" "$backend" \
+        "$ROOT_DIR/examples/remote_future_result.pgy" "42"
     run_expect_lines "spray_device_probe" "$backend" \
         "$ROOT_DIR/examples/spray_device_probe" "=== SPRAY DEVICE PROBE ===" "[spray] success=3 all=true" "[device] 910 911 912" "[capability] spray-batch=true device-readback=true real-gpu-backend=false"
     run_expect_lines "calendar_working" "$backend" \

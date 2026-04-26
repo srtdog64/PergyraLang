@@ -21,6 +21,8 @@
 
 - `make llvm-test-smoke`
 - `make llvm-test-backend-compare`
+- `make llvm-campaign-projection-test-smoke`
+- `make llvm-dnd-campaign-test-smoke`
 - `make test-abi`
 
 ### llvm-smoke에서 직접 검증되는 축
@@ -70,6 +72,13 @@
 - zone pointer-self host parameter mutation parity
 - combined host-method + zone ABI path parity
 
+### focused campaign parity에서 직접 검증되는 축
+
+- `campaign_graph_fsm`: current-zone subject method call 이후 LLVM projection dirty/sync가 C와 같은 observable output을 만든다.
+- `dnd_tavern_campaign`: MIR `with slot` claim lowering이 flattened MIR body를 두 번 실행하지 않는다.
+- `dnd_tavern_campaign`: large zone/class hidden projection fields가 LLVM field registry cap에 잘려 `HasZoneProjection(...)` 결과가 drift하지 않는다.
+- `dnd_tavern_campaign`: C/LLVM stdout exact diff, one epilogue, five choice lines, final `ready=true/true`를 gate로 고정한다.
+
 즉 다음 표현은 현재 기준으로 틀리다.
 
 - “LLVM에서 while/for, 재귀, if/else, defer, intent, subject method가 동작 안 한다”
@@ -97,6 +106,11 @@
 
 - declaration / intent / MIR param path가 각각 따로 들고 있던 pointer-self 판정은 이제 `llvm_type_name_uses_pointer_self(...)`와 `llvm_ast_type_uses_pointer_self(...)` 공용 helper로 합쳐졌다
 - host declaration / host method lookup도 active inventory helper를 공용 사용하도록 맞췄다
+- pipeline/domain/intent routine traversal은 `llvm_active_routine_inventory(...)`로 묶여 raw `mir->routine_count` / `mir->routines` 순회를 새로 늘릴 수 없다
+- host method lookup은 `MIRDeclHeader` method metadata를 먼저 소비하고, header가 없을 때만 AST union method-array fallback을 탄다
+- `MIRDeclMethod` rows now carry hosted method identity (`name`, `owner_name`, `is_action_like`, `within_zone`) beside the remaining AST payload
+- `MIRDeclMethod` rows link to MIR method body routines by `routine_index`; LLVM method emission uses this link before AST-method based lookup
+- `MIRDeclMethod` rows now also carry hosted method signatures (`params`, `param_count`, `return_type`); LLVM nominal/enum prototype registration reads these through `llvm_mir_decl_method_*` helpers before falling back to AST payloads
 - 따라서 현재 LLVM debt를 읽을 때 `중복 판정 로직`은 주 채무가 아니고, 여전히 남은 것은 declaration inventory representation 쪽이다
 
 ### 3. expression-level type exactness debt
@@ -106,7 +120,8 @@
 
 관련 파일:
 
-- [llvm_expr_call_methods.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods.inc)
+- [llvm_expr_call_methods_part_a.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods_part_a.inc)
+- [llvm_expr_call_methods_part_b.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods_part_b.inc)
 
 ### 4. escape/local placement debt
 

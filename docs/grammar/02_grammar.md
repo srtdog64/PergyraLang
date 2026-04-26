@@ -556,7 +556,10 @@ async {
 }
 ```
 
-- `async { ... }` 는 detached async block으로 해석된다.
+- `async { ... }` 는 detached async block으로 해석되는 parser/runtime 경로다.
+- 베타 안정 표면: 태스크 생성은 named `spawn Worker(args...)`이다.
+- capture-bearing detached `async { ... }` 블록은 lifetime/cancel/error 경계가
+  아직 고정되지 않아 베타 안정 태스크 생성 표면이 아니다.
 
 ### 7.4 채널
 

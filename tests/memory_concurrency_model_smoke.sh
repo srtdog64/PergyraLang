@@ -29,6 +29,7 @@ for required in \
     "Non-blocking/timeout receive is copy-only for beta" \
     "ChannelClose(Channel<T>)" \
     "Cancel(Future<T>)" \
+    "Capture-bearing detached async block stability" \
     "Full weak-memory ordering vocabulary" \
     "make memory-concurrency-model-test-smoke"; do
     if ! grep -Fq "$required" "$MODEL_DOC"; then
@@ -37,9 +38,10 @@ for required in \
     fi
 done
 
-"$ROOT_DIR/tests/parallel_core_contract_smoke.sh"
+bash "$ROOT_DIR/tests/async_model_positioning_smoke.sh"
+bash "$ROOT_DIR/tests/parallel_core_contract_smoke.sh"
 
-PGY_BIN="$PGY" "$ROOT_DIR/tests/compare_backends.sh" \
+PGY_BIN="$PGY" bash "$ROOT_DIR/tests/compare_backends.sh" \
     tests/cases/backend_compare/parallel_channel_sum \
     tests/cases/backend_compare/parallel_channel_dual \
     tests/cases/backend_compare/triple_paradigm

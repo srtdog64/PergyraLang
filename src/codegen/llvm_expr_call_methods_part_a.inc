@@ -123,6 +123,91 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
     }
 }
 
+static void
+llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receiver)
+{
+    ASTNode *host_decl;
+    const char *source_slot_name;
+    const char *host_name;
+    LLVMClassTypeEntry *host_cls;
+    LLVMValueRef self_ptr;
+    bool emitted = false;
+
+    if (ctx == NULL || receiver == NULL || receiver->type != AST_IDENTIFIER)
+        return;
+
+    host_decl = llvm_current_host_decl(ctx);
+    if (host_decl == NULL || host_decl->type != AST_ZONE_DECL)
+        return;
+
+    source_slot_name = receiver->data.identifier.name;
+    host_name = host_decl->data.zone_decl.name;
+    if (source_slot_name == NULL || host_name == NULL)
+        return;
+
+    host_cls = llvm_lookup_class(ctx, host_name);
+    if (host_cls == NULL || host_cls->sync_function_name == NULL)
+        return;
+
+    self_ptr = llvm_current_self_base_ptr(ctx, host_cls);
+    if (self_ptr == NULL)
+        return;
+
+    for (size_t i = 0; i < host_decl->data.zone_decl.refresh_count; i++) {
+        ASTNode *refresh = host_decl->data.zone_decl.refreshes[i];
+        const char *target_name;
+        const char *refresh_source;
+        char dirty_field[256];
+        char ready_field[256];
+        int dirty_idx;
+        int ready_idx;
+
+        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+            continue;
+
+        target_name = refresh->data.zone_refresh.object_slot_name;
+        refresh_source = refresh->data.zone_refresh.source_slot_name;
+        if (target_name == NULL || refresh_source == NULL
+            || strcmp(refresh_source, source_slot_name) != 0) {
+            continue;
+        }
+
+        snprintf(dirty_field, sizeof(dirty_field), "__projection_dirty_%s",
+            target_name);
+        snprintf(ready_field, sizeof(ready_field), "__projection_ready_%s",
+            target_name);
+        dirty_idx = llvm_class_field_index(host_cls, dirty_field);
+        ready_idx = llvm_class_field_index(host_cls, ready_field);
+
+        if (dirty_idx >= 0) {
+            LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
+                host_cls->struct_type, self_ptr, (unsigned)dirty_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
+                dirty_ptr);
+            emitted = true;
+        }
+        if (ready_idx >= 0) {
+            LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
+                host_cls->struct_type, self_ptr, (unsigned)ready_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0),
+                ready_ptr);
+        }
+    }
+
+    if (emitted) {
+        LLVMFuncEntry *sync_entry = llvm_lookup_function(ctx,
+            host_cls->sync_function_name);
+        if (sync_entry != NULL && sync_entry->fn != NULL
+            && sync_entry->fn_type != NULL) {
+            LLVMValueRef args[] = { self_ptr };
+            LLVMBuildCall2(ctx->builder, sync_entry->fn_type, sync_entry->fn,
+                args, 1, "");
+        }
+    }
+}
+
 static ASTNode *
 llvm_call_find_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *name)
 {

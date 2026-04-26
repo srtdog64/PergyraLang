@@ -2,59 +2,29 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-is_allowed_empty_inc() {
-    case "$1" in
-        src/compiler/mir_public_part_c.inc) return 0 ;;
-        src/runtime/pgy_runtime_part_ba_part_f.inc) return 0 ;;
-        *) return 1 ;;
-    esac
-}
-
-shim_for_allowed_empty_inc() {
-    case "$1" in
-        src/compiler/mir_public_part_c.inc) printf '%s\n' "src/compiler/mir_public.inc" ;;
-        src/runtime/pgy_runtime_part_ba_part_f.inc) printf '%s\n' "src/runtime/pgy_runtime_part_ba.inc" ;;
-        *) return 1 ;;
-    esac
-}
+MAX_INC_FILES="${PGY_MAX_INC_FILES:-160}"
 
 violations=()
 
 cd "$ROOT_DIR"
 
+inc_count="$(find src -name '*.inc' -type f | wc -l | tr -d '[:space:]')"
+if ((inc_count > MAX_INC_FILES)); then
+    echo "source .inc file count increased: ${inc_count} > ${MAX_INC_FILES}" >&2
+    echo "new .inc splits are not allowed; move behavior into real .c/.h owners instead" >&2
+    exit 1
+fi
+
 while IFS= read -r -d '' path; do
-    if [[ ! -s "$path" ]] && ! is_allowed_empty_inc "$path"; then
+    if [[ ! -s "$path" ]]; then
         violations+=("$path")
     fi
 done < <(find src -name '*.inc' -type f -print0)
 
 if ((${#violations[@]} > 0)); then
-    echo "empty .inc files require an explicit beta sentinel allowlist entry:" >&2
+    echo "empty .inc files are not allowed in the beta source tree:" >&2
     printf '  %s\n' "${violations[@]}" >&2
     exit 1
 fi
 
-for allowed in \
-    src/compiler/mir_public_part_c.inc \
-    src/runtime/pgy_runtime_part_ba_part_f.inc
-do
-    if [[ ! -f "$allowed" ]]; then
-        echo "allowlisted empty .inc sentinel is missing; update the allowlist and shim contract: $allowed" >&2
-        exit 1
-    fi
-
-    if [[ -s "$allowed" ]]; then
-        echo "allowlisted .inc sentinel is no longer empty; remove it from the sentinel allowlist: $allowed" >&2
-        exit 1
-    fi
-
-    shim="$(shim_for_allowed_empty_inc "$allowed")"
-    include_name="$(basename "$allowed")"
-    if [[ ! -f "$shim" ]] || ! grep -Fq "#include \"$include_name\"" "$shim"; then
-        echo "allowlisted .inc sentinel is not included by its shim: $allowed -> $shim" >&2
-        exit 1
-    fi
-done
-
-echo "[inc-sentinel] empty .inc sentinels are explicit and shim-verified"
+echo "[inc-sentinel] no empty .inc files; source .inc count ${inc_count}/${MAX_INC_FILES}"

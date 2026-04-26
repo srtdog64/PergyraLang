@@ -24,7 +24,7 @@ if [[ ! -x "$PGY_LSP" ]]; then
     exit 1
 fi
 
-PGY_BIN="$PGY" PGY_CC="${PGY_CC:-cc}" "$ROOT_DIR/tests/fmt_smoke.sh" >/dev/null
+PGY_BIN="$PGY" PGY_CC="${PGY_CC:-cc}" bash "$ROOT_DIR/tests/fmt_smoke.sh" >/dev/null
 
 DEBUG_SOURCE="$WORK_DIR/debug_case.pgy"
 cat > "$DEBUG_SOURCE" <<'EOF'

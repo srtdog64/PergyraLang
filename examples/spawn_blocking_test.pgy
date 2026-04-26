@@ -1,7 +1,9 @@
-// spawn_blocking_test.pgy — FFI/시스템콜을 블로킹 풀로 오프로딩
+// spawn_blocking_test.pgy - blocking worker sketch.
+//
+// This is a legacy concurrency sketch. The beta-stable task-producing surface
+// remains named spawn with explicit await.
 
 func HeavyCompute(n: Int) -> Int {
-    // 무거운 동기 작업을 시뮬레이션
     let result: Int = 0;
     for i in 0..n {
         result = result + i;
@@ -10,11 +12,8 @@ func HeavyCompute(n: Int) -> Int {
 }
 
 async func Main() -> Void {
-    // spawn blocking: 전용 블로킹 스레드풀에서 실행
-    // fiber scheduler는 블로킹되지 않음
     let heavy: Future<Int> = spawn blocking HeavyCompute(1000);
 
-    // 다른 작업을 동시에 수행 가능
     Log("computing in background...");
 
     let result: Int = await heavy;

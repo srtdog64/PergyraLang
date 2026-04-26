@@ -19,6 +19,8 @@ The beta release candidate must keep these gates green:
 - `make llvm-test-smoke`
 - `make llvm-test-abi-same-process`
 - `make llvm-test-backend-compare`
+- `make llvm-campaign-projection-test-smoke`
+- `make llvm-dnd-campaign-test-smoke`
 - `make cfg-body-dataflow-test-smoke`
 - `make type-resolution-dag-test-smoke`
 - `make runtime-frontier-contract-test-smoke`
@@ -40,7 +42,9 @@ The beta release candidate must keep these gates green:
 - `make package-module-resolver-test-smoke`
 - `make unicode-policy-test-smoke`
 - `make observability-schema-test-smoke`
+- `make async-model-positioning-test-smoke`
 - `make memory-concurrency-model-test-smoke`
+- `make documentation-quality-test-smoke`
 - `make tooling-conformance-test-smoke`
 - `make perf-contract-test-smoke`
 - `make beta-readiness-checklist-test-smoke`

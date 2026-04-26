@@ -39,6 +39,7 @@ llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
                                    ASTNode *method)
 {
     const char *method_name;
+    LLVMMIRRoutineInventory routine_inventory;
 
     if (ctx == NULL || ctx->mir == NULL || owner_name == NULL
         || method == NULL || method->type != AST_FUNC_DECL) {
@@ -49,8 +50,9 @@ llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
     if (method_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
-        const MIRRoutine *routine = &ctx->mir->routines[i];
+    llvm_active_routine_inventory(ctx, &routine_inventory);
+    for (size_t i = 0; i < routine_inventory.count; i++) {
+        const MIRRoutine *routine = &routine_inventory.routines[i];
         if (routine->kind != MIR_SCOPE_METHOD)
             continue;
         if (routine->ast == method)
@@ -142,7 +144,8 @@ llvm_operator_method_name_matches(PgyTokenType op, const char *name)
     return false;
 }
 
-#include "llvm_domain_helpers.inc"
+#include "llvm_domain_helpers_part_a.inc"
+#include "llvm_domain_helpers_part_b.inc"
 
 static void
 llvm_stamp_domain_provenance(LLVMGenCtx *ctx,

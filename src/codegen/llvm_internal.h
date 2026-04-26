@@ -35,7 +35,7 @@
 /* Fixed limits — bounded by nesting depth, reasonable for any program */
 #define MAX_SCOPE_DEPTH     64
 #define MAX_SCOPE_VARS      256
-#define MAX_CLASS_FIELDS    64
+#define MAX_CLASS_FIELDS    256
 #define MAX_EVENT_PARAMS    8
 #define MAX_DEFER_PER_SCOPE 64
 #define PGY_EVENT_MAX_HANDLERS 16
@@ -749,6 +749,25 @@ llvm_is_host_decl_type(ASTNodeType decl_type)
     }
 }
 
+static inline const MIRDeclHeader *
+llvm_find_decl_header_in_context(const LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || ctx->mir == NULL || name == NULL)
+        return NULL;
+    return mir_find_decl_header(ctx->mir, name);
+}
+
+static inline const MIRDeclHeader *
+llvm_find_host_decl_header_in_context(const LLVMGenCtx *ctx, const char *name)
+{
+    const MIRDeclHeader *decl_header =
+        llvm_find_decl_header_in_context(ctx, name);
+
+    if (decl_header == NULL || !llvm_is_host_decl_type(decl_header->ast_type))
+        return NULL;
+    return decl_header;
+}
+
 static inline ASTNode *
 llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
 {
@@ -758,11 +777,9 @@ llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
     if (ctx == NULL || name == NULL)
         return NULL;
 
-    if (ctx->mir != NULL) {
-        decl_header = mir_find_decl_header(ctx->mir, name);
-        if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type))
-            return decl_header->ast;
-    }
+    decl_header = llvm_find_host_decl_header_in_context(ctx, name);
+    if (decl_header != NULL)
+        return decl_header->ast;
 
     decl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
     if (decl != NULL)
@@ -850,8 +867,7 @@ llvm_host_decl_methods(const MIRDeclHeader *decl_header,
     ASTNode **methods = NULL;
     size_t method_count = 0;
 
-    if (decl_header != NULL && decl_header->ast == decl
-        && llvm_is_host_decl_type(decl_header->ast_type)) {
+    if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type)) {
         methods = decl_header->methods;
         method_count = decl_header->method_count;
     }
@@ -893,6 +909,103 @@ llvm_host_decl_methods(const MIRDeclHeader *decl_header,
         *method_count_out = method_count;
 }
 
+static inline void
+llvm_host_decl_method_metadata(const MIRDeclHeader *decl_header,
+                               const MIRDeclMethod **methods_out,
+                               size_t *method_count_out)
+{
+    const MIRDeclMethod *methods = NULL;
+    size_t method_count = 0;
+
+    if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type)) {
+        methods = decl_header->method_metadata;
+        method_count = decl_header->method_metadata_count;
+    }
+
+    if (methods_out != NULL)
+        *methods_out = methods;
+    if (method_count_out != NULL)
+        *method_count_out = method_count;
+}
+
+static inline const MIRDeclMethod *
+llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
+                                          const char *host_type_name,
+                                          const char *method_name)
+{
+    const MIRDeclHeader *decl_header;
+    const MIRDeclMethod *methods = NULL;
+    size_t method_count = 0;
+
+    if (ctx == NULL || host_type_name == NULL || method_name == NULL)
+        return NULL;
+
+    decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
+    llvm_host_decl_method_metadata(decl_header, &methods, &method_count);
+    for (size_t i = 0; i < method_count; i++) {
+        if (methods[i].name != NULL && strcmp(methods[i].name, method_name) == 0)
+            return &methods[i];
+    }
+
+    return NULL;
+}
+
+static inline const char *
+llvm_mir_decl_method_name(const MIRDeclMethod *method, ASTNode *fallback)
+{
+    if (method != NULL && method->name != NULL)
+        return method->name;
+    if (fallback != NULL && fallback->type == AST_FUNC_DECL)
+        return fallback->data.func_decl.name;
+    return NULL;
+}
+
+static inline size_t
+llvm_mir_decl_method_param_count(const MIRDeclMethod *method, ASTNode *fallback)
+{
+    if (method != NULL)
+        return method->param_count;
+    if (fallback != NULL && fallback->type == AST_FUNC_DECL)
+        return fallback->data.func_decl.param_count;
+    return 0;
+}
+
+static inline FuncParam *
+llvm_mir_decl_method_param(const MIRDeclMethod *method,
+                           ASTNode *fallback,
+                           size_t index)
+{
+    if (method != NULL && method->params != NULL && index < method->param_count)
+        return method->params[index];
+    if (fallback != NULL && fallback->type == AST_FUNC_DECL
+        && fallback->data.func_decl.params != NULL
+        && index < fallback->data.func_decl.param_count) {
+        return fallback->data.func_decl.params[index];
+    }
+    return NULL;
+}
+
+static inline ASTNode *
+llvm_mir_decl_method_return_type(const MIRDeclMethod *method, ASTNode *fallback)
+{
+    if (method != NULL && method->return_type != NULL)
+        return method->return_type;
+    if (fallback != NULL && fallback->type == AST_FUNC_DECL)
+        return fallback->data.func_decl.return_type;
+    return NULL;
+}
+
+static inline bool
+llvm_mir_decl_method_is_action_like(const MIRDeclMethod *method,
+                                    ASTNode *fallback)
+{
+    if (method != NULL)
+        return method->is_action_like;
+    if (fallback != NULL && fallback->type == AST_FUNC_DECL)
+        return fallback->data.func_decl.is_action;
+    return false;
+}
+
 static inline ASTNode *
 llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
                                       const char *host_type_name,
@@ -906,10 +1019,15 @@ llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
     if (ctx == NULL || host_type_name == NULL || method_name == NULL)
         return NULL;
 
-    if (ctx->mir != NULL) {
-        decl_header = mir_find_decl_header(ctx->mir, host_type_name);
-        if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type))
-            decl = decl_header->ast;
+    decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
+    if (decl_header != NULL) {
+        const MIRDeclMethod *method =
+            llvm_find_host_method_metadata_in_context(
+                ctx, host_type_name, method_name);
+        if (method != NULL) {
+            return method->ast;
+        }
+        decl = decl_header->ast;
     }
 
     if (decl == NULL)
@@ -946,10 +1064,10 @@ llvm_find_host_decl_methods_in_context(const LLVMGenCtx *ctx,
     if (ctx == NULL || host_type_name == NULL)
         return;
 
-    if (ctx->mir != NULL) {
-        decl_header = mir_find_decl_header(ctx->mir, host_type_name);
-        if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type))
-            decl = decl_header->ast;
+    decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
+    if (decl_header != NULL) {
+        llvm_host_decl_methods(decl_header, NULL, methods_out, method_count_out);
+        return;
     }
 
     if (decl == NULL)
@@ -1000,6 +1118,55 @@ typedef struct
     size_t role_count;
     size_t event_count;
 } LLVMDomainInventory;
+
+typedef struct
+{
+    const MIRRoutine *routines;
+    size_t            count;
+} LLVMMIRRoutineInventory;
+
+static inline void
+llvm_active_routine_inventory(const LLVMGenCtx *ctx,
+                              LLVMMIRRoutineInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->routines = NULL;
+    inventory->count = 0;
+
+    if (ctx == NULL || ctx->mir == NULL)
+        return;
+
+    inventory->routines = ctx->mir->routines;
+    inventory->count = ctx->mir->routine_count;
+}
+
+static inline void
+llvm_mir_routine_inventory_from_program(const MIRProgram *mir,
+                                        LLVMMIRRoutineInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->routines = NULL;
+    inventory->count = 0;
+
+    if (mir == NULL)
+        return;
+
+    inventory->routines = mir->routines;
+    inventory->count = mir->routine_count;
+}
+
+static inline const MIRRoutine *
+llvm_routine_inventory_get(const LLVMMIRRoutineInventory *inventory,
+                           size_t index)
+{
+    if (inventory == NULL || inventory->routines == NULL
+        || index >= inventory->count) {
+        return NULL;
+    }
+    return &inventory->routines[index];
+}
 
 static inline void
 llvm_active_domain_inventory(const LLVMGenCtx *ctx,
