@@ -37,6 +37,16 @@ grep -a -q '\[type-res-stats\] metadata:' "$log" || {
   exit 1
 }
 
+grep -a -q '\[type-res-stats\] metadata-fallback:' "$log" || {
+  echo "missing graph-backed metadata fallback family inventory" >&2
+  exit 1
+}
+
+grep -a -q '\[type-res-stats\] metadata-fallback-named:' "$log" || {
+  echo "missing graph-backed metadata named fallback inventory" >&2
+  exit 1
+}
+
 grep -a -q '\[type-res-stats\] stage-alias-fallback:' "$log" || {
   echo "missing alias fallback resolution inventory" >&2
   exit 1
@@ -70,6 +80,72 @@ materializer_fallbacks="$(
   grep -a '\[type-res-stats\] metadata:' "$log" \
     | sed -E 's/.*materializer_fallbacks=([0-9]+).*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
+)"
+
+metadata_fallback_sum="$(
+  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
+    | sed -E 's/.*named=([0-9]+).*generic_named=([0-9]+).*compound=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4/' \
+    | awk '{ total += $1 + $2 + $3 + $4 } END { print total + 0 }'
+)"
+
+metadata_fallback_named="$(
+  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
+    | sed -E 's/.*metadata-fallback: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
+    | awk '{ total += $1 } END { print total + 0 }'
+)"
+
+metadata_fallback_generic_named="$(
+  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
+    | sed -E 's/.*metadata-fallback: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
+    | awk '{ total += $2 } END { print total + 0 }'
+)"
+
+metadata_fallback_compound="$(
+  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
+    | sed -E 's/.*metadata-fallback: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
+    | awk '{ total += $3 } END { print total + 0 }'
+)"
+
+metadata_fallback_other="$(
+  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
+    | sed -E 's/.*metadata-fallback: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
+    | awk '{ total += $4 } END { print total + 0 }'
+)"
+
+metadata_named_detail_sum="$(
+  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+    | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
+    | awk '{ total += $1 + $2 + $3 + $4 + $5 } END { print total + 0 }'
+)"
+
+metadata_named_builtin_shell="$(
+  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+    | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
+    | awk '{ total += $1 } END { print total + 0 }'
+)"
+
+metadata_named_generic_class="$(
+  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+    | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
+    | awk '{ total += $2 } END { print total + 0 }'
+)"
+
+metadata_named_alias="$(
+  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+    | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
+    | awk '{ total += $3 } END { print total + 0 }'
+)"
+
+metadata_named_non_class_symbol="$(
+  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+    | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
+    | awk '{ total += $4 } END { print total + 0 }'
+)"
+
+metadata_named_missing_symbol="$(
+  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+    | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
+    | awk '{ total += $5 } END { print total + 0 }'
 )"
 
 legacy_alias="$(
@@ -123,8 +199,8 @@ if [ "$metadata_entries" -le 0 ]; then
   exit 1
 fi
 
-if [ "$metadata_entries" -lt 2000 ]; then
-  echo "graph-backed metadata inventory regressed below beta floor: $metadata_entries < 2000" >&2
+if [ "$metadata_entries" -lt 3300 ]; then
+  echo "graph-backed metadata inventory regressed below beta floor: $metadata_entries < 3300" >&2
   exit 1
 fi
 
@@ -133,8 +209,8 @@ if [ "$metadata_hits" -le 0 ]; then
   exit 1
 fi
 
-if [ "$metadata_hits" -lt 2400 ]; then
-  echo "graph-backed metadata reuse regressed below beta floor: $metadata_hits < 2400" >&2
+if [ "$metadata_hits" -lt 4900 ]; then
+  echo "graph-backed metadata reuse regressed below beta floor: $metadata_hits < 4900" >&2
   exit 1
 fi
 
@@ -143,13 +219,23 @@ if [ "$metadata_owned" -le 0 ]; then
   exit 1
 fi
 
-if [ "$metadata_owned" -lt 45 ]; then
-  echo "graph-backed stable constructed metadata regressed below beta floor: $metadata_owned < 45" >&2
+if [ "$metadata_owned" -lt 200 ]; then
+  echo "graph-backed stable constructed metadata regressed below beta floor: $metadata_owned < 200" >&2
   exit 1
 fi
 
-if [ "$materializer_fallbacks" -gt 4135 ]; then
-  echo "metadata materializer fallback inventory regressed above beta cap: $materializer_fallbacks > 4135" >&2
+if [ "$materializer_fallbacks" -gt 1296 ]; then
+  echo "metadata materializer fallback inventory regressed above beta cap: $materializer_fallbacks > 1296" >&2
+  exit 1
+fi
+
+if [ "$metadata_fallback_sum" -ne "$materializer_fallbacks" ]; then
+  echo "metadata materializer fallback family accounting mismatch: sum=$metadata_fallback_sum total=$materializer_fallbacks" >&2
+  exit 1
+fi
+
+if [ "$metadata_named_detail_sum" -ne "$metadata_fallback_named" ]; then
+  echo "metadata named fallback detail accounting mismatch: sum=$metadata_named_detail_sum named=$metadata_fallback_named" >&2
   exit 1
 fi
 
@@ -188,4 +274,4 @@ grep -a -q 'topo_ok=1' "$log" || {
   exit 1
 }
 
-echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks legacy_alias=$legacy_alias legacy_non_alias=$legacy_non_alias alias_materialized=$alias_materialized alias_diagnostic_fallback=$alias_diagnostic_fallback alias_fallback_resolved=$alias_fallback_resolved alias_fallback_unresolved=$alias_fallback_unresolved)"
+echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks metadata_fallback_named=$metadata_fallback_named metadata_fallback_generic_named=$metadata_fallback_generic_named metadata_fallback_compound=$metadata_fallback_compound metadata_fallback_other=$metadata_fallback_other metadata_named_builtin_shell=$metadata_named_builtin_shell metadata_named_generic_class=$metadata_named_generic_class metadata_named_alias=$metadata_named_alias metadata_named_non_class_symbol=$metadata_named_non_class_symbol metadata_named_missing_symbol=$metadata_named_missing_symbol legacy_alias=$legacy_alias legacy_non_alias=$legacy_non_alias alias_materialized=$alias_materialized alias_diagnostic_fallback=$alias_diagnostic_fallback alias_fallback_resolved=$alias_fallback_resolved alias_fallback_unresolved=$alias_fallback_unresolved)"

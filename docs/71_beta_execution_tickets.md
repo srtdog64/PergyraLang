@@ -1,6 +1,6 @@
 # Pergyra Beta Execution Tickets
 
-마지막 업데이트: 2026-04-22
+마지막 업데이트: 2026-04-26
 
 ## 목적
 
@@ -12,11 +12,64 @@
 - 이 보드는 `beta blocker`와 `beta trust` 티켓만 담는다.
 - `B2` 축은 넣지 않는다.
 - 각 티켓은 가능하면 하나의 PR 또는 하나의 작은 PR 묶음으로 끝나야 한다.
-- 각 티켓의 완료 조건에는 기본적으로 아래 네 줄이 들어간다.
-  - semantic regression
-  - example smoke
-  - docs wording
-  - C/LLVM parity
+- 각 티켓의 완료 조건은 티켓 성격에 맞춘다. 구조 debt 티켓은 먼저 구현
+  slice를 닫고, 그 slice의 owner gate만 통과시킨 뒤, 묶음 단위로 wide
+  regression을 돌린다.
+
+## Lean Sprint Operating Mode
+
+2026-04-26부터 beta closure 작업은 test-first가 아니라
+**debt-slice-first**로 운영한다. 지금 병목은 테스트 부족보다 구조 debt의
+청산 속도이며, 모든 작은 변경마다 full regression을 돌리면 실제
+implementation closure 시간이 사라진다.
+
+### Sprint Shape
+
+1. Pick one debt owner.
+   - 예: DAG alias materialization, AIR/CFG body fact source-of-truth,
+     `MIRDeclInventory`, runtime frontier scheduler, ABI ownership/pinning.
+2. Define the implementation slice before writing tests.
+   - 어떤 source-of-truth를 바꿀지, 어떤 fallback을 줄일지, 어떤 owner file을
+     책임질지 먼저 적는다.
+3. Implement until the slice is structurally complete.
+   - 중간에는 compile smoke나 static gate 정도만 사용한다.
+   - full semantic/backend parity는 slice가 끝나기 전까지 반복 실행하지 않는다.
+4. Run slice-local gates.
+   - DAG slice: `type-resolution-dag-test-smoke`,
+     `type-resolution-resolver-inventory-test-smoke`.
+   - CFG/AIR slice: `cfg-body-dataflow-test-smoke`,
+     `air-drift-test-smoke`, relevant backend non-impact gate.
+   - MIR slice: `mir-declaration-inventory-test-smoke`,
+     `backend-inc-size-test-smoke`.
+   - runtime/ABI slice: targeted ABI/runtime smoke.
+5. Add or update only the regressions that prove the slice.
+   - Regression is evidence for a completed slice, not a substitute for the
+     implementation.
+6. Run wider regression once per closed slice or at sprint boundary.
+   - `test-semantic`, `llvm-test-backend-compare`, `ci-linux` are batch gates,
+     not the inner edit loop.
+
+### Anti-Pattens
+
+- Do not spend a sprint only tightening smoke thresholds without reducing the
+  underlying fallback/debt.
+- Do not add new `.inc` split fragments to satisfy a line cap unless the split
+  is on a real owner seam.
+- Do not broaden a shortcut if it bypasses provenance. The rejected alias
+  symbol-cache shortcut is the current example: it reduced apparent resolve
+  work but broke module visibility and generic ability provenance.
+- Do not treat passing tests as beta closure when source-of-truth is still
+  duplicated across AST/HIR/MIR/runtime/backend.
+
+### Review Rule
+
+For each sprint update, report these four lines:
+
+- `Debt owner:` the subsystem being reduced.
+- `Implementation closed:` the fallback, duplicate source-of-truth, or owne
+  seam removed.
+- `Local gate:` the narrow command used during the sprint.
+- `Batch gate:` the wider command deferred until the slice is complete.
 
 ## 사용법
 

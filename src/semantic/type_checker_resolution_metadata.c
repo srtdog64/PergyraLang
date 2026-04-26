@@ -22,6 +22,149 @@ static Type *
 metadata_builtin_singleton(const char *name);
 
 static Type *
+metadata_alias_type(SemanticContext *ctx, ASTNode *type_node)
+{
+    const char *name;
+    ASTNode *alias_decl;
+    ASTNode *target;
+    Type *resolved = NULL;
+    Symbol *sym;
+
+    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
+        return NULL;
+    if (type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0)
+        return NULL;
+
+    name = type_node->data.type.name;
+    if (name == NULL || ctx->program_root == NULL)
+        return NULL;
+
+    alias_decl = find_type_alias_decl(ctx->program_root, name);
+    if (alias_decl == NULL || alias_decl->data.type_alias.target_type == NULL)
+        return NULL;
+
+    target = alias_decl->data.type_alias.target_type;
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, target);
+    if (resolved == NULL && target->type == AST_TYPE)
+        resolved = metadata_builtin_singleton(target->data.type.name);
+    if (resolved == NULL || resolved == TYPE_UNKNOWN)
+        return NULL;
+
+    semantic_type_resolution_record_named_dependency(
+        ctx, type_node, name, TYPE_RES_NODE_ALIAS, alias_decl, name,
+        "metadata type-alias lookup");
+    semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
+
+    sym = scope_lookup(ctx->scope, name);
+    if (sym != NULL && (sym->type == NULL || sym->type == TYPE_UNKNOWN))
+        sym->type = resolved;
+
+    return resolved;
+}
+
+static bool
+metadata_name_is_bare_generic_builtin_shell(const char *name)
+{
+    if (name == NULL)
+        return false;
+    return strcmp(name, "Array") == 0
+        || strcmp(name, "Slice") == 0
+        || strcmp(name, "List") == 0
+        || strcmp(name, "Queue") == 0
+        || strcmp(name, "HashMap") == 0
+        || strcmp(name, "Set") == 0
+        || strcmp(name, "Box") == 0
+        || strcmp(name, "Rc") == 0
+        || strcmp(name, "Weak") == 0
+        || strcmp(name, "RemoteFuture") == 0
+        || strcmp(name, "DeviceSlot") == 0
+        || strcmp(name, "Option") == 0;
+}
+
+static void
+metadata_record_named_materializer_fallback(SemanticContext *ctx,
+                                            ASTNode *type_node)
+{
+    const char *name;
+    Symbol *sym;
+
+    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
+        return;
+
+    name = type_node->data.type.name;
+    if (metadata_name_is_bare_generic_builtin_shell(name)) {
+        ctx->type_resolution_metadata_fallback_named_builtin_shell++;
+        return;
+    }
+
+    sym = name != NULL ? scope_lookup(ctx->scope, name) : NULL;
+    if (sym != NULL) {
+        if (sym->kind == SYMBOL_CLASS) {
+            ASTNode *decl = ctx->program_root != NULL
+                ? find_type_decl_by_name(ctx->program_root, name)
+                : NULL;
+            if (decl != NULL && decl->type == AST_CLASS_DECL
+                && decl->data.class_decl.generic_params != NULL
+                && decl->data.class_decl.generic_params->count > 0) {
+                ctx->type_resolution_metadata_fallback_named_generic_class++;
+                return;
+            }
+        } else if (sym->kind != SYMBOL_TYPE_PARAM) {
+            ctx->type_resolution_metadata_fallback_named_non_class_symbol++;
+            return;
+        }
+    }
+
+    if (ctx->program_root != NULL && find_type_alias_decl(ctx->program_root, name) != NULL) {
+        ctx->type_resolution_metadata_fallback_named_alias++;
+        return;
+    }
+
+    ctx->type_resolution_metadata_fallback_named_missing_symbol++;
+}
+
+static void
+metadata_record_materializer_fallback(SemanticContext *ctx, ASTNode *type_node)
+{
+    if (ctx == NULL)
+        return;
+
+    ctx->type_resolution_metadata_materializer_fallbacks++;
+    if (type_node == NULL) {
+        ctx->type_resolution_metadata_fallback_other++;
+        return;
+    }
+
+    if (type_node->type == AST_TYPE) {
+        if (type_node->data.type.name != NULL) {
+            GenericParams *args = type_node->data.type.generic_args;
+            if (args != NULL && args->count > 0) {
+                ctx->type_resolution_metadata_fallback_generic_named++;
+            } else {
+                ctx->type_resolution_metadata_fallback_named++;
+                metadata_record_named_materializer_fallback(ctx, type_node);
+            }
+            return;
+        }
+        if (type_node->data.type.tuple_elements != NULL
+            && type_node->data.type.tuple_element_count > 0) {
+            ctx->type_resolution_metadata_fallback_compound++;
+            return;
+        }
+    }
+
+    if (type_node->type == AST_CHANNEL_TYPE
+        || type_node->type == AST_FUTURE_TYPE
+        || type_node->type == AST_EVENT_HANDLER_TYPE) {
+        ctx->type_resolution_metadata_fallback_compound++;
+        return;
+    }
+
+    ctx->type_resolution_metadata_fallback_other++;
+}
+
+static Type *
 metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
 {
     const char *name;
@@ -37,10 +180,39 @@ metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
     if (name == NULL)
         return NULL;
 
+    {
+        Type *alias_type = metadata_alias_type(ctx, type_node);
+        if (alias_type != NULL)
+            return alias_type;
+    }
+
     sym = scope_lookup(ctx->scope, name);
-    if (sym == NULL || sym->kind != SYMBOL_TYPE_PARAM || sym->type == NULL
-        || sym->type == TYPE_UNKNOWN)
+    if (sym == NULL || sym->type == NULL || sym->type == TYPE_UNKNOWN)
         return NULL;
+
+    if (sym->kind == SYMBOL_CLASS) {
+        ASTNode *decl = ctx->program_root != NULL
+            ? find_type_decl_by_name(ctx->program_root, name)
+            : NULL;
+        if (decl != NULL && decl->type == AST_CLASS_DECL
+            && decl->data.class_decl.generic_params != NULL
+            && decl->data.class_decl.generic_params->count > 0) {
+            return NULL;
+        }
+        semantic_type_resolution_record_named_dependency(
+            ctx, type_node, name, TYPE_RES_NODE_DECL, decl, name,
+            "metadata named-type lookup");
+        semantic_type_resolution_record_resolved_type(ctx, type_node, sym->type);
+        return sym->type;
+    }
+
+    if (sym->kind != SYMBOL_TYPE_PARAM) {
+        semantic_type_resolution_record_named_dependency(
+            ctx, type_node, name, TYPE_RES_NODE_DECL, NULL, name,
+            "metadata scope-type lookup");
+        semantic_type_resolution_record_resolved_type(ctx, type_node, sym->type);
+        return sym->type;
+    }
 
     semantic_type_resolution_record_named_dependency(
         ctx, type_node, name, TYPE_RES_NODE_GENERIC_PARAM, NULL, name,
@@ -180,8 +352,7 @@ semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
     if (resolved != NULL)
         return resolved;
 
-    if (ctx != NULL)
-        ctx->type_resolution_metadata_materializer_fallbacks++;
+    metadata_record_materializer_fallback(ctx, type_node);
     return resolve_type_node(type_node, ctx);
 }
 

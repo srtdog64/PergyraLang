@@ -14,6 +14,8 @@ Related documents:
   dependency analysis.
 - `docs/74_slot_pinning_caching.md` - pin block boundary rules vs
   `await` / `spawn` / `parallel`.
+- `docs/117_backend_strategy_positioning.md` - sister positioning doc for
+  backend strategy (LLVM + C dual-emit, abstraction portability).
 
 This document positions Pergyra's concurrency model relative to the
 callback -> promise/future -> async/await history. It is a positioning and

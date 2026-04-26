@@ -16,10 +16,15 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
+#include "transpiler_extern.h"
+#include "transpiler_log_normalize.h"
 #include "transpiler_nominal.h"
 #include "transpiler_operator.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
+#include "transpiler_type_alias.h"
+#include "transpiler_type_declarator.h"
+#include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 #include "../common/string_compat.h"
 #include "../semantic/type_checker.h"
@@ -34,7 +39,6 @@ void emit_relation_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_effect_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
-static void emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx);
 static bool ast_uses_thread_pool(ASTNode *node);
 static bool transpiler_requires_thread_pool(const TranspilerCtx *ctx);
 static bool
@@ -311,12 +315,6 @@ static bool transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *c
                                                         bool require_non_cleanup,
                                                         char *reason,
                                                         size_t reason_cap);
-static const char *transpiler_require_ast_c_type(TranspilerCtx *ctx,
-                                                 ASTNode *type_ast,
-                                                 const char *surface_desc);
-static const char *transpiler_require_type_name_c_type(TranspilerCtx *ctx,
-                                                       const char *type_name,
-                                                       const char *surface_desc);
 static bool class_has_generic_params(ASTNode *node);
 static const char *ensure_generic_class_specialization(
     TranspilerCtx *ctx, ASTNode *class_decl, ASTNode *ann);
@@ -324,7 +322,7 @@ static const char *ensure_generic_class_specialization(
 #include "transpiler_helpers.inc"
 #include "transpiler_emitters_base_a.inc"
 #include "transpiler_emitters_base_b.inc"
-#include "transpiler_emitters_intent.inc"
+#include "transpiler_intent_emit.h"
 
 /* -----------------------------------------------------------------
  * Program emitter
@@ -350,7 +348,7 @@ emit_program(TranspilerCtx *ctx)
     ASTNode **events = NULL;
     size_t ability_count = 0;
     size_t type_count = 0;
-    size_t extern_count = 0;
+    size_t exten_count = 0;
     size_t function_count = 0;
     size_t intent_count = 0;
     size_t role_count = 0;
@@ -372,7 +370,7 @@ emit_program(TranspilerCtx *ctx)
     has_top_level_exec = transpiler_active_has_top_level_exec(ctx);
     transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
     transpiler_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
-    transpiler_active_externs(ctx, &externs, &extern_count);
+    transpiler_active_externs(ctx, &externs, &exten_count);
     transpiler_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
     transpiler_active_inventory(ctx, AST_INTENT_DECL, &intents, &intent_count);
     transpiler_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
@@ -431,7 +429,7 @@ emit_program(TranspilerCtx *ctx)
     }
 
     /* Pass 2.5: extern declarations */
-    for (size_t i = 0; i < extern_count; i++)
+    for (size_t i = 0; i < exten_count; i++)
         emit_extern_block(externs[i], ctx);
 
     /* Pass 2.6: early forward declarations for standalone functions so

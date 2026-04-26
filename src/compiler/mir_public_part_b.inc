@@ -1,3 +1,100 @@
+const char *
+mir_scope_kind_name(MIRScopeKind kind)
+{
+    switch (kind) {
+        case MIR_SCOPE_FUNCTION: return "function";
+        case MIR_SCOPE_METHOD: return "method";
+        case MIR_SCOPE_INTENT: return "intent";
+        default: return "unknown";
+    }
+}
+
+const char *
+mir_inst_kind_name(MIRInstKind kind)
+{
+    switch (kind) {
+        case MIR_INST_DEF: return "def";
+        case MIR_INST_RESOURCE_OP: return "resource-op";
+        case MIR_INST_PHI: return "phi";
+        case MIR_INST_BRANCH: return "branch";
+        case MIR_INST_RETURN: return "return";
+        case MIR_INST_CLEANUP_EDGE: return "cleanup";
+        case MIR_INST_STMT: return "stmt";
+        default: return "unknown";
+    }
+}
+
+void
+mir_destroy(MIRProgram *mir)
+{
+    if (mir == NULL)
+        return;
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        MIRRoutine *routine = &mir->routines[i];
+        for (size_t j = 0; j < routine->block_count; j++) {
+            free(routine->blocks[j].predecessors);
+            free(routine->blocks[j].source_statements);
+            free((void *)routine->blocks[j].source_local_defs);
+            free(routine->blocks[j].source_dom_tree_children);
+            if (routine->blocks[j].source_phi_nodes != NULL) {
+                for (size_t m = 0; m < routine->blocks[j].source_phi_node_count; m++)
+                    free(routine->blocks[j].source_phi_nodes[m].incoming_predecessors);
+            }
+            free(routine->blocks[j].source_phi_nodes);
+            for (size_t k = 0; k < routine->blocks[j].instruction_count; k++) {
+                free((void *)routine->blocks[j].instructions[k].result_name);
+                for (size_t m = 0; m < routine->blocks[j].instructions[k].use_count; m++)
+                    free((void *)routine->blocks[j].instructions[k].uses[m]);
+                free((void *)routine->blocks[j].instructions[k].uses);
+                if (routine->blocks[j].instructions[k].phi_incomings != NULL) {
+                    for (size_t m = 0; m < routine->blocks[j].instructions[k].phi_incoming_count; m++)
+                        free((void *)routine->blocks[j].instructions[k].phi_incomings[m].value_name);
+                }
+                free(routine->blocks[j].instructions[k].phi_incomings);
+            }
+            for (size_t k = 0; k < routine->blocks[j].renamed_local_count; k++)
+                free((void *)routine->blocks[j].renamed_locals[k]);
+            free((void *)routine->blocks[j].renamed_locals);
+            for (size_t k = 0; k < routine->blocks[j].ssa_entry_value_count; k++)
+                free((void *)routine->blocks[j].ssa_entry_values[k]);
+            free((void *)routine->blocks[j].ssa_entry_values);
+            for (size_t k = 0; k < routine->blocks[j].ssa_exit_value_count; k++)
+                free((void *)routine->blocks[j].ssa_exit_values[k]);
+            free((void *)routine->blocks[j].ssa_exit_values);
+            free((void *)routine->blocks[j].use_names);
+            free((void *)routine->blocks[j].def_names);
+            free((void *)routine->blocks[j].live_in_names);
+            free((void *)routine->blocks[j].live_out_names);
+            free(routine->blocks[j].ssa_entry_versions);
+            free(routine->blocks[j].ssa_exit_versions);
+            free(routine->blocks[j].instructions);
+        }
+        for (size_t j = 0; j < routine->value_summary_count; j++)
+            free((void *)routine->value_summaries[j].name);
+        free(routine->value_summaries);
+        free(routine->blocks);
+        pgy_arena_destroy(&routine->scratch);
+    }
+    free(mir->externs);
+    for (size_t i = 0; i < mir->decl_header_count; i++)
+        free(mir->decl_headers[i].method_metadata);
+    free(mir->decl_headers);
+    free(mir->types);
+    free(mir->abilities);
+    free(mir->roles);
+    free(mir->parties);
+    free(mir->rosters);
+    free(mir->worlds);
+    free(mir->relations);
+    free(mir->effects);
+    free(mir->zones);
+    free(mir->events);
+    free(mir->intents);
+    free(mir->functions);
+    free(mir->routines);
+    free(mir);
+}
+
 bool
 mir_validate(const MIRProgram *mir, char **error_message)
 {

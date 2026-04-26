@@ -1,0 +1,80 @@
+#ifndef PGY_RUNTIME_LIB_CORE_EXPORTS_H
+#define PGY_RUNTIME_LIB_CORE_EXPORTS_H
+
+void pgy_log_int(int32_t v)    { printf("%d\n", v); }
+void pgy_log_long(int64_t v)   { printf("%lld\n", (long long)v); }
+void pgy_log_float(float v)    { printf("%f\n", v); }
+void pgy_log_double(double v)  { printf("%lf\n", v); }
+void pgy_log_bool(bool v)      { printf("%s\n", v ? "true" : "false"); }
+
+void
+pgy_log_string(const char *v)
+{
+    size_t len;
+
+    if (v == NULL)
+        v = "(null)";
+
+    fputs(v, stdout);
+    len = strlen(v);
+    if (len == 0 || v[len - 1] != '\n')
+        fputc('\n', stdout);
+    fflush(stdout);
+}
+
+void
+pgy_log_banner(const char *v)
+{
+    pgy_log_string(v);
+}
+
+int32_t
+pgy_now_ms(void)
+{
+#ifdef _WIN32
+    return (int32_t)GetTickCount64();
+#else
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
+        return 0;
+    return (int32_t)((ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000LL));
+#endif
+}
+
+void
+pgy_sleep_ms(int32_t ms)
+{
+    if (ms <= 0)
+        return;
+#ifdef _WIN32
+    Sleep((DWORD)ms);
+#else
+    struct timespec req;
+    req.tv_sec = ms / 1000;
+    req.tv_nsec = (long)((ms % 1000) * 1000000L);
+    while (nanosleep(&req, &req) != 0 && errno == EINTR) {
+    }
+#endif
+}
+
+char *
+pgy_int_to_string(int32_t v)
+{
+    char stack_buf[32];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%d", v);
+    if (len < 0) {
+        char *fallback = (char *)malloc(2);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '\0';
+        }
+        return fallback;
+    }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL)
+        return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+#endif /* PGY_RUNTIME_LIB_CORE_EXPORTS_H */

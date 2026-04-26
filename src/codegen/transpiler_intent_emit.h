@@ -1,3 +1,6 @@
+/* C backend intent declaration emission owner.
+ * Included inside transpiler.c after base declaration emitters. */
+
 static void
 emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 {

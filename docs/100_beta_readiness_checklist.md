@@ -6,6 +6,18 @@
 
 베타 진입 후 약 1년간 코어 패치를 멈추고 생태계 (`pgy.compat.*`, `pgy.kit.*`, `pgy.std.*`, `pgy.accel.spray`, `pgy.render.skia` 등) 를 올리는 것이 다음 단계이므로, 베타 closure 는 **"이 1년동안 코어가 자력으로 버틸 수 있는가"** 기준으로 본다. 이 의미에서 AIR/CFG/runtime invariant 는 모두 closure 직전까지 실 구현이 끝나야 하며, 단순 문서 합의로 끝나지 않는다.
 
+Operational mode:
+
+- Beta closure now follows the lean sprint loop in
+  `docs/71_beta_execution_tickets.md`: close one implementation debt slice
+  first, run the slice-local gate, then run wider regression at the slice or
+  sprint boundary.
+- Full regression is still mandatory before declaring a blocker closed, but it
+  is not the inner edit loop. The inner loop should remove source-of-truth
+  duplication, fallback seams, or owner-boundary debt.
+- A test-only tightening sprint is not beta progress unless it also removes or
+  constrains the underlying implementation debt.
+
 상태 표기:
 
 - `DONE`: 구현/문서/회귀가 같은 말을 한다.
@@ -354,7 +366,7 @@ Implementation progress:
   `UnwrapOption(None)` panic with `internal-invariant` in generated C and LLVM.
 - `docs/105_runtime_panic_contract.md` records the runtime panic contract and
   the stable collection access/mutation hard-fail split.
-- `runtime-panic-abi-test-smoke` executes inline and exported runtime harnesses
+- `runtime-panic-abi-test-smoke` executes inline and exported runtime hanesses
   for released-slot, invalid-secure-token, double-release, device-slot,
   authority-mismatch, OOM, and divide-by-zero panic classes.
 - Authority token mismatch now records a stable recoverable query state before
@@ -371,7 +383,7 @@ Required policy decision:
 
 - Recoverable user/runtime contract failures expose `Bool`, `Result<T>`, or queryable runtime state.
 - Contract violations at ownership/security boundaries are hard-fail unless explicitly modeled as recoverable.
-- Internal compiler/runtime invariant breaks are hard-fail.
+- Intenal compiler/runtime invariant breaks are hard-fail.
 - No beta path may silently fallback to a different backend behavior.
 
 Secure slot / authority invariant obligations:
@@ -565,6 +577,9 @@ Closed now:
 - CFG 사고 (AST 기반 ownership 분산) 와의 동형 비교가 docs 에 고정되어, 같은 함정에 빠지지 않는 이유가 추적 가능하다.
 - `src/compiler/air.{h,c}`가 AIR Phase 1 데이터 구조, DIR 기반 read-only synthesis, sync/async drift checker baseline을 제공한다.
 - AIR synthesis가 HIR routine evidence와 RIR boundary/authority evidence를 read-only로 수집하고 각 `Boundary Node`에 evidence flag를 부착한다. Default strict evidence에서 missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 된다.
+- AIR read-only evidence is now regression-backed at the owner/evidence seam:
+  `src/test_air.c` snapshots representative DIR step fields, HIR routine fields,
+  and RIR scope/op/fact fields across `air_synthesize(...)`.
 - `src/test_air.c`가 direct AIR 케이스와 parser/semantic/DIR/HIR/RIR source integration 케이스를 함께 고정한다: sync intent + sync boundary pass / sync intent + async boundary drift / async intent + async boundary pass / strict missing-boundary drift / mismatched authority participant drift / HIR+RIR evidence collection / parsed intent source no-drift.
 - AIR synthesis now scans stable intent-step execution clauses (`using`,
   `intent`, `pre`, `guard`, `post`, `invariant`, `expect`, `on`,
@@ -583,6 +598,11 @@ Closed now:
   DIR/AST strings. Parsed-source AIR remains valid after DIR/parser teardown,
   and the parsed `where + transfer` regression asserts `PaymentZone` zone source
   plus `payment` world-handoff source.
+- AIR expression-derived boundary nodes keep the expression span when available
+  and fall back to the enclosing intent-step AST span when parser call nodes have
+  no location. Parsed IO boundary regression ties the missing-evidence drift to
+  the synthesized `ReadFile` boundary node instead of only checking that some
+  drift exists.
 - `where + transfer` no longer collapses to only a zone boundary. AIR emits a
   zone boundary for `where: Type` and a separate world boundary for the transfer
   handoff, with the world source anchored to the transfer target alias when
@@ -630,6 +650,19 @@ Strict evidence update:
 - Authority evidence is participant-sensitive: a boundary declared with
   `authorized by: X` is not satisfied by unrelated authority facts or authorize
   ops in the same RIR scope.
+- AIR boundary evidence is now provenance-carrying: each boundary stores
+  AIR-owned HIR routine, RIR boundary scope, and RIR authority participant names
+  when evidence is found. This makes strict evidence failures debuggable without
+  borrowing source IR lifetimes.
+- AIR strict-evidence diagnostics now print the same provenance summary
+  (`evidence hir=... rir_boundary=... rir_authority=...`) in text/JSON output,
+  so tooling does not need to infer which proof leg was absent.
+- `air_dump()` now prints per-boundary evidence provenance names and the AIR unit
+  suite gates that debug surface, so compiler-debug output stays aligned with
+  text/JSON diagnostics.
+- Parsed `where + transfer` coverage now requires both the emitted zone boundary
+  and emitted world boundary to carry RIR boundary/authority evidence
+  provenance, not just to exist.
 - Authority evidence diagnostics include the expected authority participant
   list in `Reason:` when required RIR authority evidence is missing.
 - `PGY_AIR_STRICT_EVIDENCE=0` remains as a development/debug opt-out for
@@ -654,7 +687,7 @@ Remaining (Phase 1 — beta 진입 전 반드시 실 구현):
 
 Out of Phase 1 (베타 후 생태계 단계에서 추가 가능):
 
-- Phase 2: Constraint Node (sync/async, local/distributed, fallible/infallible, persistence), Effect Node (DB/Network/FS/External), 추가 drift fact (failure-class mismatch, transactional-scope mismatch).
+- Phase 2: Constraint Node (sync/async, local/distributed, fallible/infallible, persistence), Effect Node (DB/Network/FS/Extenal), 추가 drift fact (failure-class mismatch, transactional-scope mismatch).
 - Phase 3: AIR 가 안정되면 일부 metadata 의 단일 source-of-truth 화 (예: zone boundary 정보가 DIR 와 AIR 양쪽에 있던 것을 AIR 단일화).
 
 Evidence command:
@@ -712,10 +745,10 @@ make llvm-test-backend-compare
 - `make semantic-inc-size-test-smoke`가 `src/semantic/**/*.inc <= 800 LOC`를 검사한다.
 - `make semantic-core-shape-test-smoke`가 `type_checker.c <= 600 LOC`, DAG inventory `.c` ownership, event/qubit owner TU 존재를 검사한다.
 - `transpiler_emitters_mir_inventory_ssa.inc`는 5-line shim으로 축소됐고, MIR intent inventory / SSA name / SSA emit slice가 각각 1,000 LOC 아래 하위 include로 분리됐다.
-- `transpiler_expr_emitters.inc` pass-through shim은 제거됐고, `transpiler.c`가 concrete emitter chunks를 직접 include한다. 남은 과제는 call/member/builtin owner 경계를 실제 `.c` 또는 더 작은 feature include로 정리하는 것이다.
+- `transpiler_expr_emitters.inc` pass-through shim은 제거됐고, `transpiler.c`가 concrete emitter churnks를 직접 include한다. 남은 과제는 call/member/builtin owner 경계를 실제 `.c` 또는 더 작은 feature include로 정리하는 것이다.
 - `llvm_expr_calls.inc`는 17-line shim + constructor / array / collection-base / domain query / event invocation / intent observability / log / scalar math / result-option / slot-device / task-channel owner + 네 개의 call slice로 축소됐고, 각 slice가 1,000 LOC 아래로 내려갔다. `llvm_emit_call` 앞단의 enum/class constructor lowering은 `llvm_expr_call_constructors.inc`로, array builtin은 `llvm_expr_call_arrays.inc`로, `ListNew`/`Set*` base collection family는 `llvm_expr_call_collections_base.inc`로, `HasProjection` / `HasLayer` / `HasState` / `HasZone*` lowering은 `llvm_expr_call_domain_queries.inc`로, event invocation은 `llvm_expr_call_events.inc`로, intent observability runtime calls는 `llvm_expr_call_intent_observability.inc`로, `Log*`는 `llvm_expr_call_log.inc`로, `Abs`/`Min`/`Max`는 `llvm_expr_call_math.inc`로, Result/Option builtin lowering은 `llvm_expr_call_result_option.inc`로, `ClaimSlot` / `Write` / `Read` / `Release` / `Device*` lowering은 `llvm_expr_call_slots.inc`로, task cancellation/channel operations는 `llvm_expr_call_task_channel.inc`로 이동했다. 단, list/map/queue continuation / stdlib IO/file/time / user function fallback owner 추출은 남아 있다.
 - `transpiler_emitters_base_b.inc`는 6-line shim으로 축소됐고, 네 개의 mechanical slice가 각각 1,000 LOC 아래로 내려갔다. 단, statement/block/intent forward-declare owner extraction은 남아 있다.
-- Tier 1 runtime/codegen/compiler `.inc` split gate를 닫았다. Pass-through shim `.inc` files for runtime part B, LLVM expr helpers, LLVM method calls, LLVM domain helpers, MIR public API, and C transpiler emitter/helper seams have now been removed; owning `.c` / `.h` files include concrete sub-1,000 LOC chunks directly.
+- Tier 1 runtime/codegen/compiler `.inc` split gate를 닫았다. Pass-through shim `.inc` files for runtime part B, LLVM expr helpers, LLVM method calls, LLVM domain helpers, MIR public API, and C transpiler emitter/helper seams have now been removed; owning `.c` / `.h` files include concrete sub-1,000 LOC churnks directly.
 - `make backend-inc-size-test-smoke`가 `src/runtime`, `src/codegen`, `src/compiler`의 `.inc <= 1000 LOC`를 검사한다.
 - `type_checker_helpers_late.c` standalone TU가 hidden include-order helper 없이 빌드되도록 call-path helper prototypes와 slot analyzer / visibility / generic diagnostic include 계약을 명시했다.
 - string literal / interpolation stable subset을 grammar docs에 고정했다. Stable은 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace까지이며 nested brace matching / format specifier / multiline interpolation은 beta-out-of-scope다.
@@ -752,6 +785,17 @@ make llvm-test-backend-compare
 - core semantic/DAG/backend/runtime owner boundary가 문서와 파일 구조에서 추적 가능하다.
 - `.inc`는 generated table, local macro table, private test fixture 용도로만 남는다.
 
+2026-04-26 audit note:
+
+- Production include-size gate is green, but the next owner-extraction work
+  should target near-cap files rather than adding more split fragments:
+  `transpiler_emitters_base_b_part_b/c.inc` at 998 LOC,
+  `pgy_runtime_part_ba_part_b/c.inc` at 996 LOC,
+  `transpiler_helpers_core_b_part_c.inc` at 992 LOC,
+  `transpiler_expr_emitters_part_a.inc` at 991 LOC,
+  `pgy_runtime_part_ba_part_a.inc` at 989 LOC, and
+  `pgy_runtime_lib_part_b_part_a.inc` at 986 LOC.
+
 증거 명령:
 
 ```sh
@@ -767,7 +811,7 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 2026-04-26 include-cleanup update:
 
 - `transpiler_expr_emitters.inc` pass-through shim has been removed.
-  `transpiler.c` includes the concrete emitter chunks directly. The old split
+  `transpiler.c` includes the concrete emitter churnks directly. The old split
   that crossed `emit_call` was replaced with helper owners for builtin
   dispatch, domain constructors, `Result`/`Option`, stdlib, event, member-call,
   and user-call lowering. Each part is under 1,000 LOC.
@@ -786,6 +830,24 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 
 ## 2. Type-Resolution DAG Closure
 
+2026-04-26 update:
+
+- Non-generic nominal class type references and known non-class scope symbols
+  now resolve through `semantic_type_resolution_lookup_or_materialize(...)`
+  metadata instead of falling through to the central recursive resolver.
+- Generic class references are intentionally excluded so default type argument
+  resolution and generic mismatch provenance stay on the generic contract path.
+- Current gate: `metadata_entries>=3300`, `metadata_hits>=4900`,
+  `metadata_owned>=200`, `materializer_fallbacks<=1296`, plus exact
+  fallback-family accounting.
+- Current fallback family distribution is `named=1289`, `generic_named=7`,
+  `compound=0`, `other=0`; named details are `builtin_shell=2`,
+  `generic_class=0`, `alias=1281`, `non_class_symbol=0`, `missing_symbol=6`.
+  The next DAG closure target is alias materialization with cycle/provenance
+  preservation, not broader constructed-shell expansion.
+- Verified by `make type-resolution-dag-test-smoke` and
+  `make type-resolution-resolver-inventory-test-smoke`.
+
 2026-04-25 update:
 
 - Graph precollect now materializes context-independent builtin type refs (`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`) into `SemanticContext.type_resolution_metadata`.
@@ -795,9 +857,9 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - `resolve_type_node(...)` itself is now metadata-first, so the remaining explicit legacy allowlist also consumes DAG facts before recursive materialization.
 - Owner-local resolver seams now converge through `semantic_type_resolution_lookup_or_materialize(...)`; direct `resolve_type_node(...)` calls are statically blocked outside the resolver implementation and the central metadata materializer.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage legacy fallback, and alias-stage split accounting. Latest local stats: `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
-- The DAG smoke now enforces beta floors for graph-backed usage (`skips>=3000`, `entries>=2000`, `hits>=2400`, `owned>=45`) instead of accepting any non-zero metadata activity.
-- The central metadata materializer fallback is now visible and capped. Current beta cap: `materializer_fallbacks<=4135` across the semantic suite. This is a growth guard, not an acceptance that the fallback is final.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage legacy fallback, and alias-stage split accounting. Earlier local stats for this slice were `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
+- The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
+- The central metadata materializer fallback is visible and capped. The old `materializer_fallbacks<=4135` cap was an initial growth guard; the current cap is the 2026-04-26 `<=1296` gate above.
 - The remaining stage legacy surface is alias-only. Successful alias materialization and diagnostic fallback are reported separately, and valid alias fallback is gated at zero. The 78 unresolved fallback entries come from intentional alias-cycle diagnostic coverage, not hidden non-alias recursive resolution.
 - Ability declarations are now predeclared in the program-level symbol inventory, and `type_check_ability_decl(...)` reuses only its own predeclare. This closes the forward declaration-order gap for generic default/where consumers, zone authority ability consumers, and party role-slot ability consumers without weakening duplicate-ability diagnostics.
 - C/LLVM parity now includes `tests/cases/backend_compare/forward_ability_order/main.pgy`, which keeps provider-after-consumer ordering for generic defaults, aliases, zone authority ability consumers, and party role-slot ability consumers from regressing outside semantic-only tests.

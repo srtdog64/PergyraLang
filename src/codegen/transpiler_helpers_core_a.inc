@@ -19,5 +19,5 @@ static bool resolve_world_zone_subject_receiver(TranspilerCtx *ctx,
 static TranspilerCtx *g_type_render_ctx = NULL;
 static char *strdup_fmt(const char *fmt, ...);
 
-#include "transpiler_helpers_core_a_part_b.inc"
+#include "transpiler_overlay_projection.h"
 #include "transpiler_helpers_core_a_part_c.inc"

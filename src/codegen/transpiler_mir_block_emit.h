@@ -1,3 +1,6 @@
+/* C backend MIR block statement emission owner.
+ * Included inside transpiler.c after MIR SSA inventory helpers. */
+
 static bool
 transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                      const MIRRoutine *mir_routine,

@@ -1,6 +1,6 @@
 # Beta Closure Readiness Report
 
-Date: 2026-04-24
+Date: 2026-04-26
 
 This document summarizes the current codebase state, the remaining improvement opportunities, and the concrete work needed to close PergyraLang for beta. It is based on the current README/TODO/status docs, the C/LLVM backend paths, the IR pipeline tests, the ABI smoke matrix, and backend-compare coverage.
 
@@ -12,7 +12,8 @@ PergyraLang is no longer blocked by broad surface absence. The remaining beta ri
 - runtime recoverable failure needs a richer queryable surface;
 - declaration-side MIR inventory still carries AST-shaped metadata;
 - function/action/intent body safety is not yet fully CFG/dataflow-backed, even though HIR/MIR CFG infrastructure exists;
-- type-resolution DAG exists but is not yet the full semantic execution truth;
+- type-resolution DAG exists and is now much more visible, but is not yet the
+  full semantic execution truth;
 - arena/lifetime rules are mostly settled but a few owner/runtime ABI boundaries remain.
 
 Current beta readiness is approximately **50%**.
@@ -22,6 +23,105 @@ This is intentionally lower than a feature-count reading. Many core and foundati
 The current beta posture is best described as:
 
 > Narrow beta is close, but strict beta still needs CFG-backed body safety plus the remaining propagation, failure, MIR inventory, DAG, and lifetime closure work to be either completed or explicitly downgraded from the beta contract.
+
+2026-04-26 correction: the strict readiness number remains **50%** because CFG
+and AIR/body-dataflow source-of-truth are still not closed, but two structural
+risks improved materially. The type-resolution DAG fallback cap is now
+`materializer_fallbacks<=1296` with exact family accounting, and the production
+runtime/codegen/compiler `.inc` size gate is green again with
+`src/compiler/mir_public_part_a.inc=959` and
+`src/compiler/mir_public_part_b.inc=800`. The first lean debt-slice after the
+process change moved C backend type-alias declaration emission out of a near-cap
+include body into `src/codegen/transpiler_type_alias.c`, reducing
+`src/codegen/transpiler_emitters_base_b_part_c.inc` to 976 LOC without adding a
+new `.inc` split. The next debt-slice deleted
+`src/codegen/transpiler_emitters_type_require.inc` and moved type requirement
+checks into `src/codegen/transpiler_type_require.c`, reducing the source `.inc`
+cap to 159 while keeping `src/codegen/transpiler_emitters_base_a_part_a.inc` at
+905 LOC. The extern declaration pass now has its own
+`src/codegen/transpiler_extern.c` owner, reducing
+`src/codegen/transpiler_emitters_base_b_part_b.inc` from 998 LOC to 957 LOC.
+Declarator rendering for event-handler/function types now lives in
+`src/codegen/transpiler_type_declarator.c`, reducing
+`src/codegen/transpiler_helpers_core_b_part_c.inc` from 992 LOC to 849 LOC.
+LogBanner indentation normalization now lives in
+`src/codegen/transpiler_log_normalize.c`, reducing
+`src/codegen/transpiler_expr_emitters_part_a.inc` from 991 LOC to 878 LOC.
+Generated-C runtime intent exit cleanup now lives in
+`src/runtime/pgy_runtime_intent_exit.h`, preserving the
+`pgy_intent_exit_export(...)` inline ABI while reducing
+`src/runtime/pgy_runtime_part_ba_part_b.inc` from 996 LOC to 894 LOC.
+Generated-C DeviceSlot/SecureSlot macro bodies now live in
+`src/runtime/pgy_runtime_slot_macros.h`, preserving built-in instantiation order
+while reducing `src/runtime/pgy_runtime_part_ba_part_c.inc` from 996 LOC to
+808 LOC. Generated-C intent last-history step accessors now live in
+`src/runtime/pgy_runtime_intent_history.h`, preserving borrowed string ABI
+accessor names while reducing `src/runtime/pgy_runtime_part_ba_part_a.inc` from
+989 LOC to 867 LOC. Generated-C intent last/active borrowed exports now live in
+`src/runtime/pgy_runtime_intent_active_exports.h`, reducing
+`src/runtime/pgy_runtime_part_ba_part_a.inc` again from 867 LOC to 558 LOC and
+making active/recent ABI owner checks explicit. LLVM-linkable runtime core
+exports now live in
+`src/runtime/pgy_runtime_lib_core_exports.h`, reducing
+`src/runtime/pgy_runtime_lib_part_b_part_a.inc` from 986 LOC to 909 LOC while
+keeping exported symbol names unchanged. LLVM-linkable raw `List<T>` exports
+now live in `src/runtime/pgy_runtime_lib_list_raw_exports.h`, reducing
+`src/runtime/pgy_runtime_lib_part_b_part_a.inc` further from 909 LOC to 759 LOC
+while keeping raw collection ABI smoke green. C backend `let` destructuring lowering
+now lives in `src/codegen/transpiler_destructure_emit.h`, reducing
+`src/codegen/transpiler_emitters_base_b_part_c.inc` from 976 LOC to 873 LOC and
+keeping destructure array/tuple C/LLVM parity green. Generated-C queue inline
+runtime now lives in `src/runtime/pgy_runtime_queue_inline.h`, reducing
+`src/runtime/pgy_runtime_part_ba_part_e.inc` from 969 LOC to 773 LOC while
+keeping queue/channel smoke parity green. Generated-C `HashMap<Int>` key
+adapters now live in `src/runtime/pgy_runtime_map_int_key_inline.h`, reducing
+`src/runtime/pgy_runtime_part_ba_part_d.inc` from 963 LOC to 815 LOC while
+keeping map backend-compare cases green. LLVM-linkable primitive slot exports
+for `Slot<Double>`, `Slot<Bool>`, and `Slot<String>` now live in
+`src/runtime/pgy_runtime_lib_slot_exports.h`, reducing
+`src/runtime/pgy_runtime_lib_part_b_part_d.inc` from 947 LOC to 790 LOC while
+keeping runtime panic ABI/codegen and full ABI smoke green. LLVM-linkable
+standard string/conversion/math/random exports now live in
+`src/runtime/pgy_runtime_lib_std_exports.h`, reducing
+`src/runtime/pgy_runtime_lib_part_b_part_e.inc` from 817 LOC to 761 LOC while
+keeping runtime ABI lifetime and ABI pipeline smoke green. MIR declaration
+header inventory helpers now live in `src/compiler/mir_decl_headers.h`, reducing
+`src/compiler/mir_public_part_a.inc` from 959 LOC to 789 LOC while keeping DAG,
+AIR drift, and ABI smoke green. RIR public vocabulary name helpers now live in
+`src/compiler/rir_names.h`, reducing `src/compiler/rir_public.inc` from 911 LOC
+to 804 LOC while keeping RIR validation/dump consumers on the same vocabulary.
+C backend parallel capture analysis now lives in
+`src/codegen/transpiler_parallel_capture.h`, reducing
+`src/codegen/transpiler_emitters_base_b_part_b.inc` from 957 LOC to 730 LOC
+while keeping the parallel channel-sum backend-compare path green.
+C backend stdlib call lowering now lives in
+`src/codegen/transpiler_expr_stdlib_builtin.h`, reducing
+`src/codegen/transpiler_expr_emitters_part_d.inc` from 946 LOC to 26 LOC while
+keeping representative stdlib/string/collection backend-compare paths green.
+C backend overlay/projection invalidation and zone-layer bind helpers now live
+in `src/codegen/transpiler_overlay_projection.h`; the old
+`transpiler_helpers_core_a_part_b.inc` include body was removed and the source
+`.inc` count is now 158/159. The runtime frontier contract smoke also now reads
+the real world frontier owner in `transpiler_domain_role_part_d.inc`.
+C backend `let` declaration lowering now lives in
+`src/codegen/transpiler_let_emit.h`, reducing
+`src/codegen/transpiler_emitters_base_a_part_a.inc` from 905 LOC to 138 LOC
+while keeping the C transpile suite and representative let-heavy backend
+compare cases green.
+C backend MIR block statement emission now lives in
+`src/codegen/transpiler_mir_block_emit.h`; the old
+`transpiler_emitters_base_a_part_c.inc` include body was removed, dropping
+source `.inc` total to 49,911 LOC while keeping MIR/DAG/AIR smoke and
+representative MIR-heavy backend compare paths green.
+C backend intent declaration emission now lives in
+`src/codegen/transpiler_intent_emit.h`; the old
+`transpiler_emitters_intent.inc` include body was removed, dropping source
+`.inc` total to 48,949 LOC and leaving no production `.inc` above 900 LOC.
+Generated-C runtime intent-recent accessors, panic helpers, and checked
+arithmetic exports now live in `src/runtime/pgy_runtime_panic_checked_inline.h`,
+reducing `src/runtime/pgy_runtime_part_ba_part_b.inc` from 894 LOC to 705 LOC
+while keeping panic codegen, panic ABI, runtime lifetime, and full ABI smoke
+green.
 
 ## Closed Or Mostly Closed
 
@@ -235,16 +335,28 @@ Already closed:
 - provider-first staged worklist is active for top-level declarations and synthetic local/projection nodes;
 - generic default type, constraints, where-bound, and several ability consumers run through staged DAG paths;
 - cycle diagnostics use `Contract source`, `Reason`, and `Fix` vocabulary.
+- non-generic nominal class type references and known non-class scope symbols
+  now materialize through DAG metadata, cutting central materializer fallbacks
+  from `4135` to `1296` while preserving generic default/provenance paths.
 
 Remaining work:
 
-- move more declaration prepass behavior from recursive lookup to graph-backed execution;
+- move alias materialization, effective generic/default/bound facts, and
+  module/nominal provenance from recursive lookup to graph-backed execution;
 - make the graph the default source for provider/consumer ordering in the semantic paths that already have inventory edges;
 - keep module import DFS and type-resolution DAG responsibilities separate.
 
 Concrete next work:
 
 - audit remaining recursive `resolve_type_node` consumers and classify them as `graph-backed`, `namespace-only`, or `legacy`;
+- focus the next migration on alias-heavy named fallback
+  (`alias=1281`, `builtin_shell=2`, `missing=6`, `generic_named=7`) instead of
+  broad builtin-shell expansion;
+- do not shortcut alias metadata through the current symbol cache alone:
+  local testing showed that this bypasses module visibility and generic ability
+  provenance checks. Alias closure needs graph facts for export/private
+  provenance and effective generic bounds before it can replace the central
+  resolver fallback safely;
 - add tests where declaration order would fail without provider-first topo scheduling;
 - promote local contract and projection path handlers from "covered node family" to "semantic source of truth" where possible.
 
@@ -264,11 +376,21 @@ Already closed:
 - module contract include-order debt was removed;
 - type-resolution graph primitive, collector, label, domain, and declaration helper seams have started moving out of `.inc`;
 - speed baseline and `perf-summary` are available to catch modularization regressions.
+- production runtime/codegen/compiler include files are below the 1,000 LOC
+  gate; the current MIR public split is `part_a=959` and `part_b=800`, guarded
+  by `make backend-inc-size-test-smoke` and `make inc-sentinel-test-smoke`.
+- tooling conformance is green locally; `tests/tooling_conformance_smoke.sh`
+  invokes formatter smoke through `bash`, avoiding Linux execute-bit drift on
+  mounted worktrees.
 
 Remaining work:
 
 - reduce semantic `.inc` files above 800 LOC;
-- reduce codegen/runtime `.inc` files above 1,000 LOC;
+- continue converting behavior-heavy codegen/runtime/compiler `.inc` families
+  into real owner translation units instead of adding new split fragments;
+- extract the files currently closest to the cap (`964`, `962`, `959`, `957`,
+  `947`, `946`, `925`, `911`, `909` LOC) into owner `.c`/`.h` seams before adding new
+  behavior to those families;
 - make `type_checker.c` orchestration-only rather than an include aggregator;
 - split backend/runtime owners so future core features do not require editing multi-thousand-line include fragments.
 
@@ -347,6 +469,18 @@ Recommended next work:
 - add a beta release checklist that points to exact make targets and exact smoke cases.
 
 ## Recommended Execution Order
+
+Operating change for the next sprint:
+
+- Use a lean debt-slice loop rather than a test-first loop. Pick one owner,
+  finish the implementation slice, run the local gate, then batch the wide
+  regression.
+- This is not a reduction in rigor. Full regression remains required before
+  closure, but running it after every small edit has been slowing actual debt
+  removal.
+- The next sprint should not be "add more tests"; it should be "remove one
+  source-of-truth duplication or fallback seam, then prove it with the smallest
+  meaningful gate."
 
 1. Promote DAG staged resolution.
    Audit remaining recursive type-resolution consumers and move frozen-subset dependency ordering behind graph-backed paths. This is now the highest-value beta blocker because it defines whether the language can keep module/generic/authority contracts stable as the surface grows.

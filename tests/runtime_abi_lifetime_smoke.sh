@@ -41,13 +41,18 @@ groups = {
             "pgy_intent_history_step_failure_export",
         ],
     ),
-    "inline-intent-active-recent": (
-        root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc",
+    "inline-intent-active": (
+        root / "src" / "runtime" / "pgy_runtime_intent_active_exports.h",
         [
             "pgy_intent_active_name_export",
             "pgy_intent_active_trace_export",
             "pgy_intent_active_failure_export",
             "pgy_intent_active_step_name_export",
+        ],
+    ),
+    "inline-intent-recent": (
+        root / "src" / "runtime" / "pgy_runtime_panic_checked_inline.h",
+        [
             "pgy_intent_recent_name_export",
             "pgy_intent_recent_trace_export",
             "pgy_intent_recent_failure_export",
@@ -104,7 +109,7 @@ groups = {
 
 macro_exports = {
     "inline-intent-active-step": (
-        root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc",
+        root / "src" / "runtime" / "pgy_runtime_intent_active_exports.h",
         "PGY_INTENT_ACTIVE_STEP_STRING_EXPORT",
         [
             "pgy_intent_active_step_zone_export",
@@ -244,8 +249,16 @@ def read_runtime_text(path: pathlib.Path) -> str:
     text = path.read_text(encoding="utf-8")
     if path.name.startswith("pgy_runtime_part_ba_part_"):
         parts = [
-            path.with_name(f"pgy_runtime_part_ba_part_{suffix}.inc")
-            for suffix in ("a", "b", "c", "d", "e")
+            path.with_name("pgy_runtime_part_ba_part_a.inc"),
+            path.with_name("pgy_runtime_intent_active_exports.h"),
+            path.with_name("pgy_runtime_intent_history.h"),
+            path.with_name("pgy_runtime_intent_exit.h"),
+            path.with_name("pgy_runtime_panic_checked_inline.h"),
+            path.with_name("pgy_runtime_part_ba_part_b.inc"),
+            path.with_name("pgy_runtime_slot_macros.h"),
+            path.with_name("pgy_runtime_part_ba_part_c.inc"),
+            path.with_name("pgy_runtime_part_ba_part_d.inc"),
+            path.with_name("pgy_runtime_part_ba_part_e.inc"),
         ]
         missing = [part for part in parts if not part.exists()]
         if missing:
@@ -256,8 +269,15 @@ def read_runtime_text(path: pathlib.Path) -> str:
         return "\n".join(part.read_text(encoding="utf-8") for part in parts)
     if path.name.startswith("pgy_runtime_lib_part_b_part_"):
         parts = [
-            path.with_name(f"pgy_runtime_lib_part_b_part_{suffix}.inc")
-            for suffix in ("a", "b", "c", "d", "e", "f")
+            path.with_name("pgy_runtime_lib_core_exports.h"),
+            path.with_name("pgy_runtime_lib_part_b_part_a.inc"),
+            path.with_name("pgy_runtime_lib_part_b_part_b.inc"),
+            path.with_name("pgy_runtime_lib_part_b_part_c.inc"),
+            path.with_name("pgy_runtime_lib_slot_exports.h"),
+            path.with_name("pgy_runtime_lib_part_b_part_d.inc"),
+            path.with_name("pgy_runtime_lib_std_exports.h"),
+            path.with_name("pgy_runtime_lib_part_b_part_e.inc"),
+            path.with_name("pgy_runtime_lib_part_b_part_f.inc"),
         ]
         missing = [part for part in parts if not part.exists()]
         if missing:

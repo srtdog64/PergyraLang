@@ -1,0 +1,13 @@
+#ifndef PERGYRA_TRANSPILER_TYPE_DECLARATOR_H
+#define PERGYRA_TRANSPILER_TYPE_DECLARATOR_H
+
+#include "transpiler.h"
+
+char *pergyra_ast_typed_declarator(ASTNode *type_node, const char *name);
+char *pergyra_func_pointer_declarator_from_decl(ASTNode *func_decl,
+                                                const char *name);
+char *pergyra_func_signature_declarator(ASTNode *return_type,
+                                        const char *name,
+                                        const char *params_sig);
+
+#endif /* PERGYRA_TRANSPILER_TYPE_DECLARATOR_H */

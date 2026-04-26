@@ -1,3 +1,6 @@
+/* C backend overlay/projection invalidation and zone-layer bind helpers.
+ * Included inside transpiler.c after declaration lookup/projection seams. */
+
 static bool
 is_pointer_self_host_type_name(TranspilerCtx *ctx, const char *type_name)
 {

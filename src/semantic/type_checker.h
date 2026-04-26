@@ -191,6 +191,15 @@ struct SemanticContext
     size_t type_resolution_metadata_hits;
     size_t type_resolution_metadata_misses;
     size_t type_resolution_metadata_materializer_fallbacks;
+    size_t type_resolution_metadata_fallback_named;
+    size_t type_resolution_metadata_fallback_generic_named;
+    size_t type_resolution_metadata_fallback_compound;
+    size_t type_resolution_metadata_fallback_other;
+    size_t type_resolution_metadata_fallback_named_builtin_shell;
+    size_t type_resolution_metadata_fallback_named_generic_class;
+    size_t type_resolution_metadata_fallback_named_alias;
+    size_t type_resolution_metadata_fallback_named_non_class_symbol;
+    size_t type_resolution_metadata_fallback_named_missing_symbol;
 
     bool         has_error;
 };

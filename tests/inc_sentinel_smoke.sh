@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MAX_INC_FILES="${PGY_MAX_INC_FILES:-160}"
+MAX_INC_FILES="${PGY_MAX_INC_FILES:-159}"
 
 violations=()
 

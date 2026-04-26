@@ -74,11 +74,14 @@ DIR, or RIR programs.
   `AIRProgram`. Synthesized intent, boundary, and authority names are AIR-owned,
   so parsed-source AIR does not borrow DIR/AST string lifetime after parser
   teardown. Each `Boundary Node` records whether HIR routine, RIR boundary, and
-  RIR authority evidence was found; `src/test_air.c` exercises direct synthesis
-  and parsed-source teardown-safe boundary names.
-- **Remaining obligation**: add a regression that snapshots full HIR/DIR/RIR
-  structural hashes before and after synthesis once HIR/RIR cross-checks are
-  wired.
+  RIR authority evidence was found, plus AIR-owned provenance names for the
+  matching HIR routine, RIR scope, and RIR authority participant; `src/test_air.c`
+  exercises direct synthesis and parsed-source teardown-safe boundary names. The
+  HIR/DIR/RIR evidence collection regression snapshots representative DIR step
+  metadata, HIR routine metadata, and RIR scope/op/fact metadata before and after
+  synthesis to keep AIR read-only at the owner/evidence seam.
+- **Remaining obligation**: expand this from representative field snapshots to
+  full structural hashes once the IRs expose stable hash helpers.
 
 ## Theorem: Intent Node Coverage
 
@@ -104,18 +107,24 @@ represented by at least one AIR `Boundary Node`.
 - **Evidence**: Phase 1 maps DIR `where` and transfer metadata to separate
   zone/world boundary nodes when both are present, recursively scans intent-step
   execution clauses for `spawn` / `async` / `parallel`, `channel` / `select`,
-  and known IO calls, then records HIR/RIR evidence flags per boundary. World
-  boundaries require source-specific RIR `Move` / `Claim` transfer evidence
-  instead of accepting a generic matching RIR intent scope. Default strict
-  evidence mode turns missing RIR boundary/authority evidence into
+  and known IO calls, then records HIR/RIR evidence flags and provenance names
+  per boundary. World boundaries require source-specific RIR `Move` / `Claim`
+  transfer evidence instead of accepting a generic matching RIR intent scope.
+  Default strict evidence mode turns missing RIR boundary/authority evidence into
   `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`. `src/test_air.c` covers direct
   AST-backed spawn and IO boundary synthesis, parsed-source IO boundary
   missing-evidence, direct world-boundary transfer evidence accept/reject, and
-  parsed-source `where + transfer` zone/world boundary preservation.
+  parsed-source `where + transfer` zone/world boundary preservation with RIR
+  evidence provenance on both emitted boundaries.
   `tests/diagnostics_json_smoke.sh` covers parsed-source missing authority
   evidence and parsed-source missing IO boundary evidence through the full
   driver JSON path. Synthesis hard-fails if the precomputed boundary count and
   emitted boundary count diverge, blocking silent AIR boundary inventory drift.
+  Expression-derived boundaries keep their expression span when available and
+  fall back to the enclosing intent-step span when parser expression nodes have
+  no location, so boundary diagnostics do not lose source provenance. `air_dump`
+  prints the same per-boundary evidence provenance names, and the AIR unit suite
+  gates that debug surface so it cannot regress to boolean-only evidence output.
 - **Remaining obligation**: add parsed-source negative diagnostics for
   transfer/world boundary drift as those surfaces become representable without
   being rejected before AIR.
@@ -131,7 +140,9 @@ boundary lacks either RIR boundary evidence or required RIR authority evidence.
   by default, and `src/test_air.c` covers strict-evidence missing-boundary,
   mismatched-authority, and world-boundary-without-transfer-op drifts.
   `src/compiler/driver_app.c` includes the expected authority participant list
-  in `Reason:` when authority evidence is missing.
+  in `Reason:` when authority evidence is missing, and includes the AIR evidence
+  provenance summary (`hir`, `rir_boundary`, `rir_authority`) so missing
+  boundary/authority proof is visible in both text and JSON diagnostics.
 - **Remaining obligation**: expand parsed-source negative regressions for
   transfer/world boundaries that can reach AIR validation.
 

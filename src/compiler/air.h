@@ -69,6 +69,9 @@ typedef struct
     bool            has_hir_routine_evidence;
     bool            has_rir_boundary_evidence;
     bool            has_rir_authority_evidence;
+    const char     *hir_routine_evidence_name;
+    const char     *rir_boundary_evidence_scope;
+    const char     *rir_authority_evidence_name;
 } AIRBoundaryNode;
 
 typedef struct

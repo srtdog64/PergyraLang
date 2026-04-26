@@ -94,6 +94,22 @@ air_assign_owned_name(AIRProgram *air, const char **slot, const char *text)
 }
 
 static bool
+air_assign_first_owned_name(AIRProgram *air,
+                            const char **slot,
+                            const char *text,
+                            char **error_message,
+                            const char *what)
+{
+    if (slot == NULL || *slot != NULL || text == NULL)
+        return true;
+    if (!air_assign_owned_name(air, slot, text)) {
+        air_set_error(error_message, "AIR %s evidence name allocation failed", what);
+        return false;
+    }
+    return true;
+}
+
+static bool
 air_assign_authority_names(AIRProgram *air,
                            AIRBoundaryNode *boundary,
                            const char **names,
@@ -462,7 +478,9 @@ air_append_expr_boundaries(AIRProgram *air,
             return false;
         boundary->intent_index = intent_index;
         boundary->step_index = step != NULL ? step->index : 0;
-        boundary->ast = node;
+        boundary->ast = (node->line > 0 || step == NULL || step->ast == NULL)
+            ? node
+            : step->ast;
         boundary->sync_class = air_sync_from_boundary_kind(kind);
         (*boundary_index)++;
     }
@@ -734,22 +752,33 @@ air_hir_routine_matches_boundary(const HIRRoutine *routine,
         || air_name_matches(routine->name, boundary->source_name);
 }
 
-static void
-air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir)
+static bool
+air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir, char **error_message)
 {
     if (air == NULL || hir == NULL)
-        return;
+        return true;
     for (size_t i = 0; i < hir->routine_count; i++) {
         const HIRRoutine *routine = &hir->routines[i];
         for (size_t j = 0; j < air->boundary_count; j++) {
             AIRBoundaryNode *boundary = &air->boundaries[j];
             const AIRIntentNode *intent = &air->intents[boundary->intent_index];
             if (air_hir_routine_matches_boundary(routine, intent, boundary)) {
+                const char *routine_name = routine->name != NULL
+                    ? routine->name
+                    : routine->owner_name;
+                if (!air_assign_first_owned_name(air,
+                                                 &boundary->hir_routine_evidence_name,
+                                                 routine_name,
+                                                 error_message,
+                                                 "HIR routine")) {
+                    return false;
+                }
                 boundary->has_hir_routine_evidence = true;
                 air->hir_routine_evidence_count++;
             }
         }
     }
+    return true;
 }
 
 static bool
@@ -802,13 +831,14 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
     return false;
 }
 
-static void
-air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir)
+static bool
+air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_message)
 {
     if (air == NULL || rir == NULL)
-        return;
+        return true;
     for (size_t i = 0; i < rir->scope_count; i++) {
         const RIRScope *scope = &rir->scopes[i];
+        const char *scope_name = scope->name != NULL ? scope->name : scope->owner_name;
         for (size_t j = 0; j < scope->fact_count; j++) {
             if (scope->facts[j].kind == RIR_FACT_AUTHORITY) {
                 air->rir_authority_evidence_count++;
@@ -823,11 +853,25 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir)
             AIRBoundaryNode *boundary = &air->boundaries[j];
             if (!air_rir_scope_provides_boundary_evidence(scope, boundary))
                 continue;
+            if (!air_assign_first_owned_name(air,
+                                             &boundary->rir_boundary_evidence_scope,
+                                             scope_name,
+                                             error_message,
+                                             "RIR boundary")) {
+                return false;
+            }
             boundary->has_rir_boundary_evidence = true;
             air->rir_boundary_evidence_count++;
             for (size_t k = 0; k < scope->fact_count; k++) {
                 if (scope->facts[k].kind == RIR_FACT_AUTHORITY
                     && air_boundary_authority_matches(boundary, scope->facts[k].name)) {
+                    if (!air_assign_first_owned_name(air,
+                                                     &boundary->rir_authority_evidence_name,
+                                                     scope->facts[k].name,
+                                                     error_message,
+                                                     "RIR authority")) {
+                        return false;
+                    }
                     boundary->has_rir_authority_evidence = true;
                     break;
                 }
@@ -835,12 +879,20 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir)
             for (size_t k = 0; !boundary->has_rir_authority_evidence && k < scope->op_count; k++) {
                 if (scope->ops[k].kind == RIR_OP_AUTHORIZE
                     && air_boundary_authority_matches(boundary, scope->ops[k].subject)) {
+                    if (!air_assign_first_owned_name(air,
+                                                     &boundary->rir_authority_evidence_name,
+                                                     scope->ops[k].subject,
+                                                     error_message,
+                                                     "RIR authority")) {
+                        return false;
+                    }
                     boundary->has_rir_authority_evidence = true;
                     break;
                 }
             }
         }
     }
+    return true;
 }
 
 AIRProgram *
@@ -986,8 +1038,11 @@ air_synthesize(const HIRProgram *hir,
                       boundary_node_count);
         return NULL;
     }
-    air_collect_hir_evidence(air, hir);
-    air_collect_rir_evidence(air, rir);
+    if (!air_collect_hir_evidence(air, hir, error_message)
+        || !air_collect_rir_evidence(air, rir, error_message)) {
+        air_destroy(air);
+        return NULL;
+    }
 
     if (!air_validate(air, error_message)) {
         air_destroy(air);
@@ -1158,10 +1213,19 @@ air_dump(const AIRProgram *air, FILE *out)
                 air_sync_class_name(boundary->sync_class),
                 boundary->authority_required ? "yes" : "no");
         fprintf(out,
-                "    evidence hir=%s rir_boundary=%s rir_authority=%s\n",
+                "    evidence hir=%s(%s) rir_boundary=%s(%s) rir_authority=%s(%s)\n",
                 boundary->has_hir_routine_evidence ? "yes" : "no",
+                boundary->hir_routine_evidence_name != NULL
+                    ? boundary->hir_routine_evidence_name
+                    : "<none>",
                 boundary->has_rir_boundary_evidence ? "yes" : "no",
-                boundary->has_rir_authority_evidence ? "yes" : "no");
+                boundary->rir_boundary_evidence_scope != NULL
+                    ? boundary->rir_boundary_evidence_scope
+                    : "<none>",
+                boundary->has_rir_authority_evidence ? "yes" : "no",
+                boundary->rir_authority_evidence_name != NULL
+                    ? boundary->rir_authority_evidence_name
+                    : "<none>");
     }
 }
 

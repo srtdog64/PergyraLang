@@ -373,6 +373,19 @@ test_air_collects_hir_and_rir_evidence(void)
         .scopes = scopes,
         .scope_count = 1,
     };
+    const char *dir_owner_before = dir.nodes[0].name;
+    const char *dir_step_before = dir.intents[0].steps[0].name;
+    const char *dir_where_before = dir.intents[0].steps[0].where_type_name;
+    const char *dir_authority_before = dir.intents[0].steps[0].authorized_by[0];
+    const char *hir_owner_before = hir.routines[0].owner_name;
+    const char *hir_name_before = hir.routines[0].name;
+    RIRScopeKind rir_kind_before = rir.scopes[0].kind;
+    const char *rir_owner_before = rir.scopes[0].owner_name;
+    const char *rir_name_before = rir.scopes[0].name;
+    RIROpKind rir_op_before = rir.scopes[0].ops[0].kind;
+    const char *rir_op_subject_before = rir.scopes[0].ops[0].subject;
+    RIRFactKind rir_fact_before = rir.scopes[0].facts[0].kind;
+    const char *rir_fact_name_before = rir.scopes[0].facts[0].name;
     char *error = NULL;
     AIRProgram *air = air_synthesize(&hir, &dir, &rir, &error);
     bool ok = air != NULL
@@ -381,7 +394,33 @@ test_air_collects_hir_and_rir_evidence(void)
         && air->rir_authority_evidence_count == 2
         && air->boundaries[0].has_hir_routine_evidence
         && air->boundaries[0].has_rir_boundary_evidence
-        && air->boundaries[0].has_rir_authority_evidence;
+        && air->boundaries[0].has_rir_authority_evidence
+        && air->boundaries[0].hir_routine_evidence_name != NULL
+        && strcmp(air->boundaries[0].hir_routine_evidence_name, "reserve") == 0
+        && air->boundaries[0].rir_boundary_evidence_scope != NULL
+        && strcmp(air->boundaries[0].rir_boundary_evidence_scope, "WarehouseZone") == 0
+        && air->boundaries[0].rir_authority_evidence_name != NULL
+        && strcmp(air->boundaries[0].rir_authority_evidence_name, "shipper") == 0
+        && dir.node_count == 1
+        && dir.intent_count == 1
+        && dir.intents[0].step_count == 1
+        && dir.nodes[0].name == dir_owner_before
+        && dir.intents[0].steps[0].name == dir_step_before
+        && dir.intents[0].steps[0].where_type_name == dir_where_before
+        && dir.intents[0].steps[0].authorized_by[0] == dir_authority_before
+        && hir.routine_count == 1
+        && hir.routines[0].owner_name == hir_owner_before
+        && hir.routines[0].name == hir_name_before
+        && rir.scope_count == 1
+        && rir.scopes[0].kind == rir_kind_before
+        && rir.scopes[0].owner_name == rir_owner_before
+        && rir.scopes[0].name == rir_name_before
+        && rir.scopes[0].op_count == 1
+        && rir.scopes[0].ops[0].kind == rir_op_before
+        && rir.scopes[0].ops[0].subject == rir_op_subject_before
+        && rir.scopes[0].fact_count == 1
+        && rir.scopes[0].facts[0].kind == rir_fact_before
+        && rir.scopes[0].facts[0].name == rir_fact_name_before;
     air_destroy(air);
     free(error);
     return ok;
@@ -460,6 +499,62 @@ test_air_rejects_mismatched_authority_evidence(void)
         && found;
     air_destroy(air);
     free(error);
+    return ok;
+}
+
+static bool
+test_air_dump_prints_evidence_provenance(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_required = true,
+            .has_hir_routine_evidence = true,
+            .has_rir_boundary_evidence = true,
+            .has_rir_authority_evidence = true,
+            .hir_routine_evidence_name = "reserve",
+            .rir_boundary_evidence_scope = "WarehouseZone",
+            .rir_authority_evidence_name = "shipper",
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .strict_evidence = true,
+    };
+    char buffer[1024];
+    FILE *out = tmpfile();
+    size_t bytes;
+    bool ok;
+
+    if (out == NULL)
+        return false;
+    air_dump(&air, out);
+    fflush(out);
+    rewind(out);
+    bytes = fread(buffer, 1, sizeof(buffer) - 1, out);
+    buffer[bytes] = '\0';
+    fclose(out);
+
+    ok = strstr(buffer, "evidence hir=yes(reserve)") != NULL
+        && strstr(buffer, "rir_boundary=yes(WarehouseZone)") != NULL
+        && strstr(buffer, "rir_authority=yes(shipper)") != NULL;
     return ok;
 }
 
@@ -850,16 +945,28 @@ test_air_parsed_transfer_emits_zone_and_world_boundaries(void)
     AIRProgram *air = lower_air_from_source(source);
     bool found_zone = false;
     bool found_world = false;
+    bool found_zone_evidence = false;
+    bool found_world_evidence = false;
 
     if (air != NULL) {
         for (size_t i = 0; i < air->boundary_count; i++) {
             if (air->boundaries[i].kind == AIR_BOUNDARY_ZONE
                 && strcmp(air->boundaries[i].source_name, "PaymentZone") == 0) {
                 found_zone = true;
+                found_zone_evidence = air->boundaries[i].has_rir_boundary_evidence
+                    && air->boundaries[i].has_rir_authority_evidence
+                    && air->boundaries[i].rir_boundary_evidence_scope != NULL
+                    && air->boundaries[i].rir_authority_evidence_name != NULL
+                    && strcmp(air->boundaries[i].rir_authority_evidence_name, "buyer") == 0;
             }
             if (air->boundaries[i].kind == AIR_BOUNDARY_WORLD
                 && strcmp(air->boundaries[i].source_name, "payment") == 0) {
                 found_world = true;
+                found_world_evidence = air->boundaries[i].has_rir_boundary_evidence
+                    && air->boundaries[i].has_rir_authority_evidence
+                    && air->boundaries[i].rir_boundary_evidence_scope != NULL
+                    && air->boundaries[i].rir_authority_evidence_name != NULL
+                    && strcmp(air->boundaries[i].rir_authority_evidence_name, "buyer") == 0;
             }
         }
     }
@@ -868,7 +975,9 @@ test_air_parsed_transfer_emits_zone_and_world_boundaries(void)
         && air->drift_count == 0
         && air->boundary_count >= 2
         && found_zone
-        && found_world;
+        && found_world
+        && found_zone_evidence
+        && found_world_evidence;
     air_destroy(air);
     return ok;
 }
@@ -898,6 +1007,9 @@ main(void)
 
     TEST("AIR strict evidence rejects mismatched authority participant");
     EXPECT(test_air_rejects_mismatched_authority_evidence());
+
+    TEST("AIR dump prints evidence provenance");
+    EXPECT(test_air_dump_prints_evidence_provenance());
 
     TEST("AIR world boundary requires transfer evidence");
     EXPECT(test_air_world_boundary_requires_transfer_evidence());

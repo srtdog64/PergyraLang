@@ -23,7 +23,8 @@ import sys
 root = pathlib.Path(sys.argv[1])
 
 c_zone = root / "src" / "codegen" / "transpiler_domain_role_part_b.inc"
-c_world = root / "src" / "codegen" / "transpiler_domain_role_part_c.inc"
+c_zone_frontier = root / "src" / "codegen" / "transpiler_domain_role_part_c.inc"
+c_world = root / "src" / "codegen" / "transpiler_domain_role_part_d.inc"
 c_projection = root / "src" / "codegen" / "transpiler_domain_role_part_a.inc"
 llvm_domain = root / "src" / "codegen" / "llvm_domain.c"
 llvm_projection = root / "src" / "codegen" / "llvm_domain_helpers_part_b.inc"
@@ -34,6 +35,7 @@ todo = root / "TODO.md"
 
 for path in [
     c_zone,
+    c_zone_frontier,
     c_world,
     c_projection,
     llvm_domain,
@@ -47,8 +49,9 @@ for path in [
         raise SystemExit(f"missing runtime frontier contract file: {path.relative_to(root)}")
 
 c_zone_text = c_zone.read_text(encoding="utf-8")
+c_zone_frontier_text = c_zone_frontier.read_text(encoding="utf-8")
 c_world_text = c_world.read_text(encoding="utf-8")
-c_zone_contract_text = c_zone_text + "\n" + c_world_text
+c_zone_contract_text = c_zone_text + "\n" + c_zone_frontier_text
 c_projection_text = c_projection.read_text(encoding="utf-8")
 llvm_domain_text = llvm_domain.read_text(encoding="utf-8")
 llvm_projection_text = llvm_projection.read_text(encoding="utf-8")

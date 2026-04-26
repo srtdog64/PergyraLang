@@ -365,6 +365,17 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     (unsigned long long) ctx->type_resolution_metadata_hits,
                     (unsigned long long) ctx->type_resolution_metadata_misses,
                     (unsigned long long) ctx->type_resolution_metadata_materializer_fallbacks);
+            fprintf(stderr, "[type-res-stats] metadata-fallback: named=%llu generic_named=%llu compound=%llu other=%llu\n",
+                    (unsigned long long) ctx->type_resolution_metadata_fallback_named,
+                    (unsigned long long) ctx->type_resolution_metadata_fallback_generic_named,
+                    (unsigned long long) ctx->type_resolution_metadata_fallback_compound,
+                    (unsigned long long) ctx->type_resolution_metadata_fallback_other);
+            fprintf(stderr, "[type-res-stats] metadata-fallback-named: builtin_shell=%llu generic_class=%llu alias=%llu non_class_symbol=%llu missing_symbol=%llu\n",
+                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_builtin_shell,
+                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_generic_class,
+                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_alias,
+                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_non_class_symbol,
+                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_missing_symbol);
             fprintf(stderr, "[type-res-stats] stage-legacy-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_legacy_generic_contract_count,
                     (unsigned long long) ctx->type_resolution_stage_legacy_signature_count,

@@ -8,6 +8,7 @@ Related documents:
 - `docs/100_beta_readiness_checklist.md`
 - `docs/104_air_compiler_architecture.md`
 - `docs/114_async_model_positioning.md` — sister positioning doc for concurrency
+- `docs/117_backend_strategy_positioning.md` — sister positioning doc for backend strategy
 - `docs/semantics/04_ownership_abi.md`
 
 ## 1. Purpose

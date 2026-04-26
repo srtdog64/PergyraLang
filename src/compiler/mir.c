@@ -2920,5 +2920,6 @@ mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope)
     return true;
 }
 
+#include "mir_decl_headers.h"
 #include "mir_public_part_a.inc"
 #include "mir_public_part_b.inc"

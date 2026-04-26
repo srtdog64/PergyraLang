@@ -43,6 +43,244 @@
   evidence are required now; completed machine-checked proof remains a separate
   hardening gate until CI type-checks it.
 
+## UTF-8 Progress Note - 2026-04-26 - DAG Metadata Materialization Tightening
+
+- Non-generic nominal class type references now materialize through
+  `semantic_type_resolution_lookup_or_materialize(...)` metadata instead of
+  falling through to the central recursive resolver.
+- Generic class references with explicit/default type parameters are
+  deliberately excluded from this shortcut so default type argument resolution
+  and generic mismatch provenance remain owned by the generic contract path.
+- Intermediate DAG smoke stats before the follow-up tightening:
+  `graph-backed skips=3137 metadata_entries=3248
+  metadata_owned=244 metadata_hits=4724 materializer_fallbacks=1601
+  metadata_fallback_named=1594 metadata_fallback_generic_named=7
+  metadata_fallback_compound=0 metadata_fallback_other=0 legacy_alias=83
+  legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78
+  alias_fallback_resolved=0 alias_fallback_unresolved=78`.
+- `type_resolution_dag_smoke.sh` now gates the tighter beta line:
+  `metadata_entries>=3000`, `metadata_hits>=4500`, `metadata_owned>=200`, and
+  `materializer_fallbacks<=1601`, with fallback family accounting required to
+  sum exactly to the total fallback count.
+- That slice moved the remaining DAG closure mostly to named-symbol
+  materialization (`1594/1601` fallback events), not compound type
+  construction. The next target is to split
+  imported/non-class nominal, alias-diagnostic, and visibility-sensitive named
+  references instead of widening the generic shortcut.
+- Follow-up tightening: known non-class scope symbols now materialize through
+  metadata using the same `scope-type lookup` contract as `resolve_named_type`.
+  Current stats are `metadata_entries=3346 metadata_hits=4935
+  materializer_fallbacks=1296 metadata_fallback_named=1289
+  metadata_fallback_generic_named=7 metadata_named_builtin_shell=2
+  metadata_named_generic_class=0 metadata_named_alias=1281
+  metadata_named_non_class_symbol=0 metadata_named_missing_symbol=6`.
+  The DAG smoke gate now requires `metadata_entries>=3300`,
+  `metadata_hits>=4900`, and `materializer_fallbacks<=1296`.
+- Verified locally: `make type-resolution-dag-test-smoke` and
+  `make type-resolution-resolver-inventory-test-smoke`.
+
+## UTF-8 Progress Note - 2026-04-26 - Overall Beta Audit Follow-up
+
+- Tooling conformance is green locally with `make tooling-conformance-test-smoke`.
+  The formatter smoke is invoked through `bash`, so Linux execute-bit drift on
+  mounted worktrees should not reproduce the old `fmt_smoke.sh Permission
+  denied` failure.
+- Production runtime/codegen/compiler `.inc` size gate is green, but the next
+  cleanup should target near-cap files instead of adding more split fragments:
+  `transpiler_emitters_base_a_part_c.inc` at 964 LOC,
+  `transpiler_emitters_intent.inc` at 962 LOC.
+- Lean debt-slice follow-up: C backend type-alias declaration emission now has
+  a real owner in `src/codegen/transpiler_type_alias.c`; the old body was
+  removed from `transpiler_emitters_base_b_part_c.inc`. Local gate used:
+  `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke`.
+- Lean debt-slice follow-up: C backend type-requirement checks now have a real
+  owner in `src/codegen/transpiler_type_require.c`; the old
+  `src/codegen/transpiler_emitters_type_require.inc` include body was deleted,
+  reducing the source `.inc` cap to 159 and keeping
+  `transpiler_emitters_base_a_part_a.inc` at 905 LOC. Local gate used:
+  `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke` plus touched
+  path `git diff --check`.
+- Lean debt-slice follow-up: C backend extern declaration emission now has a
+  real owner in `src/codegen/transpiler_extern.c`; `emit_extern_block(...)` was
+  removed from `transpiler_emitters_base_b_part_b.inc`, reducing that near-cap
+  include body from 998 LOC to 957 LOC. `tests/inc_sentinel_smoke.sh` now uses
+  the current 159 source-`.inc` cap by default. Local gate used:
+  `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke` plus touched
+  path `git diff --check`.
+- Lean debt-slice follow-up: C backend type declarator rendering now has a real
+  owner in `src/codegen/transpiler_type_declarator.c`; event-handler
+  declarators, function pointer declarators, and function signatures were
+  removed from `transpiler_helpers_core_b_part_c.inc`, reducing it from 992 LOC
+  to 849 LOC. Local gate used:
+  `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke` plus touched
+  path `git diff --check`.
+- Lean debt-slice follow-up: C backend LogBanner normalization now has a real
+  owner in `src/codegen/transpiler_log_normalize.c`; multiline indentation
+  normalization was removed from `transpiler_expr_emitters_part_a.inc`,
+  reducing it from 991 LOC to 878 LOC. Local gate used:
+  `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke` plus touched
+  path `git diff --check`.
+- Lean debt-slice follow-up: generated-C runtime intent exit cleanup now has a
+  private inline owner in `src/runtime/pgy_runtime_intent_exit.h`;
+  `pgy_intent_exit_export(...)` keeps the same inline ABI name, while
+  `pgy_runtime_part_ba_part_b.inc` drops from 996 LOC to 894 LOC. Local gate
+  used: `make backend-inc-size-test-smoke inc-sentinel-test-smoke`,
+  `make runtime-abi-lifetime-test-smoke test-abi`, plus touched path
+  `git diff --check`.
+- Lean debt-slice follow-up: generated-C DeviceSlot/SecureSlot macro bodies now
+  have a private inline owner in `src/runtime/pgy_runtime_slot_macros.h`;
+  built-in instantiation remains in `pgy_runtime_part_ba_part_c.inc`, which
+  drops from 996 LOC to 808 LOC. Local gate used:
+  `make backend-inc-size-test-smoke inc-sentinel-test-smoke`,
+  `make runtime-abi-lifetime-test-smoke test-abi`, plus touched path
+  `git diff --check`.
+- Lean debt-slice follow-up: generated-C intent last-history step accessors now
+  have a private inline owner in `src/runtime/pgy_runtime_intent_history.h`;
+  `pgy_runtime_part_ba_part_a.inc` drops from 989 LOC to 867 LOC while the
+  borrowed string ABI remains guarded. `runtime_abi_lifetime_smoke.sh` now reads
+  the private inline headers that participate in the generated-C runtime family.
+  Local gate used: `make backend-inc-size-test-smoke inc-sentinel-test-smoke`,
+  `make runtime-abi-lifetime-test-smoke test-abi`, plus touched path
+  `git diff --check`.
+- Lean debt-slice follow-up: generated-C intent last/active borrowed exports now
+  have a private inline owner in
+  `src/runtime/pgy_runtime_intent_active_exports.h`; the registry/state half
+  remains in `pgy_runtime_part_ba_part_a.inc`, which drops from 867 LOC to
+  558 LOC. `runtime_abi_lifetime_smoke.sh` now tracks active and recent export
+  owners separately so future movement cannot hide behind concatenated runtime
+  text. Local gate used: `make runtime-abi-lifetime-test-smoke
+  backend-inc-size-test-smoke inc-sentinel-test-smoke`, plus `make -B pgy
+  runtime-panic-codegen-test-smoke runtime-panic-abi-test-smoke test-abi`.
+- Lean debt-slice follow-up: LLVM-linkable runtime core exports now have a
+  private owner in `src/runtime/pgy_runtime_lib_core_exports.h`; logging,
+  time/sleep, and `pgy_int_to_string(...)` moved out of
+  `pgy_runtime_lib_part_b_part_a.inc`, reducing it from 986 LOC to 909 LOC.
+  Local gate used: `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke`,
+  `make runtime-abi-lifetime-test-smoke test-abi`, plus touched path
+  `git diff --check`.
+- Lean debt-slice follow-up: C backend `let` destructuring lowering now has a
+  private owner in `src/codegen/transpiler_destructure_emit.h`;
+  `transpiler_emitters_base_b_part_c.inc` drops from 976 LOC to 873 LOC. Local
+  gate used: `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke`,
+  targeted backend compare for `destructure_array` and
+  `destructure_tuple_return`, plus touched path `git diff --check`.
+- Lean debt-slice follow-up: generated-C queue macro and built-in queue
+  implementations now have a private owner in
+  `src/runtime/pgy_runtime_queue_inline.h`; `pgy_runtime_part_ba_part_e.inc`
+  drops from 969 LOC to 773 LOC. Local gate used:
+  `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke`,
+  `make runtime-panic-codegen-test-smoke runtime-abi-lifetime-test-smoke
+  test-abi`, targeted backend compare for `queue_pop_string` and
+  `parallel_channel_sum`, plus touched path `git diff --check`.
+- Lean debt-slice follow-up: generated-C `HashMap<Int>` key adapters for
+  `Int`/`Long`/`Bool` keys now have a private owner in
+  `src/runtime/pgy_runtime_map_int_key_inline.h`; `pgy_runtime_part_ba_part_d.inc`
+  drops from 963 LOC to 815 LOC. Local gate used: `make -B pgy`,
+  `make backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-panic-codegen-test-smoke`, targeted backend compare for `map_keys` and
+  `map_get_string`, plus touched path `git diff --check`.
+- Lean debt-slice follow-up: LLVM-linkable primitive slot exports for
+  `Slot<Double>`, `Slot<Bool>`, and `Slot<String>` now have a private owner in
+  `src/runtime/pgy_runtime_lib_slot_exports.h`; `pgy_runtime_lib_part_b_part_d.inc`
+  drops from 947 LOC to 790 LOC while exported ABI symbol names remain
+  unchanged. Local gate used: `make -B pgy backend-inc-size-test-smoke
+  inc-sentinel-test-smoke runtime-panic-abi-test-smoke
+  runtime-panic-codegen-test-smoke runtime-abi-lifetime-test-smoke test-abi`.
+- Lean debt-slice follow-up: LLVM-linkable standard string/conversion/math/random
+  exports now have a private owner in `src/runtime/pgy_runtime_lib_std_exports.h`;
+  `pgy_runtime_lib_part_b_part_e.inc` drops from 817 LOC to 761 LOC and now
+  starts at the channel runtime section. `runtime_abi_lifetime_smoke.sh` now
+  reads runtime-lib private owner headers so result-owned string checks follow
+  the real include order. Local gate used: `make runtime-abi-lifetime-test-smoke
+  test-abi backend-inc-size-test-smoke inc-sentinel-test-smoke`.
+- Lean debt-slice follow-up: LLVM-linkable raw `List<T>` collection exports now
+  have a private owner in `src/runtime/pgy_runtime_lib_list_raw_exports.h`;
+  `pgy_runtime_lib_part_b_part_a.inc` drops from 909 LOC to 759 LOC and is now
+  focused on raw queue/map exports. Local gate used: `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-panic-codegen-test-smoke runtime-abi-lifetime-test-smoke test-abi`.
+- Lean debt-slice follow-up: MIR declaration-header inventory helpers now have
+  a private owner in `src/compiler/mir_decl_headers.h`; `mir_public_part_a.inc`
+  drops from 959 LOC to 789 LOC and now starts at `mir_lower(...)`. Local gate
+  used: `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke air-drift-test-smoke test-abi`.
+- Lean debt-slice follow-up: RIR public vocabulary name helpers now have a
+  private owner in `src/compiler/rir_names.h`; `rir_public.inc` drops from
+  911 LOC to 804 LOC while RIR validation/dump vocabulary remains unchanged.
+  Local gate used: `make -B pgy backend-inc-size-test-smoke
+  inc-sentinel-test-smoke type-resolution-dag-test-smoke air-drift-test-smoke
+  test-abi`.
+- Lean debt-slice follow-up: C backend parallel capture analysis now has a
+  private owner in `src/codegen/transpiler_parallel_capture.h`;
+  `transpiler_emitters_base_b_part_b.inc` drops from 957 LOC to 730 LOC while
+  parallel capture typing and slot capture behavior remain unchanged. Local
+  gate used: `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  parallel-core-contract-test-smoke runtime-panic-codegen-test-smoke` plus
+  targeted backend compare for `parallel_channel_sum`.
+- Lean debt-slice follow-up: C backend stdlib call lowering now has a private
+  owner in `src/codegen/transpiler_expr_stdlib_builtin.h`;
+  `transpiler_expr_emitters_part_d.inc` drops from 946 LOC to 26 LOC while
+  stdlib/string/collection call behavior remains unchanged. Local gate used:
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-panic-codegen-test-smoke` plus targeted backend compare for
+  `string_io`, `array_builtins`, `list_get_string`, and `map_get_string`.
+- Lean debt-slice follow-up: C backend overlay/projection invalidation and
+  zone-layer bind helpers now have a private owner in
+  `src/codegen/transpiler_overlay_projection.h`; the old
+  `transpiler_helpers_core_a_part_b.inc` include body was removed, lowering the
+  source `.inc` count to 158. `runtime_frontier_contract_smoke.sh` now checks
+  the real world frontier owner in `transpiler_domain_role_part_d.inc` instead
+  of the adjacent zone frontier part. Local gate used:
+  `make runtime-frontier-contract-test-smoke backend-inc-size-test-smoke
+  inc-sentinel-test-smoke` plus targeted backend compare for
+  `world_embedded_branch_projection_visibility` and
+  `world_embedded_action_frontier`.
+- Lean debt-slice follow-up: C backend `let` declaration lowering now has a
+  private owner in `src/codegen/transpiler_let_emit.h`;
+  `transpiler_emitters_base_a_part_a.inc` drops from 905 LOC to 138 LOC while
+  MIR inventory/SSA helper declarations remain in the original base-A part.
+  Local gate used: `make -B pgy backend-inc-size-test-smoke
+  inc-sentinel-test-smoke test-transpile` plus targeted backend compare for
+  `destructure_array`, `array_builtins`, and `map_keys`.
+- Lean debt-slice follow-up: C backend MIR block statement emission now has a
+  private owner in `src/codegen/transpiler_mir_block_emit.h`; the old
+  `transpiler_emitters_base_a_part_c.inc` include body was removed. Source
+  `.inc` total drops to 49,911 LOC, with only `transpiler_emitters_intent.inc`
+  still above 900 LOC. Local gate used: `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke test-transpile
+  type-resolution-dag-test-smoke air-drift-test-smoke` plus targeted backend
+  compare for `destructure_array`, `destructure_tuple_return`,
+  `host_method_class_return`, and `world_embedded_branch_projection_visibility`.
+- Lean debt-slice follow-up: C backend intent declaration emission now has a
+  private owner in `src/codegen/transpiler_intent_emit.h`; the old
+  `transpiler_emitters_intent.inc` include body was removed. Source `.inc`
+  total drops to 48,949 LOC, and no production `.inc` file remains above 900
+  LOC. Local gate used: `make -B pgy backend-inc-size-test-smoke
+  inc-sentinel-test-smoke test-transpile runtime-panic-codegen-test-smoke` plus
+  targeted backend compare for `intent_authority_snapshot` and
+  `intent_failure_observability_strings`.
+- Lean debt-slice follow-up: generated-C runtime intent-recent accessors,
+  panic helpers, and checked arithmetic exports now have a private owner in
+  `src/runtime/pgy_runtime_panic_checked_inline.h`;
+  `pgy_runtime_part_ba_part_b.inc` drops from 894 LOC to 705 LOC and the
+  runtime ABI lifetime inventory reads the new header in generated-runtime
+  include order. Local gate used: `make -B pgy backend-inc-size-test-smoke
+  inc-sentinel-test-smoke runtime-panic-codegen-test-smoke
+  runtime-panic-abi-test-smoke runtime-abi-lifetime-test-smoke test-abi`.
+- Current highest-value implementation order remains: DAG alias materialization,
+  AIR/CFG body fact source-of-truth, dedicated MIR declaration inventory,
+  runtime frontier scheduler generalization, and ABI ownership/pinning parity.
+- Rejected shortcut: using the alias symbol's already-materialized `sym->type`
+  directly inside metadata alias lookup breaks module visibility and generic
+  ability provenance tests. Alias DAG closure must preserve export/private
+  provenance and effective generic-bound facts instead of trusting the symbol
+  cache as the source of truth.
+- Sprint process change: beta closure now uses a lean debt-slice loop. Pick one
+  owner, complete the implementation slice, run the slice-local gate, and defer
+  wider regression to the slice boundary. Full regression is still required
+  before closure, but the inner loop must be implementation-first, not
+  test-threshold-first.
+
 ## UTF-8 Progress Note - 2026-04-26 - DAG Owner Seam Centralization
 
 - All owner-local type resolver seams now route through
@@ -51,7 +289,8 @@
 - The old `semantic_type_resolution_resolve_or_fallback(...)` helper is removed;
   `type-resolution-resolver-inventory-test-smoke` caps named fallback seams at 0
   and fails if new owner-local fallback users appear.
-- Latest DAG smoke stats: `graph-backed skips=3137 metadata_entries=2044
+- Previous DAG smoke stats before nominal metadata materialization tightening:
+  `graph-backed skips=3137 metadata_entries=2044
   metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135
   legacy_alias=83 legacy_non_alias=0 alias_materialized=5
   alias_diagnostic_fallback=78 alias_fallback_resolved=0

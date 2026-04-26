@@ -317,7 +317,7 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
     codebuf_write(dst, "} PgyTuple_%s_t;\n", suffix);
 }
 
-static void
+void
 ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *type_node)
 {
     if (ctx == NULL || type_node == NULL)
@@ -420,7 +420,7 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNod
     }
 }
 
-static void
+void
 ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
 {
     ensure_type_specializations_from_ast_to(ctx, ctx->decls, type_node);

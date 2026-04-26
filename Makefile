@@ -237,9 +237,14 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_symbols.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \
                    $(CODEGEN_DIR)/transpiler_enum.c \
+                   $(CODEGEN_DIR)/transpiler_extern.c \
+                   $(CODEGEN_DIR)/transpiler_log_normalize.c \
                    $(CODEGEN_DIR)/transpiler_nominal.c \
                    $(CODEGEN_DIR)/transpiler_operator.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \
+                   $(CODEGEN_DIR)/transpiler_type_alias.c \
+                   $(CODEGEN_DIR)/transpiler_type_declarator.c \
+                   $(CODEGEN_DIR)/transpiler_type_require.c \
                    $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/dir.c \

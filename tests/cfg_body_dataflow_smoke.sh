@@ -42,8 +42,12 @@ diag_doc_path = root / "docs" / "72_diagnostic_codes.md"
 parser_path = root / "src" / "parser" / "parser.c"
 let_path = root / "src" / "semantic" / "type_checker_ownership_let.c"
 semantic_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a.inc"
+semantic_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_a.inc"
+semantic_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_b.inc"
 semantic_async_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_async.inc"
 semantic_effect_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_effects.inc"
+semantic_effect_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_effects_part_a.inc"
+semantic_effect_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_effects_part_b.inc"
 semantic_parallel_context_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_parallel_context.inc"
 
 for path in (
@@ -69,8 +73,12 @@ for path in (
     parser_path,
     let_path,
     semantic_tests_path,
+    semantic_tests_part_a_path,
+    semantic_tests_part_b_path,
     semantic_async_tests_path,
     semantic_effect_tests_path,
+    semantic_effect_tests_part_a_path,
+    semantic_effect_tests_part_b_path,
     semantic_parallel_context_tests_path,
 ):
     if not path.exists():
@@ -112,9 +120,17 @@ let_checker = let_path.read_text(encoding="utf-8")
 semantic_tests = (
     semantic_tests_path.read_text(encoding="utf-8")
     + "\n"
+    + semantic_tests_part_a_path.read_text(encoding="utf-8")
+    + "\n"
+    + semantic_tests_part_b_path.read_text(encoding="utf-8")
+    + "\n"
     + semantic_async_tests_path.read_text(encoding="utf-8")
     + "\n"
     + semantic_effect_tests_path.read_text(encoding="utf-8")
+    + "\n"
+    + semantic_effect_tests_part_a_path.read_text(encoding="utf-8")
+    + "\n"
+    + semantic_effect_tests_part_b_path.read_text(encoding="utf-8")
     + "\n"
     + semantic_parallel_context_tests_path.read_text(encoding="utf-8")
 )

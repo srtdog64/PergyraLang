@@ -266,6 +266,37 @@ driver_format_air_authority_names(const AIRBoundaryNode *boundary,
     return emitted;
 }
 
+static bool
+driver_format_air_evidence_summary(const AIRBoundaryNode *boundary,
+                                   char *out,
+                                   size_t out_size)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+    if (boundary == NULL)
+        return false;
+
+    written = snprintf(out,
+                       out_size,
+                       "evidence hir=%s rir_boundary=%s rir_authority=%s",
+                       boundary->hir_routine_evidence_name != NULL
+                           ? boundary->hir_routine_evidence_name
+                           : "<none>",
+                       boundary->rir_boundary_evidence_scope != NULL
+                           ? boundary->rir_boundary_evidence_scope
+                           : "<none>",
+                       boundary->rir_authority_evidence_name != NULL
+                           ? boundary->rir_authority_evidence_name
+                           : "<none>");
+    if (written < 0)
+        return false;
+    out[out_size - 1] = '\0';
+    return true;
+}
+
 static void
 driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
 {
@@ -280,7 +311,9 @@ driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
     const char *reason = "intent orchestration and implementation boundary disagree on sync/async behavior";
     const char *fix = "align the intent step contract with the boundary or move the implementation through a matching boundary";
     char authority_names[256];
-    char reason_with_authority[768];
+    char evidence_summary[512];
+    char reason_with_authority[1024];
+    char reason_with_evidence[1536];
     unsigned line = 0;
     unsigned column = 0;
 
@@ -316,6 +349,16 @@ driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
                      reason,
                      authority_names);
             reason = reason_with_authority;
+        }
+        if (driver_format_air_evidence_summary(boundary,
+                                               evidence_summary,
+                                               sizeof(evidence_summary))) {
+            snprintf(reason_with_evidence,
+                     sizeof(reason_with_evidence),
+                     "%s; %s",
+                     reason,
+                     evidence_summary);
+            reason = reason_with_evidence;
         }
     }
 
