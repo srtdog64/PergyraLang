@@ -596,7 +596,7 @@ match_stmt_has_total_case_coverage(ASTNode *node, Type *subj_type,
     return true;
 }
 
-#include "type_checker_flow_loops.inc"
+#include "type_checker_flow_loops.h"
 
 static FlowFlags
 type_check_block_flow(ASTNode *node, SemanticContext *ctx,

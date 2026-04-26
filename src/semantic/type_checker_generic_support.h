@@ -407,4 +407,4 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
     return effective;
 }
 
-#include "type_checker_generic_contracts.inc"
+#include "type_checker_generic_contracts.h"

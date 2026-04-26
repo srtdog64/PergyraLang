@@ -1,4 +1,4 @@
-#include "type_checker_resolve.inc"
+#include "type_checker_resolve.h"
 
 static Type *
 expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)

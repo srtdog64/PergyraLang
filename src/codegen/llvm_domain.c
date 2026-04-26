@@ -145,7 +145,7 @@ llvm_operator_method_name_matches(PgyTokenType op, const char *name)
 }
 
 #include "llvm_domain_core_helpers.h"
-#include "llvm_domain_helpers_part_b.inc"
+#include "llvm_domain_projection_sync_helpers.h"
 
 static void
 llvm_stamp_domain_provenance(LLVMGenCtx *ctx,

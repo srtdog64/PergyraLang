@@ -121,7 +121,7 @@
 관련 파일:
 
 - [llvm_expr_call_methods_part_a.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods_part_a.inc)
-- [llvm_expr_call_methods_part_b.inc](/mnt/e/PergyraLang/src/codegen/llvm_expr_call_methods_part_b.inc)
+- [llvm_member_call_emit.h](/mnt/e/PergyraLang/src/codegen/llvm_member_call_emit.h)
 
 ### 4. escape/local placement debt
 

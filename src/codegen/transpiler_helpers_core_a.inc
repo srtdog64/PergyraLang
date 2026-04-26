@@ -20,4 +20,4 @@ static TranspilerCtx *g_type_render_ctx = NULL;
 static char *strdup_fmt(const char *fmt, ...);
 
 #include "transpiler_overlay_projection.h"
-#include "transpiler_helpers_core_a_part_c.inc"
+#include "transpiler_projection_sync_helpers.h"

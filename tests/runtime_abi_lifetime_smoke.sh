@@ -24,7 +24,7 @@ root = pathlib.Path(sys.argv[1])
 
 groups = {
     "inline-intent": (
-        root / "src" / "runtime" / "pgy_runtime_part_ba_part_a.inc",
+        root / "src" / "runtime" / "pgy_runtime_intent_trace_inline.h",
         [
             "pgy_intent_last_trace_export",
             "pgy_intent_last_failure_export",
@@ -84,7 +84,7 @@ groups = {
         ],
     ),
     "inline-authority": (
-        root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc",
+        root / "src" / "runtime" / "pgy_runtime_zone_result_option_inline.h",
         [
             "pgy_zone_authority_last_zone_export",
             "pgy_zone_authority_last_participant_export",
@@ -142,7 +142,7 @@ macro_exports = {
 
 result_owned_strings = {
     "inline-string-helpers": (
-        root / "src" / "runtime" / "pgy_runtime_part_c.inc",
+        root / "src" / "runtime" / "pgy_runtime_io_qubit_inline.h",
         [
             "Substring",
             "StringReplace",
@@ -174,7 +174,7 @@ result_owned_strings = {
 
 result_owned_arrays = {
     "inline-string-array-helpers": (
-        root / "src" / "runtime" / "pgy_runtime_part_c.inc",
+        root / "src" / "runtime" / "pgy_runtime_io_qubit_inline.h",
         [
             "StringSplit",
         ],
@@ -247,19 +247,22 @@ def find_function_body(text: str, name: str) -> str:
 
 def read_runtime_text(path: pathlib.Path) -> str:
     text = path.read_text(encoding="utf-8")
-    if path.name.startswith("pgy_runtime_part_ba_part_"):
+    if path.name.startswith("pgy_runtime_part_ba_part_") or path.name in {
+        "pgy_runtime_intent_trace_inline.h",
+        "pgy_runtime_zone_result_option_inline.h",
+    }:
         parts = [
-            path.with_name("pgy_runtime_part_ba_part_a.inc"),
+            path.with_name("pgy_runtime_intent_trace_inline.h"),
             path.with_name("pgy_runtime_intent_active_exports.h"),
             path.with_name("pgy_runtime_intent_history.h"),
             path.with_name("pgy_runtime_intent_exit.h"),
             path.with_name("pgy_runtime_panic_checked_inline.h"),
             path.with_name("pgy_runtime_memory_array_slot_inline.h"),
             path.with_name("pgy_runtime_slot_macros.h"),
-            path.with_name("pgy_runtime_part_ba_part_c.inc"),
-            path.with_name("pgy_runtime_part_ba_part_d.inc"),
+            path.with_name("pgy_runtime_builtin_storage_inline.h"),
+            path.with_name("pgy_runtime_list_set_inline.h"),
             path.with_name("pgy_runtime_pool_fsm_timer_inline.h"),
-            path.with_name("pgy_runtime_part_ba_part_e.inc"),
+            path.with_name("pgy_runtime_zone_result_option_inline.h"),
         ]
         missing = [part for part in parts if not part.exists()]
         if missing:
@@ -272,9 +275,9 @@ def read_runtime_text(path: pathlib.Path) -> str:
         parts = [
             path.with_name("pgy_runtime_lib_core_exports.h"),
             path.with_name("pgy_runtime_lib_raw_collection_exports.h"),
-            path.with_name("pgy_runtime_lib_part_b_part_b.inc"),
+            path.with_name("pgy_runtime_lib_set_intent_trace_exports.h"),
             path.with_name("pgy_runtime_lib_intent_exports.h"),
-            path.with_name("pgy_runtime_lib_part_b_part_c.inc"),
+            path.with_name("pgy_runtime_lib_intent_slot_core_exports.h"),
             path.with_name("pgy_runtime_lib_slot_exports.h"),
             path.with_name("pgy_runtime_lib_slot_array_io_string_exports.h"),
             path.with_name("pgy_runtime_lib_std_exports.h"),

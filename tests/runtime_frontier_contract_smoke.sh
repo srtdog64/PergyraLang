@@ -22,12 +22,12 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 
-c_zone = root / "src" / "codegen" / "transpiler_domain_role_part_b.inc"
-c_zone_frontier = root / "src" / "codegen" / "transpiler_domain_role_part_c.inc"
-c_world = root / "src" / "codegen" / "transpiler_domain_role_part_d.inc"
-c_projection = root / "src" / "codegen" / "transpiler_domain_role_part_a.inc"
+c_zone = root / "src" / "codegen" / "transpiler_domain_nominal_emit.h"
+c_zone_frontier = root / "src" / "codegen" / "transpiler_zone_decl_emit.h"
+c_world = root / "src" / "codegen" / "transpiler_world_select_event_emit.h"
+c_projection = root / "src" / "codegen" / "transpiler_domain_role_ability_emit.h"
 llvm_domain = root / "src" / "codegen" / "llvm_domain.c"
-llvm_projection = root / "src" / "codegen" / "llvm_domain_helpers_part_b.inc"
+llvm_projection = root / "src" / "codegen" / "llvm_domain_projection_sync_helpers.h"
 abi_smoke = root / "tests" / "abi_pipeline_smoke.sh"
 backend_compare = root / "tests" / "compare_backends.sh"
 checklist = root / "docs" / "100_beta_readiness_checklist.md"

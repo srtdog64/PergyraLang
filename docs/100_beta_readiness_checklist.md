@@ -793,7 +793,8 @@ make llvm-test-backend-compare
   `pgy_runtime_part_ba_part_b/c.inc` at 996 LOC,
   `transpiler_helpers_core_b_part_c.inc` at 992 LOC,
   `transpiler_expr_emitters_part_a.inc` at 991 LOC,
-  `pgy_runtime_part_ba_part_a.inc` at 989 LOC, and
+  `pgy_runtime_intent_trace_inline.h` as the named owner for the former 989 LOC
+  `pgy_runtime_part_ba_part_a.inc`, and
   `pgy_runtime_lib_part_b_part_a.inc` at 986 LOC.
 
 증거 명령:

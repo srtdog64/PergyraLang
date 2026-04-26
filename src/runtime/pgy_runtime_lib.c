@@ -13,7 +13,7 @@
 #include "pgy_runtime_lib_raw_collection_exports.h"
 #include "pgy_runtime_lib_set_intent_trace_exports.h"
 #include "pgy_runtime_lib_intent_exports.h"
-#include "pgy_runtime_lib_part_b_part_c.inc"
+#include "pgy_runtime_lib_intent_slot_core_exports.h"
 #include "pgy_runtime_lib_slot_exports.h"
 #include "pgy_runtime_lib_slot_array_io_string_exports.h"
 #include "pgy_runtime_lib_std_exports.h"

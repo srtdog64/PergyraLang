@@ -84,9 +84,9 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
  * Formerly chained through helpers.inc + helpers_core.inc — wrappers
  * deleted once the helpers_late.c TU went out. */
 #include "type_checker_helpers_context.inc"
-#include "type_checker_helpers_resolution.inc"
+#include "type_checker_resolution_helpers.h"
 #include "type_checker_helpers_effects.h"
-#include "type_checker_helpers_host.inc"
+#include "type_checker_host_helpers.h"
 /* type_checker_visibility.inc was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
 
@@ -157,7 +157,7 @@ semantic_find_labeled_loop_depth(SemanticContext *ctx, const char *label)
     return -1;
 }
 
-#include "type_checker_generic_support.inc"
+#include "type_checker_generic_support.h"
 
 Type *
 type_get_constructed_arg(const Type *type, size_t index)
@@ -198,7 +198,7 @@ callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx)
 
 /* type_check_ability_decl body moved to type_checker_ability_decl.c — see docs/101_semantic_split_template.md */
 
-#include "type_checker_async_channel.inc"
+#include "type_checker_async_channel.h"
 
 static char *
 semantic_assignment_target_path_impl(ASTNode *expr,

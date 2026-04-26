@@ -8,9 +8,9 @@
 #ifndef PGY_RUNTIME_H
 #define PGY_RUNTIME_H
 
-#include "pgy_runtime_part_a.inc"
+#include "pgy_runtime_platform_io_core.h"
 #include "pgy_runtime_part_ba.inc"
-#include "pgy_runtime_part_bb.inc"
-#include "pgy_runtime_part_c.inc"
+#include "pgy_runtime_channel_inline.h"
+#include "pgy_runtime_io_qubit_inline.h"
 
 #endif /* PGY_RUNTIME_H */

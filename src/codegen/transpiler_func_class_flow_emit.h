@@ -684,7 +684,7 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
  * ----------------------------------------------------------------- */
 
 
-#include "transpiler_emitters_async_parallel.inc"
+#include "transpiler_async_parallel_emit.h"
 
 #include "transpiler_emitters_enum_decl.inc"
 
@@ -694,7 +694,7 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
 
 #include "transpiler_emitters_control_flow_loops.inc"
 
-#include "transpiler_emitters_match.inc"
+#include "transpiler_match_emit.h"
 
 void
 emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)

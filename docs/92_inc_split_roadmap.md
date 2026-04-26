@@ -23,7 +23,7 @@ type_checker.c
 ├─ type_checker_ownership_boundaries.inc
 ├─ type_checker_ownership_param_summary.inc
 ├─ type_checker_decls.inc → a / b (5 추가 .inc)
-├─ type_checker_async_channel.inc
+├─ type_checker_async_channel.h
 ├─ type_checker_program.inc
 ├─ type_checker_program.c
 └─ type_checker_class_decl.c
@@ -101,12 +101,12 @@ Recently closed:
   `codegen/transpiler_helpers_core_b.inc`,
   `codegen/transpiler_domain_role.inc`,
   `codegen/llvm_expr_helpers_part_a.inc` through
-  `codegen/llvm_expr_helpers_part_c.inc`,
-  `compiler/mir_public_part_a.inc` / `compiler/mir_public_part_b.inc`,
+  `codegen/llvm_expr_identifier_slot_helpers.h`,
+  `compiler/mir_lower_public_api.h` / `compiler/mir_public_surface.h`,
   `codegen/llvm_expr_call_methods_part_a.inc` /
-  `codegen/llvm_expr_call_methods_part_b.inc`,
+  `codegen/llvm_member_call_emit.h`,
   `codegen/llvm_domain_helpers_part_a.inc` /
-  `codegen/llvm_domain_helpers_part_b.inc`.
+  `codegen/llvm_domain_projection_sync_helpers.h`.
 - `semantic/type_checker_helpers_late.c` — standalone TU hidden include-order dependency fixed by promoting call-path helpers to `type_checker_internal.h` and explicitly including slot analyzer / visibility / generic diagnostic contracts.
 
 ---
@@ -204,11 +204,11 @@ Backend 진행:
 - `type_checker_intent_decl.c`의 participant/value/where type materialization은 local seam 3개로 수렴했고, 이제 graph-backed resolved metadata를 먼저 조회한 뒤 recursive fallback으로 내려간다.
 - `type_checker_decls_domain_helpers.c`의 projection/relation/effect contract type materialization은 slot/shared/named-ref seam 3개로 수렴했고, domain contract checks는 graph-backed resolved metadata를 먼저 재사용한다. Zone authority participant resolution also now treats exact/qualified-tail direct slot aliases as concrete before same-type ambiguity, and clears stale ambiguity when returning a direct match.
 - `type_checker_intent_helpers.c`의 transfer-derived using/where, ability generic arg, role-field checks는 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 이 seam을 graph-backed metadata reader로 교체하는 것이다.
-- `type_checker_helpers_host.inc`의 projection source field, hosted method return/param, zone authority/domain slot checks는 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 host helper include의 마지막 resolver seam을 `.c` owner로 추출한 뒤 graph-backed metadata reader로 교체하는 것이다.
+- `type_checker_host_helpers.h`의 projection source field, hosted method return/param, zone authority/domain slot checks는 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 host helper header의 마지막 resolver seam을 `.c` owner로 추출한 뒤 graph-backed metadata reader로 교체하는 것이다.
 - `type_checker_program.c` / `type_checker_program.inc`의 declaration/body type materialization은 quiet/body resolver seam으로 수렴했다. function body materialization은 graph-backed resolved metadata를 먼저 재사용한다.
 - `type_checker_event.c`의 event declaration/subscription signature materialization은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 event signature metadata reader로 교체하는 것이다.
 - `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. 다음 DAG slice는 world shared/slot checks가 graph-backed resolved metadata를 재사용하게 만드는 것이다.
-- `type_checker_role_decl.c`, `type_checker_generic_contracts.inc`, `type_checker_helpers_late.c`, `type_checker_expr.inc`는 각각 local resolver seam 1개로 수렴했다. 다음 DAG slice는 role include/impl, generic default/bound, call default, lambda/member metadata를 graph-backed result로 교체하는 것이다.
+- `type_checker_role_decl.c`, `type_checker_generic_contracts.h`, `type_checker_helpers_late.c`, `type_checker_expr.inc`는 각각 local resolver seam 1개로 수렴했다. 다음 DAG slice는 role include/impl, generic default/bound, call default, lambda/member metadata를 graph-backed result로 교체하는 것이다.
 - `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 다음 DAG slice는 이 seam들을 graph-backed metadata reader로 교체하고 remaining direct count를 implementation/comment/seam만 남기는 것이다.
 - statement/type-alias, ability fields, projection/query builtins, flow with-slot, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다. zone domain-slot seam은 graph metadata-first 조회를 사용하며, `type-resolution-resolver-inventory-test-smoke`가 새 direct resolver 호출을 allowlist 밖에서 금지한다.
 - declaration validators는 `subject/class`, `zone`, `world`, `intent`, `relation/effect/projection`, `ability/role/party/roster` 단위의 `.c`로 분리한다.
@@ -226,7 +226,7 @@ Semantic stop condition:
   instead of growing.
 - Closed risky seam: the former `type_checker_builtins_query.inc` body now
   lives in `type_checker_builtins_query.h`, and
-  `type_checker_builtins_slotops.inc` owns the complete
+  `type_checker_builtins_slotops.h` owns the complete
   `BuiltinKind builtin_resolve(...)` signature. The remaining semantic builtin
   cleanup target is nominal/slotops ownership, not a cross-file dangling
   return-type boundary.
@@ -309,11 +309,11 @@ Speed stop condition:
 
 ```
 semantic_classify_ownership_type
-└─ calls type_is_subject_type   ← static in type_checker_helpers_host.inc
+└─ calls type_is_subject_type   ← static in type_checker_host_helpers.h
    └─ helper에서 caller로 cascade 필요
 ```
 
-`type_is_subject_type`은 `type_checker_helpers_host.inc` 에 **static**으로 존재. .c 분리 시 cascade promote 필요.
+`type_is_subject_type`은 `type_checker_host_helpers.h` 에 **static**으로 존재. .c 분리 시 cascade promote 필요.
 
 **경험칙**: 한 axis 절단은 평균 3~5개의 cascade promote를 동반.
 
@@ -339,7 +339,7 @@ semantic_classify_ownership_type
 - 검증: `make test-semantic`
 
 ### 3. **channel transport validator**
-- 대상: `type_checker_async_channel.inc:11-217` (validator + reporters)
+- 대상: `type_checker_async_channel.h:11-217` (validator + reporters)
 - 종속: ownership classifier (위 axis 2 선행 필요), `OwnershipConsumerKind`
 - 출력: `type_checker_channel_transport.c` + 기존 `type_checker_channel_transport_internal.h` 갱신
 - 상태: DONE — borrowed transfer, named-binding transfer, transport mismatch/policy reporters를 별도 TU로 이동

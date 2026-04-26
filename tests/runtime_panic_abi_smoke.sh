@@ -23,7 +23,7 @@ case "$(uname -s 2>/dev/null || echo unknown)" in
     MINGW*|MSYS*|CYGWIN*) EXE_EXT=".exe" ;;
 esac
 
-if grep -q "PGY_SECURE_SLOT_DEFINE_RELEASE" "$ROOT_DIR/src/runtime/pgy_runtime_part_ba_part_c.inc"; then
+if grep -q "PGY_SECURE_SLOT_DEFINE_RELEASE" "$ROOT_DIR/src/runtime/pgy_runtime_builtin_storage_inline.h"; then
     echo "runtime panic ABI smoke: SecureSlot release-mode macro must not exist" >&2
     exit 1
 fi

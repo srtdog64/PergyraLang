@@ -22,10 +22,10 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 header = root / "src" / "runtime" / "pgy_runtime_panic_contract.h"
-inline_top = root / "src" / "runtime" / "pgy_runtime_part_a.inc"
+inline_top = root / "src" / "runtime" / "pgy_runtime_platform_io_core.h"
 inline_panic = root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h"
-lib_top = root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc"
-slot_c = root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_c.inc"
+lib_top = root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h"
+slot_c = root / "src" / "runtime" / "pgy_runtime_lib_intent_slot_core_exports.h"
 slot_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_exports.h"
 slot_array_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h"
 docs = [
@@ -149,8 +149,8 @@ if "return (ZeroExpr);" in macro_body:
 if "s != NULL && t != NULL" in macro_body:
     raise SystemExit("secure slot export macro still uses silent guard-only validation")
 
-authority_text = (root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc").read_text(encoding="utf-8")
-inline_authority_text = (root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc").read_text(encoding="utf-8")
+authority_text = (root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h").read_text(encoding="utf-8")
+inline_authority_text = (root / "src" / "runtime" / "pgy_runtime_zone_result_option_inline.h").read_text(encoding="utf-8")
 for label, text in [
     ("exported authority", authority_text),
     ("inline authority", inline_authority_text),
@@ -166,7 +166,7 @@ if re.search(r"pgy_zone_authority_check_export.*?abort\s*\(", authority_text, fl
 
 array_text = "\n".join([
     (root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h").read_text(encoding="utf-8"),
-    (root / "src" / "runtime" / "pgy_runtime_part_ba_part_c.inc").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_builtin_storage_inline.h").read_text(encoding="utf-8"),
 ])
 for token in [
     "PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS",
@@ -202,9 +202,9 @@ for token in [
 
 inline_collection_text = "\n".join([
     (root / "src" / "runtime" / "pgy_runtime_queue_inline.h").read_text(encoding="utf-8"),
-    (root / "src" / "runtime" / "pgy_runtime_part_ba_part_c.inc").read_text(encoding="utf-8"),
-    (root / "src" / "runtime" / "pgy_runtime_part_ba_part_d.inc").read_text(encoding="utf-8"),
-    (root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_builtin_storage_inline.h").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_list_set_inline.h").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_zone_result_option_inline.h").read_text(encoding="utf-8"),
 ])
 for token in [
     "list index out of bounds",
@@ -234,7 +234,7 @@ for token in [
     if token not in export_collection_text:
         raise SystemExit(f"exported collection runtime missing hard-fail token {token}")
 
-runtime_export_text = (root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc").read_text(encoding="utf-8")
+runtime_export_text = (root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h").read_text(encoding="utf-8")
 inline_runtime_text = "\n".join([
     (root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_panic_checked_inline.h").read_text(encoding="utf-8"),
@@ -255,8 +255,8 @@ for label, text in [
             raise SystemExit(f"{label} missing {token}")
 
 for path in [
-    root / "src" / "codegen" / "transpiler_expr_emitters_part_a.inc",
-    root / "src" / "codegen" / "llvm_expr_core.inc",
+    root / "src" / "codegen" / "transpiler_expr_core_emit.h",
+    root / "src" / "codegen" / "llvm_expr_scalar_core.h",
     root / "src" / "codegen" / "llvm_runtime.c",
 ]:
     text = path.read_text(encoding="utf-8")
@@ -265,11 +265,11 @@ for path in [
             raise SystemExit(f"{path.relative_to(root)} missing checked arithmetic lowering {token}")
 
 unwrap_lowering_paths = {
-    root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc": [
+    root / "src" / "runtime" / "pgy_runtime_zone_result_option_inline.h": [
         "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR",
         "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE",
     ],
-    root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc": [
+    root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h": [
         "pgy_runtime_panic_internal_invariant_export",
         "PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT",
     ],
@@ -295,7 +295,7 @@ for path, tokens in unwrap_lowering_paths.items():
 
 array_lowering_paths = {
     root / "src" / "codegen" / "transpiler_expr_stdlib_builtin.h": ["pgy_array_set_"],
-    root / "src" / "codegen" / "transpiler_expr_emitters_part_f.inc": ["pgy_array_get_", "pgy_slice_get_"],
+    root / "src" / "codegen" / "transpiler_expr_dispatch_emit.h": ["pgy_array_get_", "pgy_slice_get_"],
     root / "src" / "codegen" / "llvm_expr.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get"],
     root / "src" / "codegen" / "llvm_expr_call_arrays.inc": ["pgy_array_set_"],
     root / "src" / "codegen" / "llvm_runtime.c": ["pgy_array_get_", "pgy_array_set_", "pgy_slice_get_"],
@@ -309,7 +309,7 @@ for path, tokens in array_lowering_paths.items():
 compiler_text = (root / "src" / "compiler" / "compiler.c").read_text(encoding="utf-8")
 for token in [
     'PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h"',
-    'PGY_RUNTIME_DIR "/pgy_runtime_part_ba_part_c.inc"',
+    'PGY_RUNTIME_DIR "/pgy_runtime_builtin_storage_inline.h"',
 ]:
     if token not in compiler_text:
         raise SystemExit(f"LLVM runtime cache freshness missing split runtime dependency {token}")

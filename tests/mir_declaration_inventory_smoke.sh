@@ -177,9 +177,10 @@ required_mir_terms = [
     "routine_index",
 ]
 mir_header = (root / "src" / "compiler" / "mir.h").read_text(encoding="utf-8")
-mir_public = (root / "src" / "compiler" / "mir_public_part_a.inc").read_text(encoding="utf-8")
+mir_public = (root / "src" / "compiler" / "mir_lower_public_api.h").read_text(encoding="utf-8")
+mir_decl_headers = (root / "src" / "compiler" / "mir_decl_headers.h").read_text(encoding="utf-8")
 for term in required_mir_terms:
-    if term not in mir_header and term not in mir_public:
+    if term not in mir_header and term not in mir_public and term not in mir_decl_headers:
         errors.append(f"MIR declaration method metadata missing term: {term}")
 
 metadata_branch = internal.split("decl = decl_header->ast;", 1)[0]

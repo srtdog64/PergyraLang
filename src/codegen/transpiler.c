@@ -319,7 +319,7 @@ static bool class_has_generic_params(ASTNode *node);
 static const char *ensure_generic_class_specialization(
     TranspilerCtx *ctx, ASTNode *class_decl, ASTNode *ann);
 
-#include "transpiler_helpers.inc"
+#include "transpiler_helpers.h"
 #include "transpiler_emitters_base_a.inc"
 #include "transpiler_emitters_base_b.inc"
 #include "transpiler_intent_emit.h"

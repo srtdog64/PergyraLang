@@ -22,9 +22,9 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 header = root / "src" / "runtime" / "pgy_runtime_authority_contract.h"
-inline_part = root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc"
-lib_part = root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc"
-top_part = root / "src" / "runtime" / "pgy_runtime_part_a.inc"
+inline_part = root / "src" / "runtime" / "pgy_runtime_zone_result_option_inline.h"
+lib_part = root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h"
+top_part = root / "src" / "runtime" / "pgy_runtime_platform_io_core.h"
 
 required_macros = {
     "PGY_ZONE_AUTHORITY_CODE_OK": "ok",

@@ -90,20 +90,19 @@ progress ledger, not a new language surface.
   pointer values, and function signatures. This removes another shared helper
   family from `transpiler_helpers_core_b_part_c.inc`.
 - `src/codegen/transpiler_log_normalize.c` now owns C backend LogBanner
-  indentation normalization. This keeps `transpiler_expr_emitters_part_a.inc`
-  focused on expression lowering instead of carrying multiline string
-  normalization helpers.
+  indentation normalization. The remaining expression-core lowering later moved
+  to `transpiler_expr_core_emit.h`.
 - `src/runtime/pgy_runtime_intent_exit.h` now owns the generated-C inline
   intent exit implementation. The ABI surface remains `static inline
   pgy_intent_exit_export(...)`, but the large observability snapshot/cleanup
   body no longer lives in `pgy_runtime_part_ba_part_b.inc`.
 - `src/runtime/pgy_runtime_slot_macros.h` now owns the generated-C inline
   `DeviceSlot<T>` and `SecureSlot<T>` macro families. The built-in slot
-  instantiation order stays in `pgy_runtime_part_ba_part_c.inc`, but the macro
+  instantiation order now stays in `pgy_runtime_builtin_storage_inline.h`, but the macro
   bodies no longer inflate that split include.
 - `src/runtime/pgy_runtime_intent_history.h` now owns the generated-C inline
   last-intent history step accessors. The exported inline ABI names remain
-  unchanged, while `pgy_runtime_part_ba_part_a.inc` no longer carries the
+  unchanged, while `pgy_runtime_intent_trace_inline.h` now carries the
   per-field borrowed string accessor block.
 - `src/runtime/pgy_runtime_lib_core_exports.h` now owns LLVM-linkable runtime
   core exports for logging, wall-clock sleep/time, and integer string
@@ -174,10 +173,9 @@ progress ledger, not a new language surface.
   Their shims now include only files that carry real implementation content,
   and contract tests point at the implementation-owning parts instead of empty
   tail placeholders.
-- `src/codegen/transpiler_expr_emitters.inc` is now a shim over top-level
-  function-boundary parts:
-  - `transpiler_expr_emitters_part_a.inc` through
-    `transpiler_expr_emitters_part_f.inc`
+- `src/codegen/transpiler_expr_emitters.inc` is now a shim over named private
+  expression owners such as `transpiler_expr_core_emit.h`,
+  `transpiler_expr_dispatch_emit.h`, and the remaining focused helper parts.
 - The old expression-emitter split that crossed `emit_call`,
   `emit_binary`, and helper function bodies was removed.
 - `emit_call` was reduced from a multi-thousand-line mixed dispatcher into
@@ -223,12 +221,12 @@ default. There is no empty-sentinel allowlist.
 The expression emitter parts are currently below the beta 1,000 LOC cap:
 
 ```text
-src/codegen/transpiler_expr_emitters_part_a.inc 487
+src/codegen/transpiler_expr_core_emit.h 487
 src/codegen/transpiler_expr_builtin_dispatch.h 710
-src/codegen/transpiler_expr_emitters_part_c.inc 537
+src/codegen/transpiler_call_constructor_result_emit.h 537
 src/codegen/transpiler_expr_emitters_part_d.inc 24
 src/codegen/transpiler_expr_call_spawn_emit.h 722
-src/codegen/transpiler_expr_emitters_part_f.inc 451
+src/codegen/transpiler_expr_dispatch_emit.h 451
 src/codegen/transpiler_expr_stdlib_builtin.h 917
 ```
 
@@ -236,9 +234,9 @@ The related intent/base emitter seams are also below the cap:
 
 ```text
 src/codegen/transpiler_helpers_core_a.inc 22
-src/codegen/transpiler_helpers_core_a_part_c.inc 519
+src/codegen/transpiler_projection_sync_helpers.h 519
 src/codegen/transpiler_helpers_core_b.inc 64
-src/codegen/transpiler_helpers_core_b_part_b.inc 467
+src/codegen/transpiler_specialization_helpers.h 467
 src/codegen/transpiler_helpers_core_b_part_c.inc 296
 src/codegen/transpiler_expr_type_infer.h 501
 src/codegen/transpiler_context.c 284
@@ -272,7 +270,7 @@ src/codegen/transpiler_type_require.h 20
 src/codegen/transpiler_type_render.h 16
 src/codegen/transpiler_type_mapping_helpers.h 599
 src/codegen/transpiler_statement_dispatch.h 257
-src/codegen/transpiler_emitters_base_b_part_c.inc 546
+src/codegen/transpiler_block_intent_helpers.h 546
 src/codegen/transpiler_emitters_base_b_part_d.inc 257
 src/runtime/pgy_runtime_intent_exit.h 106
 src/runtime/pgy_runtime_panic_checked_inline.h 191
@@ -280,12 +278,12 @@ src/runtime/pgy_runtime_slot_macros.h 190
 ```
 
 The MIR public implementation split is also below the production cap after
-moving the public name helpers and `mir_destroy(...)` into the second public
-part:
+moving the public lowering entry points into a named private owner and the
+public name helpers / `mir_destroy(...)` into the second public owner:
 
 ```text
-src/compiler/mir_public_part_a.inc 959
-src/compiler/mir_public_part_b.inc 800
+src/compiler/mir_lower_public_api.h 290
+src/compiler/mir_public_surface.h 420
 ```
 
 The gate is green, but several production include files are still close enough
@@ -293,11 +291,11 @@ to the 1,000 LOC cap that they should be treated as owner-extraction
 candidates rather than targets for more split-file growth:
 
 ```text
-src/semantic/type_checker_helpers_host.inc 590
-src/codegen/transpiler_emitters_mir_inventory_ssa_emit.inc 564
-src/runtime/pgy_runtime_part_bb.inc 561
-src/codegen/transpiler_domain_role_part_c.inc 554
-src/codegen/transpiler_emitters_base_b_part_c.inc 546
+src/codegen/llvm_expr_call_domain_queries.inc 275
+src/compiler/rir_public.inc 269
+src/compiler/mir_base.inc 269
+src/runtime/pgy_runtime_lib_part_b_part_f.inc 253
+src/codegen/llvm_expr_call_slots.inc 245
 ```
 
 After the local symbol/slot tracking extraction,
@@ -810,6 +808,256 @@ Observed results:
   and HIR CFG enrichment now have a named owner while `rir.c` preserves include
   order; the current production source `.inc` inventory is 81 files /
   21,877 LOC.
+- Latest C backend MIR SSA emit cleanup moved the former
+  `src/codegen/transpiler_emitters_mir_inventory_ssa_emit.inc` body into
+  `src/codegen/transpiler_mir_ssa_emit.h`. MIR local type lookup, explicit
+  binding registration, MIR function signature support checks, SSA expression
+  emission, phi copy emission, and exit-SSA lookup now have a named owner while
+  the MIR inventory/SSA shim preserves include order; the current production
+  source `.inc` inventory is 80 files / 21,313 LOC.
+- Latest generated-C channel runtime cleanup moved the former
+  `src/runtime/pgy_runtime_part_bb.inc` body into
+  `src/runtime/pgy_runtime_channel_inline.h`. Threaded channel and SPSC channel
+  inline macro definitions plus stable `Int`/`String` instantiations now have a
+  named owner while `pgy_runtime.h` preserves include order; the current
+  production source `.inc` inventory is 79 files / 20,752 LOC.
+- Latest C backend zone declaration cleanup moved the former
+  `src/codegen/transpiler_domain_role_part_c.inc` body into
+  `src/codegen/transpiler_zone_decl_emit.h`. Zone struct emission, projection
+  readiness/dirty fields, layer/state frontier sync, bounded recompute, and
+  hosted zone method lowering now have a named owner while the domain-role shim
+  preserves include order; the current production source `.inc` inventory is
+  78 files / 20,198 LOC.
+- Latest C backend block/intent helper cleanup moved the former
+  `src/codegen/transpiler_emitters_base_b_part_c.inc` body into
+  `src/codegen/transpiler_block_intent_helpers.h`. Block auto-release emission,
+  intent participant/action lookup, inferred causes lookup, and effective-zone
+  sync helpers now have a named owner while the base-B shim preserves include
+  order; the current production source `.inc` inventory is 77 files /
+  19,652 LOC.
+- Latest generated-C IO/Qubit runtime cleanup moved the former
+  `src/runtime/pgy_runtime_part_c.inc` body into
+  `src/runtime/pgy_runtime_io_qubit_inline.h`. Inline file/string helpers,
+  `StringSplit` allocation, and the toy Qubit runtime now have a named owner
+  while `pgy_runtime.h` preserves include order; compiler runtime cache
+  freshness dependencies were also updated to stop pointing at deleted runtime
+  include paths. The current production source `.inc` inventory is 76 files /
+  19,110 LOC.
+- Latest C backend constructor/Result-Option call cleanup moved the former
+  `src/codegen/transpiler_expr_emitters_part_c.inc` body into
+  `src/codegen/transpiler_call_constructor_result_emit.h`. Domain/party
+  constructor lowering and Result/Option builtin call lowering now have a named
+  owner while the expression emitter shim preserves include order; the current
+  production source `.inc` inventory is 75 files / 18,573 LOC.
+- Latest generated-C builtin storage cleanup moved the former
+  `src/runtime/pgy_runtime_part_ba_part_c.inc` body into
+  `src/runtime/pgy_runtime_builtin_storage_inline.h`. Slot/device-slot/
+  secure-slot instantiations, Box/Array/Rc builtins, and inline HashMap helpers
+  now have a named owner while `pgy_runtime_part_ba.inc` preserves include
+  order; compiler cache freshness and runtime panic/ABI smoke tests now read
+  the new owner path. The current production source `.inc` inventory is
+  74 files / 18,038 LOC.
+- Latest semantic host-helper cleanup moved the former
+  `src/semantic/type_checker_helpers_host.inc` body into
+  `src/semantic/type_checker_host_helpers.h`. Overlay field lookup, host method
+  call typing, subject/nominal boundary classification, zone effect-layer
+  checks, and movable resource predicates now have a named owner while
+  `type_checker.c` preserves include order; the current production source
+  `.inc` inventory is 73 files / 17,448 LOC.
+- Latest semantic builtin slotops cleanup moved the former
+  `src/semantic/type_checker_builtins_slotops.inc` body into
+  `src/semantic/type_checker_builtins_slotops.h`. Builtin name resolution,
+  Slot/SecureSlot/DeviceSlot semantic validation, release diagnostics, and
+  device handle argument checks now have a named owner while
+  `type_checker_builtins.c` preserves include order; the current production
+  source `.inc` inventory is 72 files / 16,923 LOC.
+- Latest generated-C zone/result-option runtime cleanup moved the former
+  `src/runtime/pgy_runtime_part_ba_part_e.inc` body into
+  `src/runtime/pgy_runtime_zone_result_option_inline.h`. Parallel section
+  macros, zone lock/generation/authority validation, Result helpers, remote
+  Result helpers, and Option helpers now have a named owner while
+  `pgy_runtime_part_ba.inc` preserves include order; compiler cache freshness
+  and runtime ABI/panic/authority smoke tests now read the new owner path. The
+  current production source `.inc` inventory is 71 files / 16,402 LOC.
+- Latest C backend projection/sync helper cleanup moved the former
+  `src/codegen/transpiler_helpers_core_a_part_c.inc` body into
+  `src/codegen/transpiler_projection_sync_helpers.h`. Overlay projection
+  invalidation scanning, zone/effect relation propagation snippets, and
+  world-state lookup helpers now have a named owner while the helper-core-A
+  shim preserves include order; the current production source `.inc` inventory
+  is 70 files / 15,883 LOC.
+- Latest generated-C intent trace runtime cleanup moved the former
+  `src/runtime/pgy_runtime_part_ba_part_a.inc` body into
+  `src/runtime/pgy_runtime_intent_trace_inline.h`. `pgy_runtime_strdup`,
+  active/recent intent registry storage, trace append helpers, step ok/fail
+  tracing, and MIR resource trace hooks now have a named owner while
+  `pgy_runtime_part_ba.inc` preserves include order; compiler cache freshness
+  and runtime ABI lifetime smoke now read the new owner path. The current
+  production source `.inc` inventory is 69 files / 15,370 LOC.
+- Latest LLVM collection-call cleanup moved the former
+  `src/codegen/llvm_expr_call_collections_extended.inc` body into
+  `src/codegen/llvm_expr_call_collections_extended.h`. Extended List/Set/
+  HashMap raw-call lowering now has a named private owner while
+  `llvm_expr_calls.inc` preserves dispatcher include order. The current
+  production source `.inc` inventory is 68 files / 14,862 LOC.
+- Latest C backend helper-root cleanup moved the former
+  `src/codegen/transpiler_helpers.inc` body into
+  `src/codegen/transpiler_helpers.h`. C string escaping/formatting, MIR
+  resource-op/DEF helper emission, and the expression-emitter include root now
+  have a named private owner while `transpiler.c` preserves top-level include
+  order. The current production source `.inc` inventory is 67 files /
+  14,356 LOC.
+- Latest C backend expression-core cleanup moved the former
+  `src/codegen/transpiler_expr_emitters_part_a.inc` body into
+  `src/codegen/transpiler_expr_core_emit.h`. Log/LogRaw/LogBanner lowering and
+  core binary expression lowering now have a named private owner while
+  `transpiler_expr_emitters.inc` preserves include order. The current
+  production source `.inc` inventory is 66 files / 13,869 LOC.
+- Latest C backend specialization-helper cleanup moved the former
+  `src/codegen/transpiler_helpers_core_b_part_b.inc` body into
+  `src/codegen/transpiler_specialization_helpers.h`. Role ability/method
+  lookup and Result/Option/collection specialization collection now have a
+  named private owner while `transpiler_helpers_core_b.inc` preserves include
+  order. The current production source `.inc` inventory is 65 files /
+  13,402 LOC.
+- Latest C backend domain nominal cleanup moved the former
+  `src/codegen/transpiler_domain_role_part_b.inc` body into
+  `src/codegen/transpiler_domain_nominal_emit.h`. Ability, role, party, roster,
+  relation, and effect declaration emission now have a named private owner
+  while `transpiler_domain_role.inc` preserves include order. The current
+  production source `.inc` inventory is 64 files / 12,937 LOC.
+- Latest C backend expression-dispatch cleanup moved the former
+  `src/codegen/transpiler_expr_emitters_part_f.inc` body into
+  `src/codegen/transpiler_expr_dispatch_emit.h`. The `emit_expression()`
+  dispatcher now has a named private owner while
+  `transpiler_expr_emitters.inc` preserves include order; runtime panic
+  contract smoke now reads the new owner path for checked array/slice lowering.
+  The current production source `.inc` inventory is 63 files / 12,486 LOC.
+- Latest MIR public-surface cleanup moved the former
+  `src/compiler/mir_public_part_b.inc` body into
+  `src/compiler/mir_public_surface.h`. MIR kind names, destroy, validation,
+  emission-topology validation, and dump now have a named private owner while
+  `mir.c` preserves include order. The current production source `.inc`
+  inventory is 62 files / 12,066 LOC.
+- Latest semantic generic-contract cleanup moved the former
+  `src/semantic/type_checker_generic_contracts.inc` body into
+  `src/semantic/type_checker_generic_contracts.h`. Generic parameter lookup,
+  default-bound validation, and class-specialization where-bound validation now
+  have a named private owner while `type_checker_generic_support.h` preserves
+  include order. The current production source `.inc` inventory is 61 files /
+  11,663 LOC.
+- Latest LLVM member-call cleanup moved the former
+  `src/codegen/llvm_expr_call_methods_part_b.inc` body into
+  `src/codegen/llvm_member_call_emit.h`. `llvm_emit_member_call()` and nominal
+  hosted-method dispatch now have a named private owner while `llvm_expr.c`
+  preserves include order. The current production source `.inc` inventory is 60
+  files / 11,262 LOC.
+- Latest generated-C runtime root cleanup moved the former
+  `src/runtime/pgy_runtime_part_a.inc` body into
+  `src/runtime/pgy_runtime_platform_io_core.h`. Platform includes, contract
+  headers, warning helpers, path normalization, and IO sandbox checks now have a
+  named private owner while `pgy_runtime.h` preserves include order. The current
+  production source `.inc` inventory is 59 files / 10,879 LOC.
+- Latest semantic resolution-helper cleanup moved the former
+  `src/semantic/type_checker_helpers_resolution.inc` body into
+  `src/semantic/type_checker_resolution_helpers.h`. Alias resolution stack
+  handling, alias materialization, function-type formatting, and embedded
+  world-zone mutation rejection now have a named private owner while
+  `type_checker.c` preserves include order. The current production source
+  `.inc` inventory is 58 files / 10,500 LOC.
+- Latest generated-C collection-runtime cleanup moved the former
+  `src/runtime/pgy_runtime_part_ba_part_d.inc` body into
+  `src/runtime/pgy_runtime_list_set_inline.h`. List and Set inline runtime
+  definitions now have a named private owner while `pgy_runtime_part_ba.inc`
+  preserves include order. The current production source `.inc` inventory is 57
+  files / 10,123 LOC.
+- Latest LLVM identifier/slot-helper cleanup moved the former
+  `src/codegen/llvm_expr_helpers_part_c.inc` body into
+  `src/codegen/llvm_expr_identifier_slot_helpers.h`. Identifier emission,
+  direct Slot/SecureSlot fallbacks, slot target resolution, and banner literal
+  normalization now have a named private owner while `llvm_expr.c` preserves
+  include order. The current production source `.inc` inventory is 56 files /
+  9,753 LOC.
+- Latest semantic async/channel cleanup moved the former
+  `src/semantic/type_checker_async_channel.inc` body into
+  `src/semantic/type_checker_async_channel.h`. Spawn token boundary checks and
+  channel send/recv ownership diagnostics now have a named private owner while
+  `type_checker.c` preserves include order. The current production source
+  `.inc` inventory is 55 files / 9,384 LOC.
+- Latest LLVM scalar-expression cleanup moved the former
+  `src/codegen/llvm_expr_core.inc` body into
+  `src/codegen/llvm_expr_scalar_core.h`. Callable/event signature helpers,
+  scalar string coercion, binary lowering, unary lowering, and `?` propagation
+  lowering now have a named private owner while `llvm_expr.c` preserves include
+  order. The current production source `.inc` inventory is 54 files / 9,024
+  LOC.
+- Latest semantic generic-support cleanup moved the former
+  `src/semantic/type_checker_generic_support.inc` body into
+  `src/semantic/type_checker_generic_support.h`. Generic subject signature
+  formatting and effective default generic argument derivation now have a named
+  private owner while `type_checker.c` preserves include order. The current
+  production source `.inc` inventory is 53 files / 8,666 LOC.
+- Latest LLVM domain projection-sync cleanup moved the former
+  `src/codegen/llvm_domain_helpers_part_b.inc` body into
+  `src/codegen/llvm_domain_projection_sync_helpers.h`. Projection field-copy
+  lowering and bounded projection sync loop generation now have a named private
+  owner while `llvm_domain.c` preserves include order. The current production
+  source `.inc` inventory is 52 files / 8,333 LOC.
+- Latest C backend async/parallel cleanup moved the former
+  `src/codegen/transpiler_emitters_async_parallel.inc` body into
+  `src/codegen/transpiler_async_parallel_emit.h`. Parallel block emission and
+  async block spawning now have a named private owner while
+  `transpiler_func_class_flow_emit.h` preserves include order. The current
+  production source `.inc` inventory is 51 files / 8,016 LOC.
+- Latest semantic type resolver cleanup moved the former
+  `src/semantic/type_checker_resolve.inc` body into
+  `src/semantic/type_checker_resolve.h`. The memoized `resolve_type_node(...)`
+  wrapper, uncached resolver body, assignment compatibility gate, and
+  constructed-type wrapper now have a named private owner while
+  `type_checker_expr.h` preserves include order. The current production source
+  `.inc` inventory is 50 files / 7,701 LOC.
+- Latest semantic domain-query builtin cleanup moved the former
+  `src/semantic/type_checker_builtins_query_domain.inc` body into
+  `src/semantic/type_checker_builtins_query_domain.h`. HasProjection/
+  HasZoneProjection source-field lookup, zone/world slot lookup, and domain
+  projection query validation now have a named private owner while
+  `type_checker_builtins.c` preserves include order. The current production
+  source `.inc` inventory is 49 files / 7,387 LOC.
+- Latest CFG/body-flow loop cleanup moved the former
+  `src/semantic/type_checker_flow_loops.inc` body into
+  `src/semantic/type_checker_flow_loops.h`. Loop resource snapshot comparison,
+  bounded loop analysis, and loop effect merge logic now have a named private
+  owner while `type_checker_flow.c` preserves include order. The CFG/body
+  dataflow smoke now reads the named owner path. The current production source
+  `.inc` inventory is 48 files / 7,086 LOC.
+- Latest C backend function-forward helper cleanup moved the former
+  `src/codegen/transpiler_helpers_core_b_part_c.inc` body into
+  `src/codegen/transpiler_func_forward_helpers.h`. Spawn/future return type
+  inference, early type forward-declaration checks, generic call binding
+  inference, and hosted-method forward declarations now have a named private
+  owner while `transpiler_helpers_core_b.inc` preserves include order. The
+  current production source `.inc` inventory is 47 files / 6,790 LOC.
+- Latest MIR lowering public API cleanup moved the former
+  `src/compiler/mir_public_part_a.inc` body into
+  `src/compiler/mir_lower_public_api.h`. `mir_lower(...)`, MIR routine lookup,
+  declaration header lookup, liveness pass entry, and DCE pass entry now have a
+  named private owner while `mir.c` preserves include order. MIR declaration
+  inventory smoke now reads the named owner path. The current production source
+  `.inc` inventory is 46 files / 6,500 LOC.
+- Latest LLVM-linkable runtime intent/slot-core export cleanup moved the former
+  `src/runtime/pgy_runtime_lib_part_b_part_c.inc` body into
+  `src/runtime/pgy_runtime_lib_intent_slot_core_exports.h`.
+  `pgy_intent_exit_export(...)`, the runtime deadline helper, and primitive
+  `Slot<Int/Long/Float>` exports now have a named private owner while
+  `pgy_runtime_lib.c` preserves include order. Runtime ABI lifetime and panic
+  contract smokes now read the named owner path. The current production source
+  `.inc` inventory is 45 files / 6,212 LOC.
+- Latest C backend match lowering cleanup moved the former
+  `src/codegen/transpiler_emitters_match.inc` body into
+  `src/codegen/transpiler_match_emit.h`. Result/Option/enum destructor pattern
+  helpers and `emit_match_stmt(...)` now have a named private owner while
+  `transpiler_func_class_flow_emit.h` preserves include order. The current
+  production source `.inc` inventory is 44 files / 5,932 LOC.
 - Latest overall audit also reran `make tooling-conformance-test-smoke`; the
   formatter smoke is invoked through `bash`, so Linux execute-bit drift no
   longer blocks the tooling conformance gate.
@@ -854,8 +1102,8 @@ Observed results:
   `pgy_runtime_lib_authority_file_core.h` and
   `pgy_runtime_lib_set_intent_trace_exports.h`, plus `rir_flow.h`. The next
   high-value extraction candidate is not more blind line-count splitting; it is
-  choosing a real owner seam for semantic host helpers, MIR SSA emission, or
-  remaining runtime near-cap owners such as zone/frontier and slot-operation
+  choosing a real owner seam for semantic host helpers, base-B statement tails,
+  or remaining runtime near-cap owners such as string helpers and zone/frontier
   groups.
 - Empty `.inc` tails are no longer allowed. A split-order shim may include only
   real implementation chunks; if a tail becomes empty, remove it and update the
