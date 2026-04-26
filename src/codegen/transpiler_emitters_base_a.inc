@@ -4,4 +4,5 @@
 #include "transpiler_let_emit.h"
 #include "transpiler_emitters_base_a_part_b.inc"
 #include "transpiler_mir_block_emit.h"
-#include "transpiler_emitters_base_a_part_d.inc"
+#include "transpiler_mir_ssa_contract.h"
+#include "transpiler_mir_emission_contract.h"

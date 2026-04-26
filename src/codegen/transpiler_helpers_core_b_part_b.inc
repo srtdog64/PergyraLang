@@ -42,7 +42,7 @@ role_has_method(ASTNode *role, const char *method_name)
     return false;
 }
 
-#include "transpiler_helpers_core_types.inc"
+#include "transpiler_type_mapping_helpers.h"
 
 static char *
 render_ability_ref_vtable_tag(ASTNode *ability_ref)

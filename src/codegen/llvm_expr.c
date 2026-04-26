@@ -14,12 +14,13 @@ static LLVMValueRef llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
 static LLVMTypeRef llvm_function_signature_from_event_type(LLVMGenCtx *ctx,
                                                            ASTNode *type_node);
 LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
-#include "llvm_expr_helpers_part_a.inc"
-#include "llvm_expr_helpers_part_b.inc"
+#include "llvm_expr_boundary_projection_helpers.h"
+#include "llvm_expr_host_spawn_literal_helpers.h"
 #include "llvm_expr_helpers_part_c.inc"
-#include "llvm_expr_values.inc"
+#include "llvm_expr_assignment_member_projection.h"
 #include "llvm_expr_core.inc"
-#include "llvm_expr_call_methods_part_a.inc"
+#include "llvm_expr_call_projection_sync.h"
+#include "llvm_expr_call_methods_domain_slice.h"
 #include "llvm_expr_call_methods_part_b.inc"
 #include "llvm_expr_calls.inc"
 

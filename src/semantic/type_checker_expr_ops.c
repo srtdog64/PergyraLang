@@ -1,7 +1,7 @@
 /*
  * Expression operator and indexed-access type checkers.
  *
- * Kept out of type_checker_expr.inc so the expression dispatcher stays
+ * Kept out of type_checker_expr.h so the expression dispatcher stays
  * readable while operator overload and array literal rules remain together.
  */
 

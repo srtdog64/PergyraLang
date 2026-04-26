@@ -71,5 +71,6 @@ render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
                                GenericBindingEntry *bindings, size_t binding_count);
 
 #include "transpiler_helpers_core_b_part_b.inc"
+#include "transpiler_expr_type_infer.h"
 #include "transpiler_helpers_core_b_part_c.inc"
 #include "transpiler_helpers_core_b_part_d.inc"

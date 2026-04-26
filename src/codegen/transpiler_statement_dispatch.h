@@ -1,0 +1,263 @@
+void
+emit_statement(ASTNode *node, TranspilerCtx *ctx)
+{
+    if (node == NULL)
+        return;
+
+    switch (node->type) {
+    case AST_LET_DECL:
+        emit_let_decl(node, ctx);
+        break;
+    case AST_TYPE_ALIAS:
+        emit_type_alias_decl(node, ctx);
+        break;
+    case AST_LET_DESTRUCTURE:
+        emit_let_destructure_statement(node, ctx);
+        break;
+    case AST_FUNC_DECL:
+        emit_func_decl(node, ctx);
+        break;
+    case AST_CLASS_DECL:
+        emit_class_decl(node, ctx);
+        break;
+    case AST_EXTERN_BLOCK:
+        emit_extern_block(node, ctx);
+        break;
+    case AST_IMPORT_DECL:
+        /* Import is resolved at driver level (AST merging).
+         * Nothing to emit — the imported declarations are
+         * already present in the merged AST. */
+        break;
+    case AST_USE_DECL:
+        /* use module; — standard library modules.
+         * Runtime functions are always available via pgy_runtime.h.
+         * Future: emit module-specific includes/initializers here. */
+        codebuf_write(ctx->out, "/* use %s */\n",
+            node->data.use_decl.module_name != NULL
+                ? node->data.use_decl.module_name : "unknown");
+        break;
+    case AST_UNSAFE_BLOCK:
+        /* unsafe { ... } → emit body directly (no safety wrappers) */
+        write_indent(ctx);
+        codebuf_write(ctx->out, "/* unsafe */\n");
+        if (node->data.unsafe_block.body != NULL)
+            emit_block(node->data.unsafe_block.body, ctx);
+        break;
+    case AST_DEFER_STMT: {
+        /* defer { body } → GCC __attribute__((cleanup)) pattern.
+         * 1. Emit a static cleanup function into the helpers buffer.
+         * 2. Declare a sentinel variable with cleanup attribute.
+         * When the sentinel goes out of scope, GCC calls the cleanup. */
+        int defer_id = ctx->defer_counter++;
+
+        /* Generate cleanup function in helpers buffer */
+        codebuf_write(ctx->helpers,
+            "\nstatic void _pgy_defer_%d(int *_pgy_unused) {\n"
+            "    (void)_pgy_unused;\n", defer_id);
+
+        /* Save current output, redirect to helpers for the body */
+        CodeBuf *saved_out = ctx->out;
+        int saved_indent = ctx->indent;
+        ctx->out = ctx->helpers;
+        ctx->indent = 1;
+        if (node->data.defer_stmt.body != NULL)
+            emit_block(node->data.defer_stmt.body, ctx);
+        ctx->out = saved_out;
+        ctx->indent = saved_indent;
+
+        codebuf_write(ctx->helpers, "}\n");
+
+        /* Emit sentinel with cleanup attribute */
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "int _pgy_defer_sentinel_%d "
+            "__attribute__((cleanup(_pgy_defer_%d))) = 0;\n",
+            defer_id, defer_id);
+        break;
+    }
+    case AST_BIND_STMT: {
+        /* bind party.slot = Role;
+         * → lookup party's typed_var to get PartyType,
+         *   then emit PartyType_bind_slot(&party, NULL, &Role_Ability_vtable_instance)
+         * For now: use the typed_var mapping to find the party type. */
+        const char *pvar = node->data.bind_stmt.party_var;
+        const char *slot = node->data.bind_stmt.slot_name;
+        const char *role = node->data.bind_stmt.role_name;
+        const char *party_type = NULL;
+        for (int ti = 0; ti < ctx->typed_var_count; ti++) {
+            if (strcmp(ctx->typed_vars[ti].name, pvar) == 0) {
+                party_type = ctx->typed_vars[ti].type_name;
+                break;
+            }
+        }
+        if (party_type == NULL) {
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve party type for bind statement '%s.%s = %s'",
+                pvar != NULL ? pvar : "<party>",
+                slot != NULL ? slot : "<slot>",
+                role != NULL ? role : "<role>");
+            break;
+        }
+
+        /* Find the ability name by scanning the current program view for the
+         * party declaration. In MIR-backed emission this view is synthesized
+         * from MIRProgram inventory, not from the original HIR. The dyn role
+         * slot records the required ability. */
+        const char *ability_name = NULL;
+        char *ability_tag = NULL;
+        {
+            ASTNode *it = find_party_decl(ctx, party_type);
+            if (it == NULL) {
+                transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve party declaration '%s' while emitting bind statement '%s.%s = %s'",
+                    party_type,
+                    pvar != NULL ? pvar : "<party>",
+                    slot != NULL ? slot : "<slot>",
+                    role != NULL ? role : "<role>");
+                break;
+            }
+            for (size_t ri = 0; ri < it->data.party_decl.role_count; ri++) {
+                ASTNode *rs = it->data.party_decl.role_slots[ri];
+                if (strcmp(rs->data.role_slot.slot_name, slot) == 0
+                    && rs->data.role_slot.ability_count > 0
+                    && rs->data.role_slot.required_abilities[0] != NULL) {
+                    ability_tag = render_ability_ref_vtable_tag(
+                        rs->data.role_slot.required_abilities[0]);
+                    ability_name = ability_tag;
+                    break;
+                }
+            }
+        }
+        if (ability_name == NULL) {
+            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve required ability tag for party slot '%s.%s' while emitting bind statement",
+                party_type,
+                slot != NULL ? slot : "<slot>");
+            free(ability_tag);
+            break;
+        }
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "%s_bind_%s(&%s, NULL, &%s_%s_vtable_instance);\n",
+            party_type, slot, pvar,
+            role, ability_name);
+        free(ability_tag);
+        break;
+    }
+    case AST_ABILITY_DECL:
+        emit_ability_decl(node, ctx);
+        break;
+    case AST_ROLE_DECL:
+        emit_role_decl(node, ctx);
+        break;
+    case AST_PARTY_DECL:
+        emit_party_decl(node, ctx);
+        break;
+    case AST_ROSTER_DECL:
+        emit_roster_decl(node, ctx);
+        break;
+    case AST_WORLD_DECL:
+        emit_world_decl(node, ctx);
+        break;
+    case AST_RELATION_DECL:
+        emit_relation_decl(node, ctx);
+        break;
+    case AST_EFFECT_DECL:
+        emit_effect_decl(node, ctx);
+        break;
+    case AST_ZONE_DECL:
+        emit_zone_decl(node, ctx);
+        break;
+    case AST_EVENT_DECL:
+        emit_event_decl(node, ctx);
+        break;
+    case AST_EVENT_SUBSCRIBE:
+        emit_event_subscribe(node, ctx);
+        break;
+    case AST_EVENT_UNSUBSCRIBE:
+        emit_event_unsubscribe(node, ctx);
+        break;
+    case AST_IF_STMT:
+        emit_if_stmt(node, ctx);
+        break;
+    case AST_FOR_LOOP:
+        emit_for_loop(node, ctx);
+        break;
+    case AST_WHILE_LOOP:
+        emit_while_loop(node, ctx);
+        break;
+    case AST_MATCH_STMT:
+        emit_match_stmt(node, ctx);
+        break;
+    case AST_RETURN:
+        emit_return_stmt(node, ctx);
+        break;
+    case AST_BREAK:
+        write_indent(ctx);
+        if (node->data.break_stmt.label != NULL) {
+            int target = transpiler_find_loop_label_depth(
+                ctx, node->data.break_stmt.label);
+            if (target >= 0) {
+                ctx->loop_break_label_used[target] = true;
+                codebuf_write(ctx->out, "goto %s;\n",
+                    ctx->loop_break_labels[target]);
+            } else
+                codebuf_write(ctx->out, "break;\n");
+        } else {
+            codebuf_write(ctx->out, "break;\n");
+        }
+        break;
+    case AST_ENUM_DECL:
+        emit_enum_decl_stmt(node, ctx);
+        break;
+    case AST_CONTINUE:
+        write_indent(ctx);
+        if (node->data.continue_stmt.label != NULL) {
+            int target = transpiler_find_loop_label_depth(
+                ctx, node->data.continue_stmt.label);
+            if (target >= 0) {
+                ctx->loop_continue_label_used[target] = true;
+                codebuf_write(ctx->out, "goto %s;\n",
+                    ctx->loop_continue_labels[target]);
+            } else
+                codebuf_write(ctx->out, "continue;\n");
+        } else {
+            codebuf_write(ctx->out, "continue;\n");
+        }
+        break;
+    case AST_WITH_STMT:
+        emit_with_stmt(node, ctx);
+        break;
+    case AST_PARALLEL_BLOCK:
+        emit_parallel_block(node, ctx);
+        break;
+    case AST_BLOCK:
+        emit_block(node, ctx);
+        break;
+    case AST_LAMBDA_EXPR:
+        {
+            char *expr = emit_expression(node, ctx);
+            if (expr != NULL && expr[0] != '\0') {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "%s;\n", expr);
+            }
+            free(expr);
+            break;
+        }
+    case AST_SELECT_STMT:
+        emit_select_stmt(node, ctx);
+        break;
+    case AST_ASYNC_BLOCK:
+        emit_async_block(node, ctx);
+        break;
+    default: {
+        /* Expression statement (including event invoke) */
+        char *expr = emit_expression(node, ctx);
+        if (expr != NULL && expr[0] != '\0') {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s;\n", expr);
+            if (node->type == AST_CALL)
+                emit_zone_action_effect_runtime(node, ctx);
+        }
+        free(expr);
+        break;
+    }
+    }
+}

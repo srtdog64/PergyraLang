@@ -144,7 +144,7 @@ llvm_operator_method_name_matches(PgyTokenType op, const char *name)
     return false;
 }
 
-#include "llvm_domain_helpers_part_a.inc"
+#include "llvm_domain_core_helpers.h"
 #include "llvm_domain_helpers_part_b.inc"
 
 static void

@@ -1,3 +1,4 @@
+BuiltinKind
 builtin_resolve(const char *name)
 {
     if (strcmp(name, "ClaimSlot")       == 0) return BUILTIN_CLAIM_SLOT;

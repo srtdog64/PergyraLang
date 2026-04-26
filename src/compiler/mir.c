@@ -2922,4 +2922,6 @@ mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope)
 
 #include "mir_decl_headers.h"
 #include "mir_public_part_a.inc"
+#include "mir_cfg_contract_validate.h"
 #include "mir_public_part_b.inc"
+#include "mir_abi_layout.h"

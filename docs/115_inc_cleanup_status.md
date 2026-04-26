@@ -223,23 +223,24 @@ default. There is no empty-sentinel allowlist.
 The expression emitter parts are currently below the beta 1,000 LOC cap:
 
 ```text
-src/codegen/transpiler_expr_emitters_part_a.inc 878
-src/codegen/transpiler_expr_emitters_part_b.inc 711
-src/codegen/transpiler_expr_emitters_part_c.inc 544
-src/codegen/transpiler_expr_emitters_part_d.inc 26
-src/codegen/transpiler_expr_emitters_part_e.inc 778
-src/codegen/transpiler_expr_emitters_part_f.inc 472
-src/codegen/transpiler_expr_stdlib_builtin.h 920
+src/codegen/transpiler_expr_emitters_part_a.inc 487
+src/codegen/transpiler_expr_builtin_dispatch.h 710
+src/codegen/transpiler_expr_emitters_part_c.inc 537
+src/codegen/transpiler_expr_emitters_part_d.inc 24
+src/codegen/transpiler_expr_call_spawn_emit.h 722
+src/codegen/transpiler_expr_emitters_part_f.inc 451
+src/codegen/transpiler_expr_stdlib_builtin.h 917
 ```
 
 The related intent/base emitter seams are also below the cap:
 
 ```text
-src/codegen/transpiler_helpers_core_a.inc 29
-src/codegen/transpiler_helpers_core_a_part_c.inc 577
-src/codegen/transpiler_helpers_core_b.inc 82
-src/codegen/transpiler_helpers_core_b_part_b.inc 519
-src/codegen/transpiler_helpers_core_b_part_c.inc 849
+src/codegen/transpiler_helpers_core_a.inc 22
+src/codegen/transpiler_helpers_core_a_part_c.inc 519
+src/codegen/transpiler_helpers_core_b.inc 64
+src/codegen/transpiler_helpers_core_b_part_b.inc 467
+src/codegen/transpiler_helpers_core_b_part_c.inc 296
+src/codegen/transpiler_expr_type_infer.h 501
 src/codegen/transpiler_context.c 284
 src/codegen/transpiler_context.h 36
 src/codegen/transpiler_symbols.c 349
@@ -269,7 +270,9 @@ src/codegen/transpiler_type_declarator.h 13
 src/codegen/transpiler_type_require.c 64
 src/codegen/transpiler_type_require.h 20
 src/codegen/transpiler_type_render.h 16
-src/codegen/transpiler_helpers_core_types.inc 657
+src/codegen/transpiler_type_mapping_helpers.h 599
+src/codegen/transpiler_statement_dispatch.h 257
+src/codegen/transpiler_emitters_base_b_part_c.inc 546
 src/codegen/transpiler_emitters_base_b_part_d.inc 257
 src/runtime/pgy_runtime_intent_exit.h 106
 src/runtime/pgy_runtime_panic_checked_inline.h 191
@@ -290,15 +293,11 @@ to the 1,000 LOC cap that they should be treated as owner-extraction
 candidates rather than targets for more split-file growth:
 
 ```text
-src/codegen/transpiler_emitters_base_a_part_d.inc 885
-src/codegen/llvm_expr_call_methods_part_a.inc 880
-src/codegen/transpiler_expr_emitters_part_a.inc 878
-src/codegen/transpiler_emitters_base_b_part_c.inc 873
-src/runtime/pgy_runtime_lib_part_b_part_c.inc 852
-src/codegen/transpiler_helpers_core_b_part_c.inc 849
-src/runtime/pgy_runtime_part_ba_part_d.inc 814
-src/codegen/transpiler_emitters_base_b_part_a.inc 811
-src/runtime/pgy_runtime_part_ba_part_c.inc 808
+src/semantic/type_checker_helpers_host.inc 590
+src/codegen/transpiler_emitters_mir_inventory_ssa_emit.inc 564
+src/runtime/pgy_runtime_part_bb.inc 561
+src/codegen/transpiler_domain_role_part_c.inc 554
+src/codegen/transpiler_emitters_base_b_part_c.inc 546
 ```
 
 After the local symbol/slot tracking extraction,
@@ -543,6 +542,274 @@ Observed results:
   concatenated source family. Verified by `make runtime-abi-lifetime-test-smoke
   backend-inc-size-test-smoke inc-sentinel-test-smoke` and `make -B pgy
   runtime-panic-codegen-test-smoke runtime-panic-abi-test-smoke test-abi`.
+- Latest LLVM runtime intent-export extraction moved non-inline intent
+  borrowed exports into `src/runtime/pgy_runtime_lib_intent_exports.h`,
+  reducing `src/runtime/pgy_runtime_lib_part_b_part_c.inc` from 852 LOC to
+  315 LOC and source `.inc` total to 47,916 LOC. This makes generated-C inline
+  and LLVM-linkable intent export ownership symmetric. Verified by `make
+  runtime-abi-lifetime-test-smoke backend-inc-size-test-smoke
+  inc-sentinel-test-smoke` and `make -B pgy runtime-panic-codegen-test-smoke
+  runtime-panic-abi-test-smoke test-abi`.
+- Latest LLVM method-call projection extraction moved world/zone projection
+  sync helpers into `src/codegen/llvm_expr_call_projection_sync.h`, reducing
+  `src/codegen/llvm_expr_call_methods_part_a.inc` from 880 LOC to 671 LOC and
+  source `.inc` total to 43,918 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke` and targeted backend
+  compare for `world_embedded_branch_projection_visibility`,
+  `world_embedded_action_frontier`, `world_embedded_action_pool_frontier`, and
+  `world_zone_projection_visibility`.
+- Latest C backend MIR SSA contract extraction moved identifier mapping and
+  verification helpers into `src/codegen/transpiler_mir_ssa_contract.h`,
+  reducing `src/codegen/transpiler_emitters_base_a_part_d.inc` from 849 LOC to
+  677 LOC and source `.inc` total to 43,715 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke test-transpile`.
+- Latest C backend slot builtin extraction moved slot/device expression
+  emitters into `src/codegen/transpiler_slot_builtin_emit.h`, reducing
+  `src/codegen/transpiler_expr_emitters_part_a.inc` from 797 LOC to 531 LOC and
+  source `.inc` total to 43,406 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke test-transpile
+  runtime-panic-codegen-test-smoke`.
+- Latest C backend expression type-inference extraction moved
+  `infer_expression_type_name(...)` into
+  `src/codegen/transpiler_expr_type_infer.h`, reducing
+  `src/codegen/transpiler_helpers_core_b_part_c.inc` from 797 LOC to 296 LOC
+  and source `.inc` total to 42,906 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke test-transpile`.
+- Latest C backend statement-dispatch extraction moved `emit_statement(...)`
+  into `src/codegen/transpiler_statement_dispatch.h`, reducing
+  `src/codegen/transpiler_emitters_base_b_part_c.inc` from 803 LOC to 546 LOC
+  and source `.inc` total to 42,650 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke test-transpile` and
+  targeted backend compare for `break_continue`, `parallel_channel_sum`, and
+  `intent_header_interleaved`.
+- Latest generated-C runtime string-map extraction moved `HashMap<String>` and
+  map-key inline runtime into `src/runtime/pgy_runtime_map_string_inline.h`,
+  reducing `src/runtime/pgy_runtime_part_ba_part_d.inc` from 767 LOC to 377 LOC
+  and source `.inc` total to 42,261 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-abi-lifetime-test-smoke runtime-panic-codegen-test-smoke test-abi`
+  and targeted backend compare for `map_get_string`, `map_keys`,
+  `list_get_string`, `queue_pop_string`, and
+  `intent_failure_observability_strings`.
+- Latest lean debt batch moved C backend MIR function emission into
+  `src/codegen/transpiler_mir_func_emit.h`, reducing
+  `src/codegen/transpiler_emitters_base_b_part_a.inc` from 766 LOC to 162 LOC.
+  The same batch moved generated-C runtime array sort kernels and scalar
+  std/log/math helpers into `src/runtime/pgy_runtime_array_sort_inline.h` and
+  `src/runtime/pgy_runtime_scalar_std_inline.h`, reducing
+  `src/runtime/pgy_runtime_part_ba_part_c.inc` from 759 LOC to 535 LOC and
+  source `.inc` total to 41,436 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke test-transpile
+  runtime-abi-lifetime-test-smoke runtime-panic-codegen-test-smoke test-abi`
+  and targeted backend compare for `intent_header_interleaved`,
+  `destructure_tuple_return`, `host_method_class_return`,
+  `world_embedded_branch_projection_visibility`, `map_get_string`, `map_keys`,
+  and `string_io`.
+- Latest MIR ABI owner extraction moved ABI layout table/lookup into
+  `src/compiler/mir_abi_layout.h`, reducing
+  `src/compiler/mir_public_part_b.inc` from 753 LOC to 420 LOC and source
+  `.inc` total to 41,103 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke air-drift-test-smoke test-abi`.
+- Latest CFG contract owner extraction moved cleanup/rollback/invalidation MIR
+  validation into `src/compiler/mir_cfg_contract_validate.h`, reducing
+  `src/compiler/mir_public_part_a.inc` from 743 LOC to 290 LOC and source
+  `.inc` total to 40,650 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
+  air-drift-test-smoke test-abi`.
+- Latest RIR validation owner extraction moved `rir_validate`,
+  `rir_validate_against_dir`, and projection-kind validation helpers into
+  `src/compiler/rir_validation.h`, reducing `src/compiler/rir_public.inc` from
+  741 LOC to 269 LOC and source `.inc` total to 40,178 LOC. Verified by
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
+  air-drift-test-smoke test-abi`.
+- Latest C backend MIR intent inventory cleanup moved the former
+  `src/codegen/transpiler_emitters_mir_inventory_intent.inc` body into
+  `src/codegen/transpiler_mir_inventory_intent.h` and made the existing SSA
+  shim include that owner header directly. This removes one production `.inc`
+  body and reduces source `.inc` total to 39,485 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
+  air-drift-test-smoke test-abi`.
+- Latest C backend call/spawn/channel emitter cleanup moved the former
+  `src/codegen/transpiler_expr_emitters_part_e.inc` body into
+  `src/codegen/transpiler_expr_call_spawn_emit.h` and made the expression
+  emitter shim include that owner header directly. This removes another
+  production `.inc` body and reduces source `.inc` total to 38,763 LOC.
+  Verified by `make -B pgy backend-inc-size-test-smoke
+  inc-sentinel-test-smoke type-resolution-dag-test-smoke
+  cfg-body-dataflow-test-smoke air-drift-test-smoke test-abi`.
+- Latest LLVM domain helper cleanup moved the former
+  `src/codegen/llvm_domain_helpers_part_a.inc` body into
+  `src/codegen/llvm_domain_core_helpers.h` and made `llvm_domain.c` include the
+  owner header directly. This removes another production `.inc` body and
+  reduces source `.inc` total to 38,041 LOC. Verified by `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
+  air-drift-test-smoke test-abi`.
+- Latest runtime channel/qubit export cleanup moved the former
+  `src/runtime/pgy_runtime_lib_part_b_part_e.inc` body into
+  `src/runtime/pgy_runtime_lib_channel_quantum_exports.h` and made
+  `pgy_runtime_lib.c` include the owner header directly. The runtime ABI
+  lifetime smoke now reads the new owner header as the split continuation for
+  generated-runtime checks. This removes another production `.inc` body and
+  reduces source `.inc` total to 37,327 LOC. Verified by `make
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-abi-lifetime-test-smoke test-abi`.
+- Latest runtime raw collection and slot/array/io/string export cleanup moved
+  the former `src/runtime/pgy_runtime_lib_part_b_part_a.inc` body into
+  `src/runtime/pgy_runtime_lib_raw_collection_exports.h` and the former
+  `src/runtime/pgy_runtime_lib_part_b_part_d.inc` body into
+  `src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h`. Runtime panic
+  and ABI lifetime smokes now read the new owner headers, and compiler runtime
+  cache freshness tracks them directly. This removes two more production
+  `.inc` bodies and reduces source `.inc` total to 35,901 LOC. Verified by
+  `make backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-abi-lifetime-test-smoke runtime-panic-contract-test-smoke
+  runtime-panic-codegen-test-smoke test-abi`.
+- Latest C backend builtin-call dispatch cleanup moved the former
+  `src/codegen/transpiler_expr_emitters_part_b.inc` body into
+  `src/codegen/transpiler_expr_builtin_dispatch.h` and made the expression
+  emitter shim include the owner header directly. This removes another
+  production `.inc` body, leaves builtin-call lowering in the original include
+  order, and reduces the current source `.inc` inventory to 102 files / 35,191
+  LOC. Verified by `make -B pgy backend-inc-size-test-smoke
+  inc-sentinel-test-smoke type-resolution-dag-test-smoke
+  cfg-body-dataflow-test-smoke air-drift-test-smoke test-abi`.
+- Latest semantic builtin-query cleanup moved the former
+  `src/semantic/type_checker_builtins_query.inc` body into
+  `src/semantic/type_checker_builtins_query.h` and fixed the chained
+  `BuiltinKind builtin_resolve(...)` signature so
+  `type_checker_builtins_slotops.inc` owns a complete function boundary. This
+  removes another production `.inc` body and reduces the current source `.inc`
+  inventory to 101 files / 34,490 LOC.
+- Latest semantic builtin-nominal cleanup moved the former
+  `src/semantic/type_checker_builtins_nominal.inc` body into
+  `src/semantic/type_checker_builtins_nominal.h`. This keeps the
+  `Rc`/`Weak`/`Box`/allocator and intent-observability builtin type contract in
+  the original dispatch order while removing another production `.inc` body;
+  the current source `.inc` inventory is now 100 files / 33,809 LOC.
+- Latest generated-C runtime pool/FSM/timer cleanup moved object-pool,
+  finite-state-machine, timer, and cooldown inline helpers into
+  `src/runtime/pgy_runtime_pool_fsm_timer_inline.h`. Runtime include order,
+  ABI lifetime inventory, and compiler runtime-cache freshness now track that
+  owner header directly; `pgy_runtime_part_ba_part_e.inc` is reduced to
+  parallel/zone authority/effect-pool/unsafe/result/option helpers and the
+  current source `.inc` total is 33,653 LOC.
+- Latest semantic expression owner cleanup moved the former
+  `src/semantic/type_checker_expr.inc` body into
+  `src/semantic/type_checker_expr.h`. The CFG body-dataflow smoke now points at
+  the new expression owner, and the current source `.inc` inventory is 99 files
+  / 32,983 LOC.
+- Latest C backend function/class/control-flow owner cleanup moved the former
+  `src/codegen/transpiler_emitters_base_b_part_b.inc` body into
+  `src/codegen/transpiler_func_class_flow_emit.h`. This preserves the existing
+  base-B include order while removing another production `.inc` body; the
+  current source `.inc` inventory is 98 files / 32,322 LOC.
+- Latest generated-C runtime memory/array/slot cleanup moved the former
+  `src/runtime/pgy_runtime_part_ba_part_b.inc` body into
+  `src/runtime/pgy_runtime_memory_array_slot_inline.h`. Runtime include order,
+  panic-contract smoke, ABI lifetime inventory, and compiler runtime-cache
+  freshness now track that owner header directly; the current source `.inc`
+  inventory is 97 files / 31,662 LOC.
+- Latest semantic relation/effect/projection helper cleanup moved the former
+  `src/semantic/type_checker_helpers_effects.inc` body into
+  `src/semantic/type_checker_helpers_effects.h`. CFG body-dataflow smoke now
+  tracks the new helper owner path, and the current source `.inc` inventory is
+  96 files / 31,013 LOC.
+- Latest C backend MIR emission contract cleanup moved the former
+  `src/codegen/transpiler_emitters_base_a_part_d.inc` body into
+  `src/codegen/transpiler_mir_emission_contract.h`. The base-A shim still
+  preserves include order, but the remaining MIR emission/resource-hook owner
+  is no longer an anonymous part file; the current production source `.inc`
+  inventory is 95 files / 30,368 LOC.
+- Latest RIR lowering/enrichment cleanup moved the former
+  `src/compiler/rir_builder.inc` body into `src/compiler/rir_builder.h`.
+  `rir.c` still includes it in the same position between flow and name/validation
+  owners, but RIR construction is no longer an anonymous include body; the
+  current production source `.inc` inventory is 94 files / 29,733 LOC.
+- Latest semantic function-body/program owner cleanup moved the former
+  `src/semantic/type_checker_program.inc` body into
+  `src/semantic/type_checker_program.h`. The top-level semantic TU still
+  includes it after helper/orchestration definitions, but function body
+  checking is no longer carried by an anonymous `.inc`; the current production
+  source `.inc` inventory is 93 files / 29,099 LOC.
+- Latest LLVM method-call domain/slice cleanup moved the former
+  `src/codegen/llvm_expr_call_methods_part_a.inc` body into
+  `src/codegen/llvm_expr_call_methods_domain_slice.h`. `llvm_expr.c` still
+  includes it before the remaining method-call tail, but domain action sync and
+  slice/member-call helpers are no longer anonymous part-A code; the current
+  production source `.inc` inventory is 92 files / 28,467 LOC.
+- Latest LLVM call dispatcher cleanup moved the former
+  `src/codegen/llvm_expr_calls_main.inc` body into
+  `src/codegen/llvm_expr_call_dispatch.h`. The call-family shim still includes
+  constructor/collection/domain/event/log/slot/task helpers before the final
+  dispatcher, but `llvm_emit_call` now has a named owner; the current production
+  source `.inc` inventory is 91 files / 27,842 LOC.
+- Latest LLVM expression helper cleanup moved the former
+  `src/codegen/llvm_expr_helpers_part_b.inc` body into
+  `src/codegen/llvm_expr_host_spawn_literal_helpers.h`. Host/self, projection
+  binding, spawn expression, operator suffix, enum lookup, and number/string
+  literal helpers now have a named owner; the current production source `.inc`
+  inventory is 90 files / 27,221 LOC.
+- Latest C backend role/ability cleanup moved the former
+  `src/codegen/transpiler_domain_role_part_a.inc` body into
+  `src/codegen/transpiler_domain_role_ability_emit.h`. Role method emission,
+  ability/vtable emission, hidden provenance helpers, and operator aliases now
+  have a named owner while the domain-role shim preserves include order; the
+  current production source `.inc` inventory is 89 files / 26,601 LOC.
+- Latest LLVM expression boundary/projection helper cleanup moved the former
+  `src/codegen/llvm_expr_helpers_part_a.inc` body into
+  `src/codegen/llvm_expr_boundary_projection_helpers.h`. Boundary call argument
+  helpers, projection field helpers, world/zone lookup helpers, and host-class
+  lookup helpers now have a named owner; the current production source `.inc`
+  inventory is 88 files / 25,996 LOC.
+- Latest C backend MIR SSA naming cleanup moved the former
+  `src/codegen/transpiler_emitters_mir_inventory_ssa_names.inc` body into
+  `src/codegen/transpiler_mir_ssa_names.h`. MIR routine lookup, active SSA name
+  resolution/rendering, token-local filtering, and local type-name lookup now
+  have a named owner; the current production source `.inc` inventory is
+  87 files / 25,395 LOC.
+- Latest C backend type mapping cleanup moved the former
+  `src/codegen/transpiler_helpers_core_types.inc` body into
+  `src/codegen/transpiler_type_mapping_helpers.h`. Primitive, slot/channel,
+  constructed generic, and local type-name rendering now have a named owner
+  while the helper-core shim preserves include order; the current production
+  source `.inc` inventory is 86 files / 24,796 LOC.
+- Latest C backend world/select/event cleanup moved the former
+  `src/codegen/transpiler_domain_role_part_d.inc` body into
+  `src/codegen/transpiler_world_select_event_emit.h`. World sync declaration,
+  select lowering, and event declaration/subscription lowering now have a named
+  owner while the domain-role shim preserves include order; the current
+  production source `.inc` inventory is 85 files / 24,198 LOC.
+- Latest LLVM expression assignment/member/projection cleanup moved the former
+  `src/codegen/llvm_expr_values.inc` body into
+  `src/codegen/llvm_expr_assignment_member_projection.h`. Member lvalue/member
+  access, projection invalidation, embedded world projection assignment sync,
+  and assignment emission now have a named owner while `llvm_expr.c` preserves
+  include order; the current production source `.inc` inventory is 84 files /
+  23,617 LOC.
+- Latest LLVM-linkable runtime authority/file/path bootstrap cleanup moved the
+  former `src/runtime/pgy_runtime_lib_part_a.inc` body into
+  `src/runtime/pgy_runtime_lib_authority_file_core.h`. Runtime authority
+  rejection state, checked arithmetic exports, panic invariant export, and
+  file-path normalization helpers now have a named owner while
+  `pgy_runtime_lib.c` preserves include order; the current production source
+  `.inc` inventory is 83 files / 23,031 LOC.
+- Latest LLVM-linkable runtime set/intent trace cleanup moved the former
+  `src/runtime/pgy_runtime_lib_part_b_part_b.inc` body into
+  `src/runtime/pgy_runtime_lib_set_intent_trace_exports.h`. Raw set tail
+  exports, intent active/recent registry helpers, intent trace mutation, and
+  MIR trace hooks now have a named owner while `pgy_runtime_lib.c` preserves
+  include order; the current production source `.inc` inventory is 82 files /
+  22,449 LOC.
+- Latest RIR flow cleanup moved the former `src/compiler/rir_flow.inc` body
+  into `src/compiler/rir_flow.h`. RIR flow semantic flags, state merge rules,
+  and HIR CFG enrichment now have a named owner while `rir.c` preserves include
+  order; the current production source `.inc` inventory is 81 files /
+  21,877 LOC.
 - Latest overall audit also reran `make tooling-conformance-test-smoke`; the
   formatter smoke is invoked through `bash`, so Linux execute-bit drift no
   longer blocks the tooling conformance gate.
@@ -574,14 +841,22 @@ Observed results:
   `transpiler_nominal.c`, `transpiler_enum.c`, `transpiler_operator.c`, and
   `transpiler_type_alias.c`, `transpiler_type_require.c`, and
   `transpiler_extern.c`, `transpiler_type_declarator.c`,
-  `transpiler_log_normalize.c`, `transpiler_parallel_capture.h`, and
+  `transpiler_log_normalize.c`, `transpiler_parallel_capture.h`,
+  `transpiler_expr_builtin_dispatch.h`, and
   `transpiler_expr_stdlib_builtin.h`, `transpiler_overlay_projection.h`, and
   `transpiler_let_emit.h`, `transpiler_mir_block_emit.h`,
-  `transpiler_intent_emit.h`, and `pgy_runtime_intent_active_exports.h`. The
-  next high-value extraction candidate is not
-  more blind line-count splitting; it is choosing a real owner seam for generic
-  binding/type-specialization helpers, LLVM method-call helpers, or remaining
-  runtime near-cap owners such as intent history/runtime-lib export groups.
+  `transpiler_intent_emit.h`, `pgy_runtime_intent_active_exports.h`, and
+  `pgy_runtime_lib_intent_exports.h`, and
+  `llvm_expr_call_projection_sync.h`, `transpiler_mir_ssa_contract.h`, and
+  `transpiler_slot_builtin_emit.h`, `transpiler_type_mapping_helpers.h`,
+  `transpiler_world_select_event_emit.h`, and
+  `llvm_expr_assignment_member_projection.h`, plus
+  `pgy_runtime_lib_authority_file_core.h` and
+  `pgy_runtime_lib_set_intent_trace_exports.h`, plus `rir_flow.h`. The next
+  high-value extraction candidate is not more blind line-count splitting; it is
+  choosing a real owner seam for semantic host helpers, MIR SSA emission, or
+  remaining runtime near-cap owners such as zone/frontier and slot-operation
+  groups.
 - Empty `.inc` tails are no longer allowed. A split-order shim may include only
   real implementation chunks; if a tail becomes empty, remove it and update the
   shim, dependency list, tests, and this ledger in the same change.

@@ -895,7 +895,8 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
     }
 }
 
-#include "rir_flow.inc"
-#include "rir_builder.inc"
+#include "rir_flow.h"
+#include "rir_builder.h"
 #include "rir_names.h"
+#include "rir_validation.h"
 #include "rir_public.inc"

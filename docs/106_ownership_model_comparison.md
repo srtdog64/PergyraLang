@@ -45,6 +45,18 @@ Current Pergyra position is intentionally mixed:
 If Option C below is implemented, the target moves roughly to memory 85 percent
 and resource 90 percent without importing lifetime annotations.
 
+Beta lifetime policy:
+
+- Pergyra does not expose Rust-style lifetime parameters such as `'a`.
+- Surface lifetime is expressed through ownership classes, Slot/Token handles,
+  typed views, Zone/Intent boundaries, and block-scoped leases.
+- The compiler must still prove body-local safety, but that proof belongs in
+  CFG/AIR dataflow and runtime ABI contracts rather than in user-authored
+  lifetime syntax.
+- This preserves the cross-platform abstraction goal: the same source should
+  keep the same ownership meaning across C, LLVM, device, fiber, and future
+  backend targets.
+
 ## 3. Six Prior Arts
 
 ### Rust

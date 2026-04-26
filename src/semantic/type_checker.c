@@ -85,7 +85,7 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
  * deleted once the helpers_late.c TU went out. */
 #include "type_checker_helpers_context.inc"
 #include "type_checker_helpers_resolution.inc"
-#include "type_checker_helpers_effects.inc"
+#include "type_checker_helpers_effects.h"
 #include "type_checker_helpers_host.inc"
 /* type_checker_visibility.inc was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
@@ -169,7 +169,7 @@ type_get_constructed_arg(const Type *type, size_t index)
     return type->data.constructed.args[index];
 }
 
-#include "type_checker_expr.inc"
+#include "type_checker_expr.h"
 #include "type_checker_assignment.inc"
 
 
@@ -467,4 +467,4 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     }
 }
 
-#include "type_checker_program.inc"
+#include "type_checker_program.h"

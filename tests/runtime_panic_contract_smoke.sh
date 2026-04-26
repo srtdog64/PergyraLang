@@ -23,10 +23,11 @@ import sys
 root = pathlib.Path(sys.argv[1])
 header = root / "src" / "runtime" / "pgy_runtime_panic_contract.h"
 inline_top = root / "src" / "runtime" / "pgy_runtime_part_a.inc"
-inline_panic = root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc"
+inline_panic = root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h"
 lib_top = root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc"
 slot_c = root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_c.inc"
-slot_d = root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_d.inc"
+slot_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_exports.h"
+slot_array_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h"
 docs = [
     root / "docs" / "100_beta_readiness_checklist.md",
     root / "docs" / "semantics" / "06_backend_parity.md",
@@ -87,7 +88,7 @@ inline_text = inline_panic.read_text(encoding="utf-8")
 if "PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT" not in inline_text:
     raise SystemExit("inline PGY_PANIC is not backed by the runtime panic contract")
 
-for path in [slot_c, slot_d]:
+for path in [slot_c, slot_export]:
     text = path.read_text(encoding="utf-8")
     if 'fprintf(stderr, "[pgy] slot ' in text:
         raise SystemExit(f"{path.relative_to(root)} still logs released-slot hard failures")
@@ -101,7 +102,7 @@ for path in [slot_c, slot_d]:
         if token not in text:
             raise SystemExit(f"{path.relative_to(root)} missing {token}")
 
-device_text = slot_d.read_text(encoding="utf-8")
+device_text = slot_array_export.read_text(encoding="utf-8")
 device_macro = re.search(
     r"#define PGY_DEFINE_DEVICE_SLOT_EXPORTS\(Suffix, CType, ZeroExpr\)(.*?)"
     r"PGY_DEFINE_DEVICE_SLOT_EXPORTS\(Int, int32_t, 0\)",
@@ -123,7 +124,7 @@ if "return (ZeroExpr);" in device_body:
 if "if (s != NULL && s->claimed)" in device_body:
     raise SystemExit("device slot export macro still uses silent guard-only validation")
 
-secure_text = slot_d.read_text(encoding="utf-8")
+secure_text = slot_array_export.read_text(encoding="utf-8")
 for token in [
     "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE",
     "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_READ",
@@ -164,7 +165,7 @@ if re.search(r"pgy_zone_authority_check_export.*?abort\s*\(", authority_text, fl
     raise SystemExit("exported authority check still aborts outside panic contract")
 
 array_text = "\n".join([
-    (root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_part_ba_part_c.inc").read_text(encoding="utf-8"),
 ])
 for token in [
@@ -178,7 +179,7 @@ for token in [
     if token not in array_text:
         raise SystemExit(f"inline array runtime missing {token}")
 
-allocator_text = (root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc").read_text(encoding="utf-8")
+allocator_text = (root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h").read_text(encoding="utf-8")
 for token in [
     "PGY_RUNTIME_PANIC_CLASS_OOM",
     "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED",
@@ -188,7 +189,7 @@ for token in [
     if token not in allocator_text:
         raise SystemExit(f"inline allocator runtime missing {token}")
 
-export_array_text = (root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_d.inc").read_text(encoding="utf-8")
+export_array_text = (root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h").read_text(encoding="utf-8")
 for token in [
     "PGY_RUNTIME_PANIC_CLASS_OOM",
     "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED",
@@ -200,6 +201,8 @@ for token in [
         raise SystemExit(f"exported array runtime missing {token}")
 
 inline_collection_text = "\n".join([
+    (root / "src" / "runtime" / "pgy_runtime_queue_inline.h").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_part_ba_part_c.inc").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_part_ba_part_d.inc").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_part_ba_part_e.inc").read_text(encoding="utf-8"),
 ])
@@ -215,7 +218,10 @@ for token in [
     if token not in inline_collection_text:
         raise SystemExit(f"inline collection runtime missing hard-fail token {token}")
 
-export_collection_text = (root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_a.inc").read_text(encoding="utf-8")
+export_collection_text = "\n".join([
+    (root / "src" / "runtime" / "pgy_runtime_lib_list_raw_exports.h").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_lib_raw_collection_exports.h").read_text(encoding="utf-8"),
+])
 for token in [
     "list index out of bounds",
     "list set index out of bounds",
@@ -229,7 +235,10 @@ for token in [
         raise SystemExit(f"exported collection runtime missing hard-fail token {token}")
 
 runtime_export_text = (root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc").read_text(encoding="utf-8")
-inline_runtime_text = (root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc").read_text(encoding="utf-8")
+inline_runtime_text = "\n".join([
+    (root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_panic_checked_inline.h").read_text(encoding="utf-8"),
+])
 for label, text in [
     ("exported checked arithmetic", runtime_export_text),
     ("inline checked arithmetic", inline_runtime_text),
@@ -264,7 +273,7 @@ unwrap_lowering_paths = {
         "pgy_runtime_panic_internal_invariant_export",
         "PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT",
     ],
-    root / "src" / "runtime" / "pgy_runtime_part_ba_part_b.inc": [
+    root / "src" / "runtime" / "pgy_runtime_panic_checked_inline.h": [
         "pgy_runtime_panic_internal_invariant_export",
         "PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT",
     ],
@@ -285,7 +294,7 @@ for path, tokens in unwrap_lowering_paths.items():
             raise SystemExit(f"{path.relative_to(root)} missing unwrap panic token {token}")
 
 array_lowering_paths = {
-    root / "src" / "codegen" / "transpiler_expr_emitters_part_d.inc": ["pgy_array_set_"],
+    root / "src" / "codegen" / "transpiler_expr_stdlib_builtin.h": ["pgy_array_set_"],
     root / "src" / "codegen" / "transpiler_expr_emitters_part_f.inc": ["pgy_array_get_", "pgy_slice_get_"],
     root / "src" / "codegen" / "llvm_expr.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get"],
     root / "src" / "codegen" / "llvm_expr_call_arrays.inc": ["pgy_array_set_"],
@@ -299,7 +308,7 @@ for path, tokens in array_lowering_paths.items():
 
 compiler_text = (root / "src" / "compiler" / "compiler.c").read_text(encoding="utf-8")
 for token in [
-    'PGY_RUNTIME_DIR "/pgy_runtime_lib_part_b_part_d.inc"',
+    'PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_part_ba_part_c.inc"',
 ]:
     if token not in compiler_text:

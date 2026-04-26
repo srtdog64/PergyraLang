@@ -151,6 +151,206 @@
   text. Local gate used: `make runtime-abi-lifetime-test-smoke
   backend-inc-size-test-smoke inc-sentinel-test-smoke`, plus `make -B pgy
   runtime-panic-codegen-test-smoke runtime-panic-abi-test-smoke test-abi`.
+- Lean debt-slice follow-up: LLVM-linkable intent borrowed exports now have a
+  matching private owner in `src/runtime/pgy_runtime_lib_intent_exports.h`;
+  `pgy_runtime_lib_part_b_part_c.inc` drops from 852 LOC to 315 LOC while
+  keeping `intent_active`, `intent_recent`, and `intent_failure` ABI pipeline
+  cases green on C and LLVM. This keeps generated-C inline and LLVM-linkable
+  runtime export ownership symmetric instead of letting `part_b_part_c.inc`
+  carry mixed intent-observability and slot-operation bodies.
+- Lean debt-slice follow-up: LLVM method-call projection sync helpers now have
+  a private owner in `src/codegen/llvm_expr_call_projection_sync.h`;
+  `llvm_expr_call_methods_part_a.inc` drops from 880 LOC to 671 LOC while the
+  world/zone projection sync call sites keep the same include order. Local gate
+  used: `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke` plus
+  targeted backend compare for `world_embedded_branch_projection_visibility`,
+  `world_embedded_action_frontier`, `world_embedded_action_pool_frontier`, and
+  `world_zone_projection_visibility`.
+- Lean debt-slice follow-up: LLVM method-call domain action sync and
+  slice/member-call helpers now have a private owner in
+  `src/codegen/llvm_expr_call_methods_domain_slice.h`; the remaining
+  `llvm_expr_call_methods_part_a.inc` body is removed while `llvm_expr.c`
+  include order remains stable. The production source `.inc` inventory is now
+  92 files / 28,467 LOC. Local gate to use for this slice:
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  llvm-test-backend-compare beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: LLVM call dispatch now has a private owner in
+  `src/codegen/llvm_expr_call_dispatch.h`; the former
+  `llvm_expr_calls_main.inc` body is removed while the call-family shim order
+  remains stable. The production source `.inc` inventory is now 91 files /
+  27,842 LOC. Local gate to use for this slice:
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  llvm-test-backend-compare beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: LLVM expression host/self, projection binding,
+  spawn expression, operator suffix, enum lookup, and number/string literal
+  helpers now have a private owner in
+  `src/codegen/llvm_expr_host_spawn_literal_helpers.h`; the former
+  `llvm_expr_helpers_part_b.inc` body is removed while `llvm_expr.c` helper
+  include order remains stable. The production source `.inc` inventory is now
+  90 files / 27,221 LOC. Local gate to use for this slice:
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  llvm-test-backend-compare beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: C backend role method emission, ability/vtable
+  emission, hidden provenance helpers, and role operator aliases now have a
+  private owner in `src/codegen/transpiler_domain_role_ability_emit.h`; the
+  former `transpiler_domain_role_part_a.inc` body is removed while the
+  domain-role shim order remains stable. The production source `.inc` inventory
+  is now 89 files / 26,601 LOC. Local gate to use for this slice:
+  `make -B pgy test-transpile backend-inc-size-test-smoke
+  inc-sentinel-test-smoke llvm-test-backend-compare
+  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: LLVM expression boundary call argument helpers,
+  projection field helpers, world/zone lookup helpers, and host-class lookup
+  helpers now have a private owner in
+  `src/codegen/llvm_expr_boundary_projection_helpers.h`; the former
+  `llvm_expr_helpers_part_a.inc` body is removed while `llvm_expr.c` helper
+  include order remains stable. The production source `.inc` inventory is now
+  88 files / 25,996 LOC. Local gate to use for this slice:
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  llvm-test-backend-compare beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: C backend MIR routine lookup, active SSA name
+  resolution/rendering, token-local filtering, and local type-name lookup now
+  have a private owner in `src/codegen/transpiler_mir_ssa_names.h`; the former
+  `transpiler_emitters_mir_inventory_ssa_names.inc` body is removed while the
+  MIR inventory/SSA shim order remains stable. The production source `.inc`
+  inventory is now 87 files / 25,395 LOC. Local gate to use for this slice:
+  `make -B pgy test-transpile backend-inc-size-test-smoke
+  inc-sentinel-test-smoke llvm-test-backend-compare
+  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: C backend primitive, slot/channel, constructed
+  generic, and local type-name rendering now have a private owner in
+  `src/codegen/transpiler_type_mapping_helpers.h`; the former
+  `transpiler_helpers_core_types.inc` body is removed while the helper-core shim
+  order remains stable. The production source `.inc` inventory is now 86 files /
+  24,796 LOC. Local gate to use for this slice: `make -B pgy test-transpile
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  llvm-test-backend-compare beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: C backend world sync declaration, select lowering,
+  and event declaration/subscription lowering now have a private owner in
+  `src/codegen/transpiler_world_select_event_emit.h`; the former
+  `transpiler_domain_role_part_d.inc` body is removed while the domain-role shim
+  order remains stable. The production source `.inc` inventory is now 85 files /
+  24,198 LOC. Local gate to use for this slice: `make -B pgy test-transpile
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  llvm-test-backend-compare beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: LLVM expression assignment, member lvalue/member
+  access, projection invalidation, and embedded world projection assignment sync
+  now have a private owner in
+  `src/codegen/llvm_expr_assignment_member_projection.h`; the former
+  `llvm_expr_values.inc` body is removed while `llvm_expr.c` include order
+  remains stable. The production source `.inc` inventory is now 84 files /
+  23,617 LOC. Local gate to use for this slice: `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  llvm-test-backend-compare beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: LLVM-linkable runtime authority rejection state,
+  checked arithmetic exports, panic invariant export, and file-path
+  normalization helpers now have a private owner in
+  `src/runtime/pgy_runtime_lib_authority_file_core.h`; the former
+  `pgy_runtime_lib_part_a.inc` body is removed while `pgy_runtime_lib.c` include
+  order remains stable. The production source `.inc` inventory is now 83 files /
+  23,031 LOC. Local gate to use for this slice: `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-abi-lifetime-test-smoke runtime-panic-abi-test-smoke test-abi
+  llvm-test-backend-compare beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: LLVM-linkable raw set tail exports, intent
+  active/recent registry helpers, intent trace mutation, and MIR trace hooks now
+  have a private owner in
+  `src/runtime/pgy_runtime_lib_set_intent_trace_exports.h`; the former
+  `pgy_runtime_lib_part_b_part_b.inc` body is removed while `pgy_runtime_lib.c`
+  include order remains stable. The production source `.inc` inventory is now
+  82 files / 22,449 LOC. Local gate to use for this slice: `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-abi-lifetime-test-smoke runtime-panic-abi-test-smoke test-abi
+  llvm-test-backend-compare beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: RIR flow semantic flags, state merge rules, and
+  HIR CFG enrichment now have a private owner in `src/compiler/rir_flow.h`; the
+  former `rir_flow.inc` body is removed while `rir.c` include order remains
+  stable. The production source `.inc` inventory is now 81 files / 21,877 LOC.
+  Local gate to use for this slice: `make -B pgy type-resolution-dag-test-smoke
+  air-drift-test-smoke cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
+  inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: C backend MIR SSA identifier contract helpers now
+  have a private owner in `src/codegen/transpiler_mir_ssa_contract.h`;
+  `transpiler_emitters_base_a_part_d.inc` drops from 849 LOC to 677 LOC. Local
+  gate used: `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  test-transpile`.
+- Lean debt-slice follow-up: C backend MIR emission contract/resource-hook
+  helpers now have a private owner in
+  `src/codegen/transpiler_mir_emission_contract.h`; the remaining
+  `transpiler_emitters_base_a_part_d.inc` body is removed while the base-A shim
+  keeps include order stable. The production source `.inc` inventory is now
+  95 files / 30,368 LOC. Local gate to use for this slice:
+  `make -B pgy test-transpile backend-inc-size-test-smoke
+  inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: RIR lowering/enrichment now has a private owner in
+  `src/compiler/rir_builder.h`; the former `rir_builder.inc` body is removed
+  while `rir.c` keeps the flow -> build -> names -> validation include order.
+  The production source `.inc` inventory is now 94 files / 29,733 LOC. Local
+  gate to use for this slice: `make -B pgy type-resolution-dag-test-smoke
+  air-drift-test-smoke cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
+  inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
+  documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: semantic function-body checking now has a private
+  owner in `src/semantic/type_checker_program.h`; the former
+  `type_checker_program.inc` body is removed while the top-level semantic TU
+  include order remains stable. The production source `.inc` inventory is now
+  93 files / 29,099 LOC. Local gate to use for this slice:
+  `make -B pgy test-semantic semantic-core-shape-test-smoke
+  cfg-body-dataflow-test-smoke type-resolution-dag-test-smoke
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
+- Lean debt-slice follow-up: C backend slot/device builtin expression emitters
+  now have a private owner in `src/codegen/transpiler_slot_builtin_emit.h`;
+  `transpiler_expr_emitters_part_a.inc` drops from 797 LOC to 531 LOC while
+  preserving slot sugar, secure slot token, and runtime panic codegen smoke.
+  Local gate used: `make -B pgy backend-inc-size-test-smoke
+  inc-sentinel-test-smoke test-transpile runtime-panic-codegen-test-smoke`.
+- Lean debt-slice follow-up: C backend expression type inference now has a
+  private owner in `src/codegen/transpiler_expr_type_infer.h`;
+  `transpiler_helpers_core_b_part_c.inc` drops from 797 LOC to 296 LOC. This
+  keeps generic/default-return inference in the same include order while
+  separating the expression-type owner from spawn/generic helper tails. Local
+  gate used: `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  test-transpile`.
+- Lean debt-slice follow-up: C backend statement dispatch now has a private
+  owner in `src/codegen/transpiler_statement_dispatch.h`;
+  `transpiler_emitters_base_b_part_c.inc` drops from 803 LOC to 546 LOC. This
+  leaves `part_c` focused on block emission and intent helper tails instead of
+  carrying the top-level statement switch. Local gate used: `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke test-transpile` plus
+  targeted backend compare for `break_continue`, `parallel_channel_sum`, and
+  `intent_header_interleaved`.
+- Lean debt-slice follow-up: generated-C `HashMap<String>` and map-keys inline
+  runtime now has a private owner in `src/runtime/pgy_runtime_map_string_inline.h`;
+  `pgy_runtime_part_ba_part_d.inc` drops from 767 LOC to 377 LOC and is now
+  focused on List/Set inline runtime. Local gate used: `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-abi-lifetime-test-smoke runtime-panic-codegen-test-smoke test-abi`
+  plus targeted backend compare for `map_get_string`, `map_keys`,
+  `list_get_string`, `queue_pop_string`, and
+  `intent_failure_observability_strings`.
+- Lean debt-slice follow-up: C backend MIR function emission now has a private
+  owner in `src/codegen/transpiler_mir_func_emit.h`;
+  `transpiler_emitters_base_b_part_a.inc` drops from 766 LOC to 162 LOC. This
+  keeps the MIR emit-state snapshot helpers in the original part while moving
+  the large `emit_func_decl_from_mir_named(...)` body behind a named owner.
+- Lean debt-slice follow-up: generated-C runtime array sort kernels and scalar
+  std/log/math helpers now have private owners in
+  `src/runtime/pgy_runtime_array_sort_inline.h` and
+  `src/runtime/pgy_runtime_scalar_std_inline.h`;
+  `pgy_runtime_part_ba_part_c.inc` drops from 759 LOC to 535 LOC and is now
+  focused on built-in type instantiation plus HashMap core.
 - Lean debt-slice follow-up: LLVM-linkable runtime core exports now have a
   private owner in `src/runtime/pgy_runtime_lib_core_exports.h`; logging,
   time/sleep, and `pgy_int_to_string(...)` moved out of
@@ -267,9 +467,112 @@
   include order. Local gate used: `make -B pgy backend-inc-size-test-smoke
   inc-sentinel-test-smoke runtime-panic-codegen-test-smoke
   runtime-panic-abi-test-smoke runtime-abi-lifetime-test-smoke test-abi`.
-- Current highest-value implementation order remains: DAG alias materialization,
-  AIR/CFG body fact source-of-truth, dedicated MIR declaration inventory,
-  runtime frontier scheduler generalization, and ABI ownership/pinning parity.
+- Current highest-value implementation order is now:
+  1. CFG/body dataflow source-of-truth for function/action/intent safety.
+  2. DAG source-of-truth completion for named symbols, module contracts, and
+     generic consumer paths.
+  3. AIR strict-evidence negative expansion for transfer/world/boundary cases.
+  4. Runtime frontier scheduler generalization beyond the already-covered
+     bounded recompute slices.
+  5. ABI ownership/pinning parity and diagnostic quality gate hardening.
+  6. Cross-platform support matrix enforcement.
+- The first removable blocker under that list is still owner debt that slows
+  every P0/P1/DAG/AIR change. MIR ABI layout lookup now has a private owner in
+  `src/compiler/mir_abi_layout.h`; `mir_public_part_b.inc` drops from 753 LOC
+  to 420 LOC and now focuses on MIR validation/dump surfaces. Local gate used:
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke air-drift-test-smoke test-abi`.
+- CFG contract validation now has a private owner in
+  `src/compiler/mir_cfg_contract_validate.h`; `mir_public_part_a.inc` drops
+  from 743 LOC to 290 LOC and no longer mixes public MIR entry points with
+  cleanup/rollback/invalidation graph contract checks. Local gate used:
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
+  air-drift-test-smoke test-abi`.
+- RIR validation now has a private owner in `src/compiler/rir_validation.h`;
+  `rir_public.inc` drops from 741 LOC to 269 LOC and now keeps only
+  destroy/dump public surfaces. This makes AIR/CFG evidence validation a named
+  owner instead of a mixed public include body. Local gate used:
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
+  air-drift-test-smoke test-abi`.
+- C backend MIR intent inventory helpers now have a named owner in
+  `src/codegen/transpiler_mir_inventory_intent.h`; the old
+  `transpiler_emitters_mir_inventory_intent.inc` include body is gone and the
+  existing SSA include-order shim now references the owner header directly.
+  Local gate used: `make -B pgy backend-inc-size-test-smoke
+  inc-sentinel-test-smoke type-resolution-dag-test-smoke
+  cfg-body-dataflow-test-smoke air-drift-test-smoke test-abi`.
+- C backend call/spawn/channel expression emission now has a named owner in
+  `src/codegen/transpiler_expr_call_spawn_emit.h`; the old
+  `transpiler_expr_emitters_part_e.inc` body is gone and the expression emitter
+  shim includes the owner header directly. Local gate used: `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
+  air-drift-test-smoke test-abi`.
+- C backend builtin-call dispatch now has a named owner in
+  `src/codegen/transpiler_expr_builtin_dispatch.h`; the old
+  `transpiler_expr_emitters_part_b.inc` body is gone and the expression emitter
+  shim includes the owner header directly. This keeps builtin dispatch out of
+  split `.inc` ownership without changing call lowering order. Local gate used:
+  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
+  air-drift-test-smoke test-abi`.
+- Semantic builtin-query checks now have a named owner in
+  `src/semantic/type_checker_builtins_query.h`; the old
+  `type_checker_builtins_query.inc` body is gone. The split
+  `BuiltinKind builtin_resolve(...)` signature was also fixed so
+  `type_checker_builtins_slotops.inc` owns a complete function boundary instead
+  of inheriting a dangling return type from the query file.
+- Semantic builtin nominal/type contract checks now have a named owner in
+  `src/semantic/type_checker_builtins_nominal.h`; the old
+  `type_checker_builtins_nominal.inc` body is gone while preserving
+  `Rc`/`Weak`/`Box`/allocator and intent-observability builtin dispatch order.
+- Generated-C runtime pool/FSM/timer helpers now have a named owner in
+  `src/runtime/pgy_runtime_pool_fsm_timer_inline.h`; `pgy_runtime_part_ba_part_e.inc`
+  now starts at parallel/zone authority support instead of mixing object-pool,
+  FSM, timer, cooldown, authority, result, and option helpers in one body.
+  Runtime ABI lifetime inventory and compiler runtime-cache freshness track
+  the new owner header directly.
+- Semantic expression checking now has a named owner in
+  `src/semantic/type_checker_expr.h`; the old `type_checker_expr.inc` body is
+  gone and CFG body-dataflow smoke follows the new owner path.
+- C backend function/class/control-flow emission now has a named owner in
+  `src/codegen/transpiler_func_class_flow_emit.h`; the old
+  `transpiler_emitters_base_b_part_b.inc` body is gone while preserving the
+  base-B include order.
+- Generated-C runtime Box/Arena/Allocator/Array/Rc/primitive-slot helpers now
+  have a named owner in `src/runtime/pgy_runtime_memory_array_slot_inline.h`;
+  the old `pgy_runtime_part_ba_part_b.inc` body is gone. Runtime panic contract,
+  ABI lifetime inventory, and compiler runtime-cache freshness track the new
+  owner header directly.
+- Semantic relation/effect/projection helper logic now has a named owner in
+  `src/semantic/type_checker_helpers_effects.h`; the old
+  `type_checker_helpers_effects.inc` body is gone and CFG body-dataflow smoke
+  tracks the new helper path.
+- LLVM domain core helpers now have a named owner in
+  `src/codegen/llvm_domain_core_helpers.h`; the old
+  `llvm_domain_helpers_part_a.inc` body is gone and `llvm_domain.c` includes
+  the owner header directly. Local gate used: `make -B pgy
+  backend-inc-size-test-smoke inc-sentinel-test-smoke
+  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
+  air-drift-test-smoke test-abi`.
+- LLVM-linkable runtime channel/qubit exports now have a named owner in
+  `src/runtime/pgy_runtime_lib_channel_quantum_exports.h`; the old
+  `pgy_runtime_lib_part_b_part_e.inc` body is gone and
+  `runtime_abi_lifetime_smoke.sh` reads the new owner header in generated
+  runtime include order. Local gate used: `make backend-inc-size-test-smoke
+  inc-sentinel-test-smoke runtime-abi-lifetime-test-smoke test-abi`.
+- LLVM-linkable raw Queue/Map/Set exports now have a named owner in
+  `src/runtime/pgy_runtime_lib_raw_collection_exports.h`, and secure/device
+  slot, array, file IO, and string helper exports now have a named owner in
+  `src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h`. The old
+  `pgy_runtime_lib_part_b_part_a.inc` and `pgy_runtime_lib_part_b_part_d.inc`
+  bodies are gone. Runtime panic/lifetime smokes now check the new owner
+  headers and compiler runtime cache freshness tracks them directly. Local
+  gate used: `make backend-inc-size-test-smoke inc-sentinel-test-smoke
+  runtime-abi-lifetime-test-smoke runtime-panic-contract-test-smoke
+  runtime-panic-codegen-test-smoke test-abi`.
 - Rejected shortcut: using the alias symbol's already-materialized `sym->type`
   directly inside metadata alias lookup breaks module visibility and generic
   ability provenance tests. Alias DAG closure must preserve export/private

@@ -60,8 +60,159 @@ accessor names while reducing `src/runtime/pgy_runtime_part_ba_part_a.inc` from
 989 LOC to 867 LOC. Generated-C intent last/active borrowed exports now live in
 `src/runtime/pgy_runtime_intent_active_exports.h`, reducing
 `src/runtime/pgy_runtime_part_ba_part_a.inc` again from 867 LOC to 558 LOC and
-making active/recent ABI owner checks explicit. LLVM-linkable runtime core
-exports now live in
+making active/recent ABI owner checks explicit. LLVM-linkable intent borrowed
+exports now live in `src/runtime/pgy_runtime_lib_intent_exports.h`, reducing
+`src/runtime/pgy_runtime_lib_part_b_part_c.inc` from 852 LOC to 315 LOC and
+keeping C/LLVM intent ABI pipeline cases green. LLVM method-call projection
+sync helpers now live in `src/codegen/llvm_expr_call_projection_sync.h`,
+reducing `src/codegen/llvm_expr_call_methods_part_a.inc` from 880 LOC to
+671 LOC while keeping world/zone projection backend compare green.
+LLVM method-call domain action sync and slice/member-call helpers now live in
+`src/codegen/llvm_expr_call_methods_domain_slice.h`, removing the remaining
+`src/codegen/llvm_expr_call_methods_part_a.inc` body while preserving
+`llvm_expr.c` include order.
+The LLVM call dispatcher now lives in `src/codegen/llvm_expr_call_dispatch.h`,
+removing the former `src/codegen/llvm_expr_calls_main.inc` body while preserving
+the call-family helper shim order.
+LLVM expression host/self, projection binding, spawn expression, operator
+suffix, enum lookup, and number/string literal helpers now live in
+`src/codegen/llvm_expr_host_spawn_literal_helpers.h`, removing the former
+`src/codegen/llvm_expr_helpers_part_b.inc` body while preserving `llvm_expr.c`
+helper include order.
+LLVM expression boundary call argument helpers, projection field helpers,
+world/zone lookup helpers, and host-class lookup helpers now live in
+`src/codegen/llvm_expr_boundary_projection_helpers.h`, removing the former
+`src/codegen/llvm_expr_helpers_part_a.inc` body while preserving `llvm_expr.c`
+helper include order.
+C backend MIR SSA identifier contract helpers now live in
+`src/codegen/transpiler_mir_ssa_contract.h`, reducing
+`src/codegen/transpiler_emitters_base_a_part_d.inc` from 849 LOC to 677 LOC
+while keeping `test-transpile` green.
+C backend MIR routine lookup, active SSA name resolution/rendering,
+token-local filtering, and local type-name lookup now live in
+`src/codegen/transpiler_mir_ssa_names.h`, removing the former
+`src/codegen/transpiler_emitters_mir_inventory_ssa_names.inc` body while
+preserving the MIR inventory/SSA shim order.
+C backend primitive, slot/channel, constructed generic, and local type-name
+rendering now live in `src/codegen/transpiler_type_mapping_helpers.h`, removing
+the former `src/codegen/transpiler_helpers_core_types.inc` body while preserving
+the helper-core shim order.
+C backend world sync declaration, select lowering, and event
+declaration/subscription lowering now live in
+`src/codegen/transpiler_world_select_event_emit.h`, removing the former
+`src/codegen/transpiler_domain_role_part_d.inc` body while preserving the
+domain-role shim order.
+LLVM expression assignment, member lvalue/member access, projection
+invalidation, and embedded world projection assignment sync now live in
+`src/codegen/llvm_expr_assignment_member_projection.h`, removing the former
+`src/codegen/llvm_expr_values.inc` body while preserving `llvm_expr.c` include
+order.
+LLVM-linkable runtime authority rejection state, checked arithmetic exports,
+panic invariant export, and file-path normalization helpers now live in
+`src/runtime/pgy_runtime_lib_authority_file_core.h`, removing the former
+`src/runtime/pgy_runtime_lib_part_a.inc` body while preserving
+`pgy_runtime_lib.c` include order.
+LLVM-linkable raw set tail exports, intent active/recent registry helpers,
+intent trace mutation, and MIR trace hooks now live in
+`src/runtime/pgy_runtime_lib_set_intent_trace_exports.h`, removing the former
+`src/runtime/pgy_runtime_lib_part_b_part_b.inc` body while preserving
+`pgy_runtime_lib.c` include order.
+RIR flow semantic flags, state merge rules, and HIR CFG enrichment now live in
+`src/compiler/rir_flow.h`, removing the former `src/compiler/rir_flow.inc` body
+while preserving `rir.c` include order.
+C backend MIR emission contract/resource-hook helpers now live in
+`src/codegen/transpiler_mir_emission_contract.h`, removing the remaining
+`src/codegen/transpiler_emitters_base_a_part_d.inc` body while preserving the
+base-A include order.
+C backend slot/device builtin expression emitters now live in
+`src/codegen/transpiler_slot_builtin_emit.h`, reducing
+`src/codegen/transpiler_expr_emitters_part_a.inc` from 797 LOC to 531 LOC while
+keeping slot sugar, secure slot token, and panic codegen smoke green.
+C backend expression type inference now lives in
+`src/codegen/transpiler_expr_type_infer.h`, reducing
+`src/codegen/transpiler_helpers_core_b_part_c.inc` from 797 LOC to 296 LOC
+while keeping the C transpile suite green.
+C backend statement dispatch now lives in
+`src/codegen/transpiler_statement_dispatch.h`, reducing
+`src/codegen/transpiler_emitters_base_b_part_c.inc` from 803 LOC to 546 LOC
+while keeping representative control-flow, parallel, and intent backend
+compare paths green.
+C backend role method emission, ability/vtable emission, hidden provenance
+helpers, and role operator aliases now live in
+`src/codegen/transpiler_domain_role_ability_emit.h`, removing the former
+`src/codegen/transpiler_domain_role_part_a.inc` body while preserving
+domain-role shim order.
+Generated-C `HashMap<String>` and map-keys inline runtime now lives in
+`src/runtime/pgy_runtime_map_string_inline.h`, reducing
+`src/runtime/pgy_runtime_part_ba_part_d.inc` from 767 LOC to 377 LOC while
+keeping runtime ABI, panic codegen, and representative collection backend
+compare paths green.
+C backend MIR function emission now lives in
+`src/codegen/transpiler_mir_func_emit.h`, reducing
+`src/codegen/transpiler_emitters_base_b_part_a.inc` from 766 LOC to 162 LOC.
+Generated-C runtime array sort kernels and scalar std/log/math helpers now live
+in `src/runtime/pgy_runtime_array_sort_inline.h` and
+`src/runtime/pgy_runtime_scalar_std_inline.h`, reducing
+`src/runtime/pgy_runtime_part_ba_part_c.inc` from 759 LOC to 535 LOC while
+keeping C transpile, ABI, panic codegen, and representative C/LLVM parity green.
+MIR ABI layout lookup now lives in `src/compiler/mir_abi_layout.h`, reducing
+`src/compiler/mir_public_part_b.inc` from 753 LOC to 420 LOC while keeping DAG,
+AIR drift, and ABI smoke green. CFG contract validation now lives in
+`src/compiler/mir_cfg_contract_validate.h`, reducing
+`src/compiler/mir_public_part_a.inc` from 743 LOC to 290 LOC while keeping the
+CFG body-dataflow smoke green. RIR validation now lives in
+`src/compiler/rir_validation.h`, reducing `src/compiler/rir_public.inc` from
+741 LOC to 269 LOC while keeping DAG, CFG body-dataflow, AIR drift, and ABI
+smoke green. RIR lowering/enrichment now lives in
+`src/compiler/rir_builder.h`, removing the former `src/compiler/rir_builder.inc`
+body while preserving the `rir.c` flow -> build -> names -> validation include
+order. C backend MIR intent inventory helpers now live in
+`src/codegen/transpiler_mir_inventory_intent.h`, removing the old
+`transpiler_emitters_mir_inventory_intent.inc` body while preserving the
+existing SSA include-order shim. C backend call/spawn/channel expression
+emission now lives in `src/codegen/transpiler_expr_call_spawn_emit.h`, removing
+the old `transpiler_expr_emitters_part_e.inc` body while preserving the
+expression emitter include order. C backend builtin-call dispatch now lives in
+`src/codegen/transpiler_expr_builtin_dispatch.h`, removing the old
+`transpiler_expr_emitters_part_b.inc` body while preserving builtin-call
+lowering order. Semantic builtin query and nominal contracts now live in
+`src/semantic/type_checker_builtins_query.h` and
+`src/semantic/type_checker_builtins_nominal.h`, removing two more production
+`.inc` bodies and closing the former split `BuiltinKind builtin_resolve(...)`
+return-type boundary. Generated-C runtime pool/FSM/timer helpers now live in
+`src/runtime/pgy_runtime_pool_fsm_timer_inline.h`, so runtime part E is focused
+on parallel/zone authority/effect-pool/unsafe/result/option helpers and runtime
+cache freshness tracks the new owner directly. Semantic expression checking now
+lives in `src/semantic/type_checker_expr.h`, and CFG body-dataflow smoke
+follows that owner path instead of the former `.inc` body. C backend
+function/class/control-flow emission now lives in
+`src/codegen/transpiler_func_class_flow_emit.h`, removing the former
+`transpiler_emitters_base_b_part_b.inc` body while preserving base-B include
+order. Generated-C runtime Box/Arena/Allocator/Array/Rc/primitive-slot helpers
+now live in `src/runtime/pgy_runtime_memory_array_slot_inline.h`, and runtime
+panic/ABI/cache freshness checks follow that owner path instead of the former
+part-B `.inc`. LLVM domain core helpers now live in
+`src/codegen/llvm_domain_core_helpers.h`, removing the old
+`llvm_domain_helpers_part_a.inc` body while preserving LLVM domain lowering
+order. Semantic relation/effect/projection helpers now live in
+`src/semantic/type_checker_helpers_effects.h`, and CFG body-dataflow smoke
+tracks that owner path instead of the former `.inc` body. Semantic function-body
+checking now lives in `src/semantic/type_checker_program.h`, removing the former
+`src/semantic/type_checker_program.inc` body while preserving the top-level
+semantic TU include order. LLVM-linkable runtime
+channel/qubit exports now live in
+`src/runtime/pgy_runtime_lib_channel_quantum_exports.h`, removing the old
+`pgy_runtime_lib_part_b_part_e.inc` body while preserving runtime ABI lifetime
+checks. LLVM-linkable raw Queue/Map/Set exports now live in
+`src/runtime/pgy_runtime_lib_raw_collection_exports.h`, and secure/device slot,
+array, file IO, and string helper exports now live in
+`src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h`; runtime panic,
+ABI lifetime, and compiler runtime-cache freshness checks now track those owner
+headers directly. The remaining largest structural blockers are now broader
+CFG/body dataflow source-of-truth, DAG source-of-truth completion, AIR negative
+expansion, runtime frontier generalization, ABI ownership/pinning parity, and
+cross-platform matrix enforcement.
+LLVM-linkable runtime core exports now live in
 `src/runtime/pgy_runtime_lib_core_exports.h`, reducing
 `src/runtime/pgy_runtime_lib_part_b_part_a.inc` from 986 LOC to 909 LOC while
 keeping exported symbol names unchanged. LLVM-linkable raw `List<T>` exports

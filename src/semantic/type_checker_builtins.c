@@ -24,8 +24,8 @@ type_is_future_like(const Type *type)
 
 #include "type_checker_builtins_query_domain.inc"
 
-#include "type_checker_builtins_query.inc"
+#include "type_checker_builtins_query.h"
 
 #include "type_checker_builtins_slotops.inc"
 
-#include "type_checker_builtins_nominal.inc"
+#include "type_checker_builtins_nominal.h"

@@ -224,10 +224,12 @@ Semantic stop condition:
   New semantic owner TUs should stay under 1,000 LOC. Existing oversized TUs are
   capped by `make semantic-tu-size-test-smoke` and must shrink by owner axis
   instead of growing.
-- Next risky seam: `type_checker_builtins_query.inc` is chain-glued to
-  `type_checker_builtins_slotops.inc` through the split `BuiltinKind builtin_resolve(...)`
-  signature. Extract the builtin dispatcher contract before moving query/slot/nominal
-  families to owner TUs.
+- Closed risky seam: the former `type_checker_builtins_query.inc` body now
+  lives in `type_checker_builtins_query.h`, and
+  `type_checker_builtins_slotops.inc` owns the complete
+  `BuiltinKind builtin_resolve(...)` signature. The remaining semantic builtin
+  cleanup target is nominal/slotops ownership, not a cross-file dangling
+  return-type boundary.
 - `type_checker.c`는 600 LOC 이하이며 include aggregator가 아니다.
 - 현재 상태: `type_checker_event.c`와 `type_checker_qubit.c` owner 추출 후 `type_checker.c`는 481 LOC다. 남은 include는 helper shims와 statement/program orchestration 경계다.
 - 현재 상태: DAG graph stats, graph-backed stage skip, stage legacy fallback inventory는 `type-resolution-dag-test-smoke`로 CI에 연결됐다. named type-ref는 generic argument를 포함해 graph-backed skip 경로로 들어가며, smoke는 skip 합계가 0으로 퇴행하면 실패한다. 다음 closure slice는 generic/default/bound validation 자체와 nested consumer metadata를 graph-backed result로 재사용해 legacy 호출량을 더 줄이는 것이다.

@@ -765,5 +765,3 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
 
     return TYPE_BOOL;
 }
-
-BuiltinKind

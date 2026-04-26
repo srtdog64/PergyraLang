@@ -59,7 +59,7 @@ groups = {
         ],
     ),
     "llvm-intent": (
-        root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_c.inc",
+        root / "src" / "runtime" / "pgy_runtime_lib_intent_exports.h",
         [
             "pgy_intent_last_trace_export",
             "pgy_intent_last_failure_export",
@@ -97,7 +97,7 @@ groups = {
         ],
     ),
     "llvm-authority": (
-        root / "src" / "runtime" / "pgy_runtime_lib_part_a.inc",
+        root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h",
         [
             "pgy_zone_authority_last_zone_rt_export",
             "pgy_zone_authority_last_participant_rt_export",
@@ -124,7 +124,7 @@ macro_exports = {
         ],
     ),
     "llvm-intent-active-step": (
-        root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_c.inc",
+        root / "src" / "runtime" / "pgy_runtime_lib_intent_exports.h",
         "PGY_INTENT_ACTIVE_STEP_STRING_EXPORT",
         [
             "pgy_intent_active_step_zone_export",
@@ -155,7 +155,7 @@ result_owned_strings = {
         "pgy_runtime_strdup",
     ),
     "llvm-string-helpers": (
-        root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_d.inc",
+        root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h",
         [
             "pgy_file_read",
             "pgy_read_file",
@@ -181,7 +181,7 @@ result_owned_arrays = {
         "pgy_runtime_strdup",
     ),
     "llvm-string-array-helpers": (
-        root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_d.inc",
+        root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h",
         [
             "StringSplit",
             "pgy_map_keys_raw_export",
@@ -254,10 +254,11 @@ def read_runtime_text(path: pathlib.Path) -> str:
             path.with_name("pgy_runtime_intent_history.h"),
             path.with_name("pgy_runtime_intent_exit.h"),
             path.with_name("pgy_runtime_panic_checked_inline.h"),
-            path.with_name("pgy_runtime_part_ba_part_b.inc"),
+            path.with_name("pgy_runtime_memory_array_slot_inline.h"),
             path.with_name("pgy_runtime_slot_macros.h"),
             path.with_name("pgy_runtime_part_ba_part_c.inc"),
             path.with_name("pgy_runtime_part_ba_part_d.inc"),
+            path.with_name("pgy_runtime_pool_fsm_timer_inline.h"),
             path.with_name("pgy_runtime_part_ba_part_e.inc"),
         ]
         missing = [part for part in parts if not part.exists()]
@@ -270,13 +271,14 @@ def read_runtime_text(path: pathlib.Path) -> str:
     if path.name.startswith("pgy_runtime_lib_part_b_part_"):
         parts = [
             path.with_name("pgy_runtime_lib_core_exports.h"),
-            path.with_name("pgy_runtime_lib_part_b_part_a.inc"),
+            path.with_name("pgy_runtime_lib_raw_collection_exports.h"),
             path.with_name("pgy_runtime_lib_part_b_part_b.inc"),
+            path.with_name("pgy_runtime_lib_intent_exports.h"),
             path.with_name("pgy_runtime_lib_part_b_part_c.inc"),
             path.with_name("pgy_runtime_lib_slot_exports.h"),
-            path.with_name("pgy_runtime_lib_part_b_part_d.inc"),
+            path.with_name("pgy_runtime_lib_slot_array_io_string_exports.h"),
             path.with_name("pgy_runtime_lib_std_exports.h"),
-            path.with_name("pgy_runtime_lib_part_b_part_e.inc"),
+            path.with_name("pgy_runtime_lib_channel_quantum_exports.h"),
             path.with_name("pgy_runtime_lib_part_b_part_f.inc"),
         ]
         missing = [part for part in parts if not part.exists()]
@@ -286,14 +288,19 @@ def read_runtime_text(path: pathlib.Path) -> str:
                 + ", ".join(str(part.relative_to(root)) for part in missing)
             )
         return "\n".join(part.read_text(encoding="utf-8") for part in parts)
-    if path.name == "pgy_runtime_lib_part_b_part_d.inc":
-        continuation = path.with_name("pgy_runtime_lib_part_b_part_e.inc")
-        if not continuation.exists():
+    if path.name == "pgy_runtime_lib_slot_array_io_string_exports.h":
+        continuations = [
+            path.with_name("pgy_runtime_lib_std_exports.h"),
+            path.with_name("pgy_runtime_lib_channel_quantum_exports.h"),
+        ]
+        missing = [continuation for continuation in continuations if not continuation.exists()]
+        if missing:
             raise SystemExit(
                 "missing split continuation for runtime ABI helper source: "
-                + str(continuation.relative_to(root))
+                + ", ".join(str(continuation.relative_to(root)) for continuation in missing)
             )
-        text += "\n" + continuation.read_text(encoding="utf-8")
+        for continuation in continuations:
+            text += "\n" + continuation.read_text(encoding="utf-8")
     return text
 
 
@@ -363,7 +370,7 @@ for group_name, (path, functions, dup_helper) in result_owned_arrays.items():
                 f"{path.relative_to(root)}:{fn} pushes borrowed source strings into result-owned array"
             )
 
-handle_source = root / "src" / "runtime" / "pgy_runtime_lib_part_b_part_d.inc"
+handle_source = root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h"
 handle_text = read_runtime_text(handle_source)
 file_open_body = find_function_body(handle_text, "pgy_file_open")
 file_close_body = find_function_body(handle_text, "pgy_file_close")
