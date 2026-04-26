@@ -4,6 +4,13 @@ Date: 2026-04-26
 
 This document summarizes the current codebase state, the remaining improvement opportunities, and the concrete work needed to close PergyraLang for beta. It is based on the current README/TODO/status docs, the C/LLVM backend paths, the IR pipeline tests, the ABI smoke matrix, and backend-compare coverage.
 
+2026-04-27 production include cleanup update: production `.inc` debt is now
+closed as a zero-inventory gate. `src/runtime`, `src/codegen`, `src/compiler`,
+and `src/semantic` have **0 production `.inc` files / 0 LOC** under `src`,
+excluding `src/tests/**/*.inc` fixtures. Former pass-through seams now live in
+named private owner headers, and compiler runtime cache freshness tracks the
+renamed runtime owner headers instead of stale `.inc` paths.
+
 ## Current Verdict
 
 PergyraLang is no longer blocked by broad surface absence. The remaining beta risk is concentrated in a small number of deep implementation contracts:
@@ -330,6 +337,63 @@ removing the former `src/codegen/transpiler_emitters_match.inc` body while
 preserving `transpiler_func_class_flow_emit.h` include order. Result, Option,
 and enum destructor pattern lowering now have a named private owner. The
 production `.inc` inventory is now 44 files / 5,932 LOC.
+LLVM domain query call lowering now lives in
+`src/codegen/llvm_expr_domain_query_calls.h`, removing the former
+`src/codegen/llvm_expr_call_domain_queries.inc` body while preserving
+`llvm_expr_calls.inc` include order. `HasProjection`, `HasLayer`, `HasState`,
+`HasZone`, and zone-detail query lowering now have a named private owner. The
+production `.inc` inventory is now 43 files / 5,657 LOC.
+MIR base helpers now live in `src/compiler/mir_base_helpers.h`, removing the
+former `src/compiler/mir_base.inc` body. RIR public dump/destroy surface now
+lives in `src/compiler/rir_public_surface.h`, removing
+`src/compiler/rir_public.inc` and keeping the RIR include chain owner-named. The
+production `.inc` inventory is now 41 files / 5,119 LOC.
+Runtime quantum exports now live in
+`src/runtime/pgy_runtime_lib_quantum_exports.h`, removing the former
+`src/runtime/pgy_runtime_lib_part_b_part_f.inc` body while keeping runtime
+source packaging and ABI lifetime inventory pointed at a named owner. The
+production `.inc` inventory is now 40 files / 4,866 LOC.
+LLVM slot/device call lowering now lives in
+`src/codegen/llvm_expr_slot_device_calls.h`, removing the former
+`src/codegen/llvm_expr_call_slots.inc` body while preserving
+`llvm_expr_calls.inc` dispatcher order. The production `.inc` inventory is now
+39 files / 4,621 LOC.
+C backend intent-zone binding emit helpers now live in
+`src/codegen/transpiler_intent_zone_binding_emit.h`. LLVM constructor, RC, and
+task/channel call lowering now live in `src/codegen/llvm_expr_constructor_calls.h`,
+`src/codegen/llvm_expr_rc_calls.h`, and
+`src/codegen/llvm_expr_task_channel_calls.h`. This removes four more anonymous
+`.inc` bodies while preserving backend include order. The production `.inc`
+inventory is now 35 files / 3,689 LOC.
+C backend control-flow emission, semantic resource-flow dataflow, LLVM
+collection-base calls, and LLVM Result/Option calls now live in
+`src/codegen/transpiler_control_flow_emit.h`,
+`src/semantic/type_checker_flow_resources.h`,
+`src/codegen/llvm_expr_collection_base_calls.h`, and
+`src/codegen/llvm_expr_result_option_calls.h`. The production `.inc` inventory
+is now 31 files / 2,814 LOC.
+Semantic channel query builtins, operator expression checking, LLVM MIR
+local/block emission, DAG graph core, and enum declaration emission now live in
+`src/semantic/type_checker_builtins_query_channel.h`,
+`src/semantic/type_checker_operator_expr.h`,
+`src/codegen/llvm_mir_local_emit.h`, `src/codegen/llvm_mir_block_emit.h`,
+`src/semantic/type_checker_resolution_graph_core.h`, and
+`src/codegen/transpiler_enum_decl_emit.h`. The production `.inc` inventory is
+now 25 files / 1,675 LOC.
+Semantic context helpers, LLVM log/array calls, and C backend MIR/base emitter
+tails now live in `src/semantic/type_checker_context_helpers.h`,
+`src/codegen/llvm_expr_log_calls.h`, `src/codegen/llvm_expr_array_calls.h`,
+`src/codegen/transpiler_mir_emit_state.h`,
+`src/codegen/transpiler_mir_emit_decls.h`, and
+`src/codegen/transpiler_mir_pending_uses.h`. The production `.inc` inventory is
+now 19 files / 835 LOC.
+Formatter layout/io, semantic flow effects/parallel checks, LLVM intent
+observability calls, and assignment checking now live in `src/compiler/fmt_layout.h`,
+`src/compiler/fmt_io.h`, `src/semantic/type_checker_flow_effects.h`,
+`src/semantic/type_checker_flow_parallel.h`,
+`src/codegen/llvm_expr_intent_observability_calls.h`, and
+`src/semantic/type_checker_assignment.h`. The production `.inc` inventory is now
+13 files / 297 LOC.
 C backend MIR emission contract/resource-hook helpers now live in
 `src/codegen/transpiler_mir_emission_contract.h`, removing the remaining
 `src/codegen/transpiler_emitters_base_a_part_d.inc` body while preserving the

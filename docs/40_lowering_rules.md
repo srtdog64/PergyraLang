@@ -9,7 +9,7 @@
 
 ## 1. 입력 스키마: RIR Facts JSON
 
-출처: `rir_dump_json()` in `src/compiler/rir_public.inc`
+출처: `rir_dump_json()` in `src/compiler/rir_public_surface.h`
 
 ```jsonc
 {

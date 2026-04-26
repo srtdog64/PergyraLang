@@ -128,8 +128,8 @@ llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
         sync_args, 1, "");
 }
 
-#include "llvm_mir_blocks.inc"
-#include "llvm_mir_locals.inc"
+#include "llvm_mir_block_emit.h"
+#include "llvm_mir_local_emit.h"
 
 LLVMValueRef
 llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)

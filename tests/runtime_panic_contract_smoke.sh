@@ -277,7 +277,7 @@ unwrap_lowering_paths = {
         "pgy_runtime_panic_internal_invariant_export",
         "PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT",
     ],
-    root / "src" / "codegen" / "llvm_expr_call_result_option.inc": [
+    root / "src" / "codegen" / "llvm_expr_result_option_calls.h": [
         "llvm_emit_checked_result_option_unwrap",
         "pgy_runtime_panic_internal_invariant_export",
         "Result unwrap on Err value",
@@ -297,7 +297,7 @@ array_lowering_paths = {
     root / "src" / "codegen" / "transpiler_expr_stdlib_builtin.h": ["pgy_array_set_"],
     root / "src" / "codegen" / "transpiler_expr_dispatch_emit.h": ["pgy_array_get_", "pgy_slice_get_"],
     root / "src" / "codegen" / "llvm_expr.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get"],
-    root / "src" / "codegen" / "llvm_expr_call_arrays.inc": ["pgy_array_set_"],
+    root / "src" / "codegen" / "llvm_expr_array_calls.h": ["pgy_array_set_"],
     root / "src" / "codegen" / "llvm_runtime.c": ["pgy_array_get_", "pgy_array_set_", "pgy_slice_get_"],
 }
 for path, tokens in array_lowering_paths.items():

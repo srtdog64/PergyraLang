@@ -1,5 +1,5 @@
-#include "transpiler_helpers_core_a.inc"
-#include "transpiler_helpers_core_b.inc"
+#include "transpiler_helpers_core_a.h"
+#include "transpiler_helpers_core_b.h"
 
 /* -----------------------------------------------------------------
  * Expression emitters — return heap-allocated C expression string
@@ -541,5 +541,5 @@ transpiler_mir_intent_has_stmt(const MIRRoutine *routine,
     return false;
 }
 
-#include "transpiler_expr_emitters.inc"
+#include "transpiler_expr_emitters.h"
 

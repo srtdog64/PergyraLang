@@ -686,13 +686,13 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
 
 #include "transpiler_async_parallel_emit.h"
 
-#include "transpiler_emitters_enum_decl.inc"
+#include "transpiler_enum_decl_emit.h"
 
 /* -----------------------------------------------------------------
  * Control flow
  * ----------------------------------------------------------------- */
 
-#include "transpiler_emitters_control_flow_loops.inc"
+#include "transpiler_control_flow_emit.h"
 
 #include "transpiler_match_emit.h"
 

@@ -899,4 +899,4 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
 #include "rir_builder.h"
 #include "rir_names.h"
 #include "rir_validation.h"
-#include "rir_public.inc"
+#include "rir_public_surface.h"

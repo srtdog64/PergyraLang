@@ -1,4 +1,45 @@
-# Pergyra TODO (諛고룷 以鍮?
+# Pergyra TODO (배포 ?
+
+## UTF-8 Progress Note - 2026-04-27 - Production .inc Closure
+
+- Production .inc debt is closed as a zero-inventory beta gate:
+  src/runtime, src/codegen, src/compiler, and src/semantic now have
+  **0 production .inc files / 0 LOC** under src, excluding
+  src/tests/**/*.inc fixtures.
+- Former pass-through seams now live in named private owner headers such as
+  pgy_runtime_inline_core.h, 	ranspiler_base_a_emitters.h,
+  	ranspiler_base_b_emitters.h, 	ranspiler_expr_emitters.h,
+  	ranspiler_helpers_core_{a,b}.h, 	ranspiler_domain_role_emit.h, and
+  llvm_expr_call_owners.h.
+- Compiler runtime cache freshness no longer points at stale runtime .inc
+  dependency paths; it tracks the renamed runtime owner headers.
+- inc-sentinel-test-smoke now treats src/tests/**/*.inc as the only
+  tolerated fixture lane and caps it at the current 47 files; production
+  .inc reintroduction is a hard failure.
+- Follow-up owner-header debt slice: C backend scalar/math/string stdlib call
+  lowering moved from the monolithic 	ranspiler_expr_stdlib_builtin.h
+  dispatcher into 	ranspiler_expr_stdlib_scalar_builtin.h. The dispatcher
+  drops from 917 LOC to 751 LOC without changing builtin names or generated C.
+- production-header-size-test-smoke now caps production owner headers at
+  1,000 LOC by default, with a narrow temporary 1,600 LOC allowance for...
+  <!-- TODO: AI Agent lost the rest of this sentence during Git restore. Please fix! -->
+
+## UTF-8 Progress Note - 2026-04-27 - Production `.inc` And Owner Header Closure
+
+- Production `.inc` debt is closed as a zero-inventory beta gate:
+  `src/runtime`, `src/codegen`, `src/compiler`, and `src/semantic` now have
+  **0 production `.inc` files / 0 LOC** under `src`, excluding
+  `src/tests/**/*.inc` fixtures.
+- `inc-sentinel-test-smoke` now treats `src/tests/**/*.inc` as the only
+  tolerated fixture lane and caps it at the current 47 files; production
+  `.inc` reintroduction is a hard failure.
+- C backend scalar/math/string stdlib call lowering moved into
+  `transpiler_expr_stdlib_scalar_builtin.h`; Map/List/Set/Queue lowering
+  moved into `transpiler_expr_stdlib_collection_builtin.h`. The main stdlib
+  dispatcher drops from 917 LOC to 432 LOC while preserving dispatch order.
+- `production-header-size-test-smoke` now caps production owner headers at
+  1,000 LOC by default, with a narrow temporary 1,600 LOC allowance for
+  `llvm_internal.h` until the LLVM context/API declarations are split.
 
 ## AIR Beta Gate Note - UTF-8 Canonical Terms
 
@@ -983,46 +1024,46 @@
 
 留덉?留??낅뜲?댄듃: 2026-04-25
 
-## ?꾩옱 ?곹깭 ?됱젙 ?됯? (2026-04-12 ?ъ젙??
+## 현재 ?태 ?정 ?? (2026-04-12 ?정??
 
 ### 醫낇빀 ?먮떒: Late-Stage Alpha
 
 - 踰좏? readiness 異붿젙: ??`50%`
-- ?꾩옱 ?쒗쁽: `late-stage alpha / beta-closure sprint`
+- 현재 ?현: `late-stage alpha / beta-closure sprint`
 - 蹂댁젙 ?댁쑀:
-  - 湲곕뒫 ?쒕㈃留?蹂대㈃ core/foundation 援ы쁽? ?볦?留? beta??湲곕뒫 媛쒖닔媛 ?꾨땲??end-to-end ?좊ː?꾨떎
-  - HIR/MIR CFG skeleton? ?대? ?덉?留? ?⑥닔/action/intent body ?덉쟾?깆쓽 semantic source-of-truth媛 ?꾩쭅 CFG/dataflow濡??밴꺽?섏? ?딆븯?? all-path return, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary瑜?AST/helper traversal留뚯쑝濡??レ쑝硫?strict beta ?좊ː?꾧? 遺議깊븯??  - AIR abstraction safety??Phase 1 ?곗씠??援ъ“ / synthesis / drift checker baseline怨?driver semantic-validation wiring???ㅼ뼱?붾떎. Intent ??implementation drift 寃異쒖? `docs/104_air_compiler_architecture.md`? `make air-drift-test-smoke`濡?gate???ㅼ뼱?붽퀬, strict evidence??湲곕낯媛믪쑝濡??밴꺽?먮떎. missing RIR boundary/authority evidence??`PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`濡?hard-fail ?섎ŉ, `authorized by` participant ?대쫫怨?RIR authority fact / authorize op subject媛 ?쇱튂?댁빞 ?쒕떎. authority evidence ?꾨씫 吏꾨떒? `Reason:` ?덉뿉 expected authority participant list瑜??ы븿?쒕떎. AIR drift message? synthesized intent/boundary/authority name? owned lifetime?쇰줈 愿由щ릺怨? repeated drift check媛 ?댁쟾 message瑜??덉쟾?섍쾶 ?댁젣?섎뒗 ?뚭? ?뚯뒪?몄? parsed-source AIR teardown-safe boundary source ?뚭?媛 ?덈떎. `where + transfer`?????댁긽 zone boundary ?섎굹濡??묓엳吏 ?딄퀬 zone boundary? world-handoff boundary瑜?紐⑤몢 ?⑹꽦?쒕떎. world-handoff evidence???댁젣 matching RIR intent scope留뚯쑝濡??듦낵?섏? ?딄퀬 boundary source alias?????RIR `Move`/`Claim` transfer op瑜??붽뎄?쒕떎. parsed-source missing-authority-evidence negative? parsed-source IO execution-boundary missing-evidence negative??full driver JSON path?먯꽌 step source span怨?`stage/code/cause_ir/fix_source`源뚯? 怨좎젙?먮떎. expression boundary evidence?????댁긽 owner-name-only RIR scope match濡??듦낵?섏? ?딅뒗?? `PGY_AIR_STRICT_EVIDENCE=0`? 媛쒕컻/?붾쾭洹?opt-out?대떎. `make air-backend-nonimpact-test-smoke`??relaxed AIR? default strict AIR媛 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set?먯꽌 媛숈? C/LLVM ?띿뒪?몃? ?앹꽦?섎뒗吏 鍮꾧탳?쒕떎. `make air-backend-nonimpact-full-test-smoke`??full frozen backend-compare fixture sweep??媛숈? 諛⑹떇?쇰줈 ?뚮━怨?Linux CI gate濡??밴꺽?먮떎. `make air-strict-backend-compare-test-smoke`??strict evidence ?곹깭?먯꽌 C/LLVM ?ㅽ뻾 parity源뚯? 寃利앺븳?? parser/lexer baseline JSON routing? `stage`, `code`, `cause_ir`, `fix_source`源뚯? ?ロ삍?? ?⑥? blocker??AIR transfer/world source negative ?뺤옣, Windows native evidence, parser-specific code split / multi-error accumulation?대떎
-  - Type-resolution DAG媛 ?꾩쭅 semantic source-of-truth媛 ?꾨땲誘濡?declaration order / module contract / generic consumer path drift ?꾪뿕???⑥븘 ?덈떎
-  - ?κ린 紐⑤뱢??stop condition???꾩쭅 硫?? semantic 800 LOC 珥덇낵 `.inc` 議곌굔怨?runtime/codegen/compiler 1,000 LOC 珥덇낵 `.inc` 議곌굔? ?ロ삍吏留? ?щ윭 split? ?꾩쭅 include-order 蹂댁〈 ?곹깭???ㅼ젣 owner/TU extraction 遺梨꾧? ?⑥븘 ?덈떎
-  - ?곕씪??怨듭떇 吏꾪뻾瑜좎? ?쒓린???쒕㈃ ?깆닕?꾟앷? ?꾨땲???쒕쿋? ?좊ː??readiness??湲곗??쇰줈 ??50%濡?蹂몃떎
+  - 기능 측면만 보면 core/foundation 구현? ??? beta??기능 개수 아니며 end-to-end 신뢰도다
+  - HIR/MIR CFG skeleton? ?? ??? 개수/action/intent body ?전의 semantic source-of-truth 아직 CFG/dataflow??격?? ?았?? all-path return, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary?AST/helper traversal만으??으?strict beta ?뢰?? 족하??  - AIR abstraction safety??Phase 1 ?이??구조 / synthesis / drift checker baseline?driver semantic-validation wiring??되어한다. Intent ??implementation drift 출? `docs/104_air_compiler_architecture.md`? `make air-drift-test-smoke`?gate??되어?고, strict evidence??기본값으??격한다. missing RIR boundary/authority evidence??`PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`?hard-fail ?며, `authorized by` participant ?름?RIR authority fact / authorize op subject ?치?야 한다. authority evidence ?락 진단? `Reason:` 에 expected authority participant list??함한다. AIR drift message? synthesized intent/boundary/authority name? owned lifetime으로 리되? repeated drift check ?전 message??전?게 ?제는 ?? ?스?? parsed-source AIR teardown-safe boundary source ?? 한다. `where + transfer`?????상 zone boundary ?나??히 하고 zone boundary? world-handoff boundary?모두 ?성한다. world-handoff evidence???제 matching RIR intent scope만으??과?? 하고 boundary source alias?????RIR `Move`/`Claim` transfer op??구한다. parsed-source missing-authority-evidence negative? parsed-source IO execution-boundary missing-evidence negative??full driver JSON path?서 step source span?`stage/code/cause_ir/fix_source`까? 고정한다. expression boundary evidence?????상 owner-name-only RIR scope match??과?? ?는?? `PGY_AIR_STRICT_EVIDENCE=0`? 개발/?버?opt-out한다. `make air-backend-nonimpact-test-smoke`??relaxed AIR? default strict AIR intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set?서 같? C/LLVM ?스?? ?성는 비교한다. `make air-backend-nonimpact-full-test-smoke`??full frozen backend-compare fixture sweep??같? 방식으로 ?리?Linux CI gate??격한다. `make air-strict-backend-compare-test-smoke`??strict evidence ?태?서 C/LLVM ?행 parity까? 증한?? parser/lexer baseline JSON routing? `stage`, `code`, `cause_ir`, `fix_source`까? ?혔?? ?? blocker??AIR transfer/world source negative ?장, Windows native evidence, parser-specific code split / multi-error accumulation한다
+  - Type-resolution DAG 아직 semantic source-of-truth 아니?declaration order / module contract / generic consumer path drift ?험???아 한다
+  - ?기 모듈??stop condition??아직 ?? semantic 800 LOC 초과 `.inc` 조건?runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건? ?혔? ?러 split? 아직 include-order 보존 ?태???제 owner/TU extraction 채? ?아 한다
+  - ?라??공식 진행률? ?기???면 ?숙?? 아니며 ?베? ?뢰??readiness??기?으로 ??50%?본다
 
 ## Beta taxonomy freeze: core / foundation / style
 
-踰좏? 湲곗?? ?댁젣 湲곕뒫 ?섏뿴???꾨땲???몄뼱 ?뺤껜??湲곗??쇰줈 ?섎늿??
+베? 기?? ?제 기능 ?열??아니며 되어 ?체??기?으로 ?눈??
 
 - Core language: `intent`, `world`, `zone`, `subject`, `relation`, `effect`, `projection`, `authority`, `handoff`, runtime observability, anchored ownership boundary, generic contract system, module visibility/export contract, `parallel`.
-- Generic contract??core?? exact/ability/multi-bound/default type arg actual resolution? FP/OOP ?몄쓽媛 ?꾨땲??domain contract瑜??쒗쁽?섎뒗 ????몄뼱??
-- Foundation layer: primitive values, `func`, `let`, control flow, callable/lambda baseline, `Option`/`Result`, stable collections, core ?ㅽ뻾???꾩슂??runtime ABI.
+- Generic contract??core?? exact/ability/multi-bound/default type arg actual resolution? FP/OOP 의 아니며 domain contract??현는 ???되어??
+- Foundation layer: primitive values, `func`, `let`, control flow, callable/lambda baseline, `Option`/`Result`, stable collections, core ?행???요??runtime ABI.
 - Style / compatibility surface: OOP convenience, FP combinator libraries, app infra, richer async helpers.
-- Execution family split: `parallel`? core execution primitive?닿퀬, `spawn`/`async`/`await`/`select`/`channel`/cancel? 洹??꾨옒 execution family?? fiber/coroutine? language core媛 ?꾨땲??runtime scheduling/suspension mechanism?대떎.
-- Accelerator split: AI-first/GPU 諛⑺뼢? `pgy.accel.spray` ?쇰━ 紐⑤뱢濡??덉빟?쒕떎. ?대뒗 `parallel` / ownership / module visibility ?꾩뿉 ?щ씪媛??accelerator library/runtime 異뺤씠硫?core keyword ?뺤옣???꾨땲??
-- Render split: Skia/shader/render graph 諛⑺뼢? `pgy.render.skia` ?쇰━ 紐⑤뱢濡??덉빟?쒕떎. renderer/shader??core keyword媛 ?꾨땲??Spray/Execution ?꾩쓽 ?앺깭怨?紐⑤뱢?대떎.
-- Compatibility split: OOP/FP/DOP??媛곴컖 `pgy.compat.oop`, `pgy.compat.fp`, `pgy.compat.dop`濡?遺꾨━?쒕떎. 湲곗〈 ?몄뼱 ?ㅽ??쇱쓣 ?섏슜?섎릺 core identity濡??ㅻ챸?섏? ?딅뒗??
-- Interop split: ?몃? ?몄뼱 ?곕룞(JVM 罹먯뒪??JNI 釉뚮┸吏, Python C-API ??? `pgy.interop.*` ?앺깭怨?紐⑤뱢濡?遺꾨쪟?섎ŉ, 踰좏? 留덉씪?ㅽ넠?먯꽌???꾩쟾???쒖쇅(Out of Beta)?쒕떎.
+- Execution family split: `parallel`? core execution primitive?고, `spawn`/`async`/`await`/`select`/`channel`/cancel? ??래 execution family?? fiber/coroutine? language core 아니며 runtime scheduling/suspension mechanism한다.
+- Accelerator split: AI-first/GPU 방향? `pgy.accel.spray` ?리 모듈??약한다. 는 `parallel` / ownership / module visibility 에 ?라??accelerator library/runtime 축이?core keyword ?장??아니며 
+- Render split: Skia/shader/render graph 방향? `pgy.render.skia` ?리 모듈??약한다. renderer/shader??core keyword 아니며 Spray/Execution 의 ?태?모듈한다.
+- Compatibility split: OOP/FP/DOP??각각 `pgy.compat.oop`, `pgy.compat.fp`, `pgy.compat.dop`?분리한다. 기존 되어 ??을 ?용?되 core identity??명?? ?는??
+- Interop split: ?? 되어 ?동(JVM 캐스??JNI 브릿, Python C-API ??? `pgy.interop.*` ?태?모듈?분류?며, 베? 마일?톤?서???전???외(Out of Beta)한다.
 
 ?낅뜲?댄듃 ?뺤콉:
 
-- `pgy.core`??媛???먯＜ 媛쒖꽑?섎릺 媛???묎퀬 媛뺥븯寃?寃利앺븳??
-- `pgy.foundation`? core蹂대떎 ?먮━寃??吏곸씠硫?ABI/backend parity瑜?源⑥? ?딅뒗??
-- `pgy.accel.spray`, `pgy.render.skia`, `pgy.compat.*`, `pgy.std.*`, `pgy.kit.*`??紐⑤뱢 ?앺깭怨꾨줈 吏꾪솕?쒕떎. 鍮좊Ⅸ ?ㅽ뿕? ?덉슜?섏?留?core keyword瑜??섎━吏 ?딅뒗??
+- `pgy.core`?????주 개선?되 ??하고 강하?증한??
+- `pgy.foundation`? core보다 ?리??직이?ABI/backend parity?깨? ?는??
+- `pgy.accel.spray`, `pgy.render.skia`, `pgy.compat.*`, `pgy.std.*`, `pgy.kit.*`??모듈 ?태계로 진화한다. 빠른 ?험? ?용???core keyword??리 ?는??
 
 ?ㅽ뻾 洹쒖튃:
 
 - B0 blocker??`core + foundation stable subset`?먮쭔 遺숈씤??
-- `pgy.fp`??Functor/HKT 異붿긽?? class-heavy OOP ?뺤옣, coroutine/fiber 怨좊룄?붾뒗 beta identity blocker媛 ?꾨땲??
-- `pgy.accel.spray`??post-beta design surface?? 踰좏? ?꾩뿉????GPU ?ㅼ썙?쒕굹 backend-specific CUDA/ROCm/Metal 臾몃쾿???댁? ?딄퀬, module boundary? ownership ?먯튃留?怨좎젙?쒕떎.
-- `pgy.render.skia`? `pgy.compat.dop`??post-beta design surface?? 踰좏? ?꾩뿉??shader/layout keyword瑜??댁? ?딄퀬 module boundary留?怨좎젙?쒕떎.
-- ?? `parallel`? core?대?濡?slot/resource/effect conflict, cancellation/fairness, C/LLVM lowering parity??beta ?덉쭏 湲곗??쇰줈 怨꾩냽 愿由ы븳??
+- `pgy.fp`??Functor/HKT 추상?? class-heavy OOP ?장, coroutine/fiber 고도는 beta identity blocker 아니며 
+- `pgy.accel.spray`??post-beta design surface?? 베? ?에????GPU ?워?나 backend-specific CUDA/ROCm/Metal 문법???? ?고, module boundary? ownership ?칙?고정한다.
+- `pgy.render.skia`? `pgy.compat.dop`??post-beta design surface?? 베? ?에??shader/layout keyword??? 하고 module boundary?고정한다.
+- ?? `parallel`? core???slot/resource/effect conflict, cancellation/fairness, C/LLVM lowering parity??beta ?질 기?으로 계속 리한??
 - Source of truth: `docs/99_language_module_taxonomy.md`
 - Machine-readable manifest: `docs/language_module_manifest.json`
 - Representative case tags: `docs/language_module_cases.json`
@@ -1032,65 +1073,65 @@
 
 ## Formal semantics / mathematical proof obligations
 
-踰좏????쒗뀒?ㅽ듃媛 ?듦낵?쒕떎?앸쭔?쇰줈 ?ロ엳吏 ?딅뒗?? stable subset留덈떎 ???蹂댁〈, 吏꾪뻾, ownership safety, authority soundness, projection freshness, DAG soundness, module visibility non-interference, backend parity 媛숈? ?섑븰??遺덈??앹씠 臾몄꽌?붾릺?댁빞 ?쒕떎.
+베????테?트 ?과?다?만으로 ?히 ?는?? stable subset마다 ???보존, 진행, ownership safety, authority soundness, projection freshness, DAG soundness, module visibility non-interference, backend parity 같? ?학??불?이 문서?되?야 한다.
 
 - Source of truth: `docs/semantics/`
 - Stable index: `docs/102_formal_semantics_and_proof_obligations.md`
 - Drift gate: `make formal-semantics-test-smoke`
 - ?곹깭: `IN PROGRESS / BLOCKER-DOC`
 - 踰좏? 湲곗?:
-  - [x] ?섑븰 library 臾몄꽌(`docs/45_math_layer_design.md`)? ?몄뼱 ?섎?濡?利앸챸 臾몄꽌瑜?遺꾨━?쒕떎.
-  - [x] stable beta subset??semantic domain, judgment, theorem/proof-obligation vocabulary瑜?怨좎젙?쒕떎.
+  - [x] ?학 library 문서(`docs/45_math_layer_design.md`)? 되어 ???증명 문서?분리한다.
+  - [x] stable beta subset??semantic domain, judgment, theorem/proof-obligation vocabulary?고정한다.
   - [ ] B0 ??ぉ留덈떎 theorem statement + current regression evidence + remaining proof obligation??理쒖떊 肄붾뱶 ?곹깭? 留욎텣??
   - [ ] runtime propagation, DAG, MIR declaration inventory, ABI ownership, C/LLVM parity???⑥? blocker瑜?proof obligation?쇰줈 異붿쟻?쒕떎.
-  - [ ] beta 臾멸뎄?먯꽌 Lean/Coq/湲곌퀎利앸챸 ?꾨즺泥섎읆 蹂댁씠???쒗쁽??湲덉??쒕떎. 湲곌퀎利앸챸? 蹂꾨룄 executable model ?먮뒗 proof assistant artifact媛 ?앷린湲??꾧퉴吏 post-beta/v1 hardening?쇰줈 ?붾떎.
-  - [~] **[NEW]** Runtime panic / unwinding model (abort vs unwind)???뺤콉 紐낆떆 諛?C/LLVM backend parity 利앸챸 異붽?. Panic class vocabulary? released-slot / invalid-secure-token / double-release / device-slot / out-of-bounds / authority-mismatch / OOM / divide-by-zero / internal-invariant hard-fail contract??`src/runtime/pgy_runtime_panic_contract.h`, `make runtime-panic-contract-test-smoke`, `make runtime-panic-abi-test-smoke`, `make runtime-panic-codegen-test-smoke`濡?怨좎젙?덈떎. Generated C/LLVM `Array<T>`/`Slice<T>` indexing, temporary function-return indexing, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access? `Unwrap(Err)` / `UnwrapOption(None)` misuse??checked runtime helper / panic contract濡?怨좎젙?덈떎. ?⑥? 寃껋? ??panic class媛 異붽????뚮쭏??媛숈? executable parity gate瑜??붽뎄?섎뒗 寃껋씠??
-  - [~] **[NEW]** Secure slot 諛?authority token???꾨?議?遺덇??μ꽦(Unforgeability) ?뺤떇 遺덈???Formal Invariants) 臾몄꽌?? Secure slot invalid-token/denied-capability export path??silent fallback?먯꽌 panic contract濡??대룞?덈떎.
-  - [ ] **[NEW]** Intent ?쒖뒪?쒖쓽 Rollback/Cleanup 蹂댁옣?????Formal Closure (?곹깭 湲곌퀎 利앸챸) 臾몄꽌??
+  - [ ] beta 문구?서 Lean/Coq/기계증명 ?료처럼 보이???현??금?한다. 기계증명? 별도 executable model 는 proof assistant artifact ?기??까 post-beta/v1 hardening으로 한다.
+  - [~] **[NEW]** Runtime panic / unwinding model (abort vs unwind)???책 명시 ?C/LLVM backend parity 증명 추?. Panic class vocabulary? released-slot / invalid-secure-token / double-release / device-slot / out-of-bounds / authority-mismatch / OOM / divide-by-zero / internal-invariant hard-fail contract??`src/runtime/pgy_runtime_panic_contract.h`, `make runtime-panic-contract-test-smoke`, `make runtime-panic-abi-test-smoke`, `make runtime-panic-codegen-test-smoke`?고정한다. Generated C/LLVM `Array<T>`/`Slice<T>` indexing, temporary function-return indexing, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access? `Unwrap(Err)` / `UnwrapOption(None)` misuse??checked runtime helper / panic contract?고정한다. ?? 것? ??panic class 추????마??같? executable parity gate??구는 것이??
+  - [~] **[NEW]** Secure slot ?authority token?????불??성(Unforgeability) ?식 불???Formal Invariants) 문서?? Secure slot invalid-token/denied-capability export path??silent fallback?서 panic contract??동한다.
+  - [ ] **[NEW]** Intent ?스의 Rollback/Cleanup 보장?????Formal Closure (?태 기계 증명) 문서??
 
 ?댁쁺 洹쒖튃:
 
-- ?뚯뒪???ㅻえ??諛깆뿏??鍮꾧탳??proof evidence?댁? proof ?먯껜媛 ?꾨땲??
-- undocumented mathematical assumption???꾩슂??surface??stable???꾨땲??`IN PROGRESS`, `explicit reject`, ?먮뒗 `OUT OF BETA`濡??대젮???쒕떎.
-- FP functor/HKT, full ownership, full quantum, GPU/Spray, Skia/render graph???꾩옱 beta proof scope 諛뽰씠??
+- ?스???모??백엔??비교??proof evidence?? proof ?체 아니며 
+- undocumented mathematical assumption???요??surface??stable??아니며 `IN PROGRESS`, `explicit reject`, 는 `OUT OF BETA`??려??한다.
+- FP functor/HKT, full ownership, full quantum, GPU/Spray, Skia/render graph??현재 beta proof scope 밖이??
 
 ## Missing beta gate audit
 
-?꾩옱 strict beta 湲곗??먯꽌???ㅼ쓬 ??ぉ??蹂꾨룄 gate濡?蹂몃떎. ????ぉ?ㅼ? 湲곕뒫 ?뺤옣???꾨땲???대? ?덈뒗 core/runtime/tooling ?쒕㈃???좊ː??怨꾩빟?대떎.
+현재 strict beta 기??서???음 ????별도 gate?본다. ?????? 기능 ?장??아니며 ?? 는 core/runtime/tooling ?면???뢰??계약한다.
 
-- [~] Runtime panic / unwinding model: OOM, divide-by-zero, out-of-bounds, slot violation, token mismatch, authority mismatch, invariant break??abort/unwind/recoverable ?뺤콉??`Runtime Panic Parity` proof obligation?쇰줈 ?щ졇?? `src/runtime/pgy_runtime_panic_contract.h`媛 panic class vocabulary瑜??뚯쑀?섍퀬, inline/exported typed slot read/write/release??released-slot 諛?double-release?먯꽌 ???댁긽 湲곕낯媛?no-op濡?鍮좎?吏 ?딅뒗?? `make runtime-panic-abi-test-smoke`媛 released-slot, invalid-secure-token, double-release, device-slot, out-of-bounds, authority-mismatch, OOM, divide-by-zero executable evidence瑜??쒓났?쒕떎. `make runtime-panic-codegen-test-smoke`??generated C/LLVM divide/modulo-by-zero? `Array<T>`/`Slice<T>` index, temporary function-return index, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access, `Unwrap(Err)`, `UnwrapOption(None)` parity瑜?寃利앺븳?? ?⑥? 寃껋? ??hard-fail class媛 異붽????뚮쭏??媛숈? executable parity gate瑜??붽뎄?섎뒗 寃껋씠??
-- [~] Secure slot / authority secret invariant: token unforgeability, secure-slot mismatch denial, authority token non-forgeability, authority transfer single-owner invariant, runtime snapshot secret non-exposure瑜?`Secure Token Unforgeability` / `Authority Transfer Single-Owner` proof obligation?쇰줈 ?щ졇?? inline/exported secure slot read/write/release invalid-token 諛?denied-capability path??`PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN`濡?怨좎젙?덇퀬 secure-slot double-release??`PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE`濡?怨좎젙?덈떎. `make runtime-panic-abi-test-smoke`媛 invalid-token/double-release executable evidence瑜??쒓났?쒕떎. authority-token mismatch??`authority-token-mismatch` runtime code/reason, `make test-security`, `authority_failure_abi`, `authority_failure_surface`濡?C/LLVM parity regression源뚯? ?レ븯?? unsupported authority-token transport??channel send/receive/helper/close, cancellation payload, direct named `spawn`?먯꽌 explicit reject濡??レ븯?? ?⑥? 寃껋? richer domain-boundary denial?대떎.
-- [ ] Intent formal closure: step ordering, compensation/rollback/invalidation, effect propagation, observability ABI stability瑜?beta-stable contract濡?怨좎젙?쒕떎.
-- [ ] Zone/world/authority/handoff formal closure: zone generation, world embedding, handoff frontier, projection freshness, authority rejection query surface瑜?beta-stable contract濡?怨좎젙?쒕떎.
-- [ ] Diagnostic quality gate: 紐⑤뱺 user-facing error媛 severity, stable code, source span when available, `Reason:`, `Fix:`瑜?媛뽯룄濡??덉쭏 湲곗???registry smoke? 蹂꾨룄 gate濡??붾떎.
-  - 吏꾪뻾: intent clause explicit reject 以?`spawn`/channel control-transfer AST媛 parser source span??蹂댁〈?섎룄濡?怨좎낀怨? `make diagnostics-json-test-smoke`媛 `on: spawn ...`? `on: ch <- value`??`PGY_SEM_INTENT_STEP_INVALID` JSON line/column + `cause_ir` + `fix_source`瑜?怨좎젙?쒕떎.
+- [~] Runtime panic / unwinding model: OOM, divide-by-zero, out-of-bounds, slot violation, token mismatch, authority mismatch, invariant break??abort/unwind/recoverable ?책??`Runtime Panic Parity` proof obligation으로 ?렸?? `src/runtime/pgy_runtime_panic_contract.h` panic class vocabulary??유?고, inline/exported typed slot read/write/release??released-slot ?double-release?서 ???상 기본?no-op?빠? ?는?? `make runtime-panic-abi-test-smoke` released-slot, invalid-secure-token, double-release, device-slot, out-of-bounds, authority-mismatch, OOM, divide-by-zero executable evidence??공한다. `make runtime-panic-codegen-test-smoke`??generated C/LLVM divide/modulo-by-zero? `Array<T>`/`Slice<T>` index, temporary function-return index, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access, `Unwrap(Err)`, `UnwrapOption(None)` parity?증한?? ?? 것? ??hard-fail class 추????마??같? executable parity gate??구는 것이??
+- [~] Secure slot / authority secret invariant: token unforgeability, secure-slot mismatch denial, authority token non-forgeability, authority transfer single-owner invariant, runtime snapshot secret non-exposure?`Secure Token Unforgeability` / `Authority Transfer Single-Owner` proof obligation으로 ?렸?? inline/exported secure slot read/write/release invalid-token ?denied-capability path??`PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN`?고정하고 secure-slot double-release??`PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE`?고정한다. `make runtime-panic-abi-test-smoke` invalid-token/double-release executable evidence??공한다. authority-token mismatch??`authority-token-mismatch` runtime code/reason, `make test-security`, `authority_failure_abi`, `authority_failure_surface`?C/LLVM parity regression까? ?았?? unsupported authority-token transport??channel send/receive/helper/close, cancellation payload, direct named `spawn`?서 explicit reject??았?? ?? 것? richer domain-boundary denial한다.
+- [ ] Intent formal closure: step ordering, compensation/rollback/invalidation, effect propagation, observability ABI stability?beta-stable contract?고정한다.
+- [ ] Zone/world/authority/handoff formal closure: zone generation, world embedding, handoff frontier, projection freshness, authority rejection query surface?beta-stable contract?고정한다.
+- [ ] Diagnostic quality gate: 모든 user-facing error severity, stable code, source span when available, `Reason:`, `Fix:`?갖도??질 기???registry smoke? 별도 gate?한다.
+  - 진행: intent clause explicit reject ?`spawn`/channel control-transfer AST parser source span??보존?도?고쳤? `make diagnostics-json-test-smoke` `on: spawn ...`? `on: ch <- value`??`PGY_SEM_INTENT_STEP_INVALID` JSON line/column + `cause_ir` + `fix_source`?고정한다.
 - [ ] Cross-platform CI matrix: Linux/WSL, Windows native/MSYS2/MinGW, macOS??support level??stable/experimental/out-of-beta濡?紐낆떆?쒕떎.
-  - 吏꾪뻾: Windows LLVM support detection? executable `llvm-config --libs core` evidence媛 ?덉쓣 ?뚮쭔 `WINDOWS_LLVM_READY=1`???섎룄濡?醫곹삍?? `C:/Program Files/LLVM/lib` 媛숈? library folder 議댁옱留뚯쑝濡?LLVM smoke/backend-compare瑜??ㅽ뻾?섏? ?딅뒗?? ?꾩옱 beta 怨꾩빟? Linux C+LLVM, Windows C-only?대ŉ Windows LLVM? ?ㅼ젣 MSYS2 runner green evidence媛 ?앷만 ?뚮쭔 ?밴꺽?쒕떎.
-  - 吏꾪뻾: README support matrix??macOS??dedicated runner/support contract媛 ?앷만 ?뚭퉴吏 out-of-beta濡?紐낆떆?덈떎.
-- [~] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 踰붿쐞瑜?`docs/107_beta_stable_subset.md`?먯꽌 freeze?쒕떎. ?⑥? ?쇱? ??臾몄꽌??媛?stable ??ぉ???대떦 semantic/runtime/C/LLVM regression row? 1:1濡??곌껐?섎뒗 寃껋씠??
+  - 진행: Windows LLVM support detection? executable `llvm-config --libs core` evidence 을 ?만 `WINDOWS_LLVM_READY=1`???도?좁혔?? `C:/Program Files/LLVM/lib` 같? library folder 존재만으?LLVM smoke/backend-compare??행?? ?는?? 현재 beta 계약? Linux C+LLVM, Windows C-only?며 Windows LLVM? ?제 MSYS2 runner green evidence ?길 ?만 ?격한다.
+  - 진행: README support matrix??macOS??dedicated runner/support contract ?길 ?까 out-of-beta?명시한다.
+- [~] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 범위?`docs/107_beta_stable_subset.md`?서 freeze한다. ?? ?? ??문서???stable ?????당 semantic/runtime/C/LLVM regression row? 1:1??결는 것이??
 - [~] Stdlib beta freeze list: stable/experimental/out-of-beta API? breaking-change policy瑜?紐낆떆?쒕떎.
-  - 吏꾪뻾: `docs/108_stdlib_beta_freeze.md`媛 builtin stdlib, stable `use` modules, known experimental modules, out-of-beta ecosystem work瑜?遺꾨━?쒕떎. `make stdlib-test-smoke`媛 builtin stdlib probe? stable `use` module probe瑜?C/LLVM ?묒そ?먯꽌 怨좎젙?쒕떎. ?⑥? ?쇱? third-party package/version/supply-chain policy??
+  - 진행: `docs/108_stdlib_beta_freeze.md` builtin stdlib, stable `use` modules, known experimental modules, out-of-beta ecosystem work?분리한다. `make stdlib-test-smoke` builtin stdlib probe? stable `use` module probe?C/LLVM ?쪽?서 고정한다. ?? ?? third-party package/version/supply-chain policy??
 - [~] Tooling conformance: LSP/fmt/debugger??beta-stable 踰붿쐞瑜?紐낆떆?쒕떎.
-  - 吏꾪뻾: `make tooling-conformance-test-smoke`媛 formatter idempotence/compile smoke, LSP initialize/hover/completion capability, debugger CLI parse+semantic+quit path瑜?executable gate濡?怨좎젙?쒕떎. DAP, binary breakpoint, variable watch, rich refactor, multi-file workspace LSP???꾩쭅 beta-stable tooling subset???꾨땲??
-- [~] Package/module resolver surface: manifest, version resolution, import path, supply-chain integrity瑜?stable/experimental/out-of-beta濡?遺꾨쪟?쒕떎.
-  - 吏꾪뻾: `docs/109_package_module_resolver_contract.md`媛 beta-stable module surface瑜?`import "relative/path.pgy";`, importing-file-relative resolution, namespace/export visibility, circular import rejection?쇰줈 怨좎젙?덈떎. package surface??`pgy init <name>` scaffolding留?stable?대떎.
-  - 吏꾪뻾: `pgy install`? ???댁긽 ?뚯뒪 ?뚯씪 寃쎈줈濡??ㅼ씤?섏? ?딄퀬 explicit out-of-beta rejection???몃떎. `make package-module-resolver-test-smoke`媛 doc contract, `pgy init`, `pgy install` reject, missing import JSON, circular import JSON??怨좎젙?쒕떎.
+  - 진행: `make tooling-conformance-test-smoke` formatter idempotence/compile smoke, LSP initialize/hover/completion capability, debugger CLI parse+semantic+quit path?executable gate?고정한다. DAP, binary breakpoint, variable watch, rich refactor, multi-file workspace LSP??아직 beta-stable tooling subset??아니며 
+- [~] Package/module resolver surface: manifest, version resolution, import path, supply-chain integrity?stable/experimental/out-of-beta?분류한다.
+  - 진행: `docs/109_package_module_resolver_contract.md` beta-stable module surface?`import "relative/path.pgy";`, importing-file-relative resolution, namespace/export visibility, circular import rejection으로 고정한다. package surface??`pgy init <name>` scaffolding?stable한다.
+  - 진행: `pgy install`? ???상 ?스 ?일 경로??인?? 하고 explicit out-of-beta rejection??한다. `make package-module-resolver-test-smoke` doc contract, `pgy init`, `pgy install` reject, missing import JSON, circular import JSON??고정한다.
   - ?⑥쓬: dependency version solving, lockfile, registry, checksum/signature verification, remote import, supply-chain integrity??beta ?댄썑 resolver/package-manager track?쇰줈 ?좎??쒕떎.
 - [~] Test quality gate: pre-beta mandatory suite, fuzz/property status, coverage/perf baseline??異붿쟻?쒕떎.
-  - 吏꾪뻾: `docs/111_beta_test_suite_freeze.md`媛 mandatory pre-beta gates, platform gates, fuzz/property/coverage non-claims, regression policy瑜?freeze?덈떎. `make beta-test-suite-freeze-test-smoke`媛 freeze doc怨?Makefile target 議댁옱瑜?寃?ы븳??
-  - ?⑥쓬: ?ㅼ젣 fuzz corpus, property-based generator, coverage percentage threshold??beta ?댄썑 ?덉쭏 ?몃옓?쇰줈 ?좎??쒕떎. ?꾩옱 beta gate??named stable-surface coverage??
-- [~] Observability/tracing schema: event schema, intent history, authority failure state, runtime registry, trace format version??怨좎젙?쒕떎.
-  - 吏꾪뻾: `docs/112_observability_trace_schema.md`媛 beta-stable schema瑜?`IntentLast*`, `IntentHistory*`, `IntentActive*`, `IntentRecent*`, authority failure snapshot(`ok/zone/participant/code/reason`), runtime-borrowed string ABI, C/LLVM identical trace output?쇰줈 怨좎젙?덈떎.
-  - 吏꾪뻾: `make observability-schema-test-smoke`媛 `intent_trace_abi`, `intent_recent_abi`, `intent_active_abi`, `intent_failure_abi`, `authority_failure_abi`瑜?C/LLVM ?묒そ?먯꽌 expected stdout怨?鍮꾧탳?쒕떎.
+  - 진행: `docs/111_beta_test_suite_freeze.md` mandatory pre-beta gates, platform gates, fuzz/property/coverage non-claims, regression policy?freeze한다. `make beta-test-suite-freeze-test-smoke` freeze doc?Makefile target 존재??한??
+  - ?음: ?제 fuzz corpus, property-based generator, coverage percentage threshold??beta ?후 ?질 ?랙으로 ??한다. 현재 beta gate??named stable-surface coverage??
+- [~] Observability/tracing schema: event schema, intent history, authority failure state, runtime registry, trace format version??고정한다.
+  - 진행: `docs/112_observability_trace_schema.md` beta-stable schema?`IntentLast*`, `IntentHistory*`, `IntentActive*`, `IntentRecent*`, authority failure snapshot(`ok/zone/participant/code/reason`), runtime-borrowed string ABI, C/LLVM identical trace output으로 고정한다.
+  - 진행: `make observability-schema-test-smoke` `intent_trace_abi`, `intent_recent_abi`, `intent_active_abi`, `intent_failure_abi`, `authority_failure_abi`?C/LLVM ?쪽?서 expected stdout?비교한다.
   - ?⑥쓬: general event streaming, structured JSON trace export, distributed trace correlation, user-code registry hooks, stable binary trace format, richer multi-instance timeline query??beta ?댄썑濡??좎??쒕떎.
-- [~] Memory/concurrency model: `parallel`, task, channel, cancellation, visibility/happens-before 理쒖냼 怨꾩빟??臾몄꽌?뷀븳??
-  - 吏꾪뻾: `docs/113_memory_concurrency_model.md`媛 beta-stable happens-before, channel, cancellation, explicit out-of-beta memory model 踰붿쐞瑜?怨좎젙?덈떎. `parallel` join visibility, shared `ref`/`ref` ?덉슜, `ref`/`own` 諛?`own`/`own` task-boundary reject, copy-only non-blocking receive/cancel/close瑜?stable contract濡?臾띠뿀??
-  - 吏꾪뻾: `make memory-concurrency-model-test-smoke`媛 `parallel-core-contract-test-smoke`? targeted C/LLVM backend compare(`parallel_channel_sum`, `parallel_channel_dual`, `triple_paradigm`)瑜??ㅽ뻾?쒕떎.
+- [~] Memory/concurrency model: `parallel`, task, channel, cancellation, visibility/happens-before 최소 계약을 문서화한다.
+  - 진행: `docs/113_memory_concurrency_model.md` beta-stable happens-before, channel, cancellation, explicit out-of-beta memory model 범위?고정한다. `parallel` join visibility, shared `ref`/`ref` ?용, `ref`/`own` ?`own`/`own` task-boundary reject, copy-only non-blocking receive/cancel/close?stable contract?묶었??
+  - 진행: `make memory-concurrency-model-test-smoke` `parallel-core-contract-test-smoke`? targeted C/LLVM backend compare(`parallel_channel_sum`, `parallel_channel_dual`, `triple_paradigm`)??행한다.
   - ?⑥쓬: full weak-memory ordering, user-selectable memory order, scheduler fairness guarantee, lock-free correctness, anonymous async closure capture/lifetime, cross-thread `Arc<T>` / `Send` / `Sync` trait system? beta ?댄썑濡??좎??쒕떎.
 - [~] String/unicode policy: normalization, comparison, locale, escape handling, unsupported policy瑜?紐낆떆?쒕떎.
-  - 吏꾪뻾: `docs/110_string_unicode_policy.md`媛 UTF-8 string payload preservation, byte-length `StringLength`, byte-exact/normalization-blind equality/search瑜?beta-stable濡?怨좎젙?덈떎.
-  - 吏꾪뻾: Unicode identifiers, normalization, locale-sensitive collation/case folding, grapheme iteration, display width, mixed-encoding source files??explicit out-of-beta濡?怨좎젙?덈떎. `make unicode-policy-test-smoke`媛 C/LLVM UTF-8 string execution怨?Unicode identifier reject瑜?寃利앺븳??
-  - ?⑥쓬: full Unicode text model???꾩엯?섎젮硫?post-beta??scalar/grapheme/locale vocabulary? 蹂꾨룄 stdlib text module???ㅺ퀎?쒕떎.
+  - 진행: `docs/110_string_unicode_policy.md` UTF-8 string payload preservation, byte-length `StringLength`, byte-exact/normalization-blind equality/search?beta-stable?고정한다.
+  - 진행: Unicode identifiers, normalization, locale-sensitive collation/case folding, grapheme iteration, display width, mixed-encoding source files??explicit out-of-beta?고정한다. `make unicode-policy-test-smoke` C/LLVM UTF-8 string execution?Unicode identifier reject?증한??
+  - ?음: full Unicode text model???입?려?post-beta??scalar/grapheme/locale vocabulary? 별도 stdlib text module???계한다.
 
 Checklist source of truth:
 
@@ -1102,20 +1143,20 @@ Checklist source of truth:
 - AIR full backend non-impact hardening: `make air-backend-nonimpact-full-test-smoke`
 - AIR strict backend execution parity: `make air-strict-backend-compare-test-smoke`
 
-## 援ъ“/?댁쁺 ?먯씤 ?ъ씤??蹂대뱶 (2026-04-20)
+## 구조/?영 ?인 ?인??보드 (2026-04-20)
 
-???뱀뀡? 湲곕뒫 backlog媛 ?꾨땲?? ?ㅼ젣 ?묒뾽 ?⑥쑉怨?踰좏? ?좊ː?꾨? 怨꾩냽 源롫뒗 援ъ“ debt / ?댁쁺 pain point瑜?怨좎젙?쒕떎.
+???션? 기능 backlog 아니며  ?제 ?업 ?율?베? ?뢰?? 계속 깎는 구조 debt / ?영 pain point?고정한다.
 
 ?곗꽑?쒖쐞 ?쒖븞:
 - `P0`: function/action/intent body CFG + dataflow瑜?semantic source-of-truth濡??밴꺽
 - `P1`: `.inc` 遺꾪븷???ㅼ젣 `.c`/`.h` 紐⑤뱢濡??꾪솚
-- `P2`: hint namespace (`code` / `cause_ir` / `fix_source`)瑜??덉??ㅽ듃由?湲곕컲?쇰줈 怨좎젙
-- `P3`: type-category vocabulary瑜?2-3痢듭쑝濡??뺤텞
-- `P4`: 鍮뚮뱶/?뚮뱶諛뺤뒪/以묎컙-stage JSON/artifact 臾몄젣瑜?怨듭떇 寃쎈줈 湲곗??쇰줈 ?뺣━
-- `P9`: arena ?⑦꽩??scratch/result lifetime 湲곗??쇰줈 紐낆떆 ?꾩엯
-- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access??Pin/Lease 臾몄꽌 湲곗??쇰줈 遺꾨━?쒕떎. 湲곕낯 path??留??묎렐 寃利앹씠怨? fast path??scope-entry capability lease + automatic unpin cleanup?댁뼱???쒕떎. Runtime ABI baseline? `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` ?뚭?濡??쒖옉?덇퀬, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence瑜??レ븯?? Candidate source syntax `pin slot as view { ... }`??CFG cleanup/backend parity媛 ?ロ옄 ?뚭퉴吏 parser explicit reject濡?遊됱씤?덇퀬 `make diagnostics-json-test-smoke`媛 JSON route瑜?寃利앺븳?? Pin/Lease semantic diagnostic vocabulary??`PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`濡?registry/docs??怨좎젙?덇퀬 `make diagnostic-registry-test-smoke`? `make beta-readiness-checklist-test-smoke`媛 drift瑜?留됰뒗?? Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for return escape, await boundary, parallel boundary/acquisition, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline? unresolved `TYPE_KIND_GENERIC`??`BORROW_TRACKED`濡?遺꾨쪟??generic `own/ref`媛 議곗슜??copy-only濡??듦낵?섏? 紐삵븯寃?留됰뒗?? ?⑥? 寃껋? stable source syntax, block-scoped CFG cleanup edge, secure-token source diagnostic, C/LLVM parity?? Source of truth: `docs/74_slot_pinning_caching.md`
-- `P9c`: `Rc<T>` / `Weak<T>` 理쒖냼 subset? beta-stable濡??レ븯?? 踰붿쐞??single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare?? 踰붿쐞 諛?payload??backend fallback???꾨땲??semantic explicit reject?? `Arc<T>`, cross-thread shared ownership, generic/object payload ?뺤옣, default ARC??beta 諛뽰씠?? Source of truth: `docs/100_beta_readiness_checklist.md`, `docs/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
-- `P10`: 紐⑤뱢???꾪뙆 怨좊룄?붿쓽 compile/runtime ?띾룄 ?뚭?瑜?蹂꾨룄 baseline?쇰줈 異붿쟻
+- `P2`: hint namespace (`code` / `cause_ir` / `fix_source`)????트?기반으로 고정
+- `P3`: type-category vocabulary?2-3층으??축
+- `P4`: 빌드/?드박스/중간-stage JSON/artifact 문제?공식 경로 기?으로 ?리
+- `P9`: arena ?턴??scratch/result lifetime 기?으로 명시 ?입
+- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access??Pin/Lease 문서 기?으로 분리한다. 기본 path????근 증이? fast path??scope-entry capability lease + automatic unpin cleanup되어??한다. Runtime ABI baseline? `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` ????작?고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence??았?? Candidate source syntax `pin slot as view { ... }`??CFG cleanup/backend parity ?힐 ?까 parser explicit reject?봉인하고 `make diagnostics-json-test-smoke` JSON route?증한?? Pin/Lease semantic diagnostic vocabulary??`PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`?registry/docs??고정하고 `make diagnostic-registry-test-smoke`? `make beta-readiness-checklist-test-smoke` drift?막는?? Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for return escape, await boundary, parallel boundary/acquisition, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline? unresolved `TYPE_KIND_GENERIC`??`BORROW_TRACKED`?분류??generic `own/ref` 조용??copy-only??과?? 못하?막는?? ?? 것? stable source syntax, block-scoped CFG cleanup edge, secure-token source diagnostic, C/LLVM parity?? Source of truth: `docs/74_slot_pinning_caching.md`
+- `P9c`: `Rc<T>` / `Weak<T>` 최소 subset? beta-stable??았?? 범위??single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare?? 범위 ?payload??backend fallback??아니며 semantic explicit reject?? `Arc<T>`, cross-thread shared ownership, generic/object payload ?장, default ARC??beta 밖이?? Source of truth: `docs/100_beta_readiness_checklist.md`, `docs/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
+- `P10`: 모듈???파 고도의 compile/runtime ?도 ???별도 baseline으로 추적
 
 ### P0. Function CFG / Body Dataflow Closure
 
@@ -1123,28 +1164,28 @@ Checklist source of truth:
 
 ?듭떖 ?뺣━:
 
-- CFG媛 ?녿뒗 ?곹깭???꾨땲?? HIR??function CFG v0, predecessor/reachability, dominator/frontier, loop depth, phi candidate skeleton??媛吏꾨떎.
-- MIR??HIR CFG? RIR op瑜?臾띠뼱 routine/block/instruction/cleanup block, SSA version map, def/use, cleanup/rollback/invalidation exceptional CFG, liveness/DCE vertical slice源뚯? 媛吏怨??덈떎.
-- ?⑥? blocker????CFG/MIR infra瑜?**?⑥닔 蹂몃Ц ?섎?濡좎쓽 source-of-truth**濡??밴꺽?섎뒗 寃껋씠?? ?꾩옱 body safety???쇰????ъ쟾??AST/helper traversal, local summary, backend fallback??湲곕?怨??덉뼱 strict beta 湲곗??쇰줈 遺議깊븯??
+- CFG 는 ?태??아니며  HIR??function CFG v0, predecessor/reachability, dominator/frontier, loop depth, phi candidate skeleton??진다.
+- MIR??HIR CFG? RIR op?묶어 routine/block/instruction/cleanup block, SSA version map, def/use, cleanup/rollback/invalidation exceptional CFG, liveness/DCE vertical slice까? ?한다.
+- ?? blocker????CFG/MIR infra?**개수 본문 ??론의 source-of-truth**??격는 것이?? 현재 body safety???????전??AST/helper traversal, local summary, backend fallback??기??되어 strict beta 기?으로 족하??
 
-踰좏? ?꾨즺 議곌굔:
+베? ?료 조건:
 
-- [ ] Function/action/intent body留덈떎 `BasicBlock`, `Edge`, `Terminator`, reachability, exceptional cleanup edge媛 semantic pass?먯꽌 吏곸젒 ?뚮퉬?쒕떎.
-- [x] 諛섑솚?뺤씠 ?덈뒗 routine? 紐⑤뱺 reachable normal path?먯꽌 return/value terminator瑜?媛吏꾨떎??all-path return 寃?щ? CFG body summary濡?怨좎젙?쒕떎.
-- [~] definite assignment/use-before-init 寃?щ? CFG dataflow濡??대룞?섍퀬 branch/join/loop widening 吏꾨떒??怨좎젙?쒕떎. stable local `let` ?쒕㈃? parser `=` ?붽뎄? `PGY_SEM_UNINIT_LOCAL` backstop?쇰줈 遊됱씤?먭퀬, wider delayed-assignment lattice???꾩쭅 ?대젮 ?덈떎.
-- [~] move/use-after-move, borrow/ref lifetime, boundary escape瑜?CFG join facts濡?怨꾩궛?쒕떎. `QubitSlot` loop break/continue join regression, anchored `Slot<T>` branch/join release-state regression, `own subject` branch/join consumed-state regression, parallel subject transfer join/conflict regression, parallel `ref`+`own` boundary conflict regression, parallel `ref`+`ref` shared-read acceptance regression, direct named-call `spawn ref` ownership-boundary rejection regression, anonymous async spawn explicit reject regression? ?ロ삍怨? closure/lambda/general longer-lived borrow lifetime? ?⑥븘 ?덈떎. `mut ref`/`ref mut` surface媛 ?놁쑝誘濡?mutable-borrow overlap? beta-out-of-scope濡?遊됱씤?쒕떎.
-- [~] owned resource drop/cleanup insertion point瑜?normal return, early return, break/continue, intent cancel/rollback/invalidation edge?먯꽌 媛숈? 洹쒖튃?쇰줈 怨꾩궛?쒕떎. `defer` cleanup terminator? resource-state snapshot/restore 寃⑸━, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking? ?ロ삍怨? full drop insertion/validation? ?⑥븘 ?덈떎.
-- [ ] zone/effect/relation transition facts瑜?path-sensitive summary濡??щ젮 branch/join/handoff?먯꽌 stale state? conflict瑜?媛숈? vocabulary濡?吏꾨떒?쒕떎.
-- [~] `parallel`/channel/task boundary?먯꽌 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact瑜?CFG summary濡?寃利앺븳?? parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, direct named-call `spawn Token<T>` authority-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, authority `Token<T>` channel helper rejection, copy-only cancellation payload reject, copy-only channel close???ロ삍怨? broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact???⑥븘 ?덈떎.
-- [~] Interprocedural body summary瑜?怨좎젙?쒕떎: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1李?援ъ“濡?function type??`body_summary_mask`? semantic recorder???ㅼ뼱媛붾떎. direct function call? callee summary 以?caller-relevant transitive facts瑜??뚮퉬?섍퀬 declaration-known `own/ref` parameter boundary facts??湲곕줉?쒕떎. method/host call??媛숈? declaration-known summary facts瑜?湲곕줉?쒕떎. lambda body summary??lambda function type??寃⑸━?섏뼱 outer routine?쇰줈 ?덉? ?딄퀬, function-typed lambda binding ?몄텧? 媛숈? callee-summary path濡??꾪뙆?쒕떎. ?⑥? 寃껋? intent/helper call源뚯? ?볧엳怨?zone/effect/runtime propagation怨?C/LLVM lowering????summary bit瑜?吏곸젒 ?뚮퉬?섍쾶 留뚮뱶???쇱씠??
-- [ ] 吏꾨떒? block/path provenance瑜??ы븿?쒕떎: source path, branch/join edge, previous state, Reason, Fix.
-- [ ] MIR/C/LLVM lowering? 媛숈? CFG/dataflow facts瑜??뚮퉬?섍퀬, frozen subset parity regression?쇰줈 臾띕뒗??
+- [ ] Function/action/intent body마다 `BasicBlock`, `Edge`, `Terminator`, reachability, exceptional cleanup edge semantic pass?서 직접 ?비한다.
+- [x] 반환이 는 routine? 모든 reachable normal path?서 return/value terminator?진다??all-path return ?? CFG body summary?고정한다.
+- [~] definite assignment/use-before-init ?? CFG dataflow??동하고 branch/join/loop widening 진단??고정한다. stable local `let` ?면? parser `=` ?구? `PGY_SEM_UNINIT_LOCAL` backstop으로 봉인?고, wider delayed-assignment lattice??아직 ?려 한다.
+- [~] move/use-after-move, borrow/ref lifetime, boundary escape?CFG join facts?계산한다. `QubitSlot` loop break/continue join regression, anchored `Slot<T>` branch/join release-state regression, `own subject` branch/join consumed-state regression, parallel subject transfer join/conflict regression, parallel `ref`+`own` boundary conflict regression, parallel `ref`+`ref` shared-read acceptance regression, direct named-call `spawn ref` ownership-boundary rejection regression, anonymous async spawn explicit reject regression? ?혔? closure/lambda/general longer-lived borrow lifetime? ?아 한다. `mut ref`/`ref mut` surface ?으?mutable-borrow overlap? beta-out-of-scope?봉인한다.
+- [~] owned resource drop/cleanup insertion point?normal return, early return, break/continue, intent cancel/rollback/invalidation edge?서 같? 규칙으로 계산한다. `defer` cleanup terminator? resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking? ?혔? full drop insertion/validation? ?아 한다.
+- [ ] zone/effect/relation transition facts?path-sensitive summary??려 branch/join/handoff?서 stale state? conflict?같? vocabulary?진단한다.
+- [~] `parallel`/channel/task boundary?서 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact?CFG summary?증한?? parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, direct named-call `spawn Token<T>` authority-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, authority `Token<T>` channel helper rejection, copy-only cancellation payload reject, copy-only channel close???혔? broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact???아 한다.
+- [~] Interprocedural body summary?고정?다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1?구조?function type??`body_summary_mask`? semantic recorder??되어갔다. direct function call? callee summary ?caller-relevant transitive facts??비하고 declaration-known `own/ref` parameter boundary facts??기록한다. method/host call??같? declaration-known summary facts?기록한다. lambda body summary??lambda function type??격리되어 outer routine으로 ?? ?고, function-typed lambda binding ?출? 같? callee-summary path??파한다. ?? 것? intent/helper call까? ?히?zone/effect/runtime propagation?C/LLVM lowering????summary bit?직접 ?비?게 만드???이??
+- [ ] 진단? block/path provenance??함?다: source path, branch/join edge, previous state, Reason, Fix.
+- [ ] MIR/C/LLVM lowering? 같? CFG/dataflow facts??비?고, frozen subset parity regression으로 묶는??
 
-?ㅽ뻾 ?쒖꽌:
+?행 ?서:
 
-1. ?꾩옱 HIR/MIR CFG fact inventory? semantic ?뚮퉬 吏?먯쓣 ?쒕줈 留뚮뱺??
-2. `--hir-cfg`, `--mir`, RIR flow-block dump瑜?臾띕뒗 smoke瑜?異붽???CFG fact drift瑜?留됰뒗??
-3. all-path return + reachability + definite assignment瑜?CFG 湲곕컲?쇰줈 癒쇱? ?밴꺽?쒕떎.
+1. 현재 HIR/MIR CFG fact inventory? semantic ?비 을 으로 만든??
+2. `--hir-cfg`, `--mir`, RIR flow-block dump?묶는 smoke?추???CFG fact drift?막는??
+3. all-path return + reachability + definite assignment?CFG 기반으로 먼? ?격한다.
 4. ownership move/borrow/drop cleanup??CFG dataflow濡??대룞?쒕떎.
 5. zone/effect/relation transition, handoff frontier, projection freshness瑜?body CFG summary? runtime propagation scheduler???곌껐?쒕떎.
 6. parallel/channel/task boundary summary瑜?異붽??섍퀬 C/LLVM backend compare??frozen cases瑜??ｋ뒗??
@@ -1163,18 +1204,18 @@ Source of truth:
 
 ### P1. `.inc` ?ㅽ뙆寃뚰떚瑜??ㅼ젣 紐⑤뱢濡??덈떒
 
-- 臾몄젣:
-  - ?꾩옱 `type_checker.c` 諛?transpiler/LLVM ?쇰????쒕え?덊솕?앷? ?꾨땲???쒗뙆??遺꾪븷???⑥씪 translation unit?앹뿉 媛源앸떎
-  - IDE jump/symbol lookup/forward decl ?쒖꽌 愿由ш? 紐⑤몢 ?섎룞
-  - formatter/linter/?몃? edit媛 include ?쒖꽌/?뚯씪 媛깆떊 ??대컢??誘쇨컧?섍쾶 源⑥쭊??- ?곹뼢:
-  - ????섏젙 ??edit conflict / implicit declaration / include ordering failure媛 諛섎났??  - ownership/generic/provenance 媛숈? ?〓떒 ?묒뾽??遺덊븘?뷀븯寃??먮젮吏꾨떎
-- 湲곕낯 諛⑹묠:
-  - ?곗꽑 `semantic/type_checker_*`?먯꽌 ownership / generic / module-contract / diagnostics 異뺣????ㅼ젣 `.c`/`.h` export 援ъ“濡??덈떒
-  - declaration-side MIR-only hot path??helper family瑜?`.c` 寃쎄퀎濡?遺꾨━
-  - ?κ린 紐⑺몴?좎? `docs/92_inc_split_roadmap.md`??Target State A-D濡?怨좎젙?쒕떎
+- 문제:
+  - 현재 `type_checker.c` ?transpiler/LLVM ?????모?화?? 아니며 ?파??분할???일 translation unit에 깝다
+  - IDE jump/symbol lookup/forward decl ?서 리? 모두 ?동
+  - formatter/linter/?? edit include ?서/?일 갱신 ??밍??민감?게 깨진??- ?향:
+  - ????정 ??edit conflict / implicit declaration / include ordering failure 반복??  - ownership/generic/provenance 같? ?단 ?업??불필?하??려진다
+- 기본 방침:
+  - ?선 `semantic/type_checker_*`?서 ownership / generic / module-contract / diagnostics 축????제 `.c`/`.h` export 구조??단
+  - declaration-side MIR-only hot path??helper family?`.c` 경계?분리
+  - ?기 목표?? `docs/92_inc_split_roadmap.md`??Target State A-D?고정한다
   - stop condition: semantic?먮뒗 800 LOC 珥덇낵 `.inc` ?놁쓬, codegen/runtime?먮뒗 1,000 LOC 珥덇낵 `.inc` ?놁쓬, `type_checker.c`??orchestration-only, backend declaration path??dedicated inventory reader ?먮뒗 hard error留??덉슜
-  - speed stop condition: `test-abi-perf`? `perf-summary` baseline???좎??섍퀬, 紐⑤뱢??slice ??worst-case compile time??2諛??댁긽 ?硫??뚭? ?꾨낫濡?湲곕줉
-  - `.inc`??generated table / local macro table / private test fixture 媛숈? ?쒗븳 ?⑸룄濡쒕쭔 ?④릿??- 以鍮??묒뾽:
+  - speed stop condition: `test-abi-perf`? `perf-summary` baseline?????고, 모듈??slice ??worst-case compile time??2??상 ???? ?보?기록
+  - `.inc`??generated table / local macro table / private test fixture 같? ?한 ?도로만 ?긴??- ??업:
   - [ ] `type_checker`瑜?理쒖냼 5異뺤쑝濡??덈떒
     - [x] diagnostic emission/snapshot: `type_checker_diag.c`
     - [x] ownership classification: `type_checker_ownership_classify.c`
@@ -1189,387 +1230,387 @@ Source of truth:
     - [x] ability where-bound validator seam: `type_checker_ability_where.c`
     - generic consumer pipeline
     - [x] module contract / authority consumer: `type_checker_module_contract.c`
-  - 吏꾪뻾: ownership 怨듭슜 enum/entrypoint瑜?`type_checker_ownership_internal.h`濡?遺꾨━ ?쒖옉
-  - 吏꾪뻾: ownership diagnostics forward declaration??`type_checker_ownership_diag_internal.h`濡?遺꾨━ ?쒖옉
-  - 吏꾪뻾: ownership escape diagnostic renderer/helper family??`type_checker_ownership_diag.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - 吏꾪뻾: ownership support helper(`semantic_assignment_target_path`, `semantic_borrowed_boundary_root_name`)??`type_checker_ownership_support_internal.h`濡?遺꾨━ ?쒖옉
-  - 吏꾪뻾: ownership consumer seam(`return` / `assign` / `call`)??`type_checker_ownership_consumers_internal.h`濡?遺꾨━ ?쒖옉
-  - 吏꾪뻾: `param_summary`??raw include block???꾨땲??`semantic_check_param_summary_escapes(...)` consumer helper濡??밴꺽
-  - 吏꾪뻾: channel transport seam??`type_checker_channel_transport_internal.h`濡?遺꾨━ ?쒖옉
-  - 吏꾪뻾: channel transport validator/reporters??`type_checker_channel_transport.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - 吏꾪뻾: high-arity generic mismatch helper??`type_checker_generic_diag.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - 吏꾪뻾: module contract consumer ?좏뻾 seam??ability reference display/name/signature helper??`type_checker_ability_ref.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - 吏꾪뻾: stdlib use validator??`type_checker_stdlib_use.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - 吏꾪뻾: subject ability mismatch diagnostic? `type_checker_module_contract_diag.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - 吏꾪뻾: ability `fields` validator??`type_checker_ability_fields.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - 吏꾪뻾: `find_type_decl_by_name`??include-order static helper?먯꽌 `type_checker_internal.h` internal API濡??밴꺽
-  - 吏꾪뻾: ability ref matching / role ability lookup / subject ability lookup? `type_checker_ability_match.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - 吏꾪뻾: `find_ability_decl_by_name` / `collect_effective_generic_arg_nodes`??include-order static helper?먯꽌 `type_checker_internal.h` internal API濡??밴꺽
-  - 吏꾪뻾: ability where-bound consumer validation? `type_checker_ability_where.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - 吏꾪뻾: `format_type_constraint_bounds`??include-order static helper?먯꽌 `type_checker_internal.h` internal API濡??밴꺽 ??蹂꾨룄 TU濡?遺꾨━
-  - 吏꾪뻾: `semantic_type_resolution_record_type_ref_dependency`??graph core TU濡??대룞??include-order static helper ?섏〈???쒓굅
-  - 吏꾪뻾: `semantic_type_resolution_collect_type_refs`??`type_checker_resolution_graph_collect.c`濡??대룞??DAG inventory collector??泥??ㅼ젣 TU seam??留뚮뱾?덈떎
-  - 吏꾪뻾: generic contract inventory / string dependency / required ability collector helpers??`type_checker_resolution_graph_collect.c`濡??대룞
-  - 吏꾪뻾: top-level declaration graph registration??`type_checker_resolution_graph_collect.c`濡??대룞??inventory pass??bootstrap helper debt瑜???以꾩???  - 吏꾪뻾: local-contract graph node/dependency + zone/world/projection label formatters??`type_checker_resolution_graph_labels.c`濡??대룞??graph inventory `.inc`瑜?1,835 LOC源뚯? 異뺤냼?덈떎
-  - 吏꾪뻾: projection source resolver??`type_checker_resolution_graph_domain.c`濡??대룞?섍퀬 `find_zone_domain_slot`??internal API濡??밴꺽??graph/domain split ?좏뻾 seam??留뚮뱾?덈떎
-  - 吏꾪뻾: event declaration precollector??`type_checker_resolution_graph_decl.c`濡??대룞??declaration-kind collector 遺꾨━???쒖옉
-  - 吏꾪뻾: enum declaration precollector??`type_checker_resolution_graph_decl.c`濡??대룞?섍퀬 `semantic_stage_method_array`瑜?internal API濡??밴꺽??inventory `.inc`瑜?1,765 LOC源뚯? 異뺤냼
-  - 吏꾪뻾: ability declaration precollector? action-contract precollector??`type_checker_resolution_graph_decl.c`濡??대룞??inventory `.inc`瑜?1,648 LOC源뚯? 異뺤냼
-  - 吏꾪뻾: role/class/party/roster declaration precollector??`type_checker_resolution_graph_decl.c`濡??대룞?섍퀬, relation/effect domain inventory precollector??`type_checker_resolution_graph_domain.c`濡??대룞??inventory `.inc`瑜?1,299 LOC源뚯? 異뺤냼
-  - 吏꾪뻾: intent declaration precollector??`type_checker_resolution_graph_decl.c`濡? world inventory precollector??`type_checker_resolution_graph_world.c`濡??대룞??inventory `.inc`瑜?870 LOC源뚯? 異뺤냼
-  - 吏꾪뻾: zone refresh projection field-map DAG collector??`type_checker_resolution_graph_zone.c`濡??대룞?덇퀬, graph inventory body??`type_checker_resolution_graph_inventory.c`濡??밴꺽?덈떎. `type_checker_resolution_graph_inventory.inc`???쒓굅?섏뼱 DAG inventory include-order debt媛 ?ロ삍??  - 吏꾪뻾: projection builtin target-field resolver??recursive fallback ???DAG metadata lookup-only seam?쇰줈 ??톬?? projection source/target mismatch 吏꾨떒? projection validator媛 ?뚯쑀?섍퀬, target field type materialization? DAG metadata媛 ?뚯쑀?쒕떎. fallback seam cap? 31?먯꽌 30?쇰줈 ?대젮媛붾떎. ?댄썑 type graph precollect瑜?top-level symbol pass ?욎뿉 諛곗튂?섍퀬 `program_resolve_type_quiet(...)`瑜?metadata lookup-only濡???떠 event/function placeholder媛 recursive fallback ?놁씠 DAG metadata瑜??곌쾶 ?덈떎. fallback seam cap? 30?먯꽌 29濡??대젮媛붾떎. domain query projection source-field resolver??class/vessel field DAG metadata lookup-only濡???떠 cap? 28濡??대젮媛붾떎. party/roster shared-field resolver??declaration metadata lookup-only濡???떠 cap? 26?쇰줈 ?대젮媛붾떎. ability abstract method signature resolver? role host-type resolver??lookup-only濡???떠 cap? 24濡??대젮媛붾떎. function/action body expression/lambda/event handler precollect ?뺤옣 ??event/lambda handler resolver??lookup-only濡???떠 cap? 23?쇰줈 ?대젮媛붾떎. body flow resolver??graph metadata lookup-only濡???떠 cap? 22濡??대젮媛붾떎. type-alias statement resolver??DAG metadata lookup-only濡???떠 cap? 21濡??대젮媛붾떎. `world_decl` lookup-only ?꾪솚? subject/zone nominal materialization???꾩쭅 遺議깊빐 semantic 77媛??ㅽ뙣瑜?留뚮뱾?덉쑝誘濡?蹂대쪟?덈떎
-  - 吏꾪뻾: world/zone local-contract stage replay??`type_checker_resolution_stage_domain.c`濡??대룞?덇퀬, top-level DAG stage replay??`type_checker_resolution_stage.c`濡??밴꺽??`type_checker_resolution_stage.inc`瑜??쒓굅
-  - 吏꾪뻾: `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`??standalone TU濡?鍮뚮뱶?섎ŉ hidden include-order helper ?섏〈??internal/header 怨꾩빟?쇰줈 ?밴꺽
-  - 吏꾪뻾: `type_checker_intent_decl.c` standalone TU ?밴꺽 以??쒕윭??implicit helper dependency瑜?internal/header 怨꾩빟?쇰줈 ?밴꺽?섍퀬, `-Werror=implicit-function-declaration -Werror=implicit-int`瑜?湲곕낯 CFLAGS濡?怨좎젙??媛숈? 醫낅쪟??C 紐⑤뱢??踰꾧렇瑜?鍮뚮뱶 ?④퀎?먯꽌 李⑤떒
-  - 吏꾪뻾: `type_checker_role_decl.c`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`??hard implicit-declaration CFLAGS ?꾨옒?먯꽌 鍮뚮뱶?섎룄濡?helper/header ?섏〈??紐낆떆
-  - 吏꾪뻾: `type_checker_class_decl.c`媛 class/extern declaration checking???뚯쑀?섍퀬, `type_checker_program.c`媛 top-level semantic orchestration???뚯쑀?쒕떎. 愿??graph/worklist/effect/stats helper瑜?internal API濡??밴꺽??`type_checker_program.inc`瑜?624 LOC源뚯? 異뺤냼
-  - 吏꾪뻾: `type_checker_builtins_projection.c`媛 `ToObject` / `ToTObject` semantic projection checker瑜??뚯쑀?섍퀬, `type_checker_builtins_nominal.inc`瑜?659 LOC源뚯? 異뺤냼
-  - 吏꾪뻾: expression operator/indexed-access checker瑜?`type_checker_expr_ops.c`濡?遺꾨━?섍퀬, static member path / consumed-boundary helper瑜?`type_checker_expr_names.c`濡??대룞?덈떎. `type_checker_expr.inc`??758 LOC, `type_checker_helpers_late.inc`??773 LOC媛 ?섏뼱 ????semantic 800 LOC stop condition ?꾨옒濡??대젮媛붾떎
-  - 吏꾪뻾: event declaration/subscription/invoke semantic? `type_checker_event.c`濡??밴꺽?덇퀬, QubitSlot compile-time state / entangle pool / movable-resource-use validation? `type_checker_qubit.c`濡??밴꺽?덈떎. `type_checker.c`??481 LOC濡??대젮媛 600 LOC ?댄븯 stop condition??留뚯”?쒕떎
-  - 吏꾪뻾: domain slot/projection/overlay helper body瑜?`type_checker_decls_domain_helpers.c`濡??밴꺽?섍퀬, intent inheritance/derivation helper body瑜?`type_checker_intent_helpers.c`濡??밴꺽?덈떎. `type_checker_decls_domain_helpers.inc`???쒓굅?먭퀬 `type_checker_decls_a.inc`??1-line forwarding stub?쇰줈 異뺤냼
-  - ?꾨즺: semantic `.inc` 800 LOC stop condition? `make semantic-inc-size-test-smoke`濡?怨좎젙. ?꾩옱 `src/semantic`?먮뒗 800 LOC 珥덇낵 `.inc`媛 ?녿떎
-  - ?꾨즺: semantic core shape stop condition? `make semantic-core-shape-test-smoke`濡?怨좎젙. `type_checker.c <= 600 LOC`, event/qubit owner TU, DAG inventory `.c` ownership??CI?먯꽌 寃?ы븳??  - 吏꾪뻾: C backend MIR inventory/SSA emitter include瑜?5-line shim + `transpiler_emitters_mir_inventory_intent.inc` / `transpiler_emitters_mir_inventory_ssa_names.inc` / `transpiler_emitters_mir_inventory_ssa_emit.inc`濡?遺꾨━???대떦 debt瑜?紐⑤몢 1,000 LOC ?꾨옒濡???톬??  - 吏꾪뻾: C backend `emit_program(...)` bootstrap? direct declaration-array reads ???`transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view瑜??뚮퉬?쒕떎. `make mir-declaration-inventory-test-smoke`媛 C/LLVM declaration-side codegen??raw declaration inventory access瑜?helper owner濡??쒗븳?쒕떎
-  - 吏꾪뻾: C backend expression emitter include瑜?7-line shim + `transpiler_expr_emitters_builtins.inc` / `transpiler_expr_emitters_call_a.inc` / `transpiler_expr_emitters_call_b.inc` / `transpiler_expr_emitters_members.inc` / `transpiler_expr_emitters_tail.inc`濡?遺꾨━???대떦 debt瑜?紐⑤몢 1,000 LOC ?꾨옒濡???톬?? 寃利? `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
-  - 吏꾪뻾: LLVM call emitter include瑜?17-line shim + `llvm_expr_call_constructors.inc` / `llvm_expr_call_arrays.inc` / `llvm_expr_call_collections_base.inc` / `llvm_expr_call_domain_queries.inc` / `llvm_expr_call_events.inc` / `llvm_expr_call_intent_observability.inc` / `llvm_expr_call_log.inc` / `llvm_expr_call_math.inc` / `llvm_expr_call_result_option.inc` / `llvm_expr_call_slots.inc` / `llvm_expr_call_task_channel.inc` / `llvm_expr_calls_part_a.inc` / `llvm_expr_calls_part_b.inc` / `llvm_expr_calls_part_c.inc` / `llvm_expr_calls_part_d.inc`濡?遺꾨━???대떦 debt瑜?紐⑤몢 1,000 LOC ?꾨옒濡???톬?? enum/class constructor, array builtin, `ListNew`/`Set*` base collection, domain query builtin, event invocation, intent observability, log, scalar math, Result/Option, slot/device-slot builtin, task/channel lowering? `llvm_emit_call`?먯꽌 遺꾨━?섏뼱 蹂꾨룄 owner include媛 ?먮떎. 寃利? `make test-transpile -j2`, `make backend-inc-size-test-smoke`, `make llvm-test-backend-compare -j2`
-  - 吏꾪뻾: C backend base emitter B include瑜?6-line shim + `transpiler_emitters_base_b_part_a.inc` / `transpiler_emitters_base_b_part_b.inc` / `transpiler_emitters_base_b_part_c.inc` / `transpiler_emitters_base_b_part_d.inc`濡?遺꾨━???대떦 debt瑜?紐⑤몢 1,000 LOC ?꾨옒濡???톬?? 寃利? `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
-  - ?꾨즺: Tier 1 runtime/codegen/compiler `.inc > 1000 LOC` gate???ロ옒. `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`, `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a.inc`, `transpiler_helpers_core_b.inc`, `transpiler_domain_role.inc`, `llvm_expr_helpers.inc`, `mir_public.inc`, `llvm_expr_call_methods.inc`, `llvm_domain_helpers.inc`瑜?紐⑤몢 safe mechanical split?쇰줈 1,000 LOC ?꾨옒濡???톬??  - ?꾨즺: `tests/backend_inc_size_smoke.sh` / `make backend-inc-size-test-smoke` 異붽?. `src/runtime`, `src/codegen`, `src/compiler`??`.inc <= 1000 LOC`瑜?CI?먯꽌 怨좎젙
+  - 진행: ownership 공용 enum/entrypoint?`type_checker_ownership_internal.h`?분리 ?작
+  - 진행: ownership diagnostics forward declaration??`type_checker_ownership_diag_internal.h`?분리 ?작
+  - 진행: ownership escape diagnostic renderer/helper family??`type_checker_ownership_diag.c`??제 TU 분리 ?료
+  - 진행: ownership support helper(`semantic_assignment_target_path`, `semantic_borrowed_boundary_root_name`)??`type_checker_ownership_support_internal.h`?분리 ?작
+  - 진행: ownership consumer seam(`return` / `assign` / `call`)??`type_checker_ownership_consumers_internal.h`?분리 ?작
+  - 진행: `param_summary`??raw include block??아니며 `semantic_check_param_summary_escapes(...)` consumer helper??격
+  - 진행: channel transport seam??`type_checker_channel_transport_internal.h`?분리 ?작
+  - 진행: channel transport validator/reporters??`type_checker_channel_transport.c`??제 TU 분리 ?료
+  - 진행: high-arity generic mismatch helper??`type_checker_generic_diag.c`??제 TU 분리 ?료
+  - 진행: module contract consumer ?행 seam??ability reference display/name/signature helper??`type_checker_ability_ref.c`??제 TU 분리 ?료
+  - 진행: stdlib use validator??`type_checker_stdlib_use.c`??제 TU 분리 ?료
+  - 진행: subject ability mismatch diagnostic? `type_checker_module_contract_diag.c`??제 TU 분리 ?료
+  - 진행: ability `fields` validator??`type_checker_ability_fields.c`??제 TU 분리 ?료
+  - 진행: `find_type_decl_by_name`??include-order static helper?서 `type_checker_internal.h` internal API??격
+  - 진행: ability ref matching / role ability lookup / subject ability lookup? `type_checker_ability_match.c`??제 TU 분리 ?료
+  - 진행: `find_ability_decl_by_name` / `collect_effective_generic_arg_nodes`??include-order static helper?서 `type_checker_internal.h` internal API??격
+  - 진행: ability where-bound consumer validation? `type_checker_ability_where.c`??제 TU 분리 ?료
+  - 진행: `format_type_constraint_bounds`??include-order static helper?서 `type_checker_internal.h` internal API??격 ??별도 TU?분리
+  - 진행: `semantic_type_resolution_record_type_ref_dependency`??graph core TU??동??include-order static helper ?존???거
+  - 진행: `semantic_type_resolution_collect_type_refs`??`type_checker_resolution_graph_collect.c`??동??DAG inventory collector????제 TU seam??만들한다
+  - 진행: generic contract inventory / string dependency / required ability collector helpers??`type_checker_resolution_graph_collect.c`??동
+  - 진행: top-level declaration graph registration??`type_checker_resolution_graph_collect.c`??동??inventory pass??bootstrap helper debt???줄???  - 진행: local-contract graph node/dependency + zone/world/projection label formatters??`type_checker_resolution_graph_labels.c`??동??graph inventory `.inc`?1,835 LOC까? 축소한다
+  - 진행: projection source resolver??`type_checker_resolution_graph_domain.c`??동하고 `find_zone_domain_slot`??internal API??격??graph/domain split ?행 seam??만들한다
+  - 진행: event declaration precollector??`type_checker_resolution_graph_decl.c`??동??declaration-kind collector 분리???작
+  - 진행: enum declaration precollector??`type_checker_resolution_graph_decl.c`??동하고 `semantic_stage_method_array`?internal API??격??inventory `.inc`?1,765 LOC까? 축소
+  - 진행: ability declaration precollector? action-contract precollector??`type_checker_resolution_graph_decl.c`??동??inventory `.inc`?1,648 LOC까? 축소
+  - 진행: role/class/party/roster declaration precollector??`type_checker_resolution_graph_decl.c`??동?고, relation/effect domain inventory precollector??`type_checker_resolution_graph_domain.c`??동??inventory `.inc`?1,299 LOC까? 축소
+  - 진행: intent declaration precollector??`type_checker_resolution_graph_decl.c`? world inventory precollector??`type_checker_resolution_graph_world.c`??동??inventory `.inc`?870 LOC까? 축소
+  - 진행: zone refresh projection field-map DAG collector??`type_checker_resolution_graph_zone.c`??동?고, graph inventory body??`type_checker_resolution_graph_inventory.c`??격한다. `type_checker_resolution_graph_inventory.inc`???거되어 DAG inventory include-order debt ?혔??  - 진행: projection builtin target-field resolver??recursive fallback ???DAG metadata lookup-only seam으로 ???? projection source/target mismatch 진단? projection validator ?유?고, target field type materialization? DAG metadata ?유한다. fallback seam cap? 31?서 30으로 ?려갔다. ?후 type graph precollect?top-level symbol pass 에 배치하고 `program_resolve_type_quiet(...)`?metadata lookup-only??? event/function placeholder recursive fallback 이 DAG metadata??게 한다. fallback seam cap? 30?서 29??려갔다. domain query projection source-field resolver??class/vessel field DAG metadata lookup-only??? cap? 28??려갔다. party/roster shared-field resolver??declaration metadata lookup-only??? cap? 26으로 ?려갔다. ability abstract method signature resolver? role host-type resolver??lookup-only??? cap? 24??려갔다. function/action body expression/lambda/event handler precollect ?장 ??event/lambda handler resolver??lookup-only??? cap? 23으로 ?려갔다. body flow resolver??graph metadata lookup-only??? cap? 22??려갔다. type-alias statement resolver??DAG metadata lookup-only??? cap? 21??려갔다. `world_decl` lookup-only ?환? subject/zone nominal materialization??아직 족해 semantic 77??패?만들?으?보류한다
+  - 진행: world/zone local-contract stage replay??`type_checker_resolution_stage_domain.c`??동?고, top-level DAG stage replay??`type_checker_resolution_stage.c`??격??`type_checker_resolution_stage.inc`??거
+  - 진행: `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`??standalone TU?빌드?며 hidden include-order helper ?존??internal/header 계약으로 ?격
+  - 진행: `type_checker_intent_decl.c` standalone TU ?격 ??러??implicit helper dependency?internal/header 계약으로 ?격?고, `-Werror=implicit-function-declaration -Werror=implicit-int`?기본 CFLAGS?고정??같? 종류??C 모듈??버그?빌드 ?계?서 차단
+  - 진행: `type_checker_role_decl.c`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`??hard implicit-declaration CFLAGS ?래?서 빌드?도?helper/header ?존??명시
+  - 진행: `type_checker_class_decl.c` class/extern declaration checking???유?고, `type_checker_program.c` top-level semantic orchestration???유한다. ??graph/worklist/effect/stats helper?internal API??격??`type_checker_program.inc`?624 LOC까? 축소
+  - 진행: `type_checker_builtins_projection.c` `ToObject` / `ToTObject` semantic projection checker??유?고, `type_checker_builtins_nominal.inc`?659 LOC까? 축소
+  - 진행: expression operator/indexed-access checker?`type_checker_expr_ops.c`?분리?고, static member path / consumed-boundary helper?`type_checker_expr_names.c`??동한다. `type_checker_expr.inc`??758 LOC, `type_checker_helpers_late.inc`??773 LOC 되어 ????semantic 800 LOC stop condition ?래??려갔다
+  - 진행: event declaration/subscription/invoke semantic? `type_checker_event.c`??격?고, QubitSlot compile-time state / entangle pool / movable-resource-use validation? `type_checker_qubit.c`??격한다. `type_checker.c`??481 LOC??려 600 LOC ?하 stop condition??만족한다
+  - 진행: domain slot/projection/overlay helper body?`type_checker_decls_domain_helpers.c`??격?고, intent inheritance/derivation helper body?`type_checker_intent_helpers.c`??격한다. `type_checker_decls_domain_helpers.inc`???거하고 `type_checker_decls_a.inc`??1-line forwarding stub으로 축소
+  - ?료: semantic `.inc` 800 LOC stop condition? `make semantic-inc-size-test-smoke`?고정. 현재 `src/semantic`는 800 LOC 초과 `.inc` 한다
+  - ?료: semantic core shape stop condition? `make semantic-core-shape-test-smoke`?고정. `type_checker.c <= 600 LOC`, event/qubit owner TU, DAG inventory `.c` ownership??CI?서 ?한??  - 진행: C backend MIR inventory/SSA emitter include?5-line shim + `transpiler_emitters_mir_inventory_intent.inc` / `transpiler_emitters_mir_inventory_ssa_names.inc` / `transpiler_emitters_mir_inventory_ssa_emit.inc`?분리???당 debt?모두 1,000 LOC ?래?????  - 진행: C backend `emit_program(...)` bootstrap? direct declaration-array reads ???`transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view??비한다. `make mir-declaration-inventory-test-smoke` C/LLVM declaration-side codegen??raw declaration inventory access?helper owner??한한다
+  - 진행: C backend expression emitter include?7-line shim + `transpiler_expr_emitters_builtins.inc` / `transpiler_expr_emitters_call_a.inc` / `transpiler_expr_emitters_call_b.inc` / `transpiler_expr_emitters_members.inc` / `transpiler_expr_emitters_tail.inc`?분리???당 debt?모두 1,000 LOC ?래????? ? `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
+  - 진행: LLVM call emitter include?17-line shim + `llvm_expr_call_constructors.inc` / `llvm_expr_call_arrays.inc` / `llvm_expr_call_collections_base.inc` / `llvm_expr_call_domain_queries.inc` / `llvm_expr_call_events.inc` / `llvm_expr_call_intent_observability.inc` / `llvm_expr_call_log.inc` / `llvm_expr_call_math.inc` / `llvm_expr_call_result_option.inc` / `llvm_expr_call_slots.inc` / `llvm_expr_call_task_channel.inc` / `llvm_expr_calls_part_a.inc` / `llvm_expr_calls_part_b.inc` / `llvm_expr_calls_part_c.inc` / `llvm_expr_calls_part_d.inc`?분리???당 debt?모두 1,000 LOC ?래????? enum/class constructor, array builtin, `ListNew`/`Set*` base collection, domain query builtin, event invocation, intent observability, log, scalar math, Result/Option, slot/device-slot builtin, task/channel lowering? `llvm_emit_call`?서 분리되어 별도 owner include 한다. ? `make test-transpile -j2`, `make backend-inc-size-test-smoke`, `make llvm-test-backend-compare -j2`
+  - 진행: C backend base emitter B include?6-line shim + `transpiler_emitters_base_b_part_a.inc` / `transpiler_emitters_base_b_part_b.inc` / `transpiler_emitters_base_b_part_c.inc` / `transpiler_emitters_base_b_part_d.inc`?분리???당 debt?모두 1,000 LOC ?래????? ? `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
+  - ?료: Tier 1 runtime/codegen/compiler `.inc > 1000 LOC` gate???힘. `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`, `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a.inc`, `transpiler_helpers_core_b.inc`, `transpiler_domain_role.inc`, `llvm_expr_helpers.inc`, `mir_public.inc`, `llvm_expr_call_methods.inc`, `llvm_domain_helpers.inc`?모두 safe mechanical split으로 1,000 LOC ?래?????  - ?료: `tests/backend_inc_size_smoke.sh` / `make backend-inc-size-test-smoke` 추?. `src/runtime`, `src/codegen`, `src/compiler`??`.inc <= 1000 LOC`?CI?서 고정
   - 寃利? `make backend-inc-size-test-smoke`, `make test-mir test-transpile test-abi -j2`, `make llvm-test-backend-compare -j2`
-  - 吏꾪뻾: `type_checker_helpers_late.c` standalone TU 鍮뚮뱶 以??쒕윭??call-path helper include-order ?섏〈??`type_checker_internal.h` prototype怨?吏곸젒 include 怨꾩빟?쇰줈 怨좎젙?덈떎
-  - 吏꾪뻾: `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` ?ъ씠 dangling return-type seams ?쒓굅
-  - 吏꾪뻾: `type_checker_resolution_graph_core.inc` ??inventory include 寃쎄퀎??dangling `static void` seam 2媛쒕? 紐낆떆 return type?쇰줈 ?뺣━
-  - 吏꾪뻾: `generic_params_required_count`??include-order static helper?먯꽌 `type_checker_internal.h` internal API濡??밴꺽
-  - ?꾨즺: required ability resolver? action required-ability validator??`type_checker_module_contract.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-  - ?꾨즺: `type_checker_module_contracts.inc` ?쒓굅. module contract include-order 援ъ“ debt???ロ옒
-  - [ ] `.inc` ?대? static helper 以?援먯감 李몄“ ?ы븳 ?щ낵 紐⑸줉 ?묒꽦
-  - [x] include-order???섏〈?섎뒗 implicit declaration 寃쎈줈 ?쒓굅瑜?鍮뚮뱶 怨꾩빟?쇰줈 ?밴꺽 (`-Werror=implicit-function-declaration`, `-Werror=implicit-int`)
-  - [~] declaration-side MIR-only debt??helper-gated state源뚯? ?ロ삍?? ?⑥? ?④퀎??`MIRProgram` ??AST-shaped declaration inventory瑜?dedicated declaration metadata model濡?遺꾨━?섎뒗 ?쇱씠??
-  - 吏꾪뻾: ownership return / assignment rebind / array literal store / boundary validation / call argument / destructuring / let-binding / parameter escape-summary consumers??`.inc`?먯꽌 ?ㅼ젣 TU濡??밴꺽?덈떎. ??젣???뚯씪: `type_checker_ownership_return.inc`, `type_checker_ownership_assign.inc`, `type_checker_ownership_array_store.inc`, `type_checker_ownership_boundaries.inc`, `type_checker_ownership_call.inc`, `type_checker_ownership_destructure.inc`, `type_checker_ownership_destructure_stmt.inc`, `type_checker_ownership_let.inc`, `type_checker_ownership_let_boundary.inc`, `type_checker_ownership_let_claim.inc`, `type_checker_ownership_let_infer.inc`, `type_checker_ownership_let_slot.inc`, `type_checker_ownership_let_value.inc`, `type_checker_ownership_param_summary.inc`. ?꾩옱 `src/semantic/type_checker_ownership_*.inc`??0媛쒕떎
-  - ?먯튃 媛뺥솕: 踰좏? 湲곗??먯꽌??behavior-owning `.inc`瑜?beta+1 ?뺣━媛 ?꾨땲??blocker濡?蹂몃떎. generated table / local macro table / private test fixture ??`.inc`??owner `.c` ?먮뒗 紐낆떆??generated artifact濡???릿??  - ?먯튃 媛뺥솕: `.inc` ?쒓굅 怨쇱젙?먯꽌 ?щ윭 behavior family瑜??섎굹??mega-TU濡??⑹튂吏 ?딅뒗?? `make semantic-tu-size-test-smoke`媛 ??semantic owner TU??1,000 LOC ?댄븯濡??쒗븳?섍퀬, 湲곗〈 珥덈???TU??媛쒕퀎 cap?쇰줈 ??而ㅼ?吏 紐삵븯寃?留됰뒗??  - ?⑥? ?꾪뿕 seam: `type_checker_builtins_query.h`??`type_checker_builtins_slotops.h`? `BuiltinKind builtin_resolve(...)` ?쒓렇?덉쿂媛 include-chain?쇰줈 遺숈뼱 ?덈떎. query/slot/nominal builtin? dispatcher contract瑜?癒쇱? 遺꾨━????TU濡??щ┛??
-### P10. ?띾룄 / 鍮뚮뱶 ?깅뒫 baseline
+  - 진행: `type_checker_helpers_late.c` standalone TU 빌드 ??러??call-path helper include-order ?존??`type_checker_internal.h` prototype?직접 include 계약으로 고정한다
+  - 진행: `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 이 dangling return-type seams ?거
+  - 진행: `type_checker_resolution_graph_core.inc` ??inventory include 경계??dangling `static void` seam 2개? 명시 return type으로 ?리
+  - 진행: `generic_params_required_count`??include-order static helper?서 `type_checker_internal.h` internal API??격
+  - ?료: required ability resolver? action required-ability validator??`type_checker_module_contract.c`??제 TU 분리 ?료
+  - ?료: `type_checker_module_contracts.inc` ?거. module contract include-order 구조 debt???힘
+  - [ ] `.inc` ?? static helper ?교차 참조 ?한 ?볼 목록 ?성
+  - [x] include-order???존는 implicit declaration 경로 ?거?빌드 계약으로 ?격 (`-Werror=implicit-function-declaration`, `-Werror=implicit-int`)
+  - [~] declaration-side MIR-only debt??helper-gated state까? ?혔?? ?? ?계??`MIRProgram` ??AST-shaped declaration inventory?dedicated declaration metadata model?분리는 ?이??
+  - 진행: ownership return / assignment rebind / array literal store / boundary validation / call argument / destructuring / let-binding / parameter escape-summary consumers??`.inc`?서 ?제 TU??격한다. ?????일: `type_checker_ownership_return.inc`, `type_checker_ownership_assign.inc`, `type_checker_ownership_array_store.inc`, `type_checker_ownership_boundaries.inc`, `type_checker_ownership_call.inc`, `type_checker_ownership_destructure.inc`, `type_checker_ownership_destructure_stmt.inc`, `type_checker_ownership_let.inc`, `type_checker_ownership_let_boundary.inc`, `type_checker_ownership_let_claim.inc`, `type_checker_ownership_let_infer.inc`, `type_checker_ownership_let_slot.inc`, `type_checker_ownership_let_value.inc`, `type_checker_ownership_param_summary.inc`. 현재 `src/semantic/type_checker_ownership_*.inc`??0개다
+  - ?칙 강화: 베? 기??서??behavior-owning `.inc`?beta+1 ?리 아니며 blocker?본다. generated table / local macro table / private test fixture ??`.inc`??owner `.c` 는 명시??generated artifact?????  - ?칙 강화: `.inc` ?거 과정?서 ?러 behavior family??나??mega-TU??치 ?는?? `make semantic-tu-size-test-smoke` ??semantic owner TU??1,000 LOC ?하??한?고, 기존 초???TU??개별 cap으로 ??커? 못하?막는??  - ?? ?험 seam: `type_checker_builtins_query.h`??`type_checker_builtins_slotops.h`? `BuiltinKind builtin_resolve(...)` ?그?처 include-chain으로 붙어 한다. query/slot/nominal builtin? dispatcher contract?먼? 분리????TU??린??
+### P10. ?도 / 빌드 ?능 baseline
 
-- 臾몄젣:
-  - ?κ린 紐⑤뱢?붽? translation unit ?섎? ?섎━硫?incremental build??醫뗭븘吏????덉?留?full build/link ?먮뒗 generated backend compile ?쒓컙???????덈떎
-  - ?꾩옱 `test-abi-perf`??議댁옱?섏?留?raw log媛 湲몄뼱 worst-case 異붿쟻???대졄??- 湲곕낯 諛⑹묠:
+- 문제:
+  - ?기 모듈?? translation unit ?? ?리?incremental build??좋아??????full build/link 는 generated backend compile ?간??????한다
+  - 현재 `test-abi-perf`??존재???raw log 길어 worst-case 추적???렵??- 기본 방침:
   - `make test-abi-perf`濡?benchmark-only ABI/runtime baseline??罹≪쿂?쒕떎
-  - `make perf-summary PERF_LOG=<log>`濡?C/LLVM compile/run ?됯퇏怨?worst-case瑜??붿빟?쒕떎
-  - representative case??`tests/bench_backend.sh <source.pgy> dev`濡?C/LLVM wall time + RSS瑜?吏곸젒 ?뺤씤?쒕떎
-  - generated/native compile warning? ?띾룄 noise媛 ?꾨땲??build hygiene bug濡?蹂닿퀬 利됱떆 ?ル뒗??- ?꾩옱 baseline (2026-04-24, local WSL):
+  - `make perf-summary PERF_LOG=<log>`?C/LLVM compile/run ?균?worst-case??약한다
+  - representative case??`tests/bench_backend.sh <source.pgy> dev`?C/LLVM wall time + RSS?직접 ?인한다
+  - generated/native compile warning? ?도 noise 아니며 build hygiene bug?보고 즉시 ?는??- 현재 baseline (2026-04-24, local WSL):
   - `make test-abi-perf`: 320 passed, 0 failed
   - `perf-summary`: C 32 cases, avg compile 0.569s, max 1.783s (`intent_authority_snapshot_abi`), avg run 0.001s
   - `perf-summary`: LLVM 32 cases, avg compile 0.187s, max 0.251s (`projection_abi`), avg run 0.002s
-- 吏꾪뻾: `make perf-contract-test-smoke`媛 synthetic `test-abi-perf` log瑜??듯빐 `perf_summary` log grammar, C/LLVM case count, average compile/run, worst-case compile/run case selection??CI?먯꽌 怨좎젙?쒕떎. ??gate??baseline ?レ옄 ?먯껜瑜?怨좎젙?섏? ?딄퀬, perf evidence媛 machine-readable ?곹깭瑜??좎??섎뒗吏 寃?ы븳??
+- 진행: `make perf-contract-test-smoke` synthetic `test-abi-perf` log?대해 `perf_summary` log grammar, C/LLVM case count, average compile/run, worst-case compile/run case selection??CI?서 고정한다. ??gate??baseline ?자 ?체?고정?? ?고, perf evidence machine-readable ?태???는 ?한??
   - representative `relation_effect_propagation/main.pgy`: C dev 1.03s / 46MB, LLVM dev 0.72s / 60MB after `realpath` warning fix
-- 吏꾪뻾:
+- 진행:
   - [x] `tests/perf_summary.sh` 異붽?
   - [x] `make perf-summary PERF_LOG=<log>` 異붽?
   - [x] generated C/LLVM compile path??POSIX `realpath` implicit declaration 寃쎄퀬 ?쒓굅
 - ?⑥쓬:
-  - [ ] CI?먯꽌 benchmark-only ?섏튂瑜?artifact濡???ν븷吏 寃곗젙
+  - [ ] CI?서 benchmark-only ?치?artifact???할 결정
   - [ ] release/beta notes??perf-summary baseline 泥⑤?
-  - [ ] worst-case compile 2諛??댁긽 利앷? ??regression ?꾨낫濡??먮룞 ?쒖떆
+  - [ ] worst-case compile 2??상 증? ??regression ?보??동 ?시
 
-### P2. hint namespace ?덉??ㅽ듃由ы솕
+### P2. hint namespace ???트리화
 
-- 臾몄젣:
-  - `cause_ir` / `fix_source` literal???몄뀡 ?⑥쐞濡?怨꾩냽 ?섏뼱?섎뒗??以묒븰 ?덉??ㅽ듃由ш? ?녿떎
-  - `docs/72`瑜?臾몄꽌??`code` ?꾩＜怨? `cause_ir` / `fix_source` variant drift瑜?媛뺤젣?섏? 紐삵븳??- ?곹뼢:
-  - downstream??diagnostic routing????媛믪쓣 ?곌린 ?쒖옉?섎㈃ ?ㅽ?/drift媛 利됱떆 breaking change媛 ?쒕떎
-- 湲곕낯 諛⑹묠:
-  - `code`, `cause_ir`, `fix_source`瑜?紐⑤몢 registry/enum-like literal set?쇰줈 愿由?  - 臾몄꽌? 肄붾뱶 由щ럭 湲곗??먯꽌 ?쒖깉 literal 異붽? ??registry + docs ?숈떆 媛깆떊?앹쓣 媛뺤젣
-- 以鍮??묒뾽:
+- 문제:
+  - `cause_ir` / `fix_source` literal???션 ?위?계속 되어?는??중앙 ???트리? 한다
+  - `docs/72`?문서??`code` ?주? `cause_ir` / `fix_source` variant drift?강제?? 못한??- ?향:
+  - downstream??diagnostic routing????값을 ?기 ?작?면 ??/drift 즉시 breaking change 한다
+- 기본 방침:
+  - `code`, `cause_ir`, `fix_source`?모두 registry/enum-like literal set으로 ?  - 문서? 코드 리뷰 기??서 ?새 literal 추? ??registry + docs ?시 갱신을 강제
+- ??업:
   - [x] diagnostic literal registry 珥덉븞 異붽?
-    - ?꾨즺: `src/semantic/diag_codes.h`媛 `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` registry source of truth濡??숈옉?섍퀬 `docs/72_diagnostic_codes.md`媛 ?대? 臾몄꽌??  - [x] `cause_ir` / `fix_source` ?ㅼ씠諛?洹쒖튃 臾몄꽌??    - ?꾨즺: `docs/72_diagnostic_codes.md`??`cause_ir` stage/subsystem/condition 洹쒖튃怨?`fix_source` source-action token 洹쒖튃 怨좎젙
-  - [x] free-form 臾몄옄???좉퇋 異붽? 吏?먯뿉 smoke gate 留덈젴
-    - ?꾨즺: `tests/diagnostic_registry_smoke.sh` / `make diagnostic-registry-test-smoke`媛 semantic diagnostic call-site??`PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` macro ?ъ슜怨?diagnostic code 臾몄꽌 sync瑜?寃??
-### P3. ???ownership ?⑹뼱 ?뺤텞
+    - ?료: `src/semantic/diag_codes.h` `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` registry source of truth??작하고 `docs/72_diagnostic_codes.md` ?? 문서??  - [x] `cause_ir` / `fix_source` ?이?규칙 문서??    - ?료: `docs/72_diagnostic_codes.md`??`cause_ir` stage/subsystem/condition 규칙?`fix_source` source-action token 규칙 고정
+  - [x] free-form 문자???규 추? 에 smoke gate 마련
+    - ?료: `tests/diagnostic_registry_smoke.sh` / `make diagnostic-registry-test-smoke` semantic diagnostic call-site??`PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` macro ?용?diagnostic code 문서 sync???
+### P3. ???ownership 되어 ?축
 
-- 臾몄젣:
-  - anchored handle / movable resource / subject / subject-host / boundary value / capability-bearing / move token ???⑹뼱媛 怨쇰떎
-  - 媛숈? semantic family媛 硫붿떆吏留덈떎 ?ㅻⅨ ?대쫫?쇰줈 ?몄텧?쒕떎
+- 문제:
+  - anchored handle / movable resource / subject / subject-host / boundary value / capability-bearing / move token ??되어 과다
+  - 같? semantic family 메시마다 ?른 ?름으로 ?출한다
 - ?곹뼢:
-  - ?ъ슜?먮룄 ?룰컝由ш퀬, 援ы쁽?먮룄 硫붿떆吏/臾몄꽌/?뚯뒪???뺣젹 ??drift媛 ?쒕떎
-- 湲곕낯 諛⑹묠:
-  - ?ъ슜??facing ?듭떖 ?⑹뼱瑜?2-3痢듭쑝濡??뺤텞
-  - ?몃? 遺꾨쪟???쏼???섏쐞遺꾨쪟?앸줈留??몄텧
-- 以鍮??묒뾽:
+  - ?용?도 ?갈리고, 구현?도 메시/문서/?스???렬 ??drift 한다
+- 기본 방침:
+  - ?용??facing ?심 되어?2-3층으??축
+  - ?? 분류???X???위분류?로??출
+- ??업:
   - [ ] user-facing canonical vocabulary ?뺣━
   - [ ] diagnostics/README/docs ?⑹뼱 留ㅽ븨???묒꽦
-  - [ ] old wording grep inventory ??移섑솚 怨꾪쉷 ?섎┰
+  - [ ] old wording grep inventory ??치환 계획 ?립
 
-### P4. 鍮뚮뱶/?뚮뱶諛뺤뒪 寃쎈줈 ?⑥닚??
-- 臾몄젣:
-  - bash / PowerShell / cmd / MSYS2 / stale object / path rewrite / sed 湲곕컲 stamp媛 ?쒕줈 ?ㅻⅨ 諛⑹떇?쇰줈 源⑥쭊??  - ?쏯othing to be done??+ stale artifact 媛숈? ?뚭?媛 ?앹궛?깆쓣 ?ш쾶 源롫뒗??  - smoke test媛 repo root??runtime artifact瑜??④린硫?dirty worktree? ?ㅼ젣 ?뚯뒪 蹂寃쎌쓣 援щ텇?섍린 ?대젮?뚯쭊??- 湲곕낯 諛⑹묠:
-  - ?⑥씪 怨듭떇 鍮뚮뱶 寃쎈줈瑜??뺥븯怨??섎㉧吏??document-only ?먮뒗 best-effort濡??대┛??  - stale artifact ?뚰뵾瑜??꾪빐 媛뺤젣 ?щ퉴??寃쎈줈瑜?怨듭떇??- 以鍮??묒뾽:
-  - [x] 怨듭떇 Windows 鍮뚮뱶 寃쎈줈 1媛쒕줈 臾몄꽌??    - 湲곗?: GitHub Actions `windows-latest` + `msys2/setup-msys2` native MinGW/MSYS2 runtime
-    - plain Linux-hosted `gcc`??`ci-windows` acceptance line???꾨떂
-  - [x] `llvm_smoke.sh`??`string_io` smoke媛 repo root??`io.txt`瑜??④린吏 ?딅룄濡?媛?case瑜?source directory?먯꽌 ?ㅽ뻾?섍쾶 ?뺣젹
-  - [x] LLVM runtime object freshness媛 split runtime `.inc` subpart 蹂寃쎌쓣 蹂대룄濡?`compiler_runtime_cache_is_fresh(...)` dependency list瑜??뺤옣. `pgy_runtime_lib_part_b_part_d.inc` 媛숈? ?섏쐞 include ?섏젙 ??stale runtime object媛 留곹겕?섎뒗 臾몄젣瑜?李⑤떒
-  - [ ] `clean && build` 媛뺤젣 wrapper / recommended entrypoint ?뺤쓽
-  - [ ] stale `.o` / `.d` 吏꾨떒 媛?대뱶? 媛뺤젣 ?щ퉴???듭뀡 ?뺣━
+### P4. 빌드/?드박스 경로 ?순??
+- 문제:
+  - bash / PowerShell / cmd / MSYS2 / stale object / path rewrite / sed 기반 stamp 으로 ?른 방식으로 깨진??  - ?Nothing to be done??+ stale artifact 같? ?? ?산을 ?게 깎는??  - smoke test repo root??runtime artifact??기?dirty worktree? ?제 ?스 경을 구분?기 ?려?진??- 기본 방침:
+  - ?일 공식 빌드 경로??하??머??document-only 는 best-effort??린??  - stale artifact ?피?대해 강제 ?빌??경로?공식??- ??업:
+  - [x] 공식 Windows 빌드 경로 1개로 문서??    - 기?: GitHub Actions `windows-latest` + `msys2/setup-msys2` native MinGW/MSYS2 runtime
+    - plain Linux-hosted `gcc`??`ci-windows` acceptance line???님
+  - [x] `llvm_smoke.sh`??`string_io` smoke repo root??`io.txt`??기 ?도??case?source directory?서 ?행?게 ?렬
+  - [x] LLVM runtime object freshness split runtime `.inc` subpart 경을 보도?`compiler_runtime_cache_is_fresh(...)` dependency list??장. `pgy_runtime_lib_part_b_part_d.inc` 같? ?위 include ?정 ??stale runtime object 링크는 문제?차단
+  - [ ] `clean && build` 강제 wrapper / recommended entrypoint ?의
+  - [ ] stale `.o` / `.d` 진단 ?드? 강제 ?빌???션 ?리
 
-### P5. printf-style 吏꾨떒 ?щ㎎??異뺤냼
+### P5. printf-style 진단 ?맷??축소
 
-- 臾몄젣:
-  - ?쇰? semantic diagnostic helper???몄옄 媛쒖닔媛 留ㅼ슦 留롪퀬, placeholder drift??痍⑥빟?섎떎
-  - ?꾩옱 援ъ“??`fmt ?섎뱶肄붾뵫 + structured tags(code/cause/fix)`媛 ?댁쨷?쇰줈 怨듭〈?쒕떎
-- 湲곕낯 諛⑹묠:
-  - 吏꾨떒 payload瑜?struct濡?紐⑥쑝怨? human-readable render??renderer/helper layer媛 ?대떦
-  - 理쒖냼??怨좎씤??helper遺??payload-builder ?⑦꽩?쇰줈 ?꾪솚
-- 以鍮??묒뾽:
+- 문제:
+  - ?? semantic diagnostic helper???자 개수 매우 많고, placeholder drift??취약한다
+  - 현재 구조??`fmt ?드코딩 + structured tags(code/cause/fix)` ?중으로 공존한다
+- 기본 방침:
+  - 진단 payload?struct?모으? human-readable render??renderer/helper layer ?당
+  - 최소??고인??helper??payload-builder ?턴으로 ?환
+- ??업:
   - [ ] high-arity diagnostic helper inventory ?묒꽦
-  - [ ] generic mismatch / authority mismatch / ownership escape?먯꽌 payload struct ?쒕쾾 ?꾩엯
+  - [ ] generic mismatch / authority mismatch / ownership escape?서 payload struct ?범 ?입
 
-### P6. channel transport 洹쒖튃 怨듯넻 validator ?섎졃
+### P6. channel transport 규칙 공통 validator ?렴
 
-- 臾몄젣:
-  - `type_checker_async_channel.h`? builtin/send-query 怨꾩뿴??ownership/channel transport 洹쒖튃??以묐났 援ы쁽?쒕떎
-- 湲곕낯 諛⑹묠:
-  - channel transport??怨듯넻 validator ?섎굹濡??섎졃
+- 문제:
+  - `type_checker_async_channel.h`? builtin/send-query 계열??ownership/channel transport 규칙??중복 구현한다
+- 기본 방침:
+  - channel transport??공통 validator ?나??렴
   - builtin/send wrappers??surface adapter留??대떦
-- 以鍮??묒뾽:
-  - [x] send/try-send/send-timeout/status variants 怨듯넻 validator 異붿텧
+- ??업:
+  - [x] send/try-send/send-timeout/status variants 공통 validator 추출
   - [ ] subject / movable / anchored / boundary mismatch wording ?듭씪
-  - 吏꾪뻾: named-transfer requirement? subject/boundary/anchored borrowed-send/mismatch??`semantic_channel_transfer_requires_named_binding(...)`, `semantic_report_named_channel_transfer_required(...)`, `semantic_validate_channel_transport_ownership(...)` helper濡?1李??섎졃
-  - 吏꾪뻾: token / move-only send-recv restriction wording??`semantic_report_channel_transport_policy(...)` helper濡??뺣젹 ?쒖옉
-  - 吏꾪뻾: validator/reporting 援ы쁽? `type_checker_async_channel.h`?먯꽌 ?쒓굅?섍퀬 `type_checker_channel_transport.c`媛 source of truth媛 ?먮떎
+  - 진행: named-transfer requirement? subject/boundary/anchored borrowed-send/mismatch??`semantic_channel_transfer_requires_named_binding(...)`, `semantic_report_named_channel_transfer_required(...)`, `semantic_validate_channel_transport_ownership(...)` helper?1??렴
+  - 진행: token / move-only send-recv restriction wording??`semantic_report_channel_transport_policy(...)` helper??렬 ?작
+  - 진행: validator/reporting 구현? `type_checker_async_channel.h`?서 ?거하고 `type_checker_channel_transport.c` source of truth 한다
 
-### P7. 以묎컙 stage JSON routing closure
+### P7. 중간 stage JSON routing closure
 
-- 臾몄젣:
-  - HIR/DIR/RIR/MIR ?ㅽ뙣 寃쎈줈 ?쇰?媛 ?ъ쟾??plain text 以묒떖?대씪 `?⑥씪 JSON 諛곗뿴` 怨꾩빟??源⑤쑉由곕떎
-- 湲곕낯 諛⑹묠:
-  - frontend/backend ?앸떒肉??꾨땲??以묎컙 stage ?ㅽ뙣??structured output 怨꾩빟???ㅼ뼱?ㅺ쾶 ?쒕떎
-- 以鍮??묒뾽:
+- 문제:
+  - HIR/DIR/RIR/MIR ?패 경로 ?? ?전??plain text 중심?라 `?일 JSON 배열` 계약??깨뜨린다
+- 기본 방침:
+  - frontend/backend ?단?아니며 중간 stage ?패??structured output 계약??되어?게 한다
+- ??업:
   - [ ] HIR/DIR/RIR/MIR failure emitter inventory ?묒꽦
   - [ ] plain-text fallback ?쒓굅 ?곗꽑?쒖쐞 ?섎┰
 
-### P8. stale binary / artifact ?뚭? 怨좎젙
+### P8. stale binary / artifact ?? 고정
 
-- 臾몄젣:
-  - stale object/dependency ?뚯씪 ?뚮Ц???뚯뒪 ?섏젙??諛섏쁺?섏? ?딅뒗 寃쎌슦媛 ?덈떎
-- 湲곕낯 諛⑹묠:
-  - ?쒕튌瑜?利앸텇 鍮뚮뱶?앸낫???쒖떊猶?媛?ν븳 ?щ퉴?쒋?寃쎈줈瑜??곗꽑
-- 以鍮??묒뾽:
-  - [ ] stale artifact ?ы쁽 議곌굔 臾몄꽌??  - [ ] 沅뚯옣 鍮뚮뱶 吏꾩엯?먯뿉??clean rebuild ?좏깮吏瑜?湲곕낯 ?몄텧
+- 문제:
+  - stale object/dependency ?일 ?문???스 ?정??반영?? 는 경우 한다
+- 기본 방침:
+  - ?빠?증분 빌드?보???신??한 ?빌??경로??선
+- ??업:
+  - [ ] stale artifact ?현 조건 문서??  - [ ] 권장 빌드 진입?에??clean rebuild ?택?기본 ?출
 
-### P9. arena ?⑦꽩 紐낆떆 ?꾩엯
+### P9. arena ?턴 명시 ?입
 
-- 臾몄젣:
-  - transpiler / semantic / diagnostics / type rendering 寃쎈줈???꾩떆 臾몄옄??踰꾪띁 churn??留롫떎
-  - `malloc/free`? context-lifetime scratch allocation???욎뿬 ?덉뼱, early-return/fail path?먯꽌 ?뚯쑀沅뚯씠 ?곕컻?곸씠??  - cache? ?꾩떆 臾몄옄?댁씠 ?욎씠硫?dangling ?먮뒗 怨쇰룄??copy churn ?꾪뿕??而ㅼ쭊??- 湲곕낯 諛⑹묠:
-  - arena??紐낆떆?곸쑝濡??꾩엯?쒕떎
-  - ?? ?꾨㈃ 移섑솚???꾨땲??`scratch arena`? `result arena`瑜??섎챸 湲곗??쇰줈 遺꾨━?쒕떎
-  - cache / long-lived metadata / AST-owned field?먮뒗 arena-owned ?ъ씤?곕? ??ν븯吏 ?딅뒗??  - arena 媛?援먯감 李몄“??raw pointer蹂대떎 `index` / stable handle 李몄“瑜?湲곕낯?쇰줈 ?쒕떎
-  - arena??理쒖냼??`transpiler`, `semantic scratch`, `semantic result`, ?꾩슂 ??`type/render scratch`泥섎읆 ??븷/?섎챸蹂꾨줈 遺꾨━?쒕떎
-  - ?????븷蹂?arena 遺꾨━???쒕늻媛 free?섎뒓?먥앸낫???쒖뼵??reset?섎뒓?먥앸? 湲곗??쇰줈 ?ㅺ퀎?쒕떎
+- 문제:
+  - transpiler / semantic / diagnostics / type rendering 경로???시 문자??버퍼 churn??많다
+  - `malloc/free`? context-lifetime scratch allocation???여 되어, early-return/fail path?서 ?유권이 ?발?이??  - cache? ?시 문자이 ?이?dangling 는 과도??copy churn ?험??커진??- 기본 방침:
+  - arena??명시?으??입한다
+  - ?? ?면 치환??아니며 `scratch arena`? `result arena`?증명 기?으로 분리한다
+  - cache / long-lived metadata / AST-owned field는 arena-owned ?인?? ??하 ?는??  - arena ?교차 참조??raw pointer보다 `index` / stable handle 참조?기본으로 한다
+  - arena??최소??`transpiler`, `semantic scratch`, `semantic result`, ?요 ??`type/render scratch`처럼 ??/?명별로 분리한다
+  - ??????arena 분리???누 free?느?보???언??reset?느?? 기?으로 ?계한다
   - 泥??④퀎??transpiler / semantic diagnostics / type render helper??scratch allocation ?섎졃?대떎
 - ??寃곗젙??留욌뒗 ?댁쑀:
-  - ?꾩옱 肄붾뱶踰좎씠?ㅻ뒗 long-lived cache? short-lived formatting string??媛뺥븯寃??욎뿬 ?덉뼱, raw pointer 怨듭쑀蹂대떎 index 李몄“媛 ?⑥뵮 ?덉쟾?섎떎
-  - Pergyra??early-return/fail path? pass-local scratch data媛 留롮븘?? ?⑥씪 arena蹂대떎 ??븷/?섎챸蹂?arena 遺꾨━媛 ?붾쾭源낃낵 reset 鍮꾩슜 硫댁뿉???ル떎
-  - 利? `Arena + Index 李몄“ + ??낅퀎 arena 遺꾨━`媛 吏湲?援ъ“ debt瑜?以꾩씠??媛??蹂댁닔?곸씠怨??덉젙?곸씤 諛⑺뼢?대떎
-- 以鍮??묒뾽:
-  - [x] `scratch arena` / `result arena` lifetime 洹쒖튃 臾몄꽌??  - [x] arena 媛?cross-reference瑜?`index` / stable handle 湲곗??쇰줈 臾몄꽌??  - [x] `TranspilerCtx` scratch arena ?곸슜 踰붿쐞 ?뺤젙
-  - [x] semantic analyze pass??scratch arena ?꾩엯 吏???뺣━
-  - [x] diagnostic payload/result-owned arena 遺꾨━ ?щ? 寃곗젙
+  - 현재 코드베이는 long-lived cache? short-lived formatting string??강하??여 되어, raw pointer 공유보다 index 참조 ?씬 ?전한다
+  - Pergyra??early-return/fail path? pass-local scratch data 많아?? ?일 arena보다 ??/?명?arena 분리 ?버깅과 reset 비용 면에??한다
+  - ? `Arena + Index 참조 + ??별 arena 분리` ?구조 debt?줄이????보수?이??정?인 방향한다
+- ??업:
+  - [x] `scratch arena` / `result arena` lifetime 규칙 문서??  - [x] arena ?cross-reference?`index` / stable handle 기?으로 문서??  - [x] `TranspilerCtx` scratch arena ?용 범위 ?정
+  - [x] semantic analyze pass??scratch arena ?입 ???리
+  - [x] diagnostic payload/result-owned arena 분리 ?? 결정
   - [x] ?????븷蹂?arena 遺꾪븷??珥덉븞 ?묒꽦
   - [x] `strdup_fmt` / type render / projection path / generic formatter helper??arena ?꾪솚 ?곗꽑?쒖쐞 ?묒꽦
-  - [x] cache??arena-owned ?ъ씤?????湲덉? 洹쒖튃 臾몄꽌??  - [x] 泥?vertical slice:
+  - [x] cache??arena-owned ?인?????금? 규칙 문서??  - [x] ?vertical slice:
     - transpiler temporary strings
     - semantic diagnostic formatting scratch strings
     - type-name rendering scratch helpers
-  - 吏꾪뻾: `docs/94_arena_index_lifetime_plan.md`濡?諛⑺뼢 怨좎젙
-  - 吏꾪뻾: `TranspilerCtx`??`arena`瑜?scratch arena濡?紐낆떆
-  - 吏꾪뻾: transpiler scratch-only temporary 1李?vertical slice ?꾨즺
+  - 진행: `docs/94_arena_index_lifetime_plan.md`?방향 고정
+  - 진행: `TranspilerCtx`??`arena`?scratch arena?명시
+  - 진행: transpiler scratch-only temporary 1?vertical slice ?료
     - zone authority temporary expression
     - intent priority default literal
     - projection refresh `source_expr`
     - event declaration `event_type`
-  - 吏꾪뻾: semantic diagnostics result seam 1李??꾩엯
-    - `Diagnostic`媛 optional payload snapshot??蹂댁〈
+  - 진행: semantic diagnostics result seam 1??입
+    - `Diagnostic` optional payload snapshot??보존
     - payload emit 寃쎈줈??result-owned snapshot?쇰줈 蹂듭궗
-    - semantic JSON 異쒕젰??payload ?꾨뱶瑜??④퍡 ?몄텧 媛??  - 吏꾪뻾: semantic scratch arena 1李??꾩엯
+    - semantic JSON 출력??payload ?드??께 ?출 ??  - 진행: semantic scratch arena 1??입
     - `SemanticContext`??scratch arena 異붽?
     - ownership diagnostic path string? scratch arena瑜??곗꽑 ?ъ슜
     - payload snapshot??result濡?蹂듭궗?섎?濡?helper ?대? free churn ?쒓굅
-  - 吏꾪뻾: LLVM arena lane 1李?closure
-    - `LLVMGenCtx`??`scratch` + `persistent` lane?쇰줈 遺꾨━
+  - 진행: LLVM arena lane 1?closure
+    - `LLVMGenCtx`??`scratch` + `persistent` lane으로 분리
     - `LLVMGenResult`??result-owned arena瑜?蹂댁쑀
-    - intent MIR collector / projection path / local grow helper / event invoke / type render helper媛 scratch濡??섎졃
+    - intent MIR collector / projection path / local grow helper / event invoke / type render helper scratch??렴
     - synthetic event-handler AST field ??μ? callable signature registry濡?移섑솚
     - `*error_message` heap return contract??result-owned lane?쇰줈 ?섎졃
-    - ?⑥? heap 寃쎄퀎??owner shell(`ctx`, registry destroy, result outer shell)怨?runtime ABI contract ?섏??쇰줈 異뺤냼
-    - 吏꾪뻾: intent observability(`last/history/active/recent`)? authority failure snapshot??stable runtime string exports??`runtime-borrowed string` ABI濡?怨좎젙?덈떎. caller??free?섏? ?딄퀬 ?ㅼ쓬 runtime registry/snapshot mutation ?꾧퉴吏留??좏슚?섎떎
-    - 吏꾪뻾: `runtime-abi-lifetime-test-smoke`媛 stable intent last/history/active/recent 諛?authority 臾몄옄??export body?먯꽌 allocation/free/strdup??諛쒖깮?섏? ?딅룄濡?寃?ы븳??    - 吏꾪뻾: stable string helper returns??`result-owned string`, stable string-array helper returns??`result-owned array` ABI濡?怨좎젙?덈떎. `runtime-abi-lifetime-test-smoke`媛 helper payload媛 borrowed input pointer, stack buffer, string literal??諛섑솚?섏? ?딄퀬 allocation/copy??payload瑜?諛섑솚?섎뒗吏 寃?ы븳??    - 吏꾪뻾: stable file descriptor??`runtime-owned handle` ABI濡?怨좎젙?덈떎. `pgy_file_open`? ?ロ엺 runtime table slot???ъ궗?⑺븯怨? `pgy_file_close`??table entry瑜?NULL濡?鍮꾩썙 ?ъ궗??媛???곹깭濡?留뚮뱺?? `runtime-abi-lifetime-test-smoke`媛 ??release/reuse contract瑜?寃?ы븳??    - ?⑥쓬: file descriptor ??runtime-owned handle ownership??媛숈? ?섏???smoke/臾몄꽌 怨꾩빟?쇰줈 ?뺤옣?댁빞 ?쒕떎
-  - 二쇱쓽: 諛섑솚 怨꾩빟???덈뒗 expression string? ?꾩쭅 arena濡???린吏 ?딆쓬
-  - 二쇱쓽: `slot_ref_expr(...)` scratch ?꾪솚 ?쒕룄???섎룎由? 諛섑솚 ownership 寃쎄퀎瑜?癒쇱? ?섎닠????
-### 理쒓렐 closure 吏꾪뻾 (2026-04-18)
+    - ?? heap 경계??owner shell(`ctx`, registry destroy, result outer shell)?runtime ABI contract ??으로 축소
+    - 진행: intent observability(`last/history/active/recent`)? authority failure snapshot??stable runtime string exports??`runtime-borrowed string` ABI?고정한다. caller??free?? 하고 ?음 runtime registry/snapshot mutation ?까??효한다
+    - 진행: `runtime-abi-lifetime-test-smoke` stable intent last/history/active/recent ?authority 문자??export body?서 allocation/free/strdup??발생?? ?도??한??    - 진행: stable string helper returns??`result-owned string`, stable string-array helper returns??`result-owned array` ABI?고정한다. `runtime-abi-lifetime-test-smoke` helper payload borrowed input pointer, stack buffer, string literal??반환?? 하고 allocation/copy??payload?반환는 ?한??    - 진행: stable file descriptor??`runtime-owned handle` ABI?고정한다. `pgy_file_open`? ?힌 runtime table slot???사?하? `pgy_file_close`??table entry?NULL?비워 ?사?????태?만든?? `runtime-abi-lifetime-test-smoke` ??release/reuse contract??한??    - ?음: file descriptor ??runtime-owned handle ownership??같? ????smoke/문서 계약으로 ?장?야 한다
+  - 주의: 반환 계약??는 expression string? 아직 arena??? ?음
+  - 주의: `slot_ref_expr(...)` scratch ?환 ?도???돌? 반환 ownership 경계?먼? ?눠????
+### 최근 closure 진행 (2026-04-18)
 
 - declaration-side MIR-only host context瑜????뺣━
-  - transpiler host context媛 `current_host_decl -> within_zone -> saved host-name inventory` ?쒖쑝濡?蹂듭썝?섎룄濡??뺣젹
-  - class/zone/relation/effect/world field query helper媛 raw host-name state蹂대떎 inventory-backed host handle???곗꽑 ?ъ슜
-  - direct `current_*_name` restore chain ?쇰?瑜?`transpiler_restore_host_context_local(...)` helper濡??묒뼱 ?곕컻??context 蹂듦뎄 肄붾뱶瑜?異뺤냼
-  - emitter hot path??direct `current_*_name` 李몄“???遺遺?嫄룹뼱?닿퀬, ?⑥? ?ъ슜泥섎? helper/restore layer濡?援?냼??  - LLVM declaration helper??current host lookup??怨듭슜 active-inventory host helper濡??묒뼱 naming chain??異뺤냼
-  - LLVM MIR/domain emission??direct `current_class_name` save/restore??host-name bind/restore helper濡??묒뼱 state 愿由?以묐났??以꾩엫
-  - LLVM expr/stmt hot path??`llvm_current_host_decl_name(...)` 湲곗??쇰줈 ?뺣젹??direct raw host-name read瑜???以꾩엫
-  - `HasProjection/HasLayer/HasState/HasZone*` 諛?method/field helper媛 raw `current_class_name` ???host helper瑜??듦낵?섎룄濡??뺣━
-  - LLVM pipeline??nominal registration / class method emission??raw nominal AST array蹂대떎 `mir->decl_headers`瑜?吏곸젒 ?쒗쉶?섎룄濡??뺣젹
-  - LLVM domain pass??raw `ctx->mir->{relations,effects,zones,...}` 吏곸젒 ?묎렐 ???`llvm_active_domain_inventory(...)` helper瑜??듦낵?섎룄濡??뺣젹
-  - 利? declaration-side debt???댁젣 emitter 蹂몃Ц蹂대떎 inventory bootstrap + helper/restore layer 援?냼 遺?꾨줈 ???뺤텞??  - C transpiler domain/hosted method emission??`emit_hosted_methods_from_mir_or_error_local(...)` helper濡??섎졃
-  - party / roster / relation / effect / zone / world method emit??媛숈? MIR routine gate? 媛숈? explicit backend error ?뺤콉???ъ슜
+  - transpiler host context `current_host_decl -> within_zone -> saved host-name inventory` ?으?복원?도??렬
+  - class/zone/relation/effect/world field query helper raw host-name state보다 inventory-backed host handle???선 ?용
+  - direct `current_*_name` restore chain ???`transpiler_restore_host_context_local(...)` helper?되어 ?발??context 복구 코드?축소
+  - emitter hot path??direct `current_*_name` 참조????걷어?고, ?? ?용처? helper/restore layer????  - LLVM declaration helper??current host lookup??공용 active-inventory host helper?되어 naming chain??축소
+  - LLVM MIR/domain emission??direct `current_class_name` save/restore??host-name bind/restore helper?되어 state ?중복??줄임
+  - LLVM expr/stmt hot path??`llvm_current_host_decl_name(...)` 기?으로 ?렬??direct raw host-name read???줄임
+  - `HasProjection/HasLayer/HasState/HasZone*` ?method/field helper raw `current_class_name` ???host helper??과?도??리
+  - LLVM pipeline??nominal registration / class method emission??raw nominal AST array보다 `mir->decl_headers`?직접 ?회?도??렬
+  - LLVM domain pass??raw `ctx->mir->{relations,effects,zones,...}` 직접 ?근 ???`llvm_active_domain_inventory(...)` helper??과?도??렬
+  - ? declaration-side debt???제 emitter 본문보다 inventory bootstrap + helper/restore layer ? 으로 ???축??  - C transpiler domain/hosted method emission??`emit_hosted_methods_from_mir_or_error_local(...)` helper??렴
+  - party / roster / relation / effect / zone / world method emit??같? MIR routine gate? 같? explicit backend error ?책???용
   - relation/effect/zone/world method??dead AST signature fallback ?쒓굅
   - party / roster / relation / effect / zone / world declaration emit entrypoint??inventory decl???곗꽑 ?ъ슜
-  - bootstrap residual? ?댁젣 per-domain AST array 吏곸젒 ?쒗쉶蹂대떎 inventory-backed bootstrap helper 蹂몄껜 履쎌쑝濡????뺤텞
+  - bootstrap residual? ?제 per-domain AST array 직접 ?회보다 inventory-backed bootstrap helper 본체 쪽으????축
 - generic contract + type-resolution DAG ?뚭?瑜????볧옒
-  - `role impl ability` 寃쎈줈媛 generic default/where-bound cycle provenance regression??異붽???  - 利? action/intent-step/zone-authority/party-role-slot???뷀빐 role impl consumer??staged DAG path ?뚭? 踰붿쐞???ы븿
-- ?꾩옱 寃利앹꽑
+  - `role impl ability` 경로 generic default/where-bound cycle provenance regression??추???  - ? action/intent-step/zone-authority/party-role-slot??대해 role impl consumer??staged DAG path ?? 범위???함
+- 현재 증선
   - `test-semantic`: `1617 passed, 0 failed`
   - `test-transpile`: `670 passed, 0 failed`
   - `test-abi`: `84 passed, 0 failed`
   - `ci-linux`: full green ?좎?
-  - LLVM expr/stmt host-helper ?뺣━ ?댄썑?먮룄 `test-transpile`, `test-abi` ?ы넻怨??뺤씤
+  - LLVM expr/stmt host-helper ?리 ?후?도 `test-transpile`, `test-abi` ?통??인
 
-### 理쒓렐 closure 吏꾪뻾 (2026-04-24)
+### 최근 closure 진행 (2026-04-24)
 
 - runtime propagation/provenance 1李?closure
-  - C/LLVM domain hidden cell??`ready/dirty` bool留?媛吏???곹깭?먯꽌 `epoch/cause` provenance cell源뚯? 媛숈? schema濡??뺤옣??  - relation/effect/zone/world projection, layer, state, world-derived state媛 recompute ?쒖젏??cause-stamped provenance瑜??④린?꾨줉 C/LLVM???뺣젹??  - LLVM domain struct layout??洹몃룞??鍮좊쑉由ш퀬 ?덈뜕 `__projection_dirty_*` field瑜?relation/effect/zone???ㅼ떆 ?ы븿?섎룄濡?parity ?섏젙
-  - LLVM projection sync??C? 媛숈? dirty-gated recompute 寃쎈줈濡??뺣젹??  - LLVM host-field assignment媛 zone/relation/effect host method ?덉뿉??projection invalidation??留뚮뱾?꾨줉 蹂듦뎄
+  - C/LLVM domain hidden cell??`ready/dirty` bool????태?서 `epoch/cause` provenance cell까? 같? schema??장??  - relation/effect/zone/world projection, layer, state, world-derived state recompute ?점??cause-stamped provenance??기?록 C/LLVM???렬??  - LLVM domain struct layout??그동??빠뜨리고 ?던 `__projection_dirty_*` field?relation/effect/zone???시 ?함?도?parity ?정
+  - LLVM projection sync??C? 같? dirty-gated recompute 경로??렬??  - LLVM host-field assignment zone/relation/effect host method ?에??projection invalidation??만들?록 복구
   - LLVM intent step rebound-zone 寃쎈줈??effective zone projection cell??蹂댁닔?곸쑝濡?dirty-mark + sync ?섎룄濡?蹂닿컯
   - 寃곌낵: `relation_effect_propagation_abi`, `intent_zone_binding`, `intent_cross_world_transfer`, `intent_rich_history_identity` backend compare drift ?쒓굅
-  - ???뚭?: transpile domain async/world tests媛 provenance hidden field? stamp write源뚯? 吏곸젒 ?뺤씤
-  - ??吏꾪뻾: `world` derived-state recompute媛 C/LLVM ?묒そ?먯꽌 bounded pass loop瑜?媛吏?꾨줉 ?щ씪?붽퀬, single-pass declaration-order replay?먮쭔 ?섏〈?섏? ?딄쾶 ??  - ??吏꾪뻾: bounded recompute pass-limit overflow??C??`PGY_PANIC`怨?LLVM??`abort()` 寃쎈줈濡?hard-fail?섎룄濡?怨좎젙??- ???뚭?: transpile world-derived chain test + `world_fixpoint_abi` smoke媛 C/LLVM ?묒そ?먯꽌 ?뱀깋
-- ?꾩옱 ?댁꽍: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)? ?댁젣 beta 怨꾩빟???쇰?濡?媛꾩＜?섍퀬 ?ㅼ떆 ?쏀솕?쒗궎吏 ?딆쓬
-- 異붽? closure: zone lifecycle sync???댁젣 C/LLVM ?묒そ?먯꽌 bounded frontier loop瑜?媛吏硫? state/layer replay媛 single-batch?먮쭔 臾띠씠吏 ?딅뒗??- 異붽? closure: embedded world-zone source assignment???댁젣 projection dirty mark ?ㅼ뿉 媛숈? turn??zone sync瑜??쒖썙 stale `ready/value` drift ?놁씠 projection recompute瑜??ル뒗??- 異붽? ?뚭?: `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`媛 C/LLVM ABI smoke?먯꽌 ?뱀깋?대ŉ embedded zone projection read-after-mutate path瑜?straight-line assignment, method-call, branch-join slice源뚯? ?좉렐??- 異붽? ?뚭?: `handoff_projection_frontier_abi`媛 C/LLVM ABI smoke?먯꽌 ?뱀깋?닿퀬 `handoff_projection_frontier`媛 backend-compare?먯꽌 ?뱀깋?대떎. v1 handoff materialization ?댄썑 source projection? source snapshot?? target projection? target mutation 寃곌낵瑜?蹂대룄濡??좉렐??- 異붽? ?뚭?: `handoff_world_state_frontier_abi`? `handoff_world_state_frontier`媛 C/LLVM?먯꽌 ?뱀깋?대떎. active world-owned zone??`transfer:` ??곸쑝濡??섍릿 ??projection-backed world state? `all` composed state媛 媛숈? tick?먯꽌 fresh?섍쾶 蹂댁씠??理쒖냼 frontier瑜??좉렐??- 異붽? ?뚭?: `handoff_layer_state_frontier_abi`? `handoff_layer_state_frontier`媛 C/LLVM?먯꽌 ?뱀깋?대떎. `transfer:` ?댄썑 action-caused effect媛 target zone layer/state? active world-derived layer/state alias源뚯? 媛숈? tick?먯꽌 fresh?섍쾶 ?꾪뙆?섎뒗 寃쎈줈瑜??좉렐??- 異붽? ?뚭?: `world_embedded_action_frontier_abi`? `world_embedded_action_frontier`媛 C/LLVM?먯꽌 ?뱀깋?대떎. embedded world-zone subject action call??action-caused effect layer/state? active world-derived layer/state alias源뚯? 媛숈? tick?먯꽌 fresh?섍쾶 ?꾪뙆?섎뒗 寃쎈줈瑜??좉렐??- 異붽? ?뚭?: `world_embedded_action_pool_frontier_abi`? `world_embedded_action_pool_frontier`媛 C/LLVM?먯꽌 ?뱀깋?대떎. embedded world-zone subject action call??fixed-capacity effect pool 寃쎈줈??媛숈? frontier 怨꾩빟?쇰줈 ?좉렐??- 媛뺥븳 ?⑥? 怨쇱젣: full bounded fixpoint / transitive frontier scheduler??**紐낆떆??beta blocker**濡??좎?. ?ㅻ쭔 ?⑥? debt??zone/world frontier loop??遺?ш? ?꾨땲??remaining authority/failure handoff family? ???볦? world-zone propagation family瑜?媛숈? source-of-truth濡??쇰컲?뷀븯???쇱씠??- 異붽? closure: relation/effect/zone projection sync??bounded transitive recompute loop濡??щ씪?붽퀬 declaration order??湲곕?吏 ?딅뒗??- 異붽? ?뚭?: `projection_chain_abi`媛 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`?먯꽌 ?좉꼈??- 異붽? gate: `make runtime-frontier-contract-test-smoke`媛 C emitter? LLVM emitter?먯꽌 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, pass-limit overflow hard-fail, ABI smoke ?깅줉, backend-compare ?깅줉??寃?ы븳?? ??gate??full bounded fixpoint / transitive frontier scheduler媛 ?ㅼ떆 single-pass 援ы쁽?쇰줈 ?꾪눜?섏? 紐삵븯寃?留됰뒗 beta blocker gate?? ?⑥? runtime propagation closure??remaining authority/failure handoff family? broader world-zone propagation family瑜?媛숈? source-of-truth frontier policy濡??쇰컲?뷀븯???쇱씠??- Beta readiness audit: `docs/98_beta_closure_readiness_report.md` records the current codebase verdict, remaining blockers, and concrete closure order. It narrows the next highest-value implementation target to handoff propagation and broader world-zone scheduler generalization.
+  - ????: transpile domain async/world tests provenance hidden field? stamp write까? 직접 ?인
+  - ??진행: `world` derived-state recompute C/LLVM ?쪽?서 bounded pass loop??록 ?라?고, single-pass declaration-order replay?만 ?존?? ?게 ??  - ??진행: bounded recompute pass-limit overflow??C??`PGY_PANIC`?LLVM??`abort()` 경로?hard-fail?도?고정??- ????: transpile world-derived chain test + `world_fixpoint_abi` smoke C/LLVM ?쪽?서 ?색
+- 현재 ?석: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)? ?제 beta 계약?????간주하고 ?시 ?화?키 ?음
+- 추? closure: zone lifecycle sync???제 C/LLVM ?쪽?서 bounded frontier loop?? state/layer replay single-batch?만 묶이 ?는??- 추? closure: embedded world-zone source assignment???제 projection dirty mark 에 같? turn??zone sync??워 stale `ready/value` drift 이 projection recompute??는??- 추? ??: `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi` C/LLVM ABI smoke?서 ?색?며 embedded zone projection read-after-mutate path?straight-line assignment, method-call, branch-join slice까? ?근??- 추? ??: `handoff_projection_frontier_abi` C/LLVM ABI smoke?서 ?색하고 `handoff_projection_frontier` backend-compare?서 ?색한다. v1 handoff materialization ?후 source projection? source snapshot?? target projection? target mutation 결과?보도??근??- 추? ??: `handoff_world_state_frontier_abi`? `handoff_world_state_frontier` C/LLVM?서 ?색한다. active world-owned zone??`transfer:` ??으??긴 ??projection-backed world state? `all` composed state 같? tick?서 fresh?게 보이??최소 frontier??근??- 추? ??: `handoff_layer_state_frontier_abi`? `handoff_layer_state_frontier` C/LLVM?서 ?색한다. `transfer:` ?후 action-caused effect target zone layer/state? active world-derived layer/state alias까? 같? tick?서 fresh?게 ?파는 경로??근??- 추? ??: `world_embedded_action_frontier_abi`? `world_embedded_action_frontier` C/LLVM?서 ?색한다. embedded world-zone subject action call??action-caused effect layer/state? active world-derived layer/state alias까? 같? tick?서 fresh?게 ?파는 경로??근??- 추? ??: `world_embedded_action_pool_frontier_abi`? `world_embedded_action_pool_frontier` C/LLVM?서 ?색한다. embedded world-zone subject action call??fixed-capacity effect pool 경로??같? frontier 계약으로 ?근??- 강한 ?? 과제: full bounded fixpoint / transitive frontier scheduler??**명시??beta blocker**???. ?만 ?? debt??zone/world frontier loop???? 아니며 remaining authority/failure handoff family? ???? world-zone propagation family?같? source-of-truth??반?하???이??- 추? closure: relation/effect/zone projection sync??bounded transitive recompute loop??라하고 declaration order??기? ?는??- 추? ??: `projection_chain_abi` C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`?서 ?겼??- 추? gate: `make runtime-frontier-contract-test-smoke` C emitter? LLVM emitter?서 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, pass-limit overflow hard-fail, ABI smoke ?록, backend-compare ?록???한?? ??gate??full bounded fixpoint / transitive frontier scheduler ?시 single-pass 구현으로 ?퇴?? 못하?막는 beta blocker gate?? ?? runtime propagation closure??remaining authority/failure handoff family? broader world-zone propagation family?같? source-of-truth frontier policy??반?하???이??- Beta readiness audit: `docs/98_beta_closure_readiness_report.md` records the current codebase verdict, remaining blockers, and concrete closure order. It narrows the next highest-value implementation target to handoff propagation and broader world-zone scheduler generalization.
 
-### 理쒓렐 closure 吏꾪뻾 (2026-04-23)
+### 최근 closure 진행 (2026-04-23)
 
-- AST ????붿뒪?⑥튂 partition 洹쒖튃 怨듭떇????`docs/95_ast_dispatch_partition.md`
-  - ?꾩껜 AST ???(?꾩옱 93醫? ??4 移댄뀒怨좊━ (type annotation / decl sub-metadata / top-level decl / root) disjoint 遺꾪븷
-  - 媛?移댄뀒怨좊━蹂꾨줈 "???뱀젙 switch ?먯꽌 ?꾨떖 遺덇??몄?" ??**?뚯꽌 invariant 洹쇨굅** 瑜?臾몄꽌??  - case label 異붽?/湲덉?/safety-net 寃곗젙 湲곗? ?뺤젙
-  - ??AST ???異붽? ??泥댄겕由ъ뒪???ы븿
-  - `llvm_stmt.c` ??top-level decl skip 由ъ뒪??+ Zone/World forward 媛 ??臾몄꽌 湲곗??쇰줈 ?뺣젹??(`AST_INTENT_DECL` skip ?꾨씫 ?섏젙, Zone/World 11醫?forward 二쇱꽍 ?뺥솗?? `llvm_expr.c` explicit diagnostic ?좎?)
+- AST ????스?치 partition 규칙 공식????`docs/95_ast_dispatch_partition.md`
+  - ?체 AST ???(현재 93? ??4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) disjoint 분할
+  - ?카테고리별로 "???정 switch ?서 ?달 불???" ??**?서 invariant 근거** ?문서??  - case label 추?/금?/safety-net 결정 기? ?정
+  - ??AST ???추? ??체크리스???함
+  - `llvm_stmt.c` ??top-level decl skip 리스??+ Zone/World forward  ??문서 기?으로 ?렬??(`AST_INTENT_DECL` skip ?락 ?정, Zone/World 11?forward 주석 ?확?? `llvm_expr.c` explicit diagnostic ??)
   - ??AST ???異붽? ??docs/95 ?낅뜲?댄듃 梨낆엫 紐낆떆
 
-### 理쒓렐 closure 吏꾪뻾 (2026-04-22)
+### 최근 closure 진행 (2026-04-22)
 
 - arena scratch slice 3嫄?異붽? ?≪닔 ??`docs/94_arena_index_lifetime_plan.md` ?낅뜲?댄듃
-  - `semantic.c:50` `semantic_preload_stdlib_uses` ??per-iteration `malloc/free` module path 議곕┰??function-local `PgyArena` 濡??대룞. 諛곗튂 alloc ?섎굹濡??섎졃
+  - `semantic.c:50` `semantic_preload_stdlib_uses` ??per-iteration `malloc/free` module path 조립??function-local `PgyArena` ??동. 배치 alloc ?나??렴
   - `type_checker.c:1109` enum method name mangling??`malloc/snprintf/free` 瑜?`pgy_arena_fmt(&ctx->scratch_arena, ...)` 濡??대룞. `symbol_create_function` ???대? ?대? `pergyra_strdup` ?쇰줈 ?대쫫??蹂듭궗?섎?濡?arena ?덉텧 ?놁쓬
-  - `slot_analyzer.c:1067` `slot_analyze_parallel_block` ??outer task metadata 諛곗뿴 3醫?(`task_accesses`/`task_counts`/`task_caps`) ??`sa->ctx->scratch_arena` 濡??대룞. per-task inner 諛곗뿴? ?ъ쟾??`collect_slot_accesses` 媛 heap-owned濡?愿由?- arena scratch 2李?slice 異붽? (媛숈? ??
-  - `type_checker.c:355` type resolution cycle detection ??`visited`/`path` 諛곗뿴 ??`ctx->scratch_arena`. cycle text??return-contract helper??蹂대쪟
-  - `type_checker_flow.c:499` match redundancy ??`seen` 諛곗뿴 ??`ctx->scratch_arena`
-- arena scratch 3李?slice ??HIR/MIR 泥?吏꾩엯 (媛숈? ?? ?댄썑 4李⑥뿉??routine-scope濡??듯빀??
-  - `hir.c:hir_compute_cfg_dominance` ??`visited`/`postorder`/`idoms` 3諛곗뿴 ??function-local `PgyArena`
-  - `hir.c:hir_mark_natural_loop` ??`in_loop`/`stack` 2諛곗뿴 ??function-local `PgyArena`
-  - `mir.c:mir_apply_ssa_rename` outer 3諛곗뿴 ??function-local `PgyArena`
-- arena scratch 5李?slice ??LLVM 諛깆뿏??泥?吏꾩엯 (媛숈? ?? ?댄썑 6李⑥뿉??ctx-scope 濡??듯빀)
+  - `slot_analyzer.c:1067` `slot_analyze_parallel_block` ??outer task metadata 배열 3?(`task_accesses`/`task_counts`/`task_caps`) ??`sa->ctx->scratch_arena` ??동. per-task inner 배열? ?전??`collect_slot_accesses`  heap-owned??- arena scratch 2?slice 추? (같? ??
+  - `type_checker.c:355` type resolution cycle detection ??`visited`/`path` 배열 ??`ctx->scratch_arena`. cycle text??return-contract helper??보류
+  - `type_checker_flow.c:499` match redundancy ??`seen` 배열 ??`ctx->scratch_arena`
+- arena scratch 3?slice ??HIR/MIR ?진입 (같? ?? ?후 4차에??routine-scope??합??
+  - `hir.c:hir_compute_cfg_dominance` ??`visited`/`postorder`/`idoms` 3배열 ??function-local `PgyArena`
+  - `hir.c:hir_mark_natural_loop` ??`in_loop`/`stack` 2배열 ??function-local `PgyArena`
+  - `mir.c:mir_apply_ssa_rename` outer 3배열 ??function-local `PgyArena`
+- arena scratch 5?slice ??LLVM 백엔???진입 (같? ?? ?후 6차에??ctx-scope ??합)
   - `llvm_register.c:llvm_register_enum_decl` ??`enum_fields` + per-variant `payload_fields` type-ref 踰꾪띁瑜?function-local `PgyArena` 濡??섎졃
-  - `llvm_intent.c:llvm_collect_mir_intent_participants` ??return-ownership 怨꾩빟?대씪 deferred
-- arena scratch 6李?slice ??**LLVMGenCtx ctx-scope scratch arena ?꾩엯** (媛숈? ??
-  - `LLVMGenCtx` ??`PgyArena scratch` ?꾨뱶 異붽?
-  - `llvm_ctx_create` / `llvm_ctx_destroy` ?먯꽌 lifecycle 愿由?  - 5李⑥뿉 function-local 濡??쒖옉??enum type-ref arena 瑜?`ctx->scratch` 濡??섎졃. LLVMGenCtx ?섎굹??init/destroy ??踰덈쭔
-  - ?꾩냽 LLVM scratch ?ъ씠??(誘몃옒??諛쒓뎬?섎뒗) ????arena ?ъ궗??媛??- arena scratch 7李?slice ??**LLVM 9 ?ъ씠???쇨큵 ?≪닔** (媛숈? ??
+  - `llvm_intent.c:llvm_collect_mir_intent_participants` ??return-ownership 계약?라 deferred
+- arena scratch 6?slice ??**LLVMGenCtx ctx-scope scratch arena ?입** (같? ??
+  - `LLVMGenCtx` ??`PgyArena scratch` ?드 추?
+  - `llvm_ctx_create` / `llvm_ctx_destroy` ?서 lifecycle ?  - 5차에 function-local ??작??enum type-ref arena ?`ctx->scratch` ??렴. LLVMGenCtx ?나??init/destroy ??번만
+  - ?속 LLVM scratch ?이??(미래??발굴?는) ????arena ?사????- arena scratch 7?slice ??**LLVM 9 ?이???괄 개수** (같? ??
   - tuple literal (`llvm_expr.c`) ??vals + tys
   - event handler type / tuple type (`llvm_backend.c:ast_type_to_llvm`) ??param_types + fields
   - event INVOKE (`llvm_domain.c`) ??inv_params + call_args
   - class/enum/extern ?깅줉 (`llvm_register.c`) ??4 param-type 踰꾪띁
   - ability vtable (`llvm_domain.c`) ??outer vt_fields + per-method ptypes
-  - 怨듯넻: LLVM C API 媛 type/value 諛곗뿴???대? 蹂듭궗?섎?濡?scratch-safe
-  - 寃곌낵: LLVM ?꾩껜??short-lived type 諛곗뿴 assembly 媛 ctx arena ?섎굹濡??섎졃
-- arena scratch 8李?slice ??**LLVM 17 ?ъ씠??異붽? ?≪닔** (媛숈? ??
+  - 공통: LLVM C API  type/value 배열???? 복사???scratch-safe
+  - 결과: LLVM ?체??short-lived type 배열 assembly  ctx arena ?나??렴
+- arena scratch 8?slice ??**LLVM 17 ?이??추? 개수** (같? ??
   - `llvm_stmt.c`: lambda param, parallel closure ctx/wrapper/handles, async closure fields, select rotation BBs
   - `llvm_intent.c`: intent function param_types, step completion `completed_allocas`, `saved_participant_ptrs`
-  - `llvm_domain.c`: world sync `prev_active_addrs`, domain struct `ftypes` (4 遺꾧린), role/class method `ptypes` (2 ?ъ씠??, vtable `vals`
-  - LLVM 履?scratch-safe calloc/malloc ? 嫄곗쓽 ?꾩닔 `ctx->scratch` 濡??섎졃. ?⑥? 寃껋? return-ownership ?쇱옱 helper ? AST-field stored 耳?댁뒪
+  - `llvm_domain.c`: world sync `prev_active_addrs`, domain struct `ftypes` (4 분기), role/class method `ptypes` (2 ?이??, vtable `vals`
+  - LLVM ?scratch-safe calloc/malloc ? 거의 개수 `ctx->scratch` ??렴. ?? 것? return-ownership 현재 helper ? AST-field stored ?스
 
-- arena scratch 4李?slice ??**HIR/MIR routine-scope arena ?꾩엯** (媛숈? ??
-  - `hir.h` HIRRoutine / `mir.h` MIRRoutine ??`PgyArena scratch` ?꾨뱶 異붽?
-  - ?앹꽦: `hir_append_*`, `mir_lower` 猷⑦봽 ??`memset` 吏곹썑 `pgy_arena_init(&routine.scratch, 0)`
-  - ?뚭눼: `hir_destroy()` / `mir_destroy()` per-routine cleanup + OOM 寃쎈줈 (諛곗뿴 ?몄엯 ?ㅽ뙣 耳?댁뒪)
-  - 3李⑥뿉 function-local 濡??쒖옉??3媛?arena 瑜?紐⑤몢 `&routine->scratch` 濡??듯빀 ??routine ?섎굹??init/destroy ??踰덈쭔. ?щ윭 HIR/MIR pass 媛 媛숈? arena 瑜??ъ궗??  - MIR pass??`routine->scratch` 留??. `routine->hir_routine->scratch` ??HIR frozen 怨꾩빟?대씪 ?묎렐 湲덉? (肄붾찘?몃줈 怨좎젙)
-- ?먯튃 ?좎?: `scratch-only local temp 癒쇱?, returned string ?섏쨷`. `slot_ref_expr(...)` 媛숈? 諛섑솚 ownership ?쇱옱 helper???꾩쭅 蹂대쪟
-- 踰좏? acceptance line #8 ("scratch/result lifetime怨?cache boundary媛 臾몄꽌/援ы쁽 湲곗??쇰줈 ?ㅻ챸 媛?ν븯??) ???대떦 slice 湲곗뿬
+- arena scratch 4?slice ??**HIR/MIR routine-scope arena ?입** (같? ??
+  - `hir.h` HIRRoutine / `mir.h` MIRRoutine ??`PgyArena scratch` ?드 추?
+  - ?성: `hir_append_*`, `mir_lower` 루프 ??`memset` 직후 `pgy_arena_init(&routine.scratch, 0)`
+  - ?괴: `hir_destroy()` / `mir_destroy()` per-routine cleanup + OOM 경로 (배열 ?입 ?패 ?스)
+  - 3차에 function-local ??작??3?arena ?모두 `&routine->scratch` ??합 ??routine ?나??init/destroy ??번만. ?러 HIR/MIR pass  같? arena ??사??  - MIR pass??`routine->scratch` ??. `routine->hir_routine->scratch` ??HIR frozen 계약?라 ?근 금? (코멘으로 고정)
+- ?칙 ??: `scratch-only local temp 먼?, returned string ?중`. `slot_ref_expr(...)` 같? 반환 ownership 현재 helper??아직 보류
+- 베? acceptance line #8 ("scratch/result lifetime?cache boundary 문서/구현 기?으로 증명 ?하??) ???당 slice 기여
 
-### 理쒓렐 closure 吏꾪뻾 (2026-04-21)
+### 최근 closure 진행 (2026-04-21)
 
-- C/LLVM init idiom 異?媛먯궗 + 1李??뺣퉬 ?꾨즺 (`docs/93_codegen_idiom_audit.md`)
-  - 6 case 횞 2 backend 留ㅽ듃由?뒪 怨좎젙
-  - **Case 1 HIGH divergence ?댁냼**: ?⑥닔-諛붾뵒 `let x: T;` (annotation + no init)??`PGY_CODE_SEM_UNINIT_LOCAL` 濡?嫄곕?. C??scalar-zero, LLVM? store ?앸왂?쇰줈 泥?read?먯꽌 媛??섎?媛 媛덈씪吏???좊났 寃쎈줈瑜?semantic ?덈꺼?먯꽌 李⑤떒
+- C/LLVM init idiom ?감사 + 1??비 ?료 (`docs/93_codegen_idiom_audit.md`)
+  - 6 case × 2 backend 매트? 고정
+  - **Case 1 HIGH divergence ?소**: 개수-바디 `let x: T;` (annotation + no init)??`PGY_CODE_SEM_UNINIT_LOCAL` ?거?. C??scalar-zero, LLVM? store ?략으로 ?read?서 ??? 갈라???복 경로?semantic ?벨?서 차단
   - **Case 2 C backend L815 ?뺣━**: `transpiler_c_type_uses_scalar_zero` helper濡?scalar/aggregate 遺꾧린. 湲곗〈 ?좊났 踰꾧렇 (`struct Foo x = 0;` invalid C) ?쒓굅 (defense in depth)
-  - **Case 3 MEDIUM ?섎룄 鍮꾨?移?쑝濡??뺤젙**: slot claim? C媛 ?고???helper, LLVM??IR-direct. ?꾩옱 runtime observability ?섏??먯꽌 愿痢?side effect 0. runtime observability ?뺤옣 ???ш컧?щ줈 deferral
+  - **Case 3 MEDIUM ?도 비????정**: slot claim? C ????helper, LLVM??IR-direct. 현재 runtime observability ???서 ?side effect 0. runtime observability ?장 ???감으로 deferral
   - ?뚭? 3醫?異붽?:
     - `function-body let with annotation and no initializer is rejected`
     - `function-body let with aggregate annotation and no initializer is rejected`
     - `subject field let with no initializer does not trigger the uninit-local guard` (negative)
-  - ?뚯꽌 援ъ“ ?ы솗?? class/subject field??ClassField 寃쎈줈濡?遺꾨━?섏뼱 `AST_LET_DECL`???꾨떂 ??guard媛 field-level ?섎?瑜?移⑤쾾?섏? ?딆쓬
+  - ?서 구조 ?확?? class/subject field??ClassField 경로?분리되어 `AST_LET_DECL`???님 ??guard field-level ???침범?? ?음
   - docs/72 ??`PGY_SEM_UNINIT_LOCAL` ?뱀뀡 + docs/93 cross-link 異붽?
 
-### 理쒓렐 closure 吏꾪뻾 (2026-04-20)
+### 최근 closure 진행 (2026-04-20)
 
 - own/ref broader audit瑜?helper family 湲곗??쇰줈 ???뺣젹
-  - helper call boundary??`subject` / general boundary value 寃쎈줈瑜?怨듭슜 borrowed-boundary validator濡??묒쓬
-  - container store / array literal store borrow-escape瑜?怨듭슜 ownership diagnostic helper濡??듯빀
-  - semantic channel send borrow-escape??怨듭슜 ownership diagnostic helper濡??밴꺽
-  - 利? `assignment / helper call / channel send / container store / array literal store / constructor field store`媛 ?먯젏 媛숈? provenance wording family濡??섎졃 以?- intent authority mismatch provenance瑜???吏곸젒?곸쑝濡??몄텧
+  - helper call boundary??`subject` / general boundary value 경로?공용 borrowed-boundary validator??음
+  - container store / array literal store borrow-escape?공용 ownership diagnostic helper??합
+  - semantic channel send borrow-escape??공용 ownership diagnostic helper??격
+  - ? `assignment / helper call / channel send / container store / array literal store / constructor field store` ?점 같? provenance wording family??렴 ?- intent authority mismatch provenance???직접?으??출
   - `authorized by` unknown participant / non-subject participant / zone subject-slot mismatch / zone authority mismatch??`approval boundary provenance` ?뱀뀡 異붽?
-  - provenance媛 鍮꾩뼱 ?덉쑝硫?`no inherited/derived authority provenance was recorded`瑜?紐낆떆?곸쑝濡?蹂닿퀬
+  - provenance 비어 ?으?`no inherited/derived authority provenance was recorded`?명시?으?보고
 - relation/effect/projection failure depth瑜?異붽? 蹂닿컯
-  - invalid projection source / tobject source rejection??target/source consumer path? projection contract origin??吏곸젒 蹂닿퀬
-  - 利? projection diagnostics媛 ?⑥닚 type mismatch媛 ?꾨땲??`target slot <- source slot` 寃쎈줈瑜?湲곗??쇰줈 ?ㅻ챸?섍린 ?쒖옉??- ?꾩옱 踰좏? blocker ?ъ젙??  - Windows backend-compare / LLVM parity 蹂듦뎄
+  - invalid projection source / tobject source rejection??target/source consumer path? projection contract origin??직접 보고
+  - ? projection diagnostics ?순 type mismatch 아니며 `target slot <- source slot` 경로?기?으로 ?명?기 ?작??- 현재 베? blocker ?정??  - Windows backend-compare / LLVM parity 복구
   - declaration-side MIR-only ?⑥? host/inventory helper debt ?쒓굅
   - own/ref ?쇰컲?붿쓽 broader assignment / container / rebind / summary path closure
-  - intent/zone/world 諛?relation/effect/projection provenance 留덉?留??ы솕
+  - intent/zone/world ?relation/effect/projection provenance 마???화
 - Windows-native compile hygiene瑜?異붽? ?뺣━
   - `type_checker_builtins_query.inc`, `type_checker_builtins_nominal.inc`??`%zu` / extra-arg formatting drift瑜??쒓굅
   - `type_checker_decls_world.inc`??world lifecycle diagnostics placeholder-arg mismatch瑜??쒓굅
-  - `type_checker_builtins.c`??ownership/channel helper瑜?full internal header include ???理쒖냼 forward declaration?쇰줈 怨좎젙??enum/static helper ?ъ꽑??異⑸룎???쇳븿
-  - ?꾩옱 湲곗???
+  - `type_checker_builtins.c`??ownership/channel helper?full internal header include ???최소 forward declaration으로 고정??enum/static helper ?선??충돌???함
+  - 현재 기???
     - `test-semantic`: `1855 passed, 0 failed`
     - `test-transpile`: `601 passed, 0 failed`
-  - ?⑥? Windows blocker??semantic compile ?④퀎媛 ?꾨땲??native MSYS2/MinGW ?ㅽ뻾 ?섍꼍?먯꽌??backend/runtime parity ?뺤씤 異뺤쑝濡??대룞
+  - ?? Windows blocker??semantic compile ?계 아니며 native MSYS2/MinGW ?행 ?경?서??backend/runtime parity ?인 축으??동
 
-### 理쒓렐 closure 吏꾪뻾 (2026-04-16)
+### 최근 closure 진행 (2026-04-16)
 
 - declaration-side host context瑜?inventory-backed handle 履쎌쑝濡????④퀎 ???뺣젹
   - transpiler host lookup??`current_host_decl -> within_zone -> saved host-name inventory` ?쒖쑝濡?蹂듭썝?섎룄濡?議곗젙
-  - zone/relation/effect/world field query helper媛 raw `current_*_name` 遺꾧린蹂대떎 inventory-backed `current_host_decl`瑜??곗꽑 ?뚮퉬
-  - 利? declaration-side C backend context 蹂듭썝?먯꽌 string name state???먯젏 restore hint濡쒕쭔 ?④퀬, ?ㅼ젣 host truth??active inventory 湲곕컲 handle濡??섎졃 以?- explicit/compressed canonical pair examples瑜?intent-first ?낇빐 洹쒖튃?쇰줈 ?ㅼ떆 ?뺣젹
-  - large/composite pair source??`intent -> world/zone -> subject` read order瑜?吏곸젒 紐낆떆
-- world embedding implicit copy瑜?warning???꾨땲??hard contract濡??밴꺽 ?쒖옉
+  - zone/relation/effect/world field query helper raw `current_*_name` 분기보다 inventory-backed `current_host_decl`??선 ?비
+  - ? declaration-side C backend context 복원?서 string name state???점 restore hint로만 ?고, ?제 host truth??active inventory 기반 handle??렴 ?- explicit/compressed canonical pair examples?intent-first 대해 규칙으로 ?시 ?렬
+  - large/composite pair source??`intent -> world/zone -> subject` read order?직접 명시
+- world embedding implicit copy?warning??아니며 hard contract??격 ?작
   - world constructor??zone binding??洹몃?濡??섍린硫?explicit `Clone(...)`瑜??붽뎄
-  - hidden copy semantics瑜????댁긽 benign warning?쇰줈 ?④린吏 ?딆쓬
+  - hidden copy semantics????상 benign warning으로 ?기 ?음
 - generic contract consumer path瑜????④퀎 ???レ쓬
-  - omitted trailing default type arg媛 user-defined generic class specialization path?먯꽌??effective arg 湲곗??쇰줈 寃利앸릺?꾨줉 ?뺣젹
-  - role impl / action requires / zone authority / party role slot?먯꽌 `default arg omission + where-bound violation` negative regressions 異붽?
-  - multi-bound / omitted-default / consumer provenance 議고빀 ?뚭?瑜?semantic 湲곗??쇰줈 怨좎젙
-  - ability consumer path / class instantiation-specialization path?먯꽌 unresolved effective generic arg瑜?silent skip?섏? ?딄퀬 structured error濡??밴꺽
-  - role-side ability require-field type resolution?먯꽌??unresolved effective generic arg瑜?silent skip?섏? ?딄퀬 structured error濡??밴꺽
-  - malformed impl ability generic arg媛 ?덉뼱???ㅼそ where/require-field 寃利앹쑝濡?partial 吏꾪뻾?섎뜕 寃쎈줈瑜?李⑤떒
-  - default generic bound validation?먯꽌 unknown parameter / unresolved default type??structured error濡??밴꺽
-  - generic function call-site where-clause validation?먯꽌??missing/unresolved effective arg瑜?silent skip?섏? ?딄퀬 structured error濡??밴꺽
+  - omitted trailing default type arg user-defined generic class specialization path?서??effective arg 기?으로 증되?록 ?렬
+  - role impl / action requires / zone authority / party role slot?서 `default arg omission + where-bound violation` negative regressions 추?
+  - multi-bound / omitted-default / consumer provenance 조합 ???semantic 기?으로 고정
+  - ability consumer path / class instantiation-specialization path?서 unresolved effective generic arg?silent skip?? 하고 structured error??격
+  - role-side ability require-field type resolution?서??unresolved effective generic arg?silent skip?? 하고 structured error??격
+  - malformed impl ability generic arg 되어???쪽 where/require-field 증으?partial 진행?던 경로?차단
+  - default generic bound validation?서 unknown parameter / unresolved default type??structured error??격
+  - generic function call-site where-clause validation?서??missing/unresolved effective arg?silent skip?? 하고 structured error??격
 - own/ref 泥??쇰컲??vertical slice ?쒖옉
-  - existing movable resource value(`QubitSlot`)??function boundary?먯꽌 explicit `own` transfer parameter瑜??덉슜
-  - `ref QubitSlot`???꾩쭅 誘몃떕??subset?쇰줈 ?좎??섎릺, ?댁쑀/consumer path/fix媛 ?ы븿??structured diagnostic?쇰줈 怨좎젙
-  - 利? `own/ref`???ъ쟾???꾩뿭 closure ?꾩씠吏留? move semantics媛 ?대? ?덈뒗 resource value????댁꽌??explicit transfer boundary媛 遺遺꾩쟻?쇰줈 ?대━湲??쒖옉??  - return/channel boundary ownership diagnostics??`Reason:` / `Fix:` 援ъ“濡??뺣젹
-  - function signature anchored-return rejection??`Reason:` / `Fix:` 援ъ“濡??뺣젹
-  - unnamed movable-resource channel send??moved-here provenance瑜??ㅻ챸?섎뒗 hard error濡?怨좎젙
-  - local binding ?④퀎?먯꽌??`recv/await` unnamed boundary use, subject rebinding, released-slot move, anchored-handle rebinding??`Reason:` / `Fix:` 援ъ“濡??뺣젹
-  - slot escape analyzer 寃쎄퀬??return/helper-call/channel/unterminated local claim 寃쎈줈?먯꽌 provenance??`Reason:` / `Fix:` 援ъ“濡??뺣젹
-- relation/effect/projection contract瑜????섎뱶?섍쾶 議곗???  - `intent step causes`媛 zone effect slot ?놁씠 ?듦낵?섎뜕 寃쎈줈瑜?hard error濡??밴꺽
-  - `action causes`??zone effect slot ?놁씠 ?⑤뒗 寃쎈줈瑜?structured hard error濡??밴꺽
-  - authority-bearing `apply/link/detach/unlink/maintain`媛 `by <subjectSlot>` ?놁씠 ?⑤뒗 寃쎈줈瑜?hard error濡??밴꺽
-  - duplicate authority, unknown layer relation/effect type?????댁긽 benign warning?쇰줈 ?④린吏 ?딆쓬
-  - maintain/detach/unlink duplicate/conflict diagnostics??`Reason:` / `Fix:` 援ъ“濡??뺣젹
-- unresolved declaration entrypoint瑜???以꾩???  - role include unknown role, roster slot unknown party, world roster/zone unknown type??hard error濡??밴꺽
-  - generic where-clause consumer path?먯꽌 unresolved effective arg?????댁긽 silent skip?섏? ?딆쓬
-- declaration-side MIR-only domain method gate瑜???議곗???  - party / roster / relation / effect / zone / world method emission??MIR routine ?놁씠 AST body濡?議곗슜??fallback?섏? ?딅룄濡?C backend瑜??뺣젹
-  - role / domain method emission?먯꽌 MIR routine 誘몄〈?щ? LLVM backend hard error濡??밴꺽
-  - 利? declaration-side domain method??MIR inventory媛 議댁옱?섎뒗 鍮뚮뱶?먯꽌 silent fallback???꾨땲??explicit backend failure瑜?怨꾩빟?쇰줈 ?쇱쓬
+  - existing movable resource value(`QubitSlot`)??function boundary?서 explicit `own` transfer parameter??용
+  - `ref QubitSlot`??아직 미닫??subset으로 ???되, ?유/consumer path/fix ?함??structured diagnostic으로 고정
+  - ? `own/ref`???전???역 closure ?이? move semantics ?? 는 resource value????서??explicit transfer boundary 분적으로 ?리??작??  - return/channel boundary ownership diagnostics??`Reason:` / `Fix:` 구조??렬
+  - function signature anchored-return rejection??`Reason:` / `Fix:` 구조??렬
+  - unnamed movable-resource channel send??moved-here provenance??명는 hard error?고정
+  - local binding ?계?서??`recv/await` unnamed boundary use, subject rebinding, released-slot move, anchored-handle rebinding??`Reason:` / `Fix:` 구조??렬
+  - slot escape analyzer 경고??return/helper-call/channel/unterminated local claim 경로?서 provenance??`Reason:` / `Fix:` 구조??렬
+- relation/effect/projection contract????드?게 조???  - `intent step causes` zone effect slot 이 ?과?던 경로?hard error??격
+  - `action causes`??zone effect slot 이 는 경로?structured hard error??격
+  - authority-bearing `apply/link/detach/unlink/maintain` `by <subjectSlot>` 이 는 경로?hard error??격
+  - duplicate authority, unknown layer relation/effect type?????상 benign warning으로 ?기 ?음
+  - maintain/detach/unlink duplicate/conflict diagnostics??`Reason:` / `Fix:` 구조??렬
+- unresolved declaration entrypoint???줄???  - role include unknown role, roster slot unknown party, world roster/zone unknown type??hard error??격
+  - generic where-clause consumer path?서 unresolved effective arg?????상 silent skip?? ?음
+- declaration-side MIR-only domain method gate???조???  - party / roster / relation / effect / zone / world method emission??MIR routine 이 AST body?조용??fallback?? ?도?C backend??렬
+  - role / domain method emission?서 MIR routine 미존?? LLVM backend hard error??격
+  - ? declaration-side domain method??MIR inventory 존재는 빌드?서 silent fallback??아니며 explicit backend failure?계약으로 ?음
 
-### 理쒓렐 closure 吏꾪뻾 (2026-04-14)
+### 최근 closure 진행 (2026-04-14)
 
-- declaration-side MIR-only intent inventory瑜???諛?덈떎
-  - MIR媛 `IntentParticipant(alias,type)` metadata瑜?吏곸젒 ?대컲
-  - C/LLVM intent declaration emission??participant alias/type瑜?AST ?ы빐???놁씠 MIR metadata濡??곗꽑 ?뚮퉬
+- declaration-side MIR-only intent inventory???한다
+  - MIR `IntentParticipant(alias,type)` metadata?직접 ?반
+  - C/LLVM intent declaration emission??participant alias/type?AST 대해??이 MIR metadata??선 ?비
 - step-level MIR-only validation??AST field 議댁옱 寃?ъ뿉??metadata 議댁옱 寃?щ줈 ??꼈??  - `IntentCheck`
   - `IntentEval`
   - `IntentZoneWhere/IntentZoneAlias/IntentZoneFrom`
@@ -1580,100 +1621,100 @@ Source of truth:
   - `test-mir` green
   - `test-transpile` green
 
-利? intent declaration/step emission? ?꾩쭅 ?꾩쟾 MIR-only ?좎뼵???앸궃 寃껋? ?꾨땲吏留?
-`participant/step contract inventory`瑜?AST presence??湲곕???媛??嫄곗튇 fallback?????④퀎 ???쒓굅?먮떎.
+? intent declaration/step emission? 아직 ?전 MIR-only ?언???난 것? 아니?
+`participant/step contract inventory`?AST presence??기?????거친 fallback?????계 ???거한다.
 
 ### 踰좏? 湲곗???異붽? (2026-04-15)
 
 - `docs/70_beta_closure_master_board.md` 異붽?
-  - B0 4異? declaration-side MIR-only debt, parity, runtime observability, surface trust瑜????μ쑝濡?怨좎젙
-  - 踰좏? acceptance line怨?exit rule??紐낆떆
-  - ?욎쑝濡?TODO??媛쒕퀎 ?묒뾽? ??蹂대뱶 湲곗??쇰줈 ?곗꽑?쒖쐞瑜??곕Ⅸ??
-### 踰좏? 理쒖쥌 愿臾?(2026-04-18)
+  - B0 4? declaration-side MIR-only debt, parity, runtime observability, surface trust????으?고정
+  - 베? acceptance line?exit rule??명시
+  - ?으?TODO??개별 ?업? ??보드 기?으로 ?선?위??른??
+### 베? 최종 ?(2026-04-18)
 
-- [ ] **declaration-side MIR-only瑜?援ъ“?곸쑝濡??リ린**
-  - zone/world/relation/effect declaration/method emission?먯꽌 ?⑥? AST/HIR-carried inventory dependency瑜????쒓굅
+- [ ] **declaration-side MIR-only?구조?으??기**
+  - zone/world/relation/effect declaration/method emission?서 ?? AST/HIR-carried inventory dependency????거
   - `current_*_name` / host-name 異붿젙 helper蹂대떎 inventory-backed host handle / metadata ?뚮퉬瑜??곗꽑?섎룄濡??뺣젹
-  - transpiler/LLVM ?묒そ?먯꽌 raw host-name read瑜?helper/restore layer 諛뽰쑝濡??ㅼ떆 ?덉? 紐삵븯寃??뚭?濡?怨좎젙
-  - declaration emission failure??comment/skip/fallback return???꾨땲??explicit backend error濡??밴꺽
-  - C/LLVM ????declaration-side path?먯꽌 `Unknown` / surface-trust-breaking fallback type emission??怨꾩냽 ?쒓굅
-  - 臾몄꽌?먯꽌 `MIR-led / HIR-assisted`?쇨퀬 ?④꺼??debt瑜??ㅼ젣 援ы쁽 湲곗??쇰줈 ??異뺤냼?섍퀬, 踰좏? ?쒖젏 ?쒗쁽怨?援ы쁽???쇱튂?쒗궓??
-- [x] **AST dispatch / backend fallback trust gate 怨좎젙**
-  - `docs/95_ast_dispatch_partition.md` 湲곗??쇰줈 AST ???partition??臾몄꽌??  - LLVM `stmt/expr` default path??warning-only媛 ?꾨땲??structured backend error濡?怨좎젙
-  - Zone/World declaration verb媛 expression fallback?쇰줈 議곗슜??`0/null`???섎뒗 寃쎈줈瑜?explicit backend diagnostic?쇰줈 李⑤떒
-  - `tests/ast_dispatch_partition_smoke.sh`? `make ast-dispatch-test-smoke`瑜?異붽???partition drift? silent fallback ?뚭?瑜?CI?먯꽌 李⑤떒
+  - transpiler/LLVM ?쪽?서 raw host-name read?helper/restore layer 밖으??시 ?? 못하????고정
+  - declaration emission failure??comment/skip/fallback return??아니며 explicit backend error??격
+  - C/LLVM ????declaration-side path?서 `Unknown` / surface-trust-breaking fallback type emission??계속 ?거
+  - 문서?서 `MIR-led / HIR-assisted`하고 ?겨??debt??제 구현 기?으로 ??축소?고, 베? ?점 ?현?구현???치?킨??
+- [x] **AST dispatch / backend fallback trust gate 고정**
+  - `docs/95_ast_dispatch_partition.md` 기?으로 AST ???partition??문서??  - LLVM `stmt/expr` default path??warning-only 아니며 structured backend error?고정
+  - Zone/World declaration verb expression fallback으로 조용??`0/null`??는 경로?explicit backend diagnostic으로 차단
+  - `tests/ast_dispatch_partition_smoke.sh`? `make ast-dispatch-test-smoke`?추???partition drift? silent fallback ???CI?서 차단
   - Linux `ci-linux` acceptance line??AST dispatch smoke瑜??곌껐
 
-- [x] **type-resolution DAG瑜?beta blocker濡??ы븿**
-  - import resolver? 蹂꾧컻濡?semantic type dependency graph瑜?beta acceptance line???ы븿
-  - generic default / multi-bound / role impl / action / intent step / party role slot / zone authority / module contract consumer瑜?媛숈? graph inventory濡?異붿쟻
+- [x] **type-resolution DAG?beta blocker??함**
+  - import resolver? 별개?semantic type dependency graph?beta acceptance line???함
+  - generic default / multi-bound / role impl / action / intent step / party role slot / zone authority / module contract consumer?같? graph inventory?추적
   - alias depth limit / ad-hoc recursive failure蹂대떎 path-aware cycle diagnostic???곗꽑 湲곗??쇰줈 ?뚯뼱?щ┝
-  - 1?④퀎 吏꾪뻾: `topo_order`瑜?踰꾨━吏 ?딄퀬 declaration staged worklist???곌껐 ?쒖옉
-  - 諛섏쁺 臾몄꽌:
+  - 1?계 진행: `topo_order`?버리 하고 declaration staged worklist???결 ?작
+  - 반영 문서:
     - `docs/70_beta_closure_master_board.md`
     - `docs/63_feature_depth_matrix.md`
-  - 1?④퀎 吏꾪뻾: `world/zone` local contract? `refresh` projection path瑜?synthetic graph node濡??щ━湲??쒖옉
-  - 1?④퀎 吏꾪뻾: topo worklist媛 `LOCAL_CONTRACT` / `PROJECTION_PATH` synthetic node???ㅼ떆 ?뚮퉬?섍린 ?쒖옉
-  - 1?④퀎 吏꾪뻾: synthetic node ?뚮퉬瑜?host ?꾩껜 ?ъ떎?됱씠 ?꾨땲??label蹂?narrow handler濡?異뺤냼
-  - 1?④퀎 吏꾪뻾: role impl consumer源뚯? cycle provenance ?뚭?瑜?異붽???ability consumer family瑜????꾩꽦
-  - ?⑥? ?? staged declaration prepass 踰붿쐞瑜??볧엳怨?graph-backed evaluator瑜?semantic source-of-truth濡??밴꺽
+  - 1?계 진행: `world/zone` local contract? `refresh` projection path?synthetic graph node??리??작
+  - 1?계 진행: topo worklist `LOCAL_CONTRACT` / `PROJECTION_PATH` synthetic node???시 ?비?기 ?작
+  - 1?계 진행: synthetic node ?비?host ?체 ?실이 아니며 label?narrow handler?축소
+  - 1?계 진행: role impl consumer까? cycle provenance ???추???ability consumer family????성
+  - ?? ?? staged declaration prepass 범위??히?graph-backed evaluator?semantic source-of-truth??격
   - ecosystem ?뺤옣(`stdlib/pkg/tooling`)? ??DAG closure ?댄썑 ?④퀎濡?誘몃８
 
 - [x] **own/ref ?쇰컲??audit 留덇컧**
   - own/ref??ownership classifier 湲곗? stable subset?쇰줈 ?ロ옒
-  - borrowed value escape??helper call / channel / return / container store肉??꾨땲??broader assignment/member/store path源뚯? provenance 湲곗??쇰줈 ?먭?
-  - 吏꾪뻾: constructor field store(`Holder(packet)` 媛숈? boundary-visible store)瑜?borrowed escape 寃쎈줈濡??밴꺽?섍퀬 semantic regression 異붽?
-  - 吏꾪뻾: constructor field store??borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)瑜?吏곸젒 蹂닿퀬?섎룄濡??뺣젹
-  - 吏꾪뻾: array literal store(`[packet]`)??borrowed escape 寃쎈줈濡??밴꺽?섍퀬 semantic regression 異붽?
-  - 吏꾪뻾: member assignment / array overwrite 吏꾨떒??identifier-only媛 ?꾨땲??`holder.packet`, `items[0]` 媛숈? target path provenance瑜?吏곸젒 蹂닿퀬?섎룄濡??뺣젹
-  - 吏꾪뻾: new-binding escape??identifier-only媛 ?꾨땲??borrowed member/aggregate source path provenance(`packet.view`, `items[0]`)源뚯? 異붿쟻?섎룄濡??뺤옣
-  - 吏꾪뻾: new-binding escape regression??member source path(`packet.items`)? array source path(`items[0]`)瑜?fixture濡?怨좎젙
-  - 吏꾪뻾: container store(`ArrayPush`/`ListPush`/`SetAdd`/`QueuePush`/`MapSet`)??borrowed member/aggregate source path provenance瑜?吏곸젒 蹂닿퀬?섎룄濡??뺣젹
-  - 吏꾪뻾: helper forwarding / builtin channel send(`Send`/`TrySend`/`SendTimeout`/status variants)??unnamed borrowed member/aggregate source path provenance瑜?吏곸젒 蹂닿퀬?섎룄濡??뺣젹
-  - 吏꾪뻾: direct `return` escape??borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)瑜?吏곸젒 蹂닿퀬?섎룄濡??뺣젹
-  - 吏꾪뻾: slot/resource summary 湲곕컲 `return/channel/helper` diagnostics??`summary provenance root` vocabulary濡?direct semantic wording????媛源앷쾶 ?뺣젹
-  - 吏꾪뻾: summary-based helper escape??direct callee wording ???`helper/function summary in '<fn>'` 寃쎈줈濡?遺꾨━??drift瑜?以꾩엫
-  - 吏꾪뻾: summary-based return/channel escape??direct consumer wording ???`return summary in '<fn>'` / `channel summary in '<fn>'` 寃쎈줈濡?遺꾨━??drift瑜?以꾩엫
-  - 吏꾪뻾: anchored-handle summary escape??direct `return/channel/helper` wording ???summary wording?쇰줈 遺꾨━??own/ref bridge 臾멸뎄瑜??뺣젹
-  - 吏꾪뻾: helper-call / container-store / array-literal-store / semantic channel-send diagnostic family瑜?怨듭슜 helper濡??듯빀
-  - 吏꾪뻾: nested projection + transitive helper + member rebind 議고빀??semantic regression fixture濡?異붽?
-  - 吏꾪뻾: movable-resource + nested member source + member rebind target 議고빀??semantic regression fixture濡?異붽?
-  - 吏꾪뻾: declaration-side MIR-only host truth??`current_host_decl` / inventory 湲곗??쇰줈 ??醫곹삍怨? `within_zone`瑜??곕씪媛??transpiler host recovery fallback怨?role-owner direct AST lookup???쒓굅
-  - 吏꾪뻾: own/ref anchored-handle wording??assignment / let-binding / return / channel / helper family??留욎떠 `boundary-visible handle binding` / `anchored-handle provenance` 湲곗??쇰줈 ?뺣젹
-  - ?꾨즺 ?먯젙: direct/summary helper-chain, return/channel/helper, destructure, assignment/member/container/constructor/array path媛 current semantic regression?쇰줈 怨좎젙??  - explicit reject: authority-bearing `Token<T>` escape/transport
+  - borrowed value escape??helper call / channel / return / container store?아니며 broader assignment/member/store path까? provenance 기?으로 ??
+  - 진행: constructor field store(`Holder(packet)` 같? boundary-visible store)?borrowed escape 경로??격하고 semantic regression 추?
+  - 진행: constructor field store??borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)?직접 보고?도??렬
+  - 진행: array literal store(`[packet]`)??borrowed escape 경로??격하고 semantic regression 추?
+  - 진행: member assignment / array overwrite 진단??identifier-only 아니며 `holder.packet`, `items[0]` 같? target path provenance?직접 보고?도??렬
+  - 진행: new-binding escape??identifier-only 아니며 borrowed member/aggregate source path provenance(`packet.view`, `items[0]`)까? 추적?도??장
+  - 진행: new-binding escape regression??member source path(`packet.items`)? array source path(`items[0]`)?fixture?고정
+  - 진행: container store(`ArrayPush`/`ListPush`/`SetAdd`/`QueuePush`/`MapSet`)??borrowed member/aggregate source path provenance?직접 보고?도??렬
+  - 진행: helper forwarding / builtin channel send(`Send`/`TrySend`/`SendTimeout`/status variants)??unnamed borrowed member/aggregate source path provenance?직접 보고?도??렬
+  - 진행: direct `return` escape??borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)?직접 보고?도??렬
+  - 진행: slot/resource summary 기반 `return/channel/helper` diagnostics??`summary provenance root` vocabulary?direct semantic wording????깝게 ?렬
+  - 진행: summary-based helper escape??direct callee wording ???`helper/function summary in '<fn>'` 경로?분리??drift?줄임
+  - 진행: summary-based return/channel escape??direct consumer wording ???`return summary in '<fn>'` / `channel summary in '<fn>'` 경로?분리??drift?줄임
+  - 진행: anchored-handle summary escape??direct `return/channel/helper` wording ???summary wording으로 분리??own/ref bridge 문구??렬
+  - 진행: helper-call / container-store / array-literal-store / semantic channel-send diagnostic family?공용 helper??합
+  - 진행: nested projection + transitive helper + member rebind 조합??semantic regression fixture?추?
+  - 진행: movable-resource + nested member source + member rebind target 조합??semantic regression fixture?추?
+  - 진행: declaration-side MIR-only host truth??`current_host_decl` / inventory 기?으로 ??좁혔? `within_zone`??라??transpiler host recovery fallback?role-owner direct AST lookup???거
+  - 진행: own/ref anchored-handle wording??assignment / let-binding / return / channel / helper family??맞춰 `boundary-visible handle binding` / `anchored-handle provenance` 기?으로 ?렬
+  - ?료 ?정: direct/summary helper-chain, return/channel/helper, destructure, assignment/member/container/constructor/array path current semantic regression으로 고정??  - explicit reject: authority-bearing `Token<T>` escape/transport
   - beta-out-of-scope: region/lifetime solver? universal ownership lattice
 
 - [ ] **generic contract ?꾧꼍濡?audit 留덇컧**
-  - generic contract??`default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path瑜?留덉?留됯퉴吏 audit
-  - 吏꾪뻾: `party role slot` generic mismatch consumer??actual/expected type arg + consumer path provenance regression?쇰줈 怨좎젙
-  - ?⑥? generic consumer path媛 ?녿떎??寃껋쓣 regression?쇰줈 利앸챸?섍퀬, partial acceptance泥섎읆 蹂댁씠??寃쎈줈瑜??④린吏 ?딅뒗??
-- [ ] **Intent/Zone/World, relation/effect/projection 吏꾨떒怨?provenance 留덇컧**
-  - intent/zone/world??embedding / handoff / authority mismatch?먯꽌 contract source, derived zone/using, transfer edge provenance瑜?怨꾩냽 媛뺥솕
-  - relation/effect/projection? propagation edge failure, contract mismatch, branch/join/handoff path??`Contract source:` / `Reason:` / `Fix:`? source/target provenance瑜??쇨??섍쾶 遺李?  - 吏꾪뻾: world embedding/handoff? intent transfer/authority mismatch???듭떖 寃쎈줈瑜?`Contract source:` / `Reason:` / `Fix:` 援ъ“濡??ъ젙??  - runtime contract provenance? diagnostic wording?????뺣젹???쒖솢 ?ㅽ뙣?덈뒗吏 + 怨꾩빟???대뵒???붾뒗吏 + ?대뼸寃?怨좎튌吏?앸? ??踰덉뿉 蹂댁씠寃??쒕떎
-  - helper-heavy edge path瑜?以꾩씠怨? compile-time contract ?ㅽ뙣瑜?silent/best-effort runtime sync濡??섍린吏 ?딅뒗??  - 吏꾪뻾: intent step contract-source summary媛 `authorized by`, transfer handoff, derived transfer zone provenance瑜???吏곸젒?곸쑝濡??ㅻ챸?섎룄濡??뺣젹
-  - 吏꾪뻾: zone-within action authority mismatch媛 `within` / `causes` header瑜?contract source濡?吏곸젒 蹂닿퀬?섎룄濡??뺣젹
-  - 吏꾪뻾: world embedding / post-embedding mutation diagnostics媛 `world <name> zone slot <slot>` contract source? world-owned authority/handoff destination??吏곸젒 蹂닿퀬?섎룄濡??뺣젹
+  - generic contract??`default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path?마?막까 audit
+  - 진행: `party role slot` generic mismatch consumer??actual/expected type arg + consumer path provenance regression으로 고정
+  - ?? generic consumer path ?다??것을 regression으로 증명?고, partial acceptance처럼 보이??경로??기 ?는??
+- [ ] **Intent/Zone/World, relation/effect/projection 진단?provenance 마감**
+  - intent/zone/world??embedding / handoff / authority mismatch?서 contract source, derived zone/using, transfer edge provenance?계속 강화
+  - relation/effect/projection? propagation edge failure, contract mismatch, branch/join/handoff path??`Contract source:` / `Reason:` / `Fix:`? source/target provenance????게 ?  - 진행: world embedding/handoff? intent transfer/authority mismatch???심 경로?`Contract source:` / `Reason:` / `Fix:` 구조??정??  - runtime contract provenance? diagnostic wording?????렬???왜 ?패는 + 계약???디??는 + ?떻?고칠?? ??번에 보이?한다
+  - helper-heavy edge path?줄이? compile-time contract ?패?silent/best-effort runtime sync??기 ?는??  - 진행: intent step contract-source summary `authorized by`, transfer handoff, derived transfer zone provenance???직접?으??명?도??렬
+  - 진행: zone-within action authority mismatch `within` / `causes` header?contract source?직접 보고?도??렬
+  - 진행: world embedding / post-embedding mutation diagnostics `world <name> zone slot <slot>` contract source? world-owned authority/handoff destination??직접 보고?도??렬
 
-- [ ] **C/LLVM parity + full CI green??踰좏? 理쒖쥌 愿臾몄쑝濡?怨좎젙**
+- [ ] **C/LLVM parity + full CI green??베? 최종 문으?고정**
   - Linux 湲곗? `parser / semantic / transpile / ABI / backend-compare / llvm smoke / ir-pipeline / example smoke`瑜?full green?쇰줈 ?좎?
-  - Windows??濡쒖뺄 Linux host?먯꽌 媛뺥뻾?섏? ?딄퀬, MSYS2/MinGW + LLVM runner?먯꽌 `ci-windows` full green???ㅼ떆 怨좎젙
-  - backend compare??domain semantics 湲곗? parity瑜?怨꾩냽 ?뺣??섍퀬, same-process ABI / launch / runtime environment 李⑥씠瑜??щ컻?섏? ?딄쾶 ?〓뒗??  - ?꾩옱 immediate blocker: Windows `backend-compare`? LLVM parity??留덉?留?crash / launch / runtime mismatch ?쒓굅
-  - 踰좏? ?좎뼵 ??acceptance line? ?쒕?遺?green?앹씠 ?꾨땲??C/LLVM parity? expected stdout/stderr/result parity源뚯? ?ы븿??CI green?쇰줈 ?붾떎
+  - Windows??로컬 Linux host?서 강행?? ?고, MSYS2/MinGW + LLVM runner?서 `ci-windows` full green???시 고정
+  - backend compare??domain semantics 기? parity?계속 ???고, same-process ABI / launch / runtime environment 차이??발?? ?게 ?는??  - 현재 immediate blocker: Windows `backend-compare`? LLVM parity??마??crash / launch / runtime mismatch ?거
+  - 베? ?언 ??acceptance line? ???green이 아니며 C/LLVM parity? expected stdout/stderr/result parity까? ?함??CI green으로 한다
 
-?ㅽ뻾 媛?ν븳 ?곌뎄??而댄뙆?쇰윭 ?④퀎???섍꼈吏留? ?꾩쭅 踰좏??쇨퀬 遺瑜??섎뒗 ?녿떎.
+?행 ?한 ?구??컴파?러 ?계???겼? 아직 베?하고 ?는 한다.
 
 ?먯젙 湲곗?:
-- 踰좏? ?먯튃??`遺遺?援ы쁽 ?곹깭瑜??④린吏 ?딅뒗??瑜??꾩쭅 異⑹”?섏? 紐삵븿
-- ?ㅼ썙??遺議깆씠 ?꾨땲??`援ы쁽 depth 遺덇퇏????臾몄젣??- parser媛 諛쏅뒗 surface 以??쇰?媛 semantic/C/LLVM/runtime/test/documentation源뚯? ?꾩쟾???ロ엳吏 ?딆쓬
+- 베? ?칙??`?구현 ?태??기 ?는???아직 충족?? 못함
+- ?워??족이 아니며 `구현 depth 불균????문제??- parser 받는 surface ??? semantic/C/LLVM/runtime/test/documentation까? ?전???히 ?음
 
-### ?대? ?ロ엺 異뺢낵 ???댁긽 踰좏? 李⑤떒???꾨땶 寃?
+### ?? ?힌 축과 ???상 베? 차단???닌 ?
 - `public/private/export` module boundary
-  - top-level nominal/domain/callable visibility ?뺣젹 ?꾨즺
-  - private `func/intent/event` cross-module call 李⑤떒 ?꾨즺
-  - private `zone/effect` action-contract leakage 李⑤떒 ?꾨즺
+  - top-level nominal/domain/callable visibility ?렬 ?료
+  - private `func/intent/event` cross-module call 차단 ?료
+  - private `zone/effect` action-contract leakage 차단 ?료
 - nominal token split
-  - `subject/class/struct/object/tobject`??lexer token ?덈꺼?먯꽌 ?대? 遺꾨━??- ability field surface
-  - legacy `require` alias ?쒓굅, `fields` canonical surface 怨좎젙
+  - `subject/class/struct/object/tobject`??lexer token ?벨?서 ?? 분리??- ability field surface
+  - legacy `require` alias ?거, `fields` canonical surface 고정
 - generic ability baseline
 - `ability<T>`, `requires Ability<T>`, `impl ability Ability<T>`, zone authority generic ref, mismatch diagnostics baseline 議댁옱
 - cross-module imported generic ability??multi-bound zone-authority consumer regression 異붽?
@@ -1681,84 +1722,84 @@ Source of truth:
   - 踰좏? ??곸뿉???쒖쇅
   - `v2 / experimental`濡쒕쭔 異붿쟻
 
-### ?꾩옱 踰좏?瑜?留됰뒗 ?ㅼ젣 B0 媛?
+### 현재 베??막는 ?제 B0 ?
 #### 1. Intent / Zone / World closure
 
-?꾩옱:
-- intent orchestration, inherited/derived contract, rollback/cleanup carrier, zone/world declaration怨?湲곕낯 lowering? 議댁옱
+?재:
+- intent orchestration, inherited/derived contract, rollback/cleanup carrier, zone/world declaration?기본 lowering? 존재
 - zone/world projection/layer/state query??議댁옱
 - intent runtime observability baseline??議댁옱
   - `IntentLast*`
   - `IntentHistoryStep*`
   - `IntentActive*`
   - `IntentRecent*`
-  - active/recent handle + active-step field query builtin??semantic/transpiler/runtime/LLVM baseline ?곌껐 ?꾨즺
-  - runtime ?대? recent ring + active registry + typed step history storage ?곌껐 ?꾨즺
-  - ABI regression: `IntentRecent*` trace/failure baseline, failed-intent provenance, world zone query, relation/effect zone state parity 怨좎젙
-  - backend parity: embedded world -> zone projection visibility regression 怨좎젙
+  - active/recent handle + active-step field query builtin??semantic/transpiler/runtime/LLVM baseline ?결 ?료
+  - runtime ?? recent ring + active registry + typed step history storage ?결 ?료
+  - ABI regression: `IntentRecent*` trace/failure baseline, failed-intent provenance, world zone query, relation/effect zone state parity 고정
+  - backend parity: embedded world -> zone projection visibility regression 고정
 
 ?⑥? 寃?
-- embedding ownership / handoff policy瑜?surface trust ?섏?源뚯? 紐낇솗??怨좎젙
+- embedding ownership / handoff policy?surface trust ??까? 명확??고정
 - richer multi-instance timeline query? failure provenance ?뺢탳??- cross-layer propagation policy????源딆? closure
-- C/LLVM parity瑜?declaration/runtime/diagnostic源뚯? 媛숈? ?덉쭏濡??뺣젹
+- C/LLVM parity?declaration/runtime/diagnostic까? 같? ?질??렬
 
 #### 2. relation / effect / projection closure
 
-?꾩옱:
+?재:
 - declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync baseline 議댁옱
 - effect join/meet/conflict API? basic closure 議댁옱
-- projection contract diagnostics??target/source/mode/fix瑜??ы븿?섎뒗 structured error 履쎌쑝濡?蹂닿컯??- backend parity:
-  - embedded world -> zone projection visibility regression 怨좎젙
-  - relation/effect layer + state propagation parity regression 怨좎젙
+- projection contract diagnostics??target/source/mode/fix??함는 structured error 쪽으?보강??- backend parity:
+  - embedded world -> zone projection visibility regression 고정
+  - relation/effect layer + state propagation parity regression 고정
 
 ?⑥? 寃?
-- authority/resource? effect partial order?????꾩쟾???듯빀
-- projection propagation policy ?ы솕
-- runtime contract? deeper propagation failure provenance瑜????ㅻ챸 媛?ν븯寃??뺣━
-- C/LLVM parity?먯꽌 helper-heavy edge path 媛먯냼
+- authority/resource? effect partial order?????전???합
+- projection propagation policy ?화
+- runtime contract? deeper propagation failure provenance???증명 ?하??리
+- C/LLVM parity?서 helper-heavy edge path 감소
 
 #### 3. generic contract closure
 
-?꾩옱:
+?재:
 - generic ability declaration/reference baseline 議댁옱
 - action / intent step / zone authority / party role slot generic mismatch diagnostics stable 議댁옱
-- hidden/default-export generic ability visibility??action/role impl肉??꾨땲??zone authority/party role slot consumer path源뚯? ?뚭?濡?怨좎젙
-- `ability<T> where ...` bound??`requires` / `impl ability` / party role slot ref?먯꽌 ?ㅼ떆 寃利앸맖
-- default type argument??semantic + transpiler + backend compare源뚯? baseline closure ?꾨즺
-  - user-defined `class/ability<T = ...>`媛 omitted arg 寃쎈줈?먯꽌??effective specialization?쇰줈 ?뺣젹??  - non-deduced trailing generic parameter default??function call `where` validation 寃쎈줈?먯꽌 ?뚭?濡?怨좎젙
-  - cross-module omitted default generic ability consumer(`party role slot` / `zone authority`)???뚭?濡?怨좎젙
-- multi-bound `where T: A + B` baseline? ?꾩옱 ?숈옉??- hidden/default-export? generic ability ref 洹쒖튃 ?뺣젹 ?꾨즺
+- hidden/default-export generic ability visibility??action/role impl?아니며 zone authority/party role slot consumer path까? ???고정
+- `ability<T> where ...` bound??`requires` / `impl ability` / party role slot ref?서 ?시 증됨
+- default type argument??semantic + transpiler + backend compare까? baseline closure ?료
+  - user-defined `class/ability<T = ...>` omitted arg 경로?서??effective specialization으로 ?렬??  - non-deduced trailing generic parameter default??function call `where` validation 경로?서 ???고정
+  - cross-module omitted default generic ability consumer(`party role slot` / `zone authority`)?????고정
+- multi-bound `where T: A + B` baseline? 현재 ?작??- hidden/default-export? generic ability ref 규칙 ?렬 ?료
 
 ?⑥? 寃?
-- broader type-family generalization??beta 踰붿쐞 諛뽰쑝濡?紐낆떆
-- richer generic constraint validation??beta contract 踰붿쐞瑜?臾몄꽌/board???쇱튂?쒖폒 怨좎젙
-- import/use surface? diagnostics/tooling ?쒗쁽??module contract 湲곗??쇰줈 ???쇨??섍쾶 ?뺣━
+- broader type-family generalization??beta 범위 밖으?명시
+- richer generic constraint validation??beta contract 범위?문서/board???치?켜 고정
+- import/use surface? diagnostics/tooling ?현??module contract 기?으로 ?????게 ?리
 
 #### 4. own/ref closure
 
-?꾩옱:
+?재:
 - anchored subset? ?ロ? ?덉쓬
   - `ref Slot<subject-host>`
   - `own SecureSlot<subject-host>`
 - first movable-value transfer slice???쒖옉??  - explicit `own QubitSlot` parameter???덉슜
   - `ref QubitSlot` borrow boundary baseline ?덉슜
   - call-site??`own/default`硫?consume, `ref`硫?borrow ?좎?濡?遺꾧린
-  - borrowed `ref QubitSlot`??`return` / `channel send` escape??semantic?먯꽌 紐낆떆 李⑤떒
-- 愿??吏꾨떒/?덉젣/臾몄꽌???꾩옱 援ы쁽 湲곗??쇰줈 ?뺣젹??
+  - borrowed `ref QubitSlot`??`return` / `channel send` escape??semantic?서 명시 차단
+- ??진단/?제/문서??현재 구현 기?으로 ?렬??
 ?먯젙:
-- anchored subset baseline? ?대? ?덉?留? beta-quality 湲곗??먯꽌??own/ref瑜??ㅼ떆 ?쒖꽦 blocker濡?蹂몃떎
-- ?⑥? ?쇱? ?쇰컲 movable type ownership model, copy vs move-only 遺꾨쪟, assignment/call/return/channel/container/rebind ?꾧꼍濡?analysis, richer provenance diagnostics瑜??ル뒗 寃껋씠??- ?뱁엳 borrowed movable-resource ownership??helper-call/return/channel-send baseline???ロ삍怨? ?ㅼ쓬? wider movable type generalization怨?container/rebind provenance瑜????レ븘???쒕떎
-- anchored subset留?stable?대씪怨?蹂닿퀬 ?섏뼱媛硫?ownership story媛 partial acceptance濡??⑤뒗??
-### ?덉씠?대퀎 ?꾩옱 吏꾩떎
+- anchored subset baseline? ?? ??? beta-quality 기??서??own/ref??시 ?성 blocker?본다
+- ?? ?? ?반 movable type ownership model, copy vs move-only 분류, assignment/call/return/channel/container/rebind ?경?analysis, richer provenance diagnostics?는 것이??- ?히 borrowed movable-resource ownership??helper-call/return/channel-send baseline???혔? ?음? wider movable type generalization?container/rebind provenance????아??한다
+- anchored subset?stable?라?보고 되어?ownership story partial acceptance??는??
+### ?이?별 현재 진실
 
 #### ?쒕㎤??
-- 媛뺥븳 遺遺?
+- 강한 ?
   - nominal family
   - subject/action
   - async/channel/select
   - generic ability baseline
   - visibility/export boundary
-- ?꾩쭅 ?뺤? 遺遺?
+- 아직 ?? ?
   - richer generic constraint validation
   - general own/ref
   - event closure???붿뿬 negative path
@@ -1767,25 +1808,25 @@ Source of truth:
 #### 肄붾뱶 ?앹꽦
 
 - C backend:
-  - 肄붿뼱 surface??媛???깆닕
-  - method owner metadata媛 HIR->MIR濡??대젮? declaration-side zone/relation/effect/world context 蹂듭썝 ???대쫫 異붿젙蹂대떎 MIR metadata瑜??곗꽑 ?ъ슜
-  - 吏꾪뻾: `transpiler_emit_host_method_body_local`??manual save/restore ?곹깭瑜?`TranspilerMirEmitState` snapshot helper濡?異뺤냼
-  - 吏꾪뻾: `emit_func_decl_from_mir_named` / AST fallback `emit_func_decl_named`??`TranspilerMirEmitState` snapshot helper濡??섎졃
-  - 吏꾪뻾: `emit_intent_decl`??function-scope out/render/return/local-count restore??`TranspilerMirEmitState` snapshot helper濡??섎졃
-  - 吏꾪뻾: generic class specialization method body??MIR inventory 議댁옱 ??AST fallback ???MIR routine gate / explicit backend error濡??뺣젹
-  - 吏꾪뻾: LLVM domain/role missing-routine errors??`PGY_CODE_LLVM_MIR_ROUTINE_MISSING` / cause / fix structured path濡??뺣젹
+  - 코어 surface?????숙
+  - method owner metadata HIR->MIR??려? declaration-side zone/relation/effect/world context 복원 ???름 추정보다 MIR metadata??선 ?용
+  - 진행: `transpiler_emit_host_method_body_local`??manual save/restore ?태?`TranspilerMirEmitState` snapshot helper?축소
+  - 진행: `emit_func_decl_from_mir_named` / AST fallback `emit_func_decl_named`??`TranspilerMirEmitState` snapshot helper??렴
+  - 진행: `emit_intent_decl`??function-scope out/render/return/local-count restore??`TranspilerMirEmitState` snapshot helper??렴
+  - 진행: generic class specialization method body??MIR inventory 존재 ??AST fallback ???MIR routine gate / explicit backend error??렬
+  - 진행: LLVM domain/role missing-routine errors??`PGY_CODE_LLVM_MIR_ROUTINE_MISSING` / cause / fix structured path??렬
 - LLVM backend:
   - MIR-led / HIR-assisted hybrid
-  - ordinary routine? MIR 以묒떖?댁?留?domain declaration怨??쇰? bootstrap/helper path??HIR/AST ?섏〈 ?붿〈
-  - pure MIR-only?쇨퀬 遺瑜닿린?먮뒗 ?꾩쭅 ?대쫫??怨쇳븿
+  - ordinary routine? MIR 중심???domain declaration??? bootstrap/helper path??HIR/AST ?존 ?존
+  - pure MIR-only하고 르기는 아직 ?름??과함
 
 #### ?고???
-- 媛뺥븳 遺遺?
+- 강한 ?
   - slot / secure baseline
   - async/channel basic runtime
   - basic intent execution/rollback
   - intent observability baseline (`last` / `history` / `active` / `recent`)
-- ?꾩쭅 ?뺤? 遺遺?
+- 아직 ?? ?
   - richer multi-instance timeline / failure provenance
   - channel backpressure protocol
   - party edge-path completeness
@@ -1793,170 +1834,170 @@ Source of truth:
 
 ### 而щ젆??/ ?쒕㈃ ?좊ː
 
-- `Map<K, V>`???꾩옱 `String | Int | Long | Bool` key stable subset源뚯? ?щ┛??- ?닿쾬? 踰꾧렇媛 ?꾨땲???꾩옱 contract
-- arbitrary key-universal map contract???꾩쭅 generic closure debt濡??⑤뒗??
+- `Map<K, V>`??현재 `String | Int | Long | Bool` key stable subset까? ?린??- ?것? 버그 아니며 현재 contract
+- arbitrary key-universal map contract??아직 generic closure debt??는??
 ### ?대쭅
 
-- LSP / formatter??踰좏? 李⑤떒 ?듭떖???꾨떂
-- debugger / package manager / WASM??踰좏? 李⑤떒 ?듭떖???꾨떂
-- ?대뱾? B0 closure ?댄썑???ㅻ（??寃껋씠 留욎쓬
+- LSP / formatter??베? 차단 ?심???님
+- debugger / package manager / WASM??베? 차단 ?심???님
+- ?들? B0 closure ?후???루??것이 맞음
 
-### 踰좏? 吏곸쟾 ?뺣━ ?먯튃
+### 베? 직전 ?리 ?칙
 
-1. ???ㅼ썙????異뺤쓣 ??異붽??섏? ?딅뒗??2. ?⑥? 誘몄셿??surface瑜?`?꾩꽦`?섍굅??`experimental`濡??대┛??3. `?묒옄`, `WASM`, `?⑦궎吏 留ㅻ땲?`, `怨좉툒 ?붾쾭嫄???踰좏? ??곸뿉???쒖쇅?쒕떎
-4. B0 4媛쒕? ?リ린 ?꾩뿉??踰좏??쇨퀬 遺瑜댁? ?딅뒗??
+1. ???워????축을 ??추??? ?는??2. ?? 미완??surface?`?성`?거??`experimental`??린??3. `?자`, `WASM`, `?키 매니?`, `고급 ?버???베? ??에???외한다
+4. B0 4개? ?기 ?에??베?하고 르? ?는??
 ---
 
-## ?꾨즺 (P0 ??Pain Point ?섏젙, 2026-04-12)
+## ?료 (P0 ??Pain Point ?정, 2026-04-12)
 
-- [x] **P0-1: Array for-in `.count` ??`.length`** ??`transpiler.c`?먯꽌 Array??`.length`, List??`.count` ?ъ슜
-- [x] **P0-2: `StringSplit`/`StringJoin` ?고???援ы쁽** ??`pgy_runtime.h`???ㅼ젣 援ы쁽 異붽?, ?쒕㎤??C 諛깆뿏???쇱튂
-- [x] **P0-3: `None` ?щ낵 ?뺤쓽** ??`type_checker.c`?먯꽌 AST_IDENTIFIER 泥섎━, `type_system.c`?먯꽌 `Option<unknown>` ??`Option<T>` ?좊떦 ?덉슜, 肄붾뱶?좎뿉??`expected_type` 湲곕컲 ????닿껐
-- [x] **P0-6: defer 蹂???ㅼ퐫??踰꾧렇 ?섏젙** ??`type_checker_flow.c`?먯꽌 defer body 泥섎━ ????resource-state snapshot/restore. cleanup body??`return`/`break`/`continue`? QubitSlot release/move??寃?ы븯吏留?二쇰? CFG path? outer loop flow瑜??뚮퉬?섏? ?딅뒗?? direct `type_check_statement()` fallback??媛숈? helper瑜??ъ슜?쒕떎.
-- [x] **P1-7: struct/subject Slot 留ㅽ겕濡?warning ?듭젣** ??`transpiler.c`?먯꽌 `#pragma GCC diagnostic push/pop`?쇰줈 `-Wunused-function` ?듭젣
-- [x] **P1-emit_call 媛?硫붿슦湲?* ??`BUILTIN_BOX_ARRAY`, `BUILTIN_PARALLEL` 耳?댁뒪 異붽?
-- [x] **P0-4: enum match OR ?⑦꽩 ?섏젙** ??`type_checker_flow.c`?먯꽌 named variant OR ?⑦꽩 ?덉슜 + coverage 泥댄겕 ?섏젙
-- [x] **P2-13: match 湲곕컲 ?⑥닔 default return ?먮룞 ?앹꽦** ??`transpiler_emitters_base_b.inc`?먯꽌 non-void ?⑥닔 ??fallback return 異붽?
-- [x] **Pain Point 蹂닿퀬??* ??`docs/68_pain_point_report.md`???섏젙 ?댁뿭 湲곕줉
+- [x] **P0-1: Array for-in `.count` ??`.length`** ??`transpiler.c`?서 Array??`.length`, List??`.count` ?용
+- [x] **P0-2: `StringSplit`/`StringJoin` ????구현** ??`pgy_runtime.h`???제 구현 추?, ?맨??C 백엔???치
+- [x] **P0-3: `None` ?볼 ?의** ??`type_checker.c`?서 AST_IDENTIFIER 처리, `type_system.c`?서 `Option<unknown>` ??`Option<T>` ?당 ?용, 코드?에??`expected_type` 기반 ????결
+- [x] **P0-6: defer ???코??버그 ?정** ??`type_checker_flow.c`?서 defer body 처리 ????resource-state snapshot/restore. cleanup body??`return`/`break`/`continue`? QubitSlot release/move???하?주? CFG path? outer loop flow??비?? ?는?? direct `type_check_statement()` fallback??같? helper??용한다.
+- [x] **P1-7: struct/subject Slot 매크?warning ?제** ??`transpiler.c`?서 `#pragma GCC diagnostic push/pop`으로 `-Wunused-function` ?제
+- [x] **P1-emit_call ?메우?* ??`BUILTIN_BOX_ARRAY`, `BUILTIN_PARALLEL` ?스 추?
+- [x] **P0-4: enum match OR ?턴 ?정** ??`type_checker_flow.c`?서 named variant OR ?턴 ?용 + coverage 체크 ?정
+- [x] **P2-13: match 기반 개수 default return ?동 ?성** ??`transpiler_emitters_base_b.inc`?서 non-void 개수 ??fallback return 추?
+- [x] **Pain Point 보고??* ??`docs/68_pain_point_report.md`???정 ?역 기록
 
-## ?꾨즺 (理쒓렐)
+## ?료 (최근)
 
 - [x] **Windows ABI/backend-compare precheck ?ㅽ뻾 寃쎈줈 ?뺢퇋??*
-  - `compiler_run_binary()`媛 MSYS ?ㅽ???`/tmp/...` 諛?`/<drive>/...` ?ㅽ뻾 ?뚯씪 寃쎈줈瑜?洹몃?濡?`_spawnvp()`???섍린??臾몄젣瑜??섏젙
-  - Windows?먯꽌 executable launch??native Win32 寃쎈줈濡??뺢퇋?뷀븳 ???ㅽ뻾?섎룄濡??뺣젹
+  - `compiler_run_binary()` MSYS ????`/tmp/...` ?`/<drive>/...` ?행 ?일 경로?그??`_spawnvp()`???기??문제??정
+  - Windows?서 executable launch??native Win32 경로??규?한 ???행?도??렬
 - [x] **nested vessel-source projection ambiguity closure**
-  - zone `refresh/publish/bind` projection contract 寃쎈줈?먯꽌 ambiguous source path媛 `missing`?쇰줈 ?ㅼ쭊?섎뜕 遺꾧린 ?쒖꽌瑜??섏젙
+  - zone `refresh/publish/bind` projection contract 경로?서 ambiguous source path `missing`으로 ?진?던 분기 ?서??정
   - builtin `ToObject` / `ToTObject`???숈씪??structured `Reason/Fix` ambiguity diagnostic?쇰줈 ?뺣젹
   - nested vessel ambiguity semantic regressions 異붽?
 - [x] **generic consumer provenance diagnostics 蹂닿컯**
-  - `action requires` / `zone authority` / `party role slot` / `intent step requires`?먯꽌 generic ability mismatch媛 `actual type argument` / `actual implementation` provenance瑜??④퍡 蹂닿퀬?섎룄濡??뺣젹
+  - `action requires` / `zone authority` / `party role slot` / `intent step requires`?서 generic ability mismatch `actual type argument` / `actual implementation` provenance??께 보고?도??렬
   - 愿??semantic ?뚭? 異붽?
 - [x] **anchored own/ref provenance diagnostics 蹂닿컯**
-  - closed-subset / local-only / missing `own/ref` / `ref` escape 吏꾨떒??`Reason/Fix`? borrowed-here provenance瑜?異붽?
+  - closed-subset / local-only / missing `own/ref` / `ref` escape 진단??`Reason/Fix`? borrowed-here provenance?추?
   - 愿??semantic ?뚭? 異붽?
-- [x] **world embedding structured diagnostics ?뚭? 怨좎젙**
-  - embedded zone old-binding mutation??assignment / hosted func-action call 紐⑤몢?먯꽌 `Reason/Fix`? world-owned-copy provenance瑜??④린?꾨줉 semantic ?뚭? 媛뺥솕
+- [x] **world embedding structured diagnostics ?? 고정**
+  - embedded zone old-binding mutation??assignment / hosted func-action call 모두?서 `Reason/Fix`? world-owned-copy provenance??기?록 semantic ?? 강화
 - [x] **Windows shell smoke portability 蹂닿컯**
-  - `abi_pipeline_smoke.sh`, `compare_backends.sh`媛 `cmp`/`diff` 遺???섍꼍?먯꽌??`git` ?먮뒗 Python fallback?쇰줈 鍮꾧탳/李⑥씠 異쒕젰???섑뻾?섎룄濡??뺣━
+  - `abi_pipeline_smoke.sh`, `compare_backends.sh` `cmp`/`diff` ???경?서??`git` 는 Python fallback으로 비교/차이 출력???행?도??리
 - [x] **surface trust docs ?뺣젹 ??collection/result/struct baseline**
-  - `Array<T>`??`[]`, `List<T>`??`ListNew()`, `HashMap<K,V>`??`MapNew()`瑜?canonical ?앹꽦 surface濡?怨좎젙
-  - `Result<T>` 異붿텧 API??`Unwrap` / `UnwrapOr` / postfix `?`濡?怨좎젙, `UnwrapResult()` ?쒕㈃? 鍮꾩콈??  - `struct` field??legacy `let`? 遺덈? ?쒖떇???꾨땲??declaration introducer?꾩쓣 臾몄꽌?뷀븯怨? ?쎄린 ?꾩슜 怨꾩빟? `object/tobject`?먮쭔 ?붾떎
-- [x] **generic default-arg closure 1李?蹂듦뎄** ??declaration acceptance留뚯씠 ?꾨땲??user-defined generic class omission, generic ability impl-reference omission, arity diagnostics range?? semantic/backend parity源뚯? ?ㅼ떆 ?뱀깋?쇰줈 ?뺣젹
+  - `Array<T>`??`[]`, `List<T>`??`ListNew()`, `HashMap<K,V>`??`MapNew()`?canonical ?성 surface?고정
+  - `Result<T>` 추출 API??`Unwrap` / `UnwrapOr` / postfix `?`?고정, `UnwrapResult()` ?면? 비채??  - `struct` field??legacy `let`? 불? ?식??아니며 declaration introducer을 문서?하? ?기 ?용 계약? `object/tobject`?만 한다
+- [x] **generic default-arg closure 1?복구** ??declaration acceptance만이 아니며 user-defined generic class omission, generic ability impl-reference omission, arity diagnostics range?? semantic/backend parity까? ?시 ?색으로 ?렬
 - [x] **ABI Unification Infrastructure** ??`pgy_abi_spec.h`, `test_abi_spec.c` (28 PASS), `MIRTypeLayout`, `mir_abi_lookup()`, `rir_dump_json()`, dumb emitter Visitor
-- [x] **Windows CI Fix** ??`TOKEN_TYPE` ??`PGY_TOKEN_TYPE`, `TokenType` ??`PgyTokenType` (~20媛??뚯씪)
-- [x] **v2 Quantum Planning** ???묒옄 ?곗궛 誘몄???紐낆떆, v2 怨꾪쉷 臾몄꽌??- [x] **Documentation Index** ??`docs/INDEX.md` ?앹꽦, ?꾩껜 臾몄꽌 泥닿퀎??- [x] **`HashMap<K, V>` stable key subset surface trust ?뺣젹** ??semantic annotation/builtins/runtime comment/test瑜?`String | Int | Long | Bool` key 吏?먯쑝濡??쇱튂?쒗궡
-- [x] **mixed `ability + zone` module export 異⑸룎 ?섏젙** ??default-export `ability`媛 sibling zone visibility瑜?源⑤쑉由щ뜕 ?뺢퇋??踰꾧렇 ?쒓굅, module smoke ?뚭? 異붽?
-- [x] **nominal host receiver type ?ㅼ뿼 ?섏젙** ??C backend member-call emit 以?static type-name overwrite瑜??쒓굅??`Int_Advance`瑜??ㅻ컻??蹂듦뎄
-- [x] **MIR cleanup exceptional topology ?뚭? 蹂듦뎄** ??cleanup/rollback/invalidation block edge materialization怨?test expectation ?뺣젹
+- [x] **Windows CI Fix** ??`TOKEN_TYPE` ??`PGY_TOKEN_TYPE`, `TokenType` ??`PgyTokenType` (~20??일)
+- [x] **v2 Quantum Planning** ???자 ?산 미???명시, v2 계획 문서??- [x] **Documentation Index** ??`docs/INDEX.md` ?성, ?체 문서 체계??- [x] **`HashMap<K, V>` stable key subset surface trust ?렬** ??semantic annotation/builtins/runtime comment/test?`String | Int | Long | Bool` key ?으??치?킴
+- [x] **mixed `ability + zone` module export 충돌 ?정** ??default-export `ability` sibling zone visibility?깨뜨리던 ?규??버그 ?거, module smoke ?? 추?
+- [x] **nominal host receiver type ?염 ?정** ??C backend member-call emit ?static type-name overwrite??거??`Int_Advance`??발??복구
+- [x] **MIR cleanup exceptional topology ?? 복구** ??cleanup/rollback/invalidation block edge materialization?test expectation ?렬
 - [x] **`order_analytics` example ?ㅼ쟾??* ??sketch ?섏? surface瑜??뺣━?섍퀬 compile-smoke covered example濡??밴꺽
 - [x] **declaration name surface tightening** ??declaration name???쇰컲 ?앸퀎?먮줈留??쒗븳?섍퀬 reserved keyword ?ъ궗??surface ?쒓굅
-- [x] **anchored-handle diagnostics/test ?뺣젹** ??`own/ref` closed-subset 吏꾨떒 臾멸뎄? `DeviceSlot`/anchored-handle semantic test expectation???꾩옱 援ы쁽 湲곗??쇰줈 ?쇱튂?쒗궡
-- [x] **怨꾩링??stdlib/domain kit v0 怨좎젙** ??`money`, `datetime(Duration/Instant)`, `timer`, `versioning`, `ledger`, `obligation`, `device_adapter` 紐⑤뱢怨?probe ?덉젣 異붽?, 肄붿뼱 異붽? 湲덉? ?먯튃 臾몄꽌??
+- [x] **anchored-handle diagnostics/test ?렬** ??`own/ref` closed-subset 진단 문구? `DeviceSlot`/anchored-handle semantic test expectation??현재 구현 기?으로 ?치?킴
+- [x] **계층??stdlib/domain kit v0 고정** ??`money`, `datetime(Duration/Instant)`, `timer`, `versioning`, `ledger`, `obligation`, `device_adapter` 모듈?probe ?제 추?, 코어 추? 금? ?칙 문서??
 ## 踰좏? ?대줈? 蹂대뱶
 
 踰좏? ???먯튃:
-- `遺遺?援ы쁽` ?곹깭瑜??④린吏 ?딅뒗??- ?꾨즺?쒗궎吏 紐삵븯??surface???대━嫄곕굹 experimental濡?寃⑸━?쒕떎
-- parser媛 諛쏅뒗 ?쒕㈃? semantic/C/LLVM/runtime/test/documentation源뚯? ?ル뒗??
-### B0 ???섎?濡??대줈? ?꾩닔
+- `?구현` ?태??기 ?는??- ?료?키 못하??surface???리거나 experimental?격리한다
+- parser 받는 ?면? semantic/C/LLVM/runtime/test/documentation까? ?는??
+### B0 ??????로? 개수
 
-- [ ] **Intent/Zone/World semantics ?꾩쟾 closure**
+- [ ] **Intent/Zone/World semantics ?전 closure**
   - contract reuse/derivation / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
   - ?대? 議댁옱: intent orchestration, inherited/derived contract, zone/world query, observability baseline
-  - 吏꾪뻾: runtime zone/world propagation cell??`epoch/cause` provenance baseline???ㅼ뼱媛붽퀬, LLVM intent rebound-zone sync??媛숈? truth濡??뺣젹??  - 吏꾪뻾: world derived-state chain? ?댁젣 bounded recompute loop瑜??듯빐 C/LLVM ?묒そ?먯꽌 媛숈? 洹쒖튃?쇰줈 怨꾩궛??  - 媛뺥븳 湲곗?: ??異뺤? ?댁젣 "?뺤? single-pass sync濡쒕룄 beta 媛?? 媛숈? ?댁꽍???덉슜?섏? ?딆쓬
-- ?⑥쓬: embedding ownership/handoff policy, **handoff? ???볦? world-zone propagation family源뚯? ?쇰컲?붾맂 bounded fixpoint 湲곕컲 cross-layer propagation policy**, richer provenance query surface, declaration/runtime/diagnostic parity
-  - ??異뺤? ?몄뼱 ?뺤껜???먯껜?대?濡?beta 吏곸쟾源뚯? ?댁뼱?먯? ?딅뒗??- [ ] **relation/effect/projection semantics ?꾩쟾 closure**
+  - 진행: runtime zone/world propagation cell??`epoch/cause` provenance baseline??되어갔고, LLVM intent rebound-zone sync??같? truth??렬??  - 진행: world derived-state chain? ?제 bounded recompute loop?대해 C/LLVM ?쪽?서 같? 규칙으로 계산??  - 강한 기?: ??축? ?제 "?? single-pass sync로도 beta ?? 같? ?석???용?? ?음
+- ?음: embedding ownership/handoff policy, **handoff? ???? world-zone propagation family까? ?반?된 bounded fixpoint 기반 cross-layer propagation policy**, richer provenance query surface, declaration/runtime/diagnostic parity
+  - ??축? 되어 ?체???체???beta 직전까? 되어?? ?는??- [ ] **relation/effect/projection semantics ?전 closure**
   - effect lattice, authority-resource partial order ?듯빀, refresh/publish/bind/causes ?쇨??? diagnostics, C/LLVM parity
   - ?대? 議댁옱: declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync, effect join/meet/conflict, projection contract diagnostics baseline
-- 吏꾪뻾: relation/effect/zone projection hidden cell??C/LLVM 紐⑤몢 `dirty/ready + epoch/cause` schema濡??뺣젹?먭퀬 runtime contract provenance baseline???앷?
-- 吏꾪뻾: world-derived recompute??bounded pass loop濡??щ씪?붽퀬, relation/effect/zone projection chain??bounded transitive recompute loop濡??щ씪?붾떎
-- 媛뺥븳 湲곗?: projection propagation? ???댁긽 "helper replay媛 ?泥대줈 留욎쓬" ?섏??쇰줈 ?먯? ?딄퀬, transitive semantics媛 ?ロ엳湲??꾧퉴吏 beta blocker濡??좎?
-- ?⑥쓬: authority-resource partial order ?듯빀, projection/layer/state瑜??섏뼱??**authority/failure handoff? ???볦? world-zone propagation family源뚯???full transitive frontier propagation policy**, helper-heavy edge path 媛먯냼, declaration/runtime/diagnostic/backend parity??留덉?留?shrink
-  - ??異뺤? domain semantics ?듭떖?대?濡?partial ?곹깭濡?beta???щ━吏 ?딅뒗??  - projection diagnostics??`target/source/projection kind/field path/fix`瑜??ы븿?섍퀬 `Reason:` / `Fix:` ?щ㎎?쇰줈 怨좎젙?쒕떎
-- [x] **generic contract ?꾩쟾 closure**
-  - strict beta-quality 湲곗??쇰줈 stable subset closure?먯꽌 ?ш컻諛?  - `default type arg` actual resolution, `where T: A + B` ?꾧꼍濡?enforcement, `ability<T>` mismatch provenance, instantiation-path parity源뚯? ?ル뒗??  - ?꾨즺: default type arg declaration acceptance / omitted trailing default resolution / generic ability impl-reference omission / arity diagnostics provenance
+- 진행: relation/effect/zone projection hidden cell??C/LLVM 모두 `dirty/ready + epoch/cause` schema??렬하고 runtime contract provenance baseline????
+- 진행: world-derived recompute??bounded pass loop??라?고, relation/effect/zone projection chain??bounded transitive recompute loop??라한다
+- 강한 기?: projection propagation? ???상 "helper replay ?체로 맞음" ??으로 ?? ?고, transitive semantics ?히??까 beta blocker???
+- ?음: authority-resource partial order ?합, projection/layer/state?되어??**authority/failure handoff? ???? world-zone propagation family까???full transitive frontier propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity??마??shrink
+  - ??축? domain semantics ?심???partial ?태?beta???리 ?는??  - projection diagnostics??`target/source/projection kind/field path/fix`??함하고 `Reason:` / `Fix:` ?맷으로 고정한다
+- [x] **generic contract ?전 closure**
+  - strict beta-quality 기?으로 stable subset closure?서 ?개?  - `default type arg` actual resolution, `where T: A + B` ?경?enforcement, `ability<T>` mismatch provenance, instantiation-path parity까? ?는??  - ?료: default type arg declaration acceptance / omitted trailing default resolution / generic ability impl-reference omission / arity diagnostics provenance
   - ?대? 議댁옱: `ability<T>` baseline, default type arg baseline, omitted trailing default resolution, generic mismatch provenance baseline
-  - 吏꾪뻾: `party role slot` generic mismatch??`consumer path / expected type args / actual type args` vocabulary ?뚭?濡?怨좎젙
+  - 진행: `party role slot` generic mismatch??`consumer path / expected type args / actual type args` vocabulary ???고정
   - ?⑥쓬: multi-bound ?꾧꼍濡?enforcement, module-contract propagation, instantiation-path parity, richer mismatch diagnostics, wider C/LLVM regression ?뺣?
-  - generic mismatch??`generic subject / expected type args / actual type args / broken bound / consumer path / fix`瑜??ы븿?섍퀬 `Reason:` / `Fix:` ?щ㎎?쇰줈 怨좎젙?쒕떎
-  - generic? partial acceptance瑜?beta???щ━吏 ?딅뒗??- [x] **own/ref ?꾩쟾 closure**
-  - strict beta-quality 湲곗??쇰줈 anchored subset closure?먯꽌 ?ш컻諛⑺뻽怨? classifier-backed stable subset?쇰줈 留덇컧
+  - generic mismatch??`generic subject / expected type args / actual type args / broken bound / consumer path / fix`??함하고 `Reason:` / `Fix:` ?맷으로 고정한다
+  - generic? partial acceptance?beta???리 ?는??- [x] **own/ref ?전 closure**
+  - strict beta-quality 기?으로 anchored subset closure?서 ?개방했? classifier-backed stable subset으로 마감
   - ?쇰컲 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity源뚯? ?レ쓬
   - ?대? 議댁옱: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
-  - ?꾨즺: summary/direct path family audit? classifier/docs 理쒖쥌 ?뺣젹
-  - 吏꾪뻾: constructor field store escape 寃쎈줈瑜?boundary-visible store濡?怨좎젙?섍퀬 ?뚭? 異붽?
-  - 吏꾪뻾: array literal store escape 寃쎈줈瑜?boundary-visible store濡?怨좎젙?섍퀬 ?뚭? 異붽?
-  - 吏꾪뻾: assignment rebind escape diagnostic??member/aggregate target path(`holder.packet`, `items[0]`) provenance瑜?吏곸젒 蹂닿퀬?섎룄濡??뺣젹
-  - 吏꾪뻾: nested projection provenance媛 constructor field store / member rebind / list/set/queue/map store / array overwrite / helper return summary / channel send / direct return源뚯? ?뚭?濡?怨좎젙??  - 吏꾪뻾: class/subject consumer matrix??return / channel / helper / list / set / queue / map / array push / array overwrite / member rebind / constructor field store源뚯? 嫄곗쓽 ?숉삎?쇰줈 ?뺣젹
-  - 吏꾪뻾: tuple/object 寃쎈줈??湲곗〈 `test_semantic.c` ?뚭? 異뺤뿉??channel/new-binding/rebind/return/helper forwarding/queue-map-array overwrite/projection provenance coverage ?좎?
-  - 吏꾪뻾: slot-handle/class helper-chain ?뚭???ownership-boundaries 怨꾩뿴??異붽???direct helper/function call family媛 transitive chain源뚯? 怨좎젙??  - 吏꾪뻾: helper/return/channel wording family瑜?`through ...` 湲곗??쇰줈 ?뺣젹
-  - ownership diagnostics??`value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`瑜??ы븿?섍퀬 `Reason:` / `Fix:` ?щ㎎?쇰줈 怨좎젙?쒕떎
+  - ?료: summary/direct path family audit? classifier/docs 최종 ?렬
+  - 진행: constructor field store escape 경로?boundary-visible store?고정하고 ?? 추?
+  - 진행: array literal store escape 경로?boundary-visible store?고정하고 ?? 추?
+  - 진행: assignment rebind escape diagnostic??member/aggregate target path(`holder.packet`, `items[0]`) provenance?직접 보고?도??렬
+  - 진행: nested projection provenance constructor field store / member rebind / list/set/queue/map store / array overwrite / helper return summary / channel send / direct return까? ???고정??  - 진행: class/subject consumer matrix??return / channel / helper / list / set / queue / map / array push / array overwrite / member rebind / constructor field store까? 거의 ?형으로 ?렬
+  - 진행: tuple/object 경로??기존 `test_semantic.c` ?? 축에??channel/new-binding/rebind/return/helper forwarding/queue-map-array overwrite/projection provenance coverage ??
+  - 진행: slot-handle/class helper-chain ????ownership-boundaries 계열??추???direct helper/function call family transitive chain까? 고정??  - 진행: helper/return/channel wording family?`through ...` 기?으로 ?렬
+  - ownership diagnostics??`value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`??함하고 `Reason:` / `Fix:` ?맷으로 고정한다
   - explicit reject: authority-bearing `Token<T>` escape/transport
   - beta-out-of-scope: region/lifetime solver? universal ownership lattice
 
-### B1 ??踰좏? ?좊ː???꾩닔
+### B1 ??베? ?뢰??개수
 
-- [x] **surface trust 臾몄꽌 ?щ텇瑜?*
-  - ?꾨즺: `docs/18_language_status.md`, `docs/63_feature_depth_matrix.md`, `README.md`?먯꽌 `stable subset / explicit reject / beta-out-of-scope` 湲곗??쇰줈 ?뺣젹
-  - 洹쒖튃: "而댄뙆?쇱? ?섏?留?partial"???쒕㈃??stable泥섎읆 ?곗? ?딄퀬, ?대뵒源뚯?瑜??ロ엺 怨꾩빟?쇰줈 ?쎌냽?섎뒗吏 癒쇱? 紐낆떆
-  - 洹쒖튃: broader generalization, arbitrary key support, general ownership, richer observability query 媛숈? ??ぉ? `beta-out-of-scope`濡?遺꾨━
+- [x] **surface trust 문서 ?분?*
+  - ?료: `docs/18_language_status.md`, `docs/63_feature_depth_matrix.md`, `README.md`?서 `stable subset / explicit reject / beta-out-of-scope` 기?으로 ?렬
+  - 규칙: "컴파?? ???partial"???면??stable처럼 ?? ?고, ?디까???힌 계약으로 ?속는 먼? 명시
+  - 규칙: broader generalization, arbitrary key support, general ownership, richer observability query 같? ??? `beta-out-of-scope`?분리
 - [ ] **stable example / smoke source of truth ?뺣?**
-  - canonical examples? closure examples瑜?smoke??吏곸젒 ?곌껐
-  - explicit surface vs compressed surface瑜?媛숈? ?섎?濡?蹂댁뿬二쇰뒗 pair example 理쒖냼 4??怨좎젙
+  - canonical examples? closure examples?smoke??직접 ?결
+  - explicit surface vs compressed surface?같? ???보여주는 pair example 최소 4??고정
   - ??? app/web orchestration, game/simulation, async/worker/device, world-handoff/domain propagation
 - [ ] **Backend parity final closure**
-  - C/LLVM??domain semantics 湲곗??쇰줈 媛숈? 寃곌낵瑜??대뒗吏 怨좎젙
+  - C/LLVM??domain semantics 기?으로 같? 결과?는 고정
   - ??? intent/zone/world, relation/effect/projection, ownership boundary, refresh/publish/bind, world embedding/handoff
-  - 湲곗?: backend compare / llvm smoke / example smoke / ABI-runtime probe媛 Linux/Windows 紐⑤몢 ?뱀깋
+  - 기?: backend compare / llvm smoke / example smoke / ABI-runtime probe Linux/Windows 모두 ?색
 - [ ] **experimental surface ?쒓굅 ?먮뒗 寃⑸━**
-  - ?レ? 紐삵븳 parser surface??紐낆떆 嫄곕? ?먮뒗 臾몃쾿 ?쒓굅
+  - ?? 못한 parser surface??명시 거? 는 문법 ?거
 
 ## Pain point freeze board
 
 ?먯튃:
-- 湲곕뒫?????볧엳湲??꾩뿉 諛섎났?댁꽌 ?ㅼ떆 源⑥????묒꽦/吏꾨떒 pain point瑜?癒쇱? 怨좎젙?쒕떎
-- 媛?pain point??`stable contract + regression + docs wording`源뚯? 媛숈씠 ?좉렐??- recoverable failure? invariant break瑜?媛숈? 諛⑹떇?쇰줈 泥섎━?섏? ?딅뒗??
+- 기능?????히?에 반복?서 ?시 깨????성/진단 pain point?먼? 고정한다
+- ?pain point??`stable contract + regression + docs wording`까? 같이 ?근??- recoverable failure? invariant break?같? 방식으로 처리?? ?는??
 ### Failure handling policy freeze
 
-遺꾨쪟:
+분류:
 - `recoverable failure`
-  - ?ъ슜??肄붾뱶媛 ?덉긽 媛?ν븳 ?ㅽ뙣
+  - ?용??코드 ?상 ?한 ?패
   - ?? intent failure, authority/boundary rejection, timeout, remote failure, empty/closed operational state
   - ?먯튃:
-    - ?꾨줈?몄뒪瑜?二쎌씠吏 ?딅뒗??    - `Bool` / `Result<T>` / queryable runtime state濡??쒕윭?몃떎
-    - reason / boundary / authority / step provenance瑜?議고쉶 媛?ν븯寃??④릿??- `contract violation`
-  - ?먯튃?곸쑝濡?semantic ?④퀎?먯꽌 李⑤떒
-  - ?고??꾧퉴吏 ?ㅻ㈃ structured panic
-  - ?? released slot access, invalid secure token, ownership boundary ?꾨컲
+    - ?로?스?죽이 ?는??    - `Bool` / `Result<T>` / queryable runtime state??러한다
+    - reason / boundary / authority / step provenance?조회 ?하??긴??- `contract violation`
+  - ?칙?으?semantic ?계?서 차단
+  - ???까 ?면 structured panic
+  - ?? released slot access, invalid secure token, ownership boundary ?반
 - `internal compiler/runtime bug`
-  - 利됱떆 以묐떒
-  - internal error / panic濡?紐낇솗??遺꾨━
-  - ?ъ슜??肄붾뱶 ?ㅽ뙣泥섎읆 ?꾩옣?섏? ?딅뒗??
-?꾩옱 怨좎젙:
-- intent/zone/world 履??ㅽ뙣???κ린?곸쑝濡?`recoverable failure`濡??섎졃?쒗궓??- slot/token/invariant 怨꾩뿴? 怨꾩냽 hard fail濡??붾떎
-- `Unwrap(...)`??panic ?깃꺽??sharp tool濡??좎??섍퀬, recoverable path??湲곕낯 怨꾩빟?쇰줈 ?곗? ?딅뒗??
+  - 즉시 중단
+  - internal error / panic?명확??분리
+  - ?용??코드 ?패처럼 ?장?? ?는??
+현재 고정:
+- intent/zone/world ??패???기?으?`recoverable failure`??렴?킨??- slot/token/invariant 계열? 계속 hard fail?한다
+- `Unwrap(...)`??panic ?격??sharp tool????고, recoverable path??기본 계약으로 ?? ?는??
 - [ ] **large canonical pair ?덉젣 異붽?**
-  - ???덉젣?먯꽌 `explicit`? `compressed`瑜?????stable source of truth濡??좎??쒕떎
-  - 理쒖냼 4媛??뚯씪 湲곗??쇰줈 愿由ы븳??    - `calendar manage-event`: explicit/compressed
+  - ???제?서 `explicit`? `compressed`?????stable source of truth???한다
+  - 최소 4??일 기?으로 리한??    - `calendar manage-event`: explicit/compressed
     - `composite intent orchestration`: explicit/compressed
   - 紐⑹쟻:
-    - ???덉젣???꾩껜 怨꾩빟??紐낆떆?뺤쑝濡??쎌쓣 ???덇쾶 ?좎?
-    - 媛숈? ?섎?瑜?異뺤빟?뺤쑝濡쒕룄 諛붾줈 蹂듭궗???쒖옉?????덇쾶 ?좎?
-    - smoke?먯꽌 ???덉젣媛 紐⑤몢 ?ㅽ뻾 媛?ν븯?꾨줉 怨좎젙
-- ??蹂대뱶??sugar backlog媛 ?꾨땲??beta surface trust瑜?吏?ㅺ린 ?꾪븳 怨좎젙?먯씠??- P0 pain point媛 ?좉린湲??꾩뿉??declaration-side MIR-only debt瑜?援?냼 蹂듦뎄 ?몄뿉???볤쾶 嫄대뱶由ъ? ?딅뒗??- backend ?대? ?뺣━??pain point 湲곗??좉낵 ?뚭?媛 癒쇱? 怨좎젙???ㅼ뿉留??ㅼ떆 ?뺤옣?쒕떎
+    - ???제???체 계약??명시?으?을 ???게 ??
+    - 같? ???축약?으로도 바로 복사???작?????게 ??
+    - smoke?서 ???제 모두 ?행 ?하?록 고정
+- ??보드??sugar backlog 아니며 beta surface trust??기 ?한 고정?이??- P0 pain point ?기??에??declaration-side MIR-only debt?? 복구 ?에???게 건드리? ?는??- backend ?? ?리??pain point 기?과 ?? 먼? 고정???에??시 ?장한다
 
-### P0 ???묒꽦/怨꾩빟 pain point
+### P0 ???성/계약 pain point
 
-- [ ] **contract clause density 怨좎젙**
+- [ ] **contract clause density 고정**
   - ??? `requires / within / authorized by / causes / refresh / publish / bind`
-  - 臾몄젣: 媛숈? ?섎?瑜?action / intent step / zone?먯꽌 以묐났 湲곗닠?섍쾶 ?섏뼱 ?묒꽦 ?쇰줈媛 而ㅼ쭚
-  - 怨좎젙 湲곗?:
-    - ?대뵒源뚯? inherited/derived ?섎뒗吏 vocabulary瑜?怨좎젙
-    - 湲멸쾶 ?곕뒗 踰꾩쟾怨??뺤텞 踰꾩쟾???섎? 李⑥씠媛 臾몄꽌/吏꾨떒/?덉젣?먯꽌 媛숈븘????    - canonical pair? minimal subset example????븷??遺꾨━??source-of-truth瑜?怨좎젙
+  - 문제: 같? ???action / intent step / zone?서 중복 기술?게 되어 ?성 으로 커짐
+  - 고정 기?:
+    - ?디까? inherited/derived 는 vocabulary?고정
+    - 길게 는 버전??축 버전???? 차이 문서/진단/?제?서 같아????    - canonical pair? minimal subset example??????분리??source-of-truth?고정
   - ?뚭? 湲곗?:
-    - semantic regression: inherited/derived contract source媛 吏꾨떒???몄텧
+    - semantic regression: inherited/derived contract source 진단???출
     - example smoke: long-form vs compressed-form ?덉젣 ?????좎?
 
-?꾩옱 source-of-truth:
+현재 source-of-truth:
 - canonical pair
   - `examples/intent_contract_pair_minimal.pgy`
   - `examples/authority_contract_pair_minimal.pgy`
@@ -1968,22 +2009,22 @@ Source of truth:
   - `examples/transfer_move_typed_minimal.pgy`
   - `examples/zone_context_minimal.pgy`
 
-- [x] **contract provenance vocabulary 怨좎젙**
-  - ?꾨즺: beta closure 臾몄꽌??contract provenance ?쒖??대? `derived / inherited`濡?怨좎젙
-  - 洹쒖튃: contract source ?ㅻ챸?먯꽌??`inferred`瑜??곗? ?딄퀬, action?먯꽌 ?ъ궗?⑸맂 step clause??`inherited`, `using/transfer` ???꾩옱 step?먯꽌 怨꾩궛??clause??`derived`濡?遺瑜몃떎
-  - 洹쒖튃: diagnostics / AST print / docs媛 媛숈? ?⑹뼱瑜??곕룄濡?留욎텛怨? `inferred`???쇰컲 ???怨꾩궛?대굹 non-contract internal analysis 臾몃㎘?먮쭔 ?④릿??  - ??? contract provenance ?붿뿬 ?쒗쁽, contract source wording, docs/example terminology
-  - 臾몄젣: compiler type/effect inference? domain contract ?곸냽/?뚯깮??媛숈? ?⑥뼱濡??욎씠硫??ㅻ챸?μ씠 臾대꼫吏?  - 怨좎젙 湲곗?:
-    - domain contract??`?곸냽 / ?뚯깮`怨?`inherited / derived`濡쒕쭔 遺瑜몃떎
+- [x] **contract provenance vocabulary 고정**
+  - ?료: beta closure 문서??contract provenance ???? `derived / inherited`?고정
+  - 규칙: contract source ?명?서??`inferred`??? ?고, action?서 ?사?된 step clause??`inherited`, `using/transfer` ??현재 step?서 계산??clause??`derived`?른다
+  - 규칙: diagnostics / AST print / docs 같? 되어??도?맞추? `inferred`???반 ???계산?나 non-contract internal analysis 문맥?만 ?긴??  - ??? contract provenance ?여 ?현, contract source wording, docs/example terminology
+  - 문제: compiler type/effect inference? domain contract ?속/?생??같? 되어??이??명이 무너?  - 고정 기?:
+    - domain contract??`?속 / ?생`?`inherited / derived`로만 른다
     - ?쇰컲 compiler ?섎???type/effect `inference`?먮쭔 ?④릿??  - ?뚭? 湲곗?:
-    - parser/semantic diagnostics 湲곕? 臾몄옄??怨좎젙
+    - parser/semantic diagnostics 기? 문자??고정
 
-### P0.5 ??recoverable failure 遺꾨쪟/怨좎젙
+### P0.5 ??recoverable failure 분류/고정
 
 - [x] **failure class inventory ?뺣━**
-  - ?꾨즺: `docs/07_error_handling.md`, `docs/18_language_status.md`, `README.md` 湲곗??쇰줈 `recoverable failure / contract violation / internal bug` inventory瑜??뺣━
-  - ?꾨즺: ?꾩옱 recoverable ?좎? ??ぉ, hard-fail ?좎? ??ぉ, ?꾩냽 downshift ???authority rejection ????援щ텇
-  - 洹쒖튃: runtime invariant guard? real domain rejection??媛숈? ?ㅽ뙣 痢듭쑝濡??욎? ?딆쓬
-- ?꾩옱 inventory baseline:
+  - ?료: `docs/07_error_handling.md`, `docs/18_language_status.md`, `README.md` 기?으로 `recoverable failure / contract violation / internal bug` inventory??리
+  - ?료: 현재 recoverable ?? ??, hard-fail ?? ??, ?속 downshift ???authority rejection ????구분
+  - 규칙: runtime invariant guard? real domain rejection??같? ?패 층으??? ?음
+- 현재 inventory baseline:
   - recoverable ?좎?:
     - `Result<T>` / `?`
     - `RemoteFuture<T> -> Result<T>`
@@ -1996,36 +2037,36 @@ Source of truth:
     - allocator / box / rc / weak invariant break
     - array / slice bounds violation
     - current runtime zone authority null-guard
-      - 李멸퀬: ?닿굔 ?꾩쭅 real authority rejection???꾨땲??invariant check?쇱꽌 hard-fail ?좎? 履쎌씠 留욌떎
+      - 참고: ?건 아직 real authority rejection??아니며 invariant check?서 hard-fail ?? 쪽이 맞다
   - first-wave conversion targets:
     - future real runtime authority rejection
     - intent boundary/authority mismatch provenance at runtime
 - [ ] **intent/zone/world recoverable failure baseline**
-  - intent failure, authority rejection, boundary mismatch??process abort ???queryable reason/state濡??몄텧
-  - runtime observability? diagnostics wording??媛숈? provenance vocabulary濡??뺣젹
-  - 李멸퀬: runtime propagation provenance(`epoch/cause`) baseline? ?꾨즺濡?蹂몃떎
-  - 吏꾪뻾: runtime zone authority invariant guard??`last_ok / zone / participant / code / reason` thread-local snapshot???④린?꾨줉 ?뺣젹?섏뼱, hard-fail guard? 蹂꾧컻濡?理쒖냼 queryable failure snapshot baseline? ?앷꼈??  - 吏꾪뻾: authority failure code/reason/stderr format? `src/runtime/pgy_runtime_authority_contract.h`濡??밴꺽?덈떎. inline C runtime怨?LLVM runtime library export媛 媛숈? contract macro瑜??ъ슜?섍퀬 `runtime-authority-contract-test-smoke`媛 raw literal drift瑜?李⑤떒?쒕떎
-  - 吏꾪뻾: intent emitter??MIR `IntentAuthorizedBy` metadata瑜?C/LLVM ?묒そ?먯꽌 ?섏쭛?섍퀬, step-local approval??`pgy_zone_authority_validate_flags_export(...)`濡?寃利앺빐 `authority:<step>` recoverable intent failure? runtime authority snapshot??媛숈? 寃쎈줈濡??④릿??  - 吏꾪뻾: intent `authorized by`??concrete zone subject slot?쇰줈 ?댁꽍?섎ŉ, 媛숈? ??낆쓽 non-authority slot ?먮뒗 ambiguous same-type slot mapping? semantic hard error濡??ロ삍??  - 吏꾪뻾: concrete direct-slot participant alias??ambiguous same-type ?꾨낫蹂대떎 ?곗꽑?쒕떎. `subject slot rogue: Adventurer`媛 議댁옱?섎㈃ `authorized by rogue`??concrete authority slot?쇰줈 ?ロ엳硫? ?댁쟾 ?꾨낫媛 ?몄슫 stale ambiguity flag??臾댁떆?쒕떎
+  - intent failure, authority rejection, boundary mismatch??process abort ???queryable reason/state??출
+  - runtime observability? diagnostics wording??같? provenance vocabulary??렬
+  - 참고: runtime propagation provenance(`epoch/cause`) baseline? ?료?본다
+  - 진행: runtime zone authority invariant guard??`last_ok / zone / participant / code / reason` thread-local snapshot???기?록 ?렬되어, hard-fail guard? 별개?최소 queryable failure snapshot baseline? ?겼??  - 진행: authority failure code/reason/stderr format? `src/runtime/pgy_runtime_authority_contract.h`??격한다. inline C runtime?LLVM runtime library export 같? contract macro??용하고 `runtime-authority-contract-test-smoke` raw literal drift?차단한다
+  - 진행: intent emitter??MIR `IntentAuthorizedBy` metadata?C/LLVM ?쪽?서 ?집?고, step-local approval??`pgy_zone_authority_validate_flags_export(...)`?증해 `authority:<step>` recoverable intent failure? runtime authority snapshot??같? 경로??긴??  - 진행: intent `authorized by`??concrete zone subject slot으로 ?석?며, 같? ?의 non-authority slot 는 ambiguous same-type slot mapping? semantic hard error??혔??  - 진행: concrete direct-slot participant alias??ambiguous same-type ?보보다 ?선한다. `subject slot rogue: Adventurer` 존재?면 `authorized by rogue`??concrete authority slot으로 ?히? ?전 ?보 ?운 stale ambiguity flag??무시한다
   - ?뚭?: `intent authorized participant must resolve to authority slot`, `intent authorized participant reports ambiguous authority slot`
-  - ?뚭?: `dnd_tavern_campaign` example smoke媛 multi-subject same-type zone?먯꽌 direct authority aliases瑜?end-to-end濡?怨좎젙?쒕떎
+  - ??: `dnd_tavern_campaign` example smoke multi-subject same-type zone?서 direct authority aliases?end-to-end?고정한다
   - ?뚭?: `intent_authority_snapshot_abi`, `intent_authority_snapshot`
   - ?뚭?: `authority_failure_abi`, `authority_failure_surface`, `runtime-authority-contract-test-smoke`
-  - ?⑥쓬: missing-zone/missing-participant ?댄썑??richer authority mismatch/domain-boundary denial reason??媛숈? queryable contract濡??뺤옣?댁빞 ?쒕떎
+  - ?음: missing-zone/missing-participant ?후??richer authority mismatch/domain-boundary denial reason??같? queryable contract??장?야 한다
 - [ ] **runtime authority guard downshift**
-  - ?꾩옱 `pgy_zone_authority_check_export(...)`??null self/null participant invariant guard??  - ??guard ?먯껜??hard-fail ?좎?
-  - 吏꾪뻾: C inline validator, LLVM runtime export, intent step-local `authorized by` validation 紐⑤몢 留덉?留?authority validation 寃곌낵瑜?媛숈? vocabulary(`last_ok`, `zone`, `participant`, `code`, `reason`)濡??④릿??  - 蹂꾨룄 real authority rejection runtime path媛 ?앷린硫?洹몄そ??`recoverable authority failure` 寃쎈줈濡??ㅺ퀎
+  - 현재 `pgy_zone_authority_check_export(...)`??null self/null participant invariant guard??  - ??guard ?체??hard-fail ??
+  - 진행: C inline validator, LLVM runtime export, intent step-local `authorized by` validation 모두 마??authority validation 결과?같? vocabulary(`last_ok`, `zone`, `participant`, `code`, `reason`)??긴??  - 별도 real authority rejection runtime path ?기?그쪽??`recoverable authority failure` 경로??계
 - [x] **hard-fail boundary 紐낆떆**
-  - ?꾨즺: `README.md`? `docs/07_error_handling.md`??hard-fail boundary瑜?紐낆떆
-  - 怨좎젙 ?댁슜: released slot, invalid token, ownership invariant break, unwrap misuse, bounds violation, runtime invariant guard??怨꾩냽 panic / hard-fail territory濡??붾떎
-  - 怨좎젙 ?댁슜: recoverable authority rejection怨?invariant guard瑜?媛숈? 痢듭쑝濡??욎? ?딅뒗?ㅻ뒗 ?먯쓣 臾몄꽌 wording?쇰줈 紐삳컯??
-- [ ] **projection contract diagnostics 怨좎젙**
+  - ?료: `README.md`? `docs/07_error_handling.md`??hard-fail boundary?명시
+  - 고정 ?용: released slot, invalid token, ownership invariant break, unwrap misuse, bounds violation, runtime invariant guard??계속 panic / hard-fail territory?한다
+  - 고정 ?용: recoverable authority rejection?invariant guard?같? 층으??? ?는는 을 문서 wording으로 못박??
+- [ ] **projection contract diagnostics 고정**
   - ??? `refresh/publish/bind` source/target/path/field-map ?ㅽ뙣
-  - 臾몄젣: projection? ?몄뼱 媛뺤젏?몃뜲 ?ㅽ뙣 ?댁쑀媛 ?쏀븯硫?媛??癒쇱? ?쇰줈瑜?以?  - 怨좎젙 湲곗?:
-    - target slot / source slot / projection kind / field path / fix媛 紐⑤몢 吏꾨떒???ㅼ뼱媛?    - structured `Reason:` / `Fix:` formatting??source-of-truth濡?怨좎젙
+  - 문제: projection? 되어 강점?데 ?패 ?유 ?하???먼? ?로??  - 고정 기?:
+    - target slot / source slot / projection kind / field path / fix 모두 진단??되어?    - structured `Reason:` / `Fix:` formatting??source-of-truth?고정
   - ?뚭? 湲곗?:
     - semantic regression: missing source field / ambiguous path / wrong projection kind / duplicate field map
-  - 吏꾪뻾: `projection-diagnostic-contract-test-smoke`媛 ??4媛?踰좏? ?꾩닔 吏꾨떒 耳?댁뒪? `Reason:` / `Fix:` / projection consumer path vocabulary瑜?semantic regression, implementation, proof doc 湲곗??쇰줈 ?④퍡 寃?ы븳??
-?꾩옱 source-of-truth:
+  - 진행: `projection-diagnostic-contract-test-smoke` ??4?베? 개수 진단 ?스? `Reason:` / `Fix:` / projection consumer path vocabulary?semantic regression, implementation, proof doc 기?으로 ?께 ?한??
+현재 source-of-truth:
 - stable example
   - `examples/projection_bind_group_minimal.pgy`
   - `examples/projection_refresh_publish_group_minimal.pgy`
@@ -2033,19 +2074,19 @@ Source of truth:
   - `src/test_semantic.c:test_projection_contract_diagnostics`
   - `make projection-diagnostic-contract-test-smoke`
 
-- [x] **surface trust subset 遺꾨쪟 怨좎젙**
+- [x] **surface trust subset 분류 고정**
   - ??? generics, own/ref, collections, runtime observability
-  - 臾몄젣: ?섎뒗 寃껋쿂??蹂댁씠?붾뜲 ?ㅼ젣濡쒕뒗 subset留??섎뒗 surface媛 媛?????좊ː ?먯긽 吏??  - 怨좎젙 湲곗?:
-    - `stable subset / explicit reject / beta-out-of-scope`瑜?TODO/docs/diagnostic?먯꽌 媛숈? 留먮줈 ?대떎
+  - 문제: 는 것처??보이?데 ?제로는 subset?는 surface ?????뢰 ?상 ??  - 고정 기?:
+    - `stable subset / explicit reject / beta-out-of-scope`?TODO/docs/diagnostic?서 같? 말로 한다
   - ?뚭? 湲곗?:
-    - semantic tests? depth docs媛 媛숈? subset??媛由ы궡
-  - ?꾩옱 湲곗? 臾몄꽌:
+    - semantic tests? depth docs 같? subset??리킴
+  - 현재 기? 문서:
     - `README.md`??`Surface trust policy`
     - `docs/18_language_status.md`
     - `docs/63_feature_depth_matrix.md`
     - `docs/64_depth_filling_roadmap.md`
 
-?꾩옱 怨좎젙?섎젮??baseline:
+현재 고정?려??baseline:
 - generics
   - stable subset: exact/ability/multi-bound baseline
   - stable subset extension: default type argument actual resolution on implemented declaration/call/module-consumer paths
@@ -2064,178 +2105,178 @@ Source of truth:
   - explicit reject: ?놁쓬
   - beta-out-of-scope: richer multi-instance timeline query? deeper failure provenance query
 
-### P1 ???대? 援ъ“ pain point
+### P1 ???? 구조 pain point
 
-- [ ] **declaration-side MIR-only debt 怨좎젙**
+- [ ] **declaration-side MIR-only debt 고정**
   - ??? declaration inventory / metadata helper / duplicated named-decl lookup
-  - 臾몄젣: routine body??MIR濡??뺣━?쇰룄 decl-side helper debt媛 ?⑥쑝硫?parity bug媛 諛섎났??  - 怨좎젙 湲곗?:
-    - backend lookup? 怨듯넻 inventory helper瑜??ъ슜
-    - ?⑥? debt???쒓린??誘멸뎄?꾟앹씠 ?꾨땲???쏛ST-carried decl metadata 援ъ“ debt?앸줈 遺꾨━?댁꽌 湲곕줉
+  - 문제: routine body??MIR??리?도 decl-side helper debt ?으?parity bug 반복??  - 고정 기?:
+    - backend lookup? 공통 inventory helper??용
+    - ?? debt???기??미구이 아니며 ?AST-carried decl metadata 구조 debt으로 분리?서 기록
   - ?뚭? 湲곗?:
-    - LLVM/C backend helper duplication 媛먯냼
-    - debt ledger? TODO ?쒗쁽 ?뺣젹
+    - LLVM/C backend helper duplication 감소
+    - debt ledger? TODO ?현 ?렬
   - ?꾪솴:
-    - 吏꾪뻾: MIR declaration emit state restore??helper ?섎굹濡?臾띠?怨? role host lookup? active inventory-only 履쎌쑝濡???醫곸븘議뚮떎
-    - 吏꾪뻾: 議곌린 return 寃쎈줈??`current_host_decl` / `current_func_decl` 蹂듦뎄媛 emitter 蹂몃Ц 以묐났 ???怨듭슜 restore helper瑜??寃??먮떎
-    - role / party / roster / relation / effect / zone / world declaration method body??AST fallback???쒓굅??    - ?⑥? debt??declaration inventory / naming helper / named-decl lookup??援ъ“ ?뺣━ 履쎌쑝濡?異뺤냼??    - 吏꾪뻾: `emit_func_decl_from_mir_named(...)`媛 outer host restore?먯꽌 raw saved host-name fallback蹂대떎 `saved_host_decl + current_func_decl`瑜??곗꽑 ?곕룄濡??뺣젹
-    - 吏꾪뻾: host restore/current-host lookup??inventory?먯꽌 host decl??紐?李얠쑝硫?raw `current_*_name` ?곹깭瑜??좎??섏? ?딄퀬 host handle??鍮꾩슦?꾨줉 ?뺣젹
-    - 吏꾪뻾: `transpiler_restore_host_context_local(...)` ?쒓렇?덉쿂??`saved_host_decl` 以묒떖?쇰줈 異뺤냼??decl-side restore?먯꽌 raw name ?몄옄瑜??쒓굅
-    - ?꾩옱 inventory:
+    - 진행: MIR declaration emit state restore??helper ?나?묶?? role host lookup? active inventory-only 쪽으???좁아졌다
+    - 진행: 조기 return 경로??`current_host_decl` / `current_func_decl` 복구 emitter 본문 중복 ???공용 restore helper???한다
+    - role / party / roster / relation / effect / zone / world declaration method body??AST fallback???거??    - ?? debt??declaration inventory / naming helper / named-decl lookup??구조 ?리 쪽으?축소??    - 진행: `emit_func_decl_from_mir_named(...)` outer host restore?서 raw saved host-name fallback보다 `saved_host_decl + current_func_decl`??선 ?도??렬
+    - 진행: host restore/current-host lookup??inventory?서 host decl???찾으?raw `current_*_name` ?태????? 하고 host handle??비우?록 ?렬
+    - 진행: `transpiler_restore_host_context_local(...)` ?그?처??`saved_host_decl` 중심으로 축소??decl-side restore?서 raw name ?자??거
+    - 현재 inventory:
       - `src/codegen/transpiler_helpers_core_b.inc`: `current_host_decl_name` ?곹깭 ?먯껜? ?쇰? host naming helper ?뺣━
       - `src/codegen/llvm_pipeline.c`: AST-carried declaration inventory瑜??대뒗 `MIRProgram` bootstrap 寃쎈줈
-      - 怨듯넻 怨쇱젣: current_* name ?곹깭? ad-hoc named lookup瑜?MIR declaration metadata query濡?移섑솚
+      - 공통 과제: current_* name ?태? ad-hoc named lookup?MIR declaration metadata query?치환
     - 理쒓렐 ?뺣━:
-      - `current_field_type_name`, `current_host_method_decl`, `find_nominal_host_method_decl`??active inventory 寃쎌쑀 lookup濡??뺣젹??      - transpiler host context 蹂듦뎄??`current_host_decl -> within_zone -> saved host-name inventory` ?쒖쑝濡??뺣젹??      - transpiler emitter hot path??direct `current_*_name` 李몄“??helper/restore layer ?꾩＜濡?異뺤냼??      - LLVM declaration helper / MIR-domain emission / expr-call builtin path??`llvm_current_host_decl_name(...)`? bind/restore helper 履쎌쑝濡??대룞??      - LLVM `llvm_current_host_decl(...)`?????댁긽 `current_class_name` ?ъ“??fallback???섏〈?섏? ?딄퀬 bound host handle / `within_zone`留뚯쓣 truth濡??ъ슜??      - `llvm_pipeline.c`??nominal declaration registration怨?class-method enumeration??raw `decl_header->methods` 吏곸젒 ?묎렐蹂대떎 active nominal inventory / `llvm_find_host_decl_methods_in_context(...)` 寃쎌쑀濡??대룞??      - `llvm_register.c`??active nominal registration??`mir->decl_headers` 吏곸젒 ?쒗쉶 ???active nominal inventory 湲곗??쇰줈 ?뺣젹??      - `make mir-declaration-inventory-test-smoke`瑜?異붽???C/LLVM declaration/domain/nominal active inventory helper seam怨?pipeline/domain ?뚮퉬 寃쎈줈瑜?static gate濡?怨좎젙?덈떎. ??raw MIR declaration array access??owner ?뚯씪 諛뽰뿉??議곗슜???섏뼱?????녿떎
-      - C backend `emit_program(...)`??executable metadata??`mir->has_*` / `mir_find_function_decl(...)` 吏곸젒 ?묎렐 ???`transpiler_active_*` helper瑜??듦낵?섎룄濡??뺣젹?덈떎
+      - `current_field_type_name`, `current_host_method_decl`, `find_nominal_host_method_decl`??active inventory 경유 lookup??렬??      - transpiler host context 복구??`current_host_decl -> within_zone -> saved host-name inventory` ?으??렬??      - transpiler emitter hot path??direct `current_*_name` 참조??helper/restore layer ?주?축소??      - LLVM declaration helper / MIR-domain emission / expr-call builtin path??`llvm_current_host_decl_name(...)`? bind/restore helper 쪽으??동??      - LLVM `llvm_current_host_decl(...)`?????상 `current_class_name` ?조??fallback???존?? 하고 bound host handle / `within_zone`만을 truth??용??      - `llvm_pipeline.c`??nominal declaration registration?class-method enumeration??raw `decl_header->methods` 직접 ?근보다 active nominal inventory / `llvm_find_host_decl_methods_in_context(...)` 경유??동??      - `llvm_register.c`??active nominal registration??`mir->decl_headers` 직접 ?회 ???active nominal inventory 기?으로 ?렬??      - `make mir-declaration-inventory-test-smoke`?추???C/LLVM declaration/domain/nominal active inventory helper seam?pipeline/domain ?비 경로?static gate?고정한다. ??raw MIR declaration array access??owner ?일 밖에??조용??되어????한다
+      - C backend `emit_program(...)`??executable metadata??`mir->has_*` / `mir_find_function_decl(...)` 직접 ?근 ???`transpiler_active_*` helper??과?도??렬한다
       - C backend `emit_program(...)`??ability/type/extern/function/intent/domain/event declaration bootstrap ?쒗쉶??direct `mir->...` array/count ?묎렐 ???`transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view瑜??ъ슜?섎룄濡??뺣젹?덈떎
       - `MIRDeclMethod`??hosted method identity, routine link, signature metadata源뚯? ?닿퀬 LLVM nominal/enum prototype registration? `llvm_mir_decl_method_*` helper瑜??듯빐 ??row瑜?癒쇱? ?뚮퉬?쒕떎
-      - ?⑥? ?듭떖 debt??LLVM pipeline??AST-carried declaration inventory bootstrap? helper/restore layer 諛붽묑??raw host-name state ?쒓굅
+      - ?? ?심 debt??LLVM pipeline??AST-carried declaration inventory bootstrap? helper/restore layer 바깥??raw host-name state ?거
 
-- [x] **ownership vocabulary / payload cleanup 1李?怨좎젙**
+- [x] **ownership vocabulary / payload cleanup 1?고정**
   - ??? semantic ownership diagnostics / payload helper family / wording drift
-  - ?꾨즺:
-    - `src/semantic/type_checker_ownership_boundaries.inc`??ownership helper 9醫낆씠 `DiagPayload`/`semantic_emit_payload(...)` ?⑦꽩?쇰줈 ?뺣젹??    - semantic direct `semantic_error_with_hints(...)` ?몄텧? ownership-boundary helper ?대??먯꽌 ?쒓굅??    - vocabulary 1李??뺣━:
+  - ?료:
+    - `src/semantic/type_checker_ownership_boundaries.inc`??ownership helper 9종이 `DiagPayload`/`semantic_emit_payload(...)` ?턴으로 ?렬??    - semantic direct `semantic_error_with_hints(...)` ?출? ownership-boundary helper ???서 ?거??    - vocabulary 1??리:
       - `anchored handle` ??`slot handle (anchored)`
       - `movable resource handle` / `movable resource` ??`slot handle (movable)`
       - `capability-bearing` ??`authority-bearing` (ownership/domain wording 湲곗?)
-    - semantic ?뚭????꾩옱 wording 湲곗??쇰줈 ?ㅼ떆 怨좎젙??  - 寃利?
+    - semantic ????현재 wording 기?으로 ?시 고정??  - ?
     - `make test-semantic` ??`1872 passed, 0 failed`
     - `make test-transpile` ??`601 passed, 0 failed`
   - ?⑥? 寃?
-    - P3 ?붿뿬 ?몃텇瑜?`boundary value (subject)` ?? 異붽? ?뺤텞
-    - payload/helper family瑜?ownership 諛붽묑 semantic diagnostics濡????뺤옣
-    - own/ref call/consumer path?먯꽌 classifier 湲곕컲 trivial copy-only semantics瑜????볤쾶 ?곸슜
+    - P3 ?여 ?분?`boundary value (subject)` ?? 추? ?축
+    - payload/helper family?ownership 바깥 semantic diagnostics????장
+    - own/ref call/consumer path?서 classifier 기반 trivial copy-only semantics????게 ?용
     - destructure target binding / nested projection / helper-chain wording??consumer kind 湲곗??쇰줈 ???몃텇??
-- [ ] **type-resolution DAG ?붿쭊 ?꾩엯**
+- [ ] **type-resolution DAG ?진 ?입**
   - ??? semantic type resolution / generic consumer resolution / declaration dependency scheduling
-  - 臾몄젣: ?꾩옱??`resolve_type_node(...)` 以묒떖???ш? ?댁꽍 + scope lookup + ad-hoc validation??二쇱텞?대씪, module import graph??遺꾨챸?섏?留?type dependency ?먯껜??compiler-wide DAG濡?愿由щ릺吏 ?딅뒗??  - 理쒓렐 吏꾪뻾:
+  - 문제: ?재??`resolve_type_node(...)` 중심???? ?석 + scope lookup + ad-hoc validation??주축?라, module import graph??분명???type dependency ?체??compiler-wide DAG?리되 ?는??  - 최근 진행:
     - `TypeResolutionGraph` inventory + cycle diagnostic + topo derivation? ?ㅼ젣 ?쒖꽦 ?곹깭
-    - staged worklist??provider-first ??닚 topo ?쒗쉶濡?怨좎젙??    - local contract / projection synthetic node??label蹂?narrow handler濡??뚮퉬??    - generic `default_type` / generic constraint / `where` bound??staged DAG resolver 寃쎈줈???몄엯??    - graph regression? world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / action-intent-zone-party ability consumer provenance源뚯? ?ы븿
-    - graph validator cycle怨?legacy alias-resolution cycle??紐⑤몢 `Contract source:` / `Reason:` / `Fix:` 援ъ“濡??뺣젹??    - 吏꾪뻾: type constraint bound formatter??`type_checker_type_constraint.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-    - 吏꾪뻾: graph node/edge/path/cycle-format primitive??`type_checker_resolution_graph_core.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-    - 吏꾪뻾: named dependency edge recorder? 利됱떆 cycle diagnostic 諛쒗뻾 寃쎈줈??`type_checker_resolution_graph_core.c`濡??ㅼ젣 TU 遺꾨━ ?꾨즺
-    - 吏꾪뻾: type-ref dependency recorder??`type_checker_resolution_graph_core.c`濡??대룞?덇퀬, `find_type_alias_decl`??cross-include dangling return-type seam??紐낆떆 ?좎뼵?쇰줈 ?뺣━
-    - 吏꾪뻾: type-ref collector??`type_checker_resolution_graph_collect.c`濡??대룞?덇퀬, graph core/include 寃쎄퀎??dangling `static void` seam???쒓굅
-    - 吏꾪뻾: generic contract inventory / string dependency / required ability collector helpers??`type_checker_resolution_graph_collect.c`濡??대룞??declaration collector?ㅼ쓽 怨듯넻 ?섏〈??TU 寃쎄퀎濡??밴꺽
-    - 吏꾪뻾: top-level declaration graph registration? `type_checker_resolution_graph_collect.c`濡??대룞??inventory `.inc`瑜?1,962 LOC源뚯? 異뺤냼
-    - 吏꾪뻾: local-contract graph node/dependency + zone/world/projection label formatters??`type_checker_resolution_graph_labels.c`濡??대룞??inventory `.inc`瑜?1,835 LOC源뚯? 異뺤냼
-    - 吏꾪뻾: projection source resolver??`type_checker_resolution_graph_domain.c`濡??대룞?섍퀬 `find_zone_domain_slot`??internal API濡??밴꺽??inventory `.inc`瑜?1,809 LOC源뚯? 異뺤냼
-    - 吏꾪뻾: event declaration precollector??`type_checker_resolution_graph_decl.c`濡??대룞??inventory 蹂몄껜?먯꽌 declaration-kind collector瑜?泥??덈떒
-    - 吏꾪뻾: enum declaration precollector??`type_checker_resolution_graph_decl.c`濡??대룞?섍퀬 `semantic_stage_method_array`瑜?internal API濡??밴꺽??inventory `.inc`瑜?1,765 LOC源뚯? 異뺤냼
-    - 吏꾪뻾: ability declaration precollector? action-contract precollector??`type_checker_resolution_graph_decl.c`濡??대룞??inventory `.inc`瑜?1,648 LOC源뚯? 異뺤냼
-    - 吏꾪뻾: role/class/party/roster declaration precollector??`type_checker_resolution_graph_decl.c`濡??대룞?섍퀬, relation/effect domain inventory precollector??`type_checker_resolution_graph_domain.c`濡??대룞??inventory `.inc`瑜?1,299 LOC源뚯? 異뺤냼
-    - 吏꾪뻾: intent declaration precollector? world inventory precollector瑜?媛곴컖 `type_checker_resolution_graph_decl.c`, `type_checker_resolution_graph_world.c`濡??대룞??inventory `.inc`瑜?870 LOC源뚯? 異뺤냼
-    - 吏꾪뻾: zone projection field-map collector瑜?`type_checker_resolution_graph_zone.c`濡?遺꾨━?덇퀬, ?⑥? inventory body瑜?`type_checker_resolution_graph_inventory.c`濡??밴꺽??inventory `.inc`瑜??쒓굅
-    - 吏꾪뻾: world/zone local-contract stage replay瑜?`type_checker_resolution_stage_domain.c`濡?遺꾨━?섍퀬, ?⑥? stage 蹂몄껜瑜?`type_checker_resolution_stage.c`濡??밴꺽??stage `.inc` ?쒓굅
-    - 吏꾪뻾: class/extern declaration checker瑜?`type_checker_class_decl.c`濡? top-level semantic orchestration??`type_checker_program.c`濡?遺꾨━??program `.inc`瑜?624 LOC源뚯? 異뺤냼
-    - 吏꾪뻾: `ToObject` / `ToTObject` projection checker瑜?`type_checker_builtins_projection.c`濡?遺꾨━??builtins nominal `.inc`瑜?659 LOC源뚯? 異뺤냼
-    - 吏꾪뻾: domain helper? intent helper瑜?媛곴컖 `type_checker_decls_domain_helpers.c`, `type_checker_intent_helpers.c`濡??밴꺽??semantic `.inc` 800 LOC stop condition???ъ꽦?섍퀬 `make semantic-inc-size-test-smoke`濡??뚭? 諛⑹?
-    - 吏꾪뻾: C backend `transpiler_emitters_mir_inventory_ssa.inc`瑜?3媛??섏쐞 slice濡?遺꾨━?섍퀬 `make test-transpile`, `make llvm-test-backend-compare`濡?parity ?뚭? ?듦낵
-    - 吏꾪뻾: standalone TU ?밴꺽 以??쒕윭??dangling return-type seams? implicit helper dependency瑜??쒓굅??`make test-all`, `make llvm-test-backend-compare` ?뚭? ?듦낵
-    - 吏꾪뻾: implicit declaration / implicit int??湲곕낯 CFLAGS?먯꽌 ?먮윭濡?怨좎젙?섏뼱 ?댄썑 DAG/semantic split 以?hidden helper dependency媛 利됱떆 ?ㅽ뙣?섎룄濡??뺣젹
-    - 吏꾪뻾: `type_resolution_intern_node` / `type_resolution_add_edge` / `type_resolution_find_path` / `type_resolution_format_cycle`??include-order static helper?먯꽌 `type_checker_internal.h` internal API濡??밴꺽
-    - 吏꾪뻾: DAG stage ?덉뿉???꾩쭅 `resolve_type_node(...)`濡??대젮媛??legacy fallback??`PGY_TYPE_RES_STATS=1` ?듦퀎???몄텧?덈떎. `stage-legacy-resolve: calls/failed/suppressed_diagnostics`? `stage-legacy-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`媛 異쒕젰?섎ŉ, `make type-resolution-dag-test-smoke`媛 graph stats, topo validation, legacy fallback inventory 議댁옱瑜?CI gate濡?怨좎젙?쒕떎
-    - 吏꾪뻾: type-alias stage??quiet resolve ?깃났 寃곌낵瑜??ъ궗?⑺븯?꾨줉 ?뺣━???깃났 寃쎈줈??以묐났 `resolve_type_node(...)` ?몄텧???쒓굅?덈떎. ?ㅽ뙣 寃쎈줈??湲곗〈 diagnostic fallback???좎??쒕떎
-    - 吏꾪뻾: DAG edge媛 ?대? 議댁옱?섎뒗 named type-ref??generic argument瑜??ы븿??stage?먯꽌 `resolve_type_node(...)`瑜??ㅼ떆 ?몄텧?섏? ?딄퀬 graph-backed skip?쇰줈 泥섎━?쒕떎. `stage-graph-backed: skips=N` ?듦퀎媛 異붽??먭퀬 `type-resolution-dag-test-smoke`媛 skip ?⑷퀎媛 0?쇰줈 ?댄뻾?섏? ?딅뒗吏 寃?ы븳??    - 吏꾪뻾: graph precollect TU ?덉뿉??enum methods媛 `semantic_stage_method_array(...)`瑜??몄텧?섎뜕 impurity瑜??쒓굅?덈떎. ?댁젣 enum method signature/contract??precollect action contract 寃쎈줈濡쒕쭔 graph edge瑜??섏쭛?쒕떎
-    - 吏꾪뻾: DAG stage helper瑜?`type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`濡?遺꾨━??`type_checker_resolution_stage.c`瑜?895 LOC濡???톬?? graph precollect, stage lookup, stage stats, stage replay owner媛 ?뚯씪 寃쎄퀎濡?遺꾨━?먮떎
-    - 吏꾪뻾: generic where/default validation? `type_checker_generic_validation.c`濡??대룞?덈떎. `type_checker_resolution_graph_*.c`? `type_checker_resolution_graph_core.inc`?????댁긽 `resolve_type_node(...)`瑜?吏곸젒 ?몄텧?섏? ?딆쑝硫? `semantic-core-shape-test-smoke`媛 ??resolver-free graph-layer 寃쎄퀎瑜?寃?ы븳??    - 吏꾪뻾: graph precollect媛 context-independent builtin type refs(`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`)瑜?`SemanticContext.type_resolution_metadata`??湲곕줉?쒕떎. owner resolver seams????metadata瑜?癒쇱? 議고쉶????recursive fallback?쇰줈 ?대젮媛꾨떎
-    - 吏꾪뻾: graph metadata媛 resolver-stable constructed/anchored-handle shells(`Array<T>`, `Slice<T>`, `List<T>`, `Queue<T>`, `Set<T>`, `Box<T>`, `Rc<T>`, `Weak<T>`, `Channel<T>`, `Future<T>`, `RemoteFuture<T>`, `Token<T>`, `DeviceSlot<T>`, `HashMap<String|Int|Long|Bool, T>`, `Option<T>`, `Result<T,E>`, `Slot<T>`, `SecureSlot<T>`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`)瑜?materialize?????덈떎. graph媛 留뚮뱺 `Type` shell? metadata owned lane?쇰줈 湲곕줉?섍퀬 semantic context destroy?먯꽌 ?댁젣?쒕떎
-    - 吏꾪뻾: graph metadata媛 tuple shell怨?event-handler/function shell??materialize?쒕떎. channel/future AST node??inner fact collect 吏곹썑 constructed shell??湲곕줉?섎?濡?recursive fallback?????섏〈?쒕떎
-    - 吏꾪뻾: `resolve_type_node(...)` wrapper ?먯껜媛 metadata-first媛 ?섏뼱, ?⑥? explicit legacy allowlist??recursive materialization ?꾩뿉 DAG facts瑜?癒쇱? ?뚮퉬?쒕떎
-    - 吏꾪뻾: `resolve_generic_type_arg(...)`??metadata-first 議고쉶 ??fallback?쇰줈 ?대젮媛꾨떎. constructed builtin/generic consumer path??recursive resolver ?섏〈 硫댁쟻??以꾩???    - 吏꾪뻾: owner-local resolver seams??`semantic_type_resolution_lookup_or_materialize(...)` 怨듭슜 materializer濡??섎졃?덈떎. resolver 援ы쁽泥댁? central metadata materializer 諛뽰뿉??吏곸젒 `resolve_type_node(...)`瑜??몄텧?섎㈃ `type-resolution-resolver-inventory-test-smoke`媛 ?ㅽ뙣?쒕떎
-    - 吏꾪뻾: `type-resolution-dag-test-smoke`媛 graph-backed skips肉??꾨땲??metadata entries/owned/hits, metadata materializer fallback count, zero non-alias stage legacy fallback, alias-stage split accounting??寃?ы븳?? 理쒖떊 local stats: `graph-backed skips=3133 metadata_entries=1877 metadata_owned=111 metadata_hits=3267 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
-    - 吏꾪뻾: DAG smoke???댁젣 graph-backed skip/metadata entry/metadata hit/owned metadata媛 ?⑥닚??0蹂대떎 ?곗?留?蹂댁? ?딄퀬 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)瑜?寃?ы븳?? DAG source-of-truth ?ъ슜?됱씠 ?ш쾶 ?꾪눜?섎㈃ CI?먯꽌 利됱떆 ?〓뒗??    - 吏꾪뻾: 以묒븰 metadata materializer??留덉?留?recursive fallback??`materializer_fallbacks` ?듦퀎濡??몄텧?섍퀬 semantic suite ?⑹궛 cap??4135濡???톬?? ??cap? ?깆옣 諛⑹??⑹씠硫? ?ㅼ쓬 DAG ?묒뾽? ??媛믪쓣 怨꾩냽 ??텛??寃껋씠??    - 吏꾪뻾: ?⑥? stage legacy surface??alias-only濡?怨좎젙?먮떎. ?깃났 alias materialization怨?diagnostic fallback??蹂꾨룄 怨꾩륫?섍퀬 valid alias fallback? 0?쇰줈 gate?쒕떎. ?⑥? 78嫄댁? alias-cycle diagnostic coverage?먯꽌 ?섏삤??unresolved fallback?대ŉ hidden non-alias recursive resolution???꾨땲??    - 吏꾪뻾: program-level symbol inventory媛 ability declarations??predeclare?쒕떎. `type_check_ability_decl(...)`? ?먭린 ?먯떊??predeclare留??ъ궗?⑺븯怨?媛숈? ?대쫫???ㅻⅨ ability??湲곗〈泥섎읆 duplicate diagnostic?쇰줈 泥섎━?쒕떎. forward source order?먯꽌 generic default/where, zone authority, party role-slot ability consumer媛 provider ?꾪뻾?댁뼱???듦낵?섎뒗 regression??異붽??덈떎
-    - 吏꾪뻾: `tests/cases/backend_compare/forward_ability_order/main.pgy`瑜?backend compare suite??異붽??덈떎. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering??semantic-only媛 ?꾨땲??C/LLVM 異쒕젰 ?숇벑?깃퉴吏 ?좎??섎뒗吏 寃?ы븳??    - 吏꾪뻾: `tests/compare_backends.sh` 湲곕낯 ?ㅽ뻾? `tests/cases/backend_compare/*/main.pgy`媛 default case array??鍮좎졇 ?덉쑝硫??ㅽ뙣?쒕떎. 紐낆떆 ?몄옄 湲곕컲 targeted run? ?좎??섎릺, CI/default path?먯꽌 ??parity case媛 議곗슜???꾨씫?섎뒗 drift瑜?李⑤떒?덈떎. ??gate濡?湲곗〈 passing case 8媛?array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)瑜?default C/LLVM parity suite???몄엯?덈떎
-    - 吏꾪뻾: `type-resolution-resolver-inventory-test-smoke`媛 direct resolver allowlist? ?④퍡 metadata-first wrapper, execution/anchored-handle metadata materializer coverage瑜?static gate濡?怨좎젙?쒕떎
-    - 吏꾪뻾: `type-resolution-resolver-inventory-test-smoke`媛 ??`semantic_type_resolution_resolve_or_fallback(...)` ?ъ슜?먮? 湲덉??섍퀬 named fallback seam 珥앸웾??0媛쒕줈 怨좎젙?쒕떎. gate 異쒕젰? ?꾩옱 fallback seam count瑜?吏곸젒 蹂댁뿬二쇰ŉ, remaining fallback? `semantic_type_resolution_lookup_or_materialize(...)` ?대???central escape hatch 援먯껜 ??곸씠??    - 吏꾪뻾: fallback seam gate??湲곗〈 ?섑븳??`30媛?誘몃쭔?대㈃ ?ㅽ뙣`)??debt-reduction??留욎? ?딅뒗 洹쒖튃?쇰줈 蹂닿퀬 ?쒓굅?덈떎. ?댁젣 0媛??곹븳留?growth guard濡??좎??섎ŉ, seam 異뺤냼??CI ?깃났 寃쎈줈??    - 吏꾪뻾: `type_checker_module_contract.c`??ability contract bookkeeping? recursive fallback helper瑜??몄텧?섏? ?딄퀬 DAG metadata lookup-only seam?쇰줈 ??톬?? ability 議댁옱/visibility/generic arity/where provenance??ability-specific validator媛 怨꾩냽 ?뚯쑀?섎ŉ, fallback seam inventory??39?먯꽌 38濡?媛먯냼?덈떎
-    - 吏꾪뻾: `type_checker_ability_fields.c`??ability `fields` requirement validation??recursive fallback helper瑜??몄텧?섏? ?딄퀬 DAG metadata lookup-only濡???톬?? field contract diagnostics??ability-specific validator媛 怨꾩냽 ?뚯쑀?섎ŉ, fallback seam cap? 32?먯꽌 31濡?媛먯냼?덈떎
-    - 吏꾪뻾: `type_checker_builtins_projection.c`??projection target-field resolver??recursive fallback helper瑜??몄텧?섏? ?딄퀬 DAG metadata lookup-only濡???톬?? projection field diagnostics??projection validator媛 怨꾩냽 ?뚯쑀?섎ŉ, fallback seam cap? 31?먯꽌 30?쇰줈 媛먯냼?덈떎
-    - 吏꾪뻾: `type_checker_program.c`??quiet top-level placeholder resolver??graph precollect ?댄썑 metadata lookup-only濡??꾪솚?덈떎. event/function forward placeholders媛 recursive fallback ?놁씠 precollected DAG facts瑜??뚮퉬?섎㈃??fallback seam cap? 30?먯꽌 29濡?媛먯냼?덈떎
-    - 吏꾪뻾: `type_checker_builtins_query_domain.inc`??projection source-field resolver??recursive fallback helper瑜??몄텧?섏? ?딄퀬 DAG metadata lookup-only濡???톬?? HasProjection/HasZoneProjection 怨꾩뿴 field diagnostics??domain query validator媛 怨꾩냽 ?뚯쑀?섎ŉ, fallback seam cap? 29?먯꽌 28濡?媛먯냼?덈떎
-    - 吏꾪뻾: `type_checker_party_decl.c`? `type_checker_roster_decl.c`??shared-field type resolver??recursive fallback helper瑜??몄텧?섏? ?딄퀬 DAG metadata lookup-only濡???톬?? party/roster shared field diagnostics??媛?declaration validator媛 怨꾩냽 ?뚯쑀?섎ŉ, fallback seam cap? 28?먯꽌 26?쇰줈 媛먯냼?덈떎
-    - 吏꾪뻾: `type_checker_ability_decl.c`??abstract method signature resolver? `type_checker_role_decl.c`??host-type resolver??recursive fallback helper瑜??몄텧?섏? ?딄퀬 DAG metadata lookup-only濡???톬?? ability/role declaration diagnostics??媛?owner validator媛 怨꾩냽 ?뚯쑀?섎ŉ, fallback seam cap? 26?먯꽌 24濡?媛먯냼?덈떎
-    - 吏꾪뻾: function/action body precollector媛 local let / with-slot annotation肉??꾨땲??expression subtree, call type args, lambda param/return/body, event subscription handler, spawn/channel/return/branch expressions源뚯? ?곕씪媛꾨떎. ??湲곕컲?쇰줈 `type_checker_event.c`??event/lambda handler type-ref resolver瑜?DAG metadata lookup-only濡???톬怨?fallback seam cap? 24?먯꽌 23?쇰줈 媛먯냼?덈떎. `type_checker_flow.c`??flow-local type resolver??DAG metadata lookup-only濡???떠 cap? 22濡?媛먯냼?덈떎. `type_checker.c`??type-alias statement resolver??DAG metadata lookup-only濡???떠 cap? 21濡?媛먯냼?덈떎
-    - ?뺤씤???⑥? blocker: `type_checker_program.inc`??function body param/return/domain-slot materialization seam? ?⑥닚 lookup-only濡???텛硫?direct semantic unit path?먯꽌 graph metadata bootstrap ?놁씠 segfault媛 ?쒕떎. ??seam? direct semantic unit bootstrap ?먮뒗 null-safe diagnostic path媛 癒쇱? ?꾩슂?섎떎
-    - ?뺤씤???⑥? blocker: `type_checker_intent_decl.c`??intent participant/value/where resolver seam? ?⑥닚 lookup-only濡???텛硫?semantic suite ?꾨컲 parallel execution path?먯꽌 segfault媛 ?쒕떎. intent declaration? graph precollect媛 ?덉?留?direct semantic/bootstrap path? step/local binding materialization???꾩쭅 lookup-only 怨꾩빟??留뚯”?섏? ?딆쑝誘濡?explicit fallback seam?쇰줈 ?④릿??    - ?뺤씤???⑥? blocker: `type_checker_host_helpers.h`??host helper resolver???⑥닚 lookup-only濡???텛硫?intent/zone authority positive path媛 subject-slot type metadata 遺議깆쑝濡?臾대꼫吏꾨떎. ??seam? zone/world/host subject-slot nominal metadata瑜?DAG??蹂댁〈?????쒓굅?댁빞 ?쒕떎
-    - ?뺤씤???⑥? blocker: `type_checker_generic_validation.c`??generic where/default validation resolver???⑥닚 lookup-only濡???텛硫?default type argument where-bound validation positive path媛 源⑥쭊?? ??seam? generic default effective-arg fact? where-bound provenance瑜?DAG metadata???щ┛ ???쒓굅?댁빞 ?쒕떎
-    - ?뺤씤???⑥? blocker: `type_checker_generic_support.inc`??boundary type helper seam? ?⑥닚 lookup-only濡???텛硫?`ref class` / `ref subject` escape diagnostics 150媛쒓? 鍮좎쭊?? ??seam? generic/nominal boundary category fact? ref/own escape classifier媛 DAG metadata?먯꽌 媛숈? type category瑜?蹂????덉쓣 ???쒓굅?댁빞 ?쒕떎
-    - ?뺤씤???⑥? blocker: `type_checker_ability_where.c`??ability where-bound resolver???⑥닚 lookup-only濡???텛硫?generic ability multi-bound mismatch provenance媛 ?щ씪??`Cloneable` bound mismatch 吏꾨떒 ?뚭?媛 ?쒕떎. ??seam? ability where-bound effective-arg / multi-bound provenance fact瑜?DAG metadata???щ┛ ???쒓굅?댁빞 ?쒕떎
-    - ?뺤씤???⑥? blocker: `type_checker_operator_expr.inc`??operator overload method signature resolver???⑥닚 lookup-only濡???텛硫?semantic suite媛 event/misc path 吏꾩엯 ?꾪썑??segfault?????덈떎. ??seam? method param/return signature metadata? operator overload candidate summary瑜?DAG???щ┛ ???쒓굅?댁빞 ?쒕떎
-    - ?뺤씤???⑥? blocker: `type_checker_zone_decl.c`??zone authority subject-slot type seam? ?⑥닚 lookup-only濡???텛硫?generic ability mismatch provenance媛 ?щ씪吏꾨떎. ??seam? zone authority generic ability fact瑜?DAG metadata???щ┛ ???쒓굅?댁빞 ?쒕떎
-    - ?뺤씤???⑥? blocker: `type_checker_class_decl.c`??class/vessel field resolver???⑥닚 lookup-only濡???텛硫?vessel/subject-vessel field acceptance媛 源⑥쭊?? ??seam? class/vessel field nominal flavor metadata瑜?DAG??蹂댁〈?????쒓굅?댁빞 ?쒕떎
-    - ?뺤씤???⑥? blocker: `type_checker_world_decl.c`??shared/domain-slot resolver???⑥닚 lookup-only濡???텛硫?zone/world/intent positive paths媛 `subject slot ... requires a subject type`濡?臾대꼫吏꾨떎. ??seam? world domain-slot subject/zone nominal materialization??DAG metadata???щ┛ ???쒓굅?댁빞 ?쒕떎
-    - ?뺤씤???⑥? blocker: `type_checker_ownership_let.c`??let annotation resolver???⑥닚 lookup-only濡???텛硫?direct semantic unit path?먯꽌 graph metadata ?놁씠 `ClaimSlot` annotation???ㅼ뼱? segfault?????덇퀬, broader program path?먯꽌??`Slot`/`ReadView`/`WriteView`/`QubitSlot`/anchored own-ref paths媛 `<unknown>`?쇰줈 臾대꼫吏????덈떎. ??seam? direct semantic unit bootstrap ?먮뒗 null-safe diagnostic path? anchored-handle constructed-type metadata coverage瑜?媛숈씠 ?レ? ???쒓굅?댁빞 ?쒕떎
-    - 吏꾪뻾: domain/intent declaration resolver??owner-local type-ref seam?쇰줈 ?섎졃?덈떎. slot/shared/named domain refs? intent involves/value/where refs媛 媛곴컖 ?섎굹??owner seam??怨듭쑀?섎㈃??fallback seam inventory??38?먯꽌 34濡?媛먯냼?덈떎
-    - 吏꾪뻾: alias/generic-parameter helper? resolution-stage diagnostic fallback??owner-local seam?쇰줈 ?섎졃?덈떎. fallback seam inventory??34?먯꽌 32濡?媛먯냼?덈떎
-    - 吏꾪뻾: zone authority participant resolver媛 exact/qualified-tail direct slot match瑜?癒쇱? ?몄젙?섍퀬, direct match 諛섑솚 ??stale ambiguity flag瑜?吏?대떎. 媛숈? ???subject slot???щ읉 ?덉뼱??`authorized by rogue`媛 ?ㅼ젣 `subject slot rogue: Adventurer`濡?concrete?섍쾶 ?ロ엳硫?false-positive ambiguous濡??⑥뼱吏吏 ?딅뒗??    - 吏꾪뻾: `type_checker_intent_decl.c`??participant/value/where local seam 3媛쒕뒗 graph metadata-first 議고쉶 ??recursive fallback?쇰줈 ?대젮媛꾨떎
-    - 吏꾪뻾: `type_checker_decls_domain_helpers.c`??slot/shared/named-ref local seam 3媛쒕뒗 graph metadata-first 議고쉶 ??recursive fallback?쇰줈 ?대젮媛꾨떎
-    - 吏꾪뻾: `type_checker_intent_helpers.c`??direct resolver ?몄텧? `intent_helper_resolve_type_ref(...)` ?⑥씪 seam?쇰줈 ?섎졃?덈떎. transfer-derived using/where, ability generic arg, role-field checks????seam???듯빐 ?ㅼ쓬 DAG metadata ?꾪솚???꾨떎
-    - 吏꾪뻾: `type_checker_host_helpers.h`??direct resolver ?몄텧? `host_helper_resolve_type_ref(...)` ?⑥씪 seam?쇰줈 ?섎졃?덈떎. projection source fields, hosted method return/param, zone authority/domain slot checks????seam???듯빐 ?ㅼ쓬 DAG metadata ?꾪솚???꾨떎
-    - 吏꾪뻾: `type_checker_program.c`??forward-declaration type materialization? quiet resolver seam 1媛쒕줈 ?섎졃?덇퀬, `type_checker_program.inc`??function-body param/return/domain-slot materialization body resolver seam? graph metadata-first 議고쉶 ??fallback?쇰줈 ?대젮媛꾨떎
-    - 吏꾪뻾: `type_checker_event.c`??event signature/lambda handler materialization? graph-backed metadata lookup-only濡??꾪솚?먮떎. ?ㅼ쓬 DAG slice??ownership let / zone authority / world domain-slot / ability where-bound泥섎읆 semantic provenance媛 ?⑥? owner seams??    - 吏꾪뻾: `type_checker_world_decl.c`??shared field/domain slot materialization? `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam?쇰줈 ?섎졃?덈떎. world shared/slot checks????seam?먯꽌 graph-backed metadata濡?援먯껜?????덈떎
-    - 吏꾪뻾: `type_checker_role_decl.c`, `type_checker_generic_contracts.h`, `type_checker_helpers_late.c`, `type_checker_expr.inc`??吏곸젒 resolver ?몄텧??媛곴컖 role/generic-contract/late-helper/expr local seam 1媛쒕줈 ?섎졃?덈떎
-    - 吏꾪뻾: `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`??local resolver seam?쇰줈 ?섎졃?덈떎. ?⑥? direct count???遺遺?resolver 蹂몄껜, 二쇱꽍, ?먮뒗 紐낆떆 seam?대떎
-    - 吏꾪뻾: `type_checker.c`, `type_checker_ability_fields.c`, `type_checker_builtins_projection.c`, `type_checker_builtins_query_domain.inc`, `type_checker_flow.c`, `type_checker_generic_support.inc`, `type_checker_helpers_effects.inc`, `type_checker_ownership_let*.inc`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`, `type_checker_zone_decl.c`???⑤컻 direct resolver ?몄텧??local seam?쇰줈 ?섎졃?덇퀬, zone domain-slot seam? graph metadata-first 議고쉶瑜??ъ슜?쒕떎
-    - ?꾨즺: `make type-resolution-resolver-inventory-test-smoke`瑜?異붽?????`resolve_type_node(...)` 吏곸젒 ?몄텧??resolver 蹂몄껜/stage legacy fallback/core fallback/local seam allowlist 諛뽰뿉 ?앷린硫??ㅽ뙣?섎룄濡?怨좎젙?덈떎. `ci-linux`?먮룄 ?곌껐?덈떎
-    - 寃利? 2026-04-25 local WSL/Linux `make ci-linux` full green. Windows/MSYS2 native runner????癒몄떊???놁쑝誘濡?蹂꾨룄 CI ?섍꼍 acceptance line?쇰줈 ?좎?
+    - staged worklist??provider-first ?? topo ?회?고정??    - local contract / projection synthetic node??label?narrow handler??비??    - generic `default_type` / generic constraint / `where` bound??staged DAG resolver 경로???입??    - graph regression? world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / action-intent-zone-party ability consumer provenance까? ?함
+    - graph validator cycle?legacy alias-resolution cycle??모두 `Contract source:` / `Reason:` / `Fix:` 구조??렬??    - 진행: type constraint bound formatter??`type_checker_type_constraint.c`??제 TU 분리 ?료
+    - 진행: graph node/edge/path/cycle-format primitive??`type_checker_resolution_graph_core.c`??제 TU 분리 ?료
+    - 진행: named dependency edge recorder? 즉시 cycle diagnostic 발행 경로??`type_checker_resolution_graph_core.c`??제 TU 분리 ?료
+    - 진행: type-ref dependency recorder??`type_checker_resolution_graph_core.c`??동?고, `find_type_alias_decl`??cross-include dangling return-type seam??명시 ?언으로 ?리
+    - 진행: type-ref collector??`type_checker_resolution_graph_collect.c`??동?고, graph core/include 경계??dangling `static void` seam???거
+    - 진행: generic contract inventory / string dependency / required ability collector helpers??`type_checker_resolution_graph_collect.c`??동??declaration collector의 공통 ?존??TU 경계??격
+    - 진행: top-level declaration graph registration? `type_checker_resolution_graph_collect.c`??동??inventory `.inc`?1,962 LOC까? 축소
+    - 진행: local-contract graph node/dependency + zone/world/projection label formatters??`type_checker_resolution_graph_labels.c`??동??inventory `.inc`?1,835 LOC까? 축소
+    - 진행: projection source resolver??`type_checker_resolution_graph_domain.c`??동하고 `find_zone_domain_slot`??internal API??격??inventory `.inc`?1,809 LOC까? 축소
+    - 진행: event declaration precollector??`type_checker_resolution_graph_decl.c`??동??inventory 본체?서 declaration-kind collector???단
+    - 진행: enum declaration precollector??`type_checker_resolution_graph_decl.c`??동하고 `semantic_stage_method_array`?internal API??격??inventory `.inc`?1,765 LOC까? 축소
+    - 진행: ability declaration precollector? action-contract precollector??`type_checker_resolution_graph_decl.c`??동??inventory `.inc`?1,648 LOC까? 축소
+    - 진행: role/class/party/roster declaration precollector??`type_checker_resolution_graph_decl.c`??동?고, relation/effect domain inventory precollector??`type_checker_resolution_graph_domain.c`??동??inventory `.inc`?1,299 LOC까? 축소
+    - 진행: intent declaration precollector? world inventory precollector?각각 `type_checker_resolution_graph_decl.c`, `type_checker_resolution_graph_world.c`??동??inventory `.inc`?870 LOC까? 축소
+    - 진행: zone projection field-map collector?`type_checker_resolution_graph_zone.c`?분리?고, ?? inventory body?`type_checker_resolution_graph_inventory.c`??격??inventory `.inc`??거
+    - 진행: world/zone local-contract stage replay?`type_checker_resolution_stage_domain.c`?분리?고, ?? stage 본체?`type_checker_resolution_stage.c`??격??stage `.inc` ?거
+    - 진행: class/extern declaration checker?`type_checker_class_decl.c`? top-level semantic orchestration??`type_checker_program.c`?분리??program `.inc`?624 LOC까? 축소
+    - 진행: `ToObject` / `ToTObject` projection checker?`type_checker_builtins_projection.c`?분리??builtins nominal `.inc`?659 LOC까? 축소
+    - 진행: domain helper? intent helper?각각 `type_checker_decls_domain_helpers.c`, `type_checker_intent_helpers.c`??격??semantic `.inc` 800 LOC stop condition???성하고 `make semantic-inc-size-test-smoke`??? 방?
+    - 진행: C backend `transpiler_emitters_mir_inventory_ssa.inc`?3??위 slice?분리하고 `make test-transpile`, `make llvm-test-backend-compare`?parity ?? ?과
+    - 진행: standalone TU ?격 ??러??dangling return-type seams? implicit helper dependency??거??`make test-all`, `make llvm-test-backend-compare` ?? ?과
+    - 진행: implicit declaration / implicit int??기본 CFLAGS?서 ?러?고정되어 ?후 DAG/semantic split ?hidden helper dependency 즉시 ?패?도??렬
+    - 진행: `type_resolution_intern_node` / `type_resolution_add_edge` / `type_resolution_find_path` / `type_resolution_format_cycle`??include-order static helper?서 `type_checker_internal.h` internal API??격
+    - 진행: DAG stage ?에??아직 `resolve_type_node(...)`??려??legacy fallback??`PGY_TYPE_RES_STATS=1` ?계???출한다. `stage-legacy-resolve: calls/failed/suppressed_diagnostics`? `stage-legacy-family: generic_contract/signature/ability_consumer/domain_contract/alias/other` 출력?며, `make type-resolution-dag-test-smoke` graph stats, topo validation, legacy fallback inventory 존재?CI gate?고정한다
+    - 진행: type-alias stage??quiet resolve ?공 결과??사?하?록 ?리???공 경로??중복 `resolve_type_node(...)` ?출???거한다. ?패 경로??기존 diagnostic fallback????한다
+    - 진행: DAG edge ?? 존재는 named type-ref??generic argument??함??stage?서 `resolve_type_node(...)`??시 ?출?? 하고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N` ?계 추?하고 `type-resolution-dag-test-smoke` skip ?계 0으로 ?행?? 는 ?한??    - 진행: graph precollect TU ?에??enum methods `semantic_stage_method_array(...)`??출?던 impurity??거한다. ?제 enum method signature/contract??precollect action contract 경로로만 graph edge??집한다
+    - 진행: DAG stage helper?`type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`?분리??`type_checker_resolution_stage.c`?895 LOC????? graph precollect, stage lookup, stage stats, stage replay owner ?일 경계?분리한다
+    - 진행: generic where/default validation? `type_checker_generic_validation.c`??동한다. `type_checker_resolution_graph_*.c`? `type_checker_resolution_graph_core.inc`?????상 `resolve_type_node(...)`?직접 ?출?? ?으? `semantic-core-shape-test-smoke` ??resolver-free graph-layer 경계??한??    - 진행: graph precollect context-independent builtin type refs(`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`)?`SemanticContext.type_resolution_metadata`??기록한다. owner resolver seams????metadata?먼? 조회????recursive fallback으로 ?려간다
+    - 진행: graph metadata resolver-stable constructed/anchored-handle shells(`Array<T>`, `Slice<T>`, `List<T>`, `Queue<T>`, `Set<T>`, `Box<T>`, `Rc<T>`, `Weak<T>`, `Channel<T>`, `Future<T>`, `RemoteFuture<T>`, `Token<T>`, `DeviceSlot<T>`, `HashMap<String|Int|Long|Bool, T>`, `Option<T>`, `Result<T,E>`, `Slot<T>`, `SecureSlot<T>`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`)?materialize????한다. graph 만든 `Type` shell? metadata owned lane으로 기록하고 semantic context destroy?서 ?제한다
+    - 진행: graph metadata tuple shell?event-handler/function shell??materialize한다. channel/future AST node??inner fact collect 직후 constructed shell??기록???recursive fallback?????존한다
+    - 진행: `resolve_type_node(...)` wrapper ?체 metadata-first 되어, ?? explicit legacy allowlist??recursive materialization 에 DAG facts?먼? ?비한다
+    - 진행: `resolve_generic_type_arg(...)`??metadata-first 조회 ??fallback으로 ?려간다. constructed builtin/generic consumer path??recursive resolver ?존 면적??줄???    - 진행: owner-local resolver seams??`semantic_type_resolution_lookup_or_materialize(...)` 공용 materializer??렴한다. resolver 구현체? central metadata materializer 밖에??직접 `resolve_type_node(...)`??출?면 `type-resolution-resolver-inventory-test-smoke` ?패한다
+    - 진행: `type-resolution-dag-test-smoke` graph-backed skips?아니며 metadata entries/owned/hits, metadata materializer fallback count, zero non-alias stage legacy fallback, alias-stage split accounting???한?? 최신 local stats: `graph-backed skips=3133 metadata_entries=1877 metadata_owned=111 metadata_hits=3267 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
+    - 진행: DAG smoke???제 graph-backed skip/metadata entry/metadata hit/owned metadata ?순??0보다 ???보? 하고 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)??한?? DAG source-of-truth ?용이 ?게 ?퇴?면 CI?서 즉시 ?는??    - 진행: 중앙 metadata materializer??마??recursive fallback??`materializer_fallbacks` ?계??출하고 semantic suite ?산 cap??4135????? ??cap? ?장 방??이? ?음 DAG ?업? ??값을 계속 ????것이??    - 진행: ?? stage legacy surface??alias-only?고정한다. ?공 alias materialization?diagnostic fallback??별도 계측하고 valid alias fallback? 0으로 gate한다. ?? 78건? alias-cycle diagnostic coverage?서 ?오??unresolved fallback?며 hidden non-alias recursive resolution??아니며     - 진행: program-level symbol inventory ability declarations??predeclare한다. `type_check_ability_decl(...)`? ?기 ?신??predeclare??사?하?같? ?름???른 ability??기존처럼 duplicate diagnostic으로 처리한다. forward source order?서 generic default/where, zone authority, party role-slot ability consumer provider ?행되어???과는 regression??추?한다
+    - 진행: `tests/cases/backend_compare/forward_ability_order/main.pgy`?backend compare suite??추?한다. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering??semantic-only 아니며 C/LLVM 출력 ?등?까 ??는 ?한??    - 진행: `tests/compare_backends.sh` 기본 ?행? `tests/cases/backend_compare/*/main.pgy` default case array??빠져 ?으??패한다. 명시 ?자 기반 targeted run? ???되, CI/default path?서 ??parity case 조용???락는 drift?차단한다. ??gate?기존 passing case 8?array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)?default C/LLVM parity suite???입한다
+    - 진행: `type-resolution-resolver-inventory-test-smoke` direct resolver allowlist? ?께 metadata-first wrapper, execution/anchored-handle metadata materializer coverage?static gate?고정한다
+    - 진행: `type-resolution-resolver-inventory-test-smoke` ??`semantic_type_resolution_resolve_or_fallback(...)` ?용?? 금?하고 named fallback seam 총량??0개로 고정한다. gate 출력? 현재 fallback seam count?직접 보여주며, remaining fallback? `semantic_type_resolution_lookup_or_materialize(...)` ????central escape hatch 교체 ??이??    - 진행: fallback seam gate??기존 ?한??`30?미만?면 ?패`)??debt-reduction??맞? 는 규칙으로 보고 ?거한다. ?제 0??한?growth guard????며, seam 축소??CI ?공 경로??    - 진행: `type_checker_module_contract.c`??ability contract bookkeeping? recursive fallback helper??출?? 하고 DAG metadata lookup-only seam으로 ???? ability 존재/visibility/generic arity/where provenance??ability-specific validator 계속 ?유?며, fallback seam inventory??39?서 38?감소한다
+    - 진행: `type_checker_ability_fields.c`??ability `fields` requirement validation??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? field contract diagnostics??ability-specific validator 계속 ?유?며, fallback seam cap? 32?서 31?감소한다
+    - 진행: `type_checker_builtins_projection.c`??projection target-field resolver??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? projection field diagnostics??projection validator 계속 ?유?며, fallback seam cap? 31?서 30으로 감소한다
+    - 진행: `type_checker_program.c`??quiet top-level placeholder resolver??graph precollect ?후 metadata lookup-only??환한다. event/function forward placeholders recursive fallback 이 precollected DAG facts??비?면??fallback seam cap? 30?서 29?감소한다
+    - 진행: `type_checker_builtins_query_domain.inc`??projection source-field resolver??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? HasProjection/HasZoneProjection 계열 field diagnostics??domain query validator 계속 ?유?며, fallback seam cap? 29?서 28?감소한다
+    - 진행: `type_checker_party_decl.c`? `type_checker_roster_decl.c`??shared-field type resolver??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? party/roster shared field diagnostics???declaration validator 계속 ?유?며, fallback seam cap? 28?서 26으로 감소한다
+    - 진행: `type_checker_ability_decl.c`??abstract method signature resolver? `type_checker_role_decl.c`??host-type resolver??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? ability/role declaration diagnostics???owner validator 계속 ?유?며, fallback seam cap? 26?서 24?감소한다
+    - 진행: function/action body precollector local let / with-slot annotation?아니며 expression subtree, call type args, lambda param/return/body, event subscription handler, spawn/channel/return/branch expressions까? ?라간다. ??기반으로 `type_checker_event.c`??event/lambda handler type-ref resolver?DAG metadata lookup-only????fallback seam cap? 24?서 23으로 감소한다. `type_checker_flow.c`??flow-local type resolver??DAG metadata lookup-only??? cap? 22?감소한다. `type_checker.c`??type-alias statement resolver??DAG metadata lookup-only??? cap? 21?감소한다
+    - ?인???? blocker: `type_checker_program.inc`??function body param/return/domain-slot materialization seam? ?순 lookup-only????direct semantic unit path?서 graph metadata bootstrap 이 segfault 한다. ??seam? direct semantic unit bootstrap 는 null-safe diagnostic path 먼? ?요한다
+    - ?인???? blocker: `type_checker_intent_decl.c`??intent participant/value/where resolver seam? ?순 lookup-only????semantic suite ?반 parallel execution path?서 segfault 한다. intent declaration? graph precollect ???direct semantic/bootstrap path? step/local binding materialization??아직 lookup-only 계약??만족?? ?으?explicit fallback seam으로 ?긴??    - ?인???? blocker: `type_checker_host_helpers.h`??host helper resolver???순 lookup-only????intent/zone authority positive path subject-slot type metadata 족으?무너진다. ??seam? zone/world/host subject-slot nominal metadata?DAG??보존?????거?야 한다
+    - ?인???? blocker: `type_checker_generic_validation.c`??generic where/default validation resolver???순 lookup-only????default type argument where-bound validation positive path 깨진?? ??seam? generic default effective-arg fact? where-bound provenance?DAG metadata???린 ???거?야 한다
+    - ?인???? blocker: `type_checker_generic_support.inc`??boundary type helper seam? ?순 lookup-only????`ref class` / `ref subject` escape diagnostics 150개? 빠진?? ??seam? generic/nominal boundary category fact? ref/own escape classifier DAG metadata?서 같? type category????을 ???거?야 한다
+    - ?인???? blocker: `type_checker_ability_where.c`??ability where-bound resolver???순 lookup-only????generic ability multi-bound mismatch provenance ?라??`Cloneable` bound mismatch 진단 ?? 한다. ??seam? ability where-bound effective-arg / multi-bound provenance fact?DAG metadata???린 ???거?야 한다
+    - ?인???? blocker: `type_checker_operator_expr.inc`??operator overload method signature resolver???순 lookup-only????semantic suite event/misc path 진입 ?후??segfault????한다. ??seam? method param/return signature metadata? operator overload candidate summary?DAG???린 ???거?야 한다
+    - ?인???? blocker: `type_checker_zone_decl.c`??zone authority subject-slot type seam? ?순 lookup-only????generic ability mismatch provenance ?라진다. ??seam? zone authority generic ability fact?DAG metadata???린 ???거?야 한다
+    - ?인???? blocker: `type_checker_class_decl.c`??class/vessel field resolver???순 lookup-only????vessel/subject-vessel field acceptance 깨진?? ??seam? class/vessel field nominal flavor metadata?DAG??보존?????거?야 한다
+    - ?인???? blocker: `type_checker_world_decl.c`??shared/domain-slot resolver???순 lookup-only????zone/world/intent positive paths `subject slot ... requires a subject type`?무너진다. ??seam? world domain-slot subject/zone nominal materialization??DAG metadata???린 ???거?야 한다
+    - ?인???? blocker: `type_checker_ownership_let.c`??let annotation resolver???순 lookup-only????direct semantic unit path?서 graph metadata 이 `ClaimSlot` annotation??되어? segfault?????고, broader program path?서??`Slot`/`ReadView`/`WriteView`/`QubitSlot`/anchored own-ref paths `<unknown>`으로 무너???한다. ??seam? direct semantic unit bootstrap 는 null-safe diagnostic path? anchored-handle constructed-type metadata coverage?같이 ?? ???거?야 한다
+    - 진행: domain/intent declaration resolver??owner-local type-ref seam으로 ?렴한다. slot/shared/named domain refs? intent involves/value/where refs 각각 ?나??owner seam??공유?면??fallback seam inventory??38?서 34?감소한다
+    - 진행: alias/generic-parameter helper? resolution-stage diagnostic fallback??owner-local seam으로 ?렴한다. fallback seam inventory??34?서 32?감소한다
+    - 진행: zone authority participant resolver exact/qualified-tail direct slot match?먼? ?정?고, direct match 반환 ??stale ambiguity flag?한다. 같? ???subject slot???럿 되어??`authorized by rogue` ?제 `subject slot rogue: Adventurer`?concrete?게 ?히?false-positive ambiguous?되어 ?는??    - 진행: `type_checker_intent_decl.c`??participant/value/where local seam 3개는 graph metadata-first 조회 ??recursive fallback으로 ?려간다
+    - 진행: `type_checker_decls_domain_helpers.c`??slot/shared/named-ref local seam 3개는 graph metadata-first 조회 ??recursive fallback으로 ?려간다
+    - 진행: `type_checker_intent_helpers.c`??direct resolver ?출? `intent_helper_resolve_type_ref(...)` ?일 seam으로 ?렴한다. transfer-derived using/where, ability generic arg, role-field checks????seam??대해 ?음 DAG metadata ?환??한다
+    - 진행: `type_checker_host_helpers.h`??direct resolver ?출? `host_helper_resolve_type_ref(...)` ?일 seam으로 ?렴한다. projection source fields, hosted method return/param, zone authority/domain slot checks????seam??대해 ?음 DAG metadata ?환??한다
+    - 진행: `type_checker_program.c`??forward-declaration type materialization? quiet resolver seam 1개로 ?렴?고, `type_checker_program.inc`??function-body param/return/domain-slot materialization body resolver seam? graph metadata-first 조회 ??fallback으로 ?려간다
+    - 진행: `type_checker_event.c`??event signature/lambda handler materialization? graph-backed metadata lookup-only??환한다. ?음 DAG slice??ownership let / zone authority / world domain-slot / ability where-bound처럼 semantic provenance ?? owner seams??    - 진행: `type_checker_world_decl.c`??shared field/domain slot materialization? `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 ?렴한다. world shared/slot checks????seam?서 graph-backed metadata?교체????한다
+    - 진행: `type_checker_role_decl.c`, `type_checker_generic_contracts.h`, `type_checker_helpers_late.c`, `type_checker_expr.inc`??직접 resolver ?출??각각 role/generic-contract/late-helper/expr local seam 1개로 ?렴한다
+    - 진행: `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`??local resolver seam으로 ?렴한다. ?? direct count????resolver 본체, 주석, 는 명시 seam한다
+    - 진행: `type_checker.c`, `type_checker_ability_fields.c`, `type_checker_builtins_projection.c`, `type_checker_builtins_query_domain.inc`, `type_checker_flow.c`, `type_checker_generic_support.inc`, `type_checker_helpers_effects.inc`, `type_checker_ownership_let*.inc`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`, `type_checker_zone_decl.c`???발 direct resolver ?출??local seam으로 ?렴?고, zone domain-slot seam? graph metadata-first 조회??용한다
+    - ?료: `make type-resolution-resolver-inventory-test-smoke`?추?????`resolve_type_node(...)` 직접 ?출??resolver 본체/stage legacy fallback/core fallback/local seam allowlist 밖에 ?기??패?도?고정한다. `ci-linux`?도 ?결한다
+    - ? 2026-04-25 local WSL/Linux `make ci-linux` full green. Windows/MSYS2 native runner????머신???으?별도 CI ?경 acceptance line으로 ??
   - 紐⑺몴:
-    - import graph? 蹂꾧컻濡?`type provider -> type consumer` 洹몃옒?꾨? 遺꾨━ 援ъ텞?쒕떎
+    - import graph? 별개?`type provider -> type consumer` 그래?? 분리 구축한다
     - declaration / alias / generic default / where-bound / ability consumer / zone authority consumer瑜?DAG node/edge濡??밴꺽?쒕떎
-    - namespace-only reference??declaration inventory 議고쉶媛 遺덊븘?뷀븳 concrete type materialization??媛뺤젣?섏? ?딄쾶 ?쒕떎
+    - namespace-only reference??declaration inventory 조회 불필?한 concrete type materialization??강제?? ?게 한다
     - cycle??generic/alias/type consumer path 湲곗??쇰줈 path-aware diagnostic?쇰줈 蹂닿퀬?쒕떎
-    - incremental compile ??invalidation 踰붿쐞瑜?declaration/type dependency ?⑥쐞濡?以꾩씤??  - 1李?援ы쁽 ?먯튃:
+    - incremental compile ??invalidation 범위?declaration/type dependency ?위?줄인??  - 1?구현 ?칙:
     - 湲곗〈 `resolve_type_node(...)`瑜???踰덉뿉 ?먭린?섏? ?딅뒗??    - 癒쇱? graph inventory + topo scheduling + cycle diagnostic??異붽??섍퀬, 洹??ㅼ쓬 recursive resolver瑜?graph-backed evaluator濡?移섑솚?쒕떎
-    - import/module loader??DFS cycle detection怨?type-resolution DAG瑜??쇳빀?섏? ?딅뒗??  - ?④퀎:
+    - import/module loader??DFS cycle detection?type-resolution DAG??합?? ?는??  - ?계:
     - Phase A: declaration/type provider inventory? consumer edge ?섏쭛
-    - Phase B: topo evaluation + SCC/cycle diagnostic 怨좎젙
-    - Phase C: generic default arg / multi-bound / ability consumer / zone authority瑜?DAG consumer濡??몄엯
+    - Phase B: topo evaluation + SCC/cycle diagnostic 고정
+    - Phase C: generic default arg / multi-bound / ability consumer / zone authority?DAG consumer??입
     - Phase D: incremental invalidation / cache / backend-facing resolved metadata ?ъ궗??  - ?뚭? 湲곗?:
-    - dependency loop diagnostic??cycle path/provenance媛 ?섏삩??    - graph-backed cycle怨?alias fallback cycle 紐⑤몢 `Contract source:`瑜??ы븿?쒕떎
-    - namespace-only reference??遺덊븘?뷀븳 full type materialization???좊컻?섏? ?딅뒗??    - generic consumer/default/bound resolution??graph-backed evaluation?먯꽌??湲곗〈 semantic 怨꾩빟怨?媛숈? 寃곌낵瑜??몃떎
-    - C/LLVM compile path媛 ?숈씪??resolved-type metadata瑜??ъ궗?⑺븳??    - `PGY_TYPE_RES_STATS=1`?먯꽌 stage graph-backed skip ?? legacy fallback ?몄텧?? family breakdown, suppressed diagnostic ?섍? 蹂댁씤?? ??媛믪? ?⑥? DAG migration debt??吏곸젒 吏?쒖씠硫??④꺼吏?fallback??異붽??섎㈃ smoke?먯꽌 利됱떆 ?쒕윭?섏빞 ?쒕떎
+    - dependency loop diagnostic??cycle path/provenance ?온??    - graph-backed cycle?alias fallback cycle 모두 `Contract source:`??함한다
+    - namespace-only reference??불필?한 full type materialization???발?? ?는??    - generic consumer/default/bound resolution??graph-backed evaluation?서??기존 semantic 계약?같? 결과?한다
+    - C/LLVM compile path ?일??resolved-type metadata??사?한??    - `PGY_TYPE_RES_STATS=1`?서 stage graph-backed skip ?? legacy fallback ?출?? family breakdown, suppressed diagnostic ?? 보인?? ??값? ?? DAG migration debt??직접 ?이??겨?fallback??추??면 smoke?서 즉시 ?러?야 한다
 
-- [x] **runtime observability baseline vs richer query 援щ텇 怨좎젙**
+- [x] **runtime observability baseline vs richer query 구분 고정**
   - ??? `IntentLast* / IntentHistory* / IntentActive* / IntentRecent*`, zone/world inspection
-  - 臾몄젣: baseline???대? ?덈뒗??臾몄꽌媛 thin?대씪怨??곕㈃ 諛섎?濡?surface trust瑜?源롮쓬
-  - 怨좎젙 湲곗?:
-    - baseline observability??complete濡? richer timeline/provenance??open debt濡?遺꾨━
+  - 문제: baseline???? ?는??문서 thin?라??면 반??surface trust?깎음
+  - 고정 기?:
+    - baseline observability??complete? richer timeline/provenance??open debt?분리
   - ?뚭? 湲곗?:
-    - docs/board/status 臾멸뎄 ?쇱튂
-    - observability regression??baseline API瑜?怨꾩냽 怨좎젙
+    - docs/board/status 문구 ?치
+    - observability regression??baseline API?계속 고정
 
-## ?꾨즺 (P0 ??利됱떆 ?섏젙)
+## ?료 (P0 ??즉시 ?정)
 
-- [x] **`system()` 紐낅졊 二쇱엯 ?쒓굅** ??`_spawnvp`/`execvp`濡?援먯껜, 寃쎈줈 寃利?異붽? (`pgy_path_is_safe`)
-- [x] **AES-256 ?ㅺ뎄??* ??XOR 媛吏??뷀샇瑜?FIPS 197 AES-256-CTR + HMAC-SHA256 ?몄쬆?쇰줈 援먯껜 (?몃? ?섏〈???놁쓬)
+- [x] **`system()` 명령 주입 ?거** ??`_spawnvp`/`execvp`?교체, 경로 ?추? (`pgy_path_is_safe`)
+- [x] **AES-256 ?구??* ??XOR ??호?FIPS 197 AES-256-CTR + HMAC-SHA256 ?증으로 교체 (?? ?존???음)
 - [x] **`auto __tmp` ?쒓굅** ??`PGY_RESULT_TRY` 留ㅽ겕濡쒖뿉??GCC ?뺤옣 `auto` ?쒓굅, C11 ?명솚 (紐낆떆??????뚮씪誘명꽣)
-- [x] **REPL 怨좎젙 ?뚯씪紐?* ??`_pgy_repl_tmp.*` ??`TMPDIR/pgy_repl_{pid}.*` (PID 湲곕컲 ?좊땲??寃쎈줈)
+- [x] **REPL 고정 ?일?* ??`_pgy_repl_tmp.*` ??`TMPDIR/pgy_repl_{pid}.*` (PID 기반 아니며 경로)
 - [x] **`type alias` vertical slice** ??`type UserId = Int;` parser/semantic/C/LLVM lowering ?곌껐, ?ㅼ쟾 annotation/typedef 寃쎈줈 ?뺣낫
 
 ## P1 ???ㅼ쓬 ?④퀎
 
-- [ ] **CI ?섎뱶??* ??Ubuntu + Windows 鍮뚮뱶 留ㅽ듃由?뒪 ?좎?, AddressSanitizer/UBSan, ??珥섏킌??smoke coverage
-- [ ] **CodeQL + secret scanning ?쒖꽦??* ??C/C++ 遺꾩꽍 紐⑤뱶, push protection
-- [x] **CHANGELOG.md + 踰꾩쟾 ?뺤콉 ?섎┰** ??SemVer, 由대━???쒓퉭 洹쒖튃
-  - ?꾨즺: `CHANGELOG.md` 議댁옱, Keep a Changelog ?щ㎎, SemVer 紐낆떆
-- [x] **SECURITY.md** ??蹂댁븞 痍⑥빟???쒕낫 梨꾨꼸, 梨낆엫 ?덈뒗 怨듦컻 ?뺤콉
-  - ?꾨즺: `SECURITY.md` ?앹꽦 (2026-04-18). 吏??踰꾩쟾, 蹂닿퀬 梨꾨꼸, in/out scope, 怨듦꺽 ?쒕㈃蹂?mitigation, advisory format ?ы븿
+- [ ] **CI ?드??* ??Ubuntu + Windows 빌드 매트? ??, AddressSanitizer/UBSan, ??촘촘??smoke coverage
+- [ ] **CodeQL + secret scanning ?성??* ??C/C++ 분석 모드, push protection
+- [x] **CHANGELOG.md + 버전 ?책 ?립** ??SemVer, 릴리???깅 규칙
+  - ?료: `CHANGELOG.md` 존재, Keep a Changelog ?맷, SemVer 명시
+- [x] **SECURITY.md** ??보안 취약???보 채널, 책임 는 공개 ?책
+  - ?료: `SECURITY.md` ?성 (2026-04-18). ??버전, 보고 채널, in/out scope, 공격 ?면?mitigation, advisory format ?함
 
-## P1.5 ???몄뼱/而댄뙆?쇰윭 蹂닿컯
+## P1.5 ??되어/컴파?러 보강
 
 - [ ] **MIR DCE statement-level ?뺤옣**
-  - ?꾩옱??dead SSA/PHI ?쒓굅 + `HasState`/`ChannelLength`瑜?pure-query stmt ?쒓굅源뚯????숈옉??  - ?⑥? ?④퀎: pure expression stmt / dead call / dead resource-op / carrier stmt瑜????몃텇?뷀븯怨? side-effect lattice 湲곗??쇰줈 ?쒓굅 ?뺤콉???뺢탳??  - 紐⑺몴: MIR-only emitter媛 湲곕??섎뒗 metadata carrier瑜??껋? ?딆쑝硫댁꽌??遺덊븘?뷀븳 stmt ?쒓굅 踰붿쐞瑜??볧옒
+  - ?재??dead SSA/PHI ?거 + `HasState`/`ChannelLength`?pure-query stmt ?거까????작??  - ?? ?계: pure expression stmt / dead call / dead resource-op / carrier stmt????분?하? side-effect lattice 기?으로 ?거 ?책???교??  - 목표: MIR-only emitter 기?는 metadata carrier??? ?으면서??불필?한 stmt ?거 범위??힘
 
-- [x] **IR 怨꾩링 ?ㅺ퀎 寃??* ??HIR/DIR/RIR/MIR 遺꾨━ ??뱀꽦 ?됯?
-  - **DIR ?좎? 寃곗젙**: intent domain structure 寃利앹뿉 ?꾩닔 (step dependency, zone binding, post-condition)
-  - **RIR ?좎? 寃곗젙**: resource state lattice (20-state)??slot/projection/authority lifecycle 寃利앹뿉 ?꾩슂
-  - **MIR ?좎? 寃곗젙**: SSA/CFG/cleanup edge??intent compensation execution path???꾩닔
-  - ~~?⑥? 怨쇱젣~~: Backend瑜?HIR 湲곕컲 ??MIR 湲곕컲?쇰줈 ?꾪솚?댁빞 IR ?ъ옄 ROI ?ㅽ쁽 ??**?꾨즺**
+- [x] **IR 계층 ?계 ??* ??HIR/DIR/RIR/MIR 분리 ??성 ??
+  - **DIR ?? 결정**: intent domain structure 증에 개수 (step dependency, zone binding, post-condition)
+  - **RIR ?? 결정**: resource state lattice (20-state)??slot/projection/authority lifecycle 증에 ?요
+  - **MIR ?? 결정**: SSA/CFG/cleanup edge??intent compensation execution path??개수
+  - ~~?? 과제~~: Backend?HIR 기반 ??MIR 기반으로 ?환?야 IR ?자 ROI ?현 ??**?료**
   - 李멸퀬: Rust??AST?뭈HIR?묺IR?묹LVM 4?④퀎, Pergyra??AST?묱IR?묭IR?뭃IR?묺IR?묪ackend 6?④퀎
-  - DIR? domain graph濡?HIR? 援ъ“媛 ?щ씪 蹂꾨룄 IR濡??좎??섎뒗 寃껋씠 ???  - RIR 20-state lattice???⑥닚??媛?μ꽦 寃??(?꾩옱: Owned/Borrowed/Synced/Dirty/Stale/Published/Authorized ??
-- [ ] **ability 湲곕컲 ?곗궛??dispatch 怨좊룄??* ???꾩옱??`role/impl ability` 硫붿꽌?쒖뿉??`operator_<suffix>_<Type>` alias瑜??⑹꽦??C/LLVM???뺤쟻?쇰줈 ?몄텧?섎뒗 諛⑹떇. ?κ린?곸쑝濡쒕뒗 ability/vtable 湲곕컲??吏곸젒 dispatch? ???뺢탳??overload ?곗꽑?쒖쐞 洹쒖튃???꾩슂
-- [ ] **LLVM ?곗궛???ㅻ쾭濡쒕뱶 ?뚭? ?뚯뒪???뺤옣** ???꾩옱 ?ㅻえ?щ뒗 `role IntMath for Int` 1嫄?以묒떖. 鍮꾧탳 ?곗궛, ?ы븿??role, enum/custom type, namespace 寃쎈줈源뚯? ?먮룞 ?뚯뒪???뺣?
+  - DIR? domain graph?HIR? 구조 ?라 별도 IR???는 것이 ???  - RIR 20-state lattice???순???성 ??(?재: Owned/Borrowed/Synced/Dirty/Stale/Published/Authorized ??
+- [ ] **ability 기반 ?산??dispatch 고도??* ???재??`role/impl ability` 메서?에??`operator_<suffix>_<Type>` alias??성??C/LLVM???적으로 ?출는 방식. ?기?으로는 ability/vtable 기반??직접 dispatch? ???교??overload ?선?위 규칙???요
+- [ ] **LLVM ?산???버로드 ?? ?스???장** ??현재 ?모는 `role IntMath for Int` 1?중심. 비교 ?산, ?함??role, enum/custom type, namespace 경로까? ?동 ?스????
 
-## P1.58 ???쒖? ?쇱씠釉뚮윭由??명봽??
+## P1.58 ???? ?이브러??프??
 - [x] **`use datetime;` ?ㅼ젣 stdlib module??*
 - [x] **`use http;` v0.1**
   - `HttpRequest`, `HttpResponse`, `RouteSpec`
@@ -2249,7 +2290,7 @@ Source of truth:
   - `PageRoute`, `PageAction`, `PageMessage`
   - `MountPage`, `BindAction`, `RenderSection`
   - projection surface / action binder ?덉젣? ?곌껐
-- [x] **?쇳븨紐??덉젣瑜?stdlib ?명봽???ъ슜 踰꾩쟾?쇰줈 由ы봽??*
+- [x] **?핑??제?stdlib ?프???용 버전으로 리프??*
   - `pages/` -> `use page;`
   - `api/` -> `use http;`
   - `report/storage` -> `use storage;`
@@ -2258,19 +2299,19 @@ Source of truth:
   - intent-first layout + `intents/ subjects/ zones/ world.pgy main.pgy`
   - optional `pages/ api/ report/` app adapter starter
 
-## P1.58 ???쒖? ?쇱씠釉뚮윭由?媛쒖꽑 (2026-04-06 遺꾩꽍)
+## P1.58 ???? ?이브러?개선 (2026-04-06 분석)
 
-- [ ] **stdlib page.pgy ?ㅼ젣 ?뚮뜑留?而댄룷?뚰듃 ?쒖뒪?쒖쑝濡??뺤옣**
-  - ?꾩옱: ?⑥닚 ?곗씠??援ъ“ + ?뚮뜑留?臾몄옄???⑥닔留?  - 紐⑺몴: ?섏씠吏 ?쇱씠?꾩궗?댄겢(留덉슫???몃쭏?댄듃/?낅뜲?댄듃), 而댄룷?뚰듃 ?몃━, ?곹깭 愿由?  - ?쒖븞: `Component` abstract base, `mount()`, `render()`, `update()`, `unmount()` ?쇱씠?꾩궗?댄겢 ??- [ ] **stdlib storage.pgy WriteFile 異붿긽??*
-  - ?꾩옱: `WriteFile` ?댁옣 ?⑥닔 吏곸젒 ?몄텧 ???뚮옯???섏〈??  - 紐⑺몴: Slot/Device ?명꽣?섏씠?ㅻ줈 遺꾨━ (`StorageDevice` ability)
+- [ ] **stdlib page.pgy ?제 ?더?컴포?트 ?스?으??장**
+  - ?재: ?순 ?이??구조 + ?더?문자??개수?  - 목표: 이 ?이?사?클(마운???마?트/?데?트), 컴포?트 ?리, ?태 ?  - ?안: `Component` abstract base, `mount()`, `render()`, `update()`, `unmount()` ?이?사?클 ??- [ ] **stdlib storage.pgy WriteFile 추상??*
+  - ?재: `WriteFile` ?장 개수 직접 ?출 ???랫???존??  - 목표: Slot/Device ?터?이으로 분리 (`StorageDevice` ability)
   - ?쒖븞: `ability StorageDevice { Write(path, data) -> Result<Void, Error>; Read(path) -> Result<String, Error> }`
-- [ ] **stdlib ?꾨컲 Result<T, Error> ?⑦꽩 ?쒖슜**
-  - ?꾩옱: `WriteFile`, `ReadFile` ?ㅽ뙣 ???щ옒??媛?μ꽦
-  - 紐⑺몴: 紐⑤뱺 I/O ?곗궛??`Result<T, Error>` 諛섑솚
-  - ?쒖븞: `?` ?곗궛?먯? 議고빀???먮윭 ?꾪뙆 ?먮룞??- [ ] **datetime.pgy 硫붿꽌???쇨???媛쒖꽑**
-  - ?꾩옱: `export class LocalDate` + `export func SameDate()` ?쇱옱
-  - ?쒖븞: 硫붿꽌???쇨???(`a.SameDate(b)` vs `SameDate(a, b)`) ???섎굹留??④린嫄곕굹 ????臾몄꽌??
-## IR ?뚯씠?꾨씪??
+- [ ] **stdlib ?반 Result<T, Error> ?턴 ?용**
+  - ?재: `WriteFile`, `ReadFile` ?패 ???래???성
+  - 목표: 모든 I/O ?산??`Result<T, Error>` 반환
+  - ?안: `?` ?산?? 조합???러 ?파 ?동??- [ ] **datetime.pgy 메서??????개선**
+  - ?재: `export class LocalDate` + `export func SameDate()` ?재
+  - ?안: 메서??????(`a.SameDate(b)` vs `SameDate(a, b)`) ???나??기거나 ????문서??
+## IR ?이?라??
 - [x] **DIR code layer ?쒖옉**
   - declaration graph
   - intent participant/step edge
@@ -2286,30 +2327,30 @@ Source of truth:
   - block-local SSA rename
   - instruction-level `def/use` ?쒖옉
   - rollback/invalidation exceptional CFG ?쒖옉
-- [ ] **RIR lattice propagation ?ы솕**
-  - relation/effect/zone/world handle merge???쒖옉?? conditional handle invalidation怨?world-handoff lattice瑜???諛湲?  - conditional authority/projection invalidation fact ?뺤옣
+- [ ] **RIR lattice propagation ?화**
+  - relation/effect/zone/world handle merge???작?? conditional handle invalidation?world-handoff lattice????  - conditional authority/projection invalidation fact ?장
 - [ ] **MIR full SSA / flow merge**
   - block-level version map? ?쒖옉?? rename??full def-use chain/liveness ?섏??쇰줈 ?뺤옣
-  - cleanup convergence root???쒖옉?? MIR-level `RIR-flow` merge? cleanup convergence policy瑜???怨좊룄??- [ ] **MIR DCE ?뺤옣 (statement-level)**
+  - cleanup convergence root???작?? MIR-level `RIR-flow` merge? cleanup convergence policy???고도??- [ ] **MIR DCE ?장 (statement-level)**
   - dead DEF/PHI ?쒓굅瑜??섏뼱 side-effect-free STMT/unused call ?쒓굅
-  - ?꾩옱??pure query builtin (`Has*`, `ChannelLength/Capacity/Space/Full/Closed`)留??덉쟾 ?쒓굅 ?쒖옉
+  - ?재??pure query builtin (`Has*`, `ChannelLength/Capacity/Space/Full/Closed`)??전 ?거 ?작
   - `unused pure let initializer` ?쒓굅??source-local/runtime-backed storage? 異⑸룎???ㅼ떆 蹂대쪟
-  - dead identifier-assign ?쒓굅??loop/phi/live-out ?ㅽ뙋???⑥븘 ?덉뼱 怨꾩냽 蹂댁닔 蹂대쪟
-  - ?ㅼ쓬 reopen 議곌굔: value summary??block-boundary / phi provenance瑜??댁슜??loop-carried DEF? 吏꾩쭨 dead local DEF瑜?遺꾨━
-  - user call purity???꾩쭅 蹂댁닔?곸쑝濡?side-effect ?덈떎怨?媛꾩＜
+  - dead identifier-assign ?거??loop/phi/live-out ?판???아 되어 계속 보수 보류
+  - ?음 reopen 조건: value summary??block-boundary / phi provenance??용??loop-carried DEF? 진짜 dead local DEF?분리
+  - user call purity??아직 보수?으?side-effect ?다?간주
   - RESOURCE_OP/CLEANUP_EDGE/abort/IO ??side-effect 蹂댁〈 洹쒖튃 紐낆떆
-  - RPO 湲곕컲 liveness? 寃고빀???쒓굅 ?뺥솗??媛쒖꽑
-## P2.0 ??Backend MIR 湲곕컲 ?꾪솚 ???꾨즺
+  - RPO 기반 liveness? 결합???거 ?확??개선
+## P2.0 ??Backend MIR 기반 ?환 ???료
 
-- [x] **emit_program()??HIR 湲곕컲 ??MIR 湲곕컲?쇰줈 ?꾪솚**
-  - **?꾨즺**: `emit_func_decl_from_mir_named()` ?꾩쟾 援ы쁽
+- [x] **emit_program()??HIR 기반 ??MIR 기반으로 ?환**
+  - **?료**: `emit_func_decl_from_mir_named()` ?전 구현
   - **寃곌낵**: MIR routine ??SSA locals + CFG ??C 肄붾뱶 ?앹꽦
-  - **吏??湲곕뒫**:
+  - **??기능**:
     - Intent compensation (cleanup blocks)
     - SSA versioned locals (`_pgy_ssa_name_N`)
-    - PHI ?몃뱶 蹂듭궗 (join block 吏꾩엯)
+    - PHI ?드 복사 (join block 진입)
     - BRANCH ??if/else gotos
-    - RESOURCE_OP ???고????⑥닔 ?몄텧
+    - RESOURCE_OP ??????개수 ?출
   - **?뚯뒪??*: 428 passed, 0 failed (湲곗〈 403 passed, 5 failed)
   - **?꾪궎?띿쿂**:
     ```
@@ -2321,316 +2362,316 @@ Source of truth:
                  bb_fail: intent_abort(I1) ??ret false
     ```
 
-## P2.1 ??LLVM 諛깆뿏??MIR 湲곕컲 ?꾪솚 ???꾨즺
+## P2.1 ??LLVM 백엔??MIR 기반 ?환 ???료
 
-- [x] **LLVM 諛깆뿏??MIR 湲곕컲 ?꾪솚 ?꾨즺**
-  - `src/codegen/llvm_pipeline.c`: MIR routine ??LLVM IR 吏곸젒 ?앹꽦
-  - `src/codegen/llvm_mir_emit.c`: `llvm_emit_func_from_mir()` ?꾩쟾 援ы쁽
-  - SSA locals, PHI nodes, branch terminators, intent compensation 紐⑤몢 吏??  - 湲곕? ?④낵 ?ъ꽦: LLVM 理쒖쟻???⑥뒪 ?꾩쟾 ?쒖슜, C/LLVM 諛깆뿏???꾪궎?띿쿂 ?듭씪
-  - C/LLVM ????MIR 湲곕컲?쇰줈 ?듭씪 ??IR ?ъ옄 ROI ?ㅽ쁽
+- [x] **LLVM 백엔??MIR 기반 ?환 ?료**
+  - `src/codegen/llvm_pipeline.c`: MIR routine ??LLVM IR 직접 ?성
+  - `src/codegen/llvm_mir_emit.c`: `llvm_emit_func_from_mir()` ?전 구현
+  - SSA locals, PHI nodes, branch terminators, intent compensation 모두 ??  - 기? 과 ?성: LLVM 최적???스 ?전 ?용, C/LLVM 백엔???키?처 ?일
+  - C/LLVM ????MIR 기반으로 ?일 ??IR ?자 ROI ?현
 
-## P1.55 ???몄뼱 湲곕뒫 ?뺤옣
+## P1.55 ??되어 기능 ?장
 
-### 湲곕컲 ????쒖뒪??- [x] **?쒓렇???좊땲??(enum with data)** ??`enum Shape { Circle(Int), Rect(Int, Int) }` ?곗씠?곕? 媛吏?enum
-  - ?꾨즺: variant payload ?뚯떛, variant ?앹꽦?????異붾줎, C tagged union / LLVM discriminated struct, LLVM tagged-union regression 諛??덉젣 ?ㅽ뻾
-- [x] **Option<T> / None** ??"?곸옄媛 鍮꾩뼱?덉쓣 ???덈떎"瑜???낆쑝濡??쒗쁽. `-1` sentinel ?쒓굅
-  - ?꾨즺: `Option<T>` constructed type, `Some/None`, `IsSome/IsNone/UnwrapOption`, C/LLVM lowering
-  - ?꾨즺: `match opt { case Some(v): ... case None: ... }` destructuring
-- [x] **?붿뒪?몃윮泥섎쭅 (SecureSlot)** ??`let (slot, token) = ClaimSecureSlot<Int>(lvl)` ?⑦꽩 諛붿씤??  - ?꾨즺 (2026-04-19): ?뚯꽌 `ClaimSlot`/`ClaimSecureSlot` ?ㅼ쓽 `<T>`瑜????댁긽 踰꾨━吏 ?딄퀬 `AST_CALL.generic_args`??泥⑤? (?쇰컲 call-site ?쒕꽕由??명봽??, ?쒕㎤?깆씠 destructuring?먯꽌 ??generic arg濡?SYMBOL_SLOT + SYMBOL_TOKEN ???깅줉, MIR emit??`PgyToken_T token; PgySecureSlot_T slot = pgy_claim_secure_T(&token);` 異쒕젰, `transpiler_find_local_type_name_in_block`??諛붿씤?⑸퀎 `SecureSlot<T>`/`Token<T>` 諛섑솚??MIR header??????덉빟 ?뺣━, SSA 留듭뿉 self-mapping ?깅줉?쇰줈 emission contract ?듦낵
-  - ?뚯씪: `src/parser/ast.h`, `src/parser/ast.c`, `src/parser/parser.h`, `src/parser/parser_expr.c` (?쒕꽕由??몄옄 蹂댁〈), `src/semantic/type_checker.c` (destructuring ?쒕㎤??, `src/codegen/transpiler_emitters_base_a.inc` (MIR-level claim emit + ssa map ?깅줉)
+### 기반 ????스??- [x] **?그??아니며 (enum with data)** ??`enum Shape { Circle(Int), Rect(Int, Int) }` ?이?? ?enum
+  - ?료: variant payload ?싱, variant ?성?????추론, C tagged union / LLVM discriminated struct, LLVM tagged-union regression ??제 ?행
+- [x] **Option<T> / None** ??"?자 비어을 ???다"???으??현. `-1` sentinel ?거
+  - ?료: `Option<T>` constructed type, `Some/None`, `IsSome/IsNone/UnwrapOption`, C/LLVM lowering
+  - ?료: `match opt { case Some(v): ... case None: ... }` destructuring
+- [x] **?스?럭처링 (SecureSlot)** ??`let (slot, token) = ClaimSecureSlot<Int>(lvl)` ?턴 바인??  - ?료 (2026-04-19): ?서 `ClaimSlot`/`ClaimSecureSlot` 의 `<T>`????상 버리 하고 `AST_CALL.generic_args`??첨? (?반 call-site ?네??프??, ?맨이 destructuring?서 ??generic arg?SYMBOL_SLOT + SYMBOL_TOKEN ???록, MIR emit??`PgyToken_T token; PgySecureSlot_T slot = pgy_claim_secure_T(&token);` 출력, `transpiler_find_local_type_name_in_block`??바인?별 `SecureSlot<T>`/`Token<T>` 반환??MIR header??????약 ?리, SSA 맵에 self-mapping ?록으로 emission contract ?과
+  - ?일: `src/parser/ast.h`, `src/parser/ast.c`, `src/parser/parser.h`, `src/parser/parser_expr.c` (?네??자 보존), `src/semantic/type_checker.c` (destructuring ?맨??, `src/codegen/transpiler_emitters_base_a.inc` (MIR-level claim emit + ssa map ?록)
   - ?뚭?: `src/test_transpile.c` "let (slot, token) = ClaimSecureSlot<T>(lvl) emits paired claim"
-  - SecureSlot MIR auto-Read + claim ?좏겙 emit ?곌? 踰꾧렇 ?섏젙 (2026-04-19): (a) SSA-aware identifier 寃쎈줈媛 `suppress_slot_auto_read` 臾댁떆?섎뜕 踰꾧렇濡?`pgy_secure_write_Int(&pgy_read_Int(&slot),...)` 媛숈? ?섎せ??C 異쒕젰 ??`!ctx->suppress_slot_auto_read` 媛??異붽? + Secure 寃쎈줈?먯꽌 `pgy_secure_read_*` 遺꾧린. (b) MIR DCE媛 `AST_LET_DECL`??遺?묒슜 ?놁쓬?쇰줈 ?먯젙???쒓굅?섎뜕 踰꾧렇 ??`mir_stmt_has_side_effect`??異붽?. (c) `transpiler_emit_mir_resource_op` Claim 猷곗씠 SecureSlot?먮룄 `pgy_claim_secure_T()`留?emit?섍퀬 ?좏겙? ?앸왂?섎뜕 踰꾧렇 ??`PgyToken_T anchor_token;` + `= pgy_claim_secure_T(&anchor_token)` 諛⑹떇?쇰줈 ?섏젙. (d) `Token<T>`??"claim shape"濡??몄떇??MIR header pre-decl 嫄대꼫?곕룄濡?`transpiler_type_name_is_claim_shape` ?꾩엯 (slot-like???援щ퀎 ??auto-Read???ъ쟾??Slot ?꾩슜). 寃곌낵: destructuring + 鍮?destructuring SecureSlot 紐⑤몢 E2E ?숈옉 (`Write/Read/Release` ?ы븿)
-  - ?뚯씪: `src/compiler/mir.c` (DCE), `src/codegen/transpiler_expr_emitters.inc` (suppress 媛??, `src/codegen/transpiler_emitters_base_a.inc` (claim_shape 遺꾨━), `src/codegen/transpiler_emitters_base_b.inc` (MIR header 泥댄겕), `src/codegen/transpiler_helpers.h` (claim ?좏겙 emit), `src/parser/parser_decl.c` (class-body destructuring ?먮윭 硫붿떆吏)
-  - 誘몄쿂由? LLVM 諛깆뿏??SecureSlot destructuring (LLVM? ?대? "requires explicit annotation" ?먮윭 ??蹂꾨룄 ?몄뀡), class-body destructuring (`private let (slot, token) = ClaimSecureSlot()`??紐낇솗???먮윭 硫붿떆吏濡쒕쭔 泥섎━ ??蹂꾨룄 ?몄뀡)
-- [x] **?쒗뵆 諛섑솚 ???+ ?붿뒪?몃윮泥섎쭅** ??`func f() -> (Int, String)` 諛?`let (n, s) = f()` 吏??  - ?꾨즺 (2026-04-19): Type ?명봽?쇱뿉 `TYPE_KIND_TUPLE` ?쒖꽦??(union??`tuple.elements/element_count` ?꾨뱶 + `type_create_tuple`/`type_is_tuple`/`type_tuple_arity`/`type_tuple_get_element`), AST_TYPE??`tuple_elements` ?꾨뱶濡?`(T, U, ...)` ?쒗쁽, `AST_TUPLE_LITERAL` ?좉퇋 ?몃뱶濡?`(a, b, ...)` ?쒗쁽??吏??  - ?뚯꽌: `parse_type()`??`LPAREN` 遺꾧린濡??쒗뵆 ???援щЦ 泥섎━ (?⑥씪 `(T)`??湲곗〈 `T`濡??섏썝, 鍮?`()`??`Void`, 2媛??댁긽???뚮쭔 ?쒗뵆), `parser_parse_primary`??愿꾪샇 ?쒗쁽??寃쎈줈??肄ㅻ쭏 媛먯? ???쒗뵆 由ы꽣?대줈 遺꾧린
-  - ?쒕㎤?? `resolve_type_node`??tuple 遺꾧린 異붽? ??`type_create_tuple` 諛섑솚, `type_check_expression`??`AST_TUPLE_LITERAL` 耳?댁뒪濡??붿냼 ????섏쭛, `AST_LET_DESTRUCTURE`?먯꽌 RHS媛 tuple?대㈃ arity 寃利?+ positional element ????좊떦
-  - C 諛깆뿏?? `append_type_name`???쒗뵆??`(T, U)`濡??뚮뜑, `pergyra_type_to_c`媛 `(Int, String)` ??`PgyTuple_Int_String_t`濡?留ㅽ븨 (depth-tracking ?뚯꽌), `ensure_tuple_specialization_to`媛 `typedef struct { T0 f0; T1 f1; ... } PgyTuple_<suffix>_t;`瑜?ctx->out??以묐났 ?놁씠 諛⑹텧, `emit_expression(AST_TUPLE_LITERAL)`??compound literal `((PgyTuple_T_U_t){.f0=..., .f1=...})` emit, AST_LET_DESTRUCTURE MIR 寃쎈줈/湲곕낯 寃쎈줈 ????tuple 遺꾧린濡?`.f0/.f1/...` ?꾨뱶 異붿텧
-  - LLVM 諛깆뿏?? `ast_type_to_llvm`??tuple AST_TYPE ??literal anonymous struct `{T0, T1, ...}`, `llvm_emit_expression(AST_TUPLE_LITERAL)`??`LLVMGetUndef + InsertValue` 泥댁씤?쇰줈 吏묎퀎媛?援ъ꽦, `llvm_emit_let_destructure`媛 struct ?꾨뱶 媛쒖닔 + 泥??꾨뱶 鍮꾪룷?명꽣 heuristic?쇰줈 tuple ?먯젙 ??`ExtractValue` per-binding
+  - SecureSlot MIR auto-Read + claim ?큰 emit ?? 버그 ?정 (2026-04-19): (a) SSA-aware identifier 경로 `suppress_slot_auto_read` 무시?던 버그?`pgy_secure_write_Int(&pgy_read_Int(&slot),...)` 같? ?못??C 출력 ??`!ctx->suppress_slot_auto_read` ??추? + Secure 경로?서 `pgy_secure_read_*` 분기. (b) MIR DCE `AST_LET_DECL`???용 ?음으로 ?정???거?던 버그 ??`mir_stmt_has_side_effect`??추?. (c) `transpiler_emit_mir_resource_op` Claim 룰이 SecureSlot?도 `pgy_claim_secure_T()`?emit하고 ?큰? ?략?던 버그 ??`PgyToken_T anchor_token;` + `= pgy_claim_secure_T(&anchor_token)` 방식으로 ?정. (d) `Token<T>`??"claim shape"??식??MIR header pre-decl 건너?도?`transpiler_type_name_is_claim_shape` ?입 (slot-like???구별 ??auto-Read???전??Slot ?용). 결과: destructuring + ?destructuring SecureSlot 모두 E2E ?작 (`Write/Read/Release` ?함)
+  - ?일: `src/compiler/mir.c` (DCE), `src/codegen/transpiler_expr_emitters.inc` (suppress ??, `src/codegen/transpiler_emitters_base_a.inc` (claim_shape 분리), `src/codegen/transpiler_emitters_base_b.inc` (MIR header 체크), `src/codegen/transpiler_helpers.h` (claim ?큰 emit), `src/parser/parser_decl.c` (class-body destructuring ?러 메시)
+  - 미처? LLVM 백엔??SecureSlot destructuring (LLVM? ?? "requires explicit annotation" ?러 ??별도 ?션), class-body destructuring (`private let (slot, token) = ClaimSecureSlot()`??명확???러 메시로만 처리 ??별도 ?션)
+- [x] **?플 반환 ???+ ?스?럭처링** ??`func f() -> (Int, String)` ?`let (n, s) = f()` ??  - ?료 (2026-04-19): Type ?프에 `TYPE_KIND_TUPLE` ?성??(union??`tuple.elements/element_count` ?드 + `type_create_tuple`/`type_is_tuple`/`type_tuple_arity`/`type_tuple_get_element`), AST_TYPE??`tuple_elements` ?드?`(T, U, ...)` ?현, `AST_TUPLE_LITERAL` ?규 ?드?`(a, b, ...)` ?현????  - ?서: `parse_type()`??`LPAREN` 분기??플 ???구문 처리 (?일 `(T)`??기존 `T`??원, ?`()`??`Void`, 2??상???만 ?플), `parser_parse_primary`??괄호 ?현??경로??콤마 감? ???플 리터으로 분기
+  - ?맨?? `resolve_type_node`??tuple 분기 추? ??`type_create_tuple` 반환, `type_check_expression`??`AST_TUPLE_LITERAL` ?스??소 ????집, `AST_LET_DESTRUCTURE`?서 RHS tuple?면 arity ?+ positional element ????당
+  - C 백엔?? `append_type_name`???플??`(T, U)`??더, `pergyra_type_to_c` `(Int, String)` ??`PgyTuple_Int_String_t`?매핑 (depth-tracking ?서), `ensure_tuple_specialization_to` `typedef struct { T0 f0; T1 f1; ... } PgyTuple_<suffix>_t;`?ctx->out??중복 이 방출, `emit_expression(AST_TUPLE_LITERAL)`??compound literal `((PgyTuple_T_U_t){.f0=..., .f1=...})` emit, AST_LET_DESTRUCTURE MIR 경로/기본 경로 ????tuple 분기?`.f0/.f1/...` ?드 추출
+  - LLVM 백엔?? `ast_type_to_llvm`??tuple AST_TYPE ??literal anonymous struct `{T0, T1, ...}`, `llvm_emit_expression(AST_TUPLE_LITERAL)`??`LLVMGetUndef + InsertValue` 체인으로 집계?구성, `llvm_emit_let_destructure` struct ?드 개수 + ??드 비포?터 heuristic으로 tuple ?정 ??`ExtractValue` per-binding
   - ?뚭?: `tests/cases/backend_compare/destructure_tuple_return/main.pgy` (C/LLVM ?숈씪: `42/hello/7/11/true`), `compare_backends.sh` case ?깅줉, `test-semantic 1653 passed`, `test-transpile 584 passed`
   - ?뚯씪: `src/semantic/type_system.{h,c}`, `src/parser/ast.{h,c}`, `src/parser/parser_decl.c`, `src/parser/parser_expr.c`, `src/semantic/type_checker.{c,_helpers.inc}`, `src/codegen/transpiler.h`, `src/codegen/transpiler_helpers_core_b.inc`, `src/codegen/transpiler_expr_emitters.inc`, `src/codegen/transpiler_emitters_base_{a,b}.inc`, `src/codegen/llvm_backend.c`, `src/codegen/llvm_expr.c`, `src/codegen/llvm_stmt.c`, `src/codegen/llvm_pipeline.c`
-  - ?꾩냽 ?섏젙 (destructure + if 吏??: `transpiler_register_with_alias_bindings_in_block`??Claim-only ?쒗븳 ?쒓굅 ??紐⑤뱺 destructuring 諛붿씤??array/slice/tuple/?쇰컲 call)???대쫫??self-mapping?쇰줈 precheck ssa_map???깅줉. ?ㅼ젣 emit 寃쎈줈???ъ쟾??`<name>.1` 踰꾩쟾???대쫫??MIR emit ?쒖젏??ssa_map???ｌ뼱???ъ슜 (self-map? verifier ?듦낵??媛?쒖씪 肉?. 寃곌낵: `let (a, b, flag) = f(); if flag { ... } else { ... }` 媛숈? ?⑦꽩??array/tuple ????C/LLVM?먯꽌 ?숈옉. ?뚯씪: `src/codegen/transpiler_emitters_base_a.inc` (register_with_alias_bindings_in_block)
-- [ ] **sealed ability** ??援ы쁽 媛?ν븳 role???쒗븳 (`sealed ability Combatable` ??媛숈? 紐⑤뱢 ??role留?impl 媛??
-- [x] **臾몄옄??蹂닿컙** ??`f"媛믪? {x}"` ??`StringConcat(...)` series濡?lowering
-  - ?꾨즺: lexer?먯꽌 `f"..."` ??`TOKEN_INTERPOLATED_STRING`
-  - ?꾨즺: parser?먯꽌 `{expr}` ?뚯떛, `ToString(expr)` + `+` concatenation?쇰줈 遺꾪빐
-  - ?꾨즺: 湲곗〈 `"${expr}"` ?덇굅??臾몃쾿???명솚 ?좎?
-  - ?꾨즺: 踰좏? stable subset??`"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace濡?臾몄꽌??  - ?꾨즺: unmatched interpolation brace??蹂닿컙?섏? ?딄퀬 literal text濡?蹂댁〈?섎룄濡?parser ?뚭? 異붽?
+  - ?속 ?정 (destructure + if ??: `transpiler_register_with_alias_bindings_in_block`??Claim-only ?한 ?거 ??모든 destructuring 바인??array/slice/tuple/?반 call)???름??self-mapping으로 precheck ssa_map???록. ?제 emit 경로???전??`<name>.1` 버전???름??MIR emit ?점??ssa_map??되어???용 (self-map? verifier ?과???일 ?. 결과: `let (a, b, flag) = f(); if flag { ... } else { ... }` 같? ?턴??array/tuple ????C/LLVM?서 ?작. ?일: `src/codegen/transpiler_emitters_base_a.inc` (register_with_alias_bindings_in_block)
+- [ ] **sealed ability** ??구현 ?한 role???한 (`sealed ability Combatable` ??같? 모듈 ??role?impl ??
+- [x] **문자??보간** ??`f"값? {x}"` ??`StringConcat(...)` series?lowering
+  - ?료: lexer?서 `f"..."` ??`TOKEN_INTERPOLATED_STRING`
+  - ?료: parser?서 `{expr}` ?싱, `ToString(expr)` + `+` concatenation으로 분해
+  - ?료: 기존 `"${expr}"` ?거??문법???환 ??
+  - ?료: 베? stable subset??`"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace?문서??  - ?료: unmatched interpolation brace??보간?? 하고 literal text?보존?도?parser ?? 추?
   - beta-out-of-scope: nested brace matching, format specifier, multiline interpolation, custom interpolation protocol
 
 ### ?먮윭 泥섎━
-- [x] **`?` ?곗궛??* ??`Result<T>` ?먮윭 ?먮룞 ?꾪뙆. `let val = riskyFunc()?;` ???먮윭 ??利됱떆 諛섑솚
-  - ?꾨즺: ?쒕㎤??寃利? C early-return lowering, LLVM `Result<T>` ?덉씠?꾩썐/unwrap/early-return lowering, `pipe_and_try.pgy` C/LLVM ?ㅽ뻾 寃利?  - LLVM try.err ?ш뎄??踰꾧렇 ?섏젙 (2026-04-19): `let val = Validate(x)?;` ?⑦꽩?먯꽌 let_decl??`current_ret_type`??LHS var ???i32)?쇰줈 ?좎떆 ??뼱?곌퀬 ?덉뼱, `?`??try.err 釉붾줉???⑥닔 return ???struct ???i32濡??먯젙 ??`unreachable` emit ???고???crash. `ctx->current_func_decl`?먯꽌 AST 諛섑솚 ??낆쓣 ?ъ“?뚰빐 蹂듦뎄 + Err 媛??ш뎄??(src_err ??dst_err ?뺤닔/?ъ씤??媛뺤젣 蹂???ы븿)
+- [x] **`?` ?산??* ??`Result<T>` ?러 ?동 ?파. `let val = riskyFunc()?;` ???러 ??즉시 반환
+  - ?료: ?맨??? C early-return lowering, LLVM `Result<T>` ?이?웃/unwrap/early-return lowering, `pipe_and_try.pgy` C/LLVM ?행 ?  - LLVM try.err ?구??버그 ?정 (2026-04-19): `let val = Validate(x)?;` ?턴?서 let_decl??`current_ret_type`??LHS var ???i32)으로 ?시 ??하고 되어, `?`??try.err 블록??개수 return ???struct ???i32??정 ??`unreachable` emit ??????crash. `ctx->current_func_decl`?서 AST 반환 ?을 ?조대해 복구 + Err ??구??(src_err ??dst_err 개수/?인??강제 ???함)
   - ?뚯씪: `src/codegen/llvm_expr_scalar_core.h`
   - ?뚭?: `tests/cases/backend_compare/try_operator_result/main.pgy` (C/LLVM ?숈씪), `examples/pipe_and_try.pgy`
 
-### ?몄쓽 臾몃쾿
-- [x] **?뚯씠???곗궛??* ??`data |> Transform |> Validate |> Persist` ?⑤갑???곗씠???먮쫫
+### 의 문법
+- [x] **?이???산??* ??`data |> Transform |> Validate |> Persist` ?방???이???름
 - [x] **defer** ??`defer Release(s)` ?ㅼ퐫??醫낅즺 ???먮룞 ?ㅽ뻾
-- [x] **`let` ???異붾줎** ??initializer 湲곕컲 湲곕낯 異붾줎? ?꾩옱 援ы쁽??  - ?꾨즺: annotation???놁쓣 ??initializer ??낆쑝濡?異붾줎
-  - ?⑥쓬: 臾몄꽌/?쒕㈃ ?덉떆瑜???怨듦꺽?곸쑝濡????異붾줎 以묒떖?쇰줈 ?뺣━?좎? 寃곗젙
+- [x] **`let` ???추론** ??initializer 기반 기본 추론? 현재 구현??  - ?료: annotation??을 ??initializer ??으?추론
+  - ?음: 문서/?면 ?시???공격?으????추론 중심으로 ?리?? 결정
 
-### ?쒕꽕由??대옒??- [x] **?쒕꽕由??대옒??* ??`class Pair<T>` 臾몃쾿 + ?쒕㎤??+ C 肄붾뱶??(?⑦삎??. ?덉젣: `examples/generic_class.pgy`
+### ?네??래??- [x] **?네??래??* ??`class Pair<T>` 문법 + ?맨??+ C 코드??(?형??. ?제: `examples/generic_class.pgy`
 
 ### Slot ?뚯쑀沅?紐⑤뜽
-- [x] **`own`/`ref` ?뚯쑀沅?紐⑤뜽 ?뺤젙 諛?援ы쁽** ??move 湲곕낯, ?⑥닔 ?쒓렇?덉쿂??紐낆떆
-  - ?꾨즺: `own`/`ref` ?ㅼ썙??(?됱꽌/?뚯꽌/AST), Slot ?????move ?쒕㎤?? Clone() 紐낆떆??蹂듭궗
-  - `func Upload(own tex: Slot<Texture>)` ???뚯쑀沅??댁쟾, ?먮낯 臾댄슚
-  - `func Render(ref tex: Slot<Texture>)` ??鍮뚮┝, ?먮낯 ?좏슚
-  - 臾몄꽌?? `docs/22_ownership_model.md`
+- [x] **`own`/`ref` ?유?모델 ?정 ?구현** ??move 기본, 개수 ?그?처??명시
+  - ?료: `own`/`ref` ?워??(?서/?서/AST), Slot ?????move ?맨?? Clone() 명시??복사
+  - `func Upload(own tex: Slot<Texture>)` ???유??전, ?본 무효
+  - `func Render(ref tex: Slot<Texture>)` ??빌림, ?본 ?효
+  - 문서?? `docs/22_ownership_model.md`
 
-### Slot ?쒕㈃ 臾몃쾿 媛쒖꽑 (P0 ?곗꽑?쒖쐞)
-- [x] **?붾У??Read + ???湲곕컲 Write** ??Slot??湲곕낯 ?ъ슜 ?쒕㈃???쇰컲 蹂?섏쿂??  - ?꾨즺: ?쎄린 臾몃㎘?먯꽌 `Slot<T>` auto-read
-  - ?꾨즺: `slot = expr` ??`Write(slot, expr)` lowering
-  - ?좎?: `Release(slot)`??怨꾩냽 紐낆떆??
+### Slot ?면 문법 개선 (P0 ?선?위)
+- [x] **?묵??Read + ???기반 Write** ??Slot??기본 ?용 ?면???반 ?처??  - ?료: ?기 문맥?서 `Slot<T>` auto-read
+  - ?료: `slot = expr` ??`Write(slot, expr)` lowering
+  - ??: `Release(slot)`??계속 명시??
 ### Slot 理쒖쟻??(P0 ?곗꽑?쒖쐞)
-- [x] **?ㅽ깮 ?좊떦 理쒖쟻??* ???ㅼ퐫?꾨? 踰쀬뼱?섏? ?딅뒗 Slot? malloc ???alloca
-  - ?꾨즺: `slot_analyze_escape_flags()` (slot_analyzer.c)
-  - ?꾨즺: LLVM 諛깆뿏?쒖뿉??`slot_escapes == false` ??alloca ?앹꽦 (llvm_stmt.c:145-146)
-  - ?꾨즺: escape analysis濡?non-escaping slot ?먮룞 ?ㅽ깮 ?좊떦
+- [x] **?택 ?당 최적??* ???코?? 벗어?? 는 Slot? malloc ???alloca
+  - ?료: `slot_analyze_escape_flags()` (slot_analyzer.c)
+  - ?료: LLVM 백엔?에??`slot_escapes == false` ??alloca ?성 (llvm_stmt.c:145-146)
+  - ?료: escape analysis?non-escaping slot ?동 ?택 ?당
 
-### View 踰붿쐞 遺??(由щ럭 ?꾩슂 ??誘멸껐??
-- [ ] **View??諛붿씠???몃뜳??踰붿쐞 遺??* ???ㅼ젣 ?ъ슜 ?щ? 留뚮뱾?대낫怨?寃곗젙
-  - ??A: Slice 湲곕컲 ??`SliceOf(buf, 0, 1024)` ??Slot??"李쎈Ц"
+### View 범위 ??(리뷰 ?요 ??미결??
+- [ ] **View??바이???덱??범위 ??* ???제 ?용 ?? 만들?보?결정
+  - ??A: Slice 기반 ??`SliceOf(buf, 0, 1024)` ??Slot??"창문"
   - ??B: View??踰붿쐞 遺????`ViewRead(buf, offset, length)`
-  - **誘멸껐?????뚯씪 I/O, ?ㅽ듃?뚰겕 踰꾪띁, GPU ?띿뒪泥??щ?瑜?留뚮뱾?대낫怨?寃곗젙**
+  - **미결?????일 I/O, ?트?크 버퍼, GPU ?스????만들?보?결정**
 
-### 蹂묐젹/梨꾨꼸
-- [x] **select ?ㅼ껜??* ???щ윭 梨꾨꼸 以?癒쇱? 以鍮꾨맂 寃껋쓣 泥섎━
+### 병렬/채널
+- [x] **select ?체??* ???러 채널 ?먼? 비된 것을 처리
 
-### ?몄뼱 ?꾩꽦??Tier 1 ??踰붿슜 ?꾩닔
-- [x] **for-in 而щ젆??猷⑦봽** ??`for item in array { }` 諛곗뿴/而щ젆???쒗쉶
-  - ?꾨즺: Array<T>/Slice<T> ?뱀닔??(index loop lowering), ?쒕㎤??element type 異붾줎
-  - ?⑥쓬: ability 湲곕컲 Iterable<T> ?꾨줈?좎퐳 (Tier 2)
-- [x] **StringSplit / StringJoin** ??臾몄옄??遺꾨━/寃고빀 鍮뚰듃???ㅼ껜??  - ?꾨즺: `Split(s, delim) ??Array<String>`, `Join(arr, sep) ??String`
-- [x] **ToInt / ToFloat** ??臾몄옄?닳넂?レ옄 蹂??鍮뚰듃??- [x] **湲곕낯 Math 鍮뚰듃??* ??Sqrt, Pow, Floor, Ceil, Random 異붽? (湲곗〈 Abs/Min/Max + ?좉퇋 5媛?
-- [x] **ArraySort / ArrayMap / ArrayFilter / ArrayReverse** ??怨좎감 ?⑥닔 湲곕컲 而щ젆???곗궛
-  - ?꾨즺: ArraySort(arr) ??qsort, ArrayMap(arr, fn) ????諛곗뿴, ArrayFilter(arr, fn) ??議곌굔 ?꾪꽣, ArrayReverse(arr) ???ㅼ쭛湲?  - fn? ?⑥닔 ?대쫫 ?먮뒗 ?뚮떎 (C ?⑥닔 ?ъ씤?곕줈 lowering)
-- [x] **?붿뒪?몃윮泥섎쭅** ??`let (a, b, c) = expr` 諛곗뿴/而щ젆??positional 諛붿씤??  - ?꾨즺: Array<T> ???몃뜳??湲곕컲 異붿텧 (`result.data[0]`, `result.data[1]`, ...)
-  - MIR ?듯빀 (2026-04-19): MIR DCE媛 `AST_LET_DESTRUCTURE` 臾몄쓣 "遺?묒슜 ?놁쓬"?쇰줈 ?먯젙???쒓굅?섎뜕 踰꾧렇 ?섏젙 (`mir_stmt_has_side_effect`). ?몃옖?ㅽ뙆?쇰윭 MIR emit 猷⑦봽?먯꽌 destructuring??SSA-renamed ?寃잛쑝濡?emit, `transpiler_find_local_type_name_in_block`??AST_LET_DESTRUCTURE 耳?댁뒪 異붽???濡쒖뺄 ????댁꽍 蹂듦뎄
-  - LLVM parity (2026-04-19): `llvm_emit_statement`??AST_LET_DESTRUCTURE 耳?댁뒪 異붽? ??珥덇린?붿떇??struct 媛믪쑝濡??됯?, `ExtractValue(0)`?쇰줈 data pointer 異붿텧, 媛?諛붿씤?⑸쭏??`GEP+Load`濡??붿냼 異붿텧 ??`alloca+store`+`llvm_scope_declare`濡?濡쒖뺄 ?깅줉. `llvm_lookup_array_var`濡?elem_type ?댁꽍
-  - ?뚯씪: `src/compiler/mir.c`, `src/codegen/transpiler_emitters_base_a.inc` (C 諛깆뿏??, `src/codegen/llvm_stmt.c` (LLVM 諛깆뿏??
+### 되어 ?성??Tier 1 ??범용 개수
+- [x] **for-in 컬렉??루프** ??`for item in array { }` 배열/컬렉???회
+  - ?료: Array<T>/Slice<T> 개수??(index loop lowering), ?맨??element type 추론
+  - ?음: ability 기반 Iterable<T> ?로?콜 (Tier 2)
+- [x] **StringSplit / StringJoin** ??문자??분리/결합 빌트???체??  - ?료: `Split(s, delim) ??Array<String>`, `Join(arr, sep) ??String`
+- [x] **ToInt / ToFloat** ??문자?→?자 ??빌트??- [x] **기본 Math 빌트??* ??Sqrt, Pow, Floor, Ceil, Random 추? (기존 Abs/Min/Max + ?규 5?
+- [x] **ArraySort / ArrayMap / ArrayFilter / ArrayReverse** ??고차 개수 기반 컬렉???산
+  - ?료: ArraySort(arr) ??qsort, ArrayMap(arr, fn) ????배열, ArrayFilter(arr, fn) ??조건 ?터, ArrayReverse(arr) ???집?  - fn? 개수 ?름 는 ?다 (C 개수 ?인으로 lowering)
+- [x] **?스?럭처링** ??`let (a, b, c) = expr` 배열/컬렉??positional 바인??  - ?료: Array<T> ???덱??기반 추출 (`result.data[0]`, `result.data[1]`, ...)
+  - MIR ?합 (2026-04-19): MIR DCE `AST_LET_DESTRUCTURE` 문을 "?용 ?음"으로 ?정???거?던 버그 ?정 (`mir_stmt_has_side_effect`). ?랜?파?러 MIR emit 루프?서 destructuring??SSA-renamed ?겟으?emit, `transpiler_find_local_type_name_in_block`??AST_LET_DESTRUCTURE ?스 추???로컬 ????석 복구
+  - LLVM parity (2026-04-19): `llvm_emit_statement`??AST_LET_DESTRUCTURE ?스 추? ??초기?식??struct 값으???, `ExtractValue(0)`으로 data pointer 추출, ?바인?마??`GEP+Load`??소 추출 ??`alloca+store`+`llvm_scope_declare`?로컬 ?록. `llvm_lookup_array_var`?elem_type ?석
+  - ?일: `src/compiler/mir.c`, `src/codegen/transpiler_emitters_base_a.inc` (C 백엔??, `src/codegen/llvm_stmt.c` (LLVM 백엔??
   - ?뚭?: `tests/cases/backend_compare/destructure_array/main.pgy` (C/LLVM ?숈씪 異쒕젰), `examples/collection_ops.pgy` (hello/world/foo 異쒕젰)
 
-### 硫뷀??꾨줈洹몃옒諛??낆옣 (寃곗젙 ?꾨즺)
-- [x] **TMP 鍮꾩콈??* ???쒕꽕由?monomorphization + ability dispatch濡?95% 而ㅻ쾭. 臾몄꽌: `docs/23_metaprogramming_position.md`
-- [ ] **?ν썑 肄붾뱶 ?앹꽦 ?꾩슂 ??* ??而댄뙆??????뚮윭洹몄씤 (proc_macro 紐⑤뜽) ?먮뒗 ?뚯뒪 ?앹꽦湲?寃??
-### ?몄뼱 ?꾩꽦??Tier 2 ???ㅼ궗???몄쓽
-- [ ] **innate ability** ??媛숈? 紐⑤뱢 ??role留?impl ?덉슜 (sealed ???innate 梨꾪깮. 臾몄꽌: `docs/24_visibility_model.md`)
-  - ?뚯꽌 ?꾨즺, ?쒕㎤?깆뿉??`innate` ?ㅼ썙???몄떇 (type_checker_decls.inc 李몄“)
-  - ?⑥쓬: 紐⑤뱢 寃쎄퀎 寃利?濡쒖쭅 ?꾩꽦
-- [x] **?쒕꽕由?constraint ?쒕㎤??* ??`where T: Comparable` ?쒕㎤??寃利?  - ?꾨즺: ?뚯꽌 + ?쒕㎤??寃利?(type_checker_helpers.inc:1847)
-  - ?꾨즺: Generic function where-clause constraint validation
-- [x] **OR ?⑦꽩** ??`case 1 | 2 | 3:` match?먯꽌
-  - ?꾨즺: lexer `TOKEN_PATTERN_OR`, parser ?뚯떛, ?쒕㎤??寃利?  - ?꾨즺: 由ы꽣??OR ?⑦꽩 吏??(`case 1 | 2 | 3:`)
-  - ?쒗븳: variant destructuring OR ?⑦꽩? ?꾩쭅 誘몄???(`case .Some(v) | .None:`)
-- [x] **enum 硫붿꽌??* ??`enum Direction { ... func Name(self) -> String }`
-  - ?꾨즺: enum body?먯꽌 `func` ?좎뼵 + `self` ?뚮씪誘명꽣濡?match self 蹂몃Ц 媛?? C 而댄뙆??寃利?- [x] **labeled break/continue** ??`outer: while { ... break outer; }`
-  - ?꾨즺: ?뚯꽌 (`parser.c:1270`), AST (`break_stmt.label`), ?쒕㎤??(`test_semantic.c:680,714,739`), C 肄붾뱶??(`loop_break_labels[]` + `loop_continue_labels[]`)
-  - 寃利? outer label break, ?????녿뒗 label 嫄곕?, continue outer 紐⑤몢 ?뚭? ?뚯뒪???듦낵
-- [x] **Custom error ???* ??`Result<T, E>` where E is user type (?꾩옱 String留?
-  - ?꾨즺 (2026-04-18): ??낅챸 ?뚮뜑 `PgyResult_Int_NetError` sanitize, `PGY_RESULT_DEFINE(Int_NetError, int32_t, NetError)` ?먮룞 instantiation (`ensure_result_specialization_to` ?좎꽕), ?몄쓽 留ㅽ겕濡?(`Ok_T_E`, `Err_T_E`, `IsOk_T_E`, `Unwrap_T_E`, `UnwrapOr_T_E`) ?먮룞 ?앹꽦, Ok/Err builtin??`ctx->current_return_type`?먯꽌 suffix 異붿텧, match pattern Ok/Err 諛붿씤??`__typeof__` 湲곕컲 ???異붾줎
+### 메??로그래??장 (결정 ?료)
+- [x] **TMP 비채??* ???네?monomorphization + ability dispatch?95% 커버. 문서: `docs/23_metaprogramming_position.md`
+- [ ] **?후 코드 ?성 ?요 ??* ??컴파??????러그인 (proc_macro 모델) 는 ?스 ?성???
+### 되어 ?성??Tier 2 ???사???의
+- [ ] **innate ability** ??같? 모듈 ??role?impl ?용 (sealed ???innate 채택. 문서: `docs/24_visibility_model.md`)
+  - ?서 ?료, ?맨?에??`innate` ?워???식 (type_checker_decls.inc 참조)
+  - ?음: 모듈 경계 ?로직 ?성
+- [x] **?네?constraint ?맨??* ??`where T: Comparable` ?맨???  - ?료: ?서 + ?맨???(type_checker_helpers.inc:1847)
+  - ?료: Generic function where-clause constraint validation
+- [x] **OR ?턴** ??`case 1 | 2 | 3:` match?서
+  - ?료: lexer `TOKEN_PATTERN_OR`, parser ?싱, ?맨???  - ?료: 리터??OR ?턴 ??(`case 1 | 2 | 3:`)
+  - ?한: variant destructuring OR ?턴? 아직 미???(`case .Some(v) | .None:`)
+- [x] **enum 메서??* ??`enum Direction { ... func Name(self) -> String }`
+  - ?료: enum body?서 `func` ?언 + `self` ?라미터?match self 본문 ?? C 컴파???- [x] **labeled break/continue** ??`outer: while { ... break outer; }`
+  - ?료: ?서 (`parser.c:1270`), AST (`break_stmt.label`), ?맨??(`test_semantic.c:680,714,739`), C 코드??(`loop_break_labels[]` + `loop_continue_labels[]`)
+  - ? outer label break, ????는 label 거?, continue outer 모두 ?? ?스???과
+- [x] **Custom error ???* ??`Result<T, E>` where E is user type (현재 String?
+  - ?료 (2026-04-18): ?증명 ?더 `PgyResult_Int_NetError` sanitize, `PGY_RESULT_DEFINE(Int_NetError, int32_t, NetError)` ?동 instantiation (`ensure_result_specialization_to` ?설), 의 매크?(`Ok_T_E`, `Err_T_E`, `IsOk_T_E`, `Unwrap_T_E`, `UnwrapOr_T_E`) ?동 ?성, Ok/Err builtin??`ctx->current_return_type`?서 suffix 추출, match pattern Ok/Err 바인??`__typeof__` 기반 ???추론
   - ?뚯씪: `src/codegen/transpiler_helpers_core_b.inc` (generic_args_to_c_suffix + ensure_result_specialization_to), `src/codegen/transpiler_expr_emitters.inc` (Ok/Err/Unwrap suffix), `src/codegen/transpiler_emitters_base_b.inc` (match __typeof__), `src/codegen/transpiler.h` (result_specs_*)
   - ?뚭?: `src/test_semantic.c` "Result<T, E> with enum error type accepts Ok/Err and match destructuring"
 
-### ability 李⑤퀎??- [x] **ability ??interface 臾몄꽌??* ??ability??"?묒뾽 ?꾨줈?좎퐳???먭꺽 議곌굔"?대ŉ ?щ’??遺李⑸맖
-  - ?꾨즺: `docs/24_visibility_model.md`??`ability ??interface` ?뱀뀡 異붽?
-  - ?뺣━ ?댁슜: ability??nominal object??硫붿꽌??吏묓빀??吏곸젒 紐⑤뜽留곹븯??interface媛 ?꾨땲?? `requires Ability`, `dyn role slot: Ability`, `zone authority requires Ability`泥섎읆 ?묒뾽 怨꾩빟/?먭꺽 議곌굔?쇰줈 ?뚮퉬?섎뒗 surface?꾩쓣 怨좎젙
-  - ?뺣━ ?댁슜: ability??subject/role/slot/orchestration contract? 寃고빀?섎ŉ, 援ы쁽 ?대떦? role impl?닿퀬 ability ?먯껜??"臾댁뾿??援ы쁽?섎씪"蹂대떎 "?대뼡 ?먭꺽?쇰줈 李몄뿬?섎씪"瑜??쒗쁽?쒕떎???먯쓣 紐낆떆
+### ability 차별??- [x] **ability ??interface 문서??* ??ability??"?업 ?로?콜???격 조건"?며 ?롯??착됨
+  - ?료: `docs/24_visibility_model.md`??`ability ??interface` ?션 추?
+  - ?리 ?용: ability??nominal object??메서??집합??직접 모델링하??interface 아니며  `requires Ability`, `dyn role slot: Ability`, `zone authority requires Ability`처럼 ?업 계약/?격 조건으로 ?비는 surface을 고정
+  - ?리 ?용: ability??subject/role/slot/orchestration contract? 결합?며, 구현 ?당? role impl하고 ability ?체??"무엇??구현?라"보다 "?떤 ?격으로 참여?라"??현?다??을 명시
 
-## P1.6 ???먯썝/?ㅼ??ㅽ듃?덉씠??諛⑺뼢 怨좎젙
+## P1.6 ???원/???트?이??방향 고정
 
-### 遺꾩궛 ?ㅺ퀎 寃곗젙 (2026-04-03 ?뺤젙)
-- [x] **RemoteFuture `await` ??`Result<T>` 媛뺤젣** ???먭꺽 ?먯썝??吏???ㅽ뙣瑜?????쒖뒪?쒖뿉??媛뺤젣 ?몄텧
+### 분산 ?계 결정 (2026-04-03 ?정)
+- [x] **RemoteFuture `await` ??`Result<T>` 강제** ???격 ?원?????패?????스?에??강제 ?출
   - `Future<T>` (濡쒖뺄) ??await ??`T` (?ㅽ뙣 ?놁쓬)
-  - `RemoteFuture<T>` (?먭꺽) ??await ??`Result<T>` (?ㅽ뙣 媛??
-  - ?쒕㎤??泥댁빱 + C 肄붾뱶??+ ?고???留ㅽ겕濡?援ы쁽 ?꾨즺
+  - `RemoteFuture<T>` (?격) ??await ??`Result<T>` (?패 ??
+  - ?맨??체커 + C 코드??+ ????매크?구현 ?료
   - ?뚯뒪?? 205 semantic + 141 transpile ?듦낵
-- [x] **RemoteFuture??Claim/Read/Write/Release 李⑤떒** ???먭꺽 ?먯썝???숈궗??Submit/Await留?  - Read/Write/Release ?몄텧 ??移쒖젅???먮윭 硫붿떆吏 異쒕젰
+- [x] **RemoteFuture??Claim/Read/Write/Release 차단** ???격 ?원???사??Submit/Await?  - Read/Write/Release ?출 ??친절???러 메시 출력
   - "RemoteFuture does not support Read(); use 'await' to obtain Result<T>"
-- [ ] **?먭꺽 Slot? Claim ?놁씠 Channel 湲곕컲 硫붿떆吏 ?⑥떛留?* ??遺꾩궛 ???뚰뵾
+- [ ] **?격 Slot? Claim 이 Channel 기반 메시 ?싱?* ??분산 ???피
   - ?щ줈??World ?듭떊? `Channel<T>`留??덉슜
   - ?먭꺽 ?먯썝??Claim ?숈궗瑜??ъ슜?섎㈃ 而댄뙆???먮윭
-- [x] **World 寃쎄퀎 = ?ㅽ뙣 ?꾨찓??寃쎄퀎** ???щ줈??World ?듭떊? Channel留?  - ?꾨즺: World ?쒕㎤??泥댁빱 (`type_check_world_decl`, type_checker_decls.inc)
-  - ?꾨즺: World 肄붾뱶??(C 諛깆뿏?? transpiler_helpers.h)
-  - ?꾨즺: `HasZoneProjection`, `HasZoneLayer`, `HasZoneState` builtin
+- [x] **World 경계 = ?패 ?메??경계** ???로??World ?신? Channel?  - ?료: World ?맨??체커 (`type_check_world_decl`, type_checker_decls.inc)
+  - ?료: World 코드??(C 백엔?? transpiler_helpers.h)
+  - ?료: `HasZoneProjection`, `HasZoneLayer`, `HasZoneState` builtin
 
 ### Projection / Domain Query
-- [x] **Projection query surface** ??`HasProjection(slotName)`?쇰줈 relation/effect/zone 臾몃㎘?먯꽌 object/tobject projection slot??sync-ready ?щ?瑜?吏덉쓽
-  - ?꾨즺: semantic + C/LLVM lowering
-  - World ?대???Slot? 濡쒖뺄 (zero-cost), World 媛꾩? Channel (紐낆떆??鍮꾩슜)
+- [x] **Projection query surface** ??`HasProjection(slotName)`으로 relation/effect/zone 문맥?서 object/tobject projection slot??sync-ready ???질의
+  - ?료: semantic + C/LLVM lowering
+  - World ????Slot? 로컬 (zero-cost), World 간? Channel (명시??비용)
 
-### ?ㅼ??쇰쭅 ???(?덈뱶? ?쇰뱶諛?湲곕컲)
-- [ ] **諛깆뿏????븷 而룹삤??怨좎젙** ??C = reference/fallback, LLVM = optimization/mainline
-  - 媛숈? ?섎?濡좎쓣 ??諛깆뿏?쒖뿉 ?좎??섎릺, 怨듦꺽??理쒖쟻?붿? type-erased fast path??LLVM?먮쭔 吏묒쨷
-  - C 諛깆뿏?쒕뒗 MVP ?명솚?? ?붾쾭源? ?대갚, 遺?몄뒪?몃옒????븷濡??쒗븳
-  - ??湲곕뒫 異붽? ??"C?먯꽌??諛섎뱶??理쒖쟻??寃쎈줈源뚯? 援ы쁽?댁빞 ?섎뒗媛?"瑜?湲곕낯?곸쑝濡?`?꾨땲??濡???- [ ] **留ㅽ겕濡?議고빀 ??컻 ???* ??C 留ㅽ겕濡?monomorphization???κ린 ???  - ?꾩옱: `PGY_SLOT_DEFINE`, `PGY_CHANNEL_DEFINE` ????낅퀎 ?꾧컻 (遺?몄뒪?몃옒???꾨왂)
-  - ??? LLVM 諛깆뿏?쒖뿉??type-erased 寃쎈줈 (opaque ptr + vtable) 異붽?
-  - LTO + dead code elimination?쇰줈 諛붿씠?덈━ 鍮꾨????듭젣
-- [ ] **肄붾뱶???댁쨷???듭젣 洹쒖튃** ??bifurcation trap 諛⑹?
-  - ?숈씪 湲곕뒫??C/LLVM lowering???곸썝???띿쑝濡?鍮꾨??댁?吏 ?딄쾶 怨듯넻 ?섎?濡??뚯뒪???곗꽑
-  - backend compare / smoke瑜?怨꾩빟?쇰줈 ?좎??섍퀬, backend-specific fast path??紐낆떆?곸쑝濡?遺꾨━
-- [ ] **Async ???좊떦 ?ㅻ쾭?ㅻ뱶 媛먯냼** ??怨좎꽦??遺꾩궛 I/O瑜??꾪븳 ?고???理쒖쟻??  - ?꾩옱: `pgy_spawn` + `malloc` per task
-  - ??? Arena allocator 湲곕컲 task pool, io_uring/IOCP zero-copy I/O
-  - 肄붾（???ㅽ깮? ?대? fiber 湲곕컲 (pgy_parallel.h)
-  - ?? ?몄뼱 肄붿뼱? OS ?꾩슜 ?ㅼ?以꾨윭瑜?媛뺢껐?⑺븯吏 留?寃?- [ ] **BYOS (Bring Your Own Scheduler) 寃쎈줈 ?ㅺ퀎** ??async ?섎?濡좉낵 ?ㅼ?以꾨윭/I/O 紐⑤뜽 遺꾨━
-  - ?몄뼱??task/future/channel ?섎?留?怨좎젙
-  - ?ㅼ젣 polling/runtime? ?뚮옯?쇰퀎 二쇱엯 媛??怨꾩링?쇰줈 遺꾨━
-- [ ] **ABI ?ㅽ삎???꾨왂** ???ш린媛 ?ㅻⅨ ?щ’ ??낆쓽 ?쒕꽕由?泥섎━
-  - ?섎룄???ㅺ퀎: `Slot<T>` ??`SecureSlot<T>` (蹂댁븞 李⑥썝 遺꾨━)
-  - ?ㅽ삎???꾩슂 ?? `ability` vtable dispatch (Party ?쒖뒪?쒖뿉 ?대? 援ы쁽)
-  - Boxing ?꾩슂 ?? `Rc<T>` + ability 議고빀
-  - `Rc<T> + dyn ability`??explicit high-cost path濡?臾몄꽌??  - 媛?寃쎈줈(struct), 媛앹껜 寃쎈줈(class), ?숈쟻 寃쎈줈(Rc + dyn ability)瑜??깅뒫 怨꾩빟?쇰줈 援щ텇
+### ???링 ???(?드? ?드?기반)
+- [ ] **백엔???? 컷오??고정** ??C = reference/fallback, LLVM = optimization/mainline
+  - 같? ??론을 ??백엔에 ???되, 공격??최적?? type-erased fast path??LLVM?만 집중
+  - C 백엔는 MVP ?환?? ?버? ?백, ?스?래??????한
+  - ??기능 추? ??"C?서??반드??최적??경로까? 구현?야 ?는?"?기본?으?`아니며 ???- [ ] **매크?조합 ?? ???* ??C 매크?monomorphization???기 ???  - ?재: `PGY_SLOT_DEFINE`, `PGY_CHANNEL_DEFINE` ????별 ?개 (?스?래???략)
+  - ??? LLVM 백엔?에??type-erased 경로 (opaque ptr + vtable) 추?
+  - LTO + dead code elimination으로 바이?리 비????제
+- [ ] **코드???중???제 규칙** ??bifurcation trap 방?
+  - ?일 기능??C/LLVM lowering???원???으?비??? ?게 공통 ????스???선
+  - backend compare / smoke?계약으로 ???고, backend-specific fast path??명시?으?분리
+- [ ] **Async ???당 ?버?드 감소** ??고성??분산 I/O??한 ????최적??  - ?재: `pgy_spawn` + `malloc` per task
+  - ??? Arena allocator 기반 task pool, io_uring/IOCP zero-copy I/O
+  - 코루???택? ?? fiber 기반 (pgy_parallel.h)
+  - ?? 되어 코어? OS ?용 ??줄러?강결?하 ??- [ ] **BYOS (Bring Your Own Scheduler) 경로 ?계** ??async ??론과 ??줄러/I/O 모델 분리
+  - 되어??task/future/channel ???고정
+  - ?제 polling/runtime? ?랫?별 주입 ??계층으로 분리
+- [ ] **ABI ?형???략** ???기 ?른 ?롯 ?의 ?네?처리
+  - ?도???계: `Slot<T>` ??`SecureSlot<T>` (보안 차원 분리)
+  - ?형???요 ?? `ability` vtable dispatch (Party ?스에 ?? 구현)
+  - Boxing ?요 ?? `Rc<T>` + ability 조합
+  - `Rc<T> + dyn ability`??explicit high-cost path?문서??  - ?경로(struct), 객체 경로(class), ?적 경로(Rc + dyn ability)??능 계약으로 구분
 
 ### 湲곗〈 ??ぉ
-- [x] **Slot Protocol 怨좎젙** ??Claim/Access/Mutate/Transfer/Release 遺덈? 怨꾩빟
-- [x] **Slot/View 怨꾩링 留덇컧** ??ReadView/WriteView/MoveToken 沅뚰븳 異뺤냼/?댁쟾 怨꾩링
+- [x] **Slot Protocol 고정** ??Claim/Access/Mutate/Transfer/Release 불? 계약
+- [x] **Slot/View 계층 마감** ??ReadView/WriteView/MoveToken 권한 축소/?전 계층
 - [ ] **?щ’??異붿긽 ?먯썝 ?몃뱾濡??쇰컲??* ???κ린?곸쑝濡?MemorySlot, DeviceSlot, SessionSlot ???먯썝 ?대옒???뺤옣
-- [ ] **梨꾨꼸 ?섎?濡?媛뺥솕** ??鍮꾨룞湲??쒖텧/?湲??섍굅/?꾩쿂由??먮쫫 蹂닿컯
-- [x] **`Future<T>`瑜?transfer boundary濡?怨좎젙** ??await/recv? 媛숈? ownership 寃쎄퀎
-- [ ] **effect/resource capability ?쒓린 ?꾩엯** ??`local cpu`, `secure device`, `remote` ??????④낵 ?쒖뒪??  - ?꾩옱: derived effect mask + spawn/await/channel?먯꽌 remote 異붾줎
-  - ?꾩옱: `/// @effects ...` ?좎뼵???덉쑝硫?body derived effect? mismatch 吏꾨떒
-  - ?ㅼ쓬: ?쒓렇?덉쿂 臾몃쾿 李⑥썝???좎뼵??annotation ?쒕㈃
-- [ ] **?깅뒫 紐⑺몴瑜?orchestration overhead 以묒떖?쇰줈 ?ъ젙??*
+- [ ] **채널 ???강화** ??비동??출/???거/?처??름 보강
+- [x] **`Future<T>`?transfer boundary?고정** ??await/recv? 같? ownership 경계
+- [ ] **effect/resource capability ?기 ?입** ??`local cpu`, `secure device`, `remote` ?????과 ?스??  - ?재: derived effect mask + spawn/await/channel?서 remote 추론
+  - ?재: `/// @effects ...` ?언???으?body derived effect? mismatch 진단
+  - ?음: ?그?처 문법 차원???언??annotation ?면
+- [ ] **?능 목표?orchestration overhead 중심으로 ?정??*
 
-## P1.7 ???섎? ?듭씪 ?몄뼱濡쒖꽌???ㅼ쓬 ?④퀎
+## P1.7 ???? ?일 되어로서???음 ?계
 
-### 鍮꾩슜 紐⑤뜽 / effect
-- [ ] **鍮꾩슜 紐⑤뜽 ?쒕㈃??* ??"semantic unity, visible cost" ?먯튃
-  - `local / secure / remote / device` ?먯썝援곗쓽 鍮꾩슜 李⑥씠瑜??쒕㈃???쒕윭?닿린
-- [ ] **effect system 2?④퀎** ???좎뼵??effect ?쒓린, mismatch 吏꾨떒
-  - 遺遺??꾨즺: structured comment `@effects` 湲곕컲 mismatch 吏꾨떒
-  - 遺遺??꾨즺: source-level `with effects ...` ?쒓렇?덉쿂 surface
+### 비용 모델 / effect
+- [ ] **비용 모델 ?면??* ??"semantic unity, visible cost" ?칙
+  - `local / secure / remote / device` ?원군의 비용 차이??면???러?기
+- [ ] **effect system 2?계** ???언??effect ?기, mismatch 진단
+  - ??료: structured comment `@effects` 기반 mismatch 진단
+  - ??료: source-level `with effects ...` ?그?처 surface
   - ?⑥쓬: ???뺢탳??effect lattice, call-site contract surface
 
-### ?곸쐞 怨꾩링 紐⑤뜽
-- [x] **理쒖쥌 臾몃㎘ 怨꾩링 / ?ㅺ퀎 ?쒖꽌 遺꾨━ 怨좎젙**
-  - 議곕┰ 怨꾩링: `ability -> role -> party -> relation -> effect -> zone -> world`
-  - ?ъ슜??facing ?ㅺ퀎 ?쒖꽌: `intent -> world -> zone -> subject`
-  - ?꾨즺: `world`瑜?理쒖긽???ㅽ뻾/?좊ː/?ㅽ뙣 寃쎄퀎?쇰뒗 紐⑺몴 ?뺤쓽濡?臾몄꽌??  - ?꾨즺: ?곸쐞 ?덉씠?대줈 媛덉닔濡???援ъ냽?곸씠?쇰뒗 ?ㅺ퀎 ?먯튃 臾몄꽌??  - ?꾨즺: `relation`, `effect`, `zone` declaration keyword? 理쒖냼 `subject slot` / `object slot` surface瑜?parser/semantic ?쒕㈃???곌껐
-  - ?꾨즺: `zone -> relation/effect`, `world -> zone` 理쒖냼 議곕┰ slot surface瑜?parser/semantic???곌껐
-  - ?꾨즺: `relation`, `effect`??optional `for ...` header濡?subject endpoint/target 理쒖냼 surface瑜??곌껐
-  - ?꾨즺: `zone`??`apply effectSlot to targetSlot` 理쒖냼 attachment surface瑜?parser/semantic???곌껐
-  - ?꾨즺: `zone`??`link relationSlot between left, right` 理쒖냼 relation wiring surface瑜?parser/semantic???곌껐
-  - ?꾨즺: `zone`??`detach effectSlot from targetSlot`, `unlink relationSlot between left, right` 理쒖냼 release surface瑜?parser/semantic???곌껐
-  - ?꾨즺: `zone`??`apply/detach`, `link/unlink`瑜?`effect/relation` declaration contract? 湲곕낯 ???arity ?섏??쇰줈 ?곌껐
-  - ?꾨즺: `zone` subject shape?????沅뚯옣 lint 異붽?
-  - ?꾨즺: `tobject` keyword瑜?`struct` ?명솚 projection alias濡?異붽?
-  - ?꾨즺: `ToObject(TargetStruct, subjectBinding)` 理쒖냼 passive projection surface瑜?semantic/C backend???곌껐
-  - ?꾨즺: `ToTObject(TargetDto, subjectBinding)` 理쒖냼 projection surface瑜?semantic/C backend???곌껐
-  - ?꾨즺: `relation/effect/zone`??`tobject slot` surface瑜??곌껐
-  - ?꾨즺: `relation/effect/zone`??domain slot??optional initializer瑜??곌껐??`object slot view: View = ToObject(View, subject)` 媛숈? projection wiring??吏곸젒 ?쒗쁽 媛?ν븯寃???  - ?꾨즺: `zone`??`refresh objectSlot from subjectSlot` surface濡?projection 媛깆떊 ?먮쫫??parser/semantic???곌껐
-  - ?꾨즺: `zone`??`publish dtoSlot from subjectSlot` surface濡?tobject projection 媛깆떊 ?먮쫫??parser/semantic???곌껐
-  - ?꾨즺: `zone`??`maintain effectSlot on targetSlot`, `maintain relationSlot between left, right` surface濡?吏??lifecycle rule??parser/semantic???곌껐
-  - ?꾨즺: `maintain` duplicate/conflict warning (`maintain` + `detach/unlink`) 異붽?
-  - ?꾨즺: `zone`??`authority subjectSlot` surface? optional `by subjectSlot` authority annotation??parser/semantic???곌껐
-  - ?꾨즺: `authority subjectSlot requires Ability[, Ability]` ability-gated authority surface瑜?parser/semantic???곌껐
-  - ?꾨즺: `zone`??`state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias surface瑜?parser/semantic???곌껐
-  - ?꾨즺: `zone`??`apply/link/detach/unlink/maintain stateName` shorthand瑜?parser/semantic???곌껐
-  - ?꾨즺: `HasState(stateName)` zone query builtin??parser/semantic???곌껐?섍퀬 C backend?먯꽌 zone state field query濡?lowering
-  - ?꾨즺: `HasLayer(layerSlot)` zone query builtin??parser/semantic???곌껐?섍퀬 C/LLVM backend?먯꽌 zone layer field query濡?lowering
-  - ?꾨즺: `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)` slot-aware state query瑜?semantic???곌껐
-  - ?꾨즺: `world`??`state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface瑜?parser/semantic???곌껐
-  - ?꾨즺: `HasZone(zoneOrState)` world query builtin??parser/semantic???곌껐?섍퀬 C backend?먯꽌 world zone-state/active field query濡?lowering
-  - ?꾨즺: C backend媛 zone/world留덈떎 sync helper瑜??앹꽦?섍퀬 method ?꾪썑??`refresh`/`publish` projection怨?lifecycle flag瑜?incremental?섍쾶 ?숆린??  - ?꾨즺: `relation`, `effect` declaration??C/LLVM backend?먯꽌 struct + method wrapper濡?codegen?섍퀬 runtime instance constructor/method path媛 ?곌껐??  - ?꾨즺: `zone` layer slot??C/LLVM?먯꽌 typed overlay runtime instance濡??좎??섍퀬 sync媛 subject slot??layer endpoint/target??諛붿씤?⑺븳 ??projection sync源뚯? ?섑뻾
-  - ?꾨즺: direct `apply/link/detach/unlink`? `maintain effect/relation/state`媛 C/LLVM zone sync?먯꽌 ?ㅼ젣 layer/state propagation?쇰줈 ?곌껐??  - ?꾨즺: zone embedded overlay projection read (`self.poison.view.hp`, `self.trust.packet.name`)媛 LLVM runtime smoke濡?寃利앸맖
-  - ?꾨즺: `world`媛 `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)`濡?embedded zone runtime flag瑜?吏곸젒 吏덉쓽?????덉쓬
-  - ?꾨즺: `ability/role/party/relation/effect/zone/roster/world` ?꾩껜 援ы쁽
-  - ?꾨즺: `world`媛 `state name: all zoneOrState[, ...]` / `state name: any zoneOrState[, ...]`濡??욎꽌 ?좎뼵??zone/state alias瑜?理쒖냼 議고빀 contract濡??⑹꽦
+### ?위 계층 모델
+- [x] **최종 문맥 계층 / ?계 ?서 분리 고정**
+  - 조립 계층: `ability -> role -> party -> relation -> effect -> zone -> world`
+  - ?용??facing ?계 ?서: `intent -> world -> zone -> subject`
+  - ?료: `world`?최상???행/?뢰/?패 경계는 목표 ?의?문서??  - ?료: ?위 ?이으로 갈수???구속?이는 ?계 ?칙 문서??  - ?료: `relation`, `effect`, `zone` declaration keyword? 최소 `subject slot` / `object slot` surface?parser/semantic ?면???결
+  - ?료: `zone -> relation/effect`, `world -> zone` 최소 조립 slot surface?parser/semantic???결
+  - ?료: `relation`, `effect`??optional `for ...` header?subject endpoint/target 최소 surface??결
+  - ?료: `zone`??`apply effectSlot to targetSlot` 최소 attachment surface?parser/semantic???결
+  - ?료: `zone`??`link relationSlot between left, right` 최소 relation wiring surface?parser/semantic???결
+  - ?료: `zone`??`detach effectSlot from targetSlot`, `unlink relationSlot between left, right` 최소 release surface?parser/semantic???결
+  - ?료: `zone`??`apply/detach`, `link/unlink`?`effect/relation` declaration contract? 기본 ???arity ??으로 ?결
+  - ?료: `zone` subject shape?????권장 lint 추?
+  - ?료: `tobject` keyword?`struct` ?환 projection alias?추?
+  - ?료: `ToObject(TargetStruct, subjectBinding)` 최소 passive projection surface?semantic/C backend???결
+  - ?료: `ToTObject(TargetDto, subjectBinding)` 최소 projection surface?semantic/C backend???결
+  - ?료: `relation/effect/zone`??`tobject slot` surface??결
+  - ?료: `relation/effect/zone`??domain slot??optional initializer??결??`object slot view: View = ToObject(View, subject)` 같? projection wiring??직접 ?현 ?하???  - ?료: `zone`??`refresh objectSlot from subjectSlot` surface?projection 갱신 ?름??parser/semantic???결
+  - ?료: `zone`??`publish dtoSlot from subjectSlot` surface?tobject projection 갱신 ?름??parser/semantic???결
+  - ?료: `zone`??`maintain effectSlot on targetSlot`, `maintain relationSlot between left, right` surface???lifecycle rule??parser/semantic???결
+  - ?료: `maintain` duplicate/conflict warning (`maintain` + `detach/unlink`) 추?
+  - ?료: `zone`??`authority subjectSlot` surface? optional `by subjectSlot` authority annotation??parser/semantic???결
+  - ?료: `authority subjectSlot requires Ability[, Ability]` ability-gated authority surface?parser/semantic???결
+  - ?료: `zone`??`state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias surface?parser/semantic???결
+  - ?료: `zone`??`apply/link/detach/unlink/maintain stateName` shorthand?parser/semantic???결
+  - ?료: `HasState(stateName)` zone query builtin??parser/semantic???결하고 C backend?서 zone state field query?lowering
+  - ?료: `HasLayer(layerSlot)` zone query builtin??parser/semantic???결하고 C/LLVM backend?서 zone layer field query?lowering
+  - ?료: `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)` slot-aware state query?semantic???결
+  - ?료: `world`??`state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface?parser/semantic???결
+  - ?료: `HasZone(zoneOrState)` world query builtin??parser/semantic???결하고 C backend?서 world zone-state/active field query?lowering
+  - ?료: C backend zone/world마다 sync helper??성하고 method ?후??`refresh`/`publish` projection?lifecycle flag?incremental?게 ?기??  - ?료: `relation`, `effect` declaration??C/LLVM backend?서 struct + method wrapper?codegen하고 runtime instance constructor/method path ?결??  - ?료: `zone` layer slot??C/LLVM?서 typed overlay runtime instance???하고 sync subject slot??layer endpoint/target??바인?한 ??projection sync까? ?행
+  - ?료: direct `apply/link/detach/unlink`? `maintain effect/relation/state` C/LLVM zone sync?서 ?제 layer/state propagation으로 ?결??  - ?료: zone embedded overlay projection read (`self.poison.view.hp`, `self.trust.packet.name`) LLVM runtime smoke?증됨
+  - ?료: `world` `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)`?embedded zone runtime flag?직접 질의?????음
+  - ?료: `ability/role/party/relation/effect/zone/roster/world` ?체 구현
+  - ?료: `world` `state name: all zoneOrState[, ...]` / `state name: any zoneOrState[, ...]`??서 ?언??zone/state alias?최소 조합 contract??성
   - ?⑥쓬: richer world-level runtime semantics, ??源딆? cross-layer propagation policy
 
 ### 議댁옱濡?紐⑤뜽
-- [x] **intent-first ?ㅺ퀎 異?/ subject-core host 異?遺꾨━ 怨좎젙**
-  - ?꾨즺: ?ъ슜??facing ?ㅺ퀎 ?쒖꽌??`intent -> world -> zone -> subject`濡?臾몄꽌??  - ?꾨즺: `subject = ?곹깭? identity瑜?媛吏?二쇱껜 ???? host/naming/lowering 異뺤쑝濡??쒖젙??臾몄꽌??  - ?꾨즺: `subject`? `class`瑜??쒕줈 ?ㅻⅨ nominal flavor濡?遺꾨━?섍퀬 ?섎?濡좊룄 1李?遺꾧린
-  - ?꾨즺: legacy host-profile surface瑜??쒓굅?섍퀬 `subject`/`object`/`intent` 以묒떖?쇰줈 ?뺣━
-  - ?꾨즺: `entity`??肄붿뼱 ?몄뼱 議댁옱濡좎뿉 ?ｌ? ?딄퀬 ?꾨젅?꾩썙???꾨찓???⑹뼱濡??④릿?ㅺ퀬 臾몄꽌??  - ?꾨즺: `object`??intent瑜??쒖옉?섏? ?딅뒗 passive state target?대씪怨?臾몄꽌??  - ?꾨즺: `tobject`??object???몃? 寃쎄퀎??異뺤빟 ?ъ쁺?대씪怨?臾몄꽌??  - ?꾨즺: `subject`, `class`, `struct`, `object`, `tobject` declaration flavor瑜?parser AST??遺꾨━ 湲곕줉
-  - ?꾨즺: `subject slot`怨?`ToObject` / `ToTObject` source媛 `subject` host留?諛쏅룄濡?semantic 遺꾧린
-  - ?꾨즺: `object` keyword alias瑜?parser/LSP surface??諛섏쁺
-  - ?꾨즺: `object`瑜?passive state/value ?뺤떇?쇰줈, `tobject`瑜???醫곸? projection/value ?뺤떇?쇰줈 ?뺣━?섍퀬 helper method瑜??덉슜
-  - ?꾨즺: `vessel` declaration怨?`subject` ?대? `vessel` field surface 異붽?
-  - ?꾨즺: `subject` ?꾩슜 `action` declaration怨?理쒖냼 clause (`requires/within/causes/authorized by`) parser/semantic ?곌껐
-  - ?꾨즺: `subject` ?덉쓽 legacy `func` ?쒓굅, `action` only ?뺤콉?쇰줈 ?밴꺽
-  - ?꾨즺: `role`/`party`/`authority`瑜?subject-core host 異뺤쑝濡???媛뺥븯寃??쒗븳
-  - ?꾨즺: C/LLVM method lowering?먯꽌 `subject=self-cell`, `class=value self` 1李?遺꾧린
-  - ?꾨즺: legacy host-profile surface瑜??쒓굅?섍퀬 愿??洹쒖튃??`subject`???듯빀
-  - ?꾨즺: `subject` ?⑥씪 host surface濡??듭씪
-  - ?꾨즺: standalone host-profile surface ??젣
-  - ?꾨즺: object瑜?effect/relation target?쇰줈 semantic/C/LLVM???곌껐
-  - ?꾨즺: domain-local `refresh` / `publish` source瑜?subject/object源뚯? ?뺤옣?섍퀬 tobject source??湲덉?
-  - ?꾨즺: relation/projection 以묒떖 surface 怨좎젙
+- [x] **intent-first ?계 ?/ subject-core host ?분리 고정**
+  - ?료: ?용??facing ?계 ?서??`intent -> world -> zone -> subject`?문서??  - ?료: `subject = ?태? identity??주체 ???? host/naming/lowering 축으??정??문서??  - ?료: `subject`? `class`?으로 ?른 nominal flavor?분리하고 ??론도 1?분기
+  - ?료: legacy host-profile surface??거하고 `subject`/`object`/`intent` 중심으로 ?리
+  - ?료: `entity`??코어 되어 존재론에 ?? 하고 ?레?워???메??되어??긴하고 문서??  - ?료: `object`??intent??작?? 는 passive state target?라?문서??  - ?료: `tobject`??object???? 경계??축약 ?영?라?문서??  - ?료: `subject`, `class`, `struct`, `object`, `tobject` declaration flavor?parser AST??분리 기록
+  - ?료: `subject slot`?`ToObject` / `ToTObject` source `subject` host?받도?semantic 분기
+  - ?료: `object` keyword alias?parser/LSP surface??반영
+  - ?료: `object`?passive state/value ?식?로, `tobject`???좁? projection/value ?식으로 ?리하고 helper method??용
+  - ?료: `vessel` declaration?`subject` ?? `vessel` field surface 추?
+  - ?료: `subject` ?용 `action` declaration?최소 clause (`requires/within/causes/authorized by`) parser/semantic ?결
+  - ?료: `subject` 의 legacy `func` ?거, `action` only ?책으로 ?격
+  - ?료: `role`/`party`/`authority`?subject-core host 축으???강하??한
+  - ?료: C/LLVM method lowering?서 `subject=self-cell`, `class=value self` 1?분기
+  - ?료: legacy host-profile surface??거하고 ??규칙??`subject`???합
+  - ?료: `subject` ?일 host surface??일
+  - ?료: standalone host-profile surface ??
+  - ?료: object?effect/relation target으로 semantic/C/LLVM???결
+  - ?료: domain-local `refresh` / `publish` source?subject/object까? ?장하고 tobject source??금?
+  - ?료: relation/projection 중심 surface 고정
 
-### 臾몄꽌 / ?ㅽ????뺣젹
-- [ ] **BSD (Allman) canonical style ?꾨㈃ 怨좎젙**
-  - 臾몄꽌/?덉젣/scaffold/formatter 異쒕젰? BSD 湲곗??쇰줈 ?듭씪
-  - K&R? parser compatibility濡쒕쭔 ?④린怨?canonical surface濡쒕뒗 痍④툒?섏? ?딆쓬
-- [x] **臾몄꽌 ?덉젣 ?쒖떆 ?쒖꽌 媛뺤젣**
-  - ?꾨즺: README entrypoint? ?듭떖 ?ㅺ퀎 臾몄꽌?먯꽌 ?덉젣 ?낇빐 ?쒖꽌瑜?`intent -> world -> zone -> subject`濡?紐낆떆
-  - 湲곗? 臾몄꽌: `README.md`, `docs/00_vision.md`, `docs/01_intent_first_design.md`, `docs/22_class_object_model.md`
-  - 洹쒖튃: `subject`??core host濡??ㅻ챸?섎릺, ?ㅺ퀎??泥?異뺤쑝濡?媛瑜댁튂吏 ?딆쓬
-  - 洹쒖튃: compile-order? teaching-order瑜?遺꾨━?댁꽌 紐낆떆
+### 문서 / ?????렬
+- [ ] **BSD (Allman) canonical style ?면 고정**
+  - 문서/?제/scaffold/formatter 출력? BSD 기?으로 ?일
+  - K&R? parser compatibility로만 ?기?canonical surface로는 취급?? ?음
+- [x] **문서 ?제 ?시 ?서 강제**
+  - ?료: README entrypoint? ?심 ?계 문서?서 ?제 대해 ?서?`intent -> world -> zone -> subject`?명시
+  - 기? 문서: `README.md`, `docs/00_vision.md`, `docs/01_intent_first_design.md`, `docs/22_class_object_model.md`
+  - 규칙: `subject`??core host??명?되, ?계???축으?르치 ?음
+  - 규칙: compile-order? teaching-order?분리?서 명시
 
-### slot 沅뚰븳 / ?먯썝援??뺤옣
-- [ ] **slot 沅뚰븳 紐⑤뜽 怨좊룄??* ??怨듭쑀 ?쎄린 vs ?낆젏 ?곌린, capability narrowing
-- [ ] **?ㅼ젣 ?먯썝援??뺤옣** ??SessionSlot, ChannelSlot, RemoteJob 怨좊룄??- [x] **subject/class/object model 援ы쁽 ?뺣젹**
-  - ?꾨즺: subject direct copy/plain value parameter/return 湲덉?, positional constructor
-  - ?꾨즺: C/LLVM lowering 1李?遺꾧린 (`subject=self-cell`, `class=value self`)
-  - ?꾨즺: legacy host-profile??`subject` 洹쒖튃?쇰줈 ?듯빀
-  - ?꾨즺: `subject` ?⑥씪 host surface濡??듭씪
-  - ?꾨즺: plain/secure `Slot<subject>` local object-cell anchor 吏??  - ?꾨즺: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` ?⑥닔 寃쎄퀎 ?꾨떖??semantic + C/LLVM backend??諛섏쁺
-  - ?꾨즺: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
-  - ?꾨즺: richer object-handle cell propagation
+### slot 권한 / ?원??장
+- [ ] **slot 권한 모델 고도??* ??공유 ?기 vs ?점 ?기, capability narrowing
+- [ ] **?제 ?원??장** ??SessionSlot, ChannelSlot, RemoteJob 고도??- [x] **subject/class/object model 구현 ?렬**
+  - ?료: subject direct copy/plain value parameter/return 금?, positional constructor
+  - ?료: C/LLVM lowering 1?분기 (`subject=self-cell`, `class=value self`)
+  - ?료: legacy host-profile??`subject` 규칙으로 ?합
+  - ?료: `subject` ?일 host surface??일
+  - ?료: plain/secure `Slot<subject>` local object-cell anchor ??  - ?료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 개수 경계 ?달??semantic + C/LLVM backend??반영
+  - ?료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
+  - ?료: richer object-handle cell propagation
 
-### orchestration ?꾩꽦??- [ ] **?ㅼ??ㅽ듃?덉씠??紐⑤뜽 媛뺥솕** ??select 怨듭젙?? timeout, cancellation, backpressure
-  - 遺遺??꾨즺: `TryRecv/RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`
-  - 遺遺??꾨즺: `TrySendStatus/SendTimeoutStatus -> Option<Bool>`濡?full/timeout vs closed瑜?媛믪쑝濡?援щ텇
-  - 遺遺??꾨즺: `ChannelLength/ChannelCapacity/ChannelSpace -> Int`, `ChannelFull/ChannelClosed -> Bool`
-  - 遺遺??꾨즺: `select` round-robin ?쒖옉 ?몃뜳??fairness
-  - 遺遺??꾨즺: `Cancel(task)` / `IsCancelled()` cooperative cancellation
-  - 遺遺??꾨즺: spawned descendant cancellation propagation
-  - ?꾩옱 ?쒗븳: movable resource channel??non-blocking/timeout transfer??誘몄???  - ?꾩옱 ?쒗븳: pressure observation? 媛?ν븯吏留?bounded policy/backpressure protocol? ?꾩쭅 誘멸뎄??  - ?꾩옱 ?쒗븳: preemptive cancellation, blocked thread task interruption, structured cancellation scope/lattice??誘몄???- [x] **async/await runtime 怨좊룄??* ??POSIX ucontext + Windows Fiber 湲곕컲 coroutine
-- [ ] **Windows coroutine 寃利?怨좎젙**
+### orchestration ?성??- [ ] **???트?이??모델 강화** ??select 공정?? timeout, cancellation, backpressure
+  - ??료: `TryRecv/RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`
+  - ??료: `TrySendStatus/SendTimeoutStatus -> Option<Bool>`?full/timeout vs closed?값으?구분
+  - ??료: `ChannelLength/ChannelCapacity/ChannelSpace -> Int`, `ChannelFull/ChannelClosed -> Bool`
+  - ??료: `select` round-robin ?작 ?덱??fairness
+  - ??료: `Cancel(task)` / `IsCancelled()` cooperative cancellation
+  - ??료: spawned descendant cancellation propagation
+  - 현재 ?한: movable resource channel??non-blocking/timeout transfer??미???  - 현재 ?한: pressure observation? ?하?bounded policy/backpressure protocol? 아직 미구??  - 현재 ?한: preemptive cancellation, blocked thread task interruption, structured cancellation scope/lattice??미???- [x] **async/await runtime 고도??* ??POSIX ucontext + Windows Fiber 기반 coroutine
+- [ ] **Windows coroutine ?고정**
 
 ### ?대쭅 / ?쒖?硫?- [ ] **stable stdlib surface ?ш퀬??*
-- [ ] **?대쭅 ?④퀎 吏꾩엯** ??formatter, LSP 吏꾨떒 ?덉쭏
+- [ ] **?링 ?계 진입** ??formatter, LSP 진단 ?질
 - [x] **ontology-first scaffold ?뺣젹**
-  - ?꾨즺: `pgy scaffold` help瑜?`subject/class/object/tobject` ?곗꽑 遺꾧린濡??뺣젹
-  - ?꾨즺: `class` scaffold kind 異붽?
-  - ?꾨즺: `project/simulator` scaffold媛 `subject`媛 `class`瑜??뚯쑀?섍퀬 `object/tobject`濡??ъ쁺?섎뒗 starter shape瑜??앹꽦
-  - ?꾨즺: `project` scaffold媛 intent-first layout(`intents/`, `subjects/`, `zones/`, `world.pgy`, `main.pgy`)???ㅼ젣濡??앹꽦
-  - ?꾨즺: `pgy new`媛 `intent-first` / `class-first` / `projection-first` starter瑜??좏깮?섍쾶 ?좎? 寃??  - ?꾨즺: `pgy new` / scaffold output??ontology decision guide file 蹂꾨룄 ?앹꽦 寃??  - ?꾨즺: intent-first project guide 臾몄꽌??scaffold output??媛숈씠 ?앹꽦?좎? 寃??    - `intents/`瑜??꾨줈?앺듃 table-of-contents濡??ㅻ챸?섎뒗 guide ?ы븿
-    - intent declaration???꾩슂??subject/zone/ability/effect TODO瑜???궛?섎뒗 workflow ?덉떆 ?ы븿
-  - ?꾨즺: intent runtime follow-up
+  - ?료: `pgy scaffold` help?`subject/class/object/tobject` ?선 분기??렬
+  - ?료: `class` scaffold kind 추?
+  - ?료: `project/simulator` scaffold `subject` `class`??유하고 `object/tobject`??영는 starter shape??성
+  - ?료: `project` scaffold intent-first layout(`intents/`, `subjects/`, `zones/`, `world.pgy`, `main.pgy`)???제??성
+  - ?료: `pgy new` `intent-first` / `class-first` / `projection-first` starter??택?게 ?? ??  - ?료: `pgy new` / scaffold output??ontology decision guide file 별도 ?성 ??  - ?료: intent-first project guide 문서??scaffold output??같이 ?성?? ??    - `intents/`??로?트 table-of-contents??명는 guide ?함
+    - intent declaration???요??subject/zone/ability/effect TODO???는 workflow ?시 ?함
+  - ?료: intent runtime follow-up
     - rollback policy瑜?current reverse-order `compensate` beyond v1濡??뺤옣?섍린
-    - intent??cross-world transfer / identity handoff semantics ?ㅺ퀎 諛?援ы쁽
+    - intent??cross-world transfer / identity handoff semantics ?계 ?구현
     - current last-intent typed history瑜?trace id / stream / multi-instance observability濡??뺤옣?섍린
 
-### ????꾨줈洹몃옩
-- [ ] **????좏뵆由ъ??댁뀡 3醫?* ???댁쥌 ?먯썝 ?뚯씠?꾨씪?? secure+device+channel, slot/orchestration 泥좏븰 利앸챸
+### ????로그램
+- [ ] **????플리??션 3?* ???종 ?원 ?이?라?? secure+device+channel, slot/orchestration 철학 증명
 
-## P1.85 ??寃뚯엫 ?꾨젅?꾩썙??怨꾩링
+## P1.85 ??게임 ?레?워??계층
 
-- [ ] **寃뚯엫 ?꾨젅?꾩썙???쇱씠釉뚮윭由?寃쎄퀎 怨좎젙**
-  - ?먯튃: `entity/object pool`? ?몄뼱 肄붿뼱 湲곕뒫???꾨땲??`use pool;` 媛숈? 寃뚯엫/???쇱씠釉뚮윭由?怨꾩링?쇰줈 ?붾떎
-  - ?먯튃: `encounter/turn/state machine`, `strategy/AI`, `content tables`???숈씪?섍쾶 肄붿뼱 臾몃쾿???꾨땲???꾨젅?꾩썙??surface濡??볥뒗??  - ?먯튃: ??怨꾩링? ?쒕룄硫붿씤 ?쇱씠釉뚮윭由р앸낫???쐅eneric pattern library + domain injection?앹쑝濡??뺤쓽?쒕떎
-  - ?댁쑀: 肄붿뼱 ?몄뼱??`subject / vessel / object / tobject / relation / effect / zone / world / Slot<T>` ?섎?濡좎쓣 ?좎??섍퀬, ?洹쒕え 寃뚯엫 ?ㅺ퀎??洹??꾩쓽 library/DSL 怨꾩링?쇰줈 ?щ━???몄씠 ?뺤옣?깃낵 ?ㅻ챸?μ씠 ??醫뗫떎
-  - 紐⑺몴: ?쒓쾶?꾩쓣 留뚮뱾 ???덈뒗 肄붿뼱 ?몄뼱?앹? ?쒓쾶?꾩쓣 ?ㅼ젣濡?留뚮뱶???꾨젅?꾩썙?р앸? 遺꾨━
+- [ ] **게임 ?레?워???이브러?경계 고정**
+  - ?칙: `entity/object pool`? 되어 코어 기능??아니며 `use pool;` 같? 게임/???이브러?계층으로 한다
+  - ?칙: `encounter/turn/state machine`, `strategy/AI`, `content tables`???일?게 코어 문법??아니며 ?레?워??surface??는??  - ?칙: ??계층? ?도메인 ?이브러리보???generic pattern library + domain injection?으??의한다
+  - ?유: 코어 되어??`subject / vessel / object / tobject / relation / effect / zone / world / Slot<T>` ??론을 ???고, ?규모 게임 ?계???의 library/DSL 계층으로 ?리??이 ?장과 ?명이 ??좋다
+  - 목표: ?게을 만들 ??는 코어 되어?? ?게을 ?제?만드???레?워?? 분리
 - [ ] **寃뚯엫 stdlib/use surface 珥덉븞**
-  - ?꾨낫: `use pool;`, `use fsm;`, `use encounter;`, `use strategy;`, `use tables;`
-  - 諛⑺뼢: pool/fsm/strategy/table? `.pgy` ?먮뒗 stdlib 紐⑤뱢濡??쒓났?섍퀬, ?몄뼱 ?ㅼ썙?쒕줈 ?밴꺽?섏? ?딅뒗??  - 諛⑺뼢: `Pool<T>`, `StateMachine<TState, TEvent>`, `StrategyTable<TContext, TChoice>`, `WeightedTable<T>`泥섎읆 generic-first naming???곗꽑?쒕떎
-  - 諛⑺뼢: GOF 湲곗큹 ?⑦꽩??inheritance/object graph媛 ?꾨땲??Pergyra host 湲곗??쇰줈 踰덉뿭?쒕떎
+  - ?보: `use pool;`, `use fsm;`, `use encounter;`, `use strategy;`, `use tables;`
+  - 방향: pool/fsm/strategy/table? `.pgy` 는 stdlib 모듈??공?고, 되어 ?워으로 ?격?? ?는??  - 방향: `Pool<T>`, `StateMachine<TState, TEvent>`, `StrategyTable<TContext, TChoice>`, `WeightedTable<T>`처럼 generic-first naming???선한다
+  - 방향: GOF 기초 ?턴??inheritance/object graph 아니며 Pergyra host 기?으로 번역한다
     - `singleton` -> contextual runtime registry / host-local shared state
     - `factory` -> staged template/spec builder
     - `strategy` -> policy card / policy table + function injection
     - `state` -> explicit FSM / transition rule + context application
     - `observer` -> relay bundle / sink spec / report sink / event bus
-  - 諛⑺뼢: generic pattern library??static spec/table留뚯씠 ?꾨땲??function-typed picker/resolver 二쇱엯??湲곕낯 ?쒕㈃?쇰줈 ?ы븿?쒕떎
+  - 방향: generic pattern library??static spec/table만이 아니며 function-typed picker/resolver 주입??기본 ?면으로 ?함한다
     - ?? `Picker<TInput, TChoice>`
     - ?? `Resolver<TContext, TResult>`
     - ?? `StrategyApply(context, AggressivePolicy)`
-  - ?꾩옱 ?곹깭: `data/card/table` 寃쎈줈???덉젙, custom function injection??V1 ?쒕㈃???щ씪??  - ?꾩옱 ?꾨왂 ?⑦꽩???덉젙 ?④퀎:
+  - 현재 ?태: `data/card/table` 경로???정, custom function injection??V1 ?면???라??  - 현재 ?략 ?턴???정 ?계:
     - `StrategyCard`
     - `StrategyContext`
     - `ApplyStrategy(card, context)`
-  - ?대쾲 ?덉젣 湲곗? ?쇱씠釉뚮윭由ы솕 ?꾨낫:
+  - ?번 ?제 기? ?이브러리화 ?보:
     - `use strategy;`
       - `WeaponCard` / `CombatStrategyCard`
       - `WeaponFactory<TClass>` ?먮뒗 `LoadoutTable<TArchetype>`
@@ -2656,49 +2697,49 @@ Source of truth:
       - input script playback
       - seeded choice resolver
 - [ ] **GOF 湲곗큹 ?⑦꽩??Pergyra??pattern catalog濡??뺣━**
-  - 湲곗? 臾몄꽌: `docs/31_gof_pattern_catalog.md`
+  - 기? 문서: `docs/31_gof_pattern_catalog.md`
   - 湲곗? ?덉젣: `examples/pattern_library_basics/`
-  - 紐⑺몴: ?꾪넻 OOP ?⑦꽩 ?대쫫???좎??섎뜑?쇰룄 ?ㅼ젣 援ы쁽 shape??`subject / vessel / shared / spec / card / relay`濡??ъ젙??  - 鍮꾨ぉ?? inheritance / `super` / hidden callback graph瑜??⑦꽩 援ы쁽??湲곕낯媛믪쑝濡?梨꾪깮?섏? ?딆쓬
-- [ ] **DND/campaign ?쒕굹由ъ삤瑜?寃뚯엫 ?꾨젅?꾩썙??寃利앹옣?쇰줈 ?ъ슜**
-  - `dnd_tavern_campaign`瑜?湲곗??쇰줈 pool/fsm/strategy/table???ㅼ젣濡?異⑸텇?쒖? 寃利?  - language core 遺議깆씠 ?꾨땲??framework layer 遺議깆씤吏 怨꾩냽 遺꾨━?댁꽌 湲곕줉
-  - 吏湲덇퉴吏 戮묓엺 ?ㅼ젣 ?⑦꽩:
-    - ?μ냼/?λ㈃ 吏꾩엯 ?⑺넗由?(`OpenTavernCampaign`)
-    - 寃뚯엫 ?곹깭 癒몄떊 (`tavern -> floor1 -> floor2 -> floor3 -> dragon -> epilogue`)
+  - 목표: ?통 OOP ?턴 ?름?????더?도 ?제 구현 shape??`subject / vessel / shared / spec / card / relay`??정??  - 비목?? inheritance / `super` / hidden callback graph??턴 구현??기본값으?채택?? ?음
+- [ ] **DND/campaign ?나리오?게임 ?레?워??증장으로 ?용**
+  - `dnd_tavern_campaign`?기?으로 pool/fsm/strategy/table???제?충분?? ?  - language core 족이 아니며 framework layer 족인 계속 분리?서 기록
+  - 금까 뽑힌 ?제 ?턴:
+    - ?소/?면 진입 ?토?(`OpenTavernCampaign`)
+    - 게임 ?태 머신 (`tavern -> floor1 -> floor2 -> floor3 -> dragon -> epilogue`)
     - ?좏깮 ?댁꽍湲?(`scripted` / `random` / `player`)
-    - ?λ㈃ 移대뱶 / ?숇즺 諛섏쓳 移대뱶 / 蹂댁뒪 ?섏씠利?移대뱶
+    - ?면 카드 / ?료 반응 카드 / 보스 ?이?카드
     - ?꾪닾 loadout/strategy 移대뱶
     - transcript-first report writer
   - ?ㅼ쓬 紐⑺몴:
-    - ???⑦꽩?ㅼ쓣 `examples/` ?꾩슜 肄붾뱶媛 ?꾨땲??`use` ?쇱씠釉뚮윭由??꾨낫濡??ш뎄??    - `world.pgy`??orchestration ?묒쓣 以꾩씠怨?encounter/strategy/report 怨꾩링?쇰줈 遺꾨━
+    - ???턴을 `examples/` ?용 코드 아니며 `use` ?이브러??보??구??    - `world.pgy`??orchestration 을 줄이?encounter/strategy/report 계층으로 분리
 
 ## P1.8 ??硫???寃?
-- [ ] **怨듯넻 UI IR 怨좎젙** ??Kotlin/Android 媛쒕퀎 諛깆뿏?쒕낫??癒쇱?, 紐⑤뱺 ?뚮옯?쇱씠 怨듭쑀?섎뒗 scene/projection UI IR???뺤쓽
-  - 紐⑹쟻: native / web / mobile??媛숈? UI ?섎?濡좉낵 projection ?먮쫫??怨듭쑀?섍쾶 ??  - ?먯튃: 湲곗닠 湲곕컲? Qt 諛⑺뼢(native shell / render loop), ?좎뼵 泥좏븰? WPF??projection/binding, 理쒖쥌 ?뺤껜?깆? Pergyra scene/projection UI
+- [ ] **공통 UI IR 고정** ??Kotlin/Android 개별 백엔?보??먼?, 모든 ?랫이 공유는 scene/projection UI IR???의
+  - 목적: native / web / mobile??같? UI ??론과 projection ?름??공유?게 ??  - ?칙: 기술 기반? Qt 방향(native shell / render loop), ?언 철학? WPF??projection/binding, 최종 ?체?? Pergyra scene/projection UI
   - 踰붿쐞: `Window`, `Scene`, `Node`, `Layout`, `DrawCommand`, `InputEvent`, `ProjectionBinding`, `DirtyScope`
-  - ?먯튃: `subject`瑜?吏곸젒 ?붾㈃??洹몃━吏 ?딄퀬 `object` / `tobject` / projection surface瑜?UI ?뚮퉬 ?쒕㈃?쇰줈 ?ъ슜
-  - ?먯튃: `zone` / `world` state? projection dirty sync媛 UI IR??媛깆떊 怨꾩빟????  - ?쒖꽌: UI IR 怨좎젙 ??native backend 1媛???JS/web backend 1媛???洹???mobile shell / Kotlin ?꾩슂???ы룊媛
-  - 鍮꾨ぉ?? ?뚮옯?쇰퀎 UI ?섎?濡?Qt widget tree, WPF object model, Android View/Compose semantics)??肄붿뼱 ?몄뼱??吏곸젒 ?ㅼ씠吏 ?딆쓬
-- [~] **JavaScript 諛깆뿏??* ??`.pgy ??JS` 蹂?섏쑝濡?釉뚮씪?곗?/Node.js ?ㅽ뻾 吏??  - ?꾨즺: 肄붿뼱 ?섎?濡좎? inheritance/super ?놁씠 ?좎??섍퀬, JS lowering? delegation/composition 以묒떖?쇰줈 媛꾨떎???뺤콉 珥덉븞 臾몄꽌??  - ?꾨즺: Kotlin backend蹂대떎 怨듯넻 UI IR???곗꽑?대씪??硫?고뵆?ロ뤌 ?뺤콉 臾몄꽌??  - ?⑥쓬: JS IR/lowering shape, runtime shim, interop surface (`extern js`) ?ㅺ퀎
-- [ ] **mobile shell ?꾨왂** ??Android/iOS???곗꽑 怨듯넻 UI IR consumer濡??묎렐
-  - ?먯튃: 珥덇린 mobile ??묒? JS/web-compatible UI backend ?먮뒗 native shell bridge瑜??곗꽑 寃??  - ?⑥쓬: Android ?꾩슜 Kotlin backend??怨듯넻 UI IR + web/native backend 寃利????꾩슂?깆쓣 ?ы룊媛
+  - ?칙: `subject`?직접 ?면??그리 하고 `object` / `tobject` / projection surface?UI ?비 ?면으로 ?용
+  - ?칙: `zone` / `world` state? projection dirty sync UI IR??갱신 계약????  - ?서: UI IR 고정 ??native backend 1???JS/web backend 1??????mobile shell / Kotlin ?요???평
+  - 비목?? ?랫?별 UI ???Qt widget tree, WPF object model, Android View/Compose semantics)??코어 되어??직접 이 ?음
+- [~] **JavaScript 백엔??* ??`.pgy ??JS` ?으?브라??/Node.js ?행 ??  - ?료: 코어 ??론? inheritance/super 이 ???고, JS lowering? delegation/composition 중심으로 간다???책 초안 문서??  - ?료: Kotlin backend보다 공통 UI IR???선?라???플?폼 ?책 문서??  - ?음: JS IR/lowering shape, runtime shim, interop surface (`extern js`) ?계
+- [ ] **mobile shell ?략** ??Android/iOS???선 공통 UI IR consumer??근
+  - ?칙: 초기 mobile ??? JS/web-compatible UI backend 는 native shell bridge??선 ??  - ?음: Android ?용 Kotlin backend??공통 UI IR + web/native backend ????요을 ?평
 - [ ] **WebAssembly ?寃?* ??LLVM wasm32 backend ?쒖슜
 
 ## P1.9 ??AI-first ?명봽??(2026-04-19 positioning ?뺤젙)
 
-**留λ씫**: 寃쎌웳 ??곸? C#/Java ??Rust ?ъ씠 ?덉튂?닿퀬, 1李??ъ슜?먮뒗 frontier LLM(Claude ????二쇰룄 + ?멸컙??由щ럭/?섏젙?섎뒗 ?뚰겕?뚮줈. "AI媛 ?앹꽦 ??而댄뙆?쇰윭/?뚯뒪?멸? 寃利????멸컙??由щ럭"??loop????댄듃?섍쾶 ?뚯븘媛??寃껋씠 positioning ?듭떖.
+**맥락**: 경쟁 ??? C#/Java ??Rust 이 ?치?고, 1??용는 frontier LLM(Claude ????주도 + ?간??리뷰/?정는 ?크?로. "AI ?성 ??컴파?러/?스?? ????간??리뷰"??loop????트?게 ?아??것이 positioning ?심.
 
-?꾩옱 ?섎룄移??딄쾶 媛뽰떠吏?AI-friendly ?명봽??
-- backend-compare ?뚭? (C/LLVM 異쒕젰 ?議? ??AI self-verification loop ?섎꽕??- 2000+ test suite + ?ㅻえ??泥댁씤 ???앹꽦臾?利됱떆 寃利?媛?ν븳 洹쒕え
-- Result-first + throw 湲덉? ??AI媛 stack trace蹂대떎 ErrorCode enum 遺꾧린媛 ?ъ?
-- 援ъ“??二쇱꽍 (WHAT/WHY/ALT/NEXT/EFFECTS/INVARIANTS/RETURNS/THROWS) ??prompt-as-code, ?섎룄 蹂댁〈
+현재 ?도??게 갖춰?AI-friendly ?프??
+- backend-compare ?? (C/LLVM 출력 ?? ??AI self-verification loop ?네??- 2000+ test suite + ?모??체인 ???성?즉시 ??한 규모
+- Result-first + throw 금? ??AI stack trace보다 ErrorCode enum 분기 ??
+- 구조??주석 (WHAT/WHY/ALT/NEXT/EFFECTS/INVARIANTS/RETURNS/THROWS) ??prompt-as-code, ?도 보존
 
-遺議깊븯怨?梨꾩썙????寃?
+족하?채워?????
 
-- [ ] **Language Reference Spec 臾몄꽌** ???꾩옱 `docs/`???ㅺ퀎 ?쇱?(?섏궗寃곗젙 ?먮쫫 湲곕줉). AI?먭쾶 ?뺥솗???섎?濡??쒓났?섎젮硫?"???몄뼱??蹂댁옣"????臾몄꽌???뺣━?쇱빞 ??  - ?댁슜: ????쒖뒪??洹쒖튃 / Slot ?뚯쑀沅?怨꾩빟 / effect subsumption / intent rollback ?섎? / Result ?꾪뙆 洹쒖튃 / MIR 怨꾩빟
-  - ?뺥깭: ?⑥씪 ?뚯씪 (~2000-5000以?, in-context濡???踰덉뿉 濡쒕뱶 媛??  - 紐⑹쟻: "Claude媛 Pergyra 肄붾뱶瑜????몄뀡?먯꽌 ?앹꽦????reference濡??몄슜 媛?? ?섏?
-  - ?꾩옱 `docs/`? ?ㅻⅨ ?? ?쇱???"???대젃寃?寃곗젙?덈뒗媛", spec? "?꾩옱 ?몄뼱媛 臾댁뾿??蹂댁옣?섎뒗媛"
-- [~] **AI-parseable 援ъ“???먮윭 硫붿떆吏** ???꾩옱 吏꾨떒? ?대????쒗쁽. AI?⑹? 湲곌퀎 ?먮룆 媛?ν븳 援ъ“???꾨뱶 ?꾩슂
-  - ?꾩옱: `MIR contract breach in Main at line 0: unresolved identifier 'flag' (expected SSA-mapped local)`
+- [ ] **Language Reference Spec 문서** ??현재 `docs/`???계 ??(?사결정 ?름 기록). AI?게 ?확??????공?려?"??되어??보장"????문서???리?야 ??  - ?용: ????스??규칙 / Slot ?유?계약 / effect subsumption / intent rollback ?? / Result ?파 규칙 / MIR 계약
+  - ?태: ?일 ?일 (~2000-5000?, in-context???번에 로드 ??  - 목적: "Claude Pergyra 코드????션?서 ?성????reference??용 ?? ??
+  - 현재 `docs/`? ?른 ?? ????"???렇?결정?는", spec? "현재 되어 무엇??보장?는"
+- [~] **AI-parseable 구조???러 메시** ??현재 진단? ?????현. AI?? 기계 ?독 ?한 구조???드 ?요
+  - ?재: `MIR contract breach in Main at line 0: unresolved identifier 'flag' (expected SSA-mapped local)`
   - 紐⑺몴 ?뺥깭 (?덉떆):
     ```json
     {
@@ -2713,97 +2754,97 @@ Source of truth:
     }
     ```
   - `--error-format=json` ?뚮옒洹몃줈 ?좉?, ?멸컙?⑹? 湲곗〈 ?뺤떇 ?좎?
-  - ??? compile, semantic, MIR/LLVM IR ?④퀎 ?꾩껜
-  - 1李?利앸텇 ?꾨즺 (2026-04-19):
+  - ??? compile, semantic, MIR/LLVM IR ?계 ?체
+  - 1?증분 ?료 (2026-04-19):
     - `DriverFlags.diag_format` + `--error-format=json|text` CLI ?뚮옒洹?異붽? (`src/pgy_driver.c`, `src/compiler/driver_app.h`)
-    - `semantic_result_print_json` ??semantic 吏꾨떒??JSON 諛곗뿴濡?諛⑹텧 (severity/stage/location/message ?꾨뱶, RFC 8259 以???댁뒪耳?댄봽)
-    - `driver_emit_single_diag_json` ???⑥씪 ?먮윭 JSON 諛⑹텧 ?ы띁 (module_load / backend_c_emit / backend_c_native / backend_llvm_emit / backend_llvm_native ?④퀎 而ㅻ쾭)
+    - `semantic_result_print_json` ??semantic 진단??JSON 배열?방출 (severity/stage/location/message ?드, RFC 8259 ???스?프)
+    - `driver_emit_single_diag_json` ???일 ?러 JSON 방출 ?퍼 (module_load / backend_c_emit / backend_c_native / backend_llvm_emit / backend_llvm_native ?계 커버)
     - stage ?쒓렇: `semantic` / `module_load` / `backend_c_emit` / `backend_c_native` / `backend_llvm_emit` / `backend_llvm_native`
-    - ?깃났 ??`[]` (鍮?諛곗뿴), ?ㅽ뙣 ??`[{...}]` ???몄텧?먮뒗 ??긽 JSON 湲곕? 媛??    - ?뚭?: `tests/diagnostics_json_smoke.sh` (Python ?뚯꽌濡?shape 寃利? 3 耳?댁뒪: semantic / parse / success)
+    - ?공 ??`[]` (?배열), ?패 ??`[{...}]` ???출는 ?? JSON 기? ??    - ??: `tests/diagnostics_json_smoke.sh` (Python ?서?shape ? 3 ?스: semantic / parse / success)
     - 寃利? PowerShell濡?3 耳?댁뒪 紐⑤몢 ?뺤긽 ?숈옉 ?뺤씤 (1668 semantic + 601 transpile ?뚭? pass)
-  - 2李?利앸텇 ?꾨즺 (2026-04-19):
-    - `Diagnostic` 援ъ“泥댁뿉 `code` ?꾨뱶 異붽? (non-owning `const char*`, ?뺤쟻 臾몄옄??由ы꽣??蹂닿?) ??`src/semantic/type_checker.h`
-    - `semantic_error_code` / `semantic_warning_code` ?좉퇋 variant ??肄붾뱶 ?몄옄 諛쏆븘 diagnostic???ㅼ뼱以?(?덇굅??`semantic_error` ??洹몃?濡?NULL 肄붾뱶濡??숈옉, ???숈씪 ?ъ씠??以묐났 emit ??肄붾뱶媛 ?덉쑝硫??낃렇?덉씠??
-    - JSON 異쒕젰??`"code"` ?꾨뱶 ?좏깮???ы븿 (NULL?대㈃ ?앸왂 ???명솚???좎?)
-    - parser stage 遺꾨━: module_load msg媛 `"parse error in"`?쇰줈 ?쒖옉?섎㈃ `"stage":"parse"`, 洹???`"module_load"`
-    - 珥덇린 肄붾뱶 遺???ъ씠??(6醫?:
+  - 2?증분 ?료 (2026-04-19):
+    - `Diagnostic` 구조체에 `code` ?드 추? (non-owning `const char*`, ?적 문자??리터??보?) ??`src/semantic/type_checker.h`
+    - `semantic_error_code` / `semantic_warning_code` ?규 variant ??코드 ?자 받아 diagnostic??되어?(?거??`semantic_error` ??그??NULL 코드??작, ???일 ?이??중복 emit ??코드 ?으??그?이??
+    - JSON 출력??`"code"` ?드 ?택???함 (NULL?면 ?략 ???환????)
+    - parser stage 분리: module_load msg `"parse error in"`으로 ?작?면 `"stage":"parse"`, ???`"module_load"`
+    - 초기 코드 ???이??(6?:
       - `PGY_SEM_TYPE_MISMATCH` (assignment)
       - `PGY_SEM_BINOP_TYPE_MISMATCH`
       - `PGY_SEM_UNKNOWN_TYPE`
-      - `PGY_SEM_UNDEFINED_SYMBOL` (identifier / member 3 ?ъ씠??
+      - `PGY_SEM_UNDEFINED_SYMBOL` (identifier / member 3 ?이??
       - `PGY_SEM_INFER_COLLECTION` / `PGY_SEM_INFER_GENERIC` / `PGY_SEM_INFER_REQUIRED`
     - smoke test ?뺤옣: `code == "PGY_SEM_TYPE_MISMATCH"` 寃利?+ `stage == "parse"` 寃利?(`tests/diagnostics_json_smoke.sh`)
     - ?뚭?: 1688 semantic + 601 transpile, 0 failed
-  - 3李?利앸텇 ?꾨즺 (2026-04-19):
-    - Slot/ownership/parallel/effect 怨꾩뿴 肄붾뱶 9醫?異붽?:
-      - `PGY_SEM_SLOT_RELEASED` (method dispatch 4 ?ъ씠??+ builtin Read/Write 2 ?ъ씠??
+  - 3?증분 ?료 (2026-04-19):
+    - Slot/ownership/parallel/effect 계열 코드 9?추?:
+      - `PGY_SEM_SLOT_RELEASED` (method dispatch 4 ?이??+ builtin Read/Write 2 ?이??
       - `PGY_SEM_RELEASE_REQUIRES_OWNER`
-      - `PGY_SEM_SLOT_DOUBLE_RELEASE` (method + builtin Release 2 ?ъ씠??
+      - `PGY_SEM_SLOT_DOUBLE_RELEASE` (method + builtin Release 2 ?이??
       - `PGY_SEM_VIEW_KIND_MISMATCH` (ReadView write / WriteView read)
       - `PGY_SEM_MOVE_TOKEN_MISUSE` (read/write through MoveToken)
-      - `PGY_SEM_MOVE_FROM_RELEASED` (let/call/builtin 3 ?ъ씠??
+      - `PGY_SEM_MOVE_FROM_RELEASED` (let/call/builtin 3 ?이??
       - `PGY_SEM_PARALLEL_SLOT_CONFLICT` (error: mutate-mutate across tasks)
       - `PGY_SEM_PARALLEL_SLOT_RACE_RISK` (warning: read-mutate across tasks)
       - `PGY_SEM_EFFECT_CONFLICT` (warning: effect class 異⑸룎)
-    - `docs/72_diagnostic_codes.md` 移댄깉濡쒓렇 臾몄꽌 ?좉퇋 ??16媛?肄붾뱶 ?섎?/?먯씤/援먯젙 諛⑸쾿, AI ?쇱슦??媛?대뱶, ?ν썑 ?뺤옣 ?꾨뱶 臾몄꽌??    - smoke test ?뺤옣: `PGY_SEM_SLOT_RELEASED` 媛먯? 耳?댁뒪 異붽?
+    - `docs/72_diagnostic_codes.md` 카탈로그 문서 ?규 ??16?코드 ??/?인/교정 방법, AI ?우???드, ?후 ?장 ?드 문서??    - smoke test ?장: `PGY_SEM_SLOT_RELEASED` 감? ?스 추?
     - ?ъ슜??湲곗뿬: `semantic_error_code` / `semantic_warning_code` ?좎뼵??`PGY_PRINTF_LIKE` ?띿꽦 異붽? (clang/gcc format 寃쎄퀬 泥댄겕)
     - ?뚭?: 1694 semantic + 601 transpile, 0 failed
-    - ?꾩옱 珥?16媛??덉젙 肄붾뱶, ~25 ?ъ씠??而ㅻ쾭. ?섎㉧吏 ~460 ?ъ씠?몃뒗 4李? 利앸텇 ???  - 4李?利앸텇 ?꾨즺 (2026-04-19):
-    - `CompilerResult.error_code` / `TranspileResult.error_code` / `LLVMGenResult.error_code` ?꾨뱶 異붽? (紐⑤몢 owning strdup, destroy?먯꽌 free)
+    - 현재 ?16??정 코드, ~25 ?이??커버. ?머 ~460 ?이는 4? 증분 ???  - 4?증분 ?료 (2026-04-19):
+    - `CompilerResult.error_code` / `TranspileResult.error_code` / `LLVMGenResult.error_code` ?드 추? (모두 owning strdup, destroy?서 free)
     - `TranspilerCtx.backend_error_code` / `LLVMGenCtx.error_code` non-owning `const char *` (?뺤쟻 literal留?
     - ?좉퇋 setter variants: `transpiler_set_backend_error_with_code` / `llvm_set_error_with_code` / `llvm_set_error_at_with_code` (?덇굅??setter??code=NULL 寃쎈줈濡??좎?)
-    - `driver_emit_single_diag_json_with_code(stage, code, message)` ??JSON??code ?꾨뱶 ?좏깮???ы븿
+    - `driver_emit_single_diag_json_with_code(stage, code, message)` ??JSON??code ?드 ?택???함
     - `driver_route_stage(default_stage, code)` ??prefix whitelist (`PGY_SEM_`/`PGY_MIR_`/`PGY_LLVM_`/`PGY_PARSE_`). 紐⑤Ⅴ??prefix??default_stage ?좎?
-    - Runner ?낅뜲?댄듃: `c_runner.c` (2 ?ъ씠?? + `llvm_runner.c` (2 ?ъ씠?? ??湲곗〈 ?몄텧??`_with_code` + `driver_route_stage`濡?援먯껜
+    - Runner ?데?트: `c_runner.c` (2 ?이?? + `llvm_runner.c` (2 ?이?? ??기존 ?출??`_with_code` + `driver_route_stage`?교체
     - MIR/LLVM 肄붾뱶 5醫??좉퇋:
-      - `PGY_MIR_UNRESOLVED_LOCAL` ??branch terminator??identifier媛 SSA 留ㅽ븨 ?놁쓬
-      - `PGY_MIR_TOPOLOGY_INVALID` ??MIR routine ?꾨씫 / kind 遺덉씪移?/ AST ?놁쓬
-      - `PGY_MIR_SIGNATURE_UNSUPPORTED` ??吏???덈릺???⑥닔 ?쒓렇?덉쿂
+      - `PGY_MIR_UNRESOLVED_LOCAL` ??branch terminator??identifier SSA 매핑 ?음
+      - `PGY_MIR_TOPOLOGY_INVALID` ??MIR routine ?락 / kind 불일?/ AST ?음
+      - `PGY_MIR_SIGNATURE_UNSUPPORTED` ?????되??개수 ?그?처
       - `PGY_MIR_SSA_LIMIT` ??SSA local 4096 珥덇낵
-      - `PGY_MIR_INTENT_CARRIER_MISSING` ??intent step metadata ?꾨씫 (C/LLVM 怨듯넻, 21 ?ъ씠???쇨큵 ?낃렇?덉씠??
+      - `PGY_MIR_INTENT_CARRIER_MISSING` ??intent step metadata ?락 (C/LLVM 공통, 21 ?이???괄 ?그?이??
       - `PGY_LLVM_SPEC_LIMIT` ??Result\<T,E\> ?뱀닔???쒕룄(MAX_LLVM_RESULT_SPECS=32) 珥덇낵
-    - 移댄깉濡쒓렇 ?뺤옣: `docs/72_diagnostic_codes.md`??"MIR Contract" ?뱀뀡 5媛??뷀듃由?+ "LLVM Backend" ?뱀뀡 1媛??뷀듃由?    - smoke test ?뺤옣: 33媛?Result\<Int, E*\> ?뱀닔?붾줈 `PGY_LLVM_SPEC_LIMIT` + `stage=llvm_codegen` 寃利?(`tests/diagnostics_json_smoke.sh`)
+    - 카탈로그 ?장: `docs/72_diagnostic_codes.md`??"MIR Contract" ?션 5??트?+ "LLVM Backend" ?션 1??트?    - smoke test ?장: 33?Result\<Int, E*\> 개수으로 `PGY_LLVM_SPEC_LIMIT` + `stage=llvm_codegen` ?(`tests/diagnostics_json_smoke.sh`)
     - 寃利? `[{"severity":"error","stage":"llvm_codegen","code":"PGY_LLVM_SPEC_LIMIT",...}]` end-to-end ?뺤씤
-    - ?뚭?: 1694 semantic + 601 transpile, 0 failed (?덇굅??寃쎈줈 臾댁넀??
-    - ?꾩옱 珥?22媛??덉젙 肄붾뱶 (`PGY_SEM_*` 16 + `PGY_MIR_*` 5 + `PGY_LLVM_*` 1), ~50 ?ъ씠??而ㅻ쾭. `mir_validation` / `llvm_codegen` stage 媛 湲곗〈 `backend_*_native`? 遺꾨━??  - ?⑥? ?묒뾽 (5李?利앸텇 ?꾨낫):
-    - intent/zone/world / class/ability 愿??`PGY_SEM_*` 肄붾뱶 ?먯쭊??遺??(?섎㉧吏 ~460 semantic ?ъ씠??
-    - LLVM 異붽? 肄붾뱶: `PGY_LLVM_TYPE_UNSUPPORTED`, `PGY_LLVM_RUNTIME_MISSING`, `PGY_LLVM_OOM` (媛쒕퀎 ?ъ씠???낃렇?덉씠??
-    - `cause_ir` / `fix_source` ?꾨뱶 ???꾩옱 message留? MIR/IR ?덈꺼 ?먯씤 + ?뚯뒪 ?덈꺼 援먯젙 ?ъ씤??遺꾨━??AI媛 援щ텇 媛?ν븯寃?    - parser ?덈꺼 肄붾뱶 (`PGY_PARSE_*` prefix ?덉빟?? ??parser error ?꾩쟻??由ы뙥???꾩슂
-    - `related_rules` ?꾨뱶 ??Language Reference Spec ?댄썑 ?곌껐
-- [ ] **In-context example corpus ?먮젅?댁뀡** ??GitHub??Pergyra 肄붾뱶 0媛? ?덈젴 ?곗씠??遺?щ? in-context examples濡?蹂댁셿
-  - `docs/ai_prompt_bundle/` ?붾젆?좊━??紐?媛??덈꺼??踰덈뱾 以鍮?
-    - `minimal.md` ???몄뼱 ?듭떖留?(~20KB)
-    - `standard.md` ??core + stdlib + 5媛??⑦꽩 ?덉젣 (~100KB)
-    - `complete.md` ????+ ?꾩껜 examples + reference spec (~500KB-1MB)
-  - 媛?踰덈뱾? "??踰덈뱾留뚯쑝濡????몄뀡?먯꽌 AI媛 Pergyra 肄붾뱶瑜??좊ː???덇쾶 ?앹꽦 媛?ν븳媛"瑜?寃利?湲곗??쇰줈
-  - ?꾨왂??寃곗젙: 1李?audience??frontier 紐⑤뜽(Claude Opus, Sonnet) ?ъ슜?? ?뚰삎/?媛 紐⑤뜽? 2李?- [ ] **AI iteration-friendly 鍮뚮뱶 ?댁껜??* ??鍮좊Ⅸ 而댄뙆??+ 湲곌퀎 ?먮룆 異쒕젰 + LSP 吏꾨떒
-  - 利앸텇 而댄뙆?????꾩옱 ?⑥씪 TU濡??꾩껜 鍮뚮뱶. module ?⑥쐞 利앸텇?쇰줈 ?꾪솚
-  - ?뚯뒪??寃곌낵 JSON 異쒕젰 ???꾩옱 stdout ?????뺤떇. AI媛 ?뚯떛???ㅼ쓬 ?≪뀡 寃곗젙?????덈뒗 JSON 紐⑤뱶
-  - LSP 吏꾨떒 湲곌퀎 ?먮룆 媛?????꾩쓽 援ъ“???먮윭 硫붿떆吏? 怨듭쑀 ?щ㎎
-  - backend-compare ?ㅽ뙣 ??diff瑜?援ъ“?????꾩옱 unified diff. AI媛 "?대뒓 ?⑥닔??紐?踰덉㎏ stdout ?쇱씤???ㅻ쫫"??諛붾줈 ?몄? 媛?ν븳 ?щ㎎
-  - ?쇰? 湲곕컲 ?덉쓬 (`src/lsp/` ?붾젆?좊━, `tests/compare_backends.sh` 援ъ“)
+    - ??: 1694 semantic + 601 transpile, 0 failed (?거??경로 무손??
+    - 현재 ?22??정 코드 (`PGY_SEM_*` 16 + `PGY_MIR_*` 5 + `PGY_LLVM_*` 1), ~50 ?이??커버. `mir_validation` / `llvm_codegen` stage  기존 `backend_*_native`? 분리??  - ?? ?업 (5?증분 ?보):
+    - intent/zone/world / class/ability ??`PGY_SEM_*` 코드 ?진????(?머 ~460 semantic ?이??
+    - LLVM 추? 코드: `PGY_LLVM_TYPE_UNSUPPORTED`, `PGY_LLVM_RUNTIME_MISSING`, `PGY_LLVM_OOM` (개별 ?이???그?이??
+    - `cause_ir` / `fix_source` ?드 ??현재 message? MIR/IR ?벨 ?인 + ?스 ?벨 교정 ?인??분리??AI 구분 ?하?    - parser ?벨 코드 (`PGY_PARSE_*` prefix ?약?? ??parser error ?적??리팩???요
+    - `related_rules` ?드 ??Language Reference Spec ?후 ?결
+- [ ] **In-context example corpus ?레?션** ??GitHub??Pergyra 코드 0? ?련 ?이???? in-context examples?보완
+  - `docs/ai_prompt_bundle/` ?렉?리?????벨??번들 ?
+    - `minimal.md` ??되어 ?심?(~20KB)
+    - `standard.md` ??core + stdlib + 5??턴 ?제 (~100KB)
+    - `complete.md` ????+ ?체 examples + reference spec (~500KB-1MB)
+  - ?번들? "??번들만으????션?서 AI Pergyra 코드??뢰???게 ?성 ?한"??기??로
+  - ?략??결정: 1?audience??frontier 모델(Claude Opus, Sonnet) ?용?? ?형/? 모델? 2?- [ ] **AI iteration-friendly 빌드 ?체??* ??빠른 컴파??+ 기계 ?독 출력 + LSP 진단
+  - 증분 컴파????현재 ?일 TU??체 빌드. module ?위 증분으로 ?환
+  - ?스??결과 JSON 출력 ??현재 stdout ?????식. AI ?싱???음 ?션 결정????는 JSON 모드
+  - LSP 진단 기계 ?독 ????의 구조???러 메시? 공유 ?맷
+  - backend-compare ?패 ??diff?구조????현재 unified diff. AI "?느 개수???번째 stdout ?인???름"??바로 ?? ?한 ?맷
+  - ?? 기반 ?음 (`src/lsp/` ?렉?리, `tests/compare_backends.sh` 구조)
 
-**?깃났 湲곗?**: Frontier 紐⑤뜽??Pergyra spec bundle??in-context濡??ㅺ퀬, 鍮꾩옄紐낇븳 鍮꾩쫰?덉뒪 濡쒖쭅 (?? 寃곗젣 + 硫깅벑??+ ?ъ떆???뺤콉) 援ы쁽??one-shot??媛源앷쾶 ?앹꽦?????덉쓬. 而댄뙆???뚯뒪???ㅽ뙣 ??援ъ“???먮윭濡쒕????먭린 援먯젙 猷⑦봽媛 ~3???대궡 ?섎졃.
+**?공 기?**: Frontier 모델??Pergyra spec bundle??in-context??고, 비자명한 비즈?스 로직 (?? 결제 + 멱등??+ ?시???책) 구현??one-shot??깝게 ?성?????음. 컴파???스???패 ??구조???러로????기 교정 루프 ~3???내 ?렴.
 
-## P2 ??諛고룷 ?쒖옉 ??
-- [ ] **臾몄꽌-援ы쁽 ?숆린??* ???뚯뒪????湲곕뒫 踰붿쐞 ?쇱튂
-- [ ] **SBOM (SPDX) + provenance (SLSA)** ??怨듦툒留??щ챸??- [ ] **由대━???꾪떚?⑺듃** ???쒕챸??諛붿씠?덈━, 泥댄겕?? ?ㅼ튂 ?ㅽ겕由쏀듃
-- [ ] **3rd-party NOTICE** ??OpenSSL/LLVM/pthread ?쇱씠?좎뒪 ?뺣━
+## P2 ??배포 ?작 ??
+- [ ] **문서-구현 ?기??* ???스????기능 범위 ?치
+- [ ] **SBOM (SPDX) + provenance (SLSA)** ??공급??명??- [ ] **릴리???티?트** ???명??바이?리, 체크?? ?치 ?크립트
+- [ ] **3rd-party NOTICE** ??OpenSSL/LLVM/pthread ?이?스 ?리
 
-## IR ?뚯씠?꾨씪???ш뎄??
-- [x] **而댄뙆?쇰윭 怨꾩빟 怨좎젙** ??`HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability瑜?`docs/37_compiler_contracts.md`??怨좎젙
+## IR ?이?라???구??
+- [x] **컴파?러 계약 고정** ??`HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability?`docs/37_compiler_contracts.md`??고정
 
 - [~] **DIR (Domain IR)** ??declaration graph / intent step graph ?쒖옉
-  - ?꾨즺: `src/compiler/dir.h`, `src/compiler/dir.c`, `pgy --dir`, `test-dir`
-  - ?꾨즺: intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency
-  - ?꾨즺: role/ability completeness edge, missing-ability-method edge
+  - ?료: `src/compiler/dir.h`, `src/compiler/dir.c`, `pgy --dir`, `test-dir`
+  - ?료: intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency
+  - ?료: role/ability completeness edge, missing-ability-method edge
   - ?⑥쓬: richer zone/world membership graph
-- [~] **RIR (Resource IR)** ??slot/resource/authority/lifecycle ?섎?濡??꾩슜 怨꾩링
+- [~] **RIR (Resource IR)** ??slot/resource/authority/lifecycle ????용 계층
   - 踰붿쐞: `Slot`, `SecureSlot`, `DeviceSlot`, projection validity, authority, effect/relation lifecycle, intent compensation resource edge
-  - ?꾨즺: `src/compiler/rir.h`, `src/compiler/rir.c`, `pgy --rir`, `test-rir`
-  - ?꾨즺: scope蹂?normalized state summary (`initial_state`, `final_state`, `last_op`, `transition error`)
-  - ?꾨즺: relation/effect layer slot? world zone slot??resource fact濡?materialize
-  - 異쒕젰: ?⑥닚 map???꾨땲??`Resource Graph + Transfer Ops + Static Ownership Facts`
+  - ?료: `src/compiler/rir.h`, `src/compiler/rir.c`, `pgy --rir`, `test-rir`
+  - ?료: scope?normalized state summary (`initial_state`, `final_state`, `last_op`, `transition error`)
+  - ?료: relation/effect layer slot? world zone slot??resource fact?materialize
+  - 출력: ?순 map??아니며 `Resource Graph + Transfer Ops + Static Ownership Facts`
   - explicit op ?뺢퇋??
     - `Claim/Read/Write/Release`
     - `Move/BorrowRead/BorrowWrite`
@@ -2823,24 +2864,24 @@ Source of truth:
     - `Measured`
     - `RemotePending`
   - CFG ?섏〈 branch/join/loop/phi merge??MIR濡??댁썡
-- [~] **MIR (Machine / Execution IR)** ??CFG/SSA/liveness/optimization 怨꾩링
+- [~] **MIR (Machine / Execution IR)** ??CFG/SSA/liveness/optimization 계층
   - 踰붿쐞: basic block, explicit instruction, phi, liveness, CFG-dependent resource merge, dead code elimination
-  - ?꾨즺: `src/compiler/mir.h`, `src/compiler/mir.c`, `pgy --mir`, `test-mir`
-  - ?꾨즺: HIR CFG -> MIR block bridge
-  - ?꾨즺: RIR op -> MIR instruction bridge
-  - ?꾨즺: intent cleanup block skeleton
-  - ?꾨즺: phi materialization + incoming predecessor value list
-  - ?꾨즺: block-local SSA rename skeleton
-  - ?꾨즺: intent cleanup successor edge skeleton
-  - ?꾩슂: `RIR-flow` merge ?뺤콉
-  - ?꾩슂: richer phi merge policy
-  - ?꾩슂: cleanup / rollback / detach-invalidation edge 怨좊룄??## Progress Log ??2026-04-24 Parser/Lexer Diagnostic Routing
+  - ?료: `src/compiler/mir.h`, `src/compiler/mir.c`, `pgy --mir`, `test-mir`
+  - ?료: HIR CFG -> MIR block bridge
+  - ?료: RIR op -> MIR instruction bridge
+  - ?료: intent cleanup block skeleton
+  - ?료: phi materialization + incoming predecessor value list
+  - ?료: block-local SSA rename skeleton
+  - ?료: intent cleanup successor edge skeleton
+  - ?요: `RIR-flow` merge ?책
+  - ?요: richer phi merge policy
+  - ?요: cleanup / rollback / detach-invalidation edge 고도??## Progress Log ??2026-04-24 Parser/Lexer Diagnostic Routing
 
-- ?꾨즺: parser/lexer diagnostic routing 1李?gate瑜??レ븯??
-- 援ы쁽: `parser_error`??`PGY_PARSE_SYNTAX`, `parse:unexpected_token`, `check-syntax`瑜?`Code:` / `Reason:` / `Fix:` ?쒕㈃?쇰줈 異쒕젰?쒕떎.
-- 援ы쁽: lexer error token? `PGY_LEX_INVALID_TOKEN`, `lex:invalid_token`, `remove-or-escape-character`瑜?媛숈? ?쒕㈃?쇰줈 異쒕젰?쒕떎.
+- ?료: parser/lexer diagnostic routing 1?gate??았??
+- 구현: `parser_error`??`PGY_PARSE_SYNTAX`, `parse:unexpected_token`, `check-syntax`?`Code:` / `Reason:` / `Fix:` ?면으로 출력한다.
+- 구현: lexer error token? `PGY_LEX_INVALID_TOKEN`, `lex:invalid_token`, `remove-or-escape-character`?같? ?면으로 출력한다.
 - 寃利? `make parser-lexer-diagnostic-test-smoke`, `make diagnostic-registry-test-smoke`, `make test-parser`.
-- ?⑥쓬: parse/lex diagnostics瑜?driver JSON diagnostic object濡?吏곸젒 ?섎━??refactor??蹂꾨룄 Tier 2 ?묒뾽?쇰줈 ?좎??쒕떎.
+- ?음: parse/lex diagnostics?driver JSON diagnostic object?직접 ?리??refactor??별도 Tier 2 ?업으로 ??한다.
 
 ## UTF-8 Progress Note - 2026-04-25
 

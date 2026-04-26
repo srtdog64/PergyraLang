@@ -1,11 +1,35 @@
 # Include Cleanup Status
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 This note records the current state of the beta include-cleanup track. It is a
 progress ledger, not a new language surface.
 
 ## Closed In This Slice
+
+- Production `.inc` cleanup is closed for `src/runtime`, `src/codegen`,
+  `src/compiler`, and `src/semantic`: there are now **0 production `.inc`
+  files / 0 LOC** under `src`, excluding `src/tests/**/*.inc` fixtures.
+- The final pass-through and leaf helper shims were renamed to named private
+  owner headers, including `pgy_runtime_inline_core.h`,
+  `transpiler_base_a_emitters.h`, `transpiler_base_b_emitters.h`,
+  `transpiler_expr_emitters.h`, `transpiler_helpers_core_{a,b}.h`,
+  `transpiler_domain_role_emit.h`, and `llvm_expr_call_owners.h`.
+- Compiler runtime cache freshness now tracks the renamed runtime owner
+  headers instead of stale `.inc` dependency paths.
+- `inc-sentinel-test-smoke` now treats `src/tests/**/*.inc` as the only
+  tolerated fixture lane and caps it at the current 47 files; production
+  `.inc` reintroduction is a hard failure.
+- C backend scalar/math/string stdlib call lowering now lives in
+  `src/codegen/transpiler_expr_stdlib_scalar_builtin.h`. The main
+  `transpiler_expr_stdlib_builtin.h` dispatcher drops from 917 LOC to 751 LOC
+  while preserving dispatch order.
+- C backend Map/List/Set/Queue stdlib call lowering now lives in
+  `src/codegen/transpiler_expr_stdlib_collection_builtin.h`. The main
+  dispatcher drops further to 432 LOC while preserving collection runtime
+  specialization order.
+- `production-header-size-test-smoke` caps production owner headers at 1,000
+  LOC by default, with a temporary 1,600 LOC allowance for `llvm_internal.h`.
 
 - `src/codegen/transpiler_context.c` now owns the C backend output/context
   primitives that used to live in include bodies:
@@ -134,8 +158,8 @@ progress ledger, not a new language surface.
   helpers and method-routine linking. `mir_public_part_a.inc` now starts at
   `mir_lower(...)` instead of carrying declaration inventory helper bodies.
 - `src/compiler/rir_names.h` now owns public RIR vocabulary name helpers for
-  scope, fact, resource, state, and op kinds. `rir_public.inc` now focuses on
-  validation and dump surfaces instead of carrying name vocabulary bodies.
+  scope, fact, resource, state, and op kinds. `rir_public_surface.h` now focuses
+  on dump surfaces instead of carrying name vocabulary bodies.
 - `src/codegen/transpiler_parallel_capture.h` now owns C backend parallel
   capture discovery and capture-list deduplication. The async/parallel emitter
   keeps the same lowering surface, but `transpiler_emitters_base_b_part_b.inc`
@@ -187,7 +211,7 @@ progress ledger, not a new language surface.
   - event call lowering
   - member-style call lowering
   - final user-call lowering
-- `src/codegen/transpiler_emitters_base_b_part_d.inc` no longer leaves
+- `src/codegen/transpiler_intent_zone_binding_emit.h` no longer leaves
   dangling `static void` return-type fragments for the intent emitter.
 - `src/codegen/transpiler_emitters_intent.inc` now owns the full
   `emit_intent_decl` signature at its file boundary.
@@ -271,7 +295,7 @@ src/codegen/transpiler_type_render.h 16
 src/codegen/transpiler_type_mapping_helpers.h 599
 src/codegen/transpiler_statement_dispatch.h 257
 src/codegen/transpiler_block_intent_helpers.h 546
-src/codegen/transpiler_emitters_base_b_part_d.inc 257
+src/codegen/transpiler_intent_zone_binding_emit.h 237
 src/runtime/pgy_runtime_intent_exit.h 106
 src/runtime/pgy_runtime_panic_checked_inline.h 191
 src/runtime/pgy_runtime_slot_macros.h 190
@@ -286,16 +310,12 @@ src/compiler/mir_lower_public_api.h 290
 src/compiler/mir_public_surface.h 420
 ```
 
-The gate is green, but several production include files are still close enough
-to the 1,000 LOC cap that they should be treated as owner-extraction
-candidates rather than targets for more split-file growth:
+The production `.inc` gate is now stricter than the previous 1,000 LOC cap:
+no production `.inc` files remain under `src` outside test fixtures.
 
 ```text
-src/codegen/llvm_expr_call_domain_queries.inc 275
-src/compiler/rir_public.inc 269
-src/compiler/mir_base.inc 269
-src/runtime/pgy_runtime_lib_part_b_part_f.inc 253
-src/codegen/llvm_expr_call_slots.inc 245
+production_inc_count=0
+production_inc_loc=0
 ```
 
 After the local symbol/slot tracking extraction,
@@ -1058,20 +1078,104 @@ Observed results:
   helpers and `emit_match_stmt(...)` now have a named private owner while
   `transpiler_func_class_flow_emit.h` preserves include order. The current
   production source `.inc` inventory is 44 files / 5,932 LOC.
+- Latest LLVM domain query call cleanup moved the former
+  `src/codegen/llvm_expr_call_domain_queries.inc` body into
+  `src/codegen/llvm_expr_domain_query_calls.h`. `HasProjection`, `HasLayer`,
+  `HasState`, `HasZone`, and zone-detail query lowering now have a named
+  private owner while `llvm_expr_calls.inc` preserves include order. The current
+  production source `.inc` inventory is 43 files / 5,657 LOC.
+- Latest MIR/RIR owner cleanup moved the former `src/compiler/mir_base.inc`
+  body into `src/compiler/mir_base_helpers.h` and the former
+  `src/compiler/rir_public.inc` body into `src/compiler/rir_public_surface.h`.
+  MIR low-level helpers and RIR dump/destroy surfaces now have explicit owners
+  while preserving the existing include order. The current production source
+  `.inc` inventory is 41 files / 5,119 LOC before the next runtime/codegen
+  cleanup slice.
+- Latest runtime quantum export cleanup moved the former
+  `src/runtime/pgy_runtime_lib_part_b_part_f.inc` body into
+  `src/runtime/pgy_runtime_lib_quantum_exports.h`. Runtime source packaging,
+  LLVM runtime library include order, and ABI lifetime smoke now refer to the
+  named quantum export owner. The current production source `.inc` inventory is
+  40 files / 4,866 LOC.
+- Latest LLVM slot/device call cleanup moved the former
+  `src/codegen/llvm_expr_call_slots.inc` body into
+  `src/codegen/llvm_expr_slot_device_calls.h`. `ClaimSlot`, `Write`, `Read`,
+  `Release`, and `Device*` lowering now have a named owner while
+  `llvm_expr_calls.inc` remains the dispatcher-order shim. The current
+  production source `.inc` inventory is 39 files / 4,621 LOC.
+- Latest C/LLVM call-owner cleanup moved the former
+  `src/codegen/transpiler_emitters_base_b_part_d.inc` body into
+  `src/codegen/transpiler_intent_zone_binding_emit.h`, the former
+  `src/codegen/llvm_expr_call_constructors.inc` body into
+  `src/codegen/llvm_expr_constructor_calls.h`, the former
+  `src/codegen/llvm_expr_call_rc.inc` body into
+  `src/codegen/llvm_expr_rc_calls.h`, and the former
+  `src/codegen/llvm_expr_call_task_channel.inc` body into
+  `src/codegen/llvm_expr_task_channel_calls.h`. The current production source
+  `.inc` inventory is 35 files / 3,689 LOC.
+- Latest flow/resource and LLVM collection/result cleanup moved
+  `src/codegen/transpiler_emitters_control_flow_loops.inc` into
+  `src/codegen/transpiler_control_flow_emit.h`,
+  `src/semantic/type_checker_flow_resources.inc` into
+  `src/semantic/type_checker_flow_resources.h`,
+  `src/codegen/llvm_expr_call_collections_base.inc` into
+  `src/codegen/llvm_expr_collection_base_calls.h`, and
+  `src/codegen/llvm_expr_call_result_option.inc` into
+  `src/codegen/llvm_expr_result_option_calls.h`. The current production source
+  `.inc` inventory is 31 files / 2,814 LOC.
+- Latest semantic/LLVM MIR owner cleanup moved
+  `src/semantic/type_checker_builtins_query_channel.inc` into
+  `src/semantic/type_checker_builtins_query_channel.h`,
+  `src/semantic/type_checker_operator_expr.inc` into
+  `src/semantic/type_checker_operator_expr.h`,
+  `src/codegen/llvm_mir_locals.inc` into
+  `src/codegen/llvm_mir_local_emit.h`,
+  `src/codegen/llvm_mir_blocks.inc` into
+  `src/codegen/llvm_mir_block_emit.h`,
+  `src/semantic/type_checker_resolution_graph_core.inc` into
+  `src/semantic/type_checker_resolution_graph_core.h`, and
+  `src/codegen/transpiler_emitters_enum_decl.inc` into
+  `src/codegen/transpiler_enum_decl_emit.h`. The current production source
+  `.inc` inventory is 25 files / 1,675 LOC.
+- Latest helper/call owner cleanup moved
+  `src/semantic/type_checker_helpers_context.inc` into
+  `src/semantic/type_checker_context_helpers.h`,
+  `src/codegen/llvm_expr_call_log.inc` into
+  `src/codegen/llvm_expr_log_calls.h`,
+  `src/codegen/llvm_expr_call_arrays.inc` into
+  `src/codegen/llvm_expr_array_calls.h`,
+  `src/codegen/transpiler_emitters_base_b_part_a.inc` into
+  `src/codegen/transpiler_mir_emit_state.h`,
+  `src/codegen/transpiler_emitters_base_a_part_a.inc` into
+  `src/codegen/transpiler_mir_emit_decls.h`, and
+  `src/codegen/transpiler_emitters_base_a_part_b.inc` into
+  `src/codegen/transpiler_mir_pending_uses.h`. The current production source
+  `.inc` inventory is 19 files / 835 LOC.
+- Latest formatter/flow/observability cleanup moved `src/compiler/fmt_layout.inc`
+  into `src/compiler/fmt_layout.h`, `src/compiler/fmt_io.inc` into
+  `src/compiler/fmt_io.h`, `src/semantic/type_checker_flow_effects.inc` into
+  `src/semantic/type_checker_flow_effects.h`,
+  `src/semantic/type_checker_flow_parallel.inc` into
+  `src/semantic/type_checker_flow_parallel.h`,
+  `src/codegen/llvm_expr_call_intent_observability.inc` into
+  `src/codegen/llvm_expr_intent_observability_calls.h`, and
+  `src/semantic/type_checker_assignment.inc` into
+  `src/semantic/type_checker_assignment.h`. The current production source `.inc`
+  inventory is 13 files / 297 LOC.
 - Latest overall audit also reran `make tooling-conformance-test-smoke`; the
   formatter smoke is invoked through `bash`, so Linux execute-bit drift no
   longer blocks the tooling conformance gate.
 - `test-abi`: ABI spec 49 passed, 0 failed, plus C/LLVM ABI pipeline smoke.
 - `runtime-abi-lifetime-test-smoke`: passed.
 - `test-inc-size-test-smoke`: all `src/tests/**/*.inc` files are below
-  1,000 LOC.
+  990 LOC.
 - `inc-sentinel-test-smoke`: no empty `.inc` files are allowed, and the source
   `.inc` count must not increase above 159.
 - `git diff --check`: passed; only line-ending warnings were reported.
 
 ## Remaining Include Debt
 
-- Test fixture `.inc` files are now under the 1,000 LOC cap and are guarded by
+- Test fixture `.inc` files are now under the 990 LOC cap and are guarded by
   `make test-inc-size-test-smoke`.
 - The long-term target remains real `.c` / `.h` ownership for behavior-heavy
   families. The current state removes the worst function-boundary and size

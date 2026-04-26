@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LIMIT="${TEST_INC_MAX_LINES:-1000}"
+LIMIT="${TEST_INC_MAX_LINES:-990}"
 
 violations="$(
     cd "$ROOT_DIR"

@@ -2,19 +2,16 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LIMIT="${BACKEND_INC_MAX_LINES:-1000}"
 
-violations="$(
+mapfile -d '' inc_files < <(
     cd "$ROOT_DIR"
-    find src/runtime src/codegen src/compiler -name '*.inc' -print0 \
-        | xargs -0 wc -l \
-        | awk -v limit="$LIMIT" '$2 != "total" && $1 > limit { print }'
-)"
+    find src/runtime src/codegen src/compiler -name '*.inc' -type f -print0
+)
 
-if [[ -n "$violations" ]]; then
-    echo "runtime/codegen/compiler .inc size violations; limit is ${LIMIT} LOC:" >&2
-    echo "$violations" >&2
+if ((${#inc_files[@]} > 0)); then
+    echo "runtime/codegen/compiler production .inc files are not allowed:" >&2
+    printf '  %s\n' "${inc_files[@]}" >&2
     exit 1
 fi
 
-echo "[backend-inc-size] runtime/codegen/compiler .inc files <= ${LIMIT} LOC"
+echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0"

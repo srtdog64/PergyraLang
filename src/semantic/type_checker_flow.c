@@ -14,8 +14,8 @@ typedef enum
     FLOW_RETURN      = 1 << 3
 } FlowFlags;
 
-#include "type_checker_flow_resources.inc"
-#include "type_checker_flow_effects.inc"
+#include "type_checker_flow_resources.h"
+#include "type_checker_flow_effects.h"
 
 typedef struct
 {
@@ -931,7 +931,7 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
     }
 }
 
-#include "type_checker_flow_parallel.inc"
+#include "type_checker_flow_parallel.h"
 
 bool
 type_check_block(ASTNode *node, SemanticContext *ctx)

@@ -59,6 +59,11 @@ Recently closed:
   assignment-rebind, array-literal store, boundary validation, call-argument,
   destructuring, let-binding, and parameter escape-summary consumers now build as
   real translation units. There are no `type_checker_ownership_*.inc` files left.
+- Current production `.inc` contract: **0 production `.inc` files / 0 LOC**
+  under `src`, excluding `src/tests/**/*.inc` fixtures. Former runtime,
+  codegen, compiler, and semantic production seams now live in named owner
+  `.h` / `.c` files. Older bullets below remain as split history, not as the
+  active target state.
 - `semantic/type_checker_decls_domain_helpers.inc` — removed; body lives in `type_checker_decls_domain_helpers.c`.
 - `semantic/type_checker_decls_a.inc` — reduced to a one-line shim; body lives in `type_checker_intent_helpers.c`.
 - `codegen/transpiler_emitters_mir_inventory_ssa.inc` — reduced to a five-line shim that includes three sub-1000 LOC slices:
@@ -72,26 +77,26 @@ Recently closed:
   `transpiler_expr_emitters_members.inc`,
   `transpiler_expr_emitters_tail.inc`.
 - `codegen/llvm_expr_calls.inc` — reduced to a shim that includes constructor, array, collection-base, domain query, event invocation, intent observability, log, scalar math, result/option, slot/device-slot builtin, task/channel owners, plus four sub-1,000 LOC call slices:
-  `llvm_expr_call_constructors.inc`,
-  `llvm_expr_call_arrays.inc`,
-  `llvm_expr_call_collections_base.inc`,
-  `llvm_expr_call_domain_queries.inc`,
+  `llvm_expr_constructor_calls.h`,
+  `llvm_expr_array_calls.h`,
+  `llvm_expr_collection_base_calls.h`,
+  `llvm_expr_domain_query_calls.h`,
   `llvm_expr_call_events.inc`,
-  `llvm_expr_call_intent_observability.inc`,
-  `llvm_expr_call_log.inc`,
+  `llvm_expr_intent_observability_calls.h`,
+  `llvm_expr_log_calls.h`,
   `llvm_expr_call_math.inc`,
-  `llvm_expr_call_result_option.inc`,
-  `llvm_expr_call_slots.inc`,
-  `llvm_expr_call_task_channel.inc`,
+  `llvm_expr_result_option_calls.h`,
+  `llvm_expr_slot_device_calls.h`,
+  `llvm_expr_task_channel_calls.h`,
   `llvm_expr_calls_part_a.inc`,
   `llvm_expr_calls_part_b.inc`,
   `llvm_expr_calls_part_c.inc`,
   `llvm_expr_calls_part_d.inc`.
 - `codegen/transpiler_emitters_base_b.inc` — reduced to a six-line shim that includes four sub-1,000 LOC mechanical slices:
-  `transpiler_emitters_base_b_part_a.inc`,
+  `transpiler_mir_emit_state.h`,
   `transpiler_emitters_base_b_part_b.inc`,
   `transpiler_emitters_base_b_part_c.inc`,
-  `transpiler_emitters_base_b_part_d.inc`.
+  `transpiler_intent_zone_binding_emit.h`.
 - Tier 1 runtime/codegen/compiler `.inc` gate — closed by safe mechanical split that avoids block-comment and continuation-line boundaries:
   `runtime/pgy_runtime_part_ba.inc`,
   `runtime/pgy_runtime_lib_part_b_part_a.inc` through
@@ -209,7 +214,7 @@ Backend 진행:
 - `type_checker_event.c`의 event declaration/subscription signature materialization은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 event signature metadata reader로 교체하는 것이다.
 - `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. 다음 DAG slice는 world shared/slot checks가 graph-backed resolved metadata를 재사용하게 만드는 것이다.
 - `type_checker_role_decl.c`, `type_checker_generic_contracts.h`, `type_checker_helpers_late.c`, `type_checker_expr.inc`는 각각 local resolver seam 1개로 수렴했다. 다음 DAG slice는 role include/impl, generic default/bound, call default, lambda/member metadata를 graph-backed result로 교체하는 것이다.
-- `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 다음 DAG slice는 이 seam들을 graph-backed metadata reader로 교체하고 remaining direct count를 implementation/comment/seam만 남기는 것이다.
+- `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.h`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 다음 DAG slice는 이 seam들을 graph-backed metadata reader로 교체하고 remaining direct count를 implementation/comment/seam만 남기는 것이다.
 - statement/type-alias, ability fields, projection/query builtins, flow with-slot, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다. zone domain-slot seam은 graph metadata-first 조회를 사용하며, `type-resolution-resolver-inventory-test-smoke`가 새 direct resolver 호출을 allowlist 밖에서 금지한다.
 - declaration validators는 `subject/class`, `zone`, `world`, `intent`, `relation/effect/projection`, `ability/role/party/roster` 단위의 `.c`로 분리한다.
 - `find_*_decl`, `find_*_slot`, label/format, dependency record API는 static include-order가 아니라 internal header 계약으로만 사용한다.
@@ -324,10 +329,10 @@ semantic_classify_ownership_type
 축 단위로 `.c+.h` 절단. 의존성이 가장 낮은 → 높은 순:
 
 ### 1. **diagnostic helpers** (P0 — 다음 sprint 시작점)
-- 대상: `type_checker_helpers_context.inc` (emit_diagnostic_full 등)
+- 대상: `type_checker_context_helpers.h` (emit_diagnostic_full 등)
 - 종속: `Type`, `SemanticContext`, `ASTNode` 만 사용 — leaf
 - 출력: `type_checker_diag.c`; public declarations remain in `type_checker.h` / `diag_payload.h`
-- 상태: DONE — `type_checker_helpers_context.inc`에서 diagnostic snapshot/emission/printing 243 LOC 제거
+- 상태: DONE — `type_checker_context_helpers.h`에서 diagnostic snapshot/emission/printing 243 LOC 제거
 - 검증: `make test-semantic`, `make test-all`
 
 ### 2. **ownership classifier + labels**
@@ -401,7 +406,7 @@ semantic_classify_ownership_type
 - 선행 seam: DONE — intent declaration precollector를 `type_checker_resolution_graph_decl.c`로 이동
 - 선행 seam: DONE — world inventory precollector를 `type_checker_resolution_graph_world.c`로 이동
 - cleanup: DONE — `find_type_alias_decl`의 cross-include dangling return-type seam을 명시 선언으로 정리
-- cleanup: DONE — `type_checker_resolution_graph_core.inc` → inventory include 경계의 dangling `static void` seam 2개를 명시 return type으로 정리
+- cleanup: DONE — `type_checker_resolution_graph_core.h` → inventory include 경계의 dangling `static void` seam 2개를 명시 return type으로 정리
 - cleanup: DONE — `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 사이의 dangling return-type seams 제거
 - cleanup: DONE — `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`를 standalone semantic TU로 빌드 가능하게 만들고 hidden helper 의존을 internal/header 계약으로 승격
 - cascade: `type_resolution_intern_node`, `type_resolution_add_edge`, `type_resolution_find_path`, `type_resolution_format_cycle`, `semantic_type_resolution_record_named_dependency`, `semantic_type_resolution_record_type_ref_dependency`, `semantic_type_resolution_collect_type_refs`, `find_type_alias_decl`, `find_domain_decl_by_name`, `semantic_world_find_zone_slot_local`, `create_overlay_nominal_type`를 internal API로 승격

@@ -24,8 +24,8 @@ static bool fmt_replace_file(const char *dst_path, const char *tmp_path);
 
 static bool format_source_to_stream(const char *source, FILE *out);
 
-#include "fmt_io.inc"
-#include "fmt_layout.inc"
+#include "fmt_io.h"
+#include "fmt_layout.h"
 
 static bool
 format_source_to_stream(const char *source, FILE *out)

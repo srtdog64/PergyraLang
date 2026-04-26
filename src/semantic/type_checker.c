@@ -80,17 +80,17 @@ bool
 concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
                               SemanticContext *ctx);
 
-/* Helper .inc fragments (tc_strdup_fmt, ownership/qubit helpers, etc).
- * Formerly chained through helpers.inc + helpers_core.inc — wrappers
- * deleted once the helpers_late.c TU went out. */
-#include "type_checker_helpers_context.inc"
+/* Helper owner headers (tc_strdup_fmt, ownership/qubit helpers, etc).
+ * Former wrapper include chains were deleted once the helpers_late.c TU went
+ * out. */
+#include "type_checker_context_helpers.h"
 #include "type_checker_resolution_helpers.h"
 #include "type_checker_helpers_effects.h"
 #include "type_checker_host_helpers.h"
-/* type_checker_visibility.inc was promoted to type_checker_visibility.{h,c}
+/* type_checker_visibility was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
 
-#include "type_checker_resolution_graph_core.inc"
+#include "type_checker_resolution_graph_core.h"
 
 void
 semantic_run_type_resolution_worklist(ASTNode *program,
@@ -170,7 +170,7 @@ type_get_constructed_arg(const Type *type, size_t index)
 }
 
 #include "type_checker_expr.h"
-#include "type_checker_assignment.inc"
+#include "type_checker_assignment.h"
 
 
 bool

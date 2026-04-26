@@ -138,7 +138,7 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
         false, NULL, NULL);
 }
 
-#include "type_checker_builtins_query_channel.inc"
+#include "type_checker_builtins_query_channel.h"
 
 static Type *
 type_check_has_projection(ASTNode *call, SemanticContext *ctx)

@@ -73,4 +73,4 @@ render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
 #include "transpiler_specialization_helpers.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_func_forward_helpers.h"
-#include "transpiler_helpers_core_b_part_d.inc"
+#include "transpiler_generic_specialization_emit.h"

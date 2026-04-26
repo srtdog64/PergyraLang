@@ -337,7 +337,7 @@ typedef struct
 } LLVMTypeSubst;
 
 /* Result<T, E> specialization cache — parity with C backend's
- * ensure_result_specialization (transpiler_helpers_core_b.inc:1620).
+ * ensure_result_specialization (transpiler_helpers_core_b.h).
  * LLVM has no preprocessor, so each unique (T, E) gets a named struct
  * {i32 tag, ok_ty value, err_ty err} created once and reused. */
 #define MAX_LLVM_RESULT_SPECS 32

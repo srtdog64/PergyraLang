@@ -100,7 +100,7 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     if (ctx == NULL || dst == NULL || ok_type == NULL || err_type == NULL)
         return;
 
-    /* Built-in combinations already emitted in pgy_runtime_part_ba.inc. */
+    /* Built-in combinations already emitted in pgy_runtime_inline_core.h. */
     if (strcmp(err_type, "PgyError") == 0 || strcmp(err_type, "String") == 0) {
         if (strcmp(ok_type, "Int") == 0
             || strcmp(ok_type, "Bool") == 0

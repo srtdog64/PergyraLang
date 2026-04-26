@@ -13,7 +13,7 @@
 #include "type_checker_ownership_diag_internal.h"
 #include "diag_codes.h"
 
-#include "type_checker_operator_expr.inc"
+#include "type_checker_operator_expr.h"
 
 Type *
 type_check_binary(ASTNode *expr, SemanticContext *ctx)

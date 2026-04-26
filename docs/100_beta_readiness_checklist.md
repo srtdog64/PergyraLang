@@ -742,14 +742,27 @@ make llvm-test-backend-compare
 - `type_checker_event.c`가 event declaration/subscription/invoke semantic을 소유한다.
 - `type_checker_qubit.c`가 QubitSlot compile-time state, entangle pool, movable-resource-use validation을 소유한다.
 - `type_checker.c`는 481 LOC로 내려갔고, semantic stop condition의 600 LOC 이하 조건을 만족한다.
-- `make semantic-inc-size-test-smoke`가 `src/semantic/**/*.inc <= 800 LOC`를 검사한다.
+- `make semantic-inc-size-test-smoke`가 `src/semantic` production `.inc = 0`를 검사한다.
 - `make semantic-core-shape-test-smoke`가 `type_checker.c <= 600 LOC`, DAG inventory `.c` ownership, event/qubit owner TU 존재를 검사한다.
-- `transpiler_emitters_mir_inventory_ssa.inc`는 5-line shim으로 축소됐고, MIR intent inventory / SSA name / SSA emit slice가 각각 1,000 LOC 아래 하위 include로 분리됐다.
-- `transpiler_expr_emitters.inc` pass-through shim은 제거됐고, `transpiler.c`가 concrete emitter churnks를 직접 include한다. 남은 과제는 call/member/builtin owner 경계를 실제 `.c` 또는 더 작은 feature include로 정리하는 것이다.
-- `llvm_expr_calls.inc`는 17-line shim + constructor / array / collection-base / domain query / event invocation / intent observability / log / scalar math / result-option / slot-device / task-channel owner + 네 개의 call slice로 축소됐고, 각 slice가 1,000 LOC 아래로 내려갔다. `llvm_emit_call` 앞단의 enum/class constructor lowering은 `llvm_expr_call_constructors.inc`로, array builtin은 `llvm_expr_call_arrays.inc`로, `ListNew`/`Set*` base collection family는 `llvm_expr_call_collections_base.inc`로, `HasProjection` / `HasLayer` / `HasState` / `HasZone*` lowering은 `llvm_expr_call_domain_queries.inc`로, event invocation은 `llvm_expr_call_events.inc`로, intent observability runtime calls는 `llvm_expr_call_intent_observability.inc`로, `Log*`는 `llvm_expr_call_log.inc`로, `Abs`/`Min`/`Max`는 `llvm_expr_call_math.inc`로, Result/Option builtin lowering은 `llvm_expr_call_result_option.inc`로, `ClaimSlot` / `Write` / `Read` / `Release` / `Device*` lowering은 `llvm_expr_call_slots.inc`로, task cancellation/channel operations는 `llvm_expr_call_task_channel.inc`로 이동했다. 단, list/map/queue continuation / stdlib IO/file/time / user function fallback owner 추출은 남아 있다.
-- `transpiler_emitters_base_b.inc`는 6-line shim으로 축소됐고, 네 개의 mechanical slice가 각각 1,000 LOC 아래로 내려갔다. 단, statement/block/intent forward-declare owner extraction은 남아 있다.
+- Production `.inc` cleanup is closed: `src/runtime`, `src/codegen`,
+  `src/compiler`, and `src/semantic` now have **0 production `.inc` files /
+  0 LOC** outside `src/tests/**/*.inc` fixtures.
+- Former production shims are named private owner headers:
+  `transpiler_mir_inventory_ssa_emitters.h`,
+  `transpiler_expr_emitters.h`, `llvm_expr_call_owners.h`,
+  `transpiler_base_a_emitters.h`, `transpiler_base_b_emitters.h`,
+  `transpiler_helpers_core_{a,b}.h`, `transpiler_domain_role_emit.h`, and
+  `pgy_runtime_inline_core.h`.
+- Remaining backend debt is no longer pass-through `.inc` debt; it is owner
+  extraction inside named headers/TUs, especially list/map/queue continuation,
+  stdlib IO/file/time, user-function fallback, and statement/block/intent
+  forward-declare owners.
+- `make production-header-size-test-smoke` prevents the new named owner
+  headers from becoming replacement mega-includes. The default cap is 1,000
+  LOC; `llvm_internal.h` has a temporary 1,600 LOC allowance until LLVM context
+  declarations are split.
 - Tier 1 runtime/codegen/compiler `.inc` split gate를 닫았다. Pass-through shim `.inc` files for runtime part B, LLVM expr helpers, LLVM method calls, LLVM domain helpers, MIR public API, and C transpiler emitter/helper seams have now been removed; owning `.c` / `.h` files include concrete sub-1,000 LOC churnks directly.
-- `make backend-inc-size-test-smoke`가 `src/runtime`, `src/codegen`, `src/compiler`의 `.inc <= 1000 LOC`를 검사한다.
+- `make backend-inc-size-test-smoke`가 `src/runtime`, `src/codegen`, `src/compiler`의 production `.inc = 0`를 검사한다.
 - `type_checker_helpers_late.c` standalone TU가 hidden include-order helper 없이 빌드되도록 call-path helper prototypes와 slot analyzer / visibility / generic diagnostic include 계약을 명시했다.
 - string literal / interpolation stable subset을 grammar docs에 고정했다. Stable은 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace까지이며 nested brace matching / format specifier / multiline interpolation은 beta-out-of-scope다.
 - `diagnostic-registry-test-smoke`가 `diag_codes.h` / `docs/72_diagnostic_codes.md` code sync와 `semantic_error_with_hints` / `semantic_warning_with_hints` macro usage를 검사한다.
@@ -778,10 +791,12 @@ make llvm-test-backend-compare
 
 완료 조건:
 
-- `src/semantic`에 800 LOC 초과 `.inc`가 없다. 현재 `make semantic-inc-size-test-smoke`로 고정한다.
-- `src/codegen`, `src/runtime`, `src/compiler`에 1,000 LOC 초과 `.inc`가 없다. 현재 `make backend-inc-size-test-smoke`로 고정한다.
-- 신규 `.inc` 증가는 금지한다. 현재 `make inc-sentinel-test-smoke`가
-  empty `.inc` 금지와 `src/**/*.inc <= 160` file-count cap을 함께 검사한다.
+- `src/semantic` production `.inc = 0`를 `make semantic-inc-size-test-smoke`로 고정한다.
+- `src/codegen`, `src/runtime`, `src/compiler` production `.inc = 0`를
+  `make backend-inc-size-test-smoke`로 고정한다.
+- 신규 production `.inc` 증가는 금지한다. 현재 `make inc-sentinel-test-smoke`가
+  production `.inc = 0`, empty test fixture `.inc` 금지, 그리고
+  현재 `src/tests/**/*.inc <= 47` file-count cap을 함께 검사한다.
 - core semantic/DAG/backend/runtime owner boundary가 문서와 파일 구조에서 추적 가능하다.
 - `.inc`는 generated table, local macro table, private test fixture 용도로만 남는다.
 
@@ -806,7 +821,7 @@ make test-all
 make llvm-test-backend-compare
 make backend-inc-size-test-smoke
 make inc-sentinel-test-smoke
-find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l | sort -nr | head
+find src -path src/tests -prune -o -name '*.inc' -print
 ```
 
 2026-04-26 include-cleanup update:
@@ -816,12 +831,12 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
   that crossed `emit_call` was replaced with helper owners for builtin
   dispatch, domain constructors, `Result`/`Option`, stdlib, event, member-call,
   and user-call lowering. Each part is under 1,000 LOC.
-- `transpiler_emitters_base_b_part_d.inc` and
+- `transpiler_intent_zone_binding_emit.h` and
   `transpiler_emitters_intent.inc` no longer leave dangling `static void`
   return-type fragments across include boundaries.
-- All `src/**/*.inc` files are now under 1,000 LOC. Production code remains
-  guarded by `make backend-inc-size-test-smoke` and semantic code by
-  `make semantic-inc-size-test-smoke`.
+- All production `.inc` files under `src` are gone. Production code remains
+  guarded as a zero-inventory contract by `make backend-inc-size-test-smoke`
+  and `make semantic-inc-size-test-smoke`.
 - Test fixtures are now guarded by `make test-inc-size-test-smoke`; the large
   semantic/transpile fixture includes were split into ordered part shims and
   rechecked with `make test-semantic test-transpile`.
@@ -896,7 +911,7 @@ find src/semantic src/codegen src/runtime -name '*.inc' -print0 | xargs -0 wc -l
 - DAG edge가 이미 있는 named type-ref는 generic argument를 포함해 stage에서 다시 materialize하지 않고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N`이 이 경로의 공개 지표이며 `type-resolution-dag-test-smoke`는 skip 합계가 0으로 퇴행하면 실패한다.
 - graph precollect TU는 더 이상 stage runner를 호출하지 않는다. enum methods도 `semantic_stage_method_array(...)`가 아니라 precollect action contract 경로로 edge를 수집한다.
 - stage lookup과 stage stats helper는 `type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`로 분리됐다. `type_checker_resolution_stage.c`는 895 LOC로 내려가 stage replay 본체만 소유한다.
-- generic where/default validation은 `type_checker_generic_validation.c`가 소유한다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.inc`는 resolver-free graph layer로 고정됐고, `semantic-core-shape-test-smoke`가 graph layer의 직접 `resolve_type_node(...)` 호출을 금지한다.
+- generic where/default validation은 `type_checker_generic_validation.c`가 소유한다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.h`는 resolver-free graph layer로 고정됐고, `semantic-core-shape-test-smoke`가 graph layer의 직접 `resolve_type_node(...)` 호출을 금지한다.
 - intent declaration resolution은 participant/value/where local seam 3개로 수렴했고, 이제 graph metadata-first 조회 후 recursive fallback으로 내려간다. 단순 lookup-only 전환은 semantic suite 후반 parallel execution path에서 segfault를 만들었으므로, direct semantic/bootstrap path와 step/local binding materialization이 lookup-only 계약을 만족할 때까지 explicit fallback seam으로 남긴다.
 - domain contract resolution은 slot/shared/named-ref local seam 3개로 수렴했고, projection/relation/effect contract도 graph metadata-first 조회 후 fallback으로 내려간다.
 - intent helper resolution은 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. transfer-derived using/where, ability generic arg, role-field checks는 이 seam에서 graph-backed metadata로 교체할 수 있다.

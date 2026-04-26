@@ -9,7 +9,7 @@
 #define PGY_RUNTIME_H
 
 #include "pgy_runtime_platform_io_core.h"
-#include "pgy_runtime_part_ba.inc"
+#include "pgy_runtime_inline_core.h"
 #include "pgy_runtime_channel_inline.h"
 #include "pgy_runtime_io_qubit_inline.h"
 

@@ -35,7 +35,7 @@ if grep -q '#include "type_checker_resolution_graph_inventory.inc"' src/semantic
     fail "type_checker.c must not include graph inventory body"
 fi
 
-if grep -R "resolve_type_node(" src/semantic/type_checker_resolution_graph_*.c src/semantic/type_checker_resolution_graph_core.inc >/dev/null; then
+if grep -R "resolve_type_node(" src/semantic/type_checker_resolution_graph_*.c src/semantic/type_checker_resolution_graph_core.h >/dev/null; then
     fail "DAG graph core/precollect layer must not call resolve_type_node directly"
 fi
 

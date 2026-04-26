@@ -22,7 +22,7 @@ LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
 #include "llvm_expr_call_projection_sync.h"
 #include "llvm_expr_call_methods_domain_slice.h"
 #include "llvm_member_call_emit.h"
-#include "llvm_expr_calls.inc"
+#include "llvm_expr_call_owners.h"
 
 static LLVMValueRef
 llvm_emit_checked_collection_get(LLVMGenCtx *ctx, LLVMValueRef aggregate,

@@ -111,7 +111,7 @@ pgy_kind_to_suffix(PgyTypeKind kind)
 /* ---------------------------------------------------------------
  * Result<T, E> specialization helpers (C-backend parity).
  *
- * The C backend (transpiler_helpers_core_b.inc) uses PGY_RESULT_DEFINE
+ * The C backend (transpiler_helpers_core_b.h) uses PGY_RESULT_DEFINE
  * macros to synthesize one struct typedef + helper functions per unique
  * (T, E) pair. LLVM IR has no preprocessor, so these helpers maintain a
  * per-module cache of named structs ({i32 tag, ok_ty value, err_ty err})

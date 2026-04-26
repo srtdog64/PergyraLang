@@ -40,7 +40,7 @@
 - backend 정책상 LLVM/native가 primary path이고, C backend는 reference/bootstrap/debug path로 취급한다. 자세한 역할 정의는 [51_c_backend_reference_policy.md](/mnt/e/PergyraLang/docs/51_c_backend_reference_policy.md), 전환 계획은 [52_llvm_native_first_roadmap.md](/mnt/e/PergyraLang/docs/52_llvm_native_first_roadmap.md)에 둔다.
 - `driver_run_pipeline_timed()`는 같은 파이프라인을 phase별로 계측한다. ABI benchmark harness는 이 timing을 읽어 CI에서는 hard upper bound, 로컬에서는 comparative metric으로 사용한다. backend timing은 다시 `codegen`, `native_compile`, `link`로 분해된다.
 - HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.
-- compiler 구현 파일은 점진적으로 역할 분리 중이다. 최근에는 `mir.c`의 low-level helper/public API를 [`mir_base.inc`](../src/compiler/mir_base.inc), [`mir_lower_public_api.h`](../src/compiler/mir_lower_public_api.h), [`mir_public_surface.h`](../src/compiler/mir_public_surface.h) 직접 include로 분리했고, pass-through `mir_public.inc` shim은 제거했다. `rir.c`도 named owner header로 flow 분석, scope 수집, dump/validation 표면을 갈라놓았다.
+- compiler 구현 파일은 점진적으로 역할 분리 중이다. 최근에는 `mir.c`의 low-level helper/public API를 [`mir_base_helpers.h`](../src/compiler/mir_base_helpers.h), [`mir_lower_public_api.h`](../src/compiler/mir_lower_public_api.h), [`mir_public_surface.h`](../src/compiler/mir_public_surface.h) 직접 include로 분리했고, pass-through `mir_public.inc` shim은 제거했다. `rir.c`도 named owner header로 flow 분석, scope 수집, dump/validation 표면을 갈라놓았다.
 
 ## 2. 어디서 시작하나
 
@@ -221,7 +221,7 @@
 - `src/compiler/rir.c`
 - `src/compiler/rir_flow.inc`
 - `src/compiler/rir_builder.inc`
-- `src/compiler/rir_public.inc`
+- `src/compiler/rir_public_surface.h`
 
 주 진입점:
 

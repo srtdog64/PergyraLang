@@ -79,7 +79,7 @@ static const char *ensure_generic_class_specialization(
  * Function declaration emitter
  * ----------------------------------------------------------------- */
 
-#include "transpiler_emitters_mir_inventory_ssa.inc"
+#include "transpiler_mir_inventory_ssa_emitters.h"
 
 static ASTNode *
 transpiler_find_let_decl_by_name_in_block(ASTNode *body, const char *name)

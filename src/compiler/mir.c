@@ -10,7 +10,7 @@
 #include "../common/arena.h"
 #include "../runtime/pgy_abi_spec.h"
 
-#include "mir_base.inc"
+#include "mir_base_helpers.h"
 
 static void mir_clear_block_name_set(const char ***names, size_t *count);
 static int mir_find_value_summary(const MIRRoutine *routine, const char *name);

@@ -282,7 +282,7 @@ def read_runtime_text(path: pathlib.Path) -> str:
             path.with_name("pgy_runtime_lib_slot_array_io_string_exports.h"),
             path.with_name("pgy_runtime_lib_std_exports.h"),
             path.with_name("pgy_runtime_lib_channel_quantum_exports.h"),
-            path.with_name("pgy_runtime_lib_part_b_part_f.inc"),
+            path.with_name("pgy_runtime_lib_quantum_exports.h"),
         ]
         missing = [part for part in parts if not part.exists()]
         if missing:

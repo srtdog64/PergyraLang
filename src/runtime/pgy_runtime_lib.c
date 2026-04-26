@@ -18,6 +18,6 @@
 #include "pgy_runtime_lib_slot_array_io_string_exports.h"
 #include "pgy_runtime_lib_std_exports.h"
 #include "pgy_runtime_lib_channel_quantum_exports.h"
-#include "pgy_runtime_lib_part_b_part_f.inc"
+#include "pgy_runtime_lib_quantum_exports.h"
 
 #endif /* PGY_LLVM_ENABLED */

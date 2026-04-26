@@ -320,8 +320,8 @@ static const char *ensure_generic_class_specialization(
     TranspilerCtx *ctx, ASTNode *class_decl, ASTNode *ann);
 
 #include "transpiler_helpers.h"
-#include "transpiler_emitters_base_a.inc"
-#include "transpiler_emitters_base_b.inc"
+#include "transpiler_base_a_emitters.h"
+#include "transpiler_base_b_emitters.h"
 #include "transpiler_intent_emit.h"
 
 /* -----------------------------------------------------------------
@@ -660,7 +660,7 @@ transpile_result_destroy(TranspileResult *res)
     free(res);
 }
 
-#include "transpiler_domain_role.inc"
+#include "transpiler_domain_role_emit.h"
 
 static const char *
 transpiler_infer_lambda_param_c_type(ASTNode *lambda_node, ASTNode *param_node)

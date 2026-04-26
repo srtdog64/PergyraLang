@@ -1,0 +1,16 @@
+/* LLVM call emitter split into sub-1000 LOC include chunks.
+ * Keep this shim for the existing llvm_expr include order. */
+#include "llvm_expr_constructor_calls.h"
+#include "llvm_expr_array_calls.h"
+#include "llvm_expr_collection_base_calls.h"
+#include "llvm_expr_domain_query_calls.h"
+#include "llvm_expr_event_calls.h"
+#include "llvm_expr_intent_observability_calls.h"
+#include "llvm_expr_log_calls.h"
+#include "llvm_expr_math_calls.h"
+#include "llvm_expr_rc_calls.h"
+#include "llvm_expr_result_option_calls.h"
+#include "llvm_expr_slot_device_calls.h"
+#include "llvm_expr_task_channel_calls.h"
+#include "llvm_expr_call_collections_extended.h"
+#include "llvm_expr_call_dispatch.h"
