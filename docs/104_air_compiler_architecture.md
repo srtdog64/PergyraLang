@@ -142,8 +142,11 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
 - Execution boundary scan: Phase 1 synthesis now walks intent-step AST clauses
   (`using`, `intent`, `pre`, `guard`, `post`, `invariant`, `expect`, `on`,
   `compensate`) and promotes `spawn` / `async` / `parallel`, `channel` /
-  `select`, and known IO calls (`ReadFile`, `WriteFile`, `ReadLine`) into AIR
-  `Boundary Node`s before drift checking.
+  `select`, and stable resource IO/time calls into AIR `Boundary Node`s before
+  drift checking. The current stable AIR boundary set is `FileOpen`,
+  `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`,
+  `ReadLine`, `Now`, and `Sleep`. `Print` / `Log*` are observability output
+  calls, not AIR resource-boundary evidence in Phase 1.
 - Expression boundary evidence is source-specific: `spawn` / `async` /
   `parallel`, `channel` / `select`, and IO boundaries are not satisfied by a
   generic RIR scope with the same intent owner. They need matching

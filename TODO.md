@@ -659,6 +659,8 @@
   - 기능 표면만 보면 core/foundation 구현은 넓지만, beta는 기능 개수가 아니라 end-to-end 신뢰도다
   - HIR/MIR CFG skeleton은 이미 있지만, 함수/action/intent body 안전성의 semantic source-of-truth가 아직 CFG/dataflow로 승격되지 않았다. all-path return, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary를 AST/helper traversal만으로 닫으면 strict beta 신뢰도가 부족하다
   - AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline과 driver semantic-validation wiring이 들어왔다. Intent ↔ implementation drift 검출은 `docs/104_air_compiler_architecture.md`와 `make air-drift-test-smoke`로 gate에 들어왔고, strict evidence는 기본값으로 승격됐다. missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 되며, `authorized by` participant 이름과 RIR authority fact / authorize op subject가 일치해야 한다. authority evidence 누락 진단은 `Reason:` 안에 expected authority participant list를 포함한다. AIR drift message와 synthesized intent/boundary/authority name은 owned lifetime으로 관리되고, repeated drift check가 이전 message를 안전하게 해제하는 회귀 테스트와 parsed-source AIR teardown-safe boundary source 회귀가 있다. `where + transfer`는 더 이상 zone boundary 하나로 접히지 않고 zone boundary와 world-handoff boundary를 모두 합성한다. world-handoff evidence는 이제 matching RIR intent scope만으로 통과하지 않고 boundary source alias에 대한 RIR `Move`/`Claim` transfer op를 요구한다. parsed-source missing-authority-evidence negative와 parsed-source IO execution-boundary missing-evidence negative는 full driver JSON path에서 step source span과 `stage/code/cause_ir/fix_source`까지 고정됐다. expression boundary evidence는 더 이상 owner-name-only RIR scope match로 통과하지 않는다. `PGY_AIR_STRICT_EVIDENCE=0`은 개발/디버그 opt-out이다. `make air-backend-nonimpact-test-smoke`는 relaxed AIR와 default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set에서 같은 C/LLVM 텍스트를 생성하는지 비교한다. `make air-backend-nonimpact-full-test-smoke`는 full frozen backend-compare fixture sweep을 같은 방식으로 돌리고 Linux CI gate로 승격됐다. `make air-strict-backend-compare-test-smoke`는 strict evidence 상태에서 C/LLVM 실행 parity까지 검증한다. parser/lexer baseline JSON routing은 `stage`, `code`, `cause_ir`, `fix_source`까지 닫혔다. 남은 blocker는 AIR transfer/world source negative 확장, Windows native evidence, parser-specific code split / multi-error accumulation이다
+  - 2026-04-27 AIR IO boundary tightening: intent-step execution scan now treats the stable resource IO/time builtin set as AIR `io` boundaries, not only `ReadFile` / `WriteFile` / `ReadLine`. The gated set is `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep`; `Print` / `Log*` remain observability output calls rather than AIR resource-boundary evidence in Phase 1. `src/test_air.c` keeps the set synchronized with `src/compiler/air_boundary.c`.
+  - 2026-04-27 AIR owner split: dump/vocabulary functions moved to `src/compiler/air_dump.c`; `src/compiler/air.c` is back under the 600 LOC split-review threshold and keeps synthesis/drift ownership focused.
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
   - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 50%로 본다
@@ -2810,3 +2812,18 @@ Source of truth:
   owner-local fallback seams from returning.
 - Verified locally: `make type-resolution-resolver-inventory-test-smoke
   type-resolution-dag-test-smoke` and `make test-semantic`.
+
+## Progress Log - 2026-04-27 - DAG Fallback Classification Tightening
+
+- Rechecked DAG closure against the current gates:
+  `type-resolution-resolver-inventory-test-smoke` reports owner-local fallback
+  seams at 0, while `type-resolution-dag-test-smoke` reports
+  `metadata_entries=3351`, `metadata_hits=4941`,
+  `materializer_fallbacks=15`.
+- The remaining 15 central materializer fallbacks are classified as
+  diagnostic/provenance-only: builtin constructor-shell provenance 2,
+  generic-named/default provenance 7, and missing-symbol diagnostics 6.
+- A direct metadata-time reject for bare stable builtin shells was tested and
+  rejected because it breaks generic default/multi-bound provenance such as
+  `Box<Item>` validation paths. The next closure is not more eager reject; it
+  is DAG metadata for constructor-shell provenance and missing-symbol facts.

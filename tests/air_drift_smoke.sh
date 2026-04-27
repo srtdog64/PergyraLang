@@ -33,13 +33,14 @@ dir_impl_path = root / "src" / "compiler" / "dir.c"
 air_header_path = root / "src" / "compiler" / "air.h"
 air_impl_path = root / "src" / "compiler" / "air.c"
 air_boundary_path = root / "src" / "compiler" / "air_boundary.c"
+air_dump_path = root / "src" / "compiler" / "air_dump.c"
 air_evidence_path = root / "src" / "compiler" / "air_evidence.c"
 air_test_path = root / "src" / "test_air.c"
 diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, parser_intent_path, dir_header_path, dir_impl_path, air_header_path, air_impl_path, air_boundary_path, air_evidence_path, air_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, parser_intent_path, dir_header_path, dir_impl_path, air_header_path, air_impl_path, air_boundary_path, air_dump_path, air_evidence_path, air_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -57,6 +58,7 @@ air_header = air_header_path.read_text(encoding="utf-8")
 air_impl = "\n".join([
     air_impl_path.read_text(encoding="utf-8"),
     air_boundary_path.read_text(encoding="utf-8"),
+    air_dump_path.read_text(encoding="utf-8"),
     air_evidence_path.read_text(encoding="utf-8"),
 ])
 air_test = air_test_path.read_text(encoding="utf-8")

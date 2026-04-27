@@ -653,8 +653,13 @@ Closed now:
 - AIR synthesis now scans stable intent-step execution clauses (`using`,
   `intent`, `pre`, `guard`, `post`, `invariant`, `expect`, `on`,
   `compensate`) for `spawn` / `async` / `parallel`, `channel` / `select`, and
-  known IO calls. `src/test_air.c` covers AST-backed spawn boundary drift and
-  IO `either` boundary non-drift.
+  stable resource IO/time calls. The current stable AIR boundary set is
+  `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`,
+  `Input`, `ReadLine`, `Now`, and `Sleep`. `Print` / `Log*` remain
+  observability output calls, not AIR resource-boundary evidence in Phase 1.
+  `src/test_air.c` covers AST-backed spawn boundary drift, IO `either`
+  boundary non-drift, and the full stable boundary builtin set so semantic
+  builtin growth cannot silently bypass AIR.
 - AIR drift messages are owned by AIR and `air_check_drift()` clears existing
   drift messages before recomputing; `src/test_air.c` covers repeated drift
   checking on the same AIRProgram so the validation path does not leak or retain
@@ -672,6 +677,9 @@ Closed now:
   no location. Parsed IO boundary regression ties the missing-evidence drift to
   the synthesized `ReadFile` boundary node instead of only checking that some
   drift exists.
+- AIR dump/vocabulary ownership now lives in `src/compiler/air_dump.c`, leaving
+  `src/compiler/air.c` below the 600 LOC split-review threshold while keeping
+  synthesis/drift behavior unchanged.
 - `where + transfer` no longer collapses to only a zone boundary. AIR emits a
   zone boundary for `where: Type` and a separate world boundary for the transfer
   handoff, with the world source anchored to the transfer target alias when
@@ -884,6 +892,15 @@ make llvm-test-backend-compare
   string/file/io/time builtin emission now lives in
   `llvm_expr_stdlib_scalar_io_calls.h`, leaving
   `llvm_expr_call_dispatch.h` below the 600 LOC split-review threshold.
+- C backend builtin dispatch is no longer the intent observability export
+  owner: intent last/history/active/recent builtin emission now lives in
+  `transpiler_intent_observability_builtin_emit.h`, leaving
+  `transpiler_expr_builtin_dispatch.h` below the 600 LOC split-review
+  threshold.
+- C backend expression call/spawn ownership is split further: spawn wrapper
+  emission and channel send/receive emission now live in
+  `transpiler_spawn_channel_emit.h`, leaving
+  `transpiler_expr_call_spawn_emit.h` below the 600 LOC split-review threshold.
 - MIR cleanup/rollback/invalidation edge ownership now lives in
   `src/compiler/mir_cleanup.c` / `.h`. Cleanup block creation, rollback-policy
   invalidation, and cleanup edge materialization are no longer mixed into
@@ -1031,7 +1048,16 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - `type_checker_ability_fields.c` now follows the same lookup-only pattern for ability `fields` requirements: the ability-specific validator owns field-contract diagnostics, while DAG metadata provides already-materialized type facts without recursive fallback.
 - Domain and intent declaration resolution now converge through owner-local type-reference seams. Domain slot/shared/named refs and intent involves/value/where refs share their local owner seam, reducing the fallback seam inventory from 38 to 34.
 - Alias/generic-parameter helpers and resolution-stage diagnostic fallback now converge through owner-local seams, reducing the fallback seam inventory from 34 to 32. Ability-field validation lookup-only resolution reduced the active seam cap to 31. Projection builtin target-field resolution now follows the same lookup-only pattern: graph metadata owns the materialized target field type, while projection diagnostics own source/target field mismatch. This reduces the active fallback seam cap to 30. Program-level quiet placeholder resolution now uses precollected DAG metadata lookup only, so event/function forward placeholders no longer need recursive fallback and the active cap is 29. Domain query projection source-field resolution now follows class/vessel field metadata lookup-only and reduces the active cap to 28. Party/roster shared-field resolution now follows declaration metadata lookup-only and reduces the active cap to 26. Ability abstract method signature resolution and role host-type resolution now follow metadata lookup-only and reduce the active cap to 24. Function/action body precollect now walks expression subtrees, call type args, lambda param/return/body types, event subscription handlers, spawn/channel/return/branch expressions; event/lambda handler signature resolution now uses DAG metadata lookup-only and reduces the active cap to 23. Body flow type resolution now uses DAG metadata lookup-only and reduces the active cap to 22. Type-alias statement resolution now uses DAG metadata lookup-only and reduces the active cap to 21. Generic where/default validation moved to the shared metadata materialization API and every owner-local resolver seam now calls `semantic_type_resolution_lookup_or_materialize(...)`; the old named fallback helper is removed and its cap is 0.
-- This is not full DAG source-of-truth yet, but the remaining recursive fallback is only the final escape hatch inside `semantic_type_resolution_lookup_or_materialize(...)`; owner files cannot add local fallback seams without failing `type-resolution-resolver-inventory-test-smoke`. The remaining closure is replacing that central escape hatch with graph/topo materialization for generic/default/bound/module/nominal references, direct semantic unit graph bootstrap or null-safe diagnostics for function-body, intent declaration, ownership-let, and operator-overload cases, anchored-handle constructed-type coverage, generic/default effective-arg facts, boundary type-category facts for ref/own escape classification, ability where-bound effective-arg/multi-bound provenance facts, method param/return signature summaries, class/vessel field nominal flavor metadata, world/zone/host subject-slot nominal materialization, and zone authority generic ability facts.
+- This is not full DAG source-of-truth yet, but owner-local recursive fallback
+  debt is closed: `type-resolution-resolver-inventory-test-smoke` caps direct
+  fallback seams at 0. The remaining central materializer fallback inventory is
+  diagnostic/provenance-only (`materializer_fallbacks=15`: builtin shell
+  provenance 2, generic named provenance 7, missing-symbol diagnostics 6) and
+  is gated by `type-resolution-dag-test-smoke`. A direct attempt to reject bare
+  builtin shells at metadata time breaks generic default/multi-bound provenance
+  (`Box<Item>` validation path), so the next real closure is to encode
+  constructor-shell provenance as DAG metadata instead of routing it through
+  recursive fallback.
 - Authority direct-slot resolution now clears stale ambiguity when the participant alias resolves to a concrete zone subject slot after earlier same-type candidates. This keeps `authorized by rogue/mage` valid when the zone has matching `subject slot rogue/mage: Adventurer`, while still preserving the hard error for genuinely ambiguous same-type participants.
 
 상태: `IN PROGRESS / BLOCKER`
@@ -1104,9 +1130,16 @@ find src -path src/tests -prune -o -name '*.inc' -print
 
 남은 것:
 
-- `resolve_type_node` 중심 recursive resolver가 여전히 semantic source-of-truth 일부다.
-- remaining fallback consumers are owner-file classified by `type-resolution-resolver-inventory-test-smoke`; the next cleanup is to shrink that allowlist, not to discover it.
-- `stage-legacy-resolve` 호출량과 family별 호출량을 더 줄여야 한다. `stage-graph-backed` skip 수는 DAG가 실제 stage source-of-truth로 옮겨간 양을 보여주는 공개 지표다.
+- `resolve_type_node` 중심 recursive resolver는 central materializer fallback
+  내부의 diagnostic/provenance escape hatch로만 남아 있다. Owner-local
+  fallback consumer allowlist는 0으로 닫혔다.
+- `materializer_fallbacks=15`를 줄이는 다음 단계는 semantic reject를 더
+  빠르게 넣는 것이 아니라 builtin constructor-shell provenance,
+  generic/default effective-arg provenance, and missing-symbol diagnostic facts를
+  DAG metadata로 직접 표현하는 것이다.
+- `stage-legacy-resolve` non-alias family는 0이고 alias family는 diagnostic
+  fallback으로만 남아 있다. `stage-graph-backed` skip 수는 DAG가 실제 stage
+  source-of-truth로 옮겨간 양을 보여주는 공개 지표다.
 - frozen subset에서 declaration order에만 기대는 type dependency가 없어야 한다.
 - ability provider predeclaration is closed for the tested frozen DAG slice; remaining declaration-order debt should be narrowed to module/backend metadata reuse, not top-level ability visibility.
 - graph inventory metadata를 backend/declaration inventory와 더 잘 연결해야 한다.

@@ -853,6 +853,85 @@ test_air_synthesizes_io_boundary_without_sync_drift(void)
 }
 
 static bool
+test_air_synthesizes_stable_io_boundary_builtin_set(void)
+{
+    const char *io_names[] = {
+        "FileOpen",
+        "FileRead",
+        "FileWrite",
+        "FileClose",
+        "ReadFile",
+        "WriteFile",
+        "Input",
+        "ReadLine",
+        "Now",
+        "Sleep",
+    };
+    ASTNode intent_ast = { .line = 40, .column = 1 };
+    ASTNode *step_ast = ast_create_intent_step("touch");
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "ExternalEffect", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        { .index = 0, .name = "touch", .ast = step_ast },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air;
+    bool ok = true;
+
+    if (step_ast == NULL)
+        return false;
+    step_ast->line = 41;
+    step_ast->column = 5;
+    step_ast->data.intent_step.on_exprs =
+        (ASTNode **)calloc(sizeof(io_names) / sizeof(io_names[0]), sizeof(ASTNode *));
+    if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(step_ast);
+        return false;
+    }
+    step_ast->data.intent_step.on_expr_count = sizeof(io_names) / sizeof(io_names[0]);
+    for (size_t i = 0; i < sizeof(io_names) / sizeof(io_names[0]); i++) {
+        ASTNode *call = ast_create_call(ast_create_identifier(io_names[i]));
+        if (call == NULL) {
+            ast_destroy(step_ast);
+            return false;
+        }
+        call->line = 42 + (int)i;
+        call->column = 9;
+        step_ast->data.intent_step.on_exprs[i] = call;
+    }
+
+    air = air_synthesize(NULL, &dir, NULL, &error);
+    ok = air != NULL
+        && air->intent_count == 1
+        && air->boundary_count == sizeof(io_names) / sizeof(io_names[0]);
+    if (ok) {
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            ok = air->boundaries[i].kind == AIR_BOUNDARY_IO
+                && air->boundaries[i].source_name != NULL
+                && strcmp(air->boundaries[i].source_name, io_names[i]) == 0
+                && air->boundaries[i].sync_class == AIR_SYNC_EITHER
+                && air->boundaries[i].ast == step_ast->data.intent_step.on_exprs[i];
+            if (!ok)
+                break;
+        }
+    }
+    air_destroy(air);
+    free(error);
+    ast_destroy(step_ast);
+    return ok;
+}
+
+static bool
 test_air_parsed_io_boundary_reports_missing_evidence(void)
 {
     const char *source =
@@ -1092,6 +1171,9 @@ main(void)
 
     TEST("AIR synthesis captures IO boundary without sync drift");
     EXPECT(test_air_synthesizes_io_boundary_without_sync_drift());
+
+    TEST("AIR synthesis captures stable IO boundary builtin set");
+    EXPECT(test_air_synthesizes_stable_io_boundary_builtin_set());
 
     TEST("AIR parsed IO boundary reports missing evidence");
     EXPECT(test_air_parsed_io_boundary_reports_missing_evidence());
