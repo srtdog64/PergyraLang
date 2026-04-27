@@ -125,24 +125,26 @@ check_json "parse" "$PARSE_ERR" \
 check_json "parse-code" "$PARSE_ERR" \
   'isinstance(data, list) and len(data) == 1 and data[0].get("code") == "PGY_PARSE_SYNTAX" and data[0].get("cause_ir") == "parse:unexpected_token" and data[0].get("fix_source") == "check-syntax"'
 
-# --- case 2a: beta-out-of-scope pin syntax is explicitly rejected ---
-PIN_SRC="$WORK_DIR/pin_syntax.pgy"
+# --- case 2a: source-level pin syntax reaches semantic pin diagnostics ---
+PIN_SRC="$WORK_DIR/pin_source_await_boundary.pgy"
 cat > "$PIN_SRC" <<'EOF'
-func Main() -> Void {
-    let scores: Slot<Int> = ClaimSlot<Int>();
-    pin scores as view {
-        Log(view);
+async func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        let pending = spawn 42;
+        let value = await pending;
+        Log(value);
     }
 }
 EOF
 PIN_ERR="$WORK_DIR/pin_syntax.err"
 if "$PGY" "$PIN_SRC" --backend=c --error-format=json 2>"$PIN_ERR"; then
-    echo "[diag-json] pin-syntax: FAIL -- expected non-zero exit" >&2
+    echo "[diag-json] pin-source-await-boundary: FAIL -- expected non-zero exit" >&2
     cat "$PIN_ERR" >&2
     exit 1
 fi
-check_json "pin-syntax-reject" "$PIN_ERR" \
-  'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "parse" and data[0].get("code") == "PGY_PARSE_SYNTAX" and "Pin/Lease syntax is not beta-stable yet" in data[0].get("message", "")'
+check_json "pin-source-await-boundary" "$PIN_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "await suspension boundary" in d.get("message", "") for d in data)'
 
 # --- case 2b: stable view surface uses pin semantic diagnostics ---
 PIN_RETURN_SRC="$WORK_DIR/pin_return_escape.pgy"
@@ -183,6 +185,345 @@ if "$PGY" "$PIN_PARALLEL_SRC" --backend=c --error-format=json 2>"$PIN_PARALLEL_E
 fi
 check_json "pin-parallel-boundary" "$PIN_PARALLEL_ERR" \
   'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" for d in data)'
+
+PIN_WRITE_EXCLUSIVE_SRC="$WORK_DIR/pin_write_exclusive.pgy"
+cat > "$PIN_WRITE_EXCLUSIVE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let read: ReadView<Int> = ViewRead(scores);
+    let write: WriteView<Int> = ViewWrite(scores);
+}
+EOF
+PIN_WRITE_EXCLUSIVE_ERR="$WORK_DIR/pin_write_exclusive.err"
+if "$PGY" "$PIN_WRITE_EXCLUSIVE_SRC" --backend=c --error-format=json 2>"$PIN_WRITE_EXCLUSIVE_ERR"; then
+    echo "[diag-json] pin-write-exclusive: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_WRITE_EXCLUSIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-write-exclusive" "$PIN_WRITE_EXCLUSIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "WriteView<T> is exclusive" in d.get("message", "") for d in data)'
+
+PIN_RELEASE_ACTIVE_SRC="$WORK_DIR/pin_release_active_view.pgy"
+cat > "$PIN_RELEASE_ACTIVE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        Release(scores);
+    }
+}
+EOF
+PIN_RELEASE_ACTIVE_ERR="$WORK_DIR/pin_release_active_view.err"
+if "$PGY" "$PIN_RELEASE_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_RELEASE_ACTIVE_ERR"; then
+    echo "[diag-json] pin-release-active-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_RELEASE_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-release-active-view" "$PIN_RELEASE_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot release slot" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+
+PIN_MOVE_ACTIVE_SRC="$WORK_DIR/pin_move_active_view.pgy"
+cat > "$PIN_MOVE_ACTIVE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        let moved: MoveToken<Int> = Move(scores);
+    }
+}
+EOF
+PIN_MOVE_ACTIVE_ERR="$WORK_DIR/pin_move_active_view.err"
+if "$PGY" "$PIN_MOVE_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_MOVE_ACTIVE_ERR"; then
+    echo "[diag-json] pin-move-active-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_MOVE_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-move-active-view" "$PIN_MOVE_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot move slot" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+
+PIN_WRITE_OWNER_ACTIVE_SRC="$WORK_DIR/pin_write_owner_active_view.pgy"
+cat > "$PIN_WRITE_OWNER_ACTIVE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        Write(scores, 1);
+    }
+}
+EOF
+PIN_WRITE_OWNER_ACTIVE_ERR="$WORK_DIR/pin_write_owner_active_view.err"
+if "$PGY" "$PIN_WRITE_OWNER_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_WRITE_OWNER_ACTIVE_ERR"; then
+    echo "[diag-json] pin-write-owner-active-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_WRITE_OWNER_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-write-owner-active-view" "$PIN_WRITE_OWNER_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot write slot" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+
+PIN_READ_OWNER_WRITE_VIEW_SRC="$WORK_DIR/pin_read_owner_write_view.pgy"
+cat > "$PIN_READ_OWNER_WRITE_VIEW_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: WriteView<Int> {
+        let value: Int = Read(scores);
+    }
+}
+EOF
+PIN_READ_OWNER_WRITE_VIEW_ERR="$WORK_DIR/pin_read_owner_write_view.err"
+if "$PGY" "$PIN_READ_OWNER_WRITE_VIEW_SRC" --backend=c --error-format=json 2>"$PIN_READ_OWNER_WRITE_VIEW_ERR"; then
+    echo "[diag-json] pin-read-owner-write-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_READ_OWNER_WRITE_VIEW_ERR" >&2
+    exit 1
+fi
+check_json "pin-read-owner-write-view" "$PIN_READ_OWNER_WRITE_VIEW_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot read slot" in d.get("message", "") and "while WriteView" in d.get("message", "") for d in data)'
+
+PIN_ASSIGN_SUGAR_ACTIVE_SRC="$WORK_DIR/pin_assign_sugar_active_view.pgy"
+cat > "$PIN_ASSIGN_SUGAR_ACTIVE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        scores = 1;
+    }
+}
+EOF
+PIN_ASSIGN_SUGAR_ACTIVE_ERR="$WORK_DIR/pin_assign_sugar_active_view.err"
+if "$PGY" "$PIN_ASSIGN_SUGAR_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_ASSIGN_SUGAR_ACTIVE_ERR"; then
+    echo "[diag-json] pin-assign-sugar-active-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_ASSIGN_SUGAR_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-assign-sugar-active-view" "$PIN_ASSIGN_SUGAR_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot assign to slot" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+
+PIN_VALUE_SUGAR_ACTIVE_SRC="$WORK_DIR/pin_value_sugar_write_view.pgy"
+cat > "$PIN_VALUE_SUGAR_ACTIVE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    Write(scores, 3);
+    pin scores as view: WriteView<Int> {
+        Log(scores);
+    }
+}
+EOF
+PIN_VALUE_SUGAR_ACTIVE_ERR="$WORK_DIR/pin_value_sugar_write_view.err"
+if "$PGY" "$PIN_VALUE_SUGAR_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_VALUE_SUGAR_ACTIVE_ERR"; then
+    echo "[diag-json] pin-value-sugar-write-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_VALUE_SUGAR_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-value-sugar-write-view" "$PIN_VALUE_SUGAR_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "auto-reads the owner slot" in d.get("message", "") and "while WriteView" in d.get("message", "") for d in data)'
+
+PIN_HELPER_OWNER_ACTIVE_SRC="$WORK_DIR/pin_helper_owner_active_view.pgy"
+cat > "$PIN_HELPER_OWNER_ACTIVE_SRC" <<'EOF'
+func Touch(ref s: Slot<Int>) -> Void {
+    Write(s, 7);
+}
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        Touch(scores);
+    }
+}
+EOF
+PIN_HELPER_OWNER_ACTIVE_ERR="$WORK_DIR/pin_helper_owner_active_view.err"
+if "$PGY" "$PIN_HELPER_OWNER_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_HELPER_OWNER_ACTIVE_ERR"; then
+    echo "[diag-json] pin-helper-owner-active-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_HELPER_OWNER_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-helper-owner-active-view" "$PIN_HELPER_OWNER_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot pass slot" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+
+PIN_LIST_OWNER_ACTIVE_SRC="$WORK_DIR/pin_list_owner_active_view.pgy"
+cat > "$PIN_LIST_OWNER_ACTIVE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let items: List<Slot<Int>> = ListNew();
+    pin scores as view: ReadView<Int> {
+        ListPush(items, scores);
+    }
+}
+EOF
+PIN_LIST_OWNER_ACTIVE_ERR="$WORK_DIR/pin_list_owner_active_view.err"
+if "$PGY" "$PIN_LIST_OWNER_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_LIST_OWNER_ACTIVE_ERR"; then
+    echo "[diag-json] pin-list-owner-active-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_LIST_OWNER_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-list-owner-active-view" "$PIN_LIST_OWNER_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot store or forward slot" in d.get("message", "") and "through list" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+
+PIN_ARRAY_LITERAL_OWNER_ACTIVE_SRC="$WORK_DIR/pin_array_literal_owner_active_view.pgy"
+cat > "$PIN_ARRAY_LITERAL_OWNER_ACTIVE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        let items: Array<Slot<Int>> = [scores];
+    }
+}
+EOF
+PIN_ARRAY_LITERAL_OWNER_ACTIVE_ERR="$WORK_DIR/pin_array_literal_owner_active_view.err"
+if "$PGY" "$PIN_ARRAY_LITERAL_OWNER_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_ARRAY_LITERAL_OWNER_ACTIVE_ERR"; then
+    echo "[diag-json] pin-array-literal-owner-active-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_ARRAY_LITERAL_OWNER_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-array-literal-owner-active-view" "$PIN_ARRAY_LITERAL_OWNER_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot store or forward slot" in d.get("message", "") and "through array literal" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+
+PIN_RETURN_OWNER_ACTIVE_SRC="$WORK_DIR/pin_return_owner_active_view.pgy"
+cat > "$PIN_RETURN_OWNER_ACTIVE_SRC" <<'EOF'
+func Leak() -> Slot<Int> {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        return scores;
+    }
+}
+func Main() -> Void {
+    Log(1);
+}
+EOF
+PIN_RETURN_OWNER_ACTIVE_ERR="$WORK_DIR/pin_return_owner_active_view.err"
+if "$PGY" "$PIN_RETURN_OWNER_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_RETURN_OWNER_ACTIVE_ERR"; then
+    echo "[diag-json] pin-return-owner-active-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_RETURN_OWNER_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-return-owner-active-view" "$PIN_RETURN_OWNER_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot store or forward slot" in d.get("message", "") and "through return" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+
+PIN_BOX_OWNER_ACTIVE_SRC="$WORK_DIR/pin_box_owner_active_view.pgy"
+cat > "$PIN_BOX_OWNER_ACTIVE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        let boxed: Box<Slot<Int>> = Box(scores);
+    }
+}
+EOF
+PIN_BOX_OWNER_ACTIVE_ERR="$WORK_DIR/pin_box_owner_active_view.err"
+if "$PGY" "$PIN_BOX_OWNER_ACTIVE_SRC" --backend=c --error-format=json 2>"$PIN_BOX_OWNER_ACTIVE_ERR"; then
+    echo "[diag-json] pin-box-owner-active-view: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_BOX_OWNER_ACTIVE_ERR" >&2
+    exit 1
+fi
+check_json "pin-box-owner-active-view" "$PIN_BOX_OWNER_ACTIVE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_PARALLEL_CONFLICT" and d.get("cause_ir") == "semantic:pin:parallel_conflict" and d.get("fix_source") == "serialize-pin-access" and "Cannot store or forward slot" in d.get("message", "") and "through box" in d.get("message", "") and "while ReadView" in d.get("message", "") for d in data)'
+
+BOX_RESOURCE_HANDLE_SRC="$WORK_DIR/box_resource_handle_payload.pgy"
+cat > "$BOX_RESOURCE_HANDLE_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let boxed: Box<Slot<Int>> = Box(scores);
+}
+EOF
+BOX_RESOURCE_HANDLE_ERR="$WORK_DIR/box_resource_handle_payload.err"
+if "$PGY" "$BOX_RESOURCE_HANDLE_SRC" --backend=c --error-format=json 2>"$BOX_RESOURCE_HANDLE_ERR"; then
+    echo "[diag-json] box-resource-handle-payload: FAIL -- expected non-zero exit" >&2
+    cat "$BOX_RESOURCE_HANDLE_ERR" >&2
+    exit 1
+fi
+check_json "box-resource-handle-payload" "$BOX_RESOURCE_HANDLE_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_BUILTIN_ARGS_INVALID" and d.get("cause_ir") == "semantic:builtin:signature_mismatch" and d.get("fix_source") == "match-builtin-signature" and "Box<T> beta-stable payloads cannot be resource handles" in d.get("message", "") for d in data)'
+
+PIN_SPAWN_SRC="$WORK_DIR/pin_spawn_boundary.pgy"
+cat > "$PIN_SPAWN_SRC" <<'EOF'
+func Work() -> Int {
+    return 1;
+}
+
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let view: ReadView<Int> = ViewRead(scores);
+    let pending: Future<Int> = spawn Work();
+    Log(1);
+}
+EOF
+PIN_SPAWN_ERR="$WORK_DIR/pin_spawn_boundary.err"
+if "$PGY" "$PIN_SPAWN_SRC" --backend=c --error-format=json 2>"$PIN_SPAWN_ERR"; then
+    echo "[diag-json] pin-spawn-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_SPAWN_ERR" >&2
+    exit 1
+fi
+check_json "pin-spawn-boundary" "$PIN_SPAWN_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "spawn suspension boundary" in d.get("message", "") for d in data)'
+
+PIN_ASYNC_SRC="$WORK_DIR/pin_async_boundary.pgy"
+cat > "$PIN_ASYNC_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let view: ReadView<Int> = ViewRead(scores);
+    async { Log(1); }
+}
+EOF
+PIN_ASYNC_ERR="$WORK_DIR/pin_async_boundary.err"
+if "$PGY" "$PIN_ASYNC_SRC" --backend=c --error-format=json 2>"$PIN_ASYNC_ERR"; then
+    echo "[diag-json] pin-async-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_ASYNC_ERR" >&2
+    exit 1
+fi
+check_json "pin-async-boundary" "$PIN_ASYNC_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "async block boundary" in d.get("message", "") for d in data)'
+
+PIN_EVENT_CALLBACK_SRC="$WORK_DIR/pin_event_callback_boundary.pgy"
+cat > "$PIN_EVENT_CALLBACK_SRC" <<'EOF'
+event OnDamage(amount: Int);
+
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let view: ReadView<Int> = ViewRead(scores);
+    OnDamage += (amount: Int) => { Log(amount); };
+}
+EOF
+PIN_EVENT_CALLBACK_ERR="$WORK_DIR/pin_event_callback_boundary.err"
+if "$PGY" "$PIN_EVENT_CALLBACK_SRC" --backend=c --error-format=json 2>"$PIN_EVENT_CALLBACK_ERR"; then
+    echo "[diag-json] pin-event-callback-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_EVENT_CALLBACK_ERR" >&2
+    exit 1
+fi
+check_json "pin-event-callback-boundary" "$PIN_EVENT_CALLBACK_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "event callback boundary" in d.get("message", "") for d in data)'
+
+PIN_CHANNEL_SRC="$WORK_DIR/pin_channel_boundary.pgy"
+cat > "$PIN_CHANNEL_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let view: ReadView<Int> = ViewRead(scores);
+    let ch: Channel<Int> = Channel(1);
+    ch <- 1;
+    Log(1);
+}
+EOF
+PIN_CHANNEL_ERR="$WORK_DIR/pin_channel_boundary.err"
+if "$PGY" "$PIN_CHANNEL_SRC" --backend=c --error-format=json 2>"$PIN_CHANNEL_ERR"; then
+    echo "[diag-json] pin-channel-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_CHANNEL_ERR" >&2
+    exit 1
+fi
+check_json "pin-channel-boundary" "$PIN_CHANNEL_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "channel handoff boundary" in d.get("message", "") for d in data)'
+
+PIN_CANCEL_SRC="$WORK_DIR/pin_cancel_boundary.pgy"
+cat > "$PIN_CANCEL_SRC" <<'EOF'
+func Work() -> Int {
+    return 1;
+}
+
+func Main() -> Void {
+    let pending: Future<Int> = spawn Work();
+    let scores: Slot<Int> = ClaimSlot();
+    let view: ReadView<Int> = ViewRead(scores);
+    Cancel(pending);
+    Log(1);
+}
+EOF
+PIN_CANCEL_ERR="$WORK_DIR/pin_cancel_boundary.err"
+if "$PGY" "$PIN_CANCEL_SRC" --backend=c --error-format=json 2>"$PIN_CANCEL_ERR"; then
+    echo "[diag-json] pin-cancel-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_CANCEL_ERR" >&2
+    exit 1
+fi
+check_json "pin-cancel-boundary" "$PIN_CANCEL_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "cancel cleanup boundary" in d.get("message", "") for d in data)'
 
 PIN_AWAIT_SRC="$WORK_DIR/pin_await_boundary.pgy"
 cat > "$PIN_AWAIT_SRC" <<'EOF'

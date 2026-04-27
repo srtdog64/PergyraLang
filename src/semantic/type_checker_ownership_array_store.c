@@ -15,6 +15,10 @@ reject_borrowed_array_literal_store(ASTNode *value_expr,
 {
     if (value_expr == NULL || stored_value_type == NULL || ctx == NULL)
         return;
+    if (semantic_reject_active_slot_owner_escape(
+            value_expr, ctx, "array literal", "array literal storage")) {
+        return;
+    }
     semantic_validate_borrowed_escape(
         value_expr, value_expr, ctx, stored_value_type, NULL,
         OWNERSHIP_CONSUMER_CONTAINER_STORE, NULL,

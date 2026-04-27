@@ -71,6 +71,159 @@ semantic_find_active_slot_view(Scope *scope,
     return false;
 }
 
+bool
+semantic_find_active_slot_view_for_source(Scope *scope,
+                                          const char *source_slot,
+                                          const char **view_name_out,
+                                          const char **view_kind_out,
+                                          bool *is_write_view_out)
+{
+    if (view_name_out != NULL)
+        *view_name_out = NULL;
+    if (view_kind_out != NULL)
+        *view_kind_out = NULL;
+    if (is_write_view_out != NULL)
+        *is_write_view_out = false;
+    if (source_slot == NULL)
+        return false;
+
+    for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
+        for (size_t i = 0; i < cur->symbol_count; i++) {
+            Symbol *sym = cur->symbols[i];
+            bool is_read;
+            bool is_write;
+
+            if (sym == NULL || sym->type == NULL
+                || sym->slot_info.paired_slot_name == NULL
+                || strcmp(sym->slot_info.paired_slot_name, source_slot) != 0) {
+                continue;
+            }
+
+            is_read = type_is_read_view(sym->type);
+            is_write = type_is_write_view(sym->type);
+            if (!is_read && !is_write)
+                continue;
+
+            if (view_name_out != NULL)
+                *view_name_out = sym->name;
+            if (view_kind_out != NULL)
+                *view_kind_out = is_write ? "WriteView" : "ReadView";
+            if (is_write_view_out != NULL)
+                *is_write_view_out = is_write;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool
+semantic_reject_active_slot_owner_escape(ASTNode *site,
+                                         SemanticContext *ctx,
+                                         const char *escape_kind,
+                                         const char *escape_name)
+{
+    const char *slot_name;
+    Symbol *sym;
+    const char *active_view_name = NULL;
+    const char *active_view_kind = NULL;
+
+    if (site == NULL || ctx == NULL || site->type != AST_IDENTIFIER
+        || site->data.identifier.name == NULL) {
+        return false;
+    }
+
+    slot_name = site->data.identifier.name;
+    sym = scope_lookup(ctx->scope, slot_name);
+    if (sym == NULL || sym->kind != SYMBOL_SLOT || sym->type == NULL
+        || !type_is_owned_slot_handle(sym->type)) {
+        return false;
+    }
+
+    if (!semantic_find_active_slot_view_for_source(ctx->scope, sym->name,
+            &active_view_name, &active_view_kind, NULL)) {
+        return false;
+    }
+
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+        PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+        PGY_FIX_SERIALIZE_PIN_ACCESS,
+        site,
+        "Cannot store or forward slot '%s' through %s '%s' while %s '%s' is live.\n"
+        "Reason:\n"
+        "- pinned views are scoped capability leases over the source slot\n"
+        "- escaping the owner handle would let code outside the view scope read, write, release, or forward the source\n"
+        "Fix:\n"
+        "- store a copied value read through the active view when that is intended\n"
+        "- or end the pin/view scope before passing '%s' through %s",
+        sym->name,
+        escape_kind != NULL ? escape_kind : "boundary",
+        escape_name != NULL ? escape_name : "<unknown>",
+        active_view_kind != NULL ? active_view_kind : "view",
+        active_view_name != NULL ? active_view_name : "<view>",
+        sym->name,
+        escape_kind != NULL ? escape_kind : "that boundary");
+    return true;
+}
+
+static const char *
+semantic_boundary_article(const char *boundary_name)
+{
+    char c;
+
+    if (boundary_name == NULL || boundary_name[0] == '\0')
+        return "a";
+
+    c = boundary_name[0];
+    if (c >= 'A' && c <= 'Z')
+        c = (char)(c - 'A' + 'a');
+    return (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u')
+        ? "an"
+        : "a";
+}
+
+bool
+semantic_reject_active_slot_view_boundary(ASTNode *site,
+                                          SemanticContext *ctx,
+                                          const char *boundary_name,
+                                          const char *resume_detail,
+                                          const char *fix_action)
+{
+    const char *view_name = NULL;
+    const char *view_kind = NULL;
+    const char *source_slot = NULL;
+
+    if (site == NULL || ctx == NULL)
+        return false;
+    if (!semantic_find_active_slot_view(ctx->scope, &view_name, &view_kind,
+                                        &source_slot))
+        return false;
+
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_PIN_AWAIT_BOUNDARY,
+        PGY_CAUSE_PIN_AWAIT_BOUNDARY,
+        PGY_FIX_END_PIN_BEFORE_AWAIT,
+        site,
+        "Pinned view '%s' cannot cross %s %s.\n"
+        "Reason:\n"
+        "- %s for slot '%s' is a scoped capability lease\n"
+        "- %s\n"
+        "- the stable beta subset requires view cleanup before this boundary\n"
+        "Fix:\n"
+        "- end the view scope before the boundary\n"
+        "- or %s before acquiring the view",
+        view_name != NULL ? view_name : "<view>",
+        semantic_boundary_article(boundary_name),
+        boundary_name != NULL ? boundary_name : "suspension boundary",
+        view_kind != NULL ? view_kind : "View",
+        source_slot != NULL ? source_slot : "<slot>",
+        resume_detail != NULL ? resume_detail
+                              : "the boundary may resume after unrelated runtime work",
+        fix_action != NULL ? fix_action : "move the boundary");
+    return true;
+}
+
 static ASTNode *
 lookup_function_param_contract_local(SemanticContext *ctx,
                                      const char *display_name,
@@ -640,6 +793,38 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "- use 'own' in the callee signature to transfer the handle\n"
                         "- or use 'ref' to borrow it");
                     continue;
+                }
+                if (expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                    const char *src = expr->data.call.arguments[i]->data.identifier.name;
+                    Symbol *src_sym = scope_lookup(ctx->scope, src);
+                    const char *active_view_name = NULL;
+                    const char *active_view_kind = NULL;
+                    if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT
+                        && semantic_find_active_slot_view_for_source(
+                            ctx->scope,
+                            src_sym->name,
+                            &active_view_name,
+                            &active_view_kind,
+                            NULL)) {
+                        semantic_error_with_hints(ctx,
+                            PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+                            PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+                            PGY_FIX_SERIALIZE_PIN_ACCESS,
+                            expr->data.call.arguments[i],
+                            "Cannot pass slot '%s' to '%s' while %s '%s' is live.\n"
+                            "Reason:\n"
+                            "- slot helper calls may read, write, release, or forward the owner handle\n"
+                            "- passing the owner while a view is live would bypass the view's aliasing contract\n"
+                            "Fix:\n"
+                            "- pass the active view to a view-typed helper\n"
+                            "- or end the pin/view scope before calling '%s'",
+                            src_sym->name,
+                            display_name != NULL ? display_name : "<callee>",
+                            active_view_kind != NULL ? active_view_kind : "view",
+                            active_view_name != NULL ? active_view_name : "<view>",
+                            display_name != NULL ? display_name : "<callee>");
+                        continue;
+                    }
                 }
                 if (!semantic_validate_borrowed_boundary_call_argument(
                         expr->data.call.arguments[i],

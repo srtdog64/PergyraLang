@@ -1,4 +1,4 @@
-#include "tests/semantic/test_semantic_helpers.inc"
+#include "tests/semantic/test_semantic_helpers.cases.h"
 
 /* -----------------------------------------------------------------
  * Test groups
@@ -1651,7 +1651,8 @@ test_qubit_slot_semantics(void)
         ast_destroy(state_call);
     }
 
-    #include "tests/semantic/test_semantic_ownership_boundaries.inc"
+#include "tests/semantic/test_semantic_ownership_boundaries_part_a.cases.h"
+#include "tests/semantic/test_semantic_ownership_boundaries_part_b.cases.h"
 
     TEST("Slot<Int> parameter types remain rejected");
     {
@@ -6239,17 +6240,31 @@ test_event_semantics(void)
     }
 }
 
-#include "tests/semantic/test_semantic_projection_diagnostics.inc"
-#include "tests/semantic/test_semantic_intent_observability.inc"
-#include "tests/semantic/test_semantic_b0_provenance.inc"
+#include "tests/semantic/test_semantic_projection_diagnostics.cases.h"
+#include "tests/semantic/test_semantic_intent_observability.cases.h"
+#include "tests/semantic/test_semantic_b0_provenance.cases.h"
 
-#include "tests/semantic/test_semantic_shared_domain.inc"
-#include "tests/semantic/test_semantic_parallel_family.inc"
-#include "tests/semantic/test_semantic_parallel_context.inc"
-#include "tests/semantic/test_semantic_async.inc"
-#include "tests/semantic/test_semantic_effects.inc"
-#include "tests/semantic/test_semantic_graph.inc"
-#include "tests/semantic/test_semantic_misc.inc"
+#include "tests/semantic/test_semantic_shared_domain_part_a.cases.h"
+#include "tests/semantic/test_semantic_shared_domain_part_b.cases.h"
+#include "tests/semantic/test_semantic_parallel_family.cases.h"
+#include "tests/semantic/test_semantic_parallel_context.cases.h"
+#include "tests/semantic/test_semantic_async_part_a.cases.h"
+#include "tests/semantic/test_semantic_async_part_b.cases.h"
+#include "tests/semantic/test_semantic_effects_part_a.cases.h"
+#include "tests/semantic/test_semantic_effects_part_b.cases.h"
+#include "tests/semantic/test_semantic_graph_part_a.cases.h"
+#include "tests/semantic/test_semantic_graph_part_b.cases.h"
+#include "tests/semantic/test_semantic_misc_a_part_a.cases.h"
+#include "tests/semantic/test_semantic_misc_a_part_b.cases.h"
+#include "tests/semantic/test_semantic_misc_b1_part_a.cases.h"
+#include "tests/semantic/test_semantic_misc_b1_part_b.cases.h"
+#include "tests/semantic/test_semantic_misc_b2_part_a.cases.h"
+#include "tests/semantic/test_semantic_misc_b2_part_b.cases.h"
+#include "tests/semantic/test_semantic_misc_b2_part_c.cases.h"
+#include "tests/semantic/test_semantic_misc_b2_part_d.cases.h"
+#include "tests/semantic/test_semantic_misc_b2_part_e.cases.h"
+#include "tests/semantic/test_semantic_misc_b2_part_f.cases.h"
+#include "tests/semantic/test_semantic_misc_b2_part_g.cases.h"
 
 /* -----------------------------------------------------------------
  * Main

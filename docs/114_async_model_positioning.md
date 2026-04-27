@@ -16,6 +16,8 @@ Related documents:
   `await` / `spawn` / `parallel`.
 - `docs/117_backend_strategy_positioning.md` - sister positioning doc for
   backend strategy (LLVM + C dual-emit, abstraction portability).
+- `docs/118_slot_model_rigor_audit.md` - sister audit doc; Slot vs
+  borrow-check rigor and marketing-language guide.
 
 This document positions Pergyra's concurrency model relative to the
 callback -> promise/future -> async/await history. It is a positioning and

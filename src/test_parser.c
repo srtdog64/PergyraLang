@@ -1580,14 +1580,14 @@ main(void)
             1
         },
         {
-            "Pin Lease Candidate Syntax Explicit Reject",
+            "Pin Lease Block Syntax Parses As Scoped View Block",
             "func Main() -> Void {\n"
             "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
-            "    pin scores as view {\n"
+            "    pin scores as view: ReadView<Int> {\n"
             "        Log(view);\n"
             "    }\n"
             "}",
-            0
+            1
         },
         {
             "Escaped String Literal",

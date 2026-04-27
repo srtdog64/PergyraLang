@@ -238,6 +238,13 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     local_type_name_owned = pergyra_strdup(inferred);
             }
             if (transpiler_type_name_is_slot_like(local_type_name_owned)) {
+                if (transpiler_type_name_is_view_like(local_type_name_owned)) {
+                    emit_statement(stmt, ctx);
+                    ctx->active_type_hint = saved_type_hint;
+                    free(rendered_type_hint);
+                    free(local_type_name_owned);
+                    continue;
+                }
                 bool claim_backed_slot = transpiler_block_has_claim_for_slot_local(
                     block, stmt->data.let_decl.name);
                 if (claim_backed_slot) {
@@ -887,6 +894,15 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                         binding_type_name =
                             transpiler_render_effective_local_type_name(ctx,
                                                                         binding_type_ast);
+                    if (transpiler_type_name_is_view_like(binding_type_name)
+                        || transpiler_type_name_is_view_like(value_type)) {
+                        emit_statement(stmt, ctx);
+                        free(binding_type_name);
+                        free(lhs);
+                        free(rhs);
+                        free(rendered_type);
+                        continue;
+                    }
                     if (is_slot_var(ctx, stmt->data.let_decl.name)
                         || (binding_type_name != NULL
                             && (transpiler_type_name_is_slot_like(binding_type_name)

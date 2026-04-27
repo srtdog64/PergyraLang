@@ -7,9 +7,8 @@ progress ledger, not a new language surface.
 
 ## Closed In This Slice
 
-- Production `.inc` cleanup is closed for `src/runtime`, `src/codegen`,
-  `src/compiler`, and `src/semantic`: there are now **0 production `.inc`
-  files / 0 LOC** under `src`, excluding `src/tests/**/*.inc` fixtures.
+- `.inc` cleanup is closed for the full `src` tree: there are now **0 `.inc`
+  files / 0 LOC** under `src`, including test fixtures.
 - Owner-size policy is now stricter than the historical `.inc` cleanup target:
   600 LOC is the default split-review threshold for any production `.c` or
   private owner `.h`; 1,000 LOC is only the hard stop / temporary risk line.
@@ -24,9 +23,15 @@ progress ledger, not a new language surface.
   `transpiler_domain_role_emit.h`, and `llvm_expr_call_owners.h`.
 - Compiler runtime cache freshness now tracks the renamed runtime owner
   headers instead of stale `.inc` dependency paths.
-- `inc-sentinel-test-smoke` now treats `src/tests/**/*.inc` as the only
-  tolerated fixture lane and caps it at the current 47 files; production
-  `.inc` reintroduction is a hard failure.
+- `inc-sentinel-test-smoke` now rejects any `.inc` reintroduction under `src`.
+  Test fragments use the explicit `.cases.h` suffix instead of a tolerated
+  `.inc` fixture lane.
+- Test aggregator `.inc` shims have been removed from the semantic/transpile
+  harnesses. `src/test_semantic.c` and `src/test_transpile.c` now include leaf
+  fixture parts directly, and `test_semantic_async.cases.h` was split into
+  `test_semantic_async_part_a.cases.h` /
+  `test_semantic_async_part_b.cases.h` so every remaining test case include
+  stays below the 990 LOC cap.
 - C backend scalar/math/string stdlib call lowering now lives in
   `src/codegen/transpiler_expr_stdlib_scalar_builtin.h`. The main
   `transpiler_expr_stdlib_builtin.h` dispatcher drops from 917 LOC to 751 LOC
@@ -56,6 +61,36 @@ progress ledger, not a new language surface.
   `src/codegen/llvm_stmt_parallel_async.c`. `src/codegen/llvm_stmt.c` is now
   914 LOC, and every statement owner TU is below 1,000 LOC while backend
   compare remains green.
+- LLVM intent MIR metadata readers now live in
+  `src/codegen/llvm_intent_mir_meta.c`, with the private seam declared in
+  `src/codegen/llvm_intent_internal.h`. `src/codegen/llvm_intent.c` drops from
+  2,394 LOC to 2,118 LOC while `make llvm-test-backend-compare` remains green.
+- LLVM intent zone binding/sync helpers now live in
+  `src/codegen/llvm_intent_zone.c`, with the private seam declared in
+  `src/codegen/llvm_intent_internal.h`. Zone slot-name resolution, bound-zone
+  materialization, handoff transfer tracing, projection dirty/ready stamping,
+  effective-zone sync, and alias restore moved out of
+  `src/codegen/llvm_intent.c`; the orchestration owner drops further to
+  1,665 LOC while `llvm_intent_zone.c` stays below the 600 LOC split-review
+  threshold at 463 LOC. `make LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy
+  llvm-test-backend-compare` remains green.
+- LLVM intent effect provenance helpers now live in
+  `src/codegen/llvm_intent_effect.c`, with the private seam declared in
+  `src/codegen/llvm_intent_internal.h`. Caused-effect inference and
+  layer/state epoch/cause stamping moved out of `src/codegen/llvm_intent.c`;
+  the orchestration owner drops further to 1,496 LOC while
+  `llvm_intent_effect.c` stays below the 600 LOC split-review threshold at
+  181 LOC. `make LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy
+  llvm-test-backend-compare` remains green.
+- LLVM intent flow/signature helpers now live in
+  `src/codegen/llvm_intent_flow.c`, with the private seam declared in
+  `src/codegen/llvm_intent_internal.h`. MIR routine lookup, MIR step/check/eval
+  collection, dispatch alias collection, MIR resource hooks, authority
+  validation, and forward declaration signature generation moved out of
+  `src/codegen/llvm_intent.c`; the body emission owner drops further to
+  953 LOC, below the 1,000 LOC hard cap, while `llvm_intent_flow.c` stays below
+  the 600 LOC split-review threshold at 563 LOC. `make LLVM_ENABLED=1
+  /tmp/pgy-PergyraLang-bin/pgy llvm-test-backend-compare` remains green.
 - LLVM domain method lookup, implicit-self classification, operator alias
   helpers, and propagation provenance stamping now live in
   `src/codegen/llvm_domain_method_helpers.c`. `src/codegen/llvm_domain.c`
@@ -70,10 +105,94 @@ progress ledger, not a new language surface.
   into focused owner headers for role lookup, declaration parts, projection
   count/value/sync body, and zone-layer binding. This keeps the extracted zone
   TU warning-clean without adding unused attributes or new `.inc` files.
+- LLVM event helper generation now lives in `src/codegen/llvm_domain_event.c`.
+  Event type registration plus `INIT` / `SUBSCRIBE` / `UNSUBSCRIBE` /
+  `INVOKE` helper lowering no longer lives in `src/codegen/llvm_domain.c`,
+  which drops further to 1,356 LOC. The extraction also removes the previous
+  fixed 8-entry handler parameter type array; wider events now materialize
+  LLVM handler parameter types from the full event arity.
+- LLVM role method body/operator/vtable emission now lives in
+  `src/codegen/llvm_domain_role_emit.c`. `src/codegen/llvm_domain.c` drops
+  further to 1,125 LOC while preserving the MIR-routine-missing hard-error
+  path through a `bool` helper return.
+- LLVM domain sync and domain method body emission now lives in
+  `src/codegen/llvm_domain_method_emit.c`. `src/codegen/llvm_domain.c` drops
+  below the 1,000 LOC hard cap to 895 LOC; remaining domain work is
+  declaration/type orchestration and can be treated as split-review debt rather
+  than a hard-size blocker.
 - MIR slot/claim type helper extraction now lives in
   `src/compiler/mir_type_helpers.c` / `.h`. `src/compiler/mir.c` drops from
   2,927 LOC to 2,742 LOC without changing MIR lowering behavior, and
   `make test-mir` remains green.
+- MIR cleanup/rollback/invalidation edge ownership now lives in
+  `src/compiler/mir_cleanup.c` / `.h`. Cleanup instruction creation,
+  rollback-policy invalidation, cleanup block creation, and cleanup edge
+  materialization moved out of `src/compiler/mir.c`; `mir.c` drops further to
+  2,485 LOC without changing MIR lowering behavior. `make test-mir`,
+  `make mir-declaration-inventory-test-smoke`, `make backend-inc-size-test-smoke`,
+  and `make production-header-size-test-smoke` remain green.
+- MIR intent instruction materialization now lives in
+  `src/compiler/mir_intent.c` / `.h`. Intent participant, step, zone alias,
+  authority, check/eval, dispatch, compensation, and invalidation marker
+  lowering moved out of `src/compiler/mir.c`; `mir.c` drops further to 2,132
+  LOC and `mir_intent.c` is 386 LOC. `make test-mir`,
+  `make mir-declaration-inventory-test-smoke`, `make backend-inc-size-test-smoke`,
+  and `make production-header-size-test-smoke` remain green.
+- AIR evidence collection now lives in `src/compiler/air_evidence.c`, with
+  internal name/error helper declarations in `src/compiler/air_internal.h`.
+  `src/compiler/air.c` drops from 1,279 LOC to 1,111 LOC, and
+  `tests/air_drift_smoke.sh` now validates AIR implementation terms across
+  `air.c` and `air_evidence.c`. `make test-air air-drift-test-smoke
+  air-backend-nonimpact-test-smoke air-strict-backend-compare-test-smoke`
+  remains green.
+- AIR boundary traversal now lives in `src/compiler/air_boundary.c`. Boundary
+  classification, source derivation, sync-class mapping, step boundary counting,
+  and boundary node append moved out of `src/compiler/air.c`; `air.c` drops
+  further to 671 LOC and is below the 1,000 LOC hard cap. The AIR drift smoke
+  now validates implementation terms across `air.c`, `air_boundary.c`, and
+  `air_evidence.c`, and the AIR strict/nonimpact gates remain green.
+- HIR analysis extraction now lives in `src/compiler/hir_analysis.c` / `.h`.
+  Signature type-reference collection, direct-call collection, and
+  control-flow presence detection moved out of `src/compiler/hir.c`; `hir.c`
+  drops from 2,445 LOC to 2,109 LOC. `make test-hir test-rir test-mir` and
+  `make air-drift-test-smoke` remain green.
+- HIR CFG extraction now lives in `src/compiler/hir_cfg.c` / `.h`. CFG
+  predecessor finalization, reachability, dominator/frontier, dominator tree,
+  loop-depth, local-def, phi-candidate, phi-materialization, and CFG summary
+  ownership moved out of `src/compiler/hir.c`. HIR CFG construction lowering
+  now lives in `src/compiler/hir_lower_cfg.c` / `.h`, so the AST-body to
+  basic-block construction path is separate from post-construction CFG facts.
+  `hir.c` drops further to 1,255 LOC, `hir_cfg.c` is 599 LOC, and
+  `hir_lower_cfg.c` is 270 LOC. `make test-hir test-rir test-mir`,
+  `make air-drift-test-smoke`, `make backend-inc-size-test-smoke`, and
+  `make production-header-size-test-smoke` remain green.
+- Type-resolution DAG fallback classification now lives in
+  `src/semantic/type_checker_resolution_metadata_fallback.c`. The metadata
+  materializer file drops from 907 LOC to 806 LOC while the exact fallback
+  family counters remain unchanged under `make type-resolution-dag-test-smoke`.
+- Type-resolution DAG stable constructed materialization now lives in
+  `src/semantic/type_checker_resolution_metadata_constructed.c`, and owned
+  metadata cleanup now lives in `src/semantic/type_checker_resolution_metadata_storage.c`.
+  `src/semantic/type_checker_resolution_metadata.c` drops further to 575 LOC,
+  so the metadata lookup owner is below the 600 LOC split-review threshold.
+- Type-resolution DAG stage signature replay now lives in
+  `src/semantic/type_checker_resolution_stage_signature.c`. The top-level stage
+  replay owner drops from 914 LOC to 594 LOC and now stays under the 600 LOC
+  split-review threshold.
+- Type-resolution DAG body type-reference precollection now lives in
+  `src/semantic/type_checker_resolution_graph_body.c`. The declaration
+  inventory owner drops from 892 LOC to 561 LOC and now stays under the 600 LOC
+  split-review threshold.
+- Type-resolution DAG program inventory is now a dispatcher owner:
+  `src/semantic/type_checker_resolution_graph_inventory.c` drops to 98 LOC and
+  delegates zone inventory to
+  `src/semantic/type_checker_resolution_graph_zone_inventory.c`.
+- Type-resolution DAG zone inventory is split at the state/authority tail seam:
+  `src/semantic/type_checker_resolution_graph_zone_inventory.c` is 554 LOC, and
+  `src/semantic/type_checker_resolution_graph_zone_tail.c` is 169 LOC. After
+  this split, every `src/semantic/type_checker_resolution_*.c` DAG owner is
+  below the 600 LOC split-review threshold while the graph/resolver smoke gates
+  remain green.
 
 - `src/codegen/transpiler_context.c` now owns the C backend output/context
   primitives that used to live in include bodies:
@@ -279,7 +398,8 @@ production .inc under src/runtime  = 0
 production .inc under src/codegen  = 0
 production .inc under src/compiler = 0
 production .inc under src/semantic = 0
-test fixture .inc under src/tests  = 47 files, capped by inc-sentinel
+test .inc under src/tests          = 0
+test case includes under src/tests = 30 .cases.h files
 ```
 
 Empty include sentinels are rejected:
@@ -288,10 +408,15 @@ Empty include sentinels are rejected:
 make inc-sentinel-test-smoke
 ```
 
-This gate rejects any production `.inc` file, rejects any zero-byte `.inc`, and
-rejects any increase above the current `src/tests/**/*.inc <= 47` fixture cap.
-There is no empty-sentinel allowlist. New behavior-owning `.inc` splits are
-blocked by default.
+This gate rejects any `.inc` file under `src`, rejects `.cases.h` fragments
+outside `src/tests`, rejects empty test case include fragments, and caps the
+test fragment inventory at the current 30 files unless
+`PGY_MAX_TEST_CASE_INCLUDES` is deliberately raised with this ledger. There is
+also a usage check: `.cases.h` can only be included by the dedicated test
+harnesses, every include must resolve under `src/tests`, and every `.cases.h`
+must be referenced by a test harness or a smoke script. There is no
+empty-sentinel allowlist. New behavior-owning `.inc` splits are blocked by
+default.
 
 Owner-size policy is separate from the `.inc` gate:
 
@@ -304,26 +429,28 @@ The current large-owner snapshot was last refreshed on 2026-04-27. The leading
 production split candidates are:
 
 ```text
-2742 src/compiler/mir.c
-2445 src/compiler/hir.c
-2394 src/codegen/llvm_intent.c
+2132 src/compiler/mir.c
+2114 src/parser/ast.c
+1810 src/parser/ast_print.c
 1774 src/parser/parser_domain.c
 1751 src/runtime/slot_security.c
 1736 src/runtime/slot_manager.c
 1658 src/semantic/type_checker_decls_domain_helpers.c
-1649 src/codegen/llvm_domain.c
-1633 src/parser/parser.c
+1631 src/parser/parser.c
 1580 src/compiler/driver_app.c
 1555 src/semantic/type_checker_intent_helpers.c
 1513 src/compiler/dir.c
 1395 src/compiler/compiler.c
-1279 src/compiler/air.c
+1255 src/compiler/hir.c
 1232 src/parser/ast.h
 1199 src/semantic/slot_analyzer.c
 1168 src/codegen/llvm_backend.c
 1146 src/semantic/type_checker_builtins_stdlib_body.c
 1092 src/semantic/type_checker_zone_decl.c
 1027 src/codegen/llvm_domain_zone_sync.c
+1025 src/semantic/type_system.c
+1015 src/parser/parser_decl.c
+978 src/semantic/type_checker_flow.c
 ```
 
 Test harness files are intentionally excluded from the first owner-split queue
@@ -1191,15 +1318,42 @@ Observed results:
   `src/semantic/type_checker_assignment.inc` into
   `src/semantic/type_checker_assignment.h`. The current production source `.inc`
   inventory is 13 files / 297 LOC.
+- Latest LLVM domain event cleanup moved event type/helper lowering into
+  `src/codegen/llvm_domain_event.c` and declared the seam in
+  `src/codegen/llvm_domain_event.h`. `llvm_domain.c` now delegates event
+  generation instead of carrying the full helper body, and the event handler
+  parameter type materialization uses the full event arity instead of the old
+  8-entry local array. `src/codegen/llvm_domain.c` is now 1,356 LOC and
+  `llvm_domain_event.c` is 322 LOC. Verified by `make LLVM_ENABLED=1
+  /tmp/pgy-PergyraLang-bin/pgy llvm-test-backend-compare` with 196 ABI checks
+  and backend compare 53/53 green.
+- Latest LLVM domain role emission cleanup moved role method body emission,
+  role operator thunk emission, and role vtable global materialization into
+  `src/codegen/llvm_domain_role_emit.c` with the seam declared in
+  `src/codegen/llvm_domain_role_emit.h`. `src/codegen/llvm_domain.c` now
+  carries the remaining domain declaration/type/sync orchestration at 1,125
+  LOC. Verified by `make LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy
+  llvm-test-backend-compare` with 196 ABI checks and backend compare 53/53
+  green.
+- Latest LLVM domain method/sync cleanup moved domain sync helper dispatch and
+  domain method body emission into `src/codegen/llvm_domain_method_emit.c`,
+  declared by `src/codegen/llvm_domain_method_emit.h`. This keeps projection
+  sync helper include-order local to the new owner TU and reduces
+  `src/codegen/llvm_domain.c` to 895 LOC. Verified warning-clean by `make
+  LLVM_ENABLED=1 /tmp/pgy-PergyraLang-bin/pgy llvm-test-backend-compare` with
+  196 ABI checks and backend compare 53/53 green.
 - Latest overall audit also reran `make tooling-conformance-test-smoke`; the
   formatter smoke is invoked through `bash`, so Linux execute-bit drift no
   longer blocks the tooling conformance gate.
 - `test-abi`: ABI spec 49 passed, 0 failed, plus C/LLVM ABI pipeline smoke.
 - `runtime-abi-lifetime-test-smoke`: passed.
-- `test-inc-size-test-smoke`: all `src/tests/**/*.inc` files are below
+- `test-inc-size-test-smoke`: all `src/tests/**/*.cases.h` files are below
   990 LOC.
-- `inc-sentinel-test-smoke`: no empty `.inc` files are allowed, and the source
-  `.inc` count must not increase above 159.
+- `inc-sentinel-test-smoke`: no `.inc` files are allowed under `src`,
+  `.cases.h` is allowed only under `src/tests`, the current `.cases.h`
+  inventory is capped at 30 files, `.cases.h` includes are allowed only from
+  dedicated test harnesses, no empty test fragments are allowed, and no orphan
+  test fragments are allowed.
 - `git diff --check`: passed; only line-ending warnings were reported.
 
 ## Remaining Include Debt
@@ -1208,10 +1362,9 @@ Observed results:
   `make test-inc-size-test-smoke`.
 - The next structural cleanup queue is no longer `.inc` removal; it is
   600-plus production owner reduction. Current high-priority examples include
-  `src/compiler/mir.c`, `src/compiler/hir.c`, `src/codegen/llvm_intent.c`,
-  `src/runtime/slot_security.c`, `src/runtime/slot_manager.c`,
+  `src/compiler/mir.c`, `src/runtime/slot_security.c`, `src/runtime/slot_manager.c`,
   `src/semantic/type_checker_decls_domain_helpers.c`,
-  `src/codegen/llvm_domain.c`, `src/compiler/air.c`, and
+  `src/compiler/hir.c`, `src/compiler/air.c`, and
   `src/codegen/llvm_domain_zone_sync.c`. Each one needs a named semantic owner
   split, not blind line-count sharding.
 - The long-term target remains real `.c` / `.h` ownership for behavior-heavy

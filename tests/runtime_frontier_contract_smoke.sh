@@ -27,7 +27,10 @@ c_zone_frontier = root / "src" / "codegen" / "transpiler_zone_decl_emit.h"
 c_world = root / "src" / "codegen" / "transpiler_world_select_event_emit.h"
 c_projection = root / "src" / "codegen" / "transpiler_domain_role_ability_emit.h"
 llvm_domain = root / "src" / "codegen" / "llvm_domain.c"
+llvm_domain_zone_sync = root / "src" / "codegen" / "llvm_domain_zone_sync.c"
+llvm_domain_world_sync = root / "src" / "codegen" / "llvm_domain_world_sync.c"
 llvm_projection = root / "src" / "codegen" / "llvm_domain_projection_sync_helpers.h"
+llvm_projection_body = root / "src" / "codegen" / "llvm_domain_projection_sync_body_helpers.h"
 abi_smoke = root / "tests" / "abi_pipeline_smoke.sh"
 backend_compare = root / "tests" / "compare_backends.sh"
 checklist = root / "docs" / "100_beta_readiness_checklist.md"
@@ -39,7 +42,10 @@ for path in [
     c_world,
     c_projection,
     llvm_domain,
+    llvm_domain_zone_sync,
+    llvm_domain_world_sync,
     llvm_projection,
+    llvm_projection_body,
     abi_smoke,
     backend_compare,
     checklist,
@@ -53,8 +59,15 @@ c_zone_frontier_text = c_zone_frontier.read_text(encoding="utf-8")
 c_world_text = c_world.read_text(encoding="utf-8")
 c_zone_contract_text = c_zone_text + "\n" + c_zone_frontier_text
 c_projection_text = c_projection.read_text(encoding="utf-8")
-llvm_domain_text = llvm_domain.read_text(encoding="utf-8")
-llvm_projection_text = llvm_projection.read_text(encoding="utf-8")
+llvm_domain_text = "\n".join([
+    llvm_domain.read_text(encoding="utf-8"),
+    llvm_domain_zone_sync.read_text(encoding="utf-8"),
+    llvm_domain_world_sync.read_text(encoding="utf-8"),
+])
+llvm_projection_text = "\n".join([
+    llvm_projection.read_text(encoding="utf-8"),
+    llvm_projection_body.read_text(encoding="utf-8"),
+])
 abi_text = abi_smoke.read_text(encoding="utf-8")
 backend_text = backend_compare.read_text(encoding="utf-8")
 checklist_text = checklist.read_text(encoding="utf-8")

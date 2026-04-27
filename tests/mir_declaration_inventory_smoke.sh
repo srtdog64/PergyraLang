@@ -229,7 +229,6 @@ raw_hits = []
 for path in list((root / "src" / "codegen").glob("llvm*.[ch]")) + [
     root / "src" / "codegen" / "transpiler.c",
     root / "src" / "codegen" / "transpiler.h",
-    *list((root / "src" / "codegen").glob("transpiler_*.inc")),
 ]:
     rel = path.relative_to(root).as_posix()
     text = path.read_text(encoding="utf-8")

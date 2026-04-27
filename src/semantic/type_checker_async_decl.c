@@ -6,6 +6,14 @@ bool
 type_check_async_block(ASTNode *node, SemanticContext *ctx)
 {
     bool saved_async = ctx->in_async_func;
+
+    if (semantic_reject_active_slot_view_boundary(node, ctx,
+            "async block boundary",
+            "async block execution may resume after the current synchronous frame advances",
+            "move async block")) {
+        return false;
+    }
+
     ctx->in_async_func = true;
 
     for (size_t i = 0; i < node->data.async_block.statement_count; i++) {

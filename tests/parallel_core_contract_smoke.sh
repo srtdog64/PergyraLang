@@ -80,7 +80,7 @@ require_text(
 )
 
 require_text(
-    "src/tests/semantic/test_semantic_parallel_context.inc",
+    "src/tests/semantic/test_semantic_parallel_context.cases.h",
     [
         "parallel-rejected: write-write slot conflict",
         "parallel-safe: read-write slot race warns",
@@ -92,7 +92,7 @@ require_text(
 )
 
 require_text(
-    "src/tests/semantic/test_semantic_parallel_family.inc",
+    "src/tests/semantic/test_semantic_parallel_family.cases.h",
     [
         "async-suspension: await outside async context triggers error",
         "async-suspension: await inside async context passes",

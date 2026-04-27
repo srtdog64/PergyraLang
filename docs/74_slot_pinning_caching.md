@@ -1,6 +1,6 @@
 # Architecture Decision: Slot Pinning / Lease
 
-Last updated: 2026-04-25
+Last updated: 2026-04-27
 
 Related documents:
 
@@ -28,16 +28,39 @@ Current beta status:
   `ViewRead(...)` / `ViewWrite(...)` semantic surface: a new `WriteView<T>`
   conflicts with any active view of the same slot, and a new `ReadView<T>`
   conflicts with an active `WriteView<T>`.
+- Releasing or moving the source slot while a source-level `pin` block or
+  existing typed `ReadView<T>` / `WriteView<T>` over that slot is live is now a
+  semantic error (`PGY_SEM_PIN_PARALLEL_CONFLICT`) and has JSON diagnostic
+  coverage.
+- Direct owner writes while any typed view is live, and direct owner reads while
+  a `WriteView<T>` is live, are also rejected so the view contract cannot be
+  bypassed by spelling the original slot name.
+- Slot sugar follows the same rule: `slot = value` is treated as an owner write,
+  and value-position `slot` use is treated as an owner read.
+- Passing the owning source slot to an `own`/`ref Slot<T>` helper while a typed
+  view is live is rejected. Helpers must accept the typed view directly or be
+  called outside the pin/view scope.
+- Storing or forwarding the owning source slot through a stable container
+  boundary while a typed view is live is rejected. This covers array literals
+  and `ArrayPush`, `ArraySet`, `ListPush`, `ListSet`, `SetAdd`, `MapSet`, and
+  `QueuePush`.
+- Returning the owning source slot while a typed view is live is rejected at
+  semantic time instead of falling through to backend auto-read/type drift.
+- `Box<T>` and `BoxSet` reject resource-handle payloads in the beta-stable
+  surface. Boxing a slot handle would create a second storage owner that the
+  current CFG/ABI proof layer does not claim.
 - The existing view surface now emits the pin-specific diagnostics for the
   first stable escape/boundary cases: returning a view reports
   `PGY_SEM_PIN_ESCAPE`, crossing `await` reports
   `PGY_SEM_PIN_AWAIT_BOUNDARY`, crossing/acquiring inside `parallel` reports
   `PGY_SEM_PIN_PARALLEL_CONFLICT`, and `ViewRead/ViewWrite(QubitSlot)` reports
   `PGY_SEM_PIN_QUBIT_REJECT`.
-- Parser explicitly rejects candidate source syntax with
-  `Pin/Lease syntax is not beta-stable yet`.
-- The stable source surface is not shipped until CFG cleanup edges, escape
-  diagnostics, and C/LLVM lowering parity are complete.
+- Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` is now
+  accepted and desugars to the existing typed `ViewRead(...)` / `ViewWrite(...)`
+  semantic surface.
+- The stable hot-path runtime lowering is still narrower than the design target:
+  raw `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` remains internal
+  ABI until explicit cleanup-edge lowering is proven across C and LLVM.
 
 ## 2. Proposed Source Surface
 
@@ -116,6 +139,21 @@ Pinning is task-local unless a later design explicitly proves otherwise.
 - `await` inside a pin block is rejected.
 - `spawn`/`async` capture of a view is rejected.
 - `parallel` access to the same slot with a `WriteView<T>` conflict is rejected.
+- `Release(slot)` / `Move(slot)` while any active typed view is live over
+  `slot` is rejected.
+- `Write(slot, ...)` while any active typed view is live over `slot` is
+  rejected; `Read(slot)` is rejected while an active `WriteView<T>` is live.
+- Slot sugar (`slot = value`, `Log(slot)`, or another value-position owner
+  identifier use) cannot bypass those same owner read/write restrictions.
+- `Helper(slot)` cannot bypass the lease through an `own`/`ref Slot<T>` helper
+  parameter while a typed view over `slot` is live.
+- `ListPush(items, slot)`, `MapSet(map, key, slot)`, `ArrayPush(items, slot)`,
+  `[slot]`, and equivalent stable container-store paths cannot forward the
+  owning source slot while a typed view over that source is live.
+- `return slot` cannot forward the owning source slot while a typed view over
+  that source is live.
+- `Box(slot)` / `BoxSet(box, slot)` are not stable resource-handle storage
+  paths; use a copied payload or keep the slot in its owning binding.
 - Read sharing across parallel tasks is post-beta unless the runtime and CFG
   agree on a task-local read lease model.
 - Device pinning must define host/device synchronization, stale mapping, and
@@ -133,17 +171,14 @@ Planned semantic diagnostic codes:
 
 Current implementation note:
 
-- Candidate syntax is still rejected in the parser as `PGY_PARSE_SYNTAX` with
-  the message `Pin/Lease syntax is not beta-stable yet`.
-- Four of the five semantic codes above are active on the existing
-  `ViewRead(...)` / `ViewWrite(...)` surface and covered by `make test-semantic`;
-  their user-facing JSON routing is covered by
-  `make diagnostics-json-test-smoke`;
-  `PGY_SEM_PIN_TOKEN_INVALID` remains a runtime/API capability-path diagnostic
-  until source-level secure pin syntax is promoted.
-  `docs/72_diagnostic_codes.md`, but stable source syntax does not emit them
-  yet. They become active only when semantic Pin/Lease syntax and CFG checks are
-  implemented.
+- Block syntax is active at the parser/semantic layer and lowers to a lexical
+  block containing `let view: ReadView<T>|WriteView<T> = ViewRead/ViewWrite(slot)`.
+- Four of the five semantic codes above are active on both the source-level
+  `pin ... as ... { ... }` block and the existing `ViewRead(...)` /
+  `ViewWrite(...)` surface; their user-facing JSON routing is covered by
+  `make diagnostics-json-test-smoke`.
+- `PGY_SEM_PIN_TOKEN_INVALID` remains a runtime/API capability-path diagnostic
+  until secure-token source syntax is added.
 
 Every diagnostic must include `Reason:` and `Fix:`. Projection/source/target
 style provenance is not enough here; the message also needs the slot type, view
@@ -221,18 +256,26 @@ Backend requirements:
 ## 9. Implementation Order
 
 1. Runtime ABI baseline: `PgyPinnedView`, pin, unpin, release/cleanup blocking.
-2. Parser gate: reject candidate `pin slot as view { ... }` syntax until stable.
-3. AST and semantic model: typed block syntax, view mode, and target slot type.
+2. Parser syntax: accept `pin slot as view: ReadView<T>|WriteView<T> { ... }`
+   without reserving `pin` as a keyword.
+3. AST and semantic model: desugar to a lexical block containing the typed
+   view constructor, preserving existing escape/boundary diagnostics.
 4. CFG integration: cleanup edges, escape facts, await/spawn/parallel rejects.
 5. Backend parity: C/LLVM lowering through the same ABI and cleanup paths.
 6. Diagnostics: register the five semantic codes and add JSON regression.
 7. Stable surface decision: either promote the block syntax or keep it explicitly
    experimental.
 
-Steps 1 and 2 are implemented. The existing view constructor surface now has
-exclusive-write, return escape, await-boundary, parallel-boundary, and QubitSlot
-reject semantic gates covered by `make test-semantic`. Steps 3 to 7 remain beta
-blockers if the language chooses to ship block-scoped Pin/Lease syntax in beta.
+Steps 1 to 3 are implemented for the typed-view front-end slice. The source
+block and existing view constructor surface now share exclusive-write, return
+escape, await/spawn/async/callback/channel/cancel boundary, parallel-boundary,
+and QubitSlot reject semantic gates covered by `make test-semantic` and
+`make diagnostics-json-test-smoke`. The typed-view read/write path now has C/LLVM
+backend parity for plain, secure, and sequential mixed slot blocks through
+`pin_read_view_block`, `pin_secure_read_view_block`, and
+`pin_mixed_read_view_sequence`, plus write fixtures `pin_write_view_block` and
+`pin_secure_write_view_block`. Steps 4 to 7 remain beta blockers for the full
+hot-path runtime `PgyPinnedView` lowering.
 
 ## 10. Beta Position
 
@@ -242,7 +285,10 @@ ABI Ownership / Arena Lifetime Closure.
 The correct beta promise is narrow:
 
 - Runtime ABI may exist internally.
-- Candidate syntax must stay rejected until CFG cleanup and backend parity close.
+- Source syntax is accepted only as a typed-view lexical block until CFG cleanup
+  and backend parity close for the internal pin runtime ABI. The current
+  typed-view slice has read/write parity; explicit pin/unpin cleanup lowering is
+  still a blocker.
 - A manual raw pointer API is not user-facing.
 - C / LLVM lowering must share the same runtime calls and cleanup behavior.
 - `QubitSlot`, `await` crossing, channel escape, and task escape are explicit

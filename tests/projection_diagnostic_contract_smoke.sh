@@ -20,7 +20,7 @@ import pathlib
 import sys
 
 root = pathlib.Path(sys.argv[1])
-semantic_test = root / "src" / "tests" / "semantic" / "test_semantic_projection_diagnostics.inc"
+semantic_test = root / "src" / "tests" / "semantic" / "test_semantic_projection_diagnostics.cases.h"
 diagnostic_source = root / "src" / "semantic" / "type_checker_decls_domain_helpers.c"
 proof_doc = root / "docs" / "semantics" / "02_relation_effect_projection.md"
 
@@ -105,4 +105,3 @@ if missing_proof_terms:
 
 print("[projection-diagnostic-contract] projection diagnostic contract is smoke-gated")
 PY
-

@@ -196,7 +196,7 @@ def strip_c_comments(text: str) -> str:
 violations = []
 call_names = ("semantic_error_with_hints", "semantic_warning_with_hints")
 for path in sorted(semantic_root.rglob("*")):
-    if path.suffix not in {".c", ".h", ".inc"}:
+    if path.suffix not in {".c", ".h"}:
         continue
     rel = path.relative_to(root)
     if rel in callsite_skip:

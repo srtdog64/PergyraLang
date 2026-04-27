@@ -35,6 +35,16 @@
 #include <stddef.h>
 #include "slot_security.h"
 
+/*
+ * Slot runtime contract:
+ *
+ * A Slot is not exposed to source code as pointer/address ownership. It is the
+ * stable source-level resource boundary: generation, capability token, pin
+ * state, TTL, and backend storage are implementation details below that
+ * boundary. This keeps the language contract portable while allowing the
+ * storage handle under a Slot to change.
+ */
+
 typedef enum
 {
     PGY_SLOT_PIN_READ = 0,

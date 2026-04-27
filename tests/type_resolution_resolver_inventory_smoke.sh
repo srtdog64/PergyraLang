@@ -84,7 +84,9 @@ for needle in \
   'type_create_tuple(elements, element_count)' \
   'TYPE_LONG' \
   'TYPE_BOOL'; do
-  grep -q "$needle" src/semantic/type_checker_resolution_metadata.c || {
+  grep -q "$needle" \
+    src/semantic/type_checker_resolution_metadata.c \
+    src/semantic/type_checker_resolution_metadata_constructed.c || {
     echo "[type-resolution-resolver-inventory] metadata materializer missing: $needle" >&2
     exit 1
   }

@@ -2,9 +2,11 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Slot Lifetime Analyzer
- * Pergyra-specific pass: verifies Slot state machine transitions
- * and reports release errors / leaks.
+ * Slot Resource-Boundary Analyzer
+ *
+ * Pergyra treats Slot as the stable source-level resource boundary, not as a
+ * raw address or Rust-style lifetime. This pass verifies the Slot state
+ * machine across that boundary and reports release errors / leaks.
  */
 
 #ifndef PERGYRA_SLOT_ANALYZER_H
@@ -16,7 +18,9 @@
 #include "../semantic/symbol_table.h"
 
 /*
- * SlotLifetimeEntry — tracks one slot across all paths
+ * SlotLifetimeEntry — tracks one resource-boundary slot across all paths.
+ * The type name is legacy; the semantic contract is resource-boundary state,
+ * not user-authored lifetime parameters.
  */
 typedef struct
 {

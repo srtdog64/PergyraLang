@@ -205,6 +205,10 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
         ASTNode *stmt = body->data.block.statements[i];
         if (stmt == NULL)
             continue;
+        if (stmt->type == AST_BLOCK) {
+            transpiler_register_explicit_local_bindings_in_block(ctx, func_decl, stmt);
+            continue;
+        }
         if (stmt->type == AST_LET_DECL && stmt->data.let_decl.name != NULL) {
             const char *type_name = NULL;
             char *rendered_type = NULL;
@@ -217,7 +221,41 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
                     ctx, func_decl, stmt->data.let_decl.initializer);
             }
             if (type_name != NULL && type_name[0] != '\0') {
-                register_typed_var(ctx, stmt->data.let_decl.name, type_name);
+                bool registered_view_like = false;
+                if ((strcmp(type_name, "ReadView") == 0
+                     || strncmp(type_name, "ReadView<", 9) == 0
+                     || strcmp(type_name, "WriteView") == 0
+                     || strncmp(type_name, "WriteView<", 10) == 0)
+                    && stmt->data.let_decl.initializer != NULL
+                    && stmt->data.let_decl.initializer->type == AST_CALL
+                    && stmt->data.let_decl.initializer->data.call.callee != NULL
+                    && stmt->data.let_decl.initializer->data.call.callee->type == AST_IDENTIFIER
+                    && stmt->data.let_decl.initializer->data.call.arg_count >= 1
+                    && stmt->data.let_decl.initializer->data.call.arguments[0] != NULL
+                    && stmt->data.let_decl.initializer->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                    const char *callee =
+                        stmt->data.let_decl.initializer->data.call.callee->data.identifier.name;
+                    const char *source =
+                        stmt->data.let_decl.initializer->data.call.arguments[0]->data.identifier.name;
+                    if (callee != NULL
+                        && source != NULL
+                        && (strcmp(callee, "ViewRead") == 0
+                            || strcmp(callee, "ViewWrite") == 0)) {
+                        const char *source_type = lookup_typed_var(ctx, source);
+                        bool source_secure = lookup_slot_is_secure(ctx, source);
+                        if (!source_secure
+                            && source_type != NULL
+                            && (strcmp(source_type, "SecureSlot") == 0
+                                || strncmp(source_type, "SecureSlot<", 11) == 0)) {
+                            source_secure = true;
+                        }
+                        register_view_like_var(ctx, stmt->data.let_decl.name,
+                            type_name, source, source_secure, false);
+                        registered_view_like = true;
+                    }
+                }
+                if (!registered_view_like)
+                    register_typed_var(ctx, stmt->data.let_decl.name, type_name);
                 if (transpiler_type_name_is_slot_like(type_name)) {
                     register_slot_var(ctx, stmt->data.let_decl.name,
                         slot_inner_type_name(type_name),
@@ -242,6 +280,23 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
             free(inner);
             transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
                 stmt->data.with_stmt.body);
+            continue;
+        }
+        if (stmt->type == AST_IF_STMT) {
+            transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
+                stmt->data.if_stmt.then_branch);
+            transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
+                stmt->data.if_stmt.else_branch);
+            continue;
+        }
+        if (stmt->type == AST_WHILE_LOOP) {
+            transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
+                stmt->data.while_loop.body);
+            continue;
+        }
+        if (stmt->type == AST_FOR_LOOP) {
+            transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
+                stmt->data.for_loop.body);
         }
     }
 }

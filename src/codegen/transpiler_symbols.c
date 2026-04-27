@@ -111,7 +111,9 @@ lookup_slot_type(TranspilerCtx *ctx, const char *var_name)
     if (typed_name != NULL) {
         if (strncmp(typed_name, "Slot<", 5) == 0
             || strncmp(typed_name, "SecureSlot<", 11) == 0
-            || strncmp(typed_name, "DeviceSlot<", 11) == 0) {
+            || strncmp(typed_name, "DeviceSlot<", 11) == 0
+            || strncmp(typed_name, "ReadView<", 9) == 0
+            || strncmp(typed_name, "WriteView<", 10) == 0) {
             return slot_inner_type_name(typed_name);
         }
         return typed_name;
@@ -119,7 +121,9 @@ lookup_slot_type(TranspilerCtx *ctx, const char *var_name)
     if (ctx->active_type_hint != NULL) {
         if (strncmp(ctx->active_type_hint, "Slot<", 5) == 0
             || strncmp(ctx->active_type_hint, "SecureSlot<", 11) == 0
-            || strncmp(ctx->active_type_hint, "DeviceSlot<", 11) == 0) {
+            || strncmp(ctx->active_type_hint, "DeviceSlot<", 11) == 0
+            || strncmp(ctx->active_type_hint, "ReadView<", 9) == 0
+            || strncmp(ctx->active_type_hint, "WriteView<", 10) == 0) {
             return slot_inner_type_name(ctx->active_type_hint);
         }
         return ctx->active_type_hint;
@@ -226,6 +230,23 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
     if (ctx == NULL || name == NULL || type_name == NULL
         || ctx->typed_var_count >= MAX_SLOT_VARS)
         return;
+
+    if (ctx->last_typed_var_index >= 0
+        && ctx->last_typed_var_index < ctx->typed_var_count
+        && strcmp(ctx->typed_vars[ctx->last_typed_var_index].name, name) == 0
+        && (ctx->typed_vars[ctx->last_typed_var_index].is_view
+            || ctx->typed_vars[ctx->last_typed_var_index].is_move_token)
+        && (strcmp(type_name, "ReadView") == 0
+            || strncmp(type_name, "ReadView<", 9) == 0
+            || strcmp(type_name, "WriteView") == 0
+            || strncmp(type_name, "WriteView<", 10) == 0
+            || strcmp(type_name, "MoveToken") == 0
+            || strncmp(type_name, "MoveToken<", 10) == 0)) {
+        e = &ctx->typed_vars[ctx->last_typed_var_index];
+        strncpy(e->type_name, type_name, sizeof(e->type_name) - 1);
+        e->type_name[sizeof(e->type_name) - 1] = '\0';
+        return;
+    }
 
     e = &ctx->typed_vars[ctx->typed_var_count++];
     ctx->last_typed_var_index = ctx->typed_var_count - 1;

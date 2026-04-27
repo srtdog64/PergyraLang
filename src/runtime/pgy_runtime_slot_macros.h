@@ -1,6 +1,15 @@
 #ifndef PGY_RUNTIME_SLOT_MACROS_H
 #define PGY_RUNTIME_SLOT_MACROS_H
 
+/*
+ * Inline Slot ABI note:
+ *
+ * These structs are the current C backend representation, not the language
+ * identity of Slot<T>. Source semantics observe a source-level resource boundary
+ * with claim/read/write/release/pin contracts; pointer/address ownership stays
+ * below this layer and may be replaced by another backend handle.
+ */
+
 /* =================================================================
  * Device Slot (Anchored external resource cell)
  *

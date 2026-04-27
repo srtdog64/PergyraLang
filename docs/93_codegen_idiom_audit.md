@@ -142,7 +142,7 @@ Case 1은 이제 semantic 레벨에서 차단되어 backend-compare 에서 exerc
 
 ## 회귀 커버리지
 
-본 sprint에 추가된 semantic 테스트 (`src/tests/semantic/test_semantic_misc_a.inc`):
+본 sprint에 추가된 semantic 테스트 (`src/tests/semantic/test_semantic_misc_a_part_{a,b}.cases.h`):
 
 1. `function-body let with annotation and no initializer is rejected` — `let x: Int;` 거부 확인
 2. `function-body let with aggregate annotation and no initializer is rejected` — `let b: Box<Int>;` 거부 확인

@@ -19,9 +19,9 @@ AST (from Parser)
 │    → Slot 타입 안전성 검사          │
 │    → SecureSlot 토큰 추적           │
 │                                     │
-│  Pass 3: Lifetime Analysis          │
-│    → Slot 생명주기 검증             │
-│    → Release 누락 감지              │
+│  Pass 3: Resource-Boundary Analysis │
+│    → Slot 경계 상태 검증            │
+│    → Release / stale access 감지     │
 └─────────────────────────────────────┘
     │
     ▼
@@ -43,7 +43,7 @@ src/semantic/
     symbol_table.c
     type_checker.h      ← 타입 검사기
     type_checker.c
-    slot_analyzer.h     ← Slot 생명주기 분석기 (Pergyra 고유)
+    slot_analyzer.h     ← Slot resource-boundary analyzer (Pergyra 고유)
     slot_analyzer.c
     semantic.h          ← 통합 인터페이스
     semantic.c
@@ -196,7 +196,16 @@ Release(SecureSlot<T>, SecurityToken) → Void
 
 ---
 
-## 5. Slot Lifetime Analyzer 설계
+## 5. Slot Resource-Boundary Analyzer 설계
+
+Beta terminology note:
+
+- Slot analysis is not Rust-style lifetime analysis.
+- Slot is the source-level modular resource boundary.
+- The analyzer tracks resource-boundary state: claimed, written, read, released,
+  stale handle use, token/capability validity, and path joins.
+- Legacy C identifiers such as `SlotLifetimeEntry` are compatibility names only;
+  new documentation must use `Slot Resource-Boundary Analyzer`.
 
 ### 5.1 Slot 상태 머신
 
@@ -308,10 +317,10 @@ typedef struct Diagnostic
     토큰 혼용 에러
 ```
 
-### 단계 4: Slot Lifetime Analyzer
+### 단계 4: Slot Resource-Boundary Analyzer
 
 ```
-목표: 생명주기 분석
+목표: Slot resource-boundary state 분석
 구현:
     slot_analyzer.h / slot_analyzer.c
 테스트:

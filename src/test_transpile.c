@@ -3580,8 +3580,9 @@ test_party_emit(void)
  * Roster / World codegen
  * ----------------------------------------------------------------- */
 
-#include "tests/transpile/test_transpile_parallel_family.inc"
-#include "tests/transpile/test_transpile_domain_async.inc"
+#include "tests/transpile/test_transpile_parallel_family.cases.h"
+#include "tests/transpile/test_transpile_domain_async_part_a.cases.h"
+#include "tests/transpile/test_transpile_domain_async_part_b.cases.h"
 
 static void
 test_slot_sugar(void)

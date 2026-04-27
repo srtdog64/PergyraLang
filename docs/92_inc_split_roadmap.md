@@ -59,8 +59,8 @@ Recently closed:
   assignment-rebind, array-literal store, boundary validation, call-argument,
   destructuring, let-binding, and parameter escape-summary consumers now build as
   real translation units. There are no `type_checker_ownership_*.inc` files left.
-- Current production `.inc` contract: **0 production `.inc` files / 0 LOC**
-  under `src`, excluding `src/tests/**/*.inc` fixtures. Former runtime,
+- Current `.inc` contract: **0 `.inc` files / 0 LOC** under `src`, including
+  test fixtures. Test case include fragments use `.cases.h`. Former runtime,
   codegen, compiler, and semantic production seams now live in named owner
   `.h` / `.c` files. Older bullets below remain as split history, not as the
   active target state.
@@ -223,8 +223,8 @@ Backend 진행:
 Semantic stop condition:
 - `src/semantic`에는 800 LOC 초과 `.inc`가 없다.
 - Stricter beta rule: behavior-owning `.inc` files are blockers, not beta+1 cleanup.
-  Generated tables, local macro tables, and private test fixtures are the only
-  acceptable long-term `.inc` use.
+  Generated tables and local macro tables must use named `.h` / `.c` owner
+  files, and test fragments must use `.cases.h`.
 - TU mixing rule: moving `.inc` code into `.c` must not create a new mega-TU.
   New semantic owner TUs should stay under 1,000 LOC. Existing oversized TUs are
   capped by `make semantic-tu-size-test-smoke` and must shrink by owner axis
@@ -303,7 +303,7 @@ Speed stop condition:
    - perf summary baseline을 release artifact에 첨부할 수 있게 자동화한다.
 
 3. v1 readiness phase:
-   - `.inc`는 generated table, local macro table, private test fixture 같은 제한 용도로만 남긴다.
+   - `src` tree 안에는 `.inc`를 남기지 않는다. generated table, local macro table, private test fixture는 named `.h` / `.c` owner 또는 `.cases.h` test fragment로 둔다.
    - 모든 core language axis는 owner module, internal header, regression matrix, docs entry를 가진다.
 
 ---

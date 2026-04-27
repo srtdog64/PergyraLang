@@ -776,7 +776,17 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_BLOCK:
-            printf("Block:\n");
+            if (node->data.block.is_pin_block) {
+                printf("Pin Block: %s as %s (%s)\n",
+                    node->data.block.pin_source_name != NULL
+                        ? node->data.block.pin_source_name : "<expr>",
+                    node->data.block.pin_view_name != NULL
+                        ? node->data.block.pin_view_name : "<view>",
+                    node->data.block.pin_view_is_write
+                        ? "WriteView" : "ReadView");
+            } else {
+                printf("Block:\n");
+            }
             for (size_t i = 0; i < node->data.block.count; i++) {
                 ast_print(node->data.block.statements[i], indent + 1);
             }

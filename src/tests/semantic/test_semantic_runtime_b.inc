@@ -1,5 +1,0 @@
-#include "test_semantic_runtime_b_part_a.inc"
-#include "test_semantic_runtime_b_part_b.inc"
-#include "test_semantic_runtime_b_part_c.inc"
-#include "test_semantic_runtime_b_part_d.inc"
-#include "test_semantic_runtime_b_part_e.inc"

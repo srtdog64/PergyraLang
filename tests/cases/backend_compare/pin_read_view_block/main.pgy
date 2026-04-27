@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    Write(scores, 42);
+
+    pin scores as view: ReadView<Int> {
+        let value: Int = Read(view);
+        Log(value);
+    }
+}

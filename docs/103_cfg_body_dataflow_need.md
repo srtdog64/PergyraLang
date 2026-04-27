@@ -1,6 +1,6 @@
 # CFG Body Dataflow Need
 
-Last updated: 2026-04-25
+Last updated: 2026-04-27
 
 This document fixes why CFG-backed body dataflow is a beta blocker for PergyraLang. It is not a new language axis and it does not widen the beta surface. It is the missing execution-proof layer for the surface that already exists.
 
@@ -77,6 +77,52 @@ Interprocedural summaries must be explicit:
 - `requires_zone`
 - `spawns_task`
 - `sends_channel`
+
+## Slot Borrow-Safety Bridge Facts
+
+`docs/semantics/08_slot_capability_calculus.md` deliberately states that Slot
+is not a borrow checker by itself. CFG body dataflow is the static bridge that
+can make a narrow borrow-checker-equivalent claim honest for the stable subset.
+
+The bridge is expressed through these facts:
+
+- `NoEscape(view, region)`: a `ReadView<T>`, `WriteView<T>`, or future
+  `PinnedView<T>` cannot be returned, stored into longer-lived state, captured
+  by a spawned task, or sent through a channel unless a stable ownership
+  transfer rule explicitly admits it.
+- `NoSuspend(view, region)`: a live view cannot cross `await`, `spawn`,
+  `async`, `parallel`, callback, channel handoff, or cancellation cleanup
+  boundaries.
+- `WriteExclusive(slot, region)`: while a `WriteView<T>` is active for a
+  source slot, no other read or write view of the same slot may be active.
+  Shared `ReadView<T>` / `ReadView<T>` remains accepted.
+- `DropOnce(owner, all_cfg_exits)`: owner cleanup must be inserted exactly once
+  on every normal and early-exit path that owns the resource.
+- `ReleaseAfterUnpin(slot, all_cfg_exits)`: a pinned slot can only be released
+  after all active views have been unpinned on every reachable exit.
+- `NoUnsupportedTokenTransport(token, boundary)`: authority-bearing tokens
+  cannot cross unsupported task/channel/cancellation boundaries.
+
+Current beta evidence covers the first stable slice:
+
+- `NoEscape`: `ReadView<T>` return escape reports `PGY_SEM_PIN_ESCAPE`;
+  borrowed subject spawn boundary reports `PGY_SEM_BORROW_ESCAPE`; token and
+  ownership-bearing channel/cancel transports are rejected.
+- `NoSuspend`: active `ReadView<T>` across `await`, `spawn`, `async` block,
+  event callback registration, channel handoff/close, cancellation cleanup,
+  `parallel`, and view acquisition inside `parallel` report `PGY_SEM_PIN_AWAIT_BOUNDARY` and
+  `PGY_SEM_PIN_PARALLEL_CONFLICT`.
+- `WriteExclusive`: `ViewWrite(...)` conflicts with any active view of the
+  same slot; `ViewRead(...)` conflicts with an active `WriteView<T>`; shared
+  `ReadView<T>` bindings remain accepted.
+
+Remaining bridge work:
+
+- block-scoped `pin slot as view { ... }` syntax, automatic CFG cleanup-edge
+  insertion, and C/LLVM lowering parity;
+- `DropOnce` and `ReleaseAfterUnpin` over the final block-scoped pin surface;
+- wider no-escape/no-suspend proof for closure/lambda captures and general
+  async task lifetimes.
 
 ## Diagnostics Contract
 
@@ -214,6 +260,12 @@ The migration should be incremental and gated:
   payload channels. Copy-only close remains stable; movable/anchored/subject/
   token channels must be drained through explicit receives until a
   cleanup/backpressure summary exists.
+- Done: Slot borrow-safety bridge facts are now named in this document and in
+  `docs/semantics/08_slot_capability_calculus.md`. Existing `ReadView(...)` /
+  `ViewWrite(...)` regressions cover the first `NoEscape`, `NoSuspend`
+  (`await`, direct `spawn`, `async` block, event callback registration, channel
+  send/receive/close, cancellation cleanup, and `parallel`), and
+  `WriteExclusive` slice without claiming full Rust-style borrow checking.
 - Done for the stable local-binding subset: `let` declarations require an
   initializer at parse time, and `PGY_SEM_UNINIT_LOCAL` remains as the semantic
   guard if an initializer-free local AST is constructed by another path.

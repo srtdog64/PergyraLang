@@ -984,6 +984,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_REMOTE);
+        if (semantic_reject_active_slot_view_boundary(expr, ctx,
+                "cancel cleanup boundary",
+                "cancel may trigger task cleanup on another execution frontier",
+                "move cancel")) {
+            return TYPE_UNKNOWN;
+        }
         Type *task_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_future_like(task_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],

@@ -541,6 +541,7 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
     const MIRInstruction *emit_inst = inst;
     MIRInstruction inst_copy;
     char *write_value_expr = NULL;
+    bool redirected_view_resource = false;
     const char *helper = cleanup_hook
         ? "pgy_mir_cleanup_op_export"
         : "pgy_mir_resource_op_export";
@@ -613,14 +614,61 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
         }
         bool needs_concrete_emit = (cleanup_hook && !is_claim_op)
             || (is_claim_op && !claim_already_materialized_by_stmt && !cleanup_hook);
+        if (!cleanup_hook
+            && ctx != NULL
+            && inst->name != NULL
+            && strcmp(inst->name, "Write") == 0
+            && inst->slot_anchor != NULL) {
+            TypedVarEntry *view_entry = lookup_typed_entry(ctx, inst->slot_anchor);
+            const char *view_source_slot = NULL;
+
+            if (view_entry != NULL
+                && view_entry->is_view
+                && view_entry->source_slot[0] != '\0') {
+                view_source_slot = view_entry->source_slot;
+            } else if (ctx->mir != NULL) {
+                for (size_t ri = 0; ri < ctx->mir->routine_count && view_source_slot == NULL; ri++) {
+                    const MIRRoutine *routine = &ctx->mir->routines[ri];
+                    for (size_t bi = 0; bi < routine->block_count && view_source_slot == NULL; bi++) {
+                        const MIRBasicBlock *block = &routine->blocks[bi];
+                        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                            const MIRInstruction *candidate = &block->instructions[ii];
+                            if (candidate == inst)
+                                break;
+                            if (candidate->kind == MIR_INST_RESOURCE_OP
+                                && candidate->name != NULL
+                                && (strcmp(candidate->name, "BorrowRead") == 0
+                                    || strcmp(candidate->name, "BorrowWrite") == 0)
+                                && candidate->arg1 != NULL
+                                && strcmp(candidate->arg1, inst->slot_anchor) == 0
+                                && candidate->arg0 != NULL) {
+                                view_source_slot = candidate->arg0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (view_source_slot != NULL && view_source_slot[0] != '\0') {
+                if (emit_inst != &inst_copy) {
+                    inst_copy = *emit_inst;
+                    emit_inst = &inst_copy;
+                }
+                inst_copy.slot_anchor = view_source_slot;
+                inst_copy.arg0 = view_source_slot;
+                inst_copy.type_layout = NULL;
+                redirected_view_resource = true;
+            }
+        }
         if (ctx != NULL && ctx->mir != NULL && !cleanup_hook) {
-            bool slot_is_secure = inst->slot_anchor != NULL
-                && lookup_slot_is_secure(ctx, inst->slot_anchor);
+            bool slot_is_secure = emit_inst->slot_anchor != NULL
+                && lookup_slot_is_secure(ctx, emit_inst->slot_anchor);
             if (is_claim_op
-                || (inst->name != NULL
-                    && (strcmp(inst->name, "Write") == 0
-                        || strcmp(inst->name, "Release") == 0
-                        || strcmp(inst->name, "Move") == 0)
+                || redirected_view_resource
+                || (emit_inst->name != NULL
+                    && (strcmp(emit_inst->name, "Write") == 0
+                        || strcmp(emit_inst->name, "Release") == 0
+                        || strcmp(emit_inst->name, "Move") == 0)
                     && !slot_is_secure)) {
                 needs_concrete_emit = true;
             }

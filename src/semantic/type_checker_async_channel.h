@@ -224,6 +224,13 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
 
     semantic_record_body_summary(ctx, BODY_SUMMARY_SPAWNS_TASK);
     semantic_record_effect(ctx, EFFECT_REMOTE);
+    if (semantic_reject_active_slot_view_boundary(expr, ctx,
+            "spawn suspension boundary",
+            "spawn may run after the current synchronous frame advances",
+            "move spawn")) {
+        Type *unknown_args[1] = { TYPE_UNKNOWN };
+        return type_create_constructed(TYPE_FUTURE, unknown_args, 1);
+    }
     if (semantic_reject_anonymous_async_spawn(expr, ctx)) {
         Type *unknown_args[1] = { TYPE_UNKNOWN };
         return type_create_constructed(TYPE_FUTURE, unknown_args, 1);
@@ -250,6 +257,12 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
 {
     semantic_record_body_summary(ctx, BODY_SUMMARY_SENDS_CHANNEL);
     semantic_record_effect(ctx, EFFECT_REMOTE);
+    if (semantic_reject_active_slot_view_boundary(expr, ctx,
+            "channel handoff boundary",
+            "channel send may hand the value to another execution frontier",
+            "move the channel send")) {
+        return TYPE_VOID;
+    }
     /* Check channel and value types */
     Type *channel_type = type_check_expression(expr->data.channel_send.channel, ctx);
     Type *value_type = type_check_expression(expr->data.channel_send.value, ctx);
@@ -380,6 +393,12 @@ Type *
 type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
 {
     semantic_record_effect(ctx, EFFECT_REMOTE);
+    if (semantic_reject_active_slot_view_boundary(expr, ctx,
+            "channel handoff boundary",
+            "channel receive may observe work from another execution frontier",
+            "move the channel receive")) {
+        return TYPE_UNKNOWN;
+    }
     Type *channel_type = type_check_expression(expr->data.channel_recv.channel, ctx);
     if (channel_type == NULL
         || channel_type->kind != TYPE_KIND_CONSTRUCTED

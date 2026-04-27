@@ -23,6 +23,10 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
         require_assignable(ret_type, ctx->current_return, node, ctx);
 
     if (node->data.return_stmt.value != NULL) {
+        if (semantic_reject_active_slot_owner_escape(
+                node->data.return_stmt.value, ctx, "return", "return")) {
+            return false;
+        }
         if (type_is_read_view(ret_type) || type_is_write_view(ret_type)) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_PIN_ESCAPE,

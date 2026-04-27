@@ -61,6 +61,13 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
 
     semantic_record_body_summary(ctx, BODY_SUMMARY_SENDS_CHANNEL);
     semantic_record_effect(ctx, EFFECT_REMOTE);
+    if (semantic_reject_active_slot_view_boundary(expr, ctx,
+            "channel handoff boundary",
+            "channel send may hand the value to another execution frontier",
+            "move the channel send")) {
+        return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                               : TYPE_BOOL;
+    }
     Type *element_type = channel_builtin_element_type(expr, 0, name, ctx);
     Type *value_type = type_check_expression(expr->data.call.arguments[1], ctx);
     OwnershipTypeClass element_ownership =
@@ -171,6 +178,12 @@ type_check_channel_recv_builtin(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
 
     semantic_record_effect(ctx, EFFECT_REMOTE);
+    if (semantic_reject_active_slot_view_boundary(expr, ctx,
+            "channel handoff boundary",
+            "channel receive may observe work from another execution frontier",
+            "move the channel receive")) {
+        return TYPE_UNKNOWN;
+    }
     Type *element_type = channel_builtin_element_type(expr, 0, name, ctx);
     if (has_timeout) {
         require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
@@ -192,6 +205,12 @@ type_check_channel_close_builtin(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
 
     semantic_record_effect(ctx, EFFECT_REMOTE);
+    if (semantic_reject_active_slot_view_boundary(expr, ctx,
+            "channel close boundary",
+            "channel close may discard or unblock work on another execution frontier",
+            "move channel close")) {
+        return TYPE_UNKNOWN;
+    }
     element_type = channel_builtin_element_type(expr, 0, "ChannelClose", ctx);
     if (element_type == TYPE_UNKNOWN)
         return TYPE_UNKNOWN;

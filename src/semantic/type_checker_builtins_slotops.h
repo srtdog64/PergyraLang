@@ -149,12 +149,28 @@ type_check_claim_device_slot(ASTNode *call, SemanticContext *ctx)
 }
 
 static Type *
+type_check_view_source_type(ASTNode *arg, SemanticContext *ctx)
+{
+    if (arg != NULL && arg->type == AST_IDENTIFIER
+        && arg->data.identifier.name != NULL) {
+        Symbol *sym = scope_lookup(ctx->scope, arg->data.identifier.name);
+        if (sym != NULL && sym->kind == SYMBOL_SLOT && sym->type != NULL) {
+            sym->is_used = true;
+            return sym->type;
+        }
+    }
+
+    return type_check_expression(arg, ctx);
+}
+
+static Type *
 type_check_view_read(ASTNode *call, SemanticContext *ctx)
 {
     if (!check_call_arity(call, 1, "ViewRead", ctx))
         return TYPE_UNKNOWN;
 
-    Type *slot_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *slot_type = type_check_view_source_type(
+        call->data.call.arguments[0], ctx);
     if (type_is_qubit(slot_type)) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_PIN_QUBIT_REJECT,
@@ -163,7 +179,7 @@ type_check_view_read(ASTNode *call, SemanticContext *ctx)
             call->data.call.arguments[0],
             "ViewRead cannot pin QubitSlot resources.\n"
             "Reason:\n"
-            "- QubitSlot has a movable quantum state machine, not a stable memory lease\n"
+            "- QubitSlot has a movable quantum state machine, not a stable resource-boundary lease\n"
             "- pinning it would bypass measurement/entanglement lifecycle checks\n"
             "Fix:\n"
             "- use the quantum operations directly\n"
@@ -187,7 +203,8 @@ type_check_view_write(ASTNode *call, SemanticContext *ctx)
     if (!check_call_arity(call, 1, "ViewWrite", ctx))
         return TYPE_UNKNOWN;
 
-    Type *slot_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *slot_type = type_check_view_source_type(
+        call->data.call.arguments[0], ctx);
     if (type_is_qubit(slot_type)) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_PIN_QUBIT_REJECT,
@@ -196,7 +213,7 @@ type_check_view_write(ASTNode *call, SemanticContext *ctx)
             call->data.call.arguments[0],
             "ViewWrite cannot pin QubitSlot resources.\n"
             "Reason:\n"
-            "- QubitSlot has a movable quantum state machine, not a stable memory lease\n"
+            "- QubitSlot has a movable quantum state machine, not a stable resource-boundary lease\n"
             "- pinning it would bypass measurement/entanglement lifecycle checks\n"
             "Fix:\n"
             "- use the quantum operations directly\n"
@@ -228,7 +245,7 @@ type_check_move_token(ASTNode *call, SemanticContext *ctx)
     }
 
     Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
-    Type *slot_type = type_check_expression(slot_arg, ctx);
+    Type *slot_type = sym != NULL ? sym->type : TYPE_UNKNOWN;
     if (!type_is_owned_slot_handle(slot_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
             "Move requires owning Slot<T>/SecureSlot<T>, got '%s'",
@@ -244,6 +261,29 @@ type_check_move_token(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED, PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, slot_arg,
             "Cannot move released slot '%s'",
             sym->name);
+        return TYPE_UNKNOWN;
+    }
+    const char *active_view_name = NULL;
+    const char *active_view_kind = NULL;
+    if (semantic_find_active_slot_view_for_source(ctx->scope, sym->name,
+            &active_view_name, &active_view_kind, NULL)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+            PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+            PGY_FIX_SERIALIZE_PIN_ACCESS,
+            slot_arg,
+            "Cannot move slot '%s' while %s '%s' is live.\n"
+            "Reason:\n"
+            "- pinned views are scoped capability leases over the source slot\n"
+            "- moving the owner while a view is live would invalidate cleanup and aliasing order\n"
+            "Fix:\n"
+            "- end the pin/view scope before Move(%s)\n"
+            "- or move ownership before acquiring '%s'",
+            sym->name,
+            active_view_kind != NULL ? active_view_kind : "view",
+            active_view_name != NULL ? active_view_name : "<view>",
+            sym->name,
+            active_view_name != NULL ? active_view_name : "<view>");
         return TYPE_UNKNOWN;
     }
 
@@ -264,6 +304,35 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     ASTNode *slot_arg = call->data.call.arguments[0];
+    if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
+        Symbol *target_sym = scope_lookup(ctx->scope,
+            slot_arg->data.identifier.name);
+        if (target_sym != NULL && target_sym->kind == SYMBOL_SLOT) {
+            const char *active_view_name = NULL;
+            const char *active_view_kind = NULL;
+            if (semantic_find_active_slot_view_for_source(ctx->scope,
+                    target_sym->name, &active_view_name, &active_view_kind,
+                    NULL)) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+                    PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+                    PGY_FIX_SERIALIZE_PIN_ACCESS,
+                    slot_arg,
+                    "Cannot write slot '%s' while %s '%s' is live.\n"
+                    "Reason:\n"
+                    "- pinned views are scoped capability leases over the source slot\n"
+                    "- owner writes during a live view would bypass the view's aliasing contract\n"
+                    "Fix:\n"
+                    "- write through the active view when it is a WriteView<T>\n"
+                    "- or end the pin/view scope before Write(%s, ...)",
+                    target_sym->name,
+                    active_view_kind != NULL ? active_view_kind : "view",
+                    active_view_name != NULL ? active_view_name : "<view>",
+                    target_sym->name);
+                return false;
+            }
+        }
+    }
     Type *slot_type = type_check_expression(slot_arg, ctx);
 
     if (type_is_constructed_named(slot_type, "RemoteFuture")) {
@@ -422,6 +491,29 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
                 return TYPE_UNKNOWN;
             }
 
+            const char *active_view_name = NULL;
+            bool active_is_write = false;
+            if (semantic_find_active_slot_view_for_source(ctx->scope, sym->name,
+                    &active_view_name, NULL, &active_is_write)
+                && active_is_write) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+                    PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+                    PGY_FIX_SERIALIZE_PIN_ACCESS,
+                    slot_arg,
+                    "Cannot read slot '%s' while WriteView '%s' is live.\n"
+                    "Reason:\n"
+                    "- WriteView<T> is the exclusive mutable view over the source slot\n"
+                    "- owner reads during a live write view would bypass the view's aliasing contract\n"
+                    "Fix:\n"
+                    "- end the write view scope before Read(%s)\n"
+                    "- or split the operation into a read-only view followed by a write view",
+                    sym->name,
+                    active_view_name != NULL ? active_view_name : "<view>",
+                    sym->name);
+                return TYPE_UNKNOWN;
+            }
+
             if (sym->slot_info.is_secure) {
                 if (arg_count < 2) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
@@ -511,6 +603,31 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     if (sym->slot_info.state == SLOT_STATE_RELEASED) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_SLOT_DOUBLE_RELEASE, PGY_CAUSE_RELEASE_DOUBLE, PGY_FIX_REMOVE_REDUNDANT_RELEASE, slot_arg,
             "Slot '%s' has already been released", slot_name);
+        return false;
+    }
+
+    const char *active_view_name = NULL;
+    const char *active_view_kind = NULL;
+    if (semantic_find_active_slot_view_for_source(ctx->scope, slot_name,
+            &active_view_name, &active_view_kind, NULL)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+            PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+            PGY_FIX_SERIALIZE_PIN_ACCESS,
+            slot_arg,
+            "Cannot release slot '%s' while %s '%s' is live.\n"
+            "Reason:\n"
+            "- pinned views are scoped capability leases over the source slot\n"
+            "- releasing the owner while a view is live would invalidate cleanup and aliasing order\n"
+            "Fix:\n"
+            "- end the pin/view scope before Release(%s)\n"
+            "- or move Release(%s) after the block that owns '%s'",
+            slot_name,
+            active_view_kind != NULL ? active_view_kind : "view",
+            active_view_name != NULL ? active_view_name : "<view>",
+            slot_name,
+            slot_name,
+            active_view_name != NULL ? active_view_name : "<view>");
         return false;
     }
 

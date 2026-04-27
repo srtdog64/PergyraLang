@@ -17,6 +17,20 @@ bool semantic_find_active_slot_view(Scope *scope,
                                     const char **view_name_out,
                                     const char **view_kind_out,
                                     const char **source_slot_out);
+bool semantic_find_active_slot_view_for_source(Scope *scope,
+                                               const char *source_slot,
+                                               const char **view_name_out,
+                                               const char **view_kind_out,
+                                               bool *is_write_view_out);
+bool semantic_reject_active_slot_owner_escape(ASTNode *site,
+                                              SemanticContext *ctx,
+                                              const char *escape_kind,
+                                              const char *escape_name);
+bool semantic_reject_active_slot_view_boundary(ASTNode *site,
+                                               SemanticContext *ctx,
+                                               const char *boundary_name,
+                                               const char *resume_detail,
+                                               const char *fix_action);
 bool type_is_general_boundary_type(const Type *type, SemanticContext *ctx);
 bool type_is_capability_bearing(const Type *type);
 bool type_is_subject_type(const Type *type, SemanticContext *ctx);
@@ -265,9 +279,16 @@ Type *semantic_type_resolution_lookup_resolved_type(SemanticContext *ctx,
                                                     ASTNode *type_node);
 Type *semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
                                                      ASTNode *type_node);
+Type *semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,
+                                                        ASTNode *type_node);
+Type *semantic_type_resolution_lookup_metadata_name_or_alias(SemanticContext *ctx,
+                                                            const char *name);
+void semantic_type_resolution_free_owned_type(Type *type);
 void semantic_type_resolution_free_metadata(SemanticContext *ctx);
 void semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx,
                                                                  ASTNode *type_node);
+void semantic_type_resolution_record_materializer_fallback(SemanticContext *ctx,
+                                                           ASTNode *type_node);
 void semantic_type_resolution_collect_generic_contract_inventory(
     GenericParams *gp,
     WhereClause *wc,
@@ -288,6 +309,10 @@ void semantic_type_resolution_precollect_required_abilities(
     const ASTNode *owner,
     const char *consumer_name,
     const char *reason);
+void semantic_type_resolution_precollect_body_type_refs(ASTNode *stmt,
+                                                        SemanticContext *ctx,
+                                                        const ASTNode *owner,
+                                                        const char *owner_name);
 void semantic_type_resolution_precollect_action_contract(ASTNode *method,
                                                          SemanticContext *ctx,
                                                          const char *fallback_name);
@@ -303,6 +328,11 @@ void semantic_type_resolution_precollect_roster_inventory(ASTNode *roster_decl,
                                                           SemanticContext *ctx);
 void semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                                                          SemanticContext *ctx);
+void semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
+                                                        SemanticContext *ctx);
+void semantic_type_resolution_precollect_zone_state_authority_inventory(
+    ASTNode *zone_decl,
+    SemanticContext *ctx);
 void semantic_type_resolution_precollect_zone_refresh_projection_map(
     ASTNode *zone_decl,
     ASTNode *refresh,
@@ -365,10 +395,35 @@ void semantic_type_resolution_precollect_event_inventory(ASTNode *event_decl,
                                                          SemanticContext *ctx);
 void semantic_type_resolution_precollect_enum_inventory(ASTNode *enum_decl,
                                                         SemanticContext *ctx);
+Type *semantic_stage_resolve_type_quiet(ASTNode *type_node,
+                                        SemanticContext *ctx,
+                                        const ASTNode *consumer_site,
+                                        const char *consumer_name,
+                                        const char *reason);
+ASTNode *semantic_stage_named_decl_quiet(SemanticContext *ctx,
+                                         ASTNodeType decl_type,
+                                         const char *provider_name);
+void semantic_stage_required_abilities(ASTNode **ability_refs,
+                                       size_t ability_count,
+                                       SemanticContext *ctx,
+                                       const ASTNode *owner,
+                                       const char *consumer_name,
+                                       const char *reason);
+void semantic_stage_generic_contract_nodes(GenericParams *gp,
+                                           WhereClause *wc,
+                                           SemanticContext *ctx,
+                                           ASTNode *owner,
+                                           const char *kind_name,
+                                           const char *owner_name);
+void semantic_stage_function_signature(ASTNode *func_decl,
+                                       SemanticContext *ctx,
+                                       const char *fallback_name);
 void semantic_stage_method_array(ASTNode **methods,
                                  size_t method_count,
                                  SemanticContext *ctx,
                                  const char *fallback_name);
+void semantic_stage_event_signature(ASTNode *event_decl,
+                                    SemanticContext *ctx);
 ASTNode *semantic_find_top_level_decl_by_label(ASTNode *program,
                                                const char *label,
                                                TypeResolutionNodeKind kind);

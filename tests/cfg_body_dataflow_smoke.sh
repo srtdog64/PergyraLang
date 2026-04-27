@@ -21,6 +21,7 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 doc_path = root / "docs" / "103_cfg_body_dataflow_need.md"
+slot_proof_path = root / "docs" / "semantics" / "08_slot_capability_calculus.md"
 checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
 todo_path = root / "TODO.md"
 board_path = root / "docs" / "70_beta_closure_master_board.md"
@@ -41,17 +42,17 @@ diag_path = root / "src" / "semantic" / "diag_codes.h"
 diag_doc_path = root / "docs" / "72_diagnostic_codes.md"
 parser_path = root / "src" / "parser" / "parser.c"
 let_path = root / "src" / "semantic" / "type_checker_ownership_let.c"
-semantic_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a.inc"
-semantic_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_a.inc"
-semantic_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_b.inc"
-semantic_async_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_async.inc"
-semantic_effect_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_effects.inc"
-semantic_effect_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_effects_part_a.inc"
-semantic_effect_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_effects_part_b.inc"
-semantic_parallel_context_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_parallel_context.inc"
+semantic_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_a.cases.h"
+semantic_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_b.cases.h"
+semantic_async_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_async_part_a.cases.h"
+semantic_async_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_async_part_b.cases.h"
+semantic_effect_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_effects_part_a.cases.h"
+semantic_effect_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_effects_part_b.cases.h"
+semantic_parallel_context_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_parallel_context.cases.h"
 
 for path in (
     doc_path,
+    slot_proof_path,
     checklist_path,
     todo_path,
     board_path,
@@ -72,11 +73,10 @@ for path in (
     diag_doc_path,
     parser_path,
     let_path,
-    semantic_tests_path,
     semantic_tests_part_a_path,
     semantic_tests_part_b_path,
-    semantic_async_tests_path,
-    semantic_effect_tests_path,
+    semantic_async_tests_part_a_path,
+    semantic_async_tests_part_b_path,
     semantic_effect_tests_part_a_path,
     semantic_effect_tests_part_b_path,
     semantic_parallel_context_tests_path,
@@ -85,6 +85,7 @@ for path in (
         raise SystemExit(f"missing required cfg/body dataflow document: {path.relative_to(root)}")
 
 doc = doc_path.read_text(encoding="utf-8")
+slot_proof = slot_proof_path.read_text(encoding="utf-8")
 checklist = checklist_path.read_text(encoding="utf-8")
 todo = todo_path.read_text(encoding="utf-8")
 board = board_path.read_text(encoding="utf-8")
@@ -118,15 +119,13 @@ diag_doc = diag_doc_path.read_text(encoding="utf-8")
 parser = parser_path.read_text(encoding="utf-8")
 let_checker = let_path.read_text(encoding="utf-8")
 semantic_tests = (
-    semantic_tests_path.read_text(encoding="utf-8")
-    + "\n"
-    + semantic_tests_part_a_path.read_text(encoding="utf-8")
+    semantic_tests_part_a_path.read_text(encoding="utf-8")
     + "\n"
     + semantic_tests_part_b_path.read_text(encoding="utf-8")
     + "\n"
-    + semantic_async_tests_path.read_text(encoding="utf-8")
+    + semantic_async_tests_part_a_path.read_text(encoding="utf-8")
     + "\n"
-    + semantic_effect_tests_path.read_text(encoding="utf-8")
+    + semantic_async_tests_part_b_path.read_text(encoding="utf-8")
     + "\n"
     + semantic_effect_tests_part_a_path.read_text(encoding="utf-8")
     + "\n"
@@ -151,6 +150,16 @@ required_doc_terms = [
     "Implementation Skeleton",
     "Completion Criteria",
     "PGY_SEM_UNINIT_LOCAL",
+    "Slot Borrow-Safety Bridge Facts",
+    "NoEscape(view, region)",
+    "NoSuspend(view, region)",
+    "WriteExclusive(slot, region)",
+    "DropOnce(owner, all_cfg_exits)",
+    "ReleaseAfterUnpin(slot, all_cfg_exits)",
+    "NoUnsupportedTokenTransport(token, boundary)",
+    "PGY_SEM_PIN_ESCAPE",
+    "PGY_SEM_PIN_AWAIT_BOUNDARY",
+    "PGY_SEM_PIN_PARALLEL_CONFLICT",
 ]
 
 missing = [term for term in required_doc_terms if term not in doc]
@@ -167,6 +176,18 @@ if "Function CFG And Body Dataflow Source Of Truth" not in report:
     raise SystemExit("readiness report must track CFG/body source-of-truth blocker")
 if "make cfg-body-dataflow-test-smoke" not in checklist:
     raise SystemExit("checklist must include cfg-body-dataflow-test-smoke")
+if "Bridge Obligation: Borrow-Checker-Equivalent Safety" not in slot_proof:
+    raise SystemExit("slot proof pack must name the borrow-checker-equivalent bridge")
+for term in [
+    "NoEscape(view, region)",
+    "NoSuspend(view, region)",
+    "WriteExclusive(slot, region)",
+    "DropOnce(owner, all_cfg_exits)",
+    "ReleaseAfterUnpin(slot, all_cfg_exits)",
+    "NoUnsupportedTokenTransport(token, boundary)",
+]:
+    if term not in slot_proof:
+        raise SystemExit(f"slot proof pack missing CFG bridge fact {term}")
 
 required_flow_terms = [
     "FLOW_FALLTHROUGH",
@@ -270,8 +291,10 @@ for term in [
     "CFG spawn rejects anonymous async body until capture lifetime is closed",
     "CFG parallel channel send consumes resource after join",
     "CFG parallel channel sends reject double resource consume",
+    "channel send with active ReadView uses pin boundary diagnostic",
     "channel send rejects authority Token payload",
     "TryRecv rejects movable resource channel payloads",
+    "TryRecv with active ReadView uses pin boundary diagnostic",
     "RecvTimeout rejects movable resource channel payloads",
     "TryRecv rejects anchored slot-handle channel payloads",
     "RecvTimeout rejects boundary-value channel payloads",
@@ -280,12 +303,15 @@ for term in [
     "TrySendStatus rejects authority Token channel payloads",
     "SendTimeoutStatus rejects authority Token channel payloads",
     "Cancel rejects movable resource Future payloads",
+    "Cancel with active ReadView uses pin boundary diagnostic",
     "Cancel rejects anchored slot-handle Future payloads",
     "Cancel rejects boundary-value Future payloads",
     "Cancel rejects authority Token Future payloads",
     "ChannelClose(Channel<Int>) returns Void",
+    "ChannelClose with active ReadView uses pin boundary diagnostic",
     "ChannelClose rejects movable resource channel payloads",
     "ChannelClose rejects authority Token channel payloads",
+    "TrySend with active ReadView uses pin boundary diagnostic",
     "function body summary records param boundary modes",
     "function call propagates callee body summary",
     "direct function call records callable declaration boundary summary",
@@ -293,6 +319,16 @@ for term in [
     "lambda body summary stays on lambda type",
     "lambda body summary does not leak to enclosing function",
     "lambda call propagates lambda body summary",
+    "ReadView return escape uses pin escape diagnostic",
+    "await with active ReadView uses pin await diagnostic",
+    "spawn with active ReadView uses pin boundary diagnostic",
+    "async block with active ReadView uses pin boundary diagnostic",
+    "parallel with active ReadView uses pin conflict diagnostic",
+    "ViewRead inside parallel task is rejected by pin conflict diagnostic",
+    "ViewRead rejects QubitSlot with pin qubit diagnostic",
+    "WriteView requires exclusive slot view access",
+    "ReadView after WriteView is rejected by exclusive view gate",
+    "multiple ReadView bindings are accepted",
 ]:
     if term not in semantic_tests:
         raise SystemExit(f"semantic regression must cover {term}")

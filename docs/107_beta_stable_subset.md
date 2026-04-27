@@ -82,6 +82,9 @@ Explicit reject:
 
 Stable:
 
+- Slot is the stable source-level modular resource boundary. Source code
+  observes Slot contracts, not backend pointer/address ownership; the backend
+  handle below the Slot boundary is replaceable.
 - Classifier-backed `own/ref` over copy values, boundary-visible aggregates,
   movable resources, anchored handles, `Slot<T>`, `SecureSlot<T>`,
   `DeviceSlot<T>`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`, and stable

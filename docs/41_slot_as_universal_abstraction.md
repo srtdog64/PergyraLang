@@ -6,6 +6,37 @@
 
 ---
 
+## 0. 베타 기준 Thesis — 주소 소유권이 아니라 모듈형 자원 경계
+
+Pergyra의 목표는 Rust처럼 메모리를 **주소/참조/lifetime 소유권**으로
+사용자에게 직접 노출하는 것이 아니다. 같은 메모리 문제를 더 높은 층에서
+**모듈화된 자원 경계** 문제로 푼다.
+
+```text
+Pergyra does not expose memory as address ownership.
+Pergyra exposes memory as a modular resource boundary.
+A Slot is the stable language-level boundary; the backend handle below it is replaceable.
+```
+
+즉 `Slot<T>`는 "안전한 포인터"가 아니라, 하위 주소/핸들/버퍼/원격 자원
+identity를 언어 의미론에서 숨기는 경계다. backend는 필요에 따라 C pointer,
+arena index, generational handle, GPU buffer id, file/device handle, DB row
+handle, remote world handle로 갈아끼울 수 있어야 한다. 사용자 코드는 그 하위
+표현을 믿지 않고 Slot contract를 믿는다.
+
+이 관점에서 Slot은 다음 네 가지를 합친다.
+
+```text
+Slot = address abstraction + ownership boundary + capability gate + replaceable backend handle
+```
+
+따라서 Slot은 Rust borrow checker와 경쟁하는 층이 아니다. Slot은 다익스트라식
+structured boundary를 언어의 가장 낮은 공통 자원 경계로 만든다. 정적 분석은
+그 경계를 증명 가능한 구간에서 닫고, 불명확한 구간은 보수적으로 거절하며,
+하위 runtime은 generation/token/pin-state로 fail-safe를 제공한다.
+
+---
+
 ## 1. 현재 상태 — Slot이 표면에만 있다
 
 ```
@@ -78,7 +109,7 @@ RIR 연산의 기본 단위가 slot이 되어야 한다:
 
 ### 3.2 Lattice — Slot 상태 추적
 
-slot의 생명주기를 lattice로 정적 분석:
+slot의 자원 경계 상태를 lattice로 정적 분석:
 
 ```
 Slot State Lattice:

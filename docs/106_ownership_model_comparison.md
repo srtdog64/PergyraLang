@@ -9,6 +9,7 @@ Related documents:
 - `docs/104_air_compiler_architecture.md`
 - `docs/114_async_model_positioning.md` — sister positioning doc for concurrency
 - `docs/117_backend_strategy_positioning.md` — sister positioning doc for backend strategy
+- `docs/118_slot_model_rigor_audit.md` — sister audit doc; Slot vs borrow-check rigor and marketing-language guide
 - `docs/semantics/04_ownership_abi.md`
 
 ## 1. Purpose
@@ -44,6 +45,16 @@ Current Pergyra position is intentionally mixed:
 
 If Option C below is implemented, the target moves roughly to memory 85 percent
 and resource 90 percent without importing lifetime annotations.
+
+Slot positioning:
+
+- Pergyra does not expose memory as address ownership.
+- Pergyra exposes memory as a modular resource boundary.
+- A Slot is the stable language-level boundary; the backend handle below it is
+  replaceable.
+- This keeps the same source meaning when the lower representation is a C
+  pointer, arena index, generational handle, device buffer id, file handle,
+  database row handle, or remote-world handle.
 
 Beta lifetime policy:
 

@@ -202,7 +202,7 @@ strict beta-quality closure target:
 
 - [type_checker.c](/mnt/e/PergyraLang/src/semantic/type_checker.c)
 - [type_checker_helpers.inc](/mnt/e/PergyraLang/src/semantic/type_checker_helpers.inc)
-- [test_semantic_misc.inc](/mnt/e/PergyraLang/src/tests/semantic/test_semantic_misc.inc)
+- [test_semantic_misc_*_part_*.cases.h](/mnt/e/PergyraLang/src/tests/semantic/test_semantic_misc_*_part_*.cases.h)
 
 ### 2.7 `requires` generic ability reference
 

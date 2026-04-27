@@ -1,6 +1,6 @@
 # Pergyra Formal Semantics and Proof Obligations
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 Status: `index`
 
@@ -17,6 +17,10 @@ The mathematical proof source of truth has moved into the proof pack folder:
 - [docs/semantics/07_air_abstraction_safety.md](semantics/07_air_abstraction_safety.md)
 - [docs/semantics/08_slot_capability_calculus.md](semantics/08_slot_capability_calculus.md)
 - [docs/semantics/proofs/SlotCalculus.v](semantics/proofs/SlotCalculus.v)
+
+Related rigor audits:
+
+- [docs/118_slot_model_rigor_audit.md](118_slot_model_rigor_audit.md)
 
 This file remains as a stable English index for older references from the beta board and TODO.
 

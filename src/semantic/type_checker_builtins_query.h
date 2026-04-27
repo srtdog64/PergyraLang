@@ -121,6 +121,13 @@ reject_borrowed_boundary_container_store(ASTNode *value_expr,
     const char *borrowed_root_name =
         builtin_borrowed_boundary_root_name(value_expr, ctx);
 
+    if (semantic_reject_active_slot_owner_escape(
+            value_expr, ctx,
+            container_kind != NULL ? container_kind : "container",
+            container_name != NULL ? container_name : "<container store>")) {
+        return;
+    }
+
     if (value_expr == NULL || ctx == NULL
         || borrowed_root_name == NULL) {
         return;

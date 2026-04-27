@@ -151,7 +151,7 @@ semantic_analyze(ASTNode *ast)
     /* Pass 1 + 2: Symbol collection and type checking */
     type_check_program(ast, ctx);
 
-    /* Pass 3: Slot lifetime analysis */
+    /* Pass 3: Slot resource-boundary analysis */
     if (!ctx->has_error) {
         SlotAnalyzer *sa = slot_analyzer_create(ctx);
         if (sa != NULL) {

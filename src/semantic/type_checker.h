@@ -333,7 +333,9 @@ Type* type_check_assignment(ASTNode* expr, SemanticContext* ctx);
  * Resource-handle checkers (Pergyra core rules)
  *
  * Today the first concrete anchored resource family is Slot<T>/SecureSlot<T>.
- * Additional resource families can grow on top of the same ownership model.
+ * Slot is the source-level modular resource boundary: callers observe the
+ * Slot contract, not backend pointer/address ownership. Additional resource
+ * families can grow on top of the same boundary model.
  * ----------------------------------------------------------------- */
 
 /*

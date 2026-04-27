@@ -1,0 +1,17 @@
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    Write(scores, 42);
+
+    pin scores as view: ReadView<Int> {
+        let value: Int = Read(view);
+        Log(value);
+    }
+
+    let secureScores: SecureSlot<Int> = ClaimSecureSlot();
+    Write(secureScores, 99, secureScores_token);
+
+    pin secureScores as secureView: ReadView<Int> {
+        let secureValue: Int = Read(secureView);
+        Log(secureValue);
+    }
+}

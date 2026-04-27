@@ -11,6 +11,8 @@
 #include "../runtime/pgy_abi_spec.h"
 
 #include "mir_base_helpers.h"
+#include "mir_cleanup.h"
+#include "mir_intent.h"
 #include "mir_type_helpers.h"
 
 static void mir_clear_block_name_set(const char ***names, size_t *count);
@@ -148,46 +150,6 @@ mir_copy_phi_nodes(MIRSourcePhiNode **dst, size_t *dst_count,
 }
 
 static bool
-mir_add_cleanup_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIROp *op)
-{
-    MIRInstruction inst;
-    memset(&inst, 0, sizeof(inst));
-    inst.id = routine->instruction_count++;
-    inst.kind = MIR_INST_CLEANUP_EDGE;
-    inst.name = rir_op_kind_name(op->kind);
-    inst.slot_anchor = op->slot_anchor;
-    inst.arg0 = op->subject;
-    inst.arg1 = op->arg0;
-    inst.rir_op = op;
-    inst.ast = op->ast;
-    routine->cleanup_instruction_count++;
-    return append_instruction(block, inst);
-}
-
-static bool
-mir_add_rollback_invalidation(MIRRoutine *routine, MIRBasicBlock *cleanup, const RIRScope *rir_scope)
-{
-    if (routine == NULL || cleanup == NULL || rir_scope == NULL)
-        return false;
-    for (size_t i = 0; i < rir_scope->fact_count; i++) {
-        const RIRFact *fact = &rir_scope->facts[i];
-        MIRInstruction inst;
-        if (fact->kind != RIR_FACT_INTENT_POLICY || fact->name == NULL || strcmp(fact->name, "rollback") != 0)
-            continue;
-        memset(&inst, 0, sizeof(inst));
-        inst.id = routine->instruction_count++;
-        inst.kind = MIR_INST_CLEANUP_EDGE;
-        inst.name = "RollbackPolicy";
-        inst.slot_anchor = fact->slot_anchor;
-        inst.arg0 = fact->arg0;
-        if (!append_instruction(cleanup, inst))
-            return false;
-        routine->cleanup_instruction_count++;
-    }
-    return true;
-}
-
-static bool
 mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIROp *op)
 {
     MIRInstruction inst;
@@ -211,380 +173,6 @@ mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RI
     inst.type_layout = mir_abi_lookup(abi_type_name);
     free(claim_type_name);
     return append_instruction(block, inst);
-}
-
-static bool
-mir_intent_ast_needs_invalidation(const HIRRoutine *hir_routine)
-{
-    ASTNode *intent;
-    if (hir_routine == NULL || hir_routine->ast == NULL || hir_routine->ast->type != AST_INTENT_DECL)
-        return false;
-    intent = hir_routine->ast;
-    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent->data.intent_decl.steps[i];
-        if (step == NULL || step->type != AST_INTENT_STEP)
-            continue;
-        if (step->data.intent_step.using_expr != NULL
-            || step->data.intent_step.transfer_from_alias != NULL
-            || step->data.intent_step.transfer_to_alias != NULL) {
-            return true;
-        }
-    }
-    return false;
-}
-
-static bool
-mir_append_intent_invalidation_markers(MIRRoutine *routine, MIRBasicBlock *block)
-{
-    if (routine == NULL || block == NULL)
-        return false;
-
-    for (size_t bi = 0; bi < routine->block_count; bi++) {
-        const MIRBasicBlock *src_block = &routine->blocks[bi];
-        if (src_block->is_cleanup || !src_block->is_reachable)
-            continue;
-        for (size_t ii = 0; ii < src_block->instruction_count; ii++) {
-            const MIRInstruction *src = &src_block->instructions[ii];
-            MIRInstruction inst;
-
-            if (src->kind != MIR_INST_STMT)
-                continue;
-            if (src->name == NULL || strcmp(src->name, "IntentInvalidationTarget") != 0)
-                continue;
-            if (src->arg0 == NULL)
-                continue;
-
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_CLEANUP_EDGE;
-            inst.name = "DetachInvalidation";
-            inst.slot_anchor = src->arg0;
-            inst.arg0 = src->arg0;
-            inst.arg1 = src->arg1;
-            inst.ast = src->ast;
-            if (!append_instruction(block, inst))
-                return false;
-            routine->cleanup_instruction_count++;
-        }
-    }
-
-    return true;
-}
-
-static bool
-mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
-{
-    ASTNode *intent;
-
-    if (routine == NULL || block == NULL || routine->hir_routine == NULL)
-        return false;
-    if (routine->hir_routine->ast == NULL || routine->hir_routine->ast->type != AST_INTENT_DECL)
-        return true;
-
-    intent = routine->hir_routine->ast;
-    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent->data.intent_decl.involves[i];
-        MIRInstruction inst;
-        const char *alias = NULL;
-        const char *type_name = NULL;
-
-        if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
-            continue;
-        alias = involves->data.intent_involves.alias;
-        if (involves->data.intent_involves.subject_type != NULL
-            && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-            type_name = involves->data.intent_involves.subject_type->data.type.name;
-        }
-        if (alias == NULL || type_name == NULL)
-            continue;
-
-        memset(&inst, 0, sizeof(inst));
-        inst.id = routine->instruction_count++;
-        inst.kind = MIR_INST_STMT;
-        inst.name = "IntentParticipant";
-        inst.slot_anchor = routine->name;
-        inst.arg0 = alias;
-        inst.arg1 = type_name;
-        inst.ast = involves;
-        if (!append_instruction(block, inst))
-            return false;
-    }
-
-    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent->data.intent_decl.steps[i];
-        MIRInstruction inst;
-
-        if (step == NULL || step->type != AST_INTENT_STEP)
-            continue;
-
-        memset(&inst, 0, sizeof(inst));
-        inst.id = routine->instruction_count++;
-        inst.kind = MIR_INST_STMT;
-        inst.name = step->data.intent_step.name != NULL
-            ? step->data.intent_step.name
-            : "intent.step";
-        inst.ast = step;
-        if (!append_instruction(block, inst))
-            return false;
-
-        memset(&inst, 0, sizeof(inst));
-        inst.id = routine->instruction_count++;
-        inst.kind = MIR_INST_STMT;
-        inst.name = "IntentStep";
-        inst.slot_anchor = step->data.intent_step.name;
-        inst.arg0 = step->data.intent_step.name != NULL
-            ? step->data.intent_step.name
-            : "intent.step";
-        inst.ast = step;
-        if (!append_instruction(block, inst))
-            return false;
-
-        if (step->data.intent_step.where_type != NULL
-            && step->data.intent_step.where_type->type == AST_TYPE
-            && step->data.intent_step.where_type->data.type.name != NULL) {
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentZoneWhere";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = step->data.intent_step.where_type->data.type.name;
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-
-        {
-            const char *effective_zone_alias = NULL;
-            if (step->data.intent_step.using_expr != NULL
-                && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
-                effective_zone_alias = step->data.intent_step.using_expr->data.identifier.name;
-            } else if (step->data.intent_step.transfer_to_alias != NULL) {
-                effective_zone_alias = step->data.intent_step.transfer_to_alias;
-            }
-            if (effective_zone_alias != NULL) {
-                memset(&inst, 0, sizeof(inst));
-                inst.id = routine->instruction_count++;
-                inst.kind = MIR_INST_STMT;
-                inst.name = "IntentZoneAlias";
-                inst.slot_anchor = step->data.intent_step.name;
-                inst.arg0 = effective_zone_alias;
-                inst.arg1 = step->data.intent_step.name;
-                inst.ast = step;
-                if (!append_instruction(block, inst))
-                    return false;
-            }
-        }
-
-        {
-            const char *invalidation_target = NULL;
-            if (step->data.intent_step.using_expr != NULL)
-                invalidation_target = mir_node_name(step->data.intent_step.using_expr);
-            else if (step->data.intent_step.transfer_to_alias != NULL)
-                invalidation_target = step->data.intent_step.transfer_to_alias;
-            else if (step->data.intent_step.transfer_from_alias != NULL)
-                invalidation_target = step->data.intent_step.transfer_from_alias;
-            if (invalidation_target != NULL) {
-                memset(&inst, 0, sizeof(inst));
-                inst.id = routine->instruction_count++;
-                inst.kind = MIR_INST_STMT;
-                inst.name = "IntentInvalidationTarget";
-                inst.slot_anchor = step->data.intent_step.name;
-                inst.arg0 = invalidation_target;
-                inst.arg1 = step->data.intent_step.name;
-                inst.ast = step;
-                if (!append_instruction(block, inst))
-                    return false;
-            }
-        }
-
-        if (step->data.intent_step.transfer_from_alias != NULL) {
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentZoneFrom";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = step->data.intent_step.transfer_from_alias;
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-
-        for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
-            if (step->data.intent_step.who_names[j] == NULL)
-                continue;
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentWho";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = step->data.intent_step.who_names[j];
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-
-        for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {
-            if (step->data.intent_step.authorized_by[j] == NULL)
-                continue;
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentAuthorizedBy";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = step->data.intent_step.authorized_by[j];
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-
-        if (step->data.intent_step.causes_effect != NULL) {
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentCauses";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = step->data.intent_step.causes_effect;
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-
-        if (step->data.intent_step.pre_expr != NULL) {
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentCheck";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = "pre";
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step->data.intent_step.pre_expr;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-        if (step->data.intent_step.invariant_expr != NULL) {
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentCheck";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = "invariant-pre";
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step->data.intent_step.invariant_expr;
-            if (!append_instruction(block, inst))
-                return false;
-
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentCheck";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = "invariant-post";
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step->data.intent_step.invariant_expr;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-        if (step->data.intent_step.guard_expr != NULL) {
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentCheck";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = "guard";
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step->data.intent_step.guard_expr;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-        if (step->data.intent_step.expect_expr != NULL) {
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentCheck";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = "expect";
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step->data.intent_step.expect_expr;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-        if (step->data.intent_step.post_expr != NULL) {
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentCheck";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = "post";
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step->data.intent_step.post_expr;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-        for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
-            if (step->data.intent_step.on_exprs[j] == NULL)
-                continue;
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentEval";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = "on";
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step->data.intent_step.on_exprs[j];
-            if (!append_instruction(block, inst))
-                return false;
-        }
-        if (step->data.intent_step.intent_expr != NULL) {
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentEval";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = "intent";
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step->data.intent_step.intent_expr;
-            if (!append_instruction(block, inst))
-                return false;
-        }
-        if (step->data.intent_step.on_expr_count == 0
-            && step->data.intent_step.intent_expr == NULL) {
-            for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
-                if (step->data.intent_step.who_names[j] == NULL)
-                    continue;
-                memset(&inst, 0, sizeof(inst));
-                inst.id = routine->instruction_count++;
-                inst.kind = MIR_INST_STMT;
-                inst.name = "IntentDispatch";
-                inst.slot_anchor = step->data.intent_step.name;
-                inst.arg0 = step->data.intent_step.who_names[j];
-                inst.arg1 = step->data.intent_step.name;
-                inst.ast = step;
-                if (!append_instruction(block, inst))
-                    return false;
-            }
-        }
-        for (size_t j = 0; j < step->data.intent_step.compensate_expr_count; j++) {
-            if (step->data.intent_step.compensate_exprs[j] == NULL)
-                continue;
-            memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
-            inst.kind = MIR_INST_STMT;
-            inst.name = "IntentEval";
-            inst.slot_anchor = step->data.intent_step.name;
-            inst.arg0 = "compensate";
-            inst.arg1 = step->data.intent_step.name;
-            inst.ast = step->data.intent_step.compensate_exprs[j];
-            if (!append_instruction(block, inst))
-                return false;
-        }
-    }
-
-    return true;
 }
 
 static bool
@@ -1920,121 +1508,6 @@ mir_validate_instruction_uses(const MIRRoutine *routine,
     return true;
 }
 
-static bool
-mir_materialize_cleanup_edges(MIRRoutine *routine)
-{
-    if (routine == NULL || !routine->has_cleanup_block)
-        return true;
-    for (size_t i = 0; i < routine->block_count; i++) {
-        MIRBasicBlock *block = &routine->blocks[i];
-        /* Skip cleanup/rollback/invalidation blocks themselves and unreachable blocks */
-        if (block->is_cleanup
-            || !block->is_reachable)
-            continue;
-        /* All reachable non-cleanup blocks get a cleanup edge to the cleanup block */
-        block->cleanup_succ = routine->cleanup_block;
-        block->has_cleanup_succ = true;
-        routine->cleanup_edge_count++;
-        if (!append_instruction(block,
-                                (MIRInstruction){
-                                    .id = routine->instruction_count++,
-                                    .kind = MIR_INST_CLEANUP_EDGE,
-                                    .name = "cleanup-edge",
-                                    .slot_anchor = "cleanup",
-                                    .arg0 = "cleanup",
-                                    .arg1 = NULL,
-                                    .ast = NULL,
-                                })) {
-            return false;
-        }
-        if (!append_index_unique(&routine->blocks[routine->cleanup_block].predecessors,
-                                 &routine->blocks[routine->cleanup_block].predecessor_count,
-                                 i)) {
-            return false;
-        }
-    }
-    /* Rollback block gets cleanup edge pointing to cleanup block */
-    if (routine->has_rollback_block) {
-        MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
-        MIRBasicBlock *rollback = &routine->blocks[routine->rollback_block];
-        size_t rollback_cleanup_target = routine->has_invalidation_block
-            ? routine->invalidation_block
-            : routine->cleanup_block;
-        cleanup->rollback_succ = routine->rollback_block;
-        cleanup->has_rollback_succ = true;
-        if (!append_index_unique(&rollback->predecessors,
-                                 &rollback->predecessor_count,
-                                 cleanup->id)) {
-            return false;
-        }
-        /* Rollback block also needs cleanup edge back to cleanup block */
-        rollback->cleanup_succ = rollback_cleanup_target;
-        rollback->has_cleanup_succ = true;
-        routine->cleanup_edge_count++;
-        if (!append_instruction(rollback,
-                                (MIRInstruction){
-                                    .id = routine->instruction_count++,
-                                    .kind = MIR_INST_CLEANUP_EDGE,
-                                    .name = "cleanup-edge-from-rollback",
-                                    .slot_anchor = "cleanup",
-                                    .arg0 = "cleanup",
-                                    .arg1 = NULL,
-                                    .ast = NULL,
-                                })) {
-            return false;
-        }
-        if (!append_index_unique(&routine->blocks[rollback_cleanup_target].predecessors,
-                                 &routine->blocks[rollback_cleanup_target].predecessor_count,
-                                 routine->rollback_block)) {
-            return false;
-        }
-    }
-    if (routine->has_invalidation_block) {
-        MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
-        MIRBasicBlock *invalidation = &routine->blocks[routine->invalidation_block];
-        cleanup->invalidation_succ = routine->invalidation_block;
-        cleanup->has_invalidation_succ = true;
-        if (!append_index_unique(&invalidation->predecessors,
-                                 &invalidation->predecessor_count,
-                                 cleanup->id)) {
-            return false;
-        }
-        /* Invalidation block also needs cleanup edge back to cleanup block */
-        invalidation->cleanup_succ = routine->cleanup_block;
-        invalidation->has_cleanup_succ = true;
-        routine->cleanup_edge_count++;
-        if (!append_instruction(invalidation,
-                                (MIRInstruction){
-                                    .id = routine->instruction_count++,
-                                    .kind = MIR_INST_CLEANUP_EDGE,
-                                    .name = "cleanup-edge-from-invalidation",
-                                    .slot_anchor = "cleanup",
-                                    .arg0 = "cleanup",
-                                    .arg1 = NULL,
-                                    .ast = NULL,
-                                })) {
-            return false;
-        }
-        if (!append_index_unique(&cleanup->predecessors,
-                                 &cleanup->predecessor_count,
-                                 routine->invalidation_block)) {
-            return false;
-        }
-    }
-    if (routine->has_rollback_block && routine->has_invalidation_block) {
-        MIRBasicBlock *rollback = &routine->blocks[routine->rollback_block];
-        MIRBasicBlock *invalidation = &routine->blocks[routine->invalidation_block];
-        rollback->invalidation_succ = invalidation->id;
-        rollback->has_invalidation_succ = true;
-        if (!append_index_unique(&invalidation->predecessors,
-                                 &invalidation->predecessor_count,
-                                 rollback->id)) {
-            return false;
-        }
-    }
-    return true;
-}
-
 /* ---------------------------------------------------------------------------
  * mir_populate_stmt_instructions
  *
@@ -2124,6 +1597,36 @@ mir_routine_has_def_for_name(const MIRRoutine *routine, const char *base_name)
     }
 
     return false;
+}
+
+static void
+mir_consume_matching_def_instruction(MIRInstruction *old_insts,
+                                     size_t old_count,
+                                     size_t *def_cursor,
+                                     bool *copied_flags,
+                                     const char *base_name)
+{
+    if (old_insts == NULL || def_cursor == NULL || copied_flags == NULL
+        || base_name == NULL) {
+        return;
+    }
+
+    while (*def_cursor < old_count) {
+        MIRInstruction *inst = &old_insts[*def_cursor];
+        const char *def_name;
+
+        if (inst->kind != MIR_INST_DEF) {
+            (*def_cursor)++;
+            continue;
+        }
+
+        def_name = inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor;
+        if (def_name != NULL && strcmp(def_name, base_name) == 0) {
+            copied_flags[*def_cursor] = true;
+            (*def_cursor)++;
+        }
+        return;
+    }
 }
 
 /* Check if a statement is control flow that the HIR has already lowered into
@@ -2238,6 +1741,11 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                                                           block->source_statement_count,
                                                           s,
                                                           stmt)) {
+                mir_consume_matching_def_instruction(old_insts,
+                                                     old_count,
+                                                     &def_cursor,
+                                                     copied_flags,
+                                                     mir_stmt_def_name(stmt));
                 MIRInstruction inst;
                 memset(&inst, 0, sizeof(inst));
                 inst.id = routine->instruction_count++;
@@ -2250,6 +1758,11 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             if (stmt != NULL
                 && stmt->type == AST_LET_DECL
                 && mir_let_decl_requires_stmt_preservation(stmt)) {
+                mir_consume_matching_def_instruction(old_insts,
+                                                     old_count,
+                                                     &def_cursor,
+                                                     copied_flags,
+                                                     mir_stmt_def_name(stmt));
                 MIRInstruction inst;
                 memset(&inst, 0, sizeof(inst));
                 inst.id = routine->instruction_count++;
@@ -2646,89 +2159,6 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
         if (!mir_add_phi_placeholders(routine, &routine->blocks[i]))
             return false;
         if (!mir_add_terminator_instruction(routine, &routine->blocks[i]))
-            return false;
-    }
-
-    return true;
-}
-
-static bool
-mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope)
-{
-    bool needs_cleanup = false;
-    bool needs_rollback = false;
-    bool needs_invalidation = false;
-    MIRBasicBlock block;
-
-    if (routine == NULL || rir_scope == NULL)
-        return true;
-
-    for (size_t i = 0; i < rir_scope->op_count; i++) {
-        if (rir_scope->ops[i].kind == RIR_OP_ABORT_INTENT
-            || rir_scope->ops[i].kind == RIR_OP_COMPENSATE_INTENT_STEP) {
-            needs_cleanup = true;
-            needs_rollback = true;
-            break;
-        }
-    }
-
-    for (size_t i = 0; i < rir_scope->fact_count; i++) {
-        const RIRFact *fact = &rir_scope->facts[i];
-        if (fact->kind == RIR_FACT_INTENT_POLICY
-            && fact->name != NULL
-            && strcmp(fact->name, "rollback") == 0) {
-            needs_cleanup = true;
-            needs_rollback = true;
-        }
-        if (fact->kind == RIR_FACT_PROJECTION
-            || fact->resource_kind == RIR_RESOURCE_EFFECT_INSTANCE
-            || fact->resource_kind == RIR_RESOURCE_RELATION_INSTANCE
-            || fact->resource_kind == RIR_RESOURCE_ZONE_HANDLE) {
-            needs_cleanup = true;
-            needs_invalidation = true;
-        }
-    }
-    if (mir_intent_ast_needs_invalidation(routine->hir_routine)) {
-        needs_cleanup = true;
-        needs_invalidation = true;
-    }
-
-    if (!needs_cleanup)
-        return true;
-
-    memset(&block, 0, sizeof(block));
-    block.id = routine->block_count;
-    block.is_cleanup = true;
-    block.is_reachable = true;
-    block.source_hir_block_id = SIZE_MAX;
-    routine->cleanup_block = block.id;
-    routine->has_cleanup_block = true;
-    if (!append_block(routine, block))
-        return false;
-
-    if (needs_rollback) {
-        memset(&block, 0, sizeof(block));
-        block.id = routine->block_count;
-        block.is_cleanup = true;
-        block.is_reachable = true;
-        block.source_hir_block_id = SIZE_MAX;
-        routine->rollback_block = block.id;
-        routine->has_rollback_block = true;
-        if (!append_block(routine, block))
-            return false;
-        if (!mir_add_rollback_invalidation(routine, &routine->blocks[routine->rollback_block], rir_scope))
-            return false;
-    }
-
-    if (needs_invalidation) {
-        memset(&block, 0, sizeof(block));
-        block.id = routine->block_count;
-        block.is_cleanup = true;
-        block.is_reachable = true;
-        block.source_hir_block_id = SIZE_MAX;
-        routine->invalidation_block = block.id;
-        routine->has_invalidation_block = true;
-        if (!append_block(routine, block))
             return false;
     }
 

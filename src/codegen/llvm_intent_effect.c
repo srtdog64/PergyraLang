@@ -1,0 +1,181 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * LLVM backend intent effect provenance helpers.
+ */
+
+#ifdef PGY_LLVM_ENABLED
+
+#include "llvm_intent_internal.h"
+
+static ASTNode *
+llvm_find_zone_decl_by_name(LLVMGenCtx *ctx, const char *zone_type_name)
+{
+    ASTNode **zones = NULL;
+    size_t zone_count = 0;
+
+    if (ctx == NULL || zone_type_name == NULL)
+        return NULL;
+
+    llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
+        if (zone != NULL && zone->type == AST_ZONE_DECL
+            && zone->data.zone_decl.name != NULL
+            && strcmp(zone->data.zone_decl.name, zone_type_name) == 0) {
+            return zone;
+        }
+    }
+    return NULL;
+}
+
+void
+llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
+                                         const char *zone_type_name,
+                                         const char *zone_alias,
+                                         const char *causes_effect)
+{
+    ASTNode *zone_decl;
+    LLVMClassTypeEntry *zone_cls;
+    LLVMVarEntry *zone_var;
+    LLVMValueRef zone_ptr;
+
+    if (ctx == NULL || zone_type_name == NULL || zone_alias == NULL
+        || causes_effect == NULL) {
+        return;
+    }
+
+    zone_decl = llvm_find_zone_decl_by_name(ctx, zone_type_name);
+    zone_cls = llvm_lookup_class(ctx, zone_type_name);
+    zone_var = llvm_scope_lookup(ctx, zone_alias);
+    if (zone_decl == NULL || zone_cls == NULL || zone_var == NULL
+        || LLVMGetTypeKind(zone_var->type) != LLVMPointerTypeKind) {
+        return;
+    }
+
+    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type,
+        zone_var->alloca, llvm_tmp_name(ctx));
+
+    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+        const char *layer_name;
+        char epoch_field[256];
+        char cause_field[256];
+        int epoch_idx;
+        int cause_idx;
+
+        if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
+            || layer_slot->data.zone_layer_slot.is_relation
+            || layer_slot->data.zone_layer_slot.slot_name == NULL
+            || layer_slot->data.zone_layer_slot.layer_type == NULL
+            || strcmp(layer_slot->data.zone_layer_slot.layer_type, causes_effect) != 0) {
+            continue;
+        }
+
+        layer_name = layer_slot->data.zone_layer_slot.slot_name;
+        snprintf(epoch_field, sizeof(epoch_field), "__layer_epoch_%s", layer_name);
+        snprintf(cause_field, sizeof(cause_field), "__layer_cause_%s", layer_name);
+        epoch_idx = llvm_class_field_index(zone_cls, epoch_field);
+        cause_idx = llvm_class_field_index(zone_cls, cause_field);
+        if (epoch_idx >= 0) {
+            LLVMValueRef epoch_ptr = LLVMBuildStructGEP2(ctx->builder,
+                zone_cls->struct_type, zone_ptr, (unsigned)epoch_idx,
+                llvm_tmp_name(ctx));
+            LLVMValueRef epoch_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                epoch_ptr, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMBuildAdd(ctx->builder, epoch_val,
+                    LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
+                epoch_ptr);
+        }
+        if (cause_idx >= 0) {
+            LLVMValueRef cause_ptr = LLVMBuildStructGEP2(ctx->builder,
+                zone_cls->struct_type, zone_ptr, (unsigned)cause_idx,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 11, 0), cause_ptr);
+        }
+
+        for (size_t j = 0; j < zone_decl->data.zone_decl.state_count; j++) {
+            ASTNode *state = zone_decl->data.zone_decl.states[j];
+            char state_epoch_field[256];
+            char state_cause_field[256];
+            int state_epoch_idx;
+            int state_cause_idx;
+            if (state == NULL || state->type != AST_ZONE_STATE
+                || state->data.zone_state.is_relation
+                || state->data.zone_state.state_name == NULL
+                || state->data.zone_state.layer_slot_name == NULL
+                || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
+                continue;
+            }
+            snprintf(state_epoch_field, sizeof(state_epoch_field), "__state_epoch_%s",
+                state->data.zone_state.state_name);
+            snprintf(state_cause_field, sizeof(state_cause_field), "__state_cause_%s",
+                state->data.zone_state.state_name);
+            state_epoch_idx = llvm_class_field_index(zone_cls, state_epoch_field);
+            state_cause_idx = llvm_class_field_index(zone_cls, state_cause_field);
+            if (state_epoch_idx >= 0) {
+                LLVMValueRef state_epoch_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    zone_cls->struct_type, zone_ptr, (unsigned)state_epoch_idx,
+                    llvm_tmp_name(ctx));
+                LLVMValueRef state_epoch_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                    state_epoch_ptr, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMBuildAdd(ctx->builder, state_epoch_val,
+                        LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
+                    state_epoch_ptr);
+            }
+            if (state_cause_idx >= 0) {
+                LLVMValueRef state_cause_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    zone_cls->struct_type, zone_ptr, (unsigned)state_cause_idx,
+                    llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 11, 0), state_cause_ptr);
+            }
+        }
+    }
+}
+
+const char *
+llvm_infer_intent_step_causes_from_on_exprs(LLVMGenCtx *ctx,
+                                            ASTNode **on_exprs,
+                                            size_t on_expr_count)
+{
+    if (ctx == NULL || on_exprs == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < on_expr_count; i++) {
+        ASTNode *expr = on_exprs[i];
+        ASTNode *callee;
+        ASTNode *receiver;
+        const char *alias;
+        const char *method_name;
+        const char *subject_name;
+        ASTNode *action_decl;
+
+        if (expr == NULL || expr->type != AST_CALL)
+            continue;
+        callee = expr->data.call.callee;
+        if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
+            continue;
+        receiver = callee->data.member.object;
+        method_name = callee->data.member.name;
+        if (receiver == NULL || receiver->type != AST_IDENTIFIER
+            || receiver->data.identifier.name == NULL || method_name == NULL) {
+            continue;
+        }
+
+        alias = receiver->data.identifier.name;
+        subject_name = llvm_lookup_var_class(ctx, alias);
+        action_decl = llvm_find_host_method_decl_in_context(ctx, subject_name, method_name);
+        if (action_decl != NULL && action_decl->type == AST_FUNC_DECL
+            && action_decl->data.func_decl.is_action
+            && action_decl->data.func_decl.causes_effect != NULL) {
+            return action_decl->data.func_decl.causes_effect;
+        }
+    }
+
+    return NULL;
+}
+
+#endif

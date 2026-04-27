@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Slot Lifetime Analyzer implementation
+ * Slot Resource-Boundary Analyzer implementation
  */
 
 #include <stdlib.h>

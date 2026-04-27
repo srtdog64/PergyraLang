@@ -4,6 +4,44 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     reject_if_embedded_world_zone_mutation(ctx, expr,
         expr->data.assignment.target, "assignment");
     Type *value_type  = type_check_expression(expr->data.assignment.value,  ctx);
+
+    if (expr->data.assignment.target != NULL
+        && expr->data.assignment.target->type == AST_IDENTIFIER) {
+        const char *target_name =
+            expr->data.assignment.target->data.identifier.name;
+        Symbol *target_sym = scope_lookup(ctx->scope, target_name);
+        if (target_sym != NULL && target_sym->kind == SYMBOL_SLOT
+            && target_sym->type != NULL && type_is_owned_slot_handle(target_sym->type)
+            && target_sym->type->data.slot.inner_type != NULL
+            && !type_is_resource_handle(value_type)
+            && type_is_assignable(value_type,
+                target_sym->type->data.slot.inner_type)) {
+            const char *active_view_name = NULL;
+            const char *active_view_kind = NULL;
+            if (semantic_find_active_slot_view_for_source(ctx->scope,
+                    target_sym->name, &active_view_name, &active_view_kind,
+                    NULL)) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+                    PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+                    PGY_FIX_SERIALIZE_PIN_ACCESS,
+                    expr->data.assignment.target,
+                    "Cannot assign to slot '%s' while %s '%s' is live.\n"
+                    "Reason:\n"
+                    "- slot assignment sugar lowers to a slot write\n"
+                    "- owner writes during a live view would bypass the view's aliasing contract\n"
+                    "Fix:\n"
+                    "- write through the active view when it is a WriteView<T>\n"
+                    "- or end the pin/view scope before assigning to '%s'",
+                    target_sym->name,
+                    active_view_kind != NULL ? active_view_kind : "view",
+                    active_view_name != NULL ? active_view_name : "<view>",
+                    target_sym->name);
+                return target_sym->type;
+            }
+        }
+    }
+
     Type *target_type = type_check_expression(expr->data.assignment.target, ctx);
 
     if (type_is_slot_handle(target_type)

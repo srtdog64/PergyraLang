@@ -3,6 +3,10 @@
   Target: Slot Capability Calculus & Pin Non-Eviction Lemma
   Status: proof-sketch; not beta-closure evidence unless checked by CI
   Scope: this file models one small-step invariant, not the full language.
+  Negative scope: this file does not prove Rust-style borrow checking,
+  aliasing-XOR-mutability, lexical no-escape, async/task boundary safety,
+  or CFG cleanup insertion. Those are separate CFG/body-dataflow proof
+  obligations in the beta checklist and ownership proof pack.
 *)
 
 Require Import Coq.Init.Nat.

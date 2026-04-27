@@ -844,8 +844,13 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return FLOW_FALLTHROUGH;
 
     switch (node->type) {
-    case AST_BLOCK:
-        return type_check_block_flow(node, ctx, loop_flow);
+    case AST_BLOCK: {
+        FlowFlags flags;
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+        flags = type_check_block_flow(node, ctx, loop_flow);
+        scope_exit(&ctx->scope);
+        return flags;
+    }
     case AST_IF_STMT:
         return type_check_if_stmt_flow(node, ctx, loop_flow);
     case AST_MATCH_STMT:

@@ -191,6 +191,28 @@ test_misc_grammar_edges(void)
         ast_destroy(await_expr);
     }
 
+    TEST("spawn with active ReadView uses pin boundary diagnostic");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Symbol *view = symbol_create_view("r",
+            type_create_read_view(TYPE_INT), "s", 1, 1);
+        scope_declare(ctx->scope, view);
+
+        ASTNode *spawn_expr =
+            ast_create_spawn_expression(make_call("Work", NULL, 0, 1));
+        spawn_expr->line = 1; spawn_expr->column = 1;
+
+        type_check_expression(spawn_expr, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "cannot cross a spawn suspension boundary"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(spawn_expr);
+    }
+
     TEST("parallel with active ReadView uses pin conflict diagnostic");
     {
         SemanticContext *ctx = semantic_context_create();

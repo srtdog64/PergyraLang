@@ -101,7 +101,22 @@ transpiler_type_name_is_slot_like(const char *type_name)
         return false;
     return strncmp(type_name, "Slot<", 5) == 0
         || strncmp(type_name, "SecureSlot<", 11) == 0
-        || strncmp(type_name, "DeviceSlot<", 11) == 0;
+        || strncmp(type_name, "DeviceSlot<", 11) == 0
+        || strcmp(type_name, "ReadView") == 0
+        || strncmp(type_name, "ReadView<", 9) == 0
+        || strcmp(type_name, "WriteView") == 0
+        || strncmp(type_name, "WriteView<", 10) == 0;
+}
+
+static bool
+transpiler_type_name_is_view_like(const char *type_name)
+{
+    if (type_name == NULL)
+        return false;
+    return strcmp(type_name, "ReadView") == 0
+        || strncmp(type_name, "ReadView<", 9) == 0
+        || strcmp(type_name, "WriteView") == 0
+        || strncmp(type_name, "WriteView<", 10) == 0;
 }
 
 /* Locals whose declaration is emitted alongside a slot claim (slots,

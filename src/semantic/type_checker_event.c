@@ -134,6 +134,15 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
     if (node == NULL || ctx == NULL)
         return false;
 
+    if (node->data.event_op.handler != NULL
+        && node->data.event_op.handler->type == AST_LAMBDA_EXPR
+        && semantic_reject_active_slot_view_boundary(node, ctx,
+            "event callback boundary",
+            "event lambda handlers may run after the current synchronous frame advances",
+            "move event subscription")) {
+        return false;
+    }
+
     event_type = type_check_expression(node->data.event_op.event, ctx);
     handler_type = semantic_event_handler_signature(node->data.event_op.handler, ctx);
     event_name = semantic_event_expr_name(node->data.event_op.event);

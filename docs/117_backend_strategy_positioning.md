@@ -10,6 +10,7 @@ Related documents:
 - `docs/106_ownership_model_comparison.md` — sister positioning doc for ownership
 - `docs/114_async_model_positioning.md` — sister positioning doc for concurrency
 - `docs/113_memory_concurrency_model.md` — frozen beta concurrency contract
+- `docs/118_slot_model_rigor_audit.md` — sister audit doc; Slot vs borrow-check rigor and marketing-language guide
 
 This document positions Pergyra's backend strategy. It is a **positioning /
 rationale** doc, not a contract. Concrete ABI freezes live in

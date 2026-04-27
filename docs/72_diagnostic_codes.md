@@ -214,12 +214,19 @@ collection storage, callback capture, channel send, or task capture.
 
 #### `PGY_SEM_PIN_PARALLEL_CONFLICT`
 
-Two parallel tasks attempt incompatible access to the same pinned slot, or a
-`WriteView<T>` overlaps with another pin/read/write/release path.
+Two parallel tasks attempt incompatible access to the same pinned slot, a
+`WriteView<T>` overlaps with another pin/read/write path, direct owner
+read/write bypasses a live view, or an owning slot is released/moved while a
+`ReadView<T>` / `WriteView<T>` over that source is still live. Slot assignment
+and value-position slot sugar are routed through the same owner read/write
+rules. Passing the owning slot to an `own`/`ref Slot<T>` helper, returning it,
+or forwarding it through an array literal or stable collection-store helper
+while a typed view is live is also rejected.
 
 - **Reason**: `WriteView<T>` is the aliasing-XOR-mutability baseline for
   Pin/Lease.
-- **Fix**: serialize the pinned access, split the slot per task, or use a
+- **Fix**: serialize the pinned access, split the slot per task, end the
+  pin/view scope before `Release(slot)` / `Move(slot)`, or use a
   channel/snapshot boundary.
 - **cause_ir**: `semantic:pin:parallel_conflict`
 - **fix_source**: `serialize-pin-access`
@@ -402,7 +409,10 @@ AIR strict-evidence mode detected that an intent boundary has no matching RIR bo
 A built-in intrinsic (`Rc*`, `Weak*`, `Box*`, `Move`, `Clone`, `BoxArray`, ...) was called with the wrong number or kind of arguments: wrong arity, argument is not the expected generic handle type, non-owning binding where an owning slot is required.
 
 - **Reason**: built-in intrinsics have fixed signatures and cannot accept overloads; their arguments must match exactly.
-- **Fix**: match the documented intrinsic signature; construct the expected wrapper type (`Rc<T>`, `Weak<T>`, `Box<T>`, owning `Slot<T>`) before the call.
+- **Fix**: match the documented intrinsic signature; construct the expected
+  wrapper type (`Rc<T>`, `Weak<T>`, `Box<T>`, owning `Slot<T>`) before the
+  call. For beta-stable `Box<T>`, do not use a resource handle payload; box a
+  copied/passive value instead.
 
 #### `PGY_SEM_PREDICATE_ARGS_INVALID`
 

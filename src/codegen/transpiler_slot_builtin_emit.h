@@ -11,6 +11,55 @@ static bool transpiler_parse_versioned_name(const char *versioned,
                                             size_t base_size,
                                             size_t *version_out);
 
+static bool
+transpiler_c_expr_is_plain_identifier(const char *expr)
+{
+    if (expr == NULL || expr[0] == '\0')
+        return false;
+    if (!((expr[0] >= 'A' && expr[0] <= 'Z')
+          || (expr[0] >= 'a' && expr[0] <= 'z')
+          || expr[0] == '_')) {
+        return false;
+    }
+    for (const char *p = expr + 1; *p != '\0'; p++) {
+        if (!((*p >= 'A' && *p <= 'Z')
+              || (*p >= 'a' && *p <= 'z')
+              || (*p >= '0' && *p <= '9')
+              || *p == '_')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void
+transpiler_refine_slot_target_from_emitted_expr(TranspilerCtx *ctx,
+                                                const char *slot_expr,
+                                                const char **slot_name_io,
+                                                bool *secure_io)
+{
+    if (ctx == NULL || slot_expr == NULL || slot_name_io == NULL || secure_io == NULL)
+        return;
+    if (*secure_io)
+        return;
+    if (!transpiler_c_expr_is_plain_identifier(slot_expr))
+        return;
+    if (*slot_name_io != NULL && strcmp(*slot_name_io, slot_expr) == 0)
+        return;
+    if (lookup_slot_is_secure(ctx, slot_expr)) {
+        *slot_name_io = slot_expr;
+        *secure_io = true;
+        return;
+    }
+    const char *type_name = lookup_typed_var(ctx, slot_expr);
+    if (type_name != NULL
+        && (strcmp(type_name, "SecureSlot") == 0
+            || strncmp(type_name, "SecureSlot<", 11) == 0)) {
+        *slot_name_io = slot_expr;
+        *secure_io = true;
+    }
+}
+
 char *
 emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
 {
@@ -50,6 +99,7 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
+    transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *value_expr = emit_expression(call->data.call.arguments[1], ctx);
 
@@ -117,7 +167,15 @@ resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
         if (entry != NULL && (entry->is_view || entry->is_move_token)
             && entry->source_slot[0] != '\0') {
             slot_name = entry->source_slot;
-            secure = entry->source_secure;
+            secure = entry->source_secure || lookup_slot_is_secure(ctx, entry->source_slot);
+            if (!secure) {
+                const char *source_type = lookup_typed_var(ctx, entry->source_slot);
+                if (source_type != NULL
+                    && (strcmp(source_type, "SecureSlot") == 0
+                        || strncmp(source_type, "SecureSlot<", 11) == 0)) {
+                    secure = true;
+                }
+            }
             inner = slot_inner_type_name(entry->type_name);
         } else {
             slot_name = id;
@@ -175,6 +233,7 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
+    transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *result;
 
@@ -221,6 +280,7 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
+    transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *result;
 

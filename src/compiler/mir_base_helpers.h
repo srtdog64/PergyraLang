@@ -117,25 +117,6 @@ mir_name_set_contains(const char **names, size_t count, const char *name)
 }
 
 static bool
-append_index_unique(size_t **items, size_t *count, size_t value)
-{
-    size_t *grown;
-    if (items == NULL || count == NULL)
-        return false;
-    for (size_t i = 0; i < *count; i++) {
-        if ((*items)[i] == value)
-            return true;
-    }
-    grown = realloc(*items, (*count + 1) * sizeof(size_t));
-    if (grown == NULL)
-        return false;
-    grown[*count] = value;
-    *items = grown;
-    (*count)++;
-    return true;
-}
-
-static bool
 append_block(MIRRoutine *routine, MIRBasicBlock block)
 {
     MIRBasicBlock *grown;
@@ -269,21 +250,4 @@ mir_find_matching_rir_scope(const RIRProgram *rir, const HIRRoutine *routine)
         }
     }
     return NULL;
-}
-
-static const char *
-mir_node_name(ASTNode *node)
-{
-    if (node == NULL)
-        return NULL;
-    switch (node->type) {
-        case AST_IDENTIFIER:
-            return node->data.identifier.name;
-        case AST_MEMBER_ACCESS:
-            return node->data.member.name;
-        case AST_TYPE:
-            return node->data.type.name;
-        default:
-            return NULL;
-    }
 }

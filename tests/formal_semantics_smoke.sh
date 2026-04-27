@@ -22,7 +22,11 @@ import sys
 root = pathlib.Path(sys.argv[1])
 index_path = root / "docs" / "102_formal_semantics_and_proof_obligations.md"
 proof_dir = root / "docs" / "semantics"
+rigor_audit_path = root / "docs" / "118_slot_model_rigor_audit.md"
 checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
+semantic_design_path = root / "docs" / "14_semantic_analyzer_design.md"
+slot_manager_path = root / "src" / "runtime" / "slot_manager.h"
+slot_macros_path = root / "src" / "runtime" / "pgy_runtime_slot_macros.h"
 todo_path = root / "TODO.md"
 ci_path = root / ".github" / "workflows" / "ci.yml"
 
@@ -30,11 +34,23 @@ if not index_path.exists():
     raise SystemExit("missing docs/102_formal_semantics_and_proof_obligations.md")
 if not proof_dir.is_dir():
     raise SystemExit("missing docs/semantics proof folder")
+if not rigor_audit_path.exists():
+    raise SystemExit("missing docs/118_slot_model_rigor_audit.md")
+if not semantic_design_path.exists():
+    raise SystemExit("missing docs/14_semantic_analyzer_design.md")
+if not slot_manager_path.exists():
+    raise SystemExit("missing src/runtime/slot_manager.h")
+if not slot_macros_path.exists():
+    raise SystemExit("missing src/runtime/pgy_runtime_slot_macros.h")
 if not ci_path.exists():
     raise SystemExit("missing .github/workflows/ci.yml")
 
 index_doc = index_path.read_text(encoding="utf-8")
 checklist = checklist_path.read_text(encoding="utf-8")
+rigor_audit = rigor_audit_path.read_text(encoding="utf-8")
+semantic_design = semantic_design_path.read_text(encoding="utf-8")
+slot_manager = slot_manager_path.read_text(encoding="utf-8")
+slot_macros = slot_macros_path.read_text(encoding="utf-8")
 todo = todo_path.read_text(encoding="utf-8")
 ci = ci_path.read_text(encoding="utf-8")
 
@@ -45,6 +61,8 @@ required_files = {
         "Stable proof scope:",
         "Out of beta proof scope:",
         "Regression tests, smoke tests, and backend compare runs are proof evidence, not proof itself.",
+        "Borrow-checker-equivalent safety: only through the combined ownership",
+        "Slot alone is not advertised as a borrow checker.",
         "08_slot_capability_calculus.md",
         "proofs/SlotCalculus.v",
         "not beta-closure evidence unless a CI",
@@ -78,6 +96,9 @@ required_files = {
     ],
     "04_ownership_abi.md": [
         "Keywords and surfaces: `own`, `ref`, anchored slot handles, slot boundaries, runtime ABI ownership.",
+        "## Theorem Boundary: Slot Runtime Safety Is Not Borrow Safety",
+        "`Slot runtime safety`",
+        "`Borrow-checker-equivalent safety`",
         "## Theorem: Anchored Ownership Safety",
         "## Theorem: Secure Token Unforgeability",
         "## Theorem: Authority Transfer Single-Owner",
@@ -108,12 +129,19 @@ required_files = {
     "08_slot_capability_calculus.md": [
         "Status: `IN PROGRESS / PROOF-SKETCH`",
         "## Stable Surface",
+        "## Negative Claim: Slot Is Not A Borrow Checker",
+        "Slot = runtime capability + generation + token + pin-state safety.",
+        "borrow-checker-equivalent is the static ownership/CFG layer above Slot.",
         "## Semantic Domains",
         "## Theorem: ABA Safety",
         "## Theorem: Token Unforgeability",
         "## Theorem: Pin Non-Eviction",
+        "## Bridge Obligation: Borrow-Checker-Equivalent Safety",
+        "NoEscape(view, region)",
+        "NoSuspend(view, region)",
+        "WriteExclusive(slot, region)",
         "proof sketch, not completed",
-        "Source-level `pin slot as view { ... }` remains an explicit reject",
+        "Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` now reaches",
     ],
 }
 
@@ -163,6 +191,8 @@ if "docs/semantics/08_slot_capability_calculus.md" not in index_doc:
     raise SystemExit("formal semantics index does not point at slot capability calculus")
 if "docs/semantics/proofs/SlotCalculus.v" not in index_doc:
     raise SystemExit("formal semantics index does not point at SlotCalculus.v")
+if "docs/118_slot_model_rigor_audit.md" not in index_doc:
+    raise SystemExit("formal semantics index does not point at Slot rigor audit")
 
 if "Do not advertise mechanized proof for beta" not in checklist:
     raise SystemExit("checklist must forbid advertising mechanized proof before an artifact exists")
@@ -184,6 +214,7 @@ for forbidden in [
         )
 for required in [
     "Status: proof-sketch; not beta-closure evidence unless checked by CI",
+    "Negative scope: this file does not prove Rust-style borrow checking",
     "Require Import Coq.Arith.PeanoNat.",
     "Lemma stale_handle_read_impossible",
     "Lemma handle_read_requires_issued_token",
@@ -211,6 +242,82 @@ for filename in [
             raise SystemExit(
                 f"docs/semantics/{filename} has stale SlotCalculus scope wording: "
                 + forbidden
+        )
+
+if 'Do not advertise "Slot as borrow checker"' not in checklist:
+    raise SystemExit("checklist must preserve Slot/borrow-checker claim boundary")
+
+for required in [
+    "Slot Resource-Boundary Analyzer",
+    "Slot analysis is not Rust-style lifetime analysis.",
+    "Slot is the source-level modular resource boundary.",
+]:
+    if required not in semantic_design:
+        raise SystemExit("semantic analyzer design missing Slot boundary term: " + required)
+
+for label, source in [
+    ("slot_manager.h", slot_manager),
+    ("pgy_runtime_slot_macros.h", slot_macros),
+]:
+    for required in [
+        "source-level resource boundary",
+        "pointer/address ownership",
+        "backend",
+    ]:
+        if required not in source:
+            raise SystemExit(f"{label} missing Slot runtime boundary term: {required}")
+
+for required in [
+    "Slot Is Not a Borrow Checker",
+    "Slot Is A Modular Resource Boundary",
+    "Pergyra does not expose memory as address ownership.",
+    "Pergyra exposes memory as a modular resource boundary.",
+    "A Slot is the stable language-level boundary; the backend handle below it is replaceable.",
+    "Slot = address abstraction + ownership boundary + capability gate + replaceable backend handle",
+    "The borrow-checker-equivalent in Pergyra is not Slot",
+    "Current `WriteView<T>` same-slot exclusivity is enforced",
+    "source-level typed-view pin blocks reject suspension and transport boundaries",
+    "Active source-level typed-view pin blocks; `docs/74`; diagnostics + backend compare",
+    "The block-scoped source `pin` surface is active for typed views.",
+    "pin_read_view_block",
+    "pin_secure_read_view_block",
+    "pin_mixed_read_view_sequence",
+    "pin_write_view_block",
+    "pin_secure_write_view_block",
+    "straight-line typed-view read/write parity across",
+    "Static strength comparable to Rust 1.0 at launch",
+]:
+    if required not in rigor_audit:
+        raise SystemExit("Slot rigor audit missing required boundary term: " + required)
+
+allowed_borrow_claim_docs = {
+    checklist_path,
+    rigor_audit_path,
+    proof_dir / "08_slot_capability_calculus.md",
+    proof_dir / "README.md",
+}
+for path in [root / "README.md", root / "TODO.md", *sorted((root / "docs").rglob("*.md"))]:
+    if not path.exists() or path in allowed_borrow_claim_docs:
+        continue
+    text = path.read_text(encoding="utf-8")
+    for forbidden in [
+        "Slot Lifetime Analyzer",
+        "Slot<T>`: 명시적 수명 관리",
+        "slot의 생명주기",
+        "슬롯 생명주기",
+        "Slot is Pergyra's borrow checker",
+        "Slot proves borrow safety",
+        "Slot proves Rust-style borrow checking",
+        "Rust-level memory safety",
+        "pin blocks reject crossing await",
+        "pin blocks statically reject crossing await",
+        "WriteView<T> exclusive is not enforced",
+        "WriteView<T> is not enforced",
+    ]:
+        if forbidden in text:
+            rel = path.relative_to(root).as_posix()
+            raise SystemExit(
+                f"{rel} overclaims Slot/borrow-checker safety: {forbidden}"
             )
 
 for required in [

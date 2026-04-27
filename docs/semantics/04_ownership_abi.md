@@ -1,6 +1,6 @@
 # 04. Ownership / ABI Proof Obligations
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 Status: `IN PROGRESS / BLOCKER`
 
@@ -9,6 +9,8 @@ Keywords and surfaces: `own`, `ref`, anchored slot handles, slot boundaries, run
 ## Stable Surface
 
 - Anchored slot-handle own/ref subset.
+- Slot as modular resource boundary: source code observes Slot contracts, not
+  backend pointer/address ownership.
 - Boundary-visible aggregate provenance.
 - Movable value transfer/borrow where explicitly covered.
 - Ownership diagnostics for destructure/member/container/return/channel/helper-chain paths.
@@ -53,6 +55,24 @@ Current evidence:
 Remaining proof obligation:
 
 - Finish ABI ownership seams for returned strings/helper payloads and runtime-owned values.
+
+## Theorem Boundary: Slot Runtime Safety Is Not Borrow Safety
+
+The ownership proof pack separates two claims:
+
+- `Slot runtime safety`: generation checks, token checks, release state, and
+  pin state make invalid runtime access reject or hard-fail.
+- `Borrow-checker-equivalent safety`: ownership classifier, CFG/body dataflow,
+  no-escape checks, cleanup insertion, and task/channel boundary rules prove
+  invalid access is not accepted for the stable source subset.
+
+The first claim is modeled by `docs/semantics/08_slot_capability_calculus.md`.
+The second claim remains a section `0b` / section `4` beta blocker until CFG
+facts cover no-escape, no-suspend, write exclusivity, and drop/release exactly
+once on all relevant exits.
+
+Public docs must not collapse these two claims. A runtime Slot check may be
+excellent fail-safe behavior, but it is not a Rust-style borrow checker proof.
 
 ## Theorem: Secure Token Unforgeability
 

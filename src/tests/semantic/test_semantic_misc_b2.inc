@@ -1,7 +1,0 @@
-#include "test_semantic_misc_b2_part_a.inc"
-#include "test_semantic_misc_b2_part_b.inc"
-#include "test_semantic_misc_b2_part_c.inc"
-#include "test_semantic_misc_b2_part_d.inc"
-#include "test_semantic_misc_b2_part_e.inc"
-#include "test_semantic_misc_b2_part_f.inc"
-#include "test_semantic_misc_b2_part_g.inc"

@@ -165,12 +165,34 @@ type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx,
 static Type *
 type_check_box_builtin(ASTNode *call, SemanticContext *ctx)
 {
+    Type *payload;
+
     if (call->data.call.arg_count != 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "Box requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
-    return wrap_constructed(TYPE_BOX,
-        type_check_expression(call->data.call.arguments[0], ctx));
+    payload = type_check_expression(call->data.call.arguments[0], ctx);
+    if (semantic_reject_active_slot_owner_escape(
+            call->data.call.arguments[0], ctx, "box", "Box")) {
+        return TYPE_UNKNOWN;
+    }
+    if (type_is_resource_handle(payload)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            call->data.call.arguments[0],
+            "Box<T> beta-stable payloads cannot be resource handles; got '%s'.\n"
+            "Reason:\n"
+            "- resource handles already carry ownership, lifecycle, and runtime anchor contracts\n"
+            "- boxing them would create a second storage owner the current CFG/ABI layer cannot prove\n"
+            "Fix:\n"
+            "- box a copied value or passive class/object payload instead\n"
+            "- or keep the resource handle in its original owning binding",
+            type_name_or_unknown(payload));
+        return TYPE_UNKNOWN;
+    }
+    return wrap_constructed(TYPE_BOX, payload);
 }
 
 static Type *
@@ -207,6 +229,26 @@ type_check_box_set(ASTNode *call, SemanticContext *ctx)
 
     Type *inner = type_get_constructed_arg(box_type, 0);
     Type *value_type = type_check_expression(call->data.call.arguments[1], ctx);
+    if (semantic_reject_active_slot_owner_escape(
+            call->data.call.arguments[1], ctx, "box", "BoxSet")) {
+        return TYPE_UNKNOWN;
+    }
+    if (type_is_resource_handle(value_type)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            call->data.call.arguments[1],
+            "BoxSet beta-stable payloads cannot be resource handles; got '%s'.\n"
+            "Reason:\n"
+            "- resource handles already carry ownership, lifecycle, and runtime anchor contracts\n"
+            "- storing them in Box<T> would create a second storage owner the current CFG/ABI layer cannot prove\n"
+            "Fix:\n"
+            "- store a copied value or passive class/object payload instead\n"
+            "- or keep the resource handle in its original owning binding",
+            type_name_or_unknown(value_type));
+        return TYPE_UNKNOWN;
+    }
     require_assignable(value_type, inner, call->data.call.arguments[1], ctx);
     return TYPE_VOID;
 }

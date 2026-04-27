@@ -1,6 +1,6 @@
 # 08. Slot Capability Calculus
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 Status: `IN PROGRESS / PROOF-SKETCH`
 
@@ -18,6 +18,70 @@ when a CI gate type-checks the artifact with Coq. The beta contract must still
 describe it as a proof sketch, not completed mechanized proof for the whole
 language.
 
+## Positive Claim: Slot Is A Modular Resource Boundary
+
+Pergyra's ownership thesis is not "memory as address ownership". Pergyra
+exposes memory as a modular resource boundary.
+
+```text
+Pergyra does not expose memory as address ownership.
+Pergyra exposes memory as a modular resource boundary.
+A Slot is the stable language-level boundary; the backend handle below it is replaceable.
+```
+
+This is the reason Slot appears in memory, authority, zone/world transfer,
+device access, projection, and intent handoff. A source-level Slot does not
+promise a stable raw pointer. It promises a stable contract boundary. The
+runtime/backend representation below the boundary may be a C pointer, arena
+index, generational handle, device buffer id, file handle, database row handle,
+or remote-world handle, provided the Slot capability predicates and failure
+classes remain unchanged.
+
+The model can be summarized as:
+
+```text
+Slot = address abstraction + ownership boundary + capability gate + replaceable backend handle
+```
+
+This positive claim is separate from the negative claim below. Slot being a
+modular resource boundary makes it the right abstraction substrate for Pergyra;
+it still does not make Slot a Rust-style borrow checker.
+
+## Negative Claim: Slot Is Not A Borrow Checker
+
+The Slot calculus is a runtime capability calculus. It is not, by itself, a
+Rust-style borrow checker.
+
+This document proves and specifies runtime facts:
+
+- stale handles cannot satisfy the stable handle predicates;
+- unissued or mismatched tokens cannot satisfy the stable capability
+  predicates;
+- pinned slots cannot be released or evicted before unpin;
+- C and LLVM must expose the same stable failure classes for these facts.
+
+This document does not prove static borrow facts:
+
+- no general aliasing-XOR-mutability theorem for arbitrary `ref` values;
+- no general lifetime theorem for borrowed values across arbitrary CFG regions;
+- no proof that every cleanup path inserts `unpin` / `release` exactly once;
+- no proof that pinned views cannot escape without the CFG no-escape checker;
+- no proof that async/task/channel boundaries preserve borrow validity without
+  the body-dataflow summaries in `docs/100_beta_readiness_checklist.md` section
+  `0b`.
+
+The beta-safe claim is therefore:
+
+```text
+Slot = runtime capability + generation + token + pin-state safety.
+Static borrow safety = ownership classifier + CFG/body dataflow +
+channel/task boundary rules + token transport rejects + Slot runtime checks.
+```
+
+Any public wording that says "Slot is Pergyra's borrow checker" is rejected by
+this proof pack. The honest wording is: "Slot is runtime-validated; Pergyra's
+borrow-checker-equivalent is the static ownership/CFG layer above Slot."
+
 ## Stable Surface
 
 - `Slot<T>` and `SecureSlot<T>` handles with generation checks.
@@ -26,8 +90,31 @@ language.
 - Pin/Lease runtime ABI fast path: `PgyPinnedView`, `PergyraSlotPin`,
   `PergyraSlotUnpin`.
 - Pinned slots cannot be released or evicted until they are unpinned.
-- Source-level `pin slot as view { ... }` remains an explicit reject until CFG
-  cleanup insertion and C/LLVM parity are closed.
+- Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` is accepted
+  as a typed-view lexical block. Full runtime `PgyPinnedView` lowering remains
+  internal until CFG cleanup insertion and C/LLVM parity are closed.
+- The source-level typed-view layer rejects `Release(source)` and `Move(source)`
+  while a `ReadView<T>` or `WriteView<T>` derived from `source` is live. This is
+  the static front door for the runtime "pinned slots cannot be invalidated"
+  invariant.
+- The same layer rejects direct owner writes while any typed view over that slot
+  is live, and rejects direct owner reads while a `WriteView<T>` is live. The
+  proof obligation is that the lease cannot be bypassed through the original
+  slot identifier.
+- Slot sugar is interpreted through the same proof obligation: assignment sugar
+  is an owner write, and value-position owner identifiers are owner reads.
+- Function-call boundaries are interpreted conservatively: an owning source slot
+  cannot be passed to an `own`/`ref Slot<T>` helper while a typed view over that
+  source is live.
+- Container-store boundaries are interpreted conservatively too: array
+  literals and `ArrayPush` / `ArraySet` / `ListPush` / `ListSet` / `SetAdd` /
+  `MapSet` / `QueuePush` cannot store or forward the owning source slot while a
+  typed view over that source is live.
+- Return boundaries are treated the same way: `return source_slot` cannot
+  forward the owning source slot while a typed view over that source is live.
+- `Box<T>` is not a resource-handle storage boundary in the beta-stable
+  surface. `Box(source_slot)` and `BoxSet(box, source_slot)` are rejected
+  because they would introduce a second storage owner for the same slot handle.
 
 Out of beta:
 
@@ -203,6 +290,64 @@ Remaining obligation:
 - Add C/LLVM backend parity for stable pin usage once the source surface is
   opened.
 
+## Bridge Obligation: Borrow-Checker-Equivalent Safety
+
+The Slot calculus becomes part of a borrow-checker-equivalent claim only when
+the static layer proves the following additional facts for the stable source
+surface:
+
+```text
+NoEscape(view, region)
+NoSuspend(view, region)
+WriteExclusive(slot, region)
+DropOnce(owner, all_cfg_exits)
+ReleaseAfterUnpin(slot, all_cfg_exits)
+NoUnsupportedTokenTransport(token, boundary)
+```
+
+Required interpretation:
+
+- `NoEscape` is a CFG fact: a `ReadView<T>`, `WriteView<T>`, or future
+  `PinnedView<T>` cannot be returned, stored in longer-lived state, captured by
+  a spawned task, or sent through a channel unless a stable ownership transfer
+  rule explicitly admits it.
+- `NoSuspend` forbids live views across `await`, `spawn`, `async`, `parallel`,
+  callback, or channel handoff boundaries.
+- `WriteExclusive` is the aliasing-XOR-mutability baseline for `WriteView<T>`:
+  while a write view is active, no other read or write view of the same slot may
+  be active, and the owning slot name cannot be used as a parallel read/write
+  path. Shared read/read views remain allowed.
+- `DropOnce` and `ReleaseAfterUnpin` are cleanup facts over all normal and
+  exceptional CFG exits.
+- `NoUnsupportedTokenTransport` keeps authority/secure tokens out of task,
+  channel, cancel, and container surfaces that do not define a stable transfer
+  rule.
+
+Current evidence:
+
+- Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface enforces the
+  first stable `WriteView<T>` exclusivity slice.
+- Parallel `ref`/`own`, ownership-bearing channel helpers, token transport, and
+  direct named-spawn borrowed-ref boundaries are covered in the CFG/body
+  closure checklist.
+- Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` now reaches
+  the same `ViewRead(...)` / `ViewWrite(...)` semantic diagnostics. The
+  typed-view read/write path has C/LLVM parity for plain and secure slot cases,
+  including a sequential mixed read case, and `Release(source)` / `Move(source)`
+  are statically rejected while an active typed view over `source` is live.
+  Direct owner write/read bypass cases, including slot assignment sugar and
+  value-position owner identifier sugar and `own`/`ref Slot<T>` helper calls,
+  are also rejected for the covered typed-view subset. The
+  cleanup/no-escape/backend-parity
+  bridge for explicit runtime pin/unpin lowering remains open.
+
+Remaining obligation:
+
+- Do not upgrade Slot marketing from "runtime capability safety" to
+  "borrow-checker-equivalent safety" until section `0b` CFG/body dataflow
+  closes these bridge facts and section `4` ABI ownership confirms matching
+  C/LLVM lowering.
+
 ## Beta Acceptance Rule
 
 The Slot capability calculus is beta-aligned only when:
@@ -213,3 +358,5 @@ The Slot capability calculus is beta-aligned only when:
 - C and LLVM agree on hard-fail class and observable state.
 - Mechanized proof is described honestly: proof sketch until checked by CI,
   evidence only for the modeled invariant, never a full language proof.
+- Borrow-checker-equivalent language claims are allowed only through the bridge
+  obligation above, never from Slot runtime checks alone.

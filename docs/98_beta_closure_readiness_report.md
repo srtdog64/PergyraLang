@@ -4,11 +4,11 @@ Date: 2026-04-26
 
 This document summarizes the current codebase state, the remaining improvement opportunities, and the concrete work needed to close PergyraLang for beta. It is based on the current README/TODO/status docs, the C/LLVM backend paths, the IR pipeline tests, the ABI smoke matrix, and backend-compare coverage.
 
-2026-04-27 production include cleanup update: production `.inc` debt is now
-closed as a zero-inventory gate. `src/runtime`, `src/codegen`, `src/compiler`,
-and `src/semantic` have **0 production `.inc` files / 0 LOC** under `src`,
-excluding `src/tests/**/*.inc` fixtures. Former pass-through seams now live in
-named private owner headers, and compiler runtime cache freshness tracks the
+2026-04-27 include cleanup update: `.inc` debt is now closed as a
+zero-inventory gate for the full `src` tree. `src/runtime`, `src/codegen`,
+`src/compiler`, `src/semantic`, and `src/tests` have **0 `.inc` files /
+0 LOC**. Former pass-through seams now live in named private owner headers,
+test fragments use `.cases.h`, and compiler runtime cache freshness tracks the
 renamed runtime owner headers instead of stale `.inc` paths.
 
 ## Current Verdict
@@ -822,7 +822,7 @@ Remaining work:
 Beta closure condition:
 
 - DAG/stage/declaration/backend/runtime owner boundaries are explicit enough that a frozen-subset feature can be changed without relying on include-order side effects;
-- remaining `.inc` usage is limited to generated tables, local macro tables, or private test fixtures;
+- remaining `.inc` usage is zero under `src`; generated tables, local macro tables, and private test fixtures must use named `.h` / `.c` owners or `.cases.h` test fragments;
 - any remaining representation debt is documented as internal and non-user-visible.
 
 ### 5. Arena And Lifetime Boundaries

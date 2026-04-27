@@ -149,6 +149,31 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                     : resource_handle_display_name(sym->type));
             return TYPE_UNKNOWN;
         }
+        if (sym->kind == SYMBOL_SLOT && sym->type != NULL
+            && type_is_owned_slot_handle(sym->type)) {
+            const char *active_view_name = NULL;
+            bool active_is_write = false;
+            if (semantic_find_active_slot_view_for_source(ctx->scope,
+                    sym->name, &active_view_name, NULL, &active_is_write)
+                && active_is_write) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
+                    PGY_CAUSE_PIN_PARALLEL_CONFLICT,
+                    PGY_FIX_SERIALIZE_PIN_ACCESS,
+                    expr,
+                    "Cannot read slot '%s' while WriteView '%s' is live.\n"
+                    "Reason:\n"
+                    "- slot identifier use in value position auto-reads the owner slot\n"
+                    "- owner reads during a live write view would bypass the view's aliasing contract\n"
+                    "Fix:\n"
+                    "- end the write view scope before reading '%s'\n"
+                    "- or split the operation into a read-only view followed by a write view",
+                    sym->name,
+                    active_view_name != NULL ? active_view_name : "<view>",
+                    sym->name);
+                return TYPE_UNKNOWN;
+            }
+        }
         sym->is_used = true;
         return sym->type;
     }
@@ -199,29 +224,10 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                 expr,
                 "'await' used outside of async function");
         }
-        {
-            const char *view_name = NULL;
-            const char *view_kind = NULL;
-            const char *source_slot = NULL;
-            if (semantic_find_active_slot_view(ctx->scope, &view_name,
-                                               &view_kind, &source_slot)) {
-                semantic_error_with_hints(ctx,
-                    PGY_CODE_SEM_PIN_AWAIT_BOUNDARY,
-                    PGY_CAUSE_PIN_AWAIT_BOUNDARY,
-                    PGY_FIX_END_PIN_BEFORE_AWAIT,
-                    expr,
-                    "Pinned view '%s' cannot cross an await suspension boundary.\n"
-                    "Reason:\n"
-                    "- %s for slot '%s' is a scoped capability lease\n"
-                    "- await may suspend and resume after unrelated runtime work changes the slot frontier\n"
-                    "Fix:\n"
-                    "- end the view scope before await\n"
-                    "- or move await before acquiring the view",
-                    view_name != NULL ? view_name : "<view>",
-                    view_kind != NULL ? view_kind : "View",
-                    source_slot != NULL ? source_slot : "<slot>");
-            }
-        }
+        (void)semantic_reject_active_slot_view_boundary(expr, ctx,
+            "await suspension boundary",
+            "await may suspend and resume after unrelated runtime work changes the slot frontier",
+            "move await");
         semantic_record_effect(ctx, EFFECT_REMOTE);
         {
             Type *future_type = type_check_expression(expr->data.await_expr.expression, ctx);

@@ -265,6 +265,10 @@ ASTNode* ast_create_block(void) {
     ASTNode* node = ast_create_node(AST_BLOCK);
     node->data.block.statements = NULL;
     node->data.block.count = 0;
+    node->data.block.is_pin_block = false;
+    node->data.block.pin_view_is_write = false;
+    node->data.block.pin_source_name = NULL;
+    node->data.block.pin_view_name = NULL;
     return node;
 }
 
@@ -1465,6 +1469,8 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.block.count; i++) {
                 ast_destroy(node->data.block.statements[i]);
             }
+            free(node->data.block.pin_source_name);
+            free(node->data.block.pin_view_name);
             free(node->data.block.statements);
             break;
             

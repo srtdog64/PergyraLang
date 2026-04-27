@@ -417,6 +417,10 @@ struct ASTNode
         struct {
             ASTNode** statements;
             size_t    count;
+            bool      is_pin_block;
+            bool      pin_view_is_write;
+            char*     pin_source_name;
+            char*     pin_view_name;
         } block;
         
         /* Binary operation */
