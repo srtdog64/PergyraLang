@@ -3,6 +3,13 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
 {
     if (body != NULL) {
         ResourceConsumeSnapshot before_defer = snapshot_resource_states(ctx);
+        if (semantic_reject_active_slot_view_boundary(body, ctx,
+                "defer cleanup boundary",
+                "defer executes after the current statement frontier and may run after the pin scope has ended",
+                "move defer")) {
+            destroy_resource_snapshot(&before_defer);
+            return false;
+        }
         (void)type_check_block_flow(body, ctx, NULL);
         restore_resource_states(&before_defer);
         destroy_resource_snapshot(&before_defer);

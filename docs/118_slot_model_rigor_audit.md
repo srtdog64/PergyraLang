@@ -12,6 +12,7 @@ Related documents:
 - `docs/103_cfg_body_dataflow_need.md` — CFG completeness status
 - `docs/74_slot_pinning_caching.md` — pin block boundary design
 - `docs/semantics/` — proof obligations index
+- `docs/security/` — AI Validator adversarial counterexample audits (Tier 3 invariants)
 
 This document is an **honest audit** of what Pergyra's Slot model and
 ownership system actually guarantee statically, what they check at runtime,

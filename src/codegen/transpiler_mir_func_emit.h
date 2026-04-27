@@ -530,6 +530,20 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 if (block->has_succ_true)
                     transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent, i, block,
                         &mir_routine->blocks[block->succ_true]);
+                if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
+                                                        block_reason,
+                                                        sizeof(block_reason))) {
+                    transpiler_ssa_map_clear(&block_ssa_map);
+                    if (ctx->backend_error == NULL) {
+                        ctx->backend_error = strdup_fmt(
+                            "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
+                            name != NULL ? name : "<function>",
+                            (unsigned long long) block->id,
+                            block_reason[0] != '\0' ? block_reason : "unknown reason");
+                    }
+                    transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+                    return;
+                }
                 write_indent(ctx);
                 transpiler_write_condition_head(ctx, "if",
                     cond_text != NULL ? cond_text : "false", " {\n");
@@ -551,10 +565,39 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 if (inst->ast != NULL) {
                     char *ret_expr = emit_expression_with_ssa_map(inst->ast, ctx,
                         &block_ssa_map);
+                    if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
+                                                            block_reason,
+                                                            sizeof(block_reason))) {
+                        free(ret_expr);
+                        transpiler_ssa_map_clear(&block_ssa_map);
+                        if (ctx->backend_error == NULL) {
+                            ctx->backend_error = strdup_fmt(
+                                "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
+                                name != NULL ? name : "<function>",
+                                (unsigned long long) block->id,
+                                block_reason[0] != '\0' ? block_reason : "unknown reason");
+                        }
+                        transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+                        return;
+                    }
                     write_indent(ctx);
                     codebuf_write(ctx->out, "return %s;\n", ret_expr != NULL ? ret_expr : "0");
                     free(ret_expr);
                 } else {
+                    if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
+                                                            block_reason,
+                                                            sizeof(block_reason))) {
+                        transpiler_ssa_map_clear(&block_ssa_map);
+                        if (ctx->backend_error == NULL) {
+                            ctx->backend_error = strdup_fmt(
+                                "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
+                                name != NULL ? name : "<function>",
+                                (unsigned long long) block->id,
+                                block_reason[0] != '\0' ? block_reason : "unknown reason");
+                        }
+                        transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+                        return;
+                    }
                     write_indent(ctx);
                     codebuf_write(ctx->out, "return;\n");
                 }
@@ -564,11 +607,39 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         if (!terminator_emitted && block->has_succ_true) {
             transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent, i, block,
                 &mir_routine->blocks[block->succ_true]);
+            if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
+                                                    block_reason,
+                                                    sizeof(block_reason))) {
+                transpiler_ssa_map_clear(&block_ssa_map);
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
+                        name != NULL ? name : "<function>",
+                        (unsigned long long) block->id,
+                        block_reason[0] != '\0' ? block_reason : "unknown reason");
+                }
+                transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+                return;
+            }
             write_indent(ctx);
             codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_true);
             terminator_emitted = true;
         }
         if (!terminator_emitted && !block->has_succ_true && !block->has_succ_false) {
+            if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
+                                                    block_reason,
+                                                    sizeof(block_reason))) {
+                transpiler_ssa_map_clear(&block_ssa_map);
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
+                        name != NULL ? name : "<function>",
+                        (unsigned long long) block->id,
+                        block_reason[0] != '\0' ? block_reason : "unknown reason");
+                }
+                transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+                return;
+            }
             write_indent(ctx);
             if (strcmp(ctx->current_return_type, "Void") == 0) {
                 codebuf_write(ctx->out, "return;\n");

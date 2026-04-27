@@ -325,6 +325,64 @@ test_hir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("HIR preserves pin block region metadata across CFG blocks");
+    {
+        const char *src =
+            "func PinFlow(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        if flag {\n"
+            "            Write(view, 1);\n"
+            "        } else {\n"
+            "            Write(view, 2);\n"
+            "        }\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        const HIRRoutine *routine = hir_find_routine(hir, "PinFlow", HIR_TOPLEVEL_FUNCTION);
+        bool found_pin = false;
+        bool found_after_pin = false;
+        bool found_write_mode = false;
+        bool found_source = false;
+        bool found_view = false;
+        if (routine != NULL && routine->has_cfg) {
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                const HIRBasicBlock *block = &routine->cfg.blocks[i];
+                if (block->is_pin_region) {
+                    found_pin = true;
+                    if (block->pin_view_is_write)
+                        found_write_mode = true;
+                    if (block->pin_source_name != NULL
+                        && strcmp(block->pin_source_name, "scores") == 0)
+                        found_source = true;
+                    if (block->pin_view_name != NULL
+                        && strcmp(block->pin_view_name, "view") == 0)
+                        found_view = true;
+                } else {
+                    for (size_t s = 0; s < block->statement_count; s++) {
+                        ASTNode *stmt = block->statements[s];
+                        if (stmt != NULL && stmt->type == AST_CALL
+                            && stmt->data.call.callee != NULL
+                            && stmt->data.call.callee->type == AST_IDENTIFIER
+                            && strcmp(stmt->data.call.callee->data.identifier.name, "Release") == 0) {
+                            found_after_pin = true;
+                        }
+                    }
+                }
+            }
+        }
+        EXPECT(hir != NULL
+               && routine != NULL
+               && routine->has_cfg
+               && found_pin
+               && found_after_pin
+               && found_write_mode
+               && found_source
+               && found_view);
+        hir_destroy(hir);
+    }
+
     TEST("HIR block pass can walk SSA-prep reachable blocks");
     {
         const char *src =

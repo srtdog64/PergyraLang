@@ -417,6 +417,57 @@ test_mir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR carries pin-region cleanup edge metadata");
+    {
+        const char *src =
+            "func PinFlow(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        if flag {\n"
+            "            Write(view, 1);\n"
+            "        } else {\n"
+            "            Write(view, 2);\n"
+            "        }\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool found_pin_block = false;
+        bool found_pin_cleanup = false;
+        bool found_after_pin_release = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "PinFlow", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t i = 0; i < routine->block_count; i++) {
+                const MIRBasicBlock *block = &routine->blocks[i];
+                if (block->is_pin_region) {
+                    found_pin_block = true;
+                    if (block->has_cleanup_succ
+                        && block->cleanup_succ == routine->cleanup_block
+                        && block_has_inst_named_with_slot(block, "pin-unpin-cleanup-edge", "scores")) {
+                        found_pin_cleanup = true;
+                    }
+                } else if (block_has_inst_named_with_slot(block, "Release", "scores")) {
+                    found_after_pin_release = true;
+                }
+            }
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && routine->has_cleanup_block
+               && found_pin_block
+               && found_pin_cleanup
+               && found_after_pin_release);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR captures intent dispatch and causes metadata");
     {
         const char *src =

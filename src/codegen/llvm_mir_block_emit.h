@@ -85,6 +85,174 @@ llvm_mir_stmt_is_cfg_container(ASTNode *node)
 }
 
 static void
+llvm_mir_pin_local_name(const MIRBasicBlock *block, char *buf, size_t buf_size)
+{
+    if (buf == NULL || buf_size == 0)
+        return;
+    snprintf(buf, buf_size, "__pgy_mir_pin_%zu",
+             block != NULL ? block->id : 0);
+}
+
+static LLVMValueRef
+llvm_mir_slot_pointer_arg(LLVMGenCtx *ctx, LLVMVarEntry *entry)
+{
+    if (ctx == NULL || entry == NULL)
+        return NULL;
+    if (entry->type != NULL
+        && LLVMGetTypeKind(entry->type) == LLVMPointerTypeKind) {
+        return LLVMBuildLoad2(ctx->builder, entry->type, entry->alloca,
+                              llvm_tmp_name(ctx));
+    }
+    return entry->alloca;
+}
+
+static bool
+llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
+{
+    const char *inner;
+    bool is_secure;
+    LLVMVarEntry *slot_entry;
+    LLVMTypeRef pin_ty;
+    LLVMValueRef pin_alloca;
+    LLVMFuncEntry *pin_fn;
+    LLVMValueRef args[2];
+    LLVMValueRef slot_ptr_arg;
+    LLVMValueRef view;
+    LLVMVarEntry *view_entry;
+    char pin_name[64];
+    char fn_name[128];
+    char token_name[256];
+
+    if (block == NULL || ctx == NULL || !block->is_pin_region)
+        return true;
+    if (block->pin_source_name == NULL)
+        return true;
+
+    inner = llvm_lookup_slot_inner(ctx, block->pin_source_name);
+    slot_entry = llvm_scope_lookup(ctx, block->pin_source_name);
+    if (inner == NULL || slot_entry == NULL || slot_entry->alloca == NULL) {
+        llvm_set_error(ctx, "LLVM MIR pin block cannot resolve source slot");
+        return false;
+    }
+
+    is_secure = llvm_lookup_slot_is_secure(ctx, block->pin_source_name);
+    llvm_mir_pin_local_name(block, pin_name, sizeof(pin_name));
+    slot_ptr_arg = llvm_mir_slot_pointer_arg(ctx, slot_entry);
+    if (is_secure) {
+        LLVMVarEntry *token_entry;
+        snprintf(token_name, sizeof(token_name), "%s_token",
+                 block->pin_source_name);
+        token_entry = llvm_scope_lookup(ctx, token_name);
+        if (token_entry == NULL || token_entry->alloca == NULL) {
+            llvm_set_error(ctx, "LLVM MIR secure pin block cannot resolve paired token");
+            return false;
+        }
+        snprintf(fn_name, sizeof(fn_name), "pgy_secure_pin_%s_%s",
+                 block->pin_view_is_write ? "write" : "read", inner);
+        pin_ty = llvm_pinned_secure_slot_struct_type(ctx, inner);
+        pin_fn = llvm_lookup_function(ctx, fn_name);
+        if (pin_fn == NULL || pin_fn->fn == NULL) {
+            llvm_set_error(ctx, "LLVM MIR secure pin runtime function is not registered");
+            return false;
+        }
+        pin_alloca = llvm_create_entry_alloca(ctx, pin_ty, pin_name);
+        args[0] = slot_ptr_arg;
+        args[1] = token_entry->alloca;
+        view = LLVMBuildCall2(ctx->builder, pin_fn->fn_type, pin_fn->fn,
+                              args, 2, llvm_tmp_name(ctx));
+    } else {
+        snprintf(fn_name, sizeof(fn_name), "pgy_pin_%s_%s",
+                 block->pin_view_is_write ? "write" : "read", inner);
+        pin_ty = llvm_pinned_slot_struct_type(ctx, inner);
+        pin_fn = llvm_lookup_function(ctx, fn_name);
+        if (pin_fn == NULL || pin_fn->fn == NULL) {
+            llvm_set_error(ctx, "LLVM MIR pin runtime function is not registered");
+            return false;
+        }
+        pin_alloca = llvm_create_entry_alloca(ctx, pin_ty, pin_name);
+        args[0] = slot_ptr_arg;
+        view = LLVMBuildCall2(ctx->builder, pin_fn->fn_type, pin_fn->fn,
+                              args, 1, llvm_tmp_name(ctx));
+    }
+
+    LLVMBuildStore(ctx->builder, view, pin_alloca);
+    llvm_scope_declare(ctx, pergyra_strdup(pin_name), pin_alloca, pin_ty);
+    if (block->pin_view_name != NULL) {
+        view_entry = llvm_scope_lookup(ctx, block->pin_view_name);
+        if (view_entry == NULL) {
+            LLVMTypeRef view_slot_ty = is_secure
+                ? llvm_secure_slot_struct_type(ctx, inner)
+                : llvm_slot_struct_type(ctx, inner);
+            llvm_scope_declare(ctx, pergyra_strdup(block->pin_view_name),
+                               slot_ptr_arg, view_slot_ty);
+        }
+        llvm_register_slot_var(ctx, pergyra_strdup(block->pin_view_name),
+                               inner, is_secure);
+        if (is_secure) {
+            LLVMVarEntry *token_entry;
+            snprintf(token_name, sizeof(token_name), "%s_token",
+                     block->pin_source_name);
+            token_entry = llvm_scope_lookup(ctx, token_name);
+            if (token_entry != NULL) {
+                char view_token_name[256];
+                snprintf(view_token_name, sizeof(view_token_name), "%s_token",
+                         block->pin_view_name);
+                if (llvm_scope_lookup(ctx, view_token_name) == NULL) {
+                    llvm_scope_declare(ctx, pergyra_strdup(view_token_name),
+                                       token_entry->alloca, token_entry->type);
+                }
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+llvm_mir_emit_pin_exit(const MIRBasicBlock *block, LLVMGenCtx *ctx)
+{
+    const char *inner;
+    bool is_secure;
+    LLVMVarEntry *pin_entry;
+    LLVMFuncEntry *unpin_fn;
+    LLVMValueRef args[1];
+    char pin_name[64];
+    char fn_name[128];
+
+    if (block == NULL || ctx == NULL || !block->is_pin_region)
+        return true;
+    if (block->pin_source_name == NULL)
+        return true;
+
+    inner = llvm_lookup_slot_inner(ctx, block->pin_source_name);
+    if (inner == NULL) {
+        llvm_set_error(ctx, "LLVM MIR pin block cannot resolve source slot at exit");
+        return false;
+    }
+
+    is_secure = llvm_lookup_slot_is_secure(ctx, block->pin_source_name);
+    llvm_mir_pin_local_name(block, pin_name, sizeof(pin_name));
+    pin_entry = llvm_scope_lookup(ctx, pin_name);
+    if (pin_entry == NULL || pin_entry->alloca == NULL) {
+        llvm_set_error(ctx, "LLVM MIR pin block cannot resolve pin local at exit");
+        return false;
+    }
+
+    snprintf(fn_name, sizeof(fn_name), is_secure ? "pgy_secure_unpin_%s"
+                                                 : "pgy_unpin_%s",
+             inner);
+    unpin_fn = llvm_lookup_function(ctx, fn_name);
+    if (unpin_fn == NULL || unpin_fn->fn == NULL) {
+        llvm_set_error(ctx, "LLVM MIR pin unpin runtime function is not registered");
+        return false;
+    }
+
+    args[0] = pin_entry->alloca;
+    LLVMBuildCall2(ctx->builder, unpin_fn->fn_type, unpin_fn->fn,
+                   args, 1, "");
+    return true;
+}
+
+static void
 llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine *routine,
                                LLVMGenCtx *ctx, LLVMBasicBlockRef *llvm_blocks,
                                LLVMMirVar *vars, size_t var_count, ASTNode *func_decl,
@@ -97,6 +265,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_block);
     bool emitted_terminator = false;
 
+    if (!llvm_mir_emit_pin_enter(mir_block, ctx))
+        return;
+
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL) {
@@ -108,6 +279,40 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
         }
         switch (inst->kind) {
         case MIR_INST_RESOURCE_OP:
+            if (inst->name != NULL
+                && (strcmp(inst->name, "BorrowRead") == 0
+                    || strcmp(inst->name, "BorrowWrite") == 0)
+                && inst->arg0 != NULL
+                && inst->arg1 != NULL) {
+                LLVMVarEntry *source_entry = llvm_scope_lookup(ctx, inst->arg0);
+                const char *inner = llvm_lookup_slot_inner(ctx, inst->arg0);
+                bool is_secure = llvm_lookup_slot_is_secure(ctx, inst->arg0);
+                if (source_entry != NULL && inner != NULL) {
+                    if (llvm_scope_lookup(ctx, inst->arg1) == NULL) {
+                        llvm_scope_declare(ctx, pergyra_strdup(inst->arg1),
+                                           source_entry->alloca,
+                                           source_entry->type);
+                    }
+                    llvm_register_slot_var(ctx, pergyra_strdup(inst->arg1),
+                                           inner, is_secure);
+                    if (is_secure) {
+                        char source_token_name[256];
+                        char view_token_name[256];
+                        LLVMVarEntry *token_entry;
+                        snprintf(source_token_name, sizeof(source_token_name),
+                                 "%s_token", inst->arg0);
+                        snprintf(view_token_name, sizeof(view_token_name),
+                                 "%s_token", inst->arg1);
+                        token_entry = llvm_scope_lookup(ctx, source_token_name);
+                        if (token_entry != NULL
+                            && llvm_scope_lookup(ctx, view_token_name) == NULL) {
+                            llvm_scope_declare(ctx, pergyra_strdup(view_token_name),
+                                               token_entry->alloca,
+                                               token_entry->type);
+                        }
+                    }
+                }
+            }
             break;
         case MIR_INST_DEF:
             if (inst->ast != NULL && inst->result_name != NULL) {
@@ -134,10 +339,14 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 if (cond != NULL) {
                     LLVMBasicBlockRef true_bb = llvm_blocks[mir_block->succ_true];
                     LLVMBasicBlockRef false_bb = llvm_blocks[mir_block->succ_false];
+                    if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                        return;
                     LLVMBuildCondBr(ctx->builder, cond, true_bb, false_bb);
                     emitted_terminator = true;
                 }
             } else if (mir_block->has_succ_true) {
+                if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                    return;
                 LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
                 emitted_terminator = true;
             }
@@ -148,12 +357,18 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             if (inst->ast != NULL) {
                 LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
                 if (val != NULL) {
+                    if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                        return;
                     LLVMBuildRet(ctx->builder, val);
                     emitted_terminator = true;
                 } else {
+                    if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                        return;
                     LLVMBuildRetVoid(ctx->builder);
                 }
             } else {
+                if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                    return;
                 LLVMBuildRetVoid(ctx->builder);
             }
             emitted_terminator = true;
@@ -174,16 +389,22 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
 
     if (!emitted_terminator) {
         if (mir_block->has_succ_true && mir_block->has_succ_false) {
+            if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                return;
             LLVMBuildCondBr(ctx->builder,
                             LLVMConstInt(LLVMInt1TypeInContext(
                                 LLVMGetModuleContext(ctx->module)), 1, false),
                             llvm_blocks[mir_block->succ_true],
                             llvm_blocks[mir_block->succ_false]);
         } else if (mir_block->has_succ_true) {
+            if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                return;
             LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
         } else {
             llvm_emit_defers_from(ctx, 0);
             llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
+            if (!llvm_mir_emit_pin_exit(mir_block, ctx))
+                return;
             if (ctx->current_ret_type == ctx->type_void) {
                 LLVMBuildRetVoid(ctx->builder);
             } else {

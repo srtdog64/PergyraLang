@@ -89,10 +89,31 @@ borrow-checker-equivalent is the static ownership/CFG layer above Slot."
   runtime boundaries.
 - Pin/Lease runtime ABI fast path: `PgyPinnedView`, `PergyraSlotPin`,
   `PergyraSlotUnpin`.
+- Generated inline slot ABI fast path: `PgyPinnedSlotView_*`,
+  `PgyPinnedSecureSlotView_*`, `pgy_pin_read_*`, `pgy_pin_write_*`,
+  `pgy_unpin_*`, and secure pin wrappers. This layer preserves the current
+  generated `PgySlot_*` layout and validates occupied/token state at lease
+  entry; the harder non-eviction guarantee still belongs to the table-backed
+  `PgyPinnedView` / `SlotManager` runtime.
 - Pinned slots cannot be released or evicted until they are unpinned.
 - Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` is accepted
   as a typed-view lexical block. Full runtime `PgyPinnedView` lowering remains
   internal until CFG cleanup insertion and C/LLVM parity are closed.
+- Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` now reaches
+  HIR and MIR as explicit pin-region metadata: source slot, view binding, and
+  read/write mode are preserved on CFG blocks. This is the compiler fact that
+  cleanup-edge insertion consumes through MIR `pin-unpin-cleanup-edge`
+  metadata. The generated inline runtime wrappers now exist for C/LLVM parity;
+  C source-block emission uses cleanup hooks for recognized pin blocks, and C
+  plus LLVM MIR successor/return exits emit explicit typed pin/unpin calls for
+  the frozen source-level pin backend-compare fixtures. Current backend parity
+  evidence covers normal successor exit, direct return inside the pin block,
+  conditional branch-to-return exit, and loop `break`/`continue` exit. Active
+  view + `defer` cleanup registration is rejected semantically so cleanup
+  helpers cannot capture a view beyond its pin scope. The remaining proof
+  blocker is expanding that evidence to exceptional and cancellation cleanup
+  families and recording the corresponding `DropOnce` / `ReleaseAfterUnpin`
+  theorem row.
 - The source-level typed-view layer rejects `Release(source)` and `Move(source)`
   while a `ReadView<T>` or `WriteView<T>` derived from `source` is live. This is
   the static front door for the runtime "pinned slots cannot be invalidated"
@@ -312,7 +333,7 @@ Required interpretation:
   a spawned task, or sent through a channel unless a stable ownership transfer
   rule explicitly admits it.
 - `NoSuspend` forbids live views across `await`, `spawn`, `async`, `parallel`,
-  callback, or channel handoff boundaries.
+  callback, `defer`, or channel handoff boundaries.
 - `WriteExclusive` is the aliasing-XOR-mutability baseline for `WriteView<T>`:
   while a write view is active, no other read or write view of the same slot may
   be active, and the owning slot name cannot be used as a parallel read/write
@@ -337,9 +358,12 @@ Current evidence:
   are statically rejected while an active typed view over `source` is live.
   Direct owner write/read bypass cases, including slot assignment sugar and
   value-position owner identifier sugar and `own`/`ref Slot<T>` helper calls,
-  are also rejected for the covered typed-view subset. The
-  cleanup/no-escape/backend-parity
-  bridge for explicit runtime pin/unpin lowering remains open.
+  are also rejected for the covered typed-view subset. Explicit runtime
+  pin/unpin lowering now has C/LLVM parity for normal successor exit, direct
+  return inside a pin block, conditional branch-to-return exit, and loop
+  `break`/`continue` exit. Active view + `defer` registration is rejected at
+  semantic time. The remaining cleanup/no-escape/backend-parity bridge is the
+  exceptional/cancellation exit family.
 
 Remaining obligation:
 

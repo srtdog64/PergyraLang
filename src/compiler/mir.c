@@ -2100,6 +2100,11 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
         block.id = i;
         block.is_entry = (i == hir_routine->cfg.entry_block);
         block.is_reachable = src->is_reachable;
+        block.is_pin_region = src->is_pin_region;
+        block.pin_view_is_write = src->pin_view_is_write;
+        block.pin_source_name = src->pin_source_name;
+        block.pin_view_name = src->pin_view_name;
+        block.pin_block_ast = src->pin_block_ast;
         block.source_hir_block_id = src->id;
         block.source_hir_block = src;
         block.source_terminator_condition = src->terminator_condition;

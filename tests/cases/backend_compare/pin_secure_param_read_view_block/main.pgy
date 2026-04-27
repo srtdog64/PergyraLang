@@ -1,0 +1,14 @@
+func Use(own slot: SecureSlot<Int>) -> Void {
+    pin slot as view: ReadView<Int> {
+        let value: Int = Read(view);
+        Log(value);
+    }
+}
+
+func Main() -> Void {
+    let scores: SecureSlot<Int> = ClaimSecureSlot();
+    pin scores as view: WriteView<Int> {
+        Write(view, 5);
+    }
+    Use(scores);
+}

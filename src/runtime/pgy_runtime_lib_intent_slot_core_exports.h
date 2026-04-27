@@ -158,6 +158,70 @@ typedef struct {
     bool    claimed;
 } PgySlot_String;
 
+#define PGY_INLINE_PIN_EXPORT_DEFINE(SuffixName) \
+typedef struct { \
+    PgySlot_##SuffixName *slot; \
+    bool                 active; \
+    bool                 can_write; \
+} PgyPinnedSlotView_##SuffixName; \
+\
+PgyPinnedSlotView_##SuffixName pgy_pin_read_##SuffixName(PgySlot_##SuffixName *s) \
+{ \
+    if (s == NULL) { \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "null " #SuffixName " slot pin read"); \
+    } \
+    if (!s->claimed) { \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT, \
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ); \
+    } \
+    PgyPinnedSlotView_##SuffixName view; \
+    view.slot = s; \
+    view.active = true; \
+    view.can_write = false; \
+    return view; \
+} \
+\
+PgyPinnedSlotView_##SuffixName pgy_pin_write_##SuffixName(PgySlot_##SuffixName *s) \
+{ \
+    if (s == NULL) { \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "null " #SuffixName " slot pin write"); \
+    } \
+    if (!s->claimed) { \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT, \
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE); \
+    } \
+    PgyPinnedSlotView_##SuffixName view; \
+    view.slot = s; \
+    view.active = true; \
+    view.can_write = true; \
+    return view; \
+} \
+\
+void pgy_unpin_##SuffixName(PgyPinnedSlotView_##SuffixName *view) \
+{ \
+    if (view == NULL) { \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "null " #SuffixName " slot unpin"); \
+    } \
+    if (!view->active || view->slot == NULL) { \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "inactive " #SuffixName " slot unpin"); \
+    } \
+    view->active = false; \
+    view->slot = NULL; \
+}
+
+PGY_INLINE_PIN_EXPORT_DEFINE(Int)
+PGY_INLINE_PIN_EXPORT_DEFINE(Long)
+PGY_INLINE_PIN_EXPORT_DEFINE(Float)
+PGY_INLINE_PIN_EXPORT_DEFINE(Double)
+PGY_INLINE_PIN_EXPORT_DEFINE(Bool)
+PGY_INLINE_PIN_EXPORT_DEFINE(String)
+
+#undef PGY_INLINE_PIN_EXPORT_DEFINE
+
 /* =================================================================
  * Slot operations ??Int
  * ================================================================= */

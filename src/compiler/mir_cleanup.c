@@ -116,6 +116,18 @@ mir_intent_ast_needs_invalidation(const HIRRoutine *hir_routine)
     return false;
 }
 
+static bool
+mir_routine_has_pin_regions(const MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return false;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        if (routine->blocks[i].is_pin_region)
+            return true;
+    }
+    return false;
+}
+
 bool
 mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope)
 {
@@ -124,38 +136,44 @@ mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope)
     bool needs_invalidation = false;
     MIRBasicBlock block;
 
-    if (routine == NULL || rir_scope == NULL)
+    if (routine == NULL)
         return true;
 
-    for (size_t i = 0; i < rir_scope->op_count; i++) {
-        if (rir_scope->ops[i].kind == RIR_OP_ABORT_INTENT
-            || rir_scope->ops[i].kind == RIR_OP_COMPENSATE_INTENT_STEP) {
-            needs_cleanup = true;
-            needs_rollback = true;
-            break;
+    if (rir_scope != NULL) {
+        for (size_t i = 0; i < rir_scope->op_count; i++) {
+            if (rir_scope->ops[i].kind == RIR_OP_ABORT_INTENT
+                || rir_scope->ops[i].kind == RIR_OP_COMPENSATE_INTENT_STEP) {
+                needs_cleanup = true;
+                needs_rollback = true;
+                break;
+            }
         }
     }
 
-    for (size_t i = 0; i < rir_scope->fact_count; i++) {
-        const RIRFact *fact = &rir_scope->facts[i];
-        if (fact->kind == RIR_FACT_INTENT_POLICY
-            && fact->name != NULL
-            && strcmp(fact->name, "rollback") == 0) {
-            needs_cleanup = true;
-            needs_rollback = true;
-        }
-        if (fact->kind == RIR_FACT_PROJECTION
-            || fact->resource_kind == RIR_RESOURCE_EFFECT_INSTANCE
-            || fact->resource_kind == RIR_RESOURCE_RELATION_INSTANCE
-            || fact->resource_kind == RIR_RESOURCE_ZONE_HANDLE) {
-            needs_cleanup = true;
-            needs_invalidation = true;
+    if (rir_scope != NULL) {
+        for (size_t i = 0; i < rir_scope->fact_count; i++) {
+            const RIRFact *fact = &rir_scope->facts[i];
+            if (fact->kind == RIR_FACT_INTENT_POLICY
+                && fact->name != NULL
+                && strcmp(fact->name, "rollback") == 0) {
+                needs_cleanup = true;
+                needs_rollback = true;
+            }
+            if (fact->kind == RIR_FACT_PROJECTION
+                || fact->resource_kind == RIR_RESOURCE_EFFECT_INSTANCE
+                || fact->resource_kind == RIR_RESOURCE_RELATION_INSTANCE
+                || fact->resource_kind == RIR_RESOURCE_ZONE_HANDLE) {
+                needs_cleanup = true;
+                needs_invalidation = true;
+            }
         }
     }
     if (mir_intent_ast_needs_invalidation(routine->hir_routine)) {
         needs_cleanup = true;
         needs_invalidation = true;
     }
+    if (mir_routine_has_pin_regions(routine))
+        needs_cleanup = true;
 
     if (!needs_cleanup)
         return true;
@@ -199,6 +217,25 @@ mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope)
     return true;
 }
 
+static bool
+mir_materialize_pin_cleanup_edges(MIRRoutine *routine, MIRBasicBlock *block)
+{
+    MIRInstruction inst;
+    if (routine == NULL || block == NULL || !block->is_pin_region)
+        return true;
+
+    memset(&inst, 0, sizeof(inst));
+    inst.id = routine->instruction_count++;
+    inst.kind = MIR_INST_CLEANUP_EDGE;
+    inst.name = "pin-unpin-cleanup-edge";
+    inst.slot_anchor = block->pin_source_name != NULL ? block->pin_source_name : "<expr>";
+    inst.arg0 = block->pin_view_name;
+    inst.arg1 = block->pin_view_is_write ? "write" : "read";
+    inst.ast = block->pin_block_ast;
+    routine->cleanup_instruction_count++;
+    return mir_cleanup_append_instruction(block, inst);
+}
+
 bool
 mir_materialize_cleanup_edges(MIRRoutine *routine)
 {
@@ -228,6 +265,8 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
                                              i)) {
             return false;
         }
+        if (!mir_materialize_pin_cleanup_edges(routine, block))
+            return false;
     }
 
     if (routine->has_rollback_block) {

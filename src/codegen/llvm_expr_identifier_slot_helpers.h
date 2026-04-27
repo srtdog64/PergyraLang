@@ -133,14 +133,25 @@ llvm_direct_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
                       const char *inner)
 {
     LLVMTypeRef inner_ty;
+    LLVMTypeRef slot_ty;
+    LLVMValueRef slot_ptr;
     LLVMValueRef value_ptr;
 
     if (slot_var == NULL || inner == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
     inner_ty = pergyra_type_to_llvm(ctx, inner);
-    value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
-        slot_var->alloca, 0, llvm_tmp_name(ctx));
+    if (slot_var->type != NULL
+        && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
+        slot_ty = llvm_slot_struct_type(ctx, inner);
+        slot_ptr = LLVMBuildLoad2(ctx->builder, slot_var->type,
+                                  slot_var->alloca, llvm_tmp_name(ctx));
+    } else {
+        slot_ty = slot_var->type;
+        slot_ptr = slot_var->alloca;
+    }
+    value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_ty,
+        slot_ptr, 0, llvm_tmp_name(ctx));
     return LLVMBuildLoad2(ctx->builder, inner_ty, value_ptr, llvm_tmp_name(ctx));
 }
 
@@ -162,20 +173,51 @@ static LLVMValueRef
 llvm_direct_secure_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
                              const char *inner)
 {
-    return llvm_direct_slot_read(ctx, slot_var, inner);
+    LLVMTypeRef inner_ty;
+    LLVMTypeRef slot_ty;
+    LLVMValueRef slot_ptr;
+    LLVMValueRef value_ptr;
+
+    if (slot_var == NULL || inner == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    inner_ty = pergyra_type_to_llvm(ctx, inner);
+    if (slot_var->type != NULL
+        && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
+        slot_ty = llvm_secure_slot_struct_type(ctx, inner);
+        slot_ptr = LLVMBuildLoad2(ctx->builder, slot_var->type,
+                                  slot_var->alloca, llvm_tmp_name(ctx));
+    } else {
+        slot_ty = slot_var->type;
+        slot_ptr = slot_var->alloca;
+    }
+    value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_ty,
+        slot_ptr, 0, llvm_tmp_name(ctx));
+    return LLVMBuildLoad2(ctx->builder, inner_ty, value_ptr, llvm_tmp_name(ctx));
 }
 
 static void
 llvm_direct_secure_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
 {
     LLVMValueRef token_ptr;
+    LLVMTypeRef slot_ty;
+    LLVMValueRef slot_ptr;
 
     llvm_direct_slot_release(ctx, slot_var);
     if (slot_var == NULL)
         return;
 
-    token_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
-        slot_var->alloca, 2, llvm_tmp_name(ctx));
+    if (slot_var->type != NULL
+        && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
+        const char *inner = llvm_lookup_slot_inner(ctx, slot_var->name);
+        slot_ty = llvm_secure_slot_struct_type(ctx, inner != NULL ? inner : "Int");
+        slot_ptr = LLVMBuildLoad2(ctx->builder, slot_var->type,
+                                  slot_var->alloca, llvm_tmp_name(ctx));
+    } else {
+        slot_ty = slot_var->type;
+        slot_ptr = slot_var->alloca;
+    }
+    token_ptr = LLVMBuildStructGEP2(ctx->builder, slot_ty,
+        slot_ptr, 2, llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder,
         LLVMConstInt(ctx->type_i64, 0, 0), token_ptr);
 }
@@ -186,14 +228,29 @@ llvm_direct_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
 {
     LLVMValueRef value_ptr;
     LLVMValueRef occupied_ptr;
+    LLVMTypeRef slot_ty;
+    LLVMValueRef slot_ptr;
 
     if (slot_var == NULL || value == NULL)
         return;
 
-    value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
-        slot_var->alloca, 0, llvm_tmp_name(ctx));
-    occupied_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
-        slot_var->alloca, 1, llvm_tmp_name(ctx));
+    if (slot_var->type != NULL
+        && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
+        const char *inner = llvm_lookup_slot_inner(ctx, slot_var->name);
+        bool secure = llvm_lookup_slot_is_secure(ctx, slot_var->name);
+        slot_ty = secure
+            ? llvm_secure_slot_struct_type(ctx, inner != NULL ? inner : "Int")
+            : llvm_slot_struct_type(ctx, inner != NULL ? inner : "Int");
+        slot_ptr = LLVMBuildLoad2(ctx->builder, slot_var->type,
+                                  slot_var->alloca, llvm_tmp_name(ctx));
+    } else {
+        slot_ty = slot_var->type;
+        slot_ptr = slot_var->alloca;
+    }
+    value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_ty,
+        slot_ptr, 0, llvm_tmp_name(ctx));
+    occupied_ptr = LLVMBuildStructGEP2(ctx->builder, slot_ty,
+        slot_ptr, 1, llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder, value, value_ptr);
     LLVMBuildStore(ctx->builder,
         LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
@@ -204,13 +261,28 @@ static void
 llvm_direct_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
 {
     LLVMValueRef occupied_ptr;
+    LLVMTypeRef slot_ty;
+    LLVMValueRef slot_ptr;
 
     if (slot_var == NULL)
 
         return;
 
-    occupied_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
-        slot_var->alloca, 1, llvm_tmp_name(ctx));
+    if (slot_var->type != NULL
+        && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
+        const char *inner = llvm_lookup_slot_inner(ctx, slot_var->name);
+        bool secure = llvm_lookup_slot_is_secure(ctx, slot_var->name);
+        slot_ty = secure
+            ? llvm_secure_slot_struct_type(ctx, inner != NULL ? inner : "Int")
+            : llvm_slot_struct_type(ctx, inner != NULL ? inner : "Int");
+        slot_ptr = LLVMBuildLoad2(ctx->builder, slot_var->type,
+                                  slot_var->alloca, llvm_tmp_name(ctx));
+    } else {
+        slot_ty = slot_var->type;
+        slot_ptr = slot_var->alloca;
+    }
+    occupied_ptr = LLVMBuildStructGEP2(ctx->builder, slot_ty,
+        slot_ptr, 1, llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder,
         LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0),
         occupied_ptr);
@@ -340,6 +412,18 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
 }
 
 static LLVMValueRef
+llvm_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *var)
+{
+    if (ctx == NULL || var == NULL)
+        return NULL;
+    if (var->type != NULL && LLVMGetTypeKind(var->type) == LLVMPointerTypeKind) {
+        return LLVMBuildLoad2(ctx->builder, var->type, var->alloca,
+                              llvm_tmp_name(ctx));
+    }
+    return var->alloca;
+}
+
+static LLVMValueRef
 llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *name = node->data.identifier.name;
@@ -360,12 +444,15 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                     if (is_secure) {
                         LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, name);
                         if (token_var != NULL) {
-                            LLVMValueRef args[] = { var->alloca, token_var->alloca };
+                            LLVMValueRef args[] = {
+                                llvm_slot_runtime_arg(ctx, var),
+                                token_var->alloca
+                            };
                             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                                  args, 2, llvm_tmp_name(ctx));
                         }
                     }
-                    LLVMValueRef args[] = { var->alloca };
+                    LLVMValueRef args[] = { llvm_slot_runtime_arg(ctx, var) };
                     return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                          args, 1, llvm_tmp_name(ctx));
                 }

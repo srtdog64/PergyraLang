@@ -432,12 +432,26 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     slot_type_Bool;
     LLVMTypeRef     slot_type_String;
 
+    LLVMTypeRef     pinned_slot_type_Int;
+    LLVMTypeRef     pinned_slot_type_Long;
+    LLVMTypeRef     pinned_slot_type_Float;
+    LLVMTypeRef     pinned_slot_type_Double;
+    LLVMTypeRef     pinned_slot_type_Bool;
+    LLVMTypeRef     pinned_slot_type_String;
+
     LLVMTypeRef     secure_slot_type_Int;
     LLVMTypeRef     secure_slot_type_Long;
     LLVMTypeRef     secure_slot_type_Float;
     LLVMTypeRef     secure_slot_type_Double;
     LLVMTypeRef     secure_slot_type_Bool;
     LLVMTypeRef     secure_slot_type_String;
+
+    LLVMTypeRef     pinned_secure_slot_type_Int;
+    LLVMTypeRef     pinned_secure_slot_type_Long;
+    LLVMTypeRef     pinned_secure_slot_type_Float;
+    LLVMTypeRef     pinned_secure_slot_type_Double;
+    LLVMTypeRef     pinned_secure_slot_type_Bool;
+    LLVMTypeRef     pinned_secure_slot_type_String;
 
     LLVMTypeRef     secure_token_type_Int;
     LLVMTypeRef     secure_token_type_Long;
@@ -677,7 +691,9 @@ void          llvm_register_view_var(LLVMGenCtx *ctx, const char *var_name,
                                      bool is_move_token);
 LLVMViewVarEntry *llvm_lookup_view_var(LLVMGenCtx *ctx, const char *var_name);
 LLVMTypeRef   llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef   llvm_pinned_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef   llvm_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef   llvm_pinned_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef   llvm_secure_token_type(LLVMGenCtx *ctx, const char *inner);
 void          llvm_register_device_slot_var(LLVMGenCtx *ctx, const char *var_name,
                                              const char *inner_type);

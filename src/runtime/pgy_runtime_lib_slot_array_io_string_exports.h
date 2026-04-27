@@ -85,6 +85,74 @@ void pgy_secure_release_##Suffix(PgySecureSlot_##Suffix *s,                    \
                           PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_RELEASE); \
     s->occupied = false;                                                       \
     s->token = 0;                                                              \
+}                                                                              \
+                                                                               \
+typedef struct {                                                               \
+    PgySecureSlot_##Suffix  *slot;                                             \
+    const PgyToken_##Suffix *token;                                            \
+    bool                     active;                                           \
+    bool                     can_write;                                        \
+} PgyPinnedSecureSlotView_##Suffix;                                            \
+                                                                               \
+PgyPinnedSecureSlotView_##Suffix                                               \
+pgy_secure_pin_read_##Suffix(PgySecureSlot_##Suffix *s,                        \
+                             const PgyToken_##Suffix *t)                       \
+{                                                                              \
+    if (s == NULL || t == NULL)                                                 \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,          \
+                          "null secure slot pin read operand");                \
+    if (!s->occupied)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,               \
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SECURE_SLOT_READ);  \
+    if (s->token != t->id)                                                      \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN,         \
+                          PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_READ);  \
+    if (!t->can_read)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN,         \
+                          PGY_RUNTIME_PANIC_REASON_SECURE_TOKEN_DENIES_READ);   \
+    PgyPinnedSecureSlotView_##Suffix view;                                      \
+    view.slot = s;                                                             \
+    view.token = t;                                                            \
+    view.active = true;                                                        \
+    view.can_write = false;                                                    \
+    return view;                                                               \
+}                                                                              \
+                                                                               \
+PgyPinnedSecureSlotView_##Suffix                                               \
+pgy_secure_pin_write_##Suffix(PgySecureSlot_##Suffix *s,                       \
+                              const PgyToken_##Suffix *t)                      \
+{                                                                              \
+    if (s == NULL || t == NULL)                                                 \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,          \
+                          "null secure slot pin write operand");               \
+    if (!s->occupied)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT,               \
+                          PGY_RUNTIME_PANIC_REASON_RELEASED_SECURE_SLOT_WRITE); \
+    if (s->token != t->id)                                                      \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN,         \
+                          PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE); \
+    if (!t->can_write)                                                          \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN,         \
+                          PGY_RUNTIME_PANIC_REASON_SECURE_TOKEN_DENIES_WRITE);  \
+    PgyPinnedSecureSlotView_##Suffix view;                                      \
+    view.slot = s;                                                             \
+    view.token = t;                                                            \
+    view.active = true;                                                        \
+    view.can_write = true;                                                     \
+    return view;                                                               \
+}                                                                              \
+                                                                               \
+void pgy_secure_unpin_##Suffix(PgyPinnedSecureSlotView_##Suffix *view)         \
+{                                                                              \
+    if (view == NULL)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,          \
+                          "null secure slot unpin");                           \
+    if (!view->active || view->slot == NULL || view->token == NULL)             \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,          \
+                          "inactive secure slot unpin");                       \
+    view->active = false;                                                      \
+    view->slot = NULL;                                                         \
+    view->token = NULL;                                                        \
 }
 
 PGY_DEFINE_SECURE_SLOT_EXPORTS(Int, int32_t, 0)

@@ -131,8 +131,13 @@ transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
     }
     if (body->type == AST_WHILE_LOOP)
         return transpiler_has_local_binding_in_block(body->data.while_loop.body, base_name);
-    if (body->type == AST_FOR_LOOP)
+    if (body->type == AST_FOR_LOOP) {
+        if (body->data.for_loop.variable != NULL
+            && strcmp(body->data.for_loop.variable, base_name) == 0) {
+            return true;
+        }
         return transpiler_has_local_binding_in_block(body->data.for_loop.body, base_name);
+    }
     return false;
 }
 
@@ -189,6 +194,11 @@ transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
         return;
     }
     if (body->type == AST_FOR_LOOP) {
+        if (body->data.for_loop.variable != NULL) {
+            transpiler_ssa_name_map_set(ssa_map,
+                body->data.for_loop.variable,
+                body->data.for_loop.variable);
+        }
         transpiler_register_with_alias_bindings_in_block(ssa_map,
             body->data.for_loop.body);
     }
@@ -295,6 +305,9 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
             continue;
         }
         if (stmt->type == AST_FOR_LOOP) {
+            if (stmt->data.for_loop.variable != NULL) {
+                register_typed_var(ctx, stmt->data.for_loop.variable, "Int");
+            }
             transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
                 stmt->data.for_loop.body);
         }

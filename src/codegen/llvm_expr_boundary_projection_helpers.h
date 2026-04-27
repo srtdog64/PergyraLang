@@ -33,12 +33,24 @@ llvm_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param, bool *is_secure
         return NULL;
 
     entry = llvm_lookup_class(ctx, inner_name);
-    if (entry == NULL || !entry->is_subject)
-        return NULL;
+    (void)entry;
 
     if (is_secure_out != NULL)
         *is_secure_out = (strcmp(type_name, "SecureSlot") == 0);
     return inner_name;
+}
+
+static LLVMValueRef
+llvm_boundary_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
+{
+    if (ctx == NULL || slot_var == NULL)
+        return NULL;
+    if (slot_var->type != NULL
+        && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
+        return LLVMBuildLoad2(ctx->builder, slot_var->type, slot_var->alloca,
+                              llvm_tmp_name(ctx));
+    }
+    return slot_var->alloca;
 }
 
 static ASTNode *
@@ -107,7 +119,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             const char *source_name = arg_node->data.identifier.name;
             LLVMVarEntry *slot_var = llvm_scope_lookup(ctx, source_name);
             args[emitted_idx++] = slot_var != NULL
-                ? slot_var->alloca
+                ? llvm_boundary_slot_runtime_arg(ctx, slot_var)
                 : llvm_emit_expression(arg_node, ctx);
             if (is_secure) {
                 LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, source_name);

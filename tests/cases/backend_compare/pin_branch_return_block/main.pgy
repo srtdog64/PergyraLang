@@ -1,0 +1,13 @@
+func Main() -> Int {
+    let scores: Slot<Int> = ClaimSlot();
+    Write(scores, 3);
+
+    pin scores as view: ReadView<Int> {
+        let value: Int = Read(view);
+        if value > 0 {
+            return value;
+        }
+    }
+
+    return 0;
+}

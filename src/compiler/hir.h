@@ -115,6 +115,11 @@ struct HIRBasicBlock
     size_t                  id;
     ASTNode               **statements;
     size_t                  statement_count;
+    bool                    is_pin_region;
+    bool                    pin_view_is_write;
+    const char             *pin_source_name;
+    const char             *pin_view_name;
+    ASTNode                *pin_block_ast;
     bool                    is_loop_header;
     bool                    is_reachable;
     size_t                  loop_depth;

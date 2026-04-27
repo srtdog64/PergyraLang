@@ -142,6 +142,13 @@ required_files = {
         "WriteExclusive(slot, region)",
         "proof sketch, not completed",
         "Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` now reaches",
+        "HIR and MIR as explicit pin-region metadata",
+        "pin-unpin-cleanup-edge",
+        "PgyPinnedSlotView_*",
+        "PgyPinnedSecureSlotView_*",
+        "pgy_pin_read_*",
+        "pgy_pin_write_*",
+        "pgy_unpin_*",
     ],
 }
 

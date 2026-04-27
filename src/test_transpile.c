@@ -3671,6 +3671,32 @@ test_slot_sugar(void)
         EXPECT(count == 1);
         transpiler_ctx_destroy(ctx);
     }
+
+    TEST("pin block emits typed runtime pin wrapper with cleanup");
+    {
+        ASTNode *let_node = make_let("x", make_type_node("Slot<Int>"),
+                                      make_number(42, 1), 1);
+        ASTNode *pin_block = calloc(1, sizeof(ASTNode));
+        pin_block->type = AST_BLOCK;
+        pin_block->line = 2;
+        pin_block->data.block.statements = NULL;
+        pin_block->data.block.count = 0;
+        pin_block->data.block.is_pin_block = true;
+        pin_block->data.block.pin_view_is_write = true;
+        pin_block->data.block.pin_source_name = pergyra_strdup("x");
+        pin_block->data.block.pin_view_name = pergyra_strdup("view");
+
+        ctx = transpiler_ctx_create();
+        emit_statement(let_node, ctx);
+        emit_block(pin_block, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyPinnedSlotView_Int");
+        EXPECT_STR_CONTAINS(ctx->out->data, "cleanup(pgy_unpin_cleanup_Int)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_pin_write_Int(&x)");
+
+        ast_destroy(pin_block);
+        transpiler_ctx_destroy(ctx);
+    }
 }
 
 static void
@@ -5108,6 +5134,51 @@ test_mir_vertical_slice_emit(void)
                 EXPECT(buyer_pos < price_pos);
                 EXPECT(price_pos < adjustments_pos);
             }
+        }
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("MIR pin block emits explicit pin/unpin around successor path");
+    {
+        const char *source =
+            "func Score() -> Int {\n"
+            "    let scores: Slot<Int> = 41;\n"
+            "    pin scores as view: ReadView<Int> {\n"
+            "        Log(\"pin\");\n"
+            "    }\n"
+            "    return Read(scores);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_pin_block.c");
+        const char *path = path_buf;
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok && output != NULL);
+        if (output != NULL) {
+            EXPECT_STR_CONTAINS(output, "PgyPinnedSlotView_Int __pgy_mir_pin_");
+            EXPECT_STR_CONTAINS(output, "pgy_pin_read_Int(&scores)");
+            EXPECT_STR_CONTAINS(output, "pgy_unpin_Int(&__pgy_mir_pin_");
+            EXPECT(strstr(output, "pgy_unpin_Int(&__pgy_mir_pin_") != NULL
+                   && strstr(strstr(output, "pgy_unpin_Int(&__pgy_mir_pin_"),
+                             "goto _pgy_mir_bb_Score_") != NULL);
         }
 
         free(output);

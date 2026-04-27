@@ -263,6 +263,26 @@ llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
 }
 
 LLVMTypeRef
+llvm_pinned_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
+{
+    switch (pgy_classify_type(inner)) {
+    case PGY_TK_INT:    return ctx->pinned_slot_type_Int;
+    case PGY_TK_LONG:   return ctx->pinned_slot_type_Long;
+    case PGY_TK_FLOAT:  return ctx->pinned_slot_type_Float;
+    case PGY_TK_DOUBLE: return ctx->pinned_slot_type_Double;
+    case PGY_TK_BOOL:   return ctx->pinned_slot_type_Bool;
+    case PGY_TK_STRING: return ctx->pinned_slot_type_String;
+    default: {
+        LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+        LLVMTypeRef fields[] = {
+            LLVMPointerType(slot_ty, 0), ctx->type_i1, ctx->type_i1
+        };
+        return LLVMStructTypeInContext(ctx->context, fields, 3, 0);
+    }
+    }
+}
+
+LLVMTypeRef
 llvm_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
 {
     switch (pgy_classify_type(inner)) {
@@ -278,6 +298,30 @@ llvm_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
             inner_ty, LLVMInt1TypeInContext(ctx->context), ctx->type_i64
         };
         return LLVMStructTypeInContext(ctx->context, fields, 3, 0);
+    }
+    }
+}
+
+LLVMTypeRef
+llvm_pinned_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
+{
+    switch (pgy_classify_type(inner)) {
+    case PGY_TK_INT:    return ctx->pinned_secure_slot_type_Int;
+    case PGY_TK_LONG:   return ctx->pinned_secure_slot_type_Long;
+    case PGY_TK_FLOAT:  return ctx->pinned_secure_slot_type_Float;
+    case PGY_TK_DOUBLE: return ctx->pinned_secure_slot_type_Double;
+    case PGY_TK_BOOL:   return ctx->pinned_secure_slot_type_Bool;
+    case PGY_TK_STRING: return ctx->pinned_secure_slot_type_String;
+    default: {
+        LLVMTypeRef slot_ty = llvm_secure_slot_struct_type(ctx, inner);
+        LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
+        LLVMTypeRef fields[] = {
+            LLVMPointerType(slot_ty, 0),
+            LLVMPointerType(token_ty, 0),
+            ctx->type_i1,
+            ctx->type_i1
+        };
+        return LLVMStructTypeInContext(ctx->context, fields, 4, 0);
     }
     }
 }

@@ -11,6 +11,7 @@
 #include "llvm_expr_rc_calls.h"
 #include "llvm_expr_result_option_calls.h"
 #include "llvm_expr_slot_device_calls.h"
+#include "llvm_expr_stdlib_scalar_io_calls.h"
 #include "llvm_expr_task_channel_calls.h"
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_expr_call_dispatch.h"

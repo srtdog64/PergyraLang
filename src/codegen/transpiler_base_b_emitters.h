@@ -6,5 +6,6 @@
 #include "transpiler_func_class_flow_emit.h"
 #include "transpiler_destructure_emit.h"
 #include "transpiler_statement_dispatch.h"
+#include "transpiler_block_emit.h"
 #include "transpiler_block_intent_helpers.h"
 #include "transpiler_intent_zone_binding_emit.h"

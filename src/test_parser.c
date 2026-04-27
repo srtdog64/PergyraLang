@@ -1521,6 +1521,71 @@ cleanup:
     return failed;
 }
 
+static int
+run_pin_block_metadata_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+        "    pin scores as view: WriteView<Int> {\n"
+        "        Write(view, 1);\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    ASTNode *func = NULL;
+    ASTNode *body = NULL;
+    ASTNode *pin_block = NULL;
+
+    printf("\n=== Test: Pin Block Metadata In AST ===\n");
+
+    if (lexer == NULL || parser == NULL || parser_has_error(parser)) {
+        printf("[FAIL] pin block metadata parse failed: %s\n",
+            parser != NULL ? parser_get_error(parser) : "<parser unavailable>");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count == 0)
+        failed = 1;
+    else
+        func = ast->data.program.statements[0];
+    if (!failed && (func == NULL || func->type != AST_FUNC_DECL))
+        failed = 1;
+    else if (!failed)
+        body = func->data.func_decl.body;
+    if (!failed && (body == NULL || body->type != AST_BLOCK
+        || body->data.block.count < 2)) {
+        failed = 1;
+    } else if (!failed) {
+        pin_block = body->data.block.statements[1];
+    }
+
+    if (!failed && (pin_block == NULL || pin_block->type != AST_BLOCK
+        || !pin_block->data.block.is_pin_block
+        || !pin_block->data.block.pin_view_is_write
+        || pin_block->data.block.pin_source_name == NULL
+        || strcmp(pin_block->data.block.pin_source_name, "scores") != 0
+        || pin_block->data.block.pin_view_name == NULL
+        || strcmp(pin_block->data.block.pin_view_name, "view") != 0)) {
+        failed = 1;
+    }
+
+    if (!failed && !ast_print_contains(ast, "Pin Block: scores as view (WriteView)"))
+        failed = 1;
+
+    if (failed)
+        printf("[FAIL] pin block metadata was not preserved in AST\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
 int
 main(void)
 {
@@ -2444,6 +2509,8 @@ main(void)
     failures += run_object_keyword_alias_test();
     printf("\n");
     failures += run_string_literal_surface_test();
+    printf("\n");
+    failures += run_pin_block_metadata_test();
     printf("\n");
     failures += run_vessel_keyword_alias_test();
     printf("\n");

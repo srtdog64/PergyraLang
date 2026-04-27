@@ -312,6 +312,21 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           snprintf(fn_name, sizeof(fn_name), "pgy_release_%s", suffix);
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
+          LLVMTypeRef params[] = { ptr_ty };
+          LLVMTypeRef ft = LLVMFunctionType(pinned_ty, params, 1, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_pin_read_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty);
+          snprintf(fn_name, sizeof(fn_name), "pgy_pin_write_%s", suffix);
+          fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty); }
+        { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
+          LLVMTypeRef params[] = { LLVMPointerType(pinned_ty, 0) };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+          snprintf(fn_name, sizeof(fn_name), "pgy_unpin_%s", suffix);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
           snprintf(fn_name, sizeof(fn_name), "pgy_claim_device_%s", suffix);
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
@@ -719,6 +734,21 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         { LLVMTypeRef params[] = { LLVMPointerType(sty, 0), LLVMPointerType(tty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
           snprintf(fname, sizeof(fname), "pgy_secure_release_%s", suf);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        { LLVMTypeRef pinned_ty = llvm_pinned_secure_slot_struct_type(ctx, suf);
+          LLVMTypeRef params[] = { LLVMPointerType(sty, 0), LLVMPointerType(tty, 0) };
+          LLVMTypeRef ft = LLVMFunctionType(pinned_ty, params, 2, 0);
+          snprintf(fname, sizeof(fname), "pgy_secure_pin_read_%s", suf);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty);
+          snprintf(fname, sizeof(fname), "pgy_secure_pin_write_%s", suf);
+          fn = LLVMAddFunction(ctx->module, fname, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty); }
+        { LLVMTypeRef pinned_ty = llvm_pinned_secure_slot_struct_type(ctx, suf);
+          LLVMTypeRef params[] = { LLVMPointerType(pinned_ty, 0) };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+          snprintf(fname, sizeof(fname), "pgy_secure_unpin_%s", suf);
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
     }

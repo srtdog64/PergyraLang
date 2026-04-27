@@ -525,6 +525,74 @@ fi
 check_json "pin-cancel-boundary" "$PIN_CANCEL_ERR" \
   'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "cancel cleanup boundary" in d.get("message", "") for d in data)'
 
+PIN_SOURCE_CANCEL_SRC="$WORK_DIR/pin_source_cancel_boundary.pgy"
+cat > "$PIN_SOURCE_CANCEL_SRC" <<'EOF'
+func Work() -> Int {
+    return 1;
+}
+
+func Main() -> Void {
+    let pending: Future<Int> = spawn Work();
+    let scores: Slot<Int> = ClaimSlot();
+    pin scores as view: ReadView<Int> {
+        Cancel(pending);
+        Log(1);
+    }
+}
+EOF
+PIN_SOURCE_CANCEL_ERR="$WORK_DIR/pin_source_cancel_boundary.err"
+if "$PGY" "$PIN_SOURCE_CANCEL_SRC" --backend=c --error-format=json 2>"$PIN_SOURCE_CANCEL_ERR"; then
+    echo "[diag-json] pin-source-cancel-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_SOURCE_CANCEL_ERR" >&2
+    exit 1
+fi
+check_json "pin-source-cancel-boundary" "$PIN_SOURCE_CANCEL_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "cancel cleanup boundary" in d.get("message", "") for d in data)'
+
+PIN_DEFER_SRC="$WORK_DIR/pin_defer_boundary.pgy"
+cat > "$PIN_DEFER_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    let view: ReadView<Int> = ViewRead(scores);
+    defer {
+        let value: Int = Read(view);
+        Log(value);
+    };
+    Log(1);
+}
+EOF
+PIN_DEFER_ERR="$WORK_DIR/pin_defer_boundary.err"
+if "$PGY" "$PIN_DEFER_SRC" --backend=c --error-format=json 2>"$PIN_DEFER_ERR"; then
+    echo "[diag-json] pin-defer-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_DEFER_ERR" >&2
+    exit 1
+fi
+check_json "pin-defer-boundary" "$PIN_DEFER_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "defer cleanup boundary" in d.get("message", "") for d in data)'
+
+PIN_SOURCE_DEFER_SRC="$WORK_DIR/pin_source_defer_boundary.pgy"
+cat > "$PIN_SOURCE_DEFER_SRC" <<'EOF'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot();
+    Write(scores, 7);
+    pin scores as view: ReadView<Int> {
+        defer {
+            let value: Int = Read(view);
+            Log(value);
+        };
+    }
+    Log(1);
+}
+EOF
+PIN_SOURCE_DEFER_ERR="$WORK_DIR/pin_source_defer_boundary.err"
+if "$PGY" "$PIN_SOURCE_DEFER_SRC" --backend=c --error-format=json 2>"$PIN_SOURCE_DEFER_ERR"; then
+    echo "[diag-json] pin-source-defer-boundary: FAIL -- expected non-zero exit" >&2
+    cat "$PIN_SOURCE_DEFER_ERR" >&2
+    exit 1
+fi
+check_json "pin-source-defer-boundary" "$PIN_SOURCE_DEFER_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "defer cleanup boundary" in d.get("message", "") for d in data)'
+
 PIN_AWAIT_SRC="$WORK_DIR/pin_await_boundary.pgy"
 cat > "$PIN_AWAIT_SRC" <<'EOF'
 async func Main() -> Void {

@@ -95,6 +95,15 @@ Stable:
   inline C, exported runtime, and LLVM-linkable runtime use the same
   `PgyToken<T>` layout with read/write capability bits and hard-fail token
   checks. Only plain `Slot<T>` has a zero-overhead release layout.
+- Generated inline pin wrappers are part of the ownership ABI: `PgyPinnedSlotView_*`,
+  `PgyPinnedSecureSlotView_*`, `pgy_pin_read_*`, `pgy_pin_write_*`, and
+  `pgy_unpin_*` preserve the existing `PgySlot_*` / `PgySecureSlot_*` layouts
+  while giving C and LLVM a shared call surface for lexical Pin/Lease cleanup.
+- C source-block pin lowering emits cleanup-hooked typed wrapper locals. C and
+  LLVM MIR pin-region lowering emit explicit typed pin/unpin on
+  successor/return exits for the frozen pin backend-compare fixtures. Broader
+  all-exit proof coverage remains the beta blocker before this syntax can be
+  called fully closed.
 - Shared `ref`/`ref` reads across parallel tasks are allowed.
 - `ref`/`own` and `own`/`own` parallel task-boundary conflicts are rejected.
 - Minimal single-thread `Rc<T>` / `Weak<T>` is beta-stable only for the

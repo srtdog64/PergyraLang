@@ -97,6 +97,11 @@ typedef struct
     bool             is_entry;
     bool             is_reachable;
     bool             is_cleanup;
+    bool             is_pin_region;
+    bool             pin_view_is_write;
+    const char      *pin_source_name;
+    const char      *pin_view_name;
+    ASTNode         *pin_block_ast;
     size_t           source_hir_block_id;
     const HIRBasicBlock *source_hir_block;
     ASTNode         *source_ast;

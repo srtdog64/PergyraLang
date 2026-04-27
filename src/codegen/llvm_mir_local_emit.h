@@ -120,6 +120,71 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                             const char *owner_name, size_t param_count)
 {
     (void)routine;
+    if (!is_intent) {
+        size_t emitted_index = 0;
+        if (is_method) {
+            LLVMTypeRef self_type = owner_cls != NULL
+                ? (owner_cls->is_pointer_self_host
+                    ? LLVMPointerType(owner_cls->struct_type, 0)
+                    : owner_cls->struct_type)
+                : ctx->type_i8ptr;
+            LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, self_type,
+                (owner_cls != NULL && owner_cls->is_pointer_self_host) ? "self.addr" : "self");
+            LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), alloca);
+            llvm_scope_declare(ctx, "self", alloca, self_type);
+            if (owner_name != NULL)
+                llvm_register_var_class(ctx, "self", owner_name);
+            emitted_index = 1;
+        }
+
+        for (size_t param_index = 0;
+             param_index < func_decl->data.func_decl.param_count;
+             param_index++) {
+            FuncParam *p = func_decl->data.func_decl.params[param_index];
+            bool is_secure_slot = false;
+            const char *slot_inner;
+            LLVMTypeRef pt;
+            LLVMValueRef alloca;
+
+            if (p == NULL || (is_method && p->type == NULL && p->name != NULL
+                && strcmp(p->name, "self") == 0)) {
+                continue;
+            }
+
+            pt = (p->type != NULL) ? llvm_mir_type_from_ast(ctx, p->type)
+                                   : ctx->type_i32;
+            slot_inner = llvm_mir_boundary_slot_inner_name(p, &is_secure_slot);
+            if (slot_inner != NULL) {
+                LLVMTypeRef slot_ptr_ty = LLVMPointerType(pt, 0);
+                alloca = LLVMBuildAlloca(ctx->builder, slot_ptr_ty, p->name);
+                LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)emitted_index++), alloca);
+                llvm_scope_declare(ctx, p->name, alloca, slot_ptr_ty);
+                llvm_register_typed_var(ctx, p->name, p->type);
+                llvm_register_slot_var(ctx, p->name, slot_inner, is_secure_slot);
+                if (is_secure_slot) {
+                    char token_name[256];
+                    LLVMTypeRef token_ty = llvm_secure_token_type(ctx, slot_inner);
+                    LLVMValueRef token_alloca;
+                    snprintf(token_name, sizeof(token_name), "%s_token", p->name);
+                    token_alloca = LLVMBuildAlloca(ctx->builder, token_ty, token_name);
+                    LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)emitted_index++),
+                                   token_alloca);
+                    llvm_scope_declare(ctx, pergyra_strdup(token_name),
+                                       token_alloca, token_ty);
+                }
+                continue;
+            }
+
+            if (p->type != NULL && llvm_mir_param_uses_pointer_self(ctx, p->type))
+                pt = LLVMPointerType(pt, 0);
+            alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
+            LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)emitted_index++), alloca);
+            llvm_scope_declare(ctx, p->name, alloca, pt);
+            llvm_register_typed_var(ctx, p->name, p->type);
+        }
+        return;
+    }
+
     for (size_t i = 0; i < param_count; i++) {
         if (is_intent) {
             ASTNode *binding = func_decl->data.intent_decl.binding_count > 0

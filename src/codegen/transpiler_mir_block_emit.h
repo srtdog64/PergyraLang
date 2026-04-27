@@ -1,6 +1,7 @@
-/* C backend MIR block statement emission owner.
- * Included inside transpiler.c after MIR SSA inventory helpers. */
-
+/* C backend MIR block statement emission owner. */
+#include "transpiler_mir_destructure_emit.h"
+#include "transpiler_mir_fallback_let_emit.h"
+#include "transpiler_mir_block_schedule_emit.h"
 static bool
 transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                      const MIRRoutine *mir_routine,
@@ -44,89 +45,36 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (!transpiler_ssa_name_map_set(ssa_map_out, base, inst->result_name))
             return false;
     }
-
     saved_active_ssa_map = ctx->active_ssa_map;
     ctx->active_ssa_map = ssa_map_out;
-
+    if (!transpiler_emit_mir_pin_enter_local(buf, ctx, block, reason, reason_cap)) {
+        ctx->active_ssa_map = saved_active_ssa_map;
+        return false;
+    }
+    if (block->is_pin_region
+        && block->pin_view_name != NULL
+        && block->pin_source_name != NULL) {
+        if (!transpiler_ssa_name_map_set(ssa_map_out,
+                                         block->pin_view_name,
+                                         block->pin_source_name)) {
+            ctx->active_ssa_map = saved_active_ssa_map;
+            return false;
+        }
+    }
     source_order_mode = !transpiler_mir_routine_has_explicit_cfg(mir_routine)
         && block->source_statement_count > 0
         && block->source_statements != NULL
         && block->instruction_count > 0;
     if (source_order_mode) {
-        bool *scheduled = calloc(block->instruction_count, sizeof(bool));
-        inst_order = calloc(block->instruction_count, sizeof(size_t));
-        size_t order_count = 0;
-
-        if (scheduled == NULL || inst_order == NULL) {
-            free(scheduled);
-            free(inst_order);
+        if (!transpiler_mir_block_build_source_order(block, &inst_order,
+                                                     reason, reason_cap)) {
             ctx->active_ssa_map = saved_active_ssa_map;
-            if (reason != NULL && reason_cap > 0) {
-                snprintf(reason, reason_cap,
-                         "MIR block %llu emission failed: unable to allocate source-order schedule",
-                         (unsigned long long) block->id);
-            }
             return false;
         }
-
-        for (size_t stmt_idx = 0; stmt_idx < block->source_statement_count; stmt_idx++) {
-            ASTNode *source_stmt = block->source_statements[stmt_idx];
-            for (size_t inst_idx = 0; inst_idx < block->instruction_count; inst_idx++) {
-                const MIRInstruction *inst = &block->instructions[inst_idx];
-                bool attach_to_source_stmt = false;
-                if (scheduled[inst_idx])
-                    continue;
-                if (inst->ast == source_stmt) {
-                    attach_to_source_stmt = true;
-                } else if (source_stmt != NULL
-                           && inst->kind == MIR_INST_DEF
-                           && inst->arg0 != NULL) {
-                    if (source_stmt->type == AST_LET_DECL
-                        && source_stmt->data.let_decl.name != NULL
-                        && strcmp(inst->arg0, source_stmt->data.let_decl.name) == 0) {
-                        attach_to_source_stmt = true;
-                    } else if (source_stmt->type == AST_ASSIGNMENT
-                               && source_stmt->data.assignment.target != NULL
-                               && source_stmt->data.assignment.target->type == AST_IDENTIFIER
-                               && source_stmt->data.assignment.target->data.identifier.name != NULL
-                               && strcmp(inst->arg0,
-                                         source_stmt->data.assignment.target->data.identifier.name) == 0) {
-                        attach_to_source_stmt = true;
-                    }
-                }
-                if (!attach_to_source_stmt)
-                    continue;
-                inst_order[order_count++] = inst_idx;
-                scheduled[inst_idx] = true;
-            }
-        }
-        for (size_t inst_idx = 0; inst_idx < block->instruction_count; inst_idx++) {
-            if (scheduled[inst_idx])
-                continue;
-            inst_order[order_count++] = inst_idx;
-        }
-        free(scheduled);
     }
 
-    for (size_t i = 0; i < block->instruction_count; i++) {
-        const MIRInstruction *inst = &block->instructions[i];
-        if (inst->kind != MIR_INST_RESOURCE_OP)
-            continue;
-        if (inst->name == NULL || strcmp(inst->name, "Claim") != 0)
-            continue;
-        if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
-            if (reason != NULL && reason_cap > 0) {
-                snprintf(reason, reason_cap,
-                         "MIR block %zu emission failed: unable to emit claim op for '%s'",
-                         block->id,
-                         inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
-            }
-            ok = false;
-            break;
-        }
-    }
-
-    if (!ok) {
+    if (!transpiler_emit_mir_claim_prepass(buf, block, ctx,
+                                           reason, reason_cap)) {
         free(inst_order);
         ctx->active_ssa_map = saved_active_ssa_map;
         return false;
@@ -145,6 +93,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         }
 
         if (inst->kind == MIR_INST_RESOURCE_OP) {
+            if (!transpiler_mir_seed_resource_alias_local(ssa_map_out, inst)) {
+                ok = false;
+                break;
+            }
             if (inst->name != NULL
                 && strcmp(inst->name, "Write") == 0
                 && inst->ast != NULL
@@ -611,351 +563,27 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         }
         if (stmt->type == AST_LET_DESTRUCTURE) {
-            /* MIR lowering for `let (a, b, c) = rhs`.
-             * The routine's SSA header pre-declared `_pgy_ssa_<name>_1 = 0`
-             * for each binding; here we emit the initializer into a scratch
-             * and assign element-wise into the SSA-renamed targets. */
-            ASTNode *init = stmt->data.let_destructure.initializer;
-            /* Special case: ClaimSecureSlot destructuring must emit a
-             * PgyToken + PgySecureSlot pair (MIR header already skipped
-             * SSA pre-decl for the slot/token because their resolved
-             * type is Slot-like). */
-            if (init != NULL && init->type == AST_CALL
-                && init->data.call.callee != NULL
-                && init->data.call.callee->type == AST_IDENTIFIER
-                && init->data.call.callee->data.identifier.name != NULL
-                && stmt->data.let_destructure.name_count == 2) {
-                const char *cname =
-                    init->data.call.callee->data.identifier.name;
-                if (strcmp(cname, "ClaimSecureSlot") == 0) {
-                    const char *inner = NULL;
-                    if (init->data.call.generic_args != NULL
-                        && init->data.call.generic_args->count > 0
-                        && init->data.call.generic_args->params[0] != NULL)
-                        inner = init->data.call.generic_args->params[0]->name;
-                    if (inner == NULL) inner = "Int";
-                    const char *slot_name =
-                        stmt->data.let_destructure.names[0];
-                    const char *token_name =
-                        stmt->data.let_destructure.names[1];
-                    write_indent_to(buf, ctx->indent);
-                    codebuf_write(buf,
-                        "PgyToken_%s %s;\n", inner, token_name);
-                    write_indent_to(buf, ctx->indent);
-                    codebuf_write(buf,
-                        "PgySecureSlot_%s %s = pgy_claim_secure_%s(&%s);\n",
-                        inner, slot_name, inner, token_name);
-                    write_indent_to(buf, ctx->indent);
-                    codebuf_write(buf, "(void)%s;\n", slot_name);
-                    register_slot_var(ctx, slot_name, inner, true, false);
-                    set_slot_token_name(ctx, slot_name, token_name);
-                    char typed_tok[64];
-                    snprintf(typed_tok, sizeof(typed_tok), "Token<%s>", inner);
-                    register_typed_var(ctx, token_name, typed_tok);
-                    char typed_slot[64];
-                    snprintf(typed_slot, sizeof(typed_slot), "SecureSlot<%s>", inner);
-                    register_typed_var(ctx, slot_name, typed_slot);
-                    transpiler_ssa_name_map_set(ssa_map_out, slot_name, slot_name);
-                    transpiler_ssa_name_map_set(ssa_map_out, token_name, token_name);
-                    continue;
-                }
-            }
-            if (init != NULL && init->type == AST_CALL
-                && init->data.call.callee != NULL
-                && init->data.call.callee->type == AST_IDENTIFIER
-                && init->data.call.callee->data.identifier.name != NULL
-                && stmt->data.let_destructure.name_count == 1
-                && strcmp(init->data.call.callee->data.identifier.name,
-                          "ClaimSlot") == 0) {
-                const char *inner = NULL;
-                if (init->data.call.generic_args != NULL
-                    && init->data.call.generic_args->count > 0
-                    && init->data.call.generic_args->params[0] != NULL)
-                    inner = init->data.call.generic_args->params[0]->name;
-                if (inner == NULL) inner = "Int";
-                const char *slot_name =
-                    stmt->data.let_destructure.names[0];
-                write_indent_to(buf, ctx->indent);
-                codebuf_write(buf,
-                    "PgySlot_%s %s = pgy_claim_%s();\n",
-                    inner, slot_name, inner);
-                write_indent_to(buf, ctx->indent);
-                codebuf_write(buf, "(void)%s;\n", slot_name);
-                register_slot_var(ctx, slot_name, inner, false, false);
-                char typed_slot[64];
-                snprintf(typed_slot, sizeof(typed_slot), "Slot<%s>", inner);
-                register_typed_var(ctx, slot_name, typed_slot);
-                transpiler_ssa_name_map_set(ssa_map_out, slot_name, slot_name);
-                continue;
-            }
-            const char *init_type_name =
-                infer_expression_type_name(ctx, init);
-            if ((init_type_name == NULL || strcmp(init_type_name, "Unknown") == 0)
-                && init != NULL
-                && init->type == AST_IDENTIFIER
-                && init->data.identifier.name != NULL
-                && ctx->current_func_decl != NULL) {
-                const char *resolved =
-                    transpiler_find_local_type_name(ctx, ctx->current_func_decl,
-                        init->data.identifier.name);
-                if (resolved != NULL)
-                    init_type_name = resolved;
-            }
-            const char *c_init_type =
-                pergyra_type_to_c(init_type_name);
-
-            /* Tuple destructuring: let (a, b, ...) = tuple_expr (MIR path) */
-            if (init_type_name != NULL && init_type_name[0] == '(') {
-                char elem_names[8][64];
-                size_t arity = 0;
-                {
-                    size_t ti = 1;
-                    size_t tlen = strlen(init_type_name);
-                    while (ti < tlen && init_type_name[ti] != ')' && arity < 8) {
-                        while (ti < tlen
-                               && (init_type_name[ti] == ' '
-                                   || init_type_name[ti] == '\t'))
-                            ti++;
-                        size_t eo = 0;
-                        int depth = 0;
-                        while (ti < tlen && eo + 1 < sizeof(elem_names[0])) {
-                            char c = init_type_name[ti];
-                            if (depth == 0 && (c == ',' || c == ')'))
-                                break;
-                            if (c == '<' || c == '(') depth++;
-                            if (c == '>' || c == ')') depth--;
-                            elem_names[arity][eo++] = c;
-                            ti++;
-                        }
-                        elem_names[arity][eo] = '\0';
-                        while (eo > 0
-                               && (elem_names[arity][eo-1] == ' '
-                                   || elem_names[arity][eo-1] == '\t'))
-                            elem_names[arity][--eo] = '\0';
-                        arity++;
-                        if (ti < tlen && init_type_name[ti] == ',') ti++;
-                    }
-                }
-                if (arity != stmt->data.let_destructure.name_count) {
-                    if (ctx->backend_error == NULL) {
-                        ctx->backend_error = strdup_fmt(
-                            "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
-                            (unsigned long long) stmt->data.let_destructure.name_count,
-                            (unsigned long long) arity);
-                    }
-                    ok = false;
-                    break;
-                }
-                char *rhs_t = emit_expression_with_ssa_map(init, ctx, ssa_map_out);
-                if (rhs_t == NULL) {
-                    ok = false;
-                    break;
-                }
-                int tmp_id = ++ctx->tmp_counter;
-                write_indent_to(buf, ctx->indent);
-                codebuf_write(buf, "%s _pgy_destr_%d = %s;\n",
-                    c_init_type, tmp_id, rhs_t);
-                free(rhs_t);
-                for (size_t dn = 0;
-                     dn < stmt->data.let_destructure.name_count; dn++) {
-                    const char *bname = stmt->data.let_destructure.names[dn];
-                    if (bname == NULL)
-                        continue;
-                    char ssa_versioned_tmp[192];
-                    snprintf(ssa_versioned_tmp, sizeof(ssa_versioned_tmp),
-                             "%s.1", bname);
-                    char *ssa_versioned = pergyra_strdup(ssa_versioned_tmp);
-                    if (ssa_versioned == NULL) {
-                        ok = false;
-                        break;
-                    }
-                    char *ssa_lhs =
-                        transpiler_render_ssa_name(ctx, ssa_versioned);
-                    if (ssa_lhs == NULL) {
-                        free(ssa_versioned);
-                        continue;
-                    }
-                    write_indent_to(buf, ctx->indent);
-                    codebuf_write(buf,
-                        "%s = _pgy_destr_%d.f%zu;\n",
-                        ssa_lhs, tmp_id, dn);
-                    free(ssa_lhs);
-                    register_typed_var(ctx, bname, elem_names[dn]);
-                    transpiler_ssa_name_map_set(ssa_map_out, bname,
-                        ssa_versioned);
-                }
-                if (!ok) break;
-                continue;
-            }
-
-            const char *elem_inner = NULL;
-            const char *elem_c_type = NULL;
-            if (init_type_name != NULL
-                && (strncmp(init_type_name, "Array<", 6) == 0
-                    || strncmp(init_type_name, "Slice<", 6) == 0)) {
-                elem_inner = slot_inner_type_name(init_type_name);
-                elem_c_type = pergyra_type_to_c(elem_inner);
-            }
-            if (c_init_type == NULL || elem_c_type == NULL
-                || elem_inner == NULL) {
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "cannot lower destructuring initializer of type '%s' to a concrete array element type",
-                        init_type_name != NULL
-                            ? init_type_name
-                            : "(unknown)");
-                }
+            if (!transpiler_emit_mir_let_destructure_stmt(
+                    buf, block, stmt, ctx, ssa_map_out,
+                    reason, reason_cap)) {
                 ok = false;
                 break;
             }
-            char *rhs = emit_expression_with_ssa_map(init, ctx, ssa_map_out);
-            if (rhs == NULL) {
-                if (reason != NULL && reason_cap > 0) {
-                    snprintf(reason, reason_cap,
-                             "MIR block %llu emission failed: unable to render destructuring initializer",
-                             (unsigned long long) block->id);
-                }
-                ok = false;
-                break;
-            }
-            int tmp_id = ++ctx->tmp_counter;
-            write_indent_to(buf, ctx->indent);
-            codebuf_write(buf, "%s _pgy_destr_%d = %s;\n",
-                c_init_type, tmp_id, rhs);
-            free(rhs);
-            for (size_t dn = 0;
-                 dn < stmt->data.let_destructure.name_count; dn++) {
-                const char *bname = stmt->data.let_destructure.names[dn];
-                if (bname == NULL)
-                    continue;
-                /* The SSA map stores pointers without duplicating, so
-                 * allocate a persistent "NAME.1" string per binding. */
-                char ssa_versioned_tmp[192];
-                snprintf(ssa_versioned_tmp, sizeof(ssa_versioned_tmp),
-                         "%s.1", bname);
-                char *ssa_versioned = pergyra_strdup(ssa_versioned_tmp);
-                if (ssa_versioned == NULL) {
-                    ok = false;
-                    break;
-                }
-                char *ssa_lhs =
-                    transpiler_render_ssa_name(ctx, ssa_versioned);
-                if (ssa_lhs == NULL) {
-                    free(ssa_versioned);
-                    continue;
-                }
-                write_indent_to(buf, ctx->indent);
-                codebuf_write(buf,
-                    "%s = _pgy_destr_%d.data[%zu];\n",
-                    ssa_lhs, tmp_id, dn);
-                free(ssa_lhs);
-                register_typed_var(ctx, bname, elem_inner);
-                transpiler_ssa_name_map_set(ssa_map_out, bname,
-                    ssa_versioned);
-            }
-            if (!ok)
-                break;
             continue;
         }
         if (stmt != NULL
             && stmt->type == AST_LET_DECL
             && stmt->data.let_decl.name != NULL
             && stmt->data.let_decl.initializer != NULL) {
-            const char *versioned_local =
-                transpiler_find_block_exit_ssa_name(block,
-                                                    stmt->data.let_decl.name);
-            if (versioned_local == NULL)
-                versioned_local = transpiler_resolve_ssa_name(
-                    (const TranspilerSSANameMap *)ssa_map_out,
-                    stmt->data.let_decl.name);
-            if (versioned_local != NULL) {
-                char *lhs = transpiler_render_ssa_name(ctx, versioned_local);
-                char *rhs = emit_expression_with_ssa_map(
-                    stmt->data.let_decl.initializer, ctx, ssa_map_out);
-                char *rendered_type = NULL;
-                const char *value_type = NULL;
-
-                if (stmt->data.let_decl.type != NULL) {
-                    rendered_type = transpiler_render_effective_local_type_name(
-                        ctx, stmt->data.let_decl.type);
-                    value_type = rendered_type;
-                } else {
-                    value_type = infer_expression_type_name(
-                        ctx, stmt->data.let_decl.initializer);
-                }
-
-                if (value_type != NULL
-                    && strcmp(value_type, "Unknown") != 0) {
-                    ASTNode *binding_type_ast =
-                        transpiler_find_local_type_ast(ctx, func_decl,
-                                                       stmt->data.let_decl.name);
-                    char *binding_type_name = NULL;
-                    if (binding_type_ast != NULL)
-                        binding_type_name =
-                            transpiler_render_effective_local_type_name(ctx,
-                                                                        binding_type_ast);
-                    if (transpiler_type_name_is_view_like(binding_type_name)
-                        || transpiler_type_name_is_view_like(value_type)) {
-                        emit_statement(stmt, ctx);
-                        free(binding_type_name);
-                        free(lhs);
-                        free(rhs);
-                        free(rendered_type);
-                        continue;
-                    }
-                    if (is_slot_var(ctx, stmt->data.let_decl.name)
-                        || (binding_type_name != NULL
-                            && (transpiler_type_name_is_slot_like(binding_type_name)
-                                || transpiler_type_name_is_claim_shape(binding_type_name)
-                                || strncmp(binding_type_name, "Channel<", 8) == 0))
-                        || (value_type != NULL
-                            && (transpiler_type_name_is_slot_like(value_type)
-                                || transpiler_type_name_is_claim_shape(value_type)
-                                || strncmp(value_type, "Channel<", 8) == 0))) {
-                        free(binding_type_name);
-                        free(lhs);
-                        free(rhs);
-                        free(rendered_type);
-                        continue;
-                    }
-                    free(binding_type_name);
-                }
-
-                if (lhs == NULL || rhs == NULL) {
-                    free(lhs);
-                    free(rhs);
-                    free(rendered_type);
-                    if (reason != NULL && reason_cap > 0) {
-                        snprintf(reason, reason_cap,
-                                 "MIR block %zu emission failed: unable to materialize preserved let-binding '%s'",
-                                 block->id,
-                                 stmt->data.let_decl.name);
-                    }
-                    ok = false;
-                    break;
-                }
-
-                write_indent_to(buf, ctx->indent);
-                codebuf_write(buf, "%s = %s;\n", lhs, rhs);
-                free(lhs);
-                free(rhs);
-
-                if (!transpiler_ssa_name_map_set(ssa_map_out,
-                                                 stmt->data.let_decl.name,
-                                                 versioned_local)) {
-                    free(rendered_type);
-                    ok = false;
-                    break;
-                }
-                if (value_type != NULL && value_type[0] != '\0')
-                    register_typed_var(ctx, stmt->data.let_decl.name, value_type);
-                free(rendered_type);
-                continue;
+            bool handled_let = false;
+            if (!transpiler_emit_mir_fallback_let_stmt(
+                    buf, func_decl, mir_routine, block, stmt, ctx,
+                    ssa_map_out, &handled_let, reason, reason_cap)) {
+                ok = false;
+                break;
             }
-            if (transpiler_find_routine_exit_ssa_name(
-                    mir_routine, stmt->data.let_decl.name) != NULL) {
+            if (handled_let)
                 continue;
-            }
         }
         emit_statement(stmt, ctx);
     }

@@ -265,6 +265,42 @@ llvm_ctx_create(const char *module_name)
         ctx->slot_type_String = LLVMStructCreateNamed(ctx->context, "PgySlot_String");
         LLVMStructSetBody(ctx->slot_type_String, fields_str, 2, 0);
 
+        LLVMTypeRef pinned_fields_int[] = {
+            LLVMPointerType(ctx->slot_type_Int, 0), ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_slot_type_Int = LLVMStructCreateNamed(ctx->context, "PgyPinnedSlotView_Int");
+        LLVMStructSetBody(ctx->pinned_slot_type_Int, pinned_fields_int, 3, 0);
+
+        LLVMTypeRef pinned_fields_long[] = {
+            LLVMPointerType(ctx->slot_type_Long, 0), ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_slot_type_Long = LLVMStructCreateNamed(ctx->context, "PgyPinnedSlotView_Long");
+        LLVMStructSetBody(ctx->pinned_slot_type_Long, pinned_fields_long, 3, 0);
+
+        LLVMTypeRef pinned_fields_float[] = {
+            LLVMPointerType(ctx->slot_type_Float, 0), ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_slot_type_Float = LLVMStructCreateNamed(ctx->context, "PgyPinnedSlotView_Float");
+        LLVMStructSetBody(ctx->pinned_slot_type_Float, pinned_fields_float, 3, 0);
+
+        LLVMTypeRef pinned_fields_double[] = {
+            LLVMPointerType(ctx->slot_type_Double, 0), ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_slot_type_Double = LLVMStructCreateNamed(ctx->context, "PgyPinnedSlotView_Double");
+        LLVMStructSetBody(ctx->pinned_slot_type_Double, pinned_fields_double, 3, 0);
+
+        LLVMTypeRef pinned_fields_bool[] = {
+            LLVMPointerType(ctx->slot_type_Bool, 0), ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_slot_type_Bool = LLVMStructCreateNamed(ctx->context, "PgyPinnedSlotView_Bool");
+        LLVMStructSetBody(ctx->pinned_slot_type_Bool, pinned_fields_bool, 3, 0);
+
+        LLVMTypeRef pinned_fields_string[] = {
+            LLVMPointerType(ctx->slot_type_String, 0), ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_slot_type_String = LLVMStructCreateNamed(ctx->context, "PgyPinnedSlotView_String");
+        LLVMStructSetBody(ctx->pinned_slot_type_String, pinned_fields_string, 3, 0);
+
         LLVMTypeRef secure_fields_int[] = { ctx->type_i32, ctx->type_i1, ctx->type_i64 };
         ctx->secure_slot_type_Int = LLVMStructCreateNamed(ctx->context, "PgySecureSlot_Int");
         LLVMStructSetBody(ctx->secure_slot_type_Int, secure_fields_int, 3, 0);
@@ -302,6 +338,54 @@ llvm_ctx_create(const char *module_name)
         LLVMStructSetBody(ctx->secure_token_type_Bool, token_fields, 3, 0);
         ctx->secure_token_type_String = LLVMStructCreateNamed(ctx->context, "PgyToken_String");
         LLVMStructSetBody(ctx->secure_token_type_String, token_fields, 3, 0);
+
+        LLVMTypeRef pinned_secure_fields_int[] = {
+            LLVMPointerType(ctx->secure_slot_type_Int, 0),
+            LLVMPointerType(ctx->secure_token_type_Int, 0),
+            ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_secure_slot_type_Int = LLVMStructCreateNamed(ctx->context, "PgyPinnedSecureSlotView_Int");
+        LLVMStructSetBody(ctx->pinned_secure_slot_type_Int, pinned_secure_fields_int, 4, 0);
+
+        LLVMTypeRef pinned_secure_fields_long[] = {
+            LLVMPointerType(ctx->secure_slot_type_Long, 0),
+            LLVMPointerType(ctx->secure_token_type_Long, 0),
+            ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_secure_slot_type_Long = LLVMStructCreateNamed(ctx->context, "PgyPinnedSecureSlotView_Long");
+        LLVMStructSetBody(ctx->pinned_secure_slot_type_Long, pinned_secure_fields_long, 4, 0);
+
+        LLVMTypeRef pinned_secure_fields_float[] = {
+            LLVMPointerType(ctx->secure_slot_type_Float, 0),
+            LLVMPointerType(ctx->secure_token_type_Float, 0),
+            ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_secure_slot_type_Float = LLVMStructCreateNamed(ctx->context, "PgyPinnedSecureSlotView_Float");
+        LLVMStructSetBody(ctx->pinned_secure_slot_type_Float, pinned_secure_fields_float, 4, 0);
+
+        LLVMTypeRef pinned_secure_fields_double[] = {
+            LLVMPointerType(ctx->secure_slot_type_Double, 0),
+            LLVMPointerType(ctx->secure_token_type_Double, 0),
+            ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_secure_slot_type_Double = LLVMStructCreateNamed(ctx->context, "PgyPinnedSecureSlotView_Double");
+        LLVMStructSetBody(ctx->pinned_secure_slot_type_Double, pinned_secure_fields_double, 4, 0);
+
+        LLVMTypeRef pinned_secure_fields_bool[] = {
+            LLVMPointerType(ctx->secure_slot_type_Bool, 0),
+            LLVMPointerType(ctx->secure_token_type_Bool, 0),
+            ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_secure_slot_type_Bool = LLVMStructCreateNamed(ctx->context, "PgyPinnedSecureSlotView_Bool");
+        LLVMStructSetBody(ctx->pinned_secure_slot_type_Bool, pinned_secure_fields_bool, 4, 0);
+
+        LLVMTypeRef pinned_secure_fields_string[] = {
+            LLVMPointerType(ctx->secure_slot_type_String, 0),
+            LLVMPointerType(ctx->secure_token_type_String, 0),
+            ctx->type_i1, ctx->type_i1
+        };
+        ctx->pinned_secure_slot_type_String = LLVMStructCreateNamed(ctx->context, "PgyPinnedSecureSlotView_String");
+        LLVMStructSetBody(ctx->pinned_secure_slot_type_String, pinned_secure_fields_string, 4, 0);
 
         LLVMTypeRef arr_fields_int[] = {
             LLVMPointerType(ctx->type_i32, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr

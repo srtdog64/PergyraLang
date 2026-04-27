@@ -51,6 +51,43 @@ llvm_mir_param_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
     return llvm_ast_type_uses_pointer_self(ctx, type_node);
 }
 
+static const char *
+llvm_mir_boundary_slot_inner_name(FuncParam *param, bool *is_secure_out)
+{
+    const char *type_name;
+    GenericParams *generic_args;
+    const char *inner_name;
+
+    if (is_secure_out != NULL)
+        *is_secure_out = false;
+    if (param == NULL || param->type == NULL || param->type->type != AST_TYPE
+        || param->type->data.type.name == NULL)
+        return NULL;
+    if (param->mode != PARAM_MODE_OWN && param->mode != PARAM_MODE_REF)
+        return NULL;
+
+    type_name = param->type->data.type.name;
+    if (strcmp(type_name, "Slot") != 0 && strcmp(type_name, "SecureSlot") != 0)
+        return NULL;
+
+    generic_args = param->type->data.type.generic_args;
+    if (generic_args == NULL || generic_args->count == 0
+        || generic_args->params == NULL || generic_args->params[0] == NULL)
+        return NULL;
+
+    inner_name = generic_args->params[0]->name;
+    if (inner_name == NULL && generic_args->params[0]->constraint != NULL
+        && generic_args->params[0]->constraint->type == AST_TYPE) {
+        inner_name = generic_args->params[0]->constraint->data.type.name;
+    }
+    if (inner_name == NULL)
+        return NULL;
+
+    if (is_secure_out != NULL)
+        *is_secure_out = (strcmp(type_name, "SecureSlot") == 0);
+    return inner_name;
+}
+
 static void
 llvm_mir_mark_owner_dirty_for_exit(LLVMGenCtx *ctx,
                                    LLVMClassTypeEntry *owner_cls,
@@ -184,7 +221,11 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 && p->name != NULL && strcmp(p->name, "self") == 0) {
                 continue;
             }
-            param_count++;
+            bool is_secure_slot = false;
+            if (llvm_mir_boundary_slot_inner_name(p, &is_secure_slot) != NULL)
+                param_count += is_secure_slot ? 2 : 1;
+            else
+                param_count++;
         }
     }
     LLVMTypeRef *param_types = pgy_arena_calloc(&ctx->scratch,
@@ -237,13 +278,23 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 }
                 seen++;
             }
-            if (p != NULL && p->type != NULL)
-                param_types[i] = llvm_mir_type_from_ast(ctx, p->type);
-            else
-                param_types[i] = ctx->type_i32;
-            if (p != NULL && p->type != NULL
-                && llvm_mir_param_uses_pointer_self(ctx, p->type)) {
-                param_types[i] = LLVMPointerType(param_types[i], 0);
+            bool is_secure_slot = false;
+            const char *slot_inner = llvm_mir_boundary_slot_inner_name(p, &is_secure_slot);
+            if (slot_inner != NULL && p != NULL && p->type != NULL) {
+                LLVMTypeRef slot_ty = llvm_mir_type_from_ast(ctx, p->type);
+                param_types[i] = LLVMPointerType(slot_ty, 0);
+                if (is_secure_slot && i + 1 < param_count) {
+                    param_types[++i] = llvm_secure_token_type(ctx, slot_inner);
+                }
+            } else {
+                if (p != NULL && p->type != NULL)
+                    param_types[i] = llvm_mir_type_from_ast(ctx, p->type);
+                else
+                    param_types[i] = ctx->type_i32;
+                if (p != NULL && p->type != NULL
+                    && llvm_mir_param_uses_pointer_self(ctx, p->type)) {
+                    param_types[i] = LLVMPointerType(param_types[i], 0);
+                }
             }
         }
     }

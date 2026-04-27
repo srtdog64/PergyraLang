@@ -68,10 +68,17 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 *out = LLVMConstInt(ctx->type_i32, 0, 0);
                 return true;
             }
-            LLVMValueRef args[] = { slot_var->alloca, val, token_var->alloca };
+            LLVMValueRef args[] = {
+                llvm_slot_runtime_arg(ctx, slot_var),
+                val,
+                token_var->alloca
+            };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         } else {
-            LLVMValueRef args[] = { slot_var->alloca, val };
+            LLVMValueRef args[] = {
+                llvm_slot_runtime_arg(ctx, slot_var),
+                val
+            };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         }
         *out = LLVMConstInt(ctx->type_i32, 0, 0);
@@ -112,11 +119,16 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 *out = LLVMConstInt(ctx->type_i32, 0, 0);
                 return true;
             }
-            LLVMValueRef args[] = { slot_var->alloca, token_var->alloca };
+            LLVMValueRef args[] = {
+                llvm_slot_runtime_arg(ctx, slot_var),
+                token_var->alloca
+            };
             *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 2, llvm_tmp_name(ctx));
         } else {
-            LLVMValueRef args[] = { slot_var->alloca };
+            LLVMValueRef args[] = {
+                llvm_slot_runtime_arg(ctx, slot_var)
+            };
             *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 1, llvm_tmp_name(ctx));
         }
@@ -160,10 +172,15 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 *out = LLVMConstInt(ctx->type_i32, 0, 0);
                 return true;
             }
-            LLVMValueRef args[] = { slot_var->alloca, token_var->alloca };
+            LLVMValueRef args[] = {
+                llvm_slot_runtime_arg(ctx, slot_var),
+                token_var->alloca
+            };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         } else {
-            LLVMValueRef args[] = { slot_var->alloca };
+            LLVMValueRef args[] = {
+                llvm_slot_runtime_arg(ctx, slot_var)
+            };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         }
 

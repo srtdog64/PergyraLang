@@ -118,8 +118,14 @@ Current beta evidence covers the first stable slice:
 
 Remaining bridge work:
 
-- block-scoped `pin slot as view { ... }` syntax, automatic CFG cleanup-edge
-  insertion, and C/LLVM lowering parity;
+- C/LLVM explicit pin/unpin lowering parity for the block-scoped
+  `pin slot as view { ... }` surface, using the generated inline wrapper ABI
+  for current `PgySlot_*` / `PgySecureSlot_*` values and the table-backed
+  `PgyPinnedView` ABI only for `SlotManager` handles;
+- HIR/MIR already preserve pin-region metadata for source slot, view binding,
+  and read/write mode, and MIR now materializes `pin-unpin-cleanup-edge`
+  metadata. The remaining work is backend/runtime consumption rather than
+  rediscovering pin regions from desugared statements;
 - `DropOnce` and `ReleaseAfterUnpin` over the final block-scoped pin surface;
 - wider no-escape/no-suspend proof for closure/lambda captures and general
   async task lifetimes.

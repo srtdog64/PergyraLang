@@ -226,7 +226,8 @@ Closed now:
   block, and event lambda callback registration use the same
   suspension-boundary diagnostic, active view + channel send/receive/close uses
   the same handoff-boundary diagnostic, active view + `Cancel(...)` uses the
-  same cleanup-boundary diagnostic,
+  same cleanup-boundary diagnostic, active view + `defer` registration uses
+  the same cleanup-boundary diagnostic,
   active/acquired view across
   `parallel` uses `PGY_SEM_PIN_PARALLEL_CONFLICT`, `QubitSlot` pin attempts
   use `PGY_SEM_PIN_QUBIT_REJECT`, and `WriteView<T>` exclusive access is
@@ -234,7 +235,13 @@ Closed now:
   pin typed-view read parity is covered for plain, secure, and sequential
   mixed slot cases by `pin_read_view_block`, `pin_secure_read_view_block`, and
   `pin_mixed_read_view_sequence`; typed-view write parity is covered by
-  `pin_write_view_block` and `pin_secure_write_view_block`.
+  `pin_write_view_block` and `pin_secure_write_view_block`; cleanup-edge
+  parity is now fixed for normal successor exit, direct return inside a pin
+  block, branch-to-return exit, and loop `break`/`continue` exit by
+  `pin_successor_cleanup_block`, `pin_return_value_block`,
+  `pin_branch_return_block`, `pin_continue_cleanup_block`, and
+  `pin_break_cleanup_block`. Secure boundary-slot parameter pinning is covered
+  by `pin_secure_param_read_view_block`.
 
 Remaining:
 
@@ -268,14 +275,16 @@ Remaining:
 - Diagnostics must report path provenance with branch/join edge, previous state, `Reason`, and `Fix`.
 - C and LLVM must lower the frozen subset from the same CFG/dataflow facts and be covered by backend compare.
 - Option C ownership lift now has the block-scoped
-  `pin slot as view: ReadView<T>|WriteView<T> { ... }` parser/semantic surface,
-  but still needs automatic CFG cleanup-edge insertion on
-  every early exit, `DropOnce` / `ReleaseAfterUnpin` proof over that block
-  surface, and C/LLVM explicit runtime pin/unpin lowering parity. The
-  source-level block currently desugars to the same typed-view semantic slice;
-  that slice now has C/LLVM read/write parity for plain and secure slot cases,
-  including a sequential mixed read case, but it is still not the full runtime
-  pin-block closure.
+  `pin slot as view: ReadView<T>|WriteView<T> { ... }` parser/semantic surface.
+  The source-level block desugars to the same typed-view semantic slice; that
+  slice has C/LLVM read/write parity for plain and secure slot cases, including
+  a sequential mixed read case. C source-block cleanup and C/LLVM MIR
+  successor/return cleanup now emit explicit typed pin/unpin calls for the
+  frozen pin backend-compare fixtures, including normal successor exit, direct
+  return, conditional branch-to-return exit, and loop `break`/`continue` exit.
+  Active view + `defer` registration is rejected semantically. The remaining
+  runtime pin-block closure is broader exceptional/cancellation
+  exit coverage plus the `DropOnce` / `ReleaseAfterUnpin` theorem row.
 
 Evidence command:
 
@@ -853,6 +862,28 @@ make llvm-test-backend-compare
   `src/compiler/mir_type_helpers.c` / `.h`, reducing `src/compiler/mir.c`
   without changing lowering behavior. `make test-mir` and
   `make mir-declaration-inventory-test-smoke` cover the split.
+- C MIR block emission is no longer a replacement mega-header: destructuring
+  lowering, preserved source-let fallback emission, and source-order/claim
+  scheduling now live in `transpiler_mir_destructure_emit.h`,
+  `transpiler_mir_fallback_let_emit.h`, and
+  `transpiler_mir_block_schedule_emit.h`. The main
+  `transpiler_mir_block_emit.h` owner is below the 600 LOC split-review
+  threshold.
+- MIR emission contract and inventory debt were split further:
+  resource/cleanup hook emission now lives in
+  `transpiler_mir_resource_hook_emit.h`, and SSA name-map utilities plus MIR
+  block mapping comments now live in `transpiler_mir_ssa_map.h`.
+  `transpiler_mir_emission_contract.h` and
+  `transpiler_mir_inventory_intent.h` are both below the 600 LOC split-review
+  threshold.
+- LLVM member-call method debt is split further: vtable dispatch now lives in
+  `llvm_expr_call_methods_vtable_dispatch.h`, leaving
+  `llvm_expr_call_methods_domain_slice.h` below the 600 LOC split-review
+  threshold while preserving include order and C/LLVM backend parity.
+- LLVM general call dispatch is no longer a stdlib mega-dispatcher:
+  string/file/io/time builtin emission now lives in
+  `llvm_expr_stdlib_scalar_io_calls.h`, leaving
+  `llvm_expr_call_dispatch.h` below the 600 LOC split-review threshold.
 - MIR cleanup/rollback/invalidation edge ownership now lives in
   `src/compiler/mir_cleanup.c` / `.h`. Cleanup block creation, rollback-policy
   invalidation, and cleanup edge materialization are no longer mixed into
@@ -1235,6 +1266,21 @@ Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/L
   as a typed-view lexical block and shares the existing `ViewRead(...)` /
   `ViewWrite(...)` semantic gates. Explicit runtime `PgyPinnedView` lowering
   remains internal until cleanup-edge backend parity is implemented.
+- The source-level pin block is no longer lost during CFG lowering: HIR and MIR
+  carry pin-region metadata for source slot, view name, and read/write mode.
+  MIR cleanup now materializes `pin-unpin-cleanup-edge` metadata for those
+  blocks. This closes the representation/cleanup-fact seam without claiming
+  that explicit runtime pin/unpin lowering is complete.
+- Generated inline `PgySlot_*` / `PgySecureSlot_*` now has a typed pin wrapper
+  ABI (`PgyPinnedSlotView_*`, `PgyPinnedSecureSlotView_*`,
+  `pgy_pin_read_*`, `pgy_pin_write_*`, `pgy_unpin_*`, and secure variants)
+  with LLVM-linkable exports. `make test-memory` covers occupied/token
+  validation, double-unpin invariant hard-fail, and secure invalid-token pin
+  rejection without changing existing slot layouts.
+- C source-block emission now consumes pin-block metadata by emitting a typed
+  wrapper local with `pgy_unpin_cleanup_*` / `pgy_secure_unpin_cleanup_*` cleanup
+  hooks. The owner is `src/codegen/transpiler_block_emit.h`, split out of the
+  old block/intent helper so both files stay below the 600 LOC review threshold.
 - Source-level typed-view pin now rejects `Release(source_slot)` and
   `Move(source_slot)` while a `ReadView<T>` / `WriteView<T>` over that source is
   live. This closes the immediate marketing-vs-implementation drift for
@@ -1291,10 +1337,12 @@ Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/L
   boundary reject, active-view `Release(source)` / `Move(source)` reject, direct
   owner access, slot-sugar bypass, helper-boundary owner bypass, and
   container-store owner bypass, return-boundary owner bypass,
-  Box resource-handle payload reject, and
+  Box resource-handle payload reject, HIR/MIR pin-region metadata,
+  MIR `pin-unpin-cleanup-edge` metadata, generated inline pin wrapper ABI, C
+  source-block cleanup emission, and
   parallel boundary/acquisition reject가 닫혔다. 남은
-  blocker는 explicit runtime pin/unpin CFG cleanup edge, secure-token source
-  diagnostic, and C/LLVM lowering parity다.
+  blocker는 MIR cleanup fact를 LLVM/MIR backend explicit pin/unpin call로 낮추는 lowering parity and
+  secure-token source diagnostic이다.
 - Option C ownership lift keeps Pin/Lease narrow: `pin slot as view { ... }`
   and `PinnedView<T>` are §4 ABI ownership blockers only after §0b proves
   cleanup/escape facts. User-facing raw `void *` remains rejected; only typed

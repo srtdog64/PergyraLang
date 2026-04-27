@@ -7,7 +7,6 @@ llvm_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param, bool *is_secure
     const char *type_name;
     const char *inner_name;
     GenericParams *generic_args;
-    LLVMClassTypeEntry *entry;
 
     if (is_secure_out != NULL)
         *is_secure_out = false;
@@ -33,10 +32,6 @@ llvm_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param, bool *is_secure
         inner_name = generic_args->params[0]->constraint->data.type.name;
     }
     if (inner_name == NULL)
-        return NULL;
-
-    entry = llvm_lookup_class(ctx, inner_name);
-    if (entry == NULL || !entry->is_subject)
         return NULL;
 
     if (is_secure_out != NULL)

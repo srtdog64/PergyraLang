@@ -66,6 +66,8 @@ transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
         return NULL;
     if (transpiler_is_implicit_field((TranspilerCtx *)ctx, base_name))
         return NULL;
+    if (is_slot_var((TranspilerCtx *)ctx, base_name))
+        return NULL;
     resolved = transpiler_resolve_ssa_name(
         (const TranspilerSSANameMap *)ctx->active_ssa_map,
         base_name);

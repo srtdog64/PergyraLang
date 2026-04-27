@@ -242,8 +242,13 @@ ecosystem-ready ownership surface without importing Rust lifetime syntax.
 
 Implement:
 
-- `pin slot as view { ... }` block syntax, but only after CFG cleanup and
-  backend parity.
+- `pin slot as view { ... }` block syntax is active for typed views and now
+  survives into HIR/MIR pin-region metadata plus MIR `pin-unpin-cleanup-edge`
+  metadata. Generated inline slot runtime wrappers exist for C/LLVM call parity.
+  The C source-block path emits cleanup-hooked pin wrapper locals, and the C
+  plus LLVM MIR paths emit explicit pin/unpin on successor/return exits for the
+  frozen pin backend-compare fixtures. Broader all-exit proof coverage remains
+  the blocker.
 - `PinnedView<T>` RAII handle as `ANCHORED_HANDLE`, but keep it post-block and
   not stable until function-boundary rules close.
 - `WriteView<T>` exclusive static enforcement.

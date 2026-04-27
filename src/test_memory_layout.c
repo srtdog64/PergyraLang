@@ -382,6 +382,55 @@ test_slot_lifecycle_all_types(void)
     }
 }
 
+static void
+test_slot_pin_views(void)
+{
+    printf("\n[slot_pin_views]\n");
+
+    TEST("pin write view validates occupied slot and records write access");
+    {
+        PgySlot_Int s = pgy_claim_Int();
+        PgyPinnedSlotView_Int view = pgy_pin_write_Int(&s);
+        pgy_write_Int(&s, 123);
+        pgy_unpin_Int(&view);
+        EXPECT(s.value == 123 && view.active == false && view.can_write == true
+               && view.slot == NULL);
+        pgy_release_Int(&s);
+    }
+
+    TEST("pin read view records read-only access");
+    {
+        PgySlot_Int s = pgy_claim_Int();
+        PgyPinnedSlotView_Int view = pgy_pin_read_Int(&s);
+        EXPECT(view.active == true && view.can_write == false && view.slot == &s);
+        pgy_unpin_Int(&view);
+        pgy_release_Int(&s);
+    }
+
+    TEST("pin cleanup helper unpins active view and tolerates inactive view");
+    {
+        PgySlot_Int s = pgy_claim_Int();
+        PgyPinnedSlotView_Int view = pgy_pin_write_Int(&s);
+        pgy_unpin_cleanup_Int(&view);
+        pgy_unpin_cleanup_Int(&view);
+        EXPECT(view.active == false && view.slot == NULL);
+        pgy_release_Int(&s);
+    }
+
+    EXPECT_PANIC("pin read after release triggers panic", {
+        PgySlot_Int s = pgy_claim_Int();
+        pgy_release_Int(&s);
+        (void)pgy_pin_read_Int(&s);
+    });
+
+    EXPECT_PANIC("double unpin triggers invariant panic", {
+        PgySlot_Int s = pgy_claim_Int();
+        PgyPinnedSlotView_Int view = pgy_pin_write_Int(&s);
+        pgy_unpin_Int(&view);
+        pgy_unpin_Int(&view);
+    });
+}
+
 /* -----------------------------------------------------------------
  * C. Secure slot tests
  * ----------------------------------------------------------------- */
@@ -546,6 +595,57 @@ test_slot_isolation(void)
         pgy_release_String(&ss);
         pgy_release_Bool(&sb);
     }
+}
+
+static void
+test_secure_slot_pin_views(void)
+{
+    printf("\n[secure_slot_pin_views]\n");
+
+    TEST("secure pin write validates token and records write access");
+    {
+        PgyToken_Int tok;
+        PgySecureSlot_Int s = pgy_claim_secure_Int(&tok);
+        PgyPinnedSecureSlotView_Int view = pgy_secure_pin_write_Int(&s, &tok);
+        bool pinned = view.active == true && view.can_write == true
+                      && view.slot == &s && view.token == &tok;
+        pgy_secure_unpin_Int(&view);
+        EXPECT(pinned && view.active == false && view.slot == NULL
+               && view.token == NULL);
+        pgy_secure_release_Int(&s, &tok);
+    }
+
+    TEST("secure pin read rejects write capability");
+    {
+        PgyToken_Int tok;
+        PgySecureSlot_Int s = pgy_claim_secure_Int(&tok);
+        PgyPinnedSecureSlotView_Int view = pgy_secure_pin_read_Int(&s, &tok);
+        EXPECT(view.active == true && view.can_write == false
+               && view.slot == &s && view.token == &tok);
+        pgy_secure_unpin_Int(&view);
+        pgy_secure_release_Int(&s, &tok);
+    }
+
+    TEST("secure pin cleanup helper unpins active view");
+    {
+        PgyToken_Int tok;
+        PgySecureSlot_Int s = pgy_claim_secure_Int(&tok);
+        PgyPinnedSecureSlotView_Int view = pgy_secure_pin_write_Int(&s, &tok);
+        pgy_secure_unpin_cleanup_Int(&view);
+        pgy_secure_unpin_cleanup_Int(&view);
+        EXPECT(view.active == false && view.slot == NULL && view.token == NULL);
+        pgy_secure_release_Int(&s, &tok);
+    }
+
+    EXPECT_PANIC("secure pin with wrong token triggers panic", {
+        PgyToken_Int tok;
+        PgySecureSlot_Int s = pgy_claim_secure_Int(&tok);
+        PgyToken_Int bad_tok;
+        bad_tok.id = 0xBADBADBADBADBADULL;
+        bad_tok.can_write = true;
+        bad_tok.can_read = true;
+        (void)pgy_secure_pin_write_Int(&s, &bad_tok);
+    });
 }
 
 static void
@@ -725,8 +825,10 @@ main(void)
     test_slot_lifecycle_int();
     test_slot_lifecycle_string();
     test_slot_lifecycle_all_types();
+    test_slot_pin_views();
 
     test_secure_slot_lifecycle();
+    test_secure_slot_pin_views();
     test_panic_conditions();
     test_slot_isolation();
     test_allocator_features();

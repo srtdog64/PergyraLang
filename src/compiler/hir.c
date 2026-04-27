@@ -1010,7 +1010,7 @@ hir_dump(const HIRProgram *hir, FILE *out)
                 for (size_t j = 0; j < routine->cfg.block_count; j++) {
                     const HIRBasicBlock *block = &routine->cfg.blocks[j];
                     fprintf(out,
-                        "           block[%02zu] preds=%zu df=%zu succ=%s%s%s loop=%s depth=%zu reach=%s rpo=%zu idom=%s%zu stmts=%zu\n",
+                        "           block[%02zu] preds=%zu df=%zu succ=%s%s%s loop=%s depth=%zu reach=%s rpo=%zu idom=%s%zu stmts=%zu pin=%s\n",
                         j,
                         block->predecessor_count,
                         block->dominance_frontier_count,
@@ -1023,7 +1023,15 @@ hir_dump(const HIRProgram *hir, FILE *out)
                             block->rpo_index,
                         block->has_immediate_dominator ? "" : "-",
                         block->has_immediate_dominator ? block->immediate_dominator : 0,
-                        block->statement_count);
+                        block->statement_count,
+                        block->is_pin_region ? "true" : "false");
+                    if (block->is_pin_region) {
+                        fprintf(out,
+                            "             pin source=%s view=%s mode=%s\n",
+                            block->pin_source_name != NULL ? block->pin_source_name : "<expr>",
+                            block->pin_view_name != NULL ? block->pin_view_name : "<view>",
+                            block->pin_view_is_write ? "write" : "read");
+                    }
                     for (size_t s = 0; s < block->statement_count; s++) {
                         ASTNode *stmt = block->statements[s];
                         fprintf(out,

@@ -24,6 +24,16 @@ Current beta status:
 
 - Runtime ABI baseline exists: `PgyPinnedView`, `PergyraSlotPin(...)`, and
   `PergyraSlotUnpin(...)`.
+- Generated inline slot ABI now has a matching typed wrapper layer:
+  `PgyPinnedSlotView_*`, `PgyPinnedSecureSlotView_*`,
+  `pgy_pin_read_*`, `pgy_pin_write_*`, `pgy_unpin_*`, and secure pin/unpin
+  helpers. This keeps the existing `PgySlot_*` / `PgySecureSlot_*` layout stable
+  while giving C and LLVM a shared call surface for source-level pin cleanup.
+- C source-block emission now lowers a recognized pin block to a typed wrapper
+  local with a GCC cleanup hook (`pgy_unpin_cleanup_*` /
+  `pgy_secure_unpin_cleanup_*`). C MIR emission now also consumes pin-region
+  metadata through `src/codegen/transpiler_mir_pin_emit.h` and emits explicit
+  typed pin/unpin calls before successor and return exits.
 - `WriteView<T>` exclusive access is now enforced for the existing
   `ViewRead(...)` / `ViewWrite(...)` semantic surface: a new `WriteView<T>`
   conflicts with any active view of the same slot, and a new `ReadView<T>`
@@ -59,8 +69,14 @@ Current beta status:
   accepted and desugars to the existing typed `ViewRead(...)` / `ViewWrite(...)`
   semantic surface.
 - The stable hot-path runtime lowering is still narrower than the design target:
-  raw `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` remains internal
-  ABI until explicit cleanup-edge lowering is proven across C and LLVM.
+  raw `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` remains the
+  table-backed hard non-eviction ABI, while generated inline slots use typed
+  wrapper views. Explicit cleanup-edge lowering is now implemented for C
+  source-blocks and for C/LLVM MIR successor/return slices over the frozen pin
+  backend-compare fixtures, including normal successor cleanup, direct return
+  from inside a pin block, conditional branch-to-return cleanup, and loop
+  `break`/`continue` cleanup. Secure boundary-slot parameters now use the same
+  pointer/token ABI in C and LLVM when pinned.
 
 ## 2. Proposed Source Surface
 
@@ -137,6 +153,8 @@ need explicit cleanup and escape edges.
 Pinning is task-local unless a later design explicitly proves otherwise.
 
 - `await` inside a pin block is rejected.
+- `defer` registration while a view is live is rejected because the cleanup may
+  run after the pin scope has ended.
 - `spawn`/`async` capture of a view is rejected.
 - `parallel` access to the same slot with a `WriteView<T>` conflict is rejected.
 - `Release(slot)` / `Move(slot)` while any active typed view is live over
@@ -165,7 +183,8 @@ Planned semantic diagnostic codes:
 
 - `PGY_SEM_PIN_ESCAPE`: view escapes its lexical scope.
 - `PGY_SEM_PIN_PARALLEL_CONFLICT`: parallel tasks conflict on a pinned slot.
-- `PGY_SEM_PIN_AWAIT_BOUNDARY`: pin crosses an `await` suspension boundary.
+- `PGY_SEM_PIN_AWAIT_BOUNDARY`: pin crosses an `await` suspension boundary or
+  cleanup boundary such as `defer`.
 - `PGY_SEM_PIN_QUBIT_REJECT`: attempted pin of `QubitSlot`.
 - `PGY_SEM_PIN_TOKEN_INVALID`: token/capability check fails for a secure pin.
 
@@ -248,6 +267,11 @@ AIR requirements:
 Backend requirements:
 
 - C and LLVM must lower through the same runtime ABI.
+- For current generated inline slots, that ABI is the typed wrapper surface
+  (`pgy_pin_read_*`, `pgy_pin_write_*`, `pgy_unpin_*`) rather than the
+  table-backed `SlotManager` functions. A later ABI migration may make
+  source-level `Slot<T>` lower directly to `SlotHandle`; until then the two
+  runtime layers are intentionally separate.
 - Generated code may use raw pointers internally, but the source surface stays
   typed.
 - Backend compare must cover read pin, write pin, early return cleanup, invalid
@@ -268,14 +292,23 @@ Backend requirements:
 
 Steps 1 to 3 are implemented for the typed-view front-end slice. The source
 block and existing view constructor surface now share exclusive-write, return
-escape, await/spawn/async/callback/channel/cancel boundary, parallel-boundary,
-and QubitSlot reject semantic gates covered by `make test-semantic` and
-`make diagnostics-json-test-smoke`. The typed-view read/write path now has C/LLVM
+escape, await/spawn/async/callback/channel/cancel/defer boundary,
+parallel-boundary, and QubitSlot reject semantic gates covered by
+`make test-semantic` and
+`make diagnostics-json-test-smoke`; the source-level pin block has explicit
+cancel/defer boundary JSON regressions so cleanup-boundary failures cannot leak
+to C/LLVM codegen. The typed-view read/write path now has C/LLVM
 backend parity for plain, secure, and sequential mixed slot blocks through
 `pin_read_view_block`, `pin_secure_read_view_block`, and
 `pin_mixed_read_view_sequence`, plus write fixtures `pin_write_view_block` and
-`pin_secure_write_view_block`. Steps 4 to 7 remain beta blockers for the full
-hot-path runtime `PgyPinnedView` lowering.
+`pin_secure_write_view_block`. The generated inline runtime wrapper ABI is
+covered by `make test-memory`, and the C source-block wrapper emission is
+covered by `make test-transpile`. C MIR successor/return cleanup emission is
+also covered by `make test-transpile` with explicit `pgy_pin_*` / `pgy_unpin_*`
+ordering around the successor path. C/LLVM backend compare now covers
+source-level plain read, secure read, plain write, secure write, and mixed
+plain+secure pin blocks. Remaining beta work is narrower: expand the all-exit
+proof/regression matrix and add richer secure-token source diagnostics.
 
 ## 10. Beta Position
 
@@ -287,8 +320,11 @@ The correct beta promise is narrow:
 - Runtime ABI may exist internally.
 - Source syntax is accepted only as a typed-view lexical block until CFG cleanup
   and backend parity close for the internal pin runtime ABI. The current
-  typed-view slice has read/write parity; explicit pin/unpin cleanup lowering is
-  still a blocker.
+  typed-view slice has read/write parity, runtime wrapper coverage, C
+  source-block cleanup emission, and C/LLVM MIR successor/return cleanup
+  emission over the frozen fixtures. Active view + `defer` registration is
+  rejected semantically. Broader exceptional/cancellation proof coverage and
+  richer secure-token source diagnostics remain blockers.
 - A manual raw pointer API is not user-facing.
 - C / LLVM lowering must share the same runtime calls and cleanup behavior.
 - `QubitSlot`, `await` crossing, channel escape, and task escape are explicit
