@@ -11,10 +11,12 @@ not a claim that the entire runtime has been mechanically verified.
 
 The accompanying Coq file in `docs/semantics/proofs/SlotCalculus.v` is a
 minimal mechanized sketch for selected Slot capability invariants: stale handle
-read rejection, issued-token requirements for read/pin, unissued-token
-read/pin rejection, and pin non-eviction. It is beta evidence only when a CI
-gate type-checks the artifact with Coq. The beta contract must still describe
-it as a proof sketch, not completed mechanized proof for the whole language.
+read/write/release rejection, mode-specific issued-token requirements for
+read/write/pin/release, unissued-token read/write/pin/release rejection,
+pinned-handle release rejection, and pin non-eviction. It is beta evidence only
+when a CI gate type-checks the artifact with Coq. The beta contract must still
+describe it as a proof sketch, not completed mechanized proof for the whole
+language.
 
 ## Stable Surface
 
@@ -46,7 +48,7 @@ Gamma : variable -> Handle
 SlotRecord = <value, type_tag, generation, ttl, pin_state>
 Handle     = <slot_id, generation>
 PinState   = Unpinned | Pinned
-Mode       = R | W | Pin
+Mode       = R | W | Release | Pin
 ```
 
 `Verify(Delta, slot_id, generation, mode)` is true when the current execution
@@ -77,6 +79,17 @@ Verify(Delta, slot, gen, R)
 <Gamma, Sigma, Delta> --Read(x)--> value
 ```
 
+Write:
+
+```text
+Gamma(x) = <slot, gen>
+Sigma(slot) = <value, T, gen, ttl, pin_state>
+Verify(Delta, slot, gen, W)
+---------------------------------------------------------------
+<Gamma, Sigma, Delta> --Write(x, value')-->
+<Gamma, Sigma[slot -> <value', T, gen, ttl, pin_state>], Delta>
+```
+
 Pin:
 
 ```text
@@ -104,7 +117,7 @@ Release:
 ```text
 Gamma(x) = <slot, gen>
 Sigma(slot) = <value, T, gen, ttl, Unpinned>
-Verify(Delta, slot, gen, W)
+Verify(Delta, slot, gen, Release)
 ---------------------------------------------------------------
 <Gamma, Sigma, Delta> --Release(x)-->
 <Gamma, Sigma[slot -> bottom], Delta>
@@ -127,7 +140,8 @@ Current evidence:
   stale-generation handles.
 - Slot panic contract gates released-slot and double-release hard-fail classes.
 - `docs/semantics/proofs/SlotCalculus.v` sketches the
-  `stale_handle_read_impossible` lemma for generation mismatch.
+  `stale_handle_read_impossible`, `stale_handle_write_impossible`, and
+  `stale_handle_release_impossible` lemmas for generation mismatch.
 
 Remaining obligation:
 
@@ -154,10 +168,10 @@ Current evidence:
 - `make runtime-panic-abi-test-smoke` covers forged zero-token
   read/write/release rejection for both inline C runtime and exported
   C/LLVM-linkable runtime entrypoints.
-- `docs/semantics/proofs/SlotCalculus.v` sketches
-  `handle_read_requires_issued_token`, `unissued_token_read_impossible`,
-  `handle_pin_requires_issued_token`, and `unissued_token_pin_impossible` for
-  the capability-environment part of this theorem.
+- `docs/semantics/proofs/SlotCalculus.v` sketches mode-specific
+  `handle_*_requires_issued_token` and `unissued_token_*_impossible` lemmas for
+  read, write, pin, and release in the capability-environment part of this
+  theorem.
 
 Remaining obligation:
 
@@ -177,7 +191,8 @@ Current evidence:
   release-after-unpin persistence.
 - Evidence command: `make test-security`.
 - `docs/semantics/proofs/SlotCalculus.v` sketches the `pin_non_eviction`
-  lemma for the small-step model.
+  lemma for the small-step model and `pinned_handle_release_impossible` for the
+  stable handle predicate.
 
 Remaining obligation:
 

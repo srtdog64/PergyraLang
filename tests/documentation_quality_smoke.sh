@@ -30,6 +30,7 @@ air_semantics = root / "docs" / "semantics" / "07_air_abstraction_safety.md"
 remote_future_example = root / "examples" / "remote_future_result.pgy"
 grammar_syntax = root / "docs" / "grammar" / "01_syntax.md"
 grammar_rules = root / "docs" / "grammar" / "02_grammar.md"
+todo = root / "TODO.md"
 
 for path in [
     index,
@@ -42,6 +43,7 @@ for path in [
     remote_future_example,
     grammar_syntax,
     grammar_rules,
+    todo,
 ]:
     if not path.exists():
         raise SystemExit(f"missing documentation quality input: {path.relative_to(root)}")
@@ -76,6 +78,15 @@ for base in text_roots:
             raise SystemExit(
                 f"{path.relative_to(root)} contains Unicode replacement characters"
             )
+
+try:
+    todo_text_for_utf_gate = todo.read_text(encoding="utf-8-sig")
+except UnicodeDecodeError as exc:
+    raise SystemExit(f"TODO.md is not valid UTF-8: {exc}") from exc
+if "\ufffd" in todo_text_for_utf_gate:
+    raise SystemExit("TODO.md contains Unicode replacement characters")
+if "Pergyra TODO (배포 준비)" not in todo_text_for_utf_gate:
+    raise SystemExit("TODO.md Korean title is not readable as UTF-8")
 
 for label, text in [
     ("docs/INDEX.md", index_text),

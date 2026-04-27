@@ -982,6 +982,73 @@ test_air_parsed_transfer_emits_zone_and_world_boundaries(void)
     return ok;
 }
 
+static bool
+test_air_parsed_transfer_reports_zone_missing_authority_evidence(void)
+{
+    const char *source =
+        "subject Buyer { let hp: Int; action Promote(self) -> Void { hp = hp + 1; } }\n"
+        "zone CartZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "}\n"
+        "zone PaymentZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "}\n"
+        "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+        "    step Handoff {\n"
+        "        where: PaymentZone;\n"
+        "        using: payment;\n"
+        "        transfer: cart -> payment;\n"
+        "        who: buyer;\n"
+        "        authorized by: buyer;\n"
+        "        on: buyer.Promote();\n"
+        "        expect: true;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n";
+    AIRProgram *air = lower_air_from_source(source);
+    bool found_zone = false;
+    bool found_zone_authority_drift = false;
+    bool found_world_transfer_evidence = false;
+
+    if (air != NULL) {
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            const AIRBoundaryNode *boundary = &air->boundaries[i];
+            if (boundary->kind == AIR_BOUNDARY_ZONE
+                && boundary->source_name != NULL
+                && strcmp(boundary->source_name, "PaymentZone") == 0
+                && boundary->has_rir_boundary_evidence
+                && !boundary->has_rir_authority_evidence) {
+                found_zone = true;
+            }
+            if (boundary->kind == AIR_BOUNDARY_WORLD
+                && boundary->source_name != NULL
+                && strcmp(boundary->source_name, "payment") == 0
+                && boundary->has_rir_boundary_evidence) {
+                found_world_transfer_evidence = true;
+            }
+        }
+        for (size_t i = 0; i < air->drift_count; i++) {
+            const AIRDrift *drift = &air->drifts[i];
+            if (drift->kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+                && drift->boundary_index < air->boundary_count
+                && air->boundaries[drift->boundary_index].kind == AIR_BOUNDARY_ZONE
+                && drift->message != NULL
+                && strstr(drift->message, "expected authority participant(s): buyer") != NULL) {
+                found_zone_authority_drift = true;
+            }
+        }
+    }
+
+    bool ok = air != NULL
+        && air->drift_count >= 1
+        && found_zone
+        && found_zone_authority_drift
+        && found_world_transfer_evidence;
+    air_destroy(air);
+    return ok;
+}
+
 int
 main(void)
 {
@@ -1031,6 +1098,9 @@ main(void)
 
     TEST("AIR parsed transfer emits zone and world boundaries");
     EXPECT(test_air_parsed_transfer_emits_zone_and_world_boundaries());
+
+    TEST("AIR parsed transfer reports zone missing authority evidence");
+    EXPECT(test_air_parsed_transfer_reports_zone_missing_authority_evidence());
 
     printf("\nAIR tests: %d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

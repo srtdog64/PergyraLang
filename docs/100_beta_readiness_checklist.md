@@ -1,6 +1,6 @@
 # Beta Readiness Checklist
 
-마지막 업데이트: 2026-04-26
+마지막 업데이트: 2026-04-27
 
 이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety**다. 현재 공식 beta readiness는 약 50%로 본다.
 
@@ -17,6 +17,11 @@ Operational mode:
   duplication, fallback seams, or owner-boundary debt.
 - A test-only tightening sprint is not beta progress unless it also removes or
   constrains the underlying implementation debt.
+- Production owner size is part of beta readability, not style polish:
+  600 LOC is the split-review threshold for production `.c` and private owner
+  `.h` files. 1,000 LOC remains the hard stop / risk line, but files between
+  600 and 1,000 LOC still need a named owner-seam plan unless they are compact
+  generated tables, ABI declarations, or single-purpose orchestration layers.
 
 상태 표기:
 
@@ -47,6 +52,11 @@ Closed now:
 - `Runtime Panic Parity` now has a formal theorem slot in `docs/semantics/06_backend_parity.md`.
 - Secure token unforgeability and authority transfer single-owner now have formal theorem slots in `docs/semantics/04_ownership_abi.md`.
 - Slot capability calculus now has a formal theorem slot in `docs/semantics/08_slot_capability_calculus.md`; `docs/semantics/proofs/SlotCalculus.v` is explicitly proof-sketch only until a Coq CI gate type-checks it.
+- The Slot Coq sketch now models access modes explicitly (`Read`, `Write`,
+  `Release`, `Pin`) and carries proof obligations for stale
+  read/write/release handles, issued-token read/write/pin/release,
+  unissued-token read/write/pin/release rejection, pinned-handle release
+  rejection, and pin non-eviction.
 - Linux CI now installs `coq`, so `make formal-semantics-test-smoke` type-checks `docs/semantics/proofs/SlotCalculus.v` in CI instead of only checking proof-pack text.
 - Slot capability runtime evidence was rechecked with `make test-security` (132/132 passed): stale-generation read/write/pin/release rejection, stale `SlotIsValid` false, release-while-pinned, TTL cleanup skip while pinned, invalid secure token rejection, revoked-token rejection, raw secure-slot release rejection, concurrent secure write rejection, and release-after-unpin are covered.
 - `runtime-panic-abi-test-smoke` now covers forged zero-token read/write/release
@@ -754,14 +764,27 @@ make llvm-test-backend-compare
   `transpiler_helpers_core_{a,b}.h`, `transpiler_domain_role_emit.h`, and
   `pgy_runtime_inline_core.h`.
 - Remaining backend debt is no longer pass-through `.inc` debt; it is owner
-  extraction inside named headers/TUs, especially list/map/queue continuation,
-  stdlib IO/file/time, user-function fallback, and statement/block/intent
-  forward-declare owners.
+  extraction inside named headers/TUs. LLVM statement parallel/async/select
+  lowering is now isolated in `llvm_stmt_parallel_async.c`; remaining backend
+  owner extraction should target `llvm_domain.c`, `compiler/mir.c`, and the
+  remaining let/loop/match owners in `llvm_stmt.c`.
+- LLVM domain helper extraction continues without reintroducing `.inc`:
+  method lookup, implicit-self classification, operator alias helpers, and
+  propagation provenance stamping live in `llvm_domain_method_helpers.c`.
+  World sync now lives in `llvm_domain_world_sync.c`; zone bounded-frontier
+  sync now lives in `llvm_domain_zone_sync.c`. The remaining LLVM domain debt is
+  declaration/type orchestration in `llvm_domain.c`, not hidden include-order
+  execution.
 - `make production-header-size-test-smoke` prevents the new named owner
   headers from becoming replacement mega-includes. The default cap is 1,000
-  LOC; `llvm_internal.h` has a temporary 1,600 LOC allowance until LLVM context
-  declarations are split.
-- Tier 1 runtime/codegen/compiler `.inc` split gate를 닫았다. Pass-through shim `.inc` files for runtime part B, LLVM expr helpers, LLVM method calls, LLVM domain helpers, MIR public API, and C transpiler emitter/helper seams have now been removed; owning `.c` / `.h` files include concrete sub-1,000 LOC churnks directly.
+  LOC and no production header has a temporary allowance. LLVM declaration
+  inventory helpers now live in `llvm_inventory_internal.h`, leaving
+  `llvm_internal.h` as context declarations plus public backend contracts.
+- MIR slot/claim type helper extraction now lives in
+  `src/compiler/mir_type_helpers.c` / `.h`, reducing `src/compiler/mir.c`
+  without changing lowering behavior. `make test-mir` and
+  `make mir-declaration-inventory-test-smoke` cover the split.
+- Tier 1 runtime/codegen/compiler `.inc` split gate를 닫았다. Pass-through shim `.inc` files for runtime part B, LLVM expr helpers, LLVM method calls, LLVM domain helpers, MIR public API, and C transpiler emitter/helper seams have now been removed; owning `.c` / `.h` files carry named owner seams directly. 600 LOC is the split-review threshold; 1,000 LOC is only the hard cap.
 - `make backend-inc-size-test-smoke`가 `src/runtime`, `src/codegen`, `src/compiler`의 production `.inc = 0`를 검사한다.
 - `type_checker_helpers_late.c` standalone TU가 hidden include-order helper 없이 빌드되도록 call-path helper prototypes와 slot analyzer / visibility / generic diagnostic include 계약을 명시했다.
 - string literal / interpolation stable subset을 grammar docs에 고정했다. Stable은 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace까지이며 nested brace matching / format specifier / multiline interpolation은 beta-out-of-scope다.
@@ -775,15 +798,20 @@ make llvm-test-backend-compare
 
 남은 것:
 
-- Behavior-owning `.inc` files are now beta blockers, not beta+1 cleanup. The
-  previous size-only gate is insufficient for an ecosystem-safe beta because it
-  still permits include-order semantics.
-- TU mixing is also blocked: `.inc` removal cannot mean dumping several behavior
-  families into one large `.c`. `make semantic-tu-size-test-smoke` gates new
-  semantic owner TUs at 1,000 LOC and caps the known oversized debt files so they
-  cannot grow while being split.
-- Tier 1 파일 크기 gate는 닫혔지만, 여러 slice는 include-order 보존 mechanical split이다. LLVM constructor owner처럼 일부 semantic-owner 추출은 시작됐고, 나머지 실제 TU/owner extraction은 아직 Tier 2 구조 부채다.
-- `type_checker.c`는 600 LOC 이하로 내려갔지만, 아직 일부 helper shim include가 남아 있어 완전한 orchestration-only는 아니다.
+- Behavior-owning production `.inc` files are closed and must stay closed. Any
+  reintroduction is a beta blocker, not beta+1 cleanup.
+- TU mixing remains the active risk: `.inc` removal cannot mean dumping several
+  behavior families into one large `.c` or replacement mega-header. New
+  production owners above 600 LOC require a named follow-up seam; owners above
+  1,000 LOC are hard-cap failures unless explicitly listed as legacy debt under
+  an active split.
+- Tier 1 `.inc` cleanup is closed, but several owner TUs remain larger than the
+  review threshold. The next Tier 2 targets are `compiler/mir.c`,
+  `compiler/hir.c`, `llvm_intent.c`, `llvm_domain.c`,
+  `type_checker_decls_domain_helpers.c`, and runtime slot/security owners.
+- `type_checker.c` is below 600 LOC and functions as semantic orchestration.
+  Further semantic debt is now in specific owner TUs, not the top-level
+  dispatcher.
 - core module boundary와 compiler implementation module boundary가 아직 완전히 대응하지 않는다.
 - parser/lex baseline error code routing은 text + JSON 모두 닫혔다. 남은 것은 semantic diagnostic registry 수준의 세분화된 parser code split과 multi-error accumulation이다.
 - `pgy.accel.spray`는 아직 구현/stdlib/API가 없다. 베타 전에는 설계 경계만 유지하고, 베타 이후 CPU fallback + explicit device/context + owned buffer/tensor API부터 별도 closure로 진행한다.
@@ -800,17 +828,20 @@ make llvm-test-backend-compare
 - core semantic/DAG/backend/runtime owner boundary가 문서와 파일 구조에서 추적 가능하다.
 - `.inc`는 generated table, local macro table, private test fixture 용도로만 남는다.
 
-2026-04-26 audit note:
+2026-04-27 audit note:
 
-- Production include-size gate is green, but the next owner-extraction work
-  should target near-cap files rather than adding more split fragments:
-  `transpiler_emitters_base_b_part_b/c.inc` at 998 LOC,
-  `pgy_runtime_part_ba_part_b/c.inc` at 996 LOC,
-  `transpiler_helpers_core_b_part_c.inc` at 992 LOC,
-  `transpiler_expr_emitters_part_a.inc` at 991 LOC,
-  `pgy_runtime_intent_trace_inline.h` as the named owner for the former 989 LOC
-  `pgy_runtime_part_ba_part_a.inc`, and
-  `pgy_runtime_lib_part_b_part_a.inc` at 986 LOC.
+- Production include-size gate is green and production `.inc` inventory is zero.
+  The active cleanup metric is no longer `.inc` LOC; it is owner cohesion:
+  production `.c` and private owner `.h` files above 600 LOC must be reviewed as
+  split candidates, while 1,000 LOC remains the hard cap for new owner headers.
+- Current high-value owner split candidates by responsibility are:
+  `compiler/mir.c` for MIR public/API orchestration,
+  `compiler/hir.c` for HIR lowering ownership,
+  `llvm_intent.c` for intent runtime/declaration lowering,
+  `llvm_domain.c` for domain declaration/type orchestration,
+  `type_checker_decls_domain_helpers.c` for semantic domain helper families,
+  and `runtime/slot_security.c` / `runtime/slot_manager.c` for slot authority
+  and cache/lease seams.
 
 증거 명령:
 
@@ -827,7 +858,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
 2026-04-26 include-cleanup update:
 
 - `transpiler_expr_emitters.inc` pass-through shim has been removed.
-  `transpiler.c` includes the concrete emitter churnks directly. The old split
+  `transpiler.c` includes named concrete emitter chunks directly. The old split
   that crossed `emit_call` was replaced with helper owners for builtin
   dispatch, domain constructors, `Result`/`Option`, stdlib, event, member-call,
   and user-call lowering. Each part is under 1,000 LOC.
@@ -854,13 +885,18 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - Generic class references are intentionally excluded so default type argument
   resolution and generic mismatch provenance stay on the generic contract path.
 - Current gate: `metadata_entries>=3300`, `metadata_hits>=4900`,
-  `metadata_owned>=200`, `materializer_fallbacks<=1296`, plus exact
+  `metadata_owned>=200`, `materializer_fallbacks<=15`, plus exact
   fallback-family accounting.
-- Current fallback family distribution is `named=1289`, `generic_named=7`,
+- Current fallback family distribution is `named=8`, `generic_named=7`,
   `compound=0`, `other=0`; named details are `builtin_shell=2`,
-  `generic_class=0`, `alias=1281`, `non_class_symbol=0`, `missing_symbol=6`.
-  The next DAG closure target is alias materialization with cycle/provenance
-  preservation, not broader constructed-shell expansion.
+  `generic_class=0`, `alias=0`, `non_class_symbol=0`, `missing_symbol=6`.
+  Alias chains now materialize or fail with metadata-stage cycle diagnostics
+  before recursive materialization, and the smoke gate now requires
+  `metadata_named_alias == 0`. The smoke gate also requires the full fallback
+  total to equal the diagnostic-only families:
+  `builtin_shell + generic_named + missing_symbol`. Compound, other,
+  generic-class, non-class-symbol, and alias fallback must stay at zero. Do not
+  widen constructed-shell expansion just to hide negative diagnostics.
 - Verified by `make type-resolution-dag-test-smoke` and
   `make type-resolution-resolver-inventory-test-smoke`.
 
@@ -875,7 +911,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
 - `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage legacy fallback, and alias-stage split accounting. Earlier local stats for this slice were `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
-- The central metadata materializer fallback is visible and capped. The old `materializer_fallbacks<=4135` cap was an initial growth guard; the current cap is the 2026-04-26 `<=1296` gate above.
+- The central metadata materializer fallback is visible and capped. The old `materializer_fallbacks<=4135` cap was an initial growth guard; the current cap is the 2026-04-27 `<=15` gate above.
 - The remaining stage legacy surface is alias-only. Successful alias materialization and diagnostic fallback are reported separately, and valid alias fallback is gated at zero. The 78 unresolved fallback entries come from intentional alias-cycle diagnostic coverage, not hidden non-alias recursive resolution.
 - Ability declarations are now predeclared in the program-level symbol inventory, and `type_check_ability_decl(...)` reuses only its own predeclare. This closes the forward declaration-order gap for generic default/where consumers, zone authority ability consumers, and party role-slot ability consumers without weakening duplicate-ability diagnostics.
 - C/LLVM parity now includes `tests/cases/backend_compare/forward_ability_order/main.pgy`, which keeps provider-after-consumer ordering for generic defaults, aliases, zone authority ability consumers, and party role-slot ability consumers from regressing outside semantic-only tests.
@@ -975,12 +1011,19 @@ grep -R "resolve_type_node" -n src/semantic
 - C/LLVM backend compare가 frozen subset parity를 넓게 커버한다.
 - `make mir-declaration-inventory-test-smoke`가 C/LLVM declaration-side codegen을 active inventory helper path에 묶는다.
 - C backend `emit_program(...)`는 ability/type/extern/function/intent/domain/event bootstrap을 `transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view로 소비한다. Direct declaration-array reads are now confined to the helper owner in `transpiler.h`.
-- LLVM declaration raw inventory reads are confined to the helper owner in `llvm_internal.h`; pipeline/domain/intent emitters must go through active inventory and lookup helpers.
+- LLVM declaration raw inventory reads are confined to the helper owner in `llvm_inventory_internal.h`; pipeline/domain/intent emitters must go through active inventory and lookup helpers.
 - LLVM routine traversal in pipeline/domain/intent now goes through `llvm_active_routine_inventory(...)`; direct `mir->routine_count` / `mir->routines` traversal is confined to the helper owner.
 - LLVM host method lookup now uses `llvm_find_host_decl_header_in_context(...)` / `llvm_host_decl_methods(...)` metadata-first. AST union method-array fallback remains only when a MIR declaration header is absent.
 - `MIRDeclMethod` now carries method `name`, `owner_name`, `is_action_like`, and `within_zone` metadata beside the temporary AST payload. LLVM host method lookup compares `MIRDeclMethod.name` before falling back to AST method arrays.
 - `MIRDeclMethod` also links to method body MIR through `has_routine` / `routine_index`, so LLVM method emission can consume the declaration-header method row before falling back to AST-method based routine lookup.
 - `MIRDeclMethod` now carries hosted method signature metadata (`params`, `param_count`, `return_type`). LLVM nominal/enum method prototype registration consumes this metadata through helper accessors before falling back to AST method payloads.
+- LLVM domain sync ownership is no longer concentrated in `llvm_domain.c`: method/provenance helpers live in `llvm_domain_method_helpers.c`, world sync lives in `llvm_domain_world_sync.c`, zone sync lives in `llvm_domain_zone_sync.c`, and the declaration/projection/zone-binding helper families are split into focused owner headers. `llvm_domain.c` is now 1,649 LOC and remains backend-compare green.
+- LLVM statement ownership is now split by real TU owner: type inference lives in `llvm_stmt_type_infer.c`, let helper/type rendering lives in `llvm_stmt_let_helpers.c`, let lowering lives in `llvm_stmt_let_with.c`, with lowering lives in `llvm_stmt_with.c`, `while`/`for`/`match` lowering lives in `llvm_stmt_loop_match.c`, and `parallel`/`async`/`select` lowering lives in `llvm_stmt_parallel_async.c`. `llvm_stmt.c` is now 914 LOC, every statement owner is below 1,000 LOC, and backend compare remains green.
+- Under the stricter owner-size policy, `llvm_stmt.c` and
+  `llvm_stmt_let_with.c` are still above the 600 LOC split-review threshold,
+  even though they are below the 1,000 LOC hard stop. They are no longer
+  immediate parity blockers, but they remain readability debt until smaller
+  statement dispatch / let-specialization seams are extracted.
 
 남은 것:
 
@@ -1018,6 +1061,10 @@ Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/L
 2026-04-26 MIR method signature update: hosted method prototype registration now reads `MIRDeclMethod` signature fields through `llvm_mir_decl_method_*` helpers. The remaining AST pointer is compatibility payload for body/type nodes, not the primary lookup-visible method row.
 
 2026-04-26 C backend structure update: `src/codegen/transpiler_context.c` now owns the output/context primitive layer that had been carried by `transpiler_helpers_core_a_part_a.inc`: `CodeBuf`, `TranspilerCtx` create/destroy, indentation, backend error/hint allocation, and scratch arena string helpers. The private seam is `src/codegen/transpiler_context.h`; the remaining forward declarations were folded into `transpiler_helpers_core_a.inc`, so `transpiler_helpers_core_a_part_a.inc` has been deleted.
+
+2026-04-27 LLVM domain owner update: `src/codegen/llvm_domain_zone_sync.c` now owns zone bounded-frontier sync lowering, `src/codegen/llvm_domain_world_sync.c` owns world sync lowering, and `src/codegen/llvm_domain.c` is reduced to the remaining domain declaration/type orchestration. The old broad `llvm_domain_core_helpers.h` static-helper include was replaced with focused owner headers so `make -B pgy ...` is warning-clean under `-Wall -Wextra`, and `make -B pgy llvm-test-backend-compare` remains 53/53 green.
+
+2026-04-27 LLVM statement owner update: `src/codegen/llvm_stmt_type_infer.c`, `src/codegen/llvm_stmt_let_helpers.c`, `src/codegen/llvm_stmt_let_with.c`, `src/codegen/llvm_stmt_with.c`, `src/codegen/llvm_stmt_loop_match.c`, and `src/codegen/llvm_stmt_parallel_async.c` now own the statement subfamilies that were previously concentrated in `llvm_stmt.c`. The full backend compare suite remains 53/53 green after the split, so let/with, expression type inference, break/continue, collection iteration, range loops, Option/Result match destructuring, parallel, async, and select lowering keep parity across C/LLVM.
 
 ---
 

@@ -10,6 +10,13 @@ progress ledger, not a new language surface.
 - Production `.inc` cleanup is closed for `src/runtime`, `src/codegen`,
   `src/compiler`, and `src/semantic`: there are now **0 production `.inc`
   files / 0 LOC** under `src`, excluding `src/tests/**/*.inc` fixtures.
+- Owner-size policy is now stricter than the historical `.inc` cleanup target:
+  600 LOC is the default split-review threshold for any production `.c` or
+  private owner `.h`; 1,000 LOC is only the hard stop / temporary risk line.
+  A production owner above 600 LOC must either be split in the current sprint
+  or be listed here with a named follow-up owner seam. New owners should aim
+  below 600 LOC unless the file is a compact table, generated ABI surface, or a
+  deliberately single-entry orchestration layer with no mixed responsibility.
 - The final pass-through and leaf helper shims were renamed to named private
   owner headers, including `pgy_runtime_inline_core.h`,
   `transpiler_base_a_emitters.h`, `transpiler_base_b_emitters.h`,
@@ -29,7 +36,44 @@ progress ledger, not a new language surface.
   dispatcher drops further to 432 LOC while preserving collection runtime
   specialization order.
 - `production-header-size-test-smoke` caps production owner headers at 1,000
-  LOC by default, with a temporary 1,600 LOC allowance for `llvm_internal.h`.
+  LOC by default, with no temporary per-header allowance. LLVM declaration
+  inventory helpers now live in `src/codegen/llvm_inventory_internal.h`, so
+  `src/codegen/llvm_internal.h` stays under the same production cap.
+- LLVM statement parallel/async/select lowering now lives in
+  `src/codegen/llvm_stmt_parallel_async.c`. `src/codegen/llvm_stmt.c` drops to
+  3,078 LOC, and the full `llvm-test-backend-compare` suite remains green.
+- LLVM statement loop/match lowering now lives in
+  `src/codegen/llvm_stmt_loop_match.c`. `src/codegen/llvm_stmt.c` drops to
+  2,582 LOC, while the control-flow owner keeps `while`, `for`, and `match`
+  parity covered by the full backend compare suite.
+- LLVM statement ownership now has separate real TUs for type inference,
+  let helpers, let lowering, with lowering, loop/match lowering, and
+  parallel/async/select lowering:
+  `src/codegen/llvm_stmt_type_infer.c`,
+  `src/codegen/llvm_stmt_let_helpers.c`,
+  `src/codegen/llvm_stmt_let_with.c`, `src/codegen/llvm_stmt_with.c`,
+  `src/codegen/llvm_stmt_loop_match.c`, and
+  `src/codegen/llvm_stmt_parallel_async.c`. `src/codegen/llvm_stmt.c` is now
+  914 LOC, and every statement owner TU is below 1,000 LOC while backend
+  compare remains green.
+- LLVM domain method lookup, implicit-self classification, operator alias
+  helpers, and propagation provenance stamping now live in
+  `src/codegen/llvm_domain_method_helpers.c`. `src/codegen/llvm_domain.c`
+  drops to 3,340 LOC.
+- LLVM world sync emission now lives in
+  `src/codegen/llvm_domain_world_sync.c`. `src/codegen/llvm_domain.c` drops to
+  2,663 LOC, and the helper include width was reduced so the build remains
+  warning-clean under the current `-Wall -Wextra` gate.
+- LLVM zone sync emission now lives in
+  `src/codegen/llvm_domain_zone_sync.c`. `src/codegen/llvm_domain.c` drops to
+  1,649 LOC, and the former `llvm_domain_core_helpers.h` mega-header is split
+  into focused owner headers for role lookup, declaration parts, projection
+  count/value/sync body, and zone-layer binding. This keeps the extracted zone
+  TU warning-clean without adding unused attributes or new `.inc` files.
+- MIR slot/claim type helper extraction now lives in
+  `src/compiler/mir_type_helpers.c` / `.h`. `src/compiler/mir.c` drops from
+  2,927 LOC to 2,742 LOC without changing MIR lowering behavior, and
+  `make test-mir` remains green.
 
 - `src/codegen/transpiler_context.c` now owns the C backend output/context
   primitives that used to live in include bodies:
@@ -220,86 +264,71 @@ progress ledger, not a new language surface.
 
 ## Current Gate
 
-The production runtime/codegen/compiler include-size gate is green:
+The production include debt gate is green:
 
 ```sh
 make backend-inc-size-test-smoke
+make semantic-inc-size-test-smoke
+find src -path src/tests -prune -o -name '*.inc' -print
 ```
 
-The test fixture include-size gate is also green:
+The contract is now:
 
-```sh
-make test-inc-size-test-smoke
+```text
+production .inc under src/runtime  = 0
+production .inc under src/codegen  = 0
+production .inc under src/compiler = 0
+production .inc under src/semantic = 0
+test fixture .inc under src/tests  = 47 files, capped by inc-sentinel
 ```
 
-Empty include sentinels are now rejected:
+Empty include sentinels are rejected:
 
 ```sh
 make inc-sentinel-test-smoke
 ```
 
-This gate rejects any zero-byte `.inc` file and rejects any increase above the
-current `src/**/*.inc` file cap of 159, so new `.inc` splits are blocked by
-default. There is no empty-sentinel allowlist.
+This gate rejects any production `.inc` file, rejects any zero-byte `.inc`, and
+rejects any increase above the current `src/tests/**/*.inc <= 47` fixture cap.
+There is no empty-sentinel allowlist. New behavior-owning `.inc` splits are
+blocked by default.
 
-The expression emitter parts are currently below the beta 1,000 LOC cap:
-
-```text
-src/codegen/transpiler_expr_core_emit.h 487
-src/codegen/transpiler_expr_builtin_dispatch.h 710
-src/codegen/transpiler_call_constructor_result_emit.h 537
-src/codegen/transpiler_expr_emitters_part_d.inc 24
-src/codegen/transpiler_expr_call_spawn_emit.h 722
-src/codegen/transpiler_expr_dispatch_emit.h 451
-src/codegen/transpiler_expr_stdlib_builtin.h 917
-```
-
-The related intent/base emitter seams are also below the cap:
+Owner-size policy is separate from the `.inc` gate:
 
 ```text
-src/codegen/transpiler_helpers_core_a.inc 22
-src/codegen/transpiler_projection_sync_helpers.h 519
-src/codegen/transpiler_helpers_core_b.inc 64
-src/codegen/transpiler_specialization_helpers.h 467
-src/codegen/transpiler_helpers_core_b_part_c.inc 296
-src/codegen/transpiler_expr_type_infer.h 501
-src/codegen/transpiler_context.c 284
-src/codegen/transpiler_context.h 36
-src/codegen/transpiler_symbols.c 349
-src/codegen/transpiler_symbols.h 42
-src/codegen/transpiler_decl_lookup.c 618
-src/codegen/transpiler_decl_lookup.h 58
-src/codegen/transpiler_enum.c 42
-src/codegen/transpiler_enum.h 16
-src/codegen/transpiler_extern.c 53
-src/codegen/transpiler_extern.h 8
-src/codegen/transpiler_expr_stdlib_builtin.h 920
-src/codegen/transpiler_intent_emit.h 965
-src/codegen/transpiler_log_normalize.c 127
-src/codegen/transpiler_log_normalize.h 6
-src/codegen/transpiler_let_emit.h 767
-src/codegen/transpiler_mir_block_emit.h 967
-src/codegen/transpiler_nominal.c 254
-src/codegen/transpiler_nominal.h 20
-src/codegen/transpiler_operator.c 148
-src/codegen/transpiler_operator.h 23
-src/codegen/transpiler_overlay_projection.h 928
-src/codegen/transpiler_parallel_capture.h 229
-src/codegen/transpiler_projection.c 374
-src/codegen/transpiler_projection.h 42
-src/codegen/transpiler_type_declarator.c 188
-src/codegen/transpiler_type_declarator.h 13
-src/codegen/transpiler_type_require.c 64
-src/codegen/transpiler_type_require.h 20
-src/codegen/transpiler_type_render.h 16
-src/codegen/transpiler_type_mapping_helpers.h 599
-src/codegen/transpiler_statement_dispatch.h 257
-src/codegen/transpiler_block_intent_helpers.h 546
-src/codegen/transpiler_intent_zone_binding_emit.h 237
-src/runtime/pgy_runtime_intent_exit.h 106
-src/runtime/pgy_runtime_panic_checked_inline.h 191
-src/runtime/pgy_runtime_slot_macros.h 190
+600 LOC  = split-review threshold for production .c and private owner .h
+1000 LOC = hard cap for new owner headers and active risk line for owner TUs
 ```
+
+The current large-owner snapshot was last refreshed on 2026-04-27. The leading
+production split candidates are:
+
+```text
+2742 src/compiler/mir.c
+2445 src/compiler/hir.c
+2394 src/codegen/llvm_intent.c
+1774 src/parser/parser_domain.c
+1751 src/runtime/slot_security.c
+1736 src/runtime/slot_manager.c
+1658 src/semantic/type_checker_decls_domain_helpers.c
+1649 src/codegen/llvm_domain.c
+1633 src/parser/parser.c
+1580 src/compiler/driver_app.c
+1555 src/semantic/type_checker_intent_helpers.c
+1513 src/compiler/dir.c
+1395 src/compiler/compiler.c
+1279 src/compiler/air.c
+1232 src/parser/ast.h
+1199 src/semantic/slot_analyzer.c
+1168 src/codegen/llvm_backend.c
+1146 src/semantic/type_checker_builtins_stdlib_body.c
+1092 src/semantic/type_checker_zone_decl.c
+1027 src/codegen/llvm_domain_zone_sync.c
+```
+
+Test harness files are intentionally excluded from the first owner-split queue
+even when they exceed 600 LOC; they should be reduced after the production
+compiler/runtime/codegen seams are stable.
 
 The MIR public implementation split is also below the production cap after
 moving the public lowering entry points into a named private owner and the
@@ -1177,6 +1206,14 @@ Observed results:
 
 - Test fixture `.inc` files are now under the 990 LOC cap and are guarded by
   `make test-inc-size-test-smoke`.
+- The next structural cleanup queue is no longer `.inc` removal; it is
+  600-plus production owner reduction. Current high-priority examples include
+  `src/compiler/mir.c`, `src/compiler/hir.c`, `src/codegen/llvm_intent.c`,
+  `src/runtime/slot_security.c`, `src/runtime/slot_manager.c`,
+  `src/semantic/type_checker_decls_domain_helpers.c`,
+  `src/codegen/llvm_domain.c`, `src/compiler/air.c`, and
+  `src/codegen/llvm_domain_zone_sync.c`. Each one needs a named semantic owner
+  split, not blind line-count sharding.
 - The long-term target remains real `.c` / `.h` ownership for behavior-heavy
   families. The current state removes the worst function-boundary and size
   debt, but `.inc` should continue shrinking toward generated tables, private
@@ -1204,11 +1241,11 @@ Observed results:
   `transpiler_world_select_event_emit.h`, and
   `llvm_expr_assignment_member_projection.h`, plus
   `pgy_runtime_lib_authority_file_core.h` and
-  `pgy_runtime_lib_set_intent_trace_exports.h`, plus `rir_flow.h`. The next
+  `pgy_runtime_lib_set_intent_trace_exports.h`, plus `rir_flow.h`,
+  `llvm_domain_world_sync.c`, and `llvm_domain_zone_sync.c`. The next
   high-value extraction candidate is not more blind line-count splitting; it is
-  choosing a real owner seam for semantic host helpers, base-B statement tails,
-  or remaining runtime near-cap owners such as string helpers and zone/frontier
-  groups.
+  choosing a real owner seam for `compiler/mir.c` or the 1,027 LOC zone
+  frontier body.
 - Empty `.inc` tails are no longer allowed. A split-order shim may include only
   real implementation chunks; if a tail becomes empty, remove it and update the
   shim, dependency list, tests, and this ledger in the same change.

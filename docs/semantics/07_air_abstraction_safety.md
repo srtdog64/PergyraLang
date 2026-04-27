@@ -118,16 +118,20 @@ represented by at least one AIR `Boundary Node`.
   evidence provenance on both emitted boundaries.
   `tests/diagnostics_json_smoke.sh` covers parsed-source missing authority
   evidence and parsed-source missing IO boundary evidence through the full
-  driver JSON path. Synthesis hard-fails if the precomputed boundary count and
+  driver JSON path. Parsed-source `transfer` coverage now includes a negative
+  authority path on the transferred step: AIR must keep both the zone and world
+  boundaries, observe RIR transfer evidence for the world boundary, and still
+  reject the zone boundary when the required authority participant has no RIR
+  authority proof. Synthesis hard-fails if the precomputed boundary count and
   emitted boundary count diverge, blocking silent AIR boundary inventory drift.
   Expression-derived boundaries keep their expression span when available and
   fall back to the enclosing intent-step span when parser expression nodes have
   no location, so boundary diagnostics do not lose source provenance. `air_dump`
   prints the same per-boundary evidence provenance names, and the AIR unit suite
   gates that debug surface so it cannot regress to boolean-only evidence output.
-- **Remaining obligation**: add parsed-source negative diagnostics for
-  transfer/world boundary drift as those surfaces become representable without
-  being rejected before AIR.
+- **Remaining obligation**: extend this parsed-source negative coverage to
+  sync/async transfer drift once HIR/RIR can express that mismatch without
+  earlier semantic rejection.
 
 ## Theorem: Strict Evidence Failure Soundness
 
@@ -138,13 +142,15 @@ boundary lacks either RIR boundary evidence or required RIR authority evidence.
   pass without lowering-visible boundary or authority proof.
 - **Evidence**: `src/compiler/air.c` checks each boundary's RIR evidence flags
   by default, and `src/test_air.c` covers strict-evidence missing-boundary,
-  mismatched-authority, and world-boundary-without-transfer-op drifts.
+  mismatched-authority, world-boundary-without-transfer-op drifts, and
+  parsed-source transfer with zone missing-authority evidence while preserving
+  world transfer evidence.
   `src/compiler/driver_app.c` includes the expected authority participant list
   in `Reason:` when authority evidence is missing, and includes the AIR evidence
   provenance summary (`hir`, `rir_boundary`, `rir_authority`) so missing
   boundary/authority proof is visible in both text and JSON diagnostics.
 - **Remaining obligation**: expand parsed-source negative regressions for
-  transfer/world boundaries that can reach AIR validation.
+  transfer/world sync-class drift once that mismatch can reach AIR validation.
 
 ## Theorem: Drift Detection Soundness
 

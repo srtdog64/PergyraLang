@@ -224,8 +224,8 @@ if [ "$metadata_owned" -lt 200 ]; then
   exit 1
 fi
 
-if [ "$materializer_fallbacks" -gt 1296 ]; then
-  echo "metadata materializer fallback inventory regressed above beta cap: $materializer_fallbacks > 1296" >&2
+if [ "$materializer_fallbacks" -gt 15 ]; then
+  echo "metadata materializer fallback inventory regressed above beta cap: $materializer_fallbacks > 15" >&2
   exit 1
 fi
 
@@ -236,6 +236,42 @@ fi
 
 if [ "$metadata_named_detail_sum" -ne "$metadata_fallback_named" ]; then
   echo "metadata named fallback detail accounting mismatch: sum=$metadata_named_detail_sum named=$metadata_fallback_named" >&2
+  exit 1
+fi
+
+if [ "$metadata_named_alias" -ne 0 ]; then
+  echo "alias metadata materialization regressed into fallback: $metadata_named_alias" >&2
+  exit 1
+fi
+
+metadata_diagnostic_fallback_sum=$((metadata_named_builtin_shell + metadata_fallback_generic_named + metadata_named_missing_symbol))
+if [ "$metadata_diagnostic_fallback_sum" -ne "$materializer_fallbacks" ]; then
+  echo "metadata fallback contains non-diagnostic materializer debt: diagnostic_sum=$metadata_diagnostic_fallback_sum total=$materializer_fallbacks" >&2
+  exit 1
+fi
+
+if [ "$metadata_fallback_compound" -ne 0 ] || [ "$metadata_fallback_other" -ne 0 ]; then
+  echo "compound/other metadata fallback regressed: compound=$metadata_fallback_compound other=$metadata_fallback_other" >&2
+  exit 1
+fi
+
+if [ "$metadata_named_generic_class" -ne 0 ] || [ "$metadata_named_non_class_symbol" -ne 0 ]; then
+  echo "non-diagnostic named metadata fallback regressed: generic_class=$metadata_named_generic_class non_class_symbol=$metadata_named_non_class_symbol" >&2
+  exit 1
+fi
+
+if [ "$metadata_named_builtin_shell" -gt 2 ]; then
+  echo "bare builtin-shell diagnostic fallback regressed above cap: $metadata_named_builtin_shell > 2" >&2
+  exit 1
+fi
+
+if [ "$metadata_fallback_generic_named" -gt 7 ]; then
+  echo "generic-named diagnostic fallback regressed above cap: $metadata_fallback_generic_named > 7" >&2
+  exit 1
+fi
+
+if [ "$metadata_named_missing_symbol" -gt 6 ]; then
+  echo "missing-symbol diagnostic fallback regressed above cap: $metadata_named_missing_symbol > 6" >&2
   exit 1
 fi
 

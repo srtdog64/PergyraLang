@@ -24,6 +24,7 @@ from pathlib import Path
 
 root = Path(sys.argv[1])
 internal_path = root / "src" / "codegen" / "llvm_internal.h"
+inventory_internal_path = root / "src" / "codegen" / "llvm_inventory_internal.h"
 pipeline_path = root / "src" / "codegen" / "llvm_pipeline.c"
 domain_path = root / "src" / "codegen" / "llvm_domain.c"
 backend_doc_path = root / "src" / "codegen" / "llvm_backend.h"
@@ -34,6 +35,7 @@ todo_path = root / "TODO.md"
 
 for path in (
     internal_path,
+    inventory_internal_path,
     pipeline_path,
     domain_path,
     backend_doc_path,
@@ -46,6 +48,7 @@ for path in (
         raise SystemExit(f"[mir-decl-inventory] missing required file: {path.relative_to(root)}")
 
 internal = internal_path.read_text(encoding="utf-8")
+inventory_internal = inventory_internal_path.read_text(encoding="utf-8")
 pipeline = pipeline_path.read_text(encoding="utf-8")
 domain = domain_path.read_text(encoding="utf-8")
 backend_doc = backend_doc_path.read_text(encoding="utf-8")
@@ -75,8 +78,8 @@ required_internal_terms = [
     "llvm_is_host_decl_type",
 ]
 for term in required_internal_terms:
-    if term not in internal:
-        errors.append(f"llvm_internal.h missing declaration inventory helper: {term}")
+    if term not in inventory_internal:
+        errors.append(f"llvm_inventory_internal.h missing declaration inventory helper: {term}")
 
 required_pipeline_terms = [
     "llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count)",
@@ -140,7 +143,7 @@ if routine_raw_hits:
         + ", ".join(sorted(routine_raw_hits))
     )
 
-if "decl_header->ast == decl" in internal:
+if "decl_header->ast == decl" in inventory_internal:
     errors.append(
         "llvm_host_decl_methods must be MIRDeclHeader metadata-first; do not require decl_header->ast == decl"
     )
@@ -152,8 +155,8 @@ for term in [
     "llvm_mir_decl_method_return_type",
     "llvm_mir_decl_method_is_action_like",
 ]:
-    if term not in internal:
-        errors.append(f"llvm_internal.h missing MIR method signature helper: {term}")
+    if term not in inventory_internal:
+        errors.append(f"llvm_inventory_internal.h missing MIR method signature helper: {term}")
 
 llvm_register = (root / "src" / "codegen" / "llvm_register.c").read_text(encoding="utf-8")
 for term in [
@@ -183,7 +186,7 @@ for term in required_mir_terms:
     if term not in mir_header and term not in mir_public and term not in mir_decl_headers:
         errors.append(f"MIR declaration method metadata missing term: {term}")
 
-metadata_branch = internal.split("decl = decl_header->ast;", 1)[0]
+metadata_branch = inventory_internal.split("decl = decl_header->ast;", 1)[0]
 if "method->data.func_decl.name != NULL" in metadata_branch:
     errors.append(
         "LLVM host method lookup must compare MIRDeclMethod.name before AST func_decl name"
@@ -218,6 +221,7 @@ domain_arrays = {
 
 allowed_raw_files = {
     "src/codegen/llvm_internal.h",
+    "src/codegen/llvm_inventory_internal.h",
     "src/codegen/transpiler.h",
 }
 

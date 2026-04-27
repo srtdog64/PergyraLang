@@ -1,8 +1,8 @@
 # Semantic Declaration TU 분리 템플릿
 
-마지막 업데이트: 2026-04-24
+마지막 업데이트: 2026-04-27
 
-이 문서는 `src/semantic/type_checker_decls_*.inc` 안에 섞여 있는 declaration body 를 **독립 Translation Unit (`.c`)** 로 승격시키는 표준 절차를 정의한다. 목표는 `.inc` 크기 감축 자체가 아니라 **owner boundary 와 dependency direction 고정** 이다 — 그 결과로 이후 "다른 지향 / 새 keyword / 새 paradigm" 이 나올 때 **이 문서만 따라가면 plug-in 된다**.
+이 문서는 과거 `src/semantic/type_checker_decls_*.inc` 안에 섞여 있던 declaration body 를 **독립 Translation Unit (`.c`)** 로 승격시킨 절차와, 앞으로 새 semantic owner 를 추가할 때의 표준을 정의한다. 현재 production `.inc` inventory 는 0 이므로 신규 작업은 `.inc` 를 만들지 않는다. 목표는 파일 크기 감축 자체가 아니라 **owner boundary 와 dependency direction 고정** 이다 — 그 결과로 이후 "다른 지향 / 새 keyword / 새 paradigm" 이 나올 때 core TU 에 섞지 않고 plug-in 할 수 있어야 한다.
 
 ## 1. 왜 이 템플릿인가
 
@@ -25,11 +25,11 @@ pgy.foundation -> pgy.core -> pgy.execution
 
 declaration kind `X` 를 분리할 때 두 경우가 있다. `X` 가 type graph 에 연결될 필요가 있는지가 분기점.
 
-### 템플릿 A — Body-only split (간단 경우)
+### 템플릿 A — Body-only owner TU
 
 조건:
 - `X` 가 type resolution DAG 에 별도 precollect 노드를 등록할 필요 **없음** (현재 또는 당분간)
-- 기존 `type_checker_decls_X.inc` 에 `type_check_X_decl(ASTNode*, SemanticContext*)` body 만 들어있음
+- 기존 owner 에 `type_check_X_decl(ASTNode*, SemanticContext*)` body 만 들어있거나, 새 declaration kind 가 body-only 로 시작함
 - forward declaration 이 이미 `type_checker.h` 에 존재
 
 **예시**: [relation](../src/semantic/type_checker_relation_decl.c), [effect](../src/semantic/type_checker_effect_decl.c) — 1차 slice 에서 분리됨
@@ -56,24 +56,24 @@ declaration kind `X` 를 분리할 때 두 경우가 있다. `X` 가 type graph 
 bool
 type_check_X_decl(ASTNode *node, SemanticContext *ctx)
 {
-    /* .inc 에서 그대로 이동. 로직 변경 금지 — 순수 이동 slice 는 diff review 가능성 유지를 위해 별도 */
+    /* 기존 body 를 그대로 이동. 로직 변경 금지 — 순수 이동 slice 는 diff review 가능성 유지를 위해 별도 */
 }
 ```
 
 **규칙**:
-- 선언 순서 / 공백 / 주석 **전부 원본 유지**. 로직 수정은 이 slice 와 섞지 말 것.
+- 선언 순서 / 공백 / 주석 **전부 원본 유지**. 로직 수정은 순수 이동 slice 와 섞지 말 것.
 - `type_checker_internal.h` 가 필요한 helper 와 type 을 모두 export 하고 있다. 새 include 추가 거의 불필요.
 - 새로운 header 파일 **만들지 않는다** — forward declaration 은 이미 `type_checker.h` 에 있어야 한다. 없으면 그쪽에 추가.
 
-### Step 2 — 기존 `.inc` include 제거
+### Step 2 — 기존 owner 연결 제거
 
-대상 `.inc` 가 어느 aggregator 에 include 되는지 확인:
+legacy `.inc` 를 제거하는 migration slice 라면 대상 `.inc` 가 어느 aggregator 에 include 되는지 확인한다. 신규 작업에서는 이 단계가 없어야 한다:
 
 ```bash
 grep -rn 'type_checker_decls_X\.inc' src/semantic/
 ```
 
-상위 aggregator (예: `type_checker_decls_b.inc`) 에서 해당 라인 제거.
+상위 aggregator (예: legacy `type_checker_decls_b.inc`) 에서 해당 라인을 제거한다. 신규 semantic owner 는 aggregator `.inc` 를 만들지 않고 Makefile source list 로만 연결한다.
 
 ### Step 3 — Makefile `SEMANTIC_SOURCES` 에 등록
 
@@ -83,11 +83,13 @@ grep -rn 'type_checker_decls_X\.inc' src/semantic/
                    $(SEMANTIC_DIR)/type_checker_X_decl.c \
 ```
 
-### Step 4 — 기존 `.inc` 파일 삭제
+### Step 4 — legacy `.inc` 파일 삭제
 
 ```bash
 rm src/semantic/type_checker_decls_X.inc
 ```
+
+신규 작업에서 이 단계가 발생하면 설계가 잘못된 것이다. 새 behavior-owning `.inc` 는 만들지 않는다.
 
 ### Step 5 — 회귀 확인
 
@@ -121,7 +123,7 @@ semantic_type_resolution_precollect_X_inventory(ASTNode *x_decl,
 
 ### Step 1.6 — DAG inventory dispatch 에 호출 추가
 
-`src/semantic/type_checker_resolution_graph_inventory.inc` 안의 kind switch 에 X 케이스 추가:
+`src/semantic/type_checker_resolution_graph_inventory.c` 안의 kind switch 에 X 케이스 추가:
 
 ```c
 case AST_X_DECL:
@@ -142,7 +144,7 @@ case AST_X_DECL:
 - [ ] [docs/99_language_module_taxonomy.md](99_language_module_taxonomy.md) 의 적절한 layer (pgy.core / pgy.compat.oop / pgy.compat.fp / pgy.kit.*) 에 zeta 항목 추가
 - [ ] 회귀 4 개 (위 Step 5 명령)
 
-**건드리지 않는 것**: 다른 declaration kind 의 `.c` 파일, 기존 `.inc` aggregator, `type_checker_internal.h` (신규 helper 가 꼭 필요할 때만)
+**건드리지 않는 것**: 다른 declaration kind 의 `.c` 파일, legacy `.inc` aggregator, `type_checker_internal.h` (신규 helper 가 꼭 필요할 때만)
 
 ## 6. 새 paradigm 추가 시
 
@@ -155,16 +157,16 @@ core 모델(`intent/subject/world/zone/slot/vessel` 등) 외의 새 paradigm 지
 
 참고 memory: [project_paradigm_modularity.md](../memory/project_paradigm_modularity.md) (private) — core 가 OOP/FP/DOP 에 역의존하지 않는 설계 목표의 근거.
 
-## 7. 알려진 미적용 경계
+## 7. 현재 미적용 경계
 
-이 템플릿이 **아직** 커버하지 않는 영역 (후속 slice 대상):
+Production `.inc` 제거는 완료됐다. 이 템플릿이 지금 커버하지 않는 영역은 `.inc` migration 이 아니라 **큰 owner TU 를 더 작은 책임 단위로 나누는 작업**이다:
 
-- `src/semantic/type_checker_decls_a.inc` (2124 LOC) — ability + role + party + roster 혼재. 4 회 템플릿 A/B 반복 예정
-- `src/semantic/type_checker_decls_domain_helpers.inc` (1557 LOC) — helper-axis 분리 (kind-axis 아님, 별도 전략)
-- ~~`src/semantic/type_checker_decls_zone.inc` (1076 LOC)~~ — **2 차 slice 에서 템플릿 A 로 완료** ([type_checker_zone_decl.c](../src/semantic/type_checker_zone_decl.c))
-- ~~`src/semantic/type_checker_decls_intent.inc` + `decls_world.inc`~~ — **4 차 / 4-B 에서 완료** ([type_checker_intent_decl.c](../src/semantic/type_checker_intent_decl.c), [type_checker_world_decl.c](../src/semantic/type_checker_world_decl.c))
+- [type_checker_decls_domain_helpers.c](../src/semantic/type_checker_decls_domain_helpers.c) — semantic domain helper families; helper-axis split 필요.
+- [type_checker_intent_helpers.c](../src/semantic/type_checker_intent_helpers.c) — intent inheritance/derivation helpers; semantic owner 는 명확하지만 600 LOC review threshold 초과.
+- [type_checker_zone_decl.c](../src/semantic/type_checker_zone_decl.c) — zone declaration semantic; coherent owner 이지만 600 LOC threshold 초과.
+- [type_checker_builtins_stdlib_body.c](../src/semantic/type_checker_builtins_stdlib_body.c) — stdlib builtin body dispatch; semantic owner 로는 닫혔지만 더 작은 builtin-family owner 로 나눌 수 있다.
 
-codegen / runtime 의 1000+ LOC `.inc` 는 semantic 템플릿이 validated 된 뒤 **패턴 transfer** 로 적용. semantic 과 codegen/runtime 는 TU boundary 기준이 다르므로 그대로 복사하지 않는다.
+codegen / runtime / compiler 의 남은 대형 파일도 같은 원칙을 따른다. 600 LOC 이상은 split-review threshold, 1,000 LOC 이상은 legacy debt 또는 hard-cap violation 으로 본다. 다만 semantic 과 codegen/runtime 는 TU boundary 기준이 다르므로 이 템플릿을 그대로 복사하지 않는다.
 
 ## 8. Slice 레퍼런스
 
@@ -188,54 +190,51 @@ codegen / runtime 의 1000+ LOC `.inc` 는 semantic 템플릿이 validated 된 �
 
 **4-B 에서 확립된 helper externalization 패턴**:
 
-decls_intent.inc 가 decls_a.inc 의 11 개 `static` 함수를 cross-.inc 로 호출하던 의존이 있었음. 해결책:
+legacy `decls_intent.inc` 가 legacy `decls_a.inc` 의 11 개 `static` 함수를 cross-include 로 호출하던 의존이 있었음. 해결책:
 
 1. `src/semantic/type_checker_intent_helpers_internal.h` — 11 개 함수의 **external linkage** 선언 (헤더)
-2. decls_a.inc 및 decls_domain_helpers.inc 의 해당 함수 정의에서 `static` 키워드 제거 (총 12 개 site — 11 정의 + 1 forward decl)
+2. legacy include owner 의 해당 함수 정의에서 `static` 키워드 제거 (총 12 개 site — 11 정의 + 1 forward decl)
 3. 새 TU 가 내부 헤더를 include 해서 link-time 에 해결
 
 승격된 11 함수: `intent_clause_invokes_authority_sensitive_call`, `intent_step_warn_redundant_action_contract`, `intent_step_format_contract_source_summary`, `intent_condition_is_bool`, `intent_clause_rejects_control_transfer`, `intent_involves_is_subject_host`, `subject_decl_has_action_named`, `intent_step_derive_who_from_action`, `intent_step_inherit_action_contract`, `intent_step_derive_transfer_context`, `intent_step_derive_zone_binding_context`.
 
 **3-B 에서 추가로 externalize 된 5 helper**:
 
-- `any_subject_role_has_ability` (def: decls_domain_helpers.inc)
-- `any_subject_role_find_base_ability_impl` (def: decls_domain_helpers.inc)
-- `validate_ability_require_fields_for_role` (def: decls_a.inc)
-- `find_generic_param_index` (def: generic_contracts.inc, decl: type_checker_internal.h 로 승격)
-- `concrete_type_satisfies_bound` (def: generic_contracts.inc, decl: type_checker_internal.h 로 승격)
+- `any_subject_role_has_ability`
+- `any_subject_role_find_base_ability_impl`
+- `validate_ability_require_fields_for_role`
+- `find_generic_param_index` (decl: type_checker_internal.h 로 승격)
+- `concrete_type_satisfies_bound` (decl: type_checker_internal.h 로 승격)
 
 총 static 제거 site: 7 개 (forward decls + definitions + 기존 type_checker.c forward decls).
 
-**5-D 에서 externalize 된 helper (builtins chain untangling)**:
+**5-D 에서 externalize 된 helper (legacy builtins chain untangling)**:
 
 - `type_is_future_like` (builtins.c 내 static) → `type_checker_builtins_internal.h`
-- `type_check_channel_send_builtin` / `type_check_channel_recv_builtin` (builtins_query_channel.inc)
-- `type_check_claim_device_slot` / `type_check_device_handle_arg` (builtins_slotops.inc)
-- `reject_borrowed_boundary_container_store` (builtins_query.inc)
+- `type_check_channel_send_builtin` / `type_check_channel_recv_builtin`
+- `type_check_claim_device_slot` / `type_check_device_handle_arg`
+- `reject_borrowed_boundary_container_store`
 
-이 slice 가 특수한 이유: `builtins_stdlib_body.inc` 는 .inc 체인의 dangling `static Type *` / `Type *` 접두사가 _다음_ .inc 의 함수 signature 와 concatenate 되는 preprocessor-macro 스타일 chain 안에 있었음. 제거 후 `nominal.inc` 의 첫 함수에 `static Type *\n` 접두사 명시, `slotops.inc` 끝의 dangling `Type *` 제거하여 chain 해체.
+이 slice 가 특수한 이유: legacy `builtins_stdlib_body.inc` 는 include 체인의 dangling `static Type *` / `Type *` 접두사가 다음 include 의 함수 signature 와 concatenate 되는 preprocessor-macro 스타일 chain 안에 있었음. 제거 후 dangling signature chain 을 해체하고 실제 TU owner 로 이동했다.
 
 **5-A 에서 externalize 된 helper (domain_helpers TU 승격)**:
 
-- `type_name_or_unknown`, `resolve_named_type` (helpers_resolution.inc)
-- `decl_is_projection_source` (helpers_effects.inc)
-- `projection_refresh_source_field_name`, `projection_target_decl_has_field` (decls_a.inc)
+- `type_name_or_unknown`, `resolve_named_type`
+- `decl_is_projection_source`
+- `projection_refresh_source_field_name`, `projection_target_decl_has_field`
 
-전부 `type_checker_internal.h` 로 승격. `decls_b.inc` 는 empty stub 이 되어 삭제, `decls.inc` 는 `decls_a.inc` 만 include 로 단순화.
+전부 `type_checker_internal.h` 로 승격. 이후 production `.inc` inventory 는 0 으로 닫혔다.
 
-**§1 semantic 축 마감 상태 (2026-04-24 sprint 종료 시점)**:
+**§1 semantic 축 마감 상태 (2026-04-27)**:
 
-모든 `src/semantic/*.inc` 가 **800 LOC 미만**. 현재 largest:
-- `helpers_late.inc` (773)
-- `builtins_query.inc` (769)
-- `expr.inc` (758)
+`src/semantic` production `.inc` 는 0 이다. 현 시점의 semantic debt 는 include-order 가 아니라 큰 owner TU 의 책임 분해다. 600 LOC 이상 owner 는 split-review 대상이며, 1,000 LOC 이상 owner 는 legacy debt 로 추적한다.
 
-이들은 helper / dispatch / expr-visitor 축이라 declaration-kind 분리 template 에 해당하지 않음. 추가 감축은 helper axis 재배치 slice 가 될 것이나, **§1 의 semantic 조건은 이 시점에 충족**.
+이들은 helper / dispatch / expr-visitor 축이라 declaration-kind 분리 template 에 해당하지 않음. 추가 감축은 helper axis 재배치 slice 가 될 것이나, **§1 의 semantic `.inc` 조건은 충족**.
 
 **남은 deferred 작업 (별도 sprint)**:
 
-- `decls_a.inc` (1509 LOC) — 800 초과 marker 남아있음. ability/class/subject 본체 분리 필요 (5-B 잔여). 현재 해당 decls 는 이미 별도 TU 로 승격됨 — 이 .inc 에 남은 것은 미분리 subject/class helper 군.
-- codegen/runtime 축 대형 `.inc` (4731, 4334, 4154 LOC) — §1 의 전체 조건을 위해 향후 sprint 필요.
+- semantic 대형 owner TU 를 600 LOC review threshold 아래로 줄일지, coherent single owner 로 남길지 파일별 결정.
+- codegen/runtime/compiler 대형 owner TU 도 같은 600/1000 정책으로 추적.
 
 ---
 

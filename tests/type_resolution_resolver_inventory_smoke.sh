@@ -11,7 +11,7 @@ trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches"' EXIT
 
 grep -RIn "resolve_type_node(" src/semantic | while IFS=: read -r path line text; do
   case "$path" in
-    src/semantic/type_checker.h|src/semantic/type_checker_resolve.inc|src/semantic/type_checker_resolution_metadata.c)
+    src/semantic/type_checker.h|src/semantic/type_checker_resolve.h|src/semantic/type_checker_resolution_metadata.c)
       continue
       ;;
   esac
@@ -67,7 +67,7 @@ if [ "$fallback_sites" -gt 0 ]; then
 fi
 
 grep -q 'metadata_type = semantic_type_resolution_lookup_resolved_type(ctx, node);' \
-  src/semantic/type_checker_resolve.inc || {
+  src/semantic/type_checker_resolve.h || {
   echo "[type-resolution-resolver-inventory] resolve_type_node is no longer metadata-first" >&2
   exit 1
 }

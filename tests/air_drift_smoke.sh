@@ -268,8 +268,11 @@ required_test_terms = [
     "AIR synthesis captures IO boundary without sync drift",
     "AIR parsed IO boundary reports missing evidence",
     "AIR parsed transfer emits zone and world boundaries",
+    "AIR parsed transfer reports zone missing authority evidence",
     "found_zone_evidence",
     "found_world_evidence",
+    "found_zone_authority_drift",
+    "found_world_transfer_evidence",
 ]
 missing_test = [term for term in required_test_terms if term not in air_test]
 if missing_test:

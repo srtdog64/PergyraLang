@@ -251,6 +251,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air.c \
                    $(COMPILER_DIR)/rir.c \
                    $(COMPILER_DIR)/mir.c \
+                   $(COMPILER_DIR)/mir_type_helpers.c \
                    $(COMPILER_DIR)/hir.c \
                    $(COMPILER_DIR)/module_loader.c \
                    $(COMPILER_DIR)/module_normalizer.c \
@@ -279,7 +280,16 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_mir_emit.c \
                          $(CODEGEN_DIR)/llvm_expr.c \
                          $(CODEGEN_DIR)/llvm_stmt.c \
+                         $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
+                         $(CODEGEN_DIR)/llvm_stmt_let_helpers.c \
+                         $(CODEGEN_DIR)/llvm_stmt_let_with.c \
+                         $(CODEGEN_DIR)/llvm_stmt_with.c \
+                         $(CODEGEN_DIR)/llvm_stmt_loop_match.c \
+                         $(CODEGEN_DIR)/llvm_stmt_parallel_async.c \
                          $(CODEGEN_DIR)/llvm_decl.c \
+                         $(CODEGEN_DIR)/llvm_domain_method_helpers.c \
+                         $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
+                         $(CODEGEN_DIR)/llvm_domain_world_sync.c \
                          $(CODEGEN_DIR)/llvm_domain.c
   RUNTIME_LIB_SOURCES  = $(RUNTIME_DIR)/pgy_runtime_lib.c
   LLVM_BACKEND_OBJECTS = $(LLVM_BACKEND_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
@@ -472,7 +482,7 @@ $(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJ
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # MIR lowering test
-$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/mir.o $(TEST_MIR_OBJ) | $(BIN_DIR)
+$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/mir.o $(BUILD_DIR)/compiler/mir_type_helpers.o $(TEST_MIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 

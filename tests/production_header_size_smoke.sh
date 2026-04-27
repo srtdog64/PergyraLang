@@ -6,23 +6,11 @@ DEFAULT_LIMIT="${PRODUCTION_HEADER_MAX_LINES:-1000}"
 
 cd "$ROOT_DIR"
 
-cap_for_path() {
-    case "$1" in
-        src/codegen/llvm_internal.h)
-            echo 1600
-            ;;
-        *)
-            echo "$DEFAULT_LIMIT"
-            ;;
-    esac
-}
-
 violations=""
 while IFS= read -r -d '' path; do
     lines="$(wc -l < "$path" | tr -d '[:space:]')"
-    limit="$(cap_for_path "$path")"
-    if [ "$lines" -gt "$limit" ]; then
-        violations="${violations}${lines} ${path} > ${limit}"$'\n'
+    if [ "$lines" -gt "$DEFAULT_LIMIT" ]; then
+        violations="${violations}${lines} ${path} > ${DEFAULT_LIMIT}"$'\n'
     fi
 done < <(find src/codegen src/runtime src/compiler src/semantic -name '*.h' -type f -print0)
 

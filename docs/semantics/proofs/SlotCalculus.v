@@ -18,6 +18,12 @@ Definition Generation := nat.
 Definition Token := nat. (* Abstract Cryptographic Token *)
 Definition Value := nat.
 
+Inductive AccessMode : Type :=
+  | ModeRead : AccessMode
+  | ModeWrite : AccessMode
+  | ModeRelease : AccessMode
+  | ModePin : AccessMode.
+
 Inductive PinState : Type :=
   | Unpinned : PinState
   | Pinned : PinState.
@@ -46,7 +52,7 @@ Definition Heap := SlotId -> option Slot.
 Definition CapEnv := Token -> bool.
 
 (* Abstract verification function for Intent Security *)
-Parameter verify_token : Token -> SlotId -> Generation -> bool.
+Parameter verify_token : Token -> SlotId -> Generation -> AccessMode -> bool.
 
 (* Utility function to update the Heap *)
 Definition update_heap (h: Heap) (id: SlotId) (s: option Slot) : Heap :=
@@ -66,30 +72,38 @@ Inductive Step (h: Heap) (caps: CapEnv) : Heap -> Prop :=
   | Step_Read : forall id s tok,
       h id = Some s ->
       caps tok = true ->
-      verify_token tok id (s_gen s) = true ->
+      verify_token tok id (s_gen s) ModeRead = true ->
       Step h caps h
 
-  (* Rule 2: Pin (Lease capability, locks the slot in memory) *)
+  (* Rule 2: Write (state change, requires write capability) *)
+  | Step_Write : forall id s tok value h',
+      h id = Some s ->
+      caps tok = true ->
+      verify_token tok id (s_gen s) ModeWrite = true ->
+      h' = update_heap h id (Some (mkSlot value (s_gen s) (s_pin s))) ->
+      Step h caps h'
+
+  (* Rule 3: Pin (Lease capability, locks the slot in memory) *)
   | Step_Pin : forall id s tok h',
       h id = Some s ->
       caps tok = true ->
-      verify_token tok id (s_gen s) = true ->
+      verify_token tok id (s_gen s) ModePin = true ->
       s_pin s = Unpinned ->
       h' = update_heap h id (Some (mkSlot (s_val s) (s_gen s) Pinned)) ->
       Step h caps h'
 
-  (* Rule 3: Unpin (Release lease) *)
+  (* Rule 4: Unpin (Release lease) *)
   | Step_Unpin : forall id s h',
       h id = Some s ->
       s_pin s = Pinned ->
       h' = update_heap h id (Some (mkSlot (s_val s) (s_gen s) Unpinned)) ->
       Step h caps h'
 
-  (* Rule 4: Release (Evict from heap. STRICTLY requires Unpinned state) *)
+  (* Rule 5: Release (Evict from heap. STRICTLY requires Unpinned state) *)
   | Step_Release : forall id s tok h',
       h id = Some s ->
       caps tok = true ->
-      verify_token tok id (s_gen s) = true ->
+      verify_token tok id (s_gen s) ModeRelease = true ->
       s_pin s = Unpinned ->
       h' = update_heap h id None ->
       Step h caps h'.
@@ -99,7 +113,14 @@ Definition HandleRead (h: Heap) (caps: CapEnv) (handle: Handle) (tok: Token) : P
     h (h_slot handle) = Some s /\
     h_gen handle = s_gen s /\
     caps tok = true /\
-    verify_token tok (h_slot handle) (h_gen handle) = true.
+    verify_token tok (h_slot handle) (h_gen handle) ModeRead = true.
+
+Definition HandleWrite (h: Heap) (caps: CapEnv) (handle: Handle) (tok: Token) : Prop :=
+  exists s,
+    h (h_slot handle) = Some s /\
+    h_gen handle = s_gen s /\
+    caps tok = true /\
+    verify_token tok (h_slot handle) (h_gen handle) ModeWrite = true.
 
 Definition HandlePin (h: Heap) (caps: CapEnv) (handle: Handle) (tok: Token) : Prop :=
   exists s,
@@ -107,7 +128,15 @@ Definition HandlePin (h: Heap) (caps: CapEnv) (handle: Handle) (tok: Token) : Pr
     h_gen handle = s_gen s /\
     s_pin s = Unpinned /\
     caps tok = true /\
-    verify_token tok (h_slot handle) (h_gen handle) = true.
+    verify_token tok (h_slot handle) (h_gen handle) ModePin = true.
+
+Definition HandleRelease (h: Heap) (caps: CapEnv) (handle: Handle) (tok: Token) : Prop :=
+  exists s,
+    h (h_slot handle) = Some s /\
+    h_gen handle = s_gen s /\
+    s_pin s = Unpinned /\
+    caps tok = true /\
+    verify_token tok (h_slot handle) (h_gen handle) ModeRelease = true.
 
 (* ========================================== *)
 (* 3. Core Theorems & Lemmas                  *)
@@ -130,6 +159,34 @@ Proof.
   inversion H_read_slot; subst.
   apply H_stale.
   exact H_read_gen.
+Qed.
+
+Lemma stale_handle_write_impossible : forall h caps handle s tok,
+  h (h_slot handle) = Some s ->
+  h_gen handle <> s_gen s ->
+  ~ HandleWrite h caps handle tok.
+Proof.
+  intros h caps handle s tok H_slot H_stale H_write.
+  unfold HandleWrite in H_write.
+  destruct H_write as [write_slot [H_write_slot [H_write_gen [_ H_verify]]]].
+  rewrite H_slot in H_write_slot.
+  inversion H_write_slot; subst.
+  apply H_stale.
+  exact H_write_gen.
+Qed.
+
+Lemma stale_handle_release_impossible : forall h caps handle s tok,
+  h (h_slot handle) = Some s ->
+  h_gen handle <> s_gen s ->
+  ~ HandleRelease h caps handle tok.
+Proof.
+  intros h caps handle s tok H_slot H_stale H_release.
+  unfold HandleRelease in H_release.
+  destruct H_release as [release_slot [H_release_slot [H_release_gen [_ [_ H_verify]]]]].
+  rewrite H_slot in H_release_slot.
+  inversion H_release_slot; subst.
+  apply H_stale.
+  exact H_release_gen.
 Qed.
 
 (*
@@ -162,6 +219,26 @@ Proof.
   discriminate.
 Qed.
 
+Lemma handle_write_requires_issued_token : forall h caps handle tok,
+  HandleWrite h caps handle tok ->
+  caps tok = true.
+Proof.
+  intros h caps handle tok H_write.
+  unfold HandleWrite in H_write.
+  destruct H_write as [_ [_ [_ [H_cap _]]]].
+  exact H_cap.
+Qed.
+
+Lemma unissued_token_write_impossible : forall h caps handle tok,
+  caps tok = false ->
+  ~ HandleWrite h caps handle tok.
+Proof.
+  intros h caps handle tok H_unissued H_write.
+  apply handle_write_requires_issued_token in H_write.
+  rewrite H_unissued in H_write.
+  discriminate.
+Qed.
+
 Lemma handle_pin_requires_issued_token : forall h caps handle tok,
   HandlePin h caps handle tok ->
   caps tok = true.
@@ -182,6 +259,40 @@ Proof.
   discriminate.
 Qed.
 
+Lemma handle_release_requires_issued_token : forall h caps handle tok,
+  HandleRelease h caps handle tok ->
+  caps tok = true.
+Proof.
+  intros h caps handle tok H_release.
+  unfold HandleRelease in H_release.
+  destruct H_release as [_ [_ [_ [_ [H_cap _]]]]].
+  exact H_cap.
+Qed.
+
+Lemma unissued_token_release_impossible : forall h caps handle tok,
+  caps tok = false ->
+  ~ HandleRelease h caps handle tok.
+Proof.
+  intros h caps handle tok H_unissued H_release.
+  apply handle_release_requires_issued_token in H_release.
+  rewrite H_unissued in H_release.
+  discriminate.
+Qed.
+
+Lemma pinned_handle_release_impossible : forall h caps handle s tok,
+  h (h_slot handle) = Some s ->
+  s_pin s = Pinned ->
+  ~ HandleRelease h caps handle tok.
+Proof.
+  intros h caps handle s tok H_slot H_pinned H_release.
+  unfold HandleRelease in H_release.
+  destruct H_release as [release_slot [H_release_slot [_ [H_unpinned [_ _]]]]].
+  rewrite H_slot in H_release_slot.
+  inversion H_release_slot; subst.
+  rewrite H_pinned in H_unpinned.
+  discriminate.
+Qed.
+
 (*
   Lemma: Pin Non-Eviction
   Proof Obligation: "A Pinned slot cannot be released or evicted by any Step rule."
@@ -195,6 +306,7 @@ Proof.
   intros h caps pinned_id pinned_slot next_heap H_some H_pinned H_step H_none.
   destruct H_step as
     [ read_id read_slot tok H_read H_cap H_verify
+    | write_id write_slot tok value write_heap H_write H_cap H_verify H_heap
     | pin_id pin_slot tok pin_heap H_pin H_cap H_verify H_unpinned H_heap
     | unpin_id unpin_slot unpin_heap H_unpin H_was_pinned H_heap
     | release_id release_slot tok release_heap H_release H_cap H_verify H_unpinned H_heap
@@ -202,6 +314,13 @@ Proof.
 
   - (* Step_Read: the heap is unchanged. *)
     rewrite H_some in H_none. discriminate.
+
+  - (* Step_Write: updates either this slot to Some with a new value or another
+       slot. *)
+    unfold update_heap in H_none.
+    destruct (Nat.eqb pinned_id write_id) eqn:E_eq.
+    + discriminate.
+    + rewrite H_some in H_none. discriminate.
 
   - (* Step_Pin: updates either this slot to Some Pinned or another slot. *)
     unfold update_heap in H_none.

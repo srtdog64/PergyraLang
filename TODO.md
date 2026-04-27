@@ -1,71 +1,21 @@
-# Pergyra TODO (배포 ?
+﻿# Pergyra TODO (배포 준비)
 
-## UTF-8 Progress Note - 2026-04-27 - Production .inc Closure
-
-- Production .inc debt is closed as a zero-inventory beta gate:
-  src/runtime, src/codegen, src/compiler, and src/semantic now have
-  **0 production .inc files / 0 LOC** under src, excluding
-  src/tests/**/*.inc fixtures.
-- Former pass-through seams now live in named private owner headers such as
-  pgy_runtime_inline_core.h, 	ranspiler_base_a_emitters.h,
-  	ranspiler_base_b_emitters.h, 	ranspiler_expr_emitters.h,
-  	ranspiler_helpers_core_{a,b}.h, 	ranspiler_domain_role_emit.h, and
-  llvm_expr_call_owners.h.
-- Compiler runtime cache freshness no longer points at stale runtime .inc
-  dependency paths; it tracks the renamed runtime owner headers.
-- inc-sentinel-test-smoke now treats src/tests/**/*.inc as the only
-  tolerated fixture lane and caps it at the current 47 files; production
-  .inc reintroduction is a hard failure.
-- Follow-up owner-header debt slice: C backend scalar/math/string stdlib call
-  lowering moved from the monolithic 	ranspiler_expr_stdlib_builtin.h
-  dispatcher into 	ranspiler_expr_stdlib_scalar_builtin.h. The dispatcher
-  drops from 917 LOC to 751 LOC without changing builtin names or generated C.
-- production-header-size-test-smoke now caps production owner headers at
-  1,000 LOC by default, with a narrow temporary 1,600 LOC allowance for...
-  <!-- TODO: AI Agent lost the rest of this sentence during Git restore. Please fix! -->
-
-## UTF-8 Progress Note - 2026-04-27 - Production `.inc` And Owner Header Closure
-
-- Production `.inc` debt is closed as a zero-inventory beta gate:
-  `src/runtime`, `src/codegen`, `src/compiler`, and `src/semantic` now have
-  **0 production `.inc` files / 0 LOC** under `src`, excluding
-  `src/tests/**/*.inc` fixtures.
-- `inc-sentinel-test-smoke` now treats `src/tests/**/*.inc` as the only
-  tolerated fixture lane and caps it at the current 47 files; production
-  `.inc` reintroduction is a hard failure.
-- C backend scalar/math/string stdlib call lowering moved into
-  `transpiler_expr_stdlib_scalar_builtin.h`; Map/List/Set/Queue lowering
-  moved into `transpiler_expr_stdlib_collection_builtin.h`. The main stdlib
-  dispatcher drops from 917 LOC to 432 LOC while preserving dispatch order.
-- `production-header-size-test-smoke` now caps production owner headers at
-  1,000 LOC by default, with a narrow temporary 1,600 LOC allowance for
-  `llvm_internal.h` until the LLVM context/API declarations are split.
-
-## AIR Beta Gate Note - UTF-8 Canonical Terms
-
-- 베타 readiness 추정: 약 `50%`.
-- AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline
-  plus driver semantic-validation wiring까지 gate로 묶는다.
-- strict evidence는 기본값으로 승격됐다.
-- `PGY_AIR_STRICT_EVIDENCE=0`은 development/debug opt-out이다.
-- Missing RIR boundary/authority evidence는
-  `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 된다.
-- AIR source of truth: `docs/104_air_compiler_architecture.md`.
-- AIR drift gate: `make air-drift-test-smoke`.
-- Backend non-impact gate: `air-backend-nonimpact-test-smoke`.
-
-## UTF-8 Progress Note - 2026-04-26 - Formal Semantics Proof Boundary
+## UTF-8 Progress Note - 2026-04-27 - Formal Semantics Proof Boundary
 
 - Slot capability calculus is now part of the formal proof pack via
   `docs/semantics/08_slot_capability_calculus.md`.
 - `docs/semantics/proofs/SlotCalculus.v` is intentionally labeled as a
   proof-sketch, not completed beta mechanized proof. It now models selected
-  Slot capability invariants: stale handle rejection, issued-token read/pin
-  requirements, unissued-token rejection, and pin non-eviction.
+  Slot capability invariants: stale handle read/write/release rejection,
+  mode-specific issued-token read/write/pin/release requirements, unissued-token
+  read/write/pin/release rejection, pinned-handle release rejection, and pin
+  non-eviction.
 - `make formal-semantics-test-smoke` now forbids overclaim terms in the Coq
   artifact and runs `coqc` when the local toolchain provides it.
 - Linux GitHub Actions now installs `coq`, so the formal semantics smoke becomes
   an actual Coq type-check gate in CI instead of a local optional check.
+- Local 2026-04-27 note: WSL smoke passed but skipped Coq type-check because
+  `coqc` is not installed locally; CI remains the authoritative Coq gate.
 - Runtime evidence for the Slot capability calculus was rechecked with
   `make test-security` (132/132 passed): generation guard coverage now includes stale-generation
   read/write/pin/release rejection and `SlotIsValid` false, plus
@@ -132,6 +82,22 @@
   `metadata_hits>=4900`, and `materializer_fallbacks<=1296`.
 - Verified locally: `make type-resolution-dag-test-smoke` and
   `make type-resolution-resolver-inventory-test-smoke`.
+- 2026-04-27 tightening: alias chains now short-circuit in the metadata
+  materializer when the chain resolves, and alias cycles are detected in the
+  metadata path before falling through to recursive materialization. This keeps
+  cycle diagnostics/provenance alive while removing repeated alias fallback
+  churn. Current stats are `metadata_entries=3346 metadata_hits=4935
+  materializer_fallbacks=15 metadata_fallback_named=8
+  metadata_fallback_generic_named=7 metadata_fallback_compound=0
+  metadata_fallback_other=0 metadata_named_builtin_shell=2
+  metadata_named_generic_class=0 metadata_named_alias=0
+  metadata_named_non_class_symbol=0 metadata_named_missing_symbol=6`.
+  The DAG smoke gate now caps `materializer_fallbacks<=15` and requires
+  `metadata_named_alias==0`. It also requires the fallback total to equal the
+  diagnostic-only family sum (`builtin_shell + generic_named + missing_symbol`)
+  and keeps compound/other/generic-class/non-class-symbol fallback at zero. The
+  remaining fallback set is diagnostic-only: bare generic shells, invalid
+  generic-named forms, and missing symbol negative cases.
 
 ## UTF-8 Progress Note - 2026-04-26 - Overall Beta Audit Follow-up
 
@@ -139,10 +105,32 @@
   The formatter smoke is invoked through `bash`, so Linux execute-bit drift on
   mounted worktrees should not reproduce the old `fmt_smoke.sh Permission
   denied` failure.
-- Production runtime/codegen/compiler `.inc` size gate is green, but the next
-  cleanup should target near-cap files instead of adding more split fragments:
-  `transpiler_emitters_base_a_part_c.inc` at 964 LOC,
-  `transpiler_emitters_intent.inc` at 962 LOC.
+- Production runtime/codegen/compiler/semantic `.inc` debt is closed for beta:
+  production `.inc` count is 0, and only `src/tests/**/*.inc` fixtures remain.
+  The new structural policy is stricter than the old include cleanup:
+  production `.c` / private owner `.h` files above 600 LOC require split review
+  and a named follow-up seam; 1,000 LOC is only the hard stop / risk line.
+  `production-header-size-test-smoke` now caps every production owner header at
+  1,000 LOC with no per-file temporary exception; `llvm_internal.h` was split
+  by moving declaration inventory helpers into `llvm_inventory_internal.h`.
+  LLVM statement parallel/async/select lowering now lives in
+  `llvm_stmt_parallel_async.c`, reducing `llvm_stmt.c` to 3,078 LOC with
+  backend compare still green. LLVM domain method/provenance helpers now live
+  in `llvm_domain_method_helpers.c`, reducing `llvm_domain.c` to 3,340 LOC
+  while keeping backend compare green. LLVM world sync lowering now lives in
+  `llvm_domain_world_sync.c`, and LLVM zone sync lowering now lives in
+  `llvm_domain_zone_sync.c`; `llvm_domain.c` is down to 1,649 LOC. The former
+  `llvm_domain_core_helpers.h` mega-header was split into focused owner
+  headers for role lookup, decl parts, projection count/value/sync body, and
+  zone binding so the build stays warning-clean instead of hiding unused static
+  helpers. Build, header/inc gates, docs gates, and backend compare remain
+  green. LLVM statement ownership is now split into focused owners:
+  `llvm_stmt_type_infer.c`, `llvm_stmt_let_helpers.c`,
+  `llvm_stmt_let_with.c`, `llvm_stmt_with.c`, `llvm_stmt_loop_match.c`, and
+  `llvm_stmt_parallel_async.c`. `llvm_stmt.c` is down to 914 LOC, every
+  statement owner is under 1,000 LOC, and backend compare remains green. The
+  next lean cleanup target is large real TUs, starting with `compiler/mir.c`
+  and the 1,027 LOC `llvm_domain_zone_sync.c` frontier body.
 - Lean debt-slice follow-up: C backend type-alias declaration emission now has
   a real owner in `src/codegen/transpiler_type_alias.c`; the old body was
   removed from `transpiler_emitters_base_b_part_c.inc`. Local gate used:
@@ -183,7 +171,7 @@
   `git diff --check`.
 - Lean debt-slice follow-up: generated-C DeviceSlot/SecureSlot macro bodies now
   have a private inline owner in `src/runtime/pgy_runtime_slot_macros.h`;
-  built-in instantiation remains in `pgy_runtime_builtin_storage_inline.h`, which
+  built-in instantiation remains in `pgy_runtime_part_ba_part_c.inc`, which
   drops from 996 LOC to 808 LOC. Local gate used:
   `make backend-inc-size-test-smoke inc-sentinel-test-smoke`,
   `make runtime-abi-lifetime-test-smoke test-abi`, plus touched path
@@ -333,369 +321,6 @@
   air-drift-test-smoke cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
   inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
   documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend MIR local type lookup, explicit binding
-  registration, MIR function signature support checks, SSA expression emission,
-  phi copy emission, and exit-SSA lookup now have a private owner in
-  `src/codegen/transpiler_mir_ssa_emit.h`; the former
-  `transpiler_emitters_mir_inventory_ssa_emit.inc` body is removed while the MIR
-  inventory/SSA shim order remains stable. The production source `.inc`
-  inventory is now 80 files / 21,313 LOC. Local gate to use for this slice:
-  `make -B pgy test-transpile type-resolution-dag-test-smoke
-  air-drift-test-smoke cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
-  inc-sentinel-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: generated-C threaded channel and SPSC channel
-  inline macro definitions plus stable `Int`/`String` instantiations now have a
-  private owner in `src/runtime/pgy_runtime_channel_inline.h`; the former
-  `pgy_runtime_part_bb.inc` body is removed while `pgy_runtime.h` include order
-  remains stable. The production source `.inc` inventory is now 79 files /
-  20,752 LOC. Local gate to use for this slice: `make -B pgy
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  runtime-abi-lifetime-test-smoke test-abi llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend zone struct emission, projection
-  readiness/dirty fields, layer/state frontier sync, bounded recompute, and
-  hosted zone method lowering now have a private owner in
-  `src/codegen/transpiler_zone_decl_emit.h`; the former
-  `transpiler_domain_role_part_c.inc` body is removed while the domain-role shim
-  order remains stable. The production source `.inc` inventory is now 78 files /
-  20,198 LOC. Local gate to use for this slice: `make -B pgy test-transpile
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend block emission and intent step helper
-  tails now have a private owner in
-  `src/codegen/transpiler_block_intent_helpers.h`; the former
-  `transpiler_emitters_base_b_part_c.inc` body is removed while the base-B shim
-  order remains stable. The production source `.inc` inventory is now 77 files /
-  19,652 LOC. Local gate to use for this slice: `make -B pgy test-transpile
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: generated-C inline file/string helpers and Qubit
-  toy runtime helpers now have a private owner in
-  `src/runtime/pgy_runtime_io_qubit_inline.h`; the former
-  `pgy_runtime_part_c.inc` body is removed while `pgy_runtime.h` include order
-  remains stable. Runtime cache freshness dependencies were also updated away
-  from previously deleted runtime include paths. The production source `.inc`
-  inventory is now 76 files / 19,110 LOC. Local gate to use for this slice:
-  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
-  runtime-abi-lifetime-test-smoke test-abi llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend domain/party constructor lowering and
-  Result/Option builtin call lowering now have a private owner in
-  `src/codegen/transpiler_call_constructor_result_emit.h`; the former
-  `transpiler_expr_emitters_part_c.inc` body is removed while the expression
-  emitter shim order remains stable. The production source `.inc` inventory is
-  now 75 files / 18,573 LOC. Local gate to use for this slice: `make -B pgy
-  test-transpile backend-inc-size-test-smoke inc-sentinel-test-smoke
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: generated-C builtin storage instantiations and
-  inline HashMap helpers now have a private owner in
-  `src/runtime/pgy_runtime_builtin_storage_inline.h`; the former
-  `pgy_runtime_part_ba_part_c.inc` body is removed while
-  `pgy_runtime_part_ba.inc` include order remains stable. Runtime ABI/panic
-  smokes and compiler cache freshness dependencies now read the new owner path.
-  The production source `.inc` inventory is now 74 files / 18,038 LOC. Local
-  gate to use for this slice: `make -B pgy backend-inc-size-test-smoke
-  inc-sentinel-test-smoke runtime-abi-lifetime-test-smoke
-  runtime-panic-abi-test-smoke runtime-panic-contract-test-smoke test-abi
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: semantic overlay/host method typing, nominal
-  boundary classification, zone effect-layer checks, and movable resource
-  predicates now have a private owner in
-  `src/semantic/type_checker_host_helpers.h`; the former
-  `type_checker_helpers_host.inc` body is removed while `type_checker.c`
-  include order remains stable. The production source `.inc` inventory is now
-  73 files / 17,448 LOC. Local gate to use for this slice: `make -B pgy
-  test-semantic semantic-core-shape-test-smoke type-resolution-dag-test-smoke
-  cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
-  inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: semantic builtin name resolution and Slot/
-  SecureSlot/DeviceSlot operation validation now have a private owner in
-  `src/semantic/type_checker_builtins_slotops.h`; the former
-  `type_checker_builtins_slotops.inc` body is removed while
-  `type_checker_builtins.c` include order remains stable. The production source
-  `.inc` inventory is now 72 files / 16,923 LOC. Local gate to use for this
-  slice: `make -B pgy test-semantic semantic-core-shape-test-smoke
-  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: generated-C parallel macros, zone authority/
-  generation validation, Result helpers, remote Result helpers, and Option
-  helpers now have a private owner in
-  `src/runtime/pgy_runtime_zone_result_option_inline.h`; the former
-  `pgy_runtime_part_ba_part_e.inc` body is removed while
-  `pgy_runtime_part_ba.inc` include order remains stable. Runtime ABI/panic/
-  authority smokes and compiler cache freshness dependencies now read the new
-  owner path. The production source `.inc` inventory is now 71 files /
-  16,402 LOC. Local gate to use for this slice: `make -B pgy
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  runtime-abi-lifetime-test-smoke runtime-authority-contract-test-smoke
-  runtime-panic-contract-test-smoke test-abi llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend overlay projection invalidation,
-  zone/effect propagation snippets, and world-state lookup helpers now have a
-  private owner in `src/codegen/transpiler_projection_sync_helpers.h`; the
-  former `transpiler_helpers_core_a_part_c.inc` body is removed while the
-  helper-core-A shim order remains stable. The production source `.inc`
-  inventory is now 70 files / 15,883 LOC. Local gate to use for this slice:
-  `make -B pgy test-transpile backend-inc-size-test-smoke
-  inc-sentinel-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: generated-C intent trace storage/registry helpers,
-  active/recent trace updates, step ok/fail tracing, and MIR resource trace
-  hooks now have a private owner in
-  `src/runtime/pgy_runtime_intent_trace_inline.h`; the former
-  `pgy_runtime_part_ba_part_a.inc` body is removed while
-  `pgy_runtime_part_ba.inc` include order remains stable. Runtime ABI lifetime
-  smoke and compiler cache freshness dependencies now read the new owner path.
-  The production source `.inc` inventory is now 69 files / 15,370 LOC. Local
-  gate to use for this slice: `make -B pgy backend-inc-size-test-smoke
-  inc-sentinel-test-smoke runtime-abi-lifetime-test-smoke test-abi
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: LLVM extended List/Set/HashMap raw-call lowering
-  now has a private owner in
-  `src/codegen/llvm_expr_call_collections_extended.h`; the former
-  `llvm_expr_call_collections_extended.inc` body is removed while
-  `llvm_expr_calls.inc` include order remains stable. The production source
-  `.inc` inventory is now 68 files / 14,862 LOC. Local gate to use for this
-  slice: `make -B pgy test-transpile backend-inc-size-test-smoke
-  inc-sentinel-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend helper-root string helpers, MIR
-  resource-op/DEF helper emission, and the expression-emitter include root now
-  have a private owner in `src/codegen/transpiler_helpers.h`; the former
-  `transpiler_helpers.inc` body is removed while `transpiler.c` include order
-  remains stable. The production source `.inc` inventory is now 67 files /
-  14,356 LOC. Local gate to use for this slice: `make -B pgy test-transpile
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend Log/LogRaw/LogBanner lowering and core
-  binary expression lowering now have a private owner in
-  `src/codegen/transpiler_expr_core_emit.h`; the former
-  `transpiler_expr_emitters_part_a.inc` body is removed while
-  `transpiler_expr_emitters.inc` include order remains stable. The production
-  source `.inc` inventory is now 66 files / 13,869 LOC. Local gate to use for
-  this slice: `make -B pgy test-transpile backend-inc-size-test-smoke
-  inc-sentinel-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend role ability/method lookup and
-  Result/Option/collection specialization collection now have a private owner in
-  `src/codegen/transpiler_specialization_helpers.h`; the former
-  `transpiler_helpers_core_b_part_b.inc` body is removed while
-  `transpiler_helpers_core_b.inc` include order remains stable. The production
-  source `.inc` inventory is now 65 files / 13,402 LOC. Local gate to use for
-  this slice: `make -B pgy test-transpile backend-inc-size-test-smoke
-  inc-sentinel-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend ability/role/party/roster/relation/
-  effect declaration emission now has a private owner in
-  `src/codegen/transpiler_domain_nominal_emit.h`; the former
-  `transpiler_domain_role_part_b.inc` body is removed while
-  `transpiler_domain_role.inc` include order remains stable. The production
-  source `.inc` inventory is now 64 files / 12,937 LOC. Local gate to use for
-  this slice: `make -B pgy test-transpile backend-inc-size-test-smoke
-  inc-sentinel-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend `emit_expression()` dispatch now has a
-  private owner in `src/codegen/transpiler_expr_dispatch_emit.h`; the former
-  `transpiler_expr_emitters_part_f.inc` body is removed while
-  `transpiler_expr_emitters.inc` include order remains stable. Runtime panic
-  contract smoke now reads the new owner path for checked array/slice lowering.
-  The production source `.inc` inventory is now 63 files / 12,486 LOC. Local
-  gate to use for this slice: `make -B pgy test-transpile
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  runtime-panic-contract-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: MIR public names/destroy/validate/dump surface now
-  has a private owner in `src/compiler/mir_public_surface.h`; the former
-  `mir_public_part_b.inc` body is removed while `mir.c` include order remains
-  stable. The production source `.inc` inventory is now 62 files / 12,066 LOC.
-  Local gate to use for this slice: `make -B pgy backend-inc-size-test-smoke
-  inc-sentinel-test-smoke type-resolution-dag-test-smoke air-drift-test-smoke
-  cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: semantic generic parameter lookup, default-bound
-  validation, and class-specialization where-bound validation now have a private
-  owner in `src/semantic/type_checker_generic_contracts.h`; the former
-  `type_checker_generic_contracts.inc` body is removed while
-  `type_checker_generic_support.h` preserves include order. The production
-  source `.inc` inventory is now 61 files / 11,663 LOC. Local gate to use for
-  this slice: `make -B pgy test-semantic semantic-core-shape-test-smoke
-  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: LLVM member-call dispatch and nominal hosted-method
-  self argument lowering now have a private owner in
-  `src/codegen/llvm_member_call_emit.h`; the former
-  `llvm_expr_call_methods_part_b.inc` body is removed while `llvm_expr.c`
-  preserves include order. The production source `.inc` inventory is now 60
-  files / 11,262 LOC. Local gate to use for this slice: `make -B pgy
-  test-transpile backend-inc-size-test-smoke inc-sentinel-test-smoke
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: generated-C runtime platform includes, contract
-  headers, warning helpers, path normalization, and IO sandbox checks now have a
-  private owner in `src/runtime/pgy_runtime_platform_io_core.h`; the former
-  `pgy_runtime_part_a.inc` body is removed while `pgy_runtime.h` preserves
-  include order. Runtime authority and panic contract smokes now read the named
-  owner path. The production source `.inc` inventory is now 59 files / 10,879
-  LOC. Local gate to use for this slice: `make -B pgy backend-inc-size-test-smoke
-  inc-sentinel-test-smoke runtime-authority-contract-test-smoke
-  runtime-panic-contract-test-smoke runtime-abi-lifetime-test-smoke test-abi
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: semantic alias resolution stack handling, alias
-  materialization, function-type formatting, and embedded world-zone mutation
-  rejection now have a private owner in
-  `src/semantic/type_checker_resolution_helpers.h`; the former
-  `type_checker_helpers_resolution.inc` body is removed while `type_checker.c`
-  preserves include order. The production source `.inc` inventory is now 58
-  files / 10,500 LOC. Local gate to use for this slice: `make -B pgy
-  test-semantic semantic-core-shape-test-smoke type-resolution-dag-test-smoke
-  cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
-  inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: generated-C List and Set inline runtime
-  definitions now have a private owner in
-  `src/runtime/pgy_runtime_list_set_inline.h`; the former
-  `pgy_runtime_part_ba_part_d.inc` body is removed while
-  `pgy_runtime_part_ba.inc` preserves include order. Runtime ABI and panic
-  contract smokes now read the named owner path. The production source `.inc`
-  inventory is now 57 files / 10,123 LOC. Local gate to use for this slice:
-  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
-  runtime-abi-lifetime-test-smoke runtime-panic-contract-test-smoke test-abi
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: LLVM identifier emission, direct Slot/SecureSlot
-  fallback lowering, slot target resolution, and banner literal normalization
-  now have a private owner in
-  `src/codegen/llvm_expr_identifier_slot_helpers.h`; the former
-  `llvm_expr_helpers_part_c.inc` body is removed while `llvm_expr.c` preserves
-  include order. The production source `.inc` inventory is now 56 files / 9,753
-  LOC. Local gate to use for this slice: `make -B pgy test-transpile
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  runtime-panic-contract-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: semantic spawn token boundary checks and channel
-  send/recv ownership diagnostics now have a private owner in
-  `src/semantic/type_checker_async_channel.h`; the former
-  `type_checker_async_channel.inc` body is removed while `type_checker.c`
-  preserves include order. The production source `.inc` inventory is now 55
-  files / 9,384 LOC. Local gate to use for this slice: `make -B pgy
-  test-semantic semantic-core-shape-test-smoke type-resolution-dag-test-smoke
-  cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
-  inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: LLVM callable/event signature helpers, scalar
-  string coercion, binary lowering, unary lowering, and `?` propagation lowering
-  now have a private owner in `src/codegen/llvm_expr_scalar_core.h`; the former
-  `llvm_expr_core.inc` body is removed while `llvm_expr.c` preserves include
-  order. Runtime panic contract smoke now reads the named owner path. The
-  production source `.inc` inventory is now 54 files / 9,024 LOC. Local gate to
-  use for this slice: `make -B pgy test-transpile backend-inc-size-test-smoke
-  inc-sentinel-test-smoke runtime-panic-contract-test-smoke
-  llvm-test-backend-compare beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: semantic generic subject signature formatting and
-  effective default generic argument derivation now have a private owner in
-  `src/semantic/type_checker_generic_support.h`; the former
-  `type_checker_generic_support.inc` body is removed while `type_checker.c`
-  preserves include order. The production source `.inc` inventory is now 53
-  files / 8,666 LOC. Local gate to use for this slice: `make -B pgy
-  test-semantic semantic-core-shape-test-smoke type-resolution-dag-test-smoke
-  cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
-  inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: LLVM projection field-copy lowering and bounded
-  projection sync loop generation now have a private owner in
-  `src/codegen/llvm_domain_projection_sync_helpers.h`; the former
-  `llvm_domain_helpers_part_b.inc` body is removed while `llvm_domain.c`
-  preserves include order. Runtime frontier contract smoke now reads the named
-  owner path. The production source `.inc` inventory is now 52 files / 8,333
-  LOC. Local gate to use for this slice: `make -B pgy test-transpile
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  runtime-frontier-contract-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend parallel block emission and async block
-  spawning now have a private owner in
-  `src/codegen/transpiler_async_parallel_emit.h`; the former
-  `transpiler_emitters_async_parallel.inc` body is removed while
-  `transpiler_func_class_flow_emit.h` preserves include order. The production
-  source `.inc` inventory is now 51 files / 8,016 LOC. Local gate to use for
-  this slice: `make -B pgy test-transpile parallel-core-contract-test-smoke
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: semantic type resolution now has a private owner
-  in `src/semantic/type_checker_resolve.h`; the former
-  `type_checker_resolve.inc` body is removed while `type_checker_expr.h`
-  preserves include order. The production source `.inc` inventory is now 50
-  files / 7,701 LOC. Local gate to use for this slice: `make -B pgy
-  test-semantic semantic-core-shape-test-smoke type-resolution-dag-test-smoke
-  cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
-  inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: semantic domain-query builtin validation now has a
-  private owner in `src/semantic/type_checker_builtins_query_domain.h`; the
-  former `type_checker_builtins_query_domain.inc` body is removed while
-  `type_checker_builtins.c` preserves include order. The production source
-  `.inc` inventory is now 49 files / 7,387 LOC. Local gate to use for this
-  slice: `make -B pgy test-semantic semantic-core-shape-test-smoke
-  type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
-  backend-inc-size-test-smoke inc-sentinel-test-smoke
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: CFG/body-flow loop analysis now has a private
-  owner in `src/semantic/type_checker_flow_loops.h`; the former
-  `type_checker_flow_loops.inc` body is removed while `type_checker_flow.c`
-  preserves include order. CFG/body dataflow smoke now reads the named owner
-  path. The production source `.inc` inventory is now 48 files / 7,086 LOC.
-  Local gate to use for this slice: `make -B pgy test-semantic
-  semantic-core-shape-test-smoke type-resolution-dag-test-smoke
-  cfg-body-dataflow-test-smoke backend-inc-size-test-smoke
-  inc-sentinel-test-smoke beta-readiness-checklist-test-smoke
-  documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend function-forward helpers now have a
-  private owner in `src/codegen/transpiler_func_forward_helpers.h`; the former
-  `transpiler_helpers_core_b_part_c.inc` body is removed while
-  `transpiler_helpers_core_b.inc` preserves include order. The production
-  source `.inc` inventory is now 47 files / 6,790 LOC. Local gate to use for
-  this slice: `make -B pgy test-transpile backend-inc-size-test-smoke
-  inc-sentinel-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: MIR lowering public API now has a private owner in
-  `src/compiler/mir_lower_public_api.h`; the former `mir_public_part_a.inc`
-  body is removed while `mir.c` preserves include order. MIR declaration
-  inventory smoke now reads the named owner path. The production source `.inc`
-  inventory is now 46 files / 6,500 LOC. Local gate to use for this slice:
-  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
-  type-resolution-dag-test-smoke air-drift-test-smoke
-  cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: LLVM-linkable runtime intent/slot-core exports now
-  have a private owner in
-  `src/runtime/pgy_runtime_lib_intent_slot_core_exports.h`; the former
-  `pgy_runtime_lib_part_b_part_c.inc` body is removed while
-  `pgy_runtime_lib.c` preserves include order. Runtime ABI lifetime and panic
-  contract smokes now read the named owner path. The production source `.inc`
-  inventory is now 45 files / 6,212 LOC. Local gate to use for this slice:
-  `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
-  runtime-abi-lifetime-test-smoke runtime-panic-contract-test-smoke
-  runtime-panic-abi-test-smoke test-abi llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
-- Lean debt-slice follow-up: C backend match lowering now has a private owner
-  in `src/codegen/transpiler_match_emit.h`; the former
-  `transpiler_emitters_match.inc` body is removed while
-  `transpiler_func_class_flow_emit.h` preserves include order. The production
-  source `.inc` inventory is now 44 files / 5,932 LOC. Local gate to use for
-  this slice: `make -B pgy test-transpile backend-inc-size-test-smoke
-  inc-sentinel-test-smoke llvm-test-backend-compare
-  beta-readiness-checklist-test-smoke documentation-quality-test-smoke`.
 - Lean debt-slice follow-up: C backend MIR SSA identifier contract helpers now
   have a private owner in `src/codegen/transpiler_mir_ssa_contract.h`;
   `transpiler_emitters_base_a_part_d.inc` drops from 849 LOC to 677 LOC. Local
@@ -1022,48 +647,49 @@
 - Verified locally: `make type-resolution-resolver-inventory-test-smoke
   type-resolution-dag-test-smoke` and `make test-semantic`.
 
-留덉?留??낅뜲?댄듃: 2026-04-25
+마지막 업데이트: 2026-04-25
 
-## 현재 ?태 ?정 ?? (2026-04-12 ?정??
+## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
-### 醫낇빀 ?먮떒: Late-Stage Alpha
+### 종합 판단: Late-Stage Alpha
 
-- 踰좏? readiness 異붿젙: ??`50%`
-- 현재 ?현: `late-stage alpha / beta-closure sprint`
-- 蹂댁젙 ?댁쑀:
-  - 기능 측면만 보면 core/foundation 구현? ??? beta??기능 개수 아니며 end-to-end 신뢰도다
-  - HIR/MIR CFG skeleton? ?? ??? 개수/action/intent body ?전의 semantic source-of-truth 아직 CFG/dataflow??격?? ?았?? all-path return, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary?AST/helper traversal만으??으?strict beta ?뢰?? 족하??  - AIR abstraction safety??Phase 1 ?이??구조 / synthesis / drift checker baseline?driver semantic-validation wiring??되어한다. Intent ??implementation drift 출? `docs/104_air_compiler_architecture.md`? `make air-drift-test-smoke`?gate??되어?고, strict evidence??기본값으??격한다. missing RIR boundary/authority evidence??`PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`?hard-fail ?며, `authorized by` participant ?름?RIR authority fact / authorize op subject ?치?야 한다. authority evidence ?락 진단? `Reason:` 에 expected authority participant list??함한다. AIR drift message? synthesized intent/boundary/authority name? owned lifetime으로 리되? repeated drift check ?전 message??전?게 ?제는 ?? ?스?? parsed-source AIR teardown-safe boundary source ?? 한다. `where + transfer`?????상 zone boundary ?나??히 하고 zone boundary? world-handoff boundary?모두 ?성한다. world-handoff evidence???제 matching RIR intent scope만으??과?? 하고 boundary source alias?????RIR `Move`/`Claim` transfer op??구한다. parsed-source missing-authority-evidence negative? parsed-source IO execution-boundary missing-evidence negative??full driver JSON path?서 step source span?`stage/code/cause_ir/fix_source`까? 고정한다. expression boundary evidence?????상 owner-name-only RIR scope match??과?? ?는?? `PGY_AIR_STRICT_EVIDENCE=0`? 개발/?버?opt-out한다. `make air-backend-nonimpact-test-smoke`??relaxed AIR? default strict AIR intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set?서 같? C/LLVM ?스?? ?성는 비교한다. `make air-backend-nonimpact-full-test-smoke`??full frozen backend-compare fixture sweep??같? 방식으로 ?리?Linux CI gate??격한다. `make air-strict-backend-compare-test-smoke`??strict evidence ?태?서 C/LLVM ?행 parity까? 증한?? parser/lexer baseline JSON routing? `stage`, `code`, `cause_ir`, `fix_source`까? ?혔?? ?? blocker??AIR transfer/world source negative ?장, Windows native evidence, parser-specific code split / multi-error accumulation한다
-  - Type-resolution DAG 아직 semantic source-of-truth 아니?declaration order / module contract / generic consumer path drift ?험???아 한다
-  - ?기 모듈??stop condition??아직 ?? semantic 800 LOC 초과 `.inc` 조건?runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건? ?혔? ?러 split? 아직 include-order 보존 ?태???제 owner/TU extraction 채? ?아 한다
-  - ?라??공식 진행률? ?기???면 ?숙?? 아니며 ?베? ?뢰??readiness??기?으로 ??50%?본다
+- 베타 readiness 추정: 약 `50%`
+- 현재 표현: `late-stage alpha / beta-closure sprint`
+- 보정 이유:
+  - 기능 표면만 보면 core/foundation 구현은 넓지만, beta는 기능 개수가 아니라 end-to-end 신뢰도다
+  - HIR/MIR CFG skeleton은 이미 있지만, 함수/action/intent body 안전성의 semantic source-of-truth가 아직 CFG/dataflow로 승격되지 않았다. all-path return, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary를 AST/helper traversal만으로 닫으면 strict beta 신뢰도가 부족하다
+  - AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline과 driver semantic-validation wiring이 들어왔다. Intent ↔ implementation drift 검출은 `docs/104_air_compiler_architecture.md`와 `make air-drift-test-smoke`로 gate에 들어왔고, strict evidence는 기본값으로 승격됐다. missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 되며, `authorized by` participant 이름과 RIR authority fact / authorize op subject가 일치해야 한다. authority evidence 누락 진단은 `Reason:` 안에 expected authority participant list를 포함한다. AIR drift message와 synthesized intent/boundary/authority name은 owned lifetime으로 관리되고, repeated drift check가 이전 message를 안전하게 해제하는 회귀 테스트와 parsed-source AIR teardown-safe boundary source 회귀가 있다. `where + transfer`는 더 이상 zone boundary 하나로 접히지 않고 zone boundary와 world-handoff boundary를 모두 합성한다. world-handoff evidence는 이제 matching RIR intent scope만으로 통과하지 않고 boundary source alias에 대한 RIR `Move`/`Claim` transfer op를 요구한다. parsed-source missing-authority-evidence negative와 parsed-source IO execution-boundary missing-evidence negative는 full driver JSON path에서 step source span과 `stage/code/cause_ir/fix_source`까지 고정됐다. expression boundary evidence는 더 이상 owner-name-only RIR scope match로 통과하지 않는다. `PGY_AIR_STRICT_EVIDENCE=0`은 개발/디버그 opt-out이다. `make air-backend-nonimpact-test-smoke`는 relaxed AIR와 default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set에서 같은 C/LLVM 텍스트를 생성하는지 비교한다. `make air-backend-nonimpact-full-test-smoke`는 full frozen backend-compare fixture sweep을 같은 방식으로 돌리고 Linux CI gate로 승격됐다. `make air-strict-backend-compare-test-smoke`는 strict evidence 상태에서 C/LLVM 실행 parity까지 검증한다. parser/lexer baseline JSON routing은 `stage`, `code`, `cause_ir`, `fix_source`까지 닫혔다. 남은 blocker는 AIR transfer/world source negative 확장, Windows native evidence, parser-specific code split / multi-error accumulation이다
+  - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
+  - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
+  - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 50%로 본다
 
 ## Beta taxonomy freeze: core / foundation / style
 
-베? 기?? ?제 기능 ?열??아니며 되어 ?체??기?으로 ?눈??
+베타 기준은 이제 기능 나열이 아니라 언어 정체성 기준으로 나눈다.
 
 - Core language: `intent`, `world`, `zone`, `subject`, `relation`, `effect`, `projection`, `authority`, `handoff`, runtime observability, anchored ownership boundary, generic contract system, module visibility/export contract, `parallel`.
-- Generic contract??core?? exact/ability/multi-bound/default type arg actual resolution? FP/OOP 의 아니며 domain contract??현는 ???되어??
-- Foundation layer: primitive values, `func`, `let`, control flow, callable/lambda baseline, `Option`/`Result`, stable collections, core ?행???요??runtime ABI.
+- Generic contract는 core다. exact/ability/multi-bound/default type arg actual resolution은 FP/OOP 편의가 아니라 domain contract를 표현하는 타입 언어다.
+- Foundation layer: primitive values, `func`, `let`, control flow, callable/lambda baseline, `Option`/`Result`, stable collections, core 실행에 필요한 runtime ABI.
 - Style / compatibility surface: OOP convenience, FP combinator libraries, app infra, richer async helpers.
-- Execution family split: `parallel`? core execution primitive?고, `spawn`/`async`/`await`/`select`/`channel`/cancel? ??래 execution family?? fiber/coroutine? language core 아니며 runtime scheduling/suspension mechanism한다.
-- Accelerator split: AI-first/GPU 방향? `pgy.accel.spray` ?리 모듈??약한다. 는 `parallel` / ownership / module visibility 에 ?라??accelerator library/runtime 축이?core keyword ?장??아니며 
-- Render split: Skia/shader/render graph 방향? `pgy.render.skia` ?리 모듈??약한다. renderer/shader??core keyword 아니며 Spray/Execution 의 ?태?모듈한다.
-- Compatibility split: OOP/FP/DOP??각각 `pgy.compat.oop`, `pgy.compat.fp`, `pgy.compat.dop`?분리한다. 기존 되어 ??을 ?용?되 core identity??명?? ?는??
-- Interop split: ?? 되어 ?동(JVM 캐스??JNI 브릿, Python C-API ??? `pgy.interop.*` ?태?모듈?분류?며, 베? 마일?톤?서???전???외(Out of Beta)한다.
+- Execution family split: `parallel`은 core execution primitive이고, `spawn`/`async`/`await`/`select`/`channel`/cancel은 그 아래 execution family다. fiber/coroutine은 language core가 아니라 runtime scheduling/suspension mechanism이다.
+- Accelerator split: AI-first/GPU 방향은 `pgy.accel.spray` 논리 모듈로 예약한다. 이는 `parallel` / ownership / module visibility 위에 올라가는 accelerator library/runtime 축이며 core keyword 확장이 아니다.
+- Render split: Skia/shader/render graph 방향은 `pgy.render.skia` 논리 모듈로 예약한다. renderer/shader는 core keyword가 아니라 Spray/Execution 위의 생태계 모듈이다.
+- Compatibility split: OOP/FP/DOP는 각각 `pgy.compat.oop`, `pgy.compat.fp`, `pgy.compat.dop`로 분리한다. 기존 언어 스타일을 수용하되 core identity로 설명하지 않는다.
+- Interop split: 외부 언어 연동(JVM 캐스팅/JNI 브릿지, Python C-API 등)은 `pgy.interop.*` 생태계 모듈로 분류하며, 베타 마일스톤에서는 완전히 제외(Out of Beta)한다.
 
-?낅뜲?댄듃 ?뺤콉:
+업데이트 정책:
 
-- `pgy.core`?????주 개선?되 ??하고 강하?증한??
-- `pgy.foundation`? core보다 ?리??직이?ABI/backend parity?깨? ?는??
-- `pgy.accel.spray`, `pgy.render.skia`, `pgy.compat.*`, `pgy.std.*`, `pgy.kit.*`??모듈 ?태계로 진화한다. 빠른 ?험? ?용???core keyword??리 ?는??
+- `pgy.core`는 가장 자주 개선하되 가장 작고 강하게 검증한다.
+- `pgy.foundation`은 core보다 느리게 움직이며 ABI/backend parity를 깨지 않는다.
+- `pgy.accel.spray`, `pgy.render.skia`, `pgy.compat.*`, `pgy.std.*`, `pgy.kit.*`는 모듈 생태계로 진화한다. 빠른 실험은 허용하지만 core keyword를 늘리지 않는다.
 
-?ㅽ뻾 洹쒖튃:
+실행 규칙:
 
-- B0 blocker??`core + foundation stable subset`?먮쭔 遺숈씤??
-- `pgy.fp`??Functor/HKT 추상?? class-heavy OOP ?장, coroutine/fiber 고도는 beta identity blocker 아니며 
-- `pgy.accel.spray`??post-beta design surface?? 베? ?에????GPU ?워?나 backend-specific CUDA/ROCm/Metal 문법???? ?고, module boundary? ownership ?칙?고정한다.
-- `pgy.render.skia`? `pgy.compat.dop`??post-beta design surface?? 베? ?에??shader/layout keyword??? 하고 module boundary?고정한다.
-- ?? `parallel`? core???slot/resource/effect conflict, cancellation/fairness, C/LLVM lowering parity??beta ?질 기?으로 계속 리한??
+- B0 blocker는 `core + foundation stable subset`에만 붙인다.
+- `pgy.fp`식 Functor/HKT 추상화, class-heavy OOP 확장, coroutine/fiber 고도화는 beta identity blocker가 아니다.
+- `pgy.accel.spray`는 post-beta design surface다. 베타 전에는 새 GPU 키워드나 backend-specific CUDA/ROCm/Metal 문법을 열지 않고, module boundary와 ownership 원칙만 고정한다.
+- `pgy.render.skia`와 `pgy.compat.dop`도 post-beta design surface다. 베타 전에는 shader/layout keyword를 열지 않고 module boundary만 고정한다.
+- 단, `parallel`은 core이므로 slot/resource/effect conflict, cancellation/fairness, C/LLVM lowering parity는 beta 품질 기준으로 계속 관리한다.
 - Source of truth: `docs/99_language_module_taxonomy.md`
 - Machine-readable manifest: `docs/language_module_manifest.json`
 - Representative case tags: `docs/language_module_cases.json`
@@ -1073,65 +699,65 @@
 
 ## Formal semantics / mathematical proof obligations
 
-베????테?트 ?과?다?만으로 ?히 ?는?? stable subset마다 ???보존, 진행, ownership safety, authority soundness, projection freshness, DAG soundness, module visibility non-interference, backend parity 같? ?학??불?이 문서?되?야 한다.
+베타는 “테스트가 통과한다”만으로 닫히지 않는다. stable subset마다 타입 보존, 진행, ownership safety, authority soundness, projection freshness, DAG soundness, module visibility non-interference, backend parity 같은 수학적 불변식이 문서화되어야 한다.
 
 - Source of truth: `docs/semantics/`
 - Stable index: `docs/102_formal_semantics_and_proof_obligations.md`
 - Drift gate: `make formal-semantics-test-smoke`
-- ?곹깭: `IN PROGRESS / BLOCKER-DOC`
-- 踰좏? 湲곗?:
-  - [x] ?학 library 문서(`docs/45_math_layer_design.md`)? 되어 ???증명 문서?분리한다.
-  - [x] stable beta subset??semantic domain, judgment, theorem/proof-obligation vocabulary?고정한다.
-  - [ ] B0 ??ぉ留덈떎 theorem statement + current regression evidence + remaining proof obligation??理쒖떊 肄붾뱶 ?곹깭? 留욎텣??
-  - [ ] runtime propagation, DAG, MIR declaration inventory, ABI ownership, C/LLVM parity???⑥? blocker瑜?proof obligation?쇰줈 異붿쟻?쒕떎.
-  - [ ] beta 문구?서 Lean/Coq/기계증명 ?료처럼 보이???현??금?한다. 기계증명? 별도 executable model 는 proof assistant artifact ?기??까 post-beta/v1 hardening으로 한다.
-  - [~] **[NEW]** Runtime panic / unwinding model (abort vs unwind)???책 명시 ?C/LLVM backend parity 증명 추?. Panic class vocabulary? released-slot / invalid-secure-token / double-release / device-slot / out-of-bounds / authority-mismatch / OOM / divide-by-zero / internal-invariant hard-fail contract??`src/runtime/pgy_runtime_panic_contract.h`, `make runtime-panic-contract-test-smoke`, `make runtime-panic-abi-test-smoke`, `make runtime-panic-codegen-test-smoke`?고정한다. Generated C/LLVM `Array<T>`/`Slice<T>` indexing, temporary function-return indexing, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access? `Unwrap(Err)` / `UnwrapOption(None)` misuse??checked runtime helper / panic contract?고정한다. ?? 것? ??panic class 추????마??같? executable parity gate??구는 것이??
-  - [~] **[NEW]** Secure slot ?authority token?????불??성(Unforgeability) ?식 불???Formal Invariants) 문서?? Secure slot invalid-token/denied-capability export path??silent fallback?서 panic contract??동한다.
-  - [ ] **[NEW]** Intent ?스의 Rollback/Cleanup 보장?????Formal Closure (?태 기계 증명) 문서??
+- 상태: `IN PROGRESS / BLOCKER-DOC`
+- 베타 기준:
+  - [x] 수학 library 문서(`docs/45_math_layer_design.md`)와 언어 의미론 증명 문서를 분리한다.
+  - [x] stable beta subset의 semantic domain, judgment, theorem/proof-obligation vocabulary를 고정한다.
+  - [ ] B0 항목마다 theorem statement + current regression evidence + remaining proof obligation을 최신 코드 상태와 맞춘다.
+  - [ ] runtime propagation, DAG, MIR declaration inventory, ABI ownership, C/LLVM parity의 남은 blocker를 proof obligation으로 추적한다.
+  - [ ] beta 문구에서 Lean/Coq/기계증명 완료처럼 보이는 표현을 금지한다. 기계증명은 별도 executable model 또는 proof assistant artifact가 생기기 전까지 post-beta/v1 hardening으로 둔다.
+  - [~] **[NEW]** Runtime panic / unwinding model (abort vs unwind)의 정책 명시 및 C/LLVM backend parity 증명 추가. Panic class vocabulary와 released-slot / invalid-secure-token / double-release / device-slot / out-of-bounds / authority-mismatch / OOM / divide-by-zero / internal-invariant hard-fail contract는 `src/runtime/pgy_runtime_panic_contract.h`, `make runtime-panic-contract-test-smoke`, `make runtime-panic-abi-test-smoke`, `make runtime-panic-codegen-test-smoke`로 고정했다. Generated C/LLVM `Array<T>`/`Slice<T>` indexing, temporary function-return indexing, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access와 `Unwrap(Err)` / `UnwrapOption(None)` misuse도 checked runtime helper / panic contract로 고정했다. 남은 것은 새 panic class가 추가될 때마다 같은 executable parity gate를 요구하는 것이다.
+  - [~] **[NEW]** Secure slot 및 authority token의 위변조 불가능성(Unforgeability) 형식 불변성(Formal Invariants) 문서화. Secure slot invalid-token/denied-capability export path는 silent fallback에서 panic contract로 이동했다.
+  - [ ] **[NEW]** Intent 시스템의 Rollback/Cleanup 보장에 대한 Formal Closure (상태 기계 증명) 문서화.
 
-?댁쁺 洹쒖튃:
+운영 규칙:
 
-- ?스???모??백엔??비교??proof evidence?? proof ?체 아니며 
-- undocumented mathematical assumption???요??surface??stable??아니며 `IN PROGRESS`, `explicit reject`, 는 `OUT OF BETA`??려??한다.
-- FP functor/HKT, full ownership, full quantum, GPU/Spray, Skia/render graph??현재 beta proof scope 밖이??
+- 테스트/스모크/백엔드 비교는 proof evidence이지 proof 자체가 아니다.
+- undocumented mathematical assumption이 필요한 surface는 stable이 아니라 `IN PROGRESS`, `explicit reject`, 또는 `OUT OF BETA`로 내려야 한다.
+- FP functor/HKT, full ownership, full quantum, GPU/Spray, Skia/render graph는 현재 beta proof scope 밖이다.
 
 ## Missing beta gate audit
 
-현재 strict beta 기??서???음 ????별도 gate?본다. ?????? 기능 ?장??아니며 ?? 는 core/runtime/tooling ?면???뢰??계약한다.
+현재 strict beta 기준에서는 다음 항목을 별도 gate로 본다. 이 항목들은 기능 확장이 아니라 이미 있는 core/runtime/tooling 표면의 신뢰도 계약이다.
 
-- [~] Runtime panic / unwinding model: OOM, divide-by-zero, out-of-bounds, slot violation, token mismatch, authority mismatch, invariant break??abort/unwind/recoverable ?책??`Runtime Panic Parity` proof obligation으로 ?렸?? `src/runtime/pgy_runtime_panic_contract.h` panic class vocabulary??유?고, inline/exported typed slot read/write/release??released-slot ?double-release?서 ???상 기본?no-op?빠? ?는?? `make runtime-panic-abi-test-smoke` released-slot, invalid-secure-token, double-release, device-slot, out-of-bounds, authority-mismatch, OOM, divide-by-zero executable evidence??공한다. `make runtime-panic-codegen-test-smoke`??generated C/LLVM divide/modulo-by-zero? `Array<T>`/`Slice<T>` index, temporary function-return index, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access, `Unwrap(Err)`, `UnwrapOption(None)` parity?증한?? ?? 것? ??hard-fail class 추????마??같? executable parity gate??구는 것이??
-- [~] Secure slot / authority secret invariant: token unforgeability, secure-slot mismatch denial, authority token non-forgeability, authority transfer single-owner invariant, runtime snapshot secret non-exposure?`Secure Token Unforgeability` / `Authority Transfer Single-Owner` proof obligation으로 ?렸?? inline/exported secure slot read/write/release invalid-token ?denied-capability path??`PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN`?고정하고 secure-slot double-release??`PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE`?고정한다. `make runtime-panic-abi-test-smoke` invalid-token/double-release executable evidence??공한다. authority-token mismatch??`authority-token-mismatch` runtime code/reason, `make test-security`, `authority_failure_abi`, `authority_failure_surface`?C/LLVM parity regression까? ?았?? unsupported authority-token transport??channel send/receive/helper/close, cancellation payload, direct named `spawn`?서 explicit reject??았?? ?? 것? richer domain-boundary denial한다.
-- [ ] Intent formal closure: step ordering, compensation/rollback/invalidation, effect propagation, observability ABI stability?beta-stable contract?고정한다.
-- [ ] Zone/world/authority/handoff formal closure: zone generation, world embedding, handoff frontier, projection freshness, authority rejection query surface?beta-stable contract?고정한다.
-- [ ] Diagnostic quality gate: 모든 user-facing error severity, stable code, source span when available, `Reason:`, `Fix:`?갖도??질 기???registry smoke? 별도 gate?한다.
-  - 진행: intent clause explicit reject ?`spawn`/channel control-transfer AST parser source span??보존?도?고쳤? `make diagnostics-json-test-smoke` `on: spawn ...`? `on: ch <- value`??`PGY_SEM_INTENT_STEP_INVALID` JSON line/column + `cause_ir` + `fix_source`?고정한다.
-- [ ] Cross-platform CI matrix: Linux/WSL, Windows native/MSYS2/MinGW, macOS??support level??stable/experimental/out-of-beta濡?紐낆떆?쒕떎.
-  - 진행: Windows LLVM support detection? executable `llvm-config --libs core` evidence 을 ?만 `WINDOWS_LLVM_READY=1`???도?좁혔?? `C:/Program Files/LLVM/lib` 같? library folder 존재만으?LLVM smoke/backend-compare??행?? ?는?? 현재 beta 계약? Linux C+LLVM, Windows C-only?며 Windows LLVM? ?제 MSYS2 runner green evidence ?길 ?만 ?격한다.
-  - 진행: README support matrix??macOS??dedicated runner/support contract ?길 ?까 out-of-beta?명시한다.
-- [~] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 범위?`docs/107_beta_stable_subset.md`?서 freeze한다. ?? ?? ??문서???stable ?????당 semantic/runtime/C/LLVM regression row? 1:1??결는 것이??
-- [~] Stdlib beta freeze list: stable/experimental/out-of-beta API? breaking-change policy瑜?紐낆떆?쒕떎.
-  - 진행: `docs/108_stdlib_beta_freeze.md` builtin stdlib, stable `use` modules, known experimental modules, out-of-beta ecosystem work?분리한다. `make stdlib-test-smoke` builtin stdlib probe? stable `use` module probe?C/LLVM ?쪽?서 고정한다. ?? ?? third-party package/version/supply-chain policy??
-- [~] Tooling conformance: LSP/fmt/debugger??beta-stable 踰붿쐞瑜?紐낆떆?쒕떎.
-  - 진행: `make tooling-conformance-test-smoke` formatter idempotence/compile smoke, LSP initialize/hover/completion capability, debugger CLI parse+semantic+quit path?executable gate?고정한다. DAP, binary breakpoint, variable watch, rich refactor, multi-file workspace LSP??아직 beta-stable tooling subset??아니며 
-- [~] Package/module resolver surface: manifest, version resolution, import path, supply-chain integrity?stable/experimental/out-of-beta?분류한다.
-  - 진행: `docs/109_package_module_resolver_contract.md` beta-stable module surface?`import "relative/path.pgy";`, importing-file-relative resolution, namespace/export visibility, circular import rejection으로 고정한다. package surface??`pgy init <name>` scaffolding?stable한다.
-  - 진행: `pgy install`? ???상 ?스 ?일 경로??인?? 하고 explicit out-of-beta rejection??한다. `make package-module-resolver-test-smoke` doc contract, `pgy init`, `pgy install` reject, missing import JSON, circular import JSON??고정한다.
-  - ?⑥쓬: dependency version solving, lockfile, registry, checksum/signature verification, remote import, supply-chain integrity??beta ?댄썑 resolver/package-manager track?쇰줈 ?좎??쒕떎.
-- [~] Test quality gate: pre-beta mandatory suite, fuzz/property status, coverage/perf baseline??異붿쟻?쒕떎.
-  - 진행: `docs/111_beta_test_suite_freeze.md` mandatory pre-beta gates, platform gates, fuzz/property/coverage non-claims, regression policy?freeze한다. `make beta-test-suite-freeze-test-smoke` freeze doc?Makefile target 존재??한??
-  - ?음: ?제 fuzz corpus, property-based generator, coverage percentage threshold??beta ?후 ?질 ?랙으로 ??한다. 현재 beta gate??named stable-surface coverage??
-- [~] Observability/tracing schema: event schema, intent history, authority failure state, runtime registry, trace format version??고정한다.
-  - 진행: `docs/112_observability_trace_schema.md` beta-stable schema?`IntentLast*`, `IntentHistory*`, `IntentActive*`, `IntentRecent*`, authority failure snapshot(`ok/zone/participant/code/reason`), runtime-borrowed string ABI, C/LLVM identical trace output으로 고정한다.
-  - 진행: `make observability-schema-test-smoke` `intent_trace_abi`, `intent_recent_abi`, `intent_active_abi`, `intent_failure_abi`, `authority_failure_abi`?C/LLVM ?쪽?서 expected stdout?비교한다.
-  - ?⑥쓬: general event streaming, structured JSON trace export, distributed trace correlation, user-code registry hooks, stable binary trace format, richer multi-instance timeline query??beta ?댄썑濡??좎??쒕떎.
+- [~] Runtime panic / unwinding model: OOM, divide-by-zero, out-of-bounds, slot violation, token mismatch, authority mismatch, invariant break의 abort/unwind/recoverable 정책을 `Runtime Panic Parity` proof obligation으로 올렸다. `src/runtime/pgy_runtime_panic_contract.h`가 panic class vocabulary를 소유하고, inline/exported typed slot read/write/release는 released-slot 및 double-release에서 더 이상 기본값/no-op로 빠지지 않는다. `make runtime-panic-abi-test-smoke`가 released-slot, invalid-secure-token, double-release, device-slot, out-of-bounds, authority-mismatch, OOM, divide-by-zero executable evidence를 제공한다. `make runtime-panic-codegen-test-smoke`는 generated C/LLVM divide/modulo-by-zero와 `Array<T>`/`Slice<T>` index, temporary function-return index, `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, `MapRemove` invalid access, `Unwrap(Err)`, `UnwrapOption(None)` parity를 검증한다. 남은 것은 새 hard-fail class가 추가될 때마다 같은 executable parity gate를 요구하는 것이다.
+- [~] Secure slot / authority secret invariant: token unforgeability, secure-slot mismatch denial, authority token non-forgeability, authority transfer single-owner invariant, runtime snapshot secret non-exposure를 `Secure Token Unforgeability` / `Authority Transfer Single-Owner` proof obligation으로 올렸다. inline/exported secure slot read/write/release invalid-token 및 denied-capability path는 `PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN`로 고정했고 secure-slot double-release도 `PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE`로 고정했다. `make runtime-panic-abi-test-smoke`가 invalid-token/double-release executable evidence를 제공한다. authority-token mismatch는 `authority-token-mismatch` runtime code/reason, `make test-security`, `authority_failure_abi`, `authority_failure_surface`로 C/LLVM parity regression까지 닫았다. unsupported authority-token transport는 channel send/receive/helper/close, cancellation payload, direct named `spawn`에서 explicit reject로 닫았다. 남은 것은 richer domain-boundary denial이다.
+- [ ] Intent formal closure: step ordering, compensation/rollback/invalidation, effect propagation, observability ABI stability를 beta-stable contract로 고정한다.
+- [ ] Zone/world/authority/handoff formal closure: zone generation, world embedding, handoff frontier, projection freshness, authority rejection query surface를 beta-stable contract로 고정한다.
+- [ ] Diagnostic quality gate: 모든 user-facing error가 severity, stable code, source span when available, `Reason:`, `Fix:`를 갖도록 품질 기준을 registry smoke와 별도 gate로 둔다.
+  - 진행: intent clause explicit reject 중 `spawn`/channel control-transfer AST가 parser source span을 보존하도록 고쳤고, `make diagnostics-json-test-smoke`가 `on: spawn ...`와 `on: ch <- value`의 `PGY_SEM_INTENT_STEP_INVALID` JSON line/column + `cause_ir` + `fix_source`를 고정한다.
+- [ ] Cross-platform CI matrix: Linux/WSL, Windows native/MSYS2/MinGW, macOS의 support level을 stable/experimental/out-of-beta로 명시한다.
+  - 진행: Windows LLVM support detection은 executable `llvm-config --libs core` evidence가 있을 때만 `WINDOWS_LLVM_READY=1`이 되도록 좁혔다. `C:/Program Files/LLVM/lib` 같은 library folder 존재만으로 LLVM smoke/backend-compare를 실행하지 않는다. 현재 beta 계약은 Linux C+LLVM, Windows C-only이며 Windows LLVM은 실제 MSYS2 runner green evidence가 생길 때만 승격한다.
+  - 진행: README support matrix에 macOS는 dedicated runner/support contract가 생길 때까지 out-of-beta로 명시했다.
+- [~] Beta stable subset definition: keyword, syntax, API, AST-visible shape, runtime ABI, backend parity 범위를 `docs/107_beta_stable_subset.md`에서 freeze한다. 남은 일은 이 문서의 각 stable 항목을 해당 semantic/runtime/C/LLVM regression row와 1:1로 연결하는 것이다.
+- [~] Stdlib beta freeze list: stable/experimental/out-of-beta API와 breaking-change policy를 명시한다.
+  - 진행: `docs/108_stdlib_beta_freeze.md`가 builtin stdlib, stable `use` modules, known experimental modules, out-of-beta ecosystem work를 분리한다. `make stdlib-test-smoke`가 builtin stdlib probe와 stable `use` module probe를 C/LLVM 양쪽에서 고정한다. 남은 일은 third-party package/version/supply-chain policy다.
+- [~] Tooling conformance: LSP/fmt/debugger의 beta-stable 범위를 명시한다.
+  - 진행: `make tooling-conformance-test-smoke`가 formatter idempotence/compile smoke, LSP initialize/hover/completion capability, debugger CLI parse+semantic+quit path를 executable gate로 고정한다. DAP, binary breakpoint, variable watch, rich refactor, multi-file workspace LSP는 아직 beta-stable tooling subset이 아니다.
+- [~] Package/module resolver surface: manifest, version resolution, import path, supply-chain integrity를 stable/experimental/out-of-beta로 분류한다.
+  - 진행: `docs/109_package_module_resolver_contract.md`가 beta-stable module surface를 `import "relative/path.pgy";`, importing-file-relative resolution, namespace/export visibility, circular import rejection으로 고정했다. package surface는 `pgy init <name>` scaffolding만 stable이다.
+  - 진행: `pgy install`은 더 이상 소스 파일 경로로 오인되지 않고 explicit out-of-beta rejection을 낸다. `make package-module-resolver-test-smoke`가 doc contract, `pgy init`, `pgy install` reject, missing import JSON, circular import JSON을 고정한다.
+  - 남음: dependency version solving, lockfile, registry, checksum/signature verification, remote import, supply-chain integrity는 beta 이후 resolver/package-manager track으로 유지한다.
+- [~] Test quality gate: pre-beta mandatory suite, fuzz/property status, coverage/perf baseline을 추적한다.
+  - 진행: `docs/111_beta_test_suite_freeze.md`가 mandatory pre-beta gates, platform gates, fuzz/property/coverage non-claims, regression policy를 freeze했다. `make beta-test-suite-freeze-test-smoke`가 freeze doc과 Makefile target 존재를 검사한다.
+  - 남음: 실제 fuzz corpus, property-based generator, coverage percentage threshold는 beta 이후 품질 트랙으로 유지한다. 현재 beta gate는 named stable-surface coverage다.
+- [~] Observability/tracing schema: event schema, intent history, authority failure state, runtime registry, trace format version을 고정한다.
+  - 진행: `docs/112_observability_trace_schema.md`가 beta-stable schema를 `IntentLast*`, `IntentHistory*`, `IntentActive*`, `IntentRecent*`, authority failure snapshot(`ok/zone/participant/code/reason`), runtime-borrowed string ABI, C/LLVM identical trace output으로 고정했다.
+  - 진행: `make observability-schema-test-smoke`가 `intent_trace_abi`, `intent_recent_abi`, `intent_active_abi`, `intent_failure_abi`, `authority_failure_abi`를 C/LLVM 양쪽에서 expected stdout과 비교한다.
+  - 남음: general event streaming, structured JSON trace export, distributed trace correlation, user-code registry hooks, stable binary trace format, richer multi-instance timeline query는 beta 이후로 유지한다.
 - [~] Memory/concurrency model: `parallel`, task, channel, cancellation, visibility/happens-before 최소 계약을 문서화한다.
-  - 진행: `docs/113_memory_concurrency_model.md` beta-stable happens-before, channel, cancellation, explicit out-of-beta memory model 범위?고정한다. `parallel` join visibility, shared `ref`/`ref` ?용, `ref`/`own` ?`own`/`own` task-boundary reject, copy-only non-blocking receive/cancel/close?stable contract?묶었??
-  - 진행: `make memory-concurrency-model-test-smoke` `parallel-core-contract-test-smoke`? targeted C/LLVM backend compare(`parallel_channel_sum`, `parallel_channel_dual`, `triple_paradigm`)??행한다.
-  - ?⑥쓬: full weak-memory ordering, user-selectable memory order, scheduler fairness guarantee, lock-free correctness, anonymous async closure capture/lifetime, cross-thread `Arc<T>` / `Send` / `Sync` trait system? beta ?댄썑濡??좎??쒕떎.
-- [~] String/unicode policy: normalization, comparison, locale, escape handling, unsupported policy瑜?紐낆떆?쒕떎.
-  - 진행: `docs/110_string_unicode_policy.md` UTF-8 string payload preservation, byte-length `StringLength`, byte-exact/normalization-blind equality/search?beta-stable?고정한다.
-  - 진행: Unicode identifiers, normalization, locale-sensitive collation/case folding, grapheme iteration, display width, mixed-encoding source files??explicit out-of-beta?고정한다. `make unicode-policy-test-smoke` C/LLVM UTF-8 string execution?Unicode identifier reject?증한??
-  - ?음: full Unicode text model???입?려?post-beta??scalar/grapheme/locale vocabulary? 별도 stdlib text module???계한다.
+  - 진행: `docs/113_memory_concurrency_model.md`가 beta-stable happens-before, channel, cancellation, explicit out-of-beta memory model 범위를 고정했다. `parallel` join visibility, shared `ref`/`ref` 허용, `ref`/`own` 및 `own`/`own` task-boundary reject, copy-only non-blocking receive/cancel/close를 stable contract로 묶었다.
+  - 진행: `make memory-concurrency-model-test-smoke`가 `parallel-core-contract-test-smoke`와 targeted C/LLVM backend compare(`parallel_channel_sum`, `parallel_channel_dual`, `triple_paradigm`)를 실행한다.
+  - 남음: full weak-memory ordering, user-selectable memory order, scheduler fairness guarantee, lock-free correctness, anonymous async closure capture/lifetime, cross-thread `Arc<T>` / `Send` / `Sync` trait system은 beta 이후로 유지한다.
+- [~] String/unicode policy: normalization, comparison, locale, escape handling, unsupported policy를 명시한다.
+  - 진행: `docs/110_string_unicode_policy.md`가 UTF-8 string payload preservation, byte-length `StringLength`, byte-exact/normalization-blind equality/search를 beta-stable로 고정했다.
+  - 진행: Unicode identifiers, normalization, locale-sensitive collation/case folding, grapheme iteration, display width, mixed-encoding source files는 explicit out-of-beta로 고정했다. `make unicode-policy-test-smoke`가 C/LLVM UTF-8 string execution과 Unicode identifier reject를 검증한다.
+  - 남음: full Unicode text model을 도입하려면 post-beta에 scalar/grapheme/locale vocabulary와 별도 stdlib text module을 설계한다.
 
 Checklist source of truth:
 
@@ -1143,54 +769,54 @@ Checklist source of truth:
 - AIR full backend non-impact hardening: `make air-backend-nonimpact-full-test-smoke`
 - AIR strict backend execution parity: `make air-strict-backend-compare-test-smoke`
 
-## 구조/?영 ?인 ?인??보드 (2026-04-20)
+## 구조/운영 폐인 포인트 보드 (2026-04-20)
 
-???션? 기능 backlog 아니며  ?제 ?업 ?율?베? ?뢰?? 계속 깎는 구조 debt / ?영 pain point?고정한다.
+이 섹션은 기능 backlog가 아니라, 실제 작업 효율과 베타 신뢰도를 계속 깎는 구조 debt / 운영 pain point를 고정한다.
 
-?곗꽑?쒖쐞 ?쒖븞:
-- `P0`: function/action/intent body CFG + dataflow瑜?semantic source-of-truth濡??밴꺽
-- `P1`: `.inc` 遺꾪븷???ㅼ젣 `.c`/`.h` 紐⑤뱢濡??꾪솚
-- `P2`: hint namespace (`code` / `cause_ir` / `fix_source`)????트?기반으로 고정
-- `P3`: type-category vocabulary?2-3층으??축
-- `P4`: 빌드/?드박스/중간-stage JSON/artifact 문제?공식 경로 기?으로 ?리
-- `P9`: arena ?턴??scratch/result lifetime 기?으로 명시 ?입
-- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access??Pin/Lease 문서 기?으로 분리한다. 기본 path????근 증이? fast path??scope-entry capability lease + automatic unpin cleanup되어??한다. Runtime ABI baseline? `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` ????작?고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence??았?? Candidate source syntax `pin slot as view { ... }`??CFG cleanup/backend parity ?힐 ?까 parser explicit reject?봉인하고 `make diagnostics-json-test-smoke` JSON route?증한?? Pin/Lease semantic diagnostic vocabulary??`PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`?registry/docs??고정하고 `make diagnostic-registry-test-smoke`? `make beta-readiness-checklist-test-smoke` drift?막는?? Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for return escape, await boundary, parallel boundary/acquisition, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline? unresolved `TYPE_KIND_GENERIC`??`BORROW_TRACKED`?분류??generic `own/ref` 조용??copy-only??과?? 못하?막는?? ?? 것? stable source syntax, block-scoped CFG cleanup edge, secure-token source diagnostic, C/LLVM parity?? Source of truth: `docs/74_slot_pinning_caching.md`
-- `P9c`: `Rc<T>` / `Weak<T>` 최소 subset? beta-stable??았?? 범위??single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare?? 범위 ?payload??backend fallback??아니며 semantic explicit reject?? `Arc<T>`, cross-thread shared ownership, generic/object payload ?장, default ARC??beta 밖이?? Source of truth: `docs/100_beta_readiness_checklist.md`, `docs/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
-- `P10`: 모듈???파 고도의 compile/runtime ?도 ???별도 baseline으로 추적
+우선순위 제안:
+- `P0`: function/action/intent body CFG + dataflow를 semantic source-of-truth로 승격
+- `P1`: `.inc` 분할을 실제 `.c`/`.h` 모듈로 전환
+- `P2`: hint namespace (`code` / `cause_ir` / `fix_source`)를 레지스트리 기반으로 고정
+- `P3`: type-category vocabulary를 2-3층으로 압축
+- `P4`: 빌드/샌드박스/중간-stage JSON/artifact 문제를 공식 경로 기준으로 정리
+- `P9`: arena 패턴을 scratch/result lifetime 기준으로 명시 도입
+- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access는 Pin/Lease 문서 기준으로 분리한다. 기본 path는 매 접근 검증이고, fast path는 scope-entry capability lease + automatic unpin cleanup이어야 한다. Runtime ABI baseline은 `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` 회귀로 시작했고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence를 닫았다. Candidate source syntax `pin slot as view { ... }`는 CFG cleanup/backend parity가 닫힐 때까지 parser explicit reject로 봉인했고 `make diagnostics-json-test-smoke`가 JSON route를 검증한다. Pin/Lease semantic diagnostic vocabulary는 `PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`로 registry/docs에 고정했고 `make diagnostic-registry-test-smoke`와 `make beta-readiness-checklist-test-smoke`가 drift를 막는다. Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for return escape, await boundary, parallel boundary/acquisition, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline은 unresolved `TYPE_KIND_GENERIC`을 `BORROW_TRACKED`로 분류해 generic `own/ref`가 조용히 copy-only로 통과하지 못하게 막는다. 남은 것은 stable source syntax, block-scoped CFG cleanup edge, secure-token source diagnostic, C/LLVM parity다. Source of truth: `docs/74_slot_pinning_caching.md`
+- `P9c`: `Rc<T>` / `Weak<T>` 최소 subset은 beta-stable로 닫았다. 범위는 single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare다. 범위 밖 payload는 backend fallback이 아니라 semantic explicit reject다. `Arc<T>`, cross-thread shared ownership, generic/object payload 확장, default ARC는 beta 밖이다. Source of truth: `docs/100_beta_readiness_checklist.md`, `docs/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
+- `P10`: 모듈화/전파 고도화의 compile/runtime 속도 회귀를 별도 baseline으로 추적
 
 ### P0. Function CFG / Body Dataflow Closure
 
-?먯젙: `BLOCKER`
+판정: `BLOCKER`
 
-?듭떖 ?뺣━:
+핵심 정리:
 
-- CFG 는 ?태??아니며  HIR??function CFG v0, predecessor/reachability, dominator/frontier, loop depth, phi candidate skeleton??진다.
-- MIR??HIR CFG? RIR op?묶어 routine/block/instruction/cleanup block, SSA version map, def/use, cleanup/rollback/invalidation exceptional CFG, liveness/DCE vertical slice까? ?한다.
-- ?? blocker????CFG/MIR infra?**개수 본문 ??론의 source-of-truth**??격는 것이?? 현재 body safety???????전??AST/helper traversal, local summary, backend fallback??기??되어 strict beta 기?으로 족하??
+- CFG가 없는 상태는 아니다. HIR는 function CFG v0, predecessor/reachability, dominator/frontier, loop depth, phi candidate skeleton을 가진다.
+- MIR도 HIR CFG와 RIR op를 묶어 routine/block/instruction/cleanup block, SSA version map, def/use, cleanup/rollback/invalidation exceptional CFG, liveness/DCE vertical slice까지 가지고 있다.
+- 남은 blocker는 이 CFG/MIR infra를 **함수 본문 의미론의 source-of-truth**로 승격하는 것이다. 현재 body safety의 일부는 여전히 AST/helper traversal, local summary, backend fallback에 기대고 있어 strict beta 기준으로 부족하다.
 
-베? ?료 조건:
+베타 완료 조건:
 
-- [ ] Function/action/intent body마다 `BasicBlock`, `Edge`, `Terminator`, reachability, exceptional cleanup edge semantic pass?서 직접 ?비한다.
-- [x] 반환이 는 routine? 모든 reachable normal path?서 return/value terminator?진다??all-path return ?? CFG body summary?고정한다.
-- [~] definite assignment/use-before-init ?? CFG dataflow??동하고 branch/join/loop widening 진단??고정한다. stable local `let` ?면? parser `=` ?구? `PGY_SEM_UNINIT_LOCAL` backstop으로 봉인?고, wider delayed-assignment lattice??아직 ?려 한다.
-- [~] move/use-after-move, borrow/ref lifetime, boundary escape?CFG join facts?계산한다. `QubitSlot` loop break/continue join regression, anchored `Slot<T>` branch/join release-state regression, `own subject` branch/join consumed-state regression, parallel subject transfer join/conflict regression, parallel `ref`+`own` boundary conflict regression, parallel `ref`+`ref` shared-read acceptance regression, direct named-call `spawn ref` ownership-boundary rejection regression, anonymous async spawn explicit reject regression? ?혔? closure/lambda/general longer-lived borrow lifetime? ?아 한다. `mut ref`/`ref mut` surface ?으?mutable-borrow overlap? beta-out-of-scope?봉인한다.
-- [~] owned resource drop/cleanup insertion point?normal return, early return, break/continue, intent cancel/rollback/invalidation edge?서 같? 규칙으로 계산한다. `defer` cleanup terminator? resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking? ?혔? full drop insertion/validation? ?아 한다.
-- [ ] zone/effect/relation transition facts?path-sensitive summary??려 branch/join/handoff?서 stale state? conflict?같? vocabulary?진단한다.
-- [~] `parallel`/channel/task boundary?서 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact?CFG summary?증한?? parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, direct named-call `spawn Token<T>` authority-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, authority `Token<T>` channel helper rejection, copy-only cancellation payload reject, copy-only channel close???혔? broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact???아 한다.
-- [~] Interprocedural body summary?고정?다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1?구조?function type??`body_summary_mask`? semantic recorder??되어갔다. direct function call? callee summary ?caller-relevant transitive facts??비하고 declaration-known `own/ref` parameter boundary facts??기록한다. method/host call??같? declaration-known summary facts?기록한다. lambda body summary??lambda function type??격리되어 outer routine으로 ?? ?고, function-typed lambda binding ?출? 같? callee-summary path??파한다. ?? 것? intent/helper call까? ?히?zone/effect/runtime propagation?C/LLVM lowering????summary bit?직접 ?비?게 만드???이??
-- [ ] 진단? block/path provenance??함?다: source path, branch/join edge, previous state, Reason, Fix.
-- [ ] MIR/C/LLVM lowering? 같? CFG/dataflow facts??비?고, frozen subset parity regression으로 묶는??
+- [ ] Function/action/intent body마다 `BasicBlock`, `Edge`, `Terminator`, reachability, exceptional cleanup edge가 semantic pass에서 직접 소비된다.
+- [x] 반환형이 있는 routine은 모든 reachable normal path에서 return/value terminator를 가진다는 all-path return 검사를 CFG body summary로 고정한다.
+- [~] definite assignment/use-before-init 검사를 CFG dataflow로 이동하고 branch/join/loop widening 진단을 고정한다. stable local `let` 표면은 parser `=` 요구와 `PGY_SEM_UNINIT_LOCAL` backstop으로 봉인됐고, wider delayed-assignment lattice는 아직 열려 있다.
+- [~] move/use-after-move, borrow/ref lifetime, boundary escape를 CFG join facts로 계산한다. `QubitSlot` loop break/continue join regression, anchored `Slot<T>` branch/join release-state regression, `own subject` branch/join consumed-state regression, parallel subject transfer join/conflict regression, parallel `ref`+`own` boundary conflict regression, parallel `ref`+`ref` shared-read acceptance regression, direct named-call `spawn ref` ownership-boundary rejection regression, anonymous async spawn explicit reject regression은 닫혔고, closure/lambda/general longer-lived borrow lifetime은 남아 있다. `mut ref`/`ref mut` surface가 없으므로 mutable-borrow overlap은 beta-out-of-scope로 봉인한다.
+- [~] owned resource drop/cleanup insertion point를 normal return, early return, break/continue, intent cancel/rollback/invalidation edge에서 같은 규칙으로 계산한다. `defer` cleanup terminator와 resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking은 닫혔고, full drop insertion/validation은 남아 있다.
+- [ ] zone/effect/relation transition facts를 path-sensitive summary로 올려 branch/join/handoff에서 stale state와 conflict를 같은 vocabulary로 진단한다.
+- [~] `parallel`/channel/task boundary에서 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact를 CFG summary로 검증한다. parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, direct named-call `spawn Token<T>` authority-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, authority `Token<T>` channel helper rejection, copy-only cancellation payload reject, copy-only channel close는 닫혔고, broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact는 남아 있다.
+- [~] Interprocedural body summary를 고정한다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1차 구조로 function type의 `body_summary_mask`와 semantic recorder는 들어갔다. direct function call은 callee summary 중 caller-relevant transitive facts를 소비하고 declaration-known `own/ref` parameter boundary facts도 기록한다. method/host call도 같은 declaration-known summary facts를 기록한다. lambda body summary는 lambda function type에 격리되어 outer routine으로 새지 않고, function-typed lambda binding 호출은 같은 callee-summary path로 전파된다. 남은 것은 intent/helper call까지 넓히고 zone/effect/runtime propagation과 C/LLVM lowering이 이 summary bit를 직접 소비하게 만드는 일이다.
+- [ ] 진단은 block/path provenance를 포함한다: source path, branch/join edge, previous state, Reason, Fix.
+- [ ] MIR/C/LLVM lowering은 같은 CFG/dataflow facts를 소비하고, frozen subset parity regression으로 묶는다.
 
-?행 ?서:
+실행 순서:
 
-1. 현재 HIR/MIR CFG fact inventory? semantic ?비 을 으로 만든??
-2. `--hir-cfg`, `--mir`, RIR flow-block dump?묶는 smoke?추???CFG fact drift?막는??
-3. all-path return + reachability + definite assignment?CFG 기반으로 먼? ?격한다.
-4. ownership move/borrow/drop cleanup??CFG dataflow濡??대룞?쒕떎.
-5. zone/effect/relation transition, handoff frontier, projection freshness瑜?body CFG summary? runtime propagation scheduler???곌껐?쒕떎.
-6. parallel/channel/task boundary summary瑜?異붽??섍퀬 C/LLVM backend compare??frozen cases瑜??ｋ뒗??
+1. 현재 HIR/MIR CFG fact inventory와 semantic 소비 지점을 표로 만든다.
+2. `--hir-cfg`, `--mir`, RIR flow-block dump를 묶는 smoke를 추가해 CFG fact drift를 막는다.
+3. all-path return + reachability + definite assignment를 CFG 기반으로 먼저 승격한다.
+4. ownership move/borrow/drop cleanup을 CFG dataflow로 이동한다.
+5. zone/effect/relation transition, handoff frontier, projection freshness를 body CFG summary와 runtime propagation scheduler에 연결한다.
+6. parallel/channel/task boundary summary를 추가하고 C/LLVM backend compare에 frozen cases를 넣는다.
 
-寃利?紐⑺몴:
+검증 목표:
 
 - `make test-semantic`
 - `make ir-pipeline-test-smoke`
@@ -1202,21 +828,24 @@ Source of truth:
 
 - `docs/103_cfg_body_dataflow_need.md`
 
-### P1. `.inc` ?ㅽ뙆寃뚰떚瑜??ㅼ젣 紐⑤뱢濡??덈떒
+### P1. `.inc` 스파게티를 실제 모듈로 절단
 
 - 문제:
-  - 현재 `type_checker.c` ?transpiler/LLVM ?????모?화?? 아니며 ?파??분할???일 translation unit에 깝다
-  - IDE jump/symbol lookup/forward decl ?서 리? 모두 ?동
-  - formatter/linter/?? edit include ?서/?일 갱신 ??밍??민감?게 깨진??- ?향:
-  - ????정 ??edit conflict / implicit declaration / include ordering failure 반복??  - ownership/generic/provenance 같? ?단 ?업??불필?하??려진다
+  - 현재 `type_checker.c` 및 transpiler/LLVM 일부는 “모듈화”가 아니라 “파일 분할된 단일 translation unit”에 가깝다
+  - IDE jump/symbol lookup/forward decl 순서 관리가 모두 수동
+  - formatter/linter/외부 edit가 include 순서/파일 갱신 타이밍에 민감하게 깨진다
+- 영향:
+  - 대형 수정 시 edit conflict / implicit declaration / include ordering failure가 반복됨
+  - ownership/generic/provenance 같은 횡단 작업이 불필요하게 느려진다
 - 기본 방침:
-  - ?선 `semantic/type_checker_*`?서 ownership / generic / module-contract / diagnostics 축????제 `.c`/`.h` export 구조??단
-  - declaration-side MIR-only hot path??helper family?`.c` 경계?분리
-  - ?기 목표?? `docs/92_inc_split_roadmap.md`??Target State A-D?고정한다
-  - stop condition: semantic?먮뒗 800 LOC 珥덇낵 `.inc` ?놁쓬, codegen/runtime?먮뒗 1,000 LOC 珥덇낵 `.inc` ?놁쓬, `type_checker.c`??orchestration-only, backend declaration path??dedicated inventory reader ?먮뒗 hard error留??덉슜
-  - speed stop condition: `test-abi-perf`? `perf-summary` baseline?????고, 모듈??slice ??worst-case compile time??2??상 ???? ?보?기록
-  - `.inc`??generated table / local macro table / private test fixture 같? ?한 ?도로만 ?긴??- ??업:
-  - [ ] `type_checker`瑜?理쒖냼 5異뺤쑝濡??덈떒
+  - 우선 `semantic/type_checker_*`에서 ownership / generic / module-contract / diagnostics 축부터 실제 `.c`/`.h` export 구조로 절단
+  - declaration-side MIR-only hot path도 helper family를 `.c` 경계로 분리
+  - 장기 목표선은 `docs/92_inc_split_roadmap.md`의 Target State A-D로 고정한다
+  - stop condition: semantic에는 800 LOC 초과 `.inc` 없음, codegen/runtime에는 1,000 LOC 초과 `.inc` 없음, `type_checker.c`는 orchestration-only, backend declaration path는 dedicated inventory reader 또는 hard error만 허용
+  - speed stop condition: `test-abi-perf`와 `perf-summary` baseline을 유지하고, 모듈화 slice 후 worst-case compile time이 2배 이상 튀면 회귀 후보로 기록
+  - `.inc`는 generated table / local macro table / private test fixture 같은 제한 용도로만 남긴다
+- 준비 작업:
+  - [ ] `type_checker`를 최소 5축으로 절단
     - [x] diagnostic emission/snapshot: `type_checker_diag.c`
     - [x] ownership classification: `type_checker_ownership_classify.c`
     - [x] channel transport validator: `type_checker_channel_transport.c`
@@ -1230,772 +859,895 @@ Source of truth:
     - [x] ability where-bound validator seam: `type_checker_ability_where.c`
     - generic consumer pipeline
     - [x] module contract / authority consumer: `type_checker_module_contract.c`
-  - 진행: ownership 공용 enum/entrypoint?`type_checker_ownership_internal.h`?분리 ?작
-  - 진행: ownership diagnostics forward declaration??`type_checker_ownership_diag_internal.h`?분리 ?작
-  - 진행: ownership escape diagnostic renderer/helper family??`type_checker_ownership_diag.c`??제 TU 분리 ?료
-  - 진행: ownership support helper(`semantic_assignment_target_path`, `semantic_borrowed_boundary_root_name`)??`type_checker_ownership_support_internal.h`?분리 ?작
-  - 진행: ownership consumer seam(`return` / `assign` / `call`)??`type_checker_ownership_consumers_internal.h`?분리 ?작
-  - 진행: `param_summary`??raw include block??아니며 `semantic_check_param_summary_escapes(...)` consumer helper??격
-  - 진행: channel transport seam??`type_checker_channel_transport_internal.h`?분리 ?작
-  - 진행: channel transport validator/reporters??`type_checker_channel_transport.c`??제 TU 분리 ?료
-  - 진행: high-arity generic mismatch helper??`type_checker_generic_diag.c`??제 TU 분리 ?료
-  - 진행: module contract consumer ?행 seam??ability reference display/name/signature helper??`type_checker_ability_ref.c`??제 TU 분리 ?료
-  - 진행: stdlib use validator??`type_checker_stdlib_use.c`??제 TU 분리 ?료
-  - 진행: subject ability mismatch diagnostic? `type_checker_module_contract_diag.c`??제 TU 분리 ?료
-  - 진행: ability `fields` validator??`type_checker_ability_fields.c`??제 TU 분리 ?료
-  - 진행: `find_type_decl_by_name`??include-order static helper?서 `type_checker_internal.h` internal API??격
-  - 진행: ability ref matching / role ability lookup / subject ability lookup? `type_checker_ability_match.c`??제 TU 분리 ?료
-  - 진행: `find_ability_decl_by_name` / `collect_effective_generic_arg_nodes`??include-order static helper?서 `type_checker_internal.h` internal API??격
-  - 진행: ability where-bound consumer validation? `type_checker_ability_where.c`??제 TU 분리 ?료
-  - 진행: `format_type_constraint_bounds`??include-order static helper?서 `type_checker_internal.h` internal API??격 ??별도 TU?분리
-  - 진행: `semantic_type_resolution_record_type_ref_dependency`??graph core TU??동??include-order static helper ?존???거
-  - 진행: `semantic_type_resolution_collect_type_refs`??`type_checker_resolution_graph_collect.c`??동??DAG inventory collector????제 TU seam??만들한다
-  - 진행: generic contract inventory / string dependency / required ability collector helpers??`type_checker_resolution_graph_collect.c`??동
-  - 진행: top-level declaration graph registration??`type_checker_resolution_graph_collect.c`??동??inventory pass??bootstrap helper debt???줄???  - 진행: local-contract graph node/dependency + zone/world/projection label formatters??`type_checker_resolution_graph_labels.c`??동??graph inventory `.inc`?1,835 LOC까? 축소한다
-  - 진행: projection source resolver??`type_checker_resolution_graph_domain.c`??동하고 `find_zone_domain_slot`??internal API??격??graph/domain split ?행 seam??만들한다
-  - 진행: event declaration precollector??`type_checker_resolution_graph_decl.c`??동??declaration-kind collector 분리???작
-  - 진행: enum declaration precollector??`type_checker_resolution_graph_decl.c`??동하고 `semantic_stage_method_array`?internal API??격??inventory `.inc`?1,765 LOC까? 축소
-  - 진행: ability declaration precollector? action-contract precollector??`type_checker_resolution_graph_decl.c`??동??inventory `.inc`?1,648 LOC까? 축소
-  - 진행: role/class/party/roster declaration precollector??`type_checker_resolution_graph_decl.c`??동?고, relation/effect domain inventory precollector??`type_checker_resolution_graph_domain.c`??동??inventory `.inc`?1,299 LOC까? 축소
-  - 진행: intent declaration precollector??`type_checker_resolution_graph_decl.c`? world inventory precollector??`type_checker_resolution_graph_world.c`??동??inventory `.inc`?870 LOC까? 축소
-  - 진행: zone refresh projection field-map DAG collector??`type_checker_resolution_graph_zone.c`??동?고, graph inventory body??`type_checker_resolution_graph_inventory.c`??격한다. `type_checker_resolution_graph_inventory.inc`???거되어 DAG inventory include-order debt ?혔??  - 진행: projection builtin target-field resolver??recursive fallback ???DAG metadata lookup-only seam으로 ???? projection source/target mismatch 진단? projection validator ?유?고, target field type materialization? DAG metadata ?유한다. fallback seam cap? 31?서 30으로 ?려갔다. ?후 type graph precollect?top-level symbol pass 에 배치하고 `program_resolve_type_quiet(...)`?metadata lookup-only??? event/function placeholder recursive fallback 이 DAG metadata??게 한다. fallback seam cap? 30?서 29??려갔다. domain query projection source-field resolver??class/vessel field DAG metadata lookup-only??? cap? 28??려갔다. party/roster shared-field resolver??declaration metadata lookup-only??? cap? 26으로 ?려갔다. ability abstract method signature resolver? role host-type resolver??lookup-only??? cap? 24??려갔다. function/action body expression/lambda/event handler precollect ?장 ??event/lambda handler resolver??lookup-only??? cap? 23으로 ?려갔다. body flow resolver??graph metadata lookup-only??? cap? 22??려갔다. type-alias statement resolver??DAG metadata lookup-only??? cap? 21??려갔다. `world_decl` lookup-only ?환? subject/zone nominal materialization??아직 족해 semantic 77??패?만들?으?보류한다
-  - 진행: world/zone local-contract stage replay??`type_checker_resolution_stage_domain.c`??동?고, top-level DAG stage replay??`type_checker_resolution_stage.c`??격??`type_checker_resolution_stage.inc`??거
-  - 진행: `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`??standalone TU?빌드?며 hidden include-order helper ?존??internal/header 계약으로 ?격
-  - 진행: `type_checker_intent_decl.c` standalone TU ?격 ??러??implicit helper dependency?internal/header 계약으로 ?격?고, `-Werror=implicit-function-declaration -Werror=implicit-int`?기본 CFLAGS?고정??같? 종류??C 모듈??버그?빌드 ?계?서 차단
-  - 진행: `type_checker_role_decl.c`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`??hard implicit-declaration CFLAGS ?래?서 빌드?도?helper/header ?존??명시
-  - 진행: `type_checker_class_decl.c` class/extern declaration checking???유?고, `type_checker_program.c` top-level semantic orchestration???유한다. ??graph/worklist/effect/stats helper?internal API??격??`type_checker_program.inc`?624 LOC까? 축소
-  - 진행: `type_checker_builtins_projection.c` `ToObject` / `ToTObject` semantic projection checker??유?고, `type_checker_builtins_nominal.inc`?659 LOC까? 축소
-  - 진행: expression operator/indexed-access checker?`type_checker_expr_ops.c`?분리?고, static member path / consumed-boundary helper?`type_checker_expr_names.c`??동한다. `type_checker_expr.inc`??758 LOC, `type_checker_helpers_late.inc`??773 LOC 되어 ????semantic 800 LOC stop condition ?래??려갔다
-  - 진행: event declaration/subscription/invoke semantic? `type_checker_event.c`??격?고, QubitSlot compile-time state / entangle pool / movable-resource-use validation? `type_checker_qubit.c`??격한다. `type_checker.c`??481 LOC??려 600 LOC ?하 stop condition??만족한다
-  - 진행: domain slot/projection/overlay helper body?`type_checker_decls_domain_helpers.c`??격?고, intent inheritance/derivation helper body?`type_checker_intent_helpers.c`??격한다. `type_checker_decls_domain_helpers.inc`???거하고 `type_checker_decls_a.inc`??1-line forwarding stub으로 축소
-  - ?료: semantic `.inc` 800 LOC stop condition? `make semantic-inc-size-test-smoke`?고정. 현재 `src/semantic`는 800 LOC 초과 `.inc` 한다
-  - ?료: semantic core shape stop condition? `make semantic-core-shape-test-smoke`?고정. `type_checker.c <= 600 LOC`, event/qubit owner TU, DAG inventory `.c` ownership??CI?서 ?한??  - 진행: C backend MIR inventory/SSA emitter include?5-line shim + `transpiler_emitters_mir_inventory_intent.inc` / `transpiler_emitters_mir_inventory_ssa_names.inc` / `transpiler_emitters_mir_inventory_ssa_emit.inc`?분리???당 debt?모두 1,000 LOC ?래?????  - 진행: C backend `emit_program(...)` bootstrap? direct declaration-array reads ???`transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view??비한다. `make mir-declaration-inventory-test-smoke` C/LLVM declaration-side codegen??raw declaration inventory access?helper owner??한한다
-  - 진행: C backend expression emitter include?7-line shim + `transpiler_expr_emitters_builtins.inc` / `transpiler_expr_emitters_call_a.inc` / `transpiler_expr_emitters_call_b.inc` / `transpiler_expr_emitters_members.inc` / `transpiler_expr_emitters_tail.inc`?분리???당 debt?모두 1,000 LOC ?래????? ? `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
-  - 진행: LLVM call emitter include?17-line shim + `llvm_expr_call_constructors.inc` / `llvm_expr_call_arrays.inc` / `llvm_expr_call_collections_base.inc` / `llvm_expr_call_domain_queries.inc` / `llvm_expr_call_events.inc` / `llvm_expr_call_intent_observability.inc` / `llvm_expr_call_log.inc` / `llvm_expr_call_math.inc` / `llvm_expr_call_result_option.inc` / `llvm_expr_call_slots.inc` / `llvm_expr_call_task_channel.inc` / `llvm_expr_calls_part_a.inc` / `llvm_expr_calls_part_b.inc` / `llvm_expr_calls_part_c.inc` / `llvm_expr_calls_part_d.inc`?분리???당 debt?모두 1,000 LOC ?래????? enum/class constructor, array builtin, `ListNew`/`Set*` base collection, domain query builtin, event invocation, intent observability, log, scalar math, Result/Option, slot/device-slot builtin, task/channel lowering? `llvm_emit_call`?서 분리되어 별도 owner include 한다. ? `make test-transpile -j2`, `make backend-inc-size-test-smoke`, `make llvm-test-backend-compare -j2`
-  - 진행: C backend base emitter B include?6-line shim + `transpiler_emitters_base_b_part_a.inc` / `transpiler_emitters_base_b_part_b.inc` / `transpiler_emitters_base_b_part_c.inc` / `transpiler_emitters_base_b_part_d.inc`?분리???당 debt?모두 1,000 LOC ?래????? ? `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
-  - ?료: Tier 1 runtime/codegen/compiler `.inc > 1000 LOC` gate???힘. `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`, `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a.inc`, `transpiler_helpers_core_b.inc`, `transpiler_domain_role.inc`, `llvm_expr_helpers.inc`, `mir_public.inc`, `llvm_expr_call_methods.inc`, `llvm_domain_helpers.inc`?모두 safe mechanical split으로 1,000 LOC ?래?????  - ?료: `tests/backend_inc_size_smoke.sh` / `make backend-inc-size-test-smoke` 추?. `src/runtime`, `src/codegen`, `src/compiler`??`.inc <= 1000 LOC`?CI?서 고정
-  - 寃利? `make backend-inc-size-test-smoke`, `make test-mir test-transpile test-abi -j2`, `make llvm-test-backend-compare -j2`
-  - 진행: `type_checker_helpers_late.c` standalone TU 빌드 ??러??call-path helper include-order ?존??`type_checker_internal.h` prototype?직접 include 계약으로 고정한다
-  - 진행: `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 이 dangling return-type seams ?거
-  - 진행: `type_checker_resolution_graph_core.inc` ??inventory include 경계??dangling `static void` seam 2개? 명시 return type으로 ?리
-  - 진행: `generic_params_required_count`??include-order static helper?서 `type_checker_internal.h` internal API??격
-  - ?료: required ability resolver? action required-ability validator??`type_checker_module_contract.c`??제 TU 분리 ?료
-  - ?료: `type_checker_module_contracts.inc` ?거. module contract include-order 구조 debt???힘
-  - [ ] `.inc` ?? static helper ?교차 참조 ?한 ?볼 목록 ?성
-  - [x] include-order???존는 implicit declaration 경로 ?거?빌드 계약으로 ?격 (`-Werror=implicit-function-declaration`, `-Werror=implicit-int`)
-  - [~] declaration-side MIR-only debt??helper-gated state까? ?혔?? ?? ?계??`MIRProgram` ??AST-shaped declaration inventory?dedicated declaration metadata model?분리는 ?이??
-  - 진행: ownership return / assignment rebind / array literal store / boundary validation / call argument / destructuring / let-binding / parameter escape-summary consumers??`.inc`?서 ?제 TU??격한다. ?????일: `type_checker_ownership_return.inc`, `type_checker_ownership_assign.inc`, `type_checker_ownership_array_store.inc`, `type_checker_ownership_boundaries.inc`, `type_checker_ownership_call.inc`, `type_checker_ownership_destructure.inc`, `type_checker_ownership_destructure_stmt.inc`, `type_checker_ownership_let.inc`, `type_checker_ownership_let_boundary.inc`, `type_checker_ownership_let_claim.inc`, `type_checker_ownership_let_infer.inc`, `type_checker_ownership_let_slot.inc`, `type_checker_ownership_let_value.inc`, `type_checker_ownership_param_summary.inc`. 현재 `src/semantic/type_checker_ownership_*.inc`??0개다
-  - ?칙 강화: 베? 기??서??behavior-owning `.inc`?beta+1 ?리 아니며 blocker?본다. generated table / local macro table / private test fixture ??`.inc`??owner `.c` 는 명시??generated artifact?????  - ?칙 강화: `.inc` ?거 과정?서 ?러 behavior family??나??mega-TU??치 ?는?? `make semantic-tu-size-test-smoke` ??semantic owner TU??1,000 LOC ?하??한?고, 기존 초???TU??개별 cap으로 ??커? 못하?막는??  - ?? ?험 seam: `type_checker_builtins_query.h`??`type_checker_builtins_slotops.h`? `BuiltinKind builtin_resolve(...)` ?그?처 include-chain으로 붙어 한다. query/slot/nominal builtin? dispatcher contract?먼? 분리????TU??린??
-### P10. ?도 / 빌드 ?능 baseline
+  - 진행: ownership 공용 enum/entrypoint를 `type_checker_ownership_internal.h`로 분리 시작
+  - 진행: ownership diagnostics forward declaration도 `type_checker_ownership_diag_internal.h`로 분리 시작
+  - 진행: ownership escape diagnostic renderer/helper family는 `type_checker_ownership_diag.c`로 실제 TU 분리 완료
+  - 진행: ownership support helper(`semantic_assignment_target_path`, `semantic_borrowed_boundary_root_name`)도 `type_checker_ownership_support_internal.h`로 분리 시작
+  - 진행: ownership consumer seam(`return` / `assign` / `call`)도 `type_checker_ownership_consumers_internal.h`로 분리 시작
+  - 진행: `param_summary`도 raw include block이 아니라 `semantic_check_param_summary_escapes(...)` consumer helper로 승격
+  - 진행: channel transport seam도 `type_checker_channel_transport_internal.h`로 분리 시작
+  - 진행: channel transport validator/reporters는 `type_checker_channel_transport.c`로 실제 TU 분리 완료
+  - 진행: high-arity generic mismatch helper도 `type_checker_generic_diag.c`로 실제 TU 분리 완료
+  - 진행: module contract consumer 선행 seam인 ability reference display/name/signature helper는 `type_checker_ability_ref.c`로 실제 TU 분리 완료
+  - 진행: stdlib use validator는 `type_checker_stdlib_use.c`로 실제 TU 분리 완료
+  - 진행: subject ability mismatch diagnostic은 `type_checker_module_contract_diag.c`로 실제 TU 분리 완료
+  - 진행: ability `fields` validator는 `type_checker_ability_fields.c`로 실제 TU 분리 완료
+  - 진행: `find_type_decl_by_name`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
+  - 진행: ability ref matching / role ability lookup / subject ability lookup은 `type_checker_ability_match.c`로 실제 TU 분리 완료
+  - 진행: `find_ability_decl_by_name` / `collect_effective_generic_arg_nodes`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
+  - 진행: ability where-bound consumer validation은 `type_checker_ability_where.c`로 실제 TU 분리 완료
+  - 진행: `format_type_constraint_bounds`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격 후 별도 TU로 분리
+  - 진행: `semantic_type_resolution_record_type_ref_dependency`는 graph core TU로 이동해 include-order static helper 의존을 제거
+  - 진행: `semantic_type_resolution_collect_type_refs`는 `type_checker_resolution_graph_collect.c`로 이동해 DAG inventory collector의 첫 실제 TU seam을 만들었다
+  - 진행: generic contract inventory / string dependency / required ability collector helpers도 `type_checker_resolution_graph_collect.c`로 이동
+  - 진행: top-level declaration graph registration도 `type_checker_resolution_graph_collect.c`로 이동해 inventory pass의 bootstrap helper debt를 더 줄였다
+  - 진행: local-contract graph node/dependency + zone/world/projection label formatters는 `type_checker_resolution_graph_labels.c`로 이동해 graph inventory `.inc`를 1,835 LOC까지 축소했다
+  - 진행: projection source resolver는 `type_checker_resolution_graph_domain.c`로 이동하고 `find_zone_domain_slot`을 internal API로 승격해 graph/domain split 선행 seam을 만들었다
+  - 진행: event declaration precollector는 `type_checker_resolution_graph_decl.c`로 이동해 declaration-kind collector 분리도 시작
+  - 진행: enum declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고 `semantic_stage_method_array`를 internal API로 승격해 inventory `.inc`를 1,765 LOC까지 축소
+  - 진행: ability declaration precollector와 action-contract precollector도 `type_checker_resolution_graph_decl.c`로 이동해 inventory `.inc`를 1,648 LOC까지 축소
+  - 진행: role/class/party/roster declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고, relation/effect domain inventory precollector는 `type_checker_resolution_graph_domain.c`로 이동해 inventory `.inc`를 1,299 LOC까지 축소
+  - 진행: intent declaration precollector는 `type_checker_resolution_graph_decl.c`로, world inventory precollector는 `type_checker_resolution_graph_world.c`로 이동해 inventory `.inc`를 870 LOC까지 축소
+  - 진행: zone refresh projection field-map DAG collector는 `type_checker_resolution_graph_zone.c`로 이동했고, graph inventory body는 `type_checker_resolution_graph_inventory.c`로 승격했다. `type_checker_resolution_graph_inventory.inc`는 제거되어 DAG inventory include-order debt가 닫혔다
+  - 진행: projection builtin target-field resolver는 recursive fallback 대신 DAG metadata lookup-only seam으로 낮췄다. projection source/target mismatch 진단은 projection validator가 소유하고, target field type materialization은 DAG metadata가 소유한다. fallback seam cap은 31에서 30으로 내려갔다. 이후 type graph precollect를 top-level symbol pass 앞에 배치하고 `program_resolve_type_quiet(...)`를 metadata lookup-only로 낮춰 event/function placeholder가 recursive fallback 없이 DAG metadata를 쓰게 했다. fallback seam cap은 30에서 29로 내려갔다. domain query projection source-field resolver도 class/vessel field DAG metadata lookup-only로 낮춰 cap은 28로 내려갔다. party/roster shared-field resolver도 declaration metadata lookup-only로 낮춰 cap은 26으로 내려갔다. ability abstract method signature resolver와 role host-type resolver도 lookup-only로 낮춰 cap은 24로 내려갔다. function/action body expression/lambda/event handler precollect 확장 후 event/lambda handler resolver도 lookup-only로 낮춰 cap은 23으로 내려갔다. body flow resolver도 graph metadata lookup-only로 낮춰 cap은 22로 내려갔다. type-alias statement resolver도 DAG metadata lookup-only로 낮춰 cap은 21로 내려갔다. `world_decl` lookup-only 전환은 subject/zone nominal materialization이 아직 부족해 semantic 77개 실패를 만들었으므로 보류했다
+  - 진행: world/zone local-contract stage replay는 `type_checker_resolution_stage_domain.c`로 이동했고, top-level DAG stage replay는 `type_checker_resolution_stage.c`로 승격해 `type_checker_resolution_stage.inc`를 제거
+  - 진행: `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`는 standalone TU로 빌드되며 hidden include-order helper 의존을 internal/header 계약으로 승격
+  - 진행: `type_checker_intent_decl.c` standalone TU 승격 중 드러난 implicit helper dependency를 internal/header 계약으로 승격하고, `-Werror=implicit-function-declaration -Werror=implicit-int`를 기본 CFLAGS로 고정해 같은 종류의 C 모듈화 버그를 빌드 단계에서 차단
+  - 진행: `type_checker_role_decl.c`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`도 hard implicit-declaration CFLAGS 아래에서 빌드되도록 helper/header 의존을 명시
+  - 진행: `type_checker_class_decl.c`가 class/extern declaration checking을 소유하고, `type_checker_program.c`가 top-level semantic orchestration을 소유한다. 관련 graph/worklist/effect/stats helper를 internal API로 승격해 `type_checker_program.inc`를 624 LOC까지 축소
+  - 진행: `type_checker_builtins_projection.c`가 `ToObject` / `ToTObject` semantic projection checker를 소유하고, `type_checker_builtins_nominal.inc`를 659 LOC까지 축소
+  - 진행: expression operator/indexed-access checker를 `type_checker_expr_ops.c`로 분리하고, static member path / consumed-boundary helper를 `type_checker_expr_names.c`로 이동했다. `type_checker_expr.inc`는 758 LOC, `type_checker_helpers_late.inc`는 773 LOC가 되어 둘 다 semantic 800 LOC stop condition 아래로 내려갔다
+  - 진행: event declaration/subscription/invoke semantic은 `type_checker_event.c`로 승격했고, QubitSlot compile-time state / entangle pool / movable-resource-use validation은 `type_checker_qubit.c`로 승격했다. `type_checker.c`는 481 LOC로 내려가 600 LOC 이하 stop condition을 만족한다
+  - 진행: domain slot/projection/overlay helper body를 `type_checker_decls_domain_helpers.c`로 승격하고, intent inheritance/derivation helper body를 `type_checker_intent_helpers.c`로 승격했다. `type_checker_decls_domain_helpers.inc`는 제거됐고 `type_checker_decls_a.inc`는 1-line forwarding stub으로 축소
+  - 완료: semantic `.inc` 800 LOC stop condition은 `make semantic-inc-size-test-smoke`로 고정. 현재 `src/semantic`에는 800 LOC 초과 `.inc`가 없다
+  - 완료: semantic core shape stop condition은 `make semantic-core-shape-test-smoke`로 고정. `type_checker.c <= 600 LOC`, event/qubit owner TU, DAG inventory `.c` ownership을 CI에서 검사한다
+  - 진행: C backend MIR inventory/SSA emitter include를 5-line shim + `transpiler_emitters_mir_inventory_intent.inc` / `transpiler_emitters_mir_inventory_ssa_names.inc` / `transpiler_emitters_mir_inventory_ssa_emit.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다
+  - 진행: C backend `emit_program(...)` bootstrap은 direct declaration-array reads 대신 `transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view를 소비한다. `make mir-declaration-inventory-test-smoke`가 C/LLVM declaration-side codegen의 raw declaration inventory access를 helper owner로 제한한다
+  - 진행: C backend expression emitter include를 7-line shim + `transpiler_expr_emitters_builtins.inc` / `transpiler_expr_emitters_call_a.inc` / `transpiler_expr_emitters_call_b.inc` / `transpiler_expr_emitters_members.inc` / `transpiler_expr_emitters_tail.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다. 검증: `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
+  - 진행: LLVM call emitter include를 17-line shim + `llvm_expr_call_constructors.inc` / `llvm_expr_call_arrays.inc` / `llvm_expr_call_collections_base.inc` / `llvm_expr_call_domain_queries.inc` / `llvm_expr_call_events.inc` / `llvm_expr_call_intent_observability.inc` / `llvm_expr_call_log.inc` / `llvm_expr_call_math.inc` / `llvm_expr_call_result_option.inc` / `llvm_expr_call_slots.inc` / `llvm_expr_call_task_channel.inc` / `llvm_expr_calls_part_a.inc` / `llvm_expr_calls_part_b.inc` / `llvm_expr_calls_part_c.inc` / `llvm_expr_calls_part_d.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다. enum/class constructor, array builtin, `ListNew`/`Set*` base collection, domain query builtin, event invocation, intent observability, log, scalar math, Result/Option, slot/device-slot builtin, task/channel lowering은 `llvm_emit_call`에서 분리되어 별도 owner include가 됐다. 검증: `make test-transpile -j2`, `make backend-inc-size-test-smoke`, `make llvm-test-backend-compare -j2`
+  - 진행: C backend base emitter B include를 6-line shim + `transpiler_emitters_base_b_part_a.inc` / `transpiler_emitters_base_b_part_b.inc` / `transpiler_emitters_base_b_part_c.inc` / `transpiler_emitters_base_b_part_d.inc`로 분리해 해당 debt를 모두 1,000 LOC 아래로 낮췄다. 검증: `make test-transpile -j2`, `make llvm-test-backend-compare -j2`
+  - 완료: Tier 1 runtime/codegen/compiler `.inc > 1000 LOC` gate는 닫힘. `pgy_runtime_part_ba.inc`, `pgy_runtime_lib_part_b.inc`, `transpiler_emitters_base_a.inc`, `transpiler_helpers_core_a.inc`, `transpiler_helpers_core_b.inc`, `transpiler_domain_role.inc`, `llvm_expr_helpers.inc`, `mir_public.inc`, `llvm_expr_call_methods.inc`, `llvm_domain_helpers.inc`를 모두 safe mechanical split으로 1,000 LOC 아래로 낮췄다
+  - 완료: `tests/backend_inc_size_smoke.sh` / `make backend-inc-size-test-smoke` 추가. `src/runtime`, `src/codegen`, `src/compiler`의 `.inc <= 1000 LOC`를 CI에서 고정
+  - 검증: `make backend-inc-size-test-smoke`, `make test-mir test-transpile test-abi -j2`, `make llvm-test-backend-compare -j2`
+  - 진행: `type_checker_helpers_late.c` standalone TU 빌드 중 드러난 call-path helper include-order 의존을 `type_checker_internal.h` prototype과 직접 include 계약으로 고정했다
+  - 진행: `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 사이 dangling return-type seams 제거
+  - 진행: `type_checker_resolution_graph_core.inc` → inventory include 경계의 dangling `static void` seam 2개를 명시 return type으로 정리
+  - 진행: `generic_params_required_count`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
+  - 완료: required ability resolver와 action required-ability validator는 `type_checker_module_contract.c`로 실제 TU 분리 완료
+  - 완료: `type_checker_module_contracts.inc` 제거. module contract include-order 구조 debt는 닫힘
+  - [ ] `.inc` 내부 static helper 중 교차 참조 심한 심볼 목록 작성
+  - [x] include-order에 의존하는 implicit declaration 경로 제거를 빌드 계약으로 승격 (`-Werror=implicit-function-declaration`, `-Werror=implicit-int`)
+  - [~] declaration-side MIR-only debt는 helper-gated state까지 닫혔다. 남은 단계는 `MIRProgram` 안 AST-shaped declaration inventory를 dedicated declaration metadata model로 분리하는 일이다
+
+  - 진행: ownership return / assignment rebind / array literal store / boundary validation / call argument / destructuring / let-binding / parameter escape-summary consumers는 `.inc`에서 실제 TU로 승격했다. 삭제된 파일: `type_checker_ownership_return.inc`, `type_checker_ownership_assign.inc`, `type_checker_ownership_array_store.inc`, `type_checker_ownership_boundaries.inc`, `type_checker_ownership_call.inc`, `type_checker_ownership_destructure.inc`, `type_checker_ownership_destructure_stmt.inc`, `type_checker_ownership_let.inc`, `type_checker_ownership_let_boundary.inc`, `type_checker_ownership_let_claim.inc`, `type_checker_ownership_let_infer.inc`, `type_checker_ownership_let_slot.inc`, `type_checker_ownership_let_value.inc`, `type_checker_ownership_param_summary.inc`. 현재 `src/semantic/type_checker_ownership_*.inc`는 0개다
+  - 원칙 강화: 베타 기준에서는 behavior-owning `.inc`를 beta+1 정리가 아니라 blocker로 본다. generated table / local macro table / private test fixture 외 `.inc`는 owner `.c` 또는 명시적 generated artifact로 옮긴다
+  - 원칙 강화: `.inc` 제거 과정에서 여러 behavior family를 하나의 mega-TU로 합치지 않는다. `make semantic-tu-size-test-smoke`가 새 semantic owner TU는 1,000 LOC 이하로 제한하고, 기존 초대형 TU는 개별 cap으로 더 커지지 못하게 막는다
+  - 남은 위험 seam: `type_checker_builtins_query.inc`는 `type_checker_builtins_slotops.inc`와 `BuiltinKind builtin_resolve(...)` 시그니처가 include-chain으로 붙어 있다. query/slot/nominal builtin은 dispatcher contract를 먼저 분리한 뒤 TU로 올린다
+
+### P10. 속도 / 빌드 성능 baseline
 
 - 문제:
-  - ?기 모듈?? translation unit ?? ?리?incremental build??좋아??????full build/link 는 generated backend compile ?간??????한다
-  - 현재 `test-abi-perf`??존재???raw log 길어 worst-case 추적???렵??- 기본 방침:
-  - `make test-abi-perf`濡?benchmark-only ABI/runtime baseline??罹≪쿂?쒕떎
-  - `make perf-summary PERF_LOG=<log>`?C/LLVM compile/run ?균?worst-case??약한다
-  - representative case??`tests/bench_backend.sh <source.pgy> dev`?C/LLVM wall time + RSS?직접 ?인한다
-  - generated/native compile warning? ?도 noise 아니며 build hygiene bug?보고 즉시 ?는??- 현재 baseline (2026-04-24, local WSL):
+  - 장기 모듈화가 translation unit 수를 늘리면 incremental build는 좋아질 수 있지만 full build/link 또는 generated backend compile 시간이 튈 수 있다
+  - 현재 `test-abi-perf`는 존재하지만 raw log가 길어 worst-case 추적이 어렵다
+- 기본 방침:
+  - `make test-abi-perf`로 benchmark-only ABI/runtime baseline을 캡처한다
+  - `make perf-summary PERF_LOG=<log>`로 C/LLVM compile/run 평균과 worst-case를 요약한다
+  - representative case는 `tests/bench_backend.sh <source.pgy> dev`로 C/LLVM wall time + RSS를 직접 확인한다
+  - generated/native compile warning은 속도 noise가 아니라 build hygiene bug로 보고 즉시 닫는다
+- 현재 baseline (2026-04-24, local WSL):
   - `make test-abi-perf`: 320 passed, 0 failed
   - `perf-summary`: C 32 cases, avg compile 0.569s, max 1.783s (`intent_authority_snapshot_abi`), avg run 0.001s
   - `perf-summary`: LLVM 32 cases, avg compile 0.187s, max 0.251s (`projection_abi`), avg run 0.002s
-- 진행: `make perf-contract-test-smoke` synthetic `test-abi-perf` log?대해 `perf_summary` log grammar, C/LLVM case count, average compile/run, worst-case compile/run case selection??CI?서 고정한다. ??gate??baseline ?자 ?체?고정?? ?고, perf evidence machine-readable ?태???는 ?한??
+- 진행: `make perf-contract-test-smoke`가 synthetic `test-abi-perf` log를 통해 `perf_summary` log grammar, C/LLVM case count, average compile/run, worst-case compile/run case selection을 CI에서 고정한다. 이 gate는 baseline 숫자 자체를 고정하지 않고, perf evidence가 machine-readable 상태를 유지하는지 검사한다.
   - representative `relation_effect_propagation/main.pgy`: C dev 1.03s / 46MB, LLVM dev 0.72s / 60MB after `realpath` warning fix
 - 진행:
-  - [x] `tests/perf_summary.sh` 異붽?
-  - [x] `make perf-summary PERF_LOG=<log>` 異붽?
-  - [x] generated C/LLVM compile path??POSIX `realpath` implicit declaration 寃쎄퀬 ?쒓굅
-- ?⑥쓬:
-  - [ ] CI?서 benchmark-only ?치?artifact???할 결정
-  - [ ] release/beta notes??perf-summary baseline 泥⑤?
-  - [ ] worst-case compile 2??상 증? ??regression ?보??동 ?시
+  - [x] `tests/perf_summary.sh` 추가
+  - [x] `make perf-summary PERF_LOG=<log>` 추가
+  - [x] generated C/LLVM compile path의 POSIX `realpath` implicit declaration 경고 제거
+- 남음:
+  - [ ] CI에서 benchmark-only 수치를 artifact로 저장할지 결정
+  - [ ] release/beta notes에 perf-summary baseline 첨부
+  - [ ] worst-case compile 2배 이상 증가 시 regression 후보로 자동 표시
 
-### P2. hint namespace ???트리화
+### P2. hint namespace 레지스트리화
 
 - 문제:
-  - `cause_ir` / `fix_source` literal???션 ?위?계속 되어?는??중앙 ???트리? 한다
-  - `docs/72`?문서??`code` ?주? `cause_ir` / `fix_source` variant drift?강제?? 못한??- ?향:
-  - downstream??diagnostic routing????값을 ?기 ?작?면 ??/drift 즉시 breaking change 한다
+  - `cause_ir` / `fix_source` literal이 세션 단위로 계속 늘어나는데 중앙 레지스트리가 없다
+  - `docs/72`류 문서는 `code` 위주고, `cause_ir` / `fix_source` variant drift를 강제하지 못한다
+- 영향:
+  - downstream이 diagnostic routing에 이 값을 쓰기 시작하면 오타/drift가 즉시 breaking change가 된다
 - 기본 방침:
-  - `code`, `cause_ir`, `fix_source`?모두 registry/enum-like literal set으로 ?  - 문서? 코드 리뷰 기??서 ?새 literal 추? ??registry + docs ?시 갱신을 강제
-- ??업:
-  - [x] diagnostic literal registry 珥덉븞 異붽?
-    - ?료: `src/semantic/diag_codes.h` `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` registry source of truth??작하고 `docs/72_diagnostic_codes.md` ?? 문서??  - [x] `cause_ir` / `fix_source` ?이?규칙 문서??    - ?료: `docs/72_diagnostic_codes.md`??`cause_ir` stage/subsystem/condition 규칙?`fix_source` source-action token 규칙 고정
-  - [x] free-form 문자???규 추? 에 smoke gate 마련
-    - ?료: `tests/diagnostic_registry_smoke.sh` / `make diagnostic-registry-test-smoke` semantic diagnostic call-site??`PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` macro ?용?diagnostic code 문서 sync???
-### P3. ???ownership 되어 ?축
+  - `code`, `cause_ir`, `fix_source`를 모두 registry/enum-like literal set으로 관리
+  - 문서와 코드 리뷰 기준에서 “새 literal 추가 시 registry + docs 동시 갱신”을 강제
+- 준비 작업:
+  - [x] diagnostic literal registry 초안 추가
+    - 완료: `src/semantic/diag_codes.h`가 `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` registry source of truth로 동작하고 `docs/72_diagnostic_codes.md`가 이를 문서화
+  - [x] `cause_ir` / `fix_source` 네이밍 규칙 문서화
+    - 완료: `docs/72_diagnostic_codes.md`에 `cause_ir` stage/subsystem/condition 규칙과 `fix_source` source-action token 규칙 고정
+  - [x] free-form 문자열 신규 추가 지점에 smoke gate 마련
+    - 완료: `tests/diagnostic_registry_smoke.sh` / `make diagnostic-registry-test-smoke`가 semantic diagnostic call-site의 `PGY_CODE_*`, `PGY_CAUSE_*`, `PGY_FIX_*` macro 사용과 diagnostic code 문서 sync를 검사
+
+### P3. 타입/ownership 용어 압축
 
 - 문제:
-  - anchored handle / movable resource / subject / subject-host / boundary value / capability-bearing / move token ??되어 과다
-  - 같? semantic family 메시마다 ?른 ?름으로 ?출한다
-- ?곹뼢:
-  - ?용?도 ?갈리고, 구현?도 메시/문서/?스???렬 ??drift 한다
+  - anchored handle / movable resource / subject / subject-host / boundary value / capability-bearing / move token 등 용어가 과다
+  - 같은 semantic family가 메시지마다 다른 이름으로 노출된다
+- 영향:
+  - 사용자도 헷갈리고, 구현자도 메시지/문서/테스트 정렬 시 drift가 난다
 - 기본 방침:
-  - ?용??facing ?심 되어?2-3층으??축
-  - ?? 분류???X???위분류?로??출
-- ??업:
-  - [ ] user-facing canonical vocabulary ?뺣━
-  - [ ] diagnostics/README/docs ?⑹뼱 留ㅽ븨???묒꽦
-  - [ ] old wording grep inventory ??치환 계획 ?립
+  - 사용자-facing 핵심 용어를 2-3층으로 압축
+  - 세부 분류는 “X의 하위분류”로만 노출
+- 준비 작업:
+  - [ ] user-facing canonical vocabulary 정리
+  - [ ] diagnostics/README/docs 용어 매핑표 작성
+  - [ ] old wording grep inventory 후 치환 계획 수립
 
-### P4. 빌드/?드박스 경로 ?순??
-- 문제:
-  - bash / PowerShell / cmd / MSYS2 / stale object / path rewrite / sed 기반 stamp 으로 ?른 방식으로 깨진??  - ?Nothing to be done??+ stale artifact 같? ?? ?산을 ?게 깎는??  - smoke test repo root??runtime artifact??기?dirty worktree? ?제 ?스 경을 구분?기 ?려?진??- 기본 방침:
-  - ?일 공식 빌드 경로??하??머??document-only 는 best-effort??린??  - stale artifact ?피?대해 강제 ?빌??경로?공식??- ??업:
-  - [x] 공식 Windows 빌드 경로 1개로 문서??    - 기?: GitHub Actions `windows-latest` + `msys2/setup-msys2` native MinGW/MSYS2 runtime
-    - plain Linux-hosted `gcc`??`ci-windows` acceptance line???님
-  - [x] `llvm_smoke.sh`??`string_io` smoke repo root??`io.txt`??기 ?도??case?source directory?서 ?행?게 ?렬
-  - [x] LLVM runtime object freshness split runtime `.inc` subpart 경을 보도?`compiler_runtime_cache_is_fresh(...)` dependency list??장. `pgy_runtime_lib_part_b_part_d.inc` 같? ?위 include ?정 ??stale runtime object 링크는 문제?차단
-  - [ ] `clean && build` 강제 wrapper / recommended entrypoint ?의
-  - [ ] stale `.o` / `.d` 진단 ?드? 강제 ?빌???션 ?리
-
-### P5. printf-style 진단 ?맷??축소
+### P4. 빌드/샌드박스 경로 단순화
 
 - 문제:
-  - ?? semantic diagnostic helper???자 개수 매우 많고, placeholder drift??취약한다
-  - 현재 구조??`fmt ?드코딩 + structured tags(code/cause/fix)` ?중으로 공존한다
+  - bash / PowerShell / cmd / MSYS2 / stale object / path rewrite / sed 기반 stamp가 서로 다른 방식으로 깨진다
+  - “Nothing to be done” + stale artifact 같은 회귀가 생산성을 크게 깎는다
+  - smoke test가 repo root에 runtime artifact를 남기면 dirty worktree와 실제 소스 변경을 구분하기 어려워진다
 - 기본 방침:
-  - 진단 payload?struct?모으? human-readable render??renderer/helper layer ?당
-  - 최소??고인??helper??payload-builder ?턴으로 ?환
-- ??업:
-  - [ ] high-arity diagnostic helper inventory ?묒꽦
-  - [ ] generic mismatch / authority mismatch / ownership escape?서 payload struct ?범 ?입
+  - 단일 공식 빌드 경로를 정하고 나머지는 document-only 또는 best-effort로 내린다
+  - stale artifact 회피를 위해 강제 재빌드 경로를 공식화
+- 준비 작업:
+  - [x] 공식 Windows 빌드 경로 1개로 문서화
+    - 기준: GitHub Actions `windows-latest` + `msys2/setup-msys2` native MinGW/MSYS2 runtime
+    - plain Linux-hosted `gcc`는 `ci-windows` acceptance line이 아님
+  - [x] `llvm_smoke.sh`의 `string_io` smoke가 repo root에 `io.txt`를 남기지 않도록 각 case를 source directory에서 실행하게 정렬
+  - [x] LLVM runtime object freshness가 split runtime `.inc` subpart 변경을 보도록 `compiler_runtime_cache_is_fresh(...)` dependency list를 확장. `pgy_runtime_lib_part_b_part_d.inc` 같은 하위 include 수정 후 stale runtime object가 링크되는 문제를 차단
+  - [ ] `clean && build` 강제 wrapper / recommended entrypoint 정의
+  - [ ] stale `.o` / `.d` 진단 가이드와 강제 재빌드 옵션 정리
 
-### P6. channel transport 규칙 공통 validator ?렴
+### P5. printf-style 진단 포맷팅 축소
 
 - 문제:
-  - `type_checker_async_channel.h`? builtin/send-query 계열??ownership/channel transport 규칙??중복 구현한다
+  - 일부 semantic diagnostic helper는 인자 개수가 매우 많고, placeholder drift에 취약하다
+  - 현재 구조는 `fmt 하드코딩 + structured tags(code/cause/fix)`가 이중으로 공존한다
 - 기본 방침:
-  - channel transport??공통 validator ?나??렴
-  - builtin/send wrappers??surface adapter留??대떦
-- ??업:
+  - 진단 payload를 struct로 모으고, human-readable render는 renderer/helper layer가 담당
+  - 최소한 고인자 helper부터 payload-builder 패턴으로 전환
+- 준비 작업:
+  - [ ] high-arity diagnostic helper inventory 작성
+  - [ ] generic mismatch / authority mismatch / ownership escape에서 payload struct 시범 도입
+
+### P6. channel transport 규칙 공통 validator 수렴
+
+- 문제:
+  - `type_checker_async_channel.inc`와 builtin/send-query 계열이 ownership/channel transport 규칙을 중복 구현한다
+- 기본 방침:
+  - channel transport는 공통 validator 하나로 수렴
+  - builtin/send wrappers는 surface adapter만 담당
+- 준비 작업:
   - [x] send/try-send/send-timeout/status variants 공통 validator 추출
-  - [ ] subject / movable / anchored / boundary mismatch wording ?듭씪
-  - 진행: named-transfer requirement? subject/boundary/anchored borrowed-send/mismatch??`semantic_channel_transfer_requires_named_binding(...)`, `semantic_report_named_channel_transfer_required(...)`, `semantic_validate_channel_transport_ownership(...)` helper?1??렴
-  - 진행: token / move-only send-recv restriction wording??`semantic_report_channel_transport_policy(...)` helper??렬 ?작
-  - 진행: validator/reporting 구현? `type_checker_async_channel.h`?서 ?거하고 `type_checker_channel_transport.c` source of truth 한다
+  - [ ] subject / movable / anchored / boundary mismatch wording 통일
+  - 진행: named-transfer requirement와 subject/boundary/anchored borrowed-send/mismatch는 `semantic_channel_transfer_requires_named_binding(...)`, `semantic_report_named_channel_transfer_required(...)`, `semantic_validate_channel_transport_ownership(...)` helper로 1차 수렴
+  - 진행: token / move-only send-recv restriction wording도 `semantic_report_channel_transport_policy(...)` helper로 정렬 시작
+  - 진행: validator/reporting 구현은 `type_checker_async_channel.inc`에서 제거되고 `type_checker_channel_transport.c`가 source of truth가 됐다
 
 ### P7. 중간 stage JSON routing closure
 
 - 문제:
-  - HIR/DIR/RIR/MIR ?패 경로 ?? ?전??plain text 중심?라 `?일 JSON 배열` 계약??깨뜨린다
+  - HIR/DIR/RIR/MIR 실패 경로 일부가 여전히 plain text 중심이라 `단일 JSON 배열` 계약을 깨뜨린다
 - 기본 방침:
-  - frontend/backend ?단?아니며 중간 stage ?패??structured output 계약??되어?게 한다
-- ??업:
-  - [ ] HIR/DIR/RIR/MIR failure emitter inventory ?묒꽦
-  - [ ] plain-text fallback ?쒓굅 ?곗꽑?쒖쐞 ?섎┰
+  - frontend/backend 끝단뿐 아니라 중간 stage 실패도 structured output 계약에 들어오게 한다
+- 준비 작업:
+  - [ ] HIR/DIR/RIR/MIR failure emitter inventory 작성
+  - [ ] plain-text fallback 제거 우선순위 수립
 
-### P8. stale binary / artifact ?? 고정
+### P8. stale binary / artifact 회귀 고정
 
 - 문제:
-  - stale object/dependency ?일 ?문???스 ?정??반영?? 는 경우 한다
+  - stale object/dependency 파일 때문에 소스 수정이 반영되지 않는 경우가 있다
 - 기본 방침:
-  - ?빠?증분 빌드?보???신??한 ?빌??경로??선
-- ??업:
-  - [ ] stale artifact ?현 조건 문서??  - [ ] 권장 빌드 진입?에??clean rebuild ?택?기본 ?출
+  - “빠른 증분 빌드”보다 “신뢰 가능한 재빌드” 경로를 우선
+- 준비 작업:
+  - [ ] stale artifact 재현 조건 문서화
+  - [ ] 권장 빌드 진입점에서 clean rebuild 선택지를 기본 노출
 
-### P9. arena ?턴 명시 ?입
+### P9. arena 패턴 명시 도입
 
 - 문제:
-  - transpiler / semantic / diagnostics / type rendering 경로???시 문자??버퍼 churn??많다
-  - `malloc/free`? context-lifetime scratch allocation???여 되어, early-return/fail path?서 ?유권이 ?발?이??  - cache? ?시 문자이 ?이?dangling 는 과도??copy churn ?험??커진??- 기본 방침:
-  - arena??명시?으??입한다
-  - ?? ?면 치환??아니며 `scratch arena`? `result arena`?증명 기?으로 분리한다
-  - cache / long-lived metadata / AST-owned field는 arena-owned ?인?? ??하 ?는??  - arena ?교차 참조??raw pointer보다 `index` / stable handle 참조?기본으로 한다
-  - arena??최소??`transpiler`, `semantic scratch`, `semantic result`, ?요 ??`type/render scratch`처럼 ??/?명별로 분리한다
-  - ??????arena 분리???누 free?느?보???언??reset?느?? 기?으로 ?계한다
-  - 泥??④퀎??transpiler / semantic diagnostics / type render helper??scratch allocation ?섎졃?대떎
-- ??寃곗젙??留욌뒗 ?댁쑀:
-  - 현재 코드베이는 long-lived cache? short-lived formatting string??강하??여 되어, raw pointer 공유보다 index 참조 ?씬 ?전한다
-  - Pergyra??early-return/fail path? pass-local scratch data 많아?? ?일 arena보다 ??/?명?arena 분리 ?버깅과 reset 비용 면에??한다
-  - ? `Arena + Index 참조 + ??별 arena 분리` ?구조 debt?줄이????보수?이??정?인 방향한다
-- ??업:
-  - [x] `scratch arena` / `result arena` lifetime 규칙 문서??  - [x] arena ?cross-reference?`index` / stable handle 기?으로 문서??  - [x] `TranspilerCtx` scratch arena ?용 범위 ?정
-  - [x] semantic analyze pass??scratch arena ?입 ???리
-  - [x] diagnostic payload/result-owned arena 분리 ?? 결정
-  - [x] ?????븷蹂?arena 遺꾪븷??珥덉븞 ?묒꽦
-  - [x] `strdup_fmt` / type render / projection path / generic formatter helper??arena ?꾪솚 ?곗꽑?쒖쐞 ?묒꽦
-  - [x] cache??arena-owned ?인?????금? 규칙 문서??  - [x] ?vertical slice:
+  - transpiler / semantic / diagnostics / type rendering 경로에 임시 문자열/버퍼 churn이 많다
+  - `malloc/free`와 context-lifetime scratch allocation이 섞여 있어, early-return/fail path에서 소유권이 산발적이다
+  - cache와 임시 문자열이 섞이면 dangling 또는 과도한 copy churn 위험이 커진다
+- 기본 방침:
+  - arena는 명시적으로 도입한다
+  - 단, 전면 치환이 아니라 `scratch arena`와 `result arena`를 수명 기준으로 분리한다
+  - cache / long-lived metadata / AST-owned field에는 arena-owned 포인터를 저장하지 않는다
+  - arena 간 교차 참조는 raw pointer보다 `index` / stable handle 참조를 기본으로 한다
+  - arena는 최소한 `transpiler`, `semantic scratch`, `semantic result`, 필요 시 `type/render scratch`처럼 역할/수명별로 분리한다
+  - 타입/역할별 arena 분리는 “누가 free하느냐”보다 “언제 reset되느냐”를 기준으로 설계한다
+  - 첫 단계는 transpiler / semantic diagnostics / type render helper의 scratch allocation 수렴이다
+- 이 결정이 맞는 이유:
+  - 현재 코드베이스는 long-lived cache와 short-lived formatting string이 강하게 섞여 있어, raw pointer 공유보다 index 참조가 훨씬 안전하다
+  - Pergyra는 early-return/fail path와 pass-local scratch data가 많아서, 단일 arena보다 역할/수명별 arena 분리가 디버깅과 reset 비용 면에서 낫다
+  - 즉, `Arena + Index 참조 + 타입별 arena 분리`가 지금 구조 debt를 줄이는 가장 보수적이고 안정적인 방향이다
+- 준비 작업:
+  - [x] `scratch arena` / `result arena` lifetime 규칙 문서화
+  - [x] arena 간 cross-reference를 `index` / stable handle 기준으로 문서화
+  - [x] `TranspilerCtx` scratch arena 적용 범위 확정
+  - [x] semantic analyze pass용 scratch arena 도입 지점 정리
+  - [x] diagnostic payload/result-owned arena 분리 여부 결정
+  - [x] 타입/역할별 arena 분할안 초안 작성
+  - [x] `strdup_fmt` / type render / projection path / generic formatter helper의 arena 전환 우선순위 작성
+  - [x] cache에 arena-owned 포인터 저장 금지 규칙 문서화
+  - [x] 첫 vertical slice:
     - transpiler temporary strings
     - semantic diagnostic formatting scratch strings
     - type-name rendering scratch helpers
-  - 진행: `docs/94_arena_index_lifetime_plan.md`?방향 고정
-  - 진행: `TranspilerCtx`??`arena`?scratch arena?명시
-  - 진행: transpiler scratch-only temporary 1?vertical slice ?료
+  - 진행: `docs/94_arena_index_lifetime_plan.md`로 방향 고정
+  - 진행: `TranspilerCtx`의 `arena`를 scratch arena로 명시
+  - 진행: transpiler scratch-only temporary 1차 vertical slice 완료
     - zone authority temporary expression
     - intent priority default literal
     - projection refresh `source_expr`
     - event declaration `event_type`
-  - 진행: semantic diagnostics result seam 1??입
-    - `Diagnostic` optional payload snapshot??보존
-    - payload emit 寃쎈줈??result-owned snapshot?쇰줈 蹂듭궗
-    - semantic JSON 출력??payload ?드??께 ?출 ??  - 진행: semantic scratch arena 1??입
-    - `SemanticContext`??scratch arena 異붽?
-    - ownership diagnostic path string? scratch arena瑜??곗꽑 ?ъ슜
-    - payload snapshot??result濡?蹂듭궗?섎?濡?helper ?대? free churn ?쒓굅
-  - 진행: LLVM arena lane 1?closure
-    - `LLVMGenCtx`??`scratch` + `persistent` lane으로 분리
-    - `LLVMGenResult`??result-owned arena瑜?蹂댁쑀
-    - intent MIR collector / projection path / local grow helper / event invoke / type render helper scratch??렴
-    - synthetic event-handler AST field ??μ? callable signature registry濡?移섑솚
-    - `*error_message` heap return contract??result-owned lane?쇰줈 ?섎졃
-    - ?? heap 경계??owner shell(`ctx`, registry destroy, result outer shell)?runtime ABI contract ??으로 축소
-    - 진행: intent observability(`last/history/active/recent`)? authority failure snapshot??stable runtime string exports??`runtime-borrowed string` ABI?고정한다. caller??free?? 하고 ?음 runtime registry/snapshot mutation ?까??효한다
-    - 진행: `runtime-abi-lifetime-test-smoke` stable intent last/history/active/recent ?authority 문자??export body?서 allocation/free/strdup??발생?? ?도??한??    - 진행: stable string helper returns??`result-owned string`, stable string-array helper returns??`result-owned array` ABI?고정한다. `runtime-abi-lifetime-test-smoke` helper payload borrowed input pointer, stack buffer, string literal??반환?? 하고 allocation/copy??payload?반환는 ?한??    - 진행: stable file descriptor??`runtime-owned handle` ABI?고정한다. `pgy_file_open`? ?힌 runtime table slot???사?하? `pgy_file_close`??table entry?NULL?비워 ?사?????태?만든?? `runtime-abi-lifetime-test-smoke` ??release/reuse contract??한??    - ?음: file descriptor ??runtime-owned handle ownership??같? ????smoke/문서 계약으로 ?장?야 한다
-  - 주의: 반환 계약??는 expression string? 아직 arena??? ?음
-  - 주의: `slot_ref_expr(...)` scratch ?환 ?도???돌? 반환 ownership 경계?먼? ?눠????
+  - 진행: semantic diagnostics result seam 1차 도입
+    - `Diagnostic`가 optional payload snapshot을 보존
+    - payload emit 경로는 result-owned snapshot으로 복사
+    - semantic JSON 출력도 payload 필드를 함께 노출 가능
+  - 진행: semantic scratch arena 1차 도입
+    - `SemanticContext`에 scratch arena 추가
+    - ownership diagnostic path string은 scratch arena를 우선 사용
+    - payload snapshot이 result로 복사하므로 helper 내부 free churn 제거
+  - 진행: LLVM arena lane 1차 closure
+    - `LLVMGenCtx`는 `scratch` + `persistent` lane으로 분리
+    - `LLVMGenResult`는 result-owned arena를 보유
+    - intent MIR collector / projection path / local grow helper / event invoke / type render helper가 scratch로 수렴
+    - synthetic event-handler AST field 저장은 callable signature registry로 치환
+    - `*error_message` heap return contract는 result-owned lane으로 수렴
+    - 남은 heap 경계는 owner shell(`ctx`, registry destroy, result outer shell)과 runtime ABI contract 수준으로 축소
+    - 진행: intent observability(`last/history/active/recent`)와 authority failure snapshot의 stable runtime string exports는 `runtime-borrowed string` ABI로 고정했다. caller는 free하지 않고 다음 runtime registry/snapshot mutation 전까지만 유효하다
+    - 진행: `runtime-abi-lifetime-test-smoke`가 stable intent last/history/active/recent 및 authority 문자열 export body에서 allocation/free/strdup이 발생하지 않도록 검사한다
+    - 진행: stable string helper returns는 `result-owned string`, stable string-array helper returns는 `result-owned array` ABI로 고정했다. `runtime-abi-lifetime-test-smoke`가 helper payload가 borrowed input pointer, stack buffer, string literal을 반환하지 않고 allocation/copy된 payload를 반환하는지 검사한다
+    - 진행: stable file descriptor는 `runtime-owned handle` ABI로 고정했다. `pgy_file_open`은 닫힌 runtime table slot을 재사용하고, `pgy_file_close`는 table entry를 NULL로 비워 재사용 가능 상태로 만든다. `runtime-abi-lifetime-test-smoke`가 이 release/reuse contract를 검사한다
+    - 남음: file descriptor 외 runtime-owned handle ownership도 같은 수준의 smoke/문서 계약으로 확장해야 한다
+  - 주의: 반환 계약이 있는 expression string은 아직 arena로 옮기지 않음
+  - 주의: `slot_ref_expr(...)` scratch 전환 시도는 되돌림. 반환 ownership 경계를 먼저 나눠야 함
+
 ### 최근 closure 진행 (2026-04-18)
 
-- declaration-side MIR-only host context瑜????뺣━
-  - transpiler host context `current_host_decl -> within_zone -> saved host-name inventory` ?으?복원?도??렬
-  - class/zone/relation/effect/world field query helper raw host-name state보다 inventory-backed host handle???선 ?용
-  - direct `current_*_name` restore chain ???`transpiler_restore_host_context_local(...)` helper?되어 ?발??context 복구 코드?축소
-  - emitter hot path??direct `current_*_name` 참조????걷어?고, ?? ?용처? helper/restore layer????  - LLVM declaration helper??current host lookup??공용 active-inventory host helper?되어 naming chain??축소
-  - LLVM MIR/domain emission??direct `current_class_name` save/restore??host-name bind/restore helper?되어 state ?중복??줄임
-  - LLVM expr/stmt hot path??`llvm_current_host_decl_name(...)` 기?으로 ?렬??direct raw host-name read???줄임
-  - `HasProjection/HasLayer/HasState/HasZone*` ?method/field helper raw `current_class_name` ???host helper??과?도??리
-  - LLVM pipeline??nominal registration / class method emission??raw nominal AST array보다 `mir->decl_headers`?직접 ?회?도??렬
-  - LLVM domain pass??raw `ctx->mir->{relations,effects,zones,...}` 직접 ?근 ???`llvm_active_domain_inventory(...)` helper??과?도??렬
-  - ? declaration-side debt???제 emitter 본문보다 inventory bootstrap + helper/restore layer ? 으로 ???축??  - C transpiler domain/hosted method emission??`emit_hosted_methods_from_mir_or_error_local(...)` helper??렴
-  - party / roster / relation / effect / zone / world method emit??같? MIR routine gate? 같? explicit backend error ?책???용
-  - relation/effect/zone/world method??dead AST signature fallback ?쒓굅
-  - party / roster / relation / effect / zone / world declaration emit entrypoint??inventory decl???곗꽑 ?ъ슜
-  - bootstrap residual? ?제 per-domain AST array 직접 ?회보다 inventory-backed bootstrap helper 본체 쪽으????축
-- generic contract + type-resolution DAG ?뚭?瑜????볧옒
-  - `role impl ability` 경로 generic default/where-bound cycle provenance regression??추???  - ? action/intent-step/zone-authority/party-role-slot??대해 role impl consumer??staged DAG path ?? 범위???함
-- 현재 증선
+- declaration-side MIR-only host context를 더 정리
+  - transpiler host context가 `current_host_decl -> within_zone -> saved host-name inventory` 순으로 복원되도록 정렬
+  - class/zone/relation/effect/world field query helper가 raw host-name state보다 inventory-backed host handle을 우선 사용
+  - direct `current_*_name` restore chain 일부를 `transpiler_restore_host_context_local(...)` helper로 접어 산발적 context 복구 코드를 축소
+  - emitter hot path의 direct `current_*_name` 참조는 대부분 걷어내고, 남은 사용처를 helper/restore layer로 국소화
+  - LLVM declaration helper도 current host lookup을 공용 active-inventory host helper로 접어 naming chain을 축소
+  - LLVM MIR/domain emission의 direct `current_class_name` save/restore도 host-name bind/restore helper로 접어 state 관리 중복을 줄임
+  - LLVM expr/stmt hot path도 `llvm_current_host_decl_name(...)` 기준으로 정렬해 direct raw host-name read를 더 줄임
+  - `HasProjection/HasLayer/HasState/HasZone*` 및 method/field helper가 raw `current_class_name` 대신 host helper를 통과하도록 정리
+  - LLVM pipeline의 nominal registration / class method emission도 raw nominal AST array보다 `mir->decl_headers`를 직접 순회하도록 정렬
+  - LLVM domain pass도 raw `ctx->mir->{relations,effects,zones,...}` 직접 접근 대신 `llvm_active_domain_inventory(...)` helper를 통과하도록 정렬
+  - 즉, declaration-side debt는 이제 emitter 본문보다 inventory bootstrap + helper/restore layer 국소 부위로 더 압축됨
+  - C transpiler domain/hosted method emission도 `emit_hosted_methods_from_mir_or_error_local(...)` helper로 수렴
+  - party / roster / relation / effect / zone / world method emit는 같은 MIR routine gate와 같은 explicit backend error 정책을 사용
+  - relation/effect/zone/world method의 dead AST signature fallback 제거
+  - party / roster / relation / effect / zone / world declaration emit entrypoint는 inventory decl을 우선 사용
+  - bootstrap residual은 이제 per-domain AST array 직접 순회보다 inventory-backed bootstrap helper 본체 쪽으로 더 압축
+- generic contract + type-resolution DAG 회귀를 더 넓힘
+  - `role impl ability` 경로가 generic default/where-bound cycle provenance regression에 추가됨
+  - 즉, action/intent-step/zone-authority/party-role-slot에 더해 role impl consumer도 staged DAG path 회귀 범위에 포함
+- 현재 검증선
   - `test-semantic`: `1617 passed, 0 failed`
   - `test-transpile`: `670 passed, 0 failed`
   - `test-abi`: `84 passed, 0 failed`
-  - `ci-linux`: full green ?좎?
-  - LLVM expr/stmt host-helper ?리 ?후?도 `test-transpile`, `test-abi` ?통??인
+  - `ci-linux`: full green 유지
+  - LLVM expr/stmt host-helper 정리 이후에도 `test-transpile`, `test-abi` 재통과 확인
 
 ### 최근 closure 진행 (2026-04-24)
 
-- runtime propagation/provenance 1李?closure
-  - C/LLVM domain hidden cell??`ready/dirty` bool????태?서 `epoch/cause` provenance cell까? 같? schema??장??  - relation/effect/zone/world projection, layer, state, world-derived state recompute ?점??cause-stamped provenance??기?록 C/LLVM???렬??  - LLVM domain struct layout??그동??빠뜨리고 ?던 `__projection_dirty_*` field?relation/effect/zone???시 ?함?도?parity ?정
-  - LLVM projection sync??C? 같? dirty-gated recompute 경로??렬??  - LLVM host-field assignment zone/relation/effect host method ?에??projection invalidation??만들?록 복구
-  - LLVM intent step rebound-zone 寃쎈줈??effective zone projection cell??蹂댁닔?곸쑝濡?dirty-mark + sync ?섎룄濡?蹂닿컯
-  - 寃곌낵: `relation_effect_propagation_abi`, `intent_zone_binding`, `intent_cross_world_transfer`, `intent_rich_history_identity` backend compare drift ?쒓굅
-  - ????: transpile domain async/world tests provenance hidden field? stamp write까? 직접 ?인
-  - ??진행: `world` derived-state recompute C/LLVM ?쪽?서 bounded pass loop??록 ?라?고, single-pass declaration-order replay?만 ?존?? ?게 ??  - ??진행: bounded recompute pass-limit overflow??C??`PGY_PANIC`?LLVM??`abort()` 경로?hard-fail?도?고정??- ????: transpile world-derived chain test + `world_fixpoint_abi` smoke C/LLVM ?쪽?서 ?색
-- 현재 ?석: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)? ?제 beta 계약?????간주하고 ?시 ?화?키 ?음
-- 추? closure: zone lifecycle sync???제 C/LLVM ?쪽?서 bounded frontier loop?? state/layer replay single-batch?만 묶이 ?는??- 추? closure: embedded world-zone source assignment???제 projection dirty mark 에 같? turn??zone sync??워 stale `ready/value` drift 이 projection recompute??는??- 추? ??: `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi` C/LLVM ABI smoke?서 ?색?며 embedded zone projection read-after-mutate path?straight-line assignment, method-call, branch-join slice까? ?근??- 추? ??: `handoff_projection_frontier_abi` C/LLVM ABI smoke?서 ?색하고 `handoff_projection_frontier` backend-compare?서 ?색한다. v1 handoff materialization ?후 source projection? source snapshot?? target projection? target mutation 결과?보도??근??- 추? ??: `handoff_world_state_frontier_abi`? `handoff_world_state_frontier` C/LLVM?서 ?색한다. active world-owned zone??`transfer:` ??으??긴 ??projection-backed world state? `all` composed state 같? tick?서 fresh?게 보이??최소 frontier??근??- 추? ??: `handoff_layer_state_frontier_abi`? `handoff_layer_state_frontier` C/LLVM?서 ?색한다. `transfer:` ?후 action-caused effect target zone layer/state? active world-derived layer/state alias까? 같? tick?서 fresh?게 ?파는 경로??근??- 추? ??: `world_embedded_action_frontier_abi`? `world_embedded_action_frontier` C/LLVM?서 ?색한다. embedded world-zone subject action call??action-caused effect layer/state? active world-derived layer/state alias까? 같? tick?서 fresh?게 ?파는 경로??근??- 추? ??: `world_embedded_action_pool_frontier_abi`? `world_embedded_action_pool_frontier` C/LLVM?서 ?색한다. embedded world-zone subject action call??fixed-capacity effect pool 경로??같? frontier 계약으로 ?근??- 강한 ?? 과제: full bounded fixpoint / transitive frontier scheduler??**명시??beta blocker**???. ?만 ?? debt??zone/world frontier loop???? 아니며 remaining authority/failure handoff family? ???? world-zone propagation family?같? source-of-truth??반?하???이??- 추? closure: relation/effect/zone projection sync??bounded transitive recompute loop??라하고 declaration order??기? ?는??- 추? ??: `projection_chain_abi` C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`?서 ?겼??- 추? gate: `make runtime-frontier-contract-test-smoke` C emitter? LLVM emitter?서 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, pass-limit overflow hard-fail, ABI smoke ?록, backend-compare ?록???한?? ??gate??full bounded fixpoint / transitive frontier scheduler ?시 single-pass 구현으로 ?퇴?? 못하?막는 beta blocker gate?? ?? runtime propagation closure??remaining authority/failure handoff family? broader world-zone propagation family?같? source-of-truth frontier policy??반?하???이??- Beta readiness audit: `docs/98_beta_closure_readiness_report.md` records the current codebase verdict, remaining blockers, and concrete closure order. It narrows the next highest-value implementation target to handoff propagation and broader world-zone scheduler generalization.
+- runtime propagation/provenance 1차 closure
+  - C/LLVM domain hidden cell이 `ready/dirty` bool만 가지던 상태에서 `epoch/cause` provenance cell까지 같은 schema로 확장됨
+  - relation/effect/zone/world projection, layer, state, world-derived state가 recompute 시점에 cause-stamped provenance를 남기도록 C/LLVM이 정렬됨
+  - LLVM domain struct layout이 그동안 빠뜨리고 있던 `__projection_dirty_*` field를 relation/effect/zone에 다시 포함하도록 parity 수정
+  - LLVM projection sync도 C와 같은 dirty-gated recompute 경로로 정렬됨
+  - LLVM host-field assignment가 zone/relation/effect host method 안에서 projection invalidation을 만들도록 복구
+  - LLVM intent step rebound-zone 경로도 effective zone projection cell을 보수적으로 dirty-mark + sync 하도록 보강
+  - 결과: `relation_effect_propagation_abi`, `intent_zone_binding`, `intent_cross_world_transfer`, `intent_rich_history_identity` backend compare drift 제거
+  - 새 회귀: transpile domain async/world tests가 provenance hidden field와 stamp write까지 직접 확인
+  - 새 진행: `world` derived-state recompute가 C/LLVM 양쪽에서 bounded pass loop를 가지도록 올라왔고, single-pass declaration-order replay에만 의존하지 않게 됨
+  - 새 진행: bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `abort()` 경로로 hard-fail되도록 고정됨
+- 새 회귀: transpile world-derived chain test + `world_fixpoint_abi` smoke가 C/LLVM 양쪽에서 녹색
+- 현재 해석: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)은 이제 beta 계약의 일부로 간주하고 다시 약화시키지 않음
+- 추가 closure: zone lifecycle sync도 이제 C/LLVM 양쪽에서 bounded frontier loop를 가지며, state/layer replay가 single-batch에만 묶이지 않는다
+- 추가 closure: embedded world-zone source assignment도 이제 projection dirty mark 뒤에 같은 turn의 zone sync를 태워 stale `ready/value` drift 없이 projection recompute를 닫는다
+- 추가 회귀: `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`가 C/LLVM ABI smoke에서 녹색이며 embedded zone projection read-after-mutate path를 straight-line assignment, method-call, branch-join slice까지 잠근다
+- 추가 회귀: `handoff_projection_frontier_abi`가 C/LLVM ABI smoke에서 녹색이고 `handoff_projection_frontier`가 backend-compare에서 녹색이다. v1 handoff materialization 이후 source projection은 source snapshot을, target projection은 target mutation 결과를 보도록 잠근다
+- 추가 회귀: `handoff_world_state_frontier_abi`와 `handoff_world_state_frontier`가 C/LLVM에서 녹색이다. active world-owned zone을 `transfer:` 대상으로 넘긴 뒤 projection-backed world state와 `all` composed state가 같은 tick에서 fresh하게 보이는 최소 frontier를 잠근다
+- 추가 회귀: `handoff_layer_state_frontier_abi`와 `handoff_layer_state_frontier`가 C/LLVM에서 녹색이다. `transfer:` 이후 action-caused effect가 target zone layer/state와 active world-derived layer/state alias까지 같은 tick에서 fresh하게 전파되는 경로를 잠근다
+- 추가 회귀: `world_embedded_action_frontier_abi`와 `world_embedded_action_frontier`가 C/LLVM에서 녹색이다. embedded world-zone subject action call이 action-caused effect layer/state와 active world-derived layer/state alias까지 같은 tick에서 fresh하게 전파되는 경로를 잠근다
+- 추가 회귀: `world_embedded_action_pool_frontier_abi`와 `world_embedded_action_pool_frontier`가 C/LLVM에서 녹색이다. embedded world-zone subject action call의 fixed-capacity effect pool 경로도 같은 frontier 계약으로 잠근다
+- 강한 남은 과제: full bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. 다만 남은 debt는 zone/world frontier loop의 부재가 아니라 remaining authority/failure handoff family와 더 넓은 world-zone propagation family를 같은 source-of-truth로 일반화하는 일이다
+- 추가 closure: relation/effect/zone projection sync도 bounded transitive recompute loop로 올라왔고 declaration order에 기대지 않는다
+- 추가 회귀: `projection_chain_abi`가 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`에서 잠겼다
+- 추가 gate: `make runtime-frontier-contract-test-smoke`가 C emitter와 LLVM emitter에서 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, pass-limit overflow hard-fail, ABI smoke 등록, backend-compare 등록을 검사한다. 이 gate는 full bounded fixpoint / transitive frontier scheduler가 다시 single-pass 구현으로 후퇴하지 못하게 막는 beta blocker gate다. 남은 runtime propagation closure는 remaining authority/failure handoff family와 broader world-zone propagation family를 같은 source-of-truth frontier policy로 일반화하는 일이다
+- Beta readiness audit: `docs/98_beta_closure_readiness_report.md` records the current codebase verdict, remaining blockers, and concrete closure order. It narrows the next highest-value implementation target to handoff propagation and broader world-zone scheduler generalization.
 
 ### 최근 closure 진행 (2026-04-23)
 
-- AST ????스?치 partition 규칙 공식????`docs/95_ast_dispatch_partition.md`
-  - ?체 AST ???(현재 93? ??4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) disjoint 분할
-  - ?카테고리별로 "???정 switch ?서 ?달 불???" ??**?서 invariant 근거** ?문서??  - case label 추?/금?/safety-net 결정 기? ?정
-  - ??AST ???추? ??체크리스???함
-  - `llvm_stmt.c` ??top-level decl skip 리스??+ Zone/World forward  ??문서 기?으로 ?렬??(`AST_INTENT_DECL` skip ?락 ?정, Zone/World 11?forward 주석 ?확?? `llvm_expr.c` explicit diagnostic ??)
-  - ??AST ???異붽? ??docs/95 ?낅뜲?댄듃 梨낆엫 紐낆떆
+- AST 타입 디스패치 partition 규칙 공식화 — `docs/95_ast_dispatch_partition.md`
+  - 전체 AST 타입 (현재 93종) 을 4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) disjoint 분할
+  - 각 카테고리별로 "왜 특정 switch 에서 도달 불가인지" 의 **파서 invariant 근거** 를 문서화
+  - case label 추가/금지/safety-net 결정 기준 확정
+  - 새 AST 타입 추가 시 체크리스트 포함
+  - `llvm_stmt.c` 의 top-level decl skip 리스트 + Zone/World forward 가 이 문서 기준으로 정렬됨 (`AST_INTENT_DECL` skip 누락 수정, Zone/World 11종 forward 주석 정확화, `llvm_expr.c` explicit diagnostic 유지)
+  - 새 AST 타입 추가 시 docs/95 업데이트 책임 명시
 
 ### 최근 closure 진행 (2026-04-22)
 
-- arena scratch slice 3嫄?異붽? ?≪닔 ??`docs/94_arena_index_lifetime_plan.md` ?낅뜲?댄듃
-  - `semantic.c:50` `semantic_preload_stdlib_uses` ??per-iteration `malloc/free` module path 조립??function-local `PgyArena` ??동. 배치 alloc ?나??렴
-  - `type_checker.c:1109` enum method name mangling??`malloc/snprintf/free` 瑜?`pgy_arena_fmt(&ctx->scratch_arena, ...)` 濡??대룞. `symbol_create_function` ???대? ?대? `pergyra_strdup` ?쇰줈 ?대쫫??蹂듭궗?섎?濡?arena ?덉텧 ?놁쓬
-  - `slot_analyzer.c:1067` `slot_analyze_parallel_block` ??outer task metadata 배열 3?(`task_accesses`/`task_counts`/`task_caps`) ??`sa->ctx->scratch_arena` ??동. per-task inner 배열? ?전??`collect_slot_accesses`  heap-owned??- arena scratch 2?slice 추? (같? ??
-  - `type_checker.c:355` type resolution cycle detection ??`visited`/`path` 배열 ??`ctx->scratch_arena`. cycle text??return-contract helper??보류
-  - `type_checker_flow.c:499` match redundancy ??`seen` 배열 ??`ctx->scratch_arena`
-- arena scratch 3?slice ??HIR/MIR ?진입 (같? ?? ?후 4차에??routine-scope??합??
-  - `hir.c:hir_compute_cfg_dominance` ??`visited`/`postorder`/`idoms` 3배열 ??function-local `PgyArena`
-  - `hir.c:hir_mark_natural_loop` ??`in_loop`/`stack` 2배열 ??function-local `PgyArena`
-  - `mir.c:mir_apply_ssa_rename` outer 3배열 ??function-local `PgyArena`
-- arena scratch 5?slice ??LLVM 백엔???진입 (같? ?? ?후 6차에??ctx-scope ??합)
-  - `llvm_register.c:llvm_register_enum_decl` ??`enum_fields` + per-variant `payload_fields` type-ref 踰꾪띁瑜?function-local `PgyArena` 濡??섎졃
-  - `llvm_intent.c:llvm_collect_mir_intent_participants` ??return-ownership 계약?라 deferred
-- arena scratch 6?slice ??**LLVMGenCtx ctx-scope scratch arena ?입** (같? ??
-  - `LLVMGenCtx` ??`PgyArena scratch` ?드 추?
-  - `llvm_ctx_create` / `llvm_ctx_destroy` ?서 lifecycle ?  - 5차에 function-local ??작??enum type-ref arena ?`ctx->scratch` ??렴. LLVMGenCtx ?나??init/destroy ??번만
-  - ?속 LLVM scratch ?이??(미래??발굴?는) ????arena ?사????- arena scratch 7?slice ??**LLVM 9 ?이???괄 개수** (같? ??
-  - tuple literal (`llvm_expr.c`) ??vals + tys
-  - event handler type / tuple type (`llvm_backend.c:ast_type_to_llvm`) ??param_types + fields
-  - event INVOKE (`llvm_domain.c`) ??inv_params + call_args
-  - class/enum/extern ?깅줉 (`llvm_register.c`) ??4 param-type 踰꾪띁
-  - ability vtable (`llvm_domain.c`) ??outer vt_fields + per-method ptypes
-  - 공통: LLVM C API  type/value 배열???? 복사???scratch-safe
-  - 결과: LLVM ?체??short-lived type 배열 assembly  ctx arena ?나??렴
-- arena scratch 8?slice ??**LLVM 17 ?이??추? 개수** (같? ??
+- arena scratch slice 3건 추가 흡수 — `docs/94_arena_index_lifetime_plan.md` 업데이트
+  - `semantic.c:50` `semantic_preload_stdlib_uses` 의 per-iteration `malloc/free` module path 조립을 function-local `PgyArena` 로 이동. 배치 alloc 하나로 수렴
+  - `type_checker.c:1109` enum method name mangling의 `malloc/snprintf/free` 를 `pgy_arena_fmt(&ctx->scratch_arena, ...)` 로 이동. `symbol_create_function` 이 이미 내부 `pergyra_strdup` 으로 이름을 복사하므로 arena 탈출 없음
+  - `slot_analyzer.c:1067` `slot_analyze_parallel_block` 의 outer task metadata 배열 3종 (`task_accesses`/`task_counts`/`task_caps`) 을 `sa->ctx->scratch_arena` 로 이동. per-task inner 배열은 여전히 `collect_slot_accesses` 가 heap-owned로 관리
+- arena scratch 2차 slice 추가 (같은 날)
+  - `type_checker.c:355` type resolution cycle detection 의 `visited`/`path` 배열 → `ctx->scratch_arena`. cycle text는 return-contract helper라 보류
+  - `type_checker_flow.c:499` match redundancy 의 `seen` 배열 → `ctx->scratch_arena`
+- arena scratch 3차 slice — HIR/MIR 첫 진입 (같은 날, 이후 4차에서 routine-scope로 통합됨)
+  - `hir.c:hir_compute_cfg_dominance` 의 `visited`/`postorder`/`idoms` 3배열 → function-local `PgyArena`
+  - `hir.c:hir_mark_natural_loop` 의 `in_loop`/`stack` 2배열 → function-local `PgyArena`
+  - `mir.c:mir_apply_ssa_rename` outer 3배열 → function-local `PgyArena`
+- arena scratch 5차 slice — LLVM 백엔드 첫 진입 (같은 날, 이후 6차에서 ctx-scope 로 통합)
+  - `llvm_register.c:llvm_register_enum_decl` 의 `enum_fields` + per-variant `payload_fields` type-ref 버퍼를 function-local `PgyArena` 로 수렴
+  - `llvm_intent.c:llvm_collect_mir_intent_participants` 는 return-ownership 계약이라 deferred
+- arena scratch 6차 slice — **LLVMGenCtx ctx-scope scratch arena 도입** (같은 날)
+  - `LLVMGenCtx` 에 `PgyArena scratch` 필드 추가
+  - `llvm_ctx_create` / `llvm_ctx_destroy` 에서 lifecycle 관리
+  - 5차에 function-local 로 시작한 enum type-ref arena 를 `ctx->scratch` 로 수렴. LLVMGenCtx 하나당 init/destroy 한 번만
+  - 후속 LLVM scratch 사이트 (미래에 발굴되는) 도 이 arena 재사용 가능
+- arena scratch 7차 slice — **LLVM 9 사이트 일괄 흡수** (같은 날)
+  - tuple literal (`llvm_expr.c`) 의 vals + tys
+  - event handler type / tuple type (`llvm_backend.c:ast_type_to_llvm`) 의 param_types + fields
+  - event INVOKE (`llvm_domain.c`) 의 inv_params + call_args
+  - class/enum/extern 등록 (`llvm_register.c`) 의 4 param-type 버퍼
+  - ability vtable (`llvm_domain.c`) 의 outer vt_fields + per-method ptypes
+  - 공통: LLVM C API 가 type/value 배열을 내부 복사하므로 scratch-safe
+  - 결과: LLVM 전체의 short-lived type 배열 assembly 가 ctx arena 하나로 수렴
+- arena scratch 8차 slice — **LLVM 17 사이트 추가 흡수** (같은 날)
   - `llvm_stmt.c`: lambda param, parallel closure ctx/wrapper/handles, async closure fields, select rotation BBs
   - `llvm_intent.c`: intent function param_types, step completion `completed_allocas`, `saved_participant_ptrs`
-  - `llvm_domain.c`: world sync `prev_active_addrs`, domain struct `ftypes` (4 분기), role/class method `ptypes` (2 ?이??, vtable `vals`
-  - LLVM ?scratch-safe calloc/malloc ? 거의 개수 `ctx->scratch` ??렴. ?? 것? return-ownership 현재 helper ? AST-field stored ?스
+  - `llvm_domain.c`: world sync `prev_active_addrs`, domain struct `ftypes` (4 분기), role/class method `ptypes` (2 사이트), vtable `vals`
+  - LLVM 쪽 scratch-safe calloc/malloc 은 거의 전수 `ctx->scratch` 로 수렴. 남은 것은 return-ownership 혼재 helper 와 AST-field stored 케이스
 
-- arena scratch 4?slice ??**HIR/MIR routine-scope arena ?입** (같? ??
-  - `hir.h` HIRRoutine / `mir.h` MIRRoutine ??`PgyArena scratch` ?드 추?
-  - ?성: `hir_append_*`, `mir_lower` 루프 ??`memset` 직후 `pgy_arena_init(&routine.scratch, 0)`
-  - ?괴: `hir_destroy()` / `mir_destroy()` per-routine cleanup + OOM 경로 (배열 ?입 ?패 ?스)
-  - 3차에 function-local ??작??3?arena ?모두 `&routine->scratch` ??합 ??routine ?나??init/destroy ??번만. ?러 HIR/MIR pass  같? arena ??사??  - MIR pass??`routine->scratch` ??. `routine->hir_routine->scratch` ??HIR frozen 계약?라 ?근 금? (코멘으로 고정)
-- ?칙 ??: `scratch-only local temp 먼?, returned string ?중`. `slot_ref_expr(...)` 같? 반환 ownership 현재 helper??아직 보류
-- 베? acceptance line #8 ("scratch/result lifetime?cache boundary 문서/구현 기?으로 증명 ?하??) ???당 slice 기여
+- arena scratch 4차 slice — **HIR/MIR routine-scope arena 도입** (같은 날)
+  - `hir.h` HIRRoutine / `mir.h` MIRRoutine 에 `PgyArena scratch` 필드 추가
+  - 생성: `hir_append_*`, `mir_lower` 루프 내 `memset` 직후 `pgy_arena_init(&routine.scratch, 0)`
+  - 파괴: `hir_destroy()` / `mir_destroy()` per-routine cleanup + OOM 경로 (배열 편입 실패 케이스)
+  - 3차에 function-local 로 시작한 3개 arena 를 모두 `&routine->scratch` 로 통합 → routine 하나당 init/destroy 한 번만. 여러 HIR/MIR pass 가 같은 arena 를 재사용
+  - MIR pass는 `routine->scratch` 만 씀. `routine->hir_routine->scratch` 는 HIR frozen 계약이라 접근 금지 (코멘트로 고정)
+- 원칙 유지: `scratch-only local temp 먼저, returned string 나중`. `slot_ref_expr(...)` 같은 반환 ownership 혼재 helper는 아직 보류
+- 베타 acceptance line #8 ("scratch/result lifetime과 cache boundary가 문서/구현 기준으로 설명 가능하다") 에 해당 slice 기여
 
 ### 최근 closure 진행 (2026-04-21)
 
-- C/LLVM init idiom ?감사 + 1??비 ?료 (`docs/93_codegen_idiom_audit.md`)
-  - 6 case × 2 backend 매트? 고정
-  - **Case 1 HIGH divergence ?소**: 개수-바디 `let x: T;` (annotation + no init)??`PGY_CODE_SEM_UNINIT_LOCAL` ?거?. C??scalar-zero, LLVM? store ?략으로 ?read?서 ??? 갈라???복 경로?semantic ?벨?서 차단
-  - **Case 2 C backend L815 ?뺣━**: `transpiler_c_type_uses_scalar_zero` helper濡?scalar/aggregate 遺꾧린. 湲곗〈 ?좊났 踰꾧렇 (`struct Foo x = 0;` invalid C) ?쒓굅 (defense in depth)
-  - **Case 3 MEDIUM ?도 비????정**: slot claim? C ????helper, LLVM??IR-direct. 현재 runtime observability ???서 ?side effect 0. runtime observability ?장 ???감으로 deferral
-  - ?뚭? 3醫?異붽?:
+- C/LLVM init idiom 축 감사 + 1차 정비 완료 (`docs/93_codegen_idiom_audit.md`)
+  - 6 case × 2 backend 매트릭스 고정
+  - **Case 1 HIGH divergence 해소**: 함수-바디 `let x: T;` (annotation + no init)을 `PGY_CODE_SEM_UNINIT_LOCAL` 로 거부. C는 scalar-zero, LLVM은 store 생략으로 첫 read에서 값 의미가 갈라지던 잠복 경로를 semantic 레벨에서 차단
+  - **Case 2 C backend L815 정리**: `transpiler_c_type_uses_scalar_zero` helper로 scalar/aggregate 분기. 기존 잠복 버그 (`struct Foo x = 0;` invalid C) 제거 (defense in depth)
+  - **Case 3 MEDIUM 의도 비대칭으로 확정**: slot claim은 C가 런타임 helper, LLVM이 IR-direct. 현재 runtime observability 수준에서 관측 side effect 0. runtime observability 확장 시 재감사로 deferral
+  - 회귀 3종 추가:
     - `function-body let with annotation and no initializer is rejected`
     - `function-body let with aggregate annotation and no initializer is rejected`
     - `subject field let with no initializer does not trigger the uninit-local guard` (negative)
-  - ?서 구조 ?확?? class/subject field??ClassField 경로?분리되어 `AST_LET_DECL`???님 ??guard field-level ???침범?? ?음
-  - docs/72 ??`PGY_SEM_UNINIT_LOCAL` ?뱀뀡 + docs/93 cross-link 異붽?
+  - 파서 구조 재확인: class/subject field는 ClassField 경로로 분리되어 `AST_LET_DECL`이 아님 → guard가 field-level 의미를 침범하지 않음
+  - docs/72 에 `PGY_SEM_UNINIT_LOCAL` 섹션 + docs/93 cross-link 추가
 
 ### 최근 closure 진행 (2026-04-20)
 
-- own/ref broader audit瑜?helper family 湲곗??쇰줈 ???뺣젹
-  - helper call boundary??`subject` / general boundary value 경로?공용 borrowed-boundary validator??음
-  - container store / array literal store borrow-escape?공용 ownership diagnostic helper??합
-  - semantic channel send borrow-escape??공용 ownership diagnostic helper??격
-  - ? `assignment / helper call / channel send / container store / array literal store / constructor field store` ?점 같? provenance wording family??렴 ?- intent authority mismatch provenance???직접?으??출
-  - `authorized by` unknown participant / non-subject participant / zone subject-slot mismatch / zone authority mismatch??`approval boundary provenance` ?뱀뀡 異붽?
-  - provenance 비어 ?으?`no inherited/derived authority provenance was recorded`?명시?으?보고
-- relation/effect/projection failure depth瑜?異붽? 蹂닿컯
-  - invalid projection source / tobject source rejection??target/source consumer path? projection contract origin??직접 보고
-  - ? projection diagnostics ?순 type mismatch 아니며 `target slot <- source slot` 경로?기?으로 ?명?기 ?작??- 현재 베? blocker ?정??  - Windows backend-compare / LLVM parity 복구
-  - declaration-side MIR-only ?⑥? host/inventory helper debt ?쒓굅
-  - own/ref ?쇰컲?붿쓽 broader assignment / container / rebind / summary path closure
-  - intent/zone/world ?relation/effect/projection provenance 마???화
-- Windows-native compile hygiene瑜?異붽? ?뺣━
-  - `type_checker_builtins_query.inc`, `type_checker_builtins_nominal.inc`??`%zu` / extra-arg formatting drift瑜??쒓굅
-  - `type_checker_decls_world.inc`??world lifecycle diagnostics placeholder-arg mismatch瑜??쒓굅
-  - `type_checker_builtins.c`??ownership/channel helper?full internal header include ???최소 forward declaration으로 고정??enum/static helper ?선??충돌???함
-  - 현재 기???
+- own/ref broader audit를 helper family 기준으로 더 정렬
+  - helper call boundary의 `subject` / general boundary value 경로를 공용 borrowed-boundary validator로 접음
+  - container store / array literal store borrow-escape를 공용 ownership diagnostic helper로 통합
+  - semantic channel send borrow-escape도 공용 ownership diagnostic helper로 승격
+  - 즉, `assignment / helper call / channel send / container store / array literal store / constructor field store`가 점점 같은 provenance wording family로 수렴 중
+- intent authority mismatch provenance를 더 직접적으로 노출
+  - `authorized by` unknown participant / non-subject participant / zone subject-slot mismatch / zone authority mismatch에 `approval boundary provenance` 섹션 추가
+  - provenance가 비어 있으면 `no inherited/derived authority provenance was recorded`를 명시적으로 보고
+- relation/effect/projection failure depth를 추가 보강
+  - invalid projection source / tobject source rejection이 target/source consumer path와 projection contract origin을 직접 보고
+  - 즉, projection diagnostics가 단순 type mismatch가 아니라 `target slot <- source slot` 경로를 기준으로 설명되기 시작함
+- 현재 베타 blocker 재정렬
+  - Windows backend-compare / LLVM parity 복구
+  - declaration-side MIR-only 남은 host/inventory helper debt 제거
+  - own/ref 일반화의 broader assignment / container / rebind / summary path closure
+  - intent/zone/world 및 relation/effect/projection provenance 마지막 심화
+- Windows-native compile hygiene를 추가 정리
+  - `type_checker_builtins_query.inc`, `type_checker_builtins_nominal.inc`의 `%zu` / extra-arg formatting drift를 제거
+  - `type_checker_decls_world.inc`의 world lifecycle diagnostics placeholder-arg mismatch를 제거
+  - `type_checker_builtins.c`는 ownership/channel helper를 full internal header include 대신 최소 forward declaration으로 고정해 enum/static helper 재선언 충돌을 피함
+  - 현재 기준선:
     - `test-semantic`: `1855 passed, 0 failed`
     - `test-transpile`: `601 passed, 0 failed`
-  - ?? Windows blocker??semantic compile ?계 아니며 native MSYS2/MinGW ?행 ?경?서??backend/runtime parity ?인 축으??동
+  - 남은 Windows blocker는 semantic compile 단계가 아니라 native MSYS2/MinGW 실행 환경에서의 backend/runtime parity 확인 축으로 이동
 
 ### 최근 closure 진행 (2026-04-16)
 
-- declaration-side host context瑜?inventory-backed handle 履쎌쑝濡????④퀎 ???뺣젹
-  - transpiler host lookup??`current_host_decl -> within_zone -> saved host-name inventory` ?쒖쑝濡?蹂듭썝?섎룄濡?議곗젙
-  - zone/relation/effect/world field query helper raw `current_*_name` 분기보다 inventory-backed `current_host_decl`??선 ?비
-  - ? declaration-side C backend context 복원?서 string name state???점 restore hint로만 ?고, ?제 host truth??active inventory 기반 handle??렴 ?- explicit/compressed canonical pair examples?intent-first 대해 규칙으로 ?시 ?렬
-  - large/composite pair source??`intent -> world/zone -> subject` read order?직접 명시
-- world embedding implicit copy?warning??아니며 hard contract??격 ?작
-  - world constructor??zone binding??洹몃?濡??섍린硫?explicit `Clone(...)`瑜??붽뎄
-  - hidden copy semantics????상 benign warning으로 ?기 ?음
-- generic contract consumer path瑜????④퀎 ???レ쓬
-  - omitted trailing default type arg user-defined generic class specialization path?서??effective arg 기?으로 증되?록 ?렬
-  - role impl / action requires / zone authority / party role slot?서 `default arg omission + where-bound violation` negative regressions 추?
-  - multi-bound / omitted-default / consumer provenance 조합 ???semantic 기?으로 고정
-  - ability consumer path / class instantiation-specialization path?서 unresolved effective generic arg?silent skip?? 하고 structured error??격
-  - role-side ability require-field type resolution?서??unresolved effective generic arg?silent skip?? 하고 structured error??격
-  - malformed impl ability generic arg 되어???쪽 where/require-field 증으?partial 진행?던 경로?차단
-  - default generic bound validation?서 unknown parameter / unresolved default type??structured error??격
-  - generic function call-site where-clause validation?서??missing/unresolved effective arg?silent skip?? 하고 structured error??격
-- own/ref 泥??쇰컲??vertical slice ?쒖옉
-  - existing movable resource value(`QubitSlot`)??function boundary?서 explicit `own` transfer parameter??용
-  - `ref QubitSlot`??아직 미닫??subset으로 ???되, ?유/consumer path/fix ?함??structured diagnostic으로 고정
-  - ? `own/ref`???전???역 closure ?이? move semantics ?? 는 resource value????서??explicit transfer boundary 분적으로 ?리??작??  - return/channel boundary ownership diagnostics??`Reason:` / `Fix:` 구조??렬
-  - function signature anchored-return rejection??`Reason:` / `Fix:` 구조??렬
-  - unnamed movable-resource channel send??moved-here provenance??명는 hard error?고정
-  - local binding ?계?서??`recv/await` unnamed boundary use, subject rebinding, released-slot move, anchored-handle rebinding??`Reason:` / `Fix:` 구조??렬
-  - slot escape analyzer 경고??return/helper-call/channel/unterminated local claim 경로?서 provenance??`Reason:` / `Fix:` 구조??렬
-- relation/effect/projection contract????드?게 조???  - `intent step causes` zone effect slot 이 ?과?던 경로?hard error??격
-  - `action causes`??zone effect slot 이 는 경로?structured hard error??격
-  - authority-bearing `apply/link/detach/unlink/maintain` `by <subjectSlot>` 이 는 경로?hard error??격
-  - duplicate authority, unknown layer relation/effect type?????상 benign warning으로 ?기 ?음
-  - maintain/detach/unlink duplicate/conflict diagnostics??`Reason:` / `Fix:` 구조??렬
-- unresolved declaration entrypoint???줄???  - role include unknown role, roster slot unknown party, world roster/zone unknown type??hard error??격
-  - generic where-clause consumer path?서 unresolved effective arg?????상 silent skip?? ?음
-- declaration-side MIR-only domain method gate???조???  - party / roster / relation / effect / zone / world method emission??MIR routine 이 AST body?조용??fallback?? ?도?C backend??렬
-  - role / domain method emission?서 MIR routine 미존?? LLVM backend hard error??격
-  - ? declaration-side domain method??MIR inventory 존재는 빌드?서 silent fallback??아니며 explicit backend failure?계약으로 ?음
+- declaration-side host context를 inventory-backed handle 쪽으로 한 단계 더 정렬
+  - transpiler host lookup이 `current_host_decl -> within_zone -> saved host-name inventory` 순으로 복원되도록 조정
+  - zone/relation/effect/world field query helper가 raw `current_*_name` 분기보다 inventory-backed `current_host_decl`를 우선 소비
+  - 즉, declaration-side C backend context 복원에서 string name state는 점점 restore hint로만 남고, 실제 host truth는 active inventory 기반 handle로 수렴 중
+- explicit/compressed canonical pair examples를 intent-first 독해 규칙으로 다시 정렬
+  - large/composite pair source에 `intent -> world/zone -> subject` read order를 직접 명시
+- world embedding implicit copy를 warning이 아니라 hard contract로 승격 시작
+  - world constructor에 zone binding을 그대로 넘기면 explicit `Clone(...)`를 요구
+  - hidden copy semantics를 더 이상 benign warning으로 남기지 않음
+- generic contract consumer path를 한 단계 더 닫음
+  - omitted trailing default type arg가 user-defined generic class specialization path에서도 effective arg 기준으로 검증되도록 정렬
+  - role impl / action requires / zone authority / party role slot에서 `default arg omission + where-bound violation` negative regressions 추가
+  - multi-bound / omitted-default / consumer provenance 조합 회귀를 semantic 기준으로 고정
+  - ability consumer path / class instantiation-specialization path에서 unresolved effective generic arg를 silent skip하지 않고 structured error로 승격
+  - role-side ability require-field type resolution에서도 unresolved effective generic arg를 silent skip하지 않고 structured error로 승격
+  - malformed impl ability generic arg가 있어도 뒤쪽 where/require-field 검증으로 partial 진행하던 경로를 차단
+  - default generic bound validation에서 unknown parameter / unresolved default type도 structured error로 승격
+  - generic function call-site where-clause validation에서도 missing/unresolved effective arg를 silent skip하지 않고 structured error로 승격
+- own/ref 첫 일반화 vertical slice 시작
+  - existing movable resource value(`QubitSlot`)는 function boundary에서 explicit `own` transfer parameter를 허용
+  - `ref QubitSlot`는 아직 미닫힘 subset으로 유지하되, 이유/consumer path/fix가 포함된 structured diagnostic으로 고정
+  - 즉, `own/ref`는 여전히 전역 closure 전이지만, move semantics가 이미 있는 resource value에 대해서는 explicit transfer boundary가 부분적으로 열리기 시작함
+  - return/channel boundary ownership diagnostics도 `Reason:` / `Fix:` 구조로 정렬
+  - function signature anchored-return rejection도 `Reason:` / `Fix:` 구조로 정렬
+  - unnamed movable-resource channel send는 moved-here provenance를 설명하는 hard error로 고정
+  - local binding 단계에서도 `recv/await` unnamed boundary use, subject rebinding, released-slot move, anchored-handle rebinding을 `Reason:` / `Fix:` 구조로 정렬
+  - slot escape analyzer 경고도 return/helper-call/channel/unterminated local claim 경로에서 provenance형 `Reason:` / `Fix:` 구조로 정렬
+- relation/effect/projection contract를 더 하드하게 조였다
+  - `intent step causes`가 zone effect slot 없이 통과하던 경로를 hard error로 승격
+  - `action causes`도 zone effect slot 없이 남는 경로를 structured hard error로 승격
+  - authority-bearing `apply/link/detach/unlink/maintain`가 `by <subjectSlot>` 없이 남는 경로를 hard error로 승격
+  - duplicate authority, unknown layer relation/effect type도 더 이상 benign warning으로 남기지 않음
+  - maintain/detach/unlink duplicate/conflict diagnostics는 `Reason:` / `Fix:` 구조로 정렬
+- unresolved declaration entrypoint를 더 줄였다
+  - role include unknown role, roster slot unknown party, world roster/zone unknown type을 hard error로 승격
+  - generic where-clause consumer path에서 unresolved effective arg도 더 이상 silent skip하지 않음
+- declaration-side MIR-only domain method gate를 더 조였다
+  - party / roster / relation / effect / zone / world method emission이 MIR routine 없이 AST body로 조용히 fallback하지 않도록 C backend를 정렬
+  - role / domain method emission에서 MIR routine 미존재를 LLVM backend hard error로 승격
+  - 즉, declaration-side domain method는 MIR inventory가 존재하는 빌드에서 silent fallback이 아니라 explicit backend failure를 계약으로 삼음
 
 ### 최근 closure 진행 (2026-04-14)
 
-- declaration-side MIR-only intent inventory???한다
-  - MIR `IntentParticipant(alias,type)` metadata?직접 ?반
-  - C/LLVM intent declaration emission??participant alias/type?AST 대해??이 MIR metadata??선 ?비
-- step-level MIR-only validation??AST field 議댁옱 寃?ъ뿉??metadata 議댁옱 寃?щ줈 ??꼈??  - `IntentCheck`
+- declaration-side MIR-only intent inventory를 더 밀었다
+  - MIR가 `IntentParticipant(alias,type)` metadata를 직접 운반
+  - C/LLVM intent declaration emission이 participant alias/type를 AST 재해석 없이 MIR metadata로 우선 소비
+- step-level MIR-only validation을 AST field 존재 검사에서 metadata 존재 검사로 옮겼다
+  - `IntentCheck`
   - `IntentEval`
   - `IntentZoneWhere/IntentZoneAlias/IntentZoneFrom`
   - `IntentWho/IntentDispatch`
-  - `compensate` 議댁옱 ?먯젙
-- intent emission cleanup/rollback 寃쎈줈??metadata gate瑜?C/LLVM ?????뺣젹?덈떎
-- 愿???뚭?:
+  - `compensate` 존재 판정
+- intent emission cleanup/rollback 경로의 metadata gate를 C/LLVM 둘 다 정렬했다
+- 관련 회귀:
   - `test-mir` green
   - `test-transpile` green
 
-? intent declaration/step emission? 아직 ?전 MIR-only ?언???난 것? 아니?
-`participant/step contract inventory`?AST presence??기?????거친 fallback?????계 ???거한다.
+즉, intent declaration/step emission은 아직 완전 MIR-only 선언이 끝난 것은 아니지만,
+`participant/step contract inventory`를 AST presence에 기대던 가장 거친 fallback는 한 단계 더 제거됐다.
 
-### 踰좏? 湲곗???異붽? (2026-04-15)
+### 베타 기준판 추가 (2026-04-15)
 
-- `docs/70_beta_closure_master_board.md` 異붽?
-  - B0 4? declaration-side MIR-only debt, parity, runtime observability, surface trust????으?고정
-  - 베? acceptance line?exit rule??명시
-  - ?으?TODO??개별 ?업? ??보드 기?으로 ?선?위??른??
-### 베? 최종 ?(2026-04-18)
+- `docs/70_beta_closure_master_board.md` 추가
+  - B0 4축, declaration-side MIR-only debt, parity, runtime observability, surface trust를 한 장으로 고정
+  - 베타 acceptance line과 exit rule을 명시
+  - 앞으로 TODO의 개별 작업은 이 보드 기준으로 우선순위를 따른다
 
-- [ ] **declaration-side MIR-only?구조?으??기**
-  - zone/world/relation/effect declaration/method emission?서 ?? AST/HIR-carried inventory dependency????거
-  - `current_*_name` / host-name 異붿젙 helper蹂대떎 inventory-backed host handle / metadata ?뚮퉬瑜??곗꽑?섎룄濡??뺣젹
-  - transpiler/LLVM ?쪽?서 raw host-name read?helper/restore layer 밖으??시 ?? 못하????고정
-  - declaration emission failure??comment/skip/fallback return??아니며 explicit backend error??격
-  - C/LLVM ????declaration-side path?서 `Unknown` / surface-trust-breaking fallback type emission??계속 ?거
-  - 문서?서 `MIR-led / HIR-assisted`하고 ?겨??debt??제 구현 기?으로 ??축소?고, 베? ?점 ?현?구현???치?킨??
+### 베타 최종 관문 (2026-04-18)
+
+- [ ] **declaration-side MIR-only를 구조적으로 닫기**
+  - zone/world/relation/effect declaration/method emission에서 남은 AST/HIR-carried inventory dependency를 더 제거
+  - `current_*_name` / host-name 추정 helper보다 inventory-backed host handle / metadata 소비를 우선하도록 정렬
+  - transpiler/LLVM 양쪽에서 raw host-name read를 helper/restore layer 밖으로 다시 새지 못하게 회귀로 고정
+  - declaration emission failure는 comment/skip/fallback return이 아니라 explicit backend error로 승격
+  - C/LLVM 둘 다 declaration-side path에서 `Unknown` / surface-trust-breaking fallback type emission을 계속 제거
+  - 문서에서 `MIR-led / HIR-assisted`라고 남겨둔 debt를 실제 구현 기준으로 더 축소하고, 베타 시점 표현과 구현을 일치시킨다
+
 - [x] **AST dispatch / backend fallback trust gate 고정**
-  - `docs/95_ast_dispatch_partition.md` 기?으로 AST ???partition??문서??  - LLVM `stmt/expr` default path??warning-only 아니며 structured backend error?고정
-  - Zone/World declaration verb expression fallback으로 조용??`0/null`??는 경로?explicit backend diagnostic으로 차단
-  - `tests/ast_dispatch_partition_smoke.sh`? `make ast-dispatch-test-smoke`?추???partition drift? silent fallback ???CI?서 차단
-  - Linux `ci-linux` acceptance line??AST dispatch smoke瑜??곌껐
+  - `docs/95_ast_dispatch_partition.md` 기준으로 AST 타입 partition을 문서화
+  - LLVM `stmt/expr` default path는 warning-only가 아니라 structured backend error로 고정
+  - Zone/World declaration verb가 expression fallback으로 조용히 `0/null`이 되는 경로를 explicit backend diagnostic으로 차단
+  - `tests/ast_dispatch_partition_smoke.sh`와 `make ast-dispatch-test-smoke`를 추가해 partition drift와 silent fallback 회귀를 CI에서 차단
+  - Linux `ci-linux` acceptance line에 AST dispatch smoke를 연결
 
-- [x] **type-resolution DAG?beta blocker??함**
-  - import resolver? 별개?semantic type dependency graph?beta acceptance line???함
-  - generic default / multi-bound / role impl / action / intent step / party role slot / zone authority / module contract consumer?같? graph inventory?추적
-  - alias depth limit / ad-hoc recursive failure蹂대떎 path-aware cycle diagnostic???곗꽑 湲곗??쇰줈 ?뚯뼱?щ┝
-  - 1?계 진행: `topo_order`?버리 하고 declaration staged worklist???결 ?작
+- [x] **type-resolution DAG를 beta blocker로 포함**
+  - import resolver와 별개로 semantic type dependency graph를 beta acceptance line에 포함
+  - generic default / multi-bound / role impl / action / intent step / party role slot / zone authority / module contract consumer를 같은 graph inventory로 추적
+  - alias depth limit / ad-hoc recursive failure보다 path-aware cycle diagnostic을 우선 기준으로 끌어올림
+  - 1단계 진행: `topo_order`를 버리지 않고 declaration staged worklist에 연결 시작
   - 반영 문서:
     - `docs/70_beta_closure_master_board.md`
     - `docs/63_feature_depth_matrix.md`
-  - 1?계 진행: `world/zone` local contract? `refresh` projection path?synthetic graph node??리??작
-  - 1?계 진행: topo worklist `LOCAL_CONTRACT` / `PROJECTION_PATH` synthetic node???시 ?비?기 ?작
-  - 1?계 진행: synthetic node ?비?host ?체 ?실이 아니며 label?narrow handler?축소
-  - 1?계 진행: role impl consumer까? cycle provenance ???추???ability consumer family????성
-  - ?? ?? staged declaration prepass 범위??히?graph-backed evaluator?semantic source-of-truth??격
-  - ecosystem ?뺤옣(`stdlib/pkg/tooling`)? ??DAG closure ?댄썑 ?④퀎濡?誘몃８
+  - 1단계 진행: `world/zone` local contract와 `refresh` projection path를 synthetic graph node로 올리기 시작
+  - 1단계 진행: topo worklist가 `LOCAL_CONTRACT` / `PROJECTION_PATH` synthetic node도 다시 소비하기 시작
+  - 1단계 진행: synthetic node 소비를 host 전체 재실행이 아니라 label별 narrow handler로 축소
+  - 1단계 진행: role impl consumer까지 cycle provenance 회귀를 추가해 ability consumer family를 더 완성
+  - 남은 일: staged declaration prepass 범위를 넓히고 graph-backed evaluator를 semantic source-of-truth로 승격
+  - ecosystem 확장(`stdlib/pkg/tooling`)은 이 DAG closure 이후 단계로 미룸
 
-- [x] **own/ref ?쇰컲??audit 留덇컧**
-  - own/ref??ownership classifier 湲곗? stable subset?쇰줈 ?ロ옒
-  - borrowed value escape??helper call / channel / return / container store?아니며 broader assignment/member/store path까? provenance 기?으로 ??
-  - 진행: constructor field store(`Holder(packet)` 같? boundary-visible store)?borrowed escape 경로??격하고 semantic regression 추?
-  - 진행: constructor field store??borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)?직접 보고?도??렬
-  - 진행: array literal store(`[packet]`)??borrowed escape 경로??격하고 semantic regression 추?
-  - 진행: member assignment / array overwrite 진단??identifier-only 아니며 `holder.packet`, `items[0]` 같? target path provenance?직접 보고?도??렬
-  - 진행: new-binding escape??identifier-only 아니며 borrowed member/aggregate source path provenance(`packet.view`, `items[0]`)까? 추적?도??장
-  - 진행: new-binding escape regression??member source path(`packet.items`)? array source path(`items[0]`)?fixture?고정
-  - 진행: container store(`ArrayPush`/`ListPush`/`SetAdd`/`QueuePush`/`MapSet`)??borrowed member/aggregate source path provenance?직접 보고?도??렬
-  - 진행: helper forwarding / builtin channel send(`Send`/`TrySend`/`SendTimeout`/status variants)??unnamed borrowed member/aggregate source path provenance?직접 보고?도??렬
-  - 진행: direct `return` escape??borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)?직접 보고?도??렬
-  - 진행: slot/resource summary 기반 `return/channel/helper` diagnostics??`summary provenance root` vocabulary?direct semantic wording????깝게 ?렬
-  - 진행: summary-based helper escape??direct callee wording ???`helper/function summary in '<fn>'` 경로?분리??drift?줄임
-  - 진행: summary-based return/channel escape??direct consumer wording ???`return summary in '<fn>'` / `channel summary in '<fn>'` 경로?분리??drift?줄임
-  - 진행: anchored-handle summary escape??direct `return/channel/helper` wording ???summary wording으로 분리??own/ref bridge 문구??렬
-  - 진행: helper-call / container-store / array-literal-store / semantic channel-send diagnostic family?공용 helper??합
-  - 진행: nested projection + transitive helper + member rebind 조합??semantic regression fixture?추?
-  - 진행: movable-resource + nested member source + member rebind target 조합??semantic regression fixture?추?
-  - 진행: declaration-side MIR-only host truth??`current_host_decl` / inventory 기?으로 ??좁혔? `within_zone`??라??transpiler host recovery fallback?role-owner direct AST lookup???거
-  - 진행: own/ref anchored-handle wording??assignment / let-binding / return / channel / helper family??맞춰 `boundary-visible handle binding` / `anchored-handle provenance` 기?으로 ?렬
-  - ?료 ?정: direct/summary helper-chain, return/channel/helper, destructure, assignment/member/container/constructor/array path current semantic regression으로 고정??  - explicit reject: authority-bearing `Token<T>` escape/transport
-  - beta-out-of-scope: region/lifetime solver? universal ownership lattice
+- [x] **own/ref 일반화 audit 마감**
+  - own/ref는 ownership classifier 기준 stable subset으로 닫힘
+  - borrowed value escape는 helper call / channel / return / container store뿐 아니라 broader assignment/member/store path까지 provenance 기준으로 점검
+  - 진행: constructor field store(`Holder(packet)` 같은 boundary-visible store)를 borrowed escape 경로로 승격하고 semantic regression 추가
+  - 진행: constructor field store도 borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)를 직접 보고하도록 정렬
+  - 진행: array literal store(`[packet]`)도 borrowed escape 경로로 승격하고 semantic regression 추가
+  - 진행: member assignment / array overwrite 진단이 identifier-only가 아니라 `holder.packet`, `items[0]` 같은 target path provenance를 직접 보고하도록 정렬
+  - 진행: new-binding escape도 identifier-only가 아니라 borrowed member/aggregate source path provenance(`packet.view`, `items[0]`)까지 추적하도록 확장
+  - 진행: new-binding escape regression도 member source path(`packet.items`)와 array source path(`items[0]`)를 fixture로 고정
+  - 진행: container store(`ArrayPush`/`ListPush`/`SetAdd`/`QueuePush`/`MapSet`)도 borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
+  - 진행: helper forwarding / builtin channel send(`Send`/`TrySend`/`SendTimeout`/status variants)도 unnamed borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
+  - 진행: direct `return` escape도 borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)를 직접 보고하도록 정렬
+  - 진행: slot/resource summary 기반 `return/channel/helper` diagnostics도 `summary provenance root` vocabulary로 direct semantic wording에 더 가깝게 정렬
+  - 진행: summary-based helper escape는 direct callee wording 대신 `helper/function summary in '<fn>'` 경로로 분리해 drift를 줄임
+  - 진행: summary-based return/channel escape도 direct consumer wording 대신 `return summary in '<fn>'` / `channel summary in '<fn>'` 경로로 분리해 drift를 줄임
+  - 진행: anchored-handle summary escape도 direct `return/channel/helper` wording 대신 summary wording으로 분리해 own/ref bridge 문구를 정렬
+  - 진행: helper-call / container-store / array-literal-store / semantic channel-send diagnostic family를 공용 helper로 통합
+  - 진행: nested projection + transitive helper + member rebind 조합도 semantic regression fixture로 추가
+  - 진행: movable-resource + nested member source + member rebind target 조합도 semantic regression fixture로 추가
+  - 진행: declaration-side MIR-only host truth는 `current_host_decl` / inventory 기준으로 더 좁혔고, `within_zone`를 따라가는 transpiler host recovery fallback과 role-owner direct AST lookup을 제거
+  - 진행: own/ref anchored-handle wording을 assignment / let-binding / return / channel / helper family에 맞춰 `boundary-visible handle binding` / `anchored-handle provenance` 기준으로 정렬
+  - 완료 판정: direct/summary helper-chain, return/channel/helper, destructure, assignment/member/container/constructor/array path가 current semantic regression으로 고정됨
+  - explicit reject: authority-bearing `Token<T>` escape/transport
+  - beta-out-of-scope: region/lifetime solver와 universal ownership lattice
 
-- [ ] **generic contract ?꾧꼍濡?audit 留덇컧**
-  - generic contract??`default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path?마?막까 audit
-  - 진행: `party role slot` generic mismatch consumer??actual/expected type arg + consumer path provenance regression으로 고정
-  - ?? generic consumer path ?다??것을 regression으로 증명?고, partial acceptance처럼 보이??경로??기 ?는??
-- [ ] **Intent/Zone/World, relation/effect/projection 진단?provenance 마감**
-  - intent/zone/world??embedding / handoff / authority mismatch?서 contract source, derived zone/using, transfer edge provenance?계속 강화
-  - relation/effect/projection? propagation edge failure, contract mismatch, branch/join/handoff path??`Contract source:` / `Reason:` / `Fix:`? source/target provenance????게 ?  - 진행: world embedding/handoff? intent transfer/authority mismatch???심 경로?`Contract source:` / `Reason:` / `Fix:` 구조??정??  - runtime contract provenance? diagnostic wording?????렬???왜 ?패는 + 계약???디??는 + ?떻?고칠?? ??번에 보이?한다
-  - helper-heavy edge path?줄이? compile-time contract ?패?silent/best-effort runtime sync??기 ?는??  - 진행: intent step contract-source summary `authorized by`, transfer handoff, derived transfer zone provenance???직접?으??명?도??렬
-  - 진행: zone-within action authority mismatch `within` / `causes` header?contract source?직접 보고?도??렬
-  - 진행: world embedding / post-embedding mutation diagnostics `world <name> zone slot <slot>` contract source? world-owned authority/handoff destination??직접 보고?도??렬
+- [ ] **generic contract 전경로 audit 마감**
+  - generic contract는 `default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path를 마지막까지 audit
+  - 진행: `party role slot` generic mismatch consumer도 actual/expected type arg + consumer path provenance regression으로 고정
+  - 남은 generic consumer path가 없다는 것을 regression으로 증명하고, partial acceptance처럼 보이는 경로를 남기지 않는다
 
-- [ ] **C/LLVM parity + full CI green??베? 최종 문으?고정**
-  - Linux 湲곗? `parser / semantic / transpile / ABI / backend-compare / llvm smoke / ir-pipeline / example smoke`瑜?full green?쇰줈 ?좎?
-  - Windows??로컬 Linux host?서 강행?? ?고, MSYS2/MinGW + LLVM runner?서 `ci-windows` full green???시 고정
-  - backend compare??domain semantics 기? parity?계속 ???고, same-process ABI / launch / runtime environment 차이??발?? ?게 ?는??  - 현재 immediate blocker: Windows `backend-compare`? LLVM parity??마??crash / launch / runtime mismatch ?거
-  - 베? ?언 ??acceptance line? ???green이 아니며 C/LLVM parity? expected stdout/stderr/result parity까? ?함??CI green으로 한다
+- [ ] **Intent/Zone/World, relation/effect/projection 진단과 provenance 마감**
+  - intent/zone/world의 embedding / handoff / authority mismatch에서 contract source, derived zone/using, transfer edge provenance를 계속 강화
+  - relation/effect/projection은 propagation edge failure, contract mismatch, branch/join/handoff path에 `Contract source:` / `Reason:` / `Fix:`와 source/target provenance를 일관되게 부착
+  - 진행: world embedding/handoff와 intent transfer/authority mismatch의 핵심 경로를 `Contract source:` / `Reason:` / `Fix:` 구조로 재정렬
+  - runtime contract provenance와 diagnostic wording을 더 정렬해 “왜 실패했는지 + 계약이 어디서 왔는지 + 어떻게 고칠지”를 한 번에 보이게 한다
+  - helper-heavy edge path를 줄이고, compile-time contract 실패를 silent/best-effort runtime sync로 넘기지 않는다
+  - 진행: intent step contract-source summary가 `authorized by`, transfer handoff, derived transfer zone provenance를 더 직접적으로 설명하도록 정렬
+  - 진행: zone-within action authority mismatch가 `within` / `causes` header를 contract source로 직접 보고하도록 정렬
+  - 진행: world embedding / post-embedding mutation diagnostics가 `world <name> zone slot <slot>` contract source와 world-owned authority/handoff destination을 직접 보고하도록 정렬
 
-?행 ?한 ?구??컴파?러 ?계???겼? 아직 베?하고 ?는 한다.
+- [ ] **C/LLVM parity + full CI green을 베타 최종 관문으로 고정**
+  - Linux 기준 `parser / semantic / transpile / ABI / backend-compare / llvm smoke / ir-pipeline / example smoke`를 full green으로 유지
+  - Windows는 로컬 Linux host에서 강행하지 않고, MSYS2/MinGW + LLVM runner에서 `ci-windows` full green을 다시 고정
+  - backend compare는 domain semantics 기준 parity를 계속 확대하고, same-process ABI / launch / runtime environment 차이를 재발하지 않게 잡는다
+  - 현재 immediate blocker: Windows `backend-compare`와 LLVM parity의 마지막 crash / launch / runtime mismatch 제거
+  - 베타 선언 전 acceptance line은 “부분 green”이 아니라 C/LLVM parity와 expected stdout/stderr/result parity까지 포함한 CI green으로 둔다
 
-?먯젙 湲곗?:
-- 베? ?칙??`?구현 ?태??기 ?는???아직 충족?? 못함
-- ?워??족이 아니며 `구현 depth 불균????문제??- parser 받는 surface ??? semantic/C/LLVM/runtime/test/documentation까? ?전???히 ?음
+실행 가능한 연구용 컴파일러 단계는 넘겼지만, 아직 베타라고 부를 수는 없다.
 
-### ?? ?힌 축과 ???상 베? 차단???닌 ?
+판정 기준:
+- 베타 원칙인 `부분 구현 상태를 남기지 않는다`를 아직 충족하지 못함
+- 키워드 부족이 아니라 `구현 depth 불균형`이 문제임
+- parser가 받는 surface 중 일부가 semantic/C/LLVM/runtime/test/documentation까지 완전히 닫히지 않음
+
+### 이미 닫힌 축과 더 이상 베타 차단이 아닌 것
+
 - `public/private/export` module boundary
-  - top-level nominal/domain/callable visibility ?렬 ?료
-  - private `func/intent/event` cross-module call 차단 ?료
-  - private `zone/effect` action-contract leakage 차단 ?료
+  - top-level nominal/domain/callable visibility 정렬 완료
+  - private `func/intent/event` cross-module call 차단 완료
+  - private `zone/effect` action-contract leakage 차단 완료
 - nominal token split
-  - `subject/class/struct/object/tobject`??lexer token ?벨?서 ?? 분리??- ability field surface
-  - legacy `require` alias ?거, `fields` canonical surface 고정
+  - `subject/class/struct/object/tobject`는 lexer token 레벨에서 이미 분리됨
+- ability field surface
+  - legacy `require` alias 제거, `fields` canonical surface 고정
 - generic ability baseline
-- `ability<T>`, `requires Ability<T>`, `impl ability Ability<T>`, zone authority generic ref, mismatch diagnostics baseline 議댁옱
-- cross-module imported generic ability??multi-bound zone-authority consumer regression 異붽?
-- ?묒옄 surface
-  - 踰좏? ??곸뿉???쒖쇅
-  - `v2 / experimental`濡쒕쭔 異붿쟻
+- `ability<T>`, `requires Ability<T>`, `impl ability Ability<T>`, zone authority generic ref, mismatch diagnostics baseline 존재
+- cross-module imported generic ability의 multi-bound zone-authority consumer regression 추가
+- 양자 surface
+  - 베타 대상에서 제외
+  - `v2 / experimental`로만 추적
 
-### 현재 베??막는 ?제 B0 ?
+### 현재 베타를 막는 실제 B0 갭
+
 #### 1. Intent / Zone / World closure
 
-?재:
-- intent orchestration, inherited/derived contract, rollback/cleanup carrier, zone/world declaration?기본 lowering? 존재
-- zone/world projection/layer/state query??議댁옱
-- intent runtime observability baseline??議댁옱
+현재:
+- intent orchestration, inherited/derived contract, rollback/cleanup carrier, zone/world declaration과 기본 lowering은 존재
+- zone/world projection/layer/state query도 존재
+- intent runtime observability baseline도 존재
   - `IntentLast*`
   - `IntentHistoryStep*`
   - `IntentActive*`
   - `IntentRecent*`
-  - active/recent handle + active-step field query builtin??semantic/transpiler/runtime/LLVM baseline ?결 ?료
-  - runtime ?? recent ring + active registry + typed step history storage ?결 ?료
+  - active/recent handle + active-step field query builtin의 semantic/transpiler/runtime/LLVM baseline 연결 완료
+  - runtime 내부 recent ring + active registry + typed step history storage 연결 완료
   - ABI regression: `IntentRecent*` trace/failure baseline, failed-intent provenance, world zone query, relation/effect zone state parity 고정
   - backend parity: embedded world -> zone projection visibility regression 고정
 
-?⑥? 寃?
-- embedding ownership / handoff policy?surface trust ??까? 명확??고정
-- richer multi-instance timeline query? failure provenance ?뺢탳??- cross-layer propagation policy????源딆? closure
-- C/LLVM parity?declaration/runtime/diagnostic까? 같? ?질??렬
+남은 것:
+- embedding ownership / handoff policy를 surface trust 수준까지 명확히 고정
+- richer multi-instance timeline query와 failure provenance 정교화
+- cross-layer propagation policy의 더 깊은 closure
+- C/LLVM parity를 declaration/runtime/diagnostic까지 같은 품질로 정렬
 
 #### 2. relation / effect / projection closure
 
-?재:
-- declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync baseline 議댁옱
-- effect join/meet/conflict API? basic closure 議댁옱
-- projection contract diagnostics??target/source/mode/fix??함는 structured error 쪽으?보강??- backend parity:
+현재:
+- declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync baseline 존재
+- effect join/meet/conflict API와 basic closure 존재
+- projection contract diagnostics는 target/source/mode/fix를 포함하는 structured error 쪽으로 보강됨
+- backend parity:
   - embedded world -> zone projection visibility regression 고정
   - relation/effect layer + state propagation parity regression 고정
 
-?⑥? 寃?
-- authority/resource? effect partial order?????전???합
-- projection propagation policy ?화
-- runtime contract? deeper propagation failure provenance???증명 ?하??리
-- C/LLVM parity?서 helper-heavy edge path 감소
+남은 것:
+- authority/resource와 effect partial order의 더 완전한 통합
+- projection propagation policy 심화
+- runtime contract와 deeper propagation failure provenance를 더 설명 가능하게 정리
+- C/LLVM parity에서 helper-heavy edge path 감소
 
 #### 3. generic contract closure
 
-?재:
-- generic ability declaration/reference baseline 議댁옱
-- action / intent step / zone authority / party role slot generic mismatch diagnostics stable 議댁옱
-- hidden/default-export generic ability visibility??action/role impl?아니며 zone authority/party role slot consumer path까? ???고정
-- `ability<T> where ...` bound??`requires` / `impl ability` / party role slot ref?서 ?시 증됨
-- default type argument??semantic + transpiler + backend compare까? baseline closure ?료
-  - user-defined `class/ability<T = ...>` omitted arg 경로?서??effective specialization으로 ?렬??  - non-deduced trailing generic parameter default??function call `where` validation 경로?서 ???고정
-  - cross-module omitted default generic ability consumer(`party role slot` / `zone authority`)?????고정
-- multi-bound `where T: A + B` baseline? 현재 ?작??- hidden/default-export? generic ability ref 규칙 ?렬 ?료
+현재:
+- generic ability declaration/reference baseline 존재
+- action / intent step / zone authority / party role slot generic mismatch diagnostics stable 존재
+- hidden/default-export generic ability visibility는 action/role impl뿐 아니라 zone authority/party role slot consumer path까지 회귀로 고정
+- `ability<T> where ...` bound는 `requires` / `impl ability` / party role slot ref에서 다시 검증됨
+- default type argument는 semantic + transpiler + backend compare까지 baseline closure 완료
+  - user-defined `class/ability<T = ...>`가 omitted arg 경로에서도 effective specialization으로 정렬됨
+  - non-deduced trailing generic parameter default도 function call `where` validation 경로에서 회귀로 고정
+  - cross-module omitted default generic ability consumer(`party role slot` / `zone authority`)도 회귀로 고정
+- multi-bound `where T: A + B` baseline은 현재 동작함
+- hidden/default-export와 generic ability ref 규칙 정렬 완료
 
-?⑥? 寃?
-- broader type-family generalization??beta 범위 밖으?명시
-- richer generic constraint validation??beta contract 범위?문서/board???치?켜 고정
-- import/use surface? diagnostics/tooling ?현??module contract 기?으로 ?????게 ?리
+남은 것:
+- broader type-family generalization을 beta 범위 밖으로 명시
+- richer generic constraint validation의 beta contract 범위를 문서/board에 일치시켜 고정
+- import/use surface와 diagnostics/tooling 표현을 module contract 기준으로 더 일관되게 정리
 
 #### 4. own/ref closure
 
-?재:
-- anchored subset? ?ロ? ?덉쓬
+현재:
+- anchored subset은 닫혀 있음
   - `ref Slot<subject-host>`
   - `own SecureSlot<subject-host>`
-- first movable-value transfer slice???쒖옉??  - explicit `own QubitSlot` parameter???덉슜
-  - `ref QubitSlot` borrow boundary baseline ?덉슜
-  - call-site??`own/default`硫?consume, `ref`硫?borrow ?좎?濡?遺꾧린
-  - borrowed `ref QubitSlot`??`return` / `channel send` escape??semantic?서 명시 차단
-- ??진단/?제/문서??현재 구현 기?으로 ?렬??
-?먯젙:
-- anchored subset baseline? ?? ??? beta-quality 기??서??own/ref??시 ?성 blocker?본다
-- ?? ?? ?반 movable type ownership model, copy vs move-only 분류, assignment/call/return/channel/container/rebind ?경?analysis, richer provenance diagnostics?는 것이??- ?히 borrowed movable-resource ownership??helper-call/return/channel-send baseline???혔? ?음? wider movable type generalization?container/rebind provenance????아??한다
-- anchored subset?stable?라?보고 되어?ownership story partial acceptance??는??
-### ?이?별 현재 진실
+- first movable-value transfer slice도 시작됨
+  - explicit `own QubitSlot` parameter는 허용
+  - `ref QubitSlot` borrow boundary baseline 허용
+  - call-site는 `own/default`면 consume, `ref`면 borrow 유지로 분기
+  - borrowed `ref QubitSlot`의 `return` / `channel send` escape는 semantic에서 명시 차단
+- 관련 진단/예제/문서는 현재 구현 기준으로 정렬됨
 
-#### ?쒕㎤??
-- 강한 ?
+판정:
+- anchored subset baseline은 이미 있지만, beta-quality 기준에서는 own/ref를 다시 활성 blocker로 본다
+- 남은 일은 일반 movable type ownership model, copy vs move-only 분류, assignment/call/return/channel/container/rebind 전경로 analysis, richer provenance diagnostics를 닫는 것이다
+- 특히 borrowed movable-resource ownership는 helper-call/return/channel-send baseline이 닫혔고, 다음은 wider movable type generalization과 container/rebind provenance를 더 닫아야 한다
+- anchored subset만 stable이라고 보고 넘어가면 ownership story가 partial acceptance로 남는다
+
+### 레이어별 현재 진실
+
+#### 시맨틱
+
+- 강한 부분:
   - nominal family
   - subject/action
   - async/channel/select
   - generic ability baseline
   - visibility/export boundary
-- 아직 ?? ?
+- 아직 얕은 부분:
   - richer generic constraint validation
   - general own/ref
-  - event closure???붿뿬 negative path
+  - event closure의 잔여 negative path
   - collection semantic depth
 
-#### 肄붾뱶 ?앹꽦
+#### 코드 생성
 
 - C backend:
-  - 코어 surface?????숙
-  - method owner metadata HIR->MIR??려? declaration-side zone/relation/effect/world context 복원 ???름 추정보다 MIR metadata??선 ?용
-  - 진행: `transpiler_emit_host_method_body_local`??manual save/restore ?태?`TranspilerMirEmitState` snapshot helper?축소
-  - 진행: `emit_func_decl_from_mir_named` / AST fallback `emit_func_decl_named`??`TranspilerMirEmitState` snapshot helper??렴
-  - 진행: `emit_intent_decl`??function-scope out/render/return/local-count restore??`TranspilerMirEmitState` snapshot helper??렴
-  - 진행: generic class specialization method body??MIR inventory 존재 ??AST fallback ???MIR routine gate / explicit backend error??렬
-  - 진행: LLVM domain/role missing-routine errors??`PGY_CODE_LLVM_MIR_ROUTINE_MISSING` / cause / fix structured path??렬
+  - 코어 surface는 가장 성숙
+  - method owner metadata가 HIR->MIR로 내려와 declaration-side zone/relation/effect/world context 복원 시 이름 추정보다 MIR metadata를 우선 사용
+  - 진행: `transpiler_emit_host_method_body_local`의 manual save/restore 상태를 `TranspilerMirEmitState` snapshot helper로 축소
+  - 진행: `emit_func_decl_from_mir_named` / AST fallback `emit_func_decl_named`도 `TranspilerMirEmitState` snapshot helper로 수렴
+  - 진행: `emit_intent_decl`의 function-scope out/render/return/local-count restore도 `TranspilerMirEmitState` snapshot helper로 수렴
+  - 진행: generic class specialization method body도 MIR inventory 존재 시 AST fallback 대신 MIR routine gate / explicit backend error로 정렬
+  - 진행: LLVM domain/role missing-routine errors도 `PGY_CODE_LLVM_MIR_ROUTINE_MISSING` / cause / fix structured path로 정렬
 - LLVM backend:
   - MIR-led / HIR-assisted hybrid
-  - ordinary routine? MIR 중심???domain declaration??? bootstrap/helper path??HIR/AST ?존 ?존
-  - pure MIR-only하고 르기는 아직 ?름??과함
+  - ordinary routine은 MIR 중심이지만 domain declaration과 일부 bootstrap/helper path에 HIR/AST 의존 잔존
+  - pure MIR-only라고 부르기에는 아직 이름이 과함
 
-#### ?고???
-- 강한 ?
+#### 런타임
+
+- 강한 부분:
   - slot / secure baseline
   - async/channel basic runtime
   - basic intent execution/rollback
   - intent observability baseline (`last` / `history` / `active` / `recent`)
-- 아직 ?? ?
+- 아직 얕은 부분:
   - richer multi-instance timeline / failure provenance
   - channel backpressure protocol
   - party edge-path completeness
   - richer zone/world runtime policy
 
-### 而щ젆??/ ?쒕㈃ ?좊ː
+### 컬렉션 / 표면 신뢰
 
-- `Map<K, V>`??현재 `String | Int | Long | Bool` key stable subset까? ?린??- ?것? 버그 아니며 현재 contract
-- arbitrary key-universal map contract??아직 generic closure debt??는??
-### ?대쭅
+- `Map<K, V>`는 현재 `String | Int | Long | Bool` key stable subset까지 올린다
+- 이것은 버그가 아니라 현재 contract
+- arbitrary key-universal map contract는 아직 generic closure debt로 남는다
 
-- LSP / formatter??베? 차단 ?심???님
-- debugger / package manager / WASM??베? 차단 ?심???님
-- ?들? B0 closure ?후???루??것이 맞음
+### 툴링
 
-### 베? 직전 ?리 ?칙
+- LSP / formatter는 베타 차단 핵심이 아님
+- debugger / package manager / WASM도 베타 차단 핵심이 아님
+- 이들은 B0 closure 이후에 다루는 것이 맞음
 
-1. ???워????축을 ??추??? ?는??2. ?? 미완??surface?`?성`?거??`experimental`??린??3. `?자`, `WASM`, `?키 매니?`, `고급 ?버???베? ??에???외한다
-4. B0 4개? ?기 ?에??베?하고 르? ?는??
+### 베타 직전 정리 원칙
+
+1. 새 키워드/새 축을 더 추가하지 않는다
+2. 남은 미완성 surface를 `완성`하거나 `experimental`로 내린다
+3. `양자`, `WASM`, `패키지 매니저`, `고급 디버거`는 베타 대상에서 제외한다
+4. B0 4개를 닫기 전에는 베타라고 부르지 않는다
+
 ---
 
-## ?료 (P0 ??Pain Point ?정, 2026-04-12)
+## 완료 (P0 — Pain Point 수정, 2026-04-12)
 
-- [x] **P0-1: Array for-in `.count` ??`.length`** ??`transpiler.c`?서 Array??`.length`, List??`.count` ?용
-- [x] **P0-2: `StringSplit`/`StringJoin` ????구현** ??`pgy_runtime.h`???제 구현 추?, ?맨??C 백엔???치
-- [x] **P0-3: `None` ?볼 ?의** ??`type_checker.c`?서 AST_IDENTIFIER 처리, `type_system.c`?서 `Option<unknown>` ??`Option<T>` ?당 ?용, 코드?에??`expected_type` 기반 ????결
-- [x] **P0-6: defer ???코??버그 ?정** ??`type_checker_flow.c`?서 defer body 처리 ????resource-state snapshot/restore. cleanup body??`return`/`break`/`continue`? QubitSlot release/move???하?주? CFG path? outer loop flow??비?? ?는?? direct `type_check_statement()` fallback??같? helper??용한다.
-- [x] **P1-7: struct/subject Slot 매크?warning ?제** ??`transpiler.c`?서 `#pragma GCC diagnostic push/pop`으로 `-Wunused-function` ?제
-- [x] **P1-emit_call ?메우?* ??`BUILTIN_BOX_ARRAY`, `BUILTIN_PARALLEL` ?스 추?
-- [x] **P0-4: enum match OR ?턴 ?정** ??`type_checker_flow.c`?서 named variant OR ?턴 ?용 + coverage 체크 ?정
-- [x] **P2-13: match 기반 개수 default return ?동 ?성** ??`transpiler_emitters_base_b.inc`?서 non-void 개수 ??fallback return 추?
-- [x] **Pain Point 보고??* ??`docs/68_pain_point_report.md`???정 ?역 기록
+- [x] **P0-1: Array for-in `.count` → `.length`** — `transpiler.c`에서 Array는 `.length`, List는 `.count` 사용
+- [x] **P0-2: `StringSplit`/`StringJoin` 런타임 구현** — `pgy_runtime.h`에 실제 구현 추가, 시맨틱/C 백엔드 일치
+- [x] **P0-3: `None` 심볼 정의** — `type_checker.c`에서 AST_IDENTIFIER 처리, `type_system.c`에서 `Option<unknown>` → `Option<T>` 할당 허용, 코드젠에서 `expected_type` 기반 타입 해결
+- [x] **P0-6: defer 변수 스코프 버그 수정** — `type_checker_flow.c`에서 defer body 처리 전/후 resource-state snapshot/restore. cleanup body의 `return`/`break`/`continue`와 QubitSlot release/move는 검사하지만 주변 CFG path와 outer loop flow를 소비하지 않는다. direct `type_check_statement()` fallback도 같은 helper를 사용한다.
+- [x] **P1-7: struct/subject Slot 매크로 warning 억제** — `transpiler.c`에서 `#pragma GCC diagnostic push/pop`으로 `-Wunused-function` 억제
+- [x] **P1-emit_call 갭 메우기** — `BUILTIN_BOX_ARRAY`, `BUILTIN_PARALLEL` 케이스 추가
+- [x] **P0-4: enum match OR 패턴 수정** — `type_checker_flow.c`에서 named variant OR 패턴 허용 + coverage 체크 수정
+- [x] **P2-13: match 기반 함수 default return 자동 생성** — `transpiler_emitters_base_b.inc`에서 non-void 함수 끝 fallback return 추가
+- [x] **Pain Point 보고서** — `docs/68_pain_point_report.md`에 수정 내역 기록
 
-## ?료 (최근)
+## 완료 (최근)
 
-- [x] **Windows ABI/backend-compare precheck ?ㅽ뻾 寃쎈줈 ?뺢퇋??*
-  - `compiler_run_binary()` MSYS ????`/tmp/...` ?`/<drive>/...` ?행 ?일 경로?그??`_spawnvp()`???기??문제??정
-  - Windows?서 executable launch??native Win32 경로??규?한 ???행?도??렬
+- [x] **Windows ABI/backend-compare precheck 실행 경로 정규화**
+  - `compiler_run_binary()`가 MSYS 스타일 `/tmp/...` 및 `/<drive>/...` 실행 파일 경로를 그대로 `_spawnvp()`에 넘기던 문제를 수정
+  - Windows에서 executable launch는 native Win32 경로로 정규화한 뒤 실행하도록 정렬
 - [x] **nested vessel-source projection ambiguity closure**
-  - zone `refresh/publish/bind` projection contract 경로?서 ambiguous source path `missing`으로 ?진?던 분기 ?서??정
-  - builtin `ToObject` / `ToTObject`???숈씪??structured `Reason/Fix` ambiguity diagnostic?쇰줈 ?뺣젹
-  - nested vessel ambiguity semantic regressions 異붽?
-- [x] **generic consumer provenance diagnostics 蹂닿컯**
-  - `action requires` / `zone authority` / `party role slot` / `intent step requires`?서 generic ability mismatch `actual type argument` / `actual implementation` provenance??께 보고?도??렬
-  - 愿??semantic ?뚭? 異붽?
-- [x] **anchored own/ref provenance diagnostics 蹂닿컯**
-  - closed-subset / local-only / missing `own/ref` / `ref` escape 진단??`Reason/Fix`? borrowed-here provenance?추?
-  - 愿??semantic ?뚭? 異붽?
-- [x] **world embedding structured diagnostics ?? 고정**
-  - embedded zone old-binding mutation??assignment / hosted func-action call 모두?서 `Reason/Fix`? world-owned-copy provenance??기?록 semantic ?? 강화
-- [x] **Windows shell smoke portability 蹂닿컯**
-  - `abi_pipeline_smoke.sh`, `compare_backends.sh` `cmp`/`diff` ???경?서??`git` 는 Python fallback으로 비교/차이 출력???행?도??리
-- [x] **surface trust docs ?뺣젹 ??collection/result/struct baseline**
-  - `Array<T>`??`[]`, `List<T>`??`ListNew()`, `HashMap<K,V>`??`MapNew()`?canonical ?성 surface?고정
-  - `Result<T>` 추출 API??`Unwrap` / `UnwrapOr` / postfix `?`?고정, `UnwrapResult()` ?면? 비채??  - `struct` field??legacy `let`? 불? ?식??아니며 declaration introducer을 문서?하? ?기 ?용 계약? `object/tobject`?만 한다
-- [x] **generic default-arg closure 1?복구** ??declaration acceptance만이 아니며 user-defined generic class omission, generic ability impl-reference omission, arity diagnostics range?? semantic/backend parity까? ?시 ?색으로 ?렬
-- [x] **ABI Unification Infrastructure** ??`pgy_abi_spec.h`, `test_abi_spec.c` (28 PASS), `MIRTypeLayout`, `mir_abi_lookup()`, `rir_dump_json()`, dumb emitter Visitor
-- [x] **Windows CI Fix** ??`TOKEN_TYPE` ??`PGY_TOKEN_TYPE`, `TokenType` ??`PgyTokenType` (~20??일)
-- [x] **v2 Quantum Planning** ???자 ?산 미???명시, v2 계획 문서??- [x] **Documentation Index** ??`docs/INDEX.md` ?성, ?체 문서 체계??- [x] **`HashMap<K, V>` stable key subset surface trust ?렬** ??semantic annotation/builtins/runtime comment/test?`String | Int | Long | Bool` key ?으??치?킴
-- [x] **mixed `ability + zone` module export 충돌 ?정** ??default-export `ability` sibling zone visibility?깨뜨리던 ?규??버그 ?거, module smoke ?? 추?
-- [x] **nominal host receiver type ?염 ?정** ??C backend member-call emit ?static type-name overwrite??거??`Int_Advance`??발??복구
-- [x] **MIR cleanup exceptional topology ?? 복구** ??cleanup/rollback/invalidation block edge materialization?test expectation ?렬
-- [x] **`order_analytics` example ?ㅼ쟾??* ??sketch ?섏? surface瑜??뺣━?섍퀬 compile-smoke covered example濡??밴꺽
-- [x] **declaration name surface tightening** ??declaration name???쇰컲 ?앸퀎?먮줈留??쒗븳?섍퀬 reserved keyword ?ъ궗??surface ?쒓굅
-- [x] **anchored-handle diagnostics/test ?렬** ??`own/ref` closed-subset 진단 문구? `DeviceSlot`/anchored-handle semantic test expectation??현재 구현 기?으로 ?치?킴
-- [x] **계층??stdlib/domain kit v0 고정** ??`money`, `datetime(Duration/Instant)`, `timer`, `versioning`, `ledger`, `obligation`, `device_adapter` 모듈?probe ?제 추?, 코어 추? 금? ?칙 문서??
-## 踰좏? ?대줈? 蹂대뱶
+  - zone `refresh/publish/bind` projection contract 경로에서 ambiguous source path가 `missing`으로 오진되던 분기 순서를 수정
+  - builtin `ToObject` / `ToTObject`도 동일한 structured `Reason/Fix` ambiguity diagnostic으로 정렬
+  - nested vessel ambiguity semantic regressions 추가
+- [x] **generic consumer provenance diagnostics 보강**
+  - `action requires` / `zone authority` / `party role slot` / `intent step requires`에서 generic ability mismatch가 `actual type argument` / `actual implementation` provenance를 함께 보고하도록 정렬
+  - 관련 semantic 회귀 추가
+- [x] **anchored own/ref provenance diagnostics 보강**
+  - closed-subset / local-only / missing `own/ref` / `ref` escape 진단에 `Reason/Fix`와 borrowed-here provenance를 추가
+  - 관련 semantic 회귀 추가
+- [x] **world embedding structured diagnostics 회귀 고정**
+  - embedded zone old-binding mutation이 assignment / hosted func-action call 모두에서 `Reason/Fix`와 world-owned-copy provenance를 남기도록 semantic 회귀 강화
+- [x] **Windows shell smoke portability 보강**
+  - `abi_pipeline_smoke.sh`, `compare_backends.sh`가 `cmp`/`diff` 부재 환경에서도 `git` 또는 Python fallback으로 비교/차이 출력을 수행하도록 정리
+- [x] **surface trust docs 정렬 — collection/result/struct baseline**
+  - `Array<T>`는 `[]`, `List<T>`는 `ListNew()`, `HashMap<K,V>`는 `MapNew()`를 canonical 생성 surface로 고정
+  - `Result<T>` 추출 API는 `Unwrap` / `UnwrapOr` / postfix `?`로 고정, `UnwrapResult()` 표면은 비채택
+  - `struct` field의 legacy `let`은 불변 표식이 아니라 declaration introducer임을 문서화하고, 읽기 전용 계약은 `object/tobject`에만 둔다
+- [x] **generic default-arg closure 1차 복구** — declaration acceptance만이 아니라 user-defined generic class omission, generic ability impl-reference omission, arity diagnostics range화, semantic/backend parity까지 다시 녹색으로 정렬
+- [x] **ABI Unification Infrastructure** — `pgy_abi_spec.h`, `test_abi_spec.c` (28 PASS), `MIRTypeLayout`, `mir_abi_lookup()`, `rir_dump_json()`, dumb emitter Visitor
+- [x] **Windows CI Fix** — `TOKEN_TYPE` → `PGY_TOKEN_TYPE`, `TokenType` → `PgyTokenType` (~20개 파일)
+- [x] **v2 Quantum Planning** — 양자 연산 미지원 명시, v2 계획 문서화
+- [x] **Documentation Index** — `docs/INDEX.md` 생성, 전체 문서 체계화
+- [x] **`HashMap<K, V>` stable key subset surface trust 정렬** — semantic annotation/builtins/runtime comment/test를 `String | Int | Long | Bool` key 지원으로 일치시킴
+- [x] **mixed `ability + zone` module export 충돌 수정** — default-export `ability`가 sibling zone visibility를 깨뜨리던 정규화 버그 제거, module smoke 회귀 추가
+- [x] **nominal host receiver type 오염 수정** — C backend member-call emit 중 static type-name overwrite를 제거해 `Int_Advance`류 오발행 복구
+- [x] **MIR cleanup exceptional topology 회귀 복구** — cleanup/rollback/invalidation block edge materialization과 test expectation 정렬
+- [x] **`order_analytics` example 실전화** — sketch 수준 surface를 정리하고 compile-smoke covered example로 승격
+- [x] **declaration name surface tightening** — declaration name을 일반 식별자로만 제한하고 reserved keyword 재사용 surface 제거
+- [x] **anchored-handle diagnostics/test 정렬** — `own/ref` closed-subset 진단 문구와 `DeviceSlot`/anchored-handle semantic test expectation을 현재 구현 기준으로 일치시킴
+- [x] **계층형 stdlib/domain kit v0 고정** — `money`, `datetime(Duration/Instant)`, `timer`, `versioning`, `ledger`, `obligation`, `device_adapter` 모듈과 probe 예제 추가, 코어 추가 금지 원칙 문서화
 
-踰좏? ???먯튃:
-- `?구현` ?태??기 ?는??- ?료?키 못하??surface???리거나 experimental?격리한다
-- parser 받는 ?면? semantic/C/LLVM/runtime/test/documentation까? ?는??
-### B0 ??????로? 개수
+## 베타 클로저 보드
 
-- [ ] **Intent/Zone/World semantics ?전 closure**
+베타 전 원칙:
+- `부분 구현` 상태를 남기지 않는다
+- 완료시키지 못하는 surface는 내리거나 experimental로 격리한다
+- parser가 받는 표면은 semantic/C/LLVM/runtime/test/documentation까지 닫는다
+
+### B0 — 의미론 클로저 필수
+
+- [ ] **Intent/Zone/World semantics 완전 closure**
   - contract reuse/derivation / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
-  - ?대? 議댁옱: intent orchestration, inherited/derived contract, zone/world query, observability baseline
-  - 진행: runtime zone/world propagation cell??`epoch/cause` provenance baseline??되어갔고, LLVM intent rebound-zone sync??같? truth??렬??  - 진행: world derived-state chain? ?제 bounded recompute loop?대해 C/LLVM ?쪽?서 같? 규칙으로 계산??  - 강한 기?: ??축? ?제 "?? single-pass sync로도 beta ?? 같? ?석???용?? ?음
-- ?음: embedding ownership/handoff policy, **handoff? ???? world-zone propagation family까? ?반?된 bounded fixpoint 기반 cross-layer propagation policy**, richer provenance query surface, declaration/runtime/diagnostic parity
-  - ??축? 되어 ?체???체???beta 직전까? 되어?? ?는??- [ ] **relation/effect/projection semantics ?전 closure**
-  - effect lattice, authority-resource partial order ?듯빀, refresh/publish/bind/causes ?쇨??? diagnostics, C/LLVM parity
-  - ?대? 議댁옱: declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync, effect join/meet/conflict, projection contract diagnostics baseline
-- 진행: relation/effect/zone projection hidden cell??C/LLVM 모두 `dirty/ready + epoch/cause` schema??렬하고 runtime contract provenance baseline????
-- 진행: world-derived recompute??bounded pass loop??라?고, relation/effect/zone projection chain??bounded transitive recompute loop??라한다
-- 강한 기?: projection propagation? ???상 "helper replay ?체로 맞음" ??으로 ?? ?고, transitive semantics ?히??까 beta blocker???
-- ?음: authority-resource partial order ?합, projection/layer/state?되어??**authority/failure handoff? ???? world-zone propagation family까???full transitive frontier propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity??마??shrink
-  - ??축? domain semantics ?심???partial ?태?beta???리 ?는??  - projection diagnostics??`target/source/projection kind/field path/fix`??함하고 `Reason:` / `Fix:` ?맷으로 고정한다
-- [x] **generic contract ?전 closure**
-  - strict beta-quality 기?으로 stable subset closure?서 ?개?  - `default type arg` actual resolution, `where T: A + B` ?경?enforcement, `ability<T>` mismatch provenance, instantiation-path parity까? ?는??  - ?료: default type arg declaration acceptance / omitted trailing default resolution / generic ability impl-reference omission / arity diagnostics provenance
-  - ?대? 議댁옱: `ability<T>` baseline, default type arg baseline, omitted trailing default resolution, generic mismatch provenance baseline
-  - 진행: `party role slot` generic mismatch??`consumer path / expected type args / actual type args` vocabulary ???고정
-  - ?⑥쓬: multi-bound ?꾧꼍濡?enforcement, module-contract propagation, instantiation-path parity, richer mismatch diagnostics, wider C/LLVM regression ?뺣?
-  - generic mismatch??`generic subject / expected type args / actual type args / broken bound / consumer path / fix`??함하고 `Reason:` / `Fix:` ?맷으로 고정한다
-  - generic? partial acceptance?beta???리 ?는??- [x] **own/ref ?전 closure**
-  - strict beta-quality 기?으로 anchored subset closure?서 ?개방했? classifier-backed stable subset으로 마감
-  - ?쇰컲 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity源뚯? ?レ쓬
-  - ?대? 議댁옱: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
-  - ?료: summary/direct path family audit? classifier/docs 최종 ?렬
-  - 진행: constructor field store escape 경로?boundary-visible store?고정하고 ?? 추?
-  - 진행: array literal store escape 경로?boundary-visible store?고정하고 ?? 추?
-  - 진행: assignment rebind escape diagnostic??member/aggregate target path(`holder.packet`, `items[0]`) provenance?직접 보고?도??렬
-  - 진행: nested projection provenance constructor field store / member rebind / list/set/queue/map store / array overwrite / helper return summary / channel send / direct return까? ???고정??  - 진행: class/subject consumer matrix??return / channel / helper / list / set / queue / map / array push / array overwrite / member rebind / constructor field store까? 거의 ?형으로 ?렬
-  - 진행: tuple/object 경로??기존 `test_semantic.c` ?? 축에??channel/new-binding/rebind/return/helper forwarding/queue-map-array overwrite/projection provenance coverage ??
-  - 진행: slot-handle/class helper-chain ????ownership-boundaries 계열??추???direct helper/function call family transitive chain까? 고정??  - 진행: helper/return/channel wording family?`through ...` 기?으로 ?렬
-  - ownership diagnostics??`value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`??함하고 `Reason:` / `Fix:` ?맷으로 고정한다
+  - 이미 존재: intent orchestration, inherited/derived contract, zone/world query, observability baseline
+  - 진행: runtime zone/world propagation cell에 `epoch/cause` provenance baseline이 들어갔고, LLVM intent rebound-zone sync도 같은 truth로 정렬됨
+  - 진행: world derived-state chain은 이제 bounded recompute loop를 통해 C/LLVM 양쪽에서 같은 규칙으로 계산됨
+  - 강한 기준: 이 축은 이제 "얕은 single-pass sync로도 beta 가능" 같은 해석을 허용하지 않음
+- 남음: embedding ownership/handoff policy, **handoff와 더 넓은 world-zone propagation family까지 일반화된 bounded fixpoint 기반 cross-layer propagation policy**, richer provenance query surface, declaration/runtime/diagnostic parity
+  - 이 축은 언어 정체성 자체이므로 beta 직전까지 열어두지 않는다
+- [ ] **relation/effect/projection semantics 완전 closure**
+  - effect lattice, authority-resource partial order 통합, refresh/publish/bind/causes 일관화, diagnostics, C/LLVM parity
+  - 이미 존재: declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync, effect join/meet/conflict, projection contract diagnostics baseline
+- 진행: relation/effect/zone projection hidden cell도 C/LLVM 모두 `dirty/ready + epoch/cause` schema로 정렬됐고 runtime contract provenance baseline이 생김
+- 진행: world-derived recompute는 bounded pass loop로 올라왔고, relation/effect/zone projection chain도 bounded transitive recompute loop로 올라왔다
+- 강한 기준: projection propagation은 더 이상 "helper replay가 대체로 맞음" 수준으로 두지 않고, transitive semantics가 닫히기 전까지 beta blocker로 유지
+- 남음: authority-resource partial order 통합, projection/layer/state를 넘어선 **authority/failure handoff와 더 넓은 world-zone propagation family까지의 full transitive frontier propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity의 마지막 shrink
+  - 이 축은 domain semantics 핵심이므로 partial 상태로 beta에 올리지 않는다
+  - projection diagnostics는 `target/source/projection kind/field path/fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
+- [x] **generic contract 완전 closure**
+  - strict beta-quality 기준으로 stable subset closure에서 재개방
+  - `default type arg` actual resolution, `where T: A + B` 전경로 enforcement, `ability<T>` mismatch provenance, instantiation-path parity까지 닫는다
+  - 완료: default type arg declaration acceptance / omitted trailing default resolution / generic ability impl-reference omission / arity diagnostics provenance
+  - 이미 존재: `ability<T>` baseline, default type arg baseline, omitted trailing default resolution, generic mismatch provenance baseline
+  - 진행: `party role slot` generic mismatch도 `consumer path / expected type args / actual type args` vocabulary 회귀로 고정
+  - 남음: multi-bound 전경로 enforcement, module-contract propagation, instantiation-path parity, richer mismatch diagnostics, wider C/LLVM regression 확대
+  - generic mismatch는 `generic subject / expected type args / actual type args / broken bound / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
+  - generic은 partial acceptance를 beta에 올리지 않는다
+- [x] **own/ref 완전 closure**
+  - strict beta-quality 기준으로 anchored subset closure에서 재개방했고, classifier-backed stable subset으로 마감
+  - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫음
+  - 이미 존재: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
+  - 완료: summary/direct path family audit와 classifier/docs 최종 정렬
+  - 진행: constructor field store escape 경로를 boundary-visible store로 고정하고 회귀 추가
+  - 진행: array literal store escape 경로를 boundary-visible store로 고정하고 회귀 추가
+  - 진행: assignment rebind escape diagnostic이 member/aggregate target path(`holder.packet`, `items[0]`) provenance를 직접 보고하도록 정렬
+  - 진행: nested projection provenance가 constructor field store / member rebind / list/set/queue/map store / array overwrite / helper return summary / channel send / direct return까지 회귀로 고정됨
+  - 진행: class/subject consumer matrix는 return / channel / helper / list / set / queue / map / array push / array overwrite / member rebind / constructor field store까지 거의 동형으로 정렬
+  - 진행: tuple/object 경로는 기존 `test_semantic.c` 회귀 축에서 channel/new-binding/rebind/return/helper forwarding/queue-map-array overwrite/projection provenance coverage 유지
+  - 진행: slot-handle/class helper-chain 회귀도 ownership-boundaries 계열에 추가돼 direct helper/function call family가 transitive chain까지 고정됨
+  - 진행: helper/return/channel wording family를 `through ...` 기준으로 정렬
+  - ownership diagnostics는 `value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
   - explicit reject: authority-bearing `Token<T>` escape/transport
-  - beta-out-of-scope: region/lifetime solver? universal ownership lattice
+  - beta-out-of-scope: region/lifetime solver와 universal ownership lattice
 
-### B1 ??베? ?뢰??개수
+### B1 — 베타 신뢰도 필수
 
-- [x] **surface trust 문서 ?분?*
-  - ?료: `docs/18_language_status.md`, `docs/63_feature_depth_matrix.md`, `README.md`?서 `stable subset / explicit reject / beta-out-of-scope` 기?으로 ?렬
-  - 규칙: "컴파?? ???partial"???면??stable처럼 ?? ?고, ?디까???힌 계약으로 ?속는 먼? 명시
-  - 규칙: broader generalization, arbitrary key support, general ownership, richer observability query 같? ??? `beta-out-of-scope`?분리
-- [ ] **stable example / smoke source of truth ?뺣?**
-  - canonical examples? closure examples?smoke??직접 ?결
-  - explicit surface vs compressed surface?같? ???보여주는 pair example 최소 4??고정
-  - ??? app/web orchestration, game/simulation, async/worker/device, world-handoff/domain propagation
+- [x] **surface trust 문서 재분류**
+  - 완료: `docs/18_language_status.md`, `docs/63_feature_depth_matrix.md`, `README.md`에서 `stable subset / explicit reject / beta-out-of-scope` 기준으로 정렬
+  - 규칙: "컴파일은 되지만 partial"인 표면을 stable처럼 쓰지 않고, 어디까지를 닫힌 계약으로 약속하는지 먼저 명시
+  - 규칙: broader generalization, arbitrary key support, general ownership, richer observability query 같은 항목은 `beta-out-of-scope`로 분리
+- [ ] **stable example / smoke source of truth 확대**
+  - canonical examples와 closure examples를 smoke에 직접 연결
+  - explicit surface vs compressed surface를 같은 의미로 보여주는 pair example 최소 4쌍 고정
+  - 대상: app/web orchestration, game/simulation, async/worker/device, world-handoff/domain propagation
 - [ ] **Backend parity final closure**
-  - C/LLVM??domain semantics 기?으로 같? 결과?는 고정
-  - ??? intent/zone/world, relation/effect/projection, ownership boundary, refresh/publish/bind, world embedding/handoff
-  - 기?: backend compare / llvm smoke / example smoke / ABI-runtime probe Linux/Windows 모두 ?색
-- [ ] **experimental surface ?쒓굅 ?먮뒗 寃⑸━**
-  - ?? 못한 parser surface??명시 거? 는 문법 ?거
+  - C/LLVM이 domain semantics 기준으로 같은 결과를 내는지 고정
+  - 대상: intent/zone/world, relation/effect/projection, ownership boundary, refresh/publish/bind, world embedding/handoff
+  - 기준: backend compare / llvm smoke / example smoke / ABI-runtime probe가 Linux/Windows 모두 녹색
+- [ ] **experimental surface 제거 또는 격리**
+  - 닫지 못한 parser surface는 명시 거부 또는 문법 제거
 
 ## Pain point freeze board
 
-?먯튃:
-- 기능?????히?에 반복?서 ?시 깨????성/진단 pain point?먼? 고정한다
-- ?pain point??`stable contract + regression + docs wording`까? 같이 ?근??- recoverable failure? invariant break?같? 방식으로 처리?? ?는??
+원칙:
+- 기능을 더 넓히기 전에 반복해서 다시 깨지는 작성/진단 pain point를 먼저 고정한다
+- 각 pain point는 `stable contract + regression + docs wording`까지 같이 잠근다
+- recoverable failure와 invariant break를 같은 방식으로 처리하지 않는다
+
 ### Failure handling policy freeze
 
 분류:
 - `recoverable failure`
-  - ?용??코드 ?상 ?한 ?패
-  - ?? intent failure, authority/boundary rejection, timeout, remote failure, empty/closed operational state
-  - ?먯튃:
-    - ?로?스?죽이 ?는??    - `Bool` / `Result<T>` / queryable runtime state??러한다
-    - reason / boundary / authority / step provenance?조회 ?하??긴??- `contract violation`
-  - ?칙?으?semantic ?계?서 차단
-  - ???까 ?면 structured panic
-  - ?? released slot access, invalid secure token, ownership boundary ?반
+  - 사용자 코드가 예상 가능한 실패
+  - 예: intent failure, authority/boundary rejection, timeout, remote failure, empty/closed operational state
+  - 원칙:
+    - 프로세스를 죽이지 않는다
+    - `Bool` / `Result<T>` / queryable runtime state로 드러낸다
+    - reason / boundary / authority / step provenance를 조회 가능하게 남긴다
+- `contract violation`
+  - 원칙적으로 semantic 단계에서 차단
+  - 런타임까지 오면 structured panic
+  - 예: released slot access, invalid secure token, ownership boundary 위반
 - `internal compiler/runtime bug`
   - 즉시 중단
-  - internal error / panic?명확??분리
-  - ?용??코드 ?패처럼 ?장?? ?는??
-현재 고정:
-- intent/zone/world ??패???기?으?`recoverable failure`??렴?킨??- slot/token/invariant 계열? 계속 hard fail?한다
-- `Unwrap(...)`??panic ?격??sharp tool????고, recoverable path??기본 계약으로 ?? ?는??
-- [ ] **large canonical pair ?덉젣 異붽?**
-  - ???제?서 `explicit`? `compressed`?????stable source of truth???한다
-  - 최소 4??일 기?으로 리한??    - `calendar manage-event`: explicit/compressed
-    - `composite intent orchestration`: explicit/compressed
-  - 紐⑹쟻:
-    - ???제???체 계약??명시?으?을 ???게 ??
-    - 같? ???축약?으로도 바로 복사???작?????게 ??
-    - smoke?서 ???제 모두 ?행 ?하?록 고정
-- ??보드??sugar backlog 아니며 beta surface trust??기 ?한 고정?이??- P0 pain point ?기??에??declaration-side MIR-only debt?? 복구 ?에???게 건드리? ?는??- backend ?? ?리??pain point 기?과 ?? 먼? 고정???에??시 ?장한다
+  - internal error / panic로 명확히 분리
+  - 사용자 코드 실패처럼 위장하지 않는다
 
-### P0 ???성/계약 pain point
+현재 고정:
+- intent/zone/world 쪽 실패는 장기적으로 `recoverable failure`로 수렴시킨다
+- slot/token/invariant 계열은 계속 hard fail로 둔다
+- `Unwrap(...)`는 panic 성격의 sharp tool로 유지하고, recoverable path의 기본 계약으로 쓰지 않는다
+
+- [ ] **large canonical pair 예제 추가**
+  - 큰 예제에서 `explicit`와 `compressed`를 둘 다 stable source of truth로 유지한다
+  - 최소 4개 파일 기준으로 관리한다
+    - `calendar manage-event`: explicit/compressed
+    - `composite intent orchestration`: explicit/compressed
+  - 목적:
+    - 큰 예제의 전체 계약을 명시형으로 읽을 수 있게 유지
+    - 같은 의미를 축약형으로도 바로 복사해 시작할 수 있게 유지
+    - smoke에서 두 예제가 모두 실행 가능하도록 고정
+- 이 보드는 sugar backlog가 아니라 beta surface trust를 지키기 위한 고정판이다
+- P0 pain point가 잠기기 전에는 declaration-side MIR-only debt를 국소 복구 외에는 넓게 건드리지 않는다
+- backend 내부 정리는 pain point 기준선과 회귀가 먼저 고정된 뒤에만 다시 확장한다
+
+### P0 — 작성/계약 pain point
 
 - [ ] **contract clause density 고정**
-  - ??? `requires / within / authorized by / causes / refresh / publish / bind`
-  - 문제: 같? ???action / intent step / zone?서 중복 기술?게 되어 ?성 으로 커짐
-  - 고정 기?:
-    - ?디까? inherited/derived 는 vocabulary?고정
-    - 길게 는 버전??축 버전???? 차이 문서/진단/?제?서 같아????    - canonical pair? minimal subset example??????분리??source-of-truth?고정
-  - ?뚭? 湲곗?:
-    - semantic regression: inherited/derived contract source 진단???출
-    - example smoke: long-form vs compressed-form ?덉젣 ?????좎?
+  - 대상: `requires / within / authorized by / causes / refresh / publish / bind`
+  - 문제: 같은 의미를 action / intent step / zone에서 중복 기술하게 되어 작성 피로가 커짐
+  - 고정 기준:
+    - 어디까지 inherited/derived 되는지 vocabulary를 고정
+    - 길게 쓰는 버전과 압축 버전의 의미 차이가 문서/진단/예제에서 같아야 함
+    - canonical pair와 minimal subset example의 역할을 분리해 source-of-truth를 고정
+  - 회귀 기준:
+    - semantic regression: inherited/derived contract source가 진단에 노출
+    - example smoke: long-form vs compressed-form 예제 둘 다 유지
 
 현재 source-of-truth:
 - canonical pair
@@ -2010,62 +1762,74 @@ Source of truth:
   - `examples/zone_context_minimal.pgy`
 
 - [x] **contract provenance vocabulary 고정**
-  - ?료: beta closure 문서??contract provenance ???? `derived / inherited`?고정
-  - 규칙: contract source ?명?서??`inferred`??? ?고, action?서 ?사?된 step clause??`inherited`, `using/transfer` ??현재 step?서 계산??clause??`derived`?른다
-  - 규칙: diagnostics / AST print / docs 같? 되어??도?맞추? `inferred`???반 ???계산?나 non-contract internal analysis 문맥?만 ?긴??  - ??? contract provenance ?여 ?현, contract source wording, docs/example terminology
-  - 문제: compiler type/effect inference? domain contract ?속/?생??같? 되어??이??명이 무너?  - 고정 기?:
-    - domain contract??`?속 / ?생`?`inherited / derived`로만 른다
-    - ?쇰컲 compiler ?섎???type/effect `inference`?먮쭔 ?④릿??  - ?뚭? 湲곗?:
-    - parser/semantic diagnostics 기? 문자??고정
+  - 완료: beta closure 문서에 contract provenance 표준어를 `derived / inherited`로 고정
+  - 규칙: contract source 설명에서는 `inferred`를 쓰지 않고, action에서 재사용된 step clause는 `inherited`, `using/transfer` 등 현재 step에서 계산된 clause는 `derived`로 부른다
+  - 규칙: diagnostics / AST print / docs가 같은 용어를 쓰도록 맞추고, `inferred`는 일반 타입 계산이나 non-contract internal analysis 문맥에만 남긴다
+  - 대상: contract provenance 잔여 표현, contract source wording, docs/example terminology
+  - 문제: compiler type/effect inference와 domain contract 상속/파생이 같은 단어로 섞이면 설명력이 무너짐
+  - 고정 기준:
+    - domain contract는 `상속 / 파생`과 `inherited / derived`로만 부른다
+    - 일반 compiler 의미는 type/effect `inference`에만 남긴다
+  - 회귀 기준:
+    - parser/semantic diagnostics 기대 문자열 고정
 
-### P0.5 ??recoverable failure 분류/고정
+### P0.5 — recoverable failure 분류/고정
 
-- [x] **failure class inventory ?뺣━**
-  - ?료: `docs/07_error_handling.md`, `docs/18_language_status.md`, `README.md` 기?으로 `recoverable failure / contract violation / internal bug` inventory??리
-  - ?료: 현재 recoverable ?? ??, hard-fail ?? ??, ?속 downshift ???authority rejection ????구분
-  - 규칙: runtime invariant guard? real domain rejection??같? ?패 층으??? ?음
+- [x] **failure class inventory 정리**
+  - 완료: `docs/07_error_handling.md`, `docs/18_language_status.md`, `README.md` 기준으로 `recoverable failure / contract violation / internal bug` inventory를 정리
+  - 완료: 현재 recoverable 유지 항목, hard-fail 유지 항목, 후속 downshift 대상(authority rejection 등)을 구분
+  - 규칙: runtime invariant guard와 real domain rejection을 같은 실패 층으로 섞지 않음
 - 현재 inventory baseline:
-  - recoverable ?좎?:
+  - recoverable 유지:
     - `Result<T>` / `?`
     - `RemoteFuture<T> -> Result<T>`
     - channel timeout / non-blocking / closed state
     - world roster timeout
     - `IntentLast* / History* / Active* / Recent*`
-  - hard-fail ?좎?:
+  - hard-fail 유지:
     - released slot / invalid token / token permission mismatch
     - `Unwrap(...)` on `Err`, option unwrap on `None`
     - allocator / box / rc / weak invariant break
     - array / slice bounds violation
     - current runtime zone authority null-guard
-      - 참고: ?건 아직 real authority rejection??아니며 invariant check?서 hard-fail ?? 쪽이 맞다
+      - 참고: 이건 아직 real authority rejection이 아니라 invariant check라서 hard-fail 유지 쪽이 맞다
   - first-wave conversion targets:
     - future real runtime authority rejection
     - intent boundary/authority mismatch provenance at runtime
 - [ ] **intent/zone/world recoverable failure baseline**
-  - intent failure, authority rejection, boundary mismatch??process abort ???queryable reason/state??출
-  - runtime observability? diagnostics wording??같? provenance vocabulary??렬
-  - 참고: runtime propagation provenance(`epoch/cause`) baseline? ?료?본다
-  - 진행: runtime zone authority invariant guard??`last_ok / zone / participant / code / reason` thread-local snapshot???기?록 ?렬되어, hard-fail guard? 별개?최소 queryable failure snapshot baseline? ?겼??  - 진행: authority failure code/reason/stderr format? `src/runtime/pgy_runtime_authority_contract.h`??격한다. inline C runtime?LLVM runtime library export 같? contract macro??용하고 `runtime-authority-contract-test-smoke` raw literal drift?차단한다
-  - 진행: intent emitter??MIR `IntentAuthorizedBy` metadata?C/LLVM ?쪽?서 ?집?고, step-local approval??`pgy_zone_authority_validate_flags_export(...)`?증해 `authority:<step>` recoverable intent failure? runtime authority snapshot??같? 경로??긴??  - 진행: intent `authorized by`??concrete zone subject slot으로 ?석?며, 같? ?의 non-authority slot 는 ambiguous same-type slot mapping? semantic hard error??혔??  - 진행: concrete direct-slot participant alias??ambiguous same-type ?보보다 ?선한다. `subject slot rogue: Adventurer` 존재?면 `authorized by rogue`??concrete authority slot으로 ?히? ?전 ?보 ?운 stale ambiguity flag??무시한다
-  - ?뚭?: `intent authorized participant must resolve to authority slot`, `intent authorized participant reports ambiguous authority slot`
-  - ??: `dnd_tavern_campaign` example smoke multi-subject same-type zone?서 direct authority aliases?end-to-end?고정한다
-  - ?뚭?: `intent_authority_snapshot_abi`, `intent_authority_snapshot`
-  - ?뚭?: `authority_failure_abi`, `authority_failure_surface`, `runtime-authority-contract-test-smoke`
-  - ?음: missing-zone/missing-participant ?후??richer authority mismatch/domain-boundary denial reason??같? queryable contract??장?야 한다
+  - intent failure, authority rejection, boundary mismatch는 process abort 대신 queryable reason/state로 노출
+  - runtime observability와 diagnostics wording을 같은 provenance vocabulary로 정렬
+  - 참고: runtime propagation provenance(`epoch/cause`) baseline은 완료로 본다
+  - 진행: runtime zone authority invariant guard는 `last_ok / zone / participant / code / reason` thread-local snapshot을 남기도록 정렬되어, hard-fail guard와 별개로 최소 queryable failure snapshot baseline은 생겼다
+  - 진행: authority failure code/reason/stderr format은 `src/runtime/pgy_runtime_authority_contract.h`로 승격했다. inline C runtime과 LLVM runtime library export가 같은 contract macro를 사용하고 `runtime-authority-contract-test-smoke`가 raw literal drift를 차단한다
+  - 진행: intent emitter는 MIR `IntentAuthorizedBy` metadata를 C/LLVM 양쪽에서 수집하고, step-local approval을 `pgy_zone_authority_validate_flags_export(...)`로 검증해 `authority:<step>` recoverable intent failure와 runtime authority snapshot을 같은 경로로 남긴다
+  - 진행: intent `authorized by`는 concrete zone subject slot으로 해석되며, 같은 타입의 non-authority slot 또는 ambiguous same-type slot mapping은 semantic hard error로 닫혔다
+  - 진행: concrete direct-slot participant alias는 ambiguous same-type 후보보다 우선한다. `subject slot rogue: Adventurer`가 존재하면 `authorized by rogue`는 concrete authority slot으로 닫히며, 이전 후보가 세운 stale ambiguity flag는 무시된다
+  - 회귀: `intent authorized participant must resolve to authority slot`, `intent authorized participant reports ambiguous authority slot`
+  - 회귀: `dnd_tavern_campaign` example smoke가 multi-subject same-type zone에서 direct authority aliases를 end-to-end로 고정한다
+  - 회귀: `intent_authority_snapshot_abi`, `intent_authority_snapshot`
+  - 회귀: `authority_failure_abi`, `authority_failure_surface`, `runtime-authority-contract-test-smoke`
+  - 남음: missing-zone/missing-participant 이후의 richer authority mismatch/domain-boundary denial reason도 같은 queryable contract로 확장해야 한다
 - [ ] **runtime authority guard downshift**
-  - 현재 `pgy_zone_authority_check_export(...)`??null self/null participant invariant guard??  - ??guard ?체??hard-fail ??
-  - 진행: C inline validator, LLVM runtime export, intent step-local `authorized by` validation 모두 마??authority validation 결과?같? vocabulary(`last_ok`, `zone`, `participant`, `code`, `reason`)??긴??  - 별도 real authority rejection runtime path ?기?그쪽??`recoverable authority failure` 경로??계
-- [x] **hard-fail boundary 紐낆떆**
-  - ?료: `README.md`? `docs/07_error_handling.md`??hard-fail boundary?명시
-  - 고정 ?용: released slot, invalid token, ownership invariant break, unwrap misuse, bounds violation, runtime invariant guard??계속 panic / hard-fail territory?한다
-  - 고정 ?용: recoverable authority rejection?invariant guard?같? 층으??? ?는는 을 문서 wording으로 못박??
+  - 현재 `pgy_zone_authority_check_export(...)`는 null self/null participant invariant guard다
+  - 이 guard 자체는 hard-fail 유지
+  - 진행: C inline validator, LLVM runtime export, intent step-local `authorized by` validation 모두 마지막 authority validation 결과를 같은 vocabulary(`last_ok`, `zone`, `participant`, `code`, `reason`)로 남긴다
+  - 별도 real authority rejection runtime path가 생기면 그쪽을 `recoverable authority failure` 경로로 설계
+- [x] **hard-fail boundary 명시**
+  - 완료: `README.md`와 `docs/07_error_handling.md`에 hard-fail boundary를 명시
+  - 고정 내용: released slot, invalid token, ownership invariant break, unwrap misuse, bounds violation, runtime invariant guard는 계속 panic / hard-fail territory로 둔다
+  - 고정 내용: recoverable authority rejection과 invariant guard를 같은 층으로 섞지 않는다는 점을 문서 wording으로 못박음
+
 - [ ] **projection contract diagnostics 고정**
-  - ??? `refresh/publish/bind` source/target/path/field-map ?ㅽ뙣
-  - 문제: projection? 되어 강점?데 ?패 ?유 ?하???먼? ?로??  - 고정 기?:
-    - target slot / source slot / projection kind / field path / fix 모두 진단??되어?    - structured `Reason:` / `Fix:` formatting??source-of-truth?고정
-  - ?뚭? 湲곗?:
+  - 대상: `refresh/publish/bind` source/target/path/field-map 실패
+  - 문제: projection은 언어 강점인데 실패 이유가 약하면 가장 먼저 피로를 줌
+  - 고정 기준:
+    - target slot / source slot / projection kind / field path / fix가 모두 진단에 들어감
+    - structured `Reason:` / `Fix:` formatting을 source-of-truth로 고정
+  - 회귀 기준:
     - semantic regression: missing source field / ambiguous path / wrong projection kind / duplicate field map
-  - 진행: `projection-diagnostic-contract-test-smoke` ??4?베? 개수 진단 ?스? `Reason:` / `Fix:` / projection consumer path vocabulary?semantic regression, implementation, proof doc 기?으로 ?께 ?한??
+  - 진행: `projection-diagnostic-contract-test-smoke`가 위 4개 베타 필수 진단 케이스와 `Reason:` / `Fix:` / projection consumer path vocabulary를 semantic regression, implementation, proof doc 기준으로 함께 검사한다
+
 현재 source-of-truth:
 - stable example
   - `examples/projection_bind_group_minimal.pgy`
@@ -2075,18 +1839,19 @@ Source of truth:
   - `make projection-diagnostic-contract-test-smoke`
 
 - [x] **surface trust subset 분류 고정**
-  - ??? generics, own/ref, collections, runtime observability
-  - 문제: 는 것처??보이?데 ?제로는 subset?는 surface ?????뢰 ?상 ??  - 고정 기?:
-    - `stable subset / explicit reject / beta-out-of-scope`?TODO/docs/diagnostic?서 같? 말로 한다
-  - ?뚭? 湲곗?:
-    - semantic tests? depth docs 같? subset??리킴
-  - 현재 기? 문서:
-    - `README.md`??`Surface trust policy`
+  - 대상: generics, own/ref, collections, runtime observability
+  - 문제: 되는 것처럼 보이는데 실제로는 subset만 되는 surface가 가장 큰 신뢰 손상 지점
+  - 고정 기준:
+    - `stable subset / explicit reject / beta-out-of-scope`를 TODO/docs/diagnostic에서 같은 말로 쓴다
+  - 회귀 기준:
+    - semantic tests와 depth docs가 같은 subset을 가리킴
+  - 현재 기준 문서:
+    - `README.md`의 `Surface trust policy`
     - `docs/18_language_status.md`
     - `docs/63_feature_depth_matrix.md`
     - `docs/64_depth_filling_roadmap.md`
 
-현재 고정?려??baseline:
+현재 고정하려는 baseline:
 - generics
   - stable subset: exact/ability/multi-bound baseline
   - stable subset extension: default type argument actual resolution on implemented declaration/call/module-consumer paths
@@ -2095,586 +1860,689 @@ Source of truth:
   - stable subset: classifier-backed own/ref surface on copy values + boundary-visible aggregates + movable values + slot handles
   - explicit reject: authority-bearing `Token<T>` escape/transport
   - beta-out-of-scope: arbitrary universal ownership lattice beyond current classifier/summary model
-  - beta blocker: ?놁쓬
+  - beta blocker: 없음
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`
   - explicit reject: unsupported map key kinds
   - beta-out-of-scope: arbitrary key-universal collection contracts
 - runtime observability
   - stable subset: `last / history / active / recent`
-  - explicit reject: ?놁쓬
-  - beta-out-of-scope: richer multi-instance timeline query? deeper failure provenance query
+  - explicit reject: 없음
+  - beta-out-of-scope: richer multi-instance timeline query와 deeper failure provenance query
 
-### P1 ???? 구조 pain point
+### P1 — 내부 구조 pain point
 
 - [ ] **declaration-side MIR-only debt 고정**
-  - ??? declaration inventory / metadata helper / duplicated named-decl lookup
-  - 문제: routine body??MIR??리?도 decl-side helper debt ?으?parity bug 반복??  - 고정 기?:
-    - backend lookup? 공통 inventory helper??용
-    - ?? debt???기??미구이 아니며 ?AST-carried decl metadata 구조 debt으로 분리?서 기록
-  - ?뚭? 湲곗?:
+  - 대상: declaration inventory / metadata helper / duplicated named-decl lookup
+  - 문제: routine body는 MIR로 정리돼도 decl-side helper debt가 남으면 parity bug가 반복됨
+  - 고정 기준:
+    - backend lookup은 공통 inventory helper를 사용
+    - 남은 debt는 “기능 미구현”이 아니라 “AST-carried decl metadata 구조 debt”로 분리해서 기록
+  - 회귀 기준:
     - LLVM/C backend helper duplication 감소
-    - debt ledger? TODO ?현 ?렬
-  - ?꾪솴:
-    - 진행: MIR declaration emit state restore??helper ?나?묶?? role host lookup? active inventory-only 쪽으???좁아졌다
-    - 진행: 조기 return 경로??`current_host_decl` / `current_func_decl` 복구 emitter 본문 중복 ???공용 restore helper???한다
-    - role / party / roster / relation / effect / zone / world declaration method body??AST fallback???거??    - ?? debt??declaration inventory / naming helper / named-decl lookup??구조 ?리 쪽으?축소??    - 진행: `emit_func_decl_from_mir_named(...)` outer host restore?서 raw saved host-name fallback보다 `saved_host_decl + current_func_decl`??선 ?도??렬
-    - 진행: host restore/current-host lookup??inventory?서 host decl???찾으?raw `current_*_name` ?태????? 하고 host handle??비우?록 ?렬
-    - 진행: `transpiler_restore_host_context_local(...)` ?그?처??`saved_host_decl` 중심으로 축소??decl-side restore?서 raw name ?자??거
+    - debt ledger와 TODO 표현 정렬
+  - 현황:
+    - 진행: MIR declaration emit state restore는 helper 하나로 묶였고, role host lookup은 active inventory-only 쪽으로 더 좁아졌다
+    - 진행: 조기 return 경로의 `current_host_decl` / `current_func_decl` 복구가 emitter 본문 중복 대신 공용 restore helper를 타게 됐다
+    - role / party / roster / relation / effect / zone / world declaration method body의 AST fallback는 제거됨
+    - 남은 debt는 declaration inventory / naming helper / named-decl lookup의 구조 정리 쪽으로 축소됨
+    - 진행: `emit_func_decl_from_mir_named(...)`가 outer host restore에서 raw saved host-name fallback보다 `saved_host_decl + current_func_decl`를 우선 쓰도록 정렬
+    - 진행: host restore/current-host lookup이 inventory에서 host decl을 못 찾으면 raw `current_*_name` 상태를 유지하지 않고 host handle을 비우도록 정렬
+    - 진행: `transpiler_restore_host_context_local(...)` 시그니처도 `saved_host_decl` 중심으로 축소해 decl-side restore에서 raw name 인자를 제거
     - 현재 inventory:
-      - `src/codegen/transpiler_helpers_core_b.inc`: `current_host_decl_name` ?곹깭 ?먯껜? ?쇰? host naming helper ?뺣━
-      - `src/codegen/llvm_pipeline.c`: AST-carried declaration inventory瑜??대뒗 `MIRProgram` bootstrap 寃쎈줈
-      - 공통 과제: current_* name ?태? ad-hoc named lookup?MIR declaration metadata query?치환
-    - 理쒓렐 ?뺣━:
-      - `current_field_type_name`, `current_host_method_decl`, `find_nominal_host_method_decl`??active inventory 경유 lookup??렬??      - transpiler host context 복구??`current_host_decl -> within_zone -> saved host-name inventory` ?으??렬??      - transpiler emitter hot path??direct `current_*_name` 참조??helper/restore layer ?주?축소??      - LLVM declaration helper / MIR-domain emission / expr-call builtin path??`llvm_current_host_decl_name(...)`? bind/restore helper 쪽으??동??      - LLVM `llvm_current_host_decl(...)`?????상 `current_class_name` ?조??fallback???존?? 하고 bound host handle / `within_zone`만을 truth??용??      - `llvm_pipeline.c`??nominal declaration registration?class-method enumeration??raw `decl_header->methods` 직접 ?근보다 active nominal inventory / `llvm_find_host_decl_methods_in_context(...)` 경유??동??      - `llvm_register.c`??active nominal registration??`mir->decl_headers` 직접 ?회 ???active nominal inventory 기?으로 ?렬??      - `make mir-declaration-inventory-test-smoke`?추???C/LLVM declaration/domain/nominal active inventory helper seam?pipeline/domain ?비 경로?static gate?고정한다. ??raw MIR declaration array access??owner ?일 밖에??조용??되어????한다
-      - C backend `emit_program(...)`??executable metadata??`mir->has_*` / `mir_find_function_decl(...)` 직접 ?근 ???`transpiler_active_*` helper??과?도??렬한다
-      - C backend `emit_program(...)`??ability/type/extern/function/intent/domain/event declaration bootstrap ?쒗쉶??direct `mir->...` array/count ?묎렐 ???`transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view瑜??ъ슜?섎룄濡??뺣젹?덈떎
-      - `MIRDeclMethod`??hosted method identity, routine link, signature metadata源뚯? ?닿퀬 LLVM nominal/enum prototype registration? `llvm_mir_decl_method_*` helper瑜??듯빐 ??row瑜?癒쇱? ?뚮퉬?쒕떎
-      - ?? ?심 debt??LLVM pipeline??AST-carried declaration inventory bootstrap? helper/restore layer 바깥??raw host-name state ?거
+      - `src/codegen/transpiler_helpers_core_b.inc`: `current_host_decl_name` 상태 자체와 일부 host naming helper 정리
+      - `src/codegen/llvm_pipeline.c`: AST-carried declaration inventory를 담는 `MIRProgram` bootstrap 경로
+      - 공통 과제: current_* name 상태와 ad-hoc named lookup를 MIR declaration metadata query로 치환
+    - 최근 정리:
+      - `current_field_type_name`, `current_host_method_decl`, `find_nominal_host_method_decl`는 active inventory 경유 lookup로 정렬됨
+      - transpiler host context 복구는 `current_host_decl -> within_zone -> saved host-name inventory` 순으로 정렬됨
+      - transpiler emitter hot path의 direct `current_*_name` 참조는 helper/restore layer 위주로 축소됨
+      - LLVM declaration helper / MIR-domain emission / expr-call builtin path도 `llvm_current_host_decl_name(...)`와 bind/restore helper 쪽으로 이동함
+      - LLVM `llvm_current_host_decl(...)`는 더 이상 `current_class_name` 재조회 fallback에 의존하지 않고 bound host handle / `within_zone`만을 truth로 사용함
+      - `llvm_pipeline.c`의 nominal declaration registration과 class-method enumeration도 raw `decl_header->methods` 직접 접근보다 active nominal inventory / `llvm_find_host_decl_methods_in_context(...)` 경유로 이동함
+      - `llvm_register.c`의 active nominal registration도 `mir->decl_headers` 직접 순회 대신 active nominal inventory 기준으로 정렬됨
+      - `make mir-declaration-inventory-test-smoke`를 추가해 C/LLVM declaration/domain/nominal active inventory helper seam과 pipeline/domain 소비 경로를 static gate로 고정했다. 새 raw MIR declaration array access는 owner 파일 밖에서 조용히 늘어날 수 없다
+      - C backend `emit_program(...)`의 executable metadata도 `mir->has_*` / `mir_find_function_decl(...)` 직접 접근 대신 `transpiler_active_*` helper를 통과하도록 정렬했다
+      - C backend `emit_program(...)`의 ability/type/extern/function/intent/domain/event declaration bootstrap 순회도 direct `mir->...` array/count 접근 대신 `transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view를 사용하도록 정렬했다
+      - `MIRDeclMethod`는 hosted method identity, routine link, signature metadata까지 담고 LLVM nominal/enum prototype registration은 `llvm_mir_decl_method_*` helper를 통해 이 row를 먼저 소비한다
+      - 남은 핵심 debt는 LLVM pipeline의 AST-carried declaration inventory bootstrap와 helper/restore layer 바깥의 raw host-name state 제거
 
-- [x] **ownership vocabulary / payload cleanup 1?고정**
-  - ??? semantic ownership diagnostics / payload helper family / wording drift
-  - ?료:
-    - `src/semantic/type_checker_ownership_boundaries.inc`??ownership helper 9종이 `DiagPayload`/`semantic_emit_payload(...)` ?턴으로 ?렬??    - semantic direct `semantic_error_with_hints(...)` ?출? ownership-boundary helper ???서 ?거??    - vocabulary 1??리:
-      - `anchored handle` ??`slot handle (anchored)`
-      - `movable resource handle` / `movable resource` ??`slot handle (movable)`
-      - `capability-bearing` ??`authority-bearing` (ownership/domain wording 湲곗?)
-    - semantic ????현재 wording 기?으로 ?시 고정??  - ?
-    - `make test-semantic` ??`1872 passed, 0 failed`
-    - `make test-transpile` ??`601 passed, 0 failed`
-  - ?⑥? 寃?
-    - P3 ?여 ?분?`boundary value (subject)` ?? 추? ?축
-    - payload/helper family?ownership 바깥 semantic diagnostics????장
-    - own/ref call/consumer path?서 classifier 기반 trivial copy-only semantics????게 ?용
-    - destructure target binding / nested projection / helper-chain wording??consumer kind 湲곗??쇰줈 ???몃텇??
-- [ ] **type-resolution DAG ?진 ?입**
-  - ??? semantic type resolution / generic consumer resolution / declaration dependency scheduling
-  - 문제: ?재??`resolve_type_node(...)` 중심???? ?석 + scope lookup + ad-hoc validation??주축?라, module import graph??분명???type dependency ?체??compiler-wide DAG?리되 ?는??  - 최근 진행:
-    - `TypeResolutionGraph` inventory + cycle diagnostic + topo derivation? ?ㅼ젣 ?쒖꽦 ?곹깭
-    - staged worklist??provider-first ?? topo ?회?고정??    - local contract / projection synthetic node??label?narrow handler??비??    - generic `default_type` / generic constraint / `where` bound??staged DAG resolver 경로???입??    - graph regression? world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / action-intent-zone-party ability consumer provenance까? ?함
-    - graph validator cycle?legacy alias-resolution cycle??모두 `Contract source:` / `Reason:` / `Fix:` 구조??렬??    - 진행: type constraint bound formatter??`type_checker_type_constraint.c`??제 TU 분리 ?료
-    - 진행: graph node/edge/path/cycle-format primitive??`type_checker_resolution_graph_core.c`??제 TU 분리 ?료
-    - 진행: named dependency edge recorder? 즉시 cycle diagnostic 발행 경로??`type_checker_resolution_graph_core.c`??제 TU 분리 ?료
-    - 진행: type-ref dependency recorder??`type_checker_resolution_graph_core.c`??동?고, `find_type_alias_decl`??cross-include dangling return-type seam??명시 ?언으로 ?리
-    - 진행: type-ref collector??`type_checker_resolution_graph_collect.c`??동?고, graph core/include 경계??dangling `static void` seam???거
-    - 진행: generic contract inventory / string dependency / required ability collector helpers??`type_checker_resolution_graph_collect.c`??동??declaration collector의 공통 ?존??TU 경계??격
-    - 진행: top-level declaration graph registration? `type_checker_resolution_graph_collect.c`??동??inventory `.inc`?1,962 LOC까? 축소
-    - 진행: local-contract graph node/dependency + zone/world/projection label formatters??`type_checker_resolution_graph_labels.c`??동??inventory `.inc`?1,835 LOC까? 축소
-    - 진행: projection source resolver??`type_checker_resolution_graph_domain.c`??동하고 `find_zone_domain_slot`??internal API??격??inventory `.inc`?1,809 LOC까? 축소
-    - 진행: event declaration precollector??`type_checker_resolution_graph_decl.c`??동??inventory 본체?서 declaration-kind collector???단
-    - 진행: enum declaration precollector??`type_checker_resolution_graph_decl.c`??동하고 `semantic_stage_method_array`?internal API??격??inventory `.inc`?1,765 LOC까? 축소
-    - 진행: ability declaration precollector? action-contract precollector??`type_checker_resolution_graph_decl.c`??동??inventory `.inc`?1,648 LOC까? 축소
-    - 진행: role/class/party/roster declaration precollector??`type_checker_resolution_graph_decl.c`??동?고, relation/effect domain inventory precollector??`type_checker_resolution_graph_domain.c`??동??inventory `.inc`?1,299 LOC까? 축소
-    - 진행: intent declaration precollector? world inventory precollector?각각 `type_checker_resolution_graph_decl.c`, `type_checker_resolution_graph_world.c`??동??inventory `.inc`?870 LOC까? 축소
-    - 진행: zone projection field-map collector?`type_checker_resolution_graph_zone.c`?분리?고, ?? inventory body?`type_checker_resolution_graph_inventory.c`??격??inventory `.inc`??거
-    - 진행: world/zone local-contract stage replay?`type_checker_resolution_stage_domain.c`?분리?고, ?? stage 본체?`type_checker_resolution_stage.c`??격??stage `.inc` ?거
-    - 진행: class/extern declaration checker?`type_checker_class_decl.c`? top-level semantic orchestration??`type_checker_program.c`?분리??program `.inc`?624 LOC까? 축소
-    - 진행: `ToObject` / `ToTObject` projection checker?`type_checker_builtins_projection.c`?분리??builtins nominal `.inc`?659 LOC까? 축소
-    - 진행: domain helper? intent helper?각각 `type_checker_decls_domain_helpers.c`, `type_checker_intent_helpers.c`??격??semantic `.inc` 800 LOC stop condition???성하고 `make semantic-inc-size-test-smoke`??? 방?
-    - 진행: C backend `transpiler_emitters_mir_inventory_ssa.inc`?3??위 slice?분리하고 `make test-transpile`, `make llvm-test-backend-compare`?parity ?? ?과
-    - 진행: standalone TU ?격 ??러??dangling return-type seams? implicit helper dependency??거??`make test-all`, `make llvm-test-backend-compare` ?? ?과
-    - 진행: implicit declaration / implicit int??기본 CFLAGS?서 ?러?고정되어 ?후 DAG/semantic split ?hidden helper dependency 즉시 ?패?도??렬
-    - 진행: `type_resolution_intern_node` / `type_resolution_add_edge` / `type_resolution_find_path` / `type_resolution_format_cycle`??include-order static helper?서 `type_checker_internal.h` internal API??격
-    - 진행: DAG stage ?에??아직 `resolve_type_node(...)`??려??legacy fallback??`PGY_TYPE_RES_STATS=1` ?계???출한다. `stage-legacy-resolve: calls/failed/suppressed_diagnostics`? `stage-legacy-family: generic_contract/signature/ability_consumer/domain_contract/alias/other` 출력?며, `make type-resolution-dag-test-smoke` graph stats, topo validation, legacy fallback inventory 존재?CI gate?고정한다
-    - 진행: type-alias stage??quiet resolve ?공 결과??사?하?록 ?리???공 경로??중복 `resolve_type_node(...)` ?출???거한다. ?패 경로??기존 diagnostic fallback????한다
-    - 진행: DAG edge ?? 존재는 named type-ref??generic argument??함??stage?서 `resolve_type_node(...)`??시 ?출?? 하고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N` ?계 추?하고 `type-resolution-dag-test-smoke` skip ?계 0으로 ?행?? 는 ?한??    - 진행: graph precollect TU ?에??enum methods `semantic_stage_method_array(...)`??출?던 impurity??거한다. ?제 enum method signature/contract??precollect action contract 경로로만 graph edge??집한다
-    - 진행: DAG stage helper?`type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`?분리??`type_checker_resolution_stage.c`?895 LOC????? graph precollect, stage lookup, stage stats, stage replay owner ?일 경계?분리한다
-    - 진행: generic where/default validation? `type_checker_generic_validation.c`??동한다. `type_checker_resolution_graph_*.c`? `type_checker_resolution_graph_core.inc`?????상 `resolve_type_node(...)`?직접 ?출?? ?으? `semantic-core-shape-test-smoke` ??resolver-free graph-layer 경계??한??    - 진행: graph precollect context-independent builtin type refs(`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`)?`SemanticContext.type_resolution_metadata`??기록한다. owner resolver seams????metadata?먼? 조회????recursive fallback으로 ?려간다
-    - 진행: graph metadata resolver-stable constructed/anchored-handle shells(`Array<T>`, `Slice<T>`, `List<T>`, `Queue<T>`, `Set<T>`, `Box<T>`, `Rc<T>`, `Weak<T>`, `Channel<T>`, `Future<T>`, `RemoteFuture<T>`, `Token<T>`, `DeviceSlot<T>`, `HashMap<String|Int|Long|Bool, T>`, `Option<T>`, `Result<T,E>`, `Slot<T>`, `SecureSlot<T>`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`)?materialize????한다. graph 만든 `Type` shell? metadata owned lane으로 기록하고 semantic context destroy?서 ?제한다
-    - 진행: graph metadata tuple shell?event-handler/function shell??materialize한다. channel/future AST node??inner fact collect 직후 constructed shell??기록???recursive fallback?????존한다
-    - 진행: `resolve_type_node(...)` wrapper ?체 metadata-first 되어, ?? explicit legacy allowlist??recursive materialization 에 DAG facts?먼? ?비한다
-    - 진행: `resolve_generic_type_arg(...)`??metadata-first 조회 ??fallback으로 ?려간다. constructed builtin/generic consumer path??recursive resolver ?존 면적??줄???    - 진행: owner-local resolver seams??`semantic_type_resolution_lookup_or_materialize(...)` 공용 materializer??렴한다. resolver 구현체? central metadata materializer 밖에??직접 `resolve_type_node(...)`??출?면 `type-resolution-resolver-inventory-test-smoke` ?패한다
-    - 진행: `type-resolution-dag-test-smoke` graph-backed skips?아니며 metadata entries/owned/hits, metadata materializer fallback count, zero non-alias stage legacy fallback, alias-stage split accounting???한?? 최신 local stats: `graph-backed skips=3133 metadata_entries=1877 metadata_owned=111 metadata_hits=3267 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
-    - 진행: DAG smoke???제 graph-backed skip/metadata entry/metadata hit/owned metadata ?순??0보다 ???보? 하고 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)??한?? DAG source-of-truth ?용이 ?게 ?퇴?면 CI?서 즉시 ?는??    - 진행: 중앙 metadata materializer??마??recursive fallback??`materializer_fallbacks` ?계??출하고 semantic suite ?산 cap??4135????? ??cap? ?장 방??이? ?음 DAG ?업? ??값을 계속 ????것이??    - 진행: ?? stage legacy surface??alias-only?고정한다. ?공 alias materialization?diagnostic fallback??별도 계측하고 valid alias fallback? 0으로 gate한다. ?? 78건? alias-cycle diagnostic coverage?서 ?오??unresolved fallback?며 hidden non-alias recursive resolution??아니며     - 진행: program-level symbol inventory ability declarations??predeclare한다. `type_check_ability_decl(...)`? ?기 ?신??predeclare??사?하?같? ?름???른 ability??기존처럼 duplicate diagnostic으로 처리한다. forward source order?서 generic default/where, zone authority, party role-slot ability consumer provider ?행되어???과는 regression??추?한다
-    - 진행: `tests/cases/backend_compare/forward_ability_order/main.pgy`?backend compare suite??추?한다. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering??semantic-only 아니며 C/LLVM 출력 ?등?까 ??는 ?한??    - 진행: `tests/compare_backends.sh` 기본 ?행? `tests/cases/backend_compare/*/main.pgy` default case array??빠져 ?으??패한다. 명시 ?자 기반 targeted run? ???되, CI/default path?서 ??parity case 조용???락는 drift?차단한다. ??gate?기존 passing case 8?array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)?default C/LLVM parity suite???입한다
-    - 진행: `type-resolution-resolver-inventory-test-smoke` direct resolver allowlist? ?께 metadata-first wrapper, execution/anchored-handle metadata materializer coverage?static gate?고정한다
-    - 진행: `type-resolution-resolver-inventory-test-smoke` ??`semantic_type_resolution_resolve_or_fallback(...)` ?용?? 금?하고 named fallback seam 총량??0개로 고정한다. gate 출력? 현재 fallback seam count?직접 보여주며, remaining fallback? `semantic_type_resolution_lookup_or_materialize(...)` ????central escape hatch 교체 ??이??    - 진행: fallback seam gate??기존 ?한??`30?미만?면 ?패`)??debt-reduction??맞? 는 규칙으로 보고 ?거한다. ?제 0??한?growth guard????며, seam 축소??CI ?공 경로??    - 진행: `type_checker_module_contract.c`??ability contract bookkeeping? recursive fallback helper??출?? 하고 DAG metadata lookup-only seam으로 ???? ability 존재/visibility/generic arity/where provenance??ability-specific validator 계속 ?유?며, fallback seam inventory??39?서 38?감소한다
-    - 진행: `type_checker_ability_fields.c`??ability `fields` requirement validation??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? field contract diagnostics??ability-specific validator 계속 ?유?며, fallback seam cap? 32?서 31?감소한다
-    - 진행: `type_checker_builtins_projection.c`??projection target-field resolver??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? projection field diagnostics??projection validator 계속 ?유?며, fallback seam cap? 31?서 30으로 감소한다
-    - 진행: `type_checker_program.c`??quiet top-level placeholder resolver??graph precollect ?후 metadata lookup-only??환한다. event/function forward placeholders recursive fallback 이 precollected DAG facts??비?면??fallback seam cap? 30?서 29?감소한다
-    - 진행: `type_checker_builtins_query_domain.inc`??projection source-field resolver??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? HasProjection/HasZoneProjection 계열 field diagnostics??domain query validator 계속 ?유?며, fallback seam cap? 29?서 28?감소한다
-    - 진행: `type_checker_party_decl.c`? `type_checker_roster_decl.c`??shared-field type resolver??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? party/roster shared field diagnostics???declaration validator 계속 ?유?며, fallback seam cap? 28?서 26으로 감소한다
-    - 진행: `type_checker_ability_decl.c`??abstract method signature resolver? `type_checker_role_decl.c`??host-type resolver??recursive fallback helper??출?? 하고 DAG metadata lookup-only????? ability/role declaration diagnostics???owner validator 계속 ?유?며, fallback seam cap? 26?서 24?감소한다
-    - 진행: function/action body precollector local let / with-slot annotation?아니며 expression subtree, call type args, lambda param/return/body, event subscription handler, spawn/channel/return/branch expressions까? ?라간다. ??기반으로 `type_checker_event.c`??event/lambda handler type-ref resolver?DAG metadata lookup-only????fallback seam cap? 24?서 23으로 감소한다. `type_checker_flow.c`??flow-local type resolver??DAG metadata lookup-only??? cap? 22?감소한다. `type_checker.c`??type-alias statement resolver??DAG metadata lookup-only??? cap? 21?감소한다
-    - ?인???? blocker: `type_checker_program.inc`??function body param/return/domain-slot materialization seam? ?순 lookup-only????direct semantic unit path?서 graph metadata bootstrap 이 segfault 한다. ??seam? direct semantic unit bootstrap 는 null-safe diagnostic path 먼? ?요한다
-    - ?인???? blocker: `type_checker_intent_decl.c`??intent participant/value/where resolver seam? ?순 lookup-only????semantic suite ?반 parallel execution path?서 segfault 한다. intent declaration? graph precollect ???direct semantic/bootstrap path? step/local binding materialization??아직 lookup-only 계약??만족?? ?으?explicit fallback seam으로 ?긴??    - ?인???? blocker: `type_checker_host_helpers.h`??host helper resolver???순 lookup-only????intent/zone authority positive path subject-slot type metadata 족으?무너진다. ??seam? zone/world/host subject-slot nominal metadata?DAG??보존?????거?야 한다
-    - ?인???? blocker: `type_checker_generic_validation.c`??generic where/default validation resolver???순 lookup-only????default type argument where-bound validation positive path 깨진?? ??seam? generic default effective-arg fact? where-bound provenance?DAG metadata???린 ???거?야 한다
-    - ?인???? blocker: `type_checker_generic_support.inc`??boundary type helper seam? ?순 lookup-only????`ref class` / `ref subject` escape diagnostics 150개? 빠진?? ??seam? generic/nominal boundary category fact? ref/own escape classifier DAG metadata?서 같? type category????을 ???거?야 한다
-    - ?인???? blocker: `type_checker_ability_where.c`??ability where-bound resolver???순 lookup-only????generic ability multi-bound mismatch provenance ?라??`Cloneable` bound mismatch 진단 ?? 한다. ??seam? ability where-bound effective-arg / multi-bound provenance fact?DAG metadata???린 ???거?야 한다
-    - ?인???? blocker: `type_checker_operator_expr.inc`??operator overload method signature resolver???순 lookup-only????semantic suite event/misc path 진입 ?후??segfault????한다. ??seam? method param/return signature metadata? operator overload candidate summary?DAG???린 ???거?야 한다
-    - ?인???? blocker: `type_checker_zone_decl.c`??zone authority subject-slot type seam? ?순 lookup-only????generic ability mismatch provenance ?라진다. ??seam? zone authority generic ability fact?DAG metadata???린 ???거?야 한다
-    - ?인???? blocker: `type_checker_class_decl.c`??class/vessel field resolver???순 lookup-only????vessel/subject-vessel field acceptance 깨진?? ??seam? class/vessel field nominal flavor metadata?DAG??보존?????거?야 한다
-    - ?인???? blocker: `type_checker_world_decl.c`??shared/domain-slot resolver???순 lookup-only????zone/world/intent positive paths `subject slot ... requires a subject type`?무너진다. ??seam? world domain-slot subject/zone nominal materialization??DAG metadata???린 ???거?야 한다
-    - ?인???? blocker: `type_checker_ownership_let.c`??let annotation resolver???순 lookup-only????direct semantic unit path?서 graph metadata 이 `ClaimSlot` annotation??되어? segfault?????고, broader program path?서??`Slot`/`ReadView`/`WriteView`/`QubitSlot`/anchored own-ref paths `<unknown>`으로 무너???한다. ??seam? direct semantic unit bootstrap 는 null-safe diagnostic path? anchored-handle constructed-type metadata coverage?같이 ?? ???거?야 한다
-    - 진행: domain/intent declaration resolver??owner-local type-ref seam으로 ?렴한다. slot/shared/named domain refs? intent involves/value/where refs 각각 ?나??owner seam??공유?면??fallback seam inventory??38?서 34?감소한다
-    - 진행: alias/generic-parameter helper? resolution-stage diagnostic fallback??owner-local seam으로 ?렴한다. fallback seam inventory??34?서 32?감소한다
-    - 진행: zone authority participant resolver exact/qualified-tail direct slot match?먼? ?정?고, direct match 반환 ??stale ambiguity flag?한다. 같? ???subject slot???럿 되어??`authorized by rogue` ?제 `subject slot rogue: Adventurer`?concrete?게 ?히?false-positive ambiguous?되어 ?는??    - 진행: `type_checker_intent_decl.c`??participant/value/where local seam 3개는 graph metadata-first 조회 ??recursive fallback으로 ?려간다
-    - 진행: `type_checker_decls_domain_helpers.c`??slot/shared/named-ref local seam 3개는 graph metadata-first 조회 ??recursive fallback으로 ?려간다
-    - 진행: `type_checker_intent_helpers.c`??direct resolver ?출? `intent_helper_resolve_type_ref(...)` ?일 seam으로 ?렴한다. transfer-derived using/where, ability generic arg, role-field checks????seam??대해 ?음 DAG metadata ?환??한다
-    - 진행: `type_checker_host_helpers.h`??direct resolver ?출? `host_helper_resolve_type_ref(...)` ?일 seam으로 ?렴한다. projection source fields, hosted method return/param, zone authority/domain slot checks????seam??대해 ?음 DAG metadata ?환??한다
-    - 진행: `type_checker_program.c`??forward-declaration type materialization? quiet resolver seam 1개로 ?렴?고, `type_checker_program.inc`??function-body param/return/domain-slot materialization body resolver seam? graph metadata-first 조회 ??fallback으로 ?려간다
-    - 진행: `type_checker_event.c`??event signature/lambda handler materialization? graph-backed metadata lookup-only??환한다. ?음 DAG slice??ownership let / zone authority / world domain-slot / ability where-bound처럼 semantic provenance ?? owner seams??    - 진행: `type_checker_world_decl.c`??shared field/domain slot materialization? `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 ?렴한다. world shared/slot checks????seam?서 graph-backed metadata?교체????한다
-    - 진행: `type_checker_role_decl.c`, `type_checker_generic_contracts.h`, `type_checker_helpers_late.c`, `type_checker_expr.inc`??직접 resolver ?출??각각 role/generic-contract/late-helper/expr local seam 1개로 ?렴한다
-    - 진행: `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`??local resolver seam으로 ?렴한다. ?? direct count????resolver 본체, 주석, 는 명시 seam한다
-    - 진행: `type_checker.c`, `type_checker_ability_fields.c`, `type_checker_builtins_projection.c`, `type_checker_builtins_query_domain.inc`, `type_checker_flow.c`, `type_checker_generic_support.inc`, `type_checker_helpers_effects.inc`, `type_checker_ownership_let*.inc`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`, `type_checker_zone_decl.c`???발 direct resolver ?출??local seam으로 ?렴?고, zone domain-slot seam? graph metadata-first 조회??용한다
-    - ?료: `make type-resolution-resolver-inventory-test-smoke`?추?????`resolve_type_node(...)` 직접 ?출??resolver 본체/stage legacy fallback/core fallback/local seam allowlist 밖에 ?기??패?도?고정한다. `ci-linux`?도 ?결한다
-    - ? 2026-04-25 local WSL/Linux `make ci-linux` full green. Windows/MSYS2 native runner????머신???으?별도 CI ?경 acceptance line으로 ??
-  - 紐⑺몴:
-    - import graph? 별개?`type provider -> type consumer` 그래?? 분리 구축한다
-    - declaration / alias / generic default / where-bound / ability consumer / zone authority consumer瑜?DAG node/edge濡??밴꺽?쒕떎
-    - namespace-only reference??declaration inventory 조회 불필?한 concrete type materialization??강제?? ?게 한다
-    - cycle??generic/alias/type consumer path 湲곗??쇰줈 path-aware diagnostic?쇰줈 蹂닿퀬?쒕떎
-    - incremental compile ??invalidation 범위?declaration/type dependency ?위?줄인??  - 1?구현 ?칙:
-    - 湲곗〈 `resolve_type_node(...)`瑜???踰덉뿉 ?먭린?섏? ?딅뒗??    - 癒쇱? graph inventory + topo scheduling + cycle diagnostic??異붽??섍퀬, 洹??ㅼ쓬 recursive resolver瑜?graph-backed evaluator濡?移섑솚?쒕떎
-    - import/module loader??DFS cycle detection?type-resolution DAG??합?? ?는??  - ?계:
-    - Phase A: declaration/type provider inventory? consumer edge ?섏쭛
+- [x] **ownership vocabulary / payload cleanup 1차 고정**
+  - 대상: semantic ownership diagnostics / payload helper family / wording drift
+  - 완료:
+    - `src/semantic/type_checker_ownership_boundaries.inc`의 ownership helper 9종이 `DiagPayload`/`semantic_emit_payload(...)` 패턴으로 정렬됨
+    - semantic direct `semantic_error_with_hints(...)` 호출은 ownership-boundary helper 내부에서 제거됨
+    - vocabulary 1차 정리:
+      - `anchored handle` → `slot handle (anchored)`
+      - `movable resource handle` / `movable resource` → `slot handle (movable)`
+      - `capability-bearing` → `authority-bearing` (ownership/domain wording 기준)
+    - semantic 회귀는 현재 wording 기준으로 다시 고정됨
+  - 검증:
+    - `make test-semantic` → `1872 passed, 0 failed`
+    - `make test-transpile` → `601 passed, 0 failed`
+  - 남은 것:
+    - P3 잔여 세분류(`boundary value (subject)` 등) 추가 압축
+    - payload/helper family를 ownership 바깥 semantic diagnostics로 더 확장
+    - own/ref call/consumer path에서 classifier 기반 trivial copy-only semantics를 더 넓게 적용
+    - destructure target binding / nested projection / helper-chain wording을 consumer kind 기준으로 더 세분화
+
+- [ ] **type-resolution DAG 엔진 도입**
+  - 대상: semantic type resolution / generic consumer resolution / declaration dependency scheduling
+  - 문제: 현재는 `resolve_type_node(...)` 중심의 재귀 해석 + scope lookup + ad-hoc validation이 주축이라, module import graph는 분명하지만 type dependency 자체는 compiler-wide DAG로 관리되지 않는다
+  - 최근 진행:
+    - `TypeResolutionGraph` inventory + cycle diagnostic + topo derivation은 실제 활성 상태
+    - staged worklist는 provider-first 역순 topo 순회로 고정됨
+    - local contract / projection synthetic node는 label별 narrow handler로 소비됨
+    - generic `default_type` / generic constraint / `where` bound는 staged DAG resolver 경로에 편입됨
+    - graph regression은 world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / action-intent-zone-party ability consumer provenance까지 포함
+    - graph validator cycle과 legacy alias-resolution cycle이 모두 `Contract source:` / `Reason:` / `Fix:` 구조로 정렬됨
+    - 진행: type constraint bound formatter는 `type_checker_type_constraint.c`로 실제 TU 분리 완료
+    - 진행: graph node/edge/path/cycle-format primitive는 `type_checker_resolution_graph_core.c`로 실제 TU 분리 완료
+    - 진행: named dependency edge recorder와 즉시 cycle diagnostic 발행 경로는 `type_checker_resolution_graph_core.c`로 실제 TU 분리 완료
+    - 진행: type-ref dependency recorder도 `type_checker_resolution_graph_core.c`로 이동했고, `find_type_alias_decl`의 cross-include dangling return-type seam을 명시 선언으로 정리
+    - 진행: type-ref collector는 `type_checker_resolution_graph_collect.c`로 이동했고, graph core/include 경계의 dangling `static void` seam을 제거
+    - 진행: generic contract inventory / string dependency / required ability collector helpers는 `type_checker_resolution_graph_collect.c`로 이동해 declaration collector들의 공통 의존을 TU 경계로 승격
+    - 진행: top-level declaration graph registration은 `type_checker_resolution_graph_collect.c`로 이동해 inventory `.inc`를 1,962 LOC까지 축소
+    - 진행: local-contract graph node/dependency + zone/world/projection label formatters는 `type_checker_resolution_graph_labels.c`로 이동해 inventory `.inc`를 1,835 LOC까지 축소
+    - 진행: projection source resolver는 `type_checker_resolution_graph_domain.c`로 이동하고 `find_zone_domain_slot`을 internal API로 승격해 inventory `.inc`를 1,809 LOC까지 축소
+    - 진행: event declaration precollector는 `type_checker_resolution_graph_decl.c`로 이동해 inventory 본체에서 declaration-kind collector를 첫 절단
+    - 진행: enum declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고 `semantic_stage_method_array`를 internal API로 승격해 inventory `.inc`를 1,765 LOC까지 축소
+    - 진행: ability declaration precollector와 action-contract precollector도 `type_checker_resolution_graph_decl.c`로 이동해 inventory `.inc`를 1,648 LOC까지 축소
+    - 진행: role/class/party/roster declaration precollector도 `type_checker_resolution_graph_decl.c`로 이동하고, relation/effect domain inventory precollector는 `type_checker_resolution_graph_domain.c`로 이동해 inventory `.inc`를 1,299 LOC까지 축소
+    - 진행: intent declaration precollector와 world inventory precollector를 각각 `type_checker_resolution_graph_decl.c`, `type_checker_resolution_graph_world.c`로 이동해 inventory `.inc`를 870 LOC까지 축소
+    - 진행: zone projection field-map collector를 `type_checker_resolution_graph_zone.c`로 분리했고, 남은 inventory body를 `type_checker_resolution_graph_inventory.c`로 승격해 inventory `.inc`를 제거
+    - 진행: world/zone local-contract stage replay를 `type_checker_resolution_stage_domain.c`로 분리하고, 남은 stage 본체를 `type_checker_resolution_stage.c`로 승격해 stage `.inc` 제거
+    - 진행: class/extern declaration checker를 `type_checker_class_decl.c`로, top-level semantic orchestration을 `type_checker_program.c`로 분리해 program `.inc`를 624 LOC까지 축소
+    - 진행: `ToObject` / `ToTObject` projection checker를 `type_checker_builtins_projection.c`로 분리해 builtins nominal `.inc`를 659 LOC까지 축소
+    - 진행: domain helper와 intent helper를 각각 `type_checker_decls_domain_helpers.c`, `type_checker_intent_helpers.c`로 승격해 semantic `.inc` 800 LOC stop condition을 달성하고 `make semantic-inc-size-test-smoke`로 회귀 방지
+    - 진행: C backend `transpiler_emitters_mir_inventory_ssa.inc`를 3개 하위 slice로 분리하고 `make test-transpile`, `make llvm-test-backend-compare`로 parity 회귀 통과
+    - 진행: standalone TU 승격 중 드러난 dangling return-type seams와 implicit helper dependency를 제거해 `make test-all`, `make llvm-test-backend-compare` 회귀 통과
+    - 진행: implicit declaration / implicit int는 기본 CFLAGS에서 에러로 고정되어 이후 DAG/semantic split 중 hidden helper dependency가 즉시 실패하도록 정렬
+    - 진행: `type_resolution_intern_node` / `type_resolution_add_edge` / `type_resolution_find_path` / `type_resolution_format_cycle`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
+    - 진행: DAG stage 안에서 아직 `resolve_type_node(...)`로 내려가는 legacy fallback을 `PGY_TYPE_RES_STATS=1` 통계에 노출했다. `stage-legacy-resolve: calls/failed/suppressed_diagnostics`와 `stage-legacy-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`가 출력되며, `make type-resolution-dag-test-smoke`가 graph stats, topo validation, legacy fallback inventory 존재를 CI gate로 고정한다
+    - 진행: type-alias stage는 quiet resolve 성공 결과를 재사용하도록 정리해 성공 경로의 중복 `resolve_type_node(...)` 호출을 제거했다. 실패 경로는 기존 diagnostic fallback을 유지한다
+    - 진행: DAG edge가 이미 존재하는 named type-ref는 generic argument를 포함해 stage에서 `resolve_type_node(...)`를 다시 호출하지 않고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N` 통계가 추가됐고 `type-resolution-dag-test-smoke`가 skip 합계가 0으로 퇴행하지 않는지 검사한다
+    - 진행: graph precollect TU 안에서 enum methods가 `semantic_stage_method_array(...)`를 호출하던 impurity를 제거했다. 이제 enum method signature/contract도 precollect action contract 경로로만 graph edge를 수집한다
+    - 진행: DAG stage helper를 `type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`로 분리해 `type_checker_resolution_stage.c`를 895 LOC로 낮췄다. graph precollect, stage lookup, stage stats, stage replay owner가 파일 경계로 분리됐다
+    - 진행: generic where/default validation은 `type_checker_generic_validation.c`로 이동했다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.inc`는 더 이상 `resolve_type_node(...)`를 직접 호출하지 않으며, `semantic-core-shape-test-smoke`가 이 resolver-free graph-layer 경계를 검사한다
+    - 진행: graph precollect가 context-independent builtin type refs(`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`)를 `SemanticContext.type_resolution_metadata`에 기록한다. owner resolver seams는 이 metadata를 먼저 조회한 뒤 recursive fallback으로 내려간다
+    - 진행: graph metadata가 resolver-stable constructed/anchored-handle shells(`Array<T>`, `Slice<T>`, `List<T>`, `Queue<T>`, `Set<T>`, `Box<T>`, `Rc<T>`, `Weak<T>`, `Channel<T>`, `Future<T>`, `RemoteFuture<T>`, `Token<T>`, `DeviceSlot<T>`, `HashMap<String|Int|Long|Bool, T>`, `Option<T>`, `Result<T,E>`, `Slot<T>`, `SecureSlot<T>`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`)를 materialize할 수 있다. graph가 만든 `Type` shell은 metadata owned lane으로 기록하고 semantic context destroy에서 해제한다
+    - 진행: graph metadata가 tuple shell과 event-handler/function shell도 materialize한다. channel/future AST node는 inner fact collect 직후 constructed shell을 기록하므로 recursive fallback에 덜 의존한다
+    - 진행: `resolve_type_node(...)` wrapper 자체가 metadata-first가 되어, 남은 explicit legacy allowlist도 recursive materialization 전에 DAG facts를 먼저 소비한다
+    - 진행: `resolve_generic_type_arg(...)`도 metadata-first 조회 후 fallback으로 내려간다. constructed builtin/generic consumer path의 recursive resolver 의존 면적을 줄였다
+    - 진행: owner-local resolver seams는 `semantic_type_resolution_lookup_or_materialize(...)` 공용 materializer로 수렴했다. resolver 구현체와 central metadata materializer 밖에서 직접 `resolve_type_node(...)`를 호출하면 `type-resolution-resolver-inventory-test-smoke`가 실패한다
+    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 metadata entries/owned/hits, metadata materializer fallback count, zero non-alias stage legacy fallback, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3133 metadata_entries=1877 metadata_owned=111 metadata_hits=3267 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`
+    - 진행: DAG smoke는 이제 graph-backed skip/metadata entry/metadata hit/owned metadata가 단순히 0보다 큰지만 보지 않고 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)를 검사한다. DAG source-of-truth 사용량이 크게 후퇴하면 CI에서 즉시 잡는다
+    - 진행: 중앙 metadata materializer의 마지막 recursive fallback도 `materializer_fallbacks` 통계로 노출하고 semantic suite 합산 cap을 4135로 낮췄다. 이 cap은 성장 방지용이며, 다음 DAG 작업은 이 값을 계속 낮추는 것이다
+    - 진행: 남은 stage legacy surface는 alias-only로 고정됐다. 성공 alias materialization과 diagnostic fallback을 별도 계측하고 valid alias fallback은 0으로 gate한다. 남은 78건은 alias-cycle diagnostic coverage에서 나오는 unresolved fallback이며 hidden non-alias recursive resolution이 아니다
+    - 진행: program-level symbol inventory가 ability declarations도 predeclare한다. `type_check_ability_decl(...)`은 자기 자신의 predeclare만 재사용하고 같은 이름의 다른 ability는 기존처럼 duplicate diagnostic으로 처리한다. forward source order에서 generic default/where, zone authority, party role-slot ability consumer가 provider 후행이어도 통과하는 regression을 추가했다
+    - 진행: `tests/cases/backend_compare/forward_ability_order/main.pgy`를 backend compare suite에 추가했다. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering이 semantic-only가 아니라 C/LLVM 출력 동등성까지 유지되는지 검사한다
+    - 진행: `tests/compare_backends.sh` 기본 실행은 `tests/cases/backend_compare/*/main.pgy`가 default case array에 빠져 있으면 실패한다. 명시 인자 기반 targeted run은 유지하되, CI/default path에서 새 parity case가 조용히 누락되는 drift를 차단했다. 이 gate로 기존 passing case 8개(array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)를 default C/LLVM parity suite에 편입했다
+    - 진행: `type-resolution-resolver-inventory-test-smoke`가 direct resolver allowlist와 함께 metadata-first wrapper, execution/anchored-handle metadata materializer coverage를 static gate로 고정한다
+    - 진행: `type-resolution-resolver-inventory-test-smoke`가 새 `semantic_type_resolution_resolve_or_fallback(...)` 사용자를 금지하고 named fallback seam 총량을 0개로 고정한다. gate 출력은 현재 fallback seam count를 직접 보여주며, remaining fallback은 `semantic_type_resolution_lookup_or_materialize(...)` 내부의 central escape hatch 교체 대상이다
+    - 진행: fallback seam gate의 기존 하한선(`30개 미만이면 실패`)을 debt-reduction에 맞지 않는 규칙으로 보고 제거했다. 이제 0개 상한만 growth guard로 유지하며, seam 축소는 CI 성공 경로다
+    - 진행: `type_checker_module_contract.c`의 ability contract bookkeeping은 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only seam으로 낮췄다. ability 존재/visibility/generic arity/where provenance는 ability-specific validator가 계속 소유하며, fallback seam inventory는 39에서 38로 감소했다
+    - 진행: `type_checker_ability_fields.c`의 ability `fields` requirement validation도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. field contract diagnostics는 ability-specific validator가 계속 소유하며, fallback seam cap은 32에서 31로 감소했다
+    - 진행: `type_checker_builtins_projection.c`의 projection target-field resolver도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. projection field diagnostics는 projection validator가 계속 소유하며, fallback seam cap은 31에서 30으로 감소했다
+    - 진행: `type_checker_program.c`의 quiet top-level placeholder resolver는 graph precollect 이후 metadata lookup-only로 전환했다. event/function forward placeholders가 recursive fallback 없이 precollected DAG facts를 소비하면서 fallback seam cap은 30에서 29로 감소했다
+    - 진행: `type_checker_builtins_query_domain.inc`의 projection source-field resolver도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. HasProjection/HasZoneProjection 계열 field diagnostics는 domain query validator가 계속 소유하며, fallback seam cap은 29에서 28로 감소했다
+    - 진행: `type_checker_party_decl.c`와 `type_checker_roster_decl.c`의 shared-field type resolver도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. party/roster shared field diagnostics는 각 declaration validator가 계속 소유하며, fallback seam cap은 28에서 26으로 감소했다
+    - 진행: `type_checker_ability_decl.c`의 abstract method signature resolver와 `type_checker_role_decl.c`의 host-type resolver도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. ability/role declaration diagnostics는 각 owner validator가 계속 소유하며, fallback seam cap은 26에서 24로 감소했다
+    - 진행: function/action body precollector가 local let / with-slot annotation뿐 아니라 expression subtree, call type args, lambda param/return/body, event subscription handler, spawn/channel/return/branch expressions까지 따라간다. 이 기반으로 `type_checker_event.c`의 event/lambda handler type-ref resolver를 DAG metadata lookup-only로 낮췄고 fallback seam cap은 24에서 23으로 감소했다. `type_checker_flow.c`의 flow-local type resolver도 DAG metadata lookup-only로 낮춰 cap은 22로 감소했다. `type_checker.c`의 type-alias statement resolver도 DAG metadata lookup-only로 낮춰 cap은 21로 감소했다
+    - 확인된 남은 blocker: `type_checker_program.inc`의 function body param/return/domain-slot materialization seam은 단순 lookup-only로 낮추면 direct semantic unit path에서 graph metadata bootstrap 없이 segfault가 난다. 이 seam은 direct semantic unit bootstrap 또는 null-safe diagnostic path가 먼저 필요하다
+    - 확인된 남은 blocker: `type_checker_intent_decl.c`의 intent participant/value/where resolver seam은 단순 lookup-only로 낮추면 semantic suite 후반 parallel execution path에서 segfault가 난다. intent declaration은 graph precollect가 있지만 direct semantic/bootstrap path와 step/local binding materialization이 아직 lookup-only 계약을 만족하지 않으므로 explicit fallback seam으로 남긴다
+    - 확인된 남은 blocker: `type_checker_helpers_host.inc`의 host helper resolver는 단순 lookup-only로 낮추면 intent/zone authority positive path가 subject-slot type metadata 부족으로 무너진다. 이 seam은 zone/world/host subject-slot nominal metadata를 DAG에 보존한 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_generic_validation.c`의 generic where/default validation resolver는 단순 lookup-only로 낮추면 default type argument where-bound validation positive path가 깨진다. 이 seam은 generic default effective-arg fact와 where-bound provenance를 DAG metadata에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_generic_support.inc`의 boundary type helper seam은 단순 lookup-only로 낮추면 `ref class` / `ref subject` escape diagnostics 150개가 빠진다. 이 seam은 generic/nominal boundary category fact와 ref/own escape classifier가 DAG metadata에서 같은 type category를 볼 수 있을 때 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_ability_where.c`의 ability where-bound resolver는 단순 lookup-only로 낮추면 generic ability multi-bound mismatch provenance가 사라져 `Cloneable` bound mismatch 진단 회귀가 난다. 이 seam은 ability where-bound effective-arg / multi-bound provenance fact를 DAG metadata에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_operator_expr.inc`의 operator overload method signature resolver는 단순 lookup-only로 낮추면 semantic suite가 event/misc path 진입 전후에 segfault할 수 있다. 이 seam은 method param/return signature metadata와 operator overload candidate summary를 DAG에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_zone_decl.c`의 zone authority subject-slot type seam은 단순 lookup-only로 낮추면 generic ability mismatch provenance가 사라진다. 이 seam은 zone authority generic ability fact를 DAG metadata에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_class_decl.c`의 class/vessel field resolver는 단순 lookup-only로 낮추면 vessel/subject-vessel field acceptance가 깨진다. 이 seam은 class/vessel field nominal flavor metadata를 DAG에 보존한 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_world_decl.c`의 shared/domain-slot resolver는 단순 lookup-only로 낮추면 zone/world/intent positive paths가 `subject slot ... requires a subject type`로 무너진다. 이 seam은 world domain-slot subject/zone nominal materialization을 DAG metadata에 올린 뒤 제거해야 한다
+    - 확인된 남은 blocker: `type_checker_ownership_let.c`의 let annotation resolver는 단순 lookup-only로 낮추면 direct semantic unit path에서 graph metadata 없이 `ClaimSlot` annotation이 들어와 segfault할 수 있고, broader program path에서는 `Slot`/`ReadView`/`WriteView`/`QubitSlot`/anchored own-ref paths가 `<unknown>`으로 무너질 수 있다. 이 seam은 direct semantic unit bootstrap 또는 null-safe diagnostic path와 anchored-handle constructed-type metadata coverage를 같이 닫은 뒤 제거해야 한다
+    - 진행: domain/intent declaration resolver는 owner-local type-ref seam으로 수렴했다. slot/shared/named domain refs와 intent involves/value/where refs가 각각 하나의 owner seam을 공유하면서 fallback seam inventory는 38에서 34로 감소했다
+    - 진행: alias/generic-parameter helper와 resolution-stage diagnostic fallback도 owner-local seam으로 수렴했다. fallback seam inventory는 34에서 32로 감소했다
+    - 진행: zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. 같은 타입 subject slot이 여럿 있어도 `authorized by rogue`가 실제 `subject slot rogue: Adventurer`로 concrete하게 닫히면 false-positive ambiguous로 떨어지지 않는다
+    - 진행: `type_checker_intent_decl.c`의 participant/value/where local seam 3개는 graph metadata-first 조회 후 recursive fallback으로 내려간다
+    - 진행: `type_checker_decls_domain_helpers.c`의 slot/shared/named-ref local seam 3개는 graph metadata-first 조회 후 recursive fallback으로 내려간다
+    - 진행: `type_checker_intent_helpers.c`의 direct resolver 호출은 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. transfer-derived using/where, ability generic arg, role-field checks는 이 seam을 통해 다음 DAG metadata 전환을 탄다
+    - 진행: `type_checker_helpers_host.inc`의 direct resolver 호출은 `host_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. projection source fields, hosted method return/param, zone authority/domain slot checks는 이 seam을 통해 다음 DAG metadata 전환을 탄다
+    - 진행: `type_checker_program.c`의 forward-declaration type materialization은 quiet resolver seam 1개로 수렴했고, `type_checker_program.inc`의 function-body param/return/domain-slot materialization body resolver seam은 graph metadata-first 조회 후 fallback으로 내려간다
+    - 진행: `type_checker_event.c`의 event signature/lambda handler materialization은 graph-backed metadata lookup-only로 전환됐다. 다음 DAG slice는 ownership let / zone authority / world domain-slot / ability where-bound처럼 semantic provenance가 남은 owner seams다
+    - 진행: `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. world shared/slot checks는 이 seam에서 graph-backed metadata로 교체할 수 있다
+    - 진행: `type_checker_role_decl.c`, `type_checker_generic_contracts.inc`, `type_checker_helpers_late.c`, `type_checker_expr.inc`의 직접 resolver 호출도 각각 role/generic-contract/late-helper/expr local seam 1개로 수렴했다
+    - 진행: `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.inc`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 남은 direct count는 대부분 resolver 본체, 주석, 또는 명시 seam이다
+    - 진행: `type_checker.c`, `type_checker_ability_fields.c`, `type_checker_builtins_projection.c`, `type_checker_builtins_query_domain.inc`, `type_checker_flow.c`, `type_checker_generic_support.inc`, `type_checker_helpers_effects.inc`, `type_checker_ownership_let*.inc`, `type_checker_party_decl.c`, `type_checker_roster_decl.c`, `type_checker_zone_decl.c`의 단발 direct resolver 호출도 local seam으로 수렴했고, zone domain-slot seam은 graph metadata-first 조회를 사용한다
+    - 완료: `make type-resolution-resolver-inventory-test-smoke`를 추가해 새 `resolve_type_node(...)` 직접 호출이 resolver 본체/stage legacy fallback/core fallback/local seam allowlist 밖에 생기면 실패하도록 고정했다. `ci-linux`에도 연결했다
+    - 검증: 2026-04-25 local WSL/Linux `make ci-linux` full green. Windows/MSYS2 native runner는 이 머신에 없으므로 별도 CI 환경 acceptance line으로 유지
+  - 목표:
+    - import graph와 별개로 `type provider -> type consumer` 그래프를 분리 구축한다
+    - declaration / alias / generic default / where-bound / ability consumer / zone authority consumer를 DAG node/edge로 승격한다
+    - namespace-only reference나 declaration inventory 조회가 불필요한 concrete type materialization을 강제하지 않게 한다
+    - cycle는 generic/alias/type consumer path 기준으로 path-aware diagnostic으로 보고한다
+    - incremental compile 시 invalidation 범위를 declaration/type dependency 단위로 줄인다
+  - 1차 구현 원칙:
+    - 기존 `resolve_type_node(...)`를 한 번에 폐기하지 않는다
+    - 먼저 graph inventory + topo scheduling + cycle diagnostic을 추가하고, 그 다음 recursive resolver를 graph-backed evaluator로 치환한다
+    - import/module loader의 DFS cycle detection과 type-resolution DAG를 혼합하지 않는다
+  - 단계:
+    - Phase A: declaration/type provider inventory와 consumer edge 수집
     - Phase B: topo evaluation + SCC/cycle diagnostic 고정
-    - Phase C: generic default arg / multi-bound / ability consumer / zone authority?DAG consumer??입
-    - Phase D: incremental invalidation / cache / backend-facing resolved metadata ?ъ궗??  - ?뚭? 湲곗?:
-    - dependency loop diagnostic??cycle path/provenance ?온??    - graph-backed cycle?alias fallback cycle 모두 `Contract source:`??함한다
-    - namespace-only reference??불필?한 full type materialization???발?? ?는??    - generic consumer/default/bound resolution??graph-backed evaluation?서??기존 semantic 계약?같? 결과?한다
-    - C/LLVM compile path ?일??resolved-type metadata??사?한??    - `PGY_TYPE_RES_STATS=1`?서 stage graph-backed skip ?? legacy fallback ?출?? family breakdown, suppressed diagnostic ?? 보인?? ??값? ?? DAG migration debt??직접 ?이??겨?fallback??추??면 smoke?서 즉시 ?러?야 한다
+    - Phase C: generic default arg / multi-bound / ability consumer / zone authority를 DAG consumer로 편입
+    - Phase D: incremental invalidation / cache / backend-facing resolved metadata 재사용
+  - 회귀 기준:
+    - dependency loop diagnostic에 cycle path/provenance가 나온다
+    - graph-backed cycle과 alias fallback cycle 모두 `Contract source:`를 포함한다
+    - namespace-only reference는 불필요한 full type materialization을 유발하지 않는다
+    - generic consumer/default/bound resolution이 graph-backed evaluation에서도 기존 semantic 계약과 같은 결과를 낸다
+    - C/LLVM compile path가 동일한 resolved-type metadata를 재사용한다
+    - `PGY_TYPE_RES_STATS=1`에서 stage graph-backed skip 수, legacy fallback 호출량, family breakdown, suppressed diagnostic 수가 보인다. 이 값은 남은 DAG migration debt의 직접 지표이며 숨겨진 fallback을 추가하면 smoke에서 즉시 드러나야 한다
 
 - [x] **runtime observability baseline vs richer query 구분 고정**
-  - ??? `IntentLast* / IntentHistory* / IntentActive* / IntentRecent*`, zone/world inspection
-  - 문제: baseline???? ?는??문서 thin?라??면 반??surface trust?깎음
-  - 고정 기?:
-    - baseline observability??complete? richer timeline/provenance??open debt?분리
-  - ?뚭? 湲곗?:
-    - docs/board/status 문구 ?치
-    - observability regression??baseline API?계속 고정
+  - 대상: `IntentLast* / IntentHistory* / IntentActive* / IntentRecent*`, zone/world inspection
+  - 문제: baseline이 이미 있는데 문서가 thin이라고 쓰면 반대로 surface trust를 깎음
+  - 고정 기준:
+    - baseline observability는 complete로, richer timeline/provenance는 open debt로 분리
+  - 회귀 기준:
+    - docs/board/status 문구 일치
+    - observability regression이 baseline API를 계속 고정
 
-## ?료 (P0 ??즉시 ?정)
+## 완료 (P0 — 즉시 수정)
 
-- [x] **`system()` 명령 주입 ?거** ??`_spawnvp`/`execvp`?교체, 경로 ?추? (`pgy_path_is_safe`)
-- [x] **AES-256 ?구??* ??XOR ??호?FIPS 197 AES-256-CTR + HMAC-SHA256 ?증으로 교체 (?? ?존???음)
-- [x] **`auto __tmp` ?쒓굅** ??`PGY_RESULT_TRY` 留ㅽ겕濡쒖뿉??GCC ?뺤옣 `auto` ?쒓굅, C11 ?명솚 (紐낆떆??????뚮씪誘명꽣)
-- [x] **REPL 고정 ?일?* ??`_pgy_repl_tmp.*` ??`TMPDIR/pgy_repl_{pid}.*` (PID 기반 아니며 경로)
-- [x] **`type alias` vertical slice** ??`type UserId = Int;` parser/semantic/C/LLVM lowering ?곌껐, ?ㅼ쟾 annotation/typedef 寃쎈줈 ?뺣낫
+- [x] **`system()` 명령 주입 제거** — `_spawnvp`/`execvp`로 교체, 경로 검증 추가 (`pgy_path_is_safe`)
+- [x] **AES-256 실구현** — XOR 가짜 암호를 FIPS 197 AES-256-CTR + HMAC-SHA256 인증으로 교체 (외부 의존성 없음)
+- [x] **`auto __tmp` 제거** — `PGY_RESULT_TRY` 매크로에서 GCC 확장 `auto` 제거, C11 호환 (명시적 타입 파라미터)
+- [x] **REPL 고정 파일명** — `_pgy_repl_tmp.*` → `TMPDIR/pgy_repl_{pid}.*` (PID 기반 유니크 경로)
+- [x] **`type alias` vertical slice** — `type UserId = Int;` parser/semantic/C/LLVM lowering 연결, 실전 annotation/typedef 경로 확보
 
-## P1 ???ㅼ쓬 ?④퀎
+## P1 — 다음 단계
 
-- [ ] **CI ?드??* ??Ubuntu + Windows 빌드 매트? ??, AddressSanitizer/UBSan, ??촘촘??smoke coverage
-- [ ] **CodeQL + secret scanning ?성??* ??C/C++ 분석 모드, push protection
-- [x] **CHANGELOG.md + 버전 ?책 ?립** ??SemVer, 릴리???깅 규칙
-  - ?료: `CHANGELOG.md` 존재, Keep a Changelog ?맷, SemVer 명시
-- [x] **SECURITY.md** ??보안 취약???보 채널, 책임 는 공개 ?책
-  - ?료: `SECURITY.md` ?성 (2026-04-18). ??버전, 보고 채널, in/out scope, 공격 ?면?mitigation, advisory format ?함
+- [ ] **CI 하드닝** — Ubuntu + Windows 빌드 매트릭스 유지, AddressSanitizer/UBSan, 더 촘촘한 smoke coverage
+- [ ] **CodeQL + secret scanning 활성화** — C/C++ 분석 모드, push protection
+- [x] **CHANGELOG.md + 버전 정책 수립** — SemVer, 릴리스 태깅 규칙
+  - 완료: `CHANGELOG.md` 존재, Keep a Changelog 포맷, SemVer 명시
+- [x] **SECURITY.md** — 보안 취약점 제보 채널, 책임 있는 공개 정책
+  - 완료: `SECURITY.md` 생성 (2026-04-18). 지원 버전, 보고 채널, in/out scope, 공격 표면별 mitigation, advisory format 포함
 
-## P1.5 ??되어/컴파?러 보강
+## P1.5 — 언어/컴파일러 보강
 
-- [ ] **MIR DCE statement-level ?뺤옣**
-  - ?재??dead SSA/PHI ?거 + `HasState`/`ChannelLength`?pure-query stmt ?거까????작??  - ?? ?계: pure expression stmt / dead call / dead resource-op / carrier stmt????분?하? side-effect lattice 기?으로 ?거 ?책???교??  - 목표: MIR-only emitter 기?는 metadata carrier??? ?으면서??불필?한 stmt ?거 범위??힘
+- [ ] **MIR DCE statement-level 확장**
+  - 현재는 dead SSA/PHI 제거 + `HasState`/`ChannelLength`류 pure-query stmt 제거까지는 동작함
+  - 남은 단계: pure expression stmt / dead call / dead resource-op / carrier stmt를 더 세분화하고, side-effect lattice 기준으로 제거 정책을 정교화
+  - 목표: MIR-only emitter가 기대하는 metadata carrier를 잃지 않으면서도 불필요한 stmt 제거 범위를 넓힘
 
-- [x] **IR 계층 ?계 ??* ??HIR/DIR/RIR/MIR 분리 ??성 ??
-  - **DIR ?? 결정**: intent domain structure 증에 개수 (step dependency, zone binding, post-condition)
-  - **RIR ?? 결정**: resource state lattice (20-state)??slot/projection/authority lifecycle 증에 ?요
-  - **MIR ?? 결정**: SSA/CFG/cleanup edge??intent compensation execution path??개수
-  - ~~?? 과제~~: Backend?HIR 기반 ??MIR 기반으로 ?환?야 IR ?자 ROI ?현 ??**?료**
-  - 李멸퀬: Rust??AST?뭈HIR?묺IR?묹LVM 4?④퀎, Pergyra??AST?묱IR?묭IR?뭃IR?묺IR?묪ackend 6?④퀎
-  - DIR? domain graph?HIR? 구조 ?라 별도 IR???는 것이 ???  - RIR 20-state lattice???순???성 ??(?재: Owned/Borrowed/Synced/Dirty/Stale/Published/Authorized ??
-- [ ] **ability 기반 ?산??dispatch 고도??* ???재??`role/impl ability` 메서?에??`operator_<suffix>_<Type>` alias??성??C/LLVM???적으로 ?출는 방식. ?기?으로는 ability/vtable 기반??직접 dispatch? ???교??overload ?선?위 규칙???요
-- [ ] **LLVM ?산???버로드 ?? ?스???장** ??현재 ?모는 `role IntMath for Int` 1?중심. 비교 ?산, ?함??role, enum/custom type, namespace 경로까? ?동 ?스????
+- [x] **IR 계층 설계 검토** — HIR/DIR/RIR/MIR 분리 타당성 평가
+  - **DIR 유지 결정**: intent domain structure 검증에 필수 (step dependency, zone binding, post-condition)
+  - **RIR 유지 결정**: resource state lattice (20-state)는 slot/projection/authority lifecycle 검증에 필요
+  - **MIR 유지 결정**: SSA/CFG/cleanup edge는 intent compensation execution path에 필수
+  - ~~남은 과제~~: Backend를 HIR 기반 → MIR 기반으로 전환해야 IR 투자 ROI 실현 → **완료**
+  - 참고: Rust도 AST→THIR→MIR→LLVM 4단계, Pergyra는 AST→HIR→DIR→RIR→MIR→Backend 6단계
+  - DIR은 domain graph로 HIR와 구조가 달라 별도 IR로 유지하는 것이 타당
+  - RIR 20-state lattice는 단순화 가능성 검토 (현재: Owned/Borrowed/Synced/Dirty/Stale/Published/Authorized 등)
+- [ ] **ability 기반 연산자 dispatch 고도화** — 현재는 `role/impl ability` 메서드에서 `operator_<suffix>_<Type>` alias를 합성해 C/LLVM이 정적으로 호출하는 방식. 장기적으로는 ability/vtable 기반의 직접 dispatch와 더 정교한 overload 우선순위 규칙이 필요
+- [ ] **LLVM 연산자 오버로드 회귀 테스트 확장** — 현재 스모크는 `role IntMath for Int` 1건 중심. 비교 연산, 포함된 role, enum/custom type, namespace 경로까지 자동 테스트 확대
 
-## P1.58 ???? ?이브러??프??
-- [x] **`use datetime;` ?ㅼ젣 stdlib module??*
+## P1.58 — 표준 라이브러리 인프라
+
+- [x] **`use datetime;` 실제 stdlib module화**
 - [x] **`use http;` v0.1**
   - `HttpRequest`, `HttpResponse`, `RouteSpec`
   - `OkResponse`, `ErrorResponse`, `JsonResponse`
-  - intent adapter handler ?덉젣? ?곌껐
+  - intent adapter handler 예제와 연결
 - [x] **`use storage;` v0.1**
   - `SnapshotMeta`, `SnapshotRecord`
   - `StorageSave`, `StorageLoad`, `StorageAppendLog`
-  - world/session snapshot ?덉젣? ?곌껐
+  - world/session snapshot 예제와 연결
 - [x] **`use page;` v0.1**
   - `PageRoute`, `PageAction`, `PageMessage`
   - `MountPage`, `BindAction`, `RenderSection`
-  - projection surface / action binder ?덉젣? ?곌껐
-- [x] **?핑??제?stdlib ?프???용 버전으로 리프??*
+  - projection surface / action binder 예제와 연결
+- [x] **쇼핑몰 예제를 stdlib 인프라 사용 버전으로 리프트**
   - `pages/` -> `use page;`
   - `api/` -> `use http;`
   - `report/storage` -> `use storage;`
 
-- [ ] **`pgy scaffold project`??app-infra starter 異붽?**
+- [ ] **`pgy scaffold project`에 app-infra starter 추가**
   - intent-first layout + `intents/ subjects/ zones/ world.pgy main.pgy`
   - optional `pages/ api/ report/` app adapter starter
 
-## P1.58 ???? ?이브러?개선 (2026-04-06 분석)
+## P1.58 — 표준 라이브러리 개선 (2026-04-06 분석)
 
-- [ ] **stdlib page.pgy ?제 ?더?컴포?트 ?스?으??장**
-  - ?재: ?순 ?이??구조 + ?더?문자??개수?  - 목표: 이 ?이?사?클(마운???마?트/?데?트), 컴포?트 ?리, ?태 ?  - ?안: `Component` abstract base, `mount()`, `render()`, `update()`, `unmount()` ?이?사?클 ??- [ ] **stdlib storage.pgy WriteFile 추상??*
-  - ?재: `WriteFile` ?장 개수 직접 ?출 ???랫???존??  - 목표: Slot/Device ?터?이으로 분리 (`StorageDevice` ability)
-  - ?쒖븞: `ability StorageDevice { Write(path, data) -> Result<Void, Error>; Read(path) -> Result<String, Error> }`
-- [ ] **stdlib ?반 Result<T, Error> ?턴 ?용**
-  - ?재: `WriteFile`, `ReadFile` ?패 ???래???성
-  - 목표: 모든 I/O ?산??`Result<T, Error>` 반환
-  - ?안: `?` ?산?? 조합???러 ?파 ?동??- [ ] **datetime.pgy 메서??????개선**
-  - ?재: `export class LocalDate` + `export func SameDate()` ?재
-  - ?안: 메서??????(`a.SameDate(b)` vs `SameDate(a, b)`) ???나??기거나 ????문서??
-## IR ?이?라??
-- [x] **DIR code layer ?쒖옉**
+- [ ] **stdlib page.pgy 실제 렌더링/컴포넌트 시스템으로 확장**
+  - 현재: 단순 데이터 구조 + 렌더링 문자열 함수만
+  - 목표: 페이지 라이프사이클(마운트/언마운트/업데이트), 컴포넌트 트리, 상태 관리
+  - 제안: `Component` abstract base, `mount()`, `render()`, `update()`, `unmount()` 라이프사이클 훅
+- [ ] **stdlib storage.pgy WriteFile 추상화**
+  - 현재: `WriteFile` 내장 함수 직접 호출 → 플랫폼 의존성
+  - 목표: Slot/Device 인터페이스로 분리 (`StorageDevice` ability)
+  - 제안: `ability StorageDevice { Write(path, data) -> Result<Void, Error>; Read(path) -> Result<String, Error> }`
+- [ ] **stdlib 전반 Result<T, Error> 패턴 활용**
+  - 현재: `WriteFile`, `ReadFile` 실패 시 크래시 가능성
+  - 목표: 모든 I/O 연산이 `Result<T, Error>` 반환
+  - 제안: `?` 연산자와 조합해 에러 전파 자동화
+- [ ] **datetime.pgy 메서드 일관성 개선**
+  - 현재: `export class LocalDate` + `export func SameDate()` 혼재
+  - 제안: 메서드 일관성 (`a.SameDate(b)` vs `SameDate(a, b)`) — 하나만 남기거나 둘 다 문서화
+
+## IR 파이프라인
+
+- [x] **DIR code layer 시작**
   - declaration graph
   - intent participant/step edge
   - role/ability completeness edge
-- [x] **RIR code layer ?쒖옉**
+- [x] **RIR code layer 시작**
   - explicit resource/projection/authority/capability/intent-policy fact
   - explicit resource op
   - scope-level normalized state summary
   - HIR-enriched branch/join `flow-block[...]` lattice summary
-- [x] **MIR code layer ?쒖옉**
+- [x] **MIR code layer 시작**
   - block/instruction skeleton
   - phi materialization
   - block-local SSA rename
-  - instruction-level `def/use` ?쒖옉
-  - rollback/invalidation exceptional CFG ?쒖옉
-- [ ] **RIR lattice propagation ?화**
-  - relation/effect/zone/world handle merge???작?? conditional handle invalidation?world-handoff lattice????  - conditional authority/projection invalidation fact ?장
+  - instruction-level `def/use` 시작
+  - rollback/invalidation exceptional CFG 시작
+- [ ] **RIR lattice propagation 심화**
+  - relation/effect/zone/world handle merge는 시작됨, conditional handle invalidation과 world-handoff lattice를 더 밀기
+  - conditional authority/projection invalidation fact 확장
 - [ ] **MIR full SSA / flow merge**
-  - block-level version map? ?쒖옉?? rename??full def-use chain/liveness ?섏??쇰줈 ?뺤옣
-  - cleanup convergence root???작?? MIR-level `RIR-flow` merge? cleanup convergence policy???고도??- [ ] **MIR DCE ?장 (statement-level)**
-  - dead DEF/PHI ?쒓굅瑜??섏뼱 side-effect-free STMT/unused call ?쒓굅
-  - ?재??pure query builtin (`Has*`, `ChannelLength/Capacity/Space/Full/Closed`)??전 ?거 ?작
-  - `unused pure let initializer` ?쒓굅??source-local/runtime-backed storage? 異⑸룎???ㅼ떆 蹂대쪟
-  - dead identifier-assign ?거??loop/phi/live-out ?판???아 되어 계속 보수 보류
-  - ?음 reopen 조건: value summary??block-boundary / phi provenance??용??loop-carried DEF? 진짜 dead local DEF?분리
-  - user call purity??아직 보수?으?side-effect ?다?간주
-  - RESOURCE_OP/CLEANUP_EDGE/abort/IO ??side-effect 蹂댁〈 洹쒖튃 紐낆떆
-  - RPO 기반 liveness? 결합???거 ?확??개선
-## P2.0 ??Backend MIR 기반 ?환 ???료
+  - block-level version map은 시작됨, rename을 full def-use chain/liveness 수준으로 확장
+  - cleanup convergence root는 시작됨, MIR-level `RIR-flow` merge와 cleanup convergence policy를 더 고도화
+- [ ] **MIR DCE 확장 (statement-level)**
+  - dead DEF/PHI 제거를 넘어 side-effect-free STMT/unused call 제거
+  - 현재는 pure query builtin (`Has*`, `ChannelLength/Capacity/Space/Full/Closed`)만 안전 제거 시작
+  - `unused pure let initializer` 제거는 source-local/runtime-backed storage와 충돌해 다시 보류
+  - dead identifier-assign 제거는 loop/phi/live-out 오판이 남아 있어 계속 보수 보류
+  - 다음 reopen 조건: value summary의 block-boundary / phi provenance를 이용해 loop-carried DEF와 진짜 dead local DEF를 분리
+  - user call purity는 아직 보수적으로 side-effect 있다고 간주
+  - RESOURCE_OP/CLEANUP_EDGE/abort/IO 등 side-effect 보존 규칙 명시
+  - RPO 기반 liveness와 결합해 제거 정확도 개선
+## P2.0 — Backend MIR 기반 전환 ✅ 완료
 
-- [x] **emit_program()??HIR 기반 ??MIR 기반으로 ?환**
-  - **?료**: `emit_func_decl_from_mir_named()` ?전 구현
-  - **寃곌낵**: MIR routine ??SSA locals + CFG ??C 肄붾뱶 ?앹꽦
-  - **??기능**:
+- [x] **emit_program()을 HIR 기반 → MIR 기반으로 전환**
+  - **완료**: `emit_func_decl_from_mir_named()` 완전 구현
+  - **결과**: MIR routine → SSA locals + CFG → C 코드 생성
+  - **지원 기능**:
     - Intent compensation (cleanup blocks)
     - SSA versioned locals (`_pgy_ssa_name_N`)
-    - PHI ?드 복사 (join block 진입)
-    - BRANCH ??if/else gotos
-    - RESOURCE_OP ??????개수 ?출
-  - **?뚯뒪??*: 428 passed, 0 failed (湲곗〈 403 passed, 5 failed)
-  - **?꾪궎?띿쿂**:
+    - PHI 노드 복사 (join block 진입)
+    - BRANCH → if/else gotos
+    - RESOURCE_OP → 런타임 함수 호출
+  - **테스트**: 428 passed, 0 failed (기존 403 passed, 5 failed)
+  - **아키텍처**:
     ```
-    Domain IR:   Intent Recover ??policy exclusive ??step Heal ??zone main ??participant unit
-    Resource IR: IntentBegin I1 ??ConflictCheck exclusive ??BindZone main ??CallAction Recover
-    MIR:         bb0: conflict_check(unit) ??br !r0, bb_fail, bb1
-                 bb1: call recover(unit) ??call sync_projection(main, unit)
-                 bb_commit: intent_commit(I1) ??ret true
-                 bb_fail: intent_abort(I1) ??ret false
+    Domain IR:   Intent Recover → policy exclusive → step Heal → zone main → participant unit
+    Resource IR: IntentBegin I1 → ConflictCheck exclusive → BindZone main → CallAction Recover
+    MIR:         bb0: conflict_check(unit) → br !r0, bb_fail, bb1
+                 bb1: call recover(unit) → call sync_projection(main, unit)
+                 bb_commit: intent_commit(I1) → ret true
+                 bb_fail: intent_abort(I1) → ret false
     ```
 
-## P2.1 ??LLVM 백엔??MIR 기반 ?환 ???료
+## P2.1 — LLVM 백엔드 MIR 기반 전환 ✅ 완료
 
-- [x] **LLVM 백엔??MIR 기반 ?환 ?료**
-  - `src/codegen/llvm_pipeline.c`: MIR routine ??LLVM IR 직접 ?성
-  - `src/codegen/llvm_mir_emit.c`: `llvm_emit_func_from_mir()` ?전 구현
-  - SSA locals, PHI nodes, branch terminators, intent compensation 모두 ??  - 기? 과 ?성: LLVM 최적???스 ?전 ?용, C/LLVM 백엔???키?처 ?일
-  - C/LLVM ????MIR 기반으로 ?일 ??IR ?자 ROI ?현
+- [x] **LLVM 백엔드 MIR 기반 전환 완료**
+  - `src/codegen/llvm_pipeline.c`: MIR routine → LLVM IR 직접 생성
+  - `src/codegen/llvm_mir_emit.c`: `llvm_emit_func_from_mir()` 완전 구현
+  - SSA locals, PHI nodes, branch terminators, intent compensation 모두 지원
+  - 기대 효과 달성: LLVM 최적화 패스 완전 활용, C/LLVM 백엔드 아키텍처 통일
+  - C/LLVM 둘 다 MIR 기반으로 통일 → IR 투자 ROI 실현
 
-## P1.55 ??되어 기능 ?장
+## P1.55 — 언어 기능 확장
 
-### 기반 ????스??- [x] **?그??아니며 (enum with data)** ??`enum Shape { Circle(Int), Rect(Int, Int) }` ?이?? ?enum
-  - ?료: variant payload ?싱, variant ?성?????추론, C tagged union / LLVM discriminated struct, LLVM tagged-union regression ??제 ?행
-- [x] **Option<T> / None** ??"?자 비어을 ???다"???으??현. `-1` sentinel ?거
-  - ?료: `Option<T>` constructed type, `Some/None`, `IsSome/IsNone/UnwrapOption`, C/LLVM lowering
-  - ?료: `match opt { case Some(v): ... case None: ... }` destructuring
-- [x] **?스?럭처링 (SecureSlot)** ??`let (slot, token) = ClaimSecureSlot<Int>(lvl)` ?턴 바인??  - ?료 (2026-04-19): ?서 `ClaimSlot`/`ClaimSecureSlot` 의 `<T>`????상 버리 하고 `AST_CALL.generic_args`??첨? (?반 call-site ?네??프??, ?맨이 destructuring?서 ??generic arg?SYMBOL_SLOT + SYMBOL_TOKEN ???록, MIR emit??`PgyToken_T token; PgySecureSlot_T slot = pgy_claim_secure_T(&token);` 출력, `transpiler_find_local_type_name_in_block`??바인?별 `SecureSlot<T>`/`Token<T>` 반환??MIR header??????약 ?리, SSA 맵에 self-mapping ?록으로 emission contract ?과
-  - ?일: `src/parser/ast.h`, `src/parser/ast.c`, `src/parser/parser.h`, `src/parser/parser_expr.c` (?네??자 보존), `src/semantic/type_checker.c` (destructuring ?맨??, `src/codegen/transpiler_emitters_base_a.inc` (MIR-level claim emit + ssa map ?록)
-  - ?뚭?: `src/test_transpile.c` "let (slot, token) = ClaimSecureSlot<T>(lvl) emits paired claim"
-  - SecureSlot MIR auto-Read + claim ?큰 emit ?? 버그 ?정 (2026-04-19): (a) SSA-aware identifier 경로 `suppress_slot_auto_read` 무시?던 버그?`pgy_secure_write_Int(&pgy_read_Int(&slot),...)` 같? ?못??C 출력 ??`!ctx->suppress_slot_auto_read` ??추? + Secure 경로?서 `pgy_secure_read_*` 분기. (b) MIR DCE `AST_LET_DECL`???용 ?음으로 ?정???거?던 버그 ??`mir_stmt_has_side_effect`??추?. (c) `transpiler_emit_mir_resource_op` Claim 룰이 SecureSlot?도 `pgy_claim_secure_T()`?emit하고 ?큰? ?략?던 버그 ??`PgyToken_T anchor_token;` + `= pgy_claim_secure_T(&anchor_token)` 방식으로 ?정. (d) `Token<T>`??"claim shape"??식??MIR header pre-decl 건너?도?`transpiler_type_name_is_claim_shape` ?입 (slot-like???구별 ??auto-Read???전??Slot ?용). 결과: destructuring + ?destructuring SecureSlot 모두 E2E ?작 (`Write/Read/Release` ?함)
-  - ?일: `src/compiler/mir.c` (DCE), `src/codegen/transpiler_expr_emitters.inc` (suppress ??, `src/codegen/transpiler_emitters_base_a.inc` (claim_shape 분리), `src/codegen/transpiler_emitters_base_b.inc` (MIR header 체크), `src/codegen/transpiler_helpers.h` (claim ?큰 emit), `src/parser/parser_decl.c` (class-body destructuring ?러 메시)
-  - 미처? LLVM 백엔??SecureSlot destructuring (LLVM? ?? "requires explicit annotation" ?러 ??별도 ?션), class-body destructuring (`private let (slot, token) = ClaimSecureSlot()`??명확???러 메시로만 처리 ??별도 ?션)
-- [x] **?플 반환 ???+ ?스?럭처링** ??`func f() -> (Int, String)` ?`let (n, s) = f()` ??  - ?료 (2026-04-19): Type ?프에 `TYPE_KIND_TUPLE` ?성??(union??`tuple.elements/element_count` ?드 + `type_create_tuple`/`type_is_tuple`/`type_tuple_arity`/`type_tuple_get_element`), AST_TYPE??`tuple_elements` ?드?`(T, U, ...)` ?현, `AST_TUPLE_LITERAL` ?규 ?드?`(a, b, ...)` ?현????  - ?서: `parse_type()`??`LPAREN` 분기??플 ???구문 처리 (?일 `(T)`??기존 `T`??원, ?`()`??`Void`, 2??상???만 ?플), `parser_parse_primary`??괄호 ?현??경로??콤마 감? ???플 리터으로 분기
-  - ?맨?? `resolve_type_node`??tuple 분기 추? ??`type_create_tuple` 반환, `type_check_expression`??`AST_TUPLE_LITERAL` ?스??소 ????집, `AST_LET_DESTRUCTURE`?서 RHS tuple?면 arity ?+ positional element ????당
-  - C 백엔?? `append_type_name`???플??`(T, U)`??더, `pergyra_type_to_c` `(Int, String)` ??`PgyTuple_Int_String_t`?매핑 (depth-tracking ?서), `ensure_tuple_specialization_to` `typedef struct { T0 f0; T1 f1; ... } PgyTuple_<suffix>_t;`?ctx->out??중복 이 방출, `emit_expression(AST_TUPLE_LITERAL)`??compound literal `((PgyTuple_T_U_t){.f0=..., .f1=...})` emit, AST_LET_DESTRUCTURE MIR 경로/기본 경로 ????tuple 분기?`.f0/.f1/...` ?드 추출
-  - LLVM 백엔?? `ast_type_to_llvm`??tuple AST_TYPE ??literal anonymous struct `{T0, T1, ...}`, `llvm_emit_expression(AST_TUPLE_LITERAL)`??`LLVMGetUndef + InsertValue` 체인으로 집계?구성, `llvm_emit_let_destructure` struct ?드 개수 + ??드 비포?터 heuristic으로 tuple ?정 ??`ExtractValue` per-binding
-  - ?뚭?: `tests/cases/backend_compare/destructure_tuple_return/main.pgy` (C/LLVM ?숈씪: `42/hello/7/11/true`), `compare_backends.sh` case ?깅줉, `test-semantic 1653 passed`, `test-transpile 584 passed`
-  - ?뚯씪: `src/semantic/type_system.{h,c}`, `src/parser/ast.{h,c}`, `src/parser/parser_decl.c`, `src/parser/parser_expr.c`, `src/semantic/type_checker.{c,_helpers.inc}`, `src/codegen/transpiler.h`, `src/codegen/transpiler_helpers_core_b.inc`, `src/codegen/transpiler_expr_emitters.inc`, `src/codegen/transpiler_emitters_base_{a,b}.inc`, `src/codegen/llvm_backend.c`, `src/codegen/llvm_expr.c`, `src/codegen/llvm_stmt.c`, `src/codegen/llvm_pipeline.c`
-  - ?속 ?정 (destructure + if ??: `transpiler_register_with_alias_bindings_in_block`??Claim-only ?한 ?거 ??모든 destructuring 바인??array/slice/tuple/?반 call)???름??self-mapping으로 precheck ssa_map???록. ?제 emit 경로???전??`<name>.1` 버전???름??MIR emit ?점??ssa_map??되어???용 (self-map? verifier ?과???일 ?. 결과: `let (a, b, flag) = f(); if flag { ... } else { ... }` 같? ?턴??array/tuple ????C/LLVM?서 ?작. ?일: `src/codegen/transpiler_emitters_base_a.inc` (register_with_alias_bindings_in_block)
-- [ ] **sealed ability** ??구현 ?한 role???한 (`sealed ability Combatable` ??같? 모듈 ??role?impl ??
-- [x] **문자??보간** ??`f"값? {x}"` ??`StringConcat(...)` series?lowering
-  - ?료: lexer?서 `f"..."` ??`TOKEN_INTERPOLATED_STRING`
-  - ?료: parser?서 `{expr}` ?싱, `ToString(expr)` + `+` concatenation으로 분해
-  - ?료: 기존 `"${expr}"` ?거??문법???환 ??
-  - ?료: 베? stable subset??`"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace?문서??  - ?료: unmatched interpolation brace??보간?? 하고 literal text?보존?도?parser ?? 추?
+### 기반 타입 시스템
+- [x] **태그드 유니언 (enum with data)** — `enum Shape { Circle(Int), Rect(Int, Int) }` 데이터를 가진 enum
+  - 완료: variant payload 파싱, variant 생성자 타입 추론, C tagged union / LLVM discriminated struct, LLVM tagged-union regression 및 예제 실행
+- [x] **Option<T> / None** — "상자가 비어있을 수 있다"를 타입으로 표현. `-1` sentinel 제거
+  - 완료: `Option<T>` constructed type, `Some/None`, `IsSome/IsNone/UnwrapOption`, C/LLVM lowering
+  - 완료: `match opt { case Some(v): ... case None: ... }` destructuring
+- [x] **디스트럭처링 (SecureSlot)** — `let (slot, token) = ClaimSecureSlot<Int>(lvl)` 패턴 바인딩
+  - 완료 (2026-04-19): 파서 `ClaimSlot`/`ClaimSecureSlot` 뒤의 `<T>`를 더 이상 버리지 않고 `AST_CALL.generic_args`에 첨부 (일반 call-site 제네릭 인프라), 시맨틱이 destructuring에서 이 generic arg로 SYMBOL_SLOT + SYMBOL_TOKEN 쌍 등록, MIR emit이 `PgyToken_T token; PgySecureSlot_T slot = pgy_claim_secure_T(&token);` 출력, `transpiler_find_local_type_name_in_block`이 바인딩별 `SecureSlot<T>`/`Token<T>` 반환해 MIR header의 타입 예약 정리, SSA 맵에 self-mapping 등록으로 emission contract 통과
+  - 파일: `src/parser/ast.h`, `src/parser/ast.c`, `src/parser/parser.h`, `src/parser/parser_expr.c` (제네릭 인자 보존), `src/semantic/type_checker.c` (destructuring 시맨틱), `src/codegen/transpiler_emitters_base_a.inc` (MIR-level claim emit + ssa map 등록)
+  - 회귀: `src/test_transpile.c` "let (slot, token) = ClaimSecureSlot<T>(lvl) emits paired claim"
+  - SecureSlot MIR auto-Read + claim 토큰 emit 연관 버그 수정 (2026-04-19): (a) SSA-aware identifier 경로가 `suppress_slot_auto_read` 무시하던 버그로 `pgy_secure_write_Int(&pgy_read_Int(&slot),...)` 같은 잘못된 C 출력 — `!ctx->suppress_slot_auto_read` 가드 추가 + Secure 경로에서 `pgy_secure_read_*` 분기. (b) MIR DCE가 `AST_LET_DECL`을 부작용 없음으로 판정해 제거하던 버그 — `mir_stmt_has_side_effect`에 추가. (c) `transpiler_emit_mir_resource_op` Claim 룰이 SecureSlot에도 `pgy_claim_secure_T()`만 emit하고 토큰은 생략하던 버그 — `PgyToken_T anchor_token;` + `= pgy_claim_secure_T(&anchor_token)` 방식으로 수정. (d) `Token<T>`도 "claim shape"로 인식해 MIR header pre-decl 건너뛰도록 `transpiler_type_name_is_claim_shape` 도입 (slot-like와는 구별 — auto-Read는 여전히 Slot 전용). 결과: destructuring + 비-destructuring SecureSlot 모두 E2E 동작 (`Write/Read/Release` 포함)
+  - 파일: `src/compiler/mir.c` (DCE), `src/codegen/transpiler_expr_emitters.inc` (suppress 가드), `src/codegen/transpiler_emitters_base_a.inc` (claim_shape 분리), `src/codegen/transpiler_emitters_base_b.inc` (MIR header 체크), `src/codegen/transpiler_helpers.inc` (claim 토큰 emit), `src/parser/parser_decl.c` (class-body destructuring 에러 메시지)
+  - 미처리: LLVM 백엔드 SecureSlot destructuring (LLVM은 이미 "requires explicit annotation" 에러 — 별도 세션), class-body destructuring (`private let (slot, token) = ClaimSecureSlot()`는 명확한 에러 메시지로만 처리 — 별도 세션)
+- [x] **튜플 반환 타입 + 디스트럭처링** — `func f() -> (Int, String)` 및 `let (n, s) = f()` 지원
+  - 완료 (2026-04-19): Type 인프라에 `TYPE_KIND_TUPLE` 활성화 (union에 `tuple.elements/element_count` 필드 + `type_create_tuple`/`type_is_tuple`/`type_tuple_arity`/`type_tuple_get_element`), AST_TYPE에 `tuple_elements` 필드로 `(T, U, ...)` 표현, `AST_TUPLE_LITERAL` 신규 노드로 `(a, b, ...)` 표현식 지원
+  - 파서: `parse_type()`에 `LPAREN` 분기로 튜플 타입 구문 처리 (단일 `(T)`는 기존 `T`로 환원, 빈 `()`는 `Void`, 2개 이상일 때만 튜플), `parser_parse_primary`의 괄호 표현식 경로에 콤마 감지 시 튜플 리터럴로 분기
+  - 시맨틱: `resolve_type_node`에 tuple 분기 추가 → `type_create_tuple` 반환, `type_check_expression`에 `AST_TUPLE_LITERAL` 케이스로 요소 타입 수집, `AST_LET_DESTRUCTURE`에서 RHS가 tuple이면 arity 검증 + positional element 타입 할당
+  - C 백엔드: `append_type_name`이 튜플을 `(T, U)`로 렌더, `pergyra_type_to_c`가 `(Int, String)` → `PgyTuple_Int_String_t`로 매핑 (depth-tracking 파서), `ensure_tuple_specialization_to`가 `typedef struct { T0 f0; T1 f1; ... } PgyTuple_<suffix>_t;`를 ctx->out에 중복 없이 방출, `emit_expression(AST_TUPLE_LITERAL)`이 compound literal `((PgyTuple_T_U_t){.f0=..., .f1=...})` emit, AST_LET_DESTRUCTURE MIR 경로/기본 경로 둘 다 tuple 분기로 `.f0/.f1/...` 필드 추출
+  - LLVM 백엔드: `ast_type_to_llvm`이 tuple AST_TYPE → literal anonymous struct `{T0, T1, ...}`, `llvm_emit_expression(AST_TUPLE_LITERAL)`이 `LLVMGetUndef + InsertValue` 체인으로 집계값 구성, `llvm_emit_let_destructure`가 struct 필드 개수 + 첫 필드 비포인터 heuristic으로 tuple 판정 후 `ExtractValue` per-binding
+  - 회귀: `tests/cases/backend_compare/destructure_tuple_return/main.pgy` (C/LLVM 동일: `42/hello/7/11/true`), `compare_backends.sh` case 등록, `test-semantic 1653 passed`, `test-transpile 584 passed`
+  - 파일: `src/semantic/type_system.{h,c}`, `src/parser/ast.{h,c}`, `src/parser/parser_decl.c`, `src/parser/parser_expr.c`, `src/semantic/type_checker.{c,_helpers.inc}`, `src/codegen/transpiler.h`, `src/codegen/transpiler_helpers_core_b.inc`, `src/codegen/transpiler_expr_emitters.inc`, `src/codegen/transpiler_emitters_base_{a,b}.inc`, `src/codegen/llvm_backend.c`, `src/codegen/llvm_expr.c`, `src/codegen/llvm_stmt.c`, `src/codegen/llvm_pipeline.c`
+  - 후속 수정 (destructure + if 지원): `transpiler_register_with_alias_bindings_in_block`의 Claim-only 제한 제거 — 모든 destructuring 바인딩(array/slice/tuple/일반 call)의 이름을 self-mapping으로 precheck ssa_map에 등록. 실제 emit 경로는 여전히 `<name>.1` 버전드 이름을 MIR emit 시점에 ssa_map에 넣어서 사용 (self-map은 verifier 통과용 가드일 뿐). 결과: `let (a, b, flag) = f(); if flag { ... } else { ... }` 같은 패턴이 array/tuple 둘 다 C/LLVM에서 동작. 파일: `src/codegen/transpiler_emitters_base_a.inc` (register_with_alias_bindings_in_block)
+- [ ] **sealed ability** — 구현 가능한 role을 제한 (`sealed ability Combatable` → 같은 모듈 내 role만 impl 가능)
+- [x] **문자열 보간** — `f"값은 {x}"` → `StringConcat(...)` series로 lowering
+  - 완료: lexer에서 `f"..."` → `TOKEN_INTERPOLATED_STRING`
+  - 완료: parser에서 `{expr}` 파싱, `ToString(expr)` + `+` concatenation으로 분해
+  - 완료: 기존 `"${expr}"` 레거시 문법도 호환 유지
+  - 완료: 베타 stable subset을 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace로 문서화
+  - 완료: unmatched interpolation brace는 보간하지 않고 literal text로 보존하도록 parser 회귀 추가
   - beta-out-of-scope: nested brace matching, format specifier, multiline interpolation, custom interpolation protocol
 
-### ?먮윭 泥섎━
-- [x] **`?` ?산??* ??`Result<T>` ?러 ?동 ?파. `let val = riskyFunc()?;` ???러 ??즉시 반환
-  - ?료: ?맨??? C early-return lowering, LLVM `Result<T>` ?이?웃/unwrap/early-return lowering, `pipe_and_try.pgy` C/LLVM ?행 ?  - LLVM try.err ?구??버그 ?정 (2026-04-19): `let val = Validate(x)?;` ?턴?서 let_decl??`current_ret_type`??LHS var ???i32)으로 ?시 ??하고 되어, `?`??try.err 블록??개수 return ???struct ???i32??정 ??`unreachable` emit ??????crash. `ctx->current_func_decl`?서 AST 반환 ?을 ?조대해 복구 + Err ??구??(src_err ??dst_err 개수/?인??강제 ???함)
-  - ?뚯씪: `src/codegen/llvm_expr_scalar_core.h`
-  - ?뚭?: `tests/cases/backend_compare/try_operator_result/main.pgy` (C/LLVM ?숈씪), `examples/pipe_and_try.pgy`
+### 에러 처리
+- [x] **`?` 연산자** — `Result<T>` 에러 자동 전파. `let val = riskyFunc()?;` → 에러 시 즉시 반환
+  - 완료: 시맨틱 검증, C early-return lowering, LLVM `Result<T>` 레이아웃/unwrap/early-return lowering, `pipe_and_try.pgy` C/LLVM 실행 검증
+  - LLVM try.err 재구성 버그 수정 (2026-04-19): `let val = Validate(x)?;` 패턴에서 let_decl이 `current_ret_type`을 LHS var 타입(i32)으로 잠시 덮어쓰고 있어, `?`의 try.err 블록이 함수 return 타입 struct 대신 i32로 판정 → `unreachable` emit → 런타임 crash. `ctx->current_func_decl`에서 AST 반환 타입을 재조회해 복구 + Err 값 재구성 (src_err → dst_err 정수/포인터 강제 변환 포함)
+  - 파일: `src/codegen/llvm_expr_core.inc`
+  - 회귀: `tests/cases/backend_compare/try_operator_result/main.pgy` (C/LLVM 동일), `examples/pipe_and_try.pgy`
 
-### 의 문법
-- [x] **?이???산??* ??`data |> Transform |> Validate |> Persist` ?방???이???름
-- [x] **defer** ??`defer Release(s)` ?ㅼ퐫??醫낅즺 ???먮룞 ?ㅽ뻾
-- [x] **`let` ???추론** ??initializer 기반 기본 추론? 현재 구현??  - ?료: annotation??을 ??initializer ??으?추론
-  - ?음: 문서/?면 ?시???공격?으????추론 중심으로 ?리?? 결정
+### 편의 문법
+- [x] **파이프 연산자** — `data |> Transform |> Validate |> Persist` 단방향 데이터 흐름
+- [x] **defer** — `defer Release(s)` 스코프 종료 시 자동 실행
+- [x] **`let` 타입 추론** — initializer 기반 기본 추론은 현재 구현됨
+  - 완료: annotation이 없을 때 initializer 타입으로 추론
+  - 남음: 문서/표면 예시를 더 공격적으로 타입 추론 중심으로 정리할지 결정
 
-### ?네??래??- [x] **?네??래??* ??`class Pair<T>` 문법 + ?맨??+ C 코드??(?형??. ?제: `examples/generic_class.pgy`
+### 제네릭 클래스
+- [x] **제네릭 클래스** — `class Pair<T>` 문법 + 시맨틱 + C 코드젠 (단형화). 예제: `examples/generic_class.pgy`
 
-### Slot ?뚯쑀沅?紐⑤뜽
-- [x] **`own`/`ref` ?유?모델 ?정 ?구현** ??move 기본, 개수 ?그?처??명시
-  - ?료: `own`/`ref` ?워??(?서/?서/AST), Slot ?????move ?맨?? Clone() 명시??복사
-  - `func Upload(own tex: Slot<Texture>)` ???유??전, ?본 무효
-  - `func Render(ref tex: Slot<Texture>)` ??빌림, ?본 ?효
-  - 문서?? `docs/22_ownership_model.md`
+### Slot 소유권 모델
+- [x] **`own`/`ref` 소유권 모델 확정 및 구현** — move 기본, 함수 시그니처에 명시
+  - 완료: `own`/`ref` 키워드 (렉서/파서/AST), Slot 대입 시 move 시맨틱, Clone() 명시적 복사
+  - `func Upload(own tex: Slot<Texture>)` → 소유권 이전, 원본 무효
+  - `func Render(ref tex: Slot<Texture>)` → 빌림, 원본 유효
+  - 문서화: `docs/22_ownership_model.md`
 
-### Slot ?면 문법 개선 (P0 ?선?위)
-- [x] **?묵??Read + ???기반 Write** ??Slot??기본 ?용 ?면???반 ?처??  - ?료: ?기 문맥?서 `Slot<T>` auto-read
-  - ?료: `slot = expr` ??`Write(slot, expr)` lowering
-  - ??: `Release(slot)`??계속 명시??
-### Slot 理쒖쟻??(P0 ?곗꽑?쒖쐞)
-- [x] **?택 ?당 최적??* ???코?? 벗어?? 는 Slot? malloc ???alloca
-  - ?료: `slot_analyze_escape_flags()` (slot_analyzer.c)
-  - ?료: LLVM 백엔?에??`slot_escapes == false` ??alloca ?성 (llvm_stmt.c:145-146)
-  - ?료: escape analysis?non-escaping slot ?동 ?택 ?당
+### Slot 표면 문법 개선 (P0 우선순위)
+- [x] **암묵적 Read + 대입 기반 Write** — Slot의 기본 사용 표면을 일반 변수처럼
+  - 완료: 읽기 문맥에서 `Slot<T>` auto-read
+  - 완료: `slot = expr` → `Write(slot, expr)` lowering
+  - 유지: `Release(slot)`는 계속 명시적
 
-### View 범위 ??(리뷰 ?요 ??미결??
-- [ ] **View??바이???덱??범위 ??* ???제 ?용 ?? 만들?보?결정
-  - ??A: Slice 기반 ??`SliceOf(buf, 0, 1024)` ??Slot??"창문"
-  - ??B: View??踰붿쐞 遺????`ViewRead(buf, offset, length)`
-  - **미결?????일 I/O, ?트?크 버퍼, GPU ?스????만들?보?결정**
+### Slot 최적화 (P0 우선순위)
+- [x] **스택 할당 최적화** — 스코프를 벗어나지 않는 Slot은 malloc 대신 alloca
+  - 완료: `slot_analyze_escape_flags()` (slot_analyzer.c)
+  - 완료: LLVM 백엔드에서 `slot_escapes == false` 시 alloca 생성 (llvm_stmt.c:145-146)
+  - 완료: escape analysis로 non-escaping slot 자동 스택 할당
+
+### View 범위 부여 (리뷰 필요 — 미결정)
+- [ ] **View에 바이트/인덱스 범위 부여** — 실제 사용 사례 만들어보고 결정
+  - 안 A: Slice 기반 — `SliceOf(buf, 0, 1024)` → Slot의 "창문"
+  - 안 B: View에 범위 부여 — `ViewRead(buf, offset, length)`
+  - **미결정 — 파일 I/O, 네트워크 버퍼, GPU 텍스처 사례를 만들어보고 결정**
 
 ### 병렬/채널
-- [x] **select ?체??* ???러 채널 ?먼? 비된 것을 처리
+- [x] **select 실체화** — 여러 채널 중 먼저 준비된 것을 처리
 
-### 되어 ?성??Tier 1 ??범용 개수
-- [x] **for-in 컬렉??루프** ??`for item in array { }` 배열/컬렉???회
-  - ?료: Array<T>/Slice<T> 개수??(index loop lowering), ?맨??element type 추론
-  - ?음: ability 기반 Iterable<T> ?로?콜 (Tier 2)
-- [x] **StringSplit / StringJoin** ??문자??분리/결합 빌트???체??  - ?료: `Split(s, delim) ??Array<String>`, `Join(arr, sep) ??String`
-- [x] **ToInt / ToFloat** ??문자?→?자 ??빌트??- [x] **기본 Math 빌트??* ??Sqrt, Pow, Floor, Ceil, Random 추? (기존 Abs/Min/Max + ?규 5?
-- [x] **ArraySort / ArrayMap / ArrayFilter / ArrayReverse** ??고차 개수 기반 컬렉???산
-  - ?료: ArraySort(arr) ??qsort, ArrayMap(arr, fn) ????배열, ArrayFilter(arr, fn) ??조건 ?터, ArrayReverse(arr) ???집?  - fn? 개수 ?름 는 ?다 (C 개수 ?인으로 lowering)
-- [x] **?스?럭처링** ??`let (a, b, c) = expr` 배열/컬렉??positional 바인??  - ?료: Array<T> ???덱??기반 추출 (`result.data[0]`, `result.data[1]`, ...)
-  - MIR ?합 (2026-04-19): MIR DCE `AST_LET_DESTRUCTURE` 문을 "?용 ?음"으로 ?정???거?던 버그 ?정 (`mir_stmt_has_side_effect`). ?랜?파?러 MIR emit 루프?서 destructuring??SSA-renamed ?겟으?emit, `transpiler_find_local_type_name_in_block`??AST_LET_DESTRUCTURE ?스 추???로컬 ????석 복구
-  - LLVM parity (2026-04-19): `llvm_emit_statement`??AST_LET_DESTRUCTURE ?스 추? ??초기?식??struct 값으???, `ExtractValue(0)`으로 data pointer 추출, ?바인?마??`GEP+Load`??소 추출 ??`alloca+store`+`llvm_scope_declare`?로컬 ?록. `llvm_lookup_array_var`?elem_type ?석
-  - ?일: `src/compiler/mir.c`, `src/codegen/transpiler_emitters_base_a.inc` (C 백엔??, `src/codegen/llvm_stmt.c` (LLVM 백엔??
-  - ?뚭?: `tests/cases/backend_compare/destructure_array/main.pgy` (C/LLVM ?숈씪 異쒕젰), `examples/collection_ops.pgy` (hello/world/foo 異쒕젰)
+### 언어 완성도 Tier 1 — 범용 필수
+- [x] **for-in 컬렉션 루프** — `for item in array { }` 배열/컬렉션 순회
+  - 완료: Array<T>/Slice<T> 특수화 (index loop lowering), 시맨틱 element type 추론
+  - 남음: ability 기반 Iterable<T> 프로토콜 (Tier 2)
+- [x] **StringSplit / StringJoin** — 문자열 분리/결합 빌트인 실체화
+  - 완료: `Split(s, delim) → Array<String>`, `Join(arr, sep) → String`
+- [x] **ToInt / ToFloat** — 문자열→숫자 변환 빌트인
+- [x] **기본 Math 빌트인** — Sqrt, Pow, Floor, Ceil, Random 추가 (기존 Abs/Min/Max + 신규 5개)
+- [x] **ArraySort / ArrayMap / ArrayFilter / ArrayReverse** — 고차 함수 기반 컬렉션 연산
+  - 완료: ArraySort(arr) → qsort, ArrayMap(arr, fn) → 새 배열, ArrayFilter(arr, fn) → 조건 필터, ArrayReverse(arr) → 뒤집기
+  - fn은 함수 이름 또는 람다 (C 함수 포인터로 lowering)
+- [x] **디스트럭처링** — `let (a, b, c) = expr` 배열/컬렉션 positional 바인딩
+  - 완료: Array<T> → 인덱스 기반 추출 (`result.data[0]`, `result.data[1]`, ...)
+  - MIR 통합 (2026-04-19): MIR DCE가 `AST_LET_DESTRUCTURE` 문을 "부작용 없음"으로 판정해 제거하던 버그 수정 (`mir_stmt_has_side_effect`). 트랜스파일러 MIR emit 루프에서 destructuring을 SSA-renamed 타겟으로 emit, `transpiler_find_local_type_name_in_block`에 AST_LET_DESTRUCTURE 케이스 추가해 로컬 타입 해석 복구
+  - LLVM parity (2026-04-19): `llvm_emit_statement`의 AST_LET_DESTRUCTURE 케이스 추가 — 초기화식을 struct 값으로 평가, `ExtractValue(0)`으로 data pointer 추출, 각 바인딩마다 `GEP+Load`로 요소 추출 후 `alloca+store`+`llvm_scope_declare`로 로컬 등록. `llvm_lookup_array_var`로 elem_type 해석
+  - 파일: `src/compiler/mir.c`, `src/codegen/transpiler_emitters_base_a.inc` (C 백엔드), `src/codegen/llvm_stmt.c` (LLVM 백엔드)
+  - 회귀: `tests/cases/backend_compare/destructure_array/main.pgy` (C/LLVM 동일 출력), `examples/collection_ops.pgy` (hello/world/foo 출력)
 
-### 메??로그래??장 (결정 ?료)
-- [x] **TMP 비채??* ???네?monomorphization + ability dispatch?95% 커버. 문서: `docs/23_metaprogramming_position.md`
-- [ ] **?후 코드 ?성 ?요 ??* ??컴파??????러그인 (proc_macro 모델) 는 ?스 ?성???
-### 되어 ?성??Tier 2 ???사???의
-- [ ] **innate ability** ??같? 모듈 ??role?impl ?용 (sealed ???innate 채택. 문서: `docs/24_visibility_model.md`)
-  - ?서 ?료, ?맨?에??`innate` ?워???식 (type_checker_decls.inc 참조)
-  - ?음: 모듈 경계 ?로직 ?성
-- [x] **?네?constraint ?맨??* ??`where T: Comparable` ?맨???  - ?료: ?서 + ?맨???(type_checker_helpers.inc:1847)
-  - ?료: Generic function where-clause constraint validation
-- [x] **OR ?턴** ??`case 1 | 2 | 3:` match?서
-  - ?료: lexer `TOKEN_PATTERN_OR`, parser ?싱, ?맨???  - ?료: 리터??OR ?턴 ??(`case 1 | 2 | 3:`)
-  - ?한: variant destructuring OR ?턴? 아직 미???(`case .Some(v) | .None:`)
-- [x] **enum 메서??* ??`enum Direction { ... func Name(self) -> String }`
-  - ?료: enum body?서 `func` ?언 + `self` ?라미터?match self 본문 ?? C 컴파???- [x] **labeled break/continue** ??`outer: while { ... break outer; }`
-  - ?료: ?서 (`parser.c:1270`), AST (`break_stmt.label`), ?맨??(`test_semantic.c:680,714,739`), C 코드??(`loop_break_labels[]` + `loop_continue_labels[]`)
-  - ? outer label break, ????는 label 거?, continue outer 모두 ?? ?스???과
-- [x] **Custom error ???* ??`Result<T, E>` where E is user type (현재 String?
-  - ?료 (2026-04-18): ?증명 ?더 `PgyResult_Int_NetError` sanitize, `PGY_RESULT_DEFINE(Int_NetError, int32_t, NetError)` ?동 instantiation (`ensure_result_specialization_to` ?설), 의 매크?(`Ok_T_E`, `Err_T_E`, `IsOk_T_E`, `Unwrap_T_E`, `UnwrapOr_T_E`) ?동 ?성, Ok/Err builtin??`ctx->current_return_type`?서 suffix 추출, match pattern Ok/Err 바인??`__typeof__` 기반 ???추론
-  - ?뚯씪: `src/codegen/transpiler_helpers_core_b.inc` (generic_args_to_c_suffix + ensure_result_specialization_to), `src/codegen/transpiler_expr_emitters.inc` (Ok/Err/Unwrap suffix), `src/codegen/transpiler_emitters_base_b.inc` (match __typeof__), `src/codegen/transpiler.h` (result_specs_*)
-  - ?뚭?: `src/test_semantic.c` "Result<T, E> with enum error type accepts Ok/Err and match destructuring"
+### 메타프로그래밍 입장 (결정 완료)
+- [x] **TMP 비채택** — 제네릭 monomorphization + ability dispatch로 95% 커버. 문서: `docs/23_metaprogramming_position.md`
+- [ ] **향후 코드 생성 필요 시** — 컴파일 타임 플러그인 (proc_macro 모델) 또는 소스 생성기 검토
 
-### ability 차별??- [x] **ability ??interface 문서??* ??ability??"?업 ?로?콜???격 조건"?며 ?롯??착됨
-  - ?료: `docs/24_visibility_model.md`??`ability ??interface` ?션 추?
-  - ?리 ?용: ability??nominal object??메서??집합??직접 모델링하??interface 아니며  `requires Ability`, `dyn role slot: Ability`, `zone authority requires Ability`처럼 ?업 계약/?격 조건으로 ?비는 surface을 고정
-  - ?리 ?용: ability??subject/role/slot/orchestration contract? 결합?며, 구현 ?당? role impl하고 ability ?체??"무엇??구현?라"보다 "?떤 ?격으로 참여?라"??현?다??을 명시
+### 언어 완성도 Tier 2 — 실사용 편의
+- [ ] **innate ability** — 같은 모듈 내 role만 impl 허용 (sealed 대신 innate 채택. 문서: `docs/24_visibility_model.md`)
+  - 파서 완료, 시맨틱에서 `innate` 키워드 인식 (type_checker_decls.inc 참조)
+  - 남음: 모듈 경계 검증 로직 완성
+- [x] **제네릭 constraint 시맨틱** — `where T: Comparable` 시맨틱 검증
+  - 완료: 파서 + 시맨틱 검증 (type_checker_helpers.inc:1847)
+  - 완료: Generic function where-clause constraint validation
+- [x] **OR 패턴** — `case 1 | 2 | 3:` match에서
+  - 완료: lexer `TOKEN_PATTERN_OR`, parser 파싱, 시맨틱 검증
+  - 완료: 리터럴 OR 패턴 지원 (`case 1 | 2 | 3:`)
+  - 제한: variant destructuring OR 패턴은 아직 미지원 (`case .Some(v) | .None:`)
+- [x] **enum 메서드** — `enum Direction { ... func Name(self) -> String }`
+  - 완료: enum body에서 `func` 선언 + `self` 파라미터로 match self 본문 가능, C 컴파일 검증
+- [x] **labeled break/continue** — `outer: while { ... break outer; }`
+  - 완료: 파서 (`parser.c:1270`), AST (`break_stmt.label`), 시맨틱 (`test_semantic.c:680,714,739`), C 코드젠 (`loop_break_labels[]` + `loop_continue_labels[]`)
+  - 검증: outer label break, 알 수 없는 label 거부, continue outer 모두 회귀 테스트 통과
+- [x] **Custom error 타입** — `Result<T, E>` where E is user type (현재 String만)
+  - 완료 (2026-04-18): 타입명 렌더 `PgyResult_Int_NetError` sanitize, `PGY_RESULT_DEFINE(Int_NetError, int32_t, NetError)` 자동 instantiation (`ensure_result_specialization_to` 신설), 편의 매크로 (`Ok_T_E`, `Err_T_E`, `IsOk_T_E`, `Unwrap_T_E`, `UnwrapOr_T_E`) 자동 생성, Ok/Err builtin이 `ctx->current_return_type`에서 suffix 추출, match pattern Ok/Err 바인딩 `__typeof__` 기반 타입 추론
+  - 파일: `src/codegen/transpiler_helpers_core_b.inc` (generic_args_to_c_suffix + ensure_result_specialization_to), `src/codegen/transpiler_expr_emitters.inc` (Ok/Err/Unwrap suffix), `src/codegen/transpiler_emitters_base_b.inc` (match __typeof__), `src/codegen/transpiler.h` (result_specs_*)
+  - 회귀: `src/test_semantic.c` "Result<T, E> with enum error type accepts Ok/Err and match destructuring"
 
-## P1.6 ???원/???트?이??방향 고정
+### ability 차별화
+- [x] **ability ≠ interface 문서화** — ability는 "협업 프로토콜의 자격 조건"이며 슬롯에 부착됨
+  - 완료: `docs/24_visibility_model.md`에 `ability ≠ interface` 섹션 추가
+  - 정리 내용: ability는 nominal object의 메서드 집합을 직접 모델링하는 interface가 아니라, `requires Ability`, `dyn role slot: Ability`, `zone authority requires Ability`처럼 협업 계약/자격 조건으로 소비되는 surface임을 고정
+  - 정리 내용: ability는 subject/role/slot/orchestration contract와 결합되며, 구현 담당은 role impl이고 ability 자체는 "무엇을 구현하라"보다 "어떤 자격으로 참여하라"를 표현한다는 점을 명시
 
-### 분산 ?계 결정 (2026-04-03 ?정)
-- [x] **RemoteFuture `await` ??`Result<T>` 강제** ???격 ?원?????패?????스?에??강제 ?출
-  - `Future<T>` (濡쒖뺄) ??await ??`T` (?ㅽ뙣 ?놁쓬)
-  - `RemoteFuture<T>` (?격) ??await ??`Result<T>` (?패 ??
-  - ?맨??체커 + C 코드??+ ????매크?구현 ?료
-  - ?뚯뒪?? 205 semantic + 141 transpile ?듦낵
-- [x] **RemoteFuture??Claim/Read/Write/Release 차단** ???격 ?원???사??Submit/Await?  - Read/Write/Release ?출 ??친절???러 메시 출력
+## P1.6 — 자원/오케스트레이션 방향 고정
+
+### 분산 설계 결정 (2026-04-03 확정)
+- [x] **RemoteFuture `await` → `Result<T>` 강제** — 원격 자원의 지연/실패를 타입 시스템에서 강제 노출
+  - `Future<T>` (로컬) → await → `T` (실패 없음)
+  - `RemoteFuture<T>` (원격) → await → `Result<T>` (실패 가능)
+  - 시맨틱 체커 + C 코드젠 + 런타임 매크로 구현 완료
+  - 테스트: 205 semantic + 141 transpile 통과
+- [x] **RemoteFuture에 Claim/Read/Write/Release 차단** — 원격 자원의 동사는 Submit/Await만
+  - Read/Write/Release 호출 시 친절한 에러 메시지 출력
   - "RemoteFuture does not support Read(); use 'await' to obtain Result<T>"
-- [ ] **?격 Slot? Claim 이 Channel 기반 메시 ?싱?* ??분산 ???피
-  - ?щ줈??World ?듭떊? `Channel<T>`留??덉슜
-  - ?먭꺽 ?먯썝??Claim ?숈궗瑜??ъ슜?섎㈃ 而댄뙆???먮윭
-- [x] **World 경계 = ?패 ?메??경계** ???로??World ?신? Channel?  - ?료: World ?맨??체커 (`type_check_world_decl`, type_checker_decls.inc)
-  - ?료: World 코드??(C 백엔?? transpiler_helpers.h)
-  - ?료: `HasZoneProjection`, `HasZoneLayer`, `HasZoneState` builtin
+- [ ] **원격 Slot은 Claim 없이 Channel 기반 메시지 패싱만** — 분산 락 회피
+  - 크로스 World 통신은 `Channel<T>`만 허용
+  - 원격 자원에 Claim 동사를 사용하면 컴파일 에러
+- [x] **World 경계 = 실패 도메인 경계** — 크로스 World 통신은 Channel만
+  - 완료: World 시맨틱 체커 (`type_check_world_decl`, type_checker_decls.inc)
+  - 완료: World 코드젠 (C 백엔드, transpiler_helpers.inc)
+  - 완료: `HasZoneProjection`, `HasZoneLayer`, `HasZoneState` builtin
 
 ### Projection / Domain Query
-- [x] **Projection query surface** ??`HasProjection(slotName)`으로 relation/effect/zone 문맥?서 object/tobject projection slot??sync-ready ???질의
-  - ?료: semantic + C/LLVM lowering
-  - World ????Slot? 로컬 (zero-cost), World 간? Channel (명시??비용)
+- [x] **Projection query surface** — `HasProjection(slotName)`으로 relation/effect/zone 문맥에서 object/tobject projection slot의 sync-ready 여부를 질의
+  - 완료: semantic + C/LLVM lowering
+  - World 내부의 Slot은 로컬 (zero-cost), World 간은 Channel (명시적 비용)
 
-### ???링 ???(?드? ?드?기반)
-- [ ] **백엔???? 컷오??고정** ??C = reference/fallback, LLVM = optimization/mainline
-  - 같? ??론을 ??백엔에 ???되, 공격??최적?? type-erased fast path??LLVM?만 집중
-  - C 백엔는 MVP ?환?? ?버? ?백, ?스?래??????한
-  - ??기능 추? ??"C?서??반드??최적??경로까? 구현?야 ?는?"?기본?으?`아니며 ???- [ ] **매크?조합 ?? ???* ??C 매크?monomorphization???기 ???  - ?재: `PGY_SLOT_DEFINE`, `PGY_CHANNEL_DEFINE` ????별 ?개 (?스?래???략)
-  - ??? LLVM 백엔?에??type-erased 경로 (opaque ptr + vtable) 추?
-  - LTO + dead code elimination으로 바이?리 비????제
-- [ ] **코드???중???제 규칙** ??bifurcation trap 방?
-  - ?일 기능??C/LLVM lowering???원???으?비??? ?게 공통 ????스???선
-  - backend compare / smoke?계약으로 ???고, backend-specific fast path??명시?으?분리
-- [ ] **Async ???당 ?버?드 감소** ??고성??분산 I/O??한 ????최적??  - ?재: `pgy_spawn` + `malloc` per task
-  - ??? Arena allocator 기반 task pool, io_uring/IOCP zero-copy I/O
-  - 코루???택? ?? fiber 기반 (pgy_parallel.h)
-  - ?? 되어 코어? OS ?용 ??줄러?강결?하 ??- [ ] **BYOS (Bring Your Own Scheduler) 경로 ?계** ??async ??론과 ??줄러/I/O 모델 분리
-  - 되어??task/future/channel ???고정
-  - ?제 polling/runtime? ?랫?별 주입 ??계층으로 분리
-- [ ] **ABI ?형???략** ???기 ?른 ?롯 ?의 ?네?처리
-  - ?도???계: `Slot<T>` ??`SecureSlot<T>` (보안 차원 분리)
-  - ?형???요 ?? `ability` vtable dispatch (Party ?스에 ?? 구현)
-  - Boxing ?요 ?? `Rc<T>` + ability 조합
-  - `Rc<T> + dyn ability`??explicit high-cost path?문서??  - ?경로(struct), 객체 경로(class), ?적 경로(Rc + dyn ability)??능 계약으로 구분
+### 스케일링 대응 (레드팀 피드백 기반)
+- [ ] **백엔드 역할 컷오프 고정** — C = reference/fallback, LLVM = optimization/mainline
+  - 같은 의미론을 두 백엔드에 유지하되, 공격적 최적화와 type-erased fast path는 LLVM에만 집중
+  - C 백엔드는 MVP 호환성, 디버깅, 폴백, 부트스트래핑 역할로 제한
+  - 새 기능 추가 시 "C에서도 반드시 최적화 경로까지 구현해야 하는가?"를 기본적으로 `아니오`로 둠
+- [ ] **매크로 조합 폭발 대응** — C 매크로 monomorphization의 장기 대안
+  - 현재: `PGY_SLOT_DEFINE`, `PGY_CHANNEL_DEFINE` 등 타입별 전개 (부트스트래핑 전략)
+  - 대안: LLVM 백엔드에서 type-erased 경로 (opaque ptr + vtable) 추가
+  - LTO + dead code elimination으로 바이너리 비대화 억제
+- [ ] **코드젠 이중화 억제 규칙** — bifurcation trap 방지
+  - 동일 기능의 C/LLVM lowering이 영원히 쌍으로 비대해지지 않게 공통 의미론 테스트 우선
+  - backend compare / smoke를 계약으로 유지하고, backend-specific fast path는 명시적으로 분리
+- [ ] **Async 힙 할당 오버헤드 감소** — 고성능 분산 I/O를 위한 런타임 최적화
+  - 현재: `pgy_spawn` + `malloc` per task
+  - 대안: Arena allocator 기반 task pool, io_uring/IOCP zero-copy I/O
+  - 코루틴 스택은 이미 fiber 기반 (pgy_parallel.h)
+  - 단, 언어 코어와 OS 전용 스케줄러를 강결합하지 말 것
+- [ ] **BYOS (Bring Your Own Scheduler) 경로 설계** — async 의미론과 스케줄러/I/O 모델 분리
+  - 언어는 task/future/channel 의미만 고정
+  - 실제 polling/runtime은 플랫폼별 주입 가능 계층으로 분리
+- [ ] **ABI 다형성 전략** — 크기가 다른 슬롯 타입의 제네릭 처리
+  - 의도적 설계: `Slot<T>` ≠ `SecureSlot<T>` (보안 차원 분리)
+  - 다형성 필요 시: `ability` vtable dispatch (Party 시스템에 이미 구현)
+  - Boxing 필요 시: `Rc<T>` + ability 조합
+  - `Rc<T> + dyn ability`는 explicit high-cost path로 문서화
+  - 값 경로(struct), 객체 경로(class), 동적 경로(Rc + dyn ability)를 성능 계약으로 구분
 
-### 湲곗〈 ??ぉ
-- [x] **Slot Protocol 고정** ??Claim/Access/Mutate/Transfer/Release 불? 계약
-- [x] **Slot/View 계층 마감** ??ReadView/WriteView/MoveToken 권한 축소/?전 계층
-- [ ] **?щ’??異붿긽 ?먯썝 ?몃뱾濡??쇰컲??* ???κ린?곸쑝濡?MemorySlot, DeviceSlot, SessionSlot ???먯썝 ?대옒???뺤옣
-- [ ] **채널 ???강화** ??비동??출/???거/?처??름 보강
-- [x] **`Future<T>`?transfer boundary?고정** ??await/recv? 같? ownership 경계
-- [ ] **effect/resource capability ?기 ?입** ??`local cpu`, `secure device`, `remote` ?????과 ?스??  - ?재: derived effect mask + spawn/await/channel?서 remote 추론
-  - ?재: `/// @effects ...` ?언???으?body derived effect? mismatch 진단
-  - ?음: ?그?처 문법 차원???언??annotation ?면
-- [ ] **?능 목표?orchestration overhead 중심으로 ?정??*
+### 기존 항목
+- [x] **Slot Protocol 고정** — Claim/Access/Mutate/Transfer/Release 불변 계약
+- [x] **Slot/View 계층 마감** — ReadView/WriteView/MoveToken 권한 축소/이전 계층
+- [ ] **슬롯을 추상 자원 핸들로 일반화** — 장기적으로 MemorySlot, DeviceSlot, SessionSlot 등 자원 클래스 확장
+- [ ] **채널 의미론 강화** — 비동기 제출/대기/수거/후처리 흐름 보강
+- [x] **`Future<T>`를 transfer boundary로 고정** — await/recv와 같은 ownership 경계
+- [ ] **effect/resource capability 표기 도입** — `local cpu`, `secure device`, `remote` 등 타입/효과 시스템
+  - 현재: derived effect mask + spawn/await/channel에서 remote 추론
+  - 현재: `/// @effects ...` 선언이 있으면 body derived effect와 mismatch 진단
+  - 다음: 시그니처 문법 차원의 선언적 annotation 표면
+- [ ] **성능 목표를 orchestration overhead 중심으로 재정의**
 
-## P1.7 ???? ?일 되어로서???음 ?계
+## P1.7 — 의미 통일 언어로서의 다음 단계
 
 ### 비용 모델 / effect
-- [ ] **비용 모델 ?면??* ??"semantic unity, visible cost" ?칙
-  - `local / secure / remote / device` ?원군의 비용 차이??면???러?기
-- [ ] **effect system 2?계** ???언??effect ?기, mismatch 진단
-  - ??료: structured comment `@effects` 기반 mismatch 진단
-  - ??료: source-level `with effects ...` ?그?처 surface
-  - ?⑥쓬: ???뺢탳??effect lattice, call-site contract surface
+- [ ] **비용 모델 표면화** — "semantic unity, visible cost" 원칙
+  - `local / secure / remote / device` 자원군의 비용 차이를 표면에 드러내기
+- [ ] **effect system 2단계** — 선언적 effect 표기, mismatch 진단
+  - 부분 완료: structured comment `@effects` 기반 mismatch 진단
+  - 부분 완료: source-level `with effects ...` 시그니처 surface
+  - 남음: 더 정교한 effect lattice, call-site contract surface
 
-### ?위 계층 모델
-- [x] **최종 문맥 계층 / ?계 ?서 분리 고정**
+### 상위 계층 모델
+- [x] **최종 문맥 계층 / 설계 순서 분리 고정**
   - 조립 계층: `ability -> role -> party -> relation -> effect -> zone -> world`
-  - ?용??facing ?계 ?서: `intent -> world -> zone -> subject`
-  - ?료: `world`?최상???행/?뢰/?패 경계는 목표 ?의?문서??  - ?료: ?위 ?이으로 갈수???구속?이는 ?계 ?칙 문서??  - ?료: `relation`, `effect`, `zone` declaration keyword? 최소 `subject slot` / `object slot` surface?parser/semantic ?면???결
-  - ?료: `zone -> relation/effect`, `world -> zone` 최소 조립 slot surface?parser/semantic???결
-  - ?료: `relation`, `effect`??optional `for ...` header?subject endpoint/target 최소 surface??결
-  - ?료: `zone`??`apply effectSlot to targetSlot` 최소 attachment surface?parser/semantic???결
-  - ?료: `zone`??`link relationSlot between left, right` 최소 relation wiring surface?parser/semantic???결
-  - ?료: `zone`??`detach effectSlot from targetSlot`, `unlink relationSlot between left, right` 최소 release surface?parser/semantic???결
-  - ?료: `zone`??`apply/detach`, `link/unlink`?`effect/relation` declaration contract? 기본 ???arity ??으로 ?결
-  - ?료: `zone` subject shape?????권장 lint 추?
-  - ?료: `tobject` keyword?`struct` ?환 projection alias?추?
-  - ?료: `ToObject(TargetStruct, subjectBinding)` 최소 passive projection surface?semantic/C backend???결
-  - ?료: `ToTObject(TargetDto, subjectBinding)` 최소 projection surface?semantic/C backend???결
-  - ?료: `relation/effect/zone`??`tobject slot` surface??결
-  - ?료: `relation/effect/zone`??domain slot??optional initializer??결??`object slot view: View = ToObject(View, subject)` 같? projection wiring??직접 ?현 ?하???  - ?료: `zone`??`refresh objectSlot from subjectSlot` surface?projection 갱신 ?름??parser/semantic???결
-  - ?료: `zone`??`publish dtoSlot from subjectSlot` surface?tobject projection 갱신 ?름??parser/semantic???결
-  - ?료: `zone`??`maintain effectSlot on targetSlot`, `maintain relationSlot between left, right` surface???lifecycle rule??parser/semantic???결
-  - ?료: `maintain` duplicate/conflict warning (`maintain` + `detach/unlink`) 추?
-  - ?료: `zone`??`authority subjectSlot` surface? optional `by subjectSlot` authority annotation??parser/semantic???결
-  - ?료: `authority subjectSlot requires Ability[, Ability]` ability-gated authority surface?parser/semantic???결
-  - ?료: `zone`??`state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias surface?parser/semantic???결
-  - ?료: `zone`??`apply/link/detach/unlink/maintain stateName` shorthand?parser/semantic???결
-  - ?료: `HasState(stateName)` zone query builtin??parser/semantic???결하고 C backend?서 zone state field query?lowering
-  - ?료: `HasLayer(layerSlot)` zone query builtin??parser/semantic???결하고 C/LLVM backend?서 zone layer field query?lowering
-  - ?료: `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)` slot-aware state query?semantic???결
-  - ?료: `world`??`state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface?parser/semantic???결
-  - ?료: `HasZone(zoneOrState)` world query builtin??parser/semantic???결하고 C backend?서 world zone-state/active field query?lowering
-  - ?료: C backend zone/world마다 sync helper??성하고 method ?후??`refresh`/`publish` projection?lifecycle flag?incremental?게 ?기??  - ?료: `relation`, `effect` declaration??C/LLVM backend?서 struct + method wrapper?codegen하고 runtime instance constructor/method path ?결??  - ?료: `zone` layer slot??C/LLVM?서 typed overlay runtime instance???하고 sync subject slot??layer endpoint/target??바인?한 ??projection sync까? ?행
-  - ?료: direct `apply/link/detach/unlink`? `maintain effect/relation/state` C/LLVM zone sync?서 ?제 layer/state propagation으로 ?결??  - ?료: zone embedded overlay projection read (`self.poison.view.hp`, `self.trust.packet.name`) LLVM runtime smoke?증됨
-  - ?료: `world` `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)`?embedded zone runtime flag?직접 질의?????음
-  - ?료: `ability/role/party/relation/effect/zone/roster/world` ?체 구현
-  - ?료: `world` `state name: all zoneOrState[, ...]` / `state name: any zoneOrState[, ...]`??서 ?언??zone/state alias?최소 조합 contract??성
-  - ?⑥쓬: richer world-level runtime semantics, ??源딆? cross-layer propagation policy
+  - 사용자-facing 설계 순서: `intent -> world -> zone -> subject`
+  - 완료: `world`를 최상위 실행/신뢰/실패 경계라는 목표 정의로 문서화
+  - 완료: 상위 레이어로 갈수록 덜 구속적이라는 설계 원칙 문서화
+  - 완료: `relation`, `effect`, `zone` declaration keyword와 최소 `subject slot` / `object slot` surface를 parser/semantic 표면에 연결
+  - 완료: `zone -> relation/effect`, `world -> zone` 최소 조립 slot surface를 parser/semantic에 연결
+  - 완료: `relation`, `effect`의 optional `for ...` header로 subject endpoint/target 최소 surface를 연결
+  - 완료: `zone`의 `apply effectSlot to targetSlot` 최소 attachment surface를 parser/semantic에 연결
+  - 완료: `zone`의 `link relationSlot between left, right` 최소 relation wiring surface를 parser/semantic에 연결
+  - 완료: `zone`의 `detach effectSlot from targetSlot`, `unlink relationSlot between left, right` 최소 release surface를 parser/semantic에 연결
+  - 완료: `zone`의 `apply/detach`, `link/unlink`를 `effect/relation` declaration contract와 기본 타입/arity 수준으로 연결
+  - 완료: `zone` subject shape에 대한 권장 lint 추가
+  - 완료: `tobject` keyword를 `struct` 호환 projection alias로 추가
+  - 완료: `ToObject(TargetStruct, subjectBinding)` 최소 passive projection surface를 semantic/C backend에 연결
+  - 완료: `ToTObject(TargetDto, subjectBinding)` 최소 projection surface를 semantic/C backend에 연결
+  - 완료: `relation/effect/zone`에 `tobject slot` surface를 연결
+  - 완료: `relation/effect/zone`의 domain slot에 optional initializer를 연결해 `object slot view: View = ToObject(View, subject)` 같은 projection wiring을 직접 표현 가능하게 함
+  - 완료: `zone`의 `refresh objectSlot from subjectSlot` surface로 projection 갱신 흐름을 parser/semantic에 연결
+  - 완료: `zone`의 `publish dtoSlot from subjectSlot` surface로 tobject projection 갱신 흐름을 parser/semantic에 연결
+  - 완료: `zone`의 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right` surface로 지속 lifecycle rule을 parser/semantic에 연결
+  - 완료: `maintain` duplicate/conflict warning (`maintain` + `detach/unlink`) 추가
+  - 완료: `zone`의 `authority subjectSlot` surface와 optional `by subjectSlot` authority annotation을 parser/semantic에 연결
+  - 완료: `authority subjectSlot requires Ability[, Ability]` ability-gated authority surface를 parser/semantic에 연결
+  - 완료: `zone`의 `state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias surface를 parser/semantic에 연결
+  - 완료: `zone`의 `apply/link/detach/unlink/maintain stateName` shorthand를 parser/semantic에 연결
+  - 완료: `HasState(stateName)` zone query builtin을 parser/semantic에 연결하고 C backend에서 zone state field query로 lowering
+  - 완료: `HasLayer(layerSlot)` zone query builtin을 parser/semantic에 연결하고 C/LLVM backend에서 zone layer field query로 lowering
+  - 완료: `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)` slot-aware state query를 semantic에 연결
+  - 완료: `world`의 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface를 parser/semantic에 연결
+  - 완료: `HasZone(zoneOrState)` world query builtin을 parser/semantic에 연결하고 C backend에서 world zone-state/active field query로 lowering
+  - 완료: C backend가 zone/world마다 sync helper를 생성하고 method 전후에 `refresh`/`publish` projection과 lifecycle flag를 incremental하게 동기화
+  - 완료: `relation`, `effect` declaration이 C/LLVM backend에서 struct + method wrapper로 codegen되고 runtime instance constructor/method path가 연결됨
+  - 완료: `zone` layer slot이 C/LLVM에서 typed overlay runtime instance로 유지되고 sync가 subject slot을 layer endpoint/target에 바인딩한 뒤 projection sync까지 수행
+  - 완료: direct `apply/link/detach/unlink`와 `maintain effect/relation/state`가 C/LLVM zone sync에서 실제 layer/state propagation으로 연결됨
+  - 완료: zone embedded overlay projection read (`self.poison.view.hp`, `self.trust.packet.name`)가 LLVM runtime smoke로 검증됨
+  - 완료: `world`가 `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)`로 embedded zone runtime flag를 직접 질의할 수 있음
+  - 완료: `ability/role/party/relation/effect/zone/roster/world` 전체 구현
+  - 완료: `world`가 `state name: all zoneOrState[, ...]` / `state name: any zoneOrState[, ...]`로 앞서 선언된 zone/state alias를 최소 조합 contract로 합성
+  - 남음: richer world-level runtime semantics, 더 깊은 cross-layer propagation policy
 
-### 議댁옱濡?紐⑤뜽
-- [x] **intent-first ?계 ?/ subject-core host ?분리 고정**
-  - ?료: ?용??facing ?계 ?서??`intent -> world -> zone -> subject`?문서??  - ?료: `subject = ?태? identity??주체 ???? host/naming/lowering 축으??정??문서??  - ?료: `subject`? `class`?으로 ?른 nominal flavor?분리하고 ??론도 1?분기
-  - ?료: legacy host-profile surface??거하고 `subject`/`object`/`intent` 중심으로 ?리
-  - ?료: `entity`??코어 되어 존재론에 ?? 하고 ?레?워???메??되어??긴하고 문서??  - ?료: `object`??intent??작?? 는 passive state target?라?문서??  - ?료: `tobject`??object???? 경계??축약 ?영?라?문서??  - ?료: `subject`, `class`, `struct`, `object`, `tobject` declaration flavor?parser AST??분리 기록
-  - ?료: `subject slot`?`ToObject` / `ToTObject` source `subject` host?받도?semantic 분기
-  - ?료: `object` keyword alias?parser/LSP surface??반영
-  - ?료: `object`?passive state/value ?식?로, `tobject`???좁? projection/value ?식으로 ?리하고 helper method??용
-  - ?료: `vessel` declaration?`subject` ?? `vessel` field surface 추?
-  - ?료: `subject` ?용 `action` declaration?최소 clause (`requires/within/causes/authorized by`) parser/semantic ?결
-  - ?료: `subject` 의 legacy `func` ?거, `action` only ?책으로 ?격
-  - ?료: `role`/`party`/`authority`?subject-core host 축으???강하??한
-  - ?료: C/LLVM method lowering?서 `subject=self-cell`, `class=value self` 1?분기
-  - ?료: legacy host-profile surface??거하고 ??규칙??`subject`???합
-  - ?료: `subject` ?일 host surface??일
-  - ?료: standalone host-profile surface ??
-  - ?료: object?effect/relation target으로 semantic/C/LLVM???결
-  - ?료: domain-local `refresh` / `publish` source?subject/object까? ?장하고 tobject source??금?
-  - ?료: relation/projection 중심 surface 고정
+### 존재론 모델
+- [x] **intent-first 설계 축 / subject-core host 축 분리 고정**
+  - 완료: 사용자-facing 설계 순서는 `intent -> world -> zone -> subject`로 문서화
+  - 완료: `subject = 상태와 identity를 가진 주체 타입`은 host/naming/lowering 축으로 한정해 문서화
+  - 완료: `subject`와 `class`를 서로 다른 nominal flavor로 분리하고 의미론도 1차 분기
+  - 완료: legacy host-profile surface를 제거하고 `subject`/`object`/`intent` 중심으로 정리
+  - 완료: `entity`는 코어 언어 존재론에 넣지 않고 프레임워크/도메인 용어로 남긴다고 문서화
+  - 완료: `object`는 intent를 시작하지 않는 passive state target이라고 문서화
+  - 완료: `tobject`는 object의 외부 경계용 축약 투영이라고 문서화
+  - 완료: `subject`, `class`, `struct`, `object`, `tobject` declaration flavor를 parser AST에 분리 기록
+  - 완료: `subject slot`과 `ToObject` / `ToTObject` source가 `subject` host만 받도록 semantic 분기
+  - 완료: `object` keyword alias를 parser/LSP surface에 반영
+  - 완료: `object`를 passive state/value 형식으로, `tobject`를 더 좁은 projection/value 형식으로 정리하고 helper method를 허용
+  - 완료: `vessel` declaration과 `subject` 내부 `vessel` field surface 추가
+  - 완료: `subject` 전용 `action` declaration과 최소 clause (`requires/within/causes/authorized by`) parser/semantic 연결
+  - 완료: `subject` 안의 legacy `func` 제거, `action` only 정책으로 승격
+  - 완료: `role`/`party`/`authority`를 subject-core host 축으로 더 강하게 제한
+  - 완료: C/LLVM method lowering에서 `subject=self-cell`, `class=value self` 1차 분기
+  - 완료: legacy host-profile surface를 제거하고 관련 규칙을 `subject`에 통합
+  - 완료: `subject` 단일 host surface로 통일
+  - 완료: standalone host-profile surface 삭제
+  - 완료: object를 effect/relation target으로 semantic/C/LLVM에 연결
+  - 완료: domain-local `refresh` / `publish` source를 subject/object까지 확장하고 tobject source는 금지
+  - 완료: relation/projection 중심 surface 고정
 
-### 문서 / ?????렬
-- [ ] **BSD (Allman) canonical style ?면 고정**
-  - 문서/?제/scaffold/formatter 출력? BSD 기?으로 ?일
-  - K&R? parser compatibility로만 ?기?canonical surface로는 취급?? ?음
-- [x] **문서 ?제 ?시 ?서 강제**
-  - ?료: README entrypoint? ?심 ?계 문서?서 ?제 대해 ?서?`intent -> world -> zone -> subject`?명시
-  - 기? 문서: `README.md`, `docs/00_vision.md`, `docs/01_intent_first_design.md`, `docs/22_class_object_model.md`
-  - 규칙: `subject`??core host??명?되, ?계???축으?르치 ?음
-  - 규칙: compile-order? teaching-order?분리?서 명시
+### 문서 / 스타일 정렬
+- [ ] **BSD (Allman) canonical style 전면 고정**
+  - 문서/예제/scaffold/formatter 출력은 BSD 기준으로 통일
+  - K&R은 parser compatibility로만 남기고 canonical surface로는 취급하지 않음
+- [x] **문서 예제 제시 순서 강제**
+  - 완료: README entrypoint와 핵심 설계 문서에서 예제 독해 순서를 `intent -> world -> zone -> subject`로 명시
+  - 기준 문서: `README.md`, `docs/00_vision.md`, `docs/01_intent_first_design.md`, `docs/22_class_object_model.md`
+  - 규칙: `subject`는 core host로 설명하되, 설계의 첫 축으로 가르치지 않음
+  - 규칙: compile-order와 teaching-order를 분리해서 명시
 
-### slot 권한 / ?원??장
-- [ ] **slot 권한 모델 고도??* ??공유 ?기 vs ?점 ?기, capability narrowing
-- [ ] **?제 ?원??장** ??SessionSlot, ChannelSlot, RemoteJob 고도??- [x] **subject/class/object model 구현 ?렬**
-  - ?료: subject direct copy/plain value parameter/return 금?, positional constructor
-  - ?료: C/LLVM lowering 1?분기 (`subject=self-cell`, `class=value self`)
-  - ?료: legacy host-profile??`subject` 규칙으로 ?합
-  - ?료: `subject` ?일 host surface??일
-  - ?료: plain/secure `Slot<subject>` local object-cell anchor ??  - ?료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 개수 경계 ?달??semantic + C/LLVM backend??반영
-  - ?료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
-  - ?료: richer object-handle cell propagation
+### slot 권한 / 자원군 확장
+- [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
+- [ ] **실제 자원군 확장** — SessionSlot, ChannelSlot, RemoteJob 고도화
+- [x] **subject/class/object model 구현 정렬**
+  - 완료: subject direct copy/plain value parameter/return 금지, positional constructor
+  - 완료: C/LLVM lowering 1차 분기 (`subject=self-cell`, `class=value self`)
+  - 완료: legacy host-profile을 `subject` 규칙으로 통합
+  - 완료: `subject` 단일 host surface로 통일
+  - 완료: plain/secure `Slot<subject>` local object-cell anchor 지원
+  - 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달을 semantic + C/LLVM backend에 반영
+  - 완료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
+  - 완료: richer object-handle cell propagation
 
-### orchestration ?성??- [ ] **???트?이??모델 강화** ??select 공정?? timeout, cancellation, backpressure
-  - ??료: `TryRecv/RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`
-  - ??료: `TrySendStatus/SendTimeoutStatus -> Option<Bool>`?full/timeout vs closed?값으?구분
-  - ??료: `ChannelLength/ChannelCapacity/ChannelSpace -> Int`, `ChannelFull/ChannelClosed -> Bool`
-  - ??료: `select` round-robin ?작 ?덱??fairness
-  - ??료: `Cancel(task)` / `IsCancelled()` cooperative cancellation
-  - ??료: spawned descendant cancellation propagation
-  - 현재 ?한: movable resource channel??non-blocking/timeout transfer??미???  - 현재 ?한: pressure observation? ?하?bounded policy/backpressure protocol? 아직 미구??  - 현재 ?한: preemptive cancellation, blocked thread task interruption, structured cancellation scope/lattice??미???- [x] **async/await runtime 고도??* ??POSIX ucontext + Windows Fiber 기반 coroutine
-- [ ] **Windows coroutine ?고정**
+### orchestration 완성도
+- [ ] **오케스트레이션 모델 강화** — select 공정성, timeout, cancellation, backpressure
+  - 부분 완료: `TryRecv/RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`
+  - 부분 완료: `TrySendStatus/SendTimeoutStatus -> Option<Bool>`로 full/timeout vs closed를 값으로 구분
+  - 부분 완료: `ChannelLength/ChannelCapacity/ChannelSpace -> Int`, `ChannelFull/ChannelClosed -> Bool`
+  - 부분 완료: `select` round-robin 시작 인덱스 fairness
+  - 부분 완료: `Cancel(task)` / `IsCancelled()` cooperative cancellation
+  - 부분 완료: spawned descendant cancellation propagation
+  - 현재 제한: movable resource channel의 non-blocking/timeout transfer는 미지원
+  - 현재 제한: pressure observation은 가능하지만 bounded policy/backpressure protocol은 아직 미구현
+  - 현재 제한: preemptive cancellation, blocked thread task interruption, structured cancellation scope/lattice는 미지원
+- [x] **async/await runtime 고도화** — POSIX ucontext + Windows Fiber 기반 coroutine
+- [ ] **Windows coroutine 검증/고정**
 
-### ?대쭅 / ?쒖?硫?- [ ] **stable stdlib surface ?ш퀬??*
-- [ ] **?링 ?계 진입** ??formatter, LSP 진단 ?질
-- [x] **ontology-first scaffold ?뺣젹**
-  - ?료: `pgy scaffold` help?`subject/class/object/tobject` ?선 분기??렬
-  - ?료: `class` scaffold kind 추?
-  - ?료: `project/simulator` scaffold `subject` `class`??유하고 `object/tobject`??영는 starter shape??성
-  - ?료: `project` scaffold intent-first layout(`intents/`, `subjects/`, `zones/`, `world.pgy`, `main.pgy`)???제??성
-  - ?료: `pgy new` `intent-first` / `class-first` / `projection-first` starter??택?게 ?? ??  - ?료: `pgy new` / scaffold output??ontology decision guide file 별도 ?성 ??  - ?료: intent-first project guide 문서??scaffold output??같이 ?성?? ??    - `intents/`??로?트 table-of-contents??명는 guide ?함
-    - intent declaration???요??subject/zone/ability/effect TODO???는 workflow ?시 ?함
-  - ?료: intent runtime follow-up
-    - rollback policy瑜?current reverse-order `compensate` beyond v1濡??뺤옣?섍린
-    - intent??cross-world transfer / identity handoff semantics ?계 ?구현
-    - current last-intent typed history瑜?trace id / stream / multi-instance observability濡??뺤옣?섍린
+### 툴링 / 표준면
+- [ ] **stable stdlib surface 재고정**
+- [ ] **툴링 단계 진입** — formatter, LSP 진단 품질
+- [x] **ontology-first scaffold 정렬**
+  - 완료: `pgy scaffold` help를 `subject/class/object/tobject` 우선 분기로 정렬
+  - 완료: `class` scaffold kind 추가
+  - 완료: `project/simulator` scaffold가 `subject`가 `class`를 소유하고 `object/tobject`로 투영하는 starter shape를 생성
+  - 완료: `project` scaffold가 intent-first layout(`intents/`, `subjects/`, `zones/`, `world.pgy`, `main.pgy`)을 실제로 생성
+  - 완료: `pgy new`가 `intent-first` / `class-first` / `projection-first` starter를 선택하게 할지 검토
+  - 완료: `pgy new` / scaffold output에 ontology decision guide file 별도 생성 검토
+  - 완료: intent-first project guide 문서도 scaffold output에 같이 생성할지 검토
+    - `intents/`를 프로젝트 table-of-contents로 설명하는 guide 포함
+    - intent declaration이 필요한 subject/zone/ability/effect TODO를 역산하는 workflow 예시 포함
+  - 완료: intent runtime follow-up
+    - rollback policy를 current reverse-order `compensate` beyond v1로 확장하기
+    - intent의 cross-world transfer / identity handoff semantics 설계 및 구현
+    - current last-intent typed history를 trace id / stream / multi-instance observability로 확장하기
 
-### ????로그램
-- [ ] **????플리??션 3?* ???종 ?원 ?이?라?? secure+device+channel, slot/orchestration 철학 증명
+### 대표 프로그램
+- [ ] **대표 애플리케이션 3종** — 이종 자원 파이프라인, secure+device+channel, slot/orchestration 철학 증명
 
-## P1.85 ??게임 ?레?워??계층
+## P1.85 — 게임 프레임워크 계층
 
-- [ ] **게임 ?레?워???이브러?경계 고정**
-  - ?칙: `entity/object pool`? 되어 코어 기능??아니며 `use pool;` 같? 게임/???이브러?계층으로 한다
-  - ?칙: `encounter/turn/state machine`, `strategy/AI`, `content tables`???일?게 코어 문법??아니며 ?레?워??surface??는??  - ?칙: ??계층? ?도메인 ?이브러리보???generic pattern library + domain injection?으??의한다
-  - ?유: 코어 되어??`subject / vessel / object / tobject / relation / effect / zone / world / Slot<T>` ??론을 ???고, ?규모 게임 ?계???의 library/DSL 계층으로 ?리??이 ?장과 ?명이 ??좋다
-  - 목표: ?게을 만들 ??는 코어 되어?? ?게을 ?제?만드???레?워?? 분리
-- [ ] **寃뚯엫 stdlib/use surface 珥덉븞**
-  - ?보: `use pool;`, `use fsm;`, `use encounter;`, `use strategy;`, `use tables;`
-  - 방향: pool/fsm/strategy/table? `.pgy` 는 stdlib 모듈??공?고, 되어 ?워으로 ?격?? ?는??  - 방향: `Pool<T>`, `StateMachine<TState, TEvent>`, `StrategyTable<TContext, TChoice>`, `WeightedTable<T>`처럼 generic-first naming???선한다
-  - 방향: GOF 기초 ?턴??inheritance/object graph 아니며 Pergyra host 기?으로 번역한다
+- [ ] **게임 프레임워크 라이브러리 경계 고정**
+  - 원칙: `entity/object pool`은 언어 코어 기능이 아니라 `use pool;` 같은 게임/앱 라이브러리 계층으로 둔다
+  - 원칙: `encounter/turn/state machine`, `strategy/AI`, `content tables`도 동일하게 코어 문법이 아니라 프레임워크 surface로 쌓는다
+  - 원칙: 이 계층은 “도메인 라이브러리”보다 “generic pattern library + domain injection”으로 정의한다
+  - 이유: 코어 언어는 `subject / vessel / object / tobject / relation / effect / zone / world / Slot<T>` 의미론을 유지하고, 대규모 게임 설계는 그 위의 library/DSL 계층으로 올리는 편이 확장성과 설명력이 더 좋다
+  - 목표: “게임을 만들 수 있는 코어 언어”와 “게임을 실제로 만드는 프레임워크”를 분리
+- [ ] **게임 stdlib/use surface 초안**
+  - 후보: `use pool;`, `use fsm;`, `use encounter;`, `use strategy;`, `use tables;`
+  - 방향: pool/fsm/strategy/table은 `.pgy` 또는 stdlib 모듈로 제공하고, 언어 키워드로 승격하지 않는다
+  - 방향: `Pool<T>`, `StateMachine<TState, TEvent>`, `StrategyTable<TContext, TChoice>`, `WeightedTable<T>`처럼 generic-first naming을 우선한다
+  - 방향: GOF 기초 패턴도 inheritance/object graph가 아니라 Pergyra host 기준으로 번역한다
     - `singleton` -> contextual runtime registry / host-local shared state
     - `factory` -> staged template/spec builder
     - `strategy` -> policy card / policy table + function injection
     - `state` -> explicit FSM / transition rule + context application
     - `observer` -> relay bundle / sink spec / report sink / event bus
-  - 방향: generic pattern library??static spec/table만이 아니며 function-typed picker/resolver 주입??기본 ?면으로 ?함한다
-    - ?? `Picker<TInput, TChoice>`
-    - ?? `Resolver<TContext, TResult>`
-    - ?? `StrategyApply(context, AggressivePolicy)`
-  - 현재 ?태: `data/card/table` 경로???정, custom function injection??V1 ?면???라??  - 현재 ?략 ?턴???정 ?계:
+  - 방향: generic pattern library는 static spec/table만이 아니라 function-typed picker/resolver 주입도 기본 표면으로 포함한다
+    - 예: `Picker<TInput, TChoice>`
+    - 예: `Resolver<TContext, TResult>`
+    - 예: `StrategyApply(context, AggressivePolicy)`
+  - 현재 상태: `data/card/table` 경로는 안정, custom function injection도 V1 표면이 올라옴
+  - 현재 전략 패턴의 안정 단계:
     - `StrategyCard`
     - `StrategyContext`
     - `ApplyStrategy(card, context)`
-  - ?번 ?제 기? ?이브러리화 ?보:
+  - 이번 예제 기준 라이브러리화 후보:
     - `use strategy;`
       - `WeaponCard` / `CombatStrategyCard`
-      - `WeaponFactory<TClass>` ?먮뒗 `LoadoutTable<TArchetype>`
+      - `WeaponFactory<TClass>` 또는 `LoadoutTable<TArchetype>`
       - `StrategyTable<TContext, TChoice>`
       - `ActionTextFactory<TContext>` / `EffectTextFactory<TContext>`
     - `use tables;`
@@ -2696,51 +2564,64 @@ Source of truth:
       - scripted / random / player mode runner
       - input script playback
       - seeded choice resolver
-- [ ] **GOF 湲곗큹 ?⑦꽩??Pergyra??pattern catalog濡??뺣━**
-  - 기? 문서: `docs/31_gof_pattern_catalog.md`
-  - 湲곗? ?덉젣: `examples/pattern_library_basics/`
-  - 목표: ?통 OOP ?턴 ?름?????더?도 ?제 구현 shape??`subject / vessel / shared / spec / card / relay`??정??  - 비목?? inheritance / `super` / hidden callback graph??턴 구현??기본값으?채택?? ?음
-- [ ] **DND/campaign ?나리오?게임 ?레?워??증장으로 ?용**
-  - `dnd_tavern_campaign`?기?으로 pool/fsm/strategy/table???제?충분?? ?  - language core 족이 아니며 framework layer 족인 계속 분리?서 기록
-  - 금까 뽑힌 ?제 ?턴:
-    - ?소/?면 진입 ?토?(`OpenTavernCampaign`)
-    - 게임 ?태 머신 (`tavern -> floor1 -> floor2 -> floor3 -> dragon -> epilogue`)
-    - ?좏깮 ?댁꽍湲?(`scripted` / `random` / `player`)
-    - ?면 카드 / ?료 반응 카드 / 보스 ?이?카드
-    - ?꾪닾 loadout/strategy 移대뱶
+- [ ] **GOF 기초 패턴을 Pergyra식 pattern catalog로 정리**
+  - 기준 문서: `docs/31_gof_pattern_catalog.md`
+  - 기준 예제: `examples/pattern_library_basics/`
+  - 목표: 전통 OOP 패턴 이름을 유지하더라도 실제 구현 shape는 `subject / vessel / shared / spec / card / relay`로 재정의
+  - 비목표: inheritance / `super` / hidden callback graph를 패턴 구현의 기본값으로 채택하지 않음
+- [ ] **DND/campaign 시나리오를 게임 프레임워크 검증장으로 사용**
+  - `dnd_tavern_campaign`를 기준으로 pool/fsm/strategy/table이 실제로 충분한지 검증
+  - language core 부족이 아니라 framework layer 부족인지 계속 분리해서 기록
+  - 지금까지 뽑힌 실제 패턴:
+    - 장소/장면 진입 팩토리 (`OpenTavernCampaign`)
+    - 게임 상태 머신 (`tavern -> floor1 -> floor2 -> floor3 -> dragon -> epilogue`)
+    - 선택 해석기 (`scripted` / `random` / `player`)
+    - 장면 카드 / 동료 반응 카드 / 보스 페이즈 카드
+    - 전투 loadout/strategy 카드
     - transcript-first report writer
-  - ?ㅼ쓬 紐⑺몴:
-    - ???턴을 `examples/` ?용 코드 아니며 `use` ?이브러??보??구??    - `world.pgy`??orchestration 을 줄이?encounter/strategy/report 계층으로 분리
+  - 다음 목표:
+    - 위 패턴들을 `examples/` 전용 코드가 아니라 `use` 라이브러리 후보로 재구성
+    - `world.pgy`의 orchestration 양을 줄이고 encounter/strategy/report 계층으로 분리
 
-## P1.8 ??硫???寃?
-- [ ] **공통 UI IR 고정** ??Kotlin/Android 개별 백엔?보??먼?, 모든 ?랫이 공유는 scene/projection UI IR???의
-  - 목적: native / web / mobile??같? UI ??론과 projection ?름??공유?게 ??  - ?칙: 기술 기반? Qt 방향(native shell / render loop), ?언 철학? WPF??projection/binding, 최종 ?체?? Pergyra scene/projection UI
-  - 踰붿쐞: `Window`, `Scene`, `Node`, `Layout`, `DrawCommand`, `InputEvent`, `ProjectionBinding`, `DirtyScope`
-  - ?칙: `subject`?직접 ?면??그리 하고 `object` / `tobject` / projection surface?UI ?비 ?면으로 ?용
-  - ?칙: `zone` / `world` state? projection dirty sync UI IR??갱신 계약????  - ?서: UI IR 고정 ??native backend 1???JS/web backend 1??????mobile shell / Kotlin ?요???평
-  - 비목?? ?랫?별 UI ???Qt widget tree, WPF object model, Android View/Compose semantics)??코어 되어??직접 이 ?음
-- [~] **JavaScript 백엔??* ??`.pgy ??JS` ?으?브라??/Node.js ?행 ??  - ?료: 코어 ??론? inheritance/super 이 ???고, JS lowering? delegation/composition 중심으로 간다???책 초안 문서??  - ?료: Kotlin backend보다 공통 UI IR???선?라???플?폼 ?책 문서??  - ?음: JS IR/lowering shape, runtime shim, interop surface (`extern js`) ?계
-- [ ] **mobile shell ?략** ??Android/iOS???선 공통 UI IR consumer??근
-  - ?칙: 초기 mobile ??? JS/web-compatible UI backend 는 native shell bridge??선 ??  - ?음: Android ?용 Kotlin backend??공통 UI IR + web/native backend ????요을 ?평
-- [ ] **WebAssembly ?寃?* ??LLVM wasm32 backend ?쒖슜
+## P1.8 — 멀티 타겟
 
-## P1.9 ??AI-first ?명봽??(2026-04-19 positioning ?뺤젙)
+- [ ] **공통 UI IR 고정** — Kotlin/Android 개별 백엔드보다 먼저, 모든 플랫폼이 공유하는 scene/projection UI IR을 정의
+  - 목적: native / web / mobile이 같은 UI 의미론과 projection 흐름을 공유하게 함
+  - 원칙: 기술 기반은 Qt 방향(native shell / render loop), 선언 철학은 WPF식 projection/binding, 최종 정체성은 Pergyra scene/projection UI
+  - 범위: `Window`, `Scene`, `Node`, `Layout`, `DrawCommand`, `InputEvent`, `ProjectionBinding`, `DirtyScope`
+  - 원칙: `subject`를 직접 화면에 그리지 않고 `object` / `tobject` / projection surface를 UI 소비 표면으로 사용
+  - 원칙: `zone` / `world` state와 projection dirty sync가 UI IR의 갱신 계약이 됨
+  - 순서: UI IR 고정 → native backend 1개 → JS/web backend 1개 → 그 뒤 mobile shell / Kotlin 필요성 재평가
+  - 비목표: 플랫폼별 UI 의미론(Qt widget tree, WPF object model, Android View/Compose semantics)을 코어 언어에 직접 들이지 않음
+- [~] **JavaScript 백엔드** — `.pgy → JS` 변환으로 브라우저/Node.js 실행 지원
+  - 완료: 코어 의미론은 inheritance/super 없이 유지하고, JS lowering은 delegation/composition 중심으로 간다는 정책 초안 문서화
+  - 완료: Kotlin backend보다 공통 UI IR이 우선이라는 멀티플랫폼 정책 문서화
+  - 남음: JS IR/lowering shape, runtime shim, interop surface (`extern js`) 설계
+- [ ] **mobile shell 전략** — Android/iOS는 우선 공통 UI IR consumer로 접근
+  - 원칙: 초기 mobile 대응은 JS/web-compatible UI backend 또는 native shell bridge를 우선 검토
+  - 남음: Android 전용 Kotlin backend는 공통 UI IR + web/native backend 검증 뒤 필요성을 재평가
+- [ ] **WebAssembly 타겟** — LLVM wasm32 backend 활용
 
-**맥락**: 경쟁 ??? C#/Java ??Rust 이 ?치?고, 1??용는 frontier LLM(Claude ????주도 + ?간??리뷰/?정는 ?크?로. "AI ?성 ??컴파?러/?스?? ????간??리뷰"??loop????트?게 ?아??것이 positioning ?심.
+## P1.9 — AI-first 인프라 (2026-04-19 positioning 확정)
 
-현재 ?도??게 갖춰?AI-friendly ?프??
-- backend-compare ?? (C/LLVM 출력 ?? ??AI self-verification loop ?네??- 2000+ test suite + ?모??체인 ???성?즉시 ??한 규모
-- Result-first + throw 금? ??AI stack trace보다 ErrorCode enum 분기 ??
-- 구조??주석 (WHAT/WHY/ALT/NEXT/EFFECTS/INVARIANTS/RETURNS/THROWS) ??prompt-as-code, ?도 보존
+**맥락**: 경쟁 대상은 C#/Java ↔ Rust 사이 니치이고, 1차 사용자는 frontier LLM(Claude 등)이 주도 + 인간이 리뷰/수정하는 워크플로. "AI가 생성 → 컴파일러/테스트가 검증 → 인간이 리뷰"의 loop이 타이트하게 돌아가는 것이 positioning 핵심.
 
-족하?채워?????
+현재 의도치 않게 갖춰진 AI-friendly 인프라:
+- backend-compare 회귀 (C/LLVM 출력 대조) — AI self-verification loop 하네스
+- 2000+ test suite + 스모크 체인 — 생성물 즉시 검증 가능한 규모
+- Result-first + throw 금지 — AI가 stack trace보다 ErrorCode enum 분기가 쉬움
+- 구조화 주석 (WHAT/WHY/ALT/NEXT/EFFECTS/INVARIANTS/RETURNS/THROWS) — prompt-as-code, 의도 보존
 
-- [ ] **Language Reference Spec 문서** ??현재 `docs/`???계 ??(?사결정 ?름 기록). AI?게 ?확??????공?려?"??되어??보장"????문서???리?야 ??  - ?용: ????스??규칙 / Slot ?유?계약 / effect subsumption / intent rollback ?? / Result ?파 규칙 / MIR 계약
-  - ?태: ?일 ?일 (~2000-5000?, in-context???번에 로드 ??  - 목적: "Claude Pergyra 코드????션?서 ?성????reference??용 ?? ??
-  - 현재 `docs/`? ?른 ?? ????"???렇?결정?는", spec? "현재 되어 무엇??보장?는"
-- [~] **AI-parseable 구조???러 메시** ??현재 진단? ?????현. AI?? 기계 ?독 ?한 구조???드 ?요
-  - ?재: `MIR contract breach in Main at line 0: unresolved identifier 'flag' (expected SSA-mapped local)`
-  - 紐⑺몴 ?뺥깭 (?덉떆):
+부족하고 채워야 할 것:
+
+- [ ] **Language Reference Spec 문서** — 현재 `docs/`는 설계 일지(의사결정 흐름 기록). AI에게 정확한 의미론 제공하려면 "이 언어의 보장"이 한 문서에 정리돼야 함
+  - 내용: 타입 시스템 규칙 / Slot 소유권 계약 / effect subsumption / intent rollback 의미 / Result 전파 규칙 / MIR 계약
+  - 형태: 단일 파일 (~2000-5000줄), in-context로 한 번에 로드 가능
+  - 목적: "Claude가 Pergyra 코드를 새 세션에서 생성할 때 reference로 인용 가능" 수준
+  - 현재 `docs/`와 다른 점: 일지는 "왜 이렇게 결정했는가", spec은 "현재 언어가 무엇을 보장하는가"
+- [~] **AI-parseable 구조화 에러 메시지** — 현재 진단은 내부자 표현. AI용은 기계 판독 가능한 구조화 필드 필요
+  - 현재: `MIR contract breach in Main at line 0: unresolved identifier 'flag' (expected SSA-mapped local)`
+  - 목표 형태 (예시):
     ```json
     {
       "severity": "error",
@@ -2753,99 +2634,109 @@ Source of truth:
       "related_rules": ["MIR.SSA.entry_values", "destructure.binding"]
     }
     ```
-  - `--error-format=json` ?뚮옒洹몃줈 ?좉?, ?멸컙?⑹? 湲곗〈 ?뺤떇 ?좎?
-  - ??? compile, semantic, MIR/LLVM IR ?계 ?체
-  - 1?증분 ?료 (2026-04-19):
-    - `DriverFlags.diag_format` + `--error-format=json|text` CLI ?뚮옒洹?異붽? (`src/pgy_driver.c`, `src/compiler/driver_app.h`)
-    - `semantic_result_print_json` ??semantic 진단??JSON 배열?방출 (severity/stage/location/message ?드, RFC 8259 ???스?프)
-    - `driver_emit_single_diag_json` ???일 ?러 JSON 방출 ?퍼 (module_load / backend_c_emit / backend_c_native / backend_llvm_emit / backend_llvm_native ?계 커버)
-    - stage ?쒓렇: `semantic` / `module_load` / `backend_c_emit` / `backend_c_native` / `backend_llvm_emit` / `backend_llvm_native`
-    - ?공 ??`[]` (?배열), ?패 ??`[{...}]` ???출는 ?? JSON 기? ??    - ??: `tests/diagnostics_json_smoke.sh` (Python ?서?shape ? 3 ?스: semantic / parse / success)
-    - 寃利? PowerShell濡?3 耳?댁뒪 紐⑤몢 ?뺤긽 ?숈옉 ?뺤씤 (1668 semantic + 601 transpile ?뚭? pass)
-  - 2?증분 ?료 (2026-04-19):
-    - `Diagnostic` 구조체에 `code` ?드 추? (non-owning `const char*`, ?적 문자??리터??보?) ??`src/semantic/type_checker.h`
-    - `semantic_error_code` / `semantic_warning_code` ?규 variant ??코드 ?자 받아 diagnostic??되어?(?거??`semantic_error` ??그??NULL 코드??작, ???일 ?이??중복 emit ??코드 ?으??그?이??
-    - JSON 출력??`"code"` ?드 ?택???함 (NULL?면 ?략 ???환????)
-    - parser stage 분리: module_load msg `"parse error in"`으로 ?작?면 `"stage":"parse"`, ???`"module_load"`
-    - 초기 코드 ???이??(6?:
+  - `--error-format=json` 플래그로 토글, 인간용은 기존 형식 유지
+  - 대상: compile, semantic, MIR/LLVM IR 단계 전체
+  - 1차 증분 완료 (2026-04-19):
+    - `DriverFlags.diag_format` + `--error-format=json|text` CLI 플래그 추가 (`src/pgy_driver.c`, `src/compiler/driver_app.h`)
+    - `semantic_result_print_json` — semantic 진단을 JSON 배열로 방출 (severity/stage/location/message 필드, RFC 8259 준수 이스케이프)
+    - `driver_emit_single_diag_json` — 단일 에러 JSON 방출 헬퍼 (module_load / backend_c_emit / backend_c_native / backend_llvm_emit / backend_llvm_native 단계 커버)
+    - stage 태그: `semantic` / `module_load` / `backend_c_emit` / `backend_c_native` / `backend_llvm_emit` / `backend_llvm_native`
+    - 성공 시 `[]` (빈 배열), 실패 시 `[{...}]` — 호출자는 항상 JSON 기대 가능
+    - 회귀: `tests/diagnostics_json_smoke.sh` (Python 파서로 shape 검증, 3 케이스: semantic / parse / success)
+    - 검증: PowerShell로 3 케이스 모두 정상 동작 확인 (1668 semantic + 601 transpile 회귀 pass)
+  - 2차 증분 완료 (2026-04-19):
+    - `Diagnostic` 구조체에 `code` 필드 추가 (non-owning `const char*`, 정적 문자열 리터럴 보관) — `src/semantic/type_checker.h`
+    - `semantic_error_code` / `semantic_warning_code` 신규 variant — 코드 인자 받아 diagnostic에 실어줌 (레거시 `semantic_error` 는 그대로 NULL 코드로 동작, 단 동일 사이트 중복 emit 시 코드가 있으면 업그레이드)
+    - JSON 출력에 `"code"` 필드 선택적 포함 (NULL이면 생략 — 호환성 유지)
+    - parser stage 분리: module_load msg가 `"parse error in"`으로 시작하면 `"stage":"parse"`, 그 외 `"module_load"`
+    - 초기 코드 부여 사이트 (6종):
       - `PGY_SEM_TYPE_MISMATCH` (assignment)
       - `PGY_SEM_BINOP_TYPE_MISMATCH`
       - `PGY_SEM_UNKNOWN_TYPE`
-      - `PGY_SEM_UNDEFINED_SYMBOL` (identifier / member 3 ?이??
+      - `PGY_SEM_UNDEFINED_SYMBOL` (identifier / member 3 사이트)
       - `PGY_SEM_INFER_COLLECTION` / `PGY_SEM_INFER_GENERIC` / `PGY_SEM_INFER_REQUIRED`
-    - smoke test ?뺤옣: `code == "PGY_SEM_TYPE_MISMATCH"` 寃利?+ `stage == "parse"` 寃利?(`tests/diagnostics_json_smoke.sh`)
-    - ?뚭?: 1688 semantic + 601 transpile, 0 failed
-  - 3?증분 ?료 (2026-04-19):
-    - Slot/ownership/parallel/effect 계열 코드 9?추?:
-      - `PGY_SEM_SLOT_RELEASED` (method dispatch 4 ?이??+ builtin Read/Write 2 ?이??
+    - smoke test 확장: `code == "PGY_SEM_TYPE_MISMATCH"` 검증 + `stage == "parse"` 검증 (`tests/diagnostics_json_smoke.sh`)
+    - 회귀: 1688 semantic + 601 transpile, 0 failed
+  - 3차 증분 완료 (2026-04-19):
+    - Slot/ownership/parallel/effect 계열 코드 9종 추가:
+      - `PGY_SEM_SLOT_RELEASED` (method dispatch 4 사이트 + builtin Read/Write 2 사이트)
       - `PGY_SEM_RELEASE_REQUIRES_OWNER`
-      - `PGY_SEM_SLOT_DOUBLE_RELEASE` (method + builtin Release 2 ?이??
+      - `PGY_SEM_SLOT_DOUBLE_RELEASE` (method + builtin Release 2 사이트)
       - `PGY_SEM_VIEW_KIND_MISMATCH` (ReadView write / WriteView read)
       - `PGY_SEM_MOVE_TOKEN_MISUSE` (read/write through MoveToken)
-      - `PGY_SEM_MOVE_FROM_RELEASED` (let/call/builtin 3 ?이??
+      - `PGY_SEM_MOVE_FROM_RELEASED` (let/call/builtin 3 사이트)
       - `PGY_SEM_PARALLEL_SLOT_CONFLICT` (error: mutate-mutate across tasks)
       - `PGY_SEM_PARALLEL_SLOT_RACE_RISK` (warning: read-mutate across tasks)
-      - `PGY_SEM_EFFECT_CONFLICT` (warning: effect class 異⑸룎)
-    - `docs/72_diagnostic_codes.md` 카탈로그 문서 ?규 ??16?코드 ??/?인/교정 방법, AI ?우???드, ?후 ?장 ?드 문서??    - smoke test ?장: `PGY_SEM_SLOT_RELEASED` 감? ?스 추?
-    - ?ъ슜??湲곗뿬: `semantic_error_code` / `semantic_warning_code` ?좎뼵??`PGY_PRINTF_LIKE` ?띿꽦 異붽? (clang/gcc format 寃쎄퀬 泥댄겕)
-    - ?뚭?: 1694 semantic + 601 transpile, 0 failed
-    - 현재 ?16??정 코드, ~25 ?이??커버. ?머 ~460 ?이는 4? 증분 ???  - 4?증분 ?료 (2026-04-19):
-    - `CompilerResult.error_code` / `TranspileResult.error_code` / `LLVMGenResult.error_code` ?드 추? (모두 owning strdup, destroy?서 free)
-    - `TranspilerCtx.backend_error_code` / `LLVMGenCtx.error_code` non-owning `const char *` (?뺤쟻 literal留?
-    - ?좉퇋 setter variants: `transpiler_set_backend_error_with_code` / `llvm_set_error_with_code` / `llvm_set_error_at_with_code` (?덇굅??setter??code=NULL 寃쎈줈濡??좎?)
-    - `driver_emit_single_diag_json_with_code(stage, code, message)` ??JSON??code ?드 ?택???함
-    - `driver_route_stage(default_stage, code)` ??prefix whitelist (`PGY_SEM_`/`PGY_MIR_`/`PGY_LLVM_`/`PGY_PARSE_`). 紐⑤Ⅴ??prefix??default_stage ?좎?
-    - Runner ?데?트: `c_runner.c` (2 ?이?? + `llvm_runner.c` (2 ?이?? ??기존 ?출??`_with_code` + `driver_route_stage`?교체
-    - MIR/LLVM 肄붾뱶 5醫??좉퇋:
-      - `PGY_MIR_UNRESOLVED_LOCAL` ??branch terminator??identifier SSA 매핑 ?음
-      - `PGY_MIR_TOPOLOGY_INVALID` ??MIR routine ?락 / kind 불일?/ AST ?음
-      - `PGY_MIR_SIGNATURE_UNSUPPORTED` ?????되??개수 ?그?처
-      - `PGY_MIR_SSA_LIMIT` ??SSA local 4096 珥덇낵
-      - `PGY_MIR_INTENT_CARRIER_MISSING` ??intent step metadata ?락 (C/LLVM 공통, 21 ?이???괄 ?그?이??
-      - `PGY_LLVM_SPEC_LIMIT` ??Result\<T,E\> ?뱀닔???쒕룄(MAX_LLVM_RESULT_SPECS=32) 珥덇낵
-    - 카탈로그 ?장: `docs/72_diagnostic_codes.md`??"MIR Contract" ?션 5??트?+ "LLVM Backend" ?션 1??트?    - smoke test ?장: 33?Result\<Int, E*\> 개수으로 `PGY_LLVM_SPEC_LIMIT` + `stage=llvm_codegen` ?(`tests/diagnostics_json_smoke.sh`)
-    - 寃利? `[{"severity":"error","stage":"llvm_codegen","code":"PGY_LLVM_SPEC_LIMIT",...}]` end-to-end ?뺤씤
-    - ??: 1694 semantic + 601 transpile, 0 failed (?거??경로 무손??
-    - 현재 ?22??정 코드 (`PGY_SEM_*` 16 + `PGY_MIR_*` 5 + `PGY_LLVM_*` 1), ~50 ?이??커버. `mir_validation` / `llvm_codegen` stage  기존 `backend_*_native`? 분리??  - ?? ?업 (5?증분 ?보):
-    - intent/zone/world / class/ability ??`PGY_SEM_*` 코드 ?진????(?머 ~460 semantic ?이??
-    - LLVM 추? 코드: `PGY_LLVM_TYPE_UNSUPPORTED`, `PGY_LLVM_RUNTIME_MISSING`, `PGY_LLVM_OOM` (개별 ?이???그?이??
-    - `cause_ir` / `fix_source` ?드 ??현재 message? MIR/IR ?벨 ?인 + ?스 ?벨 교정 ?인??분리??AI 구분 ?하?    - parser ?벨 코드 (`PGY_PARSE_*` prefix ?약?? ??parser error ?적??리팩???요
-    - `related_rules` ?드 ??Language Reference Spec ?후 ?결
-- [ ] **In-context example corpus ?레?션** ??GitHub??Pergyra 코드 0? ?련 ?이???? in-context examples?보완
-  - `docs/ai_prompt_bundle/` ?렉?리?????벨??번들 ?
-    - `minimal.md` ??되어 ?심?(~20KB)
-    - `standard.md` ??core + stdlib + 5??턴 ?제 (~100KB)
-    - `complete.md` ????+ ?체 examples + reference spec (~500KB-1MB)
-  - ?번들? "??번들만으????션?서 AI Pergyra 코드??뢰???게 ?성 ?한"??기??로
-  - ?략??결정: 1?audience??frontier 모델(Claude Opus, Sonnet) ?용?? ?형/? 모델? 2?- [ ] **AI iteration-friendly 빌드 ?체??* ??빠른 컴파??+ 기계 ?독 출력 + LSP 진단
-  - 증분 컴파????현재 ?일 TU??체 빌드. module ?위 증분으로 ?환
-  - ?스??결과 JSON 출력 ??현재 stdout ?????식. AI ?싱???음 ?션 결정????는 JSON 모드
-  - LSP 진단 기계 ?독 ????의 구조???러 메시? 공유 ?맷
-  - backend-compare ?패 ??diff?구조????현재 unified diff. AI "?느 개수???번째 stdout ?인???름"??바로 ?? ?한 ?맷
-  - ?? 기반 ?음 (`src/lsp/` ?렉?리, `tests/compare_backends.sh` 구조)
+      - `PGY_SEM_EFFECT_CONFLICT` (warning: effect class 충돌)
+    - `docs/72_diagnostic_codes.md` 카탈로그 문서 신규 — 16개 코드 의미/원인/교정 방법, AI 라우팅 가이드, 향후 확장 필드 문서화
+    - smoke test 확장: `PGY_SEM_SLOT_RELEASED` 감지 케이스 추가
+    - 사용자 기여: `semantic_error_code` / `semantic_warning_code` 선언에 `PGY_PRINTF_LIKE` 속성 추가 (clang/gcc format 경고 체크)
+    - 회귀: 1694 semantic + 601 transpile, 0 failed
+    - 현재 총 16개 안정 코드, ~25 사이트 커버. 나머지 ~460 사이트는 4차+ 증분 대상
+  - 4차 증분 완료 (2026-04-19):
+    - `CompilerResult.error_code` / `TranspileResult.error_code` / `LLVMGenResult.error_code` 필드 추가 (모두 owning strdup, destroy에서 free)
+    - `TranspilerCtx.backend_error_code` / `LLVMGenCtx.error_code` non-owning `const char *` (정적 literal만)
+    - 신규 setter variants: `transpiler_set_backend_error_with_code` / `llvm_set_error_with_code` / `llvm_set_error_at_with_code` (레거시 setter는 code=NULL 경로로 유지)
+    - `driver_emit_single_diag_json_with_code(stage, code, message)` — JSON에 code 필드 선택적 포함
+    - `driver_route_stage(default_stage, code)` — prefix whitelist (`PGY_SEM_`/`PGY_MIR_`/`PGY_LLVM_`/`PGY_PARSE_`). 모르는 prefix는 default_stage 유지
+    - Runner 업데이트: `c_runner.c` (2 사이트) + `llvm_runner.c` (2 사이트) — 기존 호출을 `_with_code` + `driver_route_stage`로 교체
+    - MIR/LLVM 코드 5종 신규:
+      - `PGY_MIR_UNRESOLVED_LOCAL` — branch terminator의 identifier가 SSA 매핑 없음
+      - `PGY_MIR_TOPOLOGY_INVALID` — MIR routine 누락 / kind 불일치 / AST 없음
+      - `PGY_MIR_SIGNATURE_UNSUPPORTED` — 지원 안되는 함수 시그니처
+      - `PGY_MIR_SSA_LIMIT` — SSA local 4096 초과
+      - `PGY_MIR_INTENT_CARRIER_MISSING` — intent step metadata 누락 (C/LLVM 공통, 21 사이트 일괄 업그레이드)
+      - `PGY_LLVM_SPEC_LIMIT` — Result\<T,E\> 특수화 한도(MAX_LLVM_RESULT_SPECS=32) 초과
+    - 카탈로그 확장: `docs/72_diagnostic_codes.md`에 "MIR Contract" 섹션 5개 엔트리 + "LLVM Backend" 섹션 1개 엔트리
+    - smoke test 확장: 33개 Result\<Int, E*\> 특수화로 `PGY_LLVM_SPEC_LIMIT` + `stage=llvm_codegen` 검증 (`tests/diagnostics_json_smoke.sh`)
+    - 검증: `[{"severity":"error","stage":"llvm_codegen","code":"PGY_LLVM_SPEC_LIMIT",...}]` end-to-end 확인
+    - 회귀: 1694 semantic + 601 transpile, 0 failed (레거시 경로 무손상)
+    - 현재 총 22개 안정 코드 (`PGY_SEM_*` 16 + `PGY_MIR_*` 5 + `PGY_LLVM_*` 1), ~50 사이트 커버. `mir_validation` / `llvm_codegen` stage 가 기존 `backend_*_native`와 분리됨
+  - 남은 작업 (5차 증분 후보):
+    - intent/zone/world / class/ability 관련 `PGY_SEM_*` 코드 점진적 부여 (나머지 ~460 semantic 사이트)
+    - LLVM 추가 코드: `PGY_LLVM_TYPE_UNSUPPORTED`, `PGY_LLVM_RUNTIME_MISSING`, `PGY_LLVM_OOM` (개별 사이트 업그레이드)
+    - `cause_ir` / `fix_source` 필드 — 현재 message만. MIR/IR 레벨 원인 + 소스 레벨 교정 포인트 분리해 AI가 구분 가능하게
+    - parser 레벨 코드 (`PGY_PARSE_*` prefix 예약됨) — parser error 누적형 리팩터 필요
+    - `related_rules` 필드 — Language Reference Spec 이후 연결
+- [ ] **In-context example corpus 큐레이션** — GitHub에 Pergyra 코드 0개. 훈련 데이터 부재를 in-context examples로 보완
+  - `docs/ai_prompt_bundle/` 디렉토리에 몇 개 레벨의 번들 준비:
+    - `minimal.md` — 언어 핵심만 (~20KB)
+    - `standard.md` — core + stdlib + 5개 패턴 예제 (~100KB)
+    - `complete.md` — 위 + 전체 examples + reference spec (~500KB-1MB)
+  - 각 번들은 "이 번들만으로 새 세션에서 AI가 Pergyra 코드를 신뢰성 있게 생성 가능한가"를 검증 기준으로
+  - 전략적 결정: 1차 audience는 frontier 모델(Claude Opus, Sonnet) 사용자. 소형/저가 모델은 2차
+- [ ] **AI iteration-friendly 빌드 툴체인** — 빠른 컴파일 + 기계 판독 출력 + LSP 진단
+  - 증분 컴파일 — 현재 단일 TU로 전체 빌드. module 단위 증분으로 전환
+  - 테스트 결과 JSON 출력 — 현재 stdout ✓/✗ 형식. AI가 파싱해 다음 액션 결정할 수 있는 JSON 모드
+  - LSP 진단 기계 판독 가능 — 위의 구조화 에러 메시지와 공유 포맷
+  - backend-compare 실패 시 diff를 구조화 — 현재 unified diff. AI가 "어느 함수의 몇 번째 stdout 라인이 다름"을 바로 인지 가능한 포맷
+  - 일부 기반 있음 (`src/lsp/` 디렉토리, `tests/compare_backends.sh` 구조)
 
-**?공 기?**: Frontier 모델??Pergyra spec bundle??in-context??고, 비자명한 비즈?스 로직 (?? 결제 + 멱등??+ ?시???책) 구현??one-shot??깝게 ?성?????음. 컴파???스???패 ??구조???러로????기 교정 루프 ~3???내 ?렴.
+**성공 기준**: Frontier 모델이 Pergyra spec bundle을 in-context로 들고, 비자명한 비즈니스 로직 (예: 결제 + 멱등성 + 재시도 정책) 구현을 one-shot에 가깝게 생성할 수 있음. 컴파일/테스트 실패 시 구조화 에러로부터 자기 교정 루프가 ~3회 이내 수렴.
 
-## P2 ??배포 ?작 ??
-- [ ] **문서-구현 ?기??* ???스????기능 범위 ?치
-- [ ] **SBOM (SPDX) + provenance (SLSA)** ??공급??명??- [ ] **릴리???티?트** ???명??바이?리, 체크?? ?치 ?크립트
-- [ ] **3rd-party NOTICE** ??OpenSSL/LLVM/pthread ?이?스 ?리
+## P2 — 배포 시작 시
 
-## IR ?이?라???구??
-- [x] **컴파?러 계약 고정** ??`HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability?`docs/37_compiler_contracts.md`??고정
+- [ ] **문서-구현 동기화** — 테스트 수/기능 범위 일치
+- [ ] **SBOM (SPDX) + provenance (SLSA)** — 공급망 투명성
+- [ ] **릴리스 아티팩트** — 서명된 바이너리, 체크섬, 설치 스크립트
+- [ ] **3rd-party NOTICE** — OpenSSL/LLVM/pthread 라이선스 정리
 
-- [~] **DIR (Domain IR)** ??declaration graph / intent step graph ?쒖옉
-  - ?료: `src/compiler/dir.h`, `src/compiler/dir.c`, `pgy --dir`, `test-dir`
-  - ?료: intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency
-  - ?료: role/ability completeness edge, missing-ability-method edge
-  - ?⑥쓬: richer zone/world membership graph
-- [~] **RIR (Resource IR)** ??slot/resource/authority/lifecycle ????용 계층
-  - 踰붿쐞: `Slot`, `SecureSlot`, `DeviceSlot`, projection validity, authority, effect/relation lifecycle, intent compensation resource edge
-  - ?료: `src/compiler/rir.h`, `src/compiler/rir.c`, `pgy --rir`, `test-rir`
-  - ?료: scope?normalized state summary (`initial_state`, `final_state`, `last_op`, `transition error`)
-  - ?료: relation/effect layer slot? world zone slot??resource fact?materialize
-  - 출력: ?순 map??아니며 `Resource Graph + Transfer Ops + Static Ownership Facts`
-  - explicit op ?뺢퇋??
+## IR 파이프라인 재구성
+
+- [x] **컴파일러 계약 고정** — `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability를 `docs/37_compiler_contracts.md`에 고정
+
+- [~] **DIR (Domain IR)** — declaration graph / intent step graph 시작
+  - 완료: `src/compiler/dir.h`, `src/compiler/dir.c`, `pgy --dir`, `test-dir`
+  - 완료: intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency
+  - 완료: role/ability completeness edge, missing-ability-method edge
+  - 남음: richer zone/world membership graph
+- [~] **RIR (Resource IR)** — slot/resource/authority/lifecycle 의미론 전용 계층
+  - 범위: `Slot`, `SecureSlot`, `DeviceSlot`, projection validity, authority, effect/relation lifecycle, intent compensation resource edge
+  - 완료: `src/compiler/rir.h`, `src/compiler/rir.c`, `pgy --rir`, `test-rir`
+  - 완료: scope별 normalized state summary (`initial_state`, `final_state`, `last_op`, `transition error`)
+  - 완료: relation/effect layer slot와 world zone slot도 resource fact로 materialize
+  - 출력: 단순 map이 아니라 `Resource Graph + Transfer Ops + Static Ownership Facts`
+  - explicit op 정규화:
     - `Claim/Read/Write/Release`
     - `Move/BorrowRead/BorrowWrite`
     - `ProjectRefresh/ProjectPublish`
@@ -2853,7 +2744,7 @@ Source of truth:
     - `LinkRelation/UnlinkRelation`
     - `Authorize/AwaitRemote`
     - `CommitIntent/AbortIntent/CompensateIntentStep`
-  - state lattice 珥덉븞:
+  - state lattice 초안:
     - `Uninit`
     - `Owned`
     - `BorrowedRead`
@@ -2863,25 +2754,26 @@ Source of truth:
     - `Invalid`
     - `Measured`
     - `RemotePending`
-  - CFG ?섏〈 branch/join/loop/phi merge??MIR濡??댁썡
-- [~] **MIR (Machine / Execution IR)** ??CFG/SSA/liveness/optimization 계층
-  - 踰붿쐞: basic block, explicit instruction, phi, liveness, CFG-dependent resource merge, dead code elimination
-  - ?료: `src/compiler/mir.h`, `src/compiler/mir.c`, `pgy --mir`, `test-mir`
-  - ?료: HIR CFG -> MIR block bridge
-  - ?료: RIR op -> MIR instruction bridge
-  - ?료: intent cleanup block skeleton
-  - ?료: phi materialization + incoming predecessor value list
-  - ?료: block-local SSA rename skeleton
-  - ?료: intent cleanup successor edge skeleton
-  - ?요: `RIR-flow` merge ?책
-  - ?요: richer phi merge policy
-  - ?요: cleanup / rollback / detach-invalidation edge 고도??## Progress Log ??2026-04-24 Parser/Lexer Diagnostic Routing
+  - CFG 의존 branch/join/loop/phi merge는 MIR로 이월
+- [~] **MIR (Machine / Execution IR)** — CFG/SSA/liveness/optimization 계층
+  - 범위: basic block, explicit instruction, phi, liveness, CFG-dependent resource merge, dead code elimination
+  - 완료: `src/compiler/mir.h`, `src/compiler/mir.c`, `pgy --mir`, `test-mir`
+  - 완료: HIR CFG -> MIR block bridge
+  - 완료: RIR op -> MIR instruction bridge
+  - 완료: intent cleanup block skeleton
+  - 완료: phi materialization + incoming predecessor value list
+  - 완료: block-local SSA rename skeleton
+  - 완료: intent cleanup successor edge skeleton
+  - 필요: `RIR-flow` merge 정책
+  - 필요: richer phi merge policy
+  - 필요: cleanup / rollback / detach-invalidation edge 고도화
+## Progress Log — 2026-04-24 Parser/Lexer Diagnostic Routing
 
-- ?료: parser/lexer diagnostic routing 1?gate??았??
-- 구현: `parser_error`??`PGY_PARSE_SYNTAX`, `parse:unexpected_token`, `check-syntax`?`Code:` / `Reason:` / `Fix:` ?면으로 출력한다.
-- 구현: lexer error token? `PGY_LEX_INVALID_TOKEN`, `lex:invalid_token`, `remove-or-escape-character`?같? ?면으로 출력한다.
-- 寃利? `make parser-lexer-diagnostic-test-smoke`, `make diagnostic-registry-test-smoke`, `make test-parser`.
-- ?음: parse/lex diagnostics?driver JSON diagnostic object?직접 ?리??refactor??별도 Tier 2 ?업으로 ??한다.
+- 완료: parser/lexer diagnostic routing 1차 gate를 닫았다.
+- 구현: `parser_error`는 `PGY_PARSE_SYNTAX`, `parse:unexpected_token`, `check-syntax`를 `Code:` / `Reason:` / `Fix:` 표면으로 출력한다.
+- 구현: lexer error token은 `PGY_LEX_INVALID_TOKEN`, `lex:invalid_token`, `remove-or-escape-character`를 같은 표면으로 출력한다.
+- 검증: `make parser-lexer-diagnostic-test-smoke`, `make diagnostic-registry-test-smoke`, `make test-parser`.
+- 남음: parse/lex diagnostics를 driver JSON diagnostic object로 직접 흘리는 refactor는 별도 Tier 2 작업으로 유지한다.
 
 ## UTF-8 Progress Note - 2026-04-25
 
