@@ -1,5 +1,168 @@
 ﻿# Pergyra TODO (배포 준비)
 
+## UTF-8 Progress Note - 2026-04-27 - CI Documentation Gate Portability
+
+- `documentation-quality-test-smoke` no longer depends on Python. The gate is
+  now a shell-only UTF/documentation/async-surface checker using `grep`, `find`,
+  and optional `iconv` when present.
+- This keeps Windows CI from requiring a Python runtime solely for
+  documentation wording checks, while preserving the same beta surface checks:
+  required docs/examples exist, docs/examples avoid replacement characters,
+  `TODO.md` has the readable UTF-8 Korean title, async docs use named `spawn`
+  as the beta-stable task creation surface, executable examples do not use
+  capture-bearing anonymous `async { ... }`, and AIR/RemoteFuture wording stays
+  pinned.
+- The old Python heredoc path also carried a mojibake-sensitive string literal,
+  so removing it eliminates a hidden syntax-failure path that was masked on
+  Python-missing CI runners.
+- `runtime-frontier-contract-test-smoke` is also shell-only now. It preserves
+  the same bounded frontier C/LLVM/source-of-truth checks, including
+  whitespace-normalized doc terms, without requiring Python on CI runners.
+- `beta-readiness-checklist-test-smoke` is shell-only now as well. The gate
+  still checks the stable subset docs, stdlib freeze, module resolver contract,
+  unicode policy, test-suite freeze, observability schema, memory/concurrency
+  model, async positioning, Pin/Lease diagnostics, ABI ownership shape, CI
+  matrix, Makefile support matrix, and README support wording, but no longer
+  requires Python on Windows/macOS/Linux CI.
+- `formal-semantics-test-smoke` is shell-only for proof-pack contract checks.
+  It still runs `coqc docs/semantics/proofs/SlotCalculus.v` when Coq is
+  installed, but missing Python can no longer block the formal semantics gate.
+- `inc-sentinel-test-smoke` is shell-only now. The `.inc` ban, `.cases.h`
+  include ownership, empty-fragment rejection, and orphan-fragment rejection are
+  enforced with POSIX shell, `find`, `grep`, `sed`, and `realpath`.
+
+## UTF-8 Progress Note - 2026-04-27 - AIR Global Verification Layer
+
+- AIR now exposes `air_verify(...)` as the global validation entry point. It
+  validates AIR inventory shape, authority participant shape, and evidence
+  provenance before computing drift/evidence failures.
+- `air_check_drift(...)` remains as a compatibility wrapper over
+  `air_verify(...)`; new compiler/docs language should describe AIR as the
+  verification layer, not just a drift helper.
+- `src/test_air.c` now covers invalid boundary inventory rejection and the
+  wrapper compatibility path. Local gate: `make test-air air-drift-test-smoke`.
+- The verification pass now has a real owner TU, `src/compiler/air_verify.c`,
+  so `src/compiler/air.c` stays focused on AIR synthesis and below the 600 LOC
+  split-review threshold.
+- AIR inventory validation now rejects missing backing arrays for non-zero
+  intent/boundary/drift counts and boundary step-index mismatch before drift
+  recomputation. `src/test_air.c` covers both cases.
+- AIR inventory validation now also rejects empty intent owner/step names, empty
+  boundary owner/source names, boundary-owner mismatch against the referenced
+  intent owner, and invalid boundary sync-class shape before drift computation.
+  `src/test_air.c` covers owner mismatch and world-boundary sync-shape mismatch.
+- AIR drift inventory validation now rejects stale placeholder drift nodes,
+  invalid intent/boundary references, and empty drift messages before
+  recomputation. `src/test_air.c` covers invalid drift inventory.
+- AIR evidence validation now rejects authority evidence without boundary
+  evidence and authority evidence on non-authority boundaries, keeping authority
+  provenance as a layered proof contract.
+- AIR synthesis regression coverage now includes the stable execution boundary
+  set (`parallel`, `async`, `channel-send`, `channel-recv`, `select`) in
+  addition to spawn and IO boundaries.
+- AIR invariant failures now use `PGY_AIR_INVARIANT_INVALID` with
+  `air:invariant:invalid` and `report-compiler-bug`, so compiler graph
+  corruption is not conflated with user-facing intent boundary drift.
+- Systems-language identity is now beta-gated through
+  `docs/19_design_philosophy.md`, `docs/100_beta_readiness_checklist.md`, and
+  `docs/107_beta_stable_subset.md`: Pergyra is a systems language with domain
+  extensions, and raw escape / optional runtime / C FFI ABI stability /
+  compile-time determinism are non-negotiable substrate obligations.
+- `make codegen-determinism-test-smoke` now emits representative frozen
+  backend fixtures twice through C and LLVM and compares normalized generated
+  artifacts. This is the initial compile-time determinism gate; remaining work
+  is expanding it to the full frozen backend fixture set.
+- `--runtime=none` is now parsed and beta-gated through
+  `PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED`. Runtime-dependent surfaces are
+  explicitly rejected, and pure sources are blocked at the freestanding
+  lowering gap so the compiler cannot silently link the default runtime while
+  claiming no-runtime semantics. Remaining systems-language blocker:
+  implement verified freestanding C/LLVM lowering plus system-tier raw pointer
+  escape.
+- `SlotRawPointer(...)` is now reserved and explicitly rejected through
+  `PGY_SEM_RAW_ESCAPE_UNSTABLE`; `unsafe { ... }` remains a lexical marker
+  only. This blocks marketing-vs-implementation drift until raw pointer /
+  inline-asm / MMIO escape has ABI lowering and diagnostics.
+
+## UTF-8 Progress Note - 2026-04-27 - Slot Security Owner Split
+
+- `slot_security.c` no longer owns platform fingerprint helpers or memory
+  primitive fallbacks directly. `slot_security_platform.c` owns Windows/Linux
+  hardware fingerprint retrieval, and `slot_security_memory.c` owns secure
+  memory lock/unlock/wipe, constant-time compare, memory barrier, and timestamp.
+- This keeps token/context/audit orchestration focused while preserving the
+  public `slot_security.h` ABI. Follow-up split: `slot_security_crypto.c` owns
+  AES/HMAC token encryption and `slot_security_sealed_payload.c` owns sealed
+  payload obfuscation, MAC verification, and shadow recovery.
+- `slot_security.c` is now below the 1,000 LOC hard cap at 794 LOC. Local gates
+  rerun: `make test-security test-abi runtime-abi-lifetime-test-smoke
+  backend-inc-size-test-smoke production-header-size-test-smoke
+  documentation-quality-test-smoke beta-readiness-checklist-test-smoke`.
+- Slot manager security monitoring is also split: `slot_manager_security_stats.c`
+  owns security event logging, anomaly detection, and security stats printing.
+  `slot_manager_scope.c` owns secure scope lifecycle plus the high-level
+  `pergyra_*` secure slot wrappers. `slot_manager.c` drops to 1,329 LOC while
+  keeping claim/read/write/release, pin/lease, token validation, and secure slot
+  primitives in one owner.
+
+## UTF-8 Progress Note - 2026-04-27 - Semantic Owner TU Size Closure
+
+- `type_checker_helpers_late.c` tripped `semantic-tu-size-test-smoke` at 1,031
+  LOC after the late helper migration. The active slot view boundary diagnostic
+  now has a named owner TU, `type_checker_slot_view_boundary.c`.
+- The split keeps `type_checker_helpers_late.c` focused on late call-path and
+  borrowed-boundary argument validation at 974 LOC, while the new boundary
+  owner carries the pin/await diagnostic wording and article helper at 66 LOC.
+- `make semantic-tu-size-test-smoke semantic-core-shape-test-smoke` and
+  `make test-semantic` are green after adding the new TU to `SEMANTIC_SOURCES`.
+
+## UTF-8 Progress Note - 2026-04-27 - Runtime Slot Utility Owner Split
+
+- `slot_manager.c` no longer owns the public type-tag/hash/CAS/memory-barrier
+  utility family. Those functions moved to `slot_type_utils.c`, leaving
+  `slot_manager.c` focused on table lifecycle, pin/lease, secure slot, scope,
+  TTL, and statistics behavior.
+- This is a small owner-boundary cleanup rather than a semantic change:
+  `SlotHandle`, `SlotEntry`, and runtime ABI layout remain unchanged.
+- `make test-security test-abi runtime-abi-lifetime-test-smoke` and the
+  include/header gates are green after adding the new runtime TU to
+  `RUNTIME_SOURCES`.
+
+## UTF-8 Progress Note - 2026-04-27 - Non-Pin Handle Expiration Model
+
+- Slot pinning is not the general stale-handle answer. Pin/Lease only keeps a
+  slot live for lexical repeated access. Non-pin stale-handle cases must be
+  handled by a layered contract: arena lane checks, CFG/body dataflow,
+  zone/world channel-only crossing, token transport rejection, and runtime
+  generation/token validation.
+- `docs/118_slot_model_rigor_audit.md` now records the stale-handle scenario
+  matrix: function escape, long-lived collection/field storage, async/spawn
+  capture, channel/world handoff, and copied-handle release divergence.
+- First-class Zone-Bound Handle typing is now a beta-freeze decision item. If
+  `SlotHandle<T> in Zone` or `handle@zone` enters beta, the compiler must add
+  zone-scope <= handle-scope facts and diagnostics. If it does not enter beta,
+  the stable behavior remains conservative `BORROW_TRACKED` / anchored-handle
+  rejection plus runtime generation/token hard-fail.
+
+## UTF-8 Progress Note - 2026-04-27 - Slot Pin ABA Wrap Guard
+
+- Slot pin audit found a concrete wording/implementation seam: the runtime ABI
+  is not a 64-bit generation handle. It currently uses a 32-bit `slotId` plus a
+  32-bit generation field, with fresh `slotId` assignment on each claim.
+- To prevent ABA id reuse at the current ABI width, `SlotClaim` now tombstones
+  the zero-id sentinel and the manager before `slotId` wrap, returning
+  `SLOT_ERROR_OUT_OF_MEMORY` rather than reusing an old id.
+- `make test-security` now covers the zero-id guard, wrap guard, tampered-view
+  generation unpin rejection, and double-unpin rejection as part of the Slot
+  pin/lease runtime test. `docs/74_slot_pinning_caching.md`,
+  `docs/semantics/08_slot_capability_calculus.md`, and
+  `docs/118_slot_model_rigor_audit.md` now state this honestly instead of
+  implying a 64-bit/tombstone ABI that was not implemented.
+- `docs/semantics/proofs/SlotCalculus.v` now mirrors the implementation model:
+  claim requires a fresh non-sentinel id, zero/wrap ids cannot be claimed,
+  tampered pinned-view generations cannot unpin, and double-unpin is impossible
+  in the small-step sketch.
+
 ## UTF-8 Progress Note - 2026-04-27 - Formal Semantics Proof Boundary
 
 - Slot capability calculus is now part of the formal proof pack via
@@ -17,8 +180,10 @@
 - Local 2026-04-27 note: WSL smoke passed but skipped Coq type-check because
   `coqc` is not installed locally; CI remains the authoritative Coq gate.
 - Runtime evidence for the Slot capability calculus was rechecked with
-  `make test-security` (132/132 passed): generation guard coverage now includes stale-generation
-  read/write/pin/release rejection and `SlotIsValid` false, plus
+  `make test-security` (142/142 passed): generation guard coverage now includes stale-generation
+  read/write/pin/release rejection, `SlotIsValid` false, zero-id sentinel and
+  slot-id wrap tombstone before ABA reuse, tampered-view generation unpin
+  rejection, and double-unpin rejection, plus
   release-while-pinned, scope-release-while-pinned, TTL cleanup skip while
   pinned, secure invalid token rejection, revoked-token rejection, concurrent
   secure write rejection, raw secure-slot release rejection, and

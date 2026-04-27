@@ -25,6 +25,7 @@ parse_args(int argc, char *argv[])
 #endif
     f.opt_profile = PGY_OPT_RELEASE;
     f.hir_dump_mode = HIR_DUMP_SUMMARY;
+    f.runtime_mode = RUNTIME_DEFAULT;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
@@ -78,6 +79,15 @@ parse_args(int argc, char *argv[])
             f.diag_format = DIAG_FORMAT_JSON;
         } else if (strcmp(argv[i], "--error-format=text") == 0) {
             f.diag_format = DIAG_FORMAT_TEXT;
+        } else if (strcmp(argv[i], "--runtime=default") == 0) {
+            f.runtime_mode = RUNTIME_DEFAULT;
+        } else if (strcmp(argv[i], "--runtime=none") == 0) {
+            f.runtime_mode = RUNTIME_NONE;
+        } else if (strncmp(argv[i], "--runtime=", 10) == 0) {
+            fprintf(stderr,
+                    "pgy: unknown runtime mode '%s' (expected --runtime=default or --runtime=none)\n",
+                    argv[i] + 10);
+            exit(1);
         } else if (strcmp(argv[i], "-o") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "pgy: -o requires an argument\n");

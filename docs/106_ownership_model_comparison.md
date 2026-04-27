@@ -4,6 +4,7 @@ Last updated: 2026-04-25
 
 Related documents:
 
+- `docs/19_design_philosophy.md` §0 — **core identity** (Pergyra is a systems language; ownership model is layered on that baseline)
 - `docs/74_slot_pinning_caching.md`
 - `docs/100_beta_readiness_checklist.md`
 - `docs/104_air_compiler_architecture.md`

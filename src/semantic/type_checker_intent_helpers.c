@@ -2,7 +2,8 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Intent helper routines extracted from type_checker_decls_a.inc.
+ * Intent helper routines shared by intent declaration validation and
+ * top-level semantic orchestration.
  */
 
 #include "type_checker_internal.h"

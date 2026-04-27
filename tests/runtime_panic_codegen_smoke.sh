@@ -12,6 +12,8 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
+BACKENDS="${PGY_RUNTIME_PANIC_CODEGEN_BACKENDS:-c llvm}"
+
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-runtime-panic-codegen.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
@@ -151,33 +153,38 @@ expect_codegen_panic() {
     fi
 }
 
-expect_codegen_panic "div_zero" "c" "$WORK_DIR/div_zero.pgy" "divide-by-zero"
-expect_codegen_panic "div_zero" "llvm" "$WORK_DIR/div_zero.pgy" "divide-by-zero"
-expect_codegen_panic "mod_zero" "c" "$WORK_DIR/mod_zero.pgy" "divide-by-zero"
-expect_codegen_panic "mod_zero" "llvm" "$WORK_DIR/mod_zero.pgy" "divide-by-zero"
-expect_codegen_panic "array_index_oob" "c" "$WORK_DIR/array_index_oob.pgy" "out-of-bounds"
-expect_codegen_panic "array_index_oob" "llvm" "$WORK_DIR/array_index_oob.pgy" "out-of-bounds"
-expect_codegen_panic "array_set_oob" "c" "$WORK_DIR/array_set_oob.pgy" "out-of-bounds"
-expect_codegen_panic "array_set_oob" "llvm" "$WORK_DIR/array_set_oob.pgy" "out-of-bounds"
-expect_codegen_panic "array_inline_index_oob" "c" "$WORK_DIR/array_inline_index_oob.pgy" "out-of-bounds"
-expect_codegen_panic "array_inline_index_oob" "llvm" "$WORK_DIR/array_inline_index_oob.pgy" "out-of-bounds"
-expect_codegen_panic "slice_inline_index_oob" "c" "$WORK_DIR/slice_inline_index_oob.pgy" "out-of-bounds"
-expect_codegen_panic "slice_inline_index_oob" "llvm" "$WORK_DIR/slice_inline_index_oob.pgy" "out-of-bounds"
-expect_codegen_panic "list_get_oob" "c" "$WORK_DIR/list_get_oob.pgy" "out-of-bounds"
-expect_codegen_panic "list_get_oob" "llvm" "$WORK_DIR/list_get_oob.pgy" "out-of-bounds"
-expect_codegen_panic "queue_pop_empty" "c" "$WORK_DIR/queue_pop_empty.pgy" "out-of-bounds"
-expect_codegen_panic "queue_pop_empty" "llvm" "$WORK_DIR/queue_pop_empty.pgy" "out-of-bounds"
-expect_codegen_panic "map_get_missing" "c" "$WORK_DIR/map_get_missing.pgy" "out-of-bounds"
-expect_codegen_panic "map_get_missing" "llvm" "$WORK_DIR/map_get_missing.pgy" "out-of-bounds"
-expect_codegen_panic "list_set_oob" "c" "$WORK_DIR/list_set_oob.pgy" "out-of-bounds"
-expect_codegen_panic "list_set_oob" "llvm" "$WORK_DIR/list_set_oob.pgy" "out-of-bounds"
-expect_codegen_panic "list_remove_oob" "c" "$WORK_DIR/list_remove_oob.pgy" "out-of-bounds"
-expect_codegen_panic "list_remove_oob" "llvm" "$WORK_DIR/list_remove_oob.pgy" "out-of-bounds"
-expect_codegen_panic "map_remove_missing" "c" "$WORK_DIR/map_remove_missing.pgy" "out-of-bounds"
-expect_codegen_panic "map_remove_missing" "llvm" "$WORK_DIR/map_remove_missing.pgy" "out-of-bounds"
-expect_codegen_panic "result_unwrap_err" "c" "$WORK_DIR/result_unwrap_err.pgy" "internal-invariant"
-expect_codegen_panic "result_unwrap_err" "llvm" "$WORK_DIR/result_unwrap_err.pgy" "internal-invariant"
-expect_codegen_panic "option_unwrap_none" "c" "$WORK_DIR/option_unwrap_none.pgy" "internal-invariant"
-expect_codegen_panic "option_unwrap_none" "llvm" "$WORK_DIR/option_unwrap_none.pgy" "internal-invariant"
+expect_codegen_panic_backends() {
+    local name="$1"
+    local source="$2"
+    local expected_class="$3"
+    local backend
 
-echo "[runtime-panic-codegen] generated C and LLVM divide-by-zero, collection out-of-bounds, and unwrap invariant panic classes are executable"
+    for backend in $BACKENDS; do
+        case "$backend" in
+            c|llvm)
+                expect_codegen_panic "$name" "$backend" "$source" "$expected_class"
+                ;;
+            *)
+                echo "[runtime-panic-codegen] unknown backend '$backend'" >&2
+                exit 1
+                ;;
+        esac
+    done
+}
+
+expect_codegen_panic_backends "div_zero" "$WORK_DIR/div_zero.pgy" "divide-by-zero"
+expect_codegen_panic_backends "mod_zero" "$WORK_DIR/mod_zero.pgy" "divide-by-zero"
+expect_codegen_panic_backends "array_index_oob" "$WORK_DIR/array_index_oob.pgy" "out-of-bounds"
+expect_codegen_panic_backends "array_set_oob" "$WORK_DIR/array_set_oob.pgy" "out-of-bounds"
+expect_codegen_panic_backends "array_inline_index_oob" "$WORK_DIR/array_inline_index_oob.pgy" "out-of-bounds"
+expect_codegen_panic_backends "slice_inline_index_oob" "$WORK_DIR/slice_inline_index_oob.pgy" "out-of-bounds"
+expect_codegen_panic_backends "list_get_oob" "$WORK_DIR/list_get_oob.pgy" "out-of-bounds"
+expect_codegen_panic_backends "queue_pop_empty" "$WORK_DIR/queue_pop_empty.pgy" "out-of-bounds"
+expect_codegen_panic_backends "map_get_missing" "$WORK_DIR/map_get_missing.pgy" "out-of-bounds"
+expect_codegen_panic_backends "list_set_oob" "$WORK_DIR/list_set_oob.pgy" "out-of-bounds"
+expect_codegen_panic_backends "list_remove_oob" "$WORK_DIR/list_remove_oob.pgy" "out-of-bounds"
+expect_codegen_panic_backends "map_remove_missing" "$WORK_DIR/map_remove_missing.pgy" "out-of-bounds"
+expect_codegen_panic_backends "result_unwrap_err" "$WORK_DIR/result_unwrap_err.pgy" "internal-invariant"
+expect_codegen_panic_backends "option_unwrap_none" "$WORK_DIR/option_unwrap_none.pgy" "internal-invariant"
+
+echo "[runtime-panic-codegen] generated $BACKENDS divide-by-zero, collection out-of-bounds, and unwrap invariant panic classes are executable"

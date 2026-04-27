@@ -163,9 +163,8 @@ bool type_check_zone_relation_contract(ASTNode *zone,
                                        const char *action_name);
 
 /* Currently-resolved nominal host (class/zone/world/relation/effect)
- * declaration for `ctx`.  Promoted to extern so visibility/access
- * helpers in type_checker_visibility.c can reach it without depending
- * on the .inc include order. */
+ * declaration for `ctx`.  Visibility/access helpers use this through an
+ * explicit owner seam rather than include-order coupling. */
 ASTNode *current_host_decl(SemanticContext *ctx);
 ASTNode *find_type_alias_decl(ASTNode *program, const char *name);
 ASTNode *find_type_decl_by_name(ASTNode *program, const char *type_name);

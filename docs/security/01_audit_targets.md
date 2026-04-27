@@ -1,6 +1,6 @@
 # Prioritized Audit Targets
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 This document lists Pergyra runtime safety contracts in priority order
 for AI Validator audit. Priority reflects:
@@ -22,14 +22,14 @@ to a 1-year freeze without adversarial coverage.
 
 | ID | Contract | Source | Doc |
 |---|---|---|---|
-| P0-1 | Secure slot token unforgeability | `src/runtime/slot_security.c`, `src/runtime/security_types.c` | [contracts/secure_slot_token_unforgeability.md](contracts/secure_slot_token_unforgeability.md) |
+| P0-1 | Secure slot token unforgeability | `src/runtime/slot_security.c`, `src/runtime/slot_security_crypto.c`, `src/runtime/slot_security_sealed_payload.c`, `src/runtime/slot_manager.c` | [contracts/secure_slot_token_unforgeability.md](contracts/secure_slot_token_unforgeability.md) |
 | P0-2 | Slot generation stale-handle rejection | `src/runtime/slot_manager.c` | (TBD) |
 | P0-3 | Authority transfer single-owner | `src/runtime/pgy_authority_runtime.c` (or equivalent) | (TBD) |
 | P0-4 | TTL cleanup vs pin-state interaction | `src/runtime/slot_manager.c` | (TBD) |
 | P0-5 | Release-while-pinned rejection | `src/runtime/slot_manager.c` | (TBD) |
 
-Existing regression: `make test-security` 132/132 + `make runtime-panic-abi-test-smoke`. Audit covers
-*unenumerated* edge cases beyond the 132.
+Existing regression: `make test-security` 142/142 + `make runtime-panic-abi-test-smoke`. Audit covers
+*unenumerated* edge cases beyond those 142.
 
 ## P1 — Strongly Recommended Before Beta
 

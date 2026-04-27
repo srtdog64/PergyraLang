@@ -1,12 +1,9 @@
 /* Intent-specific helper functions promoted to external linkage so they can
- * be shared between type_checker.c (which pulls them in via decls_a.inc) and
- * type_checker_intent_decl.c.
+ * be shared between top-level semantic orchestration and intent declaration
+ * owners.
  *
- * Definitions still live in type_checker_decls_a.inc for now — this header
- * only exposes them across translation unit boundaries.  When decls_a.inc is
- * further decomposed (3-B slice), these definitions move to their own TU.
- *
- * See docs/101_semantic_split_template.md for the split roadmap.
+ * Definitions live in focused semantic owner TUs; this header keeps the seam
+ * explicit without depending on a legacy include-fragment chain.
  */
 #ifndef PERGYRA_TYPE_CHECKER_INTENT_HELPERS_INTERNAL_H
 #define PERGYRA_TYPE_CHECKER_INTENT_HELPERS_INTERNAL_H

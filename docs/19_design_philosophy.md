@@ -1,5 +1,164 @@
 # Pergyra 설계 철학
 
+## 0. Pergyra는 시스템 언어다 — 모든 것이 그 위에 얹힌다
+
+이 문서의 모든 다른 chapter, 그리고 docs/106 / 114 / 117 / 118 같은 sister
+positioning doc들이 다루는 *추상화 / 도메인 / 동시성 / 분산* 모델은
+**전부 시스템 언어 baseline 위에 얹힌 layer**다. baseline이 깨지면 layer는
+의미 없다.
+
+### 0.1 Core Identity
+
+> **Pergyra is a systems language with domain extensions.
+> The systems-language baseline (no GC, predictable memory, C FFI, ABI
+> stability, raw escape, optional runtime, compile-time determinism)
+> is non-negotiable. The domain primitives (intent / zone / world /
+> authority / handoff / Channel / parallel) are first-class but
+> layered on top of the systems baseline, not replacing it.**
+
+이건 marketing 문구가 아니라 *설계 결정 우선순위*다. 새 기능 추가 시
+baseline 7가지가 흔들리면 *그 기능이 잘못된 것*이지 baseline을 양보하는
+것이 아니다.
+
+### 0.2 왜 시스템 언어여야 하는가 — 추상화 portability와의 동치성
+
+표면적으로 Pergyra는 *abstraction portability* 언어로 보인다 (docs/117):
+"같은 추상화가 모든 plat에서 같은 의미." 하지만 이 약속을 *지키려면*:
+
+- 모든 plat에서 *돌아야* 한다 → 시스템 언어급 portability 필수
+- C FFI로 모든 외부 자원 호환 → 시스템 언어급 ABI 호환성 필수
+- GC pause 없이 결정론적 → 시스템 언어급 perf 모델 필수
+- 임베디드/freestanding/kernel까지 reach 가능 → 시스템 언어 trajectory 필수
+- Bare metal부터 분산까지 같은 syntax → 시스템 언어 substrate 필수
+
+→ **abstraction portability와 systems language identity는 *같은 사실의 두
+면*이다.** 추상화를 모든 plat에 동일하게 전달하려면, 그 모든 plat에
+도달할 수 있어야 하고, 그건 시스템 언어로만 가능하다.
+
+C를 *빌려 쓰는* 이유도 같다: C가 universal substrate이기 때문이다. 시스템
+언어가 아니면 C를 빌릴 자격조차 없다 (FFI 깨짐, ABI 불일치, runtime
+의존성). Pergyra가 C 위에 얹는 도메인 layer는 *시스템 언어 자격으로*
+얹는 것이다.
+
+### 0.3 시스템 언어 7가지 baseline
+
+Modern systems language criteria (Rust 1.0이 만든 baseline, Pergyra 적용):
+
+| 기준 | 의미 | Pergyra 상태 |
+|---|---|---|
+| Mandatory GC 없음 | runtime overhead pay-per-use | ✅ fiber + arena, GC zero |
+| 예측 가능한 메모리 layout | ABI 안정, alignment 통제 | ✅ pgy_abi_spec.h + static_assert 28종 |
+| Direct memory ops 가능 | raw pointer / pin / inline asm escape | 🟡 pin block escape 있음. 시스템-tier raw escape 미정 |
+| C FFI 1급 | extern + ABI 호환 | ✅ dual-emit C 백엔드 자체 |
+| Bare-metal trajectory | freestanding / no_std-equivalent 가능성 | 🔴 베타 미지원, 1.0 후 lift |
+| Runtime optional / scalable | 기능 안 쓰면 비용 0 | 🟡 baseline. fiber/arena가 default 들어감 |
+| Compile-time determinism | 모든 codegen 결정론적 | ✅ baseline. 검증 필요 |
+
+→ 베타 시점 4 ✅, 2 🟡, 1 🔴. **🟡 두 자리가 베타 closure 위험. 🔴 한
+자리는 1.0 후 lift trajectory.** 이 분포가 *정직하게* 시스템 언어 baseline.
+
+### 0.4 4가지 위험 자리 — baseline에서 멀어질 수 있는 drift 지점
+
+이 4가지는 *지금 깨져있는* 게 아니라 *깨질 수 있는* 자리. 베타 closure
+직전 모두 점검 필수.
+
+#### 위험 1: Slot이 시스템-tier raw escape 없음
+
+`pin slot as view {}` 블록은 *lexical* escape다. 시스템 코드 (드라이버,
+OS module, embedded ISR, 메모리-매핑 IO) 작성에는 부족할 수 있음:
+
+```pergyra
+// 필요할 가능성 — 현재 정의 없음
+unsafe {
+    let raw_ptr: ptr<u8> = SlotRawPointer(slot)
+    asm volatile("mov %0, %%cr3" : : "r"(raw_ptr))
+}
+```
+
+베타 안에 *시스템-tier raw escape*가 정의되어야 함. `unsafe { }` block
+또는 비슷한 형태. 정의 안 되면 시스템 언어 status 흔들림.
+
+Current beta-gated state:
+
+- `unsafe { ... }` is a lexical marker only. It type-checks and lowers its body,
+  but it does not grant raw pointer capability.
+- `SlotRawPointer(...)` is reserved as the obvious future raw escape spelling
+  and currently rejects with `PGY_SEM_RAW_ESCAPE_UNSTABLE`.
+- The accepted hot-path answer remains typed Pin/Lease views; raw pointer,
+  inline-asm operand, MMIO, and pointer arithmetic escape still require a
+  separate ABI/lowering contract.
+
+#### 위험 2: Runtime이 default로 들어감
+
+fiber + arena가 default라면, 베타 안에 *runtime 없는 컴파일 모드* 정의
+필요:
+
+```
+pgyc --runtime=none main.pgy   # parallel/intent/Channel reject, no_std 모드
+```
+
+이 모드 정의되어 있으면 임베디드 / kernel 작성 *가능성*이 박혀있음. 1.0
+완전 작동 아니어도 *문법으로 정의*는 베타 안에 필요.
+
+Current beta-gated state:
+
+- `--runtime=none` is now parsed by the driver and routed through
+  `PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED`.
+- Runtime-dependent surfaces (`parallel`, `spawn`, `Channel`, async/future,
+  select/task-group, `intent`, `zone`, `world`, and event runtime contracts)
+  are explicitly rejected instead of silently compiling through the default
+  runtime.
+- Pure source that does not use those surfaces is still rejected at the
+  freestanding-lowering blocker. This is intentional: until C/LLVM no-runtime
+  lowering exists, the compiler must not claim a no-runtime binary.
+
+#### 위험 3: ABI 안정성이 도메인 primitive에 의해 흔들림
+
+intent / zone / world layer 변경이 C FFI ABI에 leak되면 시스템 언어
+status 깨짐. 현재 pgy_abi_spec.h가 보호 중. 이걸 *시스템 언어 contract*로
+격상해야 함:
+
+> *"intent/zone/world의 어떤 변경도 C FFI ABI를 깨면 안 된다.
+> ABI가 안 깨지는 한도 내에서 도메인 layer 진화 가능."*
+
+이걸 베타 contract에 명시해야 함.
+
+#### 위험 4: Compile-time determinism
+
+type inference / generic resolution / AIR drift check가 *비결정론적*
+codegen 만들면 (e.g., hash map iteration order에 의존) → predictable perf
+깨짐. 베타 closure 전 *모든 codegen이 결정론적*인지 검증 필요.
+
+### 0.5 도메인 primitive와 시스템 언어 baseline의 관계
+
+| Layer | 책임 | 구체 |
+|---|---|---|
+| Substrate (C-level) | 시스템 언어 baseline 7가지 | pgy_abi_spec, slot_manager, runtime ABI |
+| Slot abstraction | 시스템 자원 통합 인터페이스 | Slot / SecureSlot / DeviceSlot / QubitSlot |
+| Static layer | 5컴포넌트 (ownership/CFG/pin/channel/token) | semantic + CFG + pin |
+| Domain layer | 도메인 오케스트레이션 | intent / zone / world / authority / handoff |
+| Verification layer | abstraction safety | AIR (drift check) |
+
+→ **Substrate가 무너지면 모든 layer 무너짐.** 도메인 primitive 강화는
+substrate를 *훼손하지 않는 한도 내에서만* 의미 있음.
+
+이게 Pergyra가 "Java + intent" / "Go + intent" / "Python + intent"가 아닌
+이유다. 같은 도메인 primitive를 다른 언어에 얹으면 *그 언어의 substrate
+한계*에 갇힌다 — Java는 GC pause 강제, Go는 embedded 차단, Python은
+predictable perf 깨짐. Pergyra는 substrate가 시스템 언어급이라 도메인
+primitive가 모든 plat에 *온전히* 옮겨갈 수 있음.
+
+### 0.6 한 줄
+
+**Pergyra는 *시스템 언어 자격으로* 도메인 추상화를 모든 기계에 동일하게
+전달하는 언어다.** 시스템 언어 정체성을 잃으면 abstraction portability도
+의미 없어지고, abstraction portability 없으면 도메인 primitive도 한 plat에
+갇힌다. 둘은 분리 불가.
+
+이 §0이 다른 모든 chapter 위에 위치하는 이유다.
+
+---
+
 ## 1. 가장 중요한 전제
 
 Pergyra의 핵심은 "포인터를 더 예쁘게 숨기는 것"이 아니다.

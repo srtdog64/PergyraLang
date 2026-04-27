@@ -127,6 +127,21 @@ abi_type_table_init(void)
     ADD_FIELD_STRUCT(t, "occupied", pgy_abi_secure_slot_string_dbg, occupied);
     ADD_FIELD_STRUCT(t, "token", pgy_abi_secure_slot_string_dbg, token);
 
+    /* Pin/lease views */
+    ADD_TYPE(t, "PinnedSlotView<Int>", "pgy_abi_pinned_slot_view_int",
+             sizeof(pgy_abi_pinned_slot_view_int), _Alignof(pgy_abi_pinned_slot_view_int),
+             "pgy_pin_read_Int", "int32_t");
+    ADD_FIELD_STRUCT(t, "slot", pgy_abi_pinned_slot_view_int, slot);
+    ADD_FIELD_STRUCT(t, "active", pgy_abi_pinned_slot_view_int, active);
+    ADD_FIELD_STRUCT(t, "can_write", pgy_abi_pinned_slot_view_int, can_write);
+    ADD_TYPE(t, "PinnedSecureSlotView<Int>", "pgy_abi_pinned_secure_slot_view_int",
+             sizeof(pgy_abi_pinned_secure_slot_view_int), _Alignof(pgy_abi_pinned_secure_slot_view_int),
+             "pgy_secure_pin_read_Int", "int32_t");
+    ADD_FIELD_STRUCT(t, "slot", pgy_abi_pinned_secure_slot_view_int, slot);
+    ADD_FIELD_STRUCT(t, "token", pgy_abi_pinned_secure_slot_view_int, token);
+    ADD_FIELD_STRUCT(t, "active", pgy_abi_pinned_secure_slot_view_int, active);
+    ADD_FIELD_STRUCT(t, "can_write", pgy_abi_pinned_secure_slot_view_int, can_write);
+
     /* DeviceSlot<T> */
     ADD_TYPE(t, "DeviceSlot<Int>",    "pgy_abi_device_slot_int",    8,  4, "pgy_claim_device_Int",    "int32_t");
     ADD_FIELD_STRUCT(t, "value", pgy_abi_device_slot_int, value);

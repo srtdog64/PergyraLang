@@ -4,6 +4,8 @@ Last updated: 2026-04-27
 
 Related documents:
 
+- `docs/19_design_philosophy.md` §0 — core identity: Pergyra is a systems
+  language first, and Slot/Pin/Lease is layered on that baseline.
 - `docs/100_beta_readiness_checklist.md`
 - `docs/106_ownership_model_comparison.md`
 - `docs/104_air_compiler_architecture.md`
@@ -19,6 +21,22 @@ security bypass. It is a scope-entry capability lease:
 - Automatically unpin on normal exit, `return`, `break`, and panic/unwind paths.
 - Block release, reallocation, TTL cleanup, and conflicting writes while pinned.
 - Keep raw `void *` inside the runtime/backend ABI. User code never receives it.
+
+System-language boundary:
+
+- Pin/Lease is a typed lexical lease, not the system-tier raw escape described
+  in `docs/19_design_philosophy.md` §0.
+- Pin/Lease amortizes repeated slot validation for hot paths while preserving
+  capability, generation, token, and cleanup invariants.
+- It does not by itself satisfy driver/kernel/embedded/ISR needs such as raw
+  pointer exposure, MMIO pointer arithmetic, or inline assembly operands.
+- If Pergyra adds a system-tier raw pointer escape, that surface must be a
+  separate `unsafe` contract with explicit syntax, semantic gates, ABI lowering,
+  diagnostics, and determinism tests. It must not weaken the typed Pin/Lease
+  contract.
+- `SlotRawPointer(...)` is reserved for that future direction but currently
+  rejects with `PGY_SEM_RAW_ESCAPE_UNSTABLE`; `unsafe { ... }` does not bypass
+  the rejection.
 
 Current beta status:
 
@@ -243,6 +261,12 @@ Runtime invariants:
 - `view.ptr` is stable only until `PergyraSlotUnpin`.
 - `PergyraSlotUnpin` is single-use. Double unpin is an invalid pin error.
 - If `view.generation` differs from the slot generation, unpin is stale.
+- The current table-backed runtime ABI uses 32-bit `slotId` / `generation`.
+  It therefore must reject the zero-id sentinel and tombstone the manager before
+  `slotId` wrap instead of silently reusing an old id. `SlotClaim` now hard-fails
+  with `SLOT_ERROR_OUT_OF_MEMORY` when the id space is exhausted.
+- Unpin must match the issued view generation, mode, thread affinity, and
+  pointer identity. A tampered view cannot clear the runtime pin state.
 - Secure write pin opens sealed payload into a lease buffer and reseals on
   unpin.
 - Secure lease buffers are wiped after unpin.
@@ -326,6 +350,10 @@ The correct beta promise is narrow:
   rejected semantically. Broader exceptional/cancellation proof coverage and
   richer secure-token source diagnostics remain blockers.
 - A manual raw pointer API is not user-facing.
+- Pin/Lease must not be advertised as the full systems raw-pointer escape. It
+  is the stable typed hot-path lease layer under Slot; system-tier raw escape
+  remains a separate beta blocker tracked by `docs/19_design_philosophy.md` and
+  `docs/100_beta_readiness_checklist.md`.
 - C / LLVM lowering must share the same runtime calls and cleanup behavior.
 - `QubitSlot`, `await` crossing, channel escape, and task escape are explicit
   rejects.

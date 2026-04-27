@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 This index is the human entry point for the current beta-closure documentation.
 It intentionally prioritizes the frozen beta contract, implementation evidence,
@@ -11,6 +11,7 @@ and follow-up debt over older design notes.
 | Document | Purpose |
 |---|---|
 | [`100_beta_readiness_checklist.md`](100_beta_readiness_checklist.md) | Main beta readiness checklist and remaining blocker map |
+| [`19_design_philosophy.md`](19_design_philosophy.md) | Systems-language identity and non-negotiable substrate baseline |
 | [`107_beta_stable_subset.md`](107_beta_stable_subset.md) | Single freeze point for the beta-stable language subset |
 | [`111_beta_test_suite_freeze.md`](111_beta_test_suite_freeze.md) | Mandatory pre-beta gate inventory |
 | [`70_beta_closure_master_board.md`](70_beta_closure_master_board.md) | B0/B1/B2 closure board and prioritization |

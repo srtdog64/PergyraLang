@@ -14,6 +14,7 @@ bool        air_assign_first_owned_name(AIRProgram *air,
                                         const char *text,
                                         char **error_message,
                                         const char *what);
+void        air_clear_drifts(AIRProgram *air);
 bool        air_name_matches(const char *a, const char *b);
 bool        air_step_has_zone_boundary(const DIRIntentStep *step);
 bool        air_step_has_world_boundary(const DIRIntentStep *step);

@@ -1,6 +1,6 @@
 # AIR (Abstraction Intent Representation)
 
-마지막 업데이트: 2026-04-25
+마지막 업데이트: 2026-04-27
 
 ## 1. 포지셔닝: Verification IR, 별도 codegen 레이어 아님
 
@@ -69,9 +69,15 @@ AIR 그래프는 일반적인 CFG 위에 다음 도메인 노드를 합성한다
 
 베타 후 확장. Phase 1 에서는 위 두 노드만 구현한다.
 
-## 4. AIR 의 단일 책임 — Drift Detection
+## 4. AIR 의 단일 책임 — Global Verification
 
-AIR 가 존재하는 이유는 **딱 하나**, "intent ↔ implementation drift 검출" 이다.
+AIR 가 존재하는 이유는 **딱 하나**, "intent ↔ implementation abstraction
+safety 검증" 이다. Phase 1에서는 이것이 `air_verify(...)` 단일 entry point로
+고정된다. 검증 순서는 AIR inventory shape, owner/source identity shape,
+boundary sync-class shape, authority participant shape, evidence provenance
+shape, drift/evidence failure 계산이다.
+Drift Detection remains the primary Phase 1 diagnostic family inside this
+global verification pass.
 
 ### 4.1 Drift 의 정의
 
@@ -94,9 +100,11 @@ implementation:
   "EventBus boundary conflicts with synchronous response requirement"
 ```
 
-### 4.2 Drift Check Pass
+### 4.2 Verification Pass
 
-Phase 1 에서 구현하는 단 하나의 pass.
+Phase 1 에서 구현하는 단 하나의 pass. `air_check_drift(...)`는 오래된
+테스트/스크립트를 위한 compatibility wrapper일 뿐이고, 새 compiler/docs
+언어는 AIR를 verification layer로 부른다.
 
 입력: AIR (Intent Node + Boundary Node)
 검사:
@@ -163,6 +171,17 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
 - AIR owns synthesized names (`intent_owner`, `step_name`, boundary
   `owner_name`, `source_name`, and authority participants). AIR diagnostics and
   tests must not depend on DIR/AST string lifetime after parser teardown.
+- AIR inventory invariants are hard validation failures, not user drift facts:
+  intent owner/step names and boundary owner/source names must be non-empty,
+  each boundary owner must match its referenced intent owner, each boundary step
+  index must match its referenced intent step, and world / parallel / channel /
+  IO boundaries must carry the frozen sync-class shape (`world`, `parallel`,
+  and `channel` are async; IO is either-sync). Failures use
+  `PGY_AIR_INVARIANT_INVALID`.
+- Existing drift inventory is validated before recomputation: persisted drift
+  nodes must have a real drift kind, valid intent/boundary references, and a
+  non-empty message. Placeholder `AIR_DRIFT_NONE` entries are invalid inventory,
+  not silently cleared.
 - Authority evidence match: `authorized by` participant 이름과 RIR authority
   fact / authorize op subject가 일치해야 한다. 같은 scope 안의 unrelated
   authority evidence는 boundary를 만족시키지 않는다.
@@ -223,3 +242,43 @@ PGY_SEM_INTENT_BOUNDARY_DRIFT at PlaceOrder:step_2
 - 존재 이유: CFG 사고에서 배운 "implicit 분산 metadata 는 깨진다" 교훈을 abstraction safety 도메인에 적용.
 
 Rust 의 MIR 이 *"이 메모리 접근은 위험하다"* 를 말해준다면, Pergyra 의 AIR 는 *"이 추상화 경계는 의도한 intent 와 충돌한다"* 를 말해준다. 단, 이 책임을 **codegen IR 위에 얹는 대신 codegen 옆에 별도 verification IR 로 분리** 하는 것이 Pergyra 의 architectural choice 다.
+
+## 11. Global Verification Entry Point
+
+AIR Phase 1 is now treated as a compiler validation layer, not just a drift
+helper. The public verification entry point is:
+
+```c
+bool air_verify(AIRProgram *air, char **error_message);
+```
+
+`air_verify(...)` owns the global AIR invariants:
+
+- every `Intent Node` has a stable owner name, step name, sync class, and
+  failure class;
+- every `Boundary Node` has a known kind, owner name, source name, sync class,
+  and valid intent reference;
+- non-zero AIR node/drift counts must carry the matching inventory arrays;
+- boundary owner must match the referenced intent owner;
+- boundary `step_index` must match the referenced intent node's step index;
+- world / parallel / channel / IO boundaries must carry the frozen sync-class
+  shape (`world`, `parallel`, and `channel` are async; IO is either-sync);
+- existing drift inventory must carry valid drift kind, intent/boundary
+  references, and message before recomputation;
+- authority-required boundaries must carry explicit authority participant names;
+- RIR authority evidence must sit on an authority-required boundary and must
+  have matching RIR boundary evidence first;
+- evidence flags must carry provenance names, not boolean-only claims;
+- strict evidence mode computes drift/evidence failures before MIR lowering.
+
+`air_check_drift(...)` remains as a compatibility wrapper over `air_verify(...)`
+for older tests and scripts, but new compiler code and docs should describe AIR
+as a verification layer. This keeps AIR from becoming another ad-hoc checker:
+synthesis builds the read-only graph, verification validates the graph and
+records drift facts, and codegen still consumes only HIR/DIR/RIR/MIR.
+
+AIR inventory failures use `PGY_AIR_INVARIANT_INVALID` and route as
+`air:invariant:invalid` with `report-compiler-bug`. They are compiler IR
+contract failures, not user-facing intent drift. User-facing abstraction
+failures remain under `PGY_SEM_INTENT_BOUNDARY_DRIFT` and
+`PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`.

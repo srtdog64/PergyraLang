@@ -1,0 +1,238 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Secure slot scope and high-level Pergyra slot API wrappers.
+ */
+
+#include "slot_manager.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
+struct SecureSlotScope
+{
+    SlotManager *manager;
+    SlotHandle *handles;
+    TokenCapability *tokens;
+    size_t count;
+    size_t capacity;
+    bool autoCleanup;
+};
+
+struct PergyraSlotScope
+{
+    SecureSlotScope *scope;
+    SlotManager *manager;
+};
+
+SecureSlotScope *
+SecureSlotScopeCreate(SlotManager *manager, size_t capacity)
+{
+    SecureSlotScope *scope;
+
+    if (manager == NULL || !SlotManagerIsSecurityEnabled(manager))
+        return NULL;
+
+    scope = calloc(1, sizeof(*scope));
+    if (scope == NULL)
+        return NULL;
+
+    scope->handles = calloc(capacity, sizeof(*scope->handles));
+    scope->tokens = calloc(capacity, sizeof(*scope->tokens));
+    if (scope->handles == NULL || scope->tokens == NULL) {
+        free(scope->handles);
+        free(scope->tokens);
+        free(scope);
+        return NULL;
+    }
+
+    scope->manager = manager;
+    scope->capacity = capacity;
+    scope->autoCleanup = true;
+    return scope;
+}
+
+SlotError
+SecureSlotScopeClaimSlot(SecureSlotScope *scope, TypeTag type,
+                         SecurityLevel level, SlotHandle **handle,
+                         TokenCapability **token)
+{
+    SlotError result;
+
+    if (scope == NULL || scope->count >= scope->capacity)
+        return SLOT_ERROR_OUT_OF_MEMORY;
+
+    result = SlotClaimSecure(scope->manager, type, level,
+                             &scope->handles[scope->count],
+                             &scope->tokens[scope->count]);
+    if (result != SLOT_SUCCESS)
+        return result;
+
+    if (handle != NULL)
+        *handle = &scope->handles[scope->count];
+    if (token != NULL)
+        *token = &scope->tokens[scope->count];
+    scope->count++;
+    return SLOT_SUCCESS;
+}
+
+void
+SecureSlotScopeDestroy(SecureSlotScope *scope)
+{
+    size_t i;
+
+    if (scope == NULL)
+        return;
+
+    if (scope->autoCleanup) {
+        for (i = 0; i < scope->count; i++)
+            SlotReleaseSecure(scope->manager, &scope->handles[i], &scope->tokens[i]);
+    }
+
+    if (scope->tokens != NULL) {
+        SecureMemoryWipe(scope->tokens, scope->capacity * sizeof(*scope->tokens));
+        free(scope->tokens);
+    }
+
+    free(scope->handles);
+    free(scope);
+}
+
+PergyraSecureSlot *
+pergyra_claim_secure_slot(SlotManager *manager, const char *typeName,
+                          SecurityLevel level)
+{
+    PergyraSecureSlot *slot;
+    TypeTag typeTag;
+
+    if (manager == NULL || typeName == NULL)
+        return NULL;
+
+    slot = calloc(1, sizeof(*slot));
+    if (slot == NULL)
+        return NULL;
+
+    typeTag = (TypeTag)TypeTagHash(typeName);
+    if (SlotClaimSecure(manager, typeTag, level, &slot->handle, &slot->token) !=
+        SLOT_SUCCESS) {
+        free(slot);
+        return NULL;
+    }
+
+    slot->typeTag = typeTag;
+    slot->isValid = true;
+    return slot;
+}
+
+bool
+pergyra_slot_write_secure(PergyraSecureSlot *slot, const void *data, size_t dataSize)
+{
+    extern SlotManager *g_pergyraSlotManager;
+
+    if (slot == NULL || !slot->isValid || g_pergyraSlotManager == NULL)
+        return false;
+
+    return SlotWriteSecure(g_pergyraSlotManager, &slot->handle, data, dataSize,
+                           &slot->token) == SLOT_SUCCESS;
+}
+
+bool
+pergyra_slot_read_secure(PergyraSecureSlot *slot, void *buffer,
+                         size_t bufferSize, size_t *bytesRead)
+{
+    extern SlotManager *g_pergyraSlotManager;
+
+    if (slot == NULL || !slot->isValid || g_pergyraSlotManager == NULL)
+        return false;
+
+    return SlotReadSecure(g_pergyraSlotManager, &slot->handle, buffer, bufferSize,
+                          bytesRead, &slot->token) == SLOT_SUCCESS;
+}
+
+void
+pergyra_slot_release_secure(PergyraSecureSlot *slot)
+{
+    extern SlotManager *g_pergyraSlotManager;
+
+    if (slot == NULL)
+        return;
+
+    if (slot->isValid && g_pergyraSlotManager != NULL)
+        SlotReleaseSecure(g_pergyraSlotManager, &slot->handle, &slot->token);
+
+    SecureMemoryWipe(slot, sizeof(*slot));
+    free(slot);
+}
+
+PergyraSlotScope *
+pergyra_scope_begin(SlotManager *manager)
+{
+    PergyraSlotScope *pscope;
+
+    if (manager == NULL)
+        return NULL;
+
+    pscope = calloc(1, sizeof(*pscope));
+    if (pscope == NULL)
+        return NULL;
+
+    pscope->scope = SecureSlotScopeCreate(manager, 64);
+    if (pscope->scope == NULL) {
+        free(pscope);
+        return NULL;
+    }
+
+    pscope->manager = manager;
+    return pscope;
+}
+
+PergyraSecureSlot *
+pergyra_scope_claim_slot(PergyraSlotScope *pscope, const char *typeName,
+                         SecurityLevel level)
+{
+    PergyraSecureSlot *slot;
+    SlotHandle *handle;
+    TokenCapability *token;
+    TypeTag typeTag;
+
+    if (pscope == NULL || pscope->scope == NULL || typeName == NULL)
+        return NULL;
+
+    typeTag = (TypeTag)TypeTagHash(typeName);
+    if (SecureSlotScopeClaimSlot(pscope->scope, typeTag, level, &handle, &token) !=
+        SLOT_SUCCESS) {
+        return NULL;
+    }
+
+    slot = calloc(1, sizeof(*slot));
+    if (slot == NULL)
+        return NULL;
+
+    slot->handle = *handle;
+    slot->token = *token;
+    slot->typeTag = typeTag;
+    slot->isValid = true;
+    return slot;
+}
+
+void
+pergyra_scope_end(PergyraSlotScope *pscope)
+{
+    if (pscope == NULL)
+        return;
+
+    SecureSlotScopeDestroy(pscope->scope);
+    free(pscope);
+}
+
+void
+pergyra_security_audit_usage_example(void)
+{
+    printf("=== Pergyra Secure Slot Usage Example ===\n");
+    printf("let slot = claim_secure_slot<Int>(SECURITY_LEVEL_HARDWARE)\n");
+    printf("write(slot, 42)\n");
+    printf("let value = read(slot)\n");
+    printf("release(slot)\n");
+    printf("=========================================\n");
+}

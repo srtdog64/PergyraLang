@@ -8,10 +8,12 @@ All codes follow `PGY_<STAGE>_<REASON>`:
 
 - `PGY_SEM_*` — semantic analyzer (type checker, slot analyzer, effect inference)
 - `PGY_MIR_*` — MIR contract/validation (shared by both backends)
+- `PGY_AIR_*` — AIR verifier invariant failures (compiler IR contract)
 - `PGY_C_*` — C backend codegen (transpiler lowering MIR → C)
 - `PGY_LLVM_*` — LLVM backend codegen (MIR → LLVM IR → object)
 - `PGY_PARSE_*` — parser-level syntax errors
 - `PGY_LEX_*` — lexer/tokenization errors
+- `PGY_DRIVER_*` — driver/CLI contract gates
 
 JSON output structure when `--error-format=json`:
 
@@ -86,6 +88,22 @@ Lexer/tokenization failure: invalid character or unterminated string family.
 
 - **Reason**: source text cannot be tokenized into the stable lexical surface.
 - **Fix**: remove the invalid character, escape it, or close the literal.
+
+### Driver / CLI Contract
+
+#### `PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED`
+
+`--runtime=none` rejects a source that uses runtime-dependent surface, or a
+source that otherwise reaches the current freestanding-lowering blocker. The
+mode is beta-gated so the driver cannot silently compile through the default
+scheduler/arena runtime while claiming no-runtime semantics.
+
+- **Reason**: the requested no-runtime contract cannot lower scheduler,
+  channel, intent, zone/world, event, or freestanding backend contracts yet.
+- **Fix**: use `--runtime=default`, remove runtime-dependent surface from the
+  freestanding build, or wait for verified freestanding C/LLVM lowering.
+- **cause_ir**: `driver:runtime:none_unsupported`
+- **fix_source**: `use-default-runtime-or-remove-runtime-surface`
 
 ### Type System
 
@@ -263,6 +281,19 @@ Secure slot pin fails token/capability validation.
 - **cause_ir**: `semantic:pin:token_invalid`
 - **fix_source**: `provide-valid-pin-token`
 
+#### `PGY_SEM_RAW_ESCAPE_UNSTABLE`
+
+Attempt to use a system-tier raw escape surface such as `SlotRawPointer(...)`.
+The `unsafe { ... }` keyword exists as a lexical marker, but it is not a
+beta-stable raw pointer / inline-assembly / MMIO contract.
+
+- **Reason**: raw escape needs explicit syntax, semantic gates, ABI lowering,
+  diagnostics, and determinism tests before it can be accepted.
+- **Fix**: use typed Pin/Lease views for repeated slot access, or wait for the
+  raw escape contract.
+- **cause_ir**: `semantic:raw_escape:unstable`
+- **fix_source**: `use-pin-or-wait-for-raw-escape-contract`
+
 #### `PGY_SEM_MOVE_TOKEN_MISUSE`
 
 Read or Write through a `MoveToken<T>`. Move tokens are one-shot ownership transfer handles with no in-place access.
@@ -350,6 +381,21 @@ AIR strict-evidence mode detected that an intent boundary has no matching RIR bo
 - **Fix**: align the intent boundary with a zone/world boundary that lowers into RIR evidence (`align-intent-boundary-evidence`), or extend AIR/RIR synthesis if the boundary is valid but not yet represented.
 - **cause_ir**: `PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE`
 - **fix_source**: `PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE`
+
+#### `PGY_AIR_INVARIANT_INVALID`
+
+AIR verifier detected an invalid compiler IR inventory before MIR lowering:
+missing backing arrays for non-zero AIR counts, inconsistent boundary-to-intent
+step indexing, malformed authority participant lists, or evidence flags without
+the required layered provenance.
+
+- **Reason**: AIR is a compiler verification graph. If its own inventory is
+  malformed, the compiler must stop before user-facing drift diagnostics or
+  backend lowering can trust it.
+- **Fix**: report a compiler bug with the source that produced the invalid AIR
+  graph (`report-compiler-bug`).
+- **cause_ir**: `PGY_CAUSE_AIR_INVARIANT_INVALID`
+- **fix_source**: `PGY_FIX_REPORT_COMPILER_BUG`
 
 #### `PGY_SEM_ACTION_CONTRACT_INVALID`
 

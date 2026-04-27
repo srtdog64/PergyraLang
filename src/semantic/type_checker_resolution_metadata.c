@@ -103,13 +103,22 @@ metadata_reject_invalid_stable_shell_arity(SemanticContext *ctx,
         || strcmp(name, "ReadView") == 0
         || strcmp(name, "WriteView") == 0
         || strcmp(name, "MoveToken") == 0;
+    if (slot_like) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
+            PGY_CAUSE_CLASS_CONTRACT,
+            PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN,
+            type_node,
+            max_args == 1
+                ? "%s requires exactly one type argument"
+                : "%s requires one or two type arguments",
+            name);
+        return true;
+    }
     semantic_error_with_hints(ctx,
-        slot_like ? PGY_CODE_SEM_CLASS_CONTRACT_INVALID
-                  : PGY_CODE_SEM_INFER_GENERIC,
-        slot_like ? PGY_CAUSE_CLASS_CONTRACT
-                  : PGY_CAUSE_GENERIC_ARGS_INVALID,
-        slot_like ? PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN
-                  : PGY_FIX_ALIGN_GENERIC_ARG_LIST,
+        PGY_CODE_SEM_INFER_GENERIC,
+        PGY_CAUSE_GENERIC_ARGS_INVALID,
+        PGY_FIX_ALIGN_GENERIC_ARG_LIST,
         type_node,
         max_args == 1
             ? "%s requires exactly one type argument"

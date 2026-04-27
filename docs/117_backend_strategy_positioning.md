@@ -4,6 +4,7 @@ Last updated: 2026-04-26
 
 Related documents:
 
+- `docs/19_design_philosophy.md` §0 — **core identity** (systems language with domain extensions); this doc is one of the layers above that baseline
 - `docs/38_c_macro_deception_and_abi.md` — ABI integrity, why C macros mislead
 - `docs/39_test_driven_abi_and_explicit_lowering.md` — backend-compare gating
 - `docs/40_lowering_rules.md` — RIR → MIR mapping rules
@@ -255,9 +256,215 @@ position itself is empty in the language design space, and the user
 promise (§3.4) is one no other language is currently making with
 regression evidence behind it.
 
-## 6. Beta and 1.0 Promise
+## 6. Self-Host Decision
 
-### 6.1 Beta Closure (Stage 4)
+### 6.1 Decision
+
+**Pergyra does not self-host through 1.0.** The core compiler stays in
+C, with LLVM IR and a dedicated C source backend as the two emit
+targets. This is recorded here as an explicit, deliberate decision —
+not a default-by-inertia.
+
+This decision concerns **compiler frontend self-hosting only** (parser,
+semantic analysis, IR pipeline, code emission written in Pergyra
+itself). Backend choice — LLVM IR plus C source dual-emit — is a
+separate, orthogonal decision (§2) and remains in place regardless of
+self-host status. Both backends are external to Pergyra and stay
+through 1.0. The two decisions interact only at the bootstrap question
+("how do we compile the Pergyra compiler if it is written in
+Pergyra?"), which is addressed in §6.6 below.
+
+### 6.2 Reasons
+
+1. **Expressiveness is already complete.** There is no language feature
+   Pergyra needs that cannot be lowered through LLVM IR or C source.
+   Self-hosting would not unlock any new abstraction; it is a *meta*
+   migration with no user-facing semantic gain.
+
+2. **C is the universal compatibility floor.** Pergyra targets every
+   computer and device that runs code. The C backend is the escape
+   hatch for every platform LLVM does not support cleanly (AVR, exotic
+   embedded SDKs, mainframes, retro platforms, RTOS without LLVM port,
+   bizarre ISAs). Self-hosting would *not remove* this need; it would
+   add a third backend (the Pergyra-self) that would still have to
+   coexist with C. Net cost increase, no portability gain.
+
+3. **LLVM is performance primary, beats C-via-cc.** LLVM IR direct emit
+   typically runs 5-15% faster than the same logic emitted as C source
+   and re-parsed by a C compiler, because LLVM IR carries aliasing,
+   provenance, and inlining facts that C cannot express without UB
+   tricks. A self-hosted Pergyra backend would have to reproduce
+   LLVM-class optimization to match, which is a multi-year project Zig
+   is currently inside (and not yet finished after 8 years).
+
+4. **Self-host doubles beta closure cost.** Rewriting ~148K LOC of core
+   compiler in Pergyra, even with AI multiplier, is a 6-12 month
+   additional project on top of remaining Stage 4 marshaling. It does
+   not move beta closer; it pushes beta further. The user promise of a
+   1-year stable freeze depends on shipping beta on time.
+
+5. **Zig may become the C-replacement standard.** If Zig reaches 1.0
+   with stable ABI and ecosystem traction, the C backend slot can be
+   re-evaluated for replacement (or augmentation) by a Zig backend.
+   This is post-1.0 ecosystem-evolution territory, not a beta blocker.
+
+### 6.3 What This Decision Concedes
+
+Honestly:
+
+- Compile speed inherits LLVM's slowness on the LLVM path. Zig is
+  trying to fix this by self-hosting; Pergyra accepts the cost for
+  beta and 1.0.
+- Compiler binary is heavy (LLVM dependency hundreds of MB). Pergyra
+  is not a single-binary lightweight tool the way Zig and Go are.
+- Pergyra cannot claim "fully self-bootstrapped" credibility against
+  Rust 1.0 (self-hosted), Crystal 1.0 (self-hosted), Nim 1.0
+  (self-hosted), or TypeScript 1.0 (self-hosted). This is a marketing
+  weakness, not a technical defect.
+- Some Pergyra perf will be measurably slower than equivalent Rust on
+  hot paths (Slot indirection cost — see `docs/118` §4.4 and the
+  ~5ns generation/index lookup). LLVM IR direct emit closes most of
+  this gap but not all of it.
+
+### 6.4 What This Decision Buys
+
+- Beta closure stays on schedule.
+- The 148K-LOC core compiler stays maintained as a single C codebase
+  rather than a dual codebase during a multi-year transition.
+- LLVM's optimizer applies for free to all Pergyra programs without
+  reinventing it.
+- The C backend stays as the universal compatibility floor with no
+  per-platform porting effort.
+- Language design discipline is not distorted by "what features make
+  the self-hosted compiler easier to write" pressure (the trap that
+  Rust narrowly avoided pre-1.0 by maintaining the OCaml bootstrap
+  long enough).
+
+### 6.5 Revisit Triggers
+
+The decision is open for re-evaluation when one of the following
+becomes true:
+
+- Pergyra reaches 1.0 and the 1-year freeze closes without unresolved
+  ABI / runtime stability issues.
+- Zig reaches 1.0 with stable ABI and clear C-replacement traction.
+- LLVM signals deprecation of major Pergyra-relevant target families
+  (very unlikely).
+- A committed multi-person engineering team materializes that can
+  carry both compilers in parallel during transition.
+
+Until at least one of these is true, the decision stands. Discussion
+of self-host before 1.0 should reference this section and explain why
+the trigger conditions have changed.
+
+### 6.6 Future Migration Path — Soft Then Hard
+
+Self-hosting can be staged in two layers, and the cost/benefit is
+different for each. This section records the planned sequencing if
+re-evaluation triggers fire.
+
+#### Soft self-host (compiler-adjacent tools)
+
+Tools that are not the compiler core but live in the same ecosystem
+can be written in Pergyra without bootstrap pain:
+
+- `pgyfmt` — formatter
+- `pgylint` — additional lint rules beyond compiler diagnostics
+- Test runner / harness orchestrator
+- Example checker (`examples/*.pgy` validity gate)
+- Documentation generator (signature → doc extraction)
+- Package manager / resolver (post-1.0)
+- LSP server (post-1.0, after the protocol surface stabilizes)
+
+Each tool is 200–2000 LOC. None depends on the compiler core. They
+validate that Pergyra can handle compiler-style work (AST traversal,
+diagnostic formatting, file IO, structured output) and they grow the
+contributor pool of "people who know Pergyra" — both benefits of
+self-hosting without the migration cost.
+
+**Estimated effort**: 3–6 months, post-beta during the 1-year freeze.
+**Risk**: low. Each tool is independent; failure of one does not block
+the rest.
+**Recommendation**: yes, do this. Soft self-host captures ~70% of the
+self-host benefit at ~10% of the cost.
+
+#### Hard self-host (compiler core in Pergyra)
+
+The compiler core is currently ~148K LOC of C
+(lexer + parser + semantic + compiler IRs + codegen + runtime).
+Migrating it to Pergyra is substantial work.
+
+**Reference points:**
+
+- Go: written in C originally, migrated to self-hosted Go in 1.5 (2015)
+  using an automated C-to-Go translator. Took ~3 years with a team.
+- Crystal: bootstrapped from Crystal-on-Ruby. Years of dual maintenance.
+- TypeScript: planned migration with Microsoft team.
+- Zig: 8+ years, still in progress with a small team + community.
+- Rust: OCaml → Rust frontend transition (~2 years), but Rust was
+  pre-1.0 and could break itself to make migration easier — an
+  advantage Pergyra would not have post-1.0.
+
+**Estimated effort for Pergyra**:
+
+| Phase | Description | Estimate |
+|---|---|---|
+| 1 | Soft self-host (above) — proves viability | 3–6 months |
+| 2 | One isolated module rewrite (e.g., parser) | 6–12 months |
+| 3 | Automated C-to-Pergyra translator (AI-assisted) | 3–6 months |
+| 4 | Mass translation + dual maintenance | 6–12 months |
+| 5 | Cutover, drop C compiler, ship Pergyra-self-hosted | 3–6 months |
+| **Total** | **Hard self-host completion** | **~21–42 months** |
+
+That is 2–3.5 years dedicated, on top of beta and the 1-year freeze.
+
+**Required Pergyra extensions** (likely):
+
+- First-class function pointers / closures with stable ABI for visitor
+  patterns and callback registries used pervasively in compiler code.
+- Custom hash key types beyond `String`/`Int` (or a Slot-based map) for
+  symbol tables and dedup data structures.
+- Possibly some metaprogramming or codegen-time helpers for
+  boilerplate reduction.
+
+If 1.0 is frozen, these extensions become 1.x or 2.0 features —
+self-host frontend cannot land before they do.
+
+**Risk factors:**
+
+- Solo + AI maintaining dual codebases during phases 4–5 is high
+  cognitive load. Realistic only if at least one part-time
+  collaborator has joined by then.
+- Translation may surface latent bugs in the 148K-LOC C compiler that
+  were silent under C semantics; each is a stop-the-world fix.
+- A frozen language cannot evolve to make compiler-writing easier;
+  Rust's pre-1.0 advantage is gone.
+- Opportunity cost: 2–3 years on self-host is 2–3 years not on LSP
+  polish, ecosystem libraries, user growth, research, or new language
+  features.
+
+**Recommendation:**
+
+- **Do soft self-host** during the 1-year freeze. Low cost, high
+  signal, contributor pool grows.
+- **Defer hard self-host** until at least one revisit trigger from §6.5
+  fires AND a multi-person team or strong community contributor base
+  has materialized. Solo + AI completion of hard self-host is
+  technically possible but the opportunity cost is severe.
+- **Honest alternative**: stay on C indefinitely, like Nim does (Nim's
+  compiler emits C and stays there). Pergyra's dual-emit + parity
+  invariant means staying on C is not a marketing weakness once that
+  is itself the documented strategy.
+
+The migration is **possible**; the question for any future Pergyra
+maintainer is whether it is the highest-leverage use of 2–3 years of
+effort given Pergyra's stated targets (industrial / distributed /
+games / AI orchestration). The current author's assessment is: not at
+1.0, possibly at 2.0, and only if the team has grown.
+
+## 7. Beta and 1.0 Promise
+
+### 7.1 Beta Closure (Stage 4)
 
 The frozen platform matrix for beta is:
 
@@ -274,7 +481,7 @@ Stage 4 promotes Windows to full Linux-equivalent regression. macOS
 arm64 is best-effort during beta — supported in the sense that bug
 reports get fixed, but not regression-gated.
 
-### 6.2 1.0 Promise
+### 7.2 1.0 Promise
 
 For 1.0:
 
@@ -288,7 +495,7 @@ proof. If the gate is green, the abstractions mean the same thing on
 every gated platform. That is the 1.0 promise, expressible as a CI
 status.
 
-### 6.3 Out of 1.0
+### 7.3 Out of 1.0
 
 - WASM
 - Native embedded (AVR / small Cortex-M / RISC-V tiny)
@@ -301,7 +508,7 @@ language-side work, but require runtime ABI porting (arena layout,
 fiber scheduler, panic handler, syscall surface) and platform-specific
 test infrastructure. Post-1.0 ecosystem work, not language work.
 
-## 7. Summary
+## 8. Summary
 
 Pergyra's backend strategy is not "support every platform" (Zig) and
 not "trust LLVM" (Rust, Crystal, Swift). It is:

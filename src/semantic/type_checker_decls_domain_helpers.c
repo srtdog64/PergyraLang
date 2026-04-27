@@ -4,9 +4,8 @@
  *
  * Domain helpers: counting / locating / contract-checking routines shared
  * across declaration kinds (subject, object, zone, world, relation, effect,
- * projection).  Extracted from type_checker_decls_domain_helpers.inc so that
- * these helpers live in their own translation unit and future declaration
- * kinds can depend on them without re-routing through the decls.inc chain.
+ * projection).  These helpers live in their own translation unit so future
+ * declaration kinds can depend on them without hidden include-order coupling.
  * See docs/101_semantic_split_template.md (5-A slice).
  */
 
@@ -54,8 +53,8 @@ domain_resolve_named_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return domain_resolve_type_ref(type_ref, ctx);
 }
 
-/* type_checker_decls_intent_world.inc removed — intent body lives in type_checker_intent_decl.c (4-B slice),
- * world body in type_checker_world_decl.c (4 차 slice). See docs/101_semantic_split_template.md */
+/* Intent and world declaration bodies are owned by type_checker_intent_decl.c
+ * and type_checker_world_decl.c. See docs/101_semantic_split_template.md. */
 
 size_t
 count_subject_domain_slots(ASTNode **slots, size_t slot_count)

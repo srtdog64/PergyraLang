@@ -9,6 +9,11 @@ progress ledger, not a new language surface.
 
 - `.inc` cleanup is closed for the full `src` tree: there are now **0 `.inc`
   files / 0 LOC** under `src`, including test fixtures.
+- 2026-04-27 audit rerun: `find src tests -name '*.inc'` returns zero files,
+  `make inc-sentinel-test-smoke`, `make semantic-inc-size-test-smoke`, and
+  `make backend-inc-size-test-smoke` all pass. Stale references in the parallel
+  proof doc and semantic owner comments were updated to the current `.cases.h`
+  / owner-TU structure.
 - Owner-size policy is now stricter than the historical `.inc` cleanup target:
   600 LOC is the default split-review threshold for any production `.c` or
   private owner `.h`; 1,000 LOC is only the hard stop / temporary risk line.
@@ -32,6 +37,73 @@ progress ledger, not a new language surface.
   `test_semantic_async_part_a.cases.h` /
   `test_semantic_async_part_b.cases.h` so every remaining test case include
   stays below the 990 LOC cap.
+
+## Current Owner-Size Audit
+
+The active debt is no longer `.inc` inventory. It is owner cohesion. As of the
+2026-04-27 audit, the largest production owners above the 1,000 LOC risk line
+are:
+
+- `src/compiler/mir.c` - 2,009 LOC. Split target: MIR block/instruction
+  lifecycle, phi/source-phi ownership, and cleanup helpers.
+- `src/parser/ast.c` - 1,906 LOC. Split target: node construction,
+  destruction, cloning/copy helpers, and collection utilities.
+- `src/parser/ast_print.c` - 1,679 LOC. Split target: declaration printers,
+  expression printers, domain/intent printers.
+- `src/parser/parser_domain.c` - 1,540 LOC. Split target: role/ability,
+  zone/world, relation/effect/projection parser owners.
+- `src/parser/parser.c` - 1,518 LOC. Split target: orchestration and shared
+  parse helpers.
+- `src/compiler/driver_app.c` - 1,492 LOC. Split target: argument parsing,
+  diagnostic emission, backend dispatch, and runtime-none contract routing.
+- `src/semantic/type_checker_decls_domain_helpers.c` - 1,523 LOC. Split target:
+  domain slot counting/resolution, projection contract checking, and relation /
+  effect validation helpers.
+- `src/semantic/type_checker_intent_helpers.c` - 1,408 LOC. Split target:
+  intent inheritance/derivation, authority-sensitive call checks, and step
+  clause diagnostics.
+- `src/compiler/dir.c` - 1,407 LOC. Split target: declaration graph indexing,
+  role include graph, and contract projection facts.
+- `src/compiler/compiler.c` - 1,273 LOC. Split target: pipeline orchestration
+  and backend-independent result ownership.
+- `src/compiler/hir.c` - 1,164 LOC. Split target: declaration/routine lowering
+  vs pass orchestration.
+- `src/semantic/type_checker_builtins_stdlib_body.c` - 1,143 LOC. Split target:
+  stdlib collection, option/result, async/channel, and string/IO builtin owners.
+- `src/runtime/slot_manager.c` - 1,123 LOC. Split target: lifecycle,
+  generation/token validation, and pin/lease primitives.
+- `src/codegen/llvm_backend.c` - 1,089 LOC. Split target: backend context
+  setup, ABI/runtime declarations, and module emission orchestration.
+- `src/semantic/type_checker_zone_decl.c` - 1,067 LOC. Split target: zone slot
+  declarations, lifecycle/state validation, authority/resource validation.
+- `src/semantic/slot_analyzer.c` - 1,053 LOC. Split target: slot flow
+  analyzer state, diagnostics, and resource transition helpers.
+
+Files between 600 and 1,000 LOC remain split-review candidates. The immediate
+priority is to reduce the 1,000+ production owners without reintroducing
+behavior-owning `.inc` files or mega-headers.
+- Semantic owner TU size is also back under the hard cap: active slot view
+  boundary diagnostics moved from `type_checker_helpers_late.c` into
+  `type_checker_slot_view_boundary.c`, reducing the late helper owner to 974
+  LOC while keeping the new boundary owner at 66 LOC.
+- Runtime slot utility ownership now has a separate TU:
+  `src/runtime/slot_type_utils.c` owns `TypeTagHash`, `TypeTagToString`,
+  `TypeIsPrimitive`, `TypeGetSize`, `SlotHashFunction`,
+  `SlotCompareAndSwap`, and `SlotMemoryBarrier`. `slot_manager.c` now sits at
+  1,556 LOC without changing the Slot ABI.
+- Slot security owner boundaries are split as well:
+  `src/runtime/slot_security_memory.c` owns secure memory primitive fallbacks,
+  and `src/runtime/slot_security_platform.c` owns Windows/Linux hardware
+  fingerprint retrieval, `src/runtime/slot_security_crypto.c` owns AES/HMAC
+  token encryption, and `src/runtime/slot_security_sealed_payload.c` owns sealed
+  payload obfuscation/MAC/shadow recovery. `slot_security.c` is now only the
+  token/context/audit owner and is below the 1,000 LOC hard cap at 794 LOC.
+- Slot manager monitoring has a separate owner:
+  `src/runtime/slot_manager_security_stats.c` owns security event logging,
+  anomaly detection, and security stats printing. `src/runtime/slot_manager_scope.c`
+  owns secure scope lifecycle plus the high-level `pergyra_*` secure slot
+  wrappers. `slot_manager.c` remains the lifecycle/pin/token primitive owner and
+  drops to 1,329 LOC.
 - C backend scalar/math/string stdlib call lowering now lives in
   `src/codegen/transpiler_expr_stdlib_scalar_builtin.h`. The main
   `transpiler_expr_stdlib_builtin.h` dispatcher drops from 917 LOC to 751 LOC
@@ -151,6 +223,14 @@ progress ledger, not a new language surface.
   further to 671 LOC and is below the 1,000 LOC hard cap. The AIR drift smoke
   now validates implementation terms across `air.c`, `air_boundary.c`, and
   `air_evidence.c`, and the AIR strict/nonimpact gates remain green.
+- AIR global verification now lives in `src/compiler/air_verify.c`.
+  Inventory validation, authority participant validation, evidence provenance
+  validation, sync/async drift detection, and strict evidence drift emission
+  moved out of `src/compiler/air.c`; the synthesis owner is back below the
+  600 LOC split-review threshold while `air_verify.c` is the single verification
+  owner. `tests/air_drift_smoke.sh` now validates AIR implementation terms
+  across `air.c`, `air_boundary.c`, `air_dump.c`, `air_evidence.c`, and
+  `air_verify.c`.
 - HIR analysis extraction now lives in `src/compiler/hir_analysis.c` / `.h`.
   Signature type-reference collection, direct-call collection, and
   control-flow presence detection moved out of `src/compiler/hir.c`; `hir.c`
@@ -429,28 +509,27 @@ The current large-owner snapshot was last refreshed on 2026-04-27. The leading
 production split candidates are:
 
 ```text
-2132 src/compiler/mir.c
-2114 src/parser/ast.c
-1810 src/parser/ast_print.c
+2177 src/compiler/mir.c
+2111 src/parser/ast.c
+1820 src/parser/ast_print.c
 1774 src/parser/parser_domain.c
-1751 src/runtime/slot_security.c
-1736 src/runtime/slot_manager.c
+1731 src/parser/parser.c
 1658 src/semantic/type_checker_decls_domain_helpers.c
-1631 src/parser/parser.c
-1580 src/compiler/driver_app.c
+1595 src/compiler/driver_app.c
 1555 src/semantic/type_checker_intent_helpers.c
 1513 src/compiler/dir.c
 1395 src/compiler/compiler.c
-1255 src/compiler/hir.c
-1232 src/parser/ast.h
+1329 src/runtime/slot_manager.c
+1263 src/compiler/hir.c
+1252 src/codegen/llvm_backend.c
+1236 src/parser/ast.h
 1199 src/semantic/slot_analyzer.c
-1168 src/codegen/llvm_backend.c
-1146 src/semantic/type_checker_builtins_stdlib_body.c
+1152 src/semantic/type_checker_builtins_stdlib_body.c
 1092 src/semantic/type_checker_zone_decl.c
 1027 src/codegen/llvm_domain_zone_sync.c
 1025 src/semantic/type_system.c
 1015 src/parser/parser_decl.c
-978 src/semantic/type_checker_flow.c
+983 src/semantic/type_checker_flow.c
 ```
 
 Test harness files are intentionally excluded from the first owner-split queue
@@ -1353,24 +1432,28 @@ Observed results:
   `.cases.h` is allowed only under `src/tests`, the current `.cases.h`
   inventory is capped at 30 files, `.cases.h` includes are allowed only from
   dedicated test harnesses, no empty test fragments are allowed, and no orphan
-  test fragments are allowed.
+  test fragments are allowed. The sentinel is shell-only and does not require a
+  Python runtime on CI.
 - `git diff --check`: passed; only line-ending warnings were reported.
 
 ## Remaining Include Debt
 
-- Test fixture `.inc` files are now under the 990 LOC cap and are guarded by
-  `make test-inc-size-test-smoke`.
+- There is no remaining `.inc` debt under `src`: production `.inc` inventory is
+  zero and test fixtures use `.cases.h`, not `.inc`.
 - The next structural cleanup queue is no longer `.inc` removal; it is
   600-plus production owner reduction. Current high-priority examples include
-  `src/compiler/mir.c`, `src/runtime/slot_security.c`, `src/runtime/slot_manager.c`,
+  `src/compiler/mir.c`, `src/parser/ast.c`, `src/parser/ast_print.c`,
+  `src/parser/parser_domain.c`, `src/runtime/slot_manager.c`,
   `src/semantic/type_checker_decls_domain_helpers.c`,
-  `src/compiler/hir.c`, `src/compiler/air.c`, and
-  `src/codegen/llvm_domain_zone_sync.c`. Each one needs a named semantic owner
-  split, not blind line-count sharding.
+  `src/compiler/hir.c`, and `src/codegen/llvm_domain_zone_sync.c`. `air.c` is
+  no longer in this queue after the boundary/dump/evidence/verify split. Each
+  remaining file needs a named semantic owner split, not blind line-count
+  sharding.
 - The long-term target remains real `.c` / `.h` ownership for behavior-heavy
-  families. The current state removes the worst function-boundary and size
-  debt, but `.inc` should continue shrinking toward generated tables, private
-  macro tables, or test fixtures only.
+  families. The current state removes the worst include-order debt; new source
+  `.inc` files are not allowed in the `src` tree.
+- Ignored local backup files (`*.backup`) were removed from `src` so inventory
+  scans, grep, and LOC reports do not count stale pre-split source snapshots.
 - Runtime inline owners may live in private `.h` files when generated C must
   include the implementation directly. This is still preferable to behavior
   growth inside split `.inc` files, but those headers must keep ABI names and

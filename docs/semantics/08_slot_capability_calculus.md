@@ -243,13 +243,22 @@ panic class.
 Current evidence:
 
 - Runtime slot manager stores generation counters and rejects stale handles.
-- `make test-security` (132/132 passed locally) covers stale-generation
+- `make test-security` (142/142 passed locally) covers stale-generation
   read/write/pin/release rejection and `SlotIsValid` false for
   stale-generation handles.
+- The current C ABI is a 32-bit `slotId` / `generation` handle, so ABA safety
+  also depends on never using the zero-id sentinel or wrapping the id space.
+  `SlotClaim` tombstones those states by returning `SLOT_ERROR_OUT_OF_MEMORY`
+  instead of reusing an old id; `make test-security` covers these guards.
+- `make test-security` also covers tampered pinned-view generation rejection and
+  double-unpin rejection, so unpin cannot silently clear a pin without matching
+  the issued view.
 - Slot panic contract gates released-slot and double-release hard-fail classes.
 - `docs/semantics/proofs/SlotCalculus.v` sketches the
-  `stale_handle_read_impossible`, `stale_handle_write_impossible`, and
-  `stale_handle_release_impossible` lemmas for generation mismatch.
+  `stale_handle_read_impossible`, `stale_handle_write_impossible`,
+  `stale_handle_release_impossible`, `zero_slot_id_claim_impossible`,
+  `max_slot_id_claim_impossible`, `tampered_view_unpin_impossible`, and
+  `double_unpin_impossible` lemmas for generation/id/view mismatch.
 
 Remaining obligation:
 

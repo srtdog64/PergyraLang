@@ -4,9 +4,8 @@
  *
  * Type checker visibility / access-control helpers.
  *
- * Promoted out of type_checker_visibility.inc to a real translation
- * unit so other .c modules (and internal headers) can reference these
- * checks without depending on the .inc include order in type_checker.c.
+ * Exported by type_checker_visibility.c so other semantic owner modules can
+ * reference these checks without hidden include-order coupling.
  */
 
 #ifndef PGY_TYPE_CHECKER_VISIBILITY_H

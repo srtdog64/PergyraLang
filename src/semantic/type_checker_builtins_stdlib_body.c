@@ -3,8 +3,8 @@
  * All rights reserved.
  *
  * Type Checker — stdlib builtin dispatch body.
- * Extracted from the legacy type_checker_builtins_stdlib_body.inc fragment
- * that was chained together with slotops.inc inside type_checker_builtins.c.
+ * Owns the stdlib builtin body that used to be hidden in the builtins
+ * include chain.
  * Cross-TU helpers live in type_checker_builtins_internal.h.
  */
 

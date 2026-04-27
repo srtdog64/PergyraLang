@@ -45,6 +45,11 @@ typedef uint32_t PoolIndex;
 /*
  * Generic slot pool for homogeneous data structures
  * Level 1: High-performance pool-based allocation
+ *
+ * Beta-stable surface note:
+ * keep this header limited to APIs that are implemented and regression-tested.
+ * Tree/graph/smart-slot containers were removed from the public contract until
+ * their implementation and tests are closed end-to-end.
  */
 typedef struct
 {
@@ -67,30 +72,6 @@ typedef struct
 } SlotPool;
 
 /*
- * Smart slot types for complex ownership relationships
- * Level 2: Reference counting and ownership management
- */
-typedef enum
-{
-    SLOT_OWNED,    /* Unique ownership (like unique_ptr) */
-    SLOT_SHARED,   /* Shared ownership (like shared_ptr) */
-    SLOT_WEAK      /* Weak reference (like weak_ptr) */
-} SlotType;
-
-/*
- * Smart slot handle with reference counting
- */
-typedef struct
-{
-    uint32_t    slotId;
-    SlotType    slotType;
-    uint32_t    refCount;      /* For shared slots */
-    uint32_t    weakCount;     /* For weak reference tracking */
-    uint32_t    generation;    /* ABA problem prevention */
-    void       *data;          /* Pointer to actual data */
-} SmartSlot;
-
-/*
  * Pool-based linked list node
  * Optimized for cache-friendly traversal
  */
@@ -103,60 +84,6 @@ typedef struct
 } LinkedListNode;
 
 /*
- * Pool-based tree node
- * Using weak references to prevent cycles
- */
-typedef struct
-{
-    int32_t     value;         /* Node data */
-    int32_t     height;        /* For AVL balancing */
-    PoolIndex   left;          /* Left child index */
-    PoolIndex   right;         /* Right child index */
-    PoolIndex   parent;        /* Parent index (weak reference) */
-    uint32_t    generation;
-} TreeNode;
-
-/*
- * Graph node for complex relationships
- * Level 3: Hybrid approach
- */
-typedef struct
-{
-    uint32_t    nodeId;        /* Unique node identifier */
-    void       *data;          /* Node data */
-    PoolIndex  *edges;         /* Array of edge indices */
-    size_t      edgeCount;     /* Number of edges */
-    size_t      edgeCapacity;  /* Edge array capacity */
-    uint32_t    generation;
-} GraphNode;
-
-/*
- * Graph edge structure
- */
-typedef struct
-{
-    PoolIndex   fromNode;      /* Source node index */
-    PoolIndex   toNode;        /* Target node index */
-    float       weight;        /* Edge weight */
-    uint32_t    generation;
-} GraphEdge;
-
-/*
- * Complete graph structure using hybrid pools
- */
-typedef struct
-{
-    SlotPool   *nodePool;      /* Pool for graph nodes */
-    SlotPool   *edgePool;      /* Pool for graph edges */
-    uint32_t   *nodeMap;       /* Hash map: nodeId -> poolIndex */
-    size_t      nodeMapSize;   /* Size of hash map */
-    
-    /* Statistics */
-    uint64_t    totalNodes;
-    uint64_t    totalEdges;
-} Graph;
-
-/*
  * SlotPool operations
  */
 SlotPool   *SlotPoolCreate(size_t elementSize, size_t capacity, bool cacheOptimized);
@@ -166,17 +93,6 @@ bool        SlotPoolFree(SlotPool *pool, PoolIndex index);
 void       *SlotPoolGet(SlotPool *pool, PoolIndex index);
 bool        SlotPoolIsValid(SlotPool *pool, PoolIndex index);
 void        SlotPoolPrintStats(const SlotPool *pool);
-
-/*
- * Smart slot operations
- */
-SmartSlot  *SmartSlotCreateOwned(void *data, size_t dataSize);
-SmartSlot  *SmartSlotCreateShared(void *data, size_t dataSize);
-SmartSlot  *SmartSlotCreateWeak(SmartSlot *shared);
-SmartSlot  *SmartSlotClone(SmartSlot *slot);
-bool        SmartSlotUpgrade(SmartSlot *weakSlot);
-void        SmartSlotDestroy(SmartSlot *slot);
-bool        SmartSlotIsValid(const SmartSlot *slot);
 
 /*
  * LinkedList operations using SlotPool
@@ -198,39 +114,6 @@ void            LinkedListTraverse(LinkedList *list, void (*visitor)(int32_t val
 LinkedListNode *LinkedListGetNode(LinkedList *list, PoolIndex index);
 
 /*
- * AVL Tree operations using SlotPool
- */
-typedef struct
-{
-    SlotPool   *nodePool;
-    PoolIndex   root;
-    size_t      count;
-} AVLTree;
-
-AVLTree    *AVLTreeCreate(size_t capacity);
-void        AVLTreeDestroy(AVLTree *tree);
-PoolIndex   AVLTreeInsert(AVLTree *tree, int32_t value);
-bool        AVLTreeRemove(AVLTree *tree, int32_t value);
-PoolIndex   AVLTreeFind(AVLTree *tree, int32_t value);
-void        AVLTreeTraverseInOrder(AVLTree *tree, void (*visitor)(int32_t value));
-TreeNode   *AVLTreeGetNode(AVLTree *tree, PoolIndex index);
-
-/*
- * Graph operations using hybrid pools
- */
-Graph      *GraphCreate(size_t maxNodes, size_t maxEdges);
-void        GraphDestroy(Graph *graph);
-PoolIndex   GraphAddNode(Graph *graph, uint32_t nodeId, void *data);
-PoolIndex   GraphAddEdge(Graph *graph, uint32_t fromId, uint32_t toId, float weight);
-bool        GraphRemoveNode(Graph *graph, uint32_t nodeId);
-bool        GraphRemoveEdge(Graph *graph, PoolIndex edgeIndex);
-PoolIndex   GraphFindNode(Graph *graph, uint32_t nodeId);
-void        GraphTraverseBFS(Graph *graph, uint32_t startNodeId, 
-                            void (*visitor)(uint32_t nodeId, void *data));
-void        GraphTraverseDFS(Graph *graph, uint32_t startNodeId,
-                            void (*visitor)(uint32_t nodeId, void *data));
-
-/*
  * Performance testing and benchmarking
  */
 typedef struct
@@ -244,8 +127,6 @@ typedef struct
 } PerformanceMetrics;
 
 PerformanceMetrics BenchmarkLinkedList(size_t nodeCount, size_t iterations);
-PerformanceMetrics BenchmarkAVLTree(size_t nodeCount, size_t iterations);
-PerformanceMetrics BenchmarkGraph(size_t nodeCount, size_t edgeCount, size_t iterations);
 
 /*
  * Utility functions

@@ -672,6 +672,7 @@ void test_slot_pin_lease_runtime()
     TokenCapability revokedToken;
     TokenCapability invalidToken;
     PgyPinnedView view;
+    PgyPinnedView tamperedView;
     SlotEntry *entry;
     int value;
     int readValue;
@@ -682,6 +683,15 @@ void test_slot_pin_lease_runtime()
 
     plainManager = SlotManagerCreate(16, 4096);
     TEST_ASSERT(plainManager != NULL, "Plain slot manager for pin tests");
+    plainManager->nextSlotId = 0;
+    result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_OUT_OF_MEMORY,
+                            "Zero slot id sentinel is tombstoned before claim");
+    plainManager->nextSlotId = UINT32_MAX;
+    result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_OUT_OF_MEMORY,
+                            "Slot id wrap is tombstoned before reuse");
+    plainManager->nextSlotId = 1;
     result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot claim for pin");
     value = 42;
@@ -697,11 +707,19 @@ void test_slot_pin_lease_runtime()
     TEST_ASSERT(result == SLOT_SUCCESS && view.valid && view.ptr != NULL,
                 "Plain slot read pin succeeds");
     TEST_ASSERT(*(int *)view.ptr == 42, "Plain pinned read view exposes payload");
+    tamperedView = view;
+    tamperedView.generation++;
+    result = PergyraSlotUnpin(plainManager, &tamperedView);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_INVALID_PIN,
+                            "Tampered pinned view generation cannot unpin");
     result = SlotRelease(plainManager, &plainHandle);
     TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PINNED,
-                            "Pinned plain slot cannot be released");
+                            "Tampered unpin leaves plain slot pinned");
     result = PergyraSlotUnpin(plainManager, &view);
     TEST_ASSERT(result == SLOT_SUCCESS && !view.valid, "Plain slot unpin succeeds");
+    result = PergyraSlotUnpin(plainManager, &view);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_INVALID_PIN,
+                            "Plain slot double unpin is invalid");
     result = SlotRelease(plainManager, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot release after unpin succeeds");
 

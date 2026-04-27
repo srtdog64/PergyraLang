@@ -1,11 +1,9 @@
-/* Helpers previously living as static in type_checker_decls_a.inc /
- * type_checker_decls_domain_helpers.inc, promoted to external linkage so
- * role/party/roster declaration validators (split into their own TUs in
- * the 3-B slice) can call them across translation unit boundaries.
+/* Helpers previously living as static include-fragment code, promoted to
+ * external linkage so role/party/roster declaration validators can call them
+ * across translation unit boundaries.
  *
- * Definitions still live in their original `.inc` files; only linkage
- * is lifted.  See docs/101_semantic_split_template.md §8 for the
- * externalization pattern.
+ * Definitions now live in focused semantic owner TUs; this header preserves
+ * the narrow dependency seam without relying on include order.
  */
 #ifndef PERGYRA_TYPE_CHECKER_DECLS_A_HELPERS_INTERNAL_H
 #define PERGYRA_TYPE_CHECKER_DECLS_A_HELPERS_INTERNAL_H

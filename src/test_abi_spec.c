@@ -193,6 +193,31 @@ int main(void) {
     ABI_TEST("Token<Int>: can_read offset matches",
              offsetof(PgyToken_Int, can_read) == offsetof(pgy_abi_token_int_dbg, can_read));
 
+    printf("\n[Pin Views]\n");
+
+    PRINT_LAYOUT(pgy_abi_pinned_slot_view_int);
+    PRINT_LAYOUT(pgy_abi_pinned_secure_slot_view_int);
+    printf("\n");
+
+    ABI_TEST("PinnedSlotView<Int>: runtime size matches ABI spec",
+             sizeof(PgyPinnedSlotView_Int) == sizeof(pgy_abi_pinned_slot_view_int));
+    ABI_TEST("PinnedSlotView<Int>: slot offset matches",
+             offsetof(PgyPinnedSlotView_Int, slot) == offsetof(pgy_abi_pinned_slot_view_int, slot));
+    ABI_TEST("PinnedSlotView<Int>: active offset matches",
+             offsetof(PgyPinnedSlotView_Int, active) == offsetof(pgy_abi_pinned_slot_view_int, active));
+    ABI_TEST("PinnedSlotView<Int>: can_write offset matches",
+             offsetof(PgyPinnedSlotView_Int, can_write) == offsetof(pgy_abi_pinned_slot_view_int, can_write));
+    ABI_TEST("PinnedSecureSlotView<Int>: runtime size matches ABI spec",
+             sizeof(PgyPinnedSecureSlotView_Int) == sizeof(pgy_abi_pinned_secure_slot_view_int));
+    ABI_TEST("PinnedSecureSlotView<Int>: slot offset matches",
+             offsetof(PgyPinnedSecureSlotView_Int, slot) == offsetof(pgy_abi_pinned_secure_slot_view_int, slot));
+    ABI_TEST("PinnedSecureSlotView<Int>: token offset matches",
+             offsetof(PgyPinnedSecureSlotView_Int, token) == offsetof(pgy_abi_pinned_secure_slot_view_int, token));
+    ABI_TEST("PinnedSecureSlotView<Int>: active offset matches",
+             offsetof(PgyPinnedSecureSlotView_Int, active) == offsetof(pgy_abi_pinned_secure_slot_view_int, active));
+    ABI_TEST("PinnedSecureSlotView<Int>: can_write offset matches",
+             offsetof(PgyPinnedSecureSlotView_Int, can_write) == offsetof(pgy_abi_pinned_secure_slot_view_int, can_write));
+
     /* ================================================================
      * 4. DeviceSlot<T>
      * ================================================================ */

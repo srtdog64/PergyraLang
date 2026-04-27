@@ -40,8 +40,8 @@ Assumptions:
 Current evidence:
 
 - `tests/parallel_core_contract_smoke.sh` freezes the core/execution-family/runtime-mechanism split across the taxonomy, manifest, representative case tags, semantic regression, backend compare, and module smoke.
-- `src/tests/semantic/test_semantic_parallel_context.inc` rejects write/write slot conflicts, SecureSlot/DeviceSlot access, token-capability calls, and secure-effect helper/method calls inside `parallel`; read/write slot overlap remains warning-level in the current stable subset.
-- `src/tests/semantic/test_semantic_parallel_family.inc` verifies `spawn -> Future<T>`, `await` async-context rules, and select-readiness rejection.
+- `src/tests/semantic/test_semantic_parallel_context.cases.h` rejects write/write slot conflicts, SecureSlot/DeviceSlot access, token-capability calls, and secure-effect helper/method calls inside `parallel`; read/write slot overlap remains warning-level in the current stable subset.
+- `src/tests/semantic/test_semantic_parallel_family.cases.h` verifies `spawn -> Future<T>`, `await` async-context rules, and select-readiness rejection.
 - `tests/module_smoke.sh` keeps the `parallel_ref_slot_conflict` source-level rejection visible through the compiler driver.
 - Channel transport validator/reporting has been separated.
 - `parallel` is documented as core, while fiber/coroutine are runtime mechanisms below the core surface.

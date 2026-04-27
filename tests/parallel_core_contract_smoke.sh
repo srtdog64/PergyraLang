@@ -3,7 +3,19 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-python3 - "$ROOT_DIR" <<'PY'
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python3)"
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python)"
+    else
+        echo "[parallel-core-contract] requires python3 or python for JSON contract validation" >&2
+        exit 1
+    fi
+fi
+
+"$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
 import json
 import pathlib
 import sys

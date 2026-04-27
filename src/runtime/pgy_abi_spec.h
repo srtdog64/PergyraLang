@@ -123,6 +123,20 @@ typedef struct { char   *value; bool occupied; uint64_t token; } pgy_abi_secure_
 typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_dbg;
 typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_rel;
 
+/* --- Pin/lease view handles (block-scoped runtime views) --- */
+typedef struct {
+    pgy_abi_slot_int_rel *slot;
+    bool active;
+    bool can_write;
+} pgy_abi_pinned_slot_view_int;
+
+typedef struct {
+    pgy_abi_secure_slot_int_dbg *slot;
+    const pgy_abi_token_int_dbg *token;
+    bool active;
+    bool can_write;
+} pgy_abi_pinned_secure_slot_view_int;
+
 /* ================================================================
  * 3. DeviceSlot<T> — Anchored External Resource Cell
  *
@@ -511,6 +525,21 @@ ABI_STATIC_ASSERT(offsetof(pgy_abi_token_int_rel, can_write) == offsetof(pgy_abi
                   token_int_rel_can_write_same_offset_as_dbg);
 ABI_STATIC_ASSERT(offsetof(pgy_abi_token_int_rel, can_read) == offsetof(pgy_abi_token_int_dbg, can_read),
                   token_int_rel_can_read_same_offset_as_dbg);
+
+ABI_STATIC_ASSERT(offsetof(pgy_abi_pinned_slot_view_int, slot) == 0,
+                  pinned_slot_view_int_slot_at_0);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_pinned_slot_view_int, active) == sizeof(void*),
+                  pinned_slot_view_int_active_after_slot);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_pinned_slot_view_int) >= sizeof(void*) + 2,
+                  pinned_slot_view_int_min_size);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_pinned_secure_slot_view_int, slot) == 0,
+                  pinned_secure_slot_view_int_slot_at_0);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_pinned_secure_slot_view_int, token) == sizeof(void*),
+                  pinned_secure_slot_view_int_token_after_slot);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_pinned_secure_slot_view_int, active) >= sizeof(void*) * 2,
+                  pinned_secure_slot_view_int_active_after_token);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_pinned_secure_slot_view_int) >= sizeof(void*) * 2 + 2,
+                  pinned_secure_slot_view_int_min_size);
 
 /* =================================================================
  * STATIC ASSERTIONS — DeviceSlot<T>

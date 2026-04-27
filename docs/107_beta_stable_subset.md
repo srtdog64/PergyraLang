@@ -1,6 +1,6 @@
 # Beta Stable Subset Contract
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 Status: `beta-freeze-source-of-truth`
 
@@ -8,6 +8,35 @@ This document is the single freeze point for the Pergyra beta stable subset.
 Other docs may explain features, but they must not widen or weaken this
 contract. A feature is beta-stable only when `syntax -> semantic -> runtime ->
 C -> LLVM -> diagnostics -> regression -> docs` agree on the same behavior.
+
+Systems baseline:
+
+- Pergyra is a systems language with domain extensions. Source of truth:
+  `docs/19_design_philosophy.md`.
+- The systems-language baseline is non-negotiable: no mandatory GC,
+  predictable memory, C FFI, ABI stability, raw escape, optional runtime, and
+  compile-time determinism.
+- Domain primitives (`intent`, `zone`, `world`, `authority`, `handoff`,
+  `Channel`, `parallel`) are first-class but layered on top of the systems
+  baseline, not a replacement for it.
+- System-tier raw pointer escape is not beta-stable until its syntax, semantic
+  gate, ABI lowering, diagnostics, and regression gates are implemented.
+  Current `unsafe { ... }` support is not by itself a raw-pointer escape
+  contract.
+- `SlotRawPointer(...)` is reserved for the future system-tier raw escape
+  direction and currently rejects with `PGY_SEM_RAW_ESCAPE_UNSTABLE`; `unsafe`
+  does not bypass that gate.
+- `--runtime=none` is beta-gated: the driver parses the mode and emits
+  `PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED` for runtime-dependent surfaces or the
+  remaining freestanding-lowering blocker. It is not a successful no-runtime
+  backend target yet.
+- Intent/zone/world evolution must not leak into or break C FFI ABI. ABI changes
+  require explicit ABI-spec updates and parity gates.
+- Codegen determinism is a beta blocker for the frozen subset; repeat builds
+  must not depend on hash-map or pointer iteration order. Initial gate:
+  `make codegen-determinism-test-smoke`.
+- No-runtime contract gate: `make runtime-none-contract-test-smoke`.
+- Raw escape contract gate: `make raw-escape-contract-test-smoke`.
 
 ## 1. Core Stable Surface
 
@@ -114,6 +143,13 @@ Option C ownership lift:
 - `pin slot as view { ... }` remains the target stable surface for scoped
   Pin/Lease, with automatic cleanup.
 - `PinnedView<T>` is the non-block handle form.
+- Non-pin handle expiration is not claimed as a single-mechanism proof. The
+  beta-stable behavior is layered: arena lane checks, CFG/body dataflow,
+  zone/world crossing rules, token transport rejection, and runtime
+  generation/token validation. First-class Zone-Bound Handle typing
+  (`SlotHandle<T> in Zone` or equivalent `handle@zone` sugar) is not stable
+  until implemented and gated; until then conservative `BORROW_TRACKED` /
+  anchored-handle rejection is the stable behavior.
 - `WriteView<T>` is exclusive; it must participate in CFG/dataflow aliasing and
   parallel conflict checks.
 - `defer` cleanup is part of the ownership closure because pin/unpin and drop

@@ -219,6 +219,7 @@ test_air_accepts_async_boundary_match(void)
 static bool
 test_air_strict_evidence_reports_missing_boundary(void)
 {
+    const char *authority_names[] = { "shipper" };
     AIRIntentNode intents[] = {
         {
             .intent_owner = "ShipOrder",
@@ -237,6 +238,8 @@ test_air_strict_evidence_reports_missing_boundary(void)
             .step_index = 0,
             .sync_class = AIR_SYNC_SYNC,
             .authority_required = true,
+            .authority_names = authority_names,
+            .authority_name_count = 1,
         },
     };
     AIRProgram air = {
@@ -266,6 +269,7 @@ test_air_strict_evidence_reports_missing_boundary(void)
 static bool
 test_air_recheck_clears_owned_drift_messages(void)
 {
+    const char *authority_names[] = { "shipper" };
     AIRIntentNode intents[] = {
         {
             .intent_owner = "ShipOrder",
@@ -284,6 +288,8 @@ test_air_recheck_clears_owned_drift_messages(void)
             .step_index = 0,
             .sync_class = AIR_SYNC_SYNC,
             .authority_required = true,
+            .authority_names = authority_names,
+            .authority_name_count = 1,
         },
     };
     AIRProgram air = {
@@ -306,6 +312,361 @@ test_air_recheck_clears_owned_drift_messages(void)
         && air.drifts[0].message != NULL
         && strstr(air.drifts[0].message,
                   "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING") != NULL;
+    test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_invalid_boundary_inventory(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_required = true,
+            .authority_name_count = 1,
+            .authority_names = NULL,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .strict_evidence = true,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "authority count without names") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_missing_inventory_arrays(void)
+{
+    AIRProgram missing_intents = {
+        .intent_count = 1,
+    };
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRProgram missing_boundaries = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundary_count = 1,
+    };
+    AIRProgram missing_drifts = {
+        .intents = intents,
+        .intent_count = 1,
+        .drift_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&missing_intents, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "intent count without intent array") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&missing_boundaries, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "boundary count without boundary array") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&missing_drifts, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "drift count without drift array") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_boundary_step_mismatch(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 7,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "step index does not match intent") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_boundary_owner_mismatch(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "OtherIntent",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "owner does not match intent") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_boundary_sync_shape_mismatch(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "handoff",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+            .failure_class = AIR_FAILURE_COMPENSABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_WORLD,
+            .owner_name = "ShipOrder",
+            .source_name = "remote",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "invalid sync class sync for world boundary") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_invalid_drift_inventory(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIRDrift drifts[] = {
+        {
+            .kind = AIR_DRIFT_NONE,
+            .intent_index = 0,
+            .boundary_index = 0,
+            .message = "stale placeholder",
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .drifts = drifts,
+        .drift_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "drift node 0 has invalid kind") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_authority_evidence_shape_mismatch(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    const char *authority_names[] = { "shipper" };
+    AIRBoundaryNode authority_without_boundary[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_required = true,
+            .authority_names = authority_names,
+            .authority_name_count = 1,
+            .has_rir_authority_evidence = true,
+            .rir_authority_evidence_name = "shipper",
+        },
+    };
+    AIRBoundaryNode authority_on_non_authority[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .has_rir_boundary_evidence = true,
+            .rir_boundary_evidence_scope = "WarehouseZone",
+            .has_rir_authority_evidence = true,
+            .rir_authority_evidence_name = "shipper",
+        },
+    };
+    AIRProgram missing_boundary = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = authority_without_boundary,
+        .boundary_count = 1,
+    };
+    AIRProgram non_authority = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = authority_on_non_authority,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&missing_boundary, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "authority evidence without boundary evidence") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&non_authority, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "authority evidence on non-authority boundary") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_check_drift_is_verify_compatibility_wrapper(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool checked = air_check_drift(&air, &error);
+    bool ok = checked
+        && air.drift_count == 1
+        && air.drifts[0].kind == AIR_DRIFT_SYNC_ASYNC_CONFLICT;
     test_air_clear_stack_drifts(&air);
     free(error);
     return ok;
@@ -932,6 +1293,107 @@ test_air_synthesizes_stable_io_boundary_builtin_set(void)
 }
 
 static bool
+test_air_synthesizes_stable_execution_boundary_set(void)
+{
+    ASTNode intent_ast = { .line = 50, .column = 1 };
+    ASTNode *step_ast = ast_create_intent_step("coordinate");
+    ASTNode *parallel = ast_create_parallel_block();
+    ASTNode *async_block = ast_create_async_block();
+    ASTNode *send = ast_create_channel_send(ast_create_identifier("ch"),
+                                            ast_create_number("1"));
+    ASTNode *recv = ast_create_channel_recv(ast_create_identifier("ch"));
+    ASTNode *select_stmt = ast_create_select_statement();
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "CoordinateWork", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        { .index = 0, .name = "coordinate", .ast = step_ast },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    AIRProgram *air = NULL;
+    char *error = NULL;
+    bool found_parallel = false;
+    bool found_async = false;
+    bool found_send = false;
+    bool found_recv = false;
+    bool found_select = false;
+    bool ok;
+
+    if (step_ast == NULL || parallel == NULL || async_block == NULL
+        || send == NULL || recv == NULL || select_stmt == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(parallel);
+        ast_destroy(async_block);
+        ast_destroy(send);
+        ast_destroy(recv);
+        ast_destroy(select_stmt);
+        return false;
+    }
+    parallel->line = 51;
+    async_block->line = 52;
+    send->line = 53;
+    recv->line = 54;
+    select_stmt->line = 55;
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(5, sizeof(ASTNode *));
+    if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(parallel);
+        ast_destroy(async_block);
+        ast_destroy(send);
+        ast_destroy(recv);
+        ast_destroy(select_stmt);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs[0] = parallel;
+    step_ast->data.intent_step.on_exprs[1] = async_block;
+    step_ast->data.intent_step.on_exprs[2] = send;
+    step_ast->data.intent_step.on_exprs[3] = recv;
+    step_ast->data.intent_step.on_exprs[4] = select_stmt;
+    step_ast->data.intent_step.on_expr_count = 5;
+
+    air = air_synthesize(NULL, &dir, NULL, &error);
+    if (air != NULL) {
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            const AIRBoundaryNode *boundary = &air->boundaries[i];
+            if (boundary->kind == AIR_BOUNDARY_PARALLEL
+                && strcmp(boundary->source_name, "parallel") == 0)
+                found_parallel = true;
+            if (boundary->kind == AIR_BOUNDARY_PARALLEL
+                && strcmp(boundary->source_name, "async") == 0)
+                found_async = true;
+            if (boundary->kind == AIR_BOUNDARY_CHANNEL
+                && strcmp(boundary->source_name, "channel-send") == 0)
+                found_send = true;
+            if (boundary->kind == AIR_BOUNDARY_CHANNEL
+                && strcmp(boundary->source_name, "channel-recv") == 0)
+                found_recv = true;
+            if (boundary->kind == AIR_BOUNDARY_CHANNEL
+                && strcmp(boundary->source_name, "select") == 0)
+                found_select = true;
+        }
+    }
+    ok = air != NULL
+        && air->boundary_count == 5
+        && found_parallel
+        && found_async
+        && found_send
+        && found_recv
+        && found_select;
+    air_destroy(air);
+    free(error);
+    ast_destroy(step_ast);
+    return ok;
+}
+
+static bool
 test_air_parsed_io_boundary_reports_missing_evidence(void)
 {
     const char *source =
@@ -1148,6 +1610,30 @@ main(void)
     TEST("AIR recheck clears owned drift messages");
     EXPECT(test_air_recheck_clears_owned_drift_messages());
 
+    TEST("AIR verify rejects invalid boundary inventory");
+    EXPECT(test_air_verify_rejects_invalid_boundary_inventory());
+
+    TEST("AIR verify rejects missing inventory arrays");
+    EXPECT(test_air_verify_rejects_missing_inventory_arrays());
+
+    TEST("AIR verify rejects boundary step mismatch");
+    EXPECT(test_air_verify_rejects_boundary_step_mismatch());
+
+    TEST("AIR verify rejects boundary owner mismatch");
+    EXPECT(test_air_verify_rejects_boundary_owner_mismatch());
+
+    TEST("AIR verify rejects boundary sync shape mismatch");
+    EXPECT(test_air_verify_rejects_boundary_sync_shape_mismatch());
+
+    TEST("AIR verify rejects invalid drift inventory");
+    EXPECT(test_air_verify_rejects_invalid_drift_inventory());
+
+    TEST("AIR verify rejects authority evidence shape mismatch");
+    EXPECT(test_air_verify_rejects_authority_evidence_shape_mismatch());
+
+    TEST("AIR check_drift remains verify compatibility wrapper");
+    EXPECT(test_air_check_drift_is_verify_compatibility_wrapper());
+
     TEST("AIR synthesis collects HIR/RIR evidence without mutation");
     EXPECT(test_air_collects_hir_and_rir_evidence());
 
@@ -1174,6 +1660,9 @@ main(void)
 
     TEST("AIR synthesis captures stable IO boundary builtin set");
     EXPECT(test_air_synthesizes_stable_io_boundary_builtin_set());
+
+    TEST("AIR synthesis captures stable execution boundary set");
+    EXPECT(test_air_synthesizes_stable_execution_boundary_set());
 
     TEST("AIR parsed IO boundary reports missing evidence");
     EXPECT(test_air_parsed_io_boundary_reports_missing_evidence());

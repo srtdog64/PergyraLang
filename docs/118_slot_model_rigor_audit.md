@@ -4,6 +4,7 @@ Last updated: 2026-04-27
 
 Related documents:
 
+- `docs/19_design_philosophy.md` §0 — **core identity** (Pergyra is a systems language; this audit's Slot model lives on that baseline)
 - `docs/106_ownership_model_comparison.md` — sister positioning doc for ownership
 - `docs/114_async_model_positioning.md` — sister positioning doc for concurrency
 - `docs/117_backend_strategy_positioning.md` — sister positioning doc for backend
@@ -173,6 +174,57 @@ component's behavior.
 Anyone evaluating Pergyra's static safety should evaluate this 5-component
 layer, not Slot in isolation.
 
+## 3a. Handle Expiration Is A Layered Contract, Not Pin Alone
+
+Pin/Lease is only the answer for one narrow hot-path case: keep a slot live
+inside a lexical block while repeated access is amortized. It does **not**
+solve every stale-handle shape. The honest beta contract is layered.
+
+Non-pin stale-handle scenarios:
+
+| Scenario | Risk |
+|---|---|
+| Handle escapes a function through return or storage | Caller can retain a stale handle after the callee's resource boundary ends |
+| Handle is stored in a long-lived collection or field | Collection can outlive the slot release path |
+| Handle is captured by `async` / `spawn` closure | Task may execute after the source slot has been released |
+| Handle crosses channel / world handoff | Receiver may observe a stale or authority-mismatched handle |
+| Handle is copied, then only one copy follows a release path | The other copy becomes silently stale unless rejected or runtime-validated |
+
+Pergyra's current answer is five mechanisms, not one mechanism:
+
+| Layer | Mechanism | Scenario covered | Tier |
+|---|---|---|---|
+| 1 | Arena lane (`scratch` / `result` / `persistent`) | Function escape, long-lived storage lane mismatch | Static Tier 1/2 |
+| 2 | CFG body dataflow over `BORROW_TRACKED` / anchored handles | Return/store escape and use-after-move in the covered body subset | Static Tier 1, partial |
+| 3 | Zone/world ownership plus channel-only crossing | World handoff and cross-boundary authority movement | Static Tier 1 |
+| 4 | `Token<T>` transport rejection | `spawn`, channel, cancel, and authority-bearing boundary transport | Static Tier 1 |
+| 5 | Generation + token runtime validation | Fallback for all stale access paths that reach runtime | Runtime Tier 3 |
+
+If layers 1-4 reject a program, the guarantee is compile-time. If only layer 5
+applies, the program is still fail-safe but not statically proven: stale access
+must execute before the runtime can reject it. This distinction must remain
+visible in docs and diagnostics.
+
+The missing expressivity piece is first-class **Zone-Bound Handle** typing.
+Today the compiler often uses conservative `BORROW_TRACKED` or anchored-handle
+escape rejection where a more expressive model would say "this handle is valid
+only for zone Z." The target design is a type-level owner such as:
+
+```text
+SlotHandle<T> in Zone
+```
+
+or a sugar such as:
+
+```text
+handle@zone
+```
+
+This is the Pergyra-shaped equivalent of region/lifetime ownership in Rust,
+Vale, and Project Verona, but it must avoid Rust-style user lifetime
+annotation burden. Until this is implemented, the sound beta behavior is
+conservative rejection plus runtime generation/token hard-fail.
+
 ## 4. Three-Tier Classification of Guarantees
 
 Every guarantee in the system falls into one of three tiers. The tier
@@ -185,7 +237,7 @@ These rejections fire at compile time today, with regression evidence.
 
 | Rule | Diagnostic | Evidence |
 |---|---|---|
-| Channel cross-World transfer outside channel | semantic reject | `make test-security` 132/132 |
+| Channel cross-World transfer outside channel | semantic reject | `make test-security` 142/142 |
 | Token<T> spawn / channel send / cancel payload | semantic reject | semantic + `make test-semantic` |
 | Anchored slot branch/join consume conflict | CFG snapshot | `docs/100` §0b closed items |
 | Authority-bearing token spawn boundary | semantic reject | `make test-semantic` |
@@ -251,7 +303,9 @@ These checks fire at runtime and produce panics or returned errors.
 | Check | Failure mode | Evidence |
 |---|---|---|
 | Slot generation mismatch | runtime reject | `make test-security` |
-| Secure slot token forgery | runtime reject | `make test-security` (132/132) |
+| Zero slot id / slot id wrap ABA exhaustion | runtime tombstone as `SLOT_ERROR_OUT_OF_MEMORY` | `make test-security` |
+| Tampered pinned-view generation / double unpin | runtime reject as invalid pin | `make test-security` |
+| Secure slot token forgery | runtime reject | `make test-security` (142/142) |
 | Authority token mismatch | runtime reject | `make runtime-authority-contract-test-smoke` |
 | TTL cleanup of stale slot | runtime cleanup | `make test-security` |
 | Release/move of source while typed view is live | static reject + runtime reject | `make diagnostics-json-test-smoke`, `runtime-panic-abi-test-smoke` |
@@ -267,6 +321,17 @@ This is the Vale generational-references pattern (Vale 2021 OOPSLA
 "Generational References"). It is a real, well-formalized technique, not a
 shortcut. Saying "Slot is runtime-validated" is honest; saying "Slot is a
 borrow checker" is not.
+
+Current implementation note: the table-backed C ABI is not a 64-bit generation
+handle yet. It uses a 32-bit `slotId` plus a 32-bit generation field, allocates a
+fresh `slotId` for each claim, rejects the zero-id sentinel, and refuses further
+claims before `slotId` wrap. That is a conservative tombstone policy: it
+sacrifices availability at id-space exhaustion instead of allowing ABA reuse.
+Unpin also requires the issued view generation/mode/thread/pointer to match, so
+tampered views and double-unpin attempts cannot clear a live pin. A future
+64-bit handle ABI can relax the exhaustion point, but beta documentation must
+not claim that ABI until the headers, runtime, C backend, LLVM backend, and ABI
+spec all carry it.
 
 ## 5. Dijkstra Application — What Was Actually Borrowed
 
@@ -415,6 +480,27 @@ documentation does not drift.
 - **Marketing to avoid**: "Released slot use cannot be written." Honest:
   "Released slot use is statically rejected for the covered CFG subset and
   hard-fails at runtime if reached through a runtime-only path."
+
+### 6.6 Non-Pin Handle Expiration And Missing Zone-Bound Handle Type
+
+- **Status**: the language has layered stale-handle defenses, but no first-class
+  zone-bound handle type yet. Pin blocks solve lexical hot-path liveness only;
+  they do not solve return/storage escape, async capture, channel/world handoff,
+  or copied-handle release divergence by themselves.
+- **Current safe behavior**: use arena lane checks, CFG/body dataflow,
+  anchored-handle copy rejection, channel/world transport rules, token transport
+  rejection, and generation/token runtime validation. When the static layer
+  cannot prove safety, the beta subset must reject conservatively rather than
+  pretend the handle is lifetime-proven.
+- **Closure path**: decide before beta freeze whether `SlotHandle<T> in Zone`
+  (or equivalent `handle@zone` sugar) is in-scope. If yes, add zone-scope <=
+  handle-scope checking and make zone exit invalidate all in-zone handles in
+  both static facts and runtime generation/token state. If no, document
+  `BORROW_TRACKED` conservative rejection as the beta behavior.
+- **Marketing to avoid**: "Pinning solves handle expiration." Honest:
+  "Pinning solves lexical pinned access; non-pin handle expiration is protected
+  by a layered static/runtime contract, with Zone-Bound Handle typing still a
+  beta-freeze design decision."
 
 ## 7. Comparison To Rust Across Time
 

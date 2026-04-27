@@ -169,7 +169,7 @@ void test_memcpy_slot_type_name(void)
 
 void test_transpiler_enum_variant_call(void)
 {
-    /* Simulates transpiler_expr_emitters.inc pattern */
+    /* Simulates transpiler_call_constructor_result_emit.h pattern */
     const char *qualified = "BattleZone_Attack";
     const char *arg_strs[] = {"attacker", "defender"};
     size_t argc = 2;

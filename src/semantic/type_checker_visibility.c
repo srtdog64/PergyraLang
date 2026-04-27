@@ -4,9 +4,9 @@
  *
  * Type checker visibility / access-control helpers (implementation).
  *
- * Lifted out of type_checker_visibility.inc as the first axis of the
- * P1 .inc-split roadmap.  All functions previously `static` are now
- * non-static so they link against the rest of the type checker.
+ * Visibility checks are owned by this translation unit and exported through a
+ * narrow internal header so the rest of the type checker does not depend on
+ * include-order side effects.
  */
 
 #include <string.h>

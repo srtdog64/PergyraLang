@@ -4,6 +4,7 @@ Last updated: 2026-04-26
 
 Related documents:
 
+- `docs/19_design_philosophy.md` §0 - **core identity** (systems language baseline; concurrency model is one of the layers above it).
 - `docs/113_memory_concurrency_model.md` - frozen beta contract for
   `parallel`, named `spawn`, `async`/`await`, channels, cancellation, and
   ownership-bearing boundaries.

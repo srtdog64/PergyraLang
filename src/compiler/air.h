@@ -103,6 +103,7 @@ AIRProgram *air_synthesize(const HIRProgram *hir,
                            const RIRProgram *rir,
                            char **error_message);
 bool        air_validate(const AIRProgram *air, char **error_message);
+bool        air_verify(AIRProgram *air, char **error_message);
 bool        air_check_drift(AIRProgram *air, char **error_message);
 void        air_destroy(AIRProgram *air);
 void        air_dump(const AIRProgram *air, FILE *out);

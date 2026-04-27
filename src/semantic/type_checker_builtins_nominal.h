@@ -340,6 +340,16 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     case BUILTIN_RELEASE:
         type_check_release_slot(call, ctx);
         return TYPE_VOID;
+    case BUILTIN_SLOT_RAW_POINTER:
+        for (size_t i = 0; i < call->data.call.arg_count; i++)
+            type_check_expression(call->data.call.arguments[i], ctx);
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_RAW_ESCAPE_UNSTABLE,
+            PGY_CAUSE_RAW_ESCAPE_UNSTABLE,
+            PGY_FIX_USE_PIN_OR_WAIT_FOR_RAW_ESCAPE_CONTRACT,
+            call,
+            "SlotRawPointer is not beta-stable. Reason: unsafe { } is only a lexical escape marker today, not a system-tier raw pointer contract. Fix: use typed Pin/Lease views for hot-path slot access, or wait for the raw escape contract with ABI lowering and diagnostics.");
+        return TYPE_UNKNOWN;
     case BUILTIN_DEVICE_WRITE:
     case BUILTIN_DEVICE_READ:
     case BUILTIN_RELEASE_DEVICE_SLOT:

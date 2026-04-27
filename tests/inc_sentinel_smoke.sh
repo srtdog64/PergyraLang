@@ -28,45 +28,49 @@ if [[ -n "$production_cases" ]]; then
     exit 1
 fi
 
-case_include_violations="$(
-python3 - <<'PY'
-from pathlib import Path
-import re
-
-root = Path(".")
-allowed_includers = {
-    "src/test_semantic.c",
-    "src/test_transpile.c",
+case_include_violations=""
+allowed_case_includer() {
+    case "$1" in
+        src/test_semantic.c|src/test_transpile.c)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
 }
-include_re = re.compile(r'#\s*include\s+"([^"]+\.cases\.h)"')
 
-for path in sorted(root.rglob("*")):
-    if not path.is_file():
-        continue
-    if any(part in {".git", "build"} for part in path.parts):
-        continue
-    rel = path.relative_to(root).as_posix()
-    if path.suffix not in {".c", ".h"} and path.name != "Makefile":
-        continue
-    try:
-        text = path.read_text(encoding="utf-8", errors="ignore")
-    except OSError:
-        continue
-    for match in include_re.finditer(text):
-        include_path = match.group(1)
-        if rel not in allowed_includers:
-            print(f"{rel}: .cases.h include is only allowed in test harnesses")
+while IFS= read -r -d '' path; do
+    rel="${path#./}"
+    while IFS= read -r line; do
+        include_path="$(printf '%s\n' "$line" | sed -n 's/.*# *include *"\([^"]*\.cases\.h\)".*/\1/p')"
+        [[ -z "$include_path" ]] && continue
+        if ! allowed_case_includer "$rel"; then
+            case_include_violations+="${rel}: .cases.h include is only allowed in test harnesses"$'\n'
             continue
-        target = (path.parent / include_path).resolve()
-        try:
-            target.relative_to((root / "src" / "tests").resolve())
-        except ValueError:
-            print(f"{rel}: .cases.h include escapes src/tests: {include_path}")
+        fi
+        target_dir="$(dirname "$rel")"
+        target_path="${target_dir}/${include_path}"
+        if [[ ! -e "$target_path" ]]; then
+            case_include_violations+="${rel}: .cases.h include target does not exist: ${include_path}"$'\n'
             continue
-        if not target.exists():
-            print(f"{rel}: .cases.h include target does not exist: {include_path}")
-PY
-)"
+        fi
+        target_real="$(realpath "$target_path")"
+        tests_real="$(realpath src/tests)"
+        case "$target_real" in
+            "$tests_real"/*)
+                ;;
+            *)
+                case_include_violations+="${rel}: .cases.h include escapes src/tests: ${include_path}"$'\n'
+                ;;
+        esac
+    done < <(grep -hE '#[[:space:]]*include[[:space:]]+"[^"]+\.cases\.h"' "$path" || true)
+done < <(
+    {
+        find src -type f \( -name '*.c' -o -name '*.h' \) -print
+        [[ -f Makefile ]] && printf '%s\n' Makefile
+    } | while IFS= read -r p; do printf './%s\0' "$p"; done
+)
 
 if [[ -n "$case_include_violations" ]]; then
     echo "invalid test case include usage:" >&2
@@ -86,25 +90,20 @@ if ((${#violations[@]} > 0)); then
     exit 1
 fi
 
-orphan_cases="$(
-python3 - <<'PY'
-from pathlib import Path
-root = Path(".")
-fragments = sorted((root / "src" / "tests").rglob("*.cases.h"))
-reference_paths = [root / "src" / "test_semantic.c", root / "src" / "test_transpile.c"]
-reference_paths.extend(sorted((root / "tests").glob("*.sh")))
-texts = []
-for path in reference_paths:
-    if path.exists():
-        texts.append(path.read_text(encoding="utf-8", errors="ignore"))
+orphan_cases=""
+reference_paths=(src/test_semantic.c src/test_transpile.c)
+while IFS= read -r -d '' path; do
+    reference_paths+=("$path")
+done < <(find tests -maxdepth 1 -name '*.sh' -type f -print0)
 
-for fragment in fragments:
-    rel = fragment.relative_to(root).as_posix()
-    name = fragment.name
-    if not any(rel in text or name in text for text in texts):
-        print(rel)
-PY
-)"
+while IFS= read -r -d '' fragment; do
+    rel="${fragment#./}"
+    name="$(basename "$fragment")"
+    if ! grep -Fq -- "$rel" "${reference_paths[@]}" 2>/dev/null &&
+       ! grep -Fq -- "$name" "${reference_paths[@]}" 2>/dev/null; then
+        orphan_cases+="${rel}"$'\n'
+    fi
+done < <(find src/tests -name '*.cases.h' -type f -print0)
 
 if [[ -n "$orphan_cases" ]]; then
     echo "orphan test case include fragments are not allowed:" >&2

@@ -29,6 +29,7 @@
 #include "hir.h"
 #include "module_loader.h"
 #include "path_utils.h"
+#include "runtime_none_contract.h"
 #include "llvm_runner.h"
 #include "c_runner.h"
 
@@ -183,6 +184,10 @@ driver_diag_code_from_message(const char *message)
         return PGY_CODE_LEX_INVALID_TOKEN;
     if (strstr(message, PGY_CODE_PARSE_SYNTAX) != NULL)
         return PGY_CODE_PARSE_SYNTAX;
+    if (strstr(message, PGY_CODE_AIR_INVARIANT_INVALID) != NULL)
+        return PGY_CODE_AIR_INVARIANT_INVALID;
+    if (strstr(message, PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED) != NULL)
+        return PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED;
     return NULL;
 }
 
@@ -195,6 +200,10 @@ driver_diag_cause_from_code(const char *code)
         return PGY_CAUSE_LEX_INVALID_TOKEN;
     if (strcmp(code, PGY_CODE_PARSE_SYNTAX) == 0)
         return PGY_CAUSE_PARSE_UNEXPECTED_TOKEN;
+    if (strcmp(code, PGY_CODE_AIR_INVARIANT_INVALID) == 0)
+        return PGY_CAUSE_AIR_INVARIANT_INVALID;
+    if (strcmp(code, PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED) == 0)
+        return PGY_CAUSE_DRIVER_RUNTIME_NONE_UNSUPPORTED;
     return NULL;
 }
 
@@ -207,6 +216,10 @@ driver_diag_fix_from_code(const char *code)
         return PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER;
     if (strcmp(code, PGY_CODE_PARSE_SYNTAX) == 0)
         return PGY_FIX_CHECK_SYNTAX;
+    if (strcmp(code, PGY_CODE_AIR_INVARIANT_INVALID) == 0)
+        return PGY_FIX_REPORT_COMPILER_BUG;
+    if (strcmp(code, PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED) == 0)
+        return PGY_FIX_USE_DEFAULT_RUNTIME_OR_REMOVE_RUNTIME_SURFACE;
     return NULL;
 }
 
@@ -223,7 +236,14 @@ driver_emit_stage_fail(const DriverFlags *flags, const char *stage,
 {
     const char *msg = (detail != NULL) ? detail : "out of memory";
     if (flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {
-        driver_emit_single_diag_json(stage, msg);
+        const char *code = driver_diag_code_from_message(msg);
+        const char *cause_ir = driver_diag_cause_from_code(code);
+        const char *fix_source = driver_diag_fix_from_code(code);
+        driver_emit_single_diag_json_full(driver_route_stage(stage, code),
+                                          code,
+                                          cause_ir,
+                                          fix_source,
+                                          msg);
     } else {
         fprintf(stderr, "pgy: %s: %s\n", description, msg);
     }
@@ -394,6 +414,10 @@ driver_route_stage(const char *default_stage, const char *code)
         return default_stage;
     if (strncmp(code, "PGY_MIR_", 8) == 0)
         return "mir_validation";
+    if (strncmp(code, "PGY_AIR_", 8) == 0)
+        return "air_verify";
+    if (strncmp(code, "PGY_DRIVER_", 11) == 0)
+        return "driver";
     if (strncmp(code, "PGY_C_", 6) == 0)
         return "c_codegen";
     if (strncmp(code, "PGY_LLVM_", 9) == 0)
@@ -1332,6 +1356,28 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
+    if (flags != NULL && flags->runtime_mode == RUNTIME_NONE) {
+        char runtime_none_error[512];
+        runtime_none_error[0] = '\0';
+        if (!runtime_none_validate_ast(sem->annotated_ast,
+                                       runtime_none_error,
+                                       sizeof(runtime_none_error))) {
+            driver_emit_stage_fail(flags,
+                                   "driver",
+                                   "--runtime=none rejected",
+                                   runtime_none_error);
+            goto cleanup;
+        }
+        driver_emit_stage_fail(
+            flags,
+            "driver",
+            "--runtime=none rejected",
+            "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED: --runtime=none accepted the source surface but freestanding backend lowering is not implemented yet. "
+            "Reason: beta no-runtime mode must not silently link the default scheduler/arena runtime. "
+            "Fix: use --runtime=default until freestanding C/LLVM lowering is implemented.");
+        goto cleanup;
+    }
+
     driver_debug_stage("hir_lower");
     phase_start = driver_now_seconds();
     hir = hir_lower(sem->annotated_ast, &hir_error);
@@ -1545,6 +1591,7 @@ driver_print_usage(void)
 #endif
         "  pgy <source.pgy> --run        compile + run\n"
         "  pgy <source.pgy> --opt=dev|release   (default: release)\n"
+        "  pgy <source.pgy> --runtime=default|none  runtime contract mode (none is beta-gated)\n"
         "  pgy <source.pgy> --error-format=json|text  (default: text; json for structured tooling)\n"
         "  pgy scaffold <kind> <target> create starter files\n"
         "  pgy new <project-dir>         scaffold a starter project\n"

@@ -35,12 +35,13 @@ air_impl_path = root / "src" / "compiler" / "air.c"
 air_boundary_path = root / "src" / "compiler" / "air_boundary.c"
 air_dump_path = root / "src" / "compiler" / "air_dump.c"
 air_evidence_path = root / "src" / "compiler" / "air_evidence.c"
+air_verify_path = root / "src" / "compiler" / "air_verify.c"
 air_test_path = root / "src" / "test_air.c"
 diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, parser_intent_path, dir_header_path, dir_impl_path, air_header_path, air_impl_path, air_boundary_path, air_dump_path, air_evidence_path, air_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, parser_intent_path, dir_header_path, dir_impl_path, air_header_path, air_impl_path, air_boundary_path, air_dump_path, air_evidence_path, air_verify_path, air_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -60,6 +61,7 @@ air_impl = "\n".join([
     air_boundary_path.read_text(encoding="utf-8"),
     air_dump_path.read_text(encoding="utf-8"),
     air_evidence_path.read_text(encoding="utf-8"),
+    air_verify_path.read_text(encoding="utf-8"),
 ])
 air_test = air_test_path.read_text(encoding="utf-8")
 diag_docs = diag_docs_path.read_text(encoding="utf-8")
@@ -128,6 +130,8 @@ for term in [
     "air-backend-nonimpact-test-smoke:",
     "air-backend-nonimpact-full-test-smoke:",
     "air-strict-backend-compare-test-smoke:",
+    "$(COMPILER_DIR)/air_verify.c",
+    "$(BUILD_DIR)/compiler/air_verify.o",
     "$(MAKE) test-air",
     "tests/air_drift_smoke.sh",
     "tests/air_backend_nonimpact_smoke.sh",
@@ -158,6 +162,7 @@ required_header_terms = [
     "rir_boundary_evidence_count",
     "rir_authority_evidence_count",
     "air_synthesize",
+    "air_verify",
     "air_check_drift",
 ]
 missing_header = [term for term in required_header_terms if term not in air_header]
@@ -167,7 +172,9 @@ if missing_header:
 required_impl_terms = [
     "air_synthesize",
     "air_validate",
+    "air_verify",
     "air_check_drift",
+    "PGY_CODE_AIR_INVARIANT_INVALID",
     "PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT",
     "PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
     "PGY_AIR_STRICT_EVIDENCE",
@@ -176,6 +183,9 @@ required_impl_terms = [
     "air_collect_hir_evidence",
     "air_collect_rir_evidence",
     "air_assign_first_owned_name",
+    "air_boundary_sync_shape_valid",
+    "air_drift_kind_valid",
+    "air_name_is_empty",
     "air_collect_hir_evidence(air, hir, error_message)",
     "air_collect_rir_evidence(air, rir, error_message)",
     "air_strdup_owned",
@@ -204,6 +214,9 @@ required_driver_terms = [
     "driver_format_air_evidence_summary",
     "PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT",
     "PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+    "PGY_CODE_AIR_INVARIANT_INVALID",
+    "PGY_CAUSE_AIR_INVARIANT_INVALID",
+    "PGY_FIX_REPORT_COMPILER_BUG",
     "PGY_CAUSE_INTENT_BOUNDARY_DRIFT",
     "PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE",
     "PGY_FIX_ALIGN_INTENT_BOUNDARY_SYNC",
@@ -258,6 +271,15 @@ required_test_terms = [
     "AIR drift checker reports sync/async mismatch",
     "AIR drift checker accepts matching async boundary",
     "AIR strict evidence reports missing RIR boundary",
+    "AIR verify rejects invalid boundary inventory",
+    "AIR verify rejects missing inventory arrays",
+    "AIR verify rejects boundary step mismatch",
+    "AIR verify rejects boundary owner mismatch",
+    "AIR verify rejects boundary sync shape mismatch",
+    "AIR verify rejects invalid drift inventory",
+    "AIR verify rejects authority evidence shape mismatch",
+    "PGY_AIR_INVARIANT_INVALID",
+    "AIR check_drift remains verify compatibility wrapper",
     "AIR strict evidence rejects mismatched authority participant",
     "AIR dump prints evidence provenance",
     "evidence hir=yes(reserve)",
@@ -274,6 +296,7 @@ required_test_terms = [
     "AIR lowers parsed intent source without drift",
     "AIR synthesis captures spawn boundary from intent step AST",
     "AIR synthesis captures IO boundary without sync drift",
+    "AIR synthesis captures stable execution boundary set",
     "AIR parsed IO boundary reports missing evidence",
     "AIR parsed transfer emits zone and world boundaries",
     "AIR parsed transfer reports zone missing authority evidence",
@@ -289,6 +312,7 @@ if missing_test:
 required_diag_docs_terms = [
     "PGY_SEM_INTENT_BOUNDARY_DRIFT",
     "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+    "PGY_AIR_INVARIANT_INVALID",
     "PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE",
     "PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE",
 ]

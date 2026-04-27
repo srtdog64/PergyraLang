@@ -41,7 +41,10 @@ validate_utf8_file() {
 
 required_files=(
     "docs/INDEX.md"
+    "docs/19_design_philosophy.md"
     "docs/116_documentation_quality_audit.md"
+    "docs/107_beta_stable_subset.md"
+    "docs/118_slot_model_rigor_audit.md"
     "docs/05_async_concurrency.md"
     "docs/113_memory_concurrency_model.md"
     "docs/114_async_model_positioning.md"
@@ -67,12 +70,26 @@ require_text "TODO.md" "Pergyra TODO (배포 준비)"
 index_terms=(
     "PergyraLang Documentation Index"
     "Beta Closure Source Of Truth"
+    "19_design_philosophy.md"
     "Async, Parallel, And Memory"
     "116_documentation_quality_audit.md"
     "Current Documentation Policy"
 )
 for term in "${index_terms[@]}"; do
     require_text "docs/INDEX.md" "$term"
+done
+
+systems_identity_terms=(
+    "Pergyra is a systems language with domain extensions"
+    "The systems-language baseline"
+    "raw escape"
+    "optional runtime"
+    "compile-time determinism"
+    "pgyc --runtime=none main.pgy"
+    "intent/zone/world의 어떤 변경도 C FFI ABI를 깨면 안 된다"
+)
+for term in "${systems_identity_terms[@]}"; do
+    require_text "docs/19_design_philosophy.md" "$term"
 done
 
 audit_terms=(
@@ -84,6 +101,42 @@ audit_terms=(
 )
 for term in "${audit_terms[@]}"; do
     require_text "docs/116_documentation_quality_audit.md" "$term"
+done
+
+slot_rigor_terms=(
+    "Handle Expiration Is A Layered Contract, Not Pin Alone"
+    "Non-pin stale-handle scenarios"
+    "arena lane checks, CFG/body dataflow"
+    "Zone-Bound Handle"
+    "SlotHandle<T> in Zone"
+    "Pinning solves lexical pinned access"
+)
+for term in "${slot_rigor_terms[@]}"; do
+    require_text "docs/118_slot_model_rigor_audit.md" "$term"
+done
+
+slot_pinning_terms=(
+    "docs/19_design_philosophy.md"
+    "Pin/Lease is a typed lexical lease"
+    "not the system-tier raw escape"
+    "SlotRawPointer(...)"
+    "PGY_SEM_RAW_ESCAPE_UNSTABLE"
+    "driver/kernel/embedded/ISR"
+    "separate"
+    "unsafe"
+    "contract"
+)
+for term in "${slot_pinning_terms[@]}"; do
+    require_text "docs/74_slot_pinning_caching.md" "$term"
+done
+
+stable_subset_slot_terms=(
+    "Non-pin handle expiration is not claimed as a single-mechanism proof"
+    "First-class Zone-Bound Handle typing"
+    "conservative \`BORROW_TRACKED\`"
+)
+for term in "${stable_subset_slot_terms[@]}"; do
+    require_text "docs/107_beta_stable_subset.md" "$term"
 done
 
 guide_terms=(

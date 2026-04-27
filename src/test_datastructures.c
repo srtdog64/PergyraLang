@@ -170,6 +170,9 @@ TestPerformanceComparison(void)
     /* Benchmark SlotPool-based LinkedList */
     printf("Benchmarking SlotPool-based LinkedList:\n");
     metrics = BenchmarkLinkedList(nodeCount, iterations);
+    assert(metrics.allocationTime >= 0.0);
+    assert(metrics.traversalTime >= 0.0);
+    assert(metrics.memoryUtilization > 0.0);
     
     printf("\nSlotPool LinkedList vs Traditional Pointers:\n");
     printf("  Expected cache hit improvement: 20-50%%\n");
@@ -180,7 +183,7 @@ TestPerformanceComparison(void)
     printf("  ✓ Cache-friendly memory layout\n");
     printf("  ✓ No memory fragmentation\n");
     printf("  ✓ Automatic memory management\n");
-    printf("  ✓ Index-based references (no dangling pointers)\n");
+    printf("  ✓ Index-based references with occupancy validation\n");
     printf("  ✓ Memory pool reuse\n");
 }
 
@@ -191,7 +194,6 @@ static void
 TestComplexScenarios(void)
 {
     LinkedList *lists[3];
-    PoolIndex   sharedNode;
     size_t      i, j;
     
     printf("=== Complex Data Structure Scenarios ===\n");
@@ -256,7 +258,7 @@ main(void)
     printf("✅ Cache-friendly data structure layout\n");
     printf("✅ Predictable performance characteristics\n");
     printf("✅ Zero memory fragmentation\n");
-    printf("✅ Index-based references (no dangling pointers)\n");
+    printf("✅ Index-based references with occupancy validation\n");
     printf("✅ Automatic memory pool management\n");
     
     return 0;

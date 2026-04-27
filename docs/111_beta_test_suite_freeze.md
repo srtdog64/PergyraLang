@@ -35,6 +35,9 @@ The beta release candidate must keep these gates green:
 - `make air-drift-test-smoke`
 - `make air-backend-nonimpact-full-test-smoke`
 - `make air-strict-backend-compare-test-smoke`
+- `make codegen-determinism-test-smoke`
+- `make runtime-none-contract-test-smoke`
+- `make raw-escape-contract-test-smoke`
 - `make semantic-inc-size-test-smoke`
 - `make backend-inc-size-test-smoke`
 - `make test-inc-size-test-smoke`

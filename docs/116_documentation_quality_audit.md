@@ -1,6 +1,6 @@
 # Documentation Quality Audit
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 Status: beta-closure support note.
 
@@ -37,7 +37,9 @@ contract; the source-of-truth contracts remain:
 7. `documentation-quality-test-smoke` now scans all `docs/**/*.md` and
    `examples/**/*.pgy` for invalid UTF-8 / replacement characters, and rejects
    anonymous `async { ... }` in executable examples unless the file is explicitly
-   marked as a design sketch.
+   marked as a design sketch. The smoke is intentionally shell-only; it must not
+   require Python or another heavyweight language runtime just to validate beta
+   documentation wording.
 8. `campaign_graph_fsm` exposed an LLVM-only projection freshness drift for
    current-zone subject method calls. The LLVM backend now syncs zone projection
    targets after those calls, and `llvm-campaign-projection-test-smoke` locks the

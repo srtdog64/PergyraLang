@@ -3,9 +3,8 @@
  * All rights reserved.
  *
  * Cross-TU helper declarations for the builtins dispatcher family.
- * Declarations here back defining .inc fragments that are compiled as part
- * of the type_checker_builtins.c TU but are called from sibling TUs
- * (e.g. type_checker_builtins_stdlib_body.c).
+ * Declarations here expose helpers owned by focused builtins translation
+ * units so sibling TUs can share validation without reintroducing .inc seams.
  */
 
 #ifndef PERGYRA_TYPE_CHECKER_BUILTINS_INTERNAL_H

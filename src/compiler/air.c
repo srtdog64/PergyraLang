@@ -1,12 +1,10 @@
 ﻿/*
  * Copyright (c) 2026 Pergyra Language Project
- * AIR (Abstraction Intent Representation) synthesis and drift checks.
+ * AIR (Abstraction Intent Representation) synthesis owner.
  */
 
 #include "air.h"
 #include "air_internal.h"
-
-#include "../semantic/diag_codes.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -137,7 +135,7 @@ air_assign_authority_names(AIRProgram *air,
     return true;
 }
 
-static void
+void
 air_clear_drifts(AIRProgram *air)
 {
     if (air == NULL)
@@ -194,16 +192,6 @@ air_failure_from_dir_step(const DIRIntentStep *step)
 }
 
 static bool
-air_sync_conflicts(AIRSyncClass expected, AIRSyncClass actual)
-{
-    if (expected == AIR_SYNC_UNKNOWN || actual == AIR_SYNC_UNKNOWN)
-        return false;
-    if (expected == AIR_SYNC_EITHER || actual == AIR_SYNC_EITHER)
-        return false;
-    return expected != actual;
-}
-
-static bool
 air_strict_evidence_enabled(void)
 {
     const char *value = getenv("PGY_AIR_STRICT_EVIDENCE");
@@ -214,77 +202,10 @@ air_strict_evidence_enabled(void)
     return true;
 }
 
-static bool
-air_append_drift(AIRProgram *air,
-                 AIRDriftKind kind,
-                 size_t intent_index,
-                 size_t boundary_index,
-                 const char *message,
-                 char **error_message)
-{
-    char *message_copy = air_strdup_owned(message);
-    AIRDrift *next;
-
-    if (message_copy == NULL) {
-        air_set_error(error_message, "AIR drift message allocation failed");
-        return false;
-    }
-    next = (AIRDrift *)realloc(air->drifts, sizeof(AIRDrift) * (air->drift_count + 1));
-    if (next == NULL) {
-        free(message_copy);
-        air_set_error(error_message, "AIR drift allocation failed");
-        return false;
-    }
-    air->drifts = next;
-    air->drifts[air->drift_count].kind = kind;
-    air->drifts[air->drift_count].intent_index = intent_index;
-    air->drifts[air->drift_count].boundary_index = boundary_index;
-    air->drifts[air->drift_count].message = message_copy;
-    air->drift_count++;
-    return true;
-}
-
 bool
 air_name_matches(const char *a, const char *b)
 {
     return a != NULL && b != NULL && strcmp(a, b) == 0;
-}
-
-static bool
-air_format_authority_names(const AIRBoundaryNode *boundary,
-                           char *out,
-                           size_t out_size)
-{
-    size_t used = 0;
-    bool emitted = false;
-
-    if (out == NULL || out_size == 0)
-        return false;
-    out[0] = '\0';
-    if (boundary == NULL || boundary->authority_names == NULL)
-        return false;
-
-    for (size_t i = 0; i < boundary->authority_name_count; i++) {
-        const char *name = boundary->authority_names[i];
-        int written;
-
-        if (name == NULL || name[0] == '\0')
-            continue;
-        written = snprintf(out + used,
-                           out_size - used,
-                           "%s%s",
-                           emitted ? ", " : "",
-                           name);
-        if (written < 0)
-            return emitted;
-        if ((size_t)written >= out_size - used) {
-            out[out_size - 1] = '\0';
-            return true;
-        }
-        used += (size_t)written;
-        emitted = true;
-    }
-    return emitted;
 }
 
 AIRProgram *
@@ -436,115 +357,11 @@ air_synthesize(const HIRProgram *hir,
         return NULL;
     }
 
-    if (!air_validate(air, error_message)) {
-        air_destroy(air);
-        return NULL;
-    }
-    if (!air_check_drift(air, error_message)) {
+    if (!air_verify(air, error_message)) {
         air_destroy(air);
         return NULL;
     }
     return air;
-}
-
-bool
-air_validate(const AIRProgram *air, char **error_message)
-{
-    if (air == NULL) {
-        air_set_error(error_message, "AIR validation requires a program");
-        return false;
-    }
-    for (size_t i = 0; i < air->intent_count; i++) {
-        if (air->intents[i].step_name == NULL) {
-            air_set_error(error_message, "AIR intent node %zu has no step name", i);
-            return false;
-        }
-    }
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        if (air->boundaries[i].kind == AIR_BOUNDARY_UNKNOWN) {
-            air_set_error(error_message, "AIR boundary node %zu has unknown kind", i);
-            return false;
-        }
-        if (air->boundaries[i].intent_index >= air->intent_count) {
-            air_set_error(error_message,
-                          "AIR boundary node %zu references missing intent node %zu",
-                          i,
-                          air->boundaries[i].intent_index);
-            return false;
-        }
-    }
-    return true;
-}
-
-bool
-air_check_drift(AIRProgram *air, char **error_message)
-{
-    if (!air_validate(air, error_message))
-        return false;
-
-    air_clear_drifts(air);
-
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        AIRBoundaryNode *boundary = &air->boundaries[i];
-        AIRIntentNode *intent = &air->intents[boundary->intent_index];
-        if (air_sync_conflicts(intent->sync_class, boundary->sync_class)) {
-            if (!air_append_drift(air,
-                                  AIR_DRIFT_SYNC_ASYNC_CONFLICT,
-                                  boundary->intent_index,
-                                  i,
-                                  PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT
-                                  ": intent sync class conflicts with boundary implementation sync class",
-                                  error_message)) {
-                return false;
-            }
-        }
-        if (air->strict_evidence && !boundary->has_rir_boundary_evidence) {
-            char message[512];
-            snprintf(message,
-                     sizeof(message),
-                     PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR boundary has no matching RIR boundary evidence; implementation boundary '%s' (%s)",
-                     boundary->source_name != NULL ? boundary->source_name : "<unknown>",
-                     air_boundary_kind_name(boundary->kind));
-            if (!air_append_drift(air,
-                                  AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
-                                  boundary->intent_index,
-                                  i,
-                                  message,
-                                  error_message)) {
-                return false;
-            }
-        }
-        if (air->strict_evidence
-            && boundary->authority_required
-            && !boundary->has_rir_authority_evidence) {
-            char authority_names[256];
-            char message[512];
-            const char *drift_message =
-                PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                ": AIR authority boundary has no matching RIR authority evidence";
-
-            if (air_format_authority_names(boundary,
-                                           authority_names,
-                                           sizeof(authority_names))) {
-                snprintf(message,
-                         sizeof(message),
-                         PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                         ": AIR authority boundary has no matching RIR authority evidence; expected authority participant(s): %s",
-                         authority_names);
-                drift_message = message;
-            }
-            if (!air_append_drift(air,
-                                  AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
-                                  boundary->intent_index,
-                                  i,
-                                  drift_message,
-                                  error_message)) {
-                return false;
-            }
-        }
-    }
-    return true;
 }
 
 void

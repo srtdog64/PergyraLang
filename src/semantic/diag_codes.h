@@ -42,6 +42,10 @@
 #define PGY_CODE_PARSE_SYNTAX                   "PGY_PARSE_SYNTAX"
 #define PGY_CODE_LEX_INVALID_TOKEN              "PGY_LEX_INVALID_TOKEN"
 
+/* --- Driver / CLI contract (PGY_DRIVER_*) --- */
+#define PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED \
+                                                "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED"
+
 /* --- Semantic (PGY_SEM_*) --- */
 #define PGY_CODE_SEM_TYPE_MISMATCH              "PGY_SEM_TYPE_MISMATCH"
 #define PGY_CODE_SEM_BINOP_TYPE_MISMATCH        "PGY_SEM_BINOP_TYPE_MISMATCH"
@@ -93,6 +97,7 @@
 #define PGY_CODE_SEM_PIN_AWAIT_BOUNDARY         "PGY_SEM_PIN_AWAIT_BOUNDARY"
 #define PGY_CODE_SEM_PIN_QUBIT_REJECT           "PGY_SEM_PIN_QUBIT_REJECT"
 #define PGY_CODE_SEM_PIN_TOKEN_INVALID          "PGY_SEM_PIN_TOKEN_INVALID"
+#define PGY_CODE_SEM_RAW_ESCAPE_UNSTABLE        "PGY_SEM_RAW_ESCAPE_UNSTABLE"
 
 /* --- MIR (PGY_MIR_*) --- */
 #define PGY_CODE_MIR_INTENT_CARRIER_MISSING     "PGY_MIR_INTENT_CARRIER_MISSING"
@@ -100,6 +105,9 @@
 #define PGY_CODE_MIR_SSA_LIMIT                  "PGY_MIR_SSA_LIMIT"
 #define PGY_CODE_MIR_TOPOLOGY_INVALID           "PGY_MIR_TOPOLOGY_INVALID"
 #define PGY_CODE_MIR_UNRESOLVED_LOCAL           "PGY_MIR_UNRESOLVED_LOCAL"
+
+/* --- AIR verifier (PGY_AIR_*) --- */
+#define PGY_CODE_AIR_INVARIANT_INVALID          "PGY_AIR_INVARIANT_INVALID"
 
 /* --- LLVM backend (PGY_LLVM_*) --- */
 #define PGY_CODE_LLVM_OOM                       "PGY_LLVM_OOM"
@@ -115,12 +123,16 @@
  * cause_ir routing tags
  *
  * Namespace: <stage>:<area>:<specific>
- * Stages: semantic, mir, llvm, c, parse, lex, io
+ * Stages: semantic, mir, llvm, c, parse, lex, io, driver
  * ================================================================= */
 
 /* --- Parse / lex --- */
 #define PGY_CAUSE_PARSE_UNEXPECTED_TOKEN        "parse:unexpected_token"
 #define PGY_CAUSE_LEX_INVALID_TOKEN             "lex:invalid_token"
+
+/* --- Driver / CLI contract --- */
+#define PGY_CAUSE_DRIVER_RUNTIME_NONE_UNSUPPORTED \
+                                                "driver:runtime:none_unsupported"
 
 /* --- Semantic: contracts --- */
 #define PGY_CAUSE_ABILITY_CONTRACT              "semantic:ability_contract"
@@ -160,6 +172,7 @@
 #define PGY_CAUSE_PIN_AWAIT_BOUNDARY            "semantic:pin:await_boundary"
 #define PGY_CAUSE_PIN_QUBIT_REJECT              "semantic:pin:qubit_reject"
 #define PGY_CAUSE_PIN_TOKEN_INVALID             "semantic:pin:token_invalid"
+#define PGY_CAUSE_RAW_ESCAPE_UNSTABLE           "semantic:raw_escape:unstable"
 
 /* --- Semantic: ownership / move / handles --- */
 #define PGY_CAUSE_BORROW_ESCAPE                 "semantic:borrow_escape"
@@ -269,6 +282,9 @@
 #define PGY_CAUSE_MIR_TOPOLOGY_INVALID          "mir:topology:invalid"
 #define PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING  "mir:topology:routine_missing_or_malformed"
 
+/* --- AIR --- */
+#define PGY_CAUSE_AIR_INVARIANT_INVALID         "air:invariant:invalid"
+
 /* --- C backend --- */
 #define PGY_CAUSE_C_TYPE_UNSUPPORTED            "c_codegen:type:unsupported"
 #define PGY_CAUSE_C_MIR_TOPOLOGY_INVALID        "c_codegen:mir:topology_invalid"
@@ -358,6 +374,8 @@
 #define PGY_FIX_USE_OWN_SECURE_SLOT             "use-own-secure-slot"
 #define PGY_FIX_USE_SLOT_BOUND_IDENTIFIER       "use-slot-bound-identifier"
 #define PGY_FIX_USE_SUPPORTED_PARAM_TYPE        "use-supported-param-type"
+#define PGY_FIX_USE_DEFAULT_RUNTIME_OR_REMOVE_RUNTIME_SURFACE \
+                                                "use-default-runtime-or-remove-runtime-surface"
 #define PGY_FIX_PASS_DEVICE_SLOT                "pass-device-slot"
 #define PGY_FIX_PASS_OWNING_SLOT                "pass-owning-slot"
 #define PGY_FIX_PROVIDE_MOVABLE_HANDLE          "provide-movable-handle"
@@ -415,6 +433,8 @@
 #define PGY_FIX_END_PIN_BEFORE_AWAIT            "end-pin-before-await"
 #define PGY_FIX_DO_NOT_PIN_QUBIT                "do-not-pin-qubit"
 #define PGY_FIX_PROVIDE_VALID_PIN_TOKEN         "provide-valid-pin-token"
+#define PGY_FIX_USE_PIN_OR_WAIT_FOR_RAW_ESCAPE_CONTRACT \
+                                                "use-pin-or-wait-for-raw-escape-contract"
 #define PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER "widen-visibility-or-move-caller"
 
 #endif /* PGY_DIAG_CODES_H */

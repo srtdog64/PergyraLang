@@ -1,6 +1,6 @@
 # AIR Abstraction Safety
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 Status: `beta-proof-obligation`
 
@@ -60,6 +60,20 @@ World-handoff evidence is operation-sensitive. If an AIR `World` boundary is
 derived from `transfer: from -> to`, matching the enclosing RIR intent/world
 scope is insufficient by itself; AIR requires RIR `Move` or `Claim` evidence for
 the boundary source alias.
+
+`AIR well_formed`
+
+The AIR graph must be structurally valid before drift facts are meaningful.
+Intent owner/step names and boundary owner/source names are non-empty, each
+boundary references an existing intent, each boundary owner equals the
+referenced intent owner, each boundary step index equals the referenced intent
+step index, and boundary sync shape is frozen: world, parallel, and channel
+boundaries are async; IO boundaries are either-sync; zone boundaries may reflect
+the enclosing step's sync class. Existing drift inventory is also checked before
+recomputation: a drift node must have a concrete drift kind, valid
+intent/boundary references, and a non-empty message. Violations are
+`PGY_AIR_INVARIANT_INVALID` compiler IR failures, not user-correctable semantic
+drift.
 
 ## Theorem: AIR Synthesis Read-Only
 
@@ -129,6 +143,12 @@ represented by at least one AIR `Boundary Node`.
   no location, so boundary diagnostics do not lose source provenance. `air_dump`
   prints the same per-boundary evidence provenance names, and the AIR unit suite
   gates that debug surface so it cannot regress to boolean-only evidence output.
+- **Well-formedness gate**: `src/compiler/air_verify.c` rejects empty intent or
+  boundary names, boundary-owner mismatch, step-index mismatch, and invalid
+  boundary sync-shape before drift computation. It also rejects invalid stale
+  drift inventory before recomputing. `src/test_air.c` carries direct negative
+  tests for owner mismatch, world-boundary sync-shape mismatch, and invalid
+  drift inventory.
 - **Remaining obligation**: extend this parsed-source negative coverage to
   sync/async transfer drift once HIR/RIR can express that mismatch without
   earlier semantic rejection.
@@ -140,8 +160,8 @@ boundary lacks either RIR boundary evidence or required RIR authority evidence.
 
 - **Reason**: abstraction safety cannot be beta-trusted if an intent boundary can
   pass without lowering-visible boundary or authority proof.
-- **Evidence**: `src/compiler/air.c` checks each boundary's RIR evidence flags
-  by default, and `src/test_air.c` covers strict-evidence missing-boundary,
+- **Evidence**: `src/compiler/air_verify.c` checks each boundary's RIR evidence
+  flags by default, and `src/test_air.c` covers strict-evidence missing-boundary,
   mismatched-authority, world-boundary-without-transfer-op drifts, and
   parsed-source transfer with zone missing-authority evidence while preserving
   world transfer evidence.
@@ -193,11 +213,27 @@ AIR validation does not directly change C or LLVM output.
 
 AIR Phase 1 is beta-complete only when all of these are true:
 
-- `src/compiler/air.{h,c}` keeps independent AIR data structures and read-only
-  synthesis.
+- `src/compiler/air.h` keeps independent AIR data structures,
+  `src/compiler/air.c` keeps read-only synthesis, and
+  `src/compiler/air_verify.c` keeps global validation/drift ownership.
+- `air_verify(...)` is the global AIR validation entry point. It validates AIR
+  inventory invariants, evidence provenance invariants, and drift/evidence
+  failures before MIR lowering. `air_check_drift(...)` is only a compatibility
+  wrapper over `air_verify(...)`.
+- AIR inventory validation rejects non-zero intent/boundary/drift counts without
+  backing arrays and rejects a boundary whose `step_index` no longer matches
+  the referenced intent node. These are validation failures, not drift facts.
+- RIR authority evidence is accepted only when the same boundary already has RIR
+  boundary evidence and is authority-required. Boolean-only authority evidence
+  on an unrelated boundary is rejected as invalid AIR inventory.
+- Invalid AIR inventory is diagnosed with `PGY_AIR_INVARIANT_INVALID`, not with
+  semantic intent drift codes. This keeps compiler IR contract failures separate
+  from user-correctable abstraction mismatch.
 - `src/test_air.c` covers pass and drift cases.
 - AIR synthesis includes stable intent-step execution-boundary AST scanning for
   `spawn` / `async` / `parallel`, `channel` / `select`, and known IO calls.
+  `src/test_air.c` covers the stable execution boundary set directly, not only
+  IO and spawn.
 - `PGY_SEM_INTENT_BOUNDARY_DRIFT` is registered and documented.
 - `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING` is registered, documented, and
   tested under strict evidence mode.

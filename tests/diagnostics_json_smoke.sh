@@ -844,6 +844,8 @@ if "$PGY" "$SPEC_SRC" --backend=llvm --error-format=json -o "$SPEC_OBJ" \
         >/dev/null 2>"$SPEC_ERR"; then
     # If the LLVM backend isn't wired or the spec limit was raised, skip.
     echo "[diag-json] spec-limit: SKIP (backend did not exercise MAX_LLVM_RESULT_SPECS)"
+elif grep -Fq "compiled without LLVM backend support" "$SPEC_ERR"; then
+    echo "[diag-json] spec-limit: SKIP (compiler built without LLVM backend support)"
 else
     check_json "spec-limit" "$SPEC_ERR" \
       'isinstance(data, list) and any(d.get("code") == "PGY_LLVM_SPEC_LIMIT" and d.get("stage") == "llvm_codegen" for d in data)'

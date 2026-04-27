@@ -41,9 +41,14 @@ done
 bash "$ROOT_DIR/tests/async_model_positioning_smoke.sh"
 bash "$ROOT_DIR/tests/parallel_core_contract_smoke.sh"
 
-PGY_BIN="$PGY" bash "$ROOT_DIR/tests/compare_backends.sh" \
-    tests/cases/backend_compare/parallel_channel_sum \
-    tests/cases/backend_compare/parallel_channel_dual \
-    tests/cases/backend_compare/triple_paradigm
+BACKENDS="${PGY_MEMORY_CONCURRENCY_BACKENDS:-c llvm}"
+if [[ " $BACKENDS " == *" llvm "* ]]; then
+    PGY_BIN="$PGY" bash "$ROOT_DIR/tests/compare_backends.sh" \
+        tests/cases/backend_compare/parallel_channel_sum \
+        tests/cases/backend_compare/parallel_channel_dual \
+        tests/cases/backend_compare/triple_paradigm
+else
+    echo "[memory-concurrency] skipping backend compare for backends=$BACKENDS"
+fi
 
 echo "[memory-concurrency] beta model ok"

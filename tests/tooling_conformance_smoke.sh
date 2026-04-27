@@ -24,6 +24,18 @@ if [[ ! -x "$PGY_LSP" ]]; then
     exit 1
 fi
 
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python3)"
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python)"
+    else
+        echo "tooling conformance requires python3 or python for the LSP JSON-RPC harness" >&2
+        exit 1
+    fi
+fi
+
 PGY_BIN="$PGY" PGY_CC="${PGY_CC:-cc}" bash "$ROOT_DIR/tests/fmt_smoke.sh" >/dev/null
 
 DEBUG_SOURCE="$WORK_DIR/debug_case.pgy"
@@ -45,7 +57,7 @@ if grep -Fq "pgy debug:" "$WORK_DIR/debug.err"; then
     exit 1
 fi
 
-python3 - "$PGY_LSP" "$WORK_DIR/lsp.out" <<'PY'
+"$PYTHON_BIN" - "$PGY_LSP" "$WORK_DIR/lsp.out" <<'PY'
 import json
 import subprocess
 import sys

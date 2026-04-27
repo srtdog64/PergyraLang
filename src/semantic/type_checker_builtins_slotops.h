@@ -14,6 +14,7 @@ builtin_resolve(const char *name)
     if (strcmp(name, "DeviceRead")      == 0) return BUILTIN_DEVICE_READ;
     if (strcmp(name, "ReleaseDeviceSlot") == 0) return BUILTIN_RELEASE_DEVICE_SLOT;
     if (strcmp(name, "SubmitDeviceRead") == 0) return BUILTIN_SUBMIT_DEVICE_READ;
+    if (strcmp(name, "SlotRawPointer") == 0) return BUILTIN_SLOT_RAW_POINTER;
     if (strcmp(name, "Log")             == 0) return BUILTIN_LOG;
     if (strcmp(name, "LogBanner")       == 0) return BUILTIN_LOG_BANNER;
     if (strcmp(name, "LogBlock")        == 0) return BUILTIN_LOG_BLOCK;

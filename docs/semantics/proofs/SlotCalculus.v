@@ -21,12 +21,14 @@ Definition SlotId := nat.
 Definition Generation := nat.
 Definition Token := nat. (* Abstract Cryptographic Token *)
 Definition Value := nat.
+Parameter MaxSlotId : SlotId.
 
 Inductive AccessMode : Type :=
   | ModeRead : AccessMode
   | ModeWrite : AccessMode
   | ModeRelease : AccessMode
-  | ModePin : AccessMode.
+  | ModePin : AccessMode
+  | ModeClaim : AccessMode.
 
 Inductive PinState : Type :=
   | Unpinned : PinState
@@ -41,6 +43,11 @@ Record Slot : Type := mkSlot {
 Record Handle : Type := mkHandle {
   h_slot : SlotId;
   h_gen : Generation
+}.
+
+Record PinnedView : Type := mkPinnedView {
+  v_slot : SlotId;
+  v_gen : Generation
 }.
 
 (* 
@@ -62,6 +69,12 @@ Parameter verify_token : Token -> SlotId -> Generation -> AccessMode -> bool.
 Definition update_heap (h: Heap) (id: SlotId) (s: option Slot) : Heap :=
   fun x => if Nat.eqb x id then s else h x.
 
+Definition ValidSlotId (id: SlotId) : Prop :=
+  id <> 0 /\ id <> MaxSlotId.
+
+Definition FreshSlotId (h: Heap) (id: SlotId) : Prop :=
+  h id = None /\ ValidSlotId id.
+
 (* ========================================== *)
 (* 2. Operational Semantics (State Transitions)*)
 (* ========================================== *)
@@ -71,6 +84,14 @@ Definition update_heap (h: Heap) (id: SlotId) (s: option Slot) : Heap :=
   in the Pergyra Memory Model.
 *)
 Inductive Step (h: Heap) (caps: CapEnv) : Heap -> Prop :=
+
+  (* Rule 0: Claim (fresh non-sentinel id; tombstone at zero/wrap boundary) *)
+  | Step_Claim : forall id tok h',
+      FreshSlotId h id ->
+      caps tok = true ->
+      verify_token tok id 1 ModeClaim = true ->
+      h' = update_heap h id (Some (mkSlot 0 1 Unpinned)) ->
+      Step h caps h'
   
   (* Rule 1: Read (Zero-state-change, requires Token verification) *)
   | Step_Read : forall id s tok,
@@ -141,6 +162,12 @@ Definition HandleRelease (h: Heap) (caps: CapEnv) (handle: Handle) (tok: Token) 
     s_pin s = Unpinned /\
     caps tok = true /\
     verify_token tok (h_slot handle) (h_gen handle) ModeRelease = true.
+
+Definition ViewUnpin (h: Heap) (view: PinnedView) : Prop :=
+  exists s,
+    h (v_slot view) = Some s /\
+    v_gen view = s_gen s /\
+    s_pin s = Pinned.
 
 (* ========================================== *)
 (* 3. Core Theorems & Lemmas                  *)
@@ -283,6 +310,66 @@ Proof.
   discriminate.
 Qed.
 
+Lemma claim_requires_valid_slot_id : forall h id,
+  FreshSlotId h id ->
+  ValidSlotId id.
+Proof.
+  intros h id H_fresh.
+  unfold FreshSlotId in H_fresh.
+  destruct H_fresh as [_ H_valid].
+  exact H_valid.
+Qed.
+
+Lemma zero_slot_id_claim_impossible : forall h,
+  ~ FreshSlotId h 0.
+Proof.
+  intros h H_fresh.
+  apply claim_requires_valid_slot_id in H_fresh.
+  unfold ValidSlotId in H_fresh.
+  destruct H_fresh as [H_nonzero _].
+  apply H_nonzero.
+  reflexivity.
+Qed.
+
+Lemma max_slot_id_claim_impossible : forall h,
+  ~ FreshSlotId h MaxSlotId.
+Proof.
+  intros h H_fresh.
+  apply claim_requires_valid_slot_id in H_fresh.
+  unfold ValidSlotId in H_fresh.
+  destruct H_fresh as [_ H_not_max].
+  apply H_not_max.
+  reflexivity.
+Qed.
+
+Lemma tampered_view_unpin_impossible : forall h view s,
+  h (v_slot view) = Some s ->
+  v_gen view <> s_gen s ->
+  ~ ViewUnpin h view.
+Proof.
+  intros h view s H_slot H_stale H_unpin.
+  unfold ViewUnpin in H_unpin.
+  destruct H_unpin as [unpin_slot [H_unpin_slot [H_unpin_gen _]]].
+  rewrite H_slot in H_unpin_slot.
+  inversion H_unpin_slot; subst.
+  apply H_stale.
+  exact H_unpin_gen.
+Qed.
+
+Lemma double_unpin_impossible : forall h view s,
+  h (v_slot view) = Some s ->
+  s_pin s = Unpinned ->
+  ~ ViewUnpin h view.
+Proof.
+  intros h view s H_slot H_unpinned H_unpin.
+  unfold ViewUnpin in H_unpin.
+  destruct H_unpin as [unpin_slot [H_unpin_slot [_ H_pinned]]].
+  rewrite H_slot in H_unpin_slot.
+  inversion H_unpin_slot; subst.
+  rewrite H_unpinned in H_pinned.
+  discriminate.
+Qed.
+
 Lemma pinned_handle_release_impossible : forall h caps handle s tok,
   h (h_slot handle) = Some s ->
   s_pin s = Pinned ->
@@ -309,12 +396,23 @@ Lemma pin_non_eviction : forall h caps id s h',
 Proof.
   intros h caps pinned_id pinned_slot next_heap H_some H_pinned H_step H_none.
   destruct H_step as
-    [ read_id read_slot tok H_read H_cap H_verify
+    [ claim_id tok claim_heap H_fresh H_cap H_verify H_heap
+    | read_id read_slot tok H_read H_cap H_verify
     | write_id write_slot tok value write_heap H_write H_cap H_verify H_heap
     | pin_id pin_slot tok pin_heap H_pin H_cap H_verify H_unpinned H_heap
     | unpin_id unpin_slot unpin_heap H_unpin H_was_pinned H_heap
     | release_id release_slot tok release_heap H_release H_cap H_verify H_unpinned H_heap
     ]; subst.
+
+  - (* Step_Claim: claim requires a fresh id, so it cannot overwrite an
+       already-allocated pinned slot. *)
+    unfold update_heap in H_none.
+    destruct (Nat.eqb pinned_id claim_id) eqn:E_eq.
+    + apply Nat.eqb_eq in E_eq. subst.
+      unfold FreshSlotId in H_fresh.
+      destruct H_fresh as [H_empty _].
+      rewrite H_some in H_empty. discriminate.
+    + rewrite H_some in H_none. discriminate.
 
   - (* Step_Read: the heap is unchanged. *)
     rewrite H_some in H_none. discriminate.

@@ -21,6 +21,12 @@ typedef enum
     DIAG_FORMAT_JSON    /* Machine-readable: JSON array of diagnostic objects */
 } DiagnosticFormat;
 
+typedef enum
+{
+    RUNTIME_DEFAULT,
+    RUNTIME_NONE
+} RuntimeMode;
+
 typedef struct
 {
     double module_load;
@@ -60,6 +66,7 @@ typedef struct
     BackendKind backend;
     PgyOptProfile opt_profile;
     DiagnosticFormat diag_format;  /* --error-format=text|json (default text) */
+    RuntimeMode runtime_mode;       /* --runtime=default|none */
 } DriverFlags;
 
 int  driver_run_pipeline(const DriverFlags *flags);

@@ -1,0 +1,100 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Slot manager security audit/statistics helpers.
+ */
+
+#include "slot_manager.h"
+
+#include <stdio.h>
+#include <time.h>
+
+void
+SlotManagerLogSecurityEvent(SlotManager *manager, const char *event,
+                            uint32_t slotId, const char *details)
+{
+    time_t now;
+    struct tm *tmNow;
+    char timestamp[32];
+
+    if (manager == NULL || event == NULL || !SlotManagerIsSecurityEnabled(manager))
+        return;
+
+    now = time(NULL);
+    tmNow = localtime(&now);
+    if (tmNow != NULL)
+        strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tmNow);
+    else
+        snprintf(timestamp, sizeof(timestamp), "time-unavailable");
+
+    printf("[SECURITY] %s slot=%u event=%s details=%s\n",
+           timestamp, slotId, event, details != NULL ? details : "n/a");
+
+    if (manager->securityContext != NULL)
+        SecurityAuditLog(manager->securityContext, event, details);
+}
+
+bool
+SlotManagerDetectAnomalies(SlotManager *manager)
+{
+    size_t i;
+    bool anomalyDetected = false;
+    uint64_t nowUs;
+
+    if (manager == NULL || !SlotManagerIsSecurityEnabled(manager))
+        return false;
+
+    if (manager->securityViolations > 0)
+        anomalyDetected = true;
+
+    nowUs = SecureTimestamp();
+    for (i = 0; i < manager->tableSize; i++) {
+        SlotEntry *entry = &manager->slotTable[i];
+        if (!entry->occupied || !entry->securityEnabled)
+            continue;
+        if (entry->accessCount > 1000 &&
+            nowUs > entry->lastAccessTime &&
+            (nowUs - entry->lastAccessTime) < 1000000ULL) {
+            anomalyDetected = true;
+        }
+    }
+
+    if (manager->securityContext != NULL)
+        anomalyDetected |= SecurityDetectAnomalies(manager->securityContext);
+
+    return anomalyDetected;
+}
+
+void
+SlotManagerPrintSecurityStats(const SlotManager *manager)
+{
+    size_t active = 0;
+    size_t secure = 0;
+    size_t i;
+
+    if (manager == NULL) {
+        printf("SlotManager is NULL\n");
+        return;
+    }
+
+    for (i = 0; i < manager->tableSize; i++) {
+        if (!manager->slotTable[i].occupied)
+            continue;
+        active++;
+        if (manager->slotTable[i].securityEnabled)
+            secure++;
+    }
+
+    printf("=== Slot Manager Security Statistics ===\n");
+    printf("Security enabled: %s\n",
+           SlotManagerIsSecurityEnabled(manager) ? "Yes" : "No");
+    printf("Default level: %d\n", (int)manager->defaultSecurityLevel);
+    printf("Security violations: %llu\n",
+           (unsigned long long)manager->securityViolations);
+    printf("Active slots: %zu\n", active);
+    printf("Secure slots: %zu\n", secure);
+    if (manager->securityContext != NULL)
+        SecurityPrintStatistics(manager->securityContext);
+    printf("========================================\n");
+}

@@ -136,7 +136,7 @@ int main(void)
     printf("Historical overflow regressions covered:\n");
     printf("  - src/compiler/import_resolver.c bounded formatting\n");
     printf("  - src/semantic/type_system.c exact-size type name building\n");
-    printf("  - src/codegen/transpiler_expr_emitters.inc dynamic qualified-name building\n");
+    printf("  - src/codegen/transpiler_call_constructor_result_emit.h dynamic qualified-name building\n");
     printf("  - src/compiler/path_utils.c bounded extension replacement\n");
     printf("\nAll 4 regression checks completed.\n");
     

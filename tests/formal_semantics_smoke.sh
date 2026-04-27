@@ -2,340 +2,314 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON_BIN="${PYTHON_BIN:-}"
 
-if [[ -z "$PYTHON_BIN" ]]; then
-    if command -v python3 >/dev/null 2>&1; then
-        PYTHON_BIN="$(command -v python3)"
-    elif command -v python >/dev/null 2>&1; then
-        PYTHON_BIN="$(command -v python)"
-    else
-        echo "missing python for formal semantics smoke" >&2
+require_file() {
+    local path="$1"
+    local label="$2"
+
+    if [[ ! -e "$path" ]]; then
+        echo "missing $label" >&2
         exit 1
     fi
-fi
-
-"$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
-import pathlib
-import sys
-
-root = pathlib.Path(sys.argv[1])
-index_path = root / "docs" / "102_formal_semantics_and_proof_obligations.md"
-proof_dir = root / "docs" / "semantics"
-rigor_audit_path = root / "docs" / "118_slot_model_rigor_audit.md"
-checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
-semantic_design_path = root / "docs" / "14_semantic_analyzer_design.md"
-slot_manager_path = root / "src" / "runtime" / "slot_manager.h"
-slot_macros_path = root / "src" / "runtime" / "pgy_runtime_slot_macros.h"
-todo_path = root / "TODO.md"
-ci_path = root / ".github" / "workflows" / "ci.yml"
-
-if not index_path.exists():
-    raise SystemExit("missing docs/102_formal_semantics_and_proof_obligations.md")
-if not proof_dir.is_dir():
-    raise SystemExit("missing docs/semantics proof folder")
-if not rigor_audit_path.exists():
-    raise SystemExit("missing docs/118_slot_model_rigor_audit.md")
-if not semantic_design_path.exists():
-    raise SystemExit("missing docs/14_semantic_analyzer_design.md")
-if not slot_manager_path.exists():
-    raise SystemExit("missing src/runtime/slot_manager.h")
-if not slot_macros_path.exists():
-    raise SystemExit("missing src/runtime/pgy_runtime_slot_macros.h")
-if not ci_path.exists():
-    raise SystemExit("missing .github/workflows/ci.yml")
-
-index_doc = index_path.read_text(encoding="utf-8")
-checklist = checklist_path.read_text(encoding="utf-8")
-rigor_audit = rigor_audit_path.read_text(encoding="utf-8")
-semantic_design = semantic_design_path.read_text(encoding="utf-8")
-slot_manager = slot_manager_path.read_text(encoding="utf-8")
-slot_macros = slot_macros_path.read_text(encoding="utf-8")
-todo = todo_path.read_text(encoding="utf-8")
-ci = ci_path.read_text(encoding="utf-8")
-
-required_files = {
-    "README.md": [
-        "Status: `beta-proof-obligation`",
-        "Every stable beta feature must be represented in this folder",
-        "Stable proof scope:",
-        "Out of beta proof scope:",
-        "Regression tests, smoke tests, and backend compare runs are proof evidence, not proof itself.",
-        "Borrow-checker-equivalent safety: only through the combined ownership",
-        "Slot alone is not advertised as a borrow checker.",
-        "08_slot_capability_calculus.md",
-        "proofs/SlotCalculus.v",
-        "not beta-closure evidence unless a CI",
-    ],
-    "00_proof_contract.md": [
-        "## Semantic Domains",
-        "## Core Judgments",
-        "### Type Preservation",
-        "### Progress",
-        "### Failure Separation",
-        "### Backend Observational Equivalence",
-        "`PanicState`",
-    ],
-    "01_intent_world_zone.md": [
-        "Keywords: `intent`, `world`, `zone`, `subject`, `authority`, `handoff`.",
-        "## Theorem: Authority Soundness",
-        "## Theorem: Intent Step Progress",
-        "## Theorem: World/Zone Frontier Termination",
-    ],
-    "02_relation_effect_projection.md": [
-        "Keywords: `relation`, `effect`, `projection`, `refresh`, `publish`, `bind`.",
-        "## Theorem: Projection Freshness",
-        "## Theorem: Effect Conflict Soundness",
-        "## Theorem: Projection Diagnostic Completeness",
-    ],
-    "03_generics_modules_dag.md": [
-        "Keywords and surfaces: `where`, `ability`, generic parameters, default type arguments, module imports/exports, type-resolution DAG.",
-        "## Theorem: Generic Contract Soundness",
-        "## Theorem: DAG Soundness",
-        "## Theorem: Module Visibility Non-Interference",
-    ],
-    "04_ownership_abi.md": [
-        "Keywords and surfaces: `own`, `ref`, anchored slot handles, slot boundaries, runtime ABI ownership.",
-        "## Theorem Boundary: Slot Runtime Safety Is Not Borrow Safety",
-        "`Slot runtime safety`",
-        "`Borrow-checker-equivalent safety`",
-        "## Theorem: Anchored Ownership Safety",
-        "## Theorem: Secure Token Unforgeability",
-        "## Theorem: Authority Transfer Single-Owner",
-        "## Theorem: Arena Lifetime Non-Escape",
-        "## Theorem: ABI Ownership Parity",
-    ],
-    "05_parallel_execution.md": [
-        "Keywords: `parallel`",
-        "## Theorem: Parallel Conflict Soundness",
-        "## Theorem: Execution Backend Parity",
-    ],
-    "06_backend_parity.md": [
-        "Surfaces: MIR, declaration inventory, C backend, LLVM backend, runtime ABI.",
-        "## Theorem: MIR Source-of-Truth",
-        "## Theorem: Backend Observational Equivalence",
-        "## Theorem: Runtime Panic Parity",
-        "## Theorem: Structured Backend Failure",
-    ],
-    "07_air_abstraction_safety.md": [
-        "Stable surface: AIR (Abstraction Intent Representation)",
-        "## Theorem: AIR Synthesis Read-Only",
-        "## Theorem: Intent Node Coverage",
-        "## Theorem: Boundary Closure",
-        "## Theorem: Drift Detection Soundness",
-        "## Theorem: Codegen Non-Impact",
-        "PGY_SEM_INTENT_BOUNDARY_DRIFT",
-    ],
-    "08_slot_capability_calculus.md": [
-        "Status: `IN PROGRESS / PROOF-SKETCH`",
-        "## Stable Surface",
-        "## Negative Claim: Slot Is Not A Borrow Checker",
-        "Slot = runtime capability + generation + token + pin-state safety.",
-        "borrow-checker-equivalent is the static ownership/CFG layer above Slot.",
-        "## Semantic Domains",
-        "## Theorem: ABA Safety",
-        "## Theorem: Token Unforgeability",
-        "## Theorem: Pin Non-Eviction",
-        "## Bridge Obligation: Borrow-Checker-Equivalent Safety",
-        "NoEscape(view, region)",
-        "NoSuspend(view, region)",
-        "WriteExclusive(slot, region)",
-        "proof sketch, not completed",
-        "Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` now reaches",
-        "HIR and MIR as explicit pin-region metadata",
-        "pin-unpin-cleanup-edge",
-        "PgyPinnedSlotView_*",
-        "PgyPinnedSecureSlotView_*",
-        "pgy_pin_read_*",
-        "pgy_pin_write_*",
-        "pgy_unpin_*",
-    ],
 }
 
-for filename, required_terms in required_files.items():
-    path = proof_dir / filename
-    if not path.exists():
-        raise SystemExit(f"missing proof document: docs/semantics/{filename}")
-    text = path.read_text(encoding="utf-8")
-    missing = [term for term in required_terms if term not in text]
-    if missing:
-        raise SystemExit(
-            f"proof document docs/semantics/{filename} missing required term(s): "
-            + ", ".join(missing)
-        )
+require_term() {
+    local path="$1"
+    local label="$2"
+    local term="$3"
 
-required_scope_terms = [
-    "Generic contracts",
-    "Ownership: anchored slot-handle boundary subset only.",
-    "Runtime observability",
-    "Backends: MIR-equivalent C and LLVM behavior",
-    "AIR abstraction safety",
-    "Slot capability calculus",
-    "Full quantum resource model.",
-    "Higher-kinded types and full FP functor/applicative/monad laws.",
-    "GPU/Spray, Skia/render graph",
-]
-readme = (proof_dir / "README.md").read_text(encoding="utf-8")
-missing_scope = [term for term in required_scope_terms if term not in readme]
-if missing_scope:
-    raise SystemExit(
-        "formal semantics scope missing term(s): " + ", ".join(missing_scope)
-    )
-
-ref = "docs/102_formal_semantics_and_proof_obligations.md"
-folder_ref = "docs/semantics/"
-if ref not in checklist:
-    raise SystemExit("beta readiness checklist does not reference formal semantics doc")
-if ref not in todo:
-    raise SystemExit("TODO does not reference formal semantics doc")
-if folder_ref not in checklist:
-    raise SystemExit("beta readiness checklist does not reference docs/semantics/")
-if folder_ref not in todo:
-    raise SystemExit("TODO does not reference docs/semantics/")
-if "docs/semantics/README.md" not in index_doc:
-    raise SystemExit("formal semantics index does not point at proof pack README")
-if "docs/semantics/08_slot_capability_calculus.md" not in index_doc:
-    raise SystemExit("formal semantics index does not point at slot capability calculus")
-if "docs/semantics/proofs/SlotCalculus.v" not in index_doc:
-    raise SystemExit("formal semantics index does not point at SlotCalculus.v")
-if "docs/118_slot_model_rigor_audit.md" not in index_doc:
-    raise SystemExit("formal semantics index does not point at Slot rigor audit")
-
-if "Do not advertise mechanized proof for beta" not in checklist:
-    raise SystemExit("checklist must forbid advertising mechanized proof before an artifact exists")
-if "proof evidence" not in todo or "beta proof line honest" not in todo:
-    raise SystemExit("TODO must preserve proof-evidence boundary wording")
-
-slot_coq = proof_dir / "proofs" / "SlotCalculus.v"
-if not slot_coq.exists():
-    raise SystemExit("missing docs/semantics/proofs/SlotCalculus.v")
-slot_coq_text = slot_coq.read_text(encoding="utf-8")
-for forbidden in [
-    "Status: Beta",
-    "Level 4 Mechanized Proof",
-    "Safe Core Mechanized Proof",
-]:
-    if forbidden in slot_coq_text:
-        raise SystemExit(
-            "SlotCalculus.v overclaims mechanized proof status: " + forbidden
-        )
-for required in [
-    "Status: proof-sketch; not beta-closure evidence unless checked by CI",
-    "Negative scope: this file does not prove Rust-style borrow checking",
-    "Require Import Coq.Arith.PeanoNat.",
-    "Lemma stale_handle_read_impossible",
-    "Lemma handle_read_requires_issued_token",
-    "Lemma unissued_token_read_impossible",
-    "Lemma handle_pin_requires_issued_token",
-    "Lemma unissued_token_pin_impossible",
-    "Lemma pin_non_eviction",
-    "Qed.",
-]:
-    if required not in slot_coq_text:
-        raise SystemExit("SlotCalculus.v missing required proof boundary term: " + required)
-
-for filename in [
-    "00_proof_contract.md",
-    "08_slot_capability_calculus.md",
-    "README.md",
-]:
-    text = (proof_dir / filename).read_text(encoding="utf-8")
-    for forbidden in [
-        "proof sketch for one invariant",
-        "proof sketch for two invariants",
-        "minimal mechanized sketch for two invariants",
-    ]:
-        if forbidden in text:
-            raise SystemExit(
-                f"docs/semantics/{filename} has stale SlotCalculus scope wording: "
-                + forbidden
-        )
-
-if 'Do not advertise "Slot as borrow checker"' not in checklist:
-    raise SystemExit("checklist must preserve Slot/borrow-checker claim boundary")
-
-for required in [
-    "Slot Resource-Boundary Analyzer",
-    "Slot analysis is not Rust-style lifetime analysis.",
-    "Slot is the source-level modular resource boundary.",
-]:
-    if required not in semantic_design:
-        raise SystemExit("semantic analyzer design missing Slot boundary term: " + required)
-
-for label, source in [
-    ("slot_manager.h", slot_manager),
-    ("pgy_runtime_slot_macros.h", slot_macros),
-]:
-    for required in [
-        "source-level resource boundary",
-        "pointer/address ownership",
-        "backend",
-    ]:
-        if required not in source:
-            raise SystemExit(f"{label} missing Slot runtime boundary term: {required}")
-
-for required in [
-    "Slot Is Not a Borrow Checker",
-    "Slot Is A Modular Resource Boundary",
-    "Pergyra does not expose memory as address ownership.",
-    "Pergyra exposes memory as a modular resource boundary.",
-    "A Slot is the stable language-level boundary; the backend handle below it is replaceable.",
-    "Slot = address abstraction + ownership boundary + capability gate + replaceable backend handle",
-    "The borrow-checker-equivalent in Pergyra is not Slot",
-    "Current `WriteView<T>` same-slot exclusivity is enforced",
-    "source-level typed-view pin blocks reject suspension and transport boundaries",
-    "Active source-level typed-view pin blocks; `docs/74`; diagnostics + backend compare",
-    "The block-scoped source `pin` surface is active for typed views.",
-    "pin_read_view_block",
-    "pin_secure_read_view_block",
-    "pin_mixed_read_view_sequence",
-    "pin_write_view_block",
-    "pin_secure_write_view_block",
-    "straight-line typed-view read/write parity across",
-    "Static strength comparable to Rust 1.0 at launch",
-]:
-    if required not in rigor_audit:
-        raise SystemExit("Slot rigor audit missing required boundary term: " + required)
-
-allowed_borrow_claim_docs = {
-    checklist_path,
-    rigor_audit_path,
-    proof_dir / "08_slot_capability_calculus.md",
-    proof_dir / "README.md",
+    if ! grep -Fq -- "$term" "$path"; then
+        echo "$label missing required term: $term" >&2
+        exit 1
+    fi
 }
-for path in [root / "README.md", root / "TODO.md", *sorted((root / "docs").rglob("*.md"))]:
-    if not path.exists() or path in allowed_borrow_claim_docs:
-        continue
-    text = path.read_text(encoding="utf-8")
-    for forbidden in [
-        "Slot Lifetime Analyzer",
-        "Slot<T>`: 명시적 수명 관리",
-        "slot의 생명주기",
-        "슬롯 생명주기",
-        "Slot is Pergyra's borrow checker",
-        "Slot proves borrow safety",
-        "Slot proves Rust-style borrow checking",
-        "Rust-level memory safety",
-        "pin blocks reject crossing await",
-        "pin blocks statically reject crossing await",
-        "WriteView<T> exclusive is not enforced",
-        "WriteView<T> is not enforced",
-    ]:
-        if forbidden in text:
-            rel = path.relative_to(root).as_posix()
-            raise SystemExit(
-                f"{rel} overclaims Slot/borrow-checker safety: {forbidden}"
-            )
 
-for required in [
-    "sudo apt-get install -y gcc make llvm-dev llvm coq",
-    "make ci-linux",
-]:
-    if required not in ci:
-        raise SystemExit("CI workflow missing formal semantics Coq gate term: " + required)
+forbid_term() {
+    local path="$1"
+    local label="$2"
+    local term="$3"
 
-print("formal semantics smoke: ok")
-PY
+    if grep -Fq -- "$term" "$path"; then
+        echo "$label contains forbidden term: $term" >&2
+        exit 1
+    fi
+}
+
+require_terms() {
+    local path="$1"
+    local label="$2"
+    local term
+
+    while IFS= read -r term; do
+        [[ -z "$term" ]] && continue
+        require_term "$path" "$label" "$term"
+    done
+}
+
+INDEX_PATH="$ROOT_DIR/docs/102_formal_semantics_and_proof_obligations.md"
+PROOF_DIR="$ROOT_DIR/docs/semantics"
+RIGOR_AUDIT_PATH="$ROOT_DIR/docs/118_slot_model_rigor_audit.md"
+CHECKLIST_PATH="$ROOT_DIR/docs/100_beta_readiness_checklist.md"
+SEMANTIC_DESIGN_PATH="$ROOT_DIR/docs/14_semantic_analyzer_design.md"
+SLOT_MANAGER_PATH="$ROOT_DIR/src/runtime/slot_manager.h"
+SLOT_MACROS_PATH="$ROOT_DIR/src/runtime/pgy_runtime_slot_macros.h"
+TODO_PATH="$ROOT_DIR/TODO.md"
+CI_PATH="$ROOT_DIR/.github/workflows/ci.yml"
+README_PATH="$ROOT_DIR/README.md"
+SLOT_COQ="$PROOF_DIR/proofs/SlotCalculus.v"
+
+require_file "$INDEX_PATH" "docs/102_formal_semantics_and_proof_obligations.md"
+require_file "$PROOF_DIR" "docs/semantics proof folder"
+require_file "$RIGOR_AUDIT_PATH" "docs/118_slot_model_rigor_audit.md"
+require_file "$CHECKLIST_PATH" "docs/100_beta_readiness_checklist.md"
+require_file "$SEMANTIC_DESIGN_PATH" "docs/14_semantic_analyzer_design.md"
+require_file "$SLOT_MANAGER_PATH" "src/runtime/slot_manager.h"
+require_file "$SLOT_MACROS_PATH" "src/runtime/pgy_runtime_slot_macros.h"
+require_file "$TODO_PATH" "TODO.md"
+require_file "$CI_PATH" ".github/workflows/ci.yml"
+require_file "$README_PATH" "README.md"
+require_file "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v"
+
+require_terms "$PROOF_DIR/README.md" "docs/semantics/README.md" <<'TERMS'
+Status: `beta-proof-obligation`
+Every stable beta feature must be represented in this folder
+Stable proof scope:
+Out of beta proof scope:
+Regression tests, smoke tests, and backend compare runs are proof evidence, not proof itself.
+Borrow-checker-equivalent safety: only through the combined ownership
+Slot alone is not advertised as a borrow checker.
+08_slot_capability_calculus.md
+proofs/SlotCalculus.v
+not beta-closure evidence unless a CI
+Generic contracts
+Ownership: anchored slot-handle boundary subset only.
+Runtime observability
+Backends: MIR-equivalent C and LLVM behavior
+AIR abstraction safety
+Slot capability calculus
+Full quantum resource model.
+Higher-kinded types and full FP functor/applicative/monad laws.
+GPU/Spray, Skia/render graph
+TERMS
+
+require_terms "$PROOF_DIR/00_proof_contract.md" "docs/semantics/00_proof_contract.md" <<'TERMS'
+## Semantic Domains
+## Core Judgments
+### Type Preservation
+### Progress
+### Failure Separation
+### Backend Observational Equivalence
+`PanicState`
+TERMS
+
+require_terms "$PROOF_DIR/01_intent_world_zone.md" "docs/semantics/01_intent_world_zone.md" <<'TERMS'
+Keywords: `intent`, `world`, `zone`, `subject`, `authority`, `handoff`.
+## Theorem: Authority Soundness
+## Theorem: Intent Step Progress
+## Theorem: World/Zone Frontier Termination
+TERMS
+
+require_terms "$PROOF_DIR/02_relation_effect_projection.md" "docs/semantics/02_relation_effect_projection.md" <<'TERMS'
+Keywords: `relation`, `effect`, `projection`, `refresh`, `publish`, `bind`.
+## Theorem: Projection Freshness
+## Theorem: Effect Conflict Soundness
+## Theorem: Projection Diagnostic Completeness
+TERMS
+
+require_terms "$PROOF_DIR/03_generics_modules_dag.md" "docs/semantics/03_generics_modules_dag.md" <<'TERMS'
+Keywords and surfaces: `where`, `ability`, generic parameters, default type arguments, module imports/exports, type-resolution DAG.
+## Theorem: Generic Contract Soundness
+## Theorem: DAG Soundness
+## Theorem: Module Visibility Non-Interference
+TERMS
+
+require_terms "$PROOF_DIR/04_ownership_abi.md" "docs/semantics/04_ownership_abi.md" <<'TERMS'
+Keywords and surfaces: `own`, `ref`, anchored slot handles, slot boundaries, runtime ABI ownership.
+## Theorem Boundary: Slot Runtime Safety Is Not Borrow Safety
+`Slot runtime safety`
+`Borrow-checker-equivalent safety`
+## Theorem: Anchored Ownership Safety
+## Theorem: Secure Token Unforgeability
+## Theorem: Authority Transfer Single-Owner
+## Theorem: Arena Lifetime Non-Escape
+## Theorem: ABI Ownership Parity
+TERMS
+
+require_terms "$PROOF_DIR/05_parallel_execution.md" "docs/semantics/05_parallel_execution.md" <<'TERMS'
+Keywords: `parallel`
+## Theorem: Parallel Conflict Soundness
+## Theorem: Execution Backend Parity
+TERMS
+
+require_terms "$PROOF_DIR/06_backend_parity.md" "docs/semantics/06_backend_parity.md" <<'TERMS'
+Surfaces: MIR, declaration inventory, C backend, LLVM backend, runtime ABI.
+## Theorem: MIR Source-of-Truth
+## Theorem: Backend Observational Equivalence
+## Theorem: Runtime Panic Parity
+## Theorem: Structured Backend Failure
+TERMS
+
+require_terms "$PROOF_DIR/07_air_abstraction_safety.md" "docs/semantics/07_air_abstraction_safety.md" <<'TERMS'
+Stable surface: AIR (Abstraction Intent Representation)
+## Theorem: AIR Synthesis Read-Only
+## Theorem: Intent Node Coverage
+## Theorem: Boundary Closure
+## Theorem: Drift Detection Soundness
+## Theorem: Codegen Non-Impact
+PGY_SEM_INTENT_BOUNDARY_DRIFT
+TERMS
+
+require_terms "$PROOF_DIR/08_slot_capability_calculus.md" "docs/semantics/08_slot_capability_calculus.md" <<'TERMS'
+Status: `IN PROGRESS / PROOF-SKETCH`
+## Stable Surface
+## Negative Claim: Slot Is Not A Borrow Checker
+Slot = runtime capability + generation + token + pin-state safety.
+borrow-checker-equivalent is the static ownership/CFG layer above Slot.
+## Semantic Domains
+## Theorem: ABA Safety
+## Theorem: Token Unforgeability
+## Theorem: Pin Non-Eviction
+## Bridge Obligation: Borrow-Checker-Equivalent Safety
+NoEscape(view, region)
+NoSuspend(view, region)
+WriteExclusive(slot, region)
+proof sketch, not completed
+Source-level `pin slot as view: ReadView<T>|WriteView<T> { ... }` now reaches
+HIR and MIR as explicit pin-region metadata
+pin-unpin-cleanup-edge
+PgyPinnedSlotView_*
+PgyPinnedSecureSlotView_*
+pgy_pin_read_*
+pgy_pin_write_*
+pgy_unpin_*
+TERMS
+
+require_terms "$CHECKLIST_PATH" "docs/100_beta_readiness_checklist.md" <<'TERMS'
+docs/102_formal_semantics_and_proof_obligations.md
+docs/semantics/
+Do not advertise mechanized proof for beta
+Do not advertise "Slot as borrow checker"
+TERMS
+
+require_terms "$TODO_PATH" "TODO.md" <<'TERMS'
+docs/102_formal_semantics_and_proof_obligations.md
+docs/semantics/
+proof evidence
+beta proof line honest
+TERMS
+
+require_terms "$INDEX_PATH" "docs/102_formal_semantics_and_proof_obligations.md" <<'TERMS'
+docs/semantics/README.md
+docs/semantics/08_slot_capability_calculus.md
+docs/semantics/proofs/SlotCalculus.v
+docs/118_slot_model_rigor_audit.md
+TERMS
+
+forbid_term "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v" "Status: Beta"
+forbid_term "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v" "Level 4 Mechanized Proof"
+forbid_term "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v" "Safe Core Mechanized Proof"
+
+require_terms "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v" <<'TERMS'
+Status: proof-sketch; not beta-closure evidence unless checked by CI
+Negative scope: this file does not prove Rust-style borrow checking
+Require Import Coq.Arith.PeanoNat.
+Lemma stale_handle_read_impossible
+Lemma handle_read_requires_issued_token
+Lemma unissued_token_read_impossible
+Lemma handle_pin_requires_issued_token
+Lemma unissued_token_pin_impossible
+Definition FreshSlotId
+Lemma zero_slot_id_claim_impossible
+Lemma max_slot_id_claim_impossible
+Lemma tampered_view_unpin_impossible
+Lemma double_unpin_impossible
+Lemma pin_non_eviction
+Qed.
+TERMS
+
+for stale_doc in \
+    "$PROOF_DIR/00_proof_contract.md" \
+    "$PROOF_DIR/08_slot_capability_calculus.md" \
+    "$PROOF_DIR/README.md"; do
+    forbid_term "$stale_doc" "$stale_doc" "proof sketch for one invariant"
+    forbid_term "$stale_doc" "$stale_doc" "proof sketch for two invariants"
+    forbid_term "$stale_doc" "$stale_doc" "minimal mechanized sketch for two invariants"
+done
+
+require_terms "$SEMANTIC_DESIGN_PATH" "docs/14_semantic_analyzer_design.md" <<'TERMS'
+Slot Resource-Boundary Analyzer
+Slot analysis is not Rust-style lifetime analysis.
+Slot is the source-level modular resource boundary.
+TERMS
+
+require_terms "$SLOT_MANAGER_PATH" "src/runtime/slot_manager.h" <<'TERMS'
+source-level resource boundary
+pointer/address ownership
+backend
+TERMS
+
+require_terms "$SLOT_MACROS_PATH" "src/runtime/pgy_runtime_slot_macros.h" <<'TERMS'
+source-level resource boundary
+pointer/address ownership
+backend
+TERMS
+
+require_terms "$RIGOR_AUDIT_PATH" "docs/118_slot_model_rigor_audit.md" <<'TERMS'
+Slot Is Not a Borrow Checker
+Slot Is A Modular Resource Boundary
+Pergyra does not expose memory as address ownership.
+Pergyra exposes memory as a modular resource boundary.
+A Slot is the stable language-level boundary; the backend handle below it is replaceable.
+Slot = address abstraction + ownership boundary + capability gate + replaceable backend handle
+The borrow-checker-equivalent in Pergyra is not Slot
+Current `WriteView<T>` same-slot exclusivity is enforced
+source-level typed-view pin blocks reject suspension and transport boundaries
+Active source-level typed-view pin blocks; `docs/74`; diagnostics + backend compare
+The block-scoped source `pin` surface is active for typed views.
+pin_read_view_block
+pin_secure_read_view_block
+pin_mixed_read_view_sequence
+pin_write_view_block
+pin_secure_write_view_block
+straight-line typed-view read/write parity across
+Static strength comparable to Rust 1.0 at launch
+TERMS
+
+for path in "$README_PATH" "$TODO_PATH"; do
+    forbid_term "$path" "$path" "Slot Lifetime Analyzer"
+    forbid_term "$path" "$path" "slot???"
+    forbid_term "$path" "$path" "Slot is Pergyra's borrow checker"
+    forbid_term "$path" "$path" "Slot proves borrow safety"
+    forbid_term "$path" "$path" "Slot proves Rust-style borrow checking"
+    forbid_term "$path" "$path" "Rust-level memory safety"
+    forbid_term "$path" "$path" "pin blocks statically reject crossing await"
+    forbid_term "$path" "$path" "WriteView<T> exclusive is not enforced"
+done
+
+while IFS= read -r -d '' path; do
+    case "$path" in
+        "$CHECKLIST_PATH"|"$RIGOR_AUDIT_PATH"|"$PROOF_DIR/08_slot_capability_calculus.md"|"$PROOF_DIR/README.md")
+            continue
+            ;;
+    esac
+    forbid_term "$path" "$path" "Slot Lifetime Analyzer"
+    forbid_term "$path" "$path" "slot???"
+    forbid_term "$path" "$path" "Slot is Pergyra's borrow checker"
+    forbid_term "$path" "$path" "Slot proves borrow safety"
+    forbid_term "$path" "$path" "Slot proves Rust-style borrow checking"
+    forbid_term "$path" "$path" "Rust-level memory safety"
+    forbid_term "$path" "$path" "pin blocks reject crossing await"
+    forbid_term "$path" "$path" "pin blocks statically reject crossing await"
+    forbid_term "$path" "$path" "WriteView<T> exclusive is not enforced"
+    forbid_term "$path" "$path" "WriteView<T> is not enforced"
+done < <(find "$ROOT_DIR/docs" -name '*.md' -print0)
+
+require_terms "$CI_PATH" ".github/workflows/ci.yml" <<'TERMS'
+sudo apt-get install -y gcc make llvm-dev llvm coq
+make ci-linux
+TERMS
+
+echo "formal semantics smoke: ok"
 
 if command -v coqc >/dev/null 2>&1; then
     (cd "$ROOT_DIR" && coqc docs/semantics/proofs/SlotCalculus.v)

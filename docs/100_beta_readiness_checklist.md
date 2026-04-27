@@ -70,7 +70,7 @@ Closed now:
   unissued-token read/write/pin/release rejection, pinned-handle release
   rejection, and pin non-eviction.
 - Linux CI now installs `coq`, so `make formal-semantics-test-smoke` type-checks `docs/semantics/proofs/SlotCalculus.v` in CI instead of only checking proof-pack text.
-- Slot capability runtime evidence was rechecked with `make test-security` (132/132 passed): stale-generation read/write/pin/release rejection, stale `SlotIsValid` false, release-while-pinned, TTL cleanup skip while pinned, invalid secure token rejection, revoked-token rejection, raw secure-slot release rejection, concurrent secure write rejection, and release-after-unpin are covered.
+- Slot capability runtime evidence was rechecked with `make test-security` (142/142 passed): stale-generation read/write/pin/release rejection, stale `SlotIsValid` false, zero-id sentinel and slot-id wrap tombstone before ABA reuse, tampered-view generation unpin rejection, double-unpin rejection, release-while-pinned, TTL cleanup skip while pinned, invalid secure token rejection, revoked-token rejection, raw secure-slot release rejection, concurrent secure write rejection, and release-after-unpin are covered.
 - `runtime-panic-abi-test-smoke` now covers forged zero-token read/write/release
   rejection for inline C and exported C/LLVM-linkable secure-slot entrypoints.
 - SecureSlot token ABI is now build-mode stable: inline C, exported runtime, and
@@ -82,10 +82,18 @@ Closed now:
   all stable primitive payloads (`Int`, `Long`, `Float`, `Double`, `Bool`,
   `String`), and `make test-abi` checks runtime size/token offsets against the
   ABI spec.
+- Non-pin handle expiration is a layered contract, not a pin-only story. The
+  beta contract is: arena lane checks, CFG/body dataflow, zone/world
+  channel-only crossing, token transport rejection, and generation/token
+  runtime validation together cover stale-handle scenarios. First-class
+  Zone-Bound Handle typing (`SlotHandle<T> in Zone` or equivalent `handle@zone`
+  sugar) remains a beta-freeze design decision: implement it before freeze or
+  keep the current `BORROW_TRACKED` / anchored-handle conservative rejection as
+  the documented stable behavior.
 - Authority token mismatch now has a shared runtime contract code/reason
   (`authority-token-mismatch`), queryable runtime state, C/LLVM ABI coverage in
   `authority_failure_abi`, backend-compare coverage in `authority_failure_surface`,
-  and direct runtime coverage in `make test-security` (138/138 passed).
+  and direct runtime coverage in `make test-security` (142/142 passed).
 
 Remaining:
 
@@ -98,6 +106,11 @@ Remaining:
 - Keep Slot wording positive and precise: Slot is an address abstraction,
   ownership boundary, capability gate, and replaceable backend handle. Do not
   frame it as raw pointer ownership or Rust-style lifetime ownership.
+- Decide the Zone-Bound Handle direction before beta freeze. If it is in beta
+  scope, add type-level zone scope facts and diagnostics for handle escape past
+  zone lifetime. If it is out of beta, document conservative rejection as the
+  stable subset and forbid docs from implying non-pin handles have Rust-style
+  lifetime proof.
 - Keep C/LLVM panic-class regressions green for divide-by-zero, out-of-bounds, released slot, double release, invalid secure-slot token, OOM, authority token mismatch, and internal-invariant unwrap misuse.
 - **[NEW]** Add state-machine proofs for the Intent system's rollback and cleanup closure.
 
@@ -105,6 +118,77 @@ Evidence command:
 
 ```sh
 make formal-semantics-test-smoke
+```
+
+## 0a. Systems Language Baseline Closure
+
+Status: `BLOCKER`
+
+Source of truth: `docs/19_design_philosophy.md`
+
+Goal:
+
+- Pergyra is a systems language with domain extensions. The systems-language
+  baseline is non-negotiable: no mandatory GC, predictable memory, C FFI, ABI
+  stability, raw escape, optional runtime, and compile-time determinism.
+- Domain primitives (`intent`, `zone`, `world`, `authority`, `handoff`,
+  `Channel`, `parallel`) are first-class, but they are layered on top of the
+  systems baseline. They must not replace or weaken it.
+- Beta must not claim ecosystem readiness until the systems substrate can
+  survive domain-layer evolution without ABI drift, hidden runtime cost, or
+  nondeterministic codegen.
+
+Closed now:
+
+- `docs/19_design_philosophy.md` now states the systems-language identity before
+  the Slot/resource philosophy: Pergyra is a systems language first, and domain
+  extensions are layered above that substrate.
+- The stable identity explicitly ties abstraction portability to systems
+  portability: if Pergyra cannot reach the target platform with predictable ABI
+  and memory behavior, the domain abstraction portability claim is hollow.
+- ABI stability is already partially enforced by `src/runtime/pgy_abi_spec.h`,
+  ABI static assertions, `make test-abi`, runtime panic ABI smoke, and C/LLVM
+  backend compare gates.
+- Slot wording is aligned with this identity: source code observes a modular
+  resource boundary and capability gate, while the backend handle below Slot
+  remains replaceable.
+- `--runtime=none` is now a parsed driver mode with structured diagnostics.
+  It rejects runtime-dependent surfaces (`parallel`, `spawn`, `Channel`,
+  `intent`, `zone`, `world`, `event`, async/future/select/task-group) through
+  `PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED`, and it separately blocks false
+  freestanding success until C/LLVM no-runtime lowering exists.
+- `SlotRawPointer(...)` is now reserved as an explicit unstable raw-escape
+  surface and rejected with `PGY_SEM_RAW_ESCAPE_UNSTABLE`. `unsafe { ... }`
+  remains a lexical marker only; it does not grant raw pointer capability.
+
+Remaining:
+
+- Define the system-tier raw escape contract. `unsafe { ... }` exists, but
+  raw pointer / inline-asm escape from Slot is not beta-stable until a syntax,
+  semantic gate, ABI lowering rule, and diagnostics are implemented. Until then
+  docs must not imply that `pin slot as view { ... }` is enough for driver,
+  kernel, embedded ISR, or MMIO code. Pin/Lease is a typed lexical lease, not
+  the system-tier raw escape; source of truth:
+  `docs/74_slot_pinning_caching.md`.
+- Implement verified freestanding C/LLVM lowering for `--runtime=none`.
+  Current mode is intentionally conservative: it defines the CLI contract and
+  rejection surface, but it does not emit a no-runtime binary yet.
+- Elevate ABI non-leakage to a beta contract: intent/zone/world changes must
+  not break C FFI ABI. Domain-layer evolution is allowed only inside the ABI
+  envelope guarded by `pgy_abi_spec.h`, ABI tests, and backend parity.
+- Add deterministic codegen evidence. Type resolution, generic resolution, AIR
+  verification, MIR inventory traversal, C emission, and LLVM emission must not
+  depend on hash-map or pointer iteration order. A repeat-build artifact hash
+  smoke now exists as `make codegen-determinism-test-smoke`; beta completion
+  requires expanding it to the full frozen backend fixture set.
+
+Evidence command:
+
+```sh
+make beta-readiness-checklist-test-smoke
+make codegen-determinism-test-smoke
+make runtime-none-contract-test-smoke
+make raw-escape-contract-test-smoke
 ```
 
 ## 0b. Function CFG / Body Dataflow Closure
@@ -644,7 +728,10 @@ Closed now:
 - Phase 1 / 2 / 3 scope 가 명시적으로 분리됐고, Phase 1 은 Intent Node + Boundary Node + 1 개 drift check 로 좁혀졌다.
 - AIR 가 아닌 것 (codegen IR 아님, ownership/borrow 검사 home 아님, type 검사 home 아님, effect propagation 자체 아님, 새 keyword 추가 안 함) 이 명시적 negative space 로 docs 에 고정됐다.
 - CFG 사고 (AST 기반 ownership 분산) 와의 동형 비교가 docs 에 고정되어, 같은 함정에 빠지지 않는 이유가 추적 가능하다.
-- `src/compiler/air.{h,c}`가 AIR Phase 1 데이터 구조, DIR 기반 read-only synthesis, sync/async drift checker baseline을 제공한다.
+- `src/compiler/air.h` defines the AIR Phase 1 data model,
+  `src/compiler/air.c` owns DIR-based read-only synthesis, and
+  `src/compiler/air_verify.c` owns global AIR validation plus sync/async drift
+  and strict evidence diagnostics.
 - AIR synthesis가 HIR routine evidence와 RIR boundary/authority evidence를 read-only로 수집하고 각 `Boundary Node`에 evidence flag를 부착한다. Default strict evidence에서 missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 된다.
 - AIR read-only evidence is now regression-backed at the owner/evidence seam:
   `src/test_air.c` snapshots representative DIR step fields, HIR routine fields,
@@ -658,8 +745,9 @@ Closed now:
   `Input`, `ReadLine`, `Now`, and `Sleep`. `Print` / `Log*` remain
   observability output calls, not AIR resource-boundary evidence in Phase 1.
   `src/test_air.c` covers AST-backed spawn boundary drift, IO `either`
-  boundary non-drift, and the full stable boundary builtin set so semantic
-  builtin growth cannot silently bypass AIR.
+  boundary non-drift, the stable execution boundary set (`parallel`, `async`,
+  `channel-send`, `channel-recv`, `select`), and the full stable boundary
+  builtin set so semantic builtin growth cannot silently bypass AIR.
 - AIR drift messages are owned by AIR and `air_check_drift()` clears existing
   drift messages before recomputing; `src/test_air.c` covers repeated drift
   checking on the same AIRProgram so the validation path does not leak or retain
@@ -668,6 +756,29 @@ Closed now:
   diverge from the actual append counts. `make air-drift-test-smoke` gates the
   invariant so future boundary scanners cannot silently underfill or overrun the
   AIR node inventory.
+- `air_verify(...)` is now the global AIR validation entry point. It validates
+  AIR inventory invariants, authority participant shape, and evidence
+  provenance before computing drift/evidence failures. `air_check_drift(...)`
+  remains only as a compatibility wrapper.
+- AIR inventory validation now rejects non-zero intent/boundary/drift counts
+  without matching arrays and rejects boundary step-index drift from the
+  referenced intent node before recomputing drift facts. `src/test_air.c`
+  covers both crash-prevention paths.
+- AIR inventory validation also rejects empty intent owner/step names, empty
+  boundary owner/source names, boundary-owner mismatch against the referenced
+  intent owner, and invalid boundary sync-class shape (`world`, `parallel`, and
+  `channel` async; IO either-sync) before drift computation. These are
+  `PGY_AIR_INVARIANT_INVALID` compiler IR failures, not user-facing drift facts.
+- AIR drift inventory is validated before recomputation: stale drift nodes with
+  placeholder kind, invalid intent/boundary references, or empty messages are
+  rejected as `PGY_AIR_INVARIANT_INVALID` instead of being silently cleared.
+- AIR evidence validation now rejects RIR authority evidence without prior RIR
+  boundary evidence and rejects authority evidence on a non-authority boundary,
+  keeping evidence provenance as a layered proof instead of a boolean flag.
+- AIR inventory validation failures are now routed as
+  `PGY_AIR_INVARIANT_INVALID` / `air:invariant:invalid` /
+  `report-compiler-bug`, separate from user-facing
+  `PGY_SEM_INTENT_BOUNDARY_*` drift diagnostics.
 - AIR now owns synthesized intent/boundary/authority names instead of borrowing
   DIR/AST strings. Parsed-source AIR remains valid after DIR/parser teardown,
   and the parsed `where + transfer` regression asserts `PaymentZone` zone source
@@ -677,9 +788,10 @@ Closed now:
   no location. Parsed IO boundary regression ties the missing-evidence drift to
   the synthesized `ReadFile` boundary node instead of only checking that some
   drift exists.
-- AIR dump/vocabulary ownership now lives in `src/compiler/air_dump.c`, leaving
+- AIR dump/vocabulary ownership now lives in `src/compiler/air_dump.c`, and AIR
+  validation/drift ownership now lives in `src/compiler/air_verify.c`, leaving
   `src/compiler/air.c` below the 600 LOC split-review threshold while keeping
-  synthesis/drift behavior unchanged.
+  synthesis behavior focused.
 - `where + transfer` no longer collapses to only a zone boundary. AIR emits a
   zone boundary for `where: Type` and a separate world boundary for the transfer
   handoff, with the world source anchored to the transfer target alias when
@@ -779,6 +891,128 @@ make diagnostic-registry-test-smoke
 make llvm-test-backend-compare
 ```
 
+## 0g. Compiler Design Quality Verification
+
+Status: `IN PROGRESS / VERIFICATION`
+
+Source of truth: this section + cross-reference into `docs/19` §0 (systems
+language identity), `docs/20_compiler_pipeline_guide.md`, and
+`docs/118_slot_model_rigor_audit.md`.
+
+Goal:
+
+- Pergyra의 컴파일러 구현이 production-grade design quality를 만족함을
+  명시적으로 검증한다.
+- CS 석사-tier 평가 체크리스트 (textbook 4가지 패턴) 와 modern production
+  컴파일러 architecture 기준 (multi-IR, pattern dispatch, persistent scope,
+  rich diagnostics) 둘 다 통과해야 한다.
+- 베타 closure 직전 미통과 항목은 lift 또는 명시적 out-of-beta로 분류한다.
+- 이 검증은 *compiler engineering quality*에 대한 것이고, runtime safety
+  (docs/security/), formal semantics (docs/semantics/), abstraction
+  portability (docs/117) 는 별도 layer 이다.
+
+### Textbook checklist (CS 석사-tier 평가)
+
+학생/junior 컴파일러 평가 시 표준 4점 체크리스트와 Pergyra 매핑:
+
+| Textbook 제약 | 의도 | Pergyra 답 | 상태 |
+|---|---|---|---|
+| AST nodes are immutable (분석이 트리 오염 안 함) | 파싱 결과 보존 | 5-IR pipeline (AST → HIR → DIR → RIR → MIR). AST는 read-only entry IR이고 분석은 다음 IR에서 진행. mutate 안 함 | ✅ 교과서 답 *초과* |
+| AST와 분석 로직 디커플링 (Visitor / Double Dispatch) | 데이터-로직 분리 | C tagged-union + switch on `node->kind`. AST는 class hierarchy 아니라 tagged union이므로 method 첨부 자체가 불가능. Visitor 흉내 안 함 | ✅ 교과서 답 *idiom 적합* |
+| 심볼 테이블 = HashMap stack (블록 스코프 shadowing) | 변수 가시성 | **Frame chain + flat array per scope, linear scan lookup** (`src/semantic/symbol_table.c`, 296 LOC). textbook의 HashMap-of-HashMap 보다 단순. 작은 scope에는 cache-friendly로 우월할 수 있고, 큰 scope에는 lift 필요 | 🟢 audit 완료 / 큰 scope 워크로드에서 lift 후보 |
+| CompilerDiagnostic 객체 (line/col/hint, exception 아님) | 진단 누적 | `diag_codes.h` 100+ stable codes + level/stage/`Reason:`/`Fix:`/span/multi-span/JSON 회귀 (`diagnostics-json-test-smoke`) | ✅ 교과서 답 *대폭 초과* |
+
+→ **4점 textbook 중 3개 *초과*, 1개 audit 필요 (스코프 implementation pattern).** textbook 채점은 대부분 통과.
+
+### Production architecture 기준 (textbook 너머)
+
+modern 컴파일러 (rustc, Clang, TS, GHC, Roc) 가 textbook 4점을 *넘어서*
+공통적으로 가진 추가 criteria 와 Pergyra 매핑:
+
+| Production criterion | Pergyra 답 | 상태 |
+|---|---|---|
+| Multi-IR pipeline (single AST analysis pass 아님) | AST/HIR/DIR/RIR/MIR + AIR (verification IR) = 6 IR | ✅ |
+| Pattern matching dispatch (Visitor 안 씀) | C tagged union switch (idiomatic in C; pattern matching 등가) | ✅ |
+| Persistent / versioned scope (naive HashMap-of-HashMap 아님) | **Frame chain + flat array per scope** (linear scan). 작은 scope에 cache-friendly, 큰 scope에서는 hash 기반 production 컴파일러 (rustc/Clang/GCC) 보다 느림 | 🟢 audit 완료 / 베타 acceptable / 프로파일링 후 lift 후보 |
+| Stable diagnostic codes (free-text 아님) | `PGY_*` 100+ stable codes, `diag_codes.h` | ✅ |
+| Span representation (range + snippet, line/col만 아님) | **point-span only** (`Diagnostic` line/col 단일, ASTNode도 line/column 단일). end_line/end_column 또는 byte range 미지원. snippet 렌더링은 별도 도구가 line/col로 부분 재구성 | 🟡 lift 후보 (범위 표현 추가) |
+| Multi-span 진단 (offending site + related def site) | **API single-span only**. `Diagnostic` 단일 line/col, `semantic_error*` 단일 `node`. 일부 site (slot_analyzer)가 메시지 텍스트에 prior line 숫자 임베드하지만 JSON/LSP consumer는 추출 불가. 대부분 diagnostic은 prior site 0 정보 (e.g., class redeclaration) | 🔴 명시적 out-of-beta / LSP 통합 시 lift |
+| Suggestion / fix-it 힌트 | `Reason:` / `Fix:` 구조 + auto-fix 일부 | 🟡 |
+| Error recovery (parse-through-error / sema-through-error) | 부분 — 베타 closure에서 lift 후보 | 🟡 |
+| Diagnostic JSON 회귀 (진단 자체가 stable) | `make diagnostics-json-test-smoke` | ✅ |
+| Side-table for analysis (mutable AST annotation 아님) | IR pipeline이 자체적으로 side-table 역할 (각 IR이 별도 store) | ✅ |
+
+→ **10개 production criteria audit 결과: 5 ✅ + 1 🟢 (스코프 audit 완료) + 3 🟡 lift 후보 + 1 🔴 명시적 out-of-beta:**
+- 스코프 pattern: 🟢 audit 완료 (frame chain + flat array, 베타 acceptable, 프로파일링 후 lift)
+- Span 범위 표현: 🟡 point-span only, range/snippet 추가 lift 후보
+- Multi-span 진단: 🔴 명시적 out-of-beta (API 자체 미지원, LSP 통합 시 lift)
+- Fix-it 확대: 🟡 lift 후보 (LSP 통합과 묶음)
+- Error recovery 확대: 🟡 lift 후보
+
+### Closed now
+
+- 5-IR + AIR 6-IR pipeline 운영 (AST/HIR/DIR/RIR/MIR + AIR)
+- C tagged union switch dispatch가 모든 semantic / codegen pass의 표준
+- 100+ stable diagnostic codes, level/stage/Reason/Fix 구조 강제
+- Diagnostic JSON 회귀 gate (`make diagnostics-json-test-smoke`)
+- Span + 부분 multi-span
+- AST는 mutate 안 됨 — 분석 결과는 HIR+에 들어감 (immutable AST 교과서 답 초과)
+- Visitor pattern 흉내 안 함 — C에 idiom-적합한 tagged union switch 채택
+  (Visitor는 OOP without pattern matching의 workaround이므로 C에서는
+  anti-idiomatic)
+
+### Remaining
+
+- **스코프 manager pattern audit** — *완료 (2026-04-27).* 패턴은 *(e) Frame
+  chain + flat array per scope*, linear scan lookup
+  (`src/semantic/symbol_table.c` 296 LOC). textbook (a)~(d) 어느 쪽도 아니고
+  *더 단순한 (e)*. 작은 scope에서는 cache-friendly로 hash 기반보다 *빠를 수
+  있음*. 큰 scope (전역에 수천 symbol, 큰 함수에 수백 local) 워크로드에서는
+  hash 기반으로 lift 필요. **베타 acceptable, 프로파일링이 hot path 보일 때
+  lift 후보.** Lift 시 권장 패턴: linear-array 일정 크기까지 유지하다가
+  threshold 넘으면 hash로 promote (Clang/GCC와 유사).
+- **Multi-span 진단 audit** — *완료 (2026-04-27).* `Diagnostic` struct가 단일
+  line/col만 갖고 `semantic_error*` API가 단일 `node`만 받음. 즉 *API 자체에
+  multi-span 미지원*. 일부 site (예: `slot_analyzer.c`)는 메시지 텍스트에
+  prior line 숫자를 임베드하지만, JSON consumer / LSP / IDE 도구는 그 secondary
+  위치를 추출 불가. 대부분 diagnostic (class/ability/role redeclaration 등)은
+  prior site 정보를 *전혀* 안 줌. **베타 closure 결정: 명시적 out-of-beta.**
+  Lift 비용 ~2-3일 (Diagnostic struct 확장 + API 추가 + 핵심 5-10개 마이그레이션
+  + JSON 회귀 + 텍스트 렌더러). LSP 통합 작업과 묶어서 한 번에 처리 권장.
+- **Span 범위 표현 audit** — *완료 (2026-04-27).* ASTNode와 Diagnostic 모두
+  단일 line/column만 보유. end_line/end_col 없음 → 범위 표현 미지원. snippet
+  렌더링은 도구가 line/col로 부분 재구성. **lift 후보 (베타 acceptable, post-1.0
+  LSP/IDE 통합 시 lift).**
+- Fix-it / suggestion 확대 — `Reason:` / `Fix:` 구조에 textual fix는 있는데,
+  *machine-applicable* fix-it (rustc `--fix` 같은 자동 적용) 은 없음.
+  베타 closure 후 LSP 통합 시 lift 후보.
+- Error recovery 확대 — parse-through-error / sema-through-error / type-error
+  recovery. 현재 부분. 베타 closure 안에 어디까지 lift할지 결정.
+- `compiler-design-quality-test-smoke` 신설 — 위 항목들을 자동 검증하는 회귀.
+  현재 `make diagnostics-json-test-smoke` 가 진단 layer만 cover하고, 스코프
+  pattern / IR pipeline shape는 별도 검증 필요.
+
+### Out of scope (명시적 reject)
+
+- **Visitor pattern wrapper 도입**. C에서 anti-idiomatic. tagged union +
+  switch가 production-correct. Visitor 강제 시 N×M class explosion + indirect
+  dispatch overhead + cache miss + 새 노드 추가 시 모든 visitor 깨짐. 교과서
+  답이지만 implementation language (C) 와 맞지 않으므로 의도적 reject.
+- **Mutable AST annotation**. 5-IR pipeline 전체 거부. 분석 결과는 다음 IR
+  store로 가지 AST에 leak되지 않음.
+- **Single-pass interpreter-style 분석**. 5-IR pipeline 정체성과 충돌.
+
+### Evidence command
+
+```sh
+make test-semantic
+make diagnostics-json-test-smoke
+make diagnostic-registry-test-smoke
+make ir-pipeline-test-smoke
+# 신설 후보:
+# make compiler-design-quality-test-smoke
+```
+
 ## 1. Core Module / Module Boundary Closure
 
 상태: `IN PROGRESS / BLOCKER`
@@ -819,6 +1053,12 @@ make llvm-test-backend-compare
 - `type_checker_event.c`가 event declaration/subscription/invoke semantic을 소유한다.
 - `type_checker_qubit.c`가 QubitSlot compile-time state, entangle pool, movable-resource-use validation을 소유한다.
 - `type_checker.c`는 481 LOC로 내려갔고, semantic stop condition의 600 LOC 이하 조건을 만족한다.
+- `type_checker_slot_view_boundary.c` now owns active slot view boundary
+  diagnostics; `type_checker_helpers_late.c` is back under the semantic TU hard
+  cap at 974 LOC.
+- `slot_type_utils.c` now owns runtime type-tag/hash/CAS/memory-barrier utility
+  exports; `slot_manager.c` is no longer the owner for those ABI-neutral helper
+  routines.
 - `make semantic-inc-size-test-smoke`가 `src/semantic` production `.inc = 0`를 검사한다.
 - `make semantic-core-shape-test-smoke`가 `type_checker.c <= 600 LOC`, DAG inventory `.c` ownership, event/qubit owner TU 존재를 검사한다.
 - `.inc` cleanup is closed for the full `src` tree: `src/runtime`,
@@ -1216,9 +1456,14 @@ grep -R "resolve_type_node" -n src/semantic
 - AIR boundary traversal is split into `src/compiler/air_boundary.c`. AST
   boundary classification, boundary source derivation, sync-class mapping,
   step boundary counting, and boundary node append now have a dedicated owner.
-  `src/compiler/air.c` is now 671 LOC, below the 1,000 LOC hard cap, and
-  `air-drift-test-smoke` treats `air.c + air_boundary.c + air_evidence.c` as
-  the implementation inventory.
+  `src/compiler/air.c` is now below the 600 LOC split-review threshold.
+- AIR verification is split into `src/compiler/air_verify.c`. Inventory shape,
+  authority participant shape, evidence provenance invariants, drift emission,
+  and strict evidence failures no longer live in the synthesis owner.
+  `air-drift-test-smoke` treats `air.c + air_boundary.c + air_dump.c +
+  air_evidence.c + air_verify.c` as the implementation inventory and requires
+  both `$(COMPILER_DIR)/air_verify.c` and `$(BUILD_DIR)/compiler/air_verify.o`
+  wiring.
 
 남은 것:
 
