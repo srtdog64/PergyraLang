@@ -172,6 +172,12 @@ alias_diagnostic_fallback="$(
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
+alias_fallback_resolver_calls="$(
+  grep -a '\[type-res-stats\] stage-alias-fallback:' "$log" \
+    | sed -E 's/.*resolver_calls=([0-9]+) resolved=.*/\1/' \
+    | awk '{ total += $1 } END { print total + 0 }'
+)"
+
 alias_fallback_resolved="$(
   grep -a '\[type-res-stats\] stage-alias-fallback:' "$log" \
     | sed -E 's/.* resolved=([0-9]+) unresolved=.*/\1/' \
@@ -224,8 +230,8 @@ if [ "$metadata_owned" -lt 200 ]; then
   exit 1
 fi
 
-if [ "$materializer_fallbacks" -gt 15 ]; then
-  echo "metadata materializer fallback inventory regressed above beta cap: $materializer_fallbacks > 15" >&2
+if [ "$materializer_fallbacks" -ne 0 ]; then
+  echo "metadata materializer fallback inventory regressed above beta cap: $materializer_fallbacks > 0" >&2
   exit 1
 fi
 
@@ -260,18 +266,18 @@ if [ "$metadata_named_generic_class" -ne 0 ] || [ "$metadata_named_non_class_sym
   exit 1
 fi
 
-if [ "$metadata_named_builtin_shell" -gt 2 ]; then
-  echo "bare builtin-shell diagnostic fallback regressed above cap: $metadata_named_builtin_shell > 2" >&2
+if [ "$metadata_named_builtin_shell" -ne 0 ]; then
+  echo "bare builtin-shell diagnostic fallback regressed above cap: $metadata_named_builtin_shell > 0" >&2
   exit 1
 fi
 
-if [ "$metadata_fallback_generic_named" -gt 7 ]; then
-  echo "generic-named diagnostic fallback regressed above cap: $metadata_fallback_generic_named > 7" >&2
+if [ "$metadata_fallback_generic_named" -ne 0 ]; then
+  echo "generic-named diagnostic fallback regressed above cap: $metadata_fallback_generic_named > 0" >&2
   exit 1
 fi
 
-if [ "$metadata_named_missing_symbol" -gt 6 ]; then
-  echo "missing-symbol diagnostic fallback regressed above cap: $metadata_named_missing_symbol > 6" >&2
+if [ "$metadata_named_missing_symbol" -ne 0 ]; then
+  echo "missing-symbol diagnostic fallback regressed above cap: $metadata_named_missing_symbol > 0" >&2
   exit 1
 fi
 
@@ -295,6 +301,11 @@ if [ "$alias_diagnostic_fallback" -le 0 ]; then
   exit 1
 fi
 
+if [ "$alias_fallback_resolver_calls" -ne 0 ]; then
+  echo "alias diagnostic fallback reintroduced recursive resolver calls: $alias_fallback_resolver_calls" >&2
+  exit 1
+fi
+
 if [ "$alias_fallback_resolved" -ne 0 ]; then
   echo "valid alias materialization leaked into diagnostic fallback: $alias_fallback_resolved" >&2
   exit 1
@@ -310,4 +321,4 @@ grep -a -q 'topo_ok=1' "$log" || {
   exit 1
 }
 
-echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks metadata_fallback_named=$metadata_fallback_named metadata_fallback_generic_named=$metadata_fallback_generic_named metadata_fallback_compound=$metadata_fallback_compound metadata_fallback_other=$metadata_fallback_other metadata_named_builtin_shell=$metadata_named_builtin_shell metadata_named_generic_class=$metadata_named_generic_class metadata_named_alias=$metadata_named_alias metadata_named_non_class_symbol=$metadata_named_non_class_symbol metadata_named_missing_symbol=$metadata_named_missing_symbol legacy_alias=$legacy_alias legacy_non_alias=$legacy_non_alias alias_materialized=$alias_materialized alias_diagnostic_fallback=$alias_diagnostic_fallback alias_fallback_resolved=$alias_fallback_resolved alias_fallback_unresolved=$alias_fallback_unresolved)"
+echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks metadata_fallback_named=$metadata_fallback_named metadata_fallback_generic_named=$metadata_fallback_generic_named metadata_fallback_compound=$metadata_fallback_compound metadata_fallback_other=$metadata_fallback_other metadata_named_builtin_shell=$metadata_named_builtin_shell metadata_named_generic_class=$metadata_named_generic_class metadata_named_alias=$metadata_named_alias metadata_named_non_class_symbol=$metadata_named_non_class_symbol metadata_named_missing_symbol=$metadata_named_missing_symbol legacy_alias=$legacy_alias legacy_non_alias=$legacy_non_alias alias_materialized=$alias_materialized alias_diagnostic_fallback=$alias_diagnostic_fallback alias_fallback_resolver_calls=$alias_fallback_resolver_calls alias_fallback_resolved=$alias_fallback_resolved alias_fallback_unresolved=$alias_fallback_unresolved)"

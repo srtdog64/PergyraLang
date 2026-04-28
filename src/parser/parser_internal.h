@@ -25,6 +25,7 @@ WhereClause    *parse_where_clause(Parser *parser);
 ASTNode        *parse_type(Parser *parser);
 ASTNode        *parse_type_constraint(Parser *parser);
 void            skip_generic_arguments(Parser *parser);
+Token           parser_peek_next(Parser *parser);
 bool            parser_check_name_token(Parser *parser);
 bool            parser_match_name_token(Parser *parser);
 Token           consume_name_token(Parser *parser, const char *message);
@@ -38,6 +39,8 @@ Token           consume_member_name_token(Parser *parser, const char *message);
 void            parser_collect_doc_comments(Parser *parser);
 void            parser_discard_pending_doc_comment(Parser *parser);
 StructuredComment *parser_take_pending_doc_comment(Parser *parser);
+bool            parser_attach_pending_doc_comment(Parser *parser,
+                                                  ASTNode *node);
 ASTNode        *parser_finalize_statement(Parser *parser, ASTNode *node);
 bool            parser_lookup_decl_hint(Parser *parser, const char *name,
                                         ASTNodeType *node_type_out,
@@ -54,6 +57,17 @@ ASTNode *parse_unary(Parser *parser);
 ASTNode *finish_call(Parser *parser, ASTNode *callee);
 ASTNode *parse_lambda_expression(Parser *parser);
 
+/* --- Parser local surface helpers (parser_pin.c / parser_zone_context.c) --- */
+bool     parser_is_exportable_decl(ASTNode *node);
+ASTNode *parser_parse_export_declaration(Parser *parser);
+ASTNode *parser_parse_enum_declaration_after_keyword(Parser *parser);
+bool     parser_starts_named_declaration(Parser *parser,
+                                         PgyTokenType keyword);
+bool     parser_check_pin_block_start(Parser *parser);
+ASTNode *parser_parse_pin_block(Parser *parser);
+bool     parser_check_within_context_block_start(Parser *parser);
+ASTNode *parser_parse_within_context_block(Parser *parser);
+
 /* --- Statements (parser_stmt.c) --- */
 ASTNode *parse_if_statement(Parser *parser);
 ASTNode *parse_while_statement(Parser *parser);
@@ -65,6 +79,10 @@ ASTNode *parse_defer_statement(Parser *parser);
 
 /* --- Declarations (parser_decl.c) --- */
 ASTNode *parse_function_declaration(Parser *parser);
+bool     parser_decl_match_contextual_keyword(Parser *parser,
+                                              const char *keyword);
+bool     parser_decl_check_contextual_keyword(Parser *parser,
+                                              const char *keyword);
 void     parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
                                       uint32_t *mask_out);
 ASTNode *parse_class_declaration(Parser *parser);

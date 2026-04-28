@@ -154,13 +154,25 @@ LEXER_SOURCES    = $(LEXER_DIR)/lexer.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_print.c \
                    $(PARSER_DIR)/parser.c \
+                   $(PARSER_DIR)/parser_doc.c \
+                   $(PARSER_DIR)/parser_enum.c \
+                   $(PARSER_DIR)/parser_export.c \
                    $(PARSER_DIR)/parser_expr.c \
+                   $(PARSER_DIR)/parser_pin.c \
                    $(PARSER_DIR)/parser_stmt.c \
+                   $(PARSER_DIR)/parser_zone_context.c \
                    $(PARSER_DIR)/parser_decl.c \
+                   $(PARSER_DIR)/parser_decl_clause.c \
+                   $(PARSER_DIR)/parser_decl_start.c \
                    $(PARSER_DIR)/parser_intent.c \
                    $(PARSER_DIR)/parser_domain.c \
+                   $(PARSER_DIR)/parser_domain_event.c \
+                   $(PARSER_DIR)/parser_domain_roster.c \
+                   $(PARSER_DIR)/parser_domain_world.c \
+                   $(PARSER_DIR)/parser_domain_zone.c \
                    $(PARSER_DIR)/parser_async.c
 RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
+                   $(RUNTIME_DIR)/slot_manager_secure_ops.c \
                    $(RUNTIME_DIR)/slot_type_utils.c \
                    $(RUNTIME_DIR)/slot_pool.c \
                    $(RUNTIME_DIR)/slot_security.c \
@@ -179,6 +191,7 @@ ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
 RUNTIME_SOURCES  += $(ASYNC_SOURCES)
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
+                   $(SEMANTIC_DIR)/type_env.c \
                    $(SEMANTIC_DIR)/symbol_table.c \
                    $(SEMANTIC_DIR)/type_checker.c \
                    $(SEMANTIC_DIR)/type_checker_diag.c \
@@ -198,22 +211,27 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_decl.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_fallback.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_constructed.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_metadata_diagnostics.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_storage.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_domain.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_lookup.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_stats.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_signature.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_stage_alias.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage.c \
                    $(SEMANTIC_DIR)/type_checker_class_decl.c \
                    $(SEMANTIC_DIR)/type_checker_program.c \
                    $(SEMANTIC_DIR)/type_checker_relation_decl.c \
                    $(SEMANTIC_DIR)/type_checker_effect_decl.c \
                    $(SEMANTIC_DIR)/type_checker_zone_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_zone_decl_authority.c \
                    $(SEMANTIC_DIR)/type_checker_ability_decl.c \
                    $(SEMANTIC_DIR)/type_checker_world_decl.c \
                    $(SEMANTIC_DIR)/type_checker_intent_decl.c \
                    $(SEMANTIC_DIR)/type_checker_intent_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_role_fields.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_control.c \
                    $(SEMANTIC_DIR)/type_checker_role_decl.c \
                    $(SEMANTIC_DIR)/type_checker_party_decl.c \
                    $(SEMANTIC_DIR)/type_checker_roster_decl.c \
@@ -244,12 +262,19 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_expr_ops.c \
                    $(SEMANTIC_DIR)/type_checker_builtins.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_cancel.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_stdlib_scalar.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_stdlib_map.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_body.c \
+                   $(SEMANTIC_DIR)/type_checker_domain_role_lookup.c \
+                   $(SEMANTIC_DIR)/type_checker_domain_projection.c \
+                   $(SEMANTIC_DIR)/type_checker_overlay_common.c \
                    $(SEMANTIC_DIR)/type_checker_decls_domain_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_helpers_late.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_boundary.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_match.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \
                    $(SEMANTIC_DIR)/slot_analyzer.c \
+                   $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_symbols.c \
@@ -266,6 +291,9 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/dir.c \
+                   $(COMPILER_DIR)/dir_collect.c \
+                   $(COMPILER_DIR)/dir_collect_domain.c \
+                   $(COMPILER_DIR)/dir_validate.c \
                    $(COMPILER_DIR)/air.c \
                    $(COMPILER_DIR)/air_boundary.c \
                    $(COMPILER_DIR)/air_dump.c \
@@ -280,10 +308,13 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_intent.c \
                    $(COMPILER_DIR)/mir_type_helpers.c \
                    $(COMPILER_DIR)/hir.c \
+                   $(COMPILER_DIR)/hir_public.c \
                    $(COMPILER_DIR)/module_loader.c \
                    $(COMPILER_DIR)/module_normalizer.c \
                    $(COMPILER_DIR)/import_resolver.c \
                    $(COMPILER_DIR)/driver_app.c \
+                   $(COMPILER_DIR)/driver_scaffold.c \
+                   $(COMPILER_DIR)/compiler_toolchain.c \
                    $(COMPILER_DIR)/runtime_none_contract.c \
                    $(COMPILER_DIR)/path_utils.c \
                    $(COMPILER_DIR)/llvm_runner.c \
@@ -296,9 +327,10 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
 ifneq ($(LLVM_ENABLED),0)
   LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c \
-                         $(CODEGEN_DIR)/llvm_type.c \
-                         $(CODEGEN_DIR)/llvm_api.c \
-                         $(CODEGEN_DIR)/llvm_pipeline.c \
+                   $(CODEGEN_DIR)/llvm_type.c \
+                   $(CODEGEN_DIR)/llvm_api.c \
+                   $(CODEGEN_DIR)/llvm_backend_generic.c \
+                   $(CODEGEN_DIR)/llvm_pipeline.c \
                          $(CODEGEN_DIR)/llvm_intent.c \
                          $(CODEGEN_DIR)/llvm_registry.c \
                          $(CODEGEN_DIR)/llvm_error.c \
@@ -320,10 +352,11 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_stmt_parallel_async.c \
                          $(CODEGEN_DIR)/llvm_decl.c \
                          $(CODEGEN_DIR)/llvm_domain_method_helpers.c \
-                         $(CODEGEN_DIR)/llvm_domain_method_emit.c \
-                         $(CODEGEN_DIR)/llvm_domain_event.c \
-                         $(CODEGEN_DIR)/llvm_domain_role_emit.c \
-                         $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
+                   $(CODEGEN_DIR)/llvm_domain_method_emit.c \
+                   $(CODEGEN_DIR)/llvm_domain_event.c \
+                   $(CODEGEN_DIR)/llvm_domain_role_emit.c \
+                   $(CODEGEN_DIR)/llvm_domain_sync_frontier.c \
+                   $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
                          $(CODEGEN_DIR)/llvm_domain_world_sync.c \
                          $(CODEGEN_DIR)/llvm_domain.c
   RUNTIME_LIB_SOURCES  = $(RUNTIME_DIR)/pgy_runtime_lib.c
@@ -502,27 +535,27 @@ $(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # DIR lowering test
-$(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(TEST_DIR_OBJ) | $(BIN_DIR)
+$(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(TEST_DIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # AIR synthesis and drift test
-$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/air.o $(BUILD_DIR)/compiler/air_boundary.o $(BUILD_DIR)/compiler/air_dump.o $(BUILD_DIR)/compiler/air_evidence.o $(BUILD_DIR)/compiler/air_verify.o $(TEST_AIR_OBJ) | $(BIN_DIR)
+$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/air.o $(BUILD_DIR)/compiler/air_boundary.o $(BUILD_DIR)/compiler/air_dump.o $(BUILD_DIR)/compiler/air_evidence.o $(BUILD_DIR)/compiler/air_verify.o $(TEST_AIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # RIR lowering test
-$(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
+$(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # MIR lowering test
-$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/mir.o $(BUILD_DIR)/compiler/mir_cleanup.o $(BUILD_DIR)/compiler/mir_intent.o $(BUILD_DIR)/compiler/mir_type_helpers.o $(TEST_MIR_OBJ) | $(BIN_DIR)
+$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/mir.o $(BUILD_DIR)/compiler/mir_cleanup.o $(BUILD_DIR)/compiler/mir_intent.o $(BUILD_DIR)/compiler/mir_type_helpers.o $(TEST_MIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # HIR lowering test
-$(HIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(TEST_HIR_OBJ) | $(BIN_DIR)
+$(HIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_public.o $(TEST_HIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 

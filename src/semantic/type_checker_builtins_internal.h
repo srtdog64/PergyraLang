@@ -36,6 +36,11 @@ Type *type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
                                    const char *builtin_name,
                                    bool allow_released);
 
+Type *type_check_stdlib_scalar_call(ASTNode *expr, const char *name,
+                                    SemanticContext *ctx, bool *handled_out);
+Type *type_check_stdlib_map_call(ASTNode *expr, const char *name,
+                                 SemanticContext *ctx, bool *handled_out);
+
 void reject_borrowed_boundary_container_store(ASTNode *value_expr,
                                               const Type *stored_value_type,
                                               const char *container_kind,

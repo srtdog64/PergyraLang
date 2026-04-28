@@ -85,6 +85,18 @@ bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
                          const char *action);
 bool type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx);
 bool type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx);
+bool type_check_match_case_patterns(ASTNode *mc,
+                                    Type *subj_type,
+                                    SemanticContext *ctx);
+void check_match_redundancy(ASTNode *node,
+                            Type *subj_type,
+                            SemanticContext *ctx);
+void check_match_exhaustiveness(ASTNode *node,
+                                Type *subj_type,
+                                SemanticContext *ctx);
+bool match_stmt_has_total_case_coverage(ASTNode *node,
+                                        Type *subj_type,
+                                        SemanticContext *ctx);
 Type *type_check_qubit_use(ASTNode *expr, SemanticContext *ctx);
 bool identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx);
 size_t count_subject_domain_slots(ASTNode **slots, size_t slot_count);
@@ -161,6 +173,8 @@ bool type_check_zone_relation_contract(ASTNode *zone,
                                        const char *right_slot_name,
                                        SemanticContext *ctx,
                                        const char *action_name);
+void type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx);
+void type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx);
 
 /* Currently-resolved nominal host (class/zone/world/relation/effect)
  * declaration for `ctx`.  Visibility/access helpers use this through an
@@ -212,6 +226,8 @@ bool semantic_stage_should_defer_to_graph(ASTNode *type_node,
                                           const char *reason);
 void semantic_stage_record_legacy_family(SemanticContext *ctx,
                                          const char *reason);
+void semantic_stage_record_alias_diagnostic_fallback(ASTNode *alias_decl,
+                                                     SemanticContext *ctx);
 const char *semantic_symbol_kind_label(SymbolKind kind);
 const char *intent_step_single_who_alias(const ASTNode *step);
 ASTNode *find_intent_involves_local(ASTNode *intent, const char *alias);
@@ -224,6 +240,13 @@ bool domain_has_subject_slot_type(ASTNode **slots,
                                   size_t slot_count,
                                   SemanticContext *ctx,
                                   const char *type_name);
+Type *domain_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
+Type *domain_resolve_slot_type(ASTNode *slot, SemanticContext *ctx);
+Type *domain_resolve_shared_type(ASTNode *shared, SemanticContext *ctx);
+Type *domain_resolve_named_type_ref(ASTNode *type_ref, SemanticContext *ctx);
+ASTNode *find_domain_slot_local(ASTNode **slots,
+                                size_t slot_count,
+                                const char *slot_name);
 bool zone_has_effect_layer_type(ASTNode *zone, const char *effect_name);
 bool decl_is_projection_source(const ASTNode *decl);
 const char *projection_refresh_source_field_name(ASTNode *refresh,
@@ -282,6 +305,23 @@ Type *semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,
                                                         ASTNode *type_node);
 Type *semantic_type_resolution_lookup_metadata_name_or_alias(SemanticContext *ctx,
                                                             const char *name);
+Type *semantic_type_resolution_metadata_builtin_singleton(const char *name);
+bool semantic_type_resolution_metadata_type_ref_has_no_generic_args(
+    const ASTNode *type_node);
+bool semantic_type_resolution_metadata_stable_builtin_shell_arity(
+    const char *name,
+    size_t *out_min,
+    size_t *out_max);
+bool semantic_type_resolution_metadata_name_is_shadowed_class(SemanticContext *ctx,
+                                                              const char *name);
+bool semantic_type_resolution_reject_invalid_stable_shell_arity(
+    SemanticContext *ctx,
+    ASTNode *type_node);
+bool semantic_type_resolution_reject_invalid_stable_constructed_type(
+    SemanticContext *ctx,
+    ASTNode *type_node);
+bool semantic_type_resolution_reject_unknown_bare_named_type(SemanticContext *ctx,
+                                                            ASTNode *type_node);
 void semantic_type_resolution_free_owned_type(Type *type);
 void semantic_type_resolution_free_metadata(SemanticContext *ctx);
 void semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx,

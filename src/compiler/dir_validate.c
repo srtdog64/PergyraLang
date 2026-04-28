@@ -1,0 +1,278 @@
+#include "dir.h"
+
+#include <stdarg.h>
+#include <stdlib.h>
+
+#include "../common/string_compat.h"
+
+static char *
+dir_validate_strdup_fmt(const char *fmt, ...)
+{
+    va_list args;
+    va_list copy;
+    int length;
+    char *result;
+
+    va_start(args, fmt);
+    va_copy(copy, args);
+    length = vsnprintf(NULL, 0, fmt, copy);
+    va_end(copy);
+    if (length < 0) {
+        va_end(args);
+        return NULL;
+    }
+
+    result = malloc((size_t)length + 1);
+    if (result == NULL) {
+        va_end(args);
+        return NULL;
+    }
+    vsnprintf(result, (size_t)length + 1, fmt, args);
+    va_end(args);
+    return result;
+}
+
+const char *
+dir_node_kind_name(DIRNodeKind kind)
+{
+    switch (kind) {
+        case DIR_NODE_TYPE: return "type";
+        case DIR_NODE_ABILITY: return "ability";
+        case DIR_NODE_ROLE: return "role";
+        case DIR_NODE_PARTY: return "party";
+        case DIR_NODE_PARTY_SLOT: return "party-slot";
+        case DIR_NODE_SYSTEMIC: return "roster";
+        case DIR_NODE_WORLD: return "world";
+        case DIR_NODE_RELATION: return "relation";
+        case DIR_NODE_EFFECT: return "effect";
+        case DIR_NODE_ZONE: return "zone";
+        case DIR_NODE_ZONE_SLOT: return "zone-slot";
+        case DIR_NODE_PROJECTION_SLOT: return "projection-slot";
+        case DIR_NODE_AUTHORITY_SLOT: return "authority-slot";
+        case DIR_NODE_INTENT: return "intent";
+        default: return "unknown";
+    }
+}
+
+const char *
+dir_edge_kind_name(DIREdgeKind kind)
+{
+    switch (kind) {
+        case DIR_EDGE_ROLE_FOR_TYPE: return "role-for";
+        case DIR_EDGE_ROLE_INCLUDE: return "role-include";
+        case DIR_EDGE_ROLE_IMPL_ABILITY: return "role-impl";
+        case DIR_EDGE_ROLE_COMPLETES_ABILITY: return "role-complete";
+        case DIR_EDGE_ROLE_MISSING_ABILITY_METHOD: return "role-missing-method";
+        case DIR_EDGE_PARTY_HAS_SLOT: return "party-has-slot";
+        case DIR_EDGE_PARTY_SLOT_ABILITY: return "party-slot";
+        case DIR_EDGE_SYSTEMIC_PARTY: return "roster-party";
+        case DIR_EDGE_WORLD_SYSTEMIC: return "world-roster";
+        case DIR_EDGE_WORLD_ZONE: return "world-zone";
+        case DIR_EDGE_ZONE_HAS_SLOT: return "zone-has-slot";
+        case DIR_EDGE_ZONE_SLOT_TYPE: return "zone-slot";
+        case DIR_EDGE_OWNER_HAS_PROJECTION_SLOT: return "owner-has-projection-slot";
+        case DIR_EDGE_PROJECTION_SLOT_TYPE: return "projection-slot-type";
+        case DIR_EDGE_PROJECTION_SLOT_SOURCE: return "projection-slot-source";
+        case DIR_EDGE_ZONE_HAS_AUTHORITY_SLOT: return "zone-has-authority-slot";
+        case DIR_EDGE_AUTHORITY_SLOT_SUBJECT: return "authority-slot-subject";
+        case DIR_EDGE_ZONE_LAYER_TYPE: return "zone-layer";
+        case DIR_EDGE_ZONE_AUTHORITY_ABILITY: return "zone-authority";
+        case DIR_EDGE_ZONE_STATE_LAYER: return "zone-state";
+        case DIR_EDGE_INTENT_PARTICIPANT_TYPE: return "intent-participant";
+        case DIR_EDGE_INTENT_STEP_ZONE: return "intent-step-zone";
+        case DIR_EDGE_INTENT_STEP_WHO: return "intent-step-who";
+        case DIR_EDGE_INTENT_STEP_REQUIRES: return "intent-step-requires";
+        case DIR_EDGE_INTENT_STEP_AUTHORIZED_BY: return "intent-step-authorized-by";
+        case DIR_EDGE_INTENT_STEP_CAUSES: return "intent-step-causes";
+        case DIR_EDGE_INTENT_STEP_DEPENDS_ON: return "intent-step-depends-on";
+        default: return "unknown";
+    }
+}
+
+bool
+dir_validate(const DIRProgram *dir, char **error_message)
+{
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (dir == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("DIR program is null");
+        return false;
+    }
+
+    for (size_t i = 0; i < dir->edge_count; i++) {
+        const DIREdge *edge = &dir->edges[i];
+        if (edge->from_node_id >= dir->node_count) {
+            if (error_message != NULL) {
+                *error_message = dir_validate_strdup_fmt(
+                    "DIR edge[%llu] has invalid from_node_id",
+                    (unsigned long long)i);
+            }
+            return false;
+        }
+        if (edge->to_node_id != SIZE_MAX && edge->to_node_id >= dir->node_count) {
+            if (error_message != NULL) {
+                *error_message = dir_validate_strdup_fmt(
+                    "DIR edge[%llu] has invalid to_node_id",
+                    (unsigned long long)i);
+            }
+            return false;
+        }
+    }
+
+    for (size_t i = 0; i < dir->intent_count; i++) {
+        const DIRIntentInfo *intent = &dir->intents[i];
+        if (intent->node_id >= dir->node_count) {
+            if (error_message != NULL) {
+                *error_message = dir_validate_strdup_fmt(
+                    "DIR intent[%llu] has invalid node id",
+                    (unsigned long long)i);
+            }
+            return false;
+        }
+        for (size_t j = 0; j < intent->participant_count; j++) {
+            const DIRIntentParticipant *participant = &intent->participants[j];
+            if (!participant->is_value_binding
+                && (participant->subject_type_node_id == SIZE_MAX
+                    || participant->subject_type_node_id >= dir->node_count)) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] participant '%s' is unresolved",
+                        (unsigned long long)i,
+                        participant->alias != NULL ? participant->alias : "-");
+                }
+                return false;
+            }
+        }
+        for (size_t j = 0; j < intent->step_count; j++) {
+            const DIRIntentStep *step = &intent->steps[j];
+            if (step->index != j) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step[%llu] has unstable index",
+                        (unsigned long long)i,
+                        (unsigned long long)j);
+                }
+                return false;
+            }
+            if (step->where_type_name != NULL
+                && (step->where_type_node_id == SIZE_MAX
+                    || step->where_type_node_id >= dir->node_count)) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' has unresolved where zone",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if (step->predecessor_step_name != NULL && j == 0) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] first step '%s' cannot have predecessor",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if (step->predecessor_step_name != NULL
+                && step->predecessor_step_index >= j) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' has invalid predecessor index",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+static void
+dir_dump_resolved_id(FILE *out, size_t node_id)
+{
+    if (node_id == SIZE_MAX)
+        fputc('-', out);
+    else
+        fprintf(out, "%zu", node_id);
+}
+
+void
+dir_dump(const DIRProgram *dir, FILE *out)
+{
+    if (out == NULL)
+        out = stdout;
+    if (dir == NULL) {
+        fprintf(out, "DIR: (null)\n");
+        return;
+    }
+
+    fprintf(out, "DIR Program\n  nodes: %zu\n  edges: %zu\n  intents: %zu\n",
+            dir->node_count, dir->edge_count, dir->intent_count);
+
+    for (size_t i = 0; i < dir->node_count; i++) {
+        fprintf(out, "  node[%02zu] %-8s %s\n",
+                i,
+                dir_node_kind_name(dir->nodes[i].kind),
+                dir->nodes[i].name != NULL ? dir->nodes[i].name : "(anonymous)");
+    }
+
+    for (size_t i = 0; i < dir->edge_count; i++) {
+        const DIREdge *edge = &dir->edges[i];
+        fprintf(out, "  edge[%02zu] %-14s from=%zu label=%s target=%s resolved=",
+                i,
+                dir_edge_kind_name(edge->kind),
+                edge->from_node_id,
+                edge->label != NULL ? edge->label : "-",
+                edge->target_name != NULL ? edge->target_name : "-");
+        dir_dump_resolved_id(out, edge->to_node_id);
+        fputc('\n', out);
+    }
+
+    for (size_t i = 0; i < dir->intent_count; i++) {
+        const DIRIntentInfo *intent = &dir->intents[i];
+        const DIRNode *node = &dir->nodes[intent->node_id];
+        fprintf(out, "  intent[%02zu] %s participants=%zu steps=%zu\n",
+                i,
+                node->name != NULL ? node->name : "(anonymous)",
+                intent->participant_count,
+                intent->step_count);
+        for (size_t j = 0; j < intent->participant_count; j++) {
+            const DIRIntentParticipant *p = &intent->participants[j];
+            fprintf(out, "    %s %-12s type=%s resolved=",
+                    p->is_value_binding ? "value      " : "participant",
+                    p->alias != NULL ? p->alias : "-",
+                    p->subject_type_name != NULL ? p->subject_type_name : "-");
+            dir_dump_resolved_id(out, p->subject_type_node_id);
+            fputc('\n', out);
+        }
+        for (size_t j = 0; j < intent->step_count; j++) {
+            const DIRIntentStep *step = &intent->steps[j];
+            fprintf(out, "    step[%02zu] %-12s where=%s resolved=",
+                    step->index,
+                    step->name != NULL ? step->name : "-",
+                    step->where_type_name != NULL ? step->where_type_name : "-");
+            dir_dump_resolved_id(out, step->where_type_node_id);
+            fprintf(out, " using=%s causes=%s",
+                    step->using_alias != NULL ? step->using_alias : "-",
+                    step->causes_effect_name != NULL ? step->causes_effect_name : "-");
+            if (step->predecessor_step_name != NULL)
+                fprintf(out, " depends-on=%s", step->predecessor_step_name);
+            if (step->transfer_from_alias != NULL || step->transfer_to_alias != NULL) {
+                fprintf(out, " transfer=%s->%s",
+                        step->transfer_from_alias != NULL ? step->transfer_from_alias : "-",
+                        step->transfer_to_alias != NULL ? step->transfer_to_alias : "-");
+            }
+            fputc('\n', out);
+            for (size_t k = 0; k < step->who_count; k++)
+                fprintf(out, "      who[%zu] %s\n", k, step->who_names[k]);
+            for (size_t k = 0; k < step->required_ability_count; k++)
+                fprintf(out, "      requires[%zu] %s\n", k, step->required_abilities[k]);
+            for (size_t k = 0; k < step->authorized_by_count; k++)
+                fprintf(out, "      authorized_by[%zu] %s\n", k, step->authorized_by[k]);
+        }
+    }
+}

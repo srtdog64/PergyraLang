@@ -227,11 +227,13 @@ func Main() -> Void {
     let rs: SecureSlot<Int> = ClaimSecureSlot();
     let ws: SecureSlot<Int> = ClaimSecureSlot();
     Write(rs, 5, rs_token);
-    let rv: ReadView<Int> = ViewRead(rs);
-    let wv: WriteView<Int> = ViewWrite(ws);
-    Write(wv, 5);
-    Log(Read(rv));
-    Write(wv, 9);
+    pin rs as rv: ReadView<Int> {
+        Log(Read(rv));
+    }
+    pin ws as wv: WriteView<Int> {
+        Write(wv, 5);
+        Write(wv, 9);
+    }
     Log(Read(ws, ws_token));
 }
 EOF

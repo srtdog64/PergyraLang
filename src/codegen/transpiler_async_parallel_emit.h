@@ -67,9 +67,11 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
                 : NULL;
             if (local_type_node != NULL
                 && local_type_node->type == AST_EVENT_HANDLER_TYPE) {
-                char ptr_name[72];
-                snprintf(ptr_name, sizeof(ptr_name), "*%s",
-                         capture_typed_names[i]);
+                char ptr_name[sizeof(capture_typed_names[i]) + 1];
+                ptr_name[0] = '*';
+                memcpy(ptr_name + 1, capture_typed_names[i],
+                       sizeof(capture_typed_names[i]));
+                ptr_name[sizeof(ptr_name) - 1] = '\0';
                 char *decl = pergyra_ast_typed_declarator(
                     local_type_node, ptr_name);
                 if (decl != NULL) {

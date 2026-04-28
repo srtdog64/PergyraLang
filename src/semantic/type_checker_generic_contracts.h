@@ -311,8 +311,11 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
     GenericParams *decl_params;
     WhereClause *wc;
     ASTNode **effective_args = NULL;
+    Type **effective_types = NULL;
     size_t effective_count = 0;
     const char *expected_text = NULL;
+    const char *actual_text = NULL;
+    const char *site_label = "specialized";
 
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
         || specialized_type == NULL || specialized_type->type != AST_TYPE
@@ -343,6 +346,38 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         &effective_count);
     if (effective_args == NULL)
         return;
+    if ((specialized_type->data.type.generic_args == NULL
+         || specialized_type->data.type.generic_args->count < effective_count)
+        && effective_count > 0) {
+        site_label = "instantiated";
+    }
+
+    effective_types = effective_count > 0
+        ? calloc(effective_count, sizeof(Type *))
+        : NULL;
+    if (effective_count > 0 && effective_types != NULL) {
+        bool all_effective_types_resolved = true;
+
+        for (size_t i = 0; i < effective_count; i++) {
+            effective_types[i] = effective_args[i] != NULL
+                ? generic_contract_resolve_type_ref(effective_args[i], ctx)
+                : NULL;
+            if (effective_types[i] == NULL)
+                all_effective_types_resolved = false;
+        }
+        if (all_effective_types_resolved) {
+            actual_text = format_effective_generic_type_list_scratch(
+                ctx,
+                specialized_type->data.type.name != NULL
+                    ? specialized_type->data.type.name : "<specialized>",
+                effective_types,
+                effective_count);
+        }
+    }
+    if (actual_text == NULL) {
+        actual_text = specialized_type->data.type.name != NULL
+            ? specialized_type->data.type.name : "<specialized>";
+    }
 
     for (size_t i = 0; i < effective_count; i++) {
         if (effective_args[i] != NULL) {
@@ -432,14 +467,14 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                     bound_name,
                     bounds_text,
                     expected_text,
-                    specialized_type->data.type.name != NULL
-                        ? specialized_type->data.type.name : "<specialized>",
+                    actual_text,
                     concrete_type->name != NULL
                         ? concrete_type->name : "<type>",
-                    "specialized");
+                    site_label);
             }
             free(bounds_text);
         }
     }
+    free(effective_types);
     free(effective_args);
 }

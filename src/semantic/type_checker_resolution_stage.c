@@ -63,15 +63,8 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
                 ctx->type_resolution_stage_alias_materialized_count++;
                 sym->type = alias_type;
             } else {
-                Type *fallback_type;
-                ctx->type_resolution_stage_alias_diagnostic_fallback_count++;
-                fallback_type = semantic_type_resolution_lookup_or_materialize(
-                    ctx, decl->data.type_alias.target_type);
-                if (fallback_type != NULL && fallback_type != TYPE_UNKNOWN)
-                    ctx->type_resolution_stage_alias_fallback_resolved_count++;
-                else
-                    ctx->type_resolution_stage_alias_fallback_unresolved_count++;
-                sym->type = fallback_type;
+                semantic_stage_record_alias_diagnostic_fallback(decl, ctx);
+                sym->type = TYPE_UNKNOWN;
             }
         }
         break;

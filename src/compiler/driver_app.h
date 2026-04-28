@@ -8,6 +8,7 @@
 
 #include <stdbool.h>
 #include "compiler.h"
+#include "driver_scaffold.h"
 
 typedef enum
 {
@@ -72,7 +73,6 @@ typedef struct
 int  driver_run_pipeline(const DriverFlags *flags);
 int  driver_run_pipeline_timed(const DriverFlags *flags,
                                DriverPhaseTimings *timings);
-int  driver_run_scaffold_command(int argc, char *argv[]);
 void driver_print_usage(void);
 
 /* Emit a single diagnostic as a JSON array to stderr. For error sites

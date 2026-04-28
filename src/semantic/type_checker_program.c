@@ -386,7 +386,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             fprintf(stderr, "[type-res-stats] stage-alias: materialized=%llu diagnostic_fallback=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_alias_materialized_count,
                     (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_fallback_count);
-            fprintf(stderr, "[type-res-stats] stage-alias-fallback: resolved=%llu unresolved=%llu\n",
+            fprintf(stderr, "[type-res-stats] stage-alias-fallback: resolver_calls=%llu resolved=%llu unresolved=%llu\n",
+                    (unsigned long long) ctx->type_resolution_stage_alias_fallback_resolver_call_count,
                     (unsigned long long) ctx->type_resolution_stage_alias_fallback_resolved_count,
                     (unsigned long long) ctx->type_resolution_stage_alias_fallback_unresolved_count);
             {

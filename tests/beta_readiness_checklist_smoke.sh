@@ -415,6 +415,7 @@ EOF
 require_terms ".github/workflows/ci.yml" <<'EOF'
 sudo apt-get install -y gcc make llvm-dev llvm coq
 make ci-linux
+mingw-w64-ucrt-x86_64-python
 build-macos-c-only
 make ci-macos
 EOF

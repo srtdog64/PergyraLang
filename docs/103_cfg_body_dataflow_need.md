@@ -11,6 +11,10 @@ Pergyra already has CFG infrastructure:
 - HIR has function CFG v0, block predecessors/successors, reachability, dominator/frontier, loop depth, local defs, and phi candidate skeletons.
 - RIR carries flow-block summaries for resource, projection, world-handoff, invalidation, authority-loss, and branch/join facts.
 - MIR has routine/block/instruction/cleanup blocks, SSA version maps, def/use summaries, cleanup/rollback/invalidation exceptional CFG, liveness/DCE slices, and backend vertical slices.
+- MIR cleanup consumes RIR flow/fact/semantic summaries for rollback and
+  invalidation block decisions. Intent AST-carried invalidation scanning is not
+  a valid beta path; `cfg-body-dataflow-test-smoke` rejects reintroduction of
+  `using` / `transfer` AST fallback checks inside `mir_cleanup.c`.
 
 The missing beta blocker is different:
 
@@ -171,6 +175,10 @@ The migration should be incremental and gated:
 ## Current Progress
 
 - Done: `cfg-body-dataflow-test-smoke` gates HIR CFG, HIR dominator, RIR flow-block, and MIR cleanup/SSA visibility.
+- Done: MIR cleanup block creation now consumes RIR policy ops, RIR
+  conservative semantics, RIR flow-block summaries, and RIR resource facts for
+  rollback/invalidation decisions. The former intent-step AST invalidation
+  fallback is removed.
 - Done: non-`Void` function all-path return now consumes the semantic CFG body flow summary and emits `PGY_SEM_MISSING_RETURN` when a reachable normal path can fall through.
 - Done: unreachable statements after direct terminators and after `if`/`match`
   bodies whose reachable paths all terminate now emit

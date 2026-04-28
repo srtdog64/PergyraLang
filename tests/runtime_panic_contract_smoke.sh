@@ -306,7 +306,7 @@ for path, tokens in array_lowering_paths.items():
         if token not in text:
             raise SystemExit(f"{path.relative_to(root)} missing checked array lowering {token}")
 
-compiler_text = (root / "src" / "compiler" / "compiler.c").read_text(encoding="utf-8")
+compiler_text = (root / "src" / "compiler" / "compiler_toolchain.c").read_text(encoding="utf-8")
 for token in [
     'PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_builtin_storage_inline.h"',

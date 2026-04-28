@@ -33,17 +33,47 @@
 #include <stdio.h>
 #include <time.h>
 #include <assert.h>
+#include <inttypes.h>
 
 /*
  * Platform-specific cache line size detection
  */
 #ifdef _WIN32
+#include <malloc.h>
 #include <windows.h>
 #define CACHE_LINE_SIZE 64
 #else
 #include <unistd.h>
 #define CACHE_LINE_SIZE 64
 #endif
+
+static void *
+slot_pool_alloc_data(size_t alignment, size_t size, bool cacheOptimized)
+{
+    if (!cacheOptimized)
+        return malloc(size);
+#ifdef _WIN32
+    return _aligned_malloc(size, alignment);
+#else
+    return aligned_alloc(alignment, size);
+#endif
+}
+
+static void
+slot_pool_free_data(void *data, bool cacheOptimized)
+{
+    if (data == NULL)
+        return;
+#ifdef _WIN32
+    if (cacheOptimized) {
+        _aligned_free(data);
+        return;
+    }
+#else
+    (void)cacheOptimized;
+#endif
+    free(data);
+}
 
 static void
 slot_pool_warn(const char *op, const char *reason, size_t capacity,
@@ -93,11 +123,8 @@ SlotPoolCreate(size_t elementSize, size_t capacity, bool cacheOptimized)
     
     /* Allocate aligned data array */
     totalDataSize = alignedElementSize * capacity;
-    if (cacheOptimized) {
-        pool->data = aligned_alloc(CACHE_LINE_SIZE, totalDataSize);
-    } else {
-        pool->data = malloc(totalDataSize);
-    }
+    pool->data = slot_pool_alloc_data(CACHE_LINE_SIZE, totalDataSize,
+                                      cacheOptimized);
     
     if (pool->data == NULL) {
         free(pool);
@@ -107,7 +134,7 @@ SlotPoolCreate(size_t elementSize, size_t capacity, bool cacheOptimized)
     /* Initialize occupancy bitmap */
     pool->occupied = calloc(capacity, sizeof(bool));
     if (pool->occupied == NULL) {
-        free(pool->data);
+        slot_pool_free_data(pool->data, pool->cacheOptimized);
         free(pool);
         return NULL;
     }
@@ -116,7 +143,7 @@ SlotPoolCreate(size_t elementSize, size_t capacity, bool cacheOptimized)
     pool->freeList = malloc(capacity * sizeof(PoolIndex));
     if (pool->freeList == NULL) {
         free(pool->occupied);
-        free(pool->data);
+        slot_pool_free_data(pool->data, pool->cacheOptimized);
         free(pool);
         return NULL;
     }
@@ -147,8 +174,7 @@ SlotPoolDestroy(SlotPool *pool)
     if (pool == NULL)
         return;
     
-    if (pool->data != NULL)
-        free(pool->data);
+    slot_pool_free_data(pool->data, pool->cacheOptimized);
     if (pool->occupied != NULL)
         free(pool->occupied);
     if (pool->freeList != NULL)
@@ -278,8 +304,8 @@ SlotPoolPrintStats(const SlotPool *pool)
            pool->count, pool->capacity, 
            (double)pool->count / pool->capacity * 100.0);
     printf("Peak usage: %zu elements\n", pool->peakUsage);
-    printf("Total allocations: %lu\n", pool->totalAllocations);
-    printf("Total deallocations: %lu\n", pool->totalDeallocations);
+    printf("Total allocations: %" PRIu64 "\n", pool->totalAllocations);
+    printf("Total deallocations: %" PRIu64 "\n", pool->totalDeallocations);
     printf("Cache optimized: %s\n", pool->cacheOptimized ? "Yes" : "No");
     if (pool->cacheOptimized) {
         printf("Cache line size: %zu bytes\n", pool->cacheLineSize);

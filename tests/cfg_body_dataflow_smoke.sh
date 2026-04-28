@@ -27,9 +27,16 @@ todo_path = root / "TODO.md"
 board_path = root / "docs" / "70_beta_closure_master_board.md"
 report_path = root / "docs" / "98_beta_closure_readiness_report.md"
 flow_path = root / "src" / "semantic" / "type_checker_flow.c"
+flow_match_path = root / "src" / "semantic" / "type_checker_flow_match.c"
 flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.h"
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
+mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
+mir_path = root / "src" / "compiler" / "mir.c"
+mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
+mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.h"
+mir_dce_path = root / "src" / "compiler" / "mir_dce.h"
+mir_stmt_population_path = root / "src" / "compiler" / "mir_stmt_population.h"
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.h"
 helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.h"
 builtins_query_channel_path = root / "src" / "semantic" / "type_checker_builtins_query_channel.h"
@@ -58,9 +65,16 @@ for path in (
     board_path,
     report_path,
     flow_path,
+    flow_match_path,
     flow_resources_path,
     flow_loops_path,
     flow_parallel_path,
+    mir_cleanup_path,
+    mir_path,
+    mir_ssa_rename_path,
+    mir_liveness_dce_path,
+    mir_dce_path,
+    mir_stmt_population_path,
     async_channel_path,
     helpers_effects_path,
     builtins_query_channel_path,
@@ -93,6 +107,8 @@ report = report_path.read_text(encoding="utf-8")
 flow = (
     flow_path.read_text(encoding="utf-8")
     + "\n"
+    + flow_match_path.read_text(encoding="utf-8")
+    + "\n"
     + flow_resources_path.read_text(encoding="utf-8")
     + "\n"
     + flow_loops_path.read_text(encoding="utf-8")
@@ -113,6 +129,12 @@ flow = (
     + "\n"
     + expr_path.read_text(encoding="utf-8")
 )
+mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
+mir = mir_path.read_text(encoding="utf-8")
+mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
+mir_liveness_dce = mir_liveness_dce_path.read_text(encoding="utf-8")
+mir_dce = mir_dce_path.read_text(encoding="utf-8")
+mir_stmt_population = mir_stmt_population_path.read_text(encoding="utf-8")
 program = program_path.read_text(encoding="utf-8")
 diag = diag_path.read_text(encoding="utf-8")
 diag_doc = diag_doc_path.read_text(encoding="utf-8")
@@ -138,6 +160,7 @@ required_doc_terms = [
     "HIR has function CFG v0",
     "RIR carries flow-block summaries",
     "MIR has routine/block/instruction/cleanup blocks",
+    "MIR cleanup consumes RIR flow/fact/semantic summaries",
     "All-path return",
     "Definite assignment",
     "Move/use-after-move",
@@ -188,6 +211,97 @@ for term in [
 ]:
     if term not in slot_proof:
         raise SystemExit(f"slot proof pack missing CFG bridge fact {term}")
+
+required_mir_cleanup_terms = [
+    "mir_rir_scope_requires_rollback",
+    "mir_rir_scope_requires_invalidation",
+    "RIR_FLOW_INVALIDATION",
+    "RIR_FLOW_WORLD_HANDOFF",
+    "RIR_FLOW_PROJECTION_INVALIDATION",
+    "rir_scope->flow_blocks",
+    "RIR_STATE_HANDOFF_PENDING",
+    "RIR_STATE_AUTHORITY_LOST",
+    "RIR_RESOURCE_WORLD_HANDLE",
+]
+missing_mir_cleanup = [term for term in required_mir_cleanup_terms if term not in mir_cleanup]
+if missing_mir_cleanup:
+    raise SystemExit(
+        "MIR cleanup must consume RIR flow/fact summaries: "
+        + ", ".join(missing_mir_cleanup)
+    )
+for forbidden in [
+    "mir_intent_ast_needs_invalidation",
+    "data.intent_step.using_expr",
+    "data.intent_step.transfer_from_alias",
+    "data.intent_step.transfer_to_alias",
+]:
+    if forbidden in mir_cleanup:
+        raise SystemExit(
+            "MIR cleanup reintroduced AST-carried intent invalidation fallback: "
+            + forbidden
+        )
+
+mir_owner_limits = {
+    mir_path: 600,
+    mir_ssa_rename_path: 600,
+    mir_liveness_dce_path: 600,
+    mir_dce_path: 600,
+    mir_stmt_population_path: 600,
+}
+for path, limit in mir_owner_limits.items():
+    loc = len(path.read_text(encoding="utf-8").splitlines())
+    if loc > limit:
+        raise SystemExit(
+            f"MIR CFG/body owner {path.relative_to(root)} is {loc} LOC; "
+            f"split-review limit is {limit}"
+        )
+
+required_mir_owner_terms = {
+    "src/compiler/mir.c": [
+        "#include \"mir_ssa_rename.h\"",
+        "#include \"mir_liveness_dce.h\"",
+        "#include \"mir_stmt_population.h\"",
+        "mir_build_blocks_from_hir",
+        "mir_populate_instructions",
+    ],
+    "src/compiler/mir_ssa_rename.h": [
+        "mir_apply_ssa_rename",
+        "mir_populate_use_edges",
+        "mir_collect_ssa_names",
+    ],
+    "src/compiler/mir_liveness_dce.h": [
+        "mir_compute_liveness",
+        "mir_build_value_summaries",
+        "#include \"mir_dce.h\"",
+    ],
+    "src/compiler/mir_dce.h": [
+        "mir_run_dce_on_routine",
+        "mir_remove_instruction",
+        "mir_reset_routine_analysis",
+    ],
+    "src/compiler/mir_stmt_population.h": [
+        "mir_populate_stmt_instructions",
+        "mir_stmt_def_name",
+        "mir_let_decl_requires_stmt_preservation",
+    ],
+}
+mir_owner_text = {
+    "src/compiler/mir.c": mir,
+    "src/compiler/mir_ssa_rename.h": mir_ssa_rename,
+    "src/compiler/mir_liveness_dce.h": mir_liveness_dce,
+    "src/compiler/mir_dce.h": mir_dce,
+    "src/compiler/mir_stmt_population.h": mir_stmt_population,
+}
+for owner, terms in required_mir_owner_terms.items():
+    text = mir_owner_text[owner]
+    missing_terms = [term for term in terms if term not in text]
+    if missing_terms:
+        raise SystemExit(
+            "MIR CFG/body owner split lost required terms in "
+            + owner
+            + ": "
+            + ", ".join(missing_terms)
+        )
 
 required_flow_terms = [
     "FLOW_FALLTHROUGH",

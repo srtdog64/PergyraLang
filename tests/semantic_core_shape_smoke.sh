@@ -22,13 +22,32 @@ for path in \
     src/semantic/type_checker_event.c \
     src/semantic/type_checker_generic_validation.c \
     src/semantic/type_checker_qubit.c \
+    src/semantic/type_checker_domain_role_lookup.c \
+    src/semantic/type_checker_resolution_metadata.c \
+    src/semantic/type_checker_resolution_metadata_diagnostics.c \
     src/semantic/type_checker_resolution_graph_inventory.c \
     src/semantic/type_checker_resolution_stage.c \
+    src/semantic/type_checker_resolution_stage_alias.c \
     src/semantic/type_checker_resolution_stage_lookup.c \
     src/semantic/type_checker_resolution_stage_stats.c \
     src/semantic/type_checker_resolution_stage_domain.c
 do
     [ -f "$path" ] || fail "missing semantic owner TU: $path"
+done
+
+[ -f src/semantic/type_checker_flow_match.c ] \
+    || fail "missing CFG match-flow owner TU: src/semantic/type_checker_flow_match.c"
+
+for path in \
+    src/semantic/type_checker_resolution_metadata.c \
+    src/semantic/type_checker_resolution_stage.c \
+    src/semantic/type_checker_flow.c \
+    src/semantic/type_checker_flow_match.c
+do
+    loc="$(wc -l < "$path" | tr -d '[:space:]')"
+    if [ "$loc" -gt 600 ]; then
+        fail "$path is ${loc} LOC; expected <= 600"
+    fi
 done
 
 if grep -q '#include "type_checker_resolution_graph_inventory.inc"' src/semantic/type_checker.c; then

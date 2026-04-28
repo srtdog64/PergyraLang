@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "type_checker_internal.h"
@@ -63,6 +65,59 @@ metadata_record_named_materializer_fallback(SemanticContext *ctx,
     ctx->type_resolution_metadata_fallback_named_missing_symbol++;
 }
 
+static bool
+metadata_trace_materializer_fallback_enabled(void)
+{
+    static int cached = -1;
+
+    if (cached < 0) {
+        const char *value = getenv("PGY_TYPE_RES_FALLBACK_TRACE");
+        cached = value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
+    }
+    return cached != 0;
+}
+
+static const char *
+metadata_fallback_ast_kind(const ASTNode *type_node)
+{
+    if (type_node == NULL)
+        return "<null>";
+    switch (type_node->type) {
+    case AST_TYPE:
+        return "AST_TYPE";
+    case AST_CHANNEL_TYPE:
+        return "AST_CHANNEL_TYPE";
+    case AST_FUTURE_TYPE:
+        return "AST_FUTURE_TYPE";
+    case AST_EVENT_HANDLER_TYPE:
+        return "AST_EVENT_HANDLER_TYPE";
+    default:
+        return "AST_OTHER";
+    }
+}
+
+static void
+metadata_trace_materializer_fallback(ASTNode *type_node)
+{
+    const char *name = NULL;
+    size_t generic_count = 0;
+
+    if (!metadata_trace_materializer_fallback_enabled())
+        return;
+    if (type_node != NULL && type_node->type == AST_TYPE) {
+        name = type_node->data.type.name;
+        if (type_node->data.type.generic_args != NULL)
+            generic_count = type_node->data.type.generic_args->count;
+    }
+    fprintf(stderr,
+            "[type-res-fallback] kind=%s name=%s generic_args=%llu line=%u column=%u\n",
+            metadata_fallback_ast_kind(type_node),
+            name != NULL ? name : "<none>",
+            (unsigned long long)generic_count,
+            type_node != NULL ? type_node->line : 0,
+            type_node != NULL ? type_node->column : 0);
+}
+
 void
 semantic_type_resolution_record_materializer_fallback(SemanticContext *ctx,
                                                       ASTNode *type_node)
@@ -70,6 +125,7 @@ semantic_type_resolution_record_materializer_fallback(SemanticContext *ctx,
     if (ctx == NULL)
         return;
 
+    metadata_trace_materializer_fallback(type_node);
     ctx->type_resolution_metadata_materializer_fallbacks++;
     if (type_node == NULL) {
         ctx->type_resolution_metadata_fallback_other++;

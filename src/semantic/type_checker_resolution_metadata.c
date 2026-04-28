@@ -5,127 +5,14 @@
 #include "diag_codes.h"
 #include "type_checker_internal.h"
 
+Type *
+semantic_type_resolution_metadata_builtin_singleton(const char *name);
+
 static Type *
-metadata_builtin_singleton(const char *name);
-
-static bool
-metadata_type_ref_has_no_generic_args(const ASTNode *type_node)
-{
-    return type_node != NULL
-        && type_node->type == AST_TYPE
-        && (type_node->data.type.generic_args == NULL
-            || type_node->data.type.generic_args->count == 0);
-}
-
-static bool
-metadata_stable_builtin_shell_arity(const char *name,
-                                    size_t *out_min,
-                                    size_t *out_max)
-{
-    size_t min = 1;
-    size_t max = 1;
-
-    if (name == NULL)
-        return false;
-
-    if (strcmp(name, "HashMap") == 0) {
-        min = 2;
-        max = 2;
-    } else if (strcmp(name, "Result") == 0) {
-        min = 1;
-        max = 2;
-    } else if (!(strcmp(name, "Array") == 0
-            || strcmp(name, "Slice") == 0
-            || strcmp(name, "List") == 0
-            || strcmp(name, "Queue") == 0
-            || strcmp(name, "Set") == 0
-            || strcmp(name, "Box") == 0
-            || strcmp(name, "Rc") == 0
-            || strcmp(name, "Weak") == 0
-            || strcmp(name, "Channel") == 0
-            || strcmp(name, "Future") == 0
-            || strcmp(name, "RemoteFuture") == 0
-            || strcmp(name, "Token") == 0
-            || strcmp(name, "DeviceSlot") == 0
-            || strcmp(name, "Option") == 0
-            || strcmp(name, "Slot") == 0
-            || strcmp(name, "SecureSlot") == 0
-            || strcmp(name, "ReadView") == 0
-            || strcmp(name, "WriteView") == 0
-            || strcmp(name, "MoveToken") == 0)) {
-        return false;
-    }
-
-    if (out_min != NULL)
-        *out_min = min;
-    if (out_max != NULL)
-        *out_max = max;
-    return true;
-}
-
-static bool
-metadata_name_is_shadowed_class(SemanticContext *ctx, const char *name)
-{
-    Symbol *sym;
-
-    if (ctx == NULL || name == NULL)
-        return false;
-    sym = scope_lookup(ctx->scope, name);
-    return sym != NULL && sym->kind == SYMBOL_CLASS;
-}
-
-static bool
-metadata_reject_invalid_stable_shell_arity(SemanticContext *ctx,
-                                           ASTNode *type_node)
-{
-    const char *name;
-    size_t min_args;
-    size_t max_args;
-    size_t provided;
-    bool slot_like;
-
-    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
-        return false;
-    name = type_node->data.type.name;
-    if (!metadata_stable_builtin_shell_arity(name, &min_args, &max_args))
-        return false;
-    if (metadata_name_is_shadowed_class(ctx, name))
-        return false;
-
-    provided = type_node->data.type.generic_args != NULL
-        ? type_node->data.type.generic_args->count
-        : 0;
-    if (provided >= min_args && provided <= max_args)
-        return false;
-
-    slot_like = strcmp(name, "Slot") == 0
-        || strcmp(name, "SecureSlot") == 0
-        || strcmp(name, "ReadView") == 0
-        || strcmp(name, "WriteView") == 0
-        || strcmp(name, "MoveToken") == 0;
-    if (slot_like) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
-            PGY_CAUSE_CLASS_CONTRACT,
-            PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN,
-            type_node,
-            max_args == 1
-                ? "%s requires exactly one type argument"
-                : "%s requires one or two type arguments",
-            name);
-        return true;
-    }
-    semantic_error_with_hints(ctx,
-        PGY_CODE_SEM_INFER_GENERIC,
-        PGY_CAUSE_GENERIC_ARGS_INVALID,
-        PGY_FIX_ALIGN_GENERIC_ARG_LIST,
-        type_node,
-        max_args == 1
-            ? "%s requires exactly one type argument"
-            : "%s requires one or two type arguments",
-        name);
-    return true;
-}
+metadata_type_from_name_with_alias_stack(SemanticContext *ctx,
+                                         const char *name,
+                                         const char **alias_stack,
+                                         size_t alias_stack_count);
 
 static bool
 metadata_alias_stack_contains(const char **stack, size_t stack_count, const char *name)
@@ -291,7 +178,7 @@ metadata_type_from_name_with_alias_stack(SemanticContext *ctx,
     if (ctx == NULL || name == NULL)
         return NULL;
 
-    resolved = metadata_builtin_singleton(name);
+    resolved = semantic_type_resolution_metadata_builtin_singleton(name);
     if (resolved != NULL)
         return resolved;
 
@@ -366,10 +253,12 @@ metadata_type_ref_with_alias_stack(SemanticContext *ctx,
 
     if (type_node->type == AST_TYPE) {
         const char *name = type_node->data.type.name;
-        if (name != NULL && metadata_type_ref_has_no_generic_args(type_node)) {
+        if (name != NULL
+            && semantic_type_resolution_metadata_type_ref_has_no_generic_args(
+                type_node)) {
             ASTNode *alias_decl;
 
-            resolved = metadata_builtin_singleton(name);
+            resolved = semantic_type_resolution_metadata_builtin_singleton(name);
             if (resolved != NULL) {
                 semantic_type_resolution_record_resolved_type(ctx,
                                                               type_node,
@@ -602,13 +491,15 @@ semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
         return resolved;
 
     if (type_node->type == AST_TYPE)
-        resolved = metadata_builtin_singleton(type_node->data.type.name);
+        resolved = semantic_type_resolution_metadata_builtin_singleton(
+            type_node->data.type.name);
     if (resolved != NULL) {
         semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
         return resolved;
     }
 
-    if (metadata_reject_invalid_stable_shell_arity(ctx, type_node))
+    if (semantic_type_resolution_reject_invalid_stable_shell_arity(ctx,
+                                                                   type_node))
         return TYPE_UNKNOWN;
 
     resolved = metadata_scope_named_type(ctx, type_node);
@@ -620,6 +511,14 @@ semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
     resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
     if (resolved != NULL)
         return resolved;
+
+    if (semantic_type_resolution_reject_invalid_stable_constructed_type(ctx,
+                                                                        type_node))
+        return TYPE_UNKNOWN;
+
+    if (semantic_type_resolution_reject_unknown_bare_named_type(ctx,
+                                                               type_node))
+        return TYPE_UNKNOWN;
 
     semantic_type_resolution_record_materializer_fallback(ctx, type_node);
     return resolve_type_node(type_node, ctx);
@@ -639,7 +538,8 @@ semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,
         return resolved;
 
     if (type_node->type == AST_TYPE)
-        resolved = metadata_builtin_singleton(type_node->data.type.name);
+        resolved = semantic_type_resolution_metadata_builtin_singleton(
+            type_node->data.type.name);
     if (resolved != NULL) {
         semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
         return resolved;
@@ -661,8 +561,8 @@ semantic_type_resolution_lookup_metadata_name_or_alias(SemanticContext *ctx,
     return metadata_type_from_name_with_alias_stack(ctx, name, alias_stack, 0);
 }
 
-static Type *
-metadata_builtin_singleton(const char *name)
+Type *
+semantic_type_resolution_metadata_builtin_singleton(const char *name)
 {
     if (name == NULL)
         return NULL;

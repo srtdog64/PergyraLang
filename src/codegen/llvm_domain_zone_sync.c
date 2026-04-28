@@ -4,6 +4,7 @@
 #include "llvm_domain_zone_bind_helpers.h"
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_projection_sync_body_helpers.h"
+#include "llvm_domain_sync_frontier.h"
 void
 llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
@@ -34,21 +35,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         llvm_scope_declare(ctx, "self", sa, self_ptr_t);
         llvm_register_var_class(ctx, "self", decl_name);
     }
-    {
-        int generation_idx = llvm_class_field_index(decl_cls, "__sync_generation");
-        if (generation_idx >= 0) {
-            LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
-            LLVMValueRef generation_ptr = LLVMBuildStructGEP2(ctx->builder,
-                decl_cls->struct_type, self_ptr, (unsigned)generation_idx,
-                llvm_tmp_name(ctx));
-            LLVMValueRef generation_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-                generation_ptr, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder,
-                LLVMBuildAdd(ctx->builder, generation_val,
-                    LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
-                generation_ptr);
-        }
-    }
+    llvm_emit_sync_generation_increment(ctx, decl_cls, LLVMGetParam(sync_fn, 0));
     LLVMValueRef frontier_pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
         "zone.frontier.pass.addr");
     LLVMValueRef frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
@@ -999,29 +986,12 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_overflow_bb);
-    {
-        LLVMTypeRef abort_ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
-        LLVMFuncEntry *abort_fn = llvm_lookup_or_create_function(ctx, "abort",
-            abort_ft, ctx->type_void);
-        if (abort_fn != NULL) {
-            LLVMBuildCall2(ctx->builder, abort_fn->fn_type, abort_fn->fn,
-                NULL, 0, "");
-        }
-        LLVMBuildUnreachable(ctx->builder);
-    }
+    llvm_emit_frontier_overflow_abort(ctx);
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_exit_bb);
     LLVMBuildRetVoid(ctx->builder);
     llvm_scope_pop(ctx);
-    ctx->current_function = saved_fn;
-    ctx->current_ret_type = saved_ret;
-    llvm_restore_current_host_decl(ctx, saved_host_decl);
-
-    if (saved_fn != NULL) {
-        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
-        if (last != NULL)
-            LLVMPositionBuilderAtEnd(ctx->builder, last);
-    }
+    llvm_finish_domain_sync_emit(ctx, saved_fn, saved_ret, saved_host_decl);
 }
 
 #endif /* PGY_LLVM_ENABLED */

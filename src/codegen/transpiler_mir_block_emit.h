@@ -149,8 +149,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     }
                 }
             }
-            if (inst->name != NULL && strcmp(inst->name, "Claim") == 0)
-                continue;
+            if (inst->name != NULL && strcmp(inst->name, "Claim") == 0) {
+                if (inst->ast == NULL || inst->ast->type != AST_WITH_STMT)
+                    continue;
+            }
             if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
                 if (reason != NULL && reason_cap > 0) {
                     snprintf(reason, reason_cap,

@@ -43,6 +43,149 @@ stable_constructed_constructor(const char *name, size_t argc)
     return NULL;
 }
 
+static bool
+stable_constructed_type_node_is_builtin_constructed(const ASTNode *type_node)
+{
+    const char *name;
+    size_t argc;
+
+    if (type_node == NULL)
+        return false;
+    if (type_node->type == AST_CHANNEL_TYPE
+        || type_node->type == AST_FUTURE_TYPE
+        || type_node->type == AST_EVENT_HANDLER_TYPE) {
+        return true;
+    }
+    if (type_node->type != AST_TYPE)
+        return false;
+    if (type_node->data.type.tuple_elements != NULL
+        && type_node->data.type.tuple_element_count > 0) {
+        return true;
+    }
+    name = type_node->data.type.name;
+    if (name == NULL || type_node->data.type.generic_args == NULL)
+        return false;
+    argc = type_node->data.type.generic_args->count;
+    if (stable_constructed_constructor(name, argc) != NULL)
+        return true;
+    return argc == 1
+        && (strcmp(name, "Slot") == 0
+            || strcmp(name, "SecureSlot") == 0
+            || strcmp(name, "ReadView") == 0
+            || strcmp(name, "WriteView") == 0
+            || strcmp(name, "MoveToken") == 0);
+}
+
+static Type *
+stable_constructed_resolve_arg(SemanticContext *ctx,
+                               GenericParam *gp)
+{
+    Type *resolved;
+
+    if (ctx == NULL || gp == NULL)
+        return NULL;
+    if (gp->constraint != NULL) {
+        resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx,
+                                                                     gp->constraint);
+        if (resolved != NULL)
+            return resolved;
+        if (stable_constructed_type_node_is_builtin_constructed(gp->constraint)) {
+            semantic_type_resolution_try_record_stable_constructed_type(
+                ctx, gp->constraint);
+            return semantic_type_resolution_lookup_metadata_type_ref(
+                ctx, gp->constraint);
+        }
+        return NULL;
+    }
+    resolved = semantic_type_resolution_lookup_metadata_name_or_alias(ctx,
+                                                                      gp->name);
+    return resolved != TYPE_UNKNOWN ? resolved : NULL;
+}
+
+static void
+try_record_generic_class_constructed_type(SemanticContext *ctx,
+                                          ASTNode *type_node)
+{
+    const char *name;
+    Symbol *sym;
+    ASTNode *class_decl;
+    ASTNode **effective_args;
+    Type **resolved_args;
+    Type *result;
+    size_t argc = 0;
+    size_t provided_count = 0;
+
+    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE
+        || ctx->program_root == NULL)
+        return;
+
+    name = type_node->data.type.name;
+    if (name == NULL)
+        return;
+    sym = scope_lookup(ctx->scope, name);
+    if (sym == NULL || sym->kind != SYMBOL_CLASS || sym->type == NULL
+        || sym->type == TYPE_UNKNOWN)
+        return;
+
+    class_decl = find_type_decl_by_name(ctx->program_root, name);
+    if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
+        || class_decl->data.class_decl.generic_params == NULL
+        || class_decl->data.class_decl.generic_params->count == 0)
+        return;
+
+    provided_count = type_node->data.type.generic_args != NULL
+        ? type_node->data.type.generic_args->count
+        : 0;
+    if (provided_count == 0) {
+        GenericParams *decl_params = class_decl->data.class_decl.generic_params;
+        for (size_t i = 0; i < decl_params->count; i++) {
+            GenericParam *param = decl_params->params[i];
+            if (param == NULL || param->default_type == NULL)
+                return;
+        }
+    }
+
+    effective_args = collect_effective_generic_arg_nodes(
+        class_decl->data.class_decl.generic_params,
+        type_node->data.type.generic_args,
+        type_node,
+        ctx,
+        "class",
+        name,
+        &argc);
+    if (effective_args == NULL)
+        return;
+
+    resolved_args = calloc(argc > 0 ? argc : 1, sizeof(Type *));
+    if (resolved_args == NULL) {
+        free(effective_args);
+        return;
+    }
+
+    for (size_t i = 0; i < argc; i++) {
+        resolved_args[i] = semantic_type_resolution_lookup_metadata_type_ref(
+            ctx, effective_args[i]);
+        if (resolved_args[i] == NULL) {
+            free(resolved_args);
+            free(effective_args);
+            return;
+        }
+    }
+
+    result = type_create_constructed(sym->type, resolved_args, argc);
+    if (result != NULL) {
+        semantic_type_resolution_record_owned_resolved_type(ctx,
+                                                            type_node,
+                                                            result);
+        validate_class_where_clause_specialization_ast(class_decl,
+                                                       type_node,
+                                                       type_node,
+                                                       ctx);
+    }
+    free(resolved_args);
+    free(effective_args);
+}
+
 void
 semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx,
                                                             ASTNode *type_node)
@@ -110,6 +253,14 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
     if (type_node->type != AST_TYPE)
         return;
 
+    args_node = type_node->data.type.generic_args;
+    if ((args_node == NULL || args_node->count == 0)
+        && type_node->data.type.name != NULL) {
+        try_record_generic_class_constructed_type(ctx, type_node);
+        if (semantic_type_resolution_lookup_resolved_type(ctx, type_node) != NULL)
+            return;
+    }
+
     if (type_node->data.type.tuple_elements != NULL
         && type_node->data.type.tuple_element_count > 0) {
         size_t element_count = type_node->data.type.tuple_element_count;
@@ -147,12 +298,7 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
             return;
         if (args_node->params[0] == NULL)
             return;
-        inner = semantic_type_resolution_lookup_metadata_type_ref(
-            ctx, args_node->params[0]->constraint);
-        if (inner == NULL) {
-            inner = semantic_type_resolution_lookup_metadata_name_or_alias(
-                ctx, args_node->params[0]->name);
-        }
+        inner = stable_constructed_resolve_arg(ctx, args_node->params[0]);
         if (inner == NULL)
             return;
 
@@ -172,24 +318,19 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
         return;
     }
 
-    args_node = type_node->data.type.generic_args;
     if (args_node == NULL || args_node->count == 0 || args_node->count > 2)
         return;
 
     constructor = stable_constructed_constructor(
         type_node->data.type.name,
         args_node->count);
-    if (constructor == NULL)
+    if (constructor == NULL) {
+        try_record_generic_class_constructed_type(ctx, type_node);
         return;
+    }
 
     for (size_t i = 0; i < args_node->count; i++) {
-        GenericParam *gp = args_node->params[i];
-        ASTNode *arg_type = gp != NULL ? gp->constraint : NULL;
-        args[i] = semantic_type_resolution_lookup_metadata_type_ref(ctx, arg_type);
-        if (args[i] == NULL && gp != NULL) {
-            args[i] = semantic_type_resolution_lookup_metadata_name_or_alias(
-                ctx, gp->name);
-        }
+        args[i] = stable_constructed_resolve_arg(ctx, args_node->params[i]);
         if (args[i] == NULL)
             return;
     }

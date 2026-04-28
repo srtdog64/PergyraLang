@@ -97,19 +97,71 @@ mir_add_rollback_invalidation(MIRRoutine *routine, MIRBasicBlock *cleanup, const
 }
 
 static bool
-mir_intent_ast_needs_invalidation(const HIRRoutine *hir_routine)
+mir_rir_scope_requires_rollback(const RIRScope *rir_scope)
 {
-    ASTNode *intent;
-    if (hir_routine == NULL || hir_routine->ast == NULL || hir_routine->ast->type != AST_INTENT_DECL)
+    if (rir_scope == NULL)
         return false;
-    intent = hir_routine->ast;
-    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent->data.intent_decl.steps[i];
-        if (step == NULL || step->type != AST_INTENT_STEP)
-            continue;
-        if (step->data.intent_step.using_expr != NULL
-            || step->data.intent_step.transfer_from_alias != NULL
-            || step->data.intent_step.transfer_to_alias != NULL) {
+    for (size_t i = 0; i < rir_scope->op_count; i++) {
+        if (rir_scope->ops[i].kind == RIR_OP_ABORT_INTENT
+            || rir_scope->ops[i].kind == RIR_OP_COMPENSATE_INTENT_STEP) {
+            return true;
+        }
+    }
+    for (size_t i = 0; i < rir_scope->fact_count; i++) {
+        const RIRFact *fact = &rir_scope->facts[i];
+        if (fact->kind == RIR_FACT_INTENT_POLICY
+            && fact->name != NULL
+            && strcmp(fact->name, "rollback") == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+mir_rir_scope_requires_invalidation(const RIRScope *rir_scope)
+{
+    if (rir_scope == NULL)
+        return false;
+
+    if ((rir_scope->conservative_semantics
+         & (RIR_FLOW_INVALIDATION | RIR_FLOW_WORLD_HANDOFF | RIR_FLOW_PROJECTION_INVALIDATION)) != 0U) {
+        return true;
+    }
+    for (size_t i = 0; i < rir_scope->flow_block_count; i++) {
+        const RIRFlowBlock *flow = &rir_scope->flow_blocks[i];
+        unsigned int semantics = flow->entry_semantics | flow->exit_semantics;
+        if ((semantics
+             & (RIR_FLOW_INVALIDATION | RIR_FLOW_WORLD_HANDOFF | RIR_FLOW_PROJECTION_INVALIDATION)) != 0U) {
+            return true;
+        }
+        for (size_t j = 0; j < flow->fact_count; j++) {
+            const RIRFlowFact *fact = &flow->facts[j];
+            if (fact->entry_conflict || fact->has_merge_conflict)
+                return true;
+            if (fact->entry_state == RIR_STATE_DIRTY
+                || fact->entry_state == RIR_STATE_STALE
+                || fact->entry_state == RIR_STATE_DETACHED
+                || fact->entry_state == RIR_STATE_HANDOFF_PENDING
+                || fact->entry_state == RIR_STATE_HANDED_OFF
+                || fact->entry_state == RIR_STATE_AUTHORITY_LOST
+                || fact->exit_state == RIR_STATE_DIRTY
+                || fact->exit_state == RIR_STATE_STALE
+                || fact->exit_state == RIR_STATE_DETACHED
+                || fact->exit_state == RIR_STATE_HANDOFF_PENDING
+                || fact->exit_state == RIR_STATE_HANDED_OFF
+                || fact->exit_state == RIR_STATE_AUTHORITY_LOST) {
+                return true;
+            }
+        }
+    }
+    for (size_t i = 0; i < rir_scope->fact_count; i++) {
+        const RIRFact *fact = &rir_scope->facts[i];
+        if (fact->kind == RIR_FACT_PROJECTION
+            || fact->resource_kind == RIR_RESOURCE_EFFECT_INSTANCE
+            || fact->resource_kind == RIR_RESOURCE_RELATION_INSTANCE
+            || fact->resource_kind == RIR_RESOURCE_ZONE_HANDLE
+            || fact->resource_kind == RIR_RESOURCE_WORLD_HANDLE) {
             return true;
         }
     }
@@ -139,39 +191,10 @@ mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope)
     if (routine == NULL)
         return true;
 
-    if (rir_scope != NULL) {
-        for (size_t i = 0; i < rir_scope->op_count; i++) {
-            if (rir_scope->ops[i].kind == RIR_OP_ABORT_INTENT
-                || rir_scope->ops[i].kind == RIR_OP_COMPENSATE_INTENT_STEP) {
-                needs_cleanup = true;
-                needs_rollback = true;
-                break;
-            }
-        }
-    }
-
-    if (rir_scope != NULL) {
-        for (size_t i = 0; i < rir_scope->fact_count; i++) {
-            const RIRFact *fact = &rir_scope->facts[i];
-            if (fact->kind == RIR_FACT_INTENT_POLICY
-                && fact->name != NULL
-                && strcmp(fact->name, "rollback") == 0) {
-                needs_cleanup = true;
-                needs_rollback = true;
-            }
-            if (fact->kind == RIR_FACT_PROJECTION
-                || fact->resource_kind == RIR_RESOURCE_EFFECT_INSTANCE
-                || fact->resource_kind == RIR_RESOURCE_RELATION_INSTANCE
-                || fact->resource_kind == RIR_RESOURCE_ZONE_HANDLE) {
-                needs_cleanup = true;
-                needs_invalidation = true;
-            }
-        }
-    }
-    if (mir_intent_ast_needs_invalidation(routine->hir_routine)) {
+    needs_rollback = mir_rir_scope_requires_rollback(rir_scope);
+    needs_invalidation = mir_rir_scope_requires_invalidation(rir_scope);
+    if (needs_rollback || needs_invalidation)
         needs_cleanup = true;
-        needs_invalidation = true;
-    }
     if (mir_routine_has_pin_regions(routine))
         needs_cleanup = true;
 
