@@ -520,6 +520,10 @@ semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
                                                                type_node))
         return TYPE_UNKNOWN;
 
+    /* Strict beta keeps this as a single central escape hatch only. Current
+     * DAG smoke requires this path to be dormant (materializer_fallbacks == 0);
+     * resolver-inventory smoke rejects any owner-local fallback reintroduction.
+     */
     semantic_type_resolution_record_materializer_fallback(ctx, type_node);
     return resolve_type_node(type_node, ctx);
 }

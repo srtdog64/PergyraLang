@@ -847,6 +847,7 @@ LLVMGenResult *llvm_validate_mir_for_codegen(const MIRProgram *mir);
 bool llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx);
 void llvm_declare_runtime(LLVMGenCtx *ctx);
 void llvm_set_type_render_ctx(LLVMGenCtx *ctx);
+void llvm_clear_type_render_ctx_if(LLVMGenCtx *ctx);
 bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);
 bool llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind);
 bool llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind);

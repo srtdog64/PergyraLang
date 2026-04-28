@@ -1,6 +1,6 @@
 # Beta Readiness Checklist
 
-마지막 업데이트: 2026-04-27
+마지막 업데이트: 2026-04-28
 
 이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety**다. 현재 공식 beta readiness는 약 50%로 본다.
 
@@ -22,6 +22,14 @@ Operational mode:
   `.h` files. 1,000 LOC remains the hard stop / risk line, but files between
   600 and 1,000 LOC still need a named owner-seam plan unless they are compact
   generated tables, ABI declarations, or single-purpose orchestration layers.
+- Current owner-size baseline: all production `.c` and `.h` files are below
+  the 1,000 LOC hard risk line after the AST print/constructor/type split and
+  semantic domain contract / constructor-call / intent-transfer splits plus
+  the runtime Slot Pin owner split, type-system inference/effect split,
+  AST destroy/domain-destroy split, parser declaration/type split, and parser
+  statement-dispatch split. Semantic zone declaration ownership is also below
+  the 600 LOC split-review threshold after shape/projection/state splits. The
+  active queue is now the 600-1,000 LOC split-review band.
 
 상태 표기:
 
@@ -214,6 +222,21 @@ Closed now:
   reduced to the declaration/routine lowering orchestration owner, while
   `src/compiler/hir_analysis.c` owns signature/direct-call/control-flow
   detection.
+- HIR CFG lowering now represents loop exits and loop backedges explicitly for
+  `break` / `continue`. `while` and `for` bodies carry a loop context, so
+  `break` terminates the current block with a `goto` to the loop exit and
+  `continue` terminates with a `goto` to the loop header. This keeps HIR CFG
+  dominance/frontier/loop-depth facts aligned with semantic loop flow instead
+  of leaving loop control as opaque AST payload.
+- HIR CFG lowering now represents `match` as a case dispatch chain instead of
+  a single opaque statement payload. Each `case` is a CFG branch condition,
+  case/default bodies flow to a join block when they fall through, and
+  terminating cases stay closed. `src/test_hir.c` locks this with
+  `HIR CFG lowers match cases and default as explicit edges`.
+- HIR CFG lowering now traverses `unsafe` block bodies instead of treating
+  `unsafe` as an opaque statement. Nested terminators inside `unsafe` blocks are
+  visible to the same CFG dominance/reachability consumers as ordinary block
+  terminators.
 - MIR has routine/block/instruction/cleanup blocks, SSA version maps, def/use summaries, rollback/invalidation exceptional CFG, liveness/DCE slices, and backend vertical slices.
 - RIR already carries flow-block summaries for resource/projection/world-handoff/invalidation/authority-loss style facts.
 - MIR cleanup consumes RIR flow/fact/semantic summaries for rollback and
@@ -1014,6 +1037,66 @@ make diagnostic-registry-test-smoke
 make ir-pipeline-test-smoke
 # 신설 후보:
 # make compiler-design-quality-test-smoke
+```
+
+## 0h. Type-Resolution DAG Closure
+
+Status: `IN PROGRESS / BLOCKER`
+
+Source of truth: `TODO.md` type-resolution DAG section,
+`tests/type_resolution_dag_smoke.sh`, and
+`tests/type_resolution_resolver_inventory_smoke.sh`.
+
+Goal:
+
+- Stable type refs must resolve through graph/topo metadata rather than
+  owner-local recursive resolver fallback.
+- Declaration order, generic defaults, where bounds, ability consumers, module
+  contracts, zone/world authority consumers, and alias cycles must share one
+  dependency vocabulary and one diagnostic provenance model.
+- The remaining recursive resolver implementation must be treated as a
+  compatibility body to retire, not as a second source of truth.
+
+Closed now:
+
+- DAG graph/topo inventory is active and smoke-gated.
+- Owner-local resolver seams are gone: new direct `resolve_type_node(...)`
+  calls outside the resolver body / metadata owner fail
+  `type-resolution-resolver-inventory-test-smoke`.
+- Central metadata materializer fallback is dormant in the semantic suite:
+  `materializer_fallbacks=0`.
+- Current local stats are `graph-backed skips=3140`,
+  `metadata_entries=3363`, `metadata_owned=254`,
+  `metadata_hits=6751`, and `materializer_fallbacks=0`.
+- Metadata fallback families are all zero, including named, generic-named,
+  compound, other, builtin shell, generic class, alias, non-class symbol, and
+  missing-symbol fallback.
+- Alias legacy surface is diagnostic-only: `legacy_alias=84`,
+  `legacy_non_alias=0`, `alias_materialized=6`,
+  `alias_diagnostic_fallback=78`, and
+  `alias_fallback_resolver_calls=0`.
+- Semantic regression now covers provider-after-consumer alias materialization
+  for a nested constructed alias (`Later = Channel<Slot<Int>>`) consumed by a
+  function signature before the alias declaration.
+- The resolver inventory smoke now also gates the materializer fallback
+  recorder and the one remaining recursive escape hatch as central-only.
+
+Remaining:
+
+- Retire the recursive resolver as an evaluator source for stable type refs.
+  Keeping a dormant central escape hatch is acceptable for transition, but it
+  is not beta-complete source-of-truth closure.
+- Convert the remaining alias diagnostic stage from "legacy fallback"
+  vocabulary to graph diagnostic vocabulary without losing cycle provenance.
+- Keep provider-after-consumer generic/default/ability/module/zone-world
+  regressions in semantic and C/LLVM parity suites.
+
+Evidence command:
+
+```sh
+make type-resolution-dag-test-smoke
+make type-resolution-resolver-inventory-test-smoke
+make test-semantic
 ```
 
 ## 1. Core Module / Module Boundary Closure
@@ -1888,12 +1971,89 @@ make ast-dispatch-test-smoke
 
 ## Immediate Execution Order
 
-1. DAG source-of-truth audit and migration.
-2. DAG-adjacent modularization split.
-3. MIR declaration inventory view.
-4. ABI ownership audit.
-5. parallel/core keyword matrix.
-6. pain point sweep and beta wording freeze.
+1. Continue the 600-1,000 LOC production owner queue without reintroducing
+   behavior-owning `.inc` files.
+2. DAG source-of-truth audit and migration.
+3. CFG consumer migration: make body-safety facts the consumer-facing source
+   for ownership/resource/return/drop-sensitive checks.
+4. AIR consumer migration: make abstraction-boundary checks consume
+   `air_verify(...)` evidence instead of re-reading AST/DIR strings.
+5. Runtime propagation full transitive frontier scheduler.
+6. MIR declaration inventory view and C/LLVM parity edge cleanup.
+7. ABI ownership audit: Slot/Pin/Zone-bound handle/runtime-none/raw escape.
+8. parallel/core keyword matrix.
+9. pain point sweep and beta wording freeze.
+
+## Progress Log — 2026-04-28 AST Owner Split
+
+- `src/parser/ast.c` no longer owns node construction or clone helpers.
+  Construction moved to `src/parser/ast_constructors.c` and
+  `src/parser/ast_domain_constructors.c`; clone helpers moved to
+  `src/parser/ast_clone.c`.
+- `src/parser/ast_print.c` no longer owns domain/intent/event printers.
+  Those moved to `src/parser/ast_print_domain.c`, with misc print policy in
+  `src/parser/ast_print_misc.c`.
+- `src/parser/ast_print.c` also no longer owns inline expression rendering,
+  compact print rendering, operator spelling, escaped string rendering, or
+  generic/where-clause inline rendering. Those moved to
+  `src/parser/ast_print_inline.c` and `src/parser/ast_print_generics.c`.
+- `src/parser/ast_print_domain.c` no longer owns intent or event printing.
+  Intent printing plus contract provenance moved to
+  `src/parser/ast_print_intent.c`; event printing moved to
+  `src/parser/ast_print_event.c`.
+- `src/parser/parser.c` no longer owns declaration hint inventory.
+  `src/parser/parser_decl_hints.c` now owns top-level declaration hint
+  extraction, registration, capacity growth, and lookup.
+- `src/parser/parser_domain.c` no longer owns relation/effect declaration
+  parsing or projection-sync helper parsing. Relation/effect declarations
+  moved to `src/parser/parser_domain_relation_effect.c`; projection group
+  parsing and projection field maps moved to
+  `src/parser/parser_domain_projection.c`.
+- `src/parser/ast.h` no longer owns shared AST vocabulary directly.
+  `src/parser/ast_types.h` now owns AST enums, forward declarations, generic
+  parameter structs, function parameter structs, and class field structs.
+- `src/parser/ast.h` also no longer owns the public AST
+  constructor/manipulation prototype surface. Those declarations moved to
+  `src/parser/ast_api.h`, which `ast.h` includes for source compatibility.
+- Verified with `make test-parser pgy`, `make test-semantic` (2357/0),
+  owner/sentinel/doc checklist gates, and
+  `make runtime-frontier-contract-test-smoke`.
+- Result: no production `.c` or `.h` owner remains above the 1,000 LOC hard
+  risk line. The AST print family is now below the 600 LOC split-review
+  threshold: `ast_print.c` 553 LOC, `ast_print_domain.c` 539 LOC,
+  `ast_print_inline.c` 382 LOC, `ast_print_intent.c` 253 LOC, and
+  `ast_print_event.c` 76 LOC. `parser.c` is now 867 LOC after the declaration
+  hint split. The parser domain family is below the 600 LOC split-review
+  threshold: `parser_domain.c` 493 LOC, `parser_domain_relation_effect.c` 283
+  LOC, and `parser_domain_projection.c` 184 LOC. `ast.h` is now 848 LOC after
+  the public API header split, with `ast_api.h` at 137 LOC.
+
+## Progress Log — 2026-04-28 LLVM Backend Type Map Split
+
+- `src/codegen/llvm_backend.c` is reduced to context lifecycle and backend
+  entry ownership. AST/Pergyra type-name rendering, generic container type
+  extraction, `pergyra_type_to_llvm`, `ast_type_to_llvm`, and early
+  forward-declare eligibility now live in
+  `src/codegen/llvm_backend_type_map.c`.
+- Verified with `make pgy` and `make llvm-test-smoke`.
+- Remaining LLVM blocker focus: `llvm_domain_zone_sync.c` / domain frontier
+  parity and declaration inventory/bootstrap seams, not the generic backend
+  context owner.
+
+## Progress Log — 2026-04-28 LLVM Zone Frontier State Split
+
+- Zone sync bounded-frontier bookkeeping now has a named LLVM owner:
+  `src/codegen/llvm_domain_zone_frontier_state.c` owns previous-state
+  allocation, snapshotting, reset, and change-detection continuation updates.
+- `src/codegen/llvm_domain_zone_sync.c` is reduced to zone propagation
+  orchestration for projection sync, action-caused effects, apply/maintain,
+  detach, link, relation maintain, and unlink.
+- Verified with `make runtime-frontier-contract-test-smoke` and
+  `make llvm-test-smoke`.
+- Remaining runtime propagation blocker is semantic depth, not owner
+  invisibility: full transitive world/zone frontier scheduling still needs to
+  be the shared source of truth across C/LLVM/runtime docs.
+
 ## Progress Log — 2026-04-24 Parser/Lexer Diagnostic Routing
 
 - `parser_error`와 lexer error token이 stage code, reason, fix를 갖도록 1차 routing gate를 닫았다.

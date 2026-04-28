@@ -175,6 +175,9 @@ bool type_check_zone_relation_contract(ASTNode *zone,
                                        const char *action_name);
 void type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx);
 void type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx);
+void type_check_zone_state_aliases(ASTNode *zone, SemanticContext *ctx);
+size_t type_check_zone_shape_warnings(ASTNode *zone, SemanticContext *ctx);
+void type_check_zone_projection_rules(ASTNode *zone, SemanticContext *ctx);
 
 /* Currently-resolved nominal host (class/zone/world/relation/effect)
  * declaration for `ctx`.  Visibility/access helpers use this through an
@@ -380,6 +383,9 @@ void semantic_type_resolution_precollect_zone_refresh_projection_map(
 void semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
                                                           SemanticContext *ctx);
 bool type_check_intent_decl(ASTNode *node, SemanticContext *ctx);
+void type_check_intent_step_transfer_contract(ASTNode *node,
+                                              ASTNode *step,
+                                              SemanticContext *ctx);
 bool type_check_event_decl(ASTNode *node, SemanticContext *ctx);
 bool type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
                                    const char *op_name);
@@ -539,6 +545,11 @@ bool projection_target_decl_has_field(ASTNode *target_decl,
 Type *type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                       const char *display_name,
                                       SemanticContext *ctx);
+bool type_check_constructor_symbol_call(ASTNode *expr,
+                                        Symbol *sym,
+                                        const char *display_name,
+                                        SemanticContext *ctx,
+                                        Type **type_out);
 
 /* Helper-axis promotions for the helpers_late.c TU (docs/101). */
 ASTNode *overlay_field_decl_at(ASTNode *decl, size_t index,

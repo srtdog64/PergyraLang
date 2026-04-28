@@ -42,6 +42,7 @@ StructuredComment *parser_take_pending_doc_comment(Parser *parser);
 bool            parser_attach_pending_doc_comment(Parser *parser,
                                                   ASTNode *node);
 ASTNode        *parser_finalize_statement(Parser *parser, ASTNode *node);
+void            parser_register_decl_hint(Parser *parser, ASTNode *node);
 bool            parser_lookup_decl_hint(Parser *parser, const char *name,
                                         ASTNodeType *node_type_out,
                                         NominalDeclKind *nominal_kind_out);
@@ -83,6 +84,9 @@ bool     parser_decl_match_contextual_keyword(Parser *parser,
                                               const char *keyword);
 bool     parser_decl_check_contextual_keyword(Parser *parser,
                                               const char *keyword);
+bool     parser_decl_parse_next_function_clause(Parser *parser, ASTNode *func,
+                                                bool is_action,
+                                                bool *matched_out);
 void     parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
                                       uint32_t *mask_out);
 ASTNode *parse_class_declaration(Parser *parser);

@@ -7,10 +7,46 @@ if [ -z "$bin" ]; then
   exit 2
 fi
 
-log="$(mktemp)"
-trap 'rm -f "$log"' EXIT
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-PGY_TYPE_RES_STATS=1 "$bin" >"$log" 2>&1
+case "$bin" in
+  /*)
+    ;;
+  */*)
+    bin="$(cd "$(dirname "$bin")" && pwd)/$(basename "$bin")"
+    ;;
+  *)
+    resolved_bin="$(command -v "$bin" || true)"
+    if [ -z "$resolved_bin" ]; then
+      echo "SEMANTIC_TEST_BIN is not executable or not on PATH: $bin" >&2
+      exit 2
+    fi
+    bin="$resolved_bin"
+    ;;
+esac
+
+mkdir -p "$ROOT/.tmp"
+log="$(mktemp)"
+work="$(mktemp -d "$ROOT/.tmp/pgy-type-resolution-dag.XXXXXX")"
+cleanup() {
+  rm -f "$log"
+  if [ -n "${work:-}" ] && [ -d "$work" ]; then
+    case "$work" in
+      "$ROOT"/.tmp/pgy-type-resolution-dag.*)
+        rm -rf "$work"
+        ;;
+      *)
+        echo "refusing to remove unexpected DAG smoke work dir: $work" >&2
+        ;;
+    esac
+  fi
+}
+trap cleanup EXIT
+
+# The semantic suite writes temporary import fixtures with fixed filenames.
+# Run the DAG stats pass from an isolated cwd so it can coexist with a direct
+# make test-semantic run without corrupting those fixtures.
+(cd "$work" && PGY_TYPE_RES_STATS=1 "$bin" >"$log" 2>&1)
 
 grep -a -q '\[type-res-stats\] nodes=' "$log" || {
   echo "missing DAG node/edge stats" >&2

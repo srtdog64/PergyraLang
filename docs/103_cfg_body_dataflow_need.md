@@ -175,6 +175,18 @@ The migration should be incremental and gated:
 ## Current Progress
 
 - Done: `cfg-body-dataflow-test-smoke` gates HIR CFG, HIR dominator, RIR flow-block, and MIR cleanup/SSA visibility.
+- Done: HIR CFG lowering now gives `break` and `continue` explicit loop edges
+  instead of leaving them as opaque statement payloads. `while` and `for`
+  bodies carry a loop context, so `break` targets the loop exit block and
+  `continue` targets the loop header. `src/test_hir.c` locks this with the
+  `HIR CFG lowers loop break and continue edges explicitly` regression.
+- Done: HIR CFG lowering now expands `match` into an explicit dispatch chain.
+  Each `case` gets a branch edge, case bodies and `default` bodies join through
+  CFG successors, and terminating case bodies remain closed. `src/test_hir.c`
+  locks this with `HIR CFG lowers match cases and default as explicit edges`.
+- Done: HIR CFG lowering now traverses `unsafe` block bodies instead of keeping
+  them opaque. Control-flow constructs inside `unsafe` blocks, including
+  nested returns, now produce the same CFG terminators as ordinary blocks.
 - Done: MIR cleanup block creation now consumes RIR policy ops, RIR
   conservative semantics, RIR flow-block summaries, and RIR resource facts for
   rollback/invalidation decisions. The former intent-step AST invalidation

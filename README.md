@@ -74,8 +74,12 @@ Pergyra is a compiled language with C and LLVM backends. It distinguishes **who 
 
 ```
 .pgy → Lexer → Parser → Semantic Typed AST → HIR → DIR → RIR → MIR
-                                                                 ├→ LLVM Backend → Binary
-                                                                 └→ C Backend    → GCC → Binary
+                                              │           │     ├→ LLVM Backend → Binary
+                                              │           │     └→ C Backend    → GCC → Binary
+                                              ↓           ↓
+                                              AIR (read-only synthesis, verification-only)
+                                                          ↓
+                                              drift / abstraction-safety check
 ```
 
 - `HIR` normalizes language structure and pass-friendly program shape
@@ -83,6 +87,7 @@ Pergyra is a compiled language with C and LLVM backends. It distinguishes **who 
 - `RIR` locks slot/resource/projection/authority/lifecycle semantics
 - `MIR` locks CFG/SSA/cleanup/resource-flow before backend emission
 - Backends consume `MIR`, not `RIR`
+- `AIR` is a side-loaded verification IR synthesized from `HIR`/`RIR`; it never lowers to backends and exists solely for intent ↔ implementation abstraction-safety checks (see `docs/104_air_compiler_architecture.md`)
 
 ## How to read Pergyra examples
 

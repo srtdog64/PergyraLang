@@ -41,21 +41,13 @@ progress ledger, not a new language surface.
 ## Current Owner-Size Audit
 
 The active debt is no longer `.inc` inventory. It is owner cohesion. As of the
-2026-04-28 audit, the largest production source/header owners above the 1,000
-LOC risk line are:
+2026-04-28 audit, all production `.c` and `.h` owners are below the 1,000 LOC
+hard risk line.
 
-- `src/parser/ast.c` - 2,120 LOC. Split target: node construction,
-  destruction, cloning/copy helpers, and collection utilities.
-- `src/parser/ast_print.c` - 1,820 LOC. Split target: declaration printers,
-  expression printers, domain/intent printers.
-- `src/parser/ast.h` - 1,236 LOC. Split target: public AST declarations vs
-  constructor/visitor/private shape helpers.
-
-All parser domain, semantic, codegen, runtime, compiler, and LSP `.c` owners
-are now below the 1,000 LOC hard risk line. Files between 600 and 1,000 LOC
-remain split-review candidates. The immediate priority is to reduce the
-remaining AST 1,000+ owners without reintroducing behavior-owning `.inc` files
-or mega-headers.
+Files between 600 and 1,000 LOC remain split-review candidates under the
+stricter beta owner policy. The immediate priority is no longer "remove the
+last 1,000+ `.c` owner"; it is to keep slicing the 600-1,000 LOC owner queue
+without reintroducing behavior-owning `.inc` files or mega-headers.
 - MIR CFG/body ownership is no longer a hard-size blocker:
   `src/compiler/mir.c` is 512 LOC after the SSA rename/use-edge,
   liveness/value-summary/DCE, and statement-population families moved into
@@ -94,6 +86,13 @@ or mega-headers.
   lock/table/release helper seam needed by that owner. `slot_manager.c` now
   drops to 963 LOC, below the 1,000 LOC risk line, while the new secure owner is
   379 LOC.
+- Slot manager pin ownership now has a separate owner:
+  `src/runtime/slot_manager_pin.c` owns `PergyraSlotPin` / `PergyraSlotUnpin`,
+  pinned view validation, secure payload open/seal, stale-generation rejection,
+  release-while-pinned rejection, and Pin token validation. `slot_manager.c`
+  now drops to 791 LOC and remains the core claim/read/write/release lifecycle
+  owner. Verified with `make test-security` (142/0) and `make test-abi`
+  (58/0 plus C/LLVM ABI pipeline smoke).
 - Driver scaffold ownership now has a separate TU:
   `src/compiler/driver_scaffold.c` owns `pgy scaffold` / `pgy new` file and
   project generation, while `src/compiler/driver_app.c` stays focused on
@@ -125,9 +124,11 @@ or mega-headers.
   with `make test-dir test-air test-rir`.
 - Type environment ownership now has a separate TU:
   `src/semantic/type_env.c` owns `TypeEnv` create/destroy/add/lookup helpers.
-  `src/semantic/type_system.c` is now 940 LOC and stays focused on type
-  constructors, equality/assignability, inference, unification, and generic
-  instantiation. Verified with `make test-semantic` (2357/0).
+  Lightweight inference/unification moved to `src/semantic/type_infer.c`, and
+  function/resource effect helpers moved to `src/semantic/type_effects.c`.
+  `src/semantic/type_system.c` is now 598 LOC and stays focused on built-in
+  singleton lifecycle, type constructors, equality/assignability, constraints,
+  and generic instantiation. Verified with `make test-semantic` (2357/0).
 - Stdlib builtin semantic ownership now has scalar and map owners:
   `src/semantic/type_checker_builtins_stdlib_scalar.c` owns scalar, string, and
   math builtin calls, while
@@ -141,27 +142,122 @@ or mega-headers.
   validation, and relation/effect pool beta rejects. `type_checker_zone_decl.c`
   is now 929 LOC and stays focused on zone lifecycle/state rule validation.
   Verified with `make test-semantic pgy` (2357/0).
+- Zone declaration lifecycle/state ownership is now split below the 600 LOC
+  threshold: `src/semantic/type_checker_zone_shape.c` owns zone shape and
+  lifecycle-density warnings, `type_checker_zone_projection_rules.c` owns
+  refresh/publish/bind projection rule validation, and
+  `type_checker_zone_state.c` owns maintained-state and state-alias validation.
+  `type_checker_zone_decl.c` is now 558 LOC and stays focused on apply/link/
+  detach/unlink/maintain lifecycle orchestration. Verified with
+  `make test-semantic` (2357/0).
 - Intent helper ownership now has role-field and control-transfer owners:
   `src/semantic/type_checker_intent_role_fields.c` owns role require-field
   validation plus intent transfer/zone-binding derivation helpers, and
   `src/semantic/type_checker_intent_control.c` owns intent-clause
   control-transfer rejection. `type_checker_intent_helpers.c` is now 883 LOC.
   Verified with `make test-semantic pgy` (2357/0).
-- Domain helper projection/overlay ownership now has separate TUs:
+- Intent declaration transfer/handoff contract ownership now has a separate
+  TU: `src/semantic/type_checker_intent_transfer.c` owns transfer source/target
+  alias validation, zone-binding checks, transfer target versus current zone
+  contract checks, and `using` versus transfer-target consistency diagnostics.
+  `type_checker_intent_decl.c` is now 797 LOC and remains the main intent
+  declaration orchestration owner. Verified with `make test-semantic` (2357/0).
+- Domain helper projection/overlay/contract ownership now has separate TUs:
   `src/semantic/type_checker_domain_projection.c` owns projection contract
   diagnostics, and `src/semantic/type_checker_overlay_common.c` owns overlay
-  symbol/shared-field/hosted-method scope setup.
-  `type_checker_decls_domain_helpers.c` is now 972 LOC and remains the
-  zone/effect/relation slot helper owner. Verified with
-  `make test-semantic pgy` (2357/0).
+  symbol/shared-field/hosted-method scope setup. Zone relation/effect contract
+  arity checks, endpoint-kind matching, and provenance-heavy diagnostics now
+  live in `src/semantic/type_checker_domain_contracts.c`.
+  `type_checker_decls_domain_helpers.c` is now 448 LOC and
+  `type_checker_domain_contracts.c` is 537 LOC, so the domain helper family is
+  below the 600 LOC split-review threshold. Verified with `make test-semantic`
+  (2357/0).
+- Late function-call constructor ownership now has a separate TU:
+  `src/semantic/type_checker_call_constructor.c` owns constructor-like calls
+  for subject/class, relation/effect/roster/world/zone overlays, field
+  initialization type checks, borrowed-boundary constructor-field escape
+  validation, and world-zone embedding handoff diagnostics.
+  `type_checker_helpers_late.c` is now 799 LOC and remains the callable
+  dispatch / argument ownership / generic call-site owner; the constructor
+  owner is 220 LOC. Verified with `make test-semantic` (2357/0).
 - Parser domain ownership now has separate roster/world/zone/event TUs:
   `src/parser/parser_domain_roster.c` owns roster body parsing,
   `src/parser/parser_domain_world.c` owns world body parsing,
   `src/parser/parser_domain_zone.c` owns zone body parsing, and
   `src/parser/parser_domain_event.c` owns event signatures.
-  `parser_domain.c` is now 970 LOC and keeps relation/effect plus party/ability
-  / role parsing and the shared domain helper seam. Verified with
+  Relation/effect declaration parsing now lives in
+  `src/parser/parser_domain_relation_effect.c`; projection group parsing,
+  domain group keyword matching, and projection field maps now live in
+  `src/parser/parser_domain_projection.c`. `parser_domain.c` is now 493 LOC
+  and keeps party/ability/role parsing plus the shared domain slot/child helper
+  seam. Verified with `make test-parser pgy`.
+- Parser declaration hint ownership now has a separate TU:
+  `src/parser/parser_decl_hints.c` owns top-level declaration hint name
+  extraction, registration, capacity growth, and lookup. `parser.c` is now
+  867 LOC and stays focused on parser lifecycle, token movement, diagnostics,
+  synchronization, statement finalization, and program/statement dispatch.
+  Verified with `make test-parser pgy`.
+- Parser declaration/type ownership is now split below the 600 LOC threshold:
+  `src/parser/parser_decl.c` owns function/action, nominal type declaration,
+  and extern-block parsing; `src/parser/parser_type.c` owns name-token helpers,
+  generic parameters, type arguments, where clauses, type aliases, and type
+  parsing; `src/parser/parser_decl_function_clause.c` owns function/action
+  clause parsing and diagnostics. Current sizes are `parser_decl.c` 327 LOC,
+  `parser_type.c` 351 LOC, and `parser_decl_function_clause.c` 230 LOC.
+  Verified with `make test-parser`.
+- Parser statement dispatch now has a separate owner:
+  `src/parser/parser_statement_dispatch.c` owns declaration and statement
+  dispatch. `src/parser/parser.c` stays focused on parser lifecycle, token
+  movement, error handling, program parsing, and block/let/with/parallel leaf
+  parsers. Current sizes are `parser.c` 414 LOC and
+  `parser_statement_dispatch.c` 460 LOC. Verified with `make test-parser`.
+- AST print ownership now has separate inline, generic, intent, event, domain,
+  and misc owners: `src/parser/ast_print_inline.c` owns escaped string
+  rendering, operator spelling, inline expression printing, and compact
+  one-line printing; `src/parser/ast_print_generics.c` owns generic parameter
+  and where-clause inline rendering; `src/parser/ast_print_intent.c` owns
+  intent printers plus intent contract provenance printing;
+  `src/parser/ast_print_event.c` owns event printers;
+  `src/parser/ast_print_domain.c` owns domain/world/zone printers; and
+  `src/parser/ast_print_misc.c` owns trailing-newline policy. Current owner
+  sizes are `ast_print.c` 553 LOC, `ast_print_domain.c` 539 LOC,
+  `ast_print_inline.c` 382 LOC, `ast_print_intent.c` 253 LOC,
+  `ast_print_event.c` 76 LOC, and `ast_print_generics.c` 63 LOC. The AST print
+  family is now below the 600 LOC split-review threshold. Verified with
   `make test-parser pgy`.
+- AST constructor ownership now has constructor, domain-constructor, and clone
+  owners: `src/parser/ast_constructors.c` owns core statement/expression/basic
+  type constructors, `src/parser/ast_domain_constructors.c` owns
+  domain/intent/party/event constructors, and `src/parser/ast_clone.c` owns AST
+  clone helpers.
+- AST mutation/destruction ownership is now split below the 600 LOC threshold:
+  `src/parser/ast.c` owns only mutation helpers, `src/parser/ast_destroy.c`
+  owns generic/where/comment destruction plus non-domain destroy cases, and
+  `src/parser/ast_destroy_domain.c` owns domain/world/zone/intent/party/
+  ability/event destroy cases. Current sizes are `ast.c` 65 LOC,
+  `ast_destroy.c` 393 LOC, `ast_destroy_domain.c` 456 LOC,
+  `ast_constructors.c` 545 LOC, and `ast_domain_constructors.c` 598 LOC.
+  Verified with `make test-parser`.
+- AST public type ownership now has a shared type header:
+  `src/parser/ast_types.h` owns AST enums, forward declarations, generic
+  parameter structs, function parameter structs, and class field structs.
+  `src/parser/ast_api.h` owns the public AST constructor/manipulation
+  prototype surface. `src/parser/ast.h` now owns the `ASTNode` shape and
+  includes `ast_api.h` for source compatibility. `ast.h` is now 848 LOC and
+  `ast_api.h` is 137 LOC. Verified with `make test-parser pgy` and
+  `make production-header-size-test-smoke inc-sentinel-test-smoke`.
+- LLVM backend type mapping now has a separate TU:
+  `src/codegen/llvm_backend_type_map.c` owns type-name rendering, generic
+  container argument extraction, `pergyra_type_to_llvm`, `ast_type_to_llvm`,
+  and early forward-declare eligibility. `llvm_backend.c` is now 379 LOC and
+  remains the context lifecycle/backend entry owner. Verified with `make pgy`
+  and `make llvm-test-smoke`.
+- LLVM zone frontier state ownership now has a separate TU:
+  `src/codegen/llvm_domain_zone_frontier_state.c` owns previous-state storage,
+  snapshotting, reset, and bounded frontier change detection for zone sync.
+  `llvm_domain_zone_sync.c` is now 776 LOC and stays focused on zone
+  propagation action/maintain/link/unlink orchestration. Verified with
+  `make runtime-frontier-contract-test-smoke` and `make llvm-test-smoke`.
 - LLVM backend generic/temp ownership now has a separate TU:
   the stale `#if 0` copy of old `LLVMGenCtx` inventory was removed from
   `src/codegen/llvm_backend.c`, and `src/codegen/llvm_backend_generic.c` now
@@ -591,21 +687,22 @@ The current large-owner snapshot was last refreshed on 2026-04-28. The leading
 production split candidates are:
 
 ```text
-2120 src/parser/ast.c
-1820 src/parser/ast_print.c
-1236 src/parser/ast.h
-999 src/codegen/llvm_backend.c
-997 src/codegen/llvm_domain_zone_sync.c
+986 src/parser/ast_print.c
 977 src/parser/parser.c
+973 src/parser/ast.h
 972 src/semantic/type_checker_helpers_late.c
 972 src/semantic/type_checker_decls_domain_helpers.c
 970 src/parser/parser_domain.c
+965 src/codegen/transpiler_intent_emit.h
 963 src/runtime/slot_manager.c
 962 src/semantic/type_checker_intent_decl.c
 953 src/codegen/llvm_intent.c
 946 src/lsp/pgy_lsp.c
 940 src/semantic/type_system.c
+935 src/codegen/llvm_internal.h
 932 src/codegen/llvm_registry.c
+929 src/semantic/type_checker_zone_decl.c
+928 src/codegen/transpiler_overlay_projection.h
 ```
 
 Test harness files are intentionally excluded from the first owner-split queue

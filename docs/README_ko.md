@@ -30,9 +30,15 @@ LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 
 
 ```
 .pgy  -->  Lexer  -->  Parser  -->  Semantic  -->  HIR  -->  DIR  -->  RIR  -->  MIR  -->  Backend
-                                                                                           ├→ LLVM → Object → Binary
-                                                                                           └→ C    → C → GCC/Clang
+                                                    │                  │                   ├→ LLVM → Object → Binary
+                                                    │                  │                   └→ C    → C → GCC/Clang
+                                                    ↓                  ↓
+                                                    AIR (read-only synthesis, verification-only)
+                                                                       ↓
+                                                    drift / abstraction-safety 검증
 ```
+
+> `AIR`는 codegen path에 얹지 않고 옆에 합성되는 verification-only IR입니다 (`HIR`/`RIR`로부터 단방향 합성, backend로 lowering 안 됨). 자세한 내용은 `docs/104_air_compiler_architecture.md`.
 
 ### 핵심 특징
 

@@ -1,5 +1,307 @@
 ﻿# Pergyra TODO (배포 준비)
 
+## UTF-8 Progress Note - 2026-04-28 - HIR CFG Match/Loop Edge Closure
+
+- `src/compiler/hir_lower_cfg.c` now lowers `break` and `continue` as explicit
+  CFG terminators when they appear inside `while` / `for` bodies. A loop
+  context carries the loop-exit target for `break` and the loop-header target
+  for `continue`, so HIR dominance/frontier/loop-depth facts no longer treat
+  loop control as opaque statement payload.
+- `match` no longer remains opaque in HIR CFG. It lowers to a case dispatch
+  chain where each `case` is a branch condition, fallthrough case/default bodies
+  join through CFG edges, and terminating cases remain closed.
+- `unsafe` blocks no longer hide nested body control flow from HIR CFG. Nested
+  `return` / branch terminators inside `unsafe` now flow through the same
+  terminator and reachability model as ordinary blocks.
+- `src/test_hir.c` adds `HIR CFG lowers loop break and continue edges
+  explicitly`, `HIR CFG lowers match cases and default as explicit edges`, and
+  `HIR CFG lowers unsafe block body control flow` to lock this behavior.
+- Local gates: `make test-hir` (12/0), `make cfg-body-dataflow-test-smoke`,
+  `make test-rir`, and `make test-mir`.
+
+## UTF-8 Progress Note - 2026-04-28 - DAG Fallback Recheck
+
+- Rechecked the type-resolution DAG gates. Current local stats are
+  `graph-backed skips=3140 metadata_entries=3363 metadata_owned=254
+  metadata_hits=6751 materializer_fallbacks=0`.
+- Metadata fallback families are all zero:
+  `metadata_fallback_named=0 metadata_fallback_generic_named=0
+  metadata_fallback_compound=0 metadata_fallback_other=0
+  metadata_named_builtin_shell=0 metadata_named_generic_class=0
+  metadata_named_alias=0 metadata_named_non_class_symbol=0
+  metadata_named_missing_symbol=0`.
+- Stage legacy fallback is now alias-diagnostic-only:
+  `legacy_alias=84 legacy_non_alias=0 alias_materialized=6
+  alias_diagnostic_fallback=78 alias_fallback_resolver_calls=0`.
+- Added semantic regression `graph-backed forward alias materializes nested
+  constructed type`, covering a function signature that consumes a later alias
+  to `Channel<Slot<Int>>`. This pins the source-order pain point where nested
+  constructed aliases could regress into recursive fallback or unknown-type
+  behavior.
+- Pain point found while checking: semantic cross-module cases still use fixed
+  temporary import filenames. `test_semantic` now enters an isolated repo-local
+  `.tmp/pgy-semantic-test.*` cwd before running cases, and
+  `tests/type_resolution_dag_smoke.sh` runs the semantic binary from its own
+  `.tmp/pgy-type-resolution-dag.*` cwd. This isolates fixture files for direct
+  parallel semantic binary runs and for `test-semantic` +
+  `type-resolution-dag-test-smoke`. Parallel `make test-semantic` targets are
+  still not supported because they can relink the same binary while another
+  process executes it. `semantic-fixture-isolation-test-smoke` is wired into
+  runnable Linux/macOS/Windows CI paths.
+- `tests/type_resolution_resolver_inventory_smoke.sh` now also checks that the
+  materializer fallback recorder and the one remaining recursive escape hatch
+  stay central-only. New owner-local fallback users remain rejected.
+- Remaining DAG blocker is no longer metadata materializer fallback volume.
+  The blocker is retiring the recursive resolver implementation as an
+  evaluator source and making the graph/topo materializer the only semantic
+  evaluation path for stable type refs.
+- Local gates: `make type-resolution-dag-test-smoke`,
+  `make type-resolution-resolver-inventory-test-smoke`,
+  `make semantic-fixture-isolation-test-smoke`, and concurrent
+  `make test-semantic` + `make type-resolution-dag-test-smoke`.
+
+## UTF-8 Progress Note - 2026-04-28 - AST Destroy Owner Split
+
+- `src/parser/ast.c` no longer owns AST destruction. Mutation helpers remain
+  in `ast.c`; generic/where/comment destruction plus non-domain destroy cases
+  moved to `src/parser/ast_destroy.c`; domain/world/zone/intent/party/ability/
+  event destroy cases moved to `src/parser/ast_destroy_domain.c`.
+- Current owner sizes by `wc -l`: `ast.c` 65, `ast_destroy.c` 393,
+  `ast_destroy_domain.c` 456, and `ast_destroy_internal.h` 11. The AST runtime
+  owner family is now below the 600 LOC split-review threshold.
+- Local gate: `make test-parser`.
+
+## UTF-8 Progress Note - 2026-04-28 - Parser Declaration/Type Owner Split
+
+- `src/parser/parser_decl.c` no longer owns generic parameter parsing, type
+  argument parsing, where-clause parsing, type alias parsing, name-token
+  helpers, or function/action clause parsing.
+- Type/name/generic parsing moved to `src/parser/parser_type.c`, and
+  function/action clause parsing moved to
+  `src/parser/parser_decl_function_clause.c`.
+- Current owner sizes by `wc -l`: `parser_decl.c` 327,
+  `parser_type.c` 351, and `parser_decl_function_clause.c` 230. The declaration
+  parser family is now below the 600 LOC split-review threshold.
+- Local gate: `make test-parser`.
+
+## UTF-8 Progress Note - 2026-04-28 - Parser Statement Dispatch Owner Split
+
+- `src/parser/parser.c` no longer owns top-level statement dispatch. Parser
+  lifecycle, token movement, error handling, program parsing, and block/let/
+  with/parallel leaf parsers remain in `parser.c`; declaration/statement
+  dispatch moved to `src/parser/parser_statement_dispatch.c`.
+- Current owner sizes by `wc -l`: `parser.c` 414 and
+  `parser_statement_dispatch.c` 460. The core parser owner family is now below
+  the 600 LOC split-review threshold except for `ast.h`, which remains the
+  AST shape header.
+- Local gate: `make test-parser`.
+
+## UTF-8 Progress Note - 2026-04-28 - Zone Declaration Owner Split
+
+- `src/semantic/type_checker_zone_decl.c` no longer owns zone shape warnings,
+  projection refresh/publish/bind rule validation, or state alias validation.
+- Zone shape warnings moved to `src/semantic/type_checker_zone_shape.c`,
+  projection rules moved to `src/semantic/type_checker_zone_projection_rules.c`,
+  and maintained-state / state-alias validation moved to
+  `src/semantic/type_checker_zone_state.c`.
+- Current owner sizes by `wc -l`: `type_checker_zone_decl.c` 558,
+  `type_checker_zone_projection_rules.c` 91,
+  `type_checker_zone_state.c` 263, and `type_checker_zone_shape.c` 42.
+  The zone declaration semantic owner family is now below the 600 LOC
+  split-review threshold.
+- Local gate: `make test-semantic` (2357/0).
+
+## UTF-8 Progress Note - 2026-04-28 - Function Call Constructor Owner Split
+
+- `src/semantic/type_checker_helpers_late.c` no longer owns constructor-like
+  symbol call validation for subject/class, relation/effect/roster/world/zone
+  overlay constructors, and world-zone embedding handoff diagnostics.
+- Those checks moved to `src/semantic/type_checker_call_constructor.c`, while
+  the late helper owner stays focused on callable symbol dispatch, argument
+  ownership validation, generic call-site where-clause validation, and return
+  type materialization.
+- Current owner sizes by `wc -l`: `type_checker_helpers_late.c` 799 and
+  `type_checker_call_constructor.c` 220. The late helper owner is still in the
+  600-1,000 LOC review band but is no longer mixing constructor diagnostics
+  with function-call argument flow.
+- Local gate: `make test-semantic` (2357/0).
+
+## UTF-8 Progress Note - 2026-04-28 - Runtime Slot Pin Owner Split
+
+- `src/runtime/slot_manager.c` no longer owns `PergyraSlotPin` /
+  `PergyraSlotUnpin`. Pinned view validation, secure payload open/seal,
+  stale-generation rejection, release-while-pinned rejection, and Pin token
+  validation moved to `src/runtime/slot_manager_pin.c`.
+- Current owner sizes by `wc -l`: `slot_manager.c` 791 and
+  `slot_manager_pin.c` 185. The slot lifecycle owner remains in the 600-1,000
+  LOC review band, but the Slot/Pin ABI closure path now has a named owner.
+- Local gates: `make test-security` (142/0) and `make test-abi` (58/0 plus
+  C/LLVM ABI pipeline smoke).
+
+## UTF-8 Progress Note - 2026-04-28 - Type System Inference/Effect Owner Split
+
+- `src/semantic/type_system.c` no longer owns lightweight expression inference
+  or function/resource effect mask helpers. `type_infer_expression` /
+  `type_unify` moved to `src/semantic/type_infer.c`, and function effect/body
+  summary plus effect lattice helpers moved to `src/semantic/type_effects.c`.
+- Current owner sizes by `wc -l`: `type_system.c` 598, `type_infer.c` 254,
+  and `type_effects.c` 106. The type core owner is now below the 600 LOC
+  split-review threshold.
+- Local gate: `make test-semantic` (2357/0).
+
+## UTF-8 Progress Note - 2026-04-28 - Intent Transfer Contract Owner Split
+
+- `src/semantic/type_checker_intent_decl.c` no longer owns the full
+  transfer/handoff diagnostic block inside the main intent declaration pass.
+  Transfer source/target alias validation, zone-binding checks, transfer target
+  versus current zone contract checks, and `using` versus transfer-target
+  consistency diagnostics moved to `src/semantic/type_checker_intent_transfer.c`.
+- Current owner sizes by `wc -l`: `type_checker_intent_decl.c` 797 and
+  `type_checker_intent_transfer.c` 207. The main intent declaration owner is
+  still in the 600-1,000 LOC review band, but the handoff contract check now
+  has a named owner seam.
+- Local gate: `make test-semantic` (2357/0).
+
+## UTF-8 Progress Note - 2026-04-28 - Semantic Domain Contract Owner Split
+
+- `src/semantic/type_checker_decls_domain_helpers.c` no longer owns zone
+  relation/effect contract validation. Contract arity checks, endpoint-kind
+  matching, and provenance-heavy zone relation/effect diagnostics moved to
+  `src/semantic/type_checker_domain_contracts.c`.
+- Current owner sizes by `wc -l`: `type_checker_decls_domain_helpers.c` 448
+  and `type_checker_domain_contracts.c` 537. Both are below the 600 LOC
+  split-review threshold.
+- Local gate: `make test-semantic` (2357/0).
+- Result: the domain helper family is no longer a semantic owner-size blocker.
+  The next semantic split candidates are `type_checker_helpers_late.c`,
+  `type_checker_intent_decl.c`, `type_system.c`, and
+  `type_checker_zone_decl.c`.
+
+## UTF-8 Progress Note - 2026-04-28 - AST Public API Header Split
+
+- `src/parser/ast.h` no longer owns the public AST constructor/manipulation
+  prototype surface. Those declarations moved to `src/parser/ast_api.h`, which
+  is included by `ast.h` for source compatibility.
+- `ast.h` is now 848 LOC and stays focused on the `ASTNode` shape after the
+  earlier `ast_types.h` vocabulary split. `ast_api.h` is 137 LOC.
+- Local gates: `make test-parser pgy`,
+  `make production-header-size-test-smoke inc-sentinel-test-smoke`, and
+  touched-file `git diff --check`.
+- Result: `ast.h` remains in the 600-1,000 LOC review band but is no longer
+  near the hard cap. The next parser owner candidates are `ast.c` 894,
+  `parser_decl.c` 887, and `parser.c` 867.
+
+## UTF-8 Progress Note - 2026-04-28 - AST Print Family Owner Split
+
+- AST print ownership is now split below the 600 LOC review threshold across
+  the full printer family. Intent printers and intent contract provenance moved
+  to `src/parser/ast_print_intent.c`; event printers moved to
+  `src/parser/ast_print_event.c`; domain/world/zone printers remain in
+  `src/parser/ast_print_domain.c`.
+- Current AST print owner sizes by `wc -l`: `ast_print.c` 553,
+  `ast_print_domain.c` 539, `ast_print_inline.c` 382,
+  `ast_print_intent.c` 253, `ast_print_event.c` 76,
+  `ast_print_generics.c` 63, and `ast_print_misc.c` 11.
+- Local gates: `make test-parser pgy` and touched-file `git diff --check`.
+- Result: the AST print family is no longer in the 600-1,000 LOC
+  split-review band. The next parser owner queue stays on `parser.c`,
+  `parser_domain.c`, `parser_decl.c`, `ast.h`, and `ast.c`.
+
+## UTF-8 Progress Note - 2026-04-28 - Parser Declaration Hint Owner Split
+
+- `src/parser/parser.c` no longer owns top-level declaration hint inventory.
+  Declaration hint name extraction, registration, capacity growth, and lookup
+  moved to `src/parser/parser_decl_hints.c`.
+- `parser.c` is now 867 LOC and remains focused on parser lifecycle,
+  token movement, diagnostics, synchronization, statement finalization, and
+  program/statement dispatch. The new `parser_decl_hints.c` owner is 111 LOC.
+- Local gates: `make test-parser pgy` and touched-file `git diff --check`.
+- Remaining parser 600-1,000 LOC queue after this slice was
+  `parser_domain.c`, `parser_decl.c`, `parser.c`, `ast.h`, and `ast.c`;
+  `parser_domain.c` is closed by the newer relation/projection split note
+  below.
+
+## UTF-8 Progress Note - 2026-04-28 - Parser Domain Relation/Projection Owner Split
+
+- `src/parser/parser_domain.c` no longer owns relation/effect declaration
+  parsing or projection-sync helper parsing. Relation/effect declarations
+  moved to `src/parser/parser_domain_relation_effect.c`; projection group
+  parsing, domain group keyword matching, and projection field maps moved to
+  `src/parser/parser_domain_projection.c`.
+- Current domain parser owner sizes by `wc -l`: `parser_domain.c` 493,
+  `parser_domain_relation_effect.c` 283, `parser_domain_projection.c` 184,
+  `parser_domain_world.c` 384, `parser_domain_zone.c` 449,
+  `parser_domain_roster.c` 165, and `parser_domain_event.c` 57.
+- Local gates: `make test-parser pgy` and touched-file `git diff --check`.
+- Result: the parser domain family is below the 600 LOC split-review
+  threshold. Remaining parser queue is now `ast.h` 973, `ast.c` 894,
+  `parser_decl.c` 887, and `parser.c` 867.
+
+## UTF-8 Progress Note - 2026-04-28 - AST Print Inline/Generic Owner Split
+
+- `src/parser/ast_print.c` no longer owns inline expression printing,
+  compact one-line printing, operator spelling, escaped string rendering, or
+  generic/where-clause inline rendering. Those moved to
+  `src/parser/ast_print_inline.c` and `src/parser/ast_print_generics.c`.
+- Current AST print owner sizes by `wc -l`: `ast_print.c` 553,
+  `ast_print_inline.c` 382, `ast_print_generics.c` 63. The central AST print
+  owner is now below the 600 LOC split-review threshold.
+- Local gates: `make test-parser pgy` and touched-file `git diff --check`.
+- Follow-up AST print queue item was `ast_print_domain.c`; it is now split in
+  the newer progress note above.
+
+## UTF-8 Progress Note - 2026-04-28 - AST Owner Split
+
+- The last 1,000+ LOC production `.c` parser owners are split. AST printing now
+  has domain and misc owners (`src/parser/ast_print_domain.c`,
+  `src/parser/ast_print_misc.c`), and AST construction now has core,
+  domain-constructor, and clone owners (`src/parser/ast_constructors.c`,
+  `src/parser/ast_domain_constructors.c`, `src/parser/ast_clone.c`).
+- Current parser owner sizes by `wc -l`: `ast.c` 894, `ast_print.c` 553,
+  `ast_print_domain.c` 539, `ast_print_inline.c` 382,
+  `ast_print_intent.c` 253, `ast_print_event.c` 76,
+  `ast_print_generics.c` 63, `ast_constructors.c` 545,
+  `ast_domain_constructors.c` 598, `ast_clone.c` 109, `ast.h` 973, and
+  `ast_types.h` 272. No production `.c` or `.h` owner remains above the
+  1,000 LOC hard risk line.
+- Local gates: `make test-parser pgy`, `make test-semantic` (2357/0),
+  `make semantic-tu-size-test-smoke production-header-size-test-smoke
+  inc-sentinel-test-smoke documentation-quality-test-smoke
+  beta-readiness-checklist-test-smoke`, and
+  `make runtime-frontier-contract-test-smoke`.
+- Next owner-split queue is the 600-1,000 LOC band, not 1,000+ production `.c`
+  cleanup: `parser.c`, `parser_domain.c`, selected semantic owners, LLVM
+  domain/frontier owners, `slot_manager.c`, and the AST public header split.
+
+## UTF-8 Progress Note - 2026-04-28 - LLVM Backend Type Map Owner Split
+
+- `src/codegen/llvm_backend.c` no longer mixes context lifecycle/type-layout
+  bootstrap with AST/Pergyra type-name rendering and LLVM type resolution.
+- Type rendering, generic container resolution, `pergyra_type_to_llvm`,
+  `ast_type_to_llvm`, and early forward-declare eligibility moved to
+  `src/codegen/llvm_backend_type_map.c`.
+- `llvm_backend.c` is now 379 LOC and is a context lifecycle / backend entry
+  owner. `llvm_backend_type_map.c` is 638 LOC, so it is below the 1,000 LOC
+  hard cap but remains in the 600 LOC split-review band.
+- Local gates: `make pgy` and `make llvm-test-smoke` remain green. This
+  removes `llvm_backend.c` from the leading owner queue and keeps the next LLVM
+  priority on domain frontier/parity owners.
+
+## UTF-8 Progress Note - 2026-04-28 - LLVM Zone Frontier State Owner Split
+
+- `src/codegen/llvm_domain_zone_sync.c` no longer owns all bounded-frontier
+  bookkeeping inside the main zone sync emitter.
+- Previous-state allocation, previous-state snapshotting, state/layer reset,
+  and frontier-continue change detection moved to
+  `src/codegen/llvm_domain_zone_frontier_state.c`, with declarations in
+  `src/codegen/llvm_domain_zone_sync_internal.h`.
+- `llvm_domain_zone_sync.c` is now 776 LOC and remains the zone propagation
+  action/maintain/link/unlink orchestration owner. The new frontier-state owner
+  is 276 LOC.
+- Local gates: `make pgy`, `make runtime-frontier-contract-test-smoke`, and
+  `make llvm-test-smoke` remain green. This keeps runtime propagation frontier
+  evidence tied to a named LLVM owner instead of one monolithic sync function.
+
 ## UTF-8 Progress Note - 2026-04-28 - Stdlib Builtin Semantic Owner Split
 
 - `src/semantic/type_checker_builtins_stdlib_body.c` is no longer a 1,000+ LOC

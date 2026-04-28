@@ -1,5 +1,81 @@
 #include "tests/semantic/test_semantic_helpers.cases.h"
 
+#include <errno.h>
+#include <time.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#include <process.h>
+#define pgy_test_chdir _chdir
+#define pgy_test_getpid _getpid
+#define pgy_test_mkdir(path) _mkdir(path)
+#define pgy_test_rmdir _rmdir
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#define pgy_test_chdir chdir
+#define pgy_test_getpid getpid
+#define pgy_test_mkdir(path) mkdir(path, 0777)
+#define pgy_test_rmdir rmdir
+#endif
+
+#ifndef PGY_PROJECT_ROOT
+#define PGY_PROJECT_ROOT "."
+#endif
+
+static char g_test_semantic_workdir[1200];
+
+static void
+test_semantic_leave_isolated_cwd(void)
+{
+    if (g_test_semantic_workdir[0] == '\0')
+        return;
+    int chdir_result = pgy_test_chdir(PGY_PROJECT_ROOT);
+    (void)chdir_result;
+    (void)pgy_test_rmdir(g_test_semantic_workdir);
+    g_test_semantic_workdir[0] = '\0';
+}
+
+static bool
+test_semantic_enter_isolated_cwd(void)
+{
+    char tmp_root[1024];
+    char work[1200];
+    int pid = (int)pgy_test_getpid();
+    long stamp = (long)time(NULL);
+
+    snprintf(tmp_root, sizeof(tmp_root), "%s/.tmp", PGY_PROJECT_ROOT);
+    if (pgy_test_mkdir(tmp_root) != 0 && errno != EEXIST)
+        return false;
+
+    for (int attempt = 0; attempt < 64; attempt++) {
+        snprintf(work,
+                 sizeof(work),
+                 "%s/pgy-semantic-test.%d.%ld.%d",
+                 tmp_root,
+                 pid,
+                 stamp,
+                 attempt);
+        if (pgy_test_mkdir(work) == 0) {
+            if (pgy_test_chdir(work) == 0) {
+                snprintf(g_test_semantic_workdir,
+                         sizeof(g_test_semantic_workdir),
+                         "%s",
+                         work);
+                atexit(test_semantic_leave_isolated_cwd);
+                return true;
+            }
+            (void)pgy_test_rmdir(work);
+            return false;
+        }
+        if (errno != EEXIST)
+            return false;
+    }
+
+    return false;
+}
+
 /* -----------------------------------------------------------------
  * Test groups
  * ----------------------------------------------------------------- */
@@ -6275,6 +6351,11 @@ main(void)
 {
     printf("=== Pergyra Semantic Analyzer Test Suite ===\n");
 
+    if (!test_semantic_enter_isolated_cwd()) {
+        fprintf(stderr, "failed to enter isolated semantic test cwd\n");
+        return 2;
+    }
+
     type_system_init();
 
     test_type_system();
@@ -6309,5 +6390,6 @@ main(void)
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 
     type_system_cleanup();
+    test_semantic_leave_isolated_cwd();
     return (g_fail > 0) ? 1 : 0;
 }

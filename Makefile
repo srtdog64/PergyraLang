@@ -152,26 +152,44 @@ COMMON_DIR   = $(SRC_DIR)/common
 COMMON_SOURCES   = $(COMMON_DIR)/arena.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
+                   $(PARSER_DIR)/ast_destroy.c \
+                   $(PARSER_DIR)/ast_destroy_domain.c \
+                   $(PARSER_DIR)/ast_clone.c \
+                   $(PARSER_DIR)/ast_constructors.c \
+                   $(PARSER_DIR)/ast_domain_constructors.c \
                    $(PARSER_DIR)/ast_print.c \
+                   $(PARSER_DIR)/ast_print_domain.c \
+                   $(PARSER_DIR)/ast_print_event.c \
+                   $(PARSER_DIR)/ast_print_generics.c \
+                   $(PARSER_DIR)/ast_print_inline.c \
+                   $(PARSER_DIR)/ast_print_intent.c \
+                   $(PARSER_DIR)/ast_print_misc.c \
                    $(PARSER_DIR)/parser.c \
+                   $(PARSER_DIR)/parser_decl_hints.c \
                    $(PARSER_DIR)/parser_doc.c \
                    $(PARSER_DIR)/parser_enum.c \
                    $(PARSER_DIR)/parser_export.c \
                    $(PARSER_DIR)/parser_expr.c \
                    $(PARSER_DIR)/parser_pin.c \
                    $(PARSER_DIR)/parser_stmt.c \
+                   $(PARSER_DIR)/parser_statement_dispatch.c \
+                   $(PARSER_DIR)/parser_type.c \
                    $(PARSER_DIR)/parser_zone_context.c \
                    $(PARSER_DIR)/parser_decl.c \
                    $(PARSER_DIR)/parser_decl_clause.c \
+                   $(PARSER_DIR)/parser_decl_function_clause.c \
                    $(PARSER_DIR)/parser_decl_start.c \
                    $(PARSER_DIR)/parser_intent.c \
                    $(PARSER_DIR)/parser_domain.c \
                    $(PARSER_DIR)/parser_domain_event.c \
+                   $(PARSER_DIR)/parser_domain_projection.c \
+                   $(PARSER_DIR)/parser_domain_relation_effect.c \
                    $(PARSER_DIR)/parser_domain_roster.c \
                    $(PARSER_DIR)/parser_domain_world.c \
                    $(PARSER_DIR)/parser_domain_zone.c \
                    $(PARSER_DIR)/parser_async.c
 RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
+                   $(RUNTIME_DIR)/slot_manager_pin.c \
                    $(RUNTIME_DIR)/slot_manager_secure_ops.c \
                    $(RUNTIME_DIR)/slot_type_utils.c \
                    $(RUNTIME_DIR)/slot_pool.c \
@@ -191,6 +209,8 @@ ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
 RUNTIME_SOURCES  += $(ASYNC_SOURCES)
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
+                   $(SEMANTIC_DIR)/type_effects.c \
+                   $(SEMANTIC_DIR)/type_infer.c \
                    $(SEMANTIC_DIR)/type_env.c \
                    $(SEMANTIC_DIR)/symbol_table.c \
                    $(SEMANTIC_DIR)/type_checker.c \
@@ -226,10 +246,14 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_effect_decl.c \
                    $(SEMANTIC_DIR)/type_checker_zone_decl.c \
                    $(SEMANTIC_DIR)/type_checker_zone_decl_authority.c \
+                   $(SEMANTIC_DIR)/type_checker_zone_shape.c \
+                   $(SEMANTIC_DIR)/type_checker_zone_projection_rules.c \
+                   $(SEMANTIC_DIR)/type_checker_zone_state.c \
                    $(SEMANTIC_DIR)/type_checker_ability_decl.c \
                    $(SEMANTIC_DIR)/type_checker_world_decl.c \
                    $(SEMANTIC_DIR)/type_checker_intent_decl.c \
                    $(SEMANTIC_DIR)/type_checker_intent_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_transfer.c \
                    $(SEMANTIC_DIR)/type_checker_intent_role_fields.c \
                    $(SEMANTIC_DIR)/type_checker_intent_control.c \
                    $(SEMANTIC_DIR)/type_checker_role_decl.c \
@@ -269,6 +293,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_domain_projection.c \
                    $(SEMANTIC_DIR)/type_checker_overlay_common.c \
                    $(SEMANTIC_DIR)/type_checker_decls_domain_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_domain_contracts.c \
+                   $(SEMANTIC_DIR)/type_checker_call_constructor.c \
                    $(SEMANTIC_DIR)/type_checker_helpers_late.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_boundary.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match.c \
@@ -327,6 +353,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
 ifneq ($(LLVM_ENABLED),0)
   LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c \
+                   $(CODEGEN_DIR)/llvm_backend_type_map.c \
                    $(CODEGEN_DIR)/llvm_type.c \
                    $(CODEGEN_DIR)/llvm_api.c \
                    $(CODEGEN_DIR)/llvm_backend_generic.c \
@@ -356,6 +383,7 @@ ifneq ($(LLVM_ENABLED),0)
                    $(CODEGEN_DIR)/llvm_domain_event.c \
                    $(CODEGEN_DIR)/llvm_domain_role_emit.c \
                    $(CODEGEN_DIR)/llvm_domain_sync_frontier.c \
+                   $(CODEGEN_DIR)/llvm_domain_zone_frontier_state.c \
                    $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
                          $(CODEGEN_DIR)/llvm_domain_world_sync.c \
                          $(CODEGEN_DIR)/llvm_domain.c
@@ -879,6 +907,9 @@ type-resolution-dag-test-smoke: $(SEMANTIC_TEST)
 type-resolution-resolver-inventory-test-smoke:
 	"$(BASH)" tests/type_resolution_resolver_inventory_smoke.sh
 
+semantic-fixture-isolation-test-smoke: $(SEMANTIC_TEST)
+	SEMANTIC_TEST_BIN="$(abspath $(SEMANTIC_TEST))" "$(BASH)" tests/semantic_fixture_isolation_smoke.sh
+
 diagnostic-registry-test-smoke:
 	"$(BASH)" tests/diagnostic_registry_smoke.sh
 
@@ -1004,6 +1035,7 @@ ci-linux:
 	$(MAKE) semantic-core-shape-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" type-resolution-dag-test-smoke
 	$(MAKE) type-resolution-resolver-inventory-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" semantic-fixture-isolation-test-smoke
 	$(MAKE) diagnostic-registry-test-smoke
 	$(MAKE) runtime-authority-contract-test-smoke
 	$(MAKE) runtime-panic-contract-test-smoke
@@ -1051,6 +1083,7 @@ ci-macos:
 	$(MAKE) test-inc-size-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" diagnostics-json-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" cfg-body-dataflow-test-smoke
+	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" semantic-fixture-isolation-test-smoke
 	$(MAKE) parser-lexer-diagnostic-test-smoke
 
 check-windows-toolchain:
@@ -1078,6 +1111,7 @@ ci-windows:
 		PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" stdlib-test-smoke; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" runtime-none-contract-test-smoke; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" raw-escape-contract-test-smoke; \
+		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" semantic-fixture-isolation-test-smoke; \
 		PGY_EXAMPLE_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" example-test-smoke; \
 		$(MAKE) test-inc-size-test-smoke; \
 	elif echo "$(CI_WINDOWS_CC_MACHINE)" | grep -qi 'mingw'; then \
@@ -1149,7 +1183,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke runtime-frontier-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke runtime-frontier-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
