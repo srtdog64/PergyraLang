@@ -32,8 +32,6 @@
 
 #define INITIAL_DIAG_CAPACITY 16
 
-static bool
-callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx);
 char *
 format_generic_subject_signature(const char *name, GenericParams *params);
 static const char *
@@ -86,7 +84,6 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
 #include "type_checker_context_helpers.h"
 #include "type_checker_resolution_helpers.h"
 #include "type_checker_helpers_effects.h"
-#include "type_checker_host_helpers.h"
 /* type_checker_visibility was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
 
@@ -177,23 +174,6 @@ bool
 type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
 {
     return type_check_parallel_block_flow(node, ctx);
-}
-
-static bool
-callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx)
-{
-    ASTNode *host = current_host_decl(ctx);
-
-    if (node == NULL || ctx == NULL || node->type != AST_FUNC_DECL)
-        return false;
-    if (node->is_exported)
-        return true;
-    if (host == NULL || !host->is_exported)
-        return false;
-    if (!node->data.func_decl.has_explicit_access)
-        return true;
-    return node->data.func_decl.access == ACCESS_PUBLIC
-        || node->data.func_decl.access == ACCESS_PROTECTED;
 }
 
 /* type_check_ability_decl body moved to type_checker_ability_decl.c — see docs/101_semantic_split_template.md */
@@ -466,5 +446,3 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return !ctx->has_error;
     }
 }
-
-#include "type_checker_program.h"

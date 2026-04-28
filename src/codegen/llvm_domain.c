@@ -11,34 +11,13 @@
 
 #include "llvm_internal.h"
 
-#include "llvm_domain_role_helpers.h"
 #include "llvm_domain_decl_parts_helpers.h"
 #include "llvm_domain_event.h"
+#include "llvm_domain_forward.h"
 #include "llvm_domain_method_emit.h"
 #include "llvm_domain_projection_count_helpers.h"
 #include "llvm_domain_role_emit.h"
-
-static LLVMTypeRef
-llvm_zone_effect_pool_struct_type(LLVMGenCtx *ctx, LLVMTypeRef effect_ty, int capacity)
-{
-    LLVMTypeRef fields[4];
-    LLVMTypeRef i8_ty;
-    unsigned cap;
-
-    if (ctx == NULL || effect_ty == NULL)
-        return NULL;
-
-    if (capacity <= 0)
-        capacity = 1;
-    cap = (unsigned)capacity;
-    i8_ty = LLVMInt8TypeInContext(ctx->context);
-
-    fields[0] = LLVMArrayType(effect_ty, cap);
-    fields[1] = LLVMArrayType(ctx->type_i1, cap);
-    fields[2] = i8_ty;
-    fields[3] = i8_ty;
-    return LLVMStructTypeInContext(ctx->context, fields, 4, 0);
-}
+#include "llvm_domain_struct_fields.h"
 
 /* Zone sync emission lives in llvm_domain_zone_sync.c. */
 
@@ -415,38 +394,11 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     llvm_class_add_field(entry, pergyra_strdup(field_name),
                         ftypes[field_index], field_index);
                 }
-                for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++) {
-                    ASTNode *slot = stmt->data.zone_decl.slots[j];
-                    char field_name[256];
-                    if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                        || (!slot->data.domain_slot.is_tobject
-                            && !llvm_domain_slot_is_projection_target(slot,
-                                stmt->data.zone_decl.refreshes,
-                                stmt->data.zone_decl.refresh_count))
-                        || slot->data.domain_slot.slot_name == NULL) {
-                        continue;
-                    }
-                    snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
-                        slot->data.domain_slot.slot_name);
-                    llvm_class_add_field(entry, pergyra_strdup(field_name),
-                        ftypes[field_index], field_index);
-                    field_index++;
-                    snprintf(field_name, sizeof(field_name), "__projection_dirty_%s",
-                        slot->data.domain_slot.slot_name);
-                    llvm_class_add_field(entry, pergyra_strdup(field_name),
-                        ftypes[field_index], field_index);
-                    field_index++;
-                    snprintf(field_name, sizeof(field_name), "__projection_epoch_%s",
-                        slot->data.domain_slot.slot_name);
-                    llvm_class_add_field(entry, pergyra_strdup(field_name),
-                        ftypes[field_index], field_index);
-                    field_index++;
-                    snprintf(field_name, sizeof(field_name), "__projection_cause_%s",
-                        slot->data.domain_slot.slot_name);
-                    llvm_class_add_field(entry, pergyra_strdup(field_name),
-                        ftypes[field_index], field_index);
-                    field_index++;
-                }
+                llvm_domain_add_projection_state_fields(ctx, entry, ftypes, &field_index,
+                    stmt->data.zone_decl.slots,
+                    stmt->data.zone_decl.slot_count,
+                    stmt->data.zone_decl.refreshes,
+                    stmt->data.zone_decl.refresh_count);
                 llvm_class_add_field(entry, pergyra_strdup("__sync_generation"),
                     ftypes[field_index], field_index);
             } else if (stmt->type == AST_ROSTER_DECL) {
@@ -577,305 +529,26 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                     dyn_idx++;
                     field_index++;
                 }
-                if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL) {
-                    for (size_t j = 0; j < slot_count; j++) {
-                        ASTNode *slot = slots[j];
-                        char field_name[256];
-                        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                            || (!slot->data.domain_slot.is_tobject
-                                && !llvm_domain_slot_is_projection_target(slot,
-                                    refreshes, refresh_count))
-                            || slot->data.domain_slot.slot_name == NULL) {
-                            continue;
-                        }
-                        snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
-                            slot->data.domain_slot.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
-                        field_index++;
-                        snprintf(field_name, sizeof(field_name), "__projection_dirty_%s",
-                            slot->data.domain_slot.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
-                        field_index++;
-                        snprintf(field_name, sizeof(field_name), "__projection_epoch_%s",
-                            slot->data.domain_slot.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
-                        field_index++;
-                        snprintf(field_name, sizeof(field_name), "__projection_cause_%s",
-                            slot->data.domain_slot.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
-                        field_index++;
-                    }
-                }
+                if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
+                    llvm_domain_add_projection_state_fields(ctx, entry, ftypes, &field_index,
+                        slots, slot_count, refreshes, refresh_count);
             }
         }
         /* ftypes is ctx->scratch-owned. */
 
         if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL
             || stmt->type == AST_ZONE_DECL || stmt->type == AST_WORLD_DECL) {
-            char sync_name[256];
-            LLVMTypeRef sync_params[] = { LLVMPointerType(struct_ty, 0) };
-            LLVMTypeRef sync_ft = LLVMFunctionType(ctx->type_void, sync_params, 1, 0);
-            LLVMValueRef sync_fn;
-            snprintf(sync_name, sizeof(sync_name), "%s_sync", decl_name);
-            sync_fn = LLVMAddFunction(ctx->module, sync_name, sync_ft);
-            llvm_register_function(ctx, LLVMGetValueName(sync_fn),
-                sync_fn, sync_ft, ctx->type_void);
-            if (entry != NULL)
-                entry->sync_function_name = pergyra_strdup(sync_name);
+            llvm_emit_domain_sync_forward_decl(ctx, decl_name, struct_ty, entry);
         }
 
-        /* Forward-declare methods */
-        for (size_t j = 0; j < method_count; j++) {
-            ASTNode *method = methods[j];
-            if (method == NULL || method->type != AST_FUNC_DECL)
-                continue;
-
-            const char *mname = method->data.func_decl.name;
-            size_t pc = method->data.func_decl.param_count;
-
-            LLVMTypeRef ret = ctx->type_void;
-            if (method->data.func_decl.return_type != NULL)
-                ret = ast_type_to_llvm(ctx,
-                    method->data.func_decl.return_type);
-
-            size_t user_pc = 0;
-            for (size_t k = 0; k < pc; k++) {
-                FuncParam *p = method->data.func_decl.params[k];
-                if (llvm_param_is_implicit_self_local(p))
-                    continue;
-                user_pc++;
-            }
-
-            LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
-                (user_pc + 1) * sizeof(LLVMTypeRef));
-            ptypes[0] = LLVMPointerType(struct_ty, 0);
-            size_t pidx = 1;
-            for (size_t k = 0; k < pc; k++) {
-                FuncParam *p = method->data.func_decl.params[k];
-                const char *type_name = NULL;
-                LLVMClassTypeEntry *param_cls = NULL;
-                if (llvm_param_is_implicit_self_local(p))
-                    continue;
-                if (p->type != NULL && p->type->type == AST_TYPE)
-                    type_name = p->type->data.type.name;
-                param_cls = type_name != NULL ? llvm_lookup_class(ctx, type_name) : NULL;
-                if (param_cls != NULL && param_cls->is_pointer_self_host)
-                    ptypes[pidx++] = LLVMPointerType(param_cls->struct_type, 0);
-                else
-                    ptypes[pidx++] = (p->type != NULL)
-                        ? ast_type_to_llvm(ctx, p->type)
-                        : ctx->type_i32;
-            }
-
-            LLVMTypeRef ft = LLVMFunctionType(ret, ptypes,
-                (unsigned)(user_pc + 1), 0);
-
-            char fname[256];
-            snprintf(fname, sizeof(fname), "%s_%s",
-                     decl_name, mname);
-            LLVMValueRef fn = LLVMAddFunction(ctx->module,
-                                                fname, ft);
-            llvm_register_function(ctx, LLVMGetValueName(fn),
-                                    fn, ft, ret);
-            /* ptypes is ctx->scratch-owned. */
-        }
+        llvm_emit_domain_method_forward_decls(ctx, decl_name, struct_ty,
+            methods, method_count);
         }
     }
 
-    /* Pass 0b: Register ability vtable types */
-    for (size_t i = 0; i < ability_count; i++) {
-        ASTNode *stmt = abilities[i];
-        if (stmt == NULL || stmt->type != AST_ABILITY_DECL)
-            continue;
-
-        const char *ab_name = stmt->data.ability_decl.name;
-        size_t mc = stmt->data.ability_decl.method_count;
-
-        /* Build vtable struct: { fn_ptr_1, fn_ptr_2, ... }.  Type arrays
-         * are consumed by LLVMFunctionType / LLVMStructSetBody and never
-         * retained after the struct type is registered below. */
-        LLVMTypeRef *vt_fields = pgy_arena_calloc(&ctx->scratch,
-            (mc > 0 ? mc : 1) * sizeof(LLVMTypeRef));
-        for (size_t j = 0; j < mc; j++) {
-            ASTNode *method = stmt->data.ability_decl.methods[j];
-            if (method == NULL || method->type != AST_FUNC_DECL) {
-                vt_fields[j] = ctx->type_i8ptr;
-                continue;
-            }
-
-            LLVMTypeRef ret = ctx->type_void;
-            if (method->data.func_decl.return_type != NULL)
-                ret = ast_type_to_llvm(ctx,
-                    method->data.func_decl.return_type);
-
-            size_t pc = method->data.func_decl.param_count;
-            /* Count non-self params */
-            size_t user_pc = 0;
-            for (size_t k = 0; k < pc; k++) {
-                FuncParam *p = method->data.func_decl.params[k];
-                if (llvm_param_is_implicit_self_local(p))
-                    continue;
-                user_pc++;
-            }
-            LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
-                (user_pc + 1) * sizeof(LLVMTypeRef));
-            ptypes[0] = ctx->type_i8ptr; /* self */
-            size_t pidx = 1;
-            for (size_t k = 0; k < pc; k++) {
-                FuncParam *p = method->data.func_decl.params[k];
-                if (llvm_param_is_implicit_self_local(p))
-                    continue;
-                ptypes[pidx++] = (p->type != NULL)
-                    ? ast_type_to_llvm(ctx, p->type)
-                    : ctx->type_i32;
-            }
-
-            LLVMTypeRef fn_type = LLVMFunctionType(ret,
-                ptypes, (unsigned)(user_pc + 1), 0);
-            vt_fields[j] = LLVMPointerType(fn_type, 0);
-            /* ptypes is ctx->scratch-owned. */
-        }
-
-        char vt_name[256];
-        snprintf(vt_name, sizeof(vt_name), "%s_vtable", ab_name);
-        LLVMTypeRef vt_struct = LLVMStructCreateNamed(ctx->context,
-                                                        vt_name);
-        LLVMStructSetBody(vt_struct, vt_fields, (unsigned)mc, 0);
-        /* vt_fields is ctx->scratch-owned. */
-
-        /* Register as class type so it's findable.
-         * Must strdup because vt_name is a stack local. */
-        LLVMClassTypeEntry *entry = llvm_register_class(ctx,
-            pergyra_strdup(vt_name), vt_struct, false, false);
-        if (entry != NULL) {
-            for (size_t j = 0; j < mc; j++) {
-                ASTNode *method = stmt->data.ability_decl.methods[j];
-                if (method != NULL && method->type == AST_FUNC_DECL)
-                    llvm_class_add_field(entry,
-                        method->data.func_decl.name,
-                        LLVMStructGetTypeAtIndex(vt_struct, (unsigned)j),
-                        (int)j);
-            }
-        }
-    }
-
-    /* Pass 0c: Forward-declare role methods + create vtable globals */
-    for (size_t i = 0; i < role_count; i++) {
-        ASTNode *stmt = roles[i];
-        if (stmt == NULL || stmt->type != AST_ROLE_DECL)
-            continue;
-
-        const char *role_name = stmt->data.role_decl.name;
-
-        for (size_t ii = 0; ii < stmt->data.role_decl.impl_count; ii++) {
-            ASTNode *impl = stmt->data.role_decl.impl_abilities[ii];
-            if (impl == NULL || impl->type != AST_IMPL_ABILITY)
-                continue;
-
-            for (size_t j = 0; j < impl->data.impl_ability.method_count;
-                 j++) {
-                ASTNode *method = impl->data.impl_ability.methods[j];
-                if (method == NULL || method->type != AST_FUNC_DECL)
-                    continue;
-
-                const char *mname = method->data.func_decl.name;
-                size_t pc = method->data.func_decl.param_count;
-
-                LLVMTypeRef ret = ctx->type_void;
-                if (method->data.func_decl.return_type != NULL)
-                    ret = ast_type_to_llvm(ctx,
-                        method->data.func_decl.return_type);
-
-                /* self + user params */
-                size_t user_pc = 0;
-                for (size_t k = 0; k < pc; k++) {
-                    FuncParam *p = method->data.func_decl.params[k];
-                    if (llvm_param_is_implicit_self_local(p))
-                        continue;
-                    user_pc++;
-                }
-
-                LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
-                    (user_pc + 1) * sizeof(LLVMTypeRef));
-                ptypes[0] = ctx->type_i8ptr;
-                size_t pidx = 1;
-                for (size_t k = 0; k < pc; k++) {
-                    FuncParam *p = method->data.func_decl.params[k];
-                    if (llvm_param_is_implicit_self_local(p))
-                        continue;
-                    ptypes[pidx++] = (p->type != NULL)
-                        ? ast_type_to_llvm(ctx, p->type)
-                        : ctx->type_i32;
-                }
-
-                LLVMTypeRef ft = LLVMFunctionType(ret, ptypes,
-                    (unsigned)(user_pc + 1), 0);
-
-                char fname[256];
-                snprintf(fname, sizeof(fname), "%s_%s",
-                         role_name, mname);
-                LLVMValueRef fn = LLVMAddFunction(ctx->module,
-                                                    fname, ft);
-                llvm_register_function(ctx, LLVMGetValueName(fn),
-                                        fn, ft, ret);
-                /* ptypes is ctx->scratch-owned. */
-            }
-        }
-
-        {
-            PgyTokenType ops[] = {
-                TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT,
-                TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
-                TOKEN_GREATER, TOKEN_GREATER_EQUAL
-            };
-            const char *for_type_name = NULL;
-            if (stmt->data.role_decl.for_type != NULL
-                && stmt->data.role_decl.for_type->type == AST_TYPE) {
-                for_type_name = stmt->data.role_decl.for_type->data.type.name;
-            }
-
-            for (size_t oi = 0; for_type_name != NULL
-                   && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
-                const char *suffix = llvm_operator_suffix(ops[oi]);
-                ASTNode *method = llvm_find_role_operator_method(ctx, stmt, ops[oi], 0);
-                if (suffix == NULL || method == NULL)
-                    continue;
-
-                char opname[256];
-                snprintf(opname, sizeof(opname), "operator_%s_%s",
-                         suffix, for_type_name);
-                if (llvm_lookup_function(ctx, opname) != NULL)
-                    continue;
-
-                FuncParam *rhs_param = NULL;
-                size_t rhs_param_count = 0;
-                for (size_t pj = 0; pj < method->data.func_decl.param_count; pj++) {
-                    FuncParam *p = method->data.func_decl.params[pj];
-                    if (!llvm_param_is_implicit_self_local(p)) {
-                        rhs_param = p;
-                        rhs_param_count++;
-                    }
-                }
-                if (rhs_param_count != 1)
-                    continue;
-
-                LLVMTypeRef lhs_type = ast_type_to_llvm(ctx, stmt->data.role_decl.for_type);
-                LLVMTypeRef rhs_type = (rhs_param != NULL && rhs_param->type != NULL)
-                    ? ast_type_to_llvm(ctx, rhs_param->type) : ctx->type_i32;
-                LLVMTypeRef ret = method->data.func_decl.return_type != NULL
-                    ? ast_type_to_llvm(ctx, method->data.func_decl.return_type)
-                    : ctx->type_void;
-                LLVMTypeRef params[] = { lhs_type, rhs_type };
-                LLVMTypeRef ft = LLVMFunctionType(ret, params, 2, 0);
-                LLVMValueRef fn = LLVMAddFunction(ctx->module, opname, ft);
-                llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);
-            }
-        }
-    }
+    /* Pass 0b/0c: Register ability vtables and role forward declarations. */
+    llvm_emit_domain_ability_vtables(ctx, abilities, ability_count);
+    llvm_emit_domain_role_forward_decls(ctx, roles, role_count);
 
     /* Pass 0e: Register event types and generate helper functions */
     llvm_emit_domain_event_helpers(ctx, events, event_count);

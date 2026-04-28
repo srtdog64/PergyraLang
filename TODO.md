@@ -1,5 +1,222 @@
 ﻿# Pergyra TODO (배포 준비)
 
+## UTF-8 Progress Note - 2026-04-28 - LLVM Intent/Domain Owner Split
+
+- LLVM intent declaration ownership is below the 600 LOC split-review
+  threshold. `llvm_intent.c` now owns orchestration only, while
+  `llvm_intent_setup.c` owns entry/participant binding,
+  `llvm_intent_step_context.c` owns MIR/AST step carrier context validation,
+  and `llvm_intent_cleanup.c` owns cleanup/rollback/invalidation tail
+  emission. The MIR-only carrier diagnostic path remains explicit instead of
+  falling back to AST helper inventory.
+- LLVM domain declaration ownership is also below the threshold.
+  `llvm_domain.c` now owns domain struct registration orchestration,
+  `llvm_domain_forward.c` owns sync/method forward declarations plus ability
+  vtable and role forward registration, and `llvm_domain_struct_fields.c`
+  owns effect-pool and projection-state field helpers.
+- Local gate: `make llvm-test-smoke` is green after both splits. Current owner
+  sizes: `llvm_intent.c` 555 LOC, `llvm_domain.c` 568 LOC,
+  `llvm_domain_forward.c` 306 LOC, and `llvm_domain_struct_fields.c` 80 LOC.
+- This closes the immediate LLVM intent/domain review-band slice. Remaining
+  backend debt is now concentrated in declaration inventory/bootstrap seams,
+  projection overlay/C emitter owners, and C/LLVM parity edge coverage.
+- C backend orchestration ownership is also back below the threshold:
+  `transpiler.c` now stays at 587 LOC after moving public entry/result
+  lifecycle to `transpiler_entry.c`, runtime thread-pool requirement scanning
+  to `transpiler_thread_pool.c`, and small include/impl-ability declaration
+  emitters to `transpiler_misc_decl.c`.
+- Backend parity gate after the C split is green: `make llvm-test-backend-compare`
+  reports ABI same-process `196 passed, 0 failed` and backend compare
+  `64/64 passed, 0 failed`.
+
+## UTF-8 Progress Note - 2026-04-28 - Semantic Owner Split
+
+- `src/semantic/type_checker_builtins_stdlib_body.c` is now below the 600 LOC
+  split-review threshold after moving `List` / `Set` / `Queue` / `Array`
+  builtin typing to `src/semantic/type_checker_builtins_stdlib_collections.c`
+  behind `type_check_stdlib_collection_call(...)`.
+- Current stdlib builtin owner sizes: `type_checker_builtins_stdlib_body.c`
+  510 LOC, `type_checker_builtins_stdlib_collections.c` 356 LOC,
+  `type_checker_builtins_stdlib_scalar.c` and
+  `type_checker_builtins_stdlib_map.c` remain existing focused owners.
+- Local gates for this slice: `make test-semantic semantic-core-shape-test-smoke
+  type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke`
+  (`2359/0`, `materializer_fallbacks=0`, fallback seams=0).
+- Builtin query implementation-header debt is now split into named owners:
+  `type_checker_builtins_query.c` owns generic builtin arity, borrowed
+  boundary store rejection, `HasProjection`, `HasLayer`, and `HasState`;
+  `type_checker_builtins_query_world.c` owns `HasZone` and
+  `HasZoneProjection` / `HasZoneLayer` / `HasZoneState`;
+  `type_checker_builtins_query_channel.c` owns channel send/recv/close
+  builtin typing; and `type_checker_builtins_query_domain.c` owns the shared
+  domain lookup helpers. The `type_checker_builtins_query*.h` files are now
+  declaration-only guards.
+- Slot builtin debt is also split: `type_checker_builtins_slotops.c` owns
+  slot lifecycle/view/move/device-slot builtins,
+  `type_checker_builtins_secure_token.c` owns secure-token validation, and
+  `type_checker_builtins_resolve.c` owns builtin name resolution. The old
+  slotops implementation header is now declaration-only.
+- Nominal builtin dispatch is now split as a real TU:
+  `type_checker_builtins_nominal.c` owns the non-intent-observability builtin
+  dispatcher path, `type_checker_builtins_intent_observability.c` owns the
+  `IntentLast*` / `IntentHistory*` / `IntentActive*` / `IntentRecent*`
+  observability family, and `type_checker_builtins_nominal.h` is
+  declaration-only. Both implementation owners are under the 600 LOC
+  split-review threshold.
+- Slot analyzer summary debt is split: `slot_analyzer_summary.c` now owns
+  access/function-alias/parameter summary behavior, while
+  `slot_analyzer_escape.c` owns escape record/collect/mask behavior. Both are
+  below the 600 LOC split-review threshold and the semantic shape gate tracks
+  both owners.
+- Function declaration implementation-header debt is closed:
+  `type_checker_func_decl.c` owns function type/scope/body orchestration,
+  `type_checker_func_action_contract.c` owns action-specific
+  within/causes/authorized-by validation, and `type_checker_host_helpers.c`
+  owns shared host/overlay/domain-slot helpers. The old
+  `type_checker_program.h` and `type_checker_host_helpers.h` implementation
+  bodies are gone, and all three owners are below the 600 LOC split-review
+  threshold.
+- `src/semantic/type_checker_expr.h` is now declaration-only; the expression
+  dispatcher/member implementation moved to `type_checker_expr.c`.
+- `src/semantic/type_checker_expr_call.c` now owns public call dispatch:
+  builtin/stdlib calls, slot method sugar, static-member calls, hosted
+  nominal method dispatch, and embedded-world-zone mutation rejection.
+- `src/semantic/type_checker_expr_host.c` now owns host-field/method lookup
+  and host-method call typing behind explicit `expr_*` seams. This avoids
+  reusing the old implementation-header helper names and keeps
+  `type_checker_internal.h` declaration-only.
+- `src/semantic/type_checker_resolve.c` now owns the legacy
+  `resolve_type_node` compatibility body that used to rely on an
+  implementation-header side effect. `type_checker_resolve.h` is
+  declaration-only, so DAG lookup/materialization callers now link through a
+  named TU instead of a hidden header body.
+- `src/semantic/type_checker_resolution_helpers.c` now owns the
+  metadata-first `resolve_named_type(...)`, alias lookup, symbol-kind labels,
+  and embedded-world-zone mutation guard that used to live in
+  `type_checker_resolution_helpers.h`. The header is declaration-only and
+  `type-resolution-resolver-inventory-test-smoke` now rejects implementation
+  bodies in both resolver helper headers.
+- Current sizes: `type_checker_expr.h` 10 LOC,
+  `type_checker_expr.c` 392 LOC,
+  `type_checker_expr_call.c` 472 LOC,
+  `type_checker_expr_host.c` 240 LOC,
+  `type_checker_resolve.c` 400 LOC, `type_checker_resolve.h` 14 LOC,
+  `type_checker_resolution_helpers.c` 412 LOC, and
+  `type_checker_resolution_helpers.h` 22 LOC. The expression semantic owner
+  family is now below the 600 LOC split-review threshold.
+- Local gates: `make test-semantic` is green (`2359/0`). Re-run the full DAG
+  owner gate after this slice with `make type-resolution-resolver-inventory-test-smoke
+  type-resolution-dag-test-smoke semantic-core-shape-test-smoke`.
+
+## UTF-8 Progress Note - 2026-04-28 - HIR CFG Phi Owner Split
+
+- `src/compiler/hir_cfg.c` now keeps CFG structural analysis only:
+  predecessor finalization, reachability, dominance/frontier, dominator tree,
+  natural loops, and CFG summary finalization.
+- Local-def collection, SSA-name collection, phi-candidate placement, and phi
+  materialization moved to `src/compiler/hir_cfg_phi.c` behind the private
+  `src/compiler/hir_cfg_internal.h` seam.
+- Current sizes: `hir_cfg.c` 388 LOC, `hir_cfg_phi.c` 222 LOC, and
+  `hir_cfg_internal.h` 8 LOC. This closes the last active HIR CFG owner-size
+  review-band item without reintroducing `.inc` files.
+- Local gates: `make test-hir test-mir cfg-body-dataflow-test-smoke`
+  (HIR 14/0, MIR 14/0).
+
+## UTF-8 Progress Note - 2026-04-28 - Semantic Effects Helper Header Debt Split
+
+- `src/semantic/type_checker_helpers_effects.h` is now declaration-only. The
+  former implementation-header body moved to named semantic owners:
+  `type_checker_helpers_effects.c` for effect/type helper behavior,
+  `type_checker_projection_path.c` for projection source field-path
+  resolution, and `type_checker_world_embedding.c` for world constructor
+  zone-embedding handoff diagnostics.
+- Current sizes: `type_checker_helpers_effects.c` 504 LOC,
+  `type_checker_projection_path.c` 177 LOC,
+  `type_checker_world_embedding.c` 132 LOC, and
+  `type_checker_helpers_effects.h` 11 LOC.
+- This removes another implementation-style private header from semantic core
+  and keeps these owners under the 600 LOC split-review threshold.
+- Local gates: `make test-semantic semantic-core-shape-test-smoke`
+  (`2359/0`).
+
+## UTF-8 Progress Note - 2026-04-28 - CFG Flow Effect Owner Split
+
+- `src/semantic/type_checker_flow_effects.h` is now declaration-only. The
+  branch-effect conflict, unreachable-statement, and effect-delta merge
+  implementation moved to the real owner
+  `src/semantic/type_checker_flow_effects.c`.
+- `src/semantic/type_checker_flow.c` stays focused on CFG body-flow
+  orchestration and fact consumption. Effect diagnostics no longer live in an
+  implementation-style private header, which keeps the CFG cleanup direction
+  aligned with the no-`.inc` / named-owner rule.
+- Current sizes: `type_checker_flow.c` 457 LOC,
+  `type_checker_flow_effects.c` 122 LOC, and
+  `type_checker_flow_effects.h` 33 LOC.
+- Local gates: `make cfg-body-dataflow-test-smoke test-semantic`
+  (`2359/0`), `make semantic-core-shape-test-smoke
+  backend-inc-size-test-smoke type-resolution-dag-test-smoke`
+  (`materializer_fallbacks=0`).
+
+## UTF-8 Progress Note - 2026-04-28 - CFG Body Flow Flag Consumption Tightening
+
+- `src/semantic/type_checker_flow.c` now routes fallthrough/terminator flag
+  consumption through named helpers: `flow_record_statement_result()`,
+  `flow_has_fallthrough()`, and `flow_terminating_flags()`. This keeps the
+  semantic body-flow owner focused on CFG fact consumption instead of open-coded
+  flag masks at each join.
+- `tests/cfg_body_dataflow_smoke.sh` now gates those helper seams alongside the
+  existing all-path return, unreachable statement, resource snapshot, defer, and
+  parallel boundary terms.
+- Local gates: `make cfg-body-dataflow-test-smoke test-semantic`
+  (`2359/0`).
+
+## UTF-8 Progress Note - 2026-04-28 - MIR Cleanup CFG Shape Validation
+
+- `src/compiler/mir_cfg_contract_validate.h` now rejects cleanup blocks that
+  carry normal CFG successors and cleanup blocks that are also marked as pin
+  regions. Cleanup/rollback/invalidation must remain exceptional cleanup-chain
+  blocks, not normal body-flow blocks.
+- `src/test_mir.c` adds a negative corruption regression that mutates an intent
+  cleanup block to point at a normal successor and expects `mir_validate()` to
+  reject it with the cleanup-block/normal-CFG-successor diagnostic.
+- `tests/cfg_body_dataflow_smoke.sh` now gates the validator terms so this
+  cannot regress into an undocumented MIR convention.
+- Local gates: `make test-mir cfg-body-dataflow-test-smoke` (MIR 14/0).
+
+## UTF-8 Progress Note - 2026-04-28 - Zone Lifecycle Authority Presence Split
+
+- `src/semantic/type_checker_zone_decl.c` no longer owns the repeated
+  lifecycle `by <subjectSlot>` presence diagnostics for authority-bearing
+  zones. Apply/link/detach/unlink/maintain authority-presence checks now route
+  through `type_check_zone_lifecycle_authority_presence()` in
+  `src/semantic/type_checker_zone_decl_authority.c`.
+- Current zone semantic owner sizes are `type_checker_zone_decl.c` 487 LOC and
+  `type_checker_zone_decl_authority.c` 300 LOC. This keeps the zone declaration
+  family under the 600 LOC split-review threshold while moving authority policy
+  wording into the authority owner.
+- Local gates: `make semantic-core-shape-test-smoke`; `make test-semantic`
+  (2359/0).
+
+## UTF-8 Progress Note - 2026-04-28 - Intent Authority/Participant Owner Split
+
+- `src/semantic/type_checker_intent_decl.c` no longer owns the full
+  authority/authorized-by validation body. The missing `authorized by` contract
+  diagnostic and authorized participant-to-zone-authority resolution moved to
+  `src/semantic/type_checker_intent_authority.c`.
+- Intent `who` participant validation, zone subject-slot matching, transfer
+  source subject-slot matching, and action-match detection moved to
+  `src/semantic/type_checker_intent_participants.c`.
+- Current intent semantic owner sizes are `type_checker_intent_decl.c` 504 LOC,
+  `type_checker_intent_authority.c` 242 LOC, and
+  `type_checker_intent_participants.c` 115 LOC, keeping the family under the
+  600 LOC split-review threshold without adding `.inc` files.
+- This is an incremental domain-checker slimming slice, not a full
+  Domain-AST-to-Core-AST rewrite. Intent declaration orchestration still owns
+  step order and summary flow; authority and participant proof/diagnostic
+  ownership are now named semantic owners.
+- Local gates: `make semantic-core-shape-test-smoke`; `make test-semantic`
+  (2359/0).
+
 ## UTF-8 Progress Note - 2026-04-28 - HIR CFG Contract Validation
 
 - HIR routine finishing now validates CFG shape immediately after body lowering
@@ -1471,16 +1688,22 @@
   `make -B pgy backend-inc-size-test-smoke inc-sentinel-test-smoke
   type-resolution-dag-test-smoke cfg-body-dataflow-test-smoke
   air-drift-test-smoke test-abi`.
-- Semantic builtin-query checks now have a named owner in
-  `src/semantic/type_checker_builtins_query.h`; the old
-  `type_checker_builtins_query.inc` body is gone. The split
-  `BuiltinKind builtin_resolve(...)` signature was also fixed so
-  `type_checker_builtins_slotops.inc` owns a complete function boundary instead
-  of inheriting a dangling return type from the query file.
+- Semantic builtin-query checks now have named owners in
+  `src/semantic/type_checker_builtins_query.c`,
+  `src/semantic/type_checker_builtins_query_world.c`,
+  `src/semantic/type_checker_builtins_query_channel.c`, and
+  `src/semantic/type_checker_builtins_query_domain.c`. The corresponding
+  query headers are declaration-only guards, so builtin query behavior no
+  longer depends on include-order side effects.
 - Semantic builtin nominal/type contract checks now have a named owner in
-  `src/semantic/type_checker_builtins_nominal.h`; the old
-  `type_checker_builtins_nominal.inc` body is gone while preserving
+  `src/semantic/type_checker_builtins_nominal.c`; intent observability is split
+  further into `src/semantic/type_checker_builtins_intent_observability.c`.
+  `type_checker_builtins_nominal.h` is declaration-only while preserving
   `Rc`/`Weak`/`Box`/allocator and intent-observability builtin dispatch order.
+- Slot analyzer escape handling moved to
+  `src/semantic/slot_analyzer_escape.c`, leaving
+  `src/semantic/slot_analyzer_summary.c` below the 600 LOC review threshold
+  and focused on access/parameter summary behavior.
 - Generated-C runtime pool/FSM/timer helpers now have a named owner in
   `src/runtime/pgy_runtime_pool_fsm_timer_inline.h`; `pgy_runtime_part_ba_part_e.inc`
   now starts at parallel/zone authority support instead of mixing object-pool,
@@ -1836,7 +2059,7 @@ Source of truth:
   - 진행: ownership return / assignment rebind / array literal store / boundary validation / call argument / destructuring / let-binding / parameter escape-summary consumers는 `.inc`에서 실제 TU로 승격했다. 삭제된 파일: `type_checker_ownership_return.inc`, `type_checker_ownership_assign.inc`, `type_checker_ownership_array_store.inc`, `type_checker_ownership_boundaries.inc`, `type_checker_ownership_call.inc`, `type_checker_ownership_destructure.inc`, `type_checker_ownership_destructure_stmt.inc`, `type_checker_ownership_let.inc`, `type_checker_ownership_let_boundary.inc`, `type_checker_ownership_let_claim.inc`, `type_checker_ownership_let_infer.inc`, `type_checker_ownership_let_slot.inc`, `type_checker_ownership_let_value.inc`, `type_checker_ownership_param_summary.inc`. 현재 `src/semantic/type_checker_ownership_*.inc`는 0개다
   - 원칙 강화: 베타 기준에서는 behavior-owning `.inc`를 beta+1 정리가 아니라 blocker로 본다. generated table / local macro table / private test fixture 외 `.inc`는 owner `.c` 또는 명시적 generated artifact로 옮긴다
   - 원칙 강화: `.inc` 제거 과정에서 여러 behavior family를 하나의 mega-TU로 합치지 않는다. `make semantic-tu-size-test-smoke`가 새 semantic owner TU는 1,000 LOC 이하로 제한하고, 기존 초대형 TU는 개별 cap으로 더 커지지 못하게 막는다
-  - 남은 위험 seam: `type_checker_builtins_query.inc`는 `type_checker_builtins_slotops.inc`와 `BuiltinKind builtin_resolve(...)` 시그니처가 include-chain으로 붙어 있다. query/slot/nominal builtin은 dispatcher contract를 먼저 분리한 뒤 TU로 올린다
+  - 완료: builtin query/slot include-chain seam은 TU owners로 승격됐다. `type_checker_builtins_query*.h`와 `type_checker_builtins_slotops.h`는 declaration-only이고, query/world/channel/domain/slotops/secure-token/builtin-resolve behavior는 named `.c` owner가 소유한다
 
 ### P10. 속도 / 빌드 성능 baseline
 

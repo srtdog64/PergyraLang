@@ -22,10 +22,4 @@ type_is_future_like(const Type *type)
         || type_is_constructed_named(type, "RemoteFuture");
 }
 
-#include "type_checker_builtins_query_domain.h"
-
-#include "type_checker_builtins_query.h"
-
 #include "type_checker_builtins_slotops.h"
-
-#include "type_checker_builtins_nominal.h"

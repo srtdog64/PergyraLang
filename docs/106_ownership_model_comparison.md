@@ -11,6 +11,7 @@ Related documents:
 - `docs/114_async_model_positioning.md` — sister positioning doc for concurrency
 - `docs/117_backend_strategy_positioning.md` — sister positioning doc for backend strategy
 - `docs/118_slot_model_rigor_audit.md` — sister audit doc; Slot vs borrow-check rigor and marketing-language guide
+- `docs/119_pergyra_lineage_positioning.md` — sister positioning doc for language lineage (C# father, Tier 1-5 substrate borrow, DDD unique synthesis)
 - `docs/semantics/04_ownership_abi.md`
 
 ## 1. Purpose

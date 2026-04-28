@@ -14,6 +14,7 @@ Related documents:
 - `docs/74_slot_pinning_caching.md` — pin block boundary design
 - `docs/semantics/` — proof obligations index
 - `docs/security/` — AI Validator adversarial counterexample audits (Tier 3 invariants)
+- `docs/119_pergyra_lineage_positioning.md` — sister positioning doc for language lineage; §11 marketing-phrasing table extends this doc's §8 negative-space audit
 
 This document is an **honest audit** of what Pergyra's Slot model and
 ownership system actually guarantee statically, what they check at runtime,

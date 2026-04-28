@@ -27,6 +27,7 @@ todo_path = root / "TODO.md"
 board_path = root / "docs" / "70_beta_closure_master_board.md"
 report_path = root / "docs" / "98_beta_closure_readiness_report.md"
 flow_path = root / "src" / "semantic" / "type_checker_flow.c"
+flow_effects_path = root / "src" / "semantic" / "type_checker_flow_effects.c"
 flow_match_path = root / "src" / "semantic" / "type_checker_flow_match.c"
 flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.h"
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
@@ -39,12 +40,12 @@ mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.h"
 mir_dce_path = root / "src" / "compiler" / "mir_dce.h"
 mir_stmt_population_path = root / "src" / "compiler" / "mir_stmt_population.h"
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.h"
-helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.h"
+helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.c"
 builtins_query_channel_path = root / "src" / "semantic" / "type_checker_builtins_query_channel.h"
 builtins_cancel_path = root / "src" / "semantic" / "type_checker_builtins_cancel.c"
 type_system_path = root / "src" / "semantic" / "type_system.h"
 type_system_impl_path = root / "src" / "semantic" / "type_system.c"
-expr_path = root / "src" / "semantic" / "type_checker_expr.h"
+expr_path = root / "src" / "semantic" / "type_checker_expr.c"
 program_path = root / "src" / "semantic" / "type_checker_program.h"
 diag_path = root / "src" / "semantic" / "diag_codes.h"
 diag_doc_path = root / "docs" / "72_diagnostic_codes.md"
@@ -66,6 +67,7 @@ for path in (
     board_path,
     report_path,
     flow_path,
+    flow_effects_path,
     flow_match_path,
     flow_resources_path,
     flow_loops_path,
@@ -108,6 +110,8 @@ board = board_path.read_text(encoding="utf-8")
 report = report_path.read_text(encoding="utf-8")
 flow = (
     flow_path.read_text(encoding="utf-8")
+    + "\n"
+    + flow_effects_path.read_text(encoding="utf-8")
     + "\n"
     + flow_match_path.read_text(encoding="utf-8")
     + "\n"
@@ -248,6 +252,8 @@ required_mir_cleanup_validator_terms = [
     "mir_block_has_pin_cleanup_edge",
     "pin-unpin-cleanup-edge",
     "pin-region block[%zu] missing pin-unpin cleanup fact",
+    "cleanup block[%zu] must not have normal CFG successors",
+    "cleanup block[%zu] must not be a pin region",
 ]
 missing_mir_cleanup_validator = [
     term for term in required_mir_cleanup_validator_terms
@@ -327,6 +333,9 @@ required_flow_terms = [
     "type_check_if_stmt_flow",
     "type_check_match_stmt_flow",
     "semantic_check_body_flow",
+    "flow_record_statement_result",
+    "flow_has_fallthrough",
+    "flow_terminating_flags",
     "match_stmt_has_total_case_coverage",
     "flow_record_unreachable_statement",
     "loop_flow_record",
@@ -385,16 +394,46 @@ for term in [
     if term not in hir_routines_text:
         hir_header = root / "src" / "compiler" / "hir.h"
         hir_cfg = root / "src" / "compiler" / "hir_cfg.c"
+        hir_cfg_phi = root / "src" / "compiler" / "hir_cfg_phi.c"
         hir_public = root / "src" / "compiler" / "hir_public.c"
         joined = (
             hir_header.read_text(encoding="utf-8")
             + "\n"
             + hir_cfg.read_text(encoding="utf-8")
             + "\n"
+            + hir_cfg_phi.read_text(encoding="utf-8")
+            + "\n"
             + hir_public.read_text(encoding="utf-8")
         )
         if term not in joined:
             raise SystemExit(f"HIR CFG validation/summary gate missing {term}")
+
+hir_cfg_path = root / "src" / "compiler" / "hir_cfg.c"
+hir_cfg_phi_path = root / "src" / "compiler" / "hir_cfg_phi.c"
+hir_cfg_internal_path = root / "src" / "compiler" / "hir_cfg_internal.h"
+for path in (hir_cfg_path, hir_cfg_phi_path, hir_cfg_internal_path):
+    if not path.exists():
+        raise SystemExit(f"missing HIR CFG owner file: {path.relative_to(root)}")
+
+hir_cfg_text = hir_cfg_path.read_text(encoding="utf-8")
+hir_cfg_phi_text = hir_cfg_phi_path.read_text(encoding="utf-8")
+for term in [
+    "hir_compute_cfg_dominance",
+    "hir_compute_cfg_dominance_frontier",
+    "hir_compute_cfg_dom_tree",
+    "hir_compute_cfg_loops",
+    "hir_finalize_cfg_summary",
+]:
+    if term not in hir_cfg_text:
+        raise SystemExit(f"HIR CFG structural owner missing {term}")
+for term in [
+    "hir_collect_cfg_local_defs",
+    "hir_compute_cfg_phi_candidates",
+    "hir_materialize_phi_nodes",
+    "hir_routine_collect_ssa_names",
+]:
+    if term not in hir_cfg_phi_text:
+        raise SystemExit(f"HIR CFG phi owner missing {term}")
 
 for term in [
     "semantic_check_body_flow",

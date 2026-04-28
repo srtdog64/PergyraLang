@@ -12,6 +12,7 @@ Related documents:
 - `docs/114_async_model_positioning.md` — sister positioning doc for concurrency
 - `docs/113_memory_concurrency_model.md` — frozen beta concurrency contract
 - `docs/118_slot_model_rigor_audit.md` — sister audit doc; Slot vs borrow-check rigor and marketing-language guide
+- `docs/119_pergyra_lineage_positioning.md` — sister positioning doc for language lineage (C# father, Tier 1-5 substrate borrow, DDD unique synthesis)
 
 This document positions Pergyra's backend strategy. It is a **positioning /
 rationale** doc, not a contract. Concrete ABI freezes live in

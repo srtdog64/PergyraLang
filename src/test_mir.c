@@ -432,6 +432,61 @@ test_mir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects cleanup block with normal CFG successor");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *purchase = NULL;
+        char *mir_error = NULL;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL && purchase->has_cleanup_block) {
+            MIRBasicBlock *cleanup = &purchase->blocks[purchase->cleanup_block];
+            cleanup->has_succ_true = true;
+            cleanup->succ_true = purchase->entry_block;
+        }
+        rejected = ok
+                   && purchase != NULL
+                   && purchase->has_cleanup_block
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "cleanup block") != NULL
+                   && strstr(mir_error, "normal CFG successors") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR carries pin-region cleanup edge metadata");
     {
         const char *src =

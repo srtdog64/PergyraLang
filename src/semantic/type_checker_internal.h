@@ -2,11 +2,13 @@
 #define PERGYRA_TYPE_CHECKER_INTERNAL_H
 
 #include "type_checker.h"
+#include "type_checker_domain_internal.h"
 
 bool type_is_constructed_named(const Type *type, const char *name);
 bool type_is_qubit(const Type *type);
 bool type_is_slot_handle(const Type *type);
 bool type_is_owned_slot_handle(const Type *type);
+bool type_is_subject_host_slot_handle(const Type *type, SemanticContext *ctx);
 bool type_is_read_view(const Type *type);
 bool type_is_write_view(const Type *type);
 bool type_is_move_token(const Type *type);
@@ -62,6 +64,7 @@ void semantic_record_callee_body_summary(SemanticContext *ctx,
 void semantic_record_callable_decl_summary(SemanticContext *ctx,
                                            ASTNode *callable_decl,
                                            uint32_t declared_effects);
+void effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size);
 Type *create_overlay_nominal_type(const char *name);
 size_t overlay_field_count(ASTNode *decl);
 ASTNode *overlay_field_decl_at(ASTNode *decl,
@@ -69,6 +72,8 @@ ASTNode *overlay_field_decl_at(ASTNode *decl,
                                const char **field_name_out);
 bool decl_is_subject_host(const ASTNode *decl);
 ClassField *subject_host_field_at(ASTNode *decl, size_t index);
+size_t projection_source_field_count(ASTNode *decl);
+ClassField *projection_source_field_at(ASTNode *decl, size_t index);
 char *format_generic_subject_signature(const char *name,
                                        GenericParams *params);
 TypeNominalFlavor nominal_flavor_from_decl(const ASTNode *decl);
@@ -76,6 +81,16 @@ uint32_t declared_effects_from_function_node(ASTNode *node,
                                              SemanticContext *ctx,
                                              bool *has_contract_out);
 char *flatten_static_member_access(const ASTNode *expr, char separator);
+Type *expr_current_host_field_type(SemanticContext *ctx,
+                                   const char *field_name);
+ASTNode *expr_current_host_method_decl(SemanticContext *ctx,
+                                       const char *method_name);
+Type *expr_type_check_host_method_call(ASTNode *expr,
+                                       ASTNode *method,
+                                       SemanticContext *ctx);
+bool expr_type_is_nominal_host_type(const Type *type,
+                                    SemanticContext *ctx);
+bool expr_member_is_static_access(const ASTNode *expr);
 Symbol *lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx);
 void mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx);
 bool expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx);
@@ -111,86 +126,6 @@ bool match_stmt_has_total_case_coverage(ASTNode *node,
                                         SemanticContext *ctx);
 Type *type_check_qubit_use(ASTNode *expr, SemanticContext *ctx);
 bool identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx);
-size_t count_subject_domain_slots(ASTNode **slots, size_t slot_count);
-size_t count_object_domain_slots(ASTNode **slots, size_t slot_count);
-size_t count_bindable_domain_slots(ASTNode **slots,
-                                   size_t slot_count,
-                                   ASTNode **refreshes,
-                                   size_t refresh_count);
-bool type_check_projection_contract(ASTNode **slots,
-                                    size_t slot_count,
-                                    const char *owner_label,
-                                    const char *owner_name,
-                                    ASTNode *site,
-                                    const char *object_slot_name,
-                                    const char *source_slot_name,
-                                    SemanticContext *ctx,
-                                    const char *action_name);
-bool type_check_overlay_decl_common(ASTNode *node,
-                                    SemanticContext *ctx,
-                                    const char *name,
-                                    SymbolKind kind,
-                                    ASTNode **shared_fields,
-                                    size_t shared_count,
-                                    ASTNode **methods,
-                                    size_t method_count,
-                                    const char *kind_name);
-bool type_check_domain_slots(ASTNode **slots,
-                             size_t slot_count,
-                             SemanticContext *ctx,
-                             const char *kind_name);
-bool type_check_domain_slot_initializers(ASTNode **slots,
-                                         size_t slot_count,
-                                         SemanticContext *ctx,
-                                         const char *kind_name);
-ASTNode *find_zone_effect_slot(ASTNode *zone, const char *slot_name);
-ASTNode *find_zone_relation_slot(ASTNode *zone, const char *slot_name);
-ASTNode *find_zone_state(ASTNode *zone, const char *state_name);
-bool resolve_zone_effect_state(ASTNode *zone,
-                               ASTNode *site,
-                               const char *state_name,
-                               SemanticContext *ctx,
-                               const char *action_name,
-                               const char **effect_slot_name,
-                               const char **target_slot_name);
-bool resolve_zone_relation_state(ASTNode *zone,
-                                 ASTNode *site,
-                                 const char *state_name,
-                                 SemanticContext *ctx,
-                                 const char *action_name,
-                                 const char **relation_slot_name,
-                                 const char **left_slot_name,
-                                 const char **right_slot_name);
-bool type_check_zone_participant_authority(ASTNode *zone,
-                                           ASTNode *site,
-                                           const char *participant_slot_name,
-                                           SemanticContext *ctx,
-                                           const char *action_name);
-bool type_check_zone_projection_contract(ASTNode *zone,
-                                         ASTNode *site,
-                                         const char *object_slot_name,
-                                         const char *source_slot_name,
-                                         SemanticContext *ctx,
-                                         const char *action_name);
-bool type_check_zone_effect_contract(ASTNode *zone,
-                                     ASTNode *apply_like,
-                                     const char *effect_slot_name,
-                                     const char *target_slot_name,
-                                     SemanticContext *ctx,
-                                     const char *action_name);
-bool type_check_zone_relation_contract(ASTNode *zone,
-                                       ASTNode *link_like,
-                                       const char *relation_slot_name,
-                                       const char *left_slot_name,
-                                       const char *right_slot_name,
-                                       SemanticContext *ctx,
-                                       const char *action_name);
-void type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx);
-void type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx);
-void type_check_zone_state_aliases(ASTNode *zone, SemanticContext *ctx);
-size_t type_check_zone_shape_warnings(ASTNode *zone, SemanticContext *ctx);
-void type_check_zone_projection_rules(ASTNode *zone, SemanticContext *ctx);
-
 /* Currently-resolved nominal host (class/zone/world/relation/effect)
  * declaration for `ctx`.  Visibility/access helpers use this through an
  * explicit owner seam rather than include-order coupling. */
@@ -255,6 +190,13 @@ bool domain_has_subject_slot_type(ASTNode **slots,
                                   size_t slot_count,
                                   SemanticContext *ctx,
                                   const char *type_name);
+const char *find_action_binding_type_name(ASTNode *func,
+                                          ASTNode *enclosing_nominal,
+                                          SemanticContext *ctx,
+                                          const char *binding_name);
+bool zone_has_authority_for_subject_type(ASTNode *zone,
+                                         SemanticContext *ctx,
+                                         const char *type_name);
 Type *domain_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
 Type *domain_resolve_slot_type(ASTNode *slot, SemanticContext *ctx);
 Type *domain_resolve_shared_type(ASTNode *shared, SemanticContext *ctx);

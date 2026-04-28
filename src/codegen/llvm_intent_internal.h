@@ -3,6 +3,62 @@
 
 #include "llvm_internal.h"
 
+typedef struct LLVMIntentStepContext {
+    ASTNode *pre_expr;
+    ASTNode *guard_expr;
+    ASTNode *post_expr;
+    ASTNode *expect_expr;
+    ASTNode *invariant_pre_expr;
+    ASTNode *invariant_post_expr;
+    ASTNode **on_exprs;
+    size_t on_expr_count;
+    ASTNode *subintent_expr;
+    const char *zone_type_name;
+    const char *zone_alias;
+    const char *from_alias;
+    const char *causes_effect;
+    const char **who_aliases;
+    size_t who_alias_count;
+    const char **authorized_aliases;
+    size_t authorized_alias_count;
+    const char **dispatch_aliases;
+    size_t dispatch_alias_count;
+} LLVMIntentStepContext;
+
+const char *llvm_intent_involves_type_name(ASTNode *involves);
+const char *llvm_intent_step_effective_zone_alias(ASTNode *step);
+bool        llvm_intent_step_context_load(LLVMGenCtx *ctx,
+                                          ASTNode *intent,
+                                          const MIRRoutine *mir_routine,
+                                          ASTNode *step,
+                                          const char *step_name,
+                                          bool mir_only_intent,
+                                          LLVMIntentStepContext *out);
+void        llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
+                                            ASTNode *node,
+                                            LLVMValueRef fn,
+                                            const char **participant_aliases,
+                                            const char **participant_types,
+                                            size_t participant_count,
+                                            size_t param_count,
+                                            bool mir_only_intent,
+                                            LLVMValueRef *subjects_ptr_out,
+                                            size_t *subject_count_out);
+bool        llvm_emit_intent_cleanup_tail(LLVMGenCtx *ctx,
+                                          ASTNode *node,
+                                          const MIRRoutine *mir_routine,
+                                          ASTNode **step_nodes,
+                                          const char **mir_step_names,
+                                          LLVMValueRef *completed_allocas,
+                                          size_t step_count,
+                                          bool mir_only_intent,
+                                          LLVMValueRef handle_alloca,
+                                          LLVMValueRef failed_alloca,
+                                          LLVMBasicBlockRef compensate_bb,
+                                          LLVMBasicBlockRef maybe_exit_bb,
+                                          LLVMBasicBlockRef do_exit_bb,
+                                          LLVMBasicBlockRef ret_bb,
+                                          LLVMFuncEntry *exit_fn);
 const char *llvm_find_mir_intent_meta_arg(const MIRRoutine *routine,
                                           const char *step_name,
                                           const char *inst_name);

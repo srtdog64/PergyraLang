@@ -157,6 +157,25 @@ primitive가 모든 plat에 *온전히* 옮겨갈 수 있음.
 
 이 §0이 다른 모든 chapter 위에 위치하는 이유다.
 
+### 0.7 계보 (lineage) — C#이 아버지, 나머지는 substrate borrow
+
+§0.1-0.6이 *시스템 언어 정체성*을 박는다면, 외부에서 본 *계보*는 별개
+좌표다. 정직한 계보 statement는:
+
+> **C#이 Pergyra의 아버지(target shape and feel)다.** 다재다능한
+> multi-paradigm(OOP+FP+DOP), async/await, properties, generics, records,
+> partial class, pattern matching, LINQ-style — 이게 Pergyra가 *되고
+> 싶어하는 모양*. 이 모양을 시스템 언어 substrate(C + Rust 1.0 + Vale +
+> Pony/Verona + Erlang/Koka + OCaml + MLIR)로 다시 짠 것이 Pergyra다.
+> intent / zone / world / authority / handoff는 그 위에 1급으로 얹은
+> *unique synthesis* (어느 부모에도 없음).
+
+이 계보 좌표의 정식 위치는 `docs/119_pergyra_lineage_positioning.md`.
+§0.5의 layer 표는 *내부 구조*, §0.7의 계보는 *외부 좌표*. 두 좌표가
+충돌하지 않는 이유: C# (father)이 *목표 모양*이고 layer 표의 substrate /
+Slot / static / domain / verification은 *그 모양을 시스템급으로 만드는
+구현*이기 때문.
+
 ---
 
 ## 1. 가장 중요한 전제

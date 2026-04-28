@@ -180,6 +180,10 @@ The migration should be incremental and gated:
 - Done: HIR CFG loop control is label-aware. Nested `break outer` and
   `continue outer` now resolve to the named loop's exit/header instead of the
   nearest loop, matching the semantic loop-label validation surface.
+- Done: HIR CFG structural analysis and SSA/phi preparation have separate
+  owners. `hir_cfg.c` owns predecessor/reachability/dominance/frontier/loop
+  summaries, while `hir_cfg_phi.c` owns local-def collection, SSA-name
+  collection, phi-candidate placement, and phi materialization.
 - Done: HIR CFG lowering now expands `match` into an explicit dispatch chain.
   Each `case` gets a branch edge, case bodies and `default` bodies join through
   CFG successors, and terminating case bodies remain closed. `src/test_hir.c`
@@ -200,7 +204,20 @@ The migration should be incremental and gated:
   cleanup fact for every reachable pin-region block, including the source slot,
   view binding, and read/write mode. `src/test_mir.c` includes a negative
   regression that corrupts this fact and expects `mir_validate()` to reject it.
+- Done: MIR validation rejects cleanup blocks with normal CFG successors and
+  cleanup blocks marked as pin regions. This keeps cleanup/rollback/invalidation
+  on the exceptional cleanup chain instead of letting backend consumers treat
+  cleanup as a normal body-flow block.
 - Done: non-`Void` function all-path return now consumes the semantic CFG body flow summary and emits `PGY_SEM_MISSING_RETURN` when a reachable normal path can fall through.
+- Done: semantic CFG body-flow flag consumption now goes through
+  `flow_record_statement_result()`, `flow_has_fallthrough()`, and
+  `flow_terminating_flags()` instead of open-coded branch/join flag masks.
+- Done: semantic CFG flow-effect diagnostics have a named implementation
+  owner. `type_checker_flow_effects.c` owns branch-effect conflict,
+  unreachable-statement, and effect-delta merge handling, while
+  `type_checker_flow_effects.h` is declaration-only. This removes an
+  implementation-header seam from the body safety path without changing the
+  public language surface.
 - Done: unreachable statements after direct terminators and after `if`/`match`
   bodies whose reachable paths all terminate now emit
   `PGY_SEM_UNREACHABLE_CODE` with `Reason:` and `Fix:` instead of being

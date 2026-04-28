@@ -1,3 +1,10 @@
+#include <stdlib.h>
+#include <string.h>
+
+#include "../common/string_compat.h"
+#include "type_checker_internal.h"
+#include "diag_codes.h"
+
 Type *
 create_overlay_nominal_type(const char *name)
 {
@@ -14,24 +21,6 @@ static Type *
 host_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
     return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
-}
-
-static Type *
-host_helper_resolve_class_field_type(ClassField *field, SemanticContext *ctx)
-{
-    if (field == NULL)
-        return NULL;
-    return host_helper_resolve_type_ref(field->type, ctx);
-}
-
-static Type *
-host_helper_resolve_func_return_type(ASTNode *method, SemanticContext *ctx)
-{
-    if (method == NULL || method->type != AST_FUNC_DECL
-        || method->data.func_decl.return_type == NULL) {
-        return TYPE_VOID;
-    }
-    return host_helper_resolve_type_ref(method->data.func_decl.return_type, ctx);
 }
 
 static Type *
@@ -181,163 +170,6 @@ current_host_decl(SemanticContext *ctx)
     return NULL;
 }
 
-static Type *
-current_host_field_type(SemanticContext *ctx, const char *field_name)
-{
-    ASTNode *decl = current_host_decl(ctx);
-    if (decl == NULL || field_name == NULL)
-        return NULL;
-
-    if (decl->type == AST_CLASS_DECL) {
-        size_t field_count = projection_source_field_count(decl);
-        for (size_t i = 0; i < field_count; i++) {
-            ClassField *field = projection_source_field_at(decl, i);
-            if (field != NULL && field->name != NULL
-                && strcmp(field->name, field_name) == 0) {
-                return host_helper_resolve_class_field_type(field, ctx);
-            }
-        }
-        return NULL;
-    }
-
-    if (decl->type == AST_WORLD_DECL) {
-        for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
-            ASTNode *slot = decl->data.world_decl.rosters[i];
-            if (slot != NULL && slot->data.world_roster.slot_name != NULL
-                && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
-                return resolve_named_type(slot->data.world_roster.roster_type,
-                    ctx, slot);
-            }
-        }
-        for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
-            ASTNode *slot = decl->data.world_decl.zones[i];
-            if (slot != NULL && slot->data.world_zone.slot_name != NULL
-                && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
-                return resolve_named_type(slot->data.world_zone.zone_type, ctx, slot);
-            }
-        }
-    }
-
-    for (size_t i = 0; i < overlay_field_count(decl); i++) {
-        const char *name = NULL;
-        ASTNode *type_node = overlay_field_decl_at(decl, i, &name);
-        if (name != NULL && strcmp(name, field_name) == 0)
-            return host_helper_resolve_type_ref(type_node, ctx);
-    }
-
-    return NULL;
-}
-
-static ASTNode *
-current_host_method_decl(SemanticContext *ctx, const char *method_name)
-{
-    ASTNode *decl = current_host_decl(ctx);
-    ASTNode **methods = NULL;
-    size_t method_count = 0;
-
-    if (decl == NULL || method_name == NULL)
-        return NULL;
-
-    switch (decl->type) {
-    case AST_CLASS_DECL:
-        methods = decl->data.class_decl.methods;
-        method_count = decl->data.class_decl.method_count;
-        break;
-    case AST_ENUM_DECL:
-        methods = decl->data.enum_decl.methods;
-        method_count = decl->data.enum_decl.method_count;
-        break;
-    case AST_RELATION_DECL:
-        methods = decl->data.relation_decl.methods;
-        method_count = decl->data.relation_decl.method_count;
-        break;
-    case AST_EFFECT_DECL:
-        methods = decl->data.effect_decl.methods;
-        method_count = decl->data.effect_decl.method_count;
-        break;
-    case AST_ZONE_DECL:
-        methods = decl->data.zone_decl.methods;
-        method_count = decl->data.zone_decl.method_count;
-        break;
-    case AST_WORLD_DECL:
-        methods = decl->data.world_decl.methods;
-        method_count = decl->data.world_decl.method_count;
-        break;
-    default:
-        return NULL;
-    }
-
-    for (size_t i = 0; i < method_count; i++) {
-        ASTNode *method = methods[i];
-        if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, method_name) == 0) {
-            return method;
-        }
-    }
-
-    return NULL;
-}
-
-static Type *
-type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx)
-{
-    size_t implicit_self = 0;
-    size_t expected;
-    size_t provided;
-    uint32_t declared_effects;
-
-    if (expr == NULL || method == NULL || method->type != AST_FUNC_DECL)
-        return TYPE_UNKNOWN;
-
-    declared_effects = declared_effects_from_function_node(method, ctx, NULL);
-    semantic_record_effect(ctx, declared_effects);
-    semantic_record_callable_decl_summary(ctx, method, declared_effects);
-    if (ctx->in_parallel && type_effect_mask_has(declared_effects, EFFECT_SECURE)) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
-            "Parallel context does not permit calling secure-effect method '%s'; serialize authority-bearing operations outside the parallel block",
-            method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>");
-        return host_helper_resolve_func_return_type(method, ctx);
-    }
-
-    if (method->data.func_decl.param_count > 0
-        && method->data.func_decl.params[0] != NULL
-        && method->data.func_decl.params[0]->name != NULL
-        && strcmp(method->data.func_decl.params[0]->name, "self") == 0
-        && method->data.func_decl.params[0]->type == NULL) {
-        implicit_self = 1;
-    }
-
-    expected = method->data.func_decl.param_count - implicit_self;
-    provided = expr->data.call.arg_count;
-    if (provided != expected) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
-            "'%s' expects %llu argument(s), got %llu",
-            method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>",
-            (unsigned long long) expected, (unsigned long long) provided);
-        return host_helper_resolve_func_return_type(method, ctx);
-    }
-
-    for (size_t i = 0; i < provided; i++) {
-        FuncParam *param = method->data.func_decl.params[i + implicit_self];
-        Type *param_type = host_helper_resolve_func_param_type(param, ctx);
-        Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
-        if (param_type != NULL && arg_type != NULL
-            && !type_is_assignable(arg_type, param_type)) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-                PGY_CAUSE_CALL_ARG_TYPE_MISMATCH, PGY_FIX_ALIGN_ARG_TYPE,
-                expr->data.call.arguments[i],
-                "Argument %llu for '%s' expects '%s', got '%s'",
-                (unsigned long long) (i + 1),
-                method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>",
-                param_type->name != NULL ? param_type->name : "<type>",
-                arg_type->name != NULL ? arg_type->name : "<type>");
-        }
-    }
-
-    return host_helper_resolve_func_return_type(method, ctx);
-}
-
 ASTNode *
 constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *name)
 {
@@ -365,7 +197,7 @@ constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *
 bool
 type_is_subject_type(const Type *type, SemanticContext *ctx);
 
-static bool
+bool
 type_is_subject_host_slot_handle(const Type *type, SemanticContext *ctx)
 {
     if (!type_is_owned_slot_handle(type) || ctx == NULL)
@@ -377,26 +209,6 @@ bool
 type_is_class_object_type(const Type *type, SemanticContext *ctx)
 {
     return type_is_subject_type(type, ctx);
-}
-
-static bool
-type_is_nominal_host_type(const Type *type, SemanticContext *ctx)
-{
-    ASTNode *decl;
-
-    if (type == NULL
-        || (type->kind != TYPE_KIND_CLASS && type->kind != TYPE_KIND_ENUM)
-        || type->name == NULL || ctx == NULL)
-        return false;
-
-    decl = find_type_decl_by_name(ctx->program_root, type->name);
-    if (decl != NULL && decl->type == AST_ENUM_DECL)
-        return true;
-    if (decl != NULL && decl->type == AST_CLASS_DECL)
-        return !decl->data.class_decl.is_struct
-            || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL
-            || decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
-    return false;
 }
 
 bool
@@ -415,7 +227,7 @@ type_is_subject_type(const Type *type, SemanticContext *ctx)
     return decl_is_subject_host(decl);
 }
 
-static const char *
+const char *
 find_action_binding_type_name(ASTNode *func, ASTNode *enclosing_nominal,
                               SemanticContext *ctx, const char *binding_name)
 {
@@ -475,45 +287,7 @@ domain_has_subject_slot_type(ASTNode **slots, size_t slot_count,
     return false;
 }
 
-static bool
-type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx)
-{
-    ASTNode *decl;
-    TypeNominalFlavor flavor;
-
-    if (type == NULL || ctx == NULL || ctx->program_root == NULL)
-        return false;
-    if (type_is_subject_type(type, ctx))
-        return false;
-    switch (type->kind) {
-    case TYPE_KIND_PRIMITIVE:
-    case TYPE_KIND_ENUM:
-        return true;
-    case TYPE_KIND_TUPLE:
-        return true;
-    case TYPE_KIND_CONSTRUCTED:
-        return !type_is_movable_resource_handle(type);
-    case TYPE_KIND_CLASS:
-        break;
-    default:
-        return false;
-    }
-    if (type->name == NULL)
-        return false;
-
-    decl = find_type_decl_by_name(ctx->program_root, type->name);
-    if (decl == NULL || decl->type != AST_CLASS_DECL)
-        return false;
-
-    flavor = nominal_flavor_from_decl(decl);
-    return flavor == TYPE_NOMINAL_CLASS
-        || flavor == TYPE_NOMINAL_STRUCT
-        || flavor == TYPE_NOMINAL_OBJECT
-        || flavor == TYPE_NOMINAL_TOBJECT
-        || flavor == TYPE_NOMINAL_VESSEL;
-}
-
-static bool
+bool
 zone_has_authority_for_subject_type(ASTNode *zone, SemanticContext *ctx,
                                     const char *type_name)
 {
@@ -638,20 +412,4 @@ slot_transfer_compatible(const Type *from, const Type *to)
         return false;
     return type_is_assignable(from->data.slot.inner_type, to->data.slot.inner_type)
         && type_is_assignable(to->data.slot.inner_type, from->data.slot.inner_type);
-}
-
-static bool
-expr_is_static_member_access(const ASTNode *expr)
-{
-    if (expr == NULL || expr->type != AST_MEMBER_ACCESS
-        || expr->data.member.object == NULL) {
-        return false;
-    }
-
-    if (expr->data.member.object->type == AST_IDENTIFIER) {
-        const char *name = expr->data.member.object->data.identifier.name;
-        return name != NULL && name[0] >= 'A' && name[0] <= 'Z';
-    }
-
-    return expr_is_static_member_access(expr->data.member.object);
 }

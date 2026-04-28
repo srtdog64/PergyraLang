@@ -75,6 +75,75 @@
   `type_checker_call_contract_helpers.c` owns callee parameter contract /
   escape-summary lookup; and `type_checker_call_generic_where.c` owns call-site
   generic where-clause validation.
+- Expression semantic ownership is split below the 600 LOC threshold:
+  `type_checker_expr.c` owns expression/member dispatch,
+  `type_checker_expr_call.c` owns public call dispatch and slot/host method
+  behavior, and `type_checker_expr_host.c` owns nominal host field/method lookup
+  through explicit `expr_*` seams.
+- Stdlib builtin semantic ownership is split below the 600 LOC threshold:
+  scalar, map, and collection builtin families are now delegated through
+  focused owners, with `type_checker_builtins_stdlib_collections.c` owning
+  `List` / `Set` / `Queue` / `Array` typing and
+  `type_checker_builtins_stdlib_body.c` reduced to dispatcher plus non-collection
+  runtime/device/channel/quantum builtins.
+- Intent authority/participant semantic ownership is split below the 600 LOC
+  threshold: `type_checker_intent_decl.c` owns declaration orchestration,
+  `type_checker_intent_authority.c` owns missing `authorized by` diagnostics
+  and authorized participant-to-zone-authority resolution, and
+  `type_checker_intent_participants.c` owns `who` participant validation, zone
+  subject-slot matching, and transfer-source subject-slot matching.
+- Zone lifecycle authority-presence diagnostics are owned by
+  `type_checker_zone_decl_authority.c`; `type_checker_zone_decl.c` now delegates
+  apply/link/detach/unlink/maintain `by <subjectSlot>` checks through that
+  owner while keeping zone declaration orchestration below the 600 LOC
+  threshold.
+- CFG body-flow effect diagnostics now have a real semantic implementation
+  owner. `type_checker_flow.c` owns CFG body-flow orchestration,
+  `type_checker_flow_effects.c` owns branch-effect conflict,
+  unreachable-statement, and effect-delta merge behavior, and
+  `type_checker_flow_effects.h` is declaration-only. This keeps the body safety
+  path aligned with the no-`.inc` / no-implementation-header debt rule.
+- HIR CFG ownership is split below the 600 LOC threshold:
+  `hir_cfg.c` owns predecessor finalization, reachability,
+  dominance/frontier, dominator tree, natural loops, and CFG summary
+  finalization; `hir_cfg_phi.c` owns local-def collection, SSA-name
+  collection, phi-candidate placement, and phi materialization behind
+  `hir_cfg_internal.h`.
+- Semantic effect/helper implementation-header debt is split:
+  `type_checker_helpers_effects.h` is declaration-only;
+  `type_checker_helpers_effects.c` owns effect/type helper behavior;
+  `type_checker_projection_path.c` owns projection source field-path
+  resolution; and `type_checker_world_embedding.c` owns world constructor
+  zone-embedding handoff diagnostics.
+- Expression resolver debt is now exposed as named TUs:
+  `type_checker_expr.h` and `type_checker_resolve.h` are declaration-only,
+  and `type_checker_resolve.c` owns the metadata-first `resolve_type_node`
+  compatibility body. `type_checker_expr.c`, `type_checker_expr_call.c`, and
+  `type_checker_expr_host.c` now split expression dispatch, call typing, and
+  host lookup/call behavior below the 600 LOC review threshold.
+  `type_checker_resolution_helpers.h` is declaration-only, with
+  metadata-first `resolve_named_type(...)`, alias lookup, symbol-kind labels,
+  and embedded-world-zone mutation guard owned by
+  `type_checker_resolution_helpers.c`.
+- Builtin query and slot operation implementation-header debt is split:
+  `type_checker_builtins_query.c`, `type_checker_builtins_query_world.c`,
+  `type_checker_builtins_query_channel.c`, and
+  `type_checker_builtins_query_domain.c` own query/domain/channel predicate
+  behavior; `type_checker_builtins_slotops.c`,
+  `type_checker_builtins_secure_token.c`, and
+  `type_checker_builtins_resolve.c` own slot lifecycle, secure-token
+  validation, and builtin name resolution. The associated headers are
+  declaration-only.
+- Nominal builtin dispatch is also split:
+  `type_checker_builtins_nominal.c` owns nominal/shared-ownership/box/allocator
+  and general builtin dispatch, while
+  `type_checker_builtins_intent_observability.c` owns the intent
+  observability builtin family. `type_checker_builtins_nominal.h` is
+  declaration-only and both owners stay below the 600 LOC review threshold.
+- Slot analyzer summary ownership is split:
+  `slot_analyzer_summary.c` owns access/function-alias/parameter summary
+  behavior and `slot_analyzer_escape.c` owns escape collection and mask
+  materialization. Both owners are below the 600 LOC review threshold.
 - `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
 - 최근 ABI/성능/AlphaDev식 invariant 최적화 진행 상태는 `docs/49_invariant_optimization_progress.md`에 따로 추적한다.
 - 아직 부분 구현 상태인 핵심 언어 축(effect lattice, capability security, MIR->LLVM debt, stack-slot escape analysis, generic where validation, tooling 고도화)은 `docs/50_language_completion_board.md`에서 추적한다.

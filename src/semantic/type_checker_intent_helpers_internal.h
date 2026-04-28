@@ -52,4 +52,17 @@ void intent_step_derive_zone_binding_context(ASTNode *intent_decl,
                                              ASTNode *step,
                                              SemanticContext *ctx);
 
+void type_check_intent_step_authority_contract(ASTNode *intent_decl,
+                                               ASTNode *step,
+                                               ASTNode *zone_decl,
+                                               bool has_subintent,
+                                               bool step_requires_authority_flow,
+                                               SemanticContext *ctx);
+
+void type_check_intent_step_participant_contract(ASTNode *intent_decl,
+                                                 ASTNode *step,
+                                                 ASTNode *zone_decl,
+                                                 bool *matched_action,
+                                                 SemanticContext *ctx);
+
 #endif /* PERGYRA_TYPE_CHECKER_INTENT_HELPERS_INTERNAL_H */

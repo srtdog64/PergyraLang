@@ -11,7 +11,7 @@ trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches"' EXIT
 
 grep -RIn "resolve_type_node(" src/semantic | while IFS=: read -r path line text; do
   case "$path" in
-    src/semantic/type_checker.h|src/semantic/type_checker_resolve.h|src/semantic/type_checker_resolution_metadata.c)
+    src/semantic/type_checker.h|src/semantic/type_checker_resolve.h|src/semantic/type_checker_resolve.c|src/semantic/type_checker_resolution_metadata.c)
       continue
       ;;
   esac
@@ -67,16 +67,28 @@ if [ "$fallback_sites" -gt 0 ]; then
 fi
 
 grep -q 'metadata_type = semantic_type_resolution_lookup_resolved_type(ctx, node);' \
-  src/semantic/type_checker_resolve.h || {
+  src/semantic/type_checker_resolve.c || {
   echo "[type-resolution-resolver-inventory] resolve_type_node is no longer metadata-first" >&2
   exit 1
 }
 
+if grep -q 'resolve_type_node_uncached\|g_resolve_type_node_calls =\|semantic_type_resolution_lookup_resolved_type(ctx, node)' \
+  src/semantic/type_checker_resolve.h; then
+  echo "[type-resolution-resolver-inventory] type_checker_resolve.h reintroduced implementation body" >&2
+  exit 1
+fi
+
 grep -q 'metadata_type = resolve_named_type_from_metadata(name, ctx, site);' \
-  src/semantic/type_checker_resolution_helpers.h || {
+  src/semantic/type_checker_resolution_helpers.c || {
   echo "[type-resolution-resolver-inventory] resolve_named_type is no longer metadata-first" >&2
   exit 1
 }
+
+if grep -q 'resolve_named_type_from_metadata\|semantic_type_resolution_lookup_metadata_name_or_alias(ctx' \
+  src/semantic/type_checker_resolution_helpers.h; then
+  echo "[type-resolution-resolver-inventory] type_checker_resolution_helpers.h reintroduced implementation body" >&2
+  exit 1
+fi
 
 materializer_recorders="$(
   grep -RIn 'semantic_type_resolution_record_materializer_fallback' src/semantic \

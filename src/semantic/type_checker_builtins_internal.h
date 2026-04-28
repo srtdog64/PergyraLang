@@ -15,6 +15,8 @@
 #include "../parser/ast.h"
 #include "type_system.h"
 #include "type_checker.h"
+#include "type_checker_builtins_query.h"
+#include "type_checker_builtins_slotops.h"
 
 bool type_is_future_like(const Type *type);
 
@@ -27,19 +29,23 @@ Type *type_check_channel_recv_builtin(ASTNode *expr, const char *name,
 
 Type *type_check_channel_close_builtin(ASTNode *expr, SemanticContext *ctx);
 
-Type *type_check_claim_device_slot(ASTNode *call, SemanticContext *ctx);
-
 bool type_check_cancel_rejects_payload(ASTNode *site, Type *task_type,
                                        SemanticContext *ctx);
-
-Type *type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
-                                   const char *builtin_name,
-                                   bool allow_released);
 
 Type *type_check_stdlib_scalar_call(ASTNode *expr, const char *name,
                                     SemanticContext *ctx, bool *handled_out);
 Type *type_check_stdlib_map_call(ASTNode *expr, const char *name,
                                  SemanticContext *ctx, bool *handled_out);
+Type *type_check_stdlib_collection_call(ASTNode *expr, const char *name,
+                                        SemanticContext *ctx,
+                                        bool *handled_out);
+Type *type_check_intent_observability_builtin(ASTNode *call, BuiltinKind kind,
+                                              SemanticContext *ctx,
+                                              bool *handled_out);
+bool builtin_validate_secure_token_arg(ASTNode *token_arg,
+                                       Symbol *slot_sym,
+                                       Type *slot_type,
+                                       SemanticContext *ctx);
 
 void reject_borrowed_boundary_container_store(ASTNode *value_expr,
                                               const Type *stored_value_type,

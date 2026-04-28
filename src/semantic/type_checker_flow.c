@@ -42,6 +42,29 @@ static FlowFlags type_check_with_stmt_flow(ASTNode *node,
                                            SemanticContext *ctx,
                                            LoopFlowState *loop_flow);
 
+static FlowFlags
+flow_terminating_flags(FlowFlags flags)
+{
+    return flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN);
+}
+
+static FlowFlags
+flow_record_statement_result(FlowFlags current, FlowFlags statement)
+{
+    current &= ~FLOW_FALLTHROUGH;
+    current |= statement & (FLOW_FALLTHROUGH
+                          | FLOW_BREAK
+                          | FLOW_CONTINUE
+                          | FLOW_RETURN);
+    return current;
+}
+
+static bool
+flow_has_fallthrough(FlowFlags flags)
+{
+    return (flags & FLOW_FALLTHROUGH) != 0;
+}
+
 static Type *
 flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
@@ -62,16 +85,15 @@ type_check_block_flow(ASTNode *node, SemanticContext *ctx,
 
     FlowFlags flags = FLOW_FALLTHROUGH;
     for (size_t i = 0; i < node->data.block.count; i++) {
-        if ((flags & FLOW_FALLTHROUGH) == 0) { flow_record_unreachable_statement(ctx, node->data.block.statements[i]); break; }
+        if (!flow_has_fallthrough(flags)) {
+            flow_record_unreachable_statement(ctx, node->data.block.statements[i]);
+            break;
+        }
 
         FlowFlags stmt_flags =
             type_check_statement_flow(node->data.block.statements[i], ctx, loop_flow);
 
-        flags &= ~FLOW_FALLTHROUGH;
-        flags |= (stmt_flags & (FLOW_FALLTHROUGH
-                              | FLOW_BREAK
-                              | FLOW_CONTINUE
-                              | FLOW_RETURN));
+        flags = flow_record_statement_result(flags, stmt_flags);
     }
 
     return flags;
@@ -105,8 +127,8 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     scope_exit(&ctx->scope);
     then_effect_delta = effect_delta_from_baseline(effect_base,
         ctx->current_function_effects);
-    flags |= (then_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
-    if (then_flags & FLOW_FALLTHROUGH) {
+    flags |= flow_terminating_flags(then_flags);
+    if (flow_has_fallthrough(then_flags)) {
         ResourceConsumeSnapshot then_snap = snapshot_resource_states(ctx);
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &then_snap);
         destroy_resource_snapshot(&then_snap);
@@ -123,8 +145,8 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         scope_exit(&ctx->scope);
         else_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
-        flags |= (else_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
-        if (else_flags & FLOW_FALLTHROUGH) {
+        flags |= flow_terminating_flags(else_flags);
+        if (flow_has_fallthrough(else_flags)) {
             ResourceConsumeSnapshot else_snap = snapshot_resource_states(ctx);
             merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &else_snap);
             destroy_resource_snapshot(&else_snap);
@@ -206,8 +228,8 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
             type_effect_mask_join(merged_effect_delta, case_effect_delta);
         previous_case_delta = case_effect_delta;
         have_previous_case_delta = true;
-        flags |= (case_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
-        if (case_flags & FLOW_FALLTHROUGH) {
+        flags |= flow_terminating_flags(case_flags);
+        if (flow_has_fallthrough(case_flags)) {
             ResourceConsumeSnapshot case_snap = snapshot_resource_states(ctx);
             merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &case_snap);
             destroy_resource_snapshot(&case_snap);
@@ -236,8 +258,8 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
                 default_effect_delta, "default case");
         merged_effect_delta =
             type_effect_mask_join(merged_effect_delta, default_effect_delta);
-        flags |= (default_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
-        if (default_flags & FLOW_FALLTHROUGH) {
+        flags |= flow_terminating_flags(default_flags);
+        if (flow_has_fallthrough(default_flags)) {
             ResourceConsumeSnapshot default_snap = snapshot_resource_states(ctx);
             merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &default_snap);
             destroy_resource_snapshot(&default_snap);
@@ -408,7 +430,7 @@ semantic_check_body_flow(ASTNode *body, SemanticContext *ctx,
     if (must_return_out != NULL)
         *must_return_out =
             ((flags & FLOW_RETURN) != 0)
-            && ((flags & FLOW_FALLTHROUGH) == 0);
+            && !flow_has_fallthrough(flags);
     return !ctx->has_error;
 }
 

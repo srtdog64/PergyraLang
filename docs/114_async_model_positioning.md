@@ -19,6 +19,9 @@ Related documents:
   backend strategy (LLVM + C dual-emit, abstraction portability).
 - `docs/118_slot_model_rigor_audit.md` - sister audit doc; Slot vs
   borrow-check rigor and marketing-language guide.
+- `docs/119_pergyra_lineage_positioning.md` - sister positioning doc for
+  language lineage (C# father, Tier 1-5 substrate borrow, DDD unique
+  synthesis).
 
 This document positions Pergyra's concurrency model relative to the
 callback -> promise/future -> async/await history. It is a positioning and

@@ -204,6 +204,28 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             hir_block_seen[source_id] = true;
         }
 
+        if (block->is_cleanup && (block->has_succ_true || block->has_succ_false)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' cleanup block[%zu] must not have normal CFG successors",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    i);
+            }
+            free(hir_block_seen);
+            return false;
+        }
+
+        if (block->is_cleanup && block->is_pin_region) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' cleanup block[%zu] must not be a pin region",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    i);
+            }
+            free(hir_block_seen);
+            return false;
+        }
+
         if (block->is_reachable && !block->is_cleanup) {
             if (routine->has_cleanup_block) {
                 if (!block->has_cleanup_succ) {

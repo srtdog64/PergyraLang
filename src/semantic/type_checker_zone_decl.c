@@ -82,21 +82,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_effect_contract(node, apply,
             effect_slot_name, target_slot_name, ctx, "apply");
-        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, apply,
-                "Zone apply must specify 'by <subjectSlot>' when authority is declared.\n"
-                "Reason:\n"
-                "- zone '%s' declares authority and apply mutates effect state on '%s'\n"
-                "- without an approving subject slot, contract provenance becomes incomplete\n"
-                "Contract source:\n"
-                "- zone authority declaration on this zone\n"
-                "- apply effect lifecycle mutation requires an approving subject slot\n"
-                "Fix:\n"
-                "- add 'by <subjectSlot>' to this apply clause\n"
-                "- or remove zone authority if this rule is intentionally authority-free",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
-                target_slot_name != NULL ? target_slot_name : "<target>");
-        }
+        type_check_zone_lifecycle_authority_presence(node, apply,
+            participant_slot_name, ctx, "apply", "effect",
+            effect_slot_name, target_slot_name);
         type_check_zone_participant_authority(node, apply, participant_slot_name, ctx, "apply");
     }
 
@@ -161,20 +149,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_relation_contract(node, link,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "link");
-        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, link,
-                "Zone link must specify 'by <subjectSlot>' when authority is declared.\n"
-                "Reason:\n"
-                "- zone '%s' declares authority and link mutates relation state\n"
-                "- relation provenance must record the approving subject slot\n"
-                "Contract source:\n"
-                "- zone authority declaration on this zone\n"
-                "- link relation lifecycle mutation requires an approving subject slot\n"
-                "Fix:\n"
-                "- add 'by <subjectSlot>' to this link clause\n"
-                "- or remove zone authority if this relation edge is intentionally authority-free",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
-        }
+        type_check_zone_lifecycle_authority_presence(node, link,
+            participant_slot_name, ctx, "link", "relation",
+            relation_slot_name, NULL);
         type_check_zone_participant_authority(node, link, participant_slot_name, ctx, "link");
     }
 
@@ -223,21 +200,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_effect_contract(node, detach,
             effect_slot_name, target_slot_name, ctx, "detach");
-        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, detach,
-                "Zone detach must specify 'by <subjectSlot>' when authority is declared.\n"
-                "Reason:\n"
-                "- zone '%s' declares authority and detach mutates effect lifecycle on '%s'\n"
-                "- detachment provenance must record the approving subject slot\n"
-                "Contract source:\n"
-                "- zone authority declaration on this zone\n"
-                "- detach effect lifecycle mutation requires an approving subject slot\n"
-                "Fix:\n"
-                "- add 'by <subjectSlot>' to this detach clause\n"
-                "- or remove zone authority if this detach rule is intentionally authority-free",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
-                target_slot_name != NULL ? target_slot_name : "<target>");
-        }
+        type_check_zone_lifecycle_authority_presence(node, detach,
+            participant_slot_name, ctx, "detach", "effect",
+            effect_slot_name, target_slot_name);
         type_check_zone_participant_authority(node, detach, participant_slot_name, ctx, "detach");
     }
 
@@ -302,20 +267,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_relation_contract(node, unlink,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "unlink");
-        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, unlink,
-                "Zone unlink must specify 'by <subjectSlot>' when authority is declared.\n"
-                "Reason:\n"
-                "- zone '%s' declares authority and unlink mutates relation lifecycle\n"
-                "- unlink provenance must record the approving subject slot\n"
-                "Contract source:\n"
-                "- zone authority declaration on this zone\n"
-                "- unlink relation lifecycle mutation requires an approving subject slot\n"
-                "Fix:\n"
-                "- add 'by <subjectSlot>' to this unlink clause\n"
-                "- or remove zone authority if this unlink rule is intentionally authority-free",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
-        }
+        type_check_zone_lifecycle_authority_presence(node, unlink,
+            participant_slot_name, ctx, "unlink", "relation",
+            relation_slot_name, NULL);
         type_check_zone_participant_authority(node, unlink, participant_slot_name, ctx, "unlink");
     }
 
@@ -357,22 +311,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_effect_contract(node, maintain,
             effect_slot_name, target_slot_name, ctx, "maintain");
-        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
-                "Zone maintain must specify 'by <subjectSlot>' when authority is declared.\n"
-                "Reason:\n"
-                "- zone '%s' declares authority and maintain keeps effect '%s' active on '%s'\n"
-                "- persistent lifecycle rules must record the approving subject slot\n"
-                "Contract source:\n"
-                "- zone authority declaration on this zone\n"
-                "- maintained effect lifecycle requires an approving subject slot\n"
-                "Fix:\n"
-                "- add 'by <subjectSlot>' to this maintain clause\n"
-                "- or remove zone authority if this maintenance rule is intentionally authority-free",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
-                effect_slot_name != NULL ? effect_slot_name : "<effect>",
-                target_slot_name != NULL ? target_slot_name : "<target>");
-        }
+        type_check_zone_lifecycle_authority_presence(node, maintain,
+            participant_slot_name, ctx, "maintain", "effect",
+            effect_slot_name, target_slot_name);
         type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
 
         for (size_t j = i + 1; j < node->data.zone_decl.maintained_effect_count; j++) {
@@ -477,21 +418,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_relation_contract(node, maintain,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
-        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
-                "Zone maintain must specify 'by <subjectSlot>' when authority is declared.\n"
-                "Reason:\n"
-                "- zone '%s' declares authority and maintain keeps relation '%s' active\n"
-                "- persistent relation lifecycle rules must record the approving subject slot\n"
-                "Contract source:\n"
-                "- zone authority declaration on this zone\n"
-                "- maintained relation lifecycle requires an approving subject slot\n"
-                "Fix:\n"
-                "- add 'by <subjectSlot>' to this maintain clause\n"
-                "- or remove zone authority if this maintenance rule is intentionally authority-free",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
-                relation_slot_name != NULL ? relation_slot_name : "<relation>");
-        }
+        type_check_zone_lifecycle_authority_presence(node, maintain,
+            participant_slot_name, ctx, "maintain", "relation",
+            relation_slot_name, NULL);
         type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
 
         for (size_t j = i + 1; j < node->data.zone_decl.maintained_relation_count; j++) {

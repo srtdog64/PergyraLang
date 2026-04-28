@@ -20,8 +20,10 @@
 #include "transpiler_log_normalize.h"
 #include "transpiler_nominal.h"
 #include "transpiler_operator.h"
+#include "transpiler_program.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
+#include "transpiler_thread_pool.h"
 #include "transpiler_type_alias.h"
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_require.h"
@@ -39,8 +41,6 @@ void emit_relation_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_effect_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
-static bool ast_uses_thread_pool(ASTNode *node);
-static bool transpiler_requires_thread_pool(const TranspilerCtx *ctx);
 static bool
 select_case_parts(ASTNode *case_node, ASTNode **channel_out,
                   const char **bind_name_out, ASTNode **body_out)
@@ -74,164 +74,6 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
             *bind_name_out = first->data.assignment.target->data.identifier.name;
         if (body_out != NULL)
             *body_out = body;
-        return true;
-    }
-
-    return false;
-}
-
-static bool
-ast_uses_thread_pool(ASTNode *node)
-{
-    if (node == NULL)
-        return false;
-
-    switch (node->type) {
-    case AST_PARALLEL_BLOCK:
-    case AST_ASYNC_BLOCK:
-    case AST_SPAWN_EXPR:
-        return true;
-    case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++) {
-            if (ast_uses_thread_pool(node->data.block.statements[i]))
-                return true;
-        }
-        return false;
-    case AST_LET_DECL:
-        return ast_uses_thread_pool(node->data.let_decl.type)
-            || ast_uses_thread_pool(node->data.let_decl.initializer);
-    case AST_RETURN:
-        return ast_uses_thread_pool(node->data.return_stmt.value);
-    case AST_CALL:
-        if (ast_uses_thread_pool(node->data.call.callee))
-            return true;
-        for (size_t i = 0; i < node->data.call.arg_count; i++) {
-            if (ast_uses_thread_pool(node->data.call.arguments[i]))
-                return true;
-        }
-        return false;
-    case AST_BINARY:
-        return ast_uses_thread_pool(node->data.binary.left)
-            || ast_uses_thread_pool(node->data.binary.right);
-    case AST_UNARY:
-        return ast_uses_thread_pool(node->data.unary.operand);
-    case AST_ASSIGNMENT:
-        return ast_uses_thread_pool(node->data.assignment.target)
-            || ast_uses_thread_pool(node->data.assignment.value);
-    case AST_MEMBER_ACCESS:
-        return ast_uses_thread_pool(node->data.member.object);
-    case AST_ARRAY_ACCESS:
-        return ast_uses_thread_pool(node->data.array_access.array)
-            || ast_uses_thread_pool(node->data.array_access.index);
-    case AST_ARRAY_LITERAL:
-        for (size_t i = 0; i < node->data.array_literal.count; i++) {
-            if (ast_uses_thread_pool(node->data.array_literal.elements[i]))
-                return true;
-        }
-        return false;
-    case AST_IF_STMT:
-        return ast_uses_thread_pool(node->data.if_stmt.condition)
-            || ast_uses_thread_pool(node->data.if_stmt.then_branch)
-            || ast_uses_thread_pool(node->data.if_stmt.else_branch);
-    case AST_FOR_LOOP:
-        return ast_uses_thread_pool(node->data.for_loop.range_start)
-            || ast_uses_thread_pool(node->data.for_loop.range_end)
-            || ast_uses_thread_pool(node->data.for_loop.iterable)
-            || ast_uses_thread_pool(node->data.for_loop.body);
-    case AST_WHILE_LOOP:
-        return ast_uses_thread_pool(node->data.while_loop.condition)
-            || ast_uses_thread_pool(node->data.while_loop.body);
-    case AST_MATCH_STMT:
-        if (ast_uses_thread_pool(node->data.match_stmt.subject)
-            || ast_uses_thread_pool(node->data.match_stmt.default_body))
-            return true;
-        for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-            if (ast_uses_thread_pool(node->data.match_stmt.cases[i]))
-                return true;
-        }
-        return false;
-    case AST_MATCH_CASE:
-        return ast_uses_thread_pool(node->data.match_case.pattern)
-            || ast_uses_thread_pool(node->data.match_case.guard)
-            || ast_uses_thread_pool(node->data.match_case.body);
-    case AST_SELECT_STMT:
-        for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
-            if (ast_uses_thread_pool(node->data.select_stmt.cases[i]))
-                return true;
-        }
-        return ast_uses_thread_pool(node->data.select_stmt.default_case);
-    case AST_TASK_GROUP:
-        for (size_t i = 0; i < node->data.task_group.task_count; i++) {
-            if (ast_uses_thread_pool(node->data.task_group.tasks[i]))
-                return true;
-        }
-        return false;
-    case AST_EVENT_SUBSCRIBE:
-    case AST_EVENT_UNSUBSCRIBE:
-        return ast_uses_thread_pool(node->data.event_op.event)
-            || ast_uses_thread_pool(node->data.event_op.handler);
-    case AST_EVENT_INVOKE:
-        if (ast_uses_thread_pool(node->data.event_invoke.event))
-            return true;
-        for (size_t i = 0; i < node->data.event_invoke.arg_count; i++) {
-            if (ast_uses_thread_pool(node->data.event_invoke.arguments[i]))
-                return true;
-        }
-        return false;
-    default:
-        return false;
-    }
-}
-
-static bool
-transpiler_mir_routine_uses_thread_pool(const MIRRoutine *routine)
-{
-    if (routine == NULL)
-        return false;
-
-    for (size_t i = 0; i < routine->block_count; i++) {
-        const MIRBasicBlock *block = &routine->blocks[i];
-
-        if (block->source_terminator_condition != NULL
-            && ast_uses_thread_pool(block->source_terminator_condition)) {
-            return true;
-        }
-        if (block->source_terminator_value != NULL
-            && ast_uses_thread_pool(block->source_terminator_value)) {
-            return true;
-        }
-
-        for (size_t j = 0; j < block->source_statement_count; j++) {
-            if (ast_uses_thread_pool(block->source_statements[j]))
-                return true;
-        }
-
-        for (size_t j = 0; j < block->instruction_count; j++) {
-            if (ast_uses_thread_pool(block->instructions[j].ast))
-                return true;
-        }
-    }
-
-    return false;
-}
-
-static bool
-transpiler_requires_thread_pool(const TranspilerCtx *ctx)
-{
-    ASTNode *synthetic_executable_func = NULL;
-
-    if (ctx == NULL || ctx->mir == NULL)
-        return false;
-
-    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
-        if (transpiler_mir_routine_uses_thread_pool(&ctx->mir->routines[i]))
-            return true;
-    }
-
-    synthetic_executable_func = mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
-    if (synthetic_executable_func != NULL
-        && synthetic_executable_func->type == AST_FUNC_DECL
-        && ast_uses_thread_pool(synthetic_executable_func->data.func_decl.body)) {
         return true;
     }
 
@@ -575,91 +417,6 @@ emit_program(TranspilerCtx *ctx)
     }
 }
 
-/* -----------------------------------------------------------------
- * Main entry point
- * ----------------------------------------------------------------- */
-
-static TranspileResult *
-transpile_mir_only(const MIRProgram *mir, const char *output_path)
-{
-    TranspileResult *result = calloc(1, sizeof(TranspileResult));
-    if (result == NULL)
-        return NULL;
-
-    TranspilerCtx *ctx = transpiler_ctx_create();
-    if (ctx == NULL) {
-        result->success       = false;
-        result->error_message = pergyra_strdup("Out of memory");
-        return result;
-    }
-
-    ctx->mir = mir;
-    emit_program(ctx);
-
-    if (ctx->backend_error != NULL) {
-        result->success = false;
-        result->error_message = pergyra_strdup(ctx->backend_error);
-        if (ctx->backend_error_code != NULL)
-            result->error_code = pergyra_strdup(ctx->backend_error_code);
-        if (ctx->backend_error_cause_ir != NULL)
-            result->error_cause_ir =
-                pergyra_strdup(ctx->backend_error_cause_ir);
-        if (ctx->backend_error_fix_source != NULL)
-            result->error_fix_source =
-                pergyra_strdup(ctx->backend_error_fix_source);
-        transpiler_ctx_destroy(ctx);
-        return result;
-    }
-
-    if (output_path != NULL) {
-        if (!codebuf_dump_file(ctx->out, output_path)) {
-            result->success       = false;
-            result->error_message = strdup_fmt(
-                "Cannot write output file: %s", output_path);
-            transpiler_ctx_destroy(ctx);
-            return result;
-        }
-    }
-
-    result->success = true;
-    result->uses_intent_observability = ctx->uses_intent_observability;
-    transpiler_ctx_destroy(ctx);
-    return result;
-}
-
-TranspileResult *
-transpile_from_mir(const MIRProgram *mir, const char *output_path)
-{
-    return transpile_mir_only(mir, output_path);
-}
-
-TranspileResult *
-transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *output_path)
-{
-    (void)hir;
-    if (mir == NULL) {
-        TranspileResult *result = calloc(1, sizeof(TranspileResult));
-        if (result != NULL) {
-            result->success = false;
-            result->error_message = pergyra_strdup("MIR-only C backend: missing MIR program");
-        }
-        return result;
-    }
-    return transpile_mir_only(mir, output_path);
-}
-
-void
-transpile_result_destroy(TranspileResult *res)
-{
-    if (res == NULL)
-        return;
-    free(res->error_message);
-    free(res->error_code);
-    free(res->error_cause_ir);
-    free(res->error_fix_source);
-    free(res);
-}
-
 #include "transpiler_domain_role_emit.h"
 
 static const char *
@@ -827,30 +584,4 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->helpers, "}\n");
     ctx->typed_var_count = saved_typed_var_count;
     return lambda_name;
-}
-
-void
-emit_include_stmt(ASTNode *node, TranspilerCtx *ctx)
-{
-    const char *included_role = node->data.include_stmt.role_name;
-
-    codebuf_write(ctx->out, "/* include %s */\n", included_role);
-    if (find_role_decl(ctx, included_role) == NULL) {
-        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve included role '%s' while emitting include statement",
-            included_role != NULL ? included_role : "<role>");
-    }
-}
-
-void
-emit_impl_ability(ASTNode *node, TranspilerCtx *ctx)
-{
-    const char *ability_name =
-        (node->data.impl_ability.ability_ref != NULL
-         && node->data.impl_ability.ability_ref->type == AST_TYPE)
-        ? node->data.impl_ability.ability_ref->data.type.name : NULL;
-    
-    codebuf_write(ctx->out, "/* Impl ability: %s */\n", ability_name);
-    
-    /* This is handled within emit_role_decl */
-    (void)ctx;
 }
