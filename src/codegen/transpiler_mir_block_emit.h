@@ -35,6 +35,15 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                      : func_decl->data.intent_decl.name);
         return false;
     }
+    if (!transpiler_mir_emit_for_in_body_binding(buf, mir_routine, block, ctx,
+                                                 ssa_map_out)) {
+        if (reason != NULL && reason_cap > 0) {
+            snprintf(reason, reason_cap,
+                     "MIR block %llu emission failed: unsupported for-in body binding",
+                     (unsigned long long) block->id);
+        }
+        return false;
+    }
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         char base[128];
@@ -453,6 +462,20 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         }
 
+        if (inst->kind == MIR_INST_LOOP_INIT) {
+            if (!transpiler_mir_emit_for_loop_init_inst(buf, inst, ctx,
+                                                        ssa_map_out)) {
+                if (reason != NULL && reason_cap > 0) {
+                    snprintf(reason, reason_cap,
+                             "MIR block %llu emission failed: unsupported for-in CFG lowering",
+                             (unsigned long long) block->id);
+                }
+                ok = false;
+                break;
+            }
+            continue;
+        }
+
         if (inst->kind != MIR_INST_STMT)
             continue;
         if (stmt == NULL || stmt->type == AST_BLOCK || stmt->type == AST_RETURN) {
@@ -519,20 +542,6 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 free(rhs);
                 continue;
             }
-        }
-        if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
-            && stmt->type == AST_FOR_LOOP) {
-            if (!transpiler_mir_emit_for_loop_init_stmt(buf, stmt, ctx,
-                                                        ssa_map_out)) {
-                if (reason != NULL && reason_cap > 0) {
-                    snprintf(reason, reason_cap,
-                             "MIR block %llu emission failed: unsupported for-in CFG lowering",
-                             (unsigned long long) block->id);
-                }
-                ok = false;
-                break;
-            }
-            continue;
         }
         if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
             && transpiler_mir_stmt_is_cfg_container(stmt)) {

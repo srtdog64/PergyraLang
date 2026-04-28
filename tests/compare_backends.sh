@@ -379,6 +379,7 @@ main() {
         "tests/cases/backend_compare/intent_header_interleaved"
         "tests/cases/backend_compare/map_keys"
         "tests/cases/backend_compare/list_get_string"
+        "tests/cases/backend_compare/for_in_list_int"
         "tests/cases/backend_compare/map_get_string"
         "tests/cases/backend_compare/queue_pop_string"
         "tests/cases/backend_compare/rc_weak_lifecycle"

@@ -33,7 +33,8 @@ typedef enum
     AIR_BOUNDARY_WORLD,
     AIR_BOUNDARY_PARALLEL,
     AIR_BOUNDARY_IO,
-    AIR_BOUNDARY_CHANNEL
+    AIR_BOUNDARY_CHANNEL,
+    AIR_BOUNDARY_EXECUTION
 } AIRBoundaryKind;
 
 typedef enum
@@ -105,6 +106,8 @@ AIRProgram *air_synthesize(const HIRProgram *hir,
 bool        air_validate(const AIRProgram *air, char **error_message);
 bool        air_verify(AIRProgram *air, char **error_message);
 bool        air_check_drift(AIRProgram *air, char **error_message);
+bool        air_boundary_requires_hir_evidence(const AIRBoundaryNode *boundary);
+bool        air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary);
 void        air_destroy(AIRProgram *air);
 void        air_dump(const AIRProgram *air, FILE *out);
 

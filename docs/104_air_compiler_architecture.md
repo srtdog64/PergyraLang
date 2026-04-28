@@ -1,6 +1,6 @@
 # AIR (Abstraction Intent Representation)
 
-마지막 업데이트: 2026-04-27
+마지막 업데이트: 2026-04-29
 
 ## 1. 포지셔닝: Verification IR, 별도 codegen 레이어 아님
 
@@ -59,7 +59,7 @@ AIR 그래프는 일반적인 CFG 위에 다음 도메인 노드를 합성한다
 
 도메인/실행 경계.
 
-- `kind: enum { Zone, World, Parallel, IO, Channel }`
+- `kind: enum { Zone, World, Parallel, IO, Channel, Execution }`
 - `enters_at: HIRBlock*` — 경계 진입 block
 - `exits_at: HIRBlock*[]` — 경계 이탈 block 들
 - `authority_required: AuthorityToken?` — 경계 통과 권한
@@ -147,19 +147,27 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
 - Synthesis pass: HIR + DIR + RIR 에서 AIR 합성 (read-only)
 - Drift check pass: sync/async constraint vs boundary 충돌
 - Strict evidence pass: default strict AIR에서 missing RIR boundary/authority evidence hard-fail. `PGY_AIR_STRICT_EVIDENCE=0`은 development/debug opt-out이다.
+- Strict evidence policy update: default strict AIR hard-fails missing HIR CFG,
+  RIR boundary, and RIR authority evidence; older wording that mentions only
+  RIR boundary/authority evidence is stale.
 - Execution boundary scan: Phase 1 synthesis now walks intent-step AST clauses
   (`using`, `intent`, `pre`, `guard`, `post`, `invariant`, `expect`, `on`,
   `compensate`) and promotes `spawn` / `async` / `parallel`, `channel` /
-  `select`, and stable resource IO/time calls into AIR `Boundary Node`s before
-  drift checking. The current stable AIR boundary set is `FileOpen`,
-  `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`,
-  `ReadLine`, `Now`, and `Sleep`. `Print` / `Log*` are observability output
-  calls, not AIR resource-boundary evidence in Phase 1.
+  `select`, `with` / `unsafe` / `defer`, and stable resource IO/time calls into
+  AIR `Boundary Node`s before drift checking. The current stable AIR boundary
+  set is `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
+  `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep` for IO; `spawn` /
+  `async` / `parallel` for parallel; `channel-send` / `channel-recv` / `select`
+  for channel; and `with` / `unsafe` / `defer` for execution. `Print` / `Log*`
+  are observability output calls, not AIR resource-boundary evidence in Phase 1.
+  Execution boundaries are synchronous body/CFG boundaries; strict evidence
+  checks HIR/CFG evidence for them, not RIR resource-boundary evidence.
 - Expression boundary evidence is source-specific: `spawn` / `async` /
   `parallel`, `channel` / `select`, and IO boundaries are not satisfied by a
   generic RIR scope with the same intent owner. They need matching
   boundary-source evidence, otherwise default strict AIR emits
-  `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`.
+  `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`. They also need HIR CFG evidence:
+  RIR evidence alone cannot satisfy a body-boundary proof.
 - Transfer boundary synthesis is split: a step with both `where: ZoneType` and
   `transfer: from -> to` emits a `Zone` boundary for the `where` type and a
   separate `World` boundary for the handoff. The world boundary source is the
@@ -268,6 +276,7 @@ bool air_verify(AIRProgram *air, char **error_message);
 - authority-required boundaries must carry explicit authority participant names;
 - RIR authority evidence must sit on an authority-required boundary and must
   have matching RIR boundary evidence first;
+- implementation boundaries must carry matching HIR CFG evidence;
 - evidence flags must carry provenance names, not boolean-only claims;
 - strict evidence mode computes drift/evidence failures before MIR lowering.
 

@@ -81,6 +81,18 @@ mir_add_terminator_instruction(MIRRoutine *routine, MIRBasicBlock *block)
     inst.ast = (block->source_terminator_kind == HIR_BLOCK_BRANCH)
                    ? block->source_terminator_condition
                    : block->source_terminator_value;
+    if (inst.kind == MIR_INST_BRANCH
+        && inst.ast != NULL
+        && inst.ast->type == AST_FOR_LOOP) {
+        inst.arg0 = inst.ast->data.for_loop.variable;
+        if (inst.ast->data.for_loop.iterable != NULL) {
+            inst.expr0 = inst.ast->data.for_loop.iterable;
+            inst.expr1 = inst.ast->data.for_loop.iterable;
+        } else {
+            inst.expr0 = inst.ast->data.for_loop.range_start;
+            inst.expr1 = inst.ast->data.for_loop.range_end;
+        }
+    }
     return append_instruction(block, inst);
 }
 

@@ -172,6 +172,8 @@ required_header_terms = [
     "air_synthesize",
     "air_verify",
     "air_check_drift",
+    "air_boundary_requires_hir_evidence",
+    "air_boundary_requires_rir_evidence",
 ]
 missing_header = [term for term in required_header_terms if term not in air_header]
 if missing_header:
@@ -192,6 +194,8 @@ required_impl_terms = [
     "air_collect_rir_evidence",
     "air_assign_first_owned_name",
     "air_boundary_sync_shape_valid",
+    "air_boundary_requires_hir_evidence",
+    "AIR implementation boundary has no matching HIR CFG evidence",
     "air_drift_kind_valid",
     "air_name_is_empty",
     "air_collect_hir_evidence(air, hir, error_message)",
@@ -229,6 +233,11 @@ required_driver_terms = [
     "PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE",
     "PGY_FIX_ALIGN_INTENT_BOUNDARY_SYNC",
     "PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE",
+    "air_boundary_requires_hir_evidence(boundary)",
+    "air_boundary_requires_rir_evidence(boundary)",
+    "HIR CFG and RIR boundary evidence",
+    "HIR CFG evidence",
+    "RIR boundary evidence",
     "expected authority participant(s):",
     "evidence hir=",
     "Reason:",
@@ -279,6 +288,7 @@ required_test_terms = [
     "AIR drift checker reports sync/async mismatch",
     "AIR drift checker accepts matching async boundary",
     "AIR strict evidence reports missing RIR boundary",
+    "AIR strict evidence requires HIR for implementation boundary",
     "AIR verify rejects invalid boundary inventory",
     "AIR verify rejects missing inventory arrays",
     "AIR verify rejects boundary step mismatch",

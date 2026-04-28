@@ -180,9 +180,19 @@ bool          llvm_mir_base_name_from_versioned(const char *mir_name,
 bool          llvm_mir_stmt_is_cfg_container(ASTNode *node);
 bool          llvm_mir_declare_assignment_recv_target(ASTNode *node,
                                                       LLVMGenCtx *ctx);
-bool          llvm_mir_emit_for_loop_init(ASTNode *node, LLVMGenCtx *ctx);
-LLVMValueRef  llvm_mir_emit_for_loop_condition(ASTNode *node,
+bool          llvm_mir_emit_for_loop_init(const MIRInstruction *inst,
+                                          LLVMGenCtx *ctx);
+LLVMValueRef  llvm_mir_emit_for_loop_condition(const MIRInstruction *inst,
                                                 LLVMGenCtx *ctx);
+bool          llvm_mir_emit_for_in_loop_init(const MIRInstruction *inst,
+                                             LLVMGenCtx *ctx);
+LLVMValueRef  llvm_mir_emit_for_in_loop_condition(const MIRInstruction *inst,
+                                                   LLVMGenCtx *ctx);
+bool          llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
+                                                const MIRBasicBlock *block,
+                                                LLVMGenCtx *ctx);
+bool          llvm_mir_emit_for_in_loop_increment(const MIRInstruction *inst,
+                                                  LLVMGenCtx *ctx);
 bool          llvm_mir_emit_loop_backedge_increment(const MIRRoutine *routine,
                                                     const MIRBasicBlock *mir_block,
                                                     LLVMGenCtx *ctx);

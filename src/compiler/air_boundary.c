@@ -66,6 +66,10 @@ air_boundary_from_ast_node(const ASTNode *node)
     case AST_CHANNEL_RECV:
     case AST_SELECT_STMT:
         return AIR_BOUNDARY_CHANNEL;
+    case AST_WITH_STMT:
+    case AST_UNSAFE_BLOCK:
+    case AST_DEFER_STMT:
+        return AIR_BOUNDARY_EXECUTION;
     case AST_CALL:
         return air_call_is_io_boundary(node) ? AIR_BOUNDARY_IO : AIR_BOUNDARY_UNKNOWN;
     default:
@@ -82,6 +86,7 @@ air_sync_from_boundary_kind(AIRBoundaryKind kind)
         return AIR_SYNC_ASYNC;
     case AIR_BOUNDARY_IO:
         return AIR_SYNC_EITHER;
+    case AIR_BOUNDARY_EXECUTION:
     case AIR_BOUNDARY_ZONE:
     case AIR_BOUNDARY_WORLD:
         return AIR_SYNC_SYNC;
@@ -112,6 +117,14 @@ air_boundary_source_from_ast(const ASTNode *node)
         if (node != NULL && node->type == AST_CHANNEL_RECV)
             return "channel-recv";
         return "select";
+    case AIR_BOUNDARY_EXECUTION:
+        if (node != NULL && node->type == AST_WITH_STMT)
+            return "with";
+        if (node != NULL && node->type == AST_UNSAFE_BLOCK)
+            return "unsafe";
+        if (node != NULL && node->type == AST_DEFER_STMT)
+            return "defer";
+        return "execution";
     default:
         return "boundary";
     }

@@ -214,6 +214,82 @@ routine_has_stmt_call_named(const MIRRoutine *routine, const char *callee_name)
 }
 
 static bool
+routine_has_stmt_ast_type(const MIRRoutine *routine, ASTNodeType type)
+{
+    if (routine == NULL)
+        return false;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind == MIR_INST_STMT
+                && inst->ast != NULL
+                && inst->ast->type == type) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool
+routine_has_inst_kind(const MIRRoutine *routine, MIRInstKind kind)
+{
+    if (routine == NULL)
+        return false;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block_has_inst_kind(block, kind))
+            return true;
+    }
+    return false;
+}
+
+static bool
+routine_has_complete_loop_init_for(const MIRRoutine *routine, const char *variable)
+{
+    if (routine == NULL || variable == NULL)
+        return false;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind == MIR_INST_LOOP_INIT
+                && inst->arg0 != NULL
+                && strcmp(inst->arg0, variable) == 0
+                && inst->expr0 != NULL
+                && inst->expr1 != NULL) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool
+routine_has_complete_loop_branch_for(const MIRRoutine *routine, const char *variable)
+{
+    if (routine == NULL || variable == NULL)
+        return false;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind == MIR_INST_BRANCH
+                && inst->ast != NULL
+                && inst->ast->type == AST_FOR_LOOP
+                && inst->arg0 != NULL
+                && strcmp(inst->arg0, variable) == 0
+                && inst->expr0 != NULL
+                && inst->expr1 != NULL) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool
 block_has_phi_result_prefix(const MIRBasicBlock *block, const char *prefix)
 {
     size_t prefix_len = strlen(prefix);
@@ -769,6 +845,136 @@ test_mir_lowering(void)
                && dead_merge->dce_removed_count > 0
                && live_summary != NULL
                && !has_dead_phi);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR lowers for-loop init as loop-init instead of fallback statement");
+    {
+        const char *src =
+            "func CfgOwnedControl(flag: Bool, value: Int) -> Int {\n"
+            "    for i in 0..3 {\n"
+            "        if flag {\n"
+            "            continue;\n"
+            "        }\n"
+            "        break;\n"
+            "    }\n"
+            "    match value {\n"
+            "        case 0:\n"
+            "            return 1;\n"
+            "        default:\n"
+            "            value = value + 1;\n"
+            "    }\n"
+            "    return value;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "CfgOwnedControl", MIR_SCOPE_FUNCTION);
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && routine_has_inst_kind(routine, MIR_INST_LOOP_INIT)
+               && routine_has_complete_loop_init_for(routine, "i")
+               && routine_has_complete_loop_branch_for(routine, "i")
+               && !routine_has_stmt_ast_type(routine, AST_FOR_LOOP)
+               && !routine_has_stmt_ast_type(routine, AST_MATCH_STMT)
+               && !routine_has_stmt_ast_type(routine, AST_BREAK)
+               && !routine_has_stmt_ast_type(routine, AST_CONTINUE)
+               && !routine_has_stmt_ast_type(routine, AST_IF_STMT));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR lowers for-in init as loop-init instead of fallback statement");
+    {
+        const char *src =
+            "func ForInList(values: List<Int>) -> Int {\n"
+            "    let total: Int = 0;\n"
+            "    for value in values {\n"
+            "        total = total + value;\n"
+            "    }\n"
+            "    return total;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "ForInList", MIR_SCOPE_FUNCTION);
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && routine_has_inst_kind(routine, MIR_INST_LOOP_INIT)
+               && routine_has_complete_loop_init_for(routine, "value")
+               && routine_has_complete_loop_branch_for(routine, "value")
+               && !routine_has_stmt_ast_type(routine, AST_FOR_LOOP));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects CFG-owned control fallback statements");
+    {
+        const char *src =
+            "func CfgOwnedControl(flag: Bool, value: Int) -> Int {\n"
+            "    for i in 0..3 {\n"
+            "        if flag {\n"
+            "            continue;\n"
+            "        }\n"
+            "        break;\n"
+            "    }\n"
+            "    return value;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        char *mir_error = NULL;
+        bool injected = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "CfgOwnedControl", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && !injected; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                ASTNode *stmt = block->source_statement_count > 0
+                    ? block->source_statements[0]
+                    : NULL;
+                if (stmt == NULL || stmt->type != AST_FOR_LOOP
+                    || (!block->has_succ_true && !block->has_succ_false)) {
+                    continue;
+                }
+                MIRInstruction *grown = realloc(block->instructions,
+                    (block->instruction_count + 1) * sizeof(MIRInstruction));
+                if (grown == NULL)
+                    break;
+                block->instructions = grown;
+                memset(&block->instructions[block->instruction_count], 0,
+                    sizeof(MIRInstruction));
+                block->instructions[block->instruction_count].id =
+                    routine->instruction_count++;
+                block->instructions[block->instruction_count].kind = MIR_INST_STMT;
+                block->instructions[block->instruction_count].name = "stmt";
+                block->instructions[block->instruction_count].ast = stmt;
+                block->instruction_count++;
+                injected = true;
+            }
+        }
+        rejected = ok
+                   && injected
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "CFG-owned control statement") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

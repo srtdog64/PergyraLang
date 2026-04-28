@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let values: List<Int> = ListNew();
+    ListPush(values, 3);
+    ListPush(values, 4);
+    ListPush(values, 5);
+
+    let total: Int = 0;
+    for value in values {
+        total = total + value;
+    }
+    Log(total);
+}

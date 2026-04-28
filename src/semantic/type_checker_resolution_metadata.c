@@ -238,7 +238,23 @@ semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,
     if (resolved != NULL)
         return resolved;
 
+    semantic_type_resolution_try_record_stable_constructed_type(ctx, type_node);
+    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
+    if (resolved != NULL)
+        return resolved;
+
     return NULL;
+}
+
+Type *
+semantic_type_resolution_lookup_type_ref_or_materialize(SemanticContext *ctx,
+                                                        ASTNode *type_node)
+{
+    Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx,
+                                                                       type_node);
+    return resolved != NULL
+        ? resolved
+        : semantic_type_resolution_lookup_or_materialize(ctx, type_node);
 }
 
 Type *
@@ -264,5 +280,41 @@ semantic_type_resolution_metadata_builtin_singleton(const char *name)
         return TYPE_VOID;
     if (strcmp(name, "Allocator") == 0)
         return TYPE_ALLOCATOR;
+    return NULL;
+}
+
+Type *
+semantic_type_resolution_metadata_named_builtin_or_shell_singleton(
+    const char *name)
+{
+    Type *builtin = semantic_type_resolution_metadata_builtin_singleton(name);
+    if (builtin != NULL)
+        return builtin;
+    if (name == NULL)
+        return NULL;
+    if (strcmp(name, "Array") == 0)
+        return TYPE_ARRAY;
+    if (strcmp(name, "Slice") == 0)
+        return TYPE_SLICE;
+    if (strcmp(name, "List") == 0)
+        return TYPE_LIST;
+    if (strcmp(name, "Queue") == 0)
+        return TYPE_QUEUE;
+    if (strcmp(name, "HashMap") == 0)
+        return TYPE_HASHMAP;
+    if (strcmp(name, "Set") == 0)
+        return TYPE_SET;
+    if (strcmp(name, "Box") == 0)
+        return TYPE_BOX;
+    if (strcmp(name, "Rc") == 0)
+        return TYPE_RC;
+    if (strcmp(name, "Weak") == 0)
+        return TYPE_WEAK;
+    if (strcmp(name, "RemoteFuture") == 0)
+        return TYPE_REMOTE_FUTURE;
+    if (strcmp(name, "DeviceSlot") == 0)
+        return TYPE_DEVICE_SLOT;
+    if (strcmp(name, "Option") == 0)
+        return TYPE_OPTION;
     return NULL;
 }

@@ -280,11 +280,28 @@ driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
         column = site->column;
     }
     if (drift != NULL && drift->kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING) {
+        bool missing_hir = boundary != NULL
+            && air_boundary_requires_hir_evidence(boundary)
+            && !boundary->has_hir_routine_evidence;
+        bool missing_rir = boundary != NULL
+            && air_boundary_requires_rir_evidence(boundary)
+            && !boundary->has_rir_boundary_evidence;
         code = PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING;
         cause_ir = PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE;
         fix_source = PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE;
-        reason = "AIR strict-evidence mode could not reconcile the intent boundary with RIR boundary/authority evidence";
-        fix = "align the intent boundary with a lowering-visible zone/world boundary or extend AIR/RIR synthesis for this valid boundary";
+        if (missing_hir && missing_rir) {
+            reason = "AIR strict-evidence mode could not reconcile the intent boundary with HIR CFG and RIR boundary evidence";
+            fix = "align the intent boundary with lowering-visible HIR CFG and RIR boundary evidence or extend AIR synthesis for this valid boundary";
+        } else if (missing_hir) {
+            reason = "AIR strict-evidence mode could not reconcile the intent boundary with HIR CFG evidence";
+            fix = "align the implementation boundary with a lowering-visible HIR CFG routine or extend AIR/HIR evidence synthesis for this valid boundary";
+        } else if (missing_rir) {
+            reason = "AIR strict-evidence mode could not reconcile the intent boundary with RIR boundary evidence";
+            fix = "align the intent boundary with a lowering-visible zone/world boundary or extend AIR/RIR synthesis for this valid boundary";
+        } else {
+            reason = "AIR strict-evidence mode could not reconcile the intent boundary with required authority evidence";
+            fix = "align the authorized participant with a lowering-visible authority fact or extend AIR/RIR authority evidence synthesis";
+        }
         if (boundary != NULL
             && boundary->authority_required
             && !boundary->has_rir_authority_evidence

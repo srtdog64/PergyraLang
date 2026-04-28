@@ -259,6 +259,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
 
     if (!llvm_mir_emit_pin_enter(mir_block, ctx))
         return;
+    if (!llvm_mir_emit_for_in_body_binding(routine, mir_block, ctx))
+        return;
 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
@@ -335,7 +337,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             if (inst->ast != NULL && mir_block->has_succ_true && mir_block->has_succ_false) {
                 LLVMValueRef cond;
                 if (inst->ast->type == AST_FOR_LOOP) {
-                    cond = llvm_mir_emit_for_loop_condition(inst->ast, ctx);
+                    cond = llvm_mir_emit_for_loop_condition(inst, ctx);
                 } else if (inst->ast->type == AST_MATCH_CASE) {
                     cond = llvm_mir_emit_match_case_condition(func_decl, inst->ast, ctx);
                 } else if (inst->ast->type == AST_BLOCK) {
@@ -385,12 +387,13 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             break;
         case MIR_INST_CLEANUP_EDGE:
             break;
+        case MIR_INST_LOOP_INIT:
+            if (!llvm_mir_emit_for_loop_init(inst, ctx))
+                return;
+            break;
         case MIR_INST_STMT:
             if (inst->ast != NULL && inst->ast->type == AST_WITH_STMT) {
                 llvm_mir_emit_with_claim_only(inst->ast, ctx);
-            } else if (inst->ast != NULL && inst->ast->type == AST_FOR_LOOP) {
-                if (!llvm_mir_emit_for_loop_init(inst->ast, ctx))
-                    return;
             } else if (inst->ast != NULL && !llvm_mir_stmt_is_cfg_container(inst->ast)) {
                 llvm_emit_statement(inst->ast, ctx);
             }

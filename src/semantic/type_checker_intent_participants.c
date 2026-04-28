@@ -11,7 +11,7 @@ intent_participant_resolve_involves_type(ASTNode *involves, SemanticContext *ctx
         || involves->data.intent_involves.subject_type == NULL) {
         return TYPE_UNKNOWN;
     }
-    return semantic_type_resolution_lookup_or_materialize(
+    return semantic_type_resolution_lookup_type_ref_or_materialize(
         ctx, involves->data.intent_involves.subject_type);
 }
 

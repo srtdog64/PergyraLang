@@ -19,53 +19,200 @@ transpiler_mir_stmt_is_cfg_container(ASTNode *node)
 }
 
 static bool
-transpiler_mir_emit_for_loop_init_stmt(CodeBuf *buf,
-                                       ASTNode *node,
+transpiler_mir_emit_for_loop_init_inst(CodeBuf *buf,
+                                       const MIRInstruction *inst,
                                        TranspilerCtx *ctx,
                                        const TranspilerSSANameMap *ssa_map)
 {
     char *start;
+    const char *variable;
 
-    if (buf == NULL || node == NULL || ctx == NULL || node->type != AST_FOR_LOOP)
+    if (buf == NULL || inst == NULL || ctx == NULL)
         return true;
-    if (node->data.for_loop.variable == NULL)
+    if (inst->kind != MIR_INST_LOOP_INIT)
         return true;
-    if (node->data.for_loop.iterable != NULL)
+    if (inst->ast == NULL || inst->ast->type != AST_FOR_LOOP)
         return false;
+    variable = inst->arg0;
+    if (variable == NULL)
+        return true;
+    if (inst->ast->data.for_loop.iterable != NULL) {
+        write_indent_to(buf, ctx->indent);
+        codebuf_write(buf, "size_t _pgy_idx_%s = 0;\n", variable);
+        return true;
+    }
 
-    start = emit_expression_with_ssa_map(node->data.for_loop.range_start, ctx,
-                                         ssa_map);
+    start = emit_expression_with_ssa_map(inst->expr0, ctx, ssa_map);
     write_indent_to(buf, ctx->indent);
     codebuf_write(buf, "int32_t %s = %s;\n",
-                  node->data.for_loop.variable,
+                  variable,
                   start != NULL ? start : "0");
-    register_typed_var(ctx, node->data.for_loop.variable, "Int");
+    register_typed_var(ctx, variable, "Int");
     free(start);
     return true;
 }
 
+static const char *
+transpiler_mir_for_in_length_field(const char *collection_type)
+{
+    if (collection_type != NULL
+        && (strncmp(collection_type, "Array<", 6) == 0
+            || strncmp(collection_type, "Slice<", 6) == 0)) {
+        return "length";
+    }
+    return "count";
+}
+
+static const char *
+transpiler_mir_for_in_element_type(TranspilerCtx *ctx,
+                                   ASTNode *iterable,
+                                   const char **collection_type_out)
+{
+    const char *collection_type;
+
+    if (collection_type_out != NULL)
+        *collection_type_out = NULL;
+    if (ctx == NULL || iterable == NULL)
+        return NULL;
+
+    collection_type = infer_expression_type_name(ctx, iterable);
+    if (collection_type_out != NULL)
+        *collection_type_out = collection_type;
+    if (collection_type == NULL)
+        return NULL;
+    if (strncmp(collection_type, "Array<", 6) != 0
+        && strncmp(collection_type, "Slice<", 6) != 0
+        && strncmp(collection_type, "List<", 5) != 0) {
+        return NULL;
+    }
+    return pergyra_type_to_c(slot_inner_type_name(collection_type));
+}
+
 static char *
-transpiler_mir_render_for_loop_condition(ASTNode *node,
-                                         TranspilerCtx *ctx,
-                                         const TranspilerSSANameMap *ssa_map)
+transpiler_mir_render_for_loop_condition_inst(const MIRInstruction *inst,
+                                              TranspilerCtx *ctx,
+                                              const TranspilerSSANameMap *ssa_map)
 {
     char *end;
     char *cond;
+    const char *variable;
 
-    if (node == NULL || ctx == NULL || node->type != AST_FOR_LOOP)
+    if (inst == NULL || ctx == NULL)
         return NULL;
-    if (node->data.for_loop.variable == NULL)
+    if (inst->ast == NULL || inst->ast->type != AST_FOR_LOOP)
         return NULL;
-    if (node->data.for_loop.iterable != NULL)
+    variable = inst->arg0;
+    if (variable == NULL)
         return NULL;
+    if (inst->ast->data.for_loop.iterable != NULL) {
+        const char *collection_type = NULL;
+        const char *length_field;
+        char *collection;
+        (void)transpiler_mir_for_in_element_type(ctx, inst->expr0, &collection_type);
+        length_field = transpiler_mir_for_in_length_field(collection_type);
+        collection = emit_expression_with_ssa_map(inst->expr0, ctx, ssa_map);
+        cond = strdup_fmt("_pgy_idx_%s < %s.%s",
+            variable,
+            collection != NULL ? collection : "0",
+            length_field);
+        free(collection);
+        return cond;
+    }
 
-    end = emit_expression_with_ssa_map(node->data.for_loop.range_end, ctx,
-                                       ssa_map);
-    cond = strdup_fmt("%s < %s",
-                      node->data.for_loop.variable,
-                      end != NULL ? end : "0");
+    end = emit_expression_with_ssa_map(inst->expr1, ctx, ssa_map);
+    cond = strdup_fmt("%s < %s", variable, end != NULL ? end : "0");
     free(end);
     return cond;
+}
+
+static const MIRInstruction *
+transpiler_mir_find_incoming_for_in_branch(const MIRRoutine *routine,
+                                           const MIRBasicBlock *block)
+{
+    size_t target_id = SIZE_MAX;
+
+    if (routine == NULL || block == NULL)
+        return NULL;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        if (&routine->blocks[i] == block) {
+            target_id = i;
+            break;
+        }
+    }
+    if (target_id == SIZE_MAX)
+        return NULL;
+
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *pred = &routine->blocks[i];
+        if (!pred->has_succ_true || pred->succ_true != target_id)
+            continue;
+        for (size_t j = 0; j < pred->instruction_count; j++) {
+            const MIRInstruction *inst = &pred->instructions[j];
+            if (inst->kind == MIR_INST_BRANCH
+                && inst->ast != NULL
+                && inst->ast->type == AST_FOR_LOOP
+                && inst->ast->data.for_loop.iterable != NULL) {
+                return inst;
+            }
+        }
+    }
+    return NULL;
+}
+
+static bool
+transpiler_mir_emit_for_in_body_binding(CodeBuf *buf,
+                                        const MIRRoutine *routine,
+                                        const MIRBasicBlock *block,
+                                        TranspilerCtx *ctx,
+                                        const TranspilerSSANameMap *ssa_map)
+{
+    const MIRInstruction *branch_inst;
+    const char *variable;
+    const char *collection_type = NULL;
+    const char *element_type;
+    char *collection;
+
+    if (buf == NULL || routine == NULL || block == NULL || ctx == NULL)
+        return true;
+
+    branch_inst = transpiler_mir_find_incoming_for_in_branch(routine, block);
+    if (branch_inst == NULL)
+        return true;
+    variable = branch_inst->arg0;
+    if (variable == NULL)
+        return true;
+
+    element_type = transpiler_mir_for_in_element_type(
+        ctx, branch_inst->expr0, &collection_type);
+    if (element_type == NULL)
+        return false;
+
+    collection = emit_expression_with_ssa_map(branch_inst->expr0, ctx, ssa_map);
+    write_indent_to(buf, ctx->indent);
+    codebuf_write(buf, "%s %s = %s.data[_pgy_idx_%s];\n",
+        element_type,
+        variable,
+        collection != NULL ? collection : "0",
+        variable);
+    register_typed_var(ctx, variable, slot_inner_type_name(collection_type));
+    free(collection);
+    return true;
+}
+
+static const MIRInstruction *
+transpiler_mir_find_loop_branch_inst(const MIRBasicBlock *block)
+{
+    if (block == NULL)
+        return NULL;
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->kind == MIR_INST_BRANCH
+            && inst->ast != NULL
+            && inst->ast->type == AST_FOR_LOOP) {
+            return inst;
+        }
+    }
+    return NULL;
 }
 
 static bool
@@ -75,7 +222,8 @@ transpiler_mir_emit_loop_backedge_increment(CodeBuf *buf,
                                             const MIRBasicBlock *block)
 {
     const MIRBasicBlock *target;
-    ASTNode *loop;
+    const MIRInstruction *branch_inst;
+    const char *variable;
 
     if (buf == NULL || ctx == NULL || routine == NULL || block == NULL)
         return true;
@@ -85,19 +233,26 @@ transpiler_mir_emit_loop_backedge_increment(CodeBuf *buf,
         return true;
 
     target = &routine->blocks[block->succ_true];
-    if (target == block || target->source_ast == NULL
-        || target->source_ast->type != AST_FOR_LOOP) {
+    if (target == block)
         return true;
-    }
 
-    loop = target->source_ast;
-    if (loop->data.for_loop.variable == NULL || loop->data.for_loop.iterable != NULL)
+    branch_inst = transpiler_mir_find_loop_branch_inst(target);
+    if (branch_inst == NULL)
+        return true;
+    variable = branch_inst->arg0;
+    if (variable == NULL)
         return true;
 
     write_indent_to(buf, ctx->indent);
-    codebuf_write(buf, "%s = %s + 1;\n",
-                  loop->data.for_loop.variable,
-                  loop->data.for_loop.variable);
+    if (branch_inst->ast != NULL
+        && branch_inst->ast->type == AST_FOR_LOOP
+        && branch_inst->ast->data.for_loop.iterable != NULL) {
+        codebuf_write(buf, "_pgy_idx_%s = _pgy_idx_%s + 1;\n",
+            variable,
+            variable);
+    } else {
+        codebuf_write(buf, "%s = %s + 1;\n", variable, variable);
+    }
     return true;
 }
 
@@ -345,14 +500,15 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
 
 static char *
 transpiler_mir_render_branch_condition(ASTNode *func_decl,
-                                       ASTNode *condition,
+                                       const MIRInstruction *inst,
                                        TranspilerCtx *ctx,
                                        const TranspilerSSANameMap *ssa_map)
 {
+    ASTNode *condition = inst != NULL ? inst->ast : NULL;
     if (condition == NULL)
         return pergyra_strdup("true");
     if (condition->type == AST_FOR_LOOP)
-        return transpiler_mir_render_for_loop_condition(condition, ctx, ssa_map);
+        return transpiler_mir_render_for_loop_condition_inst(inst, ctx, ssa_map);
     if (condition->type == AST_MATCH_CASE)
         return transpiler_mir_render_match_case_condition(func_decl, condition,
                                                          ctx, ssa_map);

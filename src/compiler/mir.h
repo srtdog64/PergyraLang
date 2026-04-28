@@ -63,6 +63,7 @@ typedef enum
     MIR_INST_BRANCH,
     MIR_INST_RETURN,
     MIR_INST_CLEANUP_EDGE,
+    MIR_INST_LOOP_INIT,
     MIR_INST_STMT
 } MIRInstKind;
 
@@ -88,6 +89,8 @@ typedef struct
     const RIROp     *rir_op;
     ASTNode         *ast;
     /* ABI type layout — backends read this instead of inventing layouts */
+    ASTNode         *expr0;
+    ASTNode         *expr1;
     const MIRTypeLayout *type_layout;
 } MIRInstruction;
 

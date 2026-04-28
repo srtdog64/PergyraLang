@@ -17,7 +17,7 @@
 static Type *
 constructor_call_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
+    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
 }
 
 bool

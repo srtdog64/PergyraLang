@@ -127,11 +127,10 @@ mir_consume_matching_def_instruction(MIRInstruction *old_insts,
  * instruction, because the CFG blocks handle it).
  *
  * Only skip statements whose control flow was actually expanded by the HIR
- * builder.  The HIR builder expands while loops and if statements into
- * separate CFG blocks, but for loops and some other constructs remain as
- * single statements inside a block.  We detect this by checking whether the
- * MIR block has successor edges — if it does, the HIR already created the
- * CFG, so we skip the original statement; if it doesn't, we keep it.
+ * builder. The HIR builder expands CFG-owned control containers into separate
+ * CFG blocks when the target MIR block has successor edges. `for` preheader
+ * initialization is represented as MIR_INST_LOOP_INIT rather than fallback
+ * STMT; its condition and backedge are CFG-owned.
  *
  * AST_RETURN is always skipped because MIR already has MIR_INST_RETURN. */
 static bool
@@ -141,13 +140,34 @@ mir_stmt_is_control_flow(const ASTNode *stmt, const MIRBasicBlock *mir_block)
         return true;
     if (stmt->type == AST_RETURN)
         return true;
-    /* If/while that were CFG-split: the containing MIR block will have
-     * successor edges from the HIR terminator.  When the block has
-     * successors, skip the original statement node (the CFG handles it). */
-    if ((stmt->type == AST_IF_STMT || stmt->type == AST_WHILE_LOOP)
-        && (mir_block->has_succ_true || mir_block->has_succ_false))
-        return true;
+    if (mir_block->has_succ_true || mir_block->has_succ_false) {
+        switch (stmt->type) {
+        case AST_WITH_STMT:
+        case AST_PARALLEL_BLOCK:
+        case AST_UNSAFE_BLOCK:
+        case AST_DEFER_STMT:
+        case AST_IF_STMT:
+        case AST_WHILE_LOOP:
+        case AST_FOR_LOOP:
+        case AST_SELECT_STMT:
+        case AST_MATCH_STMT:
+        case AST_BREAK:
+        case AST_CONTINUE:
+            return true;
+        default:
+            break;
+        }
+    }
     return false;
+}
+
+static bool
+mir_stmt_is_for_loop_init_payload(const ASTNode *stmt, const MIRBasicBlock *mir_block)
+{
+    return stmt != NULL
+        && stmt->type == AST_FOR_LOOP
+        && mir_block != NULL
+        && (mir_block->has_succ_true || mir_block->has_succ_false);
 }
 
 static bool
@@ -182,6 +202,10 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         size_t stmt_count = 0;
         for (size_t s = 0; s < block->source_statement_count; s++) {
             ASTNode *stmt = block->source_statements[s];
+            if (mir_stmt_is_for_loop_init_payload(stmt, block)) {
+                stmt_count++;
+                continue;
+            }
             if (mir_stmt_is_control_flow(stmt, block)) {
                 if (block->has_succ_true || block->has_succ_false)
                     break;
@@ -224,6 +248,24 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
 
         for (size_t s = 0; s < block->source_statement_count; s++) {
             ASTNode *stmt = block->source_statements[s];
+            if (mir_stmt_is_for_loop_init_payload(stmt, block)) {
+                MIRInstruction inst;
+                memset(&inst, 0, sizeof(inst));
+                inst.id = routine->instruction_count++;
+                inst.kind = MIR_INST_LOOP_INIT;
+                inst.name = "loop-init";
+                inst.ast = stmt;
+                inst.arg0 = stmt->data.for_loop.variable;
+                if (stmt->data.for_loop.iterable != NULL) {
+                    inst.expr0 = stmt->data.for_loop.iterable;
+                    inst.expr1 = stmt->data.for_loop.iterable;
+                } else {
+                    inst.expr0 = stmt->data.for_loop.range_start;
+                    inst.expr1 = stmt->data.for_loop.range_end;
+                }
+                new_insts[new_count++] = inst;
+                continue;
+            }
             if (mir_stmt_is_control_flow(stmt, block)) {
                 if (block->has_succ_true || block->has_succ_false)
                     break;

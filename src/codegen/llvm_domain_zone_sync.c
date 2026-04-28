@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_domain_decl_parts_helpers.h"
+#include "domain_frontier_policy.h"
 #include "llvm_domain_zone_bind_helpers.h"
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_projection_sync_body_helpers.h"
@@ -42,8 +43,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     LLVMValueRef frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
         "zone.frontier.continue.addr");
     LLVMValueRef frontier_limit_val = LLVMConstInt(ctx->type_i32,
-        (unsigned long long)(stmt->data.zone_decl.state_count
-            + stmt->data.zone_decl.layer_slot_count + 1), 0);
+        (unsigned long long)pgy_frontier_zone_pass_limit(
+            stmt->data.zone_decl.state_count,
+            stmt->data.zone_decl.layer_slot_count), 0);
     LLVMBasicBlockRef frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
         "zone.frontier.check");
     LLVMBasicBlockRef frontier_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,

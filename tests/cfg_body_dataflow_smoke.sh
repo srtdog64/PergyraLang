@@ -39,14 +39,19 @@ mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
 mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.h"
 mir_dce_path = root / "src" / "compiler" / "mir_dce.h"
 mir_stmt_population_path = root / "src" / "compiler" / "mir_stmt_population.h"
+mir_c_control_emit_path = root / "src" / "codegen" / "transpiler_mir_cfg_control_emit.h"
+mir_llvm_control_emit_path = root / "src" / "codegen" / "llvm_mir_cfg_control.c"
+mir_llvm_for_in_control_path = root / "src" / "codegen" / "llvm_mir_for_in_control.c"
+mir_llvm_internal_api_path = root / "src" / "codegen" / "llvm_internal_api.h"
+mir_tests_path = root / "src" / "test_mir.c"
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.h"
 helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.c"
-builtins_query_channel_path = root / "src" / "semantic" / "type_checker_builtins_query_channel.h"
+builtins_query_channel_path = root / "src" / "semantic" / "type_checker_builtins_query_channel.c"
 builtins_cancel_path = root / "src" / "semantic" / "type_checker_builtins_cancel.c"
 type_system_path = root / "src" / "semantic" / "type_system.h"
 type_system_impl_path = root / "src" / "semantic" / "type_system.c"
 expr_path = root / "src" / "semantic" / "type_checker_expr.c"
-program_path = root / "src" / "semantic" / "type_checker_program.h"
+program_path = root / "src" / "semantic" / "type_checker_func_decl.c"
 diag_path = root / "src" / "semantic" / "diag_codes.h"
 diag_doc_path = root / "docs" / "72_diagnostic_codes.md"
 parser_path = root / "src" / "parser" / "parser.c"
@@ -79,6 +84,11 @@ for path in (
     mir_liveness_dce_path,
     mir_dce_path,
     mir_stmt_population_path,
+    mir_c_control_emit_path,
+    mir_llvm_control_emit_path,
+    mir_llvm_for_in_control_path,
+    mir_llvm_internal_api_path,
+    mir_tests_path,
     async_channel_path,
     helpers_effects_path,
     builtins_query_channel_path,
@@ -142,6 +152,16 @@ mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
 mir_liveness_dce = mir_liveness_dce_path.read_text(encoding="utf-8")
 mir_dce = mir_dce_path.read_text(encoding="utf-8")
 mir_stmt_population = mir_stmt_population_path.read_text(encoding="utf-8")
+mir_codegen_control = (
+    mir_c_control_emit_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_llvm_control_emit_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_llvm_for_in_control_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_llvm_internal_api_path.read_text(encoding="utf-8")
+)
+mir_tests = mir_tests_path.read_text(encoding="utf-8")
 program = program_path.read_text(encoding="utf-8")
 diag = diag_path.read_text(encoding="utf-8")
 diag_doc = diag_doc_path.read_text(encoding="utf-8")
@@ -250,10 +270,14 @@ for forbidden in [
 
 required_mir_cleanup_validator_terms = [
     "mir_block_has_pin_cleanup_edge",
+    "mir_stmt_ast_is_cfg_owned_control",
     "pin-unpin-cleanup-edge",
+    "incomplete loop-init fact",
+    "incomplete loop-branch fact",
     "pin-region block[%zu] missing pin-unpin cleanup fact",
     "cleanup block[%zu] must not have normal CFG successors",
     "cleanup block[%zu] must not be a pin region",
+    "CFG-owned control statement as fallback STMT",
 ]
 missing_mir_cleanup_validator = [
     term for term in required_mir_cleanup_validator_terms
@@ -264,6 +288,39 @@ if missing_mir_cleanup_validator:
         "MIR cleanup validator must reject pin regions without unpin facts: "
         + ", ".join(missing_mir_cleanup_validator)
     )
+
+required_mir_codegen_control_terms = [
+    "transpiler_mir_emit_for_loop_init_inst",
+    "transpiler_mir_render_for_loop_condition_inst",
+    "transpiler_mir_emit_for_in_body_binding",
+    "_pgy_idx_%s",
+    "transpiler_mir_find_loop_branch_inst",
+    "llvm_mir_emit_for_loop_init(const MIRInstruction *inst",
+    "llvm_mir_emit_for_loop_condition(const MIRInstruction *inst",
+    "llvm_mir_emit_for_in_body_binding",
+    "__pgy_idx_%s",
+    "pgy_list_size_raw_export",
+    "pgy_list_get_raw_export",
+    "llvm_mir_find_loop_branch_inst",
+]
+missing_mir_codegen_control = [
+    term for term in required_mir_codegen_control_terms
+    if term not in mir_codegen_control
+]
+if missing_mir_codegen_control:
+    raise SystemExit(
+        "MIR C/LLVM control emitters must consume MIR loop facts: "
+        + ", ".join(missing_mir_codegen_control)
+    )
+for forbidden in [
+    "llvm_mir_emit_for_loop_init_from_ast",
+    "target->source_ast",
+]:
+    if forbidden in mir_codegen_control:
+        raise SystemExit(
+            "MIR C/LLVM control emitter reintroduced AST fallback: "
+            + forbidden
+        )
 
 mir_owner_limits = {
     mir_path: 600,
@@ -307,6 +364,17 @@ required_mir_owner_terms = {
         "mir_populate_stmt_instructions",
         "mir_stmt_def_name",
         "mir_let_decl_requires_stmt_preservation",
+        "MIR_INST_LOOP_INIT",
+        "mir_stmt_is_for_loop_init_payload",
+        "AST_WITH_STMT",
+        "AST_PARALLEL_BLOCK",
+        "AST_UNSAFE_BLOCK",
+        "AST_DEFER_STMT",
+        "AST_FOR_LOOP",
+        "AST_SELECT_STMT",
+        "AST_MATCH_STMT",
+        "AST_BREAK",
+        "AST_CONTINUE",
     ],
 }
 mir_owner_text = {
@@ -529,6 +597,16 @@ for term in [
 ]:
     if term not in semantic_tests:
         raise SystemExit(f"semantic regression must cover {term}")
+
+for term in [
+    "MIR lowers for-loop init as loop-init instead of fallback statement",
+    "MIR lowers for-in init as loop-init instead of fallback statement",
+    "MIR validator rejects CFG-owned control fallback statements",
+    "routine_has_complete_loop_init_for",
+    "routine_has_complete_loop_branch_for",
+]:
+    if term not in mir_tests:
+        raise SystemExit(f"MIR regression must cover {term}")
 
 if 'parser_consume(parser, TOKEN_ASSIGN, "Expected \'=\' in let declaration")' not in parser:
     raise SystemExit("parser must keep local let declarations initialized")

@@ -30,6 +30,30 @@ mir_block_has_pin_cleanup_edge(const MIRBasicBlock *block)
 }
 
 static bool
+mir_stmt_ast_is_cfg_owned_control(const ASTNode *ast)
+{
+    if (ast == NULL)
+        return false;
+    switch (ast->type) {
+    case AST_WITH_STMT:
+    case AST_PARALLEL_BLOCK:
+    case AST_UNSAFE_BLOCK:
+    case AST_DEFER_STMT:
+    case AST_IF_STMT:
+    case AST_WHILE_LOOP:
+    case AST_FOR_LOOP:
+    case AST_SELECT_STMT:
+    case AST_MATCH_STMT:
+    case AST_BREAK:
+    case AST_CONTINUE:
+    case AST_RETURN:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool
 mir_validate_cfg_contract_state(const MIRRoutine *routine,
                                bool require_cleanup,
                                bool require_cleanup_source_mapping,
@@ -224,6 +248,49 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             }
             free(hir_block_seen);
             return false;
+        }
+
+        if (block->is_reachable && !block->is_cleanup
+            && (block->has_succ_true || block->has_succ_false)) {
+            for (size_t inst_id = 0; inst_id < block->instruction_count; inst_id++) {
+                const MIRInstruction *inst = &block->instructions[inst_id];
+                if (inst->kind == MIR_INST_LOOP_INIT) {
+                    if (inst->arg0 == NULL || inst->expr0 == NULL || inst->expr1 == NULL) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' block[%zu] has incomplete loop-init fact",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                i);
+                        }
+                        free(hir_block_seen);
+                        return false;
+                    }
+                }
+                if (inst->kind == MIR_INST_BRANCH
+                    && inst->ast != NULL
+                    && inst->ast->type == AST_FOR_LOOP
+                    && (inst->arg0 == NULL || inst->expr0 == NULL || inst->expr1 == NULL)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] has incomplete loop-branch fact",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            i);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+                if (inst->kind == MIR_INST_STMT
+                    && mir_stmt_ast_is_cfg_owned_control(inst->ast)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] keeps CFG-owned control statement as fallback STMT",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            i);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+            }
         }
 
         if (block->is_reachable && !block->is_cleanup) {

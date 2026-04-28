@@ -1,5 +1,101 @@
 ﻿# Pergyra TODO (배포 준비)
 
+## UTF-8 Progress Note - 2026-04-29 - C Let Slot Owner Split
+
+- C backend let-declaration lowering no longer carries Slot/DeviceSlot,
+  ReadView/WriteView/MoveToken, and Slot/SecureSlot sugar logic inside the
+  mixed `emit_let_decl(...)` owner. Those paths now live in
+  `src/codegen/transpiler_let_slot_emit.h`.
+- `src/codegen/transpiler_let_emit.h` is now 505 LOC and
+  `src/codegen/transpiler_let_slot_emit.h` is 297 LOC, so the let-declaration
+  owner family is below the 600 LOC split-review threshold without adding
+  `.inc` files.
+- Local gates: `make pgy`, `make test-transpile`,
+  `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke` are green.
+- C domain role/ability ownership is also split away from propagation
+  provenance. `transpiler_domain_provenance_emit.h` now owns hidden
+  epoch/cause field emission and projection-chain bounded recompute, while
+  `transpiler_domain_role_ability_emit.h` stays focused on role/ability
+  lowering. Current sizes are 237 LOC and 452 LOC respectively.
+- Parity gate after both C owner splits: `make llvm-test-backend-compare`
+  remains green (`196/0` ABI same-process, `65/65` backend compare).
+- C function/class/flow ownership is now below the 600 LOC split-review
+  threshold. `transpiler_class_decl_emit.h` owns non-generic class declaration
+  lowering, while `transpiler_func_class_flow_emit.h` keeps function fallback,
+  generic class specialization, with-slot, and return lowering. Current sizes
+  are 138 LOC and 594 LOC respectively. Local gates: `make pgy`,
+  `make test-transpile`, `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke` are green. Parity gate:
+  `make llvm-test-backend-compare` remains green (`196/0` ABI same-process,
+  `65/65` backend compare).
+
+## UTF-8 Progress Note - 2026-04-29 - Runtime Frontier Policy And C Owner Split
+
+- Stable world outer frontier scheduling now consumes
+  `pgy_frontier_world_transitive_pass_limit(...)` in both the C emitter and the
+  LLVM world sync emitter. The helper currently delegates to the existing
+  monotone `zone_count + state_count + 1` world pass bound, but the contract
+  name makes the world zone-sync plus derived-state recompute family a shared
+  source-of-truth policy instead of a backend-local constant.
+- `make runtime-frontier-contract-test-smoke` now gates the transitive frontier
+  policy helper in `src/codegen/domain_frontier_policy.h` and both C/LLVM
+  world emitters, while keeping the broader world-zone propagation family open
+  as the remaining runtime propagation blocker.
+- C backend world/select/event emission is split by owner:
+  `transpiler_world_select_event_emit.h` now owns world emission only,
+  `transpiler_select_emit.h` owns `select`, and `transpiler_event_emit.h` owns
+  event declarations/subscription lowering. Current sizes are 370, 155, and
+  103 LOC respectively, keeping this family below the 600 LOC split-review
+  threshold without adding `.inc` files.
+- Local gates: `make pgy`, `make runtime-frontier-contract-test-smoke`,
+  `make production-header-size-test-smoke`, and `make backend-inc-size-test-smoke`
+  are green.
+
+## UTF-8 Progress Note - 2026-04-29 - AIR Evidence Diagnostic Consumer
+
+- AIR evidence requirements are now public AIR policy queries:
+  `air_boundary_requires_hir_evidence(...)` and
+  `air_boundary_requires_rir_evidence(...)`.
+- The driver AIR drift diagnostic consumes those AIR facts and distinguishes
+  missing HIR CFG evidence, missing RIR boundary evidence, and missing authority
+  evidence. This removes stale RIR-only wording after strict evidence started
+  requiring HIR CFG evidence for implementation boundaries.
+- HIR evidence matching is now source-specific. A `HIR_TOPLEVEL_INTENT` routine
+  no longer satisfies every AIR boundary by kind alone; it must match the intent
+  owner, step, or boundary source name. `test_air` includes a negative case that
+  rejects unmatched top-level intent HIR evidence while accepting matching RIR
+  boundary evidence.
+- `make air-drift-test-smoke` gates the public policy queries and the
+  HIR/RIR-specific diagnostic wording. `make test-air` is green (`28/0`).
+
+## UTF-8 Progress Note - 2026-04-29 - DAG Type-Ref Shortcut Tightening
+
+- `semantic_type_resolution_lookup_metadata_type_ref(...)` now materializes
+  stable constructed type refs before the resolver compatibility body can run.
+  This moves constructed stable shells reached through the type-ref API onto the
+  DAG metadata path, not the recursive resolver path.
+- `semantic_type_resolution_lookup_type_ref_or_materialize(...)` is now the
+  named metadata-first API for semantic owners that still need diagnostic
+  materialization on unresolved refs.
+- `semantic_stage_resolve_type_quiet(...)` now asks the metadata type-ref API
+  before recording a legacy stage fallback. This keeps signature-stage
+  compatibility callers metadata-first even when they are not fully graph-skipped.
+- Intent participant/value/where type refs and zone authority subject-slot type
+  refs now use the same metadata-first helper before the diagnostic materializer
+  path. Ability where refs, class/func signature refs, action contract refs,
+  domain slot refs, world slot refs, expression/member/operator annotation refs,
+  generic defaults/contract refs, async channel parameter refs, ownership refs,
+  and projection path refs also consume this helper. This narrows the first
+  semantic-owner seam without moving the whole domain AST lowering rewrite into
+  beta.
+- `type-resolution-resolver-inventory-test-smoke` now fails if a semantic owner
+  bypasses the metadata-first helper and calls the diagnostic materializer
+  directly. Only central metadata/diagnostic compatibility owners are allowed to
+  call `semantic_type_resolution_lookup_or_materialize(...)`.
+- DAG gates remain green: `type-resolution-dag-test-smoke` reports
+  `materializer_fallbacks=0`, `legacy_alias=0`, and `legacy_non_alias=0`.
+
 ## UTF-8 Progress Note - 2026-04-28 - LLVM Intent/Domain Owner Split
 
 - LLVM intent declaration ownership is below the 600 LOC split-review
@@ -75,6 +171,50 @@
 - Local gates after the spawn/call split are green: `make pgy`,
   `make llvm-test-smoke`, and `make llvm-test-backend-compare`
   (`196/0` ABI same-process, `64/64` backend compare).
+- CFG body-dataflow consumer tightening: MIR statement population no longer
+  preserves HIR-expanded control containers (`if`, `while`, `for`, `select`,
+  `match`, `break`, `continue`) as fallback `MIR_INST_STMT` instructions when
+  the block already has CFG successor edges. `for` preheader initialization is
+  now a dedicated `MIR_INST_LOOP_INIT` fact consumed by C and LLVM. For-loop
+  condition and backedge emission now consume the header `MIR_INST_BRANCH`
+  metadata instead of re-reading `target->source_ast`. The loop variable and
+  start/end expressions are carried on MIR instructions (`arg0`, `expr0`,
+  `expr1`) and validated by `mir_validate()`. `mir_validate()` rejects
+  CFG-owned control statements that reappear as fallback STMTs, preventing
+  C/LLVM drift from emitting both MIR CFG edges and AST control flow.
+- Follow-up closure: CFG-owned `for value in List<T>` now uses the same MIR
+  facts on both backends. C and LLVM emit a MIR-owned index slot, list-size
+  condition, list-get body binding, and backedge increment instead of falling
+  through AST loop lowering. `tests/cases/backend_compare/for_in_list_int`
+  locks the C/LLVM parity path.
+- Gates after this CFG slice are green: `make test-mir`,
+  `make cfg-body-dataflow-test-smoke`, and
+  `make llvm-test-backend-compare` (`196/0` ABI same-process, `65/65` backend
+  compare).
+- CFG/AIR handoff tightening: `with`, `parallel`, `unsafe`, and `defer` are now
+  included in the CFG-owned boundary set when a MIR block already has successor
+  edges. MIR statement population skips these boundary containers in expanded
+  CFG blocks, and `mir_validate()` rejects them if they reappear as fallback
+  `MIR_INST_STMT` instructions. This keeps AIR boundary verification from
+  inheriting duplicated AST/body-boundary semantics after CFG lowering.
+- AIR abstraction-boundary lift: AIR now has an explicit `execution` boundary
+  kind for `with`, `unsafe`, and `defer`. These boundaries are sync execution
+  boundaries and strict evidence requires HIR/CFG evidence instead of RIR
+  resource-boundary evidence. This closes the first CFG -> AIR handoff seam:
+  AIR can now see body/execution boundary facts that CFG already owns, rather
+  than treating them as ordinary AST containers.
+- ABI ownership shape gate added: `make abi-ownership-shape-test-smoke` now
+  ties the implemented Slot/Pin ABI shape, runtime pin generation/thread/token
+  invariants, C/LLVM pin/unpin lowering, MIR cleanup evidence, backend compare
+  pin fixtures, and Zone-Bound Handle docs contract into one shell-only gate.
+- MIR declaration inventory smoke is shell-only now. It still blocks raw
+  declaration/routine inventory access outside the helper owners, requires MIR
+  method metadata accessors, and keeps `declaration-side MIR-only debt` visible
+  without requiring Python on CI runners.
+- Runtime ABI lifetime smoke is shell-only now. It preserves the borrowed
+  runtime string, result-owned string/array, runtime-owned file-handle, macro
+  export, and ownership proof-doc checks without requiring Python on CI
+  runners.
 
 ## UTF-8 Progress Note - 2026-04-28 - Semantic Owner Split
 
@@ -143,17 +283,38 @@
   `type_checker_resolution_helpers.h`. The header is declaration-only and
   `type-resolution-resolver-inventory-test-smoke` now rejects implementation
   bodies in both resolver helper headers.
+- DAG named builtin/shell lookup no longer lives as a local string table inside
+  `resolve_named_type(...)`. Stable scalar builtins and stable shell names now
+  route through the metadata owner
+  `semantic_type_resolution_metadata_named_builtin_or_shell_singleton(...)`,
+  and `type-resolution-resolver-inventory-test-smoke` rejects reintroducing
+  `strcmp(name, "...")` builtin/shell tables in the compatibility helper.
+- The remaining `resolve_type_node(...)` compatibility entry now asks
+  `semantic_type_resolution_lookup_metadata_type_ref(...)` before entering its
+  legacy body, so bare builtin/named stable refs stay metadata-owned even when
+  an older caller still enters the resolver compatibility function.
+- The metadata type-ref API itself now records stable constructed types before
+  returning unresolved, and the signature-stage quiet resolver consumes that
+  same API before legacy fallback accounting. This narrows the recursive
+  resolver compatibility seam without hard-crashing valid diagnostic paths.
+- Intent/zone/domain/world/action/class/function local type-ref helpers now
+  consume `semantic_type_resolution_lookup_type_ref_or_materialize(...)`, the
+  named metadata-first API that falls back to diagnostic materialization only
+  when metadata cannot answer. The same API now covers expression,
+  generic-default, async-channel, ownership, and projection-path refs; direct
+  materializer calls are blocked outside central compatibility owners.
 - Current sizes: `type_checker_expr.h` 10 LOC,
   `type_checker_expr.c` 392 LOC,
   `type_checker_expr_call.c` 472 LOC,
   `type_checker_expr_host.c` 240 LOC,
   `type_checker_resolve.c` 400 LOC, `type_checker_resolve.h` 14 LOC,
-  `type_checker_resolution_helpers.c` 412 LOC, and
+  `type_checker_resolution_helpers.c` 316 LOC, and
   `type_checker_resolution_helpers.h` 22 LOC. The expression semantic owner
   family is now below the 600 LOC split-review threshold.
-- Local gates: `make test-semantic` is green (`2359/0`). Re-run the full DAG
-  owner gate after this slice with `make type-resolution-resolver-inventory-test-smoke
-  type-resolution-dag-test-smoke semantic-core-shape-test-smoke`.
+- Local gates: `make test-semantic`,
+  `make type-resolution-resolver-inventory-test-smoke`, and
+  `make type-resolution-dag-test-smoke` are green (`2359/0`,
+  fallback seams=0, `materializer_fallbacks=0`).
 
 ## UTF-8 Progress Note - 2026-04-28 - HIR CFG Phi Owner Split
 
@@ -1839,7 +2000,7 @@
 - 보정 이유:
   - 기능 표면만 보면 core/foundation 구현은 넓지만, beta는 기능 개수가 아니라 end-to-end 신뢰도다
   - HIR/MIR CFG skeleton은 이미 있지만, 함수/action/intent body 안전성의 semantic source-of-truth가 아직 CFG/dataflow로 승격되지 않았다. all-path return, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary를 AST/helper traversal만으로 닫으면 strict beta 신뢰도가 부족하다
-  - AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline과 driver semantic-validation wiring이 들어왔다. Intent ↔ implementation drift 검출은 `docs/104_air_compiler_architecture.md`와 `make air-drift-test-smoke`로 gate에 들어왔고, strict evidence는 기본값으로 승격됐다. missing RIR boundary/authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 되며, `authorized by` participant 이름과 RIR authority fact / authorize op subject가 일치해야 한다. authority evidence 누락 진단은 `Reason:` 안에 expected authority participant list를 포함한다. AIR drift message와 synthesized intent/boundary/authority name은 owned lifetime으로 관리되고, repeated drift check가 이전 message를 안전하게 해제하는 회귀 테스트와 parsed-source AIR teardown-safe boundary source 회귀가 있다. `where + transfer`는 더 이상 zone boundary 하나로 접히지 않고 zone boundary와 world-handoff boundary를 모두 합성한다. world-handoff evidence는 이제 matching RIR intent scope만으로 통과하지 않고 boundary source alias에 대한 RIR `Move`/`Claim` transfer op를 요구한다. parsed-source missing-authority-evidence negative와 parsed-source IO execution-boundary missing-evidence negative는 full driver JSON path에서 step source span과 `stage/code/cause_ir/fix_source`까지 고정됐다. expression boundary evidence는 더 이상 owner-name-only RIR scope match로 통과하지 않는다. `PGY_AIR_STRICT_EVIDENCE=0`은 개발/디버그 opt-out이다. `make air-backend-nonimpact-test-smoke`는 relaxed AIR와 default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set에서 같은 C/LLVM 텍스트를 생성하는지 비교한다. `make air-backend-nonimpact-full-test-smoke`는 full frozen backend-compare fixture sweep을 같은 방식으로 돌리고 Linux CI gate로 승격됐다. `make air-strict-backend-compare-test-smoke`는 strict evidence 상태에서 C/LLVM 실행 parity까지 검증한다. parser/lexer baseline JSON routing은 `stage`, `code`, `cause_ir`, `fix_source`까지 닫혔다. 남은 blocker는 AIR transfer/world source negative 확장, Windows native evidence, parser-specific code split / multi-error accumulation이다
+  - AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline과 driver semantic-validation wiring이 들어왔다. Intent ↔ implementation drift 검출은 `docs/104_air_compiler_architecture.md`와 `make air-drift-test-smoke`로 gate에 들어왔고, strict evidence는 기본값으로 승격됐다. missing HIR CFG / RIR boundary / RIR authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 되며, `authorized by` participant 이름과 RIR authority fact / authorize op subject가 일치해야 한다. authority evidence 누락 진단은 `Reason:` 안에 expected authority participant list를 포함한다. AIR drift message와 synthesized intent/boundary/authority name은 owned lifetime으로 관리되고, repeated drift check가 이전 message를 안전하게 해제하는 회귀 테스트와 parsed-source AIR teardown-safe boundary source 회귀가 있다. `where + transfer`는 더 이상 zone boundary 하나로 접히지 않고 zone boundary와 world-handoff boundary를 모두 합성한다. world-handoff evidence는 이제 matching RIR intent scope만으로 통과하지 않고 boundary source alias에 대한 RIR `Move`/`Claim` transfer op를 요구한다. implementation boundary evidence는 이제 HIR CFG proof도 요구하므로 `parallel` / `channel` / IO / execution boundary는 RIR evidence만으로 통과하지 않는다. parsed-source missing-authority-evidence negative와 parsed-source IO execution-boundary missing-evidence negative는 full driver JSON path에서 step source span과 `stage/code/cause_ir/fix_source`까지 고정됐다. expression boundary evidence는 더 이상 owner-name-only RIR scope match로 통과하지 않는다. `PGY_AIR_STRICT_EVIDENCE=0`은 개발/디버그 opt-out이다. `make air-backend-nonimpact-test-smoke`는 relaxed AIR와 default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set에서 같은 C/LLVM 텍스트를 생성하는지 비교한다. `make air-backend-nonimpact-full-test-smoke`는 full frozen backend-compare fixture sweep을 같은 방식으로 돌리고 Linux CI gate로 승격됐다. `make air-strict-backend-compare-test-smoke`는 strict evidence 상태에서 C/LLVM 실행 parity까지 검증한다. parser/lexer baseline JSON routing은 `stage`, `code`, `cause_ir`, `fix_source`까지 닫혔다. 남은 blocker는 AIR transfer/world source negative 확장, Windows native evidence, parser-specific code split / multi-error accumulation이다
   - CFG 소비자 정리: `type_checker_flow_match.c`가 match pattern binding, match exhaustiveness, redundancy, total-coverage lattice를 소유한다. `type_checker_flow.c`는 branch/join, loop/defer/parallel boundary, body return/unreachable flow orchestration에 집중하며 435 LOC로 내려갔다. `semantic-core-shape-test-smoke`는 `type_checker_flow.c`와 `type_checker_flow_match.c`가 모두 600 LOC 이하인지 검사한다.
   - 2026-04-27 AIR IO boundary tightening: intent-step execution scan now treats the stable resource IO/time builtin set as AIR `io` boundaries, not only `ReadFile` / `WriteFile` / `ReadLine`. The gated set is `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep`; `Print` / `Log*` remain observability output calls rather than AIR resource-boundary evidence in Phase 1. `src/test_air.c` keeps the set synchronized with `src/compiler/air_boundary.c`.
   - 2026-04-27 AIR owner split: dump/vocabulary functions moved to `src/compiler/air_dump.c`; `src/compiler/air.c` is back under the 600 LOC split-review threshold and keeps synthesis/drift ownership focused.
@@ -2343,10 +2504,11 @@ Source of truth:
 - 추가 회귀: `handoff_layer_state_frontier_abi`와 `handoff_layer_state_frontier`가 C/LLVM에서 녹색이다. `transfer:` 이후 action-caused effect가 target zone layer/state와 active world-derived layer/state alias까지 같은 tick에서 fresh하게 전파되는 경로를 잠근다
 - 추가 회귀: `world_embedded_action_frontier_abi`와 `world_embedded_action_frontier`가 C/LLVM에서 녹색이다. embedded world-zone subject action call이 action-caused effect layer/state와 active world-derived layer/state alias까지 같은 tick에서 fresh하게 전파되는 경로를 잠근다
 - 추가 회귀: `world_embedded_action_pool_frontier_abi`와 `world_embedded_action_pool_frontier`가 C/LLVM에서 녹색이다. embedded world-zone subject action call의 fixed-capacity effect pool 경로도 같은 frontier 계약으로 잠근다
-- 강한 남은 과제: full bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. 다만 남은 debt는 zone/world frontier loop의 부재가 아니라 remaining authority/failure handoff family와 더 넓은 world-zone propagation family를 같은 source-of-truth로 일반화하는 일이다
+- 추가 closure: authority/failure handoff queryable baseline은 `intent_authority_snapshot(_abi)`와 `authority_failure(_abi|_surface)`가 C/LLVM 양쪽에서 잠그며, authority reject가 process abort 대신 `last_ok / zone / participant / code / reason` 상태와 intent failure trace로 내려오는 최소 recoverable path를 가진다
+- 강한 남은 과제: full bounded fixpoint / transitive frontier scheduler는 **명시적 beta blocker**로 유지. 다만 stable world outer frontier는 C/LLVM 양쪽에서 `pgy_frontier_world_transitive_pass_limit(...)`를 소비하도록 올라왔으므로, 남은 debt는 zone/world frontier loop의 부재나 authority/failure handoff 최소 baseline 부재가 아니라 더 넓은 world-zone propagation family를 같은 source-of-truth frontier policy로 일반화하는 일이다
 - 추가 closure: relation/effect/zone projection sync도 bounded transitive recompute loop로 올라왔고 declaration order에 기대지 않는다
 - 추가 회귀: `projection_chain_abi`가 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`에서 잠겼다
-- 추가 gate: `make runtime-frontier-contract-test-smoke`가 C emitter와 LLVM emitter에서 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, pass-limit overflow hard-fail, ABI smoke 등록, backend-compare 등록을 검사한다. 이 gate는 full bounded fixpoint / transitive frontier scheduler가 다시 single-pass 구현으로 후퇴하지 못하게 막는 beta blocker gate다. 남은 runtime propagation closure는 remaining authority/failure handoff family와 broader world-zone propagation family를 같은 source-of-truth frontier policy로 일반화하는 일이다
+- 추가 gate: `make runtime-frontier-contract-test-smoke`가 C emitter와 LLVM emitter에서 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, authority/failure handoff queryable baseline, pass-limit overflow hard-fail, ABI smoke 등록, backend-compare 등록을 검사한다. 또한 `src/codegen/domain_frontier_policy.h`의 pass-limit source-of-truth helper와 `pgy_frontier_world_transitive_pass_limit(...)`를 C/LLVM emitter가 소비하는지 확인한다. 이 gate는 full bounded fixpoint / transitive frontier scheduler가 다시 single-pass 구현이나 non-queryable authority failure로 후퇴하지 못하게 막는 beta blocker gate다. 남은 runtime propagation closure는 broader world-zone propagation family를 같은 source-of-truth frontier policy로 일반화하는 일이다
 - Beta readiness audit: `docs/98_beta_closure_readiness_report.md` records the current codebase verdict, remaining blockers, and concrete closure order. It narrows the next highest-value implementation target to handoff propagation and broader world-zone scheduler generalization.
 
 ### 최근 closure 진행 (2026-04-23)
@@ -4002,7 +4164,7 @@ Source of truth:
 - Rechecked DAG closure against the current gates:
   `type-resolution-resolver-inventory-test-smoke` reports owner-local fallback
   seams at 0, while `type-resolution-dag-test-smoke` reports
-  `metadata_entries=3358`, `metadata_hits=6744`,
+  `metadata_entries=3363`, `metadata_hits=6751`,
   `materializer_fallbacks=0`.
 - The central metadata materializer fallback inventory is now closed at 0.
   Missing-symbol diagnostics, generic-named fallback, and builtin

@@ -50,6 +50,7 @@ mandatory_targets=(
     "runtime-panic-abi-test-smoke"
     "runtime-panic-codegen-test-smoke"
     "projection-diagnostic-contract-test-smoke"
+    "abi-ownership-shape-test-smoke"
     "diagnostics-json-test-smoke"
     "parser-lexer-diagnostic-test-smoke"
     "diagnostic-registry-test-smoke"

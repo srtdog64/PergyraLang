@@ -83,8 +83,18 @@ Type *
 resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
 {
     Type *metadata_type = resolve_named_type_from_metadata(name, ctx, site);
+    Type *named_builtin;
+
     if (metadata_type != NULL)
         return metadata_type;
+
+    named_builtin = semantic_type_resolution_metadata_named_builtin_or_shell_singleton(
+        name);
+    if (named_builtin != NULL) {
+        semantic_type_resolution_record_named_dependency(ctx, site, name,
+            TYPE_RES_NODE_BUILTIN, NULL, name, "builtin-type lookup");
+        return named_builtin;
+    }
 
     Symbol *sym = scope_lookup(ctx->scope, name);
     if (sym != NULL && sym->kind == SYMBOL_CLASS && sym->type != TYPE_UNKNOWN) {
@@ -95,112 +105,6 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
             ctx, site, name, TYPE_RES_NODE_DECL, decl, name,
             "named-type lookup");
         return sym->type;
-    }
-
-    if (strcmp(name, "Int") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Int", "builtin-type lookup");
-        return TYPE_INT;
-    }
-    if (strcmp(name, "Long") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Long", "builtin-type lookup");
-        return TYPE_LONG;
-    }
-    if (strcmp(name, "Float") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Float", "builtin-type lookup");
-        return TYPE_FLOAT;
-    }
-    if (strcmp(name, "Double") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Double", "builtin-type lookup");
-        return TYPE_DOUBLE;
-    }
-    if (strcmp(name, "Bool") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Bool", "builtin-type lookup");
-        return TYPE_BOOL;
-    }
-    if (strcmp(name, "String") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "String", "builtin-type lookup");
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "QubitSlot") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "QubitSlot", "builtin-type lookup");
-        return TYPE_QUBIT;
-    }
-    if (strcmp(name, "Void") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Void", "builtin-type lookup");
-        return TYPE_VOID;
-    }
-    if (strcmp(name, "Array") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Array", "builtin-type lookup");
-        return TYPE_ARRAY;
-    }
-    if (strcmp(name, "Slice") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Slice", "builtin-type lookup");
-        return TYPE_SLICE;
-    }
-    if (strcmp(name, "List") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "List", "builtin-type lookup");
-        return TYPE_LIST;
-    }
-    if (strcmp(name, "Queue") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Queue", "builtin-type lookup");
-        return TYPE_QUEUE;
-    }
-    if (strcmp(name, "HashMap") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "HashMap", "builtin-type lookup");
-        return TYPE_HASHMAP;
-    }
-    if (strcmp(name, "Set") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Set", "builtin-type lookup");
-        return TYPE_SET;
-    }
-    if (strcmp(name, "Box") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Box", "builtin-type lookup");
-        return TYPE_BOX;
-    }
-    if (strcmp(name, "Rc") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Rc", "builtin-type lookup");
-        return TYPE_RC;
-    }
-    if (strcmp(name, "Weak") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Weak", "builtin-type lookup");
-        return TYPE_WEAK;
-    }
-    if (strcmp(name, "RemoteFuture") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "RemoteFuture", "builtin-type lookup");
-        return TYPE_REMOTE_FUTURE;
-    }
-    if (strcmp(name, "DeviceSlot") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "DeviceSlot", "builtin-type lookup");
-        return TYPE_DEVICE_SLOT;
-    }
-    if (strcmp(name, "Allocator") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Allocator", "builtin-type lookup");
-        return TYPE_ALLOCATOR;
-    }
-    if (strcmp(name, "Option") == 0) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, "Option", "builtin-type lookup");
-        return TYPE_OPTION;
     }
 
     if (sym != NULL && sym->type != TYPE_UNKNOWN) {

@@ -56,10 +56,50 @@ air_boundary_sync_shape_valid(const AIRBoundaryNode *boundary)
         return boundary->sync_class == AIR_SYNC_ASYNC;
     case AIR_BOUNDARY_IO:
         return boundary->sync_class == AIR_SYNC_EITHER;
+    case AIR_BOUNDARY_EXECUTION:
+        return boundary->sync_class == AIR_SYNC_SYNC;
     case AIR_BOUNDARY_ZONE:
         return boundary->sync_class == AIR_SYNC_SYNC
             || boundary->sync_class == AIR_SYNC_ASYNC
             || boundary->sync_class == AIR_SYNC_EITHER;
+    case AIR_BOUNDARY_UNKNOWN:
+    default:
+        return false;
+    }
+}
+
+bool
+air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary)
+{
+    if (boundary == NULL)
+        return false;
+    switch (boundary->kind) {
+    case AIR_BOUNDARY_ZONE:
+    case AIR_BOUNDARY_WORLD:
+    case AIR_BOUNDARY_PARALLEL:
+    case AIR_BOUNDARY_IO:
+    case AIR_BOUNDARY_CHANNEL:
+        return true;
+    case AIR_BOUNDARY_EXECUTION:
+    case AIR_BOUNDARY_UNKNOWN:
+    default:
+        return false;
+    }
+}
+
+bool
+air_boundary_requires_hir_evidence(const AIRBoundaryNode *boundary)
+{
+    if (boundary == NULL)
+        return false;
+    switch (boundary->kind) {
+    case AIR_BOUNDARY_PARALLEL:
+    case AIR_BOUNDARY_IO:
+    case AIR_BOUNDARY_CHANNEL:
+    case AIR_BOUNDARY_EXECUTION:
+        return true;
+    case AIR_BOUNDARY_ZONE:
+    case AIR_BOUNDARY_WORLD:
     case AIR_BOUNDARY_UNKNOWN:
     default:
         return false;
@@ -340,12 +380,33 @@ air_verify(AIRProgram *air, char **error_message)
                 return false;
             }
         }
-        if (air->strict_evidence && !boundary->has_rir_boundary_evidence) {
+        if (air->strict_evidence
+            && air_boundary_requires_rir_evidence(boundary)
+            && !boundary->has_rir_boundary_evidence) {
             char message[512];
             snprintf(message,
                      sizeof(message),
                      PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
                      ": AIR boundary has no matching RIR boundary evidence; implementation boundary '%s' (%s)",
+                     boundary->source_name != NULL ? boundary->source_name : "<unknown>",
+                     air_boundary_kind_name(boundary->kind));
+            if (!air_append_drift(air,
+                                  AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                                  boundary->intent_index,
+                                  i,
+                                  message,
+                                  error_message)) {
+                return false;
+            }
+        }
+        if (air->strict_evidence
+            && air_boundary_requires_hir_evidence(boundary)
+            && !boundary->has_hir_routine_evidence) {
+            char message[512];
+            snprintf(message,
+                     sizeof(message),
+                     PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                     ": AIR implementation boundary has no matching HIR CFG evidence; implementation boundary '%s' (%s)",
                      boundary->source_name != NULL ? boundary->source_name : "<unknown>",
                      air_boundary_kind_name(boundary->kind));
             if (!air_append_drift(air,

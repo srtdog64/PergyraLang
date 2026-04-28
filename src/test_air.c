@@ -267,6 +267,60 @@ test_air_strict_evidence_reports_missing_boundary(void)
 }
 
 static bool
+test_air_strict_evidence_requires_hir_for_implementation_boundary(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "dispatch",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_PARALLEL,
+            .owner_name = "ShipOrder",
+            .source_name = "spawn",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+            .has_rir_boundary_evidence = true,
+            .rir_boundary_evidence_scope = "spawn",
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .strict_evidence = true,
+    };
+    char *error = NULL;
+    bool found_hir_evidence_drift = false;
+    bool checked = air_check_drift(&air, &error);
+
+    for (size_t i = 0; i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+            && strstr(air.drifts[i].message,
+                      "AIR implementation boundary has no matching HIR CFG evidence") != NULL
+            && strstr(air.drifts[i].message, "spawn") != NULL
+            && strstr(air.drifts[i].message, "parallel") != NULL) {
+            found_hir_evidence_drift = true;
+            break;
+        }
+    }
+
+    bool ok = checked
+        && air.drift_count == 1
+        && found_hir_evidence_drift;
+    test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_recheck_clears_owned_drift_messages(void)
 {
     const char *authority_names[] = { "shipper" };
@@ -1148,6 +1202,92 @@ test_air_synthesizes_spawn_boundary_from_step_ast(void)
 }
 
 static bool
+test_air_rejects_unmatched_top_level_intent_hir_evidence(void)
+{
+    ASTNode intent_ast = { .line = 24, .column = 1 };
+    ASTNode *step_ast = ast_create_intent_step("dispatch");
+    ASTNode *call = ast_create_call(ast_create_identifier("Worker"));
+    ASTNode *spawn = ast_create_spawn_expression(call);
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "ShipOrder", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        { .index = 0, .name = "dispatch", .ast = step_ast },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    HIRRoutine routines[] = {
+        {
+            .kind = HIR_TOPLEVEL_INTENT,
+            .name = "OtherIntent",
+        },
+    };
+    HIRProgram hir = {
+        .routines = routines,
+        .routine_count = 1,
+    };
+    RIRScope scopes[] = {
+        {
+            .kind = RIR_SCOPE_INTENT,
+            .name = "spawn",
+        },
+    };
+    RIRProgram rir = {
+        .scopes = scopes,
+        .scope_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air;
+    bool found_hir_evidence_drift = false;
+    bool ok;
+
+    if (step_ast == NULL || call == NULL || spawn == NULL) {
+        ast_destroy(step_ast);
+        if (spawn == NULL)
+            ast_destroy(call);
+        ast_destroy(spawn);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(1, sizeof(ASTNode *));
+    if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(step_ast);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs[0] = spawn;
+    step_ast->data.intent_step.on_expr_count = 1;
+
+    air = air_synthesize(&hir, &dir, &rir, &error);
+    if (air != NULL) {
+        for (size_t i = 0; i < air->drift_count; i++) {
+            if (air->drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+                && strstr(air->drifts[i].message,
+                          "AIR implementation boundary has no matching HIR CFG evidence") != NULL) {
+                found_hir_evidence_drift = true;
+                break;
+            }
+        }
+    }
+
+    ok = air != NULL
+        && air->boundary_count == 1
+        && air->boundaries[0].kind == AIR_BOUNDARY_PARALLEL
+        && !air->boundaries[0].has_hir_routine_evidence
+        && air->boundaries[0].has_rir_boundary_evidence
+        && found_hir_evidence_drift;
+    air_destroy(air);
+    free(error);
+    ast_destroy(step_ast);
+    return ok;
+}
+
+static bool
 test_air_synthesizes_io_boundary_without_sync_drift(void)
 {
     ASTNode intent_ast = { .line = 30, .column = 1 };
@@ -1303,6 +1443,9 @@ test_air_synthesizes_stable_execution_boundary_set(void)
                                             ast_create_number("1"));
     ASTNode *recv = ast_create_channel_recv(ast_create_identifier("ch"));
     ASTNode *select_stmt = ast_create_select_statement();
+    ASTNode *with_stmt = ast_create_with_statement();
+    ASTNode *unsafe_block = ast_create_unsafe_block(ast_create_block());
+    ASTNode *defer_stmt = ast_create_defer_statement(ast_create_block());
     DIRNode nodes[] = {
         { .id = 1, .kind = DIR_NODE_INTENT, .name = "CoordinateWork", .ast = &intent_ast },
     };
@@ -1325,16 +1468,23 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     bool found_send = false;
     bool found_recv = false;
     bool found_select = false;
+    bool found_with = false;
+    bool found_unsafe = false;
+    bool found_defer = false;
     bool ok;
 
     if (step_ast == NULL || parallel == NULL || async_block == NULL
-        || send == NULL || recv == NULL || select_stmt == NULL) {
+        || send == NULL || recv == NULL || select_stmt == NULL
+        || with_stmt == NULL || unsafe_block == NULL || defer_stmt == NULL) {
         ast_destroy(step_ast);
         ast_destroy(parallel);
         ast_destroy(async_block);
         ast_destroy(send);
         ast_destroy(recv);
         ast_destroy(select_stmt);
+        ast_destroy(with_stmt);
+        ast_destroy(unsafe_block);
+        ast_destroy(defer_stmt);
         return false;
     }
     parallel->line = 51;
@@ -1342,7 +1492,23 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     send->line = 53;
     recv->line = 54;
     select_stmt->line = 55;
-    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(5, sizeof(ASTNode *));
+    with_stmt->line = 56;
+    unsafe_block->line = 57;
+    defer_stmt->line = 58;
+    with_stmt->data.with_stmt.body = ast_create_block();
+    if (with_stmt->data.with_stmt.body == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(parallel);
+        ast_destroy(async_block);
+        ast_destroy(send);
+        ast_destroy(recv);
+        ast_destroy(select_stmt);
+        ast_destroy(with_stmt);
+        ast_destroy(unsafe_block);
+        ast_destroy(defer_stmt);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(8, sizeof(ASTNode *));
     if (step_ast->data.intent_step.on_exprs == NULL) {
         ast_destroy(step_ast);
         ast_destroy(parallel);
@@ -1350,6 +1516,9 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         ast_destroy(send);
         ast_destroy(recv);
         ast_destroy(select_stmt);
+        ast_destroy(with_stmt);
+        ast_destroy(unsafe_block);
+        ast_destroy(defer_stmt);
         return false;
     }
     step_ast->data.intent_step.on_exprs[0] = parallel;
@@ -1357,7 +1526,10 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     step_ast->data.intent_step.on_exprs[2] = send;
     step_ast->data.intent_step.on_exprs[3] = recv;
     step_ast->data.intent_step.on_exprs[4] = select_stmt;
-    step_ast->data.intent_step.on_expr_count = 5;
+    step_ast->data.intent_step.on_exprs[5] = with_stmt;
+    step_ast->data.intent_step.on_exprs[6] = unsafe_block;
+    step_ast->data.intent_step.on_exprs[7] = defer_stmt;
+    step_ast->data.intent_step.on_expr_count = 8;
 
     air = air_synthesize(NULL, &dir, NULL, &error);
     if (air != NULL) {
@@ -1378,15 +1550,27 @@ test_air_synthesizes_stable_execution_boundary_set(void)
             if (boundary->kind == AIR_BOUNDARY_CHANNEL
                 && strcmp(boundary->source_name, "select") == 0)
                 found_select = true;
+            if (boundary->kind == AIR_BOUNDARY_EXECUTION
+                && strcmp(boundary->source_name, "with") == 0)
+                found_with = true;
+            if (boundary->kind == AIR_BOUNDARY_EXECUTION
+                && strcmp(boundary->source_name, "unsafe") == 0)
+                found_unsafe = true;
+            if (boundary->kind == AIR_BOUNDARY_EXECUTION
+                && strcmp(boundary->source_name, "defer") == 0)
+                found_defer = true;
         }
     }
     ok = air != NULL
-        && air->boundary_count == 5
+        && air->boundary_count == 8
         && found_parallel
         && found_async
         && found_send
         && found_recv
-        && found_select;
+        && found_select
+        && found_with
+        && found_unsafe
+        && found_defer;
     air_destroy(air);
     free(error);
     ast_destroy(step_ast);
@@ -1607,6 +1791,9 @@ main(void)
     TEST("AIR strict evidence reports missing RIR boundary");
     EXPECT(test_air_strict_evidence_reports_missing_boundary());
 
+    TEST("AIR strict evidence requires HIR for implementation boundary");
+    EXPECT(test_air_strict_evidence_requires_hir_for_implementation_boundary());
+
     TEST("AIR recheck clears owned drift messages");
     EXPECT(test_air_recheck_clears_owned_drift_messages());
 
@@ -1654,6 +1841,9 @@ main(void)
 
     TEST("AIR synthesis captures spawn boundary from intent step AST");
     EXPECT(test_air_synthesizes_spawn_boundary_from_step_ast());
+
+    TEST("AIR rejects unmatched top-level intent HIR evidence");
+    EXPECT(test_air_rejects_unmatched_top_level_intent_hir_evidence());
 
     TEST("AIR synthesis captures IO boundary without sync drift");
     EXPECT(test_air_synthesizes_io_boundary_without_sync_drift());

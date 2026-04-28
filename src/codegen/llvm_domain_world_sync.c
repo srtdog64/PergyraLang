@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_domain_world_sync_internal.h"
+#include "domain_frontier_policy.h"
 
 void
 llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
@@ -152,9 +153,11 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             LLVMValueRef continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
                 "world.derived.continue.addr");
             LLVMValueRef frontier_limit_val = LLVMConstInt(ctx->type_i32,
-                (unsigned long long)(zone_count + stmt->data.world_decl.state_count + 1), 0);
+                (unsigned long long)pgy_frontier_world_transitive_pass_limit(zone_count,
+                    stmt->data.world_decl.state_count), 0);
             LLVMValueRef limit_val = LLVMConstInt(ctx->type_i32,
-                (unsigned long long)(stmt->data.world_decl.state_count + 1), 0);
+                (unsigned long long)pgy_frontier_world_derived_pass_limit(
+                    stmt->data.world_decl.state_count), 0);
             LLVMBasicBlockRef frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
                 "world.frontier.check");
             LLVMBasicBlockRef frontier_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,

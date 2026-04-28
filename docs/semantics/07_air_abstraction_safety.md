@@ -1,13 +1,14 @@
 # AIR Abstraction Safety
 
-Last updated: 2026-04-27
+Last updated: 2026-04-29
 
 Status: `beta-proof-obligation`
 
 Stable surface: AIR (Abstraction Intent Representation) is a verification-only
 synthesis IR for intent abstraction safety. Phase 1 covers `Intent Node`,
 `Boundary Node`, `PGY_SEM_INTENT_BOUNDARY_DRIFT` for sync/async drift, and
-default strict evidence diagnostics for missing RIR boundary/authority proof.
+default strict evidence diagnostics for missing HIR CFG, RIR boundary, and RIR
+authority proof.
 
 Out of scope for beta: AIR is not a codegen IR, not the ownership/borrow checker
 home, not the type checker home, not the effect propagation engine, and not a
@@ -44,8 +45,11 @@ compatibility.
 
 `AIR evidence_complete`
 
-Every AIR boundary node in the stable intent subset must have matching RIR
-boundary evidence, and authority-requiring boundaries must also have matching
+Every AIR boundary node in the stable intent subset must satisfy the evidence
+policy for its boundary class. Zone and world boundaries require RIR boundary
+evidence. Parallel, channel, IO, and execution implementation boundaries require
+HIR CFG evidence; parallel, channel, and IO additionally require source-specific
+RIR boundary evidence. Authority-requiring boundaries must also have matching
 RIR authority evidence. Missing evidence is reported as
 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`; it is not silently accepted as no
 drift. `PGY_AIR_STRICT_EVIDENCE=0` is a development/debug opt-out, not the beta
@@ -122,10 +126,13 @@ represented by at least one AIR `Boundary Node`.
   zone/world boundary nodes when both are present, recursively scans intent-step
   execution clauses for `spawn` / `async` / `parallel`, `channel` / `select`,
   and known IO calls, then records HIR/RIR evidence flags and provenance names
-  per boundary. World boundaries require source-specific RIR `Move` / `Claim`
-  transfer evidence instead of accepting a generic matching RIR intent scope.
-  Default strict evidence mode turns missing RIR boundary/authority evidence into
-  `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`. `src/test_air.c` covers direct
+  per boundary. Implementation boundaries (`spawn` / `async` / `parallel`,
+  `channel` / `select`, IO calls, `with` / `unsafe` / `defer`) must have HIR CFG
+  evidence, so RIR evidence alone cannot discharge a body-boundary proof.
+  World boundaries require source-specific RIR `Move` / `Claim` transfer
+  evidence instead of accepting a generic matching RIR intent scope. Default
+  strict evidence mode turns missing HIR CFG, RIR boundary, or RIR authority
+  evidence into `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`. `src/test_air.c` covers direct
   AST-backed spawn and IO boundary synthesis, parsed-source IO boundary
   missing-evidence, direct world-boundary transfer evidence accept/reject, and
   parsed-source `where + transfer` zone/world boundary preservation with RIR
@@ -156,12 +163,14 @@ represented by at least one AIR `Boundary Node`.
 ## Theorem: Strict Evidence Failure Soundness
 
 If AIR reports `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`, then the synthesized
-boundary lacks either RIR boundary evidence or required RIR authority evidence.
+boundary lacks required HIR CFG evidence, required RIR boundary evidence, or
+required RIR authority evidence.
 
 - **Reason**: abstraction safety cannot be beta-trusted if an intent boundary can
   pass without lowering-visible boundary or authority proof.
-- **Evidence**: `src/compiler/air_verify.c` checks each boundary's RIR evidence
-  flags by default, and `src/test_air.c` covers strict-evidence missing-boundary,
+- **Evidence**: `src/compiler/air_verify.c` checks each boundary's HIR/RIR
+  evidence policy by default, and `src/test_air.c` covers strict-evidence
+  missing-boundary, implementation-boundary-without-HIR-CFG-evidence,
   mismatched-authority, world-boundary-without-transfer-op drifts, and
   parsed-source transfer with zone missing-authority evidence while preserving
   world transfer evidence.

@@ -21,10 +21,10 @@ air_hir_routine_matches_boundary(const HIRRoutine *routine,
 {
     if (routine == NULL || intent == NULL || boundary == NULL)
         return false;
-    if (routine->kind == HIR_TOPLEVEL_INTENT)
-        return true;
     return air_name_matches(routine->owner_name, intent->intent_owner)
         || air_name_matches(routine->name, intent->step_name)
+        || air_name_matches(routine->name, intent->intent_owner)
+        || air_name_matches(routine->owner_name, boundary->source_name)
         || air_name_matches(routine->name, boundary->source_name);
 }
 

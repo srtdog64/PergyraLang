@@ -247,6 +247,7 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
             if (kind != MIR_INST_BRANCH && kind != MIR_INST_RETURN
                 && kind != MIR_INST_RESOURCE_OP && kind != MIR_INST_CLEANUP_EDGE
                 && kind != MIR_INST_PHI && kind != MIR_INST_DEF
+                && kind != MIR_INST_LOOP_INIT
                 && kind != MIR_INST_STMT) {
                 if (reason != NULL && reason_cap > 0)
                     snprintf(reason, reason_cap, "MIR contract invalid for %s: unsupported instruction kind %d in block %llu",
@@ -312,6 +313,7 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
                    && inst->kind != MIR_INST_DEF
                    && inst->kind != MIR_INST_PHI
                    && inst->kind != MIR_INST_CLEANUP_EDGE
+                   && inst->kind != MIR_INST_LOOP_INIT
                    && inst->kind != MIR_INST_STMT) {
             continue;
         }

@@ -46,7 +46,9 @@ require_terms() {
 }
 
 for rel in \
+    "src/codegen/domain_frontier_policy.h" \
     "src/codegen/transpiler_domain_nominal_emit.h" \
+    "src/codegen/transpiler_domain_provenance_emit.h" \
     "src/codegen/transpiler_zone_decl_emit.h" \
     "src/codegen/transpiler_world_select_event_emit.h" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
@@ -71,6 +73,7 @@ llvm_projection_contract="$tmp_dir/llvm_projection_contract.txt"
 c_frontier_text="$tmp_dir/c_frontier_text.txt"
 
 cat \
+    "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.h" \
     > "$c_zone_contract"
@@ -87,12 +90,14 @@ cat \
     > "$llvm_projection_contract"
 
 cat \
+    "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.h" \
     "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.h" \
     > "$c_frontier_text"
 
 require_terms "C zone frontier emitter" "$c_zone_contract" \
+    "pgy_frontier_zone_pass_limit" \
     "_pgy_zone_frontier_pass_limit" \
     "while (_pgy_zone_frontier_continue && _pgy_zone_frontier_pass < _pgy_zone_frontier_pass_limit)" \
     "_pgy_zone_frontier_continue = true" \
@@ -100,6 +105,8 @@ require_terms "C zone frontier emitter" "$c_zone_contract" \
     "zone frontier recompute exceeded bounded pass limit"
 
 require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.h" \
+    "pgy_frontier_world_transitive_pass_limit" \
+    "pgy_frontier_world_derived_pass_limit" \
     "_pgy_world_frontier_pass_limit" \
     "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit)" \
     "_pgy_world_frontier_continue = true" \
@@ -109,13 +116,17 @@ require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world
     "PGY_PANIC" \
     "world derived recompute exceeded bounded pass limit"
 
-require_terms "C projection frontier emitter" "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h" \
+require_terms "C projection frontier emitter" "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
+    "pgy_frontier_projection_pass_limit" \
     "_pgy_%s_pass_limit" \
     "while (_pgy_%s_continue && _pgy_%s_pass < _pgy_%s_pass_limit)" \
     "PGY_PANIC" \
     "projection recompute exceeded bounded pass limit"
 
 require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
+    "pgy_frontier_zone_pass_limit" \
+    "pgy_frontier_world_transitive_pass_limit" \
+    "pgy_frontier_world_derived_pass_limit" \
     "zone.frontier.pass.addr" \
     "zone.frontier.continue.addr" \
     "zone.frontier.overflow" \
@@ -127,14 +138,24 @@ require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
     "LLVMBuildUnreachable"
 
 require_terms "LLVM projection frontier emitter" "$llvm_projection_contract" \
+    "pgy_frontier_projection_pass_limit" \
     "projection.loop.overflow" \
     "llvm_lookup_or_create_function(ctx, \"abort\"" \
     "LLVMBuildUnreachable"
+
+require_terms "frontier policy source of truth" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
+    "pgy_frontier_projection_pass_limit" \
+    "pgy_frontier_zone_pass_limit" \
+    "pgy_frontier_world_pass_limit" \
+    "pgy_frontier_world_transitive_pass_limit" \
+    "pgy_frontier_world_derived_pass_limit"
 
 require_terms "ABI pipeline frontier case registry" "$ROOT_DIR/tests/abi_pipeline_smoke.sh" \
     "world_fixpoint_abi" \
     "projection_chain_abi" \
     "zone_frontier_abi" \
+    "intent_authority_snapshot_abi" \
+    "authority_failure_abi" \
     "world_embedded_projection_abi" \
     "world_embedded_method_projection_abi" \
     "world_embedded_branch_projection_abi" \
@@ -145,6 +166,8 @@ require_terms "ABI pipeline frontier case registry" "$ROOT_DIR/tests/abi_pipelin
     "handoff_layer_state_frontier_abi"
 
 require_terms "backend-compare frontier case registry" "$ROOT_DIR/tests/compare_backends.sh" \
+    "tests/cases/backend_compare/intent_authority_snapshot" \
+    "tests/cases/backend_compare/authority_failure_surface" \
     "tests/cases/backend_compare/world_embedded_branch_projection_visibility" \
     "tests/cases/backend_compare/world_embedded_action_frontier" \
     "tests/cases/backend_compare/world_embedded_action_pool_frontier" \
@@ -152,14 +175,41 @@ require_terms "backend-compare frontier case registry" "$ROOT_DIR/tests/compare_
     "tests/cases/backend_compare/handoff_world_state_frontier" \
     "tests/cases/backend_compare/handoff_layer_state_frontier"
 
+require_terms "C authority/failure frontier surface" "$ROOT_DIR/src/codegen/transpiler_block_intent_helpers.h" \
+    "pgy_zone_authority_validate_flags_export" \
+    "__intent_failed = true" \
+    "authority:%s" \
+    "goto __intent_cleanup"
+
+require_terms "LLVM authority/failure frontier surface" "$ROOT_DIR/src/codegen/llvm_intent_flow.c" \
+    "pgy_zone_authority_validate_flags_export" \
+    "llvm_emit_intent_presence_flag(ctx, zone_alias)" \
+    "llvm_emit_intent_presence_flag(ctx, alias)" \
+    "authority:%s" \
+    "LLVMBuildCondBr(ctx->builder, ok, ok_bb, fail_bb)"
+
+require_terms "runtime authority queryable failure surface" "$ROOT_DIR/src/runtime/pgy_runtime_authority_contract.h" \
+    "PGY_ZONE_AUTHORITY_CODE_MISSING_ZONE" \
+    "PGY_ZONE_AUTHORITY_CODE_MISSING_PARTICIPANT" \
+    "PGY_ZONE_AUTHORITY_CODE_TOKEN_MISMATCH"
+
+require_terms "runtime authority queryable failure exports" "$ROOT_DIR/src/runtime/pgy_runtime_lib_authority_file_core.h" \
+    "pgy_zone_authority_validate_flags_export" \
+    "pgy_zone_authority_last_ok_rt_export" \
+    "pgy_zone_authority_last_zone_rt_export" \
+    "pgy_zone_authority_last_participant_rt_export" \
+    "pgy_zone_authority_last_code_rt_export" \
+    "pgy_zone_authority_last_reason_rt_export"
+
 for doc in "$ROOT_DIR/docs/100_beta_readiness_checklist.md" "$ROOT_DIR/TODO.md"; do
     require_terms "runtime frontier docs" "$doc" \
         "world derived-state bounded recompute" \
         "zone lifecycle bounded frontier loop" \
         "projection-chain bounded recompute" \
         "embedded world-zone action-caused layer/state freshness" \
+        "authority/failure handoff queryable baseline" \
         "full bounded fixpoint / transitive frontier scheduler" \
-        "remaining authority/failure handoff family"
+        "broader world-zone propagation family"
 done
 
 if grep -Eiq 'frontier.*single[- ]pass' "$c_frontier_text"; then

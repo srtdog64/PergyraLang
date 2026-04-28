@@ -67,6 +67,10 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
     if (metadata_type != NULL)
         return metadata_type;
 
+    metadata_type = semantic_type_resolution_lookup_metadata_type_ref(ctx, node);
+    if (metadata_type != NULL)
+        return metadata_type;
+
     if (cache_disabled < 0) {
         const char *env = getenv("PGY_DISABLE_TYPE_CACHE");
         cache_disabled = (env != NULL && env[0] != '\0' && env[0] != '0') ? 1 : 0;

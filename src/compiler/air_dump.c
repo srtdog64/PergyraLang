@@ -99,6 +99,7 @@ air_boundary_kind_name(AIRBoundaryKind kind)
     case AIR_BOUNDARY_PARALLEL: return "parallel";
     case AIR_BOUNDARY_IO: return "io";
     case AIR_BOUNDARY_CHANNEL: return "channel";
+    case AIR_BOUNDARY_EXECUTION: return "execution";
     }
     return "invalid";
 }

@@ -155,7 +155,7 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
         if (arg == NULL || param == NULL || param->mode != PARAM_MODE_REF)
             continue;
 
-        param_type = semantic_type_resolution_lookup_or_materialize(ctx, param->type);
+        param_type = semantic_type_resolution_lookup_type_ref_or_materialize(ctx, param->type);
         ownership_class = semantic_classify_ownership_type(param_type, ctx);
         if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
             continue;

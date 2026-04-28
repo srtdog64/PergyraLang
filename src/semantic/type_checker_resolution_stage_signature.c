@@ -50,6 +50,12 @@ semantic_stage_resolve_type_quiet(ASTNode *type_node,
         return TYPE_UNKNOWN;
     }
 
+    resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_node);
+    if (resolved != NULL) {
+        semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
+        return resolved;
+    }
+
     ctx->type_resolution_stage_legacy_resolve_count++;
     semantic_stage_record_legacy_family(ctx, reason);
     saved_diag = ctx->diagnostic_count;

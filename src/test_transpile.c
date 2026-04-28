@@ -4010,7 +4010,7 @@ test_stdlib_and_enum_emit(void)
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_list_new_Event()");
-        EXPECT_STR_CONTAINS(ctx->out->data, "for (size_t _pgy_idx_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_idx_");
         EXPECT_STR_CONTAINS(ctx->out->data, ".count");
         EXPECT_STR_CONTAINS(ctx->out->data, ".data[_pgy_idx_");
 
