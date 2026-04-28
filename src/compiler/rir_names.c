@@ -1,7 +1,4 @@
-#ifndef PGY_RIR_NAMES_H
-#define PGY_RIR_NAMES_H
-
-/* Public RIR vocabulary names used by validation and dump surfaces. */
+#include "rir.h"
 
 const char *
 rir_scope_kind_name(RIRScopeKind kind)
@@ -109,5 +106,3 @@ rir_op_kind_name(RIROpKind kind)
         default: return "unknown";
     }
 }
-
-#endif /* PGY_RIR_NAMES_H */

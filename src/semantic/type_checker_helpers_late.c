@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Type Checker — late / call-path helpers.
+ * Type Checker ??late / call-path helpers.
  * Owns the large call-typing and borrowed-boundary argument validator logic
  * as a focused translation unit. See docs/101_semantic_split_template.md.
  */
@@ -28,190 +28,6 @@ static Type *
 late_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
     return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
-}
-
-bool
-semantic_find_active_slot_view(Scope *scope,
-                               const char **view_name_out,
-                               const char **view_kind_out,
-                               const char **source_slot_out)
-{
-    if (view_name_out != NULL)
-        *view_name_out = NULL;
-    if (view_kind_out != NULL)
-        *view_kind_out = NULL;
-    if (source_slot_out != NULL)
-        *source_slot_out = NULL;
-
-    for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
-        for (size_t i = 0; i < cur->symbol_count; i++) {
-            Symbol *sym = cur->symbols[i];
-            bool is_read;
-            bool is_write;
-
-            if (sym == NULL || sym->type == NULL)
-                continue;
-            is_read = type_is_read_view(sym->type);
-            is_write = type_is_write_view(sym->type);
-            if (!is_read && !is_write)
-                continue;
-
-            if (view_name_out != NULL)
-                *view_name_out = sym->name;
-            if (view_kind_out != NULL)
-                *view_kind_out = is_write ? "WriteView" : "ReadView";
-            if (source_slot_out != NULL)
-                *source_slot_out = sym->slot_info.paired_slot_name;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool
-semantic_find_active_slot_view_for_source(Scope *scope,
-                                          const char *source_slot,
-                                          const char **view_name_out,
-                                          const char **view_kind_out,
-                                          bool *is_write_view_out)
-{
-    if (view_name_out != NULL)
-        *view_name_out = NULL;
-    if (view_kind_out != NULL)
-        *view_kind_out = NULL;
-    if (is_write_view_out != NULL)
-        *is_write_view_out = false;
-    if (source_slot == NULL)
-        return false;
-
-    for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
-        for (size_t i = 0; i < cur->symbol_count; i++) {
-            Symbol *sym = cur->symbols[i];
-            bool is_read;
-            bool is_write;
-
-            if (sym == NULL || sym->type == NULL
-                || sym->slot_info.paired_slot_name == NULL
-                || strcmp(sym->slot_info.paired_slot_name, source_slot) != 0) {
-                continue;
-            }
-
-            is_read = type_is_read_view(sym->type);
-            is_write = type_is_write_view(sym->type);
-            if (!is_read && !is_write)
-                continue;
-
-            if (view_name_out != NULL)
-                *view_name_out = sym->name;
-            if (view_kind_out != NULL)
-                *view_kind_out = is_write ? "WriteView" : "ReadView";
-            if (is_write_view_out != NULL)
-                *is_write_view_out = is_write;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool
-semantic_reject_active_slot_owner_escape(ASTNode *site,
-                                         SemanticContext *ctx,
-                                         const char *escape_kind,
-                                         const char *escape_name)
-{
-    const char *slot_name;
-    Symbol *sym;
-    const char *active_view_name = NULL;
-    const char *active_view_kind = NULL;
-
-    if (site == NULL || ctx == NULL || site->type != AST_IDENTIFIER
-        || site->data.identifier.name == NULL) {
-        return false;
-    }
-
-    slot_name = site->data.identifier.name;
-    sym = scope_lookup(ctx->scope, slot_name);
-    if (sym == NULL || sym->kind != SYMBOL_SLOT || sym->type == NULL
-        || !type_is_owned_slot_handle(sym->type)) {
-        return false;
-    }
-
-    if (!semantic_find_active_slot_view_for_source(ctx->scope, sym->name,
-            &active_view_name, &active_view_kind, NULL)) {
-        return false;
-    }
-
-    semantic_error_with_hints(ctx,
-        PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
-        PGY_CAUSE_PIN_PARALLEL_CONFLICT,
-        PGY_FIX_SERIALIZE_PIN_ACCESS,
-        site,
-        "Cannot store or forward slot '%s' through %s '%s' while %s '%s' is live.\n"
-        "Reason:\n"
-        "- pinned views are scoped capability leases over the source slot\n"
-        "- escaping the owner handle would let code outside the view scope read, write, release, or forward the source\n"
-        "Fix:\n"
-        "- store a copied value read through the active view when that is intended\n"
-        "- or end the pin/view scope before passing '%s' through %s",
-        sym->name,
-        escape_kind != NULL ? escape_kind : "boundary",
-        escape_name != NULL ? escape_name : "<unknown>",
-        active_view_kind != NULL ? active_view_kind : "view",
-        active_view_name != NULL ? active_view_name : "<view>",
-        sym->name,
-        escape_kind != NULL ? escape_kind : "that boundary");
-    return true;
-}
-
-static ASTNode *
-lookup_function_param_contract_local(SemanticContext *ctx,
-                                     const char *display_name,
-                                     size_t arg_index,
-                                     ParamMode *mode_out)
-{
-    if (mode_out != NULL)
-        *mode_out = PARAM_MODE_DEFAULT;
-
-    if (ctx == NULL || ctx->program_root == NULL || display_name == NULL)
-        return NULL;
-
-    ASTNode *prog = ctx->program_root;
-    for (size_t si = 0; si < prog->data.program.count; si++) {
-        ASTNode *stmt = prog->data.program.statements[si];
-        if (stmt == NULL || stmt->type != AST_FUNC_DECL
-            || stmt->data.func_decl.name == NULL
-            || strcmp(stmt->data.func_decl.name, display_name) != 0
-            || arg_index >= stmt->data.func_decl.param_count) {
-            continue;
-        }
-        if (mode_out != NULL && stmt->data.func_decl.params[arg_index] != NULL)
-            *mode_out = stmt->data.func_decl.params[arg_index]->mode;
-        return stmt;
-    }
-
-    return NULL;
-}
-
-static unsigned
-callable_param_escape_summary_local(ASTNode *callee_decl,
-                                    size_t arg_index,
-                                    SemanticContext *ctx)
-{
-    if (callee_decl == NULL
-        || callee_decl->type != AST_FUNC_DECL
-        || callee_decl->data.func_decl.body == NULL
-        || arg_index >= callee_decl->data.func_decl.param_count) {
-        return 0u;
-    }
-
-    return slot_analyze_param_summary_in_program(
-        callee_decl->data.func_decl.body,
-        callee_decl->data.func_decl.params[arg_index] != NULL
-            ? callee_decl->data.func_decl.params[arg_index]->name
-            : NULL,
-        ctx != NULL ? ctx->program_root : NULL);
 }
 
 Type *
@@ -386,7 +202,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     resource_handle_display_name(param_type));
                 continue;
             }
-            callee_decl = lookup_function_param_contract_local(
+            callee_decl = semantic_lookup_function_param_contract(
                 ctx, display_name, i, &pmode);
             if (pmode == PARAM_MODE_REF
                 && callee_decl != NULL
@@ -394,7 +210,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 const char *borrowed_name =
                     semantic_borrowed_boundary_root_name(
                         expr->data.call.arguments[i], ctx);
-                unsigned callee_mask = callable_param_escape_summary_local(
+                unsigned callee_mask = semantic_callable_param_escape_summary(
                     callee_decl, i, ctx);
                 if (borrowed_name != NULL
                     && (callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
@@ -463,7 +279,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     type_name_or_unknown(arg_type));
                 continue;
             }
-            callee_decl = lookup_function_param_contract_local(
+            callee_decl = semantic_lookup_function_param_contract(
                 ctx, display_name, i, &pmode);
             if (!semantic_validate_borrowed_boundary_call_argument(
                     expr->data.call.arguments[i],
@@ -508,7 +324,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     type_name_or_unknown(arg_type));
                 continue;
             }
-            callee_decl = lookup_function_param_contract_local(
+            callee_decl = semantic_lookup_function_param_contract(
                 ctx, display_name, i, &pmode);
             if (!semantic_validate_borrowed_boundary_call_argument(
                     expr->data.call.arguments[i],
@@ -546,7 +362,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             }
             {
                 ParamMode pmode = PARAM_MODE_DEFAULT;
-                ASTNode *callee_decl = lookup_function_param_contract_local(
+                ASTNode *callee_decl = semantic_lookup_function_param_contract(
                     ctx, display_name, i, &pmode);
                 if (pmode == PARAM_MODE_DEFAULT) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
@@ -646,135 +462,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         require_assignable(arg_type, param_type, expr->data.call.arguments[i], ctx);
     }
 
-    /* Validate generic function where-clause constraints */
-    if (ctx->program_root != NULL) {
-        ASTNode *prog = ctx->program_root;
-        for (size_t si = 0; si < prog->data.program.count; si++) {
-            ASTNode *stmt = prog->data.program.statements[si];
-            if (stmt != NULL && stmt->type == AST_FUNC_DECL
-                && stmt->data.func_decl.name != NULL
-                && strcmp(stmt->data.func_decl.name, display_name) == 0
-                && stmt->data.func_decl.generic_params != NULL
-                && stmt->data.func_decl.generic_params->count > 0
-                && stmt->data.func_decl.where_clause != NULL) {
-                /* Generic function with where clause — validate constraints */
-                GenericParams *decl_gp = stmt->data.func_decl.generic_params;
-                WhereClause *wc = stmt->data.func_decl.where_clause;
-                char *expected_sig = format_generic_subject_signature(display_name, decl_gp);
-                Type **effective_generic_types =
-                    calloc(decl_gp->count > 0 ? decl_gp->count : 1, sizeof(Type *));
-                if (effective_generic_types == NULL) {
-                    free(expected_sig);
-                    break;
-                }
-
-                for (size_t gi = 0; gi < decl_gp->count; gi++) {
-                    GenericParam *gp = decl_gp->params[gi];
-                    if (gp != NULL && gp->default_type != NULL)
-                        effective_generic_types[gi] =
-                            late_helper_resolve_type_ref(gp->default_type, ctx);
-                }
-                for (size_t ai = 0; ai < provided; ai++) {
-                    FuncParam *fp = (ai < stmt->data.func_decl.param_count)
-                        ? stmt->data.func_decl.params[ai] : NULL;
-                    int param_index;
-                    if (fp == NULL || fp->type == NULL
-                        || fp->type->type != AST_TYPE
-                        || fp->type->data.type.name == NULL) {
-                        continue;
-                    }
-                    param_index = find_generic_param_index(
-                        decl_gp, fp->type->data.type.name);
-                    if (param_index < 0)
-                        continue;
-                    effective_generic_types[param_index] =
-                        (call_arg_types != NULL) ? call_arg_types[ai] : NULL;
-                }
-
-                for (size_t ci = 0; ci < wc->count; ci++) {
-                    TypeConstraint *tc = wc->constraints[ci];
-                    int param_index;
-                    const char *param_name;
-                    Type *concrete_type;
-                    const char *actual_sig =
-                        format_effective_generic_type_list_scratch(
-                            ctx, display_name, effective_generic_types, decl_gp->count);
-
-                    if (tc == NULL || tc->type_param == NULL)
-                    {
-                        continue;
-                    }
-
-                    param_name = tc->type_param;
-                    param_index = find_generic_param_index(decl_gp, param_name);
-                    if (param_index < 0
-                        || (size_t)param_index >= decl_gp->count) {
-                        semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
-                            "Call site of '%s' could not validate generic parameter '%s'.\n"
-                            "Reason:\n"
-                            "- function '%s' where-clause references '%s'\n"
-                            "- that parameter does not exist in the function generic parameter list\n"
-                            "Fix:\n"
-                            "- change the function where-clause to reference an existing generic parameter\n"
-                            "- or add generic parameter '%s' to function '%s'",
-                            display_name,
-                            param_name != NULL ? param_name : "<param>",
-                            display_name,
-                            param_name != NULL ? param_name : "<param>",
-                            param_name != NULL ? param_name : "<param>",
-                            display_name);
-                        continue;
-                    }
-                    concrete_type = effective_generic_types[param_index];
-                    if (concrete_type == NULL) {
-                        semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
-                            "Call site of '%s' could not materialize generic argument for '%s'.\n"
-                            "Reason:\n"
-                            "- function '%s' where-clause validation depends on an effective type argument for '%s'\n"
-                            "- neither explicit call-site evidence nor declaration defaults produced a concrete type\n"
-                            "Fix:\n"
-                            "- pass arguments that make '%s' concrete\n"
-                            "- or add/fix a default type argument for '%s'",
-                            display_name,
-                            param_name != NULL ? param_name : "<param>",
-                            display_name,
-                            param_name != NULL ? param_name : "<param>",
-                            param_name != NULL ? param_name : "<param>",
-                            param_name != NULL ? param_name : "<param>");
-                        continue;
-                    }
-                    /* Check each bound */
-                    for (size_t bi = 0; bi < tc->bound_count; bi++) {
-                        char *bounds_text = format_type_constraint_bounds(tc);
-                        const char *bound_name =
-                            (tc->bounds[bi] != NULL
-                             && tc->bounds[bi]->type == AST_TYPE
-                             && tc->bounds[bi]->data.type.name != NULL)
-                                ? tc->bounds[bi]->data.type.name
-                                : NULL;
-                        bool satisfies = concrete_type_satisfies_bound(
-                            concrete_type, tc->bounds[bi], ctx);
-                        if (!satisfies) {
-                            semantic_report_function_generic_bound_failure(
-                                ctx,
-                                expr,
-                                display_name,
-                                param_name,
-                                bound_name != NULL ? bound_name : "<constraint>",
-                                bounds_text,
-                                expected_sig != NULL ? expected_sig : display_name,
-                                actual_sig != NULL ? actual_sig : display_name,
-                                concrete_type->name != NULL ? concrete_type->name : "<type>");
-                        }
-                        free(bounds_text);
-                    }
-                }
-                free(expected_sig);
-                free(effective_generic_types);
-                break;
-            }
-        }
-    }
+    semantic_validate_function_call_generic_where(
+        expr, ctx, display_name, provided, call_arg_types);
 
     Type *return_type = sym->type->data.function.return_type;
     if (effective_generic_types != NULL

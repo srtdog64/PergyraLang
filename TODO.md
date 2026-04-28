@@ -1,38 +1,279 @@
 ﻿# Pergyra TODO (배포 준비)
 
-## UTF-8 Progress Note - 2026-04-28 - HIR CFG Match/Loop Edge Closure
+## UTF-8 Progress Note - 2026-04-28 - HIR CFG Contract Validation
+
+- HIR routine finishing now validates CFG shape immediately after body lowering
+  and validates predecessor mirrors immediately after predecessor
+  materialization. `hir_validate_cfg_shape()` rejects open fallthrough blocks,
+  invalid successor indices, inconsistent terminator successor flags, missing
+  branch conditions, and block-id drift before dominance/frontier/loop/phi
+  analysis can consume the graph.
+- `hir_validate_cfg_predecessors()` verifies that every successor has the
+  matching predecessor edge and every predecessor points back to the block it
+  names. This turns CFG structural consistency into a compiler-owned gate
+  rather than an assumption inside dominance/MIR lowering.
+- `tests/cfg_body_dataflow_smoke.sh` now gates the validation seam. This does
+  not close the larger blocker that semantic body safety must fully consume
+  CFG/dataflow facts; it closes the underlying HIR CFG invariant layer those
+  future consumers rely on.
+- HIR CFG summaries now also materialize `return_block_count` and
+  `normal_exit_block_count`. A reachable `HIR_BLOCK_UNREACHABLE` is the
+  lowered normal fallthrough exit, so this gives later semantic/MIR consumers a
+  direct CFG fact for "may fall through" instead of rediscovering it from AST
+  traversal.
+
+## UTF-8 Progress Note - 2026-04-28 - MIR Active Inventory API Seam
+
+- `MIRProgram` now exposes `mir_active_inventory()` and
+  `mir_active_externs()` as the shared declaration inventory read seam.
+  C backend `transpiler_active_inventory()` and LLVM backend
+  `llvm_active_inventory()` no longer duplicate their own
+  `ASTNodeType -> mir->...` declaration-array switch.
+- `tests/mir_declaration_inventory_smoke.sh` now gates that both C and LLVM
+  active inventory helpers consume the MIR public API seam.
+- This does not claim dedicated declaration IR closure yet: `MIRProgram` still
+  carries AST declaration arrays. The closed slice is the duplicated backend
+  mapping seam, so the future dedicated decl-IR replacement has one compiler
+  API boundary to replace instead of two backend-local switches.
+
+## UTF-8 Progress Note - 2026-04-28 - C Intent Emitter Owner Split
+
+- `src/codegen/transpiler_intent_emit.h` is no longer a single 965 LOC
+  declaration emitter. Intent signature/runtime-entry emission moved to
+  `src/codegen/transpiler_intent_prologue_emit.h`, and cleanup/rollback/
+  invalidation tail emission moved to
+  `src/codegen/transpiler_intent_cleanup_emit.h`.
+- Current C intent owner sizes are `transpiler_intent_emit.h` 577 LOC,
+  `transpiler_intent_prologue_emit.h` 186 LOC, and
+  `transpiler_intent_cleanup_emit.h` 278 LOC, all below the 600 LOC
+  split-review threshold.
+- Local gate: `make pgy` and `make llvm-test-backend-compare` are green with
+  ABI same-process `196 passed, 0 failed` and backend compare `64/64 passed,
+  0 failed`.
+- This closes the C intent emitter owner-size slice. Remaining codegen review
+  band debt is now concentrated in LLVM/domain/projection owners and
+  declaration/top-level inventory bootstrap, not this C intent emitter.
+
+## UTF-8 Progress Note - 2026-04-28 - C MIR CFG Consumer Parity Closure
+
+- C backend MIR emission no longer lets CFG-expanded range `for` or
+  `match case` nodes fall through to the generic expression emitter.
+  `src/codegen/transpiler_mir_cfg_control_emit.h` now owns C-side MIR branch
+  condition rendering for range-loop headers and `Option`/`Result` match
+  cases, plus range-loop init/backedge maintenance.
+- Explicit CFG containers are now skipped as opaque AST statements on the C
+  MIR block path. Range `for` emits only its MIR-owned init in the predecessor
+  block, branch conditions are emitted by MIR terminators, and loop backedges
+  perform the increment before jumping back to the header.
+- Pin-view SSA copies are constrained at CFG edges: `view` bindings from
+  `pin ... as view` are region-local resources and are no longer phi-copied
+  into break/exit successors. This closes the previous
+  `pin_break_cleanup_block` compile failure.
+- MIR phi-copy emission now has a named owner in
+  `src/codegen/transpiler_mir_phi_emit.h`; `transpiler_mir_ssa_emit.h` is back
+  below the 600 LOC split-review threshold.
+- MIR terminator emission now has a named owner in
+  `src/codegen/transpiler_mir_terminator_emit.h`, and residual MIR statement
+  helpers now live in `src/codegen/transpiler_mir_stmt_emit.h`. This brings
+  `transpiler_mir_func_emit.h`, `transpiler_mir_block_emit.h`, and
+  `transpiler_mir_ssa_emit.h` all below the 600 LOC split-review threshold.
+- Local gate: `make llvm-test-backend-compare` is green again with
+  ABI same-process `196 passed, 0 failed` and backend compare `64/64 passed,
+  0 failed`.
+- This closes the C MIR CFG/body emitter owner-size slice for the current
+  private-header threshold. Remaining backend debt is now higher-level:
+  declaration/top-level inventory bootstrap and broader CFG/AIR semantic
+  consumption, not these C MIR emission owners.
+
+## UTF-8 Progress Note - 2026-04-28 - LLVM MIR CFG Control / Declaration Metadata Closure
+
+- LLVM MIR block emission no longer treats CFG-expanded `for`, `select`, and
+  `match` containers as opaque AST statement payloads. Range-for init/header/
+  backedge increment, select channel-readiness dispatch, receive bind target
+  declaration, and match-case condition lowering now live on the MIR CFG
+  control path.
+- `src/codegen/llvm_mir_block_emit.h` was reduced to 430 LOC by moving the
+  CFG-control lowering owner into the real translation unit
+  `src/codegen/llvm_mir_cfg_control.c` (363 LOC). No production `.inc` file was
+  reintroduced.
+- `src/codegen/llvm_internal.h` is no longer the LLVM backend mega-header for
+  every private prototype. Private API declarations moved to
+  `src/codegen/llvm_internal_api.h`, and fixed limits / dynamic-array helpers
+  moved to `src/codegen/llvm_limits_internal.h`. Current sizes are
+  `llvm_internal.h` 574 LOC, `llvm_internal_api.h` 325 LOC, and
+  `llvm_limits_internal.h` 54 LOC.
+- `src/codegen/llvm_registry.c` no longer mixes resource/type registries with
+  scope/function/class/callable/enum registry ownership. Slot/view/future/
+  channel/Rc/Weak/container variable tracking and Slot/SecureSlot/PinnedSlot/
+  array/slice/list/set/queue/hashmap type helper materialization moved to
+  `src/codegen/llvm_registry_resources.c`. Current sizes are
+  `llvm_registry.c` 532 LOC and `llvm_registry_resources.c` 415 LOC.
+- LLVM method signature accessors are now MIR-declaration-metadata only. The
+  old AST-method fallback path in `llvm_mir_decl_method_*` accessors is gone;
+  missing enum/class method metadata is a hard MIR-only LLVM path error.
+- Local gates: `make pgy`, `make llvm-test-smoke`,
+  `make mir-declaration-inventory-test-smoke`, and
+  `make type-resolution-resolver-inventory-test-smoke`.
+- Remaining LLVM/MIR blocker is not this MIR CFG statement slice. The blocker
+  is declaration/top-level inventory bootstrap debt: some enum/class method
+  iteration still starts from AST-carried inventory before consuming MIR
+  declaration metadata. That must move to a dedicated declaration IR/inventory
+  owner before beta can claim backend source-of-truth closure.
+- Current owner-size caveat: production `.inc` debt under `src/` is closed, but
+  several production `.c/.h` owners remain in the 600-1,000 LOC review band
+  (`llvm_intent.c`, `transpiler_overlay_projection.h`, `llvm_domain.c`,
+  `pgy_lsp.c`, and related backend/tooling owners). These are review-band
+  debts, not `.inc` debts.
+
+## UTF-8 Progress Note - 2026-04-28 - World Semantic Owner Split
+
+- `src/semantic/type_checker_world_decl.c` no longer owns world/zone lookup
+  helpers or shared domain slot validation. World-zone/state lookup,
+  world-state target resolution, zone layer/state lookup, and world lifecycle
+  target resolution moved to `src/semantic/type_checker_world_helpers.c`
+  behind `src/semantic/type_checker_world_internal.h`.
+- Shared relation/effect/zone domain slot type validation and initializer
+  checking moved to `src/semantic/type_checker_domain_slots.c`, so the world
+  declaration pass now stays focused on world symbol declaration, roster/zone
+  visibility, world state composition, lifecycle direction checks, shared
+  fields, and hosted methods.
+- Current sizes are `type_checker_world_decl.c` 588 LOC,
+  `type_checker_world_helpers.c` 186 LOC, `type_checker_domain_slots.c` 115
+  LOC, and `type_checker_world_internal.h` 28 LOC. The world semantic owner
+  family is now below the 600 LOC split-review threshold.
+- Local gates: `make pgy`, `make test-semantic` (2359/0),
+  `make type-resolution-dag-test-smoke`, and
+  `make type-resolution-resolver-inventory-test-smoke`.
+
+## UTF-8 Progress Note - 2026-04-28 - HIR CFG Dispatch/Loop Edge Closure
 
 - `src/compiler/hir_lower_cfg.c` now lowers `break` and `continue` as explicit
   CFG terminators when they appear inside `while` / `for` bodies. A loop
   context carries the loop-exit target for `break` and the loop-header target
   for `continue`, so HIR dominance/frontier/loop-depth facts no longer treat
   loop control as opaque statement payload.
-- `match` no longer remains opaque in HIR CFG. It lowers to a case dispatch
-  chain where each `case` is a branch condition, fallthrough case/default bodies
-  join through CFG edges, and terminating cases remain closed.
+- Labeled loop control is now target-correct in HIR CFG. Nested
+  `break outer` / `continue outer` resolve through the loop-context parent chain
+  to the named loop's exit/header instead of the nearest loop.
+- `match` and `select` no longer remain opaque in HIR CFG. Both lower through
+  an explicit dispatch/join helper where each case is a branch condition,
+  fallthrough case/default bodies join through CFG edges, and terminating cases
+  remain closed. This keeps channel readiness cases visible to later HIR/MIR
+  consumers instead of hiding them as a single AST payload.
 - `unsafe` blocks no longer hide nested body control flow from HIR CFG. Nested
   `return` / branch terminators inside `unsafe` now flow through the same
   terminator and reachability model as ordinary blocks.
 - `src/test_hir.c` adds `HIR CFG lowers loop break and continue edges
-  explicitly`, `HIR CFG lowers match cases and default as explicit edges`, and
-  `HIR CFG lowers unsafe block body control flow` to lock this behavior.
-- Local gates: `make test-hir` (12/0), `make cfg-body-dataflow-test-smoke`,
+  explicitly`, `HIR CFG lowers match cases and default as explicit edges`,
+  `HIR CFG lowers select cases and default as explicit edges`,
+  `HIR CFG lowers unsafe block body control flow`, and
+  `HIR CFG resolves labeled loop control to the named loop` to lock this
+  behavior.
+- Local gates: `make test-hir` (14/0), `make cfg-body-dataflow-test-smoke`,
   `make test-rir`, and `make test-mir`.
+- HIR owner split continues without adding `.inc`: `hir_destroy()` and the
+  synthetic executable teardown path now live in `src/compiler/hir_destroy.c`,
+  while declaration/routine construction and hidden method routine extraction
+  live in `src/compiler/hir_routines.c` behind `src/compiler/hir_internal.h`.
+  Current HIR owner sizes are `hir.c` 421 LOC, `hir_routines.c` 419 LOC,
+  `hir_lower_cfg.c` 598 LOC, and `hir_cfg.c` 599 LOC, so the active HIR owner
+  set is under the 600 LOC split-review threshold.
+- Compiler driver owner debt also moved below the split-review threshold
+  without adding `.inc`: result/diagnostic object ownership now lives in
+  `src/compiler/compiler_result.c`, LLVM emission/native-link orchestration and
+  disabled-LLVM stubs live in `src/compiler/compiler_llvm.c`, and runtime object
+  cache freshness/path construction lives in `src/compiler/compiler_runtime_cache.c`.
+  Current owner sizes are `compiler.c` 289 LOC, `compiler_llvm.c` 350 LOC,
+  `compiler_result.c` 79 LOC, `compiler_toolchain.c` 543 LOC, and
+  `compiler_runtime_cache.c` 138 LOC.
+- Driver pipeline owner debt is also below the split-review threshold:
+  `src/compiler/driver_app.c` now owns pipeline orchestration only, while JSON
+  diagnostic routing, AIR drift diagnostics, Reason/Fix emission, and code/
+  cause/fix mapping live in `src/compiler/driver_diag.c`. Current sizes are
+  `driver_app.c` 457 LOC, `driver_diag.c` 358 LOC, and `driver_diag.h` 16 LOC.
+- Module normalizer owner debt is closed under the same no-`.inc` rule:
+  `src/compiler/module_normalizer.c` now owns module-level orchestration,
+  namespace shells, explicit export scanning, and statement-list traversal,
+  while rename-scope state, shadowed-name tracking, type/generic/call/reference
+  rewriting, and AST node reference normalization live in
+  `src/compiler/module_normalizer_refs.c` behind
+  `src/compiler/module_normalizer_internal.h`. Current sizes are
+  `module_normalizer.c` 261 LOC, `module_normalizer_refs.c` 565 LOC, and
+  `module_normalizer_internal.h` 39 LOC.
+- Scaffold owner debt is also split below the 600 LOC review threshold:
+  `src/compiler/driver_scaffold.c` now owns filesystem helpers, single-file
+  scaffold templates, and command dispatch, while simulator/project directory
+  templates live in `src/compiler/driver_scaffold_project.c` behind
+  `src/compiler/driver_scaffold_internal.h`. Current sizes are
+  `driver_scaffold.c` 473 LOC, `driver_scaffold_project.c` 351 LOC, and
+  `driver_scaffold_internal.h` 16 LOC.
+- RIR builder include debt has been converted into real translation units:
+  the old implementation-style `rir_builder.h` is now
+  `src/compiler/rir_builder.c`, intent-scope collection lives in
+  `src/compiler/rir_builder_intent.c`, RIR fact/utility materialization lives
+  in `src/compiler/rir_facts.c`, RIR vocabulary names live in
+  `src/compiler/rir_names.c`, RIR dump/destroy public-surface ownership lives
+  in `src/compiler/rir_public_surface.c`, RIR validation / DIR contract
+  checking lives in `src/compiler/rir_validation.c`, HIR-backed RIR flow
+  enrichment lives in `src/compiler/rir_flow.c`, and shared helper seams are
+  declared in `src/compiler/rir_internal.h`. Current sizes are
+  `rir_builder.c` 552 LOC, `rir_validation.c` 525 LOC, `rir_facts.c` 487 LOC,
+  `rir_flow.c` 457 LOC, `rir.c` 429 LOC, `rir_public_surface.c` 287 LOC,
+  `rir_builder_intent.c` 135 LOC, `rir_names.c` 110 LOC, and
+  `rir_internal.h` 64 LOC. The RIR owner family is now under the 600 LOC
+  split-review threshold without reintroducing an implementation-style
+  include file.
+- Local gates for the owner split: `make pgy`, `make LLVM_ENABLED=0 ... pgy`,
+  `make test-hir`, `make test-rir`, `make test-air`, `make test-mir`,
+  `make air-drift-test-smoke`,
+  `make test-semantic`, `make type-resolution-dag-test-smoke`,
+  `make semantic-fixture-isolation-test-smoke`,
+  direct `pgy scaffold subject|simulator|project` smoke,
+  `make backend-inc-size-test-smoke`, `make documentation-quality-test-smoke`,
+  and `make beta-readiness-checklist-test-smoke`.
 
 ## UTF-8 Progress Note - 2026-04-28 - DAG Fallback Recheck
 
 - Rechecked the type-resolution DAG gates. Current local stats are
-  `graph-backed skips=3140 metadata_entries=3363 metadata_owned=254
-  metadata_hits=6751 materializer_fallbacks=0`.
+  `graph-backed skips=3140 resolve_calls=927 resolve_unique_nodes=927
+  metadata_entries=3363 metadata_owned=257 metadata_hits=6751
+  materializer_fallbacks=0`.
 - Metadata fallback families are all zero:
   `metadata_fallback_named=0 metadata_fallback_generic_named=0
   metadata_fallback_compound=0 metadata_fallback_other=0
   metadata_named_builtin_shell=0 metadata_named_generic_class=0
   metadata_named_alias=0 metadata_named_non_class_symbol=0
   metadata_named_missing_symbol=0`.
-- Stage legacy fallback is now alias-diagnostic-only:
-  `legacy_alias=84 legacy_non_alias=0 alias_materialized=6
-  alias_diagnostic_fallback=78 alias_fallback_resolver_calls=0`.
+- Stage legacy fallback is now zero for both alias and non-alias replay:
+  `legacy_alias=0 legacy_non_alias=0 alias_materialized=6
+  alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0`.
+- DAG stage replay is now split by owner family:
+  `type_checker_resolution_stage_nominal.c` owns class/enum/ability/role,
+  `type_checker_resolution_stage_systemic.c` owns party/roster/world/intent,
+  and `type_checker_resolution_stage_domain_decl.c` owns relation/effect/zone.
+  The top-level stage owner is now 88 LOC and split owners are 239 LOC or
+  smaller, all under the 600 LOC split-review threshold.
+- DAG metadata alias-chain and cycle materialization is now split into
+  `type_checker_resolution_metadata_alias.c`. The central metadata owner is
+  268 LOC, the alias owner is 315 LOC, and alias/cycle provenance no longer
+  shares the central lookup/materializer orchestration body.
+- The old recursive alias resolver and `SemanticContext.alias_resolution_*`
+  stack are removed. `resolve_named_type(...)` now routes alias names through
+  `semantic_type_resolution_lookup_metadata_name_or_alias(...)`, so alias
+  chain/cycle semantics have a single metadata owner.
+- `resolve_named_type(...)` is now metadata-first for builtin, scope, generic
+  parameter, nominal, and alias names. If DAG metadata cannot answer, it falls
+  back to the existing user-facing diagnostic path; successful stable names no
+  longer bypass metadata before checking local scope.
+- Valid alias stage materialization now uses the metadata-only lookup before
+  reporting diagnostic unresolved inventory. Valid aliases no longer leak through the
+  recursive resolver compatibility body, and
+  `tests/type_resolution_dag_smoke.sh` now gates alias legacy fallback at zero.
+- The central metadata materializer no longer falls through to
+  `resolve_type_node(type_node, ctx)`. Unsupported metadata shapes are recorded
+  as explicit materializer fallback and return unresolved; the DAG smoke keeps
+  that fallback count at zero, while resolver-inventory smoke rejects any
+  recursive escape-hatch reintroduction.
 - Added semantic regression `graph-backed forward alias materializes nested
   constructed type`, covering a function signature that consumes a later alias
   to `Channel<Slot<Int>>`. This pins the source-order pain point where nested
@@ -49,8 +290,9 @@
   process executes it. `semantic-fixture-isolation-test-smoke` is wired into
   runnable Linux/macOS/Windows CI paths.
 - `tests/type_resolution_resolver_inventory_smoke.sh` now also checks that the
-  materializer fallback recorder and the one remaining recursive escape hatch
-  stay central-only. New owner-local fallback users remain rejected.
+  materializer fallback recorder stays in its central owner and recursive
+  metadata escape hatches stay at zero. New owner-local fallback users remain
+  rejected.
 - Remaining DAG blocker is no longer metadata materializer fallback volume.
   The blocker is retiring the recursive resolver implementation as an
   evaluator source and making the graph/topo materializer the only semantic
@@ -126,6 +368,72 @@
   with function-call argument flow.
 - Local gate: `make test-semantic` (2357/0).
 
+## UTF-8 Progress Note - 2026-04-28 - Function Call Late Helper Owner Split
+
+- `src/semantic/type_checker_helpers_late.c` no longer owns active slot-view
+  discovery/owner-escape checks, callee parameter contract lookup, callable
+  parameter escape-summary lookup, or call-site generic where-clause
+  validation.
+- These moved to named owners:
+  `type_checker_slot_view_active.c`,
+  `type_checker_call_contract_helpers.c`, and
+  `type_checker_call_generic_where.c`. The late helper owner now stays focused
+  on callable symbol dispatch, argument type/ownership flow, and return type
+  materialization.
+- Current owner sizes by `wc -l`: `type_checker_helpers_late.c` 488,
+  `type_checker_slot_view_active.c` 146,
+  `type_checker_call_contract_helpers.c` 60, and
+  `type_checker_call_generic_where.c` 160. The function-call late-helper owner
+  family is now below the 600 LOC split-review threshold.
+- Local gates: `make pgy`, `make test-semantic`,
+  `make type-resolution-dag-test-smoke`, and
+  `make type-resolution-resolver-inventory-test-smoke`.
+
+## UTF-8 Progress Note - 2026-04-28 - LLVM Statement Owner Split
+
+- `src/codegen/llvm_stmt.c` no longer owns zone-action effect runtime
+  propagation helpers or generic type-argument rendering helpers.
+- Zone-action effect propagation moved to `llvm_stmt_zone_action.c`; generic
+  type-argument rendering moved to `llvm_stmt_type_render.c`. The statement
+  owner now stays focused on statement dispatch, defers, return/if/block
+  emission, and expression-statement forwarding.
+- Current owner sizes by `wc -l`: `llvm_stmt.c` 573,
+  `llvm_stmt_zone_action.c` 275, and `llvm_stmt_type_render.c` 74. The LLVM
+  statement owner family is now below the 600 LOC split-review threshold.
+- Local gates: `make pgy` and `make llvm-test-smoke`.
+
+## UTF-8 Progress Note - 2026-04-28 - LLVM Let Statement Owner Split
+
+- `src/codegen/llvm_stmt_let_with.c` no longer owns collection/channel/array
+  let specializations or callable/lambda registration post-processing.
+- Collection-like let lowering moved to `llvm_stmt_let_collections.c`, and
+  callable let registration moved to `llvm_stmt_let_callable.c`. The let owner
+  now stays focused on Slot/View/MoveToken sugar, class-constructor lets,
+  initializer storage/coercion, and typed variable/future registration.
+- Current owner sizes by `wc -l`: `llvm_stmt_let_with.c` 562,
+  `llvm_stmt_let_collections.c` 258, and `llvm_stmt_let_callable.c` 79. The
+  LLVM let statement owner family is now below the 600 LOC split-review
+  threshold.
+- Local gates: `make pgy` and `make llvm-test-smoke`.
+
+## UTF-8 Progress Note - 2026-04-28 - LLVM MIR CFG Match Destructor Fix
+
+- `src/codegen/llvm_mir_cfg_control.c` now handles `Option` and `Result`
+  destructor patterns (`Some/None`, `Ok/Err`) when a source `match` has been
+  expanded into MIR CFG case branches. The previous MIR CFG path compared the
+  whole aggregate value with `icmp`, which made `projection_abi` fail LLVM
+  verification for `match Option<Int>`.
+- The same MIR CFG path now materializes the case payload binding
+  (`Some(v)`, `Ok(v)`, `Err(e)`) before the case branch body consumes it. This
+  restores the `projection_abi` expected output (`49`) instead of defaulting
+  the payload to `0`.
+- Local gates: `make pgy`, direct `projection_abi` LLVM compile/run probe, and
+  the ABI same-process precheck inside `make llvm-test-backend-compare`
+  (`196 passed, 0 failed`).
+- Follow-up C backend parity debt from this note is now closed by the
+  2026-04-28 C MIR CFG consumer parity slice: full
+  `make llvm-test-backend-compare` is green with backend compare `64/64`.
+
 ## UTF-8 Progress Note - 2026-04-28 - Runtime Slot Pin Owner Split
 
 - `src/runtime/slot_manager.c` no longer owns `PergyraSlotPin` /
@@ -161,6 +469,35 @@
   still in the 600-1,000 LOC review band, but the handoff contract check now
   has a named owner seam.
 - Local gate: `make test-semantic` (2357/0).
+
+## UTF-8 Progress Note - 2026-04-28 - Intent Action Contract Helper Split
+
+- `src/semantic/type_checker_intent_helpers.c` no longer owns action-contract
+  inheritance, redundant contract diagnostics, or contract-source summary
+  formatting. The helper owner is now limited to intent condition/involves and
+  projection-adjacent utility routines.
+- Action-contract inheritance and redundant-step warnings moved to
+  `src/semantic/type_checker_intent_action_contract.c`; contract-source summary
+  formatting moved to `src/semantic/type_checker_intent_contract_summary.c`.
+- Current owner sizes by `wc -l`: `type_checker_intent_helpers.c` 145,
+  `type_checker_intent_action_contract.c` 481, and
+  `type_checker_intent_contract_summary.c` 341. This closes the old
+  `type_checker_intent_helpers.c` 883 LOC semantic owner-size debt under the
+  600 LOC split-review threshold.
+- Local gates: `make test-semantic` (2359/0) and
+  `make type-resolution-dag-test-smoke` (graph-backed skips=3140,
+  resolve_calls=927, metadata_entries=3363, metadata_hits=6751,
+  materializer_fallbacks=0).
+
+## UTF-8 Progress Note - 2026-04-28 - Ownership Constructor Diagnostic Split
+
+- `src/semantic/type_checker_ownership_diag.c` no longer owns constructor-field
+  escape diagnostic formatting. That path moved to
+  `src/semantic/type_checker_ownership_diag_constructor.c`.
+- Current owner sizes by `wc -l`: `type_checker_ownership_diag.c` 550 and
+  `type_checker_ownership_diag_constructor.c` 70. This closes the previous
+  611 LOC ownership diagnostic owner over the 600 LOC split-review threshold.
+- Local gate: `make test-semantic` (2359/0).
 
 ## UTF-8 Progress Note - 2026-04-28 - Semantic Domain Contract Owner Split
 
@@ -565,8 +902,8 @@
   metadata_owned=244 metadata_hits=4724 materializer_fallbacks=1601
   metadata_fallback_named=1594 metadata_fallback_generic_named=7
   metadata_fallback_compound=0 metadata_fallback_other=0 legacy_alias=83
-  legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78
-  alias_fallback_resolved=0 alias_fallback_unresolved=78`.
+  legacy_non_alias=0 alias_materialized=5 alias_diagnostic_unresolved=78
+  alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
 - `type_resolution_dag_smoke.sh` now gates the tighter beta line:
   `metadata_entries>=3000`, `metadata_hits>=4500`, `metadata_owned>=200`, and
   `materializer_fallbacks<=1601`, with fallback family accounting required to
@@ -608,9 +945,10 @@
   not duplicate generic argument lookup logic, and already-proven invalid stable
   constructed shells stop before the central recursive materializer. Explicit
   user generic class specializations also materialize through DAG metadata while
-  preserving where/default validation provenance. No-arg default generic class
-  specialization intentionally remains on the diagnostic fallback path because
-  the current validator preserves instantiated provenance such as `Box<Item>`.
+  preserving where/default validation provenance. At this intermediate point,
+  no-arg default generic class specialization intentionally remained on the
+  diagnostic path because the validator preserved instantiated provenance such
+  as `Box<Item>`.
   Current stats are `metadata_entries=3354 metadata_hits=4950
   metadata_owned=249 materializer_fallbacks=10 metadata_fallback_named=8
   metadata_fallback_generic_named=2 metadata_fallback_compound=0
@@ -683,8 +1021,11 @@
   green. LLVM statement ownership is now split into focused owners:
   `llvm_stmt_type_infer.c`, `llvm_stmt_let_helpers.c`,
   `llvm_stmt_let_with.c`, `llvm_stmt_with.c`, `llvm_stmt_loop_match.c`, and
-  `llvm_stmt_parallel_async.c`. `llvm_stmt.c` is down to 914 LOC, every
-  statement owner is under 1,000 LOC, and backend compare remains green.
+  `llvm_stmt_parallel_async.c`, plus `llvm_stmt_zone_action.c` for
+  zone-action effect propagation and `llvm_stmt_type_render.c` for generic
+  type-argument rendering. `llvm_stmt.c` is down to 573 LOC, the dispatcher
+  owner is below the 600 LOC split-review threshold, and backend smoke remains
+  green.
   Parser orchestration/declaration debt is also below the 1,000 LOC hard cap:
   `parser.c` is 977 LOC and `parser_decl.c` is 887 LOC after extracting
   doc-comment, export, enum, pin-block, lexical-zone, declaration-clause, and
@@ -1208,12 +1549,12 @@
   `graph-backed skips=3137 metadata_entries=2044
   metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135
   legacy_alias=83 legacy_non_alias=0 alias_materialized=5
-  alias_diagnostic_fallback=78 alias_fallback_resolved=0
-  alias_fallback_unresolved=78`.
-- This is still not full DAG source-of-truth. The remaining closure is replacing
-  the central fallback itself with graph/topo materialization for the imported
-  ability/default/bound/module/nominal cases that still need legacy
-  materialization.
+  alias_diagnostic_unresolved=78 alias_diagnostic_resolved=0
+  alias_diagnostic_cycle_unresolved=78`.
+- This was not full DAG source-of-truth at the time. The central recursive
+  fallback has since been removed; remaining closure is keeping imported
+  ability/default/bound/module/nominal consumers and diagnostics aligned with
+  graph/topo materialization rather than compatibility wording.
 - Verified locally: `make type-resolution-resolver-inventory-test-smoke
   type-resolution-dag-test-smoke` and `make test-semantic`.
 
@@ -1353,7 +1694,7 @@ Checklist source of truth:
 - `P3`: type-category vocabulary를 2-3층으로 압축
 - `P4`: 빌드/샌드박스/중간-stage JSON/artifact 문제를 공식 경로 기준으로 정리
 - `P9`: arena 패턴을 scratch/result lifetime 기준으로 명시 도입
-- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access는 Pin/Lease 문서 기준으로 분리한다. 기본 path는 매 접근 검증이고, fast path는 scope-entry capability lease + automatic unpin cleanup이어야 한다. Runtime ABI baseline은 `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` 회귀로 시작했고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence를 닫았다. Generated inline `PgySlot_*` / `PgySecureSlot_*` ABI now also has typed `PgyPinnedSlotView_*` / `PgyPinnedSecureSlotView_*` wrappers plus LLVM-linkable `pgy_pin_read_*`, `pgy_pin_write_*`, and `pgy_unpin_*` exports; `make test-memory` covers occupied/token validation, cleanup helper behavior, double-unpin hard-fail, and secure invalid-token pin rejection. C source-block emission now lowers pin blocks to typed wrapper variables with GCC cleanup hooks through `src/codegen/transpiler_block_emit.h`, while `src/runtime/pgy_runtime_plain_slot_inline.h` owns the plain Slot wrapper macro under the 600 LOC split threshold. C and LLVM MIR emission now consume MIR pin-region/view-alias metadata on successor/return exits, emitting explicit typed `pgy_pin_*` / `pgy_unpin_*` calls before control leaves the pin region; `tests/compare_backends.sh` covers plain read, secure read, plain write, secure write, mixed plain+secure source-level pin blocks, normal successor cleanup, direct return cleanup, conditional branch-to-return cleanup, loop `break`/`continue` cleanup, and secure boundary-slot parameter pinning. Source syntax `pin slot as view: ReadView<T>|WriteView<T> { ... }`는 parser/semantic surface로 활성화됐고, AST `Pin Block` metadata, HIR/MIR pin-region metadata, MIR `pin-unpin-cleanup-edge` cleanup fact까지 내려간다. Pin/Lease semantic diagnostic vocabulary는 `PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`로 registry/docs에 고정했고 `make diagnostic-registry-test-smoke`, `make beta-readiness-checklist-test-smoke`, `make diagnostics-json-test-smoke`가 drift를 막는다. Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for return escape, await boundary, parallel boundary/acquisition, defer cleanup registration, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline은 unresolved `TYPE_KIND_GENERIC`을 `BORROW_TRACKED`로 분류해 generic `own/ref`가 조용히 copy-only로 통과하지 못하게 막는다. 남은 것은 secure-token source diagnostic, exceptional/cancellation all-exit proof expansion, and richer invalid-token source provenance. Source of truth: `docs/74_slot_pinning_caching.md`
+- `P9b`: repeated `Slot` / `SecureSlot` hot-loop access는 Pin/Lease 문서 기준으로 분리한다. 기본 path는 매 접근 검증이고, fast path는 scope-entry capability lease + automatic unpin cleanup이어야 한다. Runtime ABI baseline은 `PgyPinnedView` / `PergyraSlotPin` / `PergyraSlotUnpin` + `make test-security` 회귀로 시작했고, plain token-bearing pin rejection, scope release while pinned, TTL cleanup skip while pinned, secure invalid-token/capability rejection, concurrent secure write rejection, release-after-unpin persistence를 닫았다. Generated inline `PgySlot_*` / `PgySecureSlot_*` ABI now also has typed `PgyPinnedSlotView_*` / `PgyPinnedSecureSlotView_*` wrappers plus LLVM-linkable `pgy_pin_read_*`, `pgy_pin_write_*`, and `pgy_unpin_*` exports; `make test-memory` covers occupied/token validation, cleanup helper behavior, double-unpin hard-fail, and secure invalid-token pin rejection. C source-block emission now lowers pin blocks to typed wrapper variables with GCC cleanup hooks through `src/codegen/transpiler_block_emit.h`, while `src/runtime/pgy_runtime_plain_slot_inline.h` owns the plain Slot wrapper macro under the 600 LOC split threshold. C and LLVM MIR emission now consume MIR pin-region/view-alias metadata on successor/return exits, emitting explicit typed `pgy_pin_*` / `pgy_unpin_*` calls before control leaves the pin region; `tests/compare_backends.sh` covers plain read, secure read, plain write, secure write, mixed plain+secure source-level pin blocks, normal successor cleanup, direct return cleanup, conditional branch-to-return cleanup, loop `break`/`continue` cleanup, and secure boundary-slot parameter pinning. Source syntax `pin slot as view: ReadView<T>|WriteView<T> { ... }`는 parser/semantic surface로 활성화됐고, AST `Pin Block` metadata, HIR/MIR pin-region metadata, MIR `pin-unpin-cleanup-edge` cleanup fact까지 내려간다. MIR validator now rejects reachable pin-region blocks that lack the matching `pin-unpin-cleanup-edge` fact for source slot/view/access mode, and `src/test_mir.c` has a negative corruption regression for that contract. Pin/Lease semantic diagnostic vocabulary는 `PGY_SEM_PIN_ESCAPE`, `PGY_SEM_PIN_PARALLEL_CONFLICT`, `PGY_SEM_PIN_AWAIT_BOUNDARY`, `PGY_SEM_PIN_QUBIT_REJECT`, `PGY_SEM_PIN_TOKEN_INVALID`로 registry/docs에 고정했고 `make diagnostic-registry-test-smoke`, `make beta-readiness-checklist-test-smoke`, `make diagnostics-json-test-smoke`가 drift를 막는다. Existing `ViewRead(...)` / `ViewWrite(...)` semantic surface now enforces `WriteView<T>` exclusive access for the same source slot while keeping shared `ReadView<T>` / `ReadView<T>` accepted. It also emits pin-specific diagnostics for return escape, await boundary, parallel boundary/acquisition, defer cleanup registration, and QubitSlot rejection, and `make diagnostics-json-test-smoke` verifies their CLI JSON route. Generic ownership baseline은 unresolved `TYPE_KIND_GENERIC`을 `BORROW_TRACKED`로 분류해 generic `own/ref`가 조용히 copy-only로 통과하지 못하게 막는다. 남은 것은 secure-token source diagnostic, exceptional/cancellation all-exit proof expansion, and richer invalid-token source provenance. Source of truth: `docs/74_slot_pinning_caching.md`
 - `P9c`: `Rc<T>` / `Weak<T>` 최소 subset은 beta-stable로 닫았다. 범위는 single-thread `Int|Long|Float|Double|Bool|String` payload, explicit lifecycle builtin(`RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`), resolver metadata, semantic builtin typing, C runtime/emitter, LLVM runtime export/lowering, ABI layout smoke, C/LLVM lifecycle backend-compare다. 범위 밖 payload는 backend fallback이 아니라 semantic explicit reject다. `Arc<T>`, cross-thread shared ownership, generic/object payload 확장, default ARC는 beta 밖이다. Source of truth: `docs/100_beta_readiness_checklist.md`, `docs/106_ownership_model_comparison.md`, `src/runtime/pgy_abi_spec.h`
 - `P10`: 모듈화/전파 고도화의 compile/runtime 속도 회귀를 별도 baseline으로 추적
 
@@ -1373,7 +1714,7 @@ Checklist source of truth:
 - [x] 반환형이 있는 routine은 모든 reachable normal path에서 return/value terminator를 가진다는 all-path return 검사를 CFG body summary로 고정한다.
 - [~] definite assignment/use-before-init 검사를 CFG dataflow로 이동하고 branch/join/loop widening 진단을 고정한다. stable local `let` 표면은 parser `=` 요구와 `PGY_SEM_UNINIT_LOCAL` backstop으로 봉인됐고, wider delayed-assignment lattice는 아직 열려 있다.
 - [~] move/use-after-move, borrow/ref lifetime, boundary escape를 CFG join facts로 계산한다. `QubitSlot` loop break/continue join regression, anchored `Slot<T>` branch/join release-state regression, `own subject` branch/join consumed-state regression, parallel subject transfer join/conflict regression, parallel `ref`+`own` boundary conflict regression, parallel `ref`+`ref` shared-read acceptance regression, direct named-call `spawn ref` ownership-boundary rejection regression, anonymous async spawn explicit reject regression은 닫혔고, closure/lambda/general longer-lived borrow lifetime은 남아 있다. `mut ref`/`ref mut` surface가 없으므로 mutable-borrow overlap은 beta-out-of-scope로 봉인한다.
-- [~] owned resource drop/cleanup insertion point를 normal return, early return, break/continue, intent cancel/rollback/invalidation edge에서 같은 규칙으로 계산한다. `defer` cleanup terminator와 resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking은 닫혔고, full drop insertion/validation은 남아 있다.
+- [~] owned resource drop/cleanup insertion point를 normal return, early return, break/continue, intent cancel/rollback/invalidation edge에서 같은 규칙으로 계산한다. `defer` cleanup terminator와 resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking은 닫혔다. MIR validator now also rejects reachable pin-region blocks that lack the matching `pin-unpin-cleanup-edge` fact, so pin unpin cleanup is no longer just a generated convention. 남은 것은 full drop insertion/validation과 exceptional/cancellation all-exit proof expansion이다.
 - [ ] zone/effect/relation transition facts를 path-sensitive summary로 올려 branch/join/handoff에서 stale state와 conflict를 같은 vocabulary로 진단한다.
 - [~] `parallel`/channel/task boundary에서 moved value, borrowed reference, authority-bearing token, cancellation cleanup fact를 CFG summary로 검증한다. parallel task-local terminator isolation, moved/released resource/boundary join, duplicate resource/boundary consume diagnostic, `ref`+`own` boundary conflict, blocking channel-send resource consume/join, direct named-call `spawn ref` ownership-boundary rejection, direct named-call `spawn Token<T>` authority-boundary rejection, anonymous async spawn explicit reject, `SendTimeout`/`TrySendStatus`/`SendTimeoutStatus` transport rejection, `TryRecv`/`RecvTimeout` movable receive explicit reject, authority `Token<T>` channel helper rejection, copy-only cancellation payload reject, copy-only channel close는 닫혔고, broader channel receive/backpressure summary, closure/lambda/general borrowed-reference task lifetime, cancellation cleanup fact는 남아 있다.
 - [~] Interprocedural body summary를 고정한다: `may_return`, `may_escape_ref`, `moves_param`, `borrows_param`, `drops_resource`, `effects`, `requires_zone`, `spawns_task`, `sends_channel`. 1차 구조로 function type의 `body_summary_mask`와 semantic recorder는 들어갔다. direct function call은 callee summary 중 caller-relevant transitive facts를 소비하고 declaration-known `own/ref` parameter boundary facts도 기록한다. method/host call도 같은 declaration-known summary facts를 기록한다. lambda body summary는 lambda function type에 격리되어 outer routine으로 새지 않고, function-typed lambda binding 호출은 같은 callee-summary path로 전파된다. 남은 것은 intent/helper call까지 넓히고 zone/effect/runtime propagation과 C/LLVM lowering이 이 summary bit를 직접 소비하게 만드는 일이다.
@@ -2532,28 +2873,28 @@ Source of truth:
     - 진행: standalone TU 승격 중 드러난 dangling return-type seams와 implicit helper dependency를 제거해 `make test-all`, `make llvm-test-backend-compare` 회귀 통과
     - 진행: implicit declaration / implicit int는 기본 CFLAGS에서 에러로 고정되어 이후 DAG/semantic split 중 hidden helper dependency가 즉시 실패하도록 정렬
     - 진행: `type_resolution_intern_node` / `type_resolution_add_edge` / `type_resolution_find_path` / `type_resolution_format_cycle`는 include-order static helper에서 `type_checker_internal.h` internal API로 승격
-    - 진행: DAG stage 안에서 아직 `resolve_type_node(...)`로 내려가는 legacy fallback을 `PGY_TYPE_RES_STATS=1` 통계에 노출했다. `stage-legacy-resolve: calls/failed/suppressed_diagnostics`와 `stage-legacy-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`가 출력되며, `make type-resolution-dag-test-smoke`가 graph stats, topo validation, legacy fallback inventory 존재를 CI gate로 고정한다
-    - 진행: type-alias stage는 quiet resolve 성공 결과를 재사용하도록 정리해 성공 경로의 중복 `resolve_type_node(...)` 호출을 제거했다. 실패 경로는 기존 diagnostic fallback을 유지한다
+    - 진행: DAG stage 안에서 `resolve_type_node(...)`로 내려가는 legacy fallback을 `PGY_TYPE_RES_STATS=1` 통계에 노출했다. 현재 beta gate는 `stage-legacy-family`의 alias/non-alias fallback을 모두 0으로 고정하고, graph stats와 topo validation을 함께 확인한다. 중앙 metadata materializer의 마지막 recursive escape hatch도 제거되어 unsupported shape는 explicit fallback inventory로만 기록된다
+    - 진행: type-alias stage는 metadata-only lookup으로 성공 경로를 materialize하고, 실패 경로는 recursive resolver 없이 diagnostic unresolved inventory로 분리한다. `make type-resolution-dag-test-smoke`는 alias legacy fallback 0, alias materialization 존재, alias diagnostic unresolved accounting을 함께 gate한다
     - 진행: DAG edge가 이미 존재하는 named type-ref는 generic argument를 포함해 stage에서 `resolve_type_node(...)`를 다시 호출하지 않고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N` 통계가 추가됐고 `type-resolution-dag-test-smoke`가 skip 합계가 0으로 퇴행하지 않는지 검사한다
     - 진행: graph precollect TU 안에서 enum methods가 `semantic_stage_method_array(...)`를 호출하던 impurity를 제거했다. 이제 enum method signature/contract도 precollect action contract 경로로만 graph edge를 수집한다
-    - 진행: DAG stage helper를 `type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`로 분리해 `type_checker_resolution_stage.c`를 895 LOC로 낮췄다. 이후 alias diagnostic inventory owner를 `type_checker_resolution_stage_alias.c`로 분리해 `type_checker_resolution_stage.c`는 587 LOC가 됐다. graph precollect, stage lookup, stage stats, alias diagnostics, stage replay owner가 파일 경계로 분리됐다
+    - 진행: DAG stage helper를 `type_checker_resolution_stage_lookup.c` / `type_checker_resolution_stage_stats.c`로 분리했고, 이후 alias/nominal/systemic/domain-decl replay owner를 각각 `type_checker_resolution_stage_alias.c`, `type_checker_resolution_stage_nominal.c`, `type_checker_resolution_stage_systemic.c`, `type_checker_resolution_stage_domain_decl.c`로 분리했다. `type_checker_resolution_stage.c`는 88 LOC top-level dispatch owner가 됐고, graph precollect, stage lookup, stage stats, alias diagnostics, and stage replay families are now separated by file boundary
     - 진행: generic where/default validation은 `type_checker_generic_validation.c`로 이동했다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.inc`는 더 이상 `resolve_type_node(...)`를 직접 호출하지 않으며, `semantic-core-shape-test-smoke`가 이 resolver-free graph-layer 경계를 검사한다
-    - 진행: graph precollect가 context-independent builtin type refs(`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`)를 `SemanticContext.type_resolution_metadata`에 기록한다. owner resolver seams는 이 metadata를 먼저 조회한 뒤 recursive fallback으로 내려간다
+    - 진행: graph precollect가 context-independent builtin type refs(`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`)를 `SemanticContext.type_resolution_metadata`에 기록한다. owner resolver seams는 이 metadata를 먼저 조회하고, unsupported shape는 explicit fallback inventory로 기록될 뿐 recursive fallback으로 내려가지 않는다
     - 진행: graph metadata가 resolver-stable constructed/anchored-handle shells(`Array<T>`, `Slice<T>`, `List<T>`, `Queue<T>`, `Set<T>`, `Box<T>`, `Rc<T>`, `Weak<T>`, `Channel<T>`, `Future<T>`, `RemoteFuture<T>`, `Token<T>`, `DeviceSlot<T>`, `HashMap<String|Int|Long|Bool, T>`, `Option<T>`, `Result<T,E>`, `Slot<T>`, `SecureSlot<T>`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`)를 materialize할 수 있다. graph가 만든 `Type` shell은 metadata owned lane으로 기록하고 semantic context destroy에서 해제한다
     - 진행: graph metadata가 tuple shell과 event-handler/function shell도 materialize한다. channel/future AST node는 inner fact collect 직후 constructed shell을 기록하므로 recursive fallback에 덜 의존한다
     - 진행: `resolve_type_node(...)` wrapper 자체가 metadata-first가 되어, 남은 explicit legacy allowlist도 recursive materialization 전에 DAG facts를 먼저 소비한다
     - 진행: `resolve_generic_type_arg(...)`도 metadata-first 조회 후 fallback으로 내려간다. constructed builtin/generic consumer path의 recursive resolver 의존 면적을 줄였다
-    - 진행: owner-local resolver seams는 `semantic_type_resolution_lookup_or_materialize(...)` 공용 materializer로 수렴했다. resolver 구현체와 central metadata materializer 밖에서 직접 `resolve_type_node(...)`를 호출하면 `type-resolution-resolver-inventory-test-smoke`가 실패한다. Central metadata owner도 `type_checker_resolution_metadata_diagnostics.c`를 분리해 stable-shell arity, invalid constructed HashMap key, unknown bare named diagnostics를 별도 owner가 맡고, `type_checker_resolution_metadata.c`는 588 LOC로 내려갔다
+    - 진행: owner-local resolver seams는 `semantic_type_resolution_lookup_or_materialize(...)` 공용 materializer로 수렴했다. resolver 구현체 밖에서 직접 `resolve_type_node(...)`를 호출하면 `type-resolution-resolver-inventory-test-smoke`가 실패한다. Central metadata owner도 `type_checker_resolution_metadata_diagnostics.c`를 분리해 stable-shell arity, invalid constructed HashMap key, unknown bare named diagnostics를 별도 owner가 맡고, alias-chain/cycle materialization은 `type_checker_resolution_metadata_alias.c`가 맡는다. central metadata materializer recursive escape hatch는 제거됐고 central metadata owner는 268 LOC, alias owner는 315 LOC로 분리됐다. 낡은 `resolve_type_alias_decl(...)`와 `SemanticContext.alias_resolution_*` stack도 제거되어 direct named alias resolution은 metadata alias owner만 통과한다. `resolve_named_type(...)` itself is now metadata-first for stable builtin/scope/generic/nominal/alias names, and the resolver-inventory smoke rejects recursive alias resolver debt if it reappears
     - 진행: party/role ability lookup은 `type_checker_domain_role_lookup.c`로 분리했다. 이후 projection contract diagnostics와 overlay scope setup도 각각 `type_checker_domain_projection.c` / `type_checker_overlay_common.c`로 분리되어 `type_checker_decls_domain_helpers.c`는 972 LOC까지 낮아졌다. 남은 helper owner는 zone/effect/relation slot helper 책임에 집중한다
-    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 metadata entries/owned/hits, metadata materializer fallback count, zero non-alias stage legacy fallback, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3138 metadata_entries=3358 metadata_owned=253 metadata_hits=6744 materializer_fallbacks=0 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolver_calls=0 alias_fallback_resolved=0 alias_fallback_unresolved=78`
-    - 진행: DAG smoke는 이제 graph-backed skip/metadata entry/metadata hit/owned metadata가 단순히 0보다 큰지만 보지 않고 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)를 검사한다. DAG source-of-truth 사용량이 크게 후퇴하면 CI에서 즉시 잡는다
+    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 compatibility resolver call cap, metadata entries/owned/hits, metadata materializer fallback count, zero stage legacy fallback, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3140 resolve_calls=927 resolve_unique_nodes=927 metadata_entries=3363 metadata_owned=257 metadata_hits=6751 materializer_fallbacks=0 legacy_alias=0 legacy_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`
+    - 진행: DAG smoke는 이제 graph-backed skip/metadata entry/metadata hit/owned metadata가 단순히 0보다 큰지만 보지 않고 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)와 compatibility resolver cap(`resolve_calls<=1000`)를 검사한다. DAG source-of-truth 사용량이 크게 후퇴하면 CI에서 즉시 잡는다
     - 진행: 중앙 metadata materializer의 마지막 recursive fallback은 0으로 닫혔다. `type-resolution-dag-test-smoke`는 `materializer_fallbacks==0`과 모든 metadata fallback family 0을 고정한다
-    - 진행: 남은 stage legacy surface는 alias-only diagnostic inventory로 고정됐다. `type_checker_resolution_stage_alias.c`가 unique alias fallback accounting과 optional trace를 소유한다. 성공 alias materialization과 diagnostic fallback을 별도 계측하고 valid alias fallback은 0으로 gate한다. 남은 78건은 alias-cycle diagnostic coverage에서 나오는 unresolved inventory이며, `alias_fallback_resolver_calls==0` gate가 recursive resolver 재진입을 차단한다
+    - 진행: stage legacy surface는 alias/non-alias 모두 0으로 고정됐다. `type_checker_resolution_stage_alias.c`가 unique alias diagnostic unresolved accounting과 optional trace를 소유한다. 성공 alias materialization과 diagnostic unresolved inventory를 별도 계측하고, 남은 78건은 recursive resolver 재진입이 아니라 alias-cycle diagnostic coverage에서 나오는 unresolved inventory다. `alias_diagnostic_resolver_calls==0` gate가 이 경계를 차단한다
     - 진행: program-level symbol inventory가 ability declarations도 predeclare한다. `type_check_ability_decl(...)`은 자기 자신의 predeclare만 재사용하고 같은 이름의 다른 ability는 기존처럼 duplicate diagnostic으로 처리한다. forward source order에서 generic default/where, zone authority, party role-slot ability consumer가 provider 후행이어도 통과하는 regression을 추가했다
     - 진행: `tests/cases/backend_compare/forward_ability_order/main.pgy`를 backend compare suite에 추가했다. provider-after-consumer generic default/alias/zone-authority/party-role-slot ability ordering이 semantic-only가 아니라 C/LLVM 출력 동등성까지 유지되는지 검사한다
     - 진행: `tests/compare_backends.sh` 기본 실행은 `tests/cases/backend_compare/*/main.pgy`가 default case array에 빠져 있으면 실패한다. 명시 인자 기반 targeted run은 유지하되, CI/default path에서 새 parity case가 조용히 누락되는 drift를 차단했다. 이 gate로 기존 passing case 8개(array builtins/inline access, slice inline access, intent observability rollback, list/map/queue get-string, try-operator result)를 default C/LLVM parity suite에 편입했다
     - 진행: `type-resolution-resolver-inventory-test-smoke`가 direct resolver allowlist와 함께 metadata-first wrapper, execution/anchored-handle metadata materializer coverage를 static gate로 고정한다
-    - 진행: `type-resolution-resolver-inventory-test-smoke`가 새 `semantic_type_resolution_resolve_or_fallback(...)` 사용자를 금지하고 named fallback seam 총량을 0개로 고정한다. gate 출력은 현재 fallback seam count를 직접 보여주며, remaining fallback은 `semantic_type_resolution_lookup_or_materialize(...)` 내부의 central escape hatch 교체 대상이다
+    - 진행: `type-resolution-resolver-inventory-test-smoke`가 새 `semantic_type_resolution_resolve_or_fallback(...)` 사용자를 금지하고 named fallback seam 총량을 0개로 고정한다. gate 출력은 현재 fallback seam count를 직접 보여주며, `semantic_type_resolution_lookup_or_materialize(...)` 내부의 central recursive escape hatch도 0개로 고정한다
     - 진행: fallback seam gate의 기존 하한선(`30개 미만이면 실패`)을 debt-reduction에 맞지 않는 규칙으로 보고 제거했다. 이제 0개 상한만 growth guard로 유지하며, seam 축소는 CI 성공 경로다
     - 진행: `type_checker_module_contract.c`의 ability contract bookkeeping은 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only seam으로 낮췄다. ability 존재/visibility/generic arity/where provenance는 ability-specific validator가 계속 소유하며, fallback seam inventory는 39에서 38로 감소했다
     - 진행: `type_checker_ability_fields.c`의 ability `fields` requirement validation도 recursive fallback helper를 호출하지 않고 DAG metadata lookup-only로 낮췄다. field contract diagnostics는 ability-specific validator가 계속 소유하며, fallback seam cap은 32에서 31로 감소했다
@@ -3402,8 +3743,8 @@ Source of truth:
   tested and rejected because it breaks generic default/multi-bound provenance
   such as `Box<Item>` validation paths; the final closure preserves that
   provenance while keeping central fallback at 0.
-- Alias diagnostic fallback no longer calls back into the recursive resolver.
-  `type-resolution-dag-test-smoke` gates `alias_fallback_resolver_calls==0`;
+- Alias diagnostic inventory no longer calls back into the recursive resolver.
+  `type-resolution-dag-test-smoke` gates `alias_diagnostic_resolver_calls==0`;
   the remaining 78 alias entries are repeated alias-cycle diagnostic inventory
   from semantic regression contexts.
 

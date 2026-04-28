@@ -1,0 +1,10 @@
+#ifndef PERGYRA_HIR_INTERNAL_H
+#define PERGYRA_HIR_INTERNAL_H
+
+#include "hir.h"
+
+bool hir_append_decl_and_routine(HIRProgram *hir,
+                                 HIRTopLevelItem item,
+                                 char **error_message);
+
+#endif

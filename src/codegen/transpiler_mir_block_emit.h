@@ -2,6 +2,7 @@
 #include "transpiler_mir_destructure_emit.h"
 #include "transpiler_mir_fallback_let_emit.h"
 #include "transpiler_mir_block_schedule_emit.h"
+#include "transpiler_mir_stmt_emit.h"
 static bool
 transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                      const MIRRoutine *mir_routine,
@@ -465,29 +466,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                    mir_routine, stmt->data.let_decl.name) != NULL) {
             continue;
         }
-        if (ctx->mir != NULL) {
-            bool mirrored_resource_stmt = false;
-            for (size_t ri = 0; ri < block->instruction_count; ri++) {
-                const MIRInstruction *resource_inst = &block->instructions[ri];
-                bool resource_is_secure = false;
-                if (resource_inst->kind != MIR_INST_RESOURCE_OP)
-                    continue;
-                if (resource_inst->ast != stmt)
-                    continue;
-                if (resource_inst->name != NULL
-                    && strcmp(resource_inst->name, "Read") == 0) {
-                    continue;
-                }
-                if (resource_inst->slot_anchor != NULL)
-                    resource_is_secure = lookup_slot_is_secure(ctx, resource_inst->slot_anchor);
-                if (resource_is_secure)
-                    continue;
-                mirrored_resource_stmt = true;
-                break;
-            }
-            if (mirrored_resource_stmt)
-                continue;
-        }
+        if (transpiler_mir_stmt_is_mirrored_resource(ctx, block, stmt))
+            continue;
         if (stmt->type == AST_ASSIGNMENT
             && stmt->data.assignment.target != NULL
             && stmt->data.assignment.target->type == AST_IDENTIFIER
@@ -541,27 +521,30 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             }
         }
         if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
-            && (stmt->type == AST_WITH_STMT
-                || stmt->type == AST_IF_STMT
-                || stmt->type == AST_WHILE_LOOP)) {
-            continue;
-        }
-        if (stmt->type == AST_CALL) {
-            char *expr = emit_expression_with_ssa_map(stmt, ctx, ssa_map_out);
-            if (expr == NULL || expr[0] == '\0') {
-                free(expr);
+            && stmt->type == AST_FOR_LOOP) {
+            if (!transpiler_mir_emit_for_loop_init_stmt(buf, stmt, ctx,
+                                                        ssa_map_out)) {
                 if (reason != NULL && reason_cap > 0) {
                     snprintf(reason, reason_cap,
-                             "MIR block %llu emission failed: unable to render call statement with SSA mapping",
+                             "MIR block %llu emission failed: unsupported for-in CFG lowering",
                              (unsigned long long) block->id);
                 }
                 ok = false;
                 break;
             }
-            write_indent_to(buf, ctx->indent);
-            codebuf_write(buf, "%s;\n", expr);
-            emit_zone_action_effect_runtime(stmt, ctx);
-            free(expr);
+            continue;
+        }
+        if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
+            && transpiler_mir_stmt_is_cfg_container(stmt)) {
+            continue;
+        }
+        if (stmt->type == AST_CALL) {
+            if (!transpiler_emit_mir_call_statement(buf, block, stmt, ctx,
+                                                    ssa_map_out,
+                                                    reason, reason_cap)) {
+                ok = false;
+                break;
+            }
             continue;
         }
         if (stmt->type == AST_LET_DESTRUCTURE) {

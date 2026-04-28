@@ -227,6 +227,90 @@ mir_find_function_decl(const MIRProgram *mir, const char *name)
     return NULL;
 }
 
+void
+mir_active_inventory(const MIRProgram *mir,
+                     ASTNodeType decl_type,
+                     ASTNode ***nodes_out,
+                     size_t *count_out)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (mir != NULL) {
+        switch (decl_type) {
+        case AST_ABILITY_DECL:
+            nodes = mir->abilities;
+            count = mir->ability_count;
+            break;
+        case AST_FUNC_DECL:
+            nodes = mir->functions;
+            count = mir->function_count;
+            break;
+        case AST_INTENT_DECL:
+            nodes = mir->intents;
+            count = mir->intent_count;
+            break;
+        case AST_ROLE_DECL:
+            nodes = mir->roles;
+            count = mir->role_count;
+            break;
+        case AST_PARTY_DECL:
+            nodes = mir->parties;
+            count = mir->party_count;
+            break;
+        case AST_ROSTER_DECL:
+            nodes = mir->rosters;
+            count = mir->roster_count;
+            break;
+        case AST_WORLD_DECL:
+            nodes = mir->worlds;
+            count = mir->world_count;
+            break;
+        case AST_RELATION_DECL:
+            nodes = mir->relations;
+            count = mir->relation_count;
+            break;
+        case AST_EFFECT_DECL:
+            nodes = mir->effects;
+            count = mir->effect_count;
+            break;
+        case AST_ZONE_DECL:
+            nodes = mir->zones;
+            count = mir->zone_count;
+            break;
+        case AST_EVENT_DECL:
+            nodes = mir->events;
+            count = mir->event_count;
+            break;
+        case AST_EXTERN_BLOCK:
+            nodes = mir->externs;
+            count = mir->extern_count;
+            break;
+        case AST_CLASS_DECL:
+        case AST_ENUM_DECL:
+        case AST_TYPE_ALIAS:
+            nodes = mir->types;
+            count = mir->type_count;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (nodes_out != NULL)
+        *nodes_out = nodes;
+    if (count_out != NULL)
+        *count_out = count;
+}
+
+void
+mir_active_externs(const MIRProgram *mir,
+                   ASTNode ***nodes_out,
+                   size_t *count_out)
+{
+    mir_active_inventory(mir, AST_EXTERN_BLOCK, nodes_out, count_out);
+}
+
 const MIRDeclHeader *
 mir_find_decl_header(const MIRProgram *mir, const char *name)
 {

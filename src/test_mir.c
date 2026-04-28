@@ -84,6 +84,21 @@ find_mir_routine(const MIRProgram *mir, const char *name, MIRScopeKind kind)
     return NULL;
 }
 
+static MIRRoutine *
+find_mir_routine_mut(MIRProgram *mir, const char *name, MIRScopeKind kind)
+{
+    if (mir == NULL)
+        return NULL;
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        if (mir->routines[i].kind == kind
+            && mir->routines[i].name != NULL
+            && strcmp(mir->routines[i].name, name) == 0) {
+            return &mir->routines[i];
+        }
+    }
+    return NULL;
+}
+
 static bool
 block_has_inst_kind(const MIRBasicBlock *block, MIRInstKind kind)
 {
@@ -463,6 +478,59 @@ test_mir_lowering(void)
                && found_pin_block
                && found_pin_cleanup
                && found_after_pin_release);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects pin-region without unpin cleanup fact");
+    {
+        const char *src =
+            "func PinFlow(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        if flag {\n"
+            "            Write(view, 1);\n"
+            "        } else {\n"
+            "            Write(view, 2);\n"
+            "        }\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        char *mir_error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "PinFlow", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t i = 0; i < routine->block_count && !corrupted; i++) {
+                MIRBasicBlock *block = &routine->blocks[i];
+                if (!block->is_pin_region)
+                    continue;
+                for (size_t j = 0; j < block->instruction_count; j++) {
+                    MIRInstruction *inst = &block->instructions[j];
+                    if (inst->name != NULL
+                        && strcmp(inst->name, "pin-unpin-cleanup-edge") == 0) {
+                        inst->name = "corrupted-pin-cleanup-edge";
+                        corrupted = true;
+                        break;
+                    }
+                }
+            }
+        }
+        rejected = ok
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "pin-region") != NULL
+                   && strstr(mir_error, "pin-unpin cleanup fact") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

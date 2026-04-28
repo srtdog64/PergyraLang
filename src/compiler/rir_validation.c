@@ -1,3 +1,12 @@
+#include "rir.h"
+#include "rir_internal.h"
+
+#include <string.h>
+
+#include "dir.h"
+#include "rir_flow_state.h"
+#include "../common/string_compat.h"
+
 static const RIRFact *
 rir_scope_find_projection_fact(const RIRScope *scope, const char *name)
 {

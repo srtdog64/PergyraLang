@@ -79,6 +79,8 @@ typedef struct
     size_t           callee_routine_count;
     size_t           reachable_block_count;
     size_t           dead_block_count;
+    size_t           return_block_count;
+    size_t           normal_exit_block_count;
     size_t           phi_candidate_count;
     size_t           phi_candidate_block_count;
     struct {

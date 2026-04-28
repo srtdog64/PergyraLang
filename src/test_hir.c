@@ -277,6 +277,8 @@ test_hir_lowering(void)
                && flow != NULL
                && flow->has_cfg
                && flow->cfg.block_count >= 6
+               && flow->return_block_count == 1
+               && flow->normal_exit_block_count == 0
                && flow->cfg.entry_block == 0
                && found_loop_header
                && loop_header_has_pred
@@ -319,6 +321,8 @@ test_hir_lowering(void)
                && merge != NULL
                && merge->has_cfg
                && found_defs
+               && merge->return_block_count == 1
+               && merge->normal_exit_block_count == 0
                && merge->phi_candidate_count > 0
                && merge->phi_candidate_block_count > 0
                && found_score_phi);
@@ -375,6 +379,8 @@ test_hir_lowering(void)
         EXPECT(hir != NULL
                && routine != NULL
                && routine->has_cfg
+               && routine->return_block_count == 0
+               && routine->normal_exit_block_count == 1
                && found_pin
                && found_after_pin
                && found_write_mode
@@ -431,6 +437,8 @@ test_hir_lowering(void)
         EXPECT(hir != NULL
                && routine != NULL
                && routine->has_cfg
+               && routine->return_block_count == 1
+               && routine->normal_exit_block_count == 0
                && found_loop_header
                && found_break_edge
                && found_continue_edge);
@@ -509,6 +517,68 @@ test_hir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("HIR CFG lowers select cases and default as explicit edges");
+    {
+        const char *src =
+            "func SelectEdges(ch: Channel<Int>) -> Int {\n"
+            "    select {\n"
+            "        case v = <-ch:\n"
+            "            return v;\n"
+            "        default:\n"
+            "            Log(0);\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        const HIRRoutine *routine = hir_find_routine(hir, "SelectEdges", HIR_TOPLEVEL_FUNCTION);
+        bool found_select_dispatch = false;
+        bool found_case_receive = false;
+        bool found_case_return = false;
+        bool found_default_join = false;
+        if (routine != NULL && routine->has_cfg) {
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                const HIRBasicBlock *block = &routine->cfg.blocks[i];
+                if (block->terminator_kind == HIR_BLOCK_BRANCH
+                    && block->terminator_condition != NULL
+                    && block->terminator_condition->type == AST_BLOCK) {
+                    ASTNode *case_block = block->terminator_condition;
+                    if (case_block->data.block.count > 0
+                        && case_block->data.block.statements[0] != NULL
+                        && case_block->data.block.statements[0]->type == AST_ASSIGNMENT) {
+                        found_select_dispatch = true;
+                    }
+                }
+                for (size_t j = 0; j < block->statement_count; j++) {
+                    ASTNode *stmt = block->statements[j];
+                    if (stmt != NULL && stmt->type == AST_ASSIGNMENT
+                        && stmt->data.assignment.value != NULL
+                        && stmt->data.assignment.value->type == AST_CHANNEL_RECV) {
+                        found_case_receive = true;
+                    }
+                    if (stmt != NULL && stmt->type == AST_CALL
+                        && block->terminator_kind == HIR_BLOCK_GOTO
+                        && block->has_succ_true) {
+                        found_default_join = true;
+                    }
+                }
+                if (block->terminator_kind == HIR_BLOCK_RETURN
+                    && block->terminator_value != NULL
+                    && block->terminator_value->type == AST_IDENTIFIER
+                    && strcmp(block->terminator_value->data.identifier.name, "v") == 0) {
+                    found_case_return = true;
+                }
+            }
+        }
+        EXPECT(hir != NULL
+               && routine != NULL
+               && routine->has_cfg
+               && found_select_dispatch
+               && found_case_receive
+               && found_case_return
+               && found_default_join);
+        hir_destroy(hir);
+    }
+
     TEST("HIR CFG lowers unsafe block body control flow");
     {
         const char *src =
@@ -549,6 +619,70 @@ test_hir_lowering(void)
                && found_unsafe_payload
                && found_nested_return
                && found_after_return);
+        hir_destroy(hir);
+    }
+
+    TEST("HIR CFG resolves labeled loop control to the named loop");
+    {
+        const char *src =
+            "func LabeledLoopEdges(flag: Bool) -> Int {\n"
+            "    let i = 0;\n"
+            "    outer: while flag {\n"
+            "        while flag {\n"
+            "            if flag {\n"
+            "                continue outer;\n"
+            "            }\n"
+            "            break outer;\n"
+            "        }\n"
+            "        i = i + 1;\n"
+            "    }\n"
+            "    return i;\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        const HIRRoutine *routine = hir_find_routine(hir, "LabeledLoopEdges", HIR_TOPLEVEL_FUNCTION);
+        bool found_outer_header = false;
+        bool found_continue_outer = false;
+        bool found_break_outer_exit = false;
+        size_t outer_header = 0;
+        if (routine != NULL && routine->has_cfg) {
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                const HIRBasicBlock *block = &routine->cfg.blocks[i];
+                if (block->is_loop_header) {
+                    outer_header = i;
+                    found_outer_header = true;
+                    break;
+                }
+            }
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                const HIRBasicBlock *block = &routine->cfg.blocks[i];
+                if (block->terminator_kind != HIR_BLOCK_GOTO || !block->has_succ_true)
+                    continue;
+                for (size_t j = 0; j < block->statement_count; j++) {
+                    ASTNode *stmt = block->statements[j];
+                    if (stmt != NULL && stmt->type == AST_CONTINUE
+                        && stmt->data.continue_stmt.label != NULL
+                        && strcmp(stmt->data.continue_stmt.label, "outer") == 0
+                        && found_outer_header
+                        && block->succ_true == outer_header) {
+                        found_continue_outer = true;
+                    }
+                    if (stmt != NULL && stmt->type == AST_BREAK
+                        && stmt->data.break_stmt.label != NULL
+                        && strcmp(stmt->data.break_stmt.label, "outer") == 0
+                        && block->succ_true < routine->cfg.block_count) {
+                        const HIRBasicBlock *target = &routine->cfg.blocks[block->succ_true];
+                        if (target->terminator_kind == HIR_BLOCK_RETURN)
+                            found_break_outer_exit = true;
+                    }
+                }
+            }
+        }
+        EXPECT(hir != NULL
+               && routine != NULL
+               && routine->has_cfg
+               && found_outer_header
+               && found_continue_outer
+               && found_break_outer_exit);
         hir_destroy(hir);
     }
 

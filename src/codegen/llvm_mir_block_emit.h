@@ -76,14 +76,6 @@ llvm_mir_emit_with_claim_only(ASTNode *node, LLVMGenCtx *ctx)
     llvm_register_slot_var(ctx, alias, inner, is_secure);
 }
 
-static bool
-llvm_mir_stmt_is_cfg_container(ASTNode *node)
-{
-    if (node == NULL)
-        return false;
-    return node->type == AST_WITH_STMT;
-}
-
 static void
 llvm_mir_pin_local_name(const MIRBasicBlock *block, char *buf, size_t buf_size)
 {
@@ -319,6 +311,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 if (inst->ast->type == AST_LET_DECL || inst->ast->type == AST_ASSIGNMENT) {
                     if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
                         fprintf(stderr, "[llvm inst] emit_statement\n");
+                    if (!llvm_mir_declare_assignment_recv_target(inst->ast, ctx))
+                        return;
                     llvm_emit_statement(inst->ast, ctx);
                 } else {
                     LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
@@ -334,8 +328,24 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
         case MIR_INST_PHI:
             break;
         case MIR_INST_BRANCH:
+            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) != NULL) {
+                emitted_terminator = true;
+                break;
+            }
             if (inst->ast != NULL && mir_block->has_succ_true && mir_block->has_succ_false) {
-                LLVMValueRef cond = llvm_emit_expression(inst->ast, ctx);
+                LLVMValueRef cond;
+                if (inst->ast->type == AST_FOR_LOOP) {
+                    cond = llvm_mir_emit_for_loop_condition(inst->ast, ctx);
+                } else if (inst->ast->type == AST_MATCH_CASE) {
+                    cond = llvm_mir_emit_match_case_condition(func_decl, inst->ast, ctx);
+                } else if (inst->ast->type == AST_BLOCK) {
+                    cond = llvm_mir_emit_select_dispatch_condition(
+                        inst->ast, routine, mir_block->succ_true, ctx);
+                    if (cond == NULL)
+                        cond = LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0);
+                } else {
+                    cond = llvm_emit_expression(inst->ast, ctx);
+                }
                 if (cond != NULL) {
                     LLVMBasicBlockRef true_bb = llvm_blocks[mir_block->succ_true];
                     LLVMBasicBlockRef false_bb = llvm_blocks[mir_block->succ_false];
@@ -378,6 +388,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
         case MIR_INST_STMT:
             if (inst->ast != NULL && inst->ast->type == AST_WITH_STMT) {
                 llvm_mir_emit_with_claim_only(inst->ast, ctx);
+            } else if (inst->ast != NULL && inst->ast->type == AST_FOR_LOOP) {
+                if (!llvm_mir_emit_for_loop_init(inst->ast, ctx))
+                    return;
             } else if (inst->ast != NULL && !llvm_mir_stmt_is_cfg_container(inst->ast)) {
                 llvm_emit_statement(inst->ast, ctx);
             }
@@ -397,6 +410,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                             llvm_blocks[mir_block->succ_true],
                             llvm_blocks[mir_block->succ_false]);
         } else if (mir_block->has_succ_true) {
+            if (!llvm_mir_emit_loop_backedge_increment(routine, mir_block, ctx))
+                return;
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;
             LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);

@@ -58,6 +58,11 @@ grep -a -q '\[type-res-stats\] stage-legacy-resolve:' "$log" || {
   exit 1
 }
 
+grep -a -q '\[type-res-stats\] resolve_type_node:' "$log" || {
+  echo "missing compatibility resolver call inventory" >&2
+  exit 1
+}
+
 grep -a -q '\[type-res-stats\] stage-legacy-family:' "$log" || {
   echo "missing stage legacy resolver family inventory" >&2
   exit 1
@@ -83,14 +88,26 @@ grep -a -q '\[type-res-stats\] metadata-fallback-named:' "$log" || {
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] stage-alias-fallback:' "$log" || {
-  echo "missing alias fallback resolution inventory" >&2
+grep -a -q '\[type-res-stats\] stage-alias-diagnostic:' "$log" || {
+  echo "missing alias diagnostic inventory" >&2
   exit 1
 }
 
 graph_skips="$(
   grep -a '\[type-res-stats\] stage-graph-backed:' "$log" \
     | sed -E 's/.*skips=([0-9]+).*/\1/' \
+    | awk '{ total += $1 } END { print total + 0 }'
+)"
+
+resolve_calls="$(
+  grep -a '\[type-res-stats\] resolve_type_node:' "$log" \
+    | sed -E 's/.*calls=([0-9]+).*/\1/' \
+    | awk '{ total += $1 } END { print total + 0 }'
+)"
+
+resolve_unique_nodes="$(
+  grep -a '\[type-res-stats\] resolve_type_node:' "$log" \
+    | sed -E 's/.*unique_nodes=([0-9]+).*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
@@ -202,27 +219,27 @@ alias_materialized="$(
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-alias_diagnostic_fallback="$(
+alias_diagnostic_unresolved="$(
   grep -a '\[type-res-stats\] stage-alias:' "$log" \
-    | sed -E 's/.*diagnostic_fallback=([0-9]+).*/\1/' \
+    | sed -E 's/.*diagnostic_unresolved=([0-9]+).*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-alias_fallback_resolver_calls="$(
-  grep -a '\[type-res-stats\] stage-alias-fallback:' "$log" \
+alias_diagnostic_resolver_calls="$(
+  grep -a '\[type-res-stats\] stage-alias-diagnostic:' "$log" \
     | sed -E 's/.*resolver_calls=([0-9]+) resolved=.*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-alias_fallback_resolved="$(
-  grep -a '\[type-res-stats\] stage-alias-fallback:' "$log" \
-    | sed -E 's/.* resolved=([0-9]+) unresolved=.*/\1/' \
+alias_diagnostic_resolved="$(
+  grep -a '\[type-res-stats\] stage-alias-diagnostic:' "$log" \
+    | sed -E 's/.* resolved=([0-9]+) cycle_unresolved=.*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-alias_fallback_unresolved="$(
-  grep -a '\[type-res-stats\] stage-alias-fallback:' "$log" \
-    | sed -E 's/.* unresolved=([0-9]+).*/\1/' \
+alias_diagnostic_cycle_unresolved="$(
+  grep -a '\[type-res-stats\] stage-alias-diagnostic:' "$log" \
+    | sed -E 's/.* cycle_unresolved=([0-9]+).*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
@@ -233,6 +250,11 @@ fi
 
 if [ "$graph_skips" -lt 3000 ]; then
   echo "graph-backed stage skip inventory regressed below beta floor: $graph_skips < 3000" >&2
+  exit 1
+fi
+
+if [ "$resolve_calls" -gt 1000 ]; then
+  echo "compatibility resolver calls regressed above beta cap: $resolve_calls > 1000" >&2
   exit 1
 fi
 
@@ -322,8 +344,8 @@ if [ "$legacy_non_alias" -ne 0 ]; then
   exit 1
 fi
 
-if [ "$legacy_alias" -le 0 ]; then
-  echo "alias-only legacy diagnostic fallback inventory regressed to zero" >&2
+if [ "$legacy_alias" -ne 0 ]; then
+  echo "alias DAG stage legacy fallback regressed above beta cap: $legacy_alias > 0" >&2
   exit 1
 fi
 
@@ -332,23 +354,23 @@ if [ "$alias_materialized" -le 0 ]; then
   exit 1
 fi
 
-if [ "$alias_diagnostic_fallback" -le 0 ]; then
-  echo "alias diagnostic fallback inventory regressed to zero" >&2
+if [ "$alias_diagnostic_unresolved" -le 0 ]; then
+  echo "alias diagnostic unresolved inventory regressed to zero" >&2
   exit 1
 fi
 
-if [ "$alias_fallback_resolver_calls" -ne 0 ]; then
-  echo "alias diagnostic fallback reintroduced recursive resolver calls: $alias_fallback_resolver_calls" >&2
+if [ "$alias_diagnostic_resolver_calls" -ne 0 ]; then
+  echo "alias diagnostic inventory reintroduced recursive resolver calls: $alias_diagnostic_resolver_calls" >&2
   exit 1
 fi
 
-if [ "$alias_fallback_resolved" -ne 0 ]; then
-  echo "valid alias materialization leaked into diagnostic fallback: $alias_fallback_resolved" >&2
+if [ "$alias_diagnostic_resolved" -ne 0 ]; then
+  echo "valid alias materialization leaked into diagnostic inventory: $alias_diagnostic_resolved" >&2
   exit 1
 fi
 
-if [ "$alias_fallback_unresolved" -ne "$alias_diagnostic_fallback" ]; then
-  echo "alias fallback accounting mismatch: fallback=$alias_diagnostic_fallback unresolved=$alias_fallback_unresolved" >&2
+if [ "$alias_diagnostic_cycle_unresolved" -ne "$alias_diagnostic_unresolved" ]; then
+  echo "alias diagnostic accounting mismatch: unresolved=$alias_diagnostic_unresolved cycle_unresolved=$alias_diagnostic_cycle_unresolved" >&2
   exit 1
 fi
 
@@ -357,4 +379,4 @@ grep -a -q 'topo_ok=1' "$log" || {
   exit 1
 }
 
-echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks metadata_fallback_named=$metadata_fallback_named metadata_fallback_generic_named=$metadata_fallback_generic_named metadata_fallback_compound=$metadata_fallback_compound metadata_fallback_other=$metadata_fallback_other metadata_named_builtin_shell=$metadata_named_builtin_shell metadata_named_generic_class=$metadata_named_generic_class metadata_named_alias=$metadata_named_alias metadata_named_non_class_symbol=$metadata_named_non_class_symbol metadata_named_missing_symbol=$metadata_named_missing_symbol legacy_alias=$legacy_alias legacy_non_alias=$legacy_non_alias alias_materialized=$alias_materialized alias_diagnostic_fallback=$alias_diagnostic_fallback alias_fallback_resolver_calls=$alias_fallback_resolver_calls alias_fallback_resolved=$alias_fallback_resolved alias_fallback_unresolved=$alias_fallback_unresolved)"
+echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips resolve_calls=$resolve_calls resolve_unique_nodes=$resolve_unique_nodes metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks metadata_fallback_named=$metadata_fallback_named metadata_fallback_generic_named=$metadata_fallback_generic_named metadata_fallback_compound=$metadata_fallback_compound metadata_fallback_other=$metadata_fallback_other metadata_named_builtin_shell=$metadata_named_builtin_shell metadata_named_generic_class=$metadata_named_generic_class metadata_named_alias=$metadata_named_alias metadata_named_non_class_symbol=$metadata_named_non_class_symbol metadata_named_missing_symbol=$metadata_named_missing_symbol legacy_alias=$legacy_alias legacy_non_alias=$legacy_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"

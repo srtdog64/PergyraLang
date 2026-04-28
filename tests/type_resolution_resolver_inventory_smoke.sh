@@ -72,6 +72,12 @@ grep -q 'metadata_type = semantic_type_resolution_lookup_resolved_type(ctx, node
   exit 1
 }
 
+grep -q 'metadata_type = resolve_named_type_from_metadata(name, ctx, site);' \
+  src/semantic/type_checker_resolution_helpers.h || {
+  echo "[type-resolution-resolver-inventory] resolve_named_type is no longer metadata-first" >&2
+  exit 1
+}
+
 materializer_recorders="$(
   grep -RIn 'semantic_type_resolution_record_materializer_fallback' src/semantic \
     | grep -v 'type_checker_internal.h' \
@@ -85,11 +91,21 @@ if [ -n "$materializer_recorders" ]; then
 fi
 
 metadata_fallback_escape_count="$(
-  grep -RIn 'return resolve_type_node(type_node, ctx);' src/semantic/type_checker_resolution_metadata.c \
-    | wc -l
+  grep -RIn 'resolve_type_node(type_node, ctx)' src/semantic/type_checker_resolution_metadata.c \
+    | wc -l || true
 )"
-if [ "$metadata_fallback_escape_count" -ne 1 ]; then
-  echo "[type-resolution-resolver-inventory] central metadata fallback escape hatch count changed: $metadata_fallback_escape_count" >&2
+if [ "$metadata_fallback_escape_count" -ne 0 ]; then
+  echo "[type-resolution-resolver-inventory] central metadata fallback escape hatch reappeared: $metadata_fallback_escape_count" >&2
+  exit 1
+fi
+
+alias_stack_debt="$(
+  grep -RIn 'alias_resolution_\|resolve_type_alias_decl' src/semantic \
+    | grep -v 'type_resolution_resolver_inventory_smoke.sh' || true
+)"
+if [ -n "$alias_stack_debt" ]; then
+  echo "[type-resolution-resolver-inventory] recursive alias resolver debt reappeared:" >&2
+  printf '%s\n' "$alias_stack_debt" >&2
   exit 1
 fi
 

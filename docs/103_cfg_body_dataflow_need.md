@@ -122,14 +122,11 @@ Current beta evidence covers the first stable slice:
 
 Remaining bridge work:
 
-- C/LLVM explicit pin/unpin lowering parity for the block-scoped
-  `pin slot as view { ... }` surface, using the generated inline wrapper ABI
-  for current `PgySlot_*` / `PgySecureSlot_*` values and the table-backed
-  `PgyPinnedView` ABI only for `SlotManager` handles;
 - HIR/MIR already preserve pin-region metadata for source slot, view binding,
   and read/write mode, and MIR now materializes `pin-unpin-cleanup-edge`
-  metadata. The remaining work is backend/runtime consumption rather than
-  rediscovering pin regions from desugared statements;
+  metadata. The MIR validator now rejects reachable pin-region blocks that
+  lack the matching unpin cleanup fact, so backend/runtime consumers no longer
+  have to rediscover pin regions from desugared statements;
 - `DropOnce` and `ReleaseAfterUnpin` over the final block-scoped pin surface;
 - wider no-escape/no-suspend proof for closure/lambda captures and general
   async task lifetimes.
@@ -180,10 +177,18 @@ The migration should be incremental and gated:
   bodies carry a loop context, so `break` targets the loop exit block and
   `continue` targets the loop header. `src/test_hir.c` locks this with the
   `HIR CFG lowers loop break and continue edges explicitly` regression.
+- Done: HIR CFG loop control is label-aware. Nested `break outer` and
+  `continue outer` now resolve to the named loop's exit/header instead of the
+  nearest loop, matching the semantic loop-label validation surface.
 - Done: HIR CFG lowering now expands `match` into an explicit dispatch chain.
   Each `case` gets a branch edge, case bodies and `default` bodies join through
   CFG successors, and terminating case bodies remain closed. `src/test_hir.c`
   locks this with `HIR CFG lowers match cases and default as explicit edges`.
+- Done: HIR CFG lowering now expands `select` into the same explicit
+  dispatch/join helper as `match`. Channel readiness cases and default bodies
+  are visible to HIR/MIR CFG consumers instead of remaining a single opaque AST
+  payload. `src/test_hir.c` locks this with
+  `HIR CFG lowers select cases and default as explicit edges`.
 - Done: HIR CFG lowering now traverses `unsafe` block bodies instead of keeping
   them opaque. Control-flow constructs inside `unsafe` blocks, including
   nested returns, now produce the same CFG terminators as ordinary blocks.
@@ -191,6 +196,10 @@ The migration should be incremental and gated:
   conservative semantics, RIR flow-block summaries, and RIR resource facts for
   rollback/invalidation decisions. The former intent-step AST invalidation
   fallback is removed.
+- Done: MIR validation now treats `pin-unpin-cleanup-edge` as a required
+  cleanup fact for every reachable pin-region block, including the source slot,
+  view binding, and read/write mode. `src/test_mir.c` includes a negative
+  regression that corrupts this fact and expects `mir_validate()` to reject it.
 - Done: non-`Void` function all-path return now consumes the semantic CFG body flow summary and emits `PGY_SEM_MISSING_RETURN` when a reachable normal path can fall through.
 - Done: unreachable statements after direct terminators and after `if`/`match`
   bodies whose reachable paths all terminate now emit

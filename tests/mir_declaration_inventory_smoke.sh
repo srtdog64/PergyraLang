@@ -30,6 +30,8 @@ domain_path = root / "src" / "codegen" / "llvm_domain.c"
 backend_doc_path = root / "src" / "codegen" / "llvm_backend.h"
 transpiler_header_path = root / "src" / "codegen" / "transpiler.h"
 transpiler_path = root / "src" / "codegen" / "transpiler.c"
+mir_header_path = root / "src" / "compiler" / "mir.h"
+mir_public_path = root / "src" / "compiler" / "mir_lower_public_api.h"
 checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
 todo_path = root / "TODO.md"
 
@@ -41,6 +43,8 @@ for path in (
     backend_doc_path,
     transpiler_header_path,
     transpiler_path,
+    mir_header_path,
+    mir_public_path,
     checklist_path,
     todo_path,
 ):
@@ -54,6 +58,8 @@ domain = domain_path.read_text(encoding="utf-8")
 backend_doc = backend_doc_path.read_text(encoding="utf-8")
 transpiler_header = transpiler_header_path.read_text(encoding="utf-8")
 transpiler = transpiler_path.read_text(encoding="utf-8")
+mir_header_api = mir_header_path.read_text(encoding="utf-8")
+mir_public_api = mir_public_path.read_text(encoding="utf-8")
 checklist = checklist_path.read_text(encoding="utf-8")
 todo = todo_path.read_text(encoding="utf-8")
 
@@ -80,6 +86,24 @@ required_internal_terms = [
 for term in required_internal_terms:
     if term not in inventory_internal:
         errors.append(f"llvm_inventory_internal.h missing declaration inventory helper: {term}")
+
+for term in [
+    "mir_active_inventory",
+    "mir_active_externs",
+]:
+    if term not in mir_header_api or term not in mir_public_api:
+        errors.append(f"MIR public API missing active declaration inventory helper: {term}")
+
+for path_label, text in [
+    ("llvm_inventory_internal.h", inventory_internal),
+    ("transpiler.h", transpiler_header),
+]:
+    for term in [
+        "mir_active_inventory(ctx->mir, decl_type, &nodes, &count)",
+        "mir_active_externs(ctx->mir, &nodes, &count)",
+    ]:
+        if term not in text:
+            errors.append(f"{path_label} must consume MIR API seam: {term}")
 
 required_pipeline_terms = [
     "llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count)",
@@ -160,12 +184,23 @@ for term in [
 
 llvm_register = (root / "src" / "codegen" / "llvm_register.c").read_text(encoding="utf-8")
 for term in [
+    "llvm_mir_decl_method_param_count(method_meta)",
+    "llvm_mir_decl_method_return_type(method_meta)",
+    "llvm_mir_decl_method_is_action_like(method_meta)",
+    "MIR-only LLVM path missing enum method declaration metadata",
+    "MIR-only LLVM path missing class method declaration metadata",
+]:
+    if term not in llvm_register:
+        errors.append(f"llvm_register.c must consume MIR method signature metadata: {term}")
+
+for forbidden in [
+    "llvm_mir_decl_method_name(method_meta, method)",
     "llvm_mir_decl_method_param_count(method_meta, method)",
     "llvm_mir_decl_method_return_type(method_meta, method)",
     "llvm_mir_decl_method_is_action_like(method_meta, method)",
 ]:
-    if term not in llvm_register:
-        errors.append(f"llvm_register.c must consume MIR method signature metadata: {term}")
+    if forbidden in llvm_register or forbidden in inventory_internal or forbidden in pipeline:
+        errors.append(f"LLVM MIR method accessors must not fall back to AST method nodes: {forbidden}")
 
 required_mir_terms = [
     "MIRDeclMethod",

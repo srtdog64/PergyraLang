@@ -17,183 +17,83 @@ find_type_alias_decl(ASTNode *program, const char *name)
     return NULL;
 }
 
-static int
-semantic_ctx_alias_resolution_index(SemanticContext *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        return -1;
-
-    for (size_t i = 0; i < ctx->alias_resolution_count; i++) {
-        if (ctx->alias_resolution_stack[i] != NULL
-            && strcmp(ctx->alias_resolution_stack[i], name) == 0) {
-            return (int)i;
-        }
-    }
-
-    return -1;
-}
-
-static bool
-semantic_ctx_alias_resolution_push(SemanticContext *ctx, const char *name)
-{
-    char **grown;
-
-    if (ctx == NULL || name == NULL)
-        return false;
-
-    if (ctx->alias_resolution_count >= ctx->alias_resolution_capacity) {
-        size_t new_cap = ctx->alias_resolution_capacity == 0
-            ? 8 : ctx->alias_resolution_capacity * 2;
-        grown = realloc(ctx->alias_resolution_stack, new_cap * sizeof(char *));
-        if (grown == NULL)
-            return false;
-        ctx->alias_resolution_stack = grown;
-        ctx->alias_resolution_capacity = new_cap;
-    }
-
-    ctx->alias_resolution_stack[ctx->alias_resolution_count] = pergyra_strdup(name);
-    if (ctx->alias_resolution_stack[ctx->alias_resolution_count] == NULL)
-        return false;
-    ctx->alias_resolution_count++;
-    return true;
-}
-
-static void
-semantic_ctx_alias_resolution_pop(SemanticContext *ctx)
-{
-    if (ctx == NULL || ctx->alias_resolution_count == 0)
-        return;
-
-    free(ctx->alias_resolution_stack[ctx->alias_resolution_count - 1]);
-    ctx->alias_resolution_stack[ctx->alias_resolution_count - 1] = NULL;
-    ctx->alias_resolution_count--;
-}
-
 static Type *
 resolution_helpers_resolve_type_ref(SemanticContext *ctx, ASTNode *type_ref)
 {
     return semantic_type_resolution_lookup_or_materialize(ctx, type_ref);
 }
 
-static char *
-semantic_ctx_alias_resolution_cycle_text(SemanticContext *ctx,
-                                         size_t start_index,
-                                         const char *closing_name)
-{
-    char *result = NULL;
-
-    if (ctx == NULL || start_index >= ctx->alias_resolution_count)
-        return tc_strdup_fmt("<cycle>");
-
-    for (size_t i = start_index; i < ctx->alias_resolution_count; i++) {
-        const char *label = ctx->alias_resolution_stack[i] != NULL
-            ? ctx->alias_resolution_stack[i] : "<alias>";
-        char *next = result == NULL
-            ? tc_strdup_fmt("%s", label)
-            : tc_strdup_fmt("%s -> %s", result, label);
-        free(result);
-        result = next;
-        if (result == NULL)
-            return tc_strdup_fmt("<cycle>");
-    }
-
-    {
-        char *next = tc_strdup_fmt("%s -> %s",
-                                   result != NULL ? result : "<cycle>",
-                                   closing_name != NULL ? closing_name : "<alias>");
-        free(result);
-        result = next;
-    }
-
-    return result != NULL ? result : tc_strdup_fmt("<cycle>");
-}
-
-static Type *
-resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned depth)
-{
-    const char *alias_name;
-    int cycle_index;
-
-    if (alias_decl == NULL || alias_decl->type != AST_TYPE_ALIAS)
-        return TYPE_UNKNOWN;
-
-    alias_name = alias_decl->data.type_alias.name != NULL
-        ? alias_decl->data.type_alias.name : "<alias>";
-
-    cycle_index = semantic_ctx_alias_resolution_index(ctx, alias_name);
-    if (cycle_index >= 0) {
-        char *cycle_text = semantic_ctx_alias_resolution_cycle_text(
-            ctx, (size_t)cycle_index, alias_name);
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, alias_decl,
-            "Type resolution dependency cycle detected around alias '%s'.\n"
-            "Contract source:\n"
-            "- alias chain provenance: %s\n"
-            "Reason:\n"
-            "- alias resolution re-entered '%s' before the current alias chain completed\n"
-            "- cycle path: %s\n"
-            "Fix:\n"
-            "- break the alias loop so one alias resolves to a concrete type first\n"
-            "- or replace one side of the cycle with a non-alias type declaration",
-            alias_name,
-            cycle_text != NULL ? cycle_text : "<cycle>",
-            alias_name,
-            cycle_text != NULL ? cycle_text : "<cycle>");
-        free(cycle_text);
-        return TYPE_UNKNOWN;
-    }
-
-    if (depth > 32) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, alias_decl,
-            "Type alias resolution exceeded maximum depth near '%s'.\n"
-            "Contract source:\n"
-            "- alias chain provenance: %s\n"
-            "Reason:\n"
-            "- alias materialization exceeded the beta maximum alias depth\n"
-            "- this usually means a dependency cycle escaped the graph prepass\n"
-            "Fix:\n"
-            "- break the alias chain with a concrete type declaration\n"
-            "- or split the recursive shape behind an explicit indirection",
-            alias_decl->data.type_alias.name != NULL
-                ? alias_decl->data.type_alias.name : "<alias>",
-            alias_decl->data.type_alias.name != NULL
-                ? alias_decl->data.type_alias.name : "<alias>");
-        return TYPE_UNKNOWN;
-    }
-
-    if (alias_decl->data.type_alias.target_type == NULL)
-        return TYPE_UNKNOWN;
-
-    semantic_type_resolution_record_type_ref_dependency(
-        ctx,
-        alias_decl,
-        alias_decl->data.type_alias.name != NULL
-            ? alias_decl->data.type_alias.name : "<alias>",
-        alias_decl->data.type_alias.target_type,
-        "type-alias target lookup");
-
-    if (!semantic_ctx_alias_resolution_push(ctx, alias_name)) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
-            PGY_CAUSE_RESOLUTION_OOM, PGY_FIX_REDUCE_SCOPE_OR_RETRY,
-            alias_decl,
-            "Out of memory while tracking type alias resolution for '%s'.",
-            alias_name);
-        return TYPE_UNKNOWN;
-    }
-
-    {
-        Type *resolved = resolution_helpers_resolve_type_ref(
-            ctx, alias_decl->data.type_alias.target_type);
-        semantic_ctx_alias_resolution_pop(ctx);
-        return resolved;
-    }
-}
-
 ASTNode *
 find_type_decl_by_name(ASTNode *program, const char *type_name);
+
+static Type *
+resolve_named_type_from_metadata(const char *name,
+                                 SemanticContext *ctx,
+                                 const ASTNode *site)
+{
+    Type *resolved;
+    Type *builtin;
+    ASTNode *alias_decl;
+    Symbol *sym;
+
+    if (name == NULL)
+        return NULL;
+
+    resolved = semantic_type_resolution_lookup_metadata_name_or_alias(ctx,
+                                                                      name);
+    if (resolved == NULL)
+        return NULL;
+    if (resolved == TYPE_UNKNOWN)
+        return TYPE_UNKNOWN;
+
+    builtin = semantic_type_resolution_metadata_builtin_singleton(name);
+    if (builtin != NULL) {
+        semantic_type_resolution_record_named_dependency(
+            ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, name,
+            "metadata builtin-type lookup");
+        return resolved;
+    }
+
+    alias_decl = ctx != NULL && ctx->program_root != NULL
+        ? find_type_alias_decl(ctx->program_root, name)
+        : NULL;
+    if (alias_decl != NULL) {
+        semantic_type_resolution_record_named_dependency(
+            ctx, site, name, TYPE_RES_NODE_ALIAS, alias_decl, name,
+            "metadata type-alias lookup");
+        return resolved;
+    }
+
+    sym = ctx != NULL ? scope_lookup(ctx->scope, name) : NULL;
+    if (sym != NULL && sym->kind == SYMBOL_CLASS) {
+        ASTNode *decl = ctx->program_root != NULL
+            ? find_type_decl_by_name(ctx->program_root, name)
+            : NULL;
+        semantic_type_resolution_record_named_dependency(
+            ctx, site, name, TYPE_RES_NODE_DECL, decl, name,
+            "metadata named-type lookup");
+        return resolved;
+    }
+    if (sym != NULL) {
+        semantic_type_resolution_record_named_dependency(
+            ctx, site, name,
+            sym->kind == SYMBOL_TYPE_PARAM
+                ? TYPE_RES_NODE_GENERIC_PARAM
+                : TYPE_RES_NODE_DECL,
+            NULL, name, "metadata scope-type lookup");
+        return resolved;
+    }
+
+    return resolved;
+}
 
 Type *
 resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
 {
+    Type *metadata_type = resolve_named_type_from_metadata(name, ctx, site);
+    if (metadata_type != NULL)
+        return metadata_type;
+
     Symbol *sym = scope_lookup(ctx->scope, name);
     if (sym != NULL && sym->kind == SYMBOL_CLASS && sym->type != TYPE_UNKNOWN)
     {
@@ -239,9 +139,11 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
     if (ctx != NULL && ctx->program_root != NULL) {
         ASTNode *alias_decl = find_type_alias_decl(ctx->program_root, name);
         if (alias_decl != NULL) {
+            Type *resolved;
             semantic_type_resolution_record_named_dependency(
                 ctx, site, name, TYPE_RES_NODE_ALIAS, alias_decl, name, "type-alias lookup");
-            Type *resolved = resolve_type_alias_decl(alias_decl, ctx, 0);
+            resolved = semantic_type_resolution_lookup_metadata_name_or_alias(ctx,
+                                                                              name);
             if (sym != NULL && resolved != NULL)
                 sym->type = resolved;
             return resolved != NULL ? resolved : TYPE_UNKNOWN;

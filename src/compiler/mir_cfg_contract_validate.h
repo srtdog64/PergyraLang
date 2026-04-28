@@ -1,4 +1,35 @@
 static bool
+mir_block_has_pin_cleanup_edge(const MIRBasicBlock *block)
+{
+    if (block == NULL || !block->is_pin_region)
+        return false;
+
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        const char *expected_access = block->pin_view_is_write ? "write" : "read";
+        if (inst->kind != MIR_INST_CLEANUP_EDGE
+            || inst->name == NULL
+            || strcmp(inst->name, "pin-unpin-cleanup-edge") != 0) {
+            continue;
+        }
+        if (block->pin_source_name != NULL) {
+            if (inst->slot_anchor == NULL
+                || strcmp(inst->slot_anchor, block->pin_source_name) != 0) {
+                continue;
+            }
+        }
+        if (block->pin_view_name != NULL) {
+            if (inst->arg0 == NULL || strcmp(inst->arg0, block->pin_view_name) != 0)
+                continue;
+        }
+        if (inst->arg1 == NULL || strcmp(inst->arg1, expected_access) != 0)
+            continue;
+        return true;
+    }
+    return false;
+}
+
+static bool
 mir_validate_cfg_contract_state(const MIRRoutine *routine,
                                bool require_cleanup,
                                bool require_cleanup_source_mapping,
@@ -190,6 +221,17 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                     if (error_message != NULL) {
                         *error_message = mir_strdup_fmt(
                             "MIR routine '%s' block[%zu] cleanup edge does not target cleanup block",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            i);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+                if (block->is_pin_region
+                    && !mir_block_has_pin_cleanup_edge(block)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' pin-region block[%zu] missing pin-unpin cleanup fact",
                             routine->name != NULL ? routine->name : "(anonymous)",
                             i);
                     }

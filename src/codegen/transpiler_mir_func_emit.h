@@ -512,139 +512,20 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             && transpiler_resolve_ssa_name(&block_ssa_map, "self") == NULL) {
             transpiler_ssa_name_map_set(&block_ssa_map, "self", "self");
         }
-        for (size_t j = 0; j < block->instruction_count; j++) {
-            const MIRInstruction *inst = &block->instructions[j];
-            if (inst->kind == MIR_INST_RESOURCE_OP) {
-                continue;
-            } else if (inst->kind == MIR_INST_BRANCH) {
-                char *cond = emit_expression_with_ssa_map(inst->ast, ctx,
-                    &block_ssa_map);
-                const char *cond_text = NULL;
-                bool owns_cond = false;
-                if (cond != NULL) {
-                    cond_text = cond;
-                    owns_cond = true;
-                } else {
-                    cond_text = transpiler_scratch_strdup(ctx, "false");
-                }
-                if (block->has_succ_true)
-                    transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent, i, block,
-                        &mir_routine->blocks[block->succ_true]);
-                if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
-                                                        block_reason,
-                                                        sizeof(block_reason))) {
-                    transpiler_ssa_map_clear(&block_ssa_map);
-                    if (ctx->backend_error == NULL) {
-                        ctx->backend_error = strdup_fmt(
-                            "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
-                            name != NULL ? name : "<function>",
-                            (unsigned long long) block->id,
-                            block_reason[0] != '\0' ? block_reason : "unknown reason");
-                    }
-                    transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
-                    return;
-                }
-                write_indent(ctx);
-                transpiler_write_condition_head(ctx, "if",
-                    cond_text != NULL ? cond_text : "false", " {\n");
-                write_indent_to(ctx->out, ctx->indent + 1);
-                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_true);
-                write_indent(ctx);
-                codebuf_write(ctx->out, "} else {\n");
-                if (block->has_succ_false)
-                    transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent + 1, i, block,
-                        &mir_routine->blocks[block->succ_false]);
-                write_indent_to(ctx->out, ctx->indent + 1);
-                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_false);
-                write_indent(ctx);
-                codebuf_write(ctx->out, "}\n");
-                if (owns_cond)
-                    free(cond);
-                terminator_emitted = true;
-            } else if (inst->kind == MIR_INST_RETURN) {
-                if (inst->ast != NULL) {
-                    char *ret_expr = emit_expression_with_ssa_map(inst->ast, ctx,
-                        &block_ssa_map);
-                    if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
-                                                            block_reason,
-                                                            sizeof(block_reason))) {
-                        free(ret_expr);
-                        transpiler_ssa_map_clear(&block_ssa_map);
-                        if (ctx->backend_error == NULL) {
-                            ctx->backend_error = strdup_fmt(
-                                "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
-                                name != NULL ? name : "<function>",
-                                (unsigned long long) block->id,
-                                block_reason[0] != '\0' ? block_reason : "unknown reason");
-                        }
-                        transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
-                        return;
-                    }
-                    write_indent(ctx);
-                    codebuf_write(ctx->out, "return %s;\n", ret_expr != NULL ? ret_expr : "0");
-                    free(ret_expr);
-                } else {
-                    if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
-                                                            block_reason,
-                                                            sizeof(block_reason))) {
-                        transpiler_ssa_map_clear(&block_ssa_map);
-                        if (ctx->backend_error == NULL) {
-                            ctx->backend_error = strdup_fmt(
-                                "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
-                                name != NULL ? name : "<function>",
-                                (unsigned long long) block->id,
-                                block_reason[0] != '\0' ? block_reason : "unknown reason");
-                        }
-                        transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
-                        return;
-                    }
-                    write_indent(ctx);
-                    codebuf_write(ctx->out, "return;\n");
-                }
-                terminator_emitted = true;
-            }
+        if (!transpiler_emit_mir_explicit_terminator(
+                node, mir_routine, block, i, name, ctx, &block_ssa_map,
+                &terminator_emitted, block_reason, sizeof(block_reason))) {
+            transpiler_ssa_map_clear(&block_ssa_map);
+            transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+            return;
         }
-        if (!terminator_emitted && block->has_succ_true) {
-            transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent, i, block,
-                &mir_routine->blocks[block->succ_true]);
-            if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
-                                                    block_reason,
-                                                    sizeof(block_reason))) {
+        if (!terminator_emitted) {
+            if (!transpiler_emit_mir_fallthrough_terminator(
+                    mir_routine, block, i, name, ctx,
+                    block_reason, sizeof(block_reason))) {
                 transpiler_ssa_map_clear(&block_ssa_map);
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
-                        name != NULL ? name : "<function>",
-                        (unsigned long long) block->id,
-                        block_reason[0] != '\0' ? block_reason : "unknown reason");
-                }
                 transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
                 return;
-            }
-            write_indent(ctx);
-            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_true);
-            terminator_emitted = true;
-        }
-        if (!terminator_emitted && !block->has_succ_true && !block->has_succ_false) {
-            if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
-                                                    block_reason,
-                                                    sizeof(block_reason))) {
-                transpiler_ssa_map_clear(&block_ssa_map);
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
-                        name != NULL ? name : "<function>",
-                        (unsigned long long) block->id,
-                        block_reason[0] != '\0' ? block_reason : "unknown reason");
-                }
-                transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
-                return;
-            }
-            write_indent(ctx);
-            if (strcmp(ctx->current_return_type, "Void") == 0) {
-                codebuf_write(ctx->out, "return;\n");
-            } else {
-                codebuf_write(ctx->out, "__builtin_unreachable();\n");
             }
         }
     }

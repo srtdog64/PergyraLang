@@ -14,4 +14,22 @@ if ((${#inc_files[@]} > 0)); then
     exit 1
 fi
 
-echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0"
+for legacy_header in \
+    rir_builder.h \
+    rir_flow.h \
+    rir_names.h \
+    rir_public_surface.h \
+    rir_validation.h
+do
+    if [ -e "$ROOT_DIR/src/compiler/$legacy_header" ]; then
+        echo "RIR implementation-style header reappeared: src/compiler/$legacy_header" >&2
+        exit 1
+    fi
+    if grep -RIn "$legacy_header" "$ROOT_DIR/src" "$ROOT_DIR/Makefile" >/dev/null 2>&1; then
+        echo "RIR implementation-style header include/reference remains: $legacy_header" >&2
+        grep -RIn "$legacy_header" "$ROOT_DIR/src" "$ROOT_DIR/Makefile" >&2 || true
+        exit 1
+    fi
+done
+
+echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0; legacy RIR implementation headers = 0"

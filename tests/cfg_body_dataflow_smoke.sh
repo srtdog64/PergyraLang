@@ -32,6 +32,7 @@ flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.h
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
+mir_cfg_contract_validate_path = root / "src" / "compiler" / "mir_cfg_contract_validate.h"
 mir_path = root / "src" / "compiler" / "mir.c"
 mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
 mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.h"
@@ -70,6 +71,7 @@ for path in (
     flow_loops_path,
     flow_parallel_path,
     mir_cleanup_path,
+    mir_cfg_contract_validate_path,
     mir_path,
     mir_ssa_rename_path,
     mir_liveness_dce_path,
@@ -130,6 +132,7 @@ flow = (
     + expr_path.read_text(encoding="utf-8")
 )
 mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
+mir_cfg_contract_validate = mir_cfg_contract_validate_path.read_text(encoding="utf-8")
 mir = mir_path.read_text(encoding="utf-8")
 mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
 mir_liveness_dce = mir_liveness_dce_path.read_text(encoding="utf-8")
@@ -241,6 +244,21 @@ for forbidden in [
             + forbidden
         )
 
+required_mir_cleanup_validator_terms = [
+    "mir_block_has_pin_cleanup_edge",
+    "pin-unpin-cleanup-edge",
+    "pin-region block[%zu] missing pin-unpin cleanup fact",
+]
+missing_mir_cleanup_validator = [
+    term for term in required_mir_cleanup_validator_terms
+    if term not in mir_cfg_contract_validate
+]
+if missing_mir_cleanup_validator:
+    raise SystemExit(
+        "MIR cleanup validator must reject pin regions without unpin facts: "
+        + ", ".join(missing_mir_cleanup_validator)
+    )
+
 mir_owner_limits = {
     mir_path: 600,
     mir_ssa_rename_path: 600,
@@ -351,6 +369,32 @@ if missing_flow:
         "semantic CFG body flow is missing implementation terms: "
         + ", ".join(missing_flow)
     )
+
+hir_routines = program_path.parent.parent / "compiler" / "hir_routines.c"
+hir_routines_text = hir_routines.read_text(encoding="utf-8")
+for term in [
+    "hir_validate_cfg_shape",
+    "hir_validate_cfg_predecessors",
+    "HIR_BLOCK_FALLTHROUGH",
+    "hir_cfg_successor_in_range",
+    "hir_cfg_block_targets",
+    "hir_cfg_predecessors_contain",
+    "return_block_count",
+    "normal_exit_block_count",
+]:
+    if term not in hir_routines_text:
+        hir_header = root / "src" / "compiler" / "hir.h"
+        hir_cfg = root / "src" / "compiler" / "hir_cfg.c"
+        hir_public = root / "src" / "compiler" / "hir_public.c"
+        joined = (
+            hir_header.read_text(encoding="utf-8")
+            + "\n"
+            + hir_cfg.read_text(encoding="utf-8")
+            + "\n"
+            + hir_public.read_text(encoding="utf-8")
+        )
+        if term not in joined:
+            raise SystemExit(f"HIR CFG validation/summary gate missing {term}")
 
 for term in [
     "semantic_check_body_flow",

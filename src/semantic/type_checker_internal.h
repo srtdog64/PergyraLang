@@ -26,6 +26,18 @@ bool semantic_reject_active_slot_owner_escape(ASTNode *site,
                                               SemanticContext *ctx,
                                               const char *escape_kind,
                                               const char *escape_name);
+ASTNode *semantic_lookup_function_param_contract(SemanticContext *ctx,
+                                                 const char *display_name,
+                                                 size_t arg_index,
+                                                 ParamMode *mode_out);
+unsigned semantic_callable_param_escape_summary(ASTNode *callee_decl,
+                                                size_t arg_index,
+                                                SemanticContext *ctx);
+void semantic_validate_function_call_generic_where(ASTNode *expr,
+                                                   SemanticContext *ctx,
+                                                   const char *display_name,
+                                                   size_t provided,
+                                                   Type **call_arg_types);
 bool semantic_reject_active_slot_view_boundary(ASTNode *site,
                                                SemanticContext *ctx,
                                                const char *boundary_name,
@@ -229,8 +241,8 @@ bool semantic_stage_should_defer_to_graph(ASTNode *type_node,
                                           const char *reason);
 void semantic_stage_record_legacy_family(SemanticContext *ctx,
                                          const char *reason);
-void semantic_stage_record_alias_diagnostic_fallback(ASTNode *alias_decl,
-                                                     SemanticContext *ctx);
+void semantic_stage_record_alias_diagnostic_unresolved(ASTNode *alias_decl,
+                                                       SemanticContext *ctx);
 const char *semantic_symbol_kind_label(SymbolKind kind);
 const char *intent_step_single_who_alias(const ASTNode *step);
 ASTNode *find_intent_involves_local(ASTNode *intent, const char *alias);
@@ -308,6 +320,8 @@ Type *semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,
                                                         ASTNode *type_node);
 Type *semantic_type_resolution_lookup_metadata_name_or_alias(SemanticContext *ctx,
                                                             const char *name);
+Type *semantic_type_resolution_metadata_alias_type(SemanticContext *ctx,
+                                                  ASTNode *type_node);
 Type *semantic_type_resolution_metadata_builtin_singleton(const char *name);
 bool semantic_type_resolution_metadata_type_ref_has_no_generic_args(
     const ASTNode *type_node);
@@ -445,6 +459,9 @@ Type *semantic_stage_resolve_type_quiet(ASTNode *type_node,
                                         const ASTNode *consumer_site,
                                         const char *consumer_name,
                                         const char *reason);
+Type *semantic_stage_resolve_alias_target_quiet(ASTNode *alias_decl,
+                                                SemanticContext *ctx);
+void semantic_stage_type_alias_decl(ASTNode *decl, SemanticContext *ctx);
 ASTNode *semantic_stage_named_decl_quiet(SemanticContext *ctx,
                                          ASTNodeType decl_type,
                                          const char *provider_name);
@@ -469,6 +486,17 @@ void semantic_stage_method_array(ASTNode **methods,
                                  const char *fallback_name);
 void semantic_stage_event_signature(ASTNode *event_decl,
                                     SemanticContext *ctx);
+void semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_enum_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_ability_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_role_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_party_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_roster_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_world_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_intent_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_relation_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_effect_decl(ASTNode *decl, SemanticContext *ctx);
+void semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx);
 ASTNode *semantic_find_top_level_decl_by_label(ASTNode *program,
                                                const char *label,
                                                TypeResolutionNodeKind kind);

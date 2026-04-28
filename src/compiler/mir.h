@@ -272,6 +272,13 @@ struct MIRProgram
 };
 
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);
+void        mir_active_inventory(const MIRProgram *mir,
+                                 ASTNodeType decl_type,
+                                 ASTNode ***nodes_out,
+                                 size_t *count_out);
+void        mir_active_externs(const MIRProgram *mir,
+                               ASTNode ***nodes_out,
+                               size_t *count_out);
 ASTNode     *mir_find_function_decl(const MIRProgram *mir, const char *name);
 const MIRDeclHeader *mir_find_decl_header(const MIRProgram *mir, const char *name);
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);

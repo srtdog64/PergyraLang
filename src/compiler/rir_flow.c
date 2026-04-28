@@ -1,3 +1,11 @@
+#include "rir.h"
+#include "rir_internal.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "../common/string_compat.h"
+#include "hir.h"
 #include "rir_flow_state.h"
 
 static RIRResourceKind
@@ -165,6 +173,12 @@ rir_normalize_scope(RIRScope *scope)
     scope->conservative_semantics = rir_flow_semantics_for_scope(scope);
 
     return true;
+}
+
+bool
+rir_normalize_scope_shared(RIRScope *scope)
+{
+    return rir_normalize_scope(scope);
 }
 
 static RIRScopeKind
@@ -358,7 +372,7 @@ rir_enrich_scope_with_hir_flow(RIRScope *scope, const HIRRoutine *hir_routine)
                         merged = scope->state_summaries[fact_i].initial_state;
                 }
 
-                if (rir_state_changed(flow->facts[fact_i].entry_state, merged)
+                if (flow->facts[fact_i].entry_state != merged
                     || flow->facts[fact_i].entry_conflict != merge_conflict
                     || flow->facts[fact_i].widened_by_loop != (hir_block->is_loop_header
                                                                && hir_block->predecessor_count > 1)
@@ -388,7 +402,7 @@ rir_enrich_scope_with_hir_flow(RIRScope *scope, const HIRRoutine *hir_routine)
                                               &had_error,
                                               op->kind);
                     }
-                    if (rir_state_changed(flow->facts[fact_i].exit_state, exit_state)
+                    if (flow->facts[fact_i].exit_state != exit_state
                         || flow->facts[fact_i].has_merge_conflict != had_error) {
                         changed = true;
                     }
@@ -417,4 +431,27 @@ oom:
     free(block_op_counts);
     rir_free_flow_blocks(scope);
     return false;
+}
+
+bool
+rir_enrich_with_hir_flow(RIRProgram *rir, const HIRProgram *hir, char **error_message)
+{
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (rir == NULL || hir == NULL)
+        return true;
+
+    for (size_t i = 0; i < hir->routine_count; i++) {
+        const HIRRoutine *hir_routine = &hir->routines[i];
+        RIRScope *scope = rir_find_matching_scope(rir, hir_routine);
+        if (scope == NULL)
+            continue;
+        if (!rir_enrich_scope_with_hir_flow(scope, hir_routine)) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            return false;
+        }
+    }
+
+    return true;
 }

@@ -148,10 +148,6 @@ struct SemanticContext
     size_t       embedded_world_zone_count;
     size_t       embedded_world_zone_capacity;
 
-    char**       alias_resolution_stack;
-    size_t       alias_resolution_count;
-    size_t       alias_resolution_capacity;
-
     TypeResolutionGraph type_resolution_graph;
     size_t type_resolution_stage_graph_backed_skip_count;
     size_t type_resolution_stage_legacy_resolve_count;
@@ -164,13 +160,13 @@ struct SemanticContext
     size_t type_resolution_stage_legacy_alias_count;
     size_t type_resolution_stage_legacy_other_count;
     size_t type_resolution_stage_alias_materialized_count;
-    size_t type_resolution_stage_alias_diagnostic_fallback_count;
-    size_t type_resolution_stage_alias_fallback_resolver_call_count;
-    size_t type_resolution_stage_alias_fallback_resolved_count;
-    size_t type_resolution_stage_alias_fallback_unresolved_count;
-    char** type_resolution_stage_alias_fallback_names;
-    size_t type_resolution_stage_alias_fallback_name_count;
-    size_t type_resolution_stage_alias_fallback_name_capacity;
+    size_t type_resolution_stage_alias_diagnostic_unresolved_count;
+    size_t type_resolution_stage_alias_diagnostic_resolver_call_count;
+    size_t type_resolution_stage_alias_diagnostic_resolved_count;
+    size_t type_resolution_stage_alias_diagnostic_cycle_count;
+    char** type_resolution_stage_alias_diagnostic_names;
+    size_t type_resolution_stage_alias_diagnostic_name_count;
+    size_t type_resolution_stage_alias_diagnostic_name_capacity;
 
     /* Memoization cache for resolve_type_node (AST node pointer -> Type*).
      * Populated after a successful resolution to skip re-work for identical
@@ -184,7 +180,7 @@ struct SemanticContext
 
     /* Graph-backed staged type metadata (AST type node -> Type*).
      * Populated by the DAG stage after a successful materialization, then
-     * reused by Pass 2 owner seams before falling back to recursive resolve. */
+     * reused by Pass 2 owner seams without re-entering recursive materialization. */
     struct {
         void **keys;     /* ASTNode * pointers */
         void **values;   /* Type * pointers */

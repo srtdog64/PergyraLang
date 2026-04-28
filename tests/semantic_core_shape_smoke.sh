@@ -24,10 +24,14 @@ for path in \
     src/semantic/type_checker_qubit.c \
     src/semantic/type_checker_domain_role_lookup.c \
     src/semantic/type_checker_resolution_metadata.c \
+    src/semantic/type_checker_resolution_metadata_alias.c \
     src/semantic/type_checker_resolution_metadata_diagnostics.c \
     src/semantic/type_checker_resolution_graph_inventory.c \
     src/semantic/type_checker_resolution_stage.c \
     src/semantic/type_checker_resolution_stage_alias.c \
+    src/semantic/type_checker_resolution_stage_nominal.c \
+    src/semantic/type_checker_resolution_stage_systemic.c \
+    src/semantic/type_checker_resolution_stage_domain_decl.c \
     src/semantic/type_checker_resolution_stage_lookup.c \
     src/semantic/type_checker_resolution_stage_stats.c \
     src/semantic/type_checker_resolution_stage_domain.c
@@ -40,7 +44,11 @@ done
 
 for path in \
     src/semantic/type_checker_resolution_metadata.c \
+    src/semantic/type_checker_resolution_metadata_alias.c \
     src/semantic/type_checker_resolution_stage.c \
+    src/semantic/type_checker_resolution_stage_nominal.c \
+    src/semantic/type_checker_resolution_stage_systemic.c \
+    src/semantic/type_checker_resolution_stage_domain_decl.c \
     src/semantic/type_checker_flow.c \
     src/semantic/type_checker_flow_match.c
 do

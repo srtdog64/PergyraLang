@@ -40,27 +40,8 @@ llvm_active_inventory(const LLVMGenCtx *ctx,
     ASTNode **nodes = NULL;
     size_t count = 0;
 
-    if (ctx != NULL && ctx->mir != NULL) {
-        switch (decl_type) {
-        case AST_FUNC_DECL: nodes = ctx->mir->functions; count = ctx->mir->function_count; break;
-        case AST_INTENT_DECL: nodes = ctx->mir->intents; count = ctx->mir->intent_count; break;
-        case AST_ABILITY_DECL: nodes = ctx->mir->abilities; count = ctx->mir->ability_count; break;
-        case AST_ROLE_DECL: nodes = ctx->mir->roles; count = ctx->mir->role_count; break;
-        case AST_PARTY_DECL: nodes = ctx->mir->parties; count = ctx->mir->party_count; break;
-        case AST_ROSTER_DECL: nodes = ctx->mir->rosters; count = ctx->mir->roster_count; break;
-        case AST_WORLD_DECL: nodes = ctx->mir->worlds; count = ctx->mir->world_count; break;
-        case AST_RELATION_DECL: nodes = ctx->mir->relations; count = ctx->mir->relation_count; break;
-        case AST_EFFECT_DECL: nodes = ctx->mir->effects; count = ctx->mir->effect_count; break;
-        case AST_ZONE_DECL: nodes = ctx->mir->zones; count = ctx->mir->zone_count; break;
-        case AST_EVENT_DECL: nodes = ctx->mir->events; count = ctx->mir->event_count; break;
-        case AST_CLASS_DECL:
-        case AST_ENUM_DECL:
-        case AST_TYPE_ALIAS:
-            nodes = ctx->mir->types; count = ctx->mir->type_count; break;
-        default:
-            break;
-        }
-    }
+    if (ctx != NULL && ctx->mir != NULL)
+        mir_active_inventory(ctx->mir, decl_type, &nodes, &count);
 
     if (nodes_out != NULL)
         *nodes_out = nodes;
@@ -367,58 +348,42 @@ llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
 }
 
 static inline const char *
-llvm_mir_decl_method_name(const MIRDeclMethod *method, ASTNode *fallback)
+llvm_mir_decl_method_name(const MIRDeclMethod *method)
 {
     if (method != NULL && method->name != NULL)
         return method->name;
-    if (fallback != NULL && fallback->type == AST_FUNC_DECL)
-        return fallback->data.func_decl.name;
     return NULL;
 }
 
 static inline size_t
-llvm_mir_decl_method_param_count(const MIRDeclMethod *method, ASTNode *fallback)
+llvm_mir_decl_method_param_count(const MIRDeclMethod *method)
 {
     if (method != NULL)
         return method->param_count;
-    if (fallback != NULL && fallback->type == AST_FUNC_DECL)
-        return fallback->data.func_decl.param_count;
     return 0;
 }
 
 static inline FuncParam *
-llvm_mir_decl_method_param(const MIRDeclMethod *method,
-                           ASTNode *fallback,
-                           size_t index)
+llvm_mir_decl_method_param(const MIRDeclMethod *method, size_t index)
 {
     if (method != NULL && method->params != NULL && index < method->param_count)
         return method->params[index];
-    if (fallback != NULL && fallback->type == AST_FUNC_DECL
-        && fallback->data.func_decl.params != NULL
-        && index < fallback->data.func_decl.param_count) {
-        return fallback->data.func_decl.params[index];
-    }
     return NULL;
 }
 
 static inline ASTNode *
-llvm_mir_decl_method_return_type(const MIRDeclMethod *method, ASTNode *fallback)
+llvm_mir_decl_method_return_type(const MIRDeclMethod *method)
 {
     if (method != NULL && method->return_type != NULL)
         return method->return_type;
-    if (fallback != NULL && fallback->type == AST_FUNC_DECL)
-        return fallback->data.func_decl.return_type;
     return NULL;
 }
 
 static inline bool
-llvm_mir_decl_method_is_action_like(const MIRDeclMethod *method,
-                                    ASTNode *fallback)
+llvm_mir_decl_method_is_action_like(const MIRDeclMethod *method)
 {
     if (method != NULL)
         return method->is_action_like;
-    if (fallback != NULL && fallback->type == AST_FUNC_DECL)
-        return fallback->data.func_decl.is_action;
     return false;
 }
 
@@ -636,10 +601,8 @@ llvm_active_externs(const LLVMGenCtx *ctx,
     ASTNode **nodes = NULL;
     size_t count = 0;
 
-    if (ctx != NULL && ctx->mir != NULL) {
-        nodes = ctx->mir->externs;
-        count = ctx->mir->extern_count;
-    }
+    if (ctx != NULL && ctx->mir != NULL)
+        mir_active_externs(ctx->mir, &nodes, &count);
 
     if (nodes_out != NULL)
         *nodes_out = nodes;

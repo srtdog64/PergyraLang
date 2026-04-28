@@ -1,11 +1,80 @@
 # Pergyra 개발 현황
 
-마지막 업데이트: 2026-04-24
+마지막 업데이트: 2026-04-28
 
 ## 요약
 
 - 컴파일러의 실제 driver 경로는 이제 `Lexer → Parser → Semantic → HIR → DIR → RIR → MIR → Backend dispatch`로 고정되며, `driver_run_pipeline()`은 backend 진입 전에 `DIR/RIR/MIR` lowering과 structural validation을 항상 수행한다.
 - `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 C/LLVM의 MIR entrypoint는 routine body뿐 아니라 declaration/top-level inventory도 `MIRProgram`에서 직접 읽는다. compiler entry는 MIR path에서 원본 `HIRProgram`을 넘기지 않으며, backend는 `MIR routine + MIR-carried AST inventory`를 source of truth로 사용한다. ordinary function / nominal method / intent step carrier 누락은 이제 MIR path에서 hard error다. intent step의 `check/eval/meta` carrier 역시 C/LLVM 양쪽에서 MIR-only로 강제된다. 남은 debt는 `원본 HIR 의존`이 아니라 `declaration inventory가 dedicated decl IR이 아닌 AST-carried inventory`라는 구조 debt 쪽에 가깝다.
+- LLVM MIR CFG control lowering now covers CFG-expanded range `for`,
+  `select`, and `match` containers instead of falling back to expression or
+  opaque AST statement emission. The owner was split into
+  `src/codegen/llvm_mir_cfg_control.c`, keeping `llvm_mir_block_emit.h` at
+  430 LOC. `make llvm-test-smoke` is the current gate for this slice.
+- LLVM private header ownership is also split: `llvm_internal.h` now keeps the
+  shared context/type definitions, `llvm_internal_api.h` owns private backend
+  API declarations, and `llvm_limits_internal.h` owns fixed limits plus
+  dynamic-array helpers. The main private header is now below the 600 LOC
+  split-review threshold.
+- LLVM registry ownership is split below the 600 LOC threshold:
+  `llvm_registry.c` owns scope/function/class/callable/enum registry behavior,
+  while `llvm_registry_resources.c` owns resource/container variable tracking
+  and Slot/SecureSlot/PinnedSlot/container type helper materialization.
+- LLVM method declaration signatures are now consumed from MIR declaration
+  metadata only. Missing enum/class method metadata is a hard LLVM MIR path
+  error, not an AST fallback. The remaining backend source-of-truth debt is
+  declaration inventory/bootstrap iteration, where some top-level method
+  discovery still starts from AST-carried inventory before reaching MIR
+  metadata.
+- MIR declaration inventory now has a compiler-owned active-read API seam:
+  `mir_active_inventory()` and `mir_active_externs()` centralize the current
+  `ASTNodeType -> MIRProgram declaration inventory` mapping. C
+  `transpiler_active_inventory()` and LLVM `llvm_active_inventory()` both
+  consume that MIR API instead of duplicating backend-local switches. This
+  reduces replacement cost for the future dedicated declaration IR, while the
+  payload itself remains AST-carried and therefore still beta debt.
+- LLVM statement ownership is split below the 600 LOC threshold:
+  `llvm_stmt.c` owns statement dispatch, defers, return/if/block emission, and
+  expression-statement forwarding; `llvm_stmt_zone_action.c` owns zone-action
+  effect runtime propagation; `llvm_stmt_type_render.c` owns generic
+  type-argument rendering; `llvm_stmt_let_collections.c` owns
+  collection/channel/array let specializations; and
+  `llvm_stmt_let_callable.c` owns callable/lambda let registration.
+- LLVM MIR CFG match lowering now handles `Option`/`Result` destructor case
+  conditions and payload bindings directly in `llvm_mir_cfg_control.c`.
+  `projection_abi` no longer fails LLVM verification or loses `Some(v)`
+  payload output on the MIR-expanded match path.
+- C backend MIR CFG consumer parity now matches this frozen surface:
+  range-loop init/header/backedge lowering and `Option`/`Result` match-case
+  branch conditions are emitted from `transpiler_mir_cfg_control_emit.h`, not
+  the generic expression fallback. Pin-view SSA copies are also blocked from
+  escaping `pin ... as view` regions. MIR phi-copy emission now lives in
+  `transpiler_mir_phi_emit.h`, keeping `transpiler_mir_ssa_emit.h` below the
+  600 LOC review threshold. MIR terminators now live in
+  `transpiler_mir_terminator_emit.h`, and residual MIR statement helpers live
+  in `transpiler_mir_stmt_emit.h`, bringing `transpiler_mir_func_emit.h` and
+  `transpiler_mir_block_emit.h` below the 600 LOC review threshold as well.
+  `make llvm-test-backend-compare` is green with ABI same-process `196 passed,
+  0 failed` and backend compare `64/64`.
+- C intent declaration emission is split below the 600 LOC threshold:
+  `transpiler_intent_emit.h` owns orchestration, while
+  `transpiler_intent_prologue_emit.h` owns signature/runtime-entry emission and
+  `transpiler_intent_cleanup_emit.h` owns cleanup/rollback/invalidation tail
+  emission. Current sizes are 577 / 186 / 278 LOC, and
+  `make llvm-test-backend-compare` remains green with ABI same-process
+  `196 passed, 0 failed` and backend compare `64/64`.
+- World semantic ownership is split below the 600 LOC threshold:
+  `type_checker_world_decl.c` owns the declaration pass,
+  `type_checker_world_helpers.c` owns world/zone lookup and lifecycle target
+  resolution helpers, and `type_checker_domain_slots.c` owns shared
+  relation/effect/zone domain slot validation.
+- Function-call late-helper semantic ownership is split below the 600 LOC
+  threshold: `type_checker_helpers_late.c` owns call dispatch, argument
+  type/ownership flow, and return materialization; `type_checker_slot_view_active.c`
+  owns active slot-view discovery and owner-escape rejection;
+  `type_checker_call_contract_helpers.c` owns callee parameter contract /
+  escape-summary lookup; and `type_checker_call_generic_where.c` owns call-site
+  generic where-clause validation.
 - `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
 - 최근 ABI/성능/AlphaDev식 invariant 최적화 진행 상태는 `docs/49_invariant_optimization_progress.md`에 따로 추적한다.
 - 아직 부분 구현 상태인 핵심 언어 축(effect lattice, capability security, MIR->LLVM debt, stack-slot escape analysis, generic where validation, tooling 고도화)은 `docs/50_language_completion_board.md`에서 추적한다.
@@ -36,11 +105,11 @@
 - secure memory lock/unlock는 unsupported platform에서 더 이상 성공으로 조용히 통과하지 않고 explicit `SECURITY_ERROR_UNSUPPORTED_PLATFORM`를 반환한다.
 - `examples/logistics_intent_probe/`는 현재 가장 직접적인 4-layer probe 예제로, `DIR` role/ability edge, `RIR` handle/flow fact, `MIR` phi/cleanup graph, runtime intent history를 한 번에 밟고 `tests/ir_pipeline_probe.sh`로 회귀시킴.
 - `examples/resource_scheduler_async_probe/`는 현재 가장 직접적인 async/parallel resource probe 예제로, `Channel<Int>`, `parallel`, `Slot<subject>`, helper-based `ref Slot<subject>` mutation, `DeviceSlot<Int>`, `RemoteFuture<Int>`를 한 시나리오에서 동시에 밟고 exact stdout/results + module smoke로 회귀시킴.
-- HIR는 아직 expression-level deep IR은 아니지만, 더 이상 순수 top-level bucket classifier만은 아니며 `decl index` / `routine summary` / `signature_type_refs` / direct-call snapshot / routine call-edge / conservative entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)`와 function CFG v0(predecessor/reachability/dead-block-count/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton 포함)를 가진 indexed backend/pass view로 올라와 있음
+- HIR는 아직 expression-level deep IR은 아니지만, 더 이상 순수 top-level bucket classifier만은 아니며 `decl index` / `routine summary` / `signature_type_refs` / direct-call snapshot / routine call-edge / conservative entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)`와 function CFG v0(predecessor/reachability/dead-block-count/return-block-count/normal-exit-block-count/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton 포함)를 가진 indexed backend/pass view로 올라와 있음. CFG 생성 직후에는 `hir_validate_cfg_shape()`가 open fallthrough, invalid successor, inconsistent terminator flag, missing branch condition, block-id drift를 막고, predecessor materialization 직후에는 `hir_validate_cfg_predecessors()`가 successor/predecessor mirror를 검증하므로 dominance/RIR/MIR 소비자는 최소 CFG shape invariant를 가정할 수 있다.
 - RIR는 scope-based explicit resource op/fact 계층으로 시작됐고, tracked resource/projection마다 `initial_state` / `final_state` / `last_op` / `transition error`를 가진 normalized state summary를 materialize함. 최근 패스로 HIR CFG를 받아 `flow-block[...]` 단위의 branch/join lattice propagation, join conflict, loop widening 정보를 함께 덤프하며, `relation/effect/zone/world` nominal handle도 function param / intent participant / `using` / `transfer` 경로에서 explicit fact/op로 정규화함. 추가로 resource fact가 없는 CFG block도 `authority/projection/world-handoff/invalidation/authority-loss/projection-invalidation` conservative semantic flag를 유지해서 scope-level `semantics=`와 block-level `sem-entry/sem-exit` 표면에 남기고, authority/capability의 `Authorized/AuthorityLost`, projection의 `Synced/Dirty/Stale/Published`, world handoff의 `HandoffPending/HandedOff`, lifecycle rollback의 `Compensated` 상태를 보수 요약에 포함함
 - RIR는 이제 `object slot`도 `ObjectSlot` resource fact/state로 materialize하며, `rir_validate_against_dir()`를 통해 `DIR`의 `zone-slot / projection-slot / authority-slot` 계약이 matching `RIR` scope/fact/state/capability로 실제 내려갔는지 driver 단계에서 교차 검증한다
 - DIR는 이제 intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency뿐 아니라 `party-slot / zone-slot / projection-slot / authority-slot`를 owner-qualified node로 materialize하는 slot-contract graph까지 직접 가진다
-- MIR는 HIR CFG와 RIR op를 묶는 실행 skeleton으로 시작됐고, routine/block/instruction/cleanup-block을 가지며 intent compensation/abort 경로를 cleanup instruction으로 분리함. 최근 패스로 `phi` materialization, instruction-level `def/use`, block entry/exit SSA version map, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value summary(`def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`, `slot_anchor`)까지 들어와 `--mir`가 더 이상 순수 block 껍데기만 덤프하지 않음. resource/cleanup instruction은 matching `RIR` op의 `slot_anchor`를 그대로 보존하고, `def/phi`와 value summary는 base local 이름을 slot anchor로 유지한다. validator도 이제 slot anchor 누락이나 `RIR`와의 slot mismatch를 실패로 본다. 추가로 lowering 경로에서 실제 `liveness` 재계산과 dead `def/phi` 제거 DCE pass가 돌고, C backend에는 branch/return top-level function subset, MIR block 안의 non-SSA statement fallback, intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 codegen vertical slice가 들어갔음. transpiler local type recovery도 이제 typed-var registry와 active type hint를 MIR emission 중 우선 사용해 `Int` 하드 fallback으로 급락하는 지점을 더 줄였다. intent exceptional CFG에서 MIR cleanup/resource op는 이제 no-op runtime hook 호출로 직접 emit된다.
+- MIR는 HIR CFG와 RIR op를 묶는 실행 skeleton으로 시작됐고, routine/block/instruction/cleanup-block을 가지며 intent compensation/abort 경로를 cleanup instruction으로 분리함. 최근 패스로 `phi` materialization, instruction-level `def/use`, block entry/exit SSA version map, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value summary(`def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`, `slot_anchor`)까지 들어와 `--mir`가 더 이상 순수 block 껍데기만 덤프하지 않음. resource/cleanup instruction은 matching `RIR` op의 `slot_anchor`를 그대로 보존하고, `def/phi`와 value summary는 base local 이름을 slot anchor로 유지한다. validator도 이제 slot anchor 누락이나 `RIR`와의 slot mismatch를 실패로 본다. Reachable pin-region blocks must also carry the matching `pin-unpin-cleanup-edge` fact for source slot, view binding, and read/write mode; a negative `test-mir` regression corrupts that fact and expects validation failure. 추가로 lowering 경로에서 실제 `liveness` 재계산과 dead `def/phi` 제거 DCE pass가 돌고, C backend에는 branch/return top-level function subset, MIR block 안의 non-SSA statement fallback, intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 codegen vertical slice가 들어갔음. transpiler local type recovery도 이제 typed-var registry와 active type hint를 MIR emission 중 우선 사용해 `Int` 하드 fallback으로 급락하는 지점을 더 줄였다. intent exceptional CFG에서 MIR cleanup/resource op는 이제 no-op runtime hook 호출로 직접 emit된다.
 - LLVM이 기본 백엔드이며, C 백엔드는 reference/bootstrap/debug 경로로 유지됨.
 - `driver_run_pipeline_timed(...)`와 `test-abi-perf`가 들어가 phase별 compile timing(`module_load`, `semantic`, `HIR/DIR/RIR/MIR`, `backend`, `total`)을 직접 계측한다. backend는 다시 `codegen / native_compile / link`로 쪼개진다. CI에서는 hard upper bound를, 로컬 benchmark에서는 comparative metrics를 분리한다.
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.

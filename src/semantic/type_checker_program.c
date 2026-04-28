@@ -383,13 +383,13 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     (unsigned long long) ctx->type_resolution_stage_legacy_domain_contract_count,
                     (unsigned long long) ctx->type_resolution_stage_legacy_alias_count,
                     (unsigned long long) ctx->type_resolution_stage_legacy_other_count);
-            fprintf(stderr, "[type-res-stats] stage-alias: materialized=%llu diagnostic_fallback=%llu\n",
+            fprintf(stderr, "[type-res-stats] stage-alias: materialized=%llu diagnostic_unresolved=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_alias_materialized_count,
-                    (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_fallback_count);
-            fprintf(stderr, "[type-res-stats] stage-alias-fallback: resolver_calls=%llu resolved=%llu unresolved=%llu\n",
-                    (unsigned long long) ctx->type_resolution_stage_alias_fallback_resolver_call_count,
-                    (unsigned long long) ctx->type_resolution_stage_alias_fallback_resolved_count,
-                    (unsigned long long) ctx->type_resolution_stage_alias_fallback_unresolved_count);
+                    (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_unresolved_count);
+            fprintf(stderr, "[type-res-stats] stage-alias-diagnostic: resolver_calls=%llu resolved=%llu cycle_unresolved=%llu\n",
+                    (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_resolver_call_count,
+                    (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_resolved_count,
+                    (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_cycle_count);
             {
                 size_t total = g_resolve_type_node_cache_hits + g_resolve_type_node_cache_misses;
                 fprintf(stderr, "[type-res-stats] cache: hits=%llu misses=%llu hit_rate=%.1f%%\n",

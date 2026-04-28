@@ -155,12 +155,9 @@ semantic_context_destroy(SemanticContext *ctx)
     for (size_t i = 0; i < ctx->embedded_world_zone_count; i++)
         free(ctx->embedded_world_zone_slot_names[i]);
     free(ctx->embedded_world_zone_slot_names);
-    for (size_t i = 0; i < ctx->alias_resolution_count; i++)
-        free(ctx->alias_resolution_stack[i]);
-    free(ctx->alias_resolution_stack);
-    for (size_t i = 0; i < ctx->type_resolution_stage_alias_fallback_name_count; i++)
-        free(ctx->type_resolution_stage_alias_fallback_names[i]);
-    free(ctx->type_resolution_stage_alias_fallback_names);
+    for (size_t i = 0; i < ctx->type_resolution_stage_alias_diagnostic_name_count; i++)
+        free(ctx->type_resolution_stage_alias_diagnostic_names[i]);
+    free(ctx->type_resolution_stage_alias_diagnostic_names);
     for (size_t i = 0; i < ctx->type_resolution_graph.node_count; i++)
         free(ctx->type_resolution_graph.nodes[i].label);
     free(ctx->type_resolution_graph.nodes);

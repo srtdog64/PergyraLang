@@ -162,7 +162,7 @@ hir_dump_mode(const HIRProgram *hir, FILE *out, HIRDumpMode mode)
     for (size_t i = 0; i < hir->routine_count; i++) {
         const HIRRoutine *routine = &hir->routines[i];
         fprintf(out,
-                "  [%02zu] %s %s reachable=%s calls=%zu blocks=%zu live=%zu dead=%zu phi=%zu blocks-with-phi=%zu\n",
+                "  [%02zu] %s %s reachable=%s calls=%zu blocks=%zu live=%zu dead=%zu returns=%zu normal-exits=%zu phi=%zu blocks-with-phi=%zu\n",
                 i,
                 hir_top_level_kind_name(routine->kind),
                 routine->name != NULL ? routine->name : "(anonymous)",
@@ -171,6 +171,8 @@ hir_dump_mode(const HIRProgram *hir, FILE *out, HIRDumpMode mode)
                 routine->has_cfg ? routine->cfg.block_count : 0,
                 routine->reachable_block_count,
                 routine->dead_block_count,
+                routine->return_block_count,
+                routine->normal_exit_block_count,
                 routine->phi_candidate_count,
                 routine->phi_candidate_block_count);
 

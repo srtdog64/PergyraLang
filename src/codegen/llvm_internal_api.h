@@ -1,0 +1,328 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * LLVM backend private API declarations.
+ *
+ * This header is intentionally included from llvm_internal.h after the private
+ * LLVMGenCtx and registry entry types are defined. Keep implementation bodies
+ * out of this file; it is an owner boundary for declarations only.
+ */
+
+#ifndef PGY_LLVM_INTERNAL_API_H
+#define PGY_LLVM_INTERNAL_API_H
+
+/* =================================================================
+ * Context lifecycle (llvm_backend.c)
+ * ================================================================= */
+LLVMGenCtx *llvm_ctx_create(const char *module_name);
+void         llvm_ctx_destroy(LLVMGenCtx *ctx);
+
+/* =================================================================
+ * Scope management (llvm_backend.c)
+ * ================================================================= */
+void          llvm_scope_push(LLVMGenCtx *ctx);
+void          llvm_scope_pop(LLVMGenCtx *ctx);
+void          llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
+                                  LLVMValueRef alloca, LLVMTypeRef type);
+LLVMVarEntry *llvm_scope_lookup(LLVMGenCtx *ctx, const char *name);
+void          llvm_defer_scope_push(LLVMGenCtx *ctx);
+void          llvm_defer_scope_pop(LLVMGenCtx *ctx);
+void          llvm_emit_defers_from(LLVMGenCtx *ctx, int from_depth);
+
+void llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
+                            const char *inner_type);
+const char *llvm_lookup_list_inner(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_set_var(LLVMGenCtx *ctx, const char *var_name,
+                           const char *inner_type);
+const char *llvm_lookup_set_inner(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_queue_var(LLVMGenCtx *ctx, const char *var_name,
+                             const char *inner_type);
+const char *llvm_lookup_queue_inner(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_map_var(LLVMGenCtx *ctx, const char *var_name,
+                      const char *key_type, const char *value_type);
+const char *llvm_lookup_map_key(LLVMGenCtx *ctx, const char *var_name);
+const char *llvm_lookup_map_value(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_callable_var(LLVMGenCtx *ctx, const char *var_name,
+                                ASTNode *type_node);
+ASTNode *llvm_lookup_callable_var(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_callable_signature(LLVMGenCtx *ctx, const char *var_name,
+                                      size_t param_count,
+                                      ASTNode *const *param_types,
+                                      ASTNode *return_type);
+LLVMCallableVarEntry *llvm_lookup_callable_entry(LLVMGenCtx *ctx,
+                                                 const char *var_name);
+void llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
+                             ASTNode *type_node);
+
+/* =================================================================
+ * Function registry (llvm_backend.c)
+ * ================================================================= */
+void           llvm_register_function(LLVMGenCtx *ctx, const char *name,
+                                       LLVMValueRef fn, LLVMTypeRef fn_type,
+                                       LLVMTypeRef ret_type);
+void           llvm_set_function_flags(LLVMGenCtx *ctx, const char *name,
+                                       bool is_action, bool action_self_only);
+LLVMFuncEntry *llvm_lookup_function(LLVMGenCtx *ctx, const char *name);
+LLVMFuncEntry *llvm_lookup_or_create_function(LLVMGenCtx *ctx, const char *name,
+                                              LLVMTypeRef fn_type,
+                                              LLVMTypeRef ret_type);
+void           llvm_mark_function_as_used(LLVMGenCtx *ctx, const char *name);
+
+/* =================================================================
+ * Slot tracking (llvm_backend.c)
+ * ================================================================= */
+void          llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
+                                     const char *inner_type,
+                                     bool is_secure);
+const char   *llvm_lookup_slot_inner(LLVMGenCtx *ctx, const char *var_name);
+bool          llvm_lookup_slot_is_secure(LLVMGenCtx *ctx, const char *var_name);
+void          llvm_register_view_var(LLVMGenCtx *ctx, const char *var_name,
+                                     const char *source_slot,
+                                     const char *inner_type,
+                                     bool is_move_token);
+LLVMViewVarEntry *llvm_lookup_view_var(LLVMGenCtx *ctx, const char *var_name);
+LLVMTypeRef   llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef   llvm_pinned_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef   llvm_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef   llvm_pinned_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef   llvm_secure_token_type(LLVMGenCtx *ctx, const char *inner);
+void          llvm_register_device_slot_var(LLVMGenCtx *ctx, const char *var_name,
+                                             const char *inner_type);
+const char   *llvm_lookup_device_slot_inner(LLVMGenCtx *ctx,
+                                             const char *var_name);
+void          llvm_mark_device_slot_released(LLVMGenCtx *ctx,
+                                              const char *var_name);
+LLVMVarEntry *llvm_lookup_secure_token_var(LLVMGenCtx *ctx,
+                                            const char *slot_name);
+void          llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
+                                        const char *inner_type,
+                                        bool is_remote);
+const char   *llvm_lookup_future_inner(LLVMGenCtx *ctx, const char *var_name);
+bool          llvm_lookup_future_is_remote(LLVMGenCtx *ctx,
+                                            const char *var_name);
+void          llvm_register_channel_var(LLVMGenCtx *ctx, const char *var_name,
+                                        const char *inner_type);
+const char   *llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name);
+void          llvm_register_rc_var(LLVMGenCtx *ctx, const char *var_name,
+                                   const char *inner_type);
+const char   *llvm_lookup_rc_inner(LLVMGenCtx *ctx, const char *var_name);
+void          llvm_register_weak_var(LLVMGenCtx *ctx, const char *var_name,
+                                     const char *inner_type);
+const char   *llvm_lookup_weak_inner(LLVMGenCtx *ctx, const char *var_name);
+
+/* =================================================================
+ * Class type registry (llvm_backend.c)
+ * ================================================================= */
+LLVMClassTypeEntry *llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
+                                          LLVMTypeRef struct_type,
+                                          bool is_subject,
+                                          bool is_pointer_self_host);
+void                llvm_class_add_field(LLVMClassTypeEntry *entry,
+                                          const char *field_name,
+                                          LLVMTypeRef field_type, int index);
+void                llvm_class_add_field_ex(LLVMClassTypeEntry *entry,
+                                            const char *field_name,
+                                            LLVMTypeRef field_type, int index,
+                                            bool is_subject_slot);
+LLVMClassTypeEntry *llvm_lookup_class(LLVMGenCtx *ctx, const char *class_name);
+LLVMClassTypeEntry *llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx,
+                                                     LLVMTypeRef struct_type);
+int                 llvm_class_field_index(LLVMClassTypeEntry *entry,
+                                            const char *field_name);
+void                llvm_register_var_class(LLVMGenCtx *ctx, const char *var_name,
+                                             const char *class_name);
+const char         *llvm_lookup_var_class(LLVMGenCtx *ctx, const char *var_name);
+void                llvm_register_projection_borrow(LLVMGenCtx *ctx,
+                                                    const char *var_name,
+                                                    const char *class_name,
+                                                    const char *source_name);
+LLVMProjectionBorrowEntry *llvm_lookup_projection_borrow(LLVMGenCtx *ctx,
+                                                         const char *var_name);
+void                llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
+                                             LLVMTypeRef elem_type, int64_t length);
+LLVMArrayVarEntry  *llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name);
+void                llvm_register_enum_variant(LLVMGenCtx *ctx,
+                                                const char *enum_name,
+                                                const char *variant_name,
+                                                int value);
+LLVMEnumVariantEntry *llvm_lookup_enum_variant(LLVMGenCtx *ctx,
+                                                const char *variant_name);
+LLVMEnumVariantEntry *llvm_lookup_enum_variant_qualified(LLVMGenCtx *ctx,
+                                                          const char *enum_name,
+                                                          const char *variant_name);
+
+/* =================================================================
+ * Event type registry (llvm_backend.c)
+ * ================================================================= */
+LLVMEventTypeEntry *llvm_lookup_event(LLVMGenCtx *ctx, const char *name);
+LLVMEventTypeEntry *llvm_register_event(LLVMGenCtx *ctx, const char *name,
+                                          LLVMTypeRef struct_type,
+                                          int param_count, LLVMTypeRef *param_types);
+
+/* =================================================================
+ * Type helpers (llvm_backend.c)
+ * ================================================================= */
+LLVMTypeRef   pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
+LLVMTypeRef   ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node);
+LLVMTypeRef   llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name);
+const char   *llvm_tmp_name(LLVMGenCtx *ctx);
+LLVMValueRef  llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
+                                        const char *name);
+char         *llvm_stmt_render_type_arg(GenericParam *param);
+char         *llvm_stmt_render_type_arg_scratch(GenericParam *param,
+                                                PgyArena *arena);
+ASTNode      *llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx,
+                                                   const char *name);
+bool          llvm_mir_base_name_from_versioned(const char *mir_name,
+                                                char *base_out,
+                                                size_t base_out_size);
+bool          llvm_mir_stmt_is_cfg_container(ASTNode *node);
+bool          llvm_mir_declare_assignment_recv_target(ASTNode *node,
+                                                      LLVMGenCtx *ctx);
+bool          llvm_mir_emit_for_loop_init(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef  llvm_mir_emit_for_loop_condition(ASTNode *node,
+                                                LLVMGenCtx *ctx);
+bool          llvm_mir_emit_loop_backedge_increment(const MIRRoutine *routine,
+                                                    const MIRBasicBlock *mir_block,
+                                                    LLVMGenCtx *ctx);
+LLVMValueRef  llvm_mir_emit_select_dispatch_condition(ASTNode *case_node,
+                                                       const MIRRoutine *routine,
+                                                       size_t target_block,
+                                                       LLVMGenCtx *ctx);
+LLVMValueRef  llvm_mir_emit_match_case_condition(ASTNode *func_decl,
+                                                  ASTNode *case_node,
+                                                  LLVMGenCtx *ctx);
+LLVMTypeRef   llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
+LLVMTypeRef   llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
+                                                LLVMValueRef data_ptr);
+LLVMClassTypeEntry *llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx,
+                                                   LLVMTypeRef type);
+const char   *llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx,
+                                                     ASTNode *init);
+
+/* =================================================================
+ * Generic monomorphization helpers (llvm_backend.c)
+ * ================================================================= */
+ASTNode    *llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name);
+bool        llvm_mono_already_emitted(LLVMGenCtx *ctx, const char *mangled);
+void        llvm_register_mono(LLVMGenCtx *ctx, const char *mangled);
+const char *llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty);
+
+/* =================================================================
+ * Error reporting helpers (llvm_backend.c)
+ * ================================================================= */
+void llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...);
+void llvm_set_error_at(LLVMGenCtx *ctx, ASTNode *node, const char *fmt, ...);
+void llvm_set_error_with_code(LLVMGenCtx *ctx, const char *code,
+                              const char *fmt, ...);
+void llvm_set_error_at_with_code(LLVMGenCtx *ctx, ASTNode *node,
+                                  const char *code, const char *fmt, ...);
+void llvm_set_error_with_hints(LLVMGenCtx *ctx, const char *code,
+                                const char *cause_ir,
+                                const char *fix_source,
+                                const char *fmt, ...);
+void llvm_set_error_at_with_hints(LLVMGenCtx *ctx, ASTNode *node,
+                                   const char *code,
+                                   const char *cause_ir,
+                                   const char *fix_source,
+                                   const char *fmt, ...);
+
+/* =================================================================
+ * Result helpers (llvm_backend.c)
+ * ================================================================= */
+LLVMGenResult *llvm_result_error(const char *message);
+LLVMGenResult *llvm_result_error_fmt(const char *fmt, ...);
+LLVMGenResult *llvm_result_success(char *ir_text);
+
+/* =================================================================
+ * Pipeline helpers (llvm_backend.c / llvm_api.c)
+ * ================================================================= */
+LLVMGenResult *llvm_validate_mir_for_codegen(const MIRProgram *mir);
+bool llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx);
+void llvm_declare_runtime(LLVMGenCtx *ctx);
+void llvm_set_type_render_ctx(LLVMGenCtx *ctx);
+void llvm_clear_type_render_ctx_if(LLVMGenCtx *ctx);
+bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);
+bool llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind);
+bool llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind);
+void llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_main_wrapper(LLVMGenCtx *ctx);
+void llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt);
+void llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt);
+ASTNode *llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name);
+void llvm_register_active_nominal_types(LLVMGenCtx *ctx);
+void llvm_register_active_extern_prototypes(LLVMGenCtx *ctx);
+bool llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name);
+
+static inline bool
+llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
+{
+    if (ctx == NULL || type_node == NULL
+        || type_node->type != AST_TYPE
+        || type_node->data.type.name == NULL) {
+        return false;
+    }
+    return llvm_type_name_uses_pointer_self(ctx, type_node->data.type.name);
+}
+
+/* =================================================================
+ * Emitters -- expressions (llvm_expr.c)
+ * ================================================================= */
+LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
+
+/* =================================================================
+ * Emitters -- statements (llvm_stmt.c)
+ * ================================================================= */
+void llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx);
+bool llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx);
+bool llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx);
+const char *llvm_stmt_render_type_annotation_static(ASTNode *type_ann);
+LLVMTypeRef llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr);
+const char *llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr);
+LLVMValueRef llvm_stmt_create_slot_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
+                                          const char *name);
+void llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx);
+
+/* =================================================================
+ * Emitters -- declarations (llvm_decl.c)
+ * ================================================================= */
+void llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx);
+bool llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves);
+
+/* =================================================================
+ * Emitters -- domain (llvm_domain.c)
+ * ================================================================= */
+const MIRRoutine *llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
+                                                     const char *owner_name,
+                                                     ASTNode *method);
+bool llvm_param_is_implicit_self_local(const FuncParam *param);
+const char *llvm_operator_suffix(PgyTokenType op);
+bool llvm_operator_method_name_matches(PgyTokenType op, const char *name);
+void llvm_stamp_domain_provenance(LLVMGenCtx *ctx,
+                                  LLVMClassTypeEntry *decl_cls,
+                                  LLVMValueRef self_ptr,
+                                  const char *prefix,
+                                  const char *name,
+                                  unsigned cause);
+void llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
+                         LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
+                         LLVMGenCtx *ctx);
+void llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
+                          LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
+                          LLVMGenCtx *ctx);
+void llvm_emit_domain_passes(LLVMGenCtx *ctx);
+
+#endif /* PGY_LLVM_INTERNAL_API_H */

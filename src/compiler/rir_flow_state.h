@@ -31,12 +31,6 @@ rir_is_handoff_kind(RIRResourceKind kind)
            || kind == RIR_RESOURCE_WORLD_HANDLE;
 }
 
-static bool
-rir_state_changed(RIRResourceState a, RIRResourceState b)
-{
-    return a != b;
-}
-
 static RIRResourceState
 rir_merge_handle_states(RIRResourceKind kind,
                         RIRResourceState a,

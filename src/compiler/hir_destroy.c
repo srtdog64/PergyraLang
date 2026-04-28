@@ -1,0 +1,72 @@
+#include "hir.h"
+
+#include <stdlib.h>
+
+static void
+hir_destroy_synthetic_executable_func(ASTNode *func)
+{
+    ASTNode *body;
+
+    if (func == NULL || func->type != AST_FUNC_DECL)
+        return;
+
+    body = func->data.func_decl.body;
+    free(func->data.func_decl.name);
+    if (body != NULL && body->type == AST_BLOCK) {
+        free(body->data.block.statements);
+        free(body);
+    }
+    free(func);
+}
+
+void
+hir_destroy(HIRProgram *hir)
+{
+    if (hir == NULL)
+        return;
+
+    free(hir->items);
+    free(hir->decls);
+    if (hir->routines != NULL) {
+        for (size_t i = 0; i < hir->routine_count; i++) {
+            if (hir->routines[i].cfg.blocks != NULL) {
+                for (size_t j = 0; j < hir->routines[i].cfg.block_count; j++) {
+                    free(hir->routines[i].cfg.blocks[j].statements);
+                    free(hir->routines[i].cfg.blocks[j].predecessors);
+                    free(hir->routines[i].cfg.blocks[j].dom_tree_children);
+                    free((void *)hir->routines[i].cfg.blocks[j].local_defs);
+                    free(hir->routines[i].cfg.blocks[j].dominance_frontier);
+                    free((void *)hir->routines[i].cfg.blocks[j].phi_candidates);
+                    if (hir->routines[i].cfg.blocks[j].phi_nodes != NULL) {
+                        for (size_t k = 0; k < hir->routines[i].cfg.blocks[j].phi_node_count; k++)
+                            free(hir->routines[i].cfg.blocks[j].phi_nodes[k].incoming_predecessors);
+                    }
+                    free(hir->routines[i].cfg.blocks[j].phi_nodes);
+                }
+            }
+            free(hir->routines[i].cfg.blocks);
+            free((void *)hir->routines[i].signature_type_refs);
+            free((void *)hir->routines[i].direct_calls);
+            free(hir->routines[i].callee_routine_ids);
+            pgy_arena_destroy(&hir->routines[i].scratch);
+        }
+    }
+    free(hir->routines);
+    free(hir->externs);
+    free(hir->types);
+    free(hir->abilities);
+    free(hir->roles);
+    free(hir->parties);
+    free(hir->rosters);
+    free(hir->worlds);
+    free(hir->relations);
+    free(hir->effects);
+    free(hir->zones);
+    free(hir->subjects);
+    free(hir->events);
+    free(hir->intents);
+    free(hir->functions);
+    free(hir->executables);
+    hir_destroy_synthetic_executable_func(hir->synthetic_executable_func);
+    free(hir);
+}

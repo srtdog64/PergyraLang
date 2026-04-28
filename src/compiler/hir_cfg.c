@@ -590,10 +590,17 @@ hir_finalize_cfg_summary(HIRRoutine *routine)
 
     routine->reachable_block_count = 0;
     routine->dead_block_count = 0;
+    routine->return_block_count = 0;
+    routine->normal_exit_block_count = 0;
     for (size_t i = 0; i < routine->cfg.block_count; i++) {
-        if (routine->cfg.blocks[i].is_reachable)
+        if (routine->cfg.blocks[i].is_reachable) {
             routine->reachable_block_count++;
-        else
+            if (routine->cfg.blocks[i].terminator_kind == HIR_BLOCK_RETURN)
+                routine->return_block_count++;
+            if (routine->cfg.blocks[i].terminator_kind == HIR_BLOCK_UNREACHABLE)
+                routine->normal_exit_block_count++;
+        } else {
             routine->dead_block_count++;
+        }
     }
 }

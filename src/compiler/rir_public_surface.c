@@ -1,3 +1,8 @@
+#include "rir.h"
+#include "rir_internal.h"
+
+#include <stdlib.h>
+
 static void
 rir_dump_flow_semantics(FILE *out, unsigned int flags)
 {

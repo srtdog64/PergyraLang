@@ -1,0 +1,258 @@
+#ifdef PGY_LLVM_ENABLED
+#include "llvm_internal.h"
+
+bool
+llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
+{
+    const char *name;
+    ASTNode *type_ann;
+    ASTNode *init;
+
+    if (node == NULL || node->type != AST_LET_DECL || ctx == NULL)
+        return false;
+
+    name = node->data.let_decl.name;
+    type_ann = node->data.let_decl.type;
+    init = node->data.let_decl.initializer;
+
+    if (type_ann != NULL
+        && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL
+        && init != NULL
+        && init->type == AST_CALL
+        && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_IDENTIFIER
+        && strcmp(init->data.call.callee->data.identifier.name, "ToObject") == 0
+        && init->data.call.arg_count >= 2
+        && init->data.call.arguments[1] != NULL
+        && init->data.call.arguments[1]->type == AST_IDENTIFIER) {
+        LLVMClassTypeEntry *target_cls = llvm_lookup_class(ctx, type_ann->data.type.name);
+        if (target_cls != NULL
+            && target_cls->is_immutable
+            && !target_cls->is_boundary_transfer_contract) {
+            const char *source_name = init->data.call.arguments[1]->data.identifier.name;
+            llvm_register_var_class(ctx, name, type_ann->data.type.name);
+            llvm_register_projection_borrow(ctx, name, type_ann->data.type.name, source_name);
+            return true;
+        }
+    }
+
+    if (type_ann != NULL
+        && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL
+        && init != NULL
+        && init->type == AST_CALL
+        && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_IDENTIFIER) {
+        const char *ann_name = type_ann->data.type.name;
+        const char *callee = init->data.call.callee->data.identifier.name;
+        const char *inner = "Int";
+
+        if (type_ann->data.type.generic_args != NULL
+            && type_ann->data.type.generic_args->count > 0
+            && type_ann->data.type.generic_args->params[0] != NULL) {
+            inner = llvm_stmt_render_type_arg(type_ann->data.type.generic_args->params[0]);
+        }
+
+        if (strcmp(ann_name, "List") == 0 && strcmp(callee, "ListNew") == 0) {
+            LLVMTypeRef list_ty = ast_type_to_llvm(ctx, type_ann);
+            LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, list_ty, name);
+            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_list_new_raw_export");
+            if (new_fn != NULL) {
+                LLVMValueRef args[] = {
+                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    llvm_sizeof_type_i64(ctx, elem_ty)
+                };
+                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+            }
+            llvm_scope_declare(ctx, name, alloca_val, list_ty);
+            llvm_register_list_var(ctx, name, inner);
+            return true;
+        }
+
+        if (strcmp(ann_name, "Set") == 0 && strcmp(callee, "SetNew") == 0) {
+            LLVMTypeRef set_ty = ast_type_to_llvm(ctx, type_ann);
+            LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, set_ty, name);
+            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_set_new_raw_export");
+            if (new_fn != NULL) {
+                LLVMValueRef args[] = {
+                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    llvm_sizeof_type_i64(ctx, elem_ty)
+                };
+                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+            }
+            llvm_scope_declare(ctx, name, alloca_val, set_ty);
+            llvm_register_set_var(ctx, name, inner);
+            return true;
+        }
+
+        if (strcmp(ann_name, "Queue") == 0 && strcmp(callee, "QueueNew") == 0) {
+            LLVMTypeRef queue_ty = ast_type_to_llvm(ctx, type_ann);
+            LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, queue_ty, name);
+            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_queue_new_raw_export");
+            if (new_fn != NULL) {
+                LLVMValueRef args[] = {
+                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    llvm_sizeof_type_i64(ctx, elem_ty)
+                };
+                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+            }
+            llvm_scope_declare(ctx, name, alloca_val, queue_ty);
+            llvm_register_queue_var(ctx, name, inner);
+            return true;
+        }
+
+        if (strcmp(ann_name, "HashMap") == 0 && strcmp(callee, "MapNew") == 0) {
+            const char *value_type = "Int";
+            const char *key_type = "String";
+            LLVMTypeRef map_ty = ast_type_to_llvm(ctx, type_ann);
+            LLVMTypeRef value_ty;
+            LLVMValueRef alloca_val;
+            LLVMFuncEntry *new_fn;
+
+            if (type_ann->data.type.generic_args != NULL
+                && type_ann->data.type.generic_args->count > 0
+                && type_ann->data.type.generic_args->params[0] != NULL) {
+                key_type = llvm_stmt_render_type_arg(
+                    type_ann->data.type.generic_args->params[0]);
+            }
+            if (type_ann->data.type.generic_args != NULL
+                && type_ann->data.type.generic_args->count > 1
+                && type_ann->data.type.generic_args->params[1] != NULL) {
+                value_type = llvm_stmt_render_type_arg(
+                    type_ann->data.type.generic_args->params[1]);
+            }
+            value_ty = pergyra_type_to_llvm(ctx, value_type);
+            alloca_val = llvm_create_entry_alloca(ctx, map_ty, name);
+            new_fn = llvm_lookup_function(ctx, "pgy_map_new_raw_export");
+            if (new_fn != NULL) {
+                LLVMValueRef args[] = {
+                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    llvm_sizeof_type_i64(ctx, value_ty)
+                };
+                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+            }
+            llvm_scope_declare(ctx, name, alloca_val, map_ty);
+            llvm_register_map_var(ctx, name, key_type, value_type);
+            return true;
+        }
+    }
+
+    if (init != NULL && init->type == AST_CALL
+        && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_IDENTIFIER
+        && strcmp(init->data.call.callee->data.identifier.name, "Channel") == 0) {
+        LLVMTypeRef ch_type = LLVMArrayType(
+            LLVMInt8TypeInContext(ctx->context), 256);
+        LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, ch_type, name);
+
+        LLVMFuncEntry *init_fn = llvm_lookup_function(ctx,
+            "pgy_channel_init_Int");
+        if (init_fn != NULL) {
+            LLVMValueRef cap = LLVMConstInt(ctx->type_i64, 16, 0);
+            if (init->data.call.arg_count > 0)
+                cap = LLVMBuildZExt(ctx->builder,
+                    llvm_emit_expression(init->data.call.arguments[0], ctx),
+                    ctx->type_i64, llvm_tmp_name(ctx));
+            LLVMValueRef args[] = { alloca_val, cap };
+            LLVMBuildCall2(ctx->builder, init_fn->fn_type,
+                           init_fn->fn, args, 2, "");
+        }
+        llvm_scope_declare(ctx, name, alloca_val, ch_type);
+        if (type_ann != NULL && type_ann->type == AST_TYPE
+            && type_ann->data.type.generic_args != NULL
+            && type_ann->data.type.generic_args->count > 0) {
+            llvm_register_channel_var(ctx, name,
+                type_ann->data.type.generic_args->params[0]->name);
+        } else {
+            llvm_register_channel_var(ctx, name, "Int");
+        }
+        return true;
+    }
+
+    if (init != NULL && init->type == AST_ARRAY_LITERAL) {
+        size_t count = init->data.array_literal.count;
+        LLVMTypeRef elem_type = ctx->type_i32;
+        const char *inner_name = "Int";
+
+        if (type_ann != NULL && type_ann->type == AST_TYPE
+            && type_ann->data.type.name != NULL
+            && (strcmp(type_ann->data.type.name, "Array") == 0
+                || strcmp(type_ann->data.type.name, "Slice") == 0)
+            && type_ann->data.type.generic_args != NULL
+            && type_ann->data.type.generic_args->count > 0) {
+            inner_name = type_ann->data.type.generic_args->params[0]->name;
+            elem_type = pergyra_type_to_llvm(
+                ctx, inner_name);
+        } else if (count > 0) {
+            LLVMValueRef first = llvm_emit_expression(
+                init->data.array_literal.elements[0], ctx);
+            if (first != NULL) {
+                elem_type = LLVMTypeOf(first);
+                const char *suffix = llvm_type_to_suffix(ctx, elem_type);
+                if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
+                    inner_name = suffix;
+            }
+        }
+
+        LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);
+        LLVMValueRef var_alloca = llvm_create_entry_alloca(ctx, array_type, name);
+        char new_fn_name[64];
+        char push_fn_name[64];
+        LLVMFuncEntry *new_fn;
+        LLVMFuncEntry *push_fn;
+
+        snprintf(new_fn_name, sizeof(new_fn_name), "pgy_array_new_%s", inner_name);
+        new_fn = llvm_lookup_function(ctx, new_fn_name);
+        if (new_fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMConstInt(ctx->type_i64, (unsigned long long)count, 0)
+            };
+            LLVMValueRef arr_val = LLVMBuildCall2(ctx->builder, new_fn->fn_type,
+                new_fn->fn, args, 1, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, arr_val, var_alloca);
+        }
+
+        snprintf(push_fn_name, sizeof(push_fn_name), "pgy_array_push_%s", inner_name);
+        push_fn = llvm_lookup_function(ctx, push_fn_name);
+
+        for (size_t i = 0; i < count; i++) {
+            LLVMValueRef element = llvm_emit_expression(
+                init->data.array_literal.elements[i], ctx);
+            if (element != NULL && LLVMTypeOf(element) != elem_type) {
+                LLVMTypeRef element_type = LLVMTypeOf(element);
+                bool target_is_int = (elem_type == ctx->type_i32
+                                   || elem_type == ctx->type_i64);
+                bool target_is_fp = (elem_type == ctx->type_f32
+                                  || elem_type == ctx->type_f64);
+                bool source_is_int = (element_type == ctx->type_i32
+                                   || element_type == ctx->type_i64);
+                bool source_is_fp = (element_type == ctx->type_f32
+                                  || element_type == ctx->type_f64);
+
+                if (target_is_int && source_is_fp)
+                    element = LLVMBuildFPToSI(ctx->builder, element, elem_type,
+                                              llvm_tmp_name(ctx));
+                else if (target_is_fp && source_is_int)
+                    element = LLVMBuildSIToFP(ctx->builder, element, elem_type,
+                                              llvm_tmp_name(ctx));
+            }
+            if (push_fn != NULL && element != NULL) {
+                LLVMValueRef args[] = { var_alloca, element };
+                LLVMBuildCall2(ctx->builder, push_fn->fn_type,
+                    push_fn->fn, args, 2, "");
+            }
+        }
+
+        llvm_scope_declare(ctx, name, var_alloca, array_type);
+        llvm_register_array_var(ctx, name, elem_type, (int64_t)count);
+        return true;
+    }
+
+    return false;
+}
+
+#endif /* PGY_LLVM_ENABLED */

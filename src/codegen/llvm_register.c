@@ -106,9 +106,14 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
         method_meta = llvm_find_host_method_metadata_in_context(
             ctx, enum_name, method->data.func_decl.name);
-        method_name = llvm_mir_decl_method_name(method_meta, method);
-        pc = llvm_mir_decl_method_param_count(method_meta, method);
-        return_type = llvm_mir_decl_method_return_type(method_meta, method);
+        if (method_meta == NULL) {
+            llvm_set_error(ctx,
+                "MIR-only LLVM path missing enum method declaration metadata");
+            return;
+        }
+        method_name = llvm_mir_decl_method_name(method_meta);
+        pc = llvm_mir_decl_method_param_count(method_meta);
+        return_type = llvm_mir_decl_method_return_type(method_meta);
         if (method_name == NULL)
             continue;
 
@@ -118,7 +123,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
         size_t user_pc = 0;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = llvm_mir_decl_method_param(method_meta, method, k);
+            FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             user_pc++;
@@ -134,7 +139,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         param_types[0] = self_type;
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = llvm_mir_decl_method_param(method_meta, method, k);
+            FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             param_types[pidx++] = (p->type != NULL) ? ast_type_to_llvm(ctx, p->type)
@@ -208,10 +213,15 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
         method_meta = llvm_find_host_method_metadata_in_context(
             ctx, cls_name, method->data.func_decl.name);
-        method_name = llvm_mir_decl_method_name(method_meta, method);
-        pc = llvm_mir_decl_method_param_count(method_meta, method);
-        return_type = llvm_mir_decl_method_return_type(method_meta, method);
-        method_is_action = llvm_mir_decl_method_is_action_like(method_meta, method);
+        if (method_meta == NULL) {
+            llvm_set_error(ctx,
+                "MIR-only LLVM path missing class method declaration metadata");
+            return;
+        }
+        method_name = llvm_mir_decl_method_name(method_meta);
+        pc = llvm_mir_decl_method_param_count(method_meta);
+        return_type = llvm_mir_decl_method_return_type(method_meta);
+        method_is_action = llvm_mir_decl_method_is_action_like(method_meta);
         if (method_name == NULL)
             continue;
 
@@ -221,7 +231,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
         size_t user_pc = 0;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = llvm_mir_decl_method_param(method_meta, method, k);
+            FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             user_pc++;
@@ -233,7 +243,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         param_types[0] = is_pointer_self_host ? LLVMPointerType(struct_ty, 0) : struct_ty;
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = llvm_mir_decl_method_param(method_meta, method, k);
+            FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             param_types[pidx++] = (p->type != NULL) ? ast_type_to_llvm(ctx, p->type)

@@ -10,33 +10,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
-#include <sys/stat.h>
-#define PGY_STAT _stat
-#define PGY_STAT_STRUCT struct _stat
 #include <process.h>
 #else
 #include <sys/time.h>
-#include <sys/stat.h>
-#define PGY_STAT stat
-#define PGY_STAT_STRUCT struct stat
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #endif
 
-#include "../common/string_compat.h"
-
-#ifndef PGY_RUNTIME_DIR
-#define PGY_RUNTIME_DIR "src/runtime"
-#endif
-
-#ifndef PGY_RUNTIME_LIB_C
-#define PGY_RUNTIME_LIB_C "src/runtime/pgy_runtime_lib.c"
-#endif
 /* -----------------------------------------------------------------
  * Safe process execution (no shell; immune to command injection)
  *
@@ -539,119 +523,6 @@ compiler_should_use_lld(void)
         || access("/bin/ld.lld", X_OK) == 0;
 }
 #endif
-
-#ifdef PGY_LLVM_ENABLED
-
-static const char *
-compiler_temp_dir(void)
-{
-    const char *tmpdir = getenv("TMPDIR");
-
-    if (tmpdir == NULL || tmpdir[0] == '\0')
-        tmpdir = getenv("TMP");
-    if (tmpdir == NULL || tmpdir[0] == '\0')
-        tmpdir = getenv("TEMP");
-#ifdef _WIN32
-    if (tmpdir == NULL || tmpdir[0] == '\0')
-        tmpdir = ".";
-#else
-    if (tmpdir == NULL || tmpdir[0] == '\0')
-        tmpdir = "/tmp";
-#endif
-    return tmpdir;
-}
-
-static bool
-compiler_file_mtime(const char *path, time_t *mtime_out)
-{
-    PGY_STAT_STRUCT st;
-
-    if (path == NULL || mtime_out == NULL)
-        return false;
-    if (PGY_STAT(path, &st) != 0)
-        return false;
-    *mtime_out = st.st_mtime;
-    return true;
-}
-
-bool
-compiler_runtime_cache_is_fresh(const char *cache_obj_path)
-{
-    time_t cache_mtime;
-    const char *deps[] = {
-        PGY_RUNTIME_LIB_C,
-        PGY_RUNTIME_DIR "/pgy_runtime.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_authority_file_core.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_raw_collection_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_set_intent_trace_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_intent_slot_core_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_quantum_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_quantum_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_platform_io_core.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_inline_core.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_intent_trace_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_memory_array_slot_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_builtin_storage_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_list_set_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_pool_fsm_timer_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_zone_result_option_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_channel_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_io_qubit_inline.h",
-        NULL
-    };
-
-    if (!compiler_file_mtime(cache_obj_path, &cache_mtime))
-        return false;
-    for (size_t i = 0; deps[i] != NULL; i++) {
-        time_t dep_mtime;
-
-        if (!compiler_file_mtime(deps[i], &dep_mtime))
-            return false;
-        if (cache_mtime < dep_mtime)
-            return false;
-    }
-    return true;
-}
-
-char *
-compiler_runtime_prebuilt_object_path(PgyOptProfile opt_profile,
-                                      bool uses_intent_observability)
-{
-    char key[64];
-    const char *opt_name = (opt_profile == PGY_OPT_RELEASE) ? "RELEASE" : "DEV";
-    const char *obs_name = uses_intent_observability ? "OBS1" : "OBS0";
-    const char *value;
-
-    snprintf(key, sizeof(key), "PGY_PREBUILT_RUNTIME_OBJ_%s_%s", opt_name, obs_name);
-    value = getenv(key);
-    if (value == NULL || value[0] == '\0')
-        value = getenv("PGY_PREBUILT_RUNTIME_OBJ");
-    if (value == NULL || value[0] == '\0')
-        return NULL;
-    return pergyra_strdup(value);
-}
-
-char *
-compiler_runtime_cache_object_path(PgyOptProfile opt_profile,
-                                   bool uses_intent_observability)
-{
-    const char *tmpdir = compiler_temp_dir();
-    const char *opt_name = (opt_profile == PGY_OPT_RELEASE) ? "release" : "dev";
-    const char *obs_name = uses_intent_observability ? "obs1" : "obs0";
-    char buf[1024];
-#ifdef _WIN32
-    const char *ext = ".obj";
-#else
-    const char *ext = ".o";
-#endif
-
-    snprintf(buf, sizeof(buf), "%s/pgy_runtime_cache_%s_%s%s",
-             tmpdir, opt_name, obs_name, ext);
-    return pergyra_strdup(buf);
-}
-
-#endif /* PGY_LLVM_ENABLED */
 
 /* Validate a path contains no shell metacharacters */
 bool

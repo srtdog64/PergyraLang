@@ -539,7 +539,16 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                 method_name = method->data.func_decl.name;
                 method_meta = llvm_find_host_method_metadata_in_context(
                     ctx, cls_name, method_name);
-                method_name = llvm_mir_decl_method_name(method_meta, method);
+                if (method_meta == NULL) {
+                    char msg[384];
+                    snprintf(msg, sizeof(msg),
+                             "MIR-only LLVM path missing declaration metadata for class method '%s.%s'",
+                             cls_name != NULL ? cls_name : "(anonymous-class)",
+                             method_name != NULL ? method_name : "(anonymous)");
+                    llvm_set_error(ctx, msg);
+                    return false;
+                }
+                method_name = llvm_mir_decl_method_name(method_meta);
                 mir_method = method_meta != NULL && method_meta->has_routine
                     ? llvm_routine_inventory_get(
                         &routine_inventory, method_meta->routine_index)
