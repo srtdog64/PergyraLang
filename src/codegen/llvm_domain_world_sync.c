@@ -1,41 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
-
-static ASTNode *
-llvm_world_sync_find_state_decl(ASTNode *world_decl, const char *state_name)
-{
-    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || state_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < world_decl->data.world_decl.state_count; i++) {
-        ASTNode *state = world_decl->data.world_decl.states[i];
-        if (state != NULL && state->type == AST_WORLD_STATE
-            && state->data.world_state.state_name != NULL
-            && strcmp(state->data.world_state.state_name, state_name) == 0) {
-            return state;
-        }
-    }
-
-    return NULL;
-}
-
-static bool
-llvm_world_sync_has_zone_slot(ASTNode *world_decl, const char *slot_name)
-{
-    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || slot_name == NULL)
-        return false;
-
-    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world_decl->data.world_decl.zones[i];
-        if (zone != NULL && zone->type == AST_WORLD_ZONE
-            && zone->data.world_zone.slot_name != NULL
-            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
+#include "llvm_domain_world_sync_internal.h"
 
 void
 llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
@@ -122,84 +87,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         }
 
         /* world command pass: directives */
-        for (size_t i = 0; i < stmt->data.world_decl.activate_count; i++) {
-            ASTNode *act = stmt->data.world_decl.activations[i];
-            const char *slot_name = act != NULL ? act->data.world_activate.zone_slot_name : NULL;
-            if (slot_name == NULL && act != NULL && act->data.world_activate.state_name != NULL) {
-                ASTNode *state = llvm_world_sync_find_state_decl(stmt, act->data.world_activate.state_name);
-                if (state != NULL)
-                    slot_name = state->data.world_state.zone_slot_name;
-                else if (llvm_world_sync_has_zone_slot(stmt, act->data.world_activate.state_name))
-                    slot_name = act->data.world_activate.state_name;
-            }
-            if (slot_name != NULL) {
-                char active_field[256];
-                int active_idx;
-                LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
-                LLVMValueRef active_ptr;
-                snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
-                active_idx = llvm_class_field_index(decl_cls, active_field);
-                if (active_idx < 0)
-                    continue;
-                active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
-                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), active_ptr);
-                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone",
-                    slot_name, PGY_PROP_CAUSE_WORLD_ACTIVATE);
-            }
-        }
-        for (size_t i = 0; i < stmt->data.world_decl.maintained_zone_count; i++) {
-            ASTNode *mnt = stmt->data.world_decl.maintained_zones[i];
-            const char *slot_name = mnt != NULL ? mnt->data.world_maintain.zone_slot_name : NULL;
-            if (slot_name == NULL && mnt != NULL && mnt->data.world_maintain.state_name != NULL) {
-                ASTNode *state = llvm_world_sync_find_state_decl(stmt, mnt->data.world_maintain.state_name);
-                if (state != NULL)
-                    slot_name = state->data.world_state.zone_slot_name;
-                else if (llvm_world_sync_has_zone_slot(stmt, mnt->data.world_maintain.state_name))
-                    slot_name = mnt->data.world_maintain.state_name;
-            }
-            if (slot_name != NULL) {
-                char active_field[256];
-                int active_idx;
-                LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
-                LLVMValueRef active_ptr;
-                snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
-                active_idx = llvm_class_field_index(decl_cls, active_field);
-                if (active_idx < 0)
-                    continue;
-                active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
-                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), active_ptr);
-                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone",
-                    slot_name, PGY_PROP_CAUSE_WORLD_MAINTAIN);
-            }
-        }
-        for (size_t i = 0; i < stmt->data.world_decl.deactivate_count; i++) {
-            ASTNode *act = stmt->data.world_decl.deactivations[i];
-            const char *slot_name = act != NULL ? act->data.world_deactivate.zone_slot_name : NULL;
-            if (slot_name == NULL && act != NULL && act->data.world_deactivate.state_name != NULL) {
-                ASTNode *state = llvm_world_sync_find_state_decl(stmt, act->data.world_deactivate.state_name);
-                if (state != NULL)
-                    slot_name = state->data.world_state.zone_slot_name;
-                else if (llvm_world_sync_has_zone_slot(stmt, act->data.world_deactivate.state_name))
-                    slot_name = act->data.world_deactivate.state_name;
-            }
-            if (slot_name != NULL) {
-                char active_field[256];
-                int active_idx;
-                LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
-                LLVMValueRef active_ptr;
-                snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
-                active_idx = llvm_class_field_index(decl_cls, active_field);
-                if (active_idx < 0)
-                    continue;
-                active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
-                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), active_ptr);
-                llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone",
-                    slot_name, PGY_PROP_CAUSE_WORLD_DEACTIVATE);
-            }
-        }
+        llvm_world_sync_emit_directives(stmt, decl_cls, sync_fn, ctx);
 
         for (size_t i = 0; i < zone_count; i++) {
             ASTNode *zone = stmt->data.world_decl.zones[i];

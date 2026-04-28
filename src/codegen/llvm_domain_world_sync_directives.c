@@ -1,0 +1,125 @@
+#ifdef PGY_LLVM_ENABLED
+#include "llvm_domain_world_sync_internal.h"
+
+ASTNode *
+llvm_world_sync_find_state_decl(ASTNode *world_decl, const char *state_name)
+{
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || state_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < world_decl->data.world_decl.state_count; i++) {
+        ASTNode *state = world_decl->data.world_decl.states[i];
+        if (state != NULL && state->type == AST_WORLD_STATE
+            && state->data.world_state.state_name != NULL
+            && strcmp(state->data.world_state.state_name, state_name) == 0) {
+            return state;
+        }
+    }
+
+    return NULL;
+}
+
+bool
+llvm_world_sync_has_zone_slot(ASTNode *world_decl, const char *slot_name)
+{
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || slot_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
+        ASTNode *zone = world_decl->data.world_decl.zones[i];
+        if (zone != NULL && zone->type == AST_WORLD_ZONE
+            && zone->data.world_zone.slot_name != NULL
+            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static const char *
+llvm_world_sync_resolve_zone_slot(ASTNode *stmt,
+                                  const char *slot_name,
+                                  const char *state_name)
+{
+    if (slot_name != NULL)
+        return slot_name;
+    if (state_name != NULL) {
+        ASTNode *state = llvm_world_sync_find_state_decl(stmt, state_name);
+        if (state != NULL)
+            return state->data.world_state.zone_slot_name;
+        if (llvm_world_sync_has_zone_slot(stmt, state_name))
+            return state_name;
+    }
+    return NULL;
+}
+
+static void
+llvm_world_sync_store_zone_active(LLVMClassTypeEntry *decl_cls,
+                                  LLVMValueRef sync_fn,
+                                  LLVMGenCtx *ctx,
+                                  const char *slot_name,
+                                  LLVMValueRef active_val,
+                                  int cause)
+{
+    char active_field[256];
+    int active_idx;
+    LLVMValueRef self_ptr;
+    LLVMValueRef active_ptr;
+
+    if (slot_name == NULL)
+        return;
+
+    snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
+    active_idx = llvm_class_field_index(decl_cls, active_field);
+    if (active_idx < 0)
+        return;
+
+    self_ptr = LLVMGetParam(sync_fn, 0);
+    active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+        self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
+    LLVMBuildStore(ctx->builder, active_val, active_ptr);
+    llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone", slot_name, cause);
+}
+
+void
+llvm_world_sync_emit_directives(ASTNode *stmt,
+                                LLVMClassTypeEntry *decl_cls,
+                                LLVMValueRef sync_fn,
+                                LLVMGenCtx *ctx)
+{
+    for (size_t i = 0; i < stmt->data.world_decl.activate_count; i++) {
+        ASTNode *act = stmt->data.world_decl.activations[i];
+        const char *slot_name = act != NULL
+            ? llvm_world_sync_resolve_zone_slot(stmt,
+                act->data.world_activate.zone_slot_name,
+                act->data.world_activate.state_name)
+            : NULL;
+        llvm_world_sync_store_zone_active(decl_cls, sync_fn, ctx, slot_name,
+            LLVMConstInt(ctx->type_i1, 1, 0), PGY_PROP_CAUSE_WORLD_ACTIVATE);
+    }
+
+    for (size_t i = 0; i < stmt->data.world_decl.maintained_zone_count; i++) {
+        ASTNode *mnt = stmt->data.world_decl.maintained_zones[i];
+        const char *slot_name = mnt != NULL
+            ? llvm_world_sync_resolve_zone_slot(stmt,
+                mnt->data.world_maintain.zone_slot_name,
+                mnt->data.world_maintain.state_name)
+            : NULL;
+        llvm_world_sync_store_zone_active(decl_cls, sync_fn, ctx, slot_name,
+            LLVMConstInt(ctx->type_i1, 1, 0), PGY_PROP_CAUSE_WORLD_MAINTAIN);
+    }
+
+    for (size_t i = 0; i < stmt->data.world_decl.deactivate_count; i++) {
+        ASTNode *act = stmt->data.world_decl.deactivations[i];
+        const char *slot_name = act != NULL
+            ? llvm_world_sync_resolve_zone_slot(stmt,
+                act->data.world_deactivate.zone_slot_name,
+                act->data.world_deactivate.state_name)
+            : NULL;
+        llvm_world_sync_store_zone_active(decl_cls, sync_fn, ctx, slot_name,
+            LLVMConstInt(ctx->type_i1, 0, 0), PGY_PROP_CAUSE_WORLD_DEACTIVATE);
+    }
+}
+
+#endif /* PGY_LLVM_ENABLED */

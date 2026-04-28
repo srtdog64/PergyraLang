@@ -28,6 +28,53 @@
 - Backend parity gate after the C split is green: `make llvm-test-backend-compare`
   reports ABI same-process `196 passed, 0 failed` and backend compare
   `64/64 passed, 0 failed`.
+- Projection overlay ownership is also below the threshold:
+  `transpiler_overlay_projection.h` now stays at 533 LOC after moving
+  host-field/self-cell probes to `transpiler_overlay_host_fields.h` and
+  zone relation/effect bind-layer emission to `transpiler_overlay_zone_bind.h`.
+- Backend parity gate after the projection overlay split is still green:
+  `make llvm-test-backend-compare` reports ABI same-process `196 passed,
+  0 failed` and backend compare `64/64 passed, 0 failed`.
+- LLVM zone sync ownership is now below the threshold:
+  `llvm_domain_zone_sync.c` stays at 510 LOC after moving relation clause
+  lowering (`link` / maintained relation / `unlink`) to
+  `llvm_domain_zone_sync_relations.c`.
+- Local gates after the zone sync split are green: `make pgy`,
+  `make llvm-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `64/64` backend compare).
+- LLVM world sync ownership is now below the threshold:
+  `llvm_domain_world_sync.c` stays at 592 LOC after moving world command
+  directive lowering plus state/zone-slot lookup helpers to
+  `llvm_domain_world_sync_directives.c` behind
+  `llvm_domain_world_sync_internal.h`.
+- Local gates after the world sync split are green: `make pgy`,
+  `make llvm-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `64/64` backend compare).
+- LLVM runtime declaration ownership is now below the threshold:
+  `llvm_runtime.c` stays at 533 LOC after moving raw collection export
+  declarations to `llvm_runtime_raw_collections.c` and channel export
+  declarations to `llvm_runtime_channels.c` behind `llvm_runtime_internal.h`.
+- Local gates after the runtime registry split are green: `make pgy`,
+  `make llvm-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `64/64` backend compare).
+- LLVM expression boundary/projection helper ownership is now below the
+  threshold: `llvm_expr_boundary_projection_helpers.h` stays at 470 LOC after
+  moving projection nominal lookup, nested vessel path resolution,
+  projection-path value loading, and `ProjectSubject` emission to
+  `llvm_expr_projection_path_helpers.h`.
+- Local gates after the expression helper split are green: `make pgy`,
+  `make llvm-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `64/64` backend compare). Projection-path
+  helpers are shared by expression, host spawn literal, assignment projection,
+  and domain projection sync emission.
+- LLVM host/spawn literal helper ownership is now below the threshold:
+  `llvm_expr_host_spawn_literal_helpers.h` stays at 345 LOC after moving
+  async await-task result materialization, direct function-call argument
+  emission, generic callee monomorphization, and spawn-expression wrapper
+  lowering to `llvm_expr_spawn_call_helpers.h`.
+- Local gates after the spawn/call split are green: `make pgy`,
+  `make llvm-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `64/64` backend compare).
 
 ## UTF-8 Progress Note - 2026-04-28 - Semantic Owner Split
 

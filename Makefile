@@ -421,9 +421,11 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_registry.c \
                          $(CODEGEN_DIR)/llvm_registry_resources.c \
                          $(CODEGEN_DIR)/llvm_error.c \
-                         $(CODEGEN_DIR)/llvm_register.c \
-                         $(CODEGEN_DIR)/llvm_runtime.c \
-                         $(CODEGEN_DIR)/llvm_event.c \
+                          $(CODEGEN_DIR)/llvm_register.c \
+                          $(CODEGEN_DIR)/llvm_runtime.c \
+                          $(CODEGEN_DIR)/llvm_runtime_raw_collections.c \
+                          $(CODEGEN_DIR)/llvm_runtime_channels.c \
+                          $(CODEGEN_DIR)/llvm_event.c \
                          $(CODEGEN_DIR)/llvm_mir_emit.c \
                          $(CODEGEN_DIR)/llvm_mir_cfg_control.c \
                          $(CODEGEN_DIR)/llvm_intent_mir_meta.c \
@@ -447,10 +449,12 @@ ifneq ($(LLVM_ENABLED),0)
                    $(CODEGEN_DIR)/llvm_domain_method_emit.c \
                    $(CODEGEN_DIR)/llvm_domain_event.c \
                    $(CODEGEN_DIR)/llvm_domain_role_emit.c \
-                   $(CODEGEN_DIR)/llvm_domain_sync_frontier.c \
-                   $(CODEGEN_DIR)/llvm_domain_zone_frontier_state.c \
-                         $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
-                         $(CODEGEN_DIR)/llvm_domain_world_sync.c \
+                    $(CODEGEN_DIR)/llvm_domain_sync_frontier.c \
+                    $(CODEGEN_DIR)/llvm_domain_zone_frontier_state.c \
+                          $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
+                          $(CODEGEN_DIR)/llvm_domain_zone_sync_relations.c \
+                          $(CODEGEN_DIR)/llvm_domain_world_sync_directives.c \
+                          $(CODEGEN_DIR)/llvm_domain_world_sync.c \
                          $(CODEGEN_DIR)/llvm_domain_forward.c \
                          $(CODEGEN_DIR)/llvm_domain_struct_fields.c \
                          $(CODEGEN_DIR)/llvm_domain.c

@@ -26,6 +26,48 @@ Operational mode:
   `transpiler_thread_pool.c`, and small declaration stubs moved to
   `transpiler_misc_decl.c`. Parity gate: `make llvm-test-backend-compare`
   (`196/0` ABI same-process, `64/64` backend compare).
+- 2026-04-28 C projection overlay owner update:
+  `transpiler_overlay_projection.h` is now below the 600 LOC review
+  threshold. Host-field/self-cell probes live in
+  `transpiler_overlay_host_fields.h`, while zone relation/effect bind-layer
+  emission lives in `transpiler_overlay_zone_bind.h`. Parity gate:
+  `make llvm-test-backend-compare` (`196/0` ABI same-process, `64/64`
+  backend compare).
+- 2026-04-28 LLVM zone sync owner update:
+  `llvm_domain_zone_sync.c` is now below the 600 LOC review threshold.
+  Relation clause lowering (`link`, maintained relation, and `unlink`) lives
+  in `llvm_domain_zone_sync_relations.c`, leaving zone sync orchestration and
+  effect/state clause lowering in the main owner. Gates: `make pgy`,
+  `make llvm-test-smoke`, and `make llvm-test-backend-compare` (`196/0`
+  ABI same-process, `64/64` backend compare).
+- 2026-04-28 LLVM world sync owner update:
+  `llvm_domain_world_sync.c` is now below the 600 LOC review threshold.
+  World command directive lowering and world state/zone-slot lookup helpers
+  live in `llvm_domain_world_sync_directives.c` behind
+  `llvm_domain_world_sync_internal.h`. Gates: `make pgy`,
+  `make llvm-test-smoke`, and `make llvm-test-backend-compare` (`196/0`
+  ABI same-process, `64/64` backend compare).
+- 2026-04-28 LLVM runtime registry owner update:
+  `llvm_runtime.c` is now below the 600 LOC review threshold. Raw collection
+  export declarations live in `llvm_runtime_raw_collections.c`; channel export
+  declarations live in `llvm_runtime_channels.c` behind
+  `llvm_runtime_internal.h`. Gates: `make pgy`, `make llvm-test-smoke`, and
+  `make llvm-test-backend-compare` (`196/0` ABI same-process, `64/64`
+  backend compare).
+- 2026-04-28 LLVM expression projection helper owner update:
+  `llvm_expr_boundary_projection_helpers.h` is now below the 600 LOC review
+  threshold. Projection nominal lookup, nested vessel path resolution,
+  projection-path value loading, and `ProjectSubject` emission live in
+  `llvm_expr_projection_path_helpers.h`. Gates: `make pgy`,
+  `make llvm-test-smoke`, and `make llvm-test-backend-compare` (`196/0`
+  ABI same-process, `64/64` backend compare).
+- 2026-04-28 LLVM spawn/call helper owner update:
+  `llvm_expr_host_spawn_literal_helpers.h` is now below the 600 LOC review
+  threshold. Await-task result materialization, direct function-call argument
+  emission, generic callee monomorphization, and spawn-expression wrapper
+  lowering live in `llvm_expr_spawn_call_helpers.h`. Gates: `make pgy`,
+  `make llvm-test-smoke`, and `make llvm-test-backend-compare` (`196/0`
+  ABI same-process, `64/64` backend compare).
 - Beta closure now follows the lean sprint loop in
   `docs/71_beta_execution_tickets.md`: close one implementation debt slice
   first, run the slice-local gate, then run wider regression at the slice or
@@ -43,12 +85,20 @@ Operational mode:
 - Current owner-size baseline: production `.inc` debt under `src/` is closed,
   but production `.c` and private owner `.h` files are not yet all below the
   600 LOC split-review threshold. The remaining 600-1,000 LOC review-band
-  queue includes backend/tooling owners such as
-  `transpiler_overlay_projection.h`, `pgy_lsp.c`, and runtime/tooling headers.
+  queue includes backend/tooling owners such as `pgy_lsp.c`, C expression
+  emitters, and runtime/tooling headers.
   LLVM intent/domain declaration owners are now below the threshold after the
   setup/context/cleanup and forward/struct-field splits, and `transpiler.c`
-  is below the threshold after the entry/thread-pool/misc-decl split. This is no longer `.inc` debt, but
-  it is still beta readability debt. `llvm_internal.h` has moved below the
+  is below the threshold after the entry/thread-pool/misc-decl split.
+  `transpiler_overlay_projection.h` is also below the threshold after the
+  host-field and zone-bind splits, and `llvm_domain_zone_sync.c` is below
+  the threshold after the relation-clause split. `llvm_domain_world_sync.c`
+  is below the threshold after the directive-pass split. `llvm_runtime.c` is
+  below the threshold after the raw collection/channel registry split, and
+  `llvm_expr_boundary_projection_helpers.h` is below the threshold after the
+  projection-path helper split. `llvm_expr_host_spawn_literal_helpers.h` is
+  below the threshold after the spawn/call helper split. This is no longer `.inc` debt, but it is still
+  beta readability debt. `llvm_internal.h` has moved below the
   threshold by splitting private API declarations into `llvm_internal_api.h`
   and fixed limits / dynamic-array helpers into `llvm_limits_internal.h`. The
   LLVM registry owner is also below the threshold after splitting resource/type
