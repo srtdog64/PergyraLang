@@ -2,6 +2,8 @@
 
 Last updated: 2026-04-27
 
+Anti-hype update: 2026-04-29
+
 This index is the human entry point for the current beta-closure documentation.
 It intentionally prioritizes the frozen beta contract, implementation evidence,
 and follow-up debt over older design notes.
@@ -17,6 +19,7 @@ and follow-up debt over older design notes.
 | [`70_beta_closure_master_board.md`](70_beta_closure_master_board.md) | B0/B1/B2 closure board and prioritization |
 | [`71_beta_execution_tickets.md`](71_beta_execution_tickets.md) | Execution-ticket breakdown for beta closure |
 | [`98_beta_closure_readiness_report.md`](98_beta_closure_readiness_report.md) | Snapshot readiness report |
+| [`120_vision_and_capability_audit.md`](120_vision_and_capability_audit.md) | Anti-hype current-vs-vision audit for external claims |
 
 ## Core Semantics
 
@@ -99,6 +102,9 @@ and follow-up debt over older design notes.
 | [`110_string_unicode_policy.md`](110_string_unicode_policy.md) | String/unicode beta policy |
 | [`112_observability_trace_schema.md`](112_observability_trace_schema.md) | Observability and trace schema |
 | [`116_documentation_quality_audit.md`](116_documentation_quality_audit.md) | Documentation quality audit and next cleanup priorities |
+| [`118_slot_model_rigor_audit.md`](118_slot_model_rigor_audit.md) | Slot/ownership rigor audit and forbidden marketing vocabulary |
+| [`119_pergyra_lineage_positioning.md`](119_pergyra_lineage_positioning.md) | Lineage positioning without feature-parity claims |
+| [`120_vision_and_capability_audit.md`](120_vision_and_capability_audit.md) | Anti-hype capability audit: current state vs aspiration |
 
 ## Implementation Guides
 
@@ -127,3 +133,7 @@ and follow-up debt over older design notes.
   runtime, C, LLVM, diagnostic, and test contracts are not closed.
 - The docs should prefer UTF-8 text and avoid stale mojibake; if a file cannot
   be fixed immediately, a newer source-of-truth document must supersede it.
+- External-facing wording must pass the anti-hype triad:
+  `118_slot_model_rigor_audit.md` for vocabulary,
+  `119_pergyra_lineage_positioning.md` for lineage, and
+  `120_vision_and_capability_audit.md` for current capability vs aspiration.

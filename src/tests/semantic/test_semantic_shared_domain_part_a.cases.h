@@ -7,7 +7,8 @@ test_shared_memory_features(void)
     {
         SemanticContext *ctx = semantic_context_create();
         ASTNode *rc_type = make_generic_type("Rc", "Int");
-        Type *resolved = resolve_type_node(rc_type, ctx);
+        Type *resolved = semantic_type_resolution_lookup_type_ref_or_materialize(
+            ctx, rc_type);
 
         EXPECT(resolved->kind == TYPE_KIND_CONSTRUCTED
                && strcmp(resolved->name, "Rc<Int>") == 0);

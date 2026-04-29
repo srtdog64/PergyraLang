@@ -176,6 +176,25 @@ primitive가 모든 plat에 *온전히* 옮겨갈 수 있음.
 Slot / static / domain / verification은 *그 모양을 시스템급으로 만드는
 구현*이기 때문.
 
+### 0.8 비전과 현재의 분리 — capability audit
+
+§0.1-0.7은 *Pergyra가 무엇이 되어야 하는가*를 박는다. 별개로 *지금 무엇이
+구현됐고 무엇이 비전인가*는 `docs/120_vision_and_capability_audit.md`에
+정식 위치한다. 이 분리가 중요한 이유: 비전을 *현재 capability*로 인용하면
+거짓이 되고, 현재를 *비전*으로 축소하면 자기검열이 된다. 둘은 서로 다른
+좌표라 둘 다 정직하게 박혀 있어야 함.
+
+3-pair negative-space 프로토콜:
+
+| Pair | 관심 | Anchor |
+|---|---|---|
+| Vocabulary | "표현이 정적/runtime/proof을 정직하게 구분하는가?" | docs/118 §8 |
+| Lineage | "계보 비교가 어느 부모에서 왔는지 정직한가?" | docs/119 §11 |
+| Capability | "기능 주장이 *현재* vs *비전*을 정직하게 구분하는가?" | docs/120 |
+
+외부 description (README / 블로그 / 비교 글 / 학술) 발행 전 3개 모두 점검
+필수. 한 개라도 실패하면 외부 표면이 거짓이 됨.
+
 ---
 
 ## 1. 가장 중요한 전제

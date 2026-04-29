@@ -47,6 +47,26 @@ Operational mode:
   `llvm_domain_world_sync_internal.h`. Gates: `make pgy`,
   `make llvm-test-smoke`, and `make llvm-test-backend-compare` (`196/0`
   ABI same-process, `64/64` backend compare).
+- 2026-04-29 LLVM world frontier owner update:
+  bounded world frontier scheduling has a dedicated owner,
+  `llvm_domain_world_frontier.c`. The main `llvm_domain_world_sync.c` now keeps
+  sync orchestration only, while the frontier owner keeps
+  `pgy_frontier_world_transitive_pass_limit(...)`, zone-generation dirty
+  detection, derived-state recompute, and overflow abort emission. Gate:
+  `make runtime-frontier-contract-test-smoke`; local sanity gate:
+  `make llvm-test-smoke`.
+- 2026-04-29 CFG/MIR correction:
+  `parallel { ... }` is not classified as CFG-owned until HIR/MIR has a real
+  parallel CFG lowering. It remains AIR-visible and semantic-flow checked, but
+  MIR DCE must preserve it as a side-effecting statement. This prevents channel
+  sends inside `parallel` from disappearing before LLVM select/channel tests.
+  `make cfg-body-dataflow-test-smoke` now gates this distinction directly with
+  a parallel-send/select MIR preservation fixture.
+- 2026-04-29 AIR inspection update:
+  `pgy --air <source.pgy>` dumps the AIR verification summary after evidence
+  collection and before drift failure. AIR remains verification-only and is not
+  carried in `CompilerIRBundle`, but reviewers can now inspect intent,
+  boundary, evidence, and drift state without reading unit-test internals.
 - 2026-04-28 LLVM runtime registry owner update:
   `llvm_runtime.c` is now below the 600 LOC review threshold. Raw collection
   export declarations live in `llvm_runtime_raw_collections.c`; channel export
@@ -87,8 +107,9 @@ Operational mode:
 - 2026-04-29 CFG contract validator owner update:
   `mir_cfg_contract_validate.h` is now below the 600 LOC review threshold.
   CFG-owned AST control classification lives in
-  `mir_cfg_contract_control.h`; the original owner keeps cleanup, successor,
-  predecessor, and pin cleanup contract validation. Gates: `make test-mir`,
+  `mir_cfg_contract_control.h`; pin cleanup edge validation lives in
+  `mir_cfg_contract_pin.h`. The original owner keeps cleanup, successor, and
+  predecessor contract validation. Gates: `make test-mir`,
   `make cfg-body-dataflow-test-smoke`, `make abi-ownership-shape-test-smoke`,
   `make production-header-size-test-smoke`, and
   `make backend-inc-size-test-smoke`.
@@ -152,7 +173,9 @@ Operational mode:
   list-get body binding, and backedge increment in both C and LLVM. Gates:
   `make test-mir`, `make cfg-body-dataflow-test-smoke`, and
   `make llvm-test-backend-compare` (`196/0` ABI same-process, `65/65` backend
-  compare).
+  compare). MIR DCE also consumes `mir_stmt_ast_is_cfg_owned_control(...)`
+  instead of a private CFG-control AST switch, so statement population,
+  validation, and DCE share one classifier.
 - 2026-04-29 CFG/AIR handoff update:
   `with`, `parallel`, `unsafe`, and `defer` are now part of the CFG-owned
   boundary set when a MIR block already has successor edges. MIR statement
@@ -162,12 +185,14 @@ Operational mode:
   consume the boundary facts produced by CFG lowering, not duplicated AST
   fallback body containers.
 - 2026-04-29 AIR execution-boundary update:
-  AIR now has an explicit `execution` boundary kind for `with`, `unsafe`, and
-  `defer`. These are sync body/execution boundaries and strict evidence checks
-  HIR/CFG evidence for them, not RIR resource-boundary evidence. This narrows
-  the previous abstraction-boundary gap: AIR can distinguish execution
-  boundaries from ordinary AST syntax while leaving zone/world/parallel/channel
-  and IO evidence rules unchanged.
+  AIR now has an explicit `execution` boundary kind for `with`, `unsafe`,
+  `defer`, and pin-block AST metadata. These are sync body/execution boundaries
+  and strict evidence checks HIR/CFG evidence for them, not RIR
+  resource-boundary evidence. The AIR walker also descends into `with` bodies,
+  so nested IO/time boundaries inside `with` are not hidden by the execution
+  container. This narrows the previous abstraction-boundary gap: AIR can
+  distinguish execution boundaries from ordinary AST syntax while leaving
+  zone/world/parallel/channel and IO evidence rules unchanged.
 - 2026-04-29 AIR await-boundary update:
   `await` is now synthesized as a stable AIR `parallel` boundary source instead
   of being only recursively scanned through its operand. Strict AIR accepts RIR
@@ -176,6 +201,41 @@ Operational mode:
   evidence for the implementation boundary.
   The AIR boundary AST walk now lives in `src/compiler/air_boundary_walk.c`,
   leaving `src/compiler/air_boundary.c` focused on boundary taxonomy/policy.
+- 2026-04-29 AIR task-group boundary update:
+  `AST_TASK_GROUP` is now synthesized as a stable AIR `parallel` boundary source
+  named `task-group`. Strict AIR now requires both HIR/CFG evidence and matching
+  same-AST RIR operation evidence for every stable parallel boundary. RIR
+  materializes `AwaitRemote`, `Spawn`, `Async`, `Parallel`, and `TaskGroup`, so
+  local grouped-task orchestration is no longer a HIR-only exception.
+- 2026-04-29 AIR world-transfer evidence update:
+  world handoff evidence is now same-AST specific when the AIR boundary has
+  source provenance. A matching RIR `Move` / `Claim` must carry the same AST as
+  the world boundary; an unrelated same-alias transfer op in the same RIR scope
+  no longer satisfies strict evidence. Gate: `make test-air` and
+  `make air-drift-test-smoke`.
+- 2026-04-29 AIR channel evidence update:
+  RIR now materializes `ChannelSend`, `ChannelRecv`, and `ChannelSelect` ops for
+  channel AST boundaries. AIR channel strict evidence consumes those exact
+  same-AST ops instead of treating a same-owner/same-name RIR scope as enough.
+  This keeps channel evidence aligned with the already tightened `await`
+  `AwaitRemote` policy. `make test-rir` now gates parsed-source channel send,
+  receive, and select lowering into the same operations.
+- 2026-04-29 AIR IO evidence update:
+  RIR now materializes beta-stable IO calls as `IO` ops, and AIR IO strict
+  evidence consumes only a matching source/provenance op. The parsed-source
+  `ReadFile` fixture no longer remains a deliberate missing-evidence negative;
+  it is a positive exact-evidence test. Builtin call source spans now reach
+  `AST_CALL`, so the common parsed path no longer depends on step-level span
+  fallback.
+- 2026-04-29 AIR HIR evidence containment update:
+  HIR CFG evidence now accepts nested boundary ASTs inside CFG-carried
+  statements and terminator values, not only direct statement-pointer equality.
+  This closes the execution-boundary seam where `with { ReadFile(...) }` could
+  have RIR IO evidence but still miss HIR CFG evidence. The containment matcher
+  now mirrors the AIR boundary walk across loops, parallel/async/task-group,
+  spawn/call/assignment, arrays/tuples, await/channel/select, match, unsafe,
+  defer, event invoke, and lambda bodies; a loop-condition `ReadFile` fixture
+  locks the body-control case.
 - 2026-04-29 HIR intent CFG evidence update:
   parsed-source intent routines now get a minimal ordered clause CFG from
   `src/compiler/hir_lower_intent_cfg.c`. `hir_lower_cfg.c` remains focused on
@@ -190,16 +250,18 @@ Operational mode:
   inventory instead of being treated as disposable AST fallback emission.
 - 2026-04-29 DAG compatibility inventory update:
   type-resolution DAG fallback remains closed (`materializer_fallbacks=0`,
-  alias/non-alias legacy fallback 0). The remaining compatibility
-  `resolve_type_node(...)` calls are now AST-kind accounted by smoke:
-  current semantic-suite max inventory is 3 calls, all `AST_TYPE`; compound,
-  channel, future, event-handler, and other AST kinds are 0. The same gate
+  alias/non-alias legacy fallback 0). Compatibility `resolve_type_node(...)`
+  calls are now AST-kind accounted by smoke, and the current semantic-suite max
+  inventory is 0 calls after public semantic regression helpers moved to
+  `semantic_type_resolution_lookup_type_ref_or_materialize(...)`. The same gate
   reads the global compatibility counters as max/last inventory rather than
-  summing repeated per-context stats lines, caps compatibility API calls at 64,
+  summing repeated per-context stats lines, caps compatibility API calls at 0,
   and requires compatibility resolver body fallbacks (`cache misses`) to remain
-  0. This makes the next DAG cleanup target explicit: named/generic `AST_TYPE`
-  compatibility entry points, not recursive resolver execution or constructed
-  compound materialization.
+  0. This makes the next DAG cleanup target explicit: keeping the compatibility
+  resolver as a narrow API seam without letting frozen semantic DAG coverage
+  execute it. The compatibility resolver is also no longer exposed from public
+  `type_checker.h`; the resolver inventory smoke rejects public header
+  re-exposure and semantic regression tests that call it directly.
 - 2026-04-29 CFG-owned control classifier update:
   `mir_cfg_contract_control.h` now has a real header guard and is consumed by
   both MIR statement population and MIR CFG validation. This removes the
@@ -403,10 +465,11 @@ Operational mode:
   zone-embedding handoff diagnostics. Current sizes are 504 LOC, 177 LOC, 132
   LOC, and 11 LOC respectively.
 - Expression resolver implementation-header debt is split:
-  `type_checker_expr.h` and `type_checker_resolve.h` are declaration-only,
-  while `type_checker_resolve.c` owns the metadata-first `resolve_type_node`
-  compatibility body through a named TU. `type_checker_resolution_helpers.h`
-  is also declaration-only now; `type_checker_resolution_helpers.c` owns
+  `type_checker_expr.h` is declaration-only, while `type_checker_resolve.c`
+  now keeps only assignment/constructed-wrapper helpers and retired resolver
+  audit counters. The obsolete `type_checker_resolve.h` compatibility header is
+  deleted. `type_checker_resolution_helpers.h` is also declaration-only now;
+  `type_checker_resolution_helpers.c` owns
   metadata-first `resolve_named_type(...)`, alias lookup, symbol-kind labels,
   and the embedded-world-zone mutation guard. Expression dispatch, call typing,
   and host lookup/call behavior are now split across
@@ -920,6 +983,10 @@ Runtime frontier scheduler closure:
   `pgy_frontier_world_transitive_pass_limit(...)` policy in both C and LLVM.
   This makes the world zone-sync plus derived-state recompute family a shared
   source-of-truth contract instead of two backend-local helper choices.
+- 2026-04-29 update: frontier pass-limit formulas now saturate through the same
+  u32-bounded helper family before emission. This keeps C `size_t` loops and
+  LLVM i32 loop counters on the same bounded contract for oversized generated
+  frontier families.
 - Remaining blocker: the full bounded fixpoint / transitive frontier scheduler
   must broaden that same transitive frontier policy beyond the currently
   covered world/zone/projection slices so the broader world-zone propagation
@@ -1515,8 +1582,8 @@ Goal:
 - Declaration order, generic defaults, where bounds, ability consumers, module
   contracts, zone/world authority consumers, and alias cycles must share one
   dependency vocabulary and one diagnostic provenance model.
-- The remaining recursive resolver implementation must be treated as a
-  compatibility body to retire, not as a second source of truth.
+- The retired recursive resolver implementation must stay absent; only audit
+  counters may remain for zero-call reporting.
 
 Closed now:
 
@@ -1527,9 +1594,9 @@ Closed now:
 - Central metadata materializer fallback is dormant in the semantic suite:
   `materializer_fallbacks=0`.
 - Current local stats are `graph-backed skips=3140`,
-  `resolve_calls=927`, `resolve_unique_nodes=927`,
+  `resolve_calls=0`, `resolve_unique_nodes=0`,
   `metadata_entries=3363`, `metadata_owned=257`,
-  `metadata_hits=6751`, and `materializer_fallbacks=0`.
+  `metadata_hits=6755`, and `materializer_fallbacks=0`.
 - Metadata fallback families are all zero, including named, generic-named,
   compound, other, builtin shell, generic class, alias, non-class symbol, and
   missing-symbol fallback.
@@ -1595,10 +1662,10 @@ Closed now:
 
 Remaining:
 
-- Retire the recursive resolver as an evaluator source for stable type refs.
-  The central metadata escape hatch is removed; remaining work is to keep
-  owner consumers and diagnostics aligned with DAG/topo facts rather than
-  compatibility vocabulary.
+- Keep the recursive resolver retired as an evaluator source for stable type
+  refs. The central metadata escape hatch and private compatibility body are
+  removed; remaining work is to keep every non-semantic driver/backend path on
+  DAG/topo facts and prevent evaluator-body reintroduction.
 - Keep provider-after-consumer generic/default/ability/module/zone-world
   regressions in semantic and C/LLVM parity suites.
 
@@ -1658,8 +1725,22 @@ make test-semantic
   routines.
 - `slot_manager_secure_ops.c` now owns secure manager enable/disable, secure
   claim/read/write/release, token validation/refresh/revoke, and secure manager
-  lifecycle wrappers. `slot_manager.c` is down to 963 LOC and stays focused on
-  lifecycle, generation, TTL, lock, and pin/lease primitives.
+  lifecycle wrappers. `slot_manager_query_lock.c` owns type/validity queries,
+  TTL cleanup, lock/unlock/try-lock, stats, and fast wrappers.
+  `slot_manager.c` is down to 564 LOC and stays focused on claim/read/write/
+  release lifecycle plus shared storage helpers.
+- `pgy_parallel.h` is now a 494 LOC shared task/await facade. Blocking pool
+  lifecycle moved to `pgy_parallel_blocking.h` at 146 LOC, and coroutine
+  scheduling moved to `pgy_parallel_coroutine.h` at 292 LOC. The split keeps the
+  header-only runtime ABI stable and removes `pgy_parallel.h` from the 600 LOC
+  split-review queue.
+- `parser_intent.c` is now a 468 LOC declaration/default propagation owner.
+  Step clause parsing moved to `parser_intent_step.h` at 297 LOC, so the intent
+  parser surface is below the 600 LOC split-review threshold without changing
+  parser exports.
+- `parser_expr.c` is now a 524 LOC expression precedence/call/primary owner.
+  Multiline/interpolated string helpers moved to `parser_expr_string.h` at
+  150 LOC, removing the expression parser from the 600 LOC split-review queue.
 - `type_checker_domain_role_lookup.c` now owns subject-role ability lookup used
   by party/role contract checks. `type_checker_decls_domain_helpers.c` is down
   to 1581 LOC; the remaining split candidates are projection, effect, and
@@ -1726,7 +1807,8 @@ make test-semantic
 - `make production-header-size-test-smoke` prevents the new named owner
   headers from becoming replacement mega-includes. The default cap is 1,000
   LOC and no production header has a temporary allowance. LLVM declaration
-  inventory helpers now live in `llvm_inventory_internal.h`, leaving
+  inventory helpers now live behind `llvm_inventory_internal.h`, with lookup
+  and host-method metadata split into dedicated helper owners, leaving
   `llvm_internal.h` as context declarations plus public backend contracts.
 - MIR slot/claim type helper extraction now lives in
   `src/compiler/mir_type_helpers.c` / `.h`, reducing `src/compiler/mir.c`
@@ -1930,7 +2012,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
   blocked outside central metadata/diagnostic compatibility owners by
   `type-resolution-resolver-inventory-test-smoke`.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, compatibility resolver calls (`resolve_calls<=1000`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage legacy fallback, and alias-stage split accounting. Earlier local stats for this slice were `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_unresolved=78 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, compatibility resolver calls (`resolve_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage legacy fallback, and alias-stage split accounting. Earlier local stats for this slice were `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_unresolved=78 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
 - The central metadata materializer fallback is closed, not merely capped:
   `materializer_fallbacks==0` and every metadata fallback family must stay at
@@ -2103,7 +2185,10 @@ grep -R "resolve_type_node" -n src/semantic
 - C/LLVM backend compare가 frozen subset parity를 넓게 커버한다.
 - `make mir-declaration-inventory-test-smoke`가 C/LLVM declaration-side codegen을 active inventory helper path에 묶는다.
 - C backend `emit_program(...)`는 ability/type/extern/function/intent/domain/event bootstrap을 `transpiler_active_inventory(...)` / `transpiler_active_externs(...)` view로 소비한다. Direct declaration-array reads are now confined to the helper owner in `transpiler.h`.
-- LLVM declaration raw inventory reads are confined to the helper owner in `llvm_inventory_internal.h`; pipeline/domain/intent emitters must go through active inventory and lookup helpers.
+- LLVM declaration raw inventory reads are confined to the inventory helper
+  family (`llvm_inventory_internal.h`, `llvm_inventory_decl_lookup.h`,
+  `llvm_inventory_host_methods.h`); pipeline/domain/intent emitters must go
+  through active inventory and lookup helpers.
 - LLVM routine traversal in pipeline/domain/intent now goes through `llvm_active_routine_inventory(...)`; direct `mir->routine_count` / `mir->routines` traversal is confined to the helper owner.
 - LLVM intent MIR metadata readers now live in
   `src/codegen/llvm_intent_mir_meta.c`, with the private owner seam declared in
@@ -2687,10 +2772,11 @@ make ast-dispatch-test-smoke
 
 - CFG-owned AST control classification moved to
   `mir_cfg_contract_control.h`.
-- `mir_cfg_contract_validate.h` is now 581 LOC and keeps cleanup, successor,
-  predecessor, and pin cleanup contract validation ownership focused.
-- The pin cleanup terms remain in `mir_cfg_contract_validate.h`, preserving the
-  existing Slot/Pin ABI shape smoke contract.
+- `mir_cfg_contract_validate.h` is now 551 LOC and keeps cleanup, successor,
+  and predecessor contract validation ownership focused.
+- Pin cleanup edge validation moved to `mir_cfg_contract_pin.h`, preserving the
+  existing Slot/Pin ABI shape smoke contract while keeping the main CFG
+  contract owner below the split-review threshold.
 - Verified with `make test-mir`, `make cfg-body-dataflow-test-smoke`,
   `make abi-ownership-shape-test-smoke`,
   `make production-header-size-test-smoke`, and

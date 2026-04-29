@@ -15,6 +15,7 @@ Related documents:
 - `docs/semantics/` — proof obligations index
 - `docs/security/` — AI Validator adversarial counterexample audits (Tier 3 invariants)
 - `docs/119_pergyra_lineage_positioning.md` — sister positioning doc for language lineage; §11 marketing-phrasing table extends this doc's §8 negative-space audit
+- `docs/120_vision_and_capability_audit.md` — sister audit; capability negative-space + current-vs-vision separation (completes the three-pair protocol with this doc's §8 and `docs/119` §11)
 
 This document is an **honest audit** of what Pergyra's Slot model and
 ownership system actually guarantee statically, what they check at runtime,
@@ -510,14 +511,16 @@ documentation does not drift.
 | Rust 1.0 (2015) | Borrow checker, lifetime, Send/Sync | None at 1.0 release | Mechanized proof came later |
 | Rust 2018+ | NLL borrow checker, edition refinements | RustBelt (2018) for unsafe core | First mech results |
 | Rust 2026 | const generics, GAT, refined trait solver | Extended RustBelt + ongoing | Multi-decade research |
-| **Pergyra Beta (2026)** | **Tier 1 + Tier 2 static + Slot runtime + 5-class classifier** | **None — Level 2 evidence pack** | **Comparable to Rust 1.0 at 1.0 launch** |
+| **Pergyra Beta (2026)** | **Tier 1 + Tier 2 static + Slot runtime + 5-class classifier** | **None — Level 2 evidence pack** | **Smaller static subset than Rust; different runtime-capability model** |
 | Pergyra 1.0 + freeze | + Option C lift, + AIR Phase 1 | None | Between Rust 1.0 and 2018 in scope |
 | Pergyra post-1.0 | Level 3 paper proof attempts | Optional academic | Pergyra-equivalent of RustBelt |
 
-The point: **Rust 1.0 shipped without mechanized proof.** Pergyra Beta
-shipping at Level 2 (theorem statements + judgments + evidence map) is
-not a corner cut; it is the same level Rust 1.0 had at release. Mechanized
-proof is a multi-year research project, not a beta blocker.
+The point: **Rust 1.0 shipped without mechanized proof**, but that does not
+make Pergyra's beta safety story Rust-equivalent. Pergyra Beta has a smaller
+static subset plus runtime handle/capability validation. Level 2 evidence
+(theorem statements + judgments + evidence map) is acceptable for beta only
+when the claim is scoped to Pergyra's frozen subset. Mechanized proof remains
+a multi-year research project, not a beta claim.
 
 ## 8. Marketing Language Audit
 
@@ -527,11 +530,11 @@ table as a negative-space guide before publishing.
 
 | Risky phrasing | Honest phrasing |
 |---|---|
-| "Rust-level memory safety" | "Static strength comparable to Rust 1.0 at launch; mechanized proof is post-1.0 work" |
+| "Rust-level memory safety" | "Pergyra has a smaller static subset plus runtime handle/capability checks; do not describe it as Rust-equivalent." |
 | "Slot is a borrow checker" | "Slot is runtime-validated; the static layer is the ownership classifier + CFG + pin + channel + token rules" |
 | "Slot proves borrow safety" | "Slot proves capability/generation/token/pin-state runtime safety; borrow safety requires the CFG bridge facts" |
 | "Aliasing-XOR-mutability enforced" | "Current `WriteView<T>` same-slot exclusivity is enforced; full Rust-style borrow safety waits for CFG no-escape/cleanup/boundary facts" |
-| "Lifetime safety guaranteed" | "No `'a` lifetime annotations; arena lanes + handle generation + CFG body checks substitute" |
+| "Lifetime safety guaranteed" | "No `'a` lifetime annotations; arena lanes + handle generation + CFG body checks cover the frozen subset; other patterns are rejected or runtime-validated." |
 | "No data races possible" | "Channel-only cross-World + parallel `ref`/`own` conflict reject covers the covered subset; full `Send`/`Sync` analogue is not in beta" |
 | "pin blocks use raw runtime pointers safely" | "source-level typed-view pin blocks reject suspension and transport boundaries; explicit runtime `PgyPinnedView` lowering remains internal until cleanup parity closes" |
 | "Dijkstra-rigorous" | "Pergyra applies Dijkstra's structured programming / CFG result rigorously; mutual exclusion application is in flight; predicate transformer is not applied" |
@@ -548,10 +551,10 @@ table as a negative-space guide before publishing.
 | Level 4 | Mechanized small-step model (Coq/Lean) | Post-1.0 academic collaboration |
 | Level 5 | Mechanized full compiler | Long-term (CompCert / CakeML pattern) |
 
-Beta closure does not require Level 3+. Level 2 is the same level Rust 1.0
-shipped at, the same level Crystal 1.0 shipped at, and the same level
-most production languages ship beta at. Insisting on Level 4-5 for beta
-would push beta back 3-5 years for diminishing returns.
+Beta closure does not require Level 3+. Level 2 is an evidence target for the
+frozen subset, not a license to claim production-grade proof. Insisting on
+Level 4-5 for beta would push beta back 3-5 years; claiming those levels early
+would be dishonest.
 
 The 1-year freeze after beta is the right window to attempt one paper
 proof (Level 3) for one core theorem — the recommended candidate is
@@ -579,11 +582,11 @@ honestly:
    discipline closes the gap; no implementation work is required to fix
    the marketing drift, only careful wording.
 
-The static guarantees Pergyra Beta delivers are comparable to Rust 1.0
-at launch. That comparison is honest, defensible, and survives external
-audit. Future evolution toward Option C lift, AIR Phase 1, and Level 3
-paper proof is documented in the related closure documents and is on a
-realistic timeline.
+The static guarantees Pergyra Beta delivers are not Rust-equivalent. They are
+specific compile-time rejects for the covered boundaries, backed by runtime
+generation/token checks and conservative rejection elsewhere. Future evolution
+toward Option C lift, AIR Phase 1, and Level 3 paper proof is documented in
+the related closure documents, but must not be marketed as current behavior.
 
 The Slot model is not "I wish it worked like this." It is a
 well-defined runtime-validated handle with a documented static layer

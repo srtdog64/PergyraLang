@@ -22,6 +22,8 @@ Related documents:
 - `docs/119_pergyra_lineage_positioning.md` - sister positioning doc for
   language lineage (C# father, Tier 1-5 substrate borrow, DDD unique
   synthesis).
+- `docs/120_vision_and_capability_audit.md` - sister audit; capability
+  negative-space + current-vs-vision separation.
 
 This document positions Pergyra's concurrency model relative to the
 callback -> promise/future -> async/await history. It is a positioning and

@@ -278,6 +278,80 @@ test_rir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("RIR materializes source channel send recv and select ops");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "func ChannelOps(ch: Channel<Int>) -> Int {\n"
+            "    ch <- 1;\n"
+            "    let first: Int = <- ch;\n"
+            "    select {\n"
+            "        case next = <-ch:\n"
+            "            return next;\n"
+            "        default:\n"
+            "            return first;\n"
+            "    }\n"
+            "    return first;\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *flow = find_scope(rir, "ChannelOps", RIR_SCOPE_FUNCTION);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && flow != NULL
+               && scope_has_op_subject(flow, RIR_OP_CHANNEL_SEND, "ch")
+               && scope_has_op_subject(flow, RIR_OP_CHANNEL_RECV, "ch")
+               && scope_has_op_subject(flow, RIR_OP_CHANNEL_SELECT, "select"));
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR materializes stable IO calls as boundary ops");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "func Load() -> Void {\n"
+            "    ReadFile(\"settings.txt\");\n"
+            "    Sleep(1);\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *flow = find_scope(rir, "Load", RIR_SCOPE_FUNCTION);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && flow != NULL
+               && scope_has_op_subject(flow, RIR_OP_IO, "ReadFile")
+               && scope_has_op_subject(flow, RIR_OP_IO, "Sleep"));
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR materializes parallel async and spawn boundary ops");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "func Worker() -> Int { return 1; }\n"
+            "func ParallelOps() -> Void {\n"
+            "    let f: Future<Int> = spawn Worker();\n"
+            "    async { Log(1); }\n"
+            "    parallel {\n"
+            "        Log(2);\n"
+            "        Log(3);\n"
+            "    }\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *flow = find_scope(rir, "ParallelOps", RIR_SCOPE_FUNCTION);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && flow != NULL
+               && scope_has_op_subject(flow, RIR_OP_SPAWN, "spawn")
+               && scope_has_op_subject(flow, RIR_OP_ASYNC, "async")
+               && scope_has_op_subject(flow, RIR_OP_PARALLEL, "parallel"));
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("RIR captures projection, authority, lifecycle, and intent compensation");
     {
         HIRProgram *hir = NULL;

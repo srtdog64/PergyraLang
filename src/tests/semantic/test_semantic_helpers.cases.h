@@ -19,6 +19,7 @@
 #include "semantic/type_system.h"
 #include "semantic/symbol_table.h"
 #include "semantic/type_checker.h"
+#include "semantic/type_checker_internal.h"
 #include "semantic/semantic.h"
 
 /* -----------------------------------------------------------------

@@ -13,7 +13,6 @@ mir_stmt_ast_is_cfg_owned_control(const ASTNode *ast)
 
     switch (ast->type) {
     case AST_WITH_STMT:
-    case AST_PARALLEL_BLOCK:
     case AST_UNSAFE_BLOCK:
     case AST_DEFER_STMT:
     case AST_IF_STMT:

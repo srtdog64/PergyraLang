@@ -2,7 +2,10 @@
 
 ## Overview
 
-This document outlines the design for supporting both secure and zero-cost modes in Pergyra while maintaining type safety and preventing security vulnerabilities at compile time.
+This document outlines a future design direction for supporting both secure and
+unchecked fast-path modes in Pergyra while preserving explicit security
+boundaries. It is not a current claim of zero-cost security or complete
+compile-time prevention of security vulnerabilities.
 
 Status note (2026-04-03):
 
@@ -257,13 +260,13 @@ func ProcessUserData(data: Slot<UserInfo, ZeroCost>) {
 
 ## Performance Optimizations
 
-### 1. Zero-Cost Abstraction
+### 1. Unchecked Fast-Path Abstraction
 
 ```pergyra
-// Security checks are eliminated at compile time for ZeroCost
+// Security checks are intentionally absent for the unchecked fast path.
 @[inline(always)]
 func Write<T>(slot: Slot<T, ZeroCost>, value: T) {
-    // Direct memory write - no security overhead
+    // Direct memory write - no security checks on this path.
     unsafe { *slot.get_ptr() = value }
 }
 
@@ -360,7 +363,8 @@ module GameEconomy {
 
 1. **Single Language**: One Pergyra, not two dialects
 2. **Type Safety**: Security requirements enforced at compile time
-3. **Zero Cost**: No runtime overhead for performance mode
+3. **Unchecked fast path**: Performance mode avoids security checks by making
+   the downgrade explicit and auditable
 4. **Explicit Boundaries**: Clear, auditable security transitions
 5. **Gradual Migration**: Existing code can be migrated incrementally
 6. **Flexibility**: Mix security levels within same application
@@ -386,4 +390,8 @@ module GameEconomy {
 
 ## Conclusion
 
-This design achieves the goal of supporting both maximum security and zero-cost performance modes while maintaining Pergyra's core value of safety. The type system ensures that security properties are preserved at compile time, preventing the mixing of secure and insecure data without explicit, auditable conversions.
+This design aims to support high-security and unchecked fast-path modes without
+making the boundary implicit. The beta-safe claim is narrower: known unsafe
+mixes must be rejected in the specified subset, and remaining protection comes
+from runtime checks, diagnostics, and audit gates. Do not describe this design
+as zero-cost security or complete compile-time security.

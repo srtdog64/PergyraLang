@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static void
 air_set_invariant_error(char **error_message, const char *fmt, ...)
@@ -76,9 +77,10 @@ air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary)
     switch (boundary->kind) {
     case AIR_BOUNDARY_ZONE:
     case AIR_BOUNDARY_WORLD:
-    case AIR_BOUNDARY_PARALLEL:
     case AIR_BOUNDARY_IO:
     case AIR_BOUNDARY_CHANNEL:
+        return true;
+    case AIR_BOUNDARY_PARALLEL:
         return true;
     case AIR_BOUNDARY_EXECUTION:
     case AIR_BOUNDARY_UNKNOWN:

@@ -15,6 +15,9 @@ air_count_expr_boundaries(ASTNode *node)
         for (size_t i = 0; i < node->data.block.count; i++)
             count += air_count_expr_boundaries(node->data.block.statements[i]);
         break;
+    case AST_WITH_STMT:
+        count += air_count_expr_boundaries(node->data.with_stmt.body);
+        break;
     case AST_FOR_LOOP:
         count += air_count_expr_boundaries(node->data.for_loop.range_start);
         count += air_count_expr_boundaries(node->data.for_loop.range_end);
@@ -276,6 +279,8 @@ air_append_expr_boundaries(AIRProgram *air,
         return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.if_stmt.condition)
             && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.if_stmt.then_branch)
             && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.if_stmt.else_branch);
+    case AST_WITH_STMT:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.with_stmt.body);
     case AST_RETURN:
         return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.return_stmt.value);
     case AST_TASK_GROUP:

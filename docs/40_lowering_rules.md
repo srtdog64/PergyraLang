@@ -2,8 +2,8 @@
 
 ## 개요
 
-이 문서는 RIR Facts JSON 출력을 MIR Instructions로 변환하는 **완전한 매핑 규칙 테이블**을 정의한다.
-각 규칙은 "IF-THEN" 공식 형태로 작성되며, AI 에이전트는 이 공식에 따라Visitor 코드를 생성한다.
+이 문서는 RIR Facts JSON 출력을 MIR Instructions로 변환하는 **명시적 매핑 규칙 테이블**을 정의한다.
+각 규칙은 "IF-THEN" 공식 형태로 작성되며, AI 에이전트나 구현자는 이 공식에 따라 visitor 코드를 생성한다. 누락된 규칙은 구현 완료가 아니라 checklist gap으로 취급한다.
 
 ---
 

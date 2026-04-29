@@ -18,9 +18,8 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     const char *name = node->data.class_decl.name;
     ASTNode *saved_nominal = ctx->current_nominal_decl;
 
-    /* If the class has generic parameters (<T, U, ...>), register them
-     * as opaque types in a temporary scope so that resolve_type_node("T")
-     * succeeds for field types and method signatures. */
+    /* Register class generic parameters as opaque metadata-visible types for
+     * field and method signature resolution. */
     bool has_generics = (node->data.class_decl.generic_params != NULL
                          && node->data.class_decl.generic_params->count > 0);
     if (has_generics) {

@@ -12,6 +12,14 @@ void llvm_world_sync_emit_directives(ASTNode *stmt,
                                      LLVMClassTypeEntry *decl_cls,
                                      LLVMValueRef sync_fn,
                                      LLVMGenCtx *ctx);
+void llvm_world_sync_emit_frontier(ASTNode *stmt,
+                                   LLVMClassTypeEntry *decl_cls,
+                                   LLVMValueRef sync_fn,
+                                   LLVMValueRef derived_dirty_addr,
+                                   LLVMValueRef needs_derived_addr,
+                                   LLVMValueRef derived_ptr,
+                                   size_t zone_count,
+                                   LLVMGenCtx *ctx);
 
 #endif /* PGY_LLVM_ENABLED */
 

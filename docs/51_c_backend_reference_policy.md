@@ -35,8 +35,8 @@ C backend를 유지하는 이유는 철학 때문이 아니라 운영 때문이�
 
 다음은 C backend의 목표에서 제외한다.
 
-1. 최고 성능 backend
-- 고성능은 LLVM/native-first 경로가 담당한다.
+1. 고성능 기본 backend
+- 성능 중심 경로는 LLVM/native-first 경로가 담당한다.
 
 2. 최종 배포 backend
 - release 품질 배포 기본값은 LLVM/native 경로로 둔다.

@@ -57,11 +57,14 @@ air_boundary_kind_from_ast(const ASTNode *node)
 {
     if (node == NULL)
         return AIR_BOUNDARY_UNKNOWN;
+    if (node->type == AST_BLOCK && node->data.block.is_pin_block)
+        return AIR_BOUNDARY_EXECUTION;
     switch (node->type) {
     case AST_PARALLEL_BLOCK:
     case AST_ASYNC_BLOCK:
     case AST_SPAWN_EXPR:
     case AST_AWAIT_EXPR:
+    case AST_TASK_GROUP:
         return AIR_BOUNDARY_PARALLEL;
     case AST_CHANNEL_SEND:
     case AST_CHANNEL_RECV:
@@ -113,6 +116,8 @@ air_boundary_source_from_ast(const ASTNode *node)
             return "spawn";
         if (node != NULL && node->type == AST_ASYNC_BLOCK)
             return "async";
+        if (node != NULL && node->type == AST_TASK_GROUP)
+            return "task-group";
         return "parallel";
     case AIR_BOUNDARY_CHANNEL:
         if (node != NULL && node->type == AST_CHANNEL_SEND)
@@ -121,6 +126,8 @@ air_boundary_source_from_ast(const ASTNode *node)
             return "channel-recv";
         return "select";
     case AIR_BOUNDARY_EXECUTION:
+        if (node != NULL && node->type == AST_BLOCK && node->data.block.is_pin_block)
+            return "pin";
         if (node != NULL && node->type == AST_WITH_STMT)
             return "with";
         if (node != NULL && node->type == AST_UNSAFE_BLOCK)

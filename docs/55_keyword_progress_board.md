@@ -1,12 +1,23 @@
 # Keyword Progress Board
 
+Anti-hype status note (2026-04-29):
+
+- Percentages in this board are local keyword-surface ledger values, not
+  whole-language beta readiness, production readiness, or formal proof status.
+- `100%` means "closed for the currently frozen subset": parser, semantic,
+  backend, tests, and docs agree for the scoped subset only.
+- `100%` does not mean the keyword is complete for all future semantics,
+  arbitrary user programs, all platforms, or all backend edge cases.
+- If this board conflicts with `docs/100_beta_readiness_checklist.md`, the
+  beta readiness checklist is the stronger source of truth.
+
 마지막 업데이트: 2026-04-12
 
 이 문서는 현재 언어 키워드 전체에 대해 구현/문서/테스트 기준 진행률을 기록한다.
 
 판정 기준:
 
-- `100%`: 표면, semantic, backend, 테스트, 문서가 모두 정렬됨
+- `100%`: 현재 frozen subset에서 표면, semantic, backend, 테스트, 문서가 정렬됨
 - `80~95%`: 실사용 가능, 일부 문서/경계/추가 회귀만 남음
 - `50~75%`: 부분 구현, 주 경로는 있으나 계약이 덜 닫힘
 - `20~45%`: parser/초기 semantic만 있거나 일부 경로만 있음

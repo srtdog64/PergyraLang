@@ -28,6 +28,7 @@ air_semantics_path = root / "docs" / "semantics" / "07_air_abstraction_safety.md
 compiler_header_path = root / "src" / "compiler" / "compiler.h"
 driver_path = root / "src" / "compiler" / "driver_app.c"
 driver_diag_path = root / "src" / "compiler" / "driver_diag.c"
+pgy_driver_path = root / "src" / "pgy_driver.c"
 parser_intent_path = root / "src" / "parser" / "parser_intent.c"
 dir_header_path = root / "src" / "compiler" / "dir.h"
 dir_impl_path = root / "src" / "compiler" / "dir.c"
@@ -40,11 +41,12 @@ air_dump_path = root / "src" / "compiler" / "air_dump.c"
 air_evidence_path = root / "src" / "compiler" / "air_evidence.c"
 air_verify_path = root / "src" / "compiler" / "air_verify.c"
 air_test_path = root / "src" / "test_air.c"
+rir_test_path = root / "src" / "test_rir.c"
 diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, parser_intent_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_verify_path, air_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_verify_path, air_test_path, rir_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -57,6 +59,7 @@ compiler_header = compiler_header_path.read_text(encoding="utf-8")
 driver = "\n".join([
     driver_path.read_text(encoding="utf-8"),
     driver_diag_path.read_text(encoding="utf-8"),
+    pgy_driver_path.read_text(encoding="utf-8"),
 ])
 parser_intent = parser_intent_path.read_text(encoding="utf-8")
 dir_header = dir_header_path.read_text(encoding="utf-8")
@@ -74,6 +77,7 @@ air_impl = "\n".join([
     air_verify_path.read_text(encoding="utf-8"),
 ])
 air_test = air_test_path.read_text(encoding="utf-8")
+rir_test = rir_test_path.read_text(encoding="utf-8")
 diag_docs = diag_docs_path.read_text(encoding="utf-8")
 air_backend_nonimpact = air_backend_nonimpact_path.read_text(encoding="utf-8")
 diagnostics_json = diagnostics_json_path.read_text(encoding="utf-8")
@@ -97,6 +101,9 @@ required_air_terms = [
     "Phase 1 (베타 closure 안)",
     "make air-drift-test-smoke",
     "make air-backend-nonimpact-test-smoke",
+    "pgy --air <source.pgy>",
+    "AIRProgram intents=... boundaries=... drifts=...",
+    "CompilerIRBundle",
 ]
 missing_air = [term for term in required_air_terms if term not in air]
 if missing_air:
@@ -213,10 +220,25 @@ required_impl_terms = [
     "air_append_step_expr_boundaries",
     "air_boundary_sync_from_kind",
     "AST_AWAIT_EXPR",
+    "AST_TASK_GROUP",
+    "task-group",
     "RIR_OP_AWAIT_REMOTE",
+    "RIR_OP_SPAWN",
+    "RIR_OP_ASYNC",
+    "RIR_OP_PARALLEL",
+    "RIR_OP_TASK_GROUP",
+    "RIR_OP_IO",
+    "RIR_OP_CHANNEL_SEND",
+    "RIR_OP_CHANNEL_RECV",
+    "RIR_OP_CHANNEL_SELECT",
     "air_call_is_io_boundary",
     "air_format_authority_names",
     "air_boundary_authority_matches",
+    "air_ast_contains_node",
+    "air_rir_op_matches_boundary_ast",
+    "air_rir_io_op_matches_boundary",
+    "air_rir_channel_op_matches_boundary",
+    "air_rir_parallel_op_matches_boundary",
     "air_hir_routine_matches_boundary",
     "air_hir_cfg_contains_boundary_ast",
     "air_rir_scope_matches_boundary",
@@ -244,6 +266,9 @@ required_driver_terms = [
     "PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE",
     "air_boundary_requires_hir_evidence(boundary)",
     "air_boundary_requires_rir_evidence(boundary)",
+    "--air",
+    "dump_air",
+    "air_dump(air, stdout)",
     "HIR CFG and RIR boundary evidence",
     "HIR CFG evidence",
     "RIR boundary evidence",
@@ -299,6 +324,7 @@ required_test_terms = [
     "AIR drift checker accepts matching async boundary",
     "AIR strict evidence reports missing RIR boundary",
     "AIR strict evidence requires HIR for implementation boundary",
+    "AIR task group boundary requires RIR and HIR evidence",
     "AIR verify rejects invalid boundary inventory",
     "AIR verify rejects missing inventory arrays",
     "AIR verify rejects boundary step mismatch",
@@ -314,6 +340,7 @@ required_test_terms = [
     "evidence hir=yes(reserve) hir_cfg=yes",
     "AIR world boundary requires transfer evidence",
     "AIR world boundary accepts transfer evidence",
+    "AIR world boundary rejects mismatched transfer AST evidence",
     "expected authority participant(s): shipper",
     "AIR synthesis collects HIR/RIR evidence without mutation",
     "dir_owner_before",
@@ -326,9 +353,16 @@ required_test_terms = [
     "AIR synthesis captures spawn boundary from intent step AST",
     "AIR await boundary accepts exact RIR evidence",
     "AIR await boundary rejects generic RIR scope evidence",
+    "AIR channel boundary accepts exact RIR op evidence",
+    "AIR HIR evidence accepts nested execution boundary AST",
+    "AIR HIR evidence accepts loop condition boundary AST",
     "AIR synthesis captures IO boundary without sync drift",
     "AIR synthesis captures stable execution boundary set",
-    "AIR parsed IO boundary reports missing evidence",
+    "found_pin",
+    "found_task_group",
+    "found_nested_io",
+    "air->boundary_count == 12",
+    "AIR parsed IO boundary accepts exact RIR evidence",
     "AIR parsed transfer emits zone and world boundaries",
     "AIR parsed transfer reports zone missing authority evidence",
     "found_zone_evidence",
@@ -339,6 +373,16 @@ required_test_terms = [
 missing_test = [term for term in required_test_terms if term not in air_test]
 if missing_test:
     raise SystemExit("AIR test missing term(s): " + ", ".join(missing_test))
+
+required_rir_test_terms = [
+    "RIR materializes parallel async and spawn boundary ops",
+    "RIR_OP_SPAWN",
+    "RIR_OP_ASYNC",
+    "RIR_OP_PARALLEL",
+]
+missing_rir_test = [term for term in required_rir_test_terms if term not in rir_test]
+if missing_rir_test:
+    raise SystemExit("RIR test missing AIR boundary term(s): " + ", ".join(missing_rir_test))
 
 required_diag_docs_terms = [
     "PGY_SEM_INTENT_BOUNDARY_DRIFT",

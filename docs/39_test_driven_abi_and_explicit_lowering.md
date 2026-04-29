@@ -1,5 +1,13 @@
 # Test-Driven ABI Generation & Explicit Lowering 전략
 
+Anti-hype status note (2026-04-29):
+
+- Older wording in this document may use intentionally sharp language about AI
+  hallucination and ABI facts. Read it as a risk warning, not as a literal
+  universal claim.
+- The stable policy is concrete: ABI layout, padding, and calling-convention
+  facts must come from tests, target toolchains, and explicit lowering rules.
+
 ## 서문: 왜 이 접근이 필요한가
 
 이전 문서 (`38_c_macro_deception_and_abi.md`)에서 C 매크로가 "가짜 ABI"라는 문제를 규명했다. 이 문서는 **그 문제를 실제로 해결하기 위한 실행 전략**을 다룬다. 핵심은 세 가지:
@@ -14,7 +22,7 @@
 
 ### 1.1 핵심 아이디어
 
-AI에게 "컴파일러 로직을 짜라"고 시키면 **100% 환각이 발생**한다. 타입 크기, 필드 오프셋, 패딩, calling convention 같은 물리적 사실을 AI는 알 수 없다. 알 수도 없다. 이는 **타겟 플랫폼(GCC/Clang on Linux/Windows)의 ABI 사양** 문제이기 때문이다.
+AI에게 "컴파일러 로직을 짜라"고만 시키면 ABI 물리 사실을 높은 확률로 잘못 추정한다. 타입 크기, 필드 오프셋, 패딩, calling convention 같은 물리적 사실은 모델 추론이 아니라 **타겟 플랫폼(GCC/Clang on Linux/Windows)의 ABI 사양과 실제 toolchain 측정**으로 고정해야 한다.
 
 따라서 순서를 **뒤집는다**:
 

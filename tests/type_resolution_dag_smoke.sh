@@ -287,8 +287,8 @@ if [ "$graph_skips" -lt 3000 ]; then
   exit 1
 fi
 
-if [ "$resolve_calls" -gt 64 ]; then
-  echo "compatibility resolver calls regressed above beta cap: $resolve_calls > 64" >&2
+if [ "$resolve_calls" -ne 0 ]; then
+  echo "compatibility resolver calls regressed above beta cap: $resolve_calls > 0" >&2
   exit 1
 fi
 

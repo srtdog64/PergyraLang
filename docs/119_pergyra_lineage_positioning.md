@@ -8,7 +8,8 @@ Related documents:
 - `docs/106_ownership_model_comparison.md` — sister positioning doc for ownership (Tier 1-2 detail)
 - `docs/114_async_model_positioning.md` — sister positioning doc for concurrency (Tier 3 detail)
 - `docs/117_backend_strategy_positioning.md` — sister positioning doc for backend strategy (Tier 1 C+LLVM detail)
-- `docs/118_slot_model_rigor_audit.md` §8 — sister audit; negative-space marketing-language guide (this doc §11 is its lineage-level pair)
+- `docs/118_slot_model_rigor_audit.md` §8 — sister audit; vocabulary negative-space (this doc §11 is its lineage-level pair)
+- `docs/120_vision_and_capability_audit.md` — sister audit; capability negative-space + current-vs-vision separation (third pair)
 - `docs/104_air_compiler_architecture.md` — Tier 5 MLIR sibling-IR pattern
 
 This document is a **positioning / lineage** doc, not a contract. It exists so
@@ -21,14 +22,23 @@ sister positioning).
 
 The honest one-line answer to "which language is Pergyra in the lineage of":
 
-> **C# is the father.** Pergyra is the *shape and spirit* of C# (multi-paradigm
-> versatility, OOP+FP+DOP fusion, async/await, properties, generics, records,
-> partial class, pattern matching, LINQ-style pipelines) **rewritten on a
-> systems-language substrate** (C universal substrate + Rust-1.0-grade static
-> safety layer + Vale generational handles + Pony/Verona capability/region +
-> Erlang/Koka concurrency decomposition + OCaml type/Result discipline + MLIR
-> sibling verification IR), with **DDD primitives** (intent / zone / world /
-> authority / handoff) **lifted to first-class language constructs**.
+> **C# is the father.** Pergyra *aspires to* the shape and spirit of C#
+> (multi-paradigm versatility, OOP+FP+DOP fusion, async/await, properties,
+> generics, records, partial class, pattern matching, LINQ-style pipelines) and
+> *rewrites that target shape on a systems-language substrate* (C universal
+> substrate + Rust-1.0-comparable static safety layer + Vale-style
+> generational handles + Pony/Verona-inspired capability/region patterns +
+> Erlang/Koka-style concurrency decomposition + OCaml-style type/Result
+> discipline + MLIR-style sibling verification IR concept). On top of this,
+> **DDD primitives** (intent / zone / world / authority / handoff) are
+> introduced as *first-class syntactic constructs*, with enforcement depth
+> varying by primitive (see `docs/120_vision_and_capability_audit.md` for
+> current-vs-vision separation).
+
+The "aspires to" is load-bearing. Pergyra at beta is *not yet* fully
+C#-shaped at every surface, *not yet* fully Rust-static-equivalent, and
+*not yet* MLIR-class in verification depth. Each tier names a *direction
+and pattern borrowed*, not a *feature parity claim*.
 
 Three layers, three roles:
 
@@ -68,17 +78,20 @@ the *negative-space* (phrases to avoid). This doc is the *positive-space*
 
 | Tier | Domain | Parent(s) | How it entered Pergyra |
 |---|---|---|---|
-| **0 (Father)** | **Identity / Shape / Spirit** | **C#** | Multi-paradigm versatility, async/await syntax, properties, generics, records, partial class, pattern matching, LINQ-style. *What Pergyra reads and feels like.* |
-| 1 | Systems substrate | C, Rust 1.0 | C is universal substrate borrow (ABI / FFI / predictable memory). Rust is the static safety 5-component layer (ownership classifier + CFG + pin + Channel + Token). Together they fill the place C# resolves with GC + CLR. |
-| 2 | Resource model | Vale, Pony, Verona | Vale generational references → Slot. Pony reference capabilities → Token / authority. Verona region / cown → World / Zone. |
-| 3 | Concurrency | Erlang/Elixir, Koka/Effekt | Channel-isolated parallel + supervision-tree DNA (Erlang). Effect / handler decomposition → coloring split (Koka). **Syntax surface remains C# (Tier 0).** |
+| **0 (Father)** | **Identity / Shape / Spirit** | **C#** | Multi-paradigm aspiration (OOP+FP+DOP), async/await syntax, properties, generics, records, partial class, pattern matching, LINQ-style. *What Pergyra aspires to read and feel like.* |
+| 1 | Systems substrate | C, Rust 1.0 | C is universal substrate borrow (ABI / FFI / predictable memory). Rust 1.0 is the *target reference* for the static safety 5-component layer (ownership classifier + CFG + pin + Channel + Token); current strength is *comparable* to Rust 1.0, not equivalent (see `docs/118` §7). |
+| 2 | Resource model | Vale, Pony, Verona | Vale-style generational references → Slot. Pony-style reference capabilities → Token / authority. Verona-style region / cown → World / Zone. Pattern borrowed; full feature parity not claimed. |
+| 3 | Concurrency | Erlang/Elixir, Koka/Effekt | Erlang-style Channel-isolated parallel + supervision-tree DNA. Koka-style effect / handler decomposition → coloring split. **Syntax surface aspires to C# (Tier 0).** |
 | 4 | Type / Data discipline | OCaml/ML, Haskell (partial) | ADT, Result, pattern matching (OCaml/ML). Parametric polymorphism (Haskell). Functor / HKT explicitly **rejected**. Joins Tier 0 records / pattern matching. |
-| 5 | Verification | MLIR, F\* / Dafny / RustBelt | AIR sibling-IR pattern (MLIR). Level 2-4 proof trajectory (F\*, Dafny, RustBelt). MS Research lineage shares DNA pool with Tier 0 C#. |
+| 5 | Verification | MLIR, F\* / Dafny / RustBelt | AIR borrows the *sibling-IR concept* from MLIR (not dialect-ecosystem scale; AIR Phase 1 has 2 node types). Level 2-4 proof trajectory (F\*, Dafny, RustBelt) — beta ships at Level 2. |
 
 **Tier 0 vs Tier 1-5 distinction is load-bearing**: Tier 0 is the *target
-shape*; Tier 1-5 are *implementation borrowings to realize that shape on a
-systems substrate*. Pergyra is **not** "a language that looks like Rust" — it
-is "a language that looks like C# and runs like Rust + Vale".
+shape*; Tier 1-5 are *implementation pattern borrowings used to realize that
+shape on a systems substrate*. Pergyra is **not** "a language that looks
+like Rust" — it *aspires to* "a language that reads like C# and runs like
+Rust + Vale at the parts already implemented." For the gap between
+aspiration and current implementation, see
+`docs/120_vision_and_capability_audit.md`.
 
 ## 3. Tier 0 — C# (Father / Shape)
 
@@ -128,11 +141,12 @@ substrate place is filled by Tier 1-5.
 - **C** — universal substrate borrow, not identity. Source of ABI / FFI /
   predictable memory layout. `docs/19` §0 anchor: "C is substrate borrow,
   not identity."
-- **Rust 1.0** — static safety 5-component layer (ownership 5-class + CFG
-  dataflow + pin block boundary + Channel-only cross-World + Token transport
-  reject) is *categorically equivalent* to Rust's borrow check + Send / Sync
-  + Pin. The difference: Slot itself is a runtime-validated handle, so the
-  layer split is different from Rust's (see `docs/118` §2-§3).
+- **Rust 1.0** — static safety is an influence, not an equivalence claim.
+  Pergyra's 5-component layer (ownership 5-class + CFG dataflow + pin block
+  boundary + Channel-only cross-World + Token transport reject) covers a
+  narrower beta subset and relies on runtime Slot validation for the remaining
+  handle/capability checks. Do not describe this as Rust-level safety; see
+  `docs/118` §7 and `docs/120` for the precise gaps.
 
 Together, Tier 1 fills the place C# (Tier 0) resolves through GC + CLR.
 C# uses managed memory + JIT + reflection. Pergyra uses C substrate + Rust
@@ -178,9 +192,10 @@ shell; Pergyra extends that direction with stronger Result discipline.
 
 ## 8. Tier 5 — MLIR + F\* / Dafny / RustBelt (Verification)
 
-- **MLIR** ↔ AIR sits *beside* the codegen path as a sibling IR rather than
-  *on* the codegen path. This is the MLIR multi-IR-dialect pattern applied
-  to verification. See `docs/104` §1 canonical visualization.
+- **MLIR** ↔ AIR borrows the *sibling-IR concept* from MLIR — sits *beside*
+  the codegen path as a verification-only IR rather than *on* the codegen
+  path. AIR is **not MLIR-scale**: Phase 1 has two node types (Intent +
+  Boundary). Pattern borrowed, not capability claimed. See `docs/104` §1.
 - **F\* / Dafny / RustBelt** ↔ Level 2-4 proof trajectory. Pergyra ships at
   Level 2 (theorem statements + judgments + evidence) for beta and reserves
   Level 3-4 (paper proof, mechanized small-step) for the post-1.0 freeze.

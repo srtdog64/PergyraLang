@@ -34,6 +34,7 @@ flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.h
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
+mir_cfg_contract_pin_path = root / "src" / "compiler" / "mir_cfg_contract_pin.h"
 mir_cfg_contract_control_path = root / "src" / "compiler" / "mir_cfg_contract_control.h"
 mir_cfg_contract_validate_path = root / "src" / "compiler" / "mir_cfg_contract_validate.h"
 mir_path = root / "src" / "compiler" / "mir.c"
@@ -83,6 +84,7 @@ for path in (
     flow_loops_path,
     flow_parallel_path,
     mir_cleanup_path,
+    mir_cfg_contract_pin_path,
     mir_cfg_contract_control_path,
     mir_cfg_contract_validate_path,
     mir_path,
@@ -155,8 +157,10 @@ flow = (
     + expr_path.read_text(encoding="utf-8")
 )
 mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
+mir_cfg_contract_pin = mir_cfg_contract_pin_path.read_text(encoding="utf-8")
 mir_cfg_contract_control = mir_cfg_contract_control_path.read_text(encoding="utf-8")
 mir_cfg_contract_validate = mir_cfg_contract_validate_path.read_text(encoding="utf-8")
+mir_cfg_contract_validator = mir_cfg_contract_pin + "\n" + mir_cfg_contract_validate
 mir = mir_path.read_text(encoding="utf-8")
 mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
 mir_liveness_dce = mir_liveness_dce_path.read_text(encoding="utf-8")
@@ -291,12 +295,21 @@ required_mir_cleanup_validator_terms = [
 ]
 missing_mir_cleanup_validator = [
     term for term in required_mir_cleanup_validator_terms
-    if term not in mir_cfg_contract_validate
+    if term not in mir_cfg_contract_validator
 ]
 if missing_mir_cleanup_validator:
     raise SystemExit(
         "MIR cleanup validator must reject pin regions without unpin facts: "
         + ", ".join(missing_mir_cleanup_validator)
+    )
+
+if "AST_PARALLEL_BLOCK" in mir_cfg_contract_control:
+    raise SystemExit(
+        "parallel blocks are not CFG-owned until HIR/MIR has real parallel CFG lowering"
+    )
+if "AST_PARALLEL_BLOCK" not in mir_dce:
+    raise SystemExit(
+        "MIR DCE must preserve parallel blocks as side-effecting statements"
     )
 
 required_mir_codegen_control_terms = [
@@ -369,6 +382,9 @@ required_mir_owner_terms = {
         "mir_run_dce_on_routine",
         "mir_remove_instruction",
         "mir_reset_routine_analysis",
+        "#include \"mir_cfg_contract_control.h\"",
+        "mir_stmt_ast_is_cfg_owned_control(stmt)",
+        "AST_PARALLEL_BLOCK",
     ],
     "src/compiler/mir_stmt_population.h": [
         "mir_populate_stmt_instructions",
@@ -385,7 +401,6 @@ required_mir_owner_terms = {
         "PERGYRA_MIR_CFG_CONTRACT_CONTROL_H",
         "mir_stmt_ast_is_cfg_owned_control",
         "AST_WITH_STMT",
-        "AST_PARALLEL_BLOCK",
         "AST_UNSAFE_BLOCK",
         "AST_DEFER_STMT",
         "AST_FOR_LOOP",
@@ -734,11 +749,32 @@ HIR_CFG_OUT="$WORK_DIR/hir_cfg.txt"
 HIR_DOM_OUT="$WORK_DIR/hir_dom.txt"
 RIR_OUT="$WORK_DIR/rir.txt"
 MIR_OUT="$WORK_DIR/mir.txt"
+PARALLEL_SELECT="$WORK_DIR/parallel_select.pgy"
+PARALLEL_SELECT_AST="$WORK_DIR/parallel_select_ast.txt"
+PARALLEL_SELECT_MIR="$WORK_DIR/parallel_select_mir.txt"
 
 "$PGY" "$EXAMPLE_FOR_PGY" --hir-cfg > "$HIR_CFG_OUT"
 "$PGY" "$EXAMPLE_FOR_PGY" --hir-dom > "$HIR_DOM_OUT"
 "$PGY" "$EXAMPLE_FOR_PGY" --rir > "$RIR_OUT"
 "$PGY" "$EXAMPLE_FOR_PGY" --mir > "$MIR_OUT"
+
+cat > "$PARALLEL_SELECT" <<'EOF'
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    parallel {
+        ch <- 7;
+    }
+    select {
+        case v = <-ch:
+            Log(v);
+        default:
+            Log(0);
+    }
+}
+EOF
+PARALLEL_SELECT_FOR_PGY="$(to_native_path_for_pgy "$PARALLEL_SELECT")"
+"$PGY" "$PARALLEL_SELECT_FOR_PGY" --ast > "$PARALLEL_SELECT_AST"
+"$PGY" "$PARALLEL_SELECT_FOR_PGY" --mir > "$PARALLEL_SELECT_MIR"
 
 grep -Fq "HIR cfg view" "$HIR_CFG_OUT"
 grep -Fq "function MergeRouteScore" "$HIR_CFG_OUT"
@@ -763,5 +799,10 @@ grep -Fq "value[00] score.1 slot=score" "$MIR_OUT"
 grep -Fq "cleanup-block=yes rollback-block=yes invalidation-block=yes" "$MIR_OUT"
 grep -Fq "cleanup-edge" "$MIR_OUT"
 grep -Fq "DetachInvalidation" "$MIR_OUT"
+
+grep -Fq "Parallel:" "$PARALLEL_SELECT_AST"
+grep -Fq "ChannelSend: ch <- 7" "$PARALLEL_SELECT_AST"
+grep -Fq "inst[01] stmt" "$PARALLEL_SELECT_MIR"
+grep -Fq "ast-type=9" "$PARALLEL_SELECT_MIR"
 
 echo "cfg-body-dataflow smoke: PASS $EXAMPLE"

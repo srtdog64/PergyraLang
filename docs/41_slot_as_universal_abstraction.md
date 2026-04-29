@@ -1,5 +1,16 @@
 # Slot은 언어의 가장 낮은 공통 추상화여야 한다 (2026-04-06)
 
+Anti-hype status note (2026-04-29):
+
+- This document describes a design thesis: Slot should become the common
+  resource boundary across memory, authority, projection, intent, and world
+  transfer.
+- It is not a claim that the entire thesis is implemented today. Current
+  implementation must be checked against `docs/118_slot_model_rigor_audit.md`
+  and `docs/100_beta_readiness_checklist.md`.
+- Avoid marketing words such as "innovation" unless the sentence also names the
+  implemented subset and evidence source.
+
 ## 한 줄 요약
 
 > Slot이 예제 몇 개의 gimmick이면 안 된다. 언어 전체를 관통하는 최저 공통 추상화여야 한다.
@@ -54,7 +65,7 @@ structured boundary를 언어의 가장 낮은 공통 자원 경계로 만든다
   ✗ Zone/World transfer — cross-boundary 이동이 slot 마이그레이션이 아님
 ```
 
-**문제: slot이 "기능 하나"로 머물러 있다.** 진짜 혁신이 되려면 slot이 모든 계층의 공통 언어여야 한다.
+**문제: slot이 "기능 하나"로 머물러 있다.** 장기 목표가 성립하려면 slot이 모든 계층의 공통 언어여야 한다.
 
 ---
 
@@ -268,7 +279,7 @@ World:         SLOT_SERIALIZE x → SLOT_TRANSFER → SLOT_DESERIALIZE
 
 ---
 
-## 7. 이것이 혁신인 이유
+## 7. 설계 가치
 
 ```
 Rust:     소유권이 메모리를 관통한다 (borrow checker)

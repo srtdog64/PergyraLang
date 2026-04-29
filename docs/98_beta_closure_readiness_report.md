@@ -2,6 +2,14 @@
 
 Date: 2026-04-26
 
+Anti-hype correction (2026-04-29): this report is a readiness audit, not a
+marketing snapshot. The current strict readiness line remains approximately
+**50%** until CFG/body dataflow, AIR boundary evidence, DAG source-of-truth
+closure, runtime propagation, ABI ownership, and backend parity are closed or
+explicitly downgraded from the beta contract. Historical progress-log entries
+below may mention older `.inc` inventories; the current `.inc` source of truth
+is the zero-inventory note immediately below plus `docs/115_inc_cleanup_status.md`.
+
 This document summarizes the current codebase state, the remaining improvement opportunities, and the concrete work needed to close PergyraLang for beta. It is based on the current README/TODO/status docs, the C/LLVM backend paths, the IR pipeline tests, the ABI smoke matrix, and backend-compare coverage.
 
 2026-04-27 include cleanup update: `.inc` debt is now closed as a
@@ -297,11 +305,12 @@ C backend parallel block emission and async block spawning now live in
 `src/codegen/transpiler_emitters_async_parallel.inc` body while preserving
 `transpiler_func_class_flow_emit.h` include order. The production `.inc`
 inventory is now 51 files / 8,016 LOC.
-Semantic type resolution now lives in `src/semantic/type_checker_resolve.h`,
-removing the former `src/semantic/type_checker_resolve.inc` body while
-preserving `type_checker_expr.h` include order. The memoized
-`resolve_type_node(...)` wrapper and uncached resolver body now have a named
-private owner. The production `.inc` inventory is now 50 files / 7,701 LOC.
+Semantic type resolution now lives in `src/semantic/type_checker_resolve.c`,
+removing the former `src/semantic/type_checker_resolve.inc` body. The memoized
+`resolve_type_node(...)` wrapper is TU-local, the obsolete
+`type_checker_resolve.h` compatibility header is deleted, and metadata-first
+public APIs replace direct resolver entry. The production `.inc` inventory is
+now 50 files / 7,701 LOC.
 Semantic domain-query builtin validation now lives in
 `src/semantic/type_checker_builtins_query_domain.h`, removing the former
 `src/semantic/type_checker_builtins_query_domain.inc` body while preserving

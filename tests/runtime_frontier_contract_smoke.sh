@@ -54,6 +54,7 @@ for rel in \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/llvm_domain.c" \
     "src/codegen/llvm_domain_zone_sync.c" \
+    "src/codegen/llvm_domain_world_frontier.c" \
     "src/codegen/llvm_domain_world_sync.c" \
     "src/codegen/llvm_domain_projection_sync_helpers.h" \
     "src/codegen/llvm_domain_projection_sync_body_helpers.h" \
@@ -81,6 +82,7 @@ cat \
 cat \
     "$ROOT_DIR/src/codegen/llvm_domain.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_zone_sync.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_world_frontier.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_world_sync.c" \
     > "$llvm_domain_contract"
 
@@ -144,6 +146,10 @@ require_terms "LLVM projection frontier emitter" "$llvm_projection_contract" \
     "LLVMBuildUnreachable"
 
 require_terms "frontier policy source of truth" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
+    "UINT32_MAX" \
+    "pgy_frontier_pass_limit_clamp" \
+    "pgy_frontier_pass_limit_add" \
+    "pgy_frontier_pass_limit_add_one" \
     "pgy_frontier_projection_pass_limit" \
     "pgy_frontier_zone_pass_limit" \
     "pgy_frontier_world_pass_limit" \

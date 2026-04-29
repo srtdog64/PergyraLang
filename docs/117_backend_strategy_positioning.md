@@ -13,6 +13,7 @@ Related documents:
 - `docs/113_memory_concurrency_model.md` — frozen beta concurrency contract
 - `docs/118_slot_model_rigor_audit.md` — sister audit doc; Slot vs borrow-check rigor and marketing-language guide
 - `docs/119_pergyra_lineage_positioning.md` — sister positioning doc for language lineage (C# father, Tier 1-5 substrate borrow, DDD unique synthesis)
+- `docs/120_vision_and_capability_audit.md` — sister audit; capability negative-space + current-vs-vision separation
 
 This document positions Pergyra's backend strategy. It is a **positioning /
 rationale** doc, not a contract. Concrete ABI freezes live in
@@ -41,7 +42,7 @@ rules, `effect` propagation, and `Channel` happens-before must not
 silently change when the program is lowered to a different backend.
 
 Industrial control, distributed business systems, transactional domain
-modeling, AI orchestration, and games all live or die on this guarantee:
+modeling, AI orchestration, and games all depend on this contract:
 when the same Pergyra source produces different observable behavior on
 two backends, the user-facing abstraction has been broken, regardless
 of whether the program ran or how fast.
@@ -277,8 +278,9 @@ Pergyra?"), which is addressed in §6.6 below.
 
 ### 6.2 Reasons
 
-1. **Expressiveness is already complete.** There is no language feature
-   Pergyra needs that cannot be lowered through LLVM IR or C source.
+1. **Backend targets are expressive enough for the current language plan.**
+   There is no beta-planned language feature that is known to require a
+   backend beyond LLVM IR or C source.
    Self-hosting would not unlock any new abstraction; it is a *meta*
    migration with no user-facing semantic gain.
 

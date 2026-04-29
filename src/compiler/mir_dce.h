@@ -1,6 +1,8 @@
 #ifndef PERGYRA_MIR_DCE_H
 #define PERGYRA_MIR_DCE_H
 
+#include "mir_cfg_contract_control.h"
+
 static bool
 mir_free_instruction_payload(MIRInstruction *inst)
 {
@@ -139,14 +141,10 @@ mir_stmt_has_side_effect(const ASTNode *stmt)
 {
     if (stmt == NULL)
         return false;
-    if (stmt->type == AST_IF_STMT
-        || stmt->type == AST_FOR_LOOP
-        || stmt->type == AST_WHILE_LOOP
-        || stmt->type == AST_MATCH_STMT
-        || stmt->type == AST_DEFER_STMT
+    if (mir_stmt_ast_is_cfg_owned_control(stmt))
+        return true;
+    if (stmt->type == AST_PARALLEL_BLOCK
         || stmt->type == AST_ASYNC_BLOCK
-        || stmt->type == AST_PARALLEL_BLOCK
-        || stmt->type == AST_SELECT_STMT
         || stmt->type == AST_SPAWN_EXPR
         || stmt->type == AST_AWAIT_EXPR
         || stmt->type == AST_CHANNEL_SEND

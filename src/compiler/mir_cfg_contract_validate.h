@@ -1,34 +1,4 @@
-static bool
-mir_block_has_pin_cleanup_edge(const MIRBasicBlock *block)
-{
-    if (block == NULL || !block->is_pin_region)
-        return false;
-
-    for (size_t i = 0; i < block->instruction_count; i++) {
-        const MIRInstruction *inst = &block->instructions[i];
-        const char *expected_access = block->pin_view_is_write ? "write" : "read";
-        if (inst->kind != MIR_INST_CLEANUP_EDGE
-            || inst->name == NULL
-            || strcmp(inst->name, "pin-unpin-cleanup-edge") != 0) {
-            continue;
-        }
-        if (block->pin_source_name != NULL) {
-            if (inst->slot_anchor == NULL
-                || strcmp(inst->slot_anchor, block->pin_source_name) != 0) {
-                continue;
-            }
-        }
-        if (block->pin_view_name != NULL) {
-            if (inst->arg0 == NULL || strcmp(inst->arg0, block->pin_view_name) != 0)
-                continue;
-        }
-        if (inst->arg1 == NULL || strcmp(inst->arg1, expected_access) != 0)
-            continue;
-        return true;
-    }
-    return false;
-}
-
+#include "mir_cfg_contract_pin.h"
 #include "mir_cfg_contract_control.h"
 
 static bool

@@ -100,6 +100,14 @@ rir_op_kind_name(RIROpKind kind)
         case RIR_OP_UNLINK_RELATION: return "UnlinkRelation";
         case RIR_OP_AUTHORIZE: return "Authorize";
         case RIR_OP_AWAIT_REMOTE: return "AwaitRemote";
+        case RIR_OP_SPAWN: return "Spawn";
+        case RIR_OP_ASYNC: return "Async";
+        case RIR_OP_PARALLEL: return "Parallel";
+        case RIR_OP_TASK_GROUP: return "TaskGroup";
+        case RIR_OP_IO: return "IO";
+        case RIR_OP_CHANNEL_SEND: return "ChannelSend";
+        case RIR_OP_CHANNEL_RECV: return "ChannelRecv";
+        case RIR_OP_CHANNEL_SELECT: return "ChannelSelect";
         case RIR_OP_COMMIT_INTENT: return "CommitIntent";
         case RIR_OP_ABORT_INTENT: return "AbortIntent";
         case RIR_OP_COMPENSATE_INTENT_STEP: return "CompensateIntentStep";

@@ -5604,7 +5604,8 @@ test_engine_collections(void)
     {
         SemanticContext *ctx = semantic_context_create();
         ASTNode *array_type = make_generic_type("Array", "Int");
-        Type *resolved = resolve_type_node(array_type, ctx);
+        Type *resolved = semantic_type_resolution_lookup_type_ref_or_materialize(
+            ctx, array_type);
 
         EXPECT(resolved->kind == TYPE_KIND_CONSTRUCTED
                && strcmp(resolved->name, "Array<Int>") == 0);

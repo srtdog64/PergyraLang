@@ -1,6 +1,6 @@
 # Pergyra 개발 현황
 
-마지막 업데이트: 2026-04-28
+마지막 업데이트: 2026-04-29
 
 ## 요약
 
@@ -11,6 +11,15 @@
   opaque AST statement emission. The owner was split into
   `src/codegen/llvm_mir_cfg_control.c`, keeping `llvm_mir_block_emit.h` at
   430 LOC. `make llvm-test-smoke` is the current gate for this slice.
+- `parallel { ... }` is intentionally not treated as a CFG-owned MIR control
+  container yet. It is AIR-visible and semantic-flow checked, but HIR/MIR does
+  not lower it to explicit CFG edges. MIR DCE therefore preserves it as a
+  side-effecting statement so channel sends and task effects survive to C/LLVM
+  emission. The CFG body-dataflow smoke gate includes a parallel-send/select
+  MIR preservation fixture to prevent this from regressing.
+- AIR is now directly inspectable through `pgy --air <source.pgy>`. The dump is
+  emitted after HIR/DIR/RIR evidence collection and before driver drift failure,
+  while AIR remains outside `CompilerIRBundle` and backend/codegen input.
 - LLVM private header ownership is also split: `llvm_internal.h` now keeps the
   shared context/type definitions, `llvm_internal_api.h` owns private backend
   API declarations, and `llvm_limits_internal.h` owns fixed limits plus
@@ -40,6 +49,11 @@
   type-argument rendering; `llvm_stmt_let_collections.c` owns
   collection/channel/array let specializations; and
   `llvm_stmt_let_callable.c` owns callable/lambda let registration.
+- LLVM world sync ownership is split further: `llvm_domain_world_sync.c` now
+  owns orchestration only, while `llvm_domain_world_frontier.c` owns bounded
+  transitive frontier scheduling and derived-state recompute emission. The
+  `runtime-frontier-contract-test-smoke` gate checks both the split owner and
+  the shared frontier policy source of truth.
 - LLVM MIR CFG match lowering now handles `Option`/`Result` destructor case
   conditions and payload bindings directly in `llvm_mir_cfg_control.c`.
   `projection_abi` no longer fails LLVM verification or loses `Some(v)`
@@ -116,9 +130,10 @@
   resolution; and `type_checker_world_embedding.c` owns world constructor
   zone-embedding handoff diagnostics.
 - Expression resolver debt is now exposed as named TUs:
-  `type_checker_expr.h` and `type_checker_resolve.h` are declaration-only,
-  and `type_checker_resolve.c` owns the metadata-first `resolve_type_node`
-  compatibility body. `type_checker_expr.c`, `type_checker_expr_call.c`, and
+  `type_checker_expr.h` is declaration-only, and `type_checker_resolve.c` owns
+  the metadata-first `resolve_type_node` compatibility body as a TU-local
+  private seam. The obsolete `type_checker_resolve.h` compatibility header is
+  deleted. `type_checker_expr.c`, `type_checker_expr_call.c`, and
   `type_checker_expr_host.c` now split expression dispatch, call typing, and
   host lookup/call behavior below the 600 LOC review threshold.
   `type_checker_resolution_helpers.h` is declaration-only, with

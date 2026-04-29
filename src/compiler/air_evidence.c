@@ -15,6 +15,9 @@ air_boundary_authority_matches(const AIRBoundaryNode *boundary, const char *auth
 }
 
 static bool
+air_ast_contains_node(const ASTNode *container, const ASTNode *needle);
+
+static bool
 air_hir_routine_matches_boundary(const HIRRoutine *routine,
                                  const AIRIntentNode *intent,
                                  const AIRBoundaryNode *boundary)
@@ -40,10 +43,15 @@ air_hir_cfg_contains_boundary_ast(const HIRRoutine *routine, const AIRBoundaryNo
         if (block == NULL)
             continue;
         for (size_t j = 0; j < block->statement_count; j++) {
-            if (block->statements[j] == boundary->ast)
+            if (block->statements[j] == boundary->ast
+                || air_ast_contains_node(block->statements[j], boundary->ast))
                 return true;
         }
-        if (block->terminator_condition == boundary->ast)
+        if (block->terminator_condition == boundary->ast
+            || air_ast_contains_node(block->terminator_condition, boundary->ast))
+            return true;
+        if (block->terminator_value == boundary->ast
+            || air_ast_contains_node(block->terminator_value, boundary->ast))
             return true;
         if (block->pin_block_ast == boundary->ast)
             return true;
@@ -111,17 +119,256 @@ air_rir_scope_matches_boundary(const RIRScope *scope, const AIRBoundaryNode *bou
 }
 
 static bool
+air_ast_contains_node(const ASTNode *container, const ASTNode *needle)
+{
+    if (container == NULL || needle == NULL)
+        return false;
+    if (container == needle)
+        return true;
+    switch (container->type) {
+    case AST_INTENT_STEP:
+        if (air_ast_contains_node(container->data.intent_step.using_expr, needle)
+            || air_ast_contains_node(container->data.intent_step.intent_expr, needle)
+            || air_ast_contains_node(container->data.intent_step.pre_expr, needle)
+            || air_ast_contains_node(container->data.intent_step.guard_expr, needle)
+            || air_ast_contains_node(container->data.intent_step.post_expr, needle)
+            || air_ast_contains_node(container->data.intent_step.invariant_expr, needle)
+            || air_ast_contains_node(container->data.intent_step.expect_expr, needle)) {
+            return true;
+        }
+        for (size_t i = 0; i < container->data.intent_step.on_expr_count; i++) {
+            if (air_ast_contains_node(container->data.intent_step.on_exprs[i], needle))
+                return true;
+        }
+        for (size_t i = 0; i < container->data.intent_step.compensate_expr_count; i++) {
+            if (air_ast_contains_node(container->data.intent_step.compensate_exprs[i], needle))
+                return true;
+        }
+        return false;
+    case AST_CALL:
+        if (air_ast_contains_node(container->data.call.callee, needle))
+            return true;
+        for (size_t i = 0; i < container->data.call.arg_count; i++) {
+            if (air_ast_contains_node(container->data.call.arguments[i], needle))
+                return true;
+        }
+        return false;
+    case AST_MEMBER_ACCESS:
+        return air_ast_contains_node(container->data.member.object, needle);
+    case AST_ARRAY_ACCESS:
+        return air_ast_contains_node(container->data.array_access.array, needle)
+            || air_ast_contains_node(container->data.array_access.index, needle);
+    case AST_ARRAY_LITERAL:
+        for (size_t i = 0; i < container->data.array_literal.count; i++) {
+            if (air_ast_contains_node(container->data.array_literal.elements[i], needle))
+                return true;
+        }
+        return false;
+    case AST_TUPLE_LITERAL:
+        for (size_t i = 0; i < container->data.tuple_literal.count; i++) {
+            if (air_ast_contains_node(container->data.tuple_literal.elements[i], needle))
+                return true;
+        }
+        return false;
+    case AST_ASSIGNMENT:
+        return air_ast_contains_node(container->data.assignment.target, needle)
+            || air_ast_contains_node(container->data.assignment.value, needle);
+    case AST_BINARY:
+        return air_ast_contains_node(container->data.binary.left, needle)
+            || air_ast_contains_node(container->data.binary.right, needle);
+    case AST_UNARY:
+        return air_ast_contains_node(container->data.unary.operand, needle);
+    case AST_CHANNEL_SEND:
+        return air_ast_contains_node(container->data.channel_send.channel, needle)
+            || air_ast_contains_node(container->data.channel_send.value, needle);
+    case AST_CHANNEL_RECV:
+        return air_ast_contains_node(container->data.channel_recv.channel, needle);
+    case AST_AWAIT_EXPR:
+        return air_ast_contains_node(container->data.await_expr.expression, needle);
+    case AST_SPAWN_EXPR:
+        if (air_ast_contains_node(container->data.spawn_expr.function, needle))
+            return true;
+        for (size_t i = 0; i < container->data.spawn_expr.arg_count; i++) {
+            if (air_ast_contains_node(container->data.spawn_expr.arguments[i], needle))
+                return true;
+        }
+        return false;
+    case AST_BLOCK:
+        for (size_t i = 0; i < container->data.block.count; i++) {
+            if (air_ast_contains_node(container->data.block.statements[i], needle))
+                return true;
+        }
+        return false;
+    case AST_WITH_STMT:
+        return air_ast_contains_node(container->data.with_stmt.body, needle);
+    case AST_FOR_LOOP:
+        return air_ast_contains_node(container->data.for_loop.range_start, needle)
+            || air_ast_contains_node(container->data.for_loop.range_end, needle)
+            || air_ast_contains_node(container->data.for_loop.iterable, needle)
+            || air_ast_contains_node(container->data.for_loop.body, needle);
+    case AST_WHILE_LOOP:
+        return air_ast_contains_node(container->data.while_loop.condition, needle)
+            || air_ast_contains_node(container->data.while_loop.body, needle);
+    case AST_PARALLEL_BLOCK:
+        for (size_t i = 0; i < container->data.parallel.task_count; i++) {
+            if (air_ast_contains_node(container->data.parallel.tasks[i], needle))
+                return true;
+        }
+        return false;
+    case AST_ASYNC_BLOCK:
+        for (size_t i = 0; i < container->data.async_block.statement_count; i++) {
+            if (air_ast_contains_node(container->data.async_block.statements[i], needle))
+                return true;
+        }
+        return false;
+    case AST_TASK_GROUP:
+        for (size_t i = 0; i < container->data.task_group.task_count; i++) {
+            if (air_ast_contains_node(container->data.task_group.tasks[i], needle))
+                return true;
+        }
+        return false;
+    case AST_UNSAFE_BLOCK:
+        return air_ast_contains_node(container->data.unsafe_block.body, needle);
+    case AST_DEFER_STMT:
+        return air_ast_contains_node(container->data.defer_stmt.body, needle);
+    case AST_RETURN:
+        return air_ast_contains_node(container->data.return_stmt.value, needle);
+    case AST_IF_STMT:
+        return air_ast_contains_node(container->data.if_stmt.condition, needle)
+            || air_ast_contains_node(container->data.if_stmt.then_branch, needle)
+            || air_ast_contains_node(container->data.if_stmt.else_branch, needle);
+    case AST_SELECT_STMT:
+        for (size_t i = 0; i < container->data.select_stmt.case_count; i++) {
+            if (air_ast_contains_node(container->data.select_stmt.cases[i], needle))
+                return true;
+        }
+        return air_ast_contains_node(container->data.select_stmt.default_case, needle);
+    case AST_MATCH_STMT:
+        if (air_ast_contains_node(container->data.match_stmt.subject, needle))
+            return true;
+        for (size_t i = 0; i < container->data.match_stmt.case_count; i++) {
+            if (air_ast_contains_node(container->data.match_stmt.cases[i], needle))
+                return true;
+        }
+        return air_ast_contains_node(container->data.match_stmt.default_body, needle);
+    case AST_MATCH_CASE:
+        if (air_ast_contains_node(container->data.match_case.pattern, needle)
+            || air_ast_contains_node(container->data.match_case.guard, needle)
+            || air_ast_contains_node(container->data.match_case.body, needle)) {
+            return true;
+        }
+        for (size_t i = 0; i < container->data.match_case.pattern_count; i++) {
+            if (air_ast_contains_node(container->data.match_case.patterns[i], needle))
+                return true;
+        }
+        return false;
+    case AST_EVENT_INVOKE:
+        if (air_ast_contains_node(container->data.event_invoke.event, needle))
+            return true;
+        for (size_t i = 0; i < container->data.event_invoke.arg_count; i++) {
+            if (air_ast_contains_node(container->data.event_invoke.arguments[i], needle))
+                return true;
+        }
+        return false;
+    case AST_LAMBDA_EXPR:
+        return air_ast_contains_node(container->data.lambda_expr.body, needle);
+    default:
+        return false;
+    }
+}
+
+static bool
+air_rir_op_matches_boundary_ast(const RIROp *op, const AIRBoundaryNode *boundary)
+{
+    if (op == NULL || boundary == NULL)
+        return false;
+    if (boundary->ast == NULL)
+        return true;
+    return op->ast == boundary->ast
+        || air_ast_contains_node(boundary->ast, op->ast);
+}
+
+static bool
+air_rir_io_op_matches_boundary(const RIROp *op, const AIRBoundaryNode *boundary)
+{
+    return op != NULL
+        && boundary != NULL
+        && boundary->kind == AIR_BOUNDARY_IO
+        && op->kind == RIR_OP_IO
+        && air_name_matches(op->subject, boundary->source_name)
+        && air_rir_op_matches_boundary_ast(op, boundary);
+}
+
+static bool
+air_rir_channel_op_matches_boundary(const RIROp *op, const AIRBoundaryNode *boundary)
+{
+    if (op == NULL || boundary == NULL || boundary->kind != AIR_BOUNDARY_CHANNEL)
+        return false;
+    if (air_name_matches(boundary->source_name, "channel-send"))
+        return op->kind == RIR_OP_CHANNEL_SEND
+            && air_rir_op_matches_boundary_ast(op, boundary);
+    if (air_name_matches(boundary->source_name, "channel-recv"))
+        return op->kind == RIR_OP_CHANNEL_RECV
+            && air_rir_op_matches_boundary_ast(op, boundary);
+    if (air_name_matches(boundary->source_name, "select"))
+        return op->kind == RIR_OP_CHANNEL_SELECT
+            && air_rir_op_matches_boundary_ast(op, boundary);
+    return false;
+}
+
+static bool
+air_rir_parallel_op_matches_boundary(const RIROp *op, const AIRBoundaryNode *boundary)
+{
+    if (op == NULL || boundary == NULL || boundary->kind != AIR_BOUNDARY_PARALLEL)
+        return false;
+    if (air_name_matches(boundary->source_name, "await"))
+        return op->kind == RIR_OP_AWAIT_REMOTE
+            && air_rir_op_matches_boundary_ast(op, boundary);
+    if (air_name_matches(boundary->source_name, "spawn"))
+        return op->kind == RIR_OP_SPAWN
+            && air_rir_op_matches_boundary_ast(op, boundary);
+    if (air_name_matches(boundary->source_name, "async"))
+        return op->kind == RIR_OP_ASYNC
+            && air_rir_op_matches_boundary_ast(op, boundary);
+    if (air_name_matches(boundary->source_name, "task-group"))
+        return op->kind == RIR_OP_TASK_GROUP
+            && air_rir_op_matches_boundary_ast(op, boundary);
+    if (air_name_matches(boundary->source_name, "parallel"))
+        return op->kind == RIR_OP_PARALLEL
+            && air_rir_op_matches_boundary_ast(op, boundary);
+    return false;
+}
+
+static bool
 air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
                                          const AIRBoundaryNode *boundary)
 {
     if (scope != NULL && boundary != NULL
         && boundary->kind == AIR_BOUNDARY_PARALLEL
-        && air_name_matches(boundary->source_name, "await")) {
+        && boundary->ast != NULL) {
         for (size_t i = 0; i < scope->op_count; i++) {
-            if (scope->ops[i].kind == RIR_OP_AWAIT_REMOTE
-                && scope->ops[i].ast == boundary->ast) {
+            if (air_rir_parallel_op_matches_boundary(&scope->ops[i], boundary))
                 return true;
-            }
+        }
+        return false;
+    }
+
+    if (scope != NULL && boundary != NULL
+        && boundary->kind == AIR_BOUNDARY_IO
+        && boundary->ast != NULL) {
+        for (size_t i = 0; i < scope->op_count; i++) {
+            if (air_rir_io_op_matches_boundary(&scope->ops[i], boundary))
+                return true;
+        }
+        return false;
+    }
+
+    if (scope != NULL && boundary != NULL
+        && boundary->kind == AIR_BOUNDARY_CHANNEL
+        && boundary->ast != NULL) {
+        for (size_t i = 0; i < scope->op_count; i++) {
+            if (air_rir_channel_op_matches_boundary(&scope->ops[i], boundary))
+                return true;
         }
         return false;
     }
@@ -135,11 +382,13 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
     for (size_t i = 0; i < scope->op_count; i++) {
         const RIROp *op = &scope->ops[i];
         if (op->kind == RIR_OP_CLAIM
-            && air_name_matches(op->subject, boundary->source_name)) {
+            && air_name_matches(op->subject, boundary->source_name)
+            && air_rir_op_matches_boundary_ast(op, boundary)) {
             return true;
         }
         if (op->kind == RIR_OP_MOVE
-            && air_name_matches(op->arg0, boundary->source_name)) {
+            && air_name_matches(op->arg0, boundary->source_name)
+            && air_rir_op_matches_boundary_ast(op, boundary)) {
             return true;
         }
     }

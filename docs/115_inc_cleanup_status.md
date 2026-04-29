@@ -1,6 +1,6 @@
 # Include Cleanup Status
 
-Last updated: 2026-04-28
+Last updated: 2026-04-29
 
 This note records the current state of the beta include-cleanup track. It is a
 progress ledger, not a new language surface.
@@ -9,6 +9,9 @@ progress ledger, not a new language surface.
 
 - `.inc` cleanup is closed for the full `src` tree: there are now **0 `.inc`
   files / 0 LOC** under `src`, including test fixtures.
+- 2026-04-29 audit rerun: `find src -name '*.inc'` returns zero files after the
+  LLVM world frontier split. The split added a normal `.c` owner, not a new
+  behavior-owning `.inc` lane.
 - 2026-04-27 audit rerun: `find src tests -name '*.inc'` returns zero files,
   `make inc-sentinel-test-smoke`, `make semantic-inc-size-test-smoke`, and
   `make backend-inc-size-test-smoke` all pass. Stale references in the parallel
@@ -41,13 +44,33 @@ progress ledger, not a new language surface.
 ## Current Owner-Size Audit
 
 The active debt is no longer `.inc` inventory. It is owner cohesion. As of the
-2026-04-28 audit, all production `.c` and `.h` owners are below the 1,000 LOC
+2026-04-29 audit, all production `.c` and `.h` owners are below the 1,000 LOC
 hard risk line.
 
 Files between 600 and 1,000 LOC remain split-review candidates under the
 stricter beta owner policy. The immediate priority is no longer "remove the
 last 1,000+ `.c` owner"; it is to keep slicing the 600-1,000 LOC owner queue
 without reintroducing behavior-owning `.inc` files or mega-headers.
+
+Current non-test production owners above the 600 LOC split-review threshold:
+
+| File | LOC | Status |
+| --- | ---: | --- |
+| `src/lsp/pgy_lsp.c` | 946 | tooling owner; beta conformance track, not core semantics |
+| `src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h` | 858 | generated-style runtime export surface |
+| `src/runtime/party_runtime.c` | 851 | runtime domain owner; split-review candidate |
+| `src/parser/ast.h` | 848 | central AST public shape; split only after declaration IR/AIR contracts settle |
+| `src/runtime/world_roster.c` | 817 | runtime domain owner; split-review candidate |
+| `src/runtime/slot_security.c` | 793 | token/context/audit owner; further split candidate |
+| `src/runtime/pgy_runtime_lib_channel_quantum_exports.h` | 761 | mixed channel/quantum export surface; quantum should remain beta-out-of-scope |
+| `src/runtime/pgy_runtime_lib_raw_collection_exports.h` | 759 | generated-style runtime export surface |
+| `src/runtime/pgy_runtime_lib_authority_file_core.h` | 664 | generated-style authority/file export surface |
+| `src/runtime/pgy_abi_spec.h` | 653 | compact ABI contract surface; split only with ABI review |
+| `src/codegen/llvm_expr_assignment_member_projection.h` | 653 | LLVM projection assignment helper; split-review candidate |
+| `src/compiler/rir_builder.c` | 642 | RIR builder owner; split-review candidate |
+| `src/codegen/llvm_backend_type_map.c` | 641 | LLVM type map owner; split-review candidate |
+| `src/runtime/pgy_runtime_lib_set_intent_trace_exports.h` | 622 | generated-style Set/intent trace export surface |
+| `src/runtime/slot_pool.c` | 603 | slot pool allocator owner; split-review candidate |
 - MIR CFG/body ownership is no longer a hard-size blocker:
   `src/compiler/mir.c` is 512 LOC after the SSA rename/use-edge,
   liveness/value-summary/DCE, and statement-population families moved into
@@ -56,6 +79,11 @@ without reintroducing behavior-owning `.inc` files or mega-headers.
   CFG/body smoke gate now keeps each of those owners below the 600 LOC
   split-review threshold and verifies the top-level MIR file only orchestrates
   block construction and pass ordering.
+- LLVM world sync ownership is below the split threshold again:
+  `src/codegen/llvm_domain_world_sync.c` is 164 LOC after moving bounded
+  transitive frontier and derived-state recompute emission into
+  `src/codegen/llvm_domain_world_frontier.c` at 470 LOC. The runtime frontier
+  smoke gate now includes that owner directly.
 - Semantic owner TU size is also back under the hard cap: active slot view
   boundary diagnostics moved from `type_checker_helpers_late.c` into
   `type_checker_slot_view_boundary.c`, reducing the late helper owner to 974
@@ -93,6 +121,35 @@ without reintroducing behavior-owning `.inc` files or mega-headers.
   now drops to 791 LOC and remains the core claim/read/write/release lifecycle
   owner. Verified with `make test-security` (142/0) and `make test-abi`
   (58/0 plus C/LLVM ABI pipeline smoke).
+- Slot manager query/locking ownership now has a separate owner:
+  `src/runtime/slot_manager_query_lock.c` owns type/validity queries, TTL
+  refresh/cleanup, lock/unlock/try-lock, stats, and fast wrappers.
+  `slot_manager.c` is now 564 LOC and stays focused on claim/read/write/release
+  lifecycle and shared storage helpers. Verified with `make test-security`,
+  `make test-abi`, `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke`.
+- Lexer debug ownership now has a separate TU:
+  `src/lexer/lexer_token_debug.c` owns token stringification and debug printing.
+  `src/lexer/lexer.c` is now 573 LOC and stays focused on source scanning,
+  token creation, and lexical diagnostics. Verified with `make test-parser`,
+  `make test-semantic`, `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke`.
+- Parallel runtime ownership is split without changing the public umbrella:
+  `src/runtime/pgy_parallel.h` is now a 494 LOC shared task/await facade.
+  `src/runtime/pgy_parallel_blocking.h` owns the blocking pool at 146 LOC, and
+  `src/runtime/pgy_parallel_coroutine.h` owns coroutine scheduling at 292 LOC.
+  This keeps the header-only ABI surface stable while moving scheduler bodies
+  below the 600 LOC split-review threshold. Verified with `make pgy` and
+  `make test-abi`.
+- Intent parser ownership is split without changing parser exports:
+  `src/parser/parser_intent.c` is now a 468 LOC declaration/default propagation
+  owner, while `src/parser/parser_intent_step.h` owns step clause parsing at
+  297 LOC. Verified with `make test-parser` and `make test-semantic`.
+- Expression parser string ownership is split:
+  `src/parser/parser_expr.c` is now a 524 LOC expression precedence/call/primary
+  owner, while `src/parser/parser_expr_string.h` owns multiline/interpolation
+  helpers at 150 LOC. Verified with `make test-parser` and
+  `make test-semantic`.
 - Driver scaffold ownership now has a separate TU:
   `src/compiler/driver_scaffold.c` owns `pgy scaffold` / `pgy new` file and
   project generation, while `src/compiler/driver_app.c` stays focused on
@@ -292,7 +349,8 @@ without reintroducing behavior-owning `.inc` files or mega-headers.
   specialization order.
 - `production-header-size-test-smoke` caps production owner headers at 1,000
   LOC by default, with no temporary per-header allowance. LLVM declaration
-  inventory helpers now live in `src/codegen/llvm_inventory_internal.h`, so
+  inventory helpers now live behind `src/codegen/llvm_inventory_internal.h`,
+  with lookup and host-method metadata split into dedicated helper owners, so
   `src/codegen/llvm_internal.h` stays under the same production cap.
 - LLVM statement parallel/async/select lowering now lives in
   `src/codegen/llvm_stmt_parallel_async.c`. `src/codegen/llvm_stmt.c` drops to
@@ -1439,11 +1497,12 @@ Observed results:
   production source `.inc` inventory is 51 files / 8,016 LOC.
 - Latest semantic type resolver cleanup moved the former
   `src/semantic/type_checker_resolve.inc` body into
-  `src/semantic/type_checker_resolve.h`. The memoized `resolve_type_node(...)`
-  wrapper, uncached resolver body, assignment compatibility gate, and
-  constructed-type wrapper now have a named private owner while
-  `type_checker_expr.h` preserves include order. The current production source
-  `.inc` inventory is 50 files / 7,701 LOC.
+  `src/semantic/type_checker_resolve.c`. The memoized `resolve_type_node(...)`
+  wrapper is now TU-local, the obsolete `type_checker_resolve.h` compatibility
+  header is deleted, and assignment compatibility / constructed-type helpers
+  stay in the named private owner while metadata-first public APIs replace
+  direct resolver entry. The current production source `.inc` inventory is
+  50 files / 7,701 LOC.
 - Latest semantic domain-query builtin cleanup moved the former
   `src/semantic/type_checker_builtins_query_domain.inc` body into
   `src/semantic/type_checker_builtins_query_domain.h`. HasProjection/

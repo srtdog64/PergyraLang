@@ -9,9 +9,9 @@ bad_fallback="$(mktemp)"
 fallback_matches="$(mktemp)"
 trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches"' EXIT
 
-grep -RIn "resolve_type_node(" src/semantic | while IFS=: read -r path line text; do
+{ grep -RIn "resolve_type_node(" src/semantic || true; } | while IFS=: read -r path line text; do
   case "$path" in
-    src/semantic/type_checker.h|src/semantic/type_checker_resolve.h|src/semantic/type_checker_resolve.c|src/semantic/type_checker_resolution_metadata.c)
+    src/semantic/type_checker_resolve.c|src/semantic/type_checker_resolution_metadata.c)
       continue
       ;;
   esac
@@ -33,6 +33,26 @@ if [ -s "$bad_direct" ]; then
   echo "[type-resolution-resolver-inventory] unexpected direct resolver call(s):" >&2
   cat "$bad_direct" >&2
   echo "Move new calls behind an owner-local resolver seam or explicitly document the legacy fallback allowlist." >&2
+  exit 1
+fi
+
+if grep -q 'resolve_type_node(ASTNode' src/semantic/type_checker.h; then
+  echo "[type-resolution-resolver-inventory] public type_checker.h re-exposed resolve_type_node" >&2
+  exit 1
+fi
+
+if [ -e src/semantic/type_checker_resolve.h ]; then
+  echo "[type-resolution-resolver-inventory] obsolete type_checker_resolve.h compatibility header reappeared" >&2
+  exit 1
+fi
+
+test_direct="$(
+  grep -RIn "resolve_type_node(" src/tests src/test_semantic.c 2>/dev/null || true
+)"
+if [ -n "$test_direct" ]; then
+  echo "[type-resolution-resolver-inventory] semantic regression test reintroduced direct resolver call(s):" >&2
+  printf '%s\n' "$test_direct" >&2
+  echo "Use semantic_type_resolution_lookup_type_ref_or_materialize(...) so DAG tests exercise the metadata-first API." >&2
   exit 1
 fi
 
@@ -66,17 +86,16 @@ if [ "$fallback_sites" -gt 0 ]; then
   exit 1
 fi
 
-grep -q 'metadata_type = semantic_type_resolution_lookup_resolved_type(ctx, node);' \
-  src/semantic/type_checker_resolve.c || {
-  echo "[type-resolution-resolver-inventory] resolve_type_node is no longer metadata-first" >&2
+if grep -q 'resolve_type_node(' src/semantic/type_checker_resolve.c; then
+  echo "[type-resolution-resolver-inventory] legacy resolve_type_node evaluator reappeared" >&2
   exit 1
-}
+fi
 
-grep -q 'semantic_type_resolution_lookup_metadata_type_ref(ctx, node)' \
-  src/semantic/type_checker_resolve.c || {
-  echo "[type-resolution-resolver-inventory] resolve_type_node no longer asks the metadata owner before legacy body fallback" >&2
+if grep -q 'resolve_type_node_legacy_quarantined\|resolve_type_node_uncached' \
+  src/semantic/type_checker_resolve.c; then
+  echo "[type-resolution-resolver-inventory] legacy resolver compatibility body reappeared" >&2
   exit 1
-}
+fi
 
 grep -q 'semantic_type_resolution_try_record_stable_constructed_type(ctx, type_node)' \
   src/semantic/type_checker_resolution_metadata.c || {
@@ -139,12 +158,6 @@ direct_materializer_users="$(
 if [ -n "$direct_materializer_users" ]; then
   echo "[type-resolution-resolver-inventory] semantic owner bypassed metadata-first type-ref helper:" >&2
   echo "$direct_materializer_users" >&2
-  exit 1
-fi
-
-if grep -q 'resolve_type_node_uncached\|g_resolve_type_node_calls =\|semantic_type_resolution_lookup_resolved_type(ctx, node)' \
-  src/semantic/type_checker_resolve.h; then
-  echo "[type-resolution-resolver-inventory] type_checker_resolve.h reintroduced implementation body" >&2
   exit 1
 fi
 

@@ -1,5 +1,23 @@
 # AIR (Abstraction Intent Representation)
 
+## 0. Inspection Path
+
+AIR is a verification-only synthesis IR. It is not a codegen IR and it is not
+carried in `CompilerIRBundle`.
+
+Use `pgy --air <source.pgy>` to inspect the synthesized AIR state after
+HIR/DIR/RIR evidence collection and before driver drift failure. The dump is
+for review/debugging only; C and LLVM backends must not consume `AIRProgram`.
+
+The expected dump shape starts with:
+
+```text
+AIRProgram intents=... boundaries=... drifts=... strict_evidence=...
+```
+
+It then prints evidence counters, intent nodes, boundary nodes, and per-boundary
+evidence provenance.
+
 마지막 업데이트: 2026-04-29
 
 ## 1. 포지셔닝: Verification IR, 별도 codegen 레이어 아님
@@ -164,26 +182,60 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
   boundary AST exists in the lowered routine.
 - Execution boundary scan: Phase 1 synthesis now walks intent-step AST clauses
   (`using`, `intent`, `pre`, `guard`, `post`, `invariant`, `expect`, `on`,
-  `compensate`) and promotes `spawn` / `async` / `await` / `parallel`, `channel` /
-  `select`, `with` / `unsafe` / `defer`, and stable resource IO/time calls into
+  `compensate`) and promotes `spawn` / `async` / `await` / `parallel` /
+  `task-group`, `channel` /
+  `select`, `with` / `unsafe` / `defer` / pin-block metadata, and stable
+  resource IO/time calls into
   AIR `Boundary Node`s before drift checking. The current stable AIR boundary
   set is `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
   `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep` for IO; `spawn` /
-  `async` / `await` / `parallel` for parallel; `channel-send` / `channel-recv` / `select`
-  for channel; and `with` / `unsafe` / `defer` for execution. `Print` / `Log*`
-  are observability output calls, not AIR resource-boundary evidence in Phase 1.
-  Execution boundaries are synchronous body/CFG boundaries; strict evidence
-  checks HIR/CFG evidence for them, not RIR resource-boundary evidence.
+  `async` / `await` / `parallel` / `task-group` for parallel; `channel-send` / `channel-recv` / `select`
+  for channel; and `with` / `unsafe` / `defer` / `pin` for execution. `Print` /
+  `Log*` are observability output calls, not AIR resource-boundary evidence in
+  Phase 1. Execution boundaries are synchronous body/CFG boundaries; strict
+  evidence checks HIR/CFG evidence for them, not RIR resource-boundary evidence.
+  `with` body traversal is part of the Phase 1 contract so nested IO/time
+  boundaries are not hidden by the execution container.
 - Expression boundary evidence is source-specific: `spawn` / `async` / `await` /
-  `parallel`, `channel` / `select`, and IO boundaries are not satisfied by a
+  `parallel` / `task-group`, `channel` / `select`, and IO boundaries are not satisfied by a
   generic RIR scope with the same intent owner. They need matching
   boundary-source evidence, otherwise default strict AIR emits
   `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`. They also need HIR CFG evidence:
   RIR evidence alone cannot satisfy a body-boundary proof.
+- HIR CFG evidence is containment-aware. A boundary AST may be the direct CFG
+  statement, the terminator condition/value, a pin-region marker, or a nested
+  expression inside a CFG-carried statement such as `with { ReadFile(...) }`
+  or `while ReadFile(...) { ... }`. The containment matcher covers the same
+  core executable/expression forms as the AIR boundary walker: block, with,
+  for/while, parallel, async, task group, spawn, call, assignment, arrays,
+  tuples, await, channel ops, select, match, unsafe, defer, event invoke, and
+  lambda body. AIR does not accept routine-name evidence alone for these
+  implementation boundaries.
 - `await` evidence is operation-specific: AIR accepts await boundary evidence
   only when RIR exposes the exact `AwaitRemote` operation for the same AST
   boundary. A generic intent scope named `await` or an unrelated await operation
   does not satisfy the proof.
+- IO evidence is operation-specific for the beta-stable IO builtin set.
+  RIR materializes `IO` operations for `FileOpen`, `FileRead`, `FileWrite`,
+  `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, and
+  `Sleep`; AIR accepts an IO boundary only when that operation matches the
+  boundary source and AST provenance. If parser source spans fall back to the
+  enclosing intent step, AIR accepts only an op contained in that same step.
+  Parser-produced builtin call nodes now carry call source spans, so parsed
+  IO boundaries normally match the exact `AST_CALL` rather than the enclosing
+  step fallback.
+- `channel-send`, `channel-recv`, and `select` evidence is operation-specific
+  when a boundary AST is available. RIR now materializes `ChannelSend`,
+  `ChannelRecv`, and `ChannelSelect` operations, and AIR accepts channel
+  boundary evidence only from the matching same-AST operation. A same-owner RIR
+  scope without the operation is not evidence. `make test-rir` includes a
+  parsed-source fixture that lowers `ch <-`, `<- ch`, and `select` into those
+  RIR operations before AIR consumes them.
+- Parallel boundary evidence is operation-specific for the beta-stable parallel
+  surface. RIR materializes `AwaitRemote`, `Spawn`, `Async`, `Parallel`, and
+  `TaskGroup` operations; AIR accepts a parallel boundary only when the matching
+  same-AST operation exists and HIR CFG evidence also reaches the boundary.
+  `task-group` is no longer treated as HIR-only.
 - Transfer boundary synthesis is split: a step with both `where: ZoneType` and
   `transfer: from -> to` emits a `Zone` boundary for the `where` type and a
   separate `World` boundary for the handoff. The world boundary source is the
@@ -192,6 +244,11 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
   scope is not enough. AIR accepts the boundary only when RIR exposes the
   corresponding `Move(from -> to)` or `Claim(to <- from)` evidence for the world
   boundary source.
+- World boundary evidence is also AST-specific when the boundary came from a
+  source step. If the AIR boundary has an AST pointer, the matching RIR
+  `Move`/`Claim` operation must point at the same AST. This prevents an
+  unrelated transfer-like operation in the same scope from satisfying a parsed
+  source handoff boundary by alias alone.
 - AIR owns synthesized names (`intent_owner`, `step_name`, boundary
   `owner_name`, `source_name`, and authority participants). AIR diagnostics and
   tests must not depend on DIR/AST string lifetime after parser teardown.

@@ -1,5 +1,12 @@
 # Pergyra Programming Language
 
+> 현재 상태: 실행 가능한 experimental alpha이며, strict beta readiness는 약 50%로 본다.
+> 이 문서는 소개용 문서이고, 베타 계약의 최종 기준은 `docs/107_beta_stable_subset.md`,
+> `docs/100_beta_readiness_checklist.md`, `docs/118_slot_model_rigor_audit.md`,
+> `docs/119_pergyra_lineage_positioning.md`, `docs/120_vision_and_capability_audit.md`다.
+> Pergyra를 production-ready, Rust-level memory safe, AI-first, quantum-ready,
+> zero-cost, fully proven 언어로 설명하지 않는다.
+
 > 서로 다른 자원을 같은 사고 체계로 다루기 위한 의미 통일 언어
 
 ## 사명

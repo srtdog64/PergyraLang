@@ -13,6 +13,9 @@ contract; the source-of-truth contracts remain:
 - `docs/113_memory_concurrency_model.md`
 - `docs/114_async_model_positioning.md`
 - `docs/05_async_concurrency.md`
+- `docs/118_slot_model_rigor_audit.md`
+- `docs/119_pergyra_lineage_positioning.md`
+- `docs/120_vision_and_capability_audit.md`
 
 ## Current Findings
 
@@ -50,6 +53,11 @@ contract; the source-of-truth contracts remain:
    LLVM field registry. `llvm-dnd-campaign-test-smoke` now compares C and LLVM
    stdout exactly, requires one epilogue, requires five choice lines, and checks
    the final `ready=true/true` projection state.
+10. The docs now have an explicit anti-hype triad:
+    `docs/118_slot_model_rigor_audit.md` blocks overstrong safety/proof
+    vocabulary, `docs/119_pergyra_lineage_positioning.md` separates influence
+    from feature parity, and `docs/120_vision_and_capability_audit.md` separates
+    current capability from aspiration.
 
 ## Async Documentation Position
 
@@ -80,3 +88,6 @@ The beta docs now use this distinction consistently:
    is not beta-stable, the docs must name the exact missing closure item:
    semantic rejection, runtime contract, backend parity, diagnostics, or
    regression evidence.
+6. Keep the anti-hype smoke gate current. If README/blog wording introduces a
+   new absolute claim, add the phrase to `documentation-quality-test-smoke`
+   before publishing it.

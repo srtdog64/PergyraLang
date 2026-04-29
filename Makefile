@@ -150,7 +150,8 @@ COMMON_DIR   = $(SRC_DIR)/common
 # Source groups
 # -----------------------------------------------------------------
 COMMON_SOURCES   = $(COMMON_DIR)/arena.c
-LEXER_SOURCES    = $(LEXER_DIR)/lexer.c
+LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
+                   $(LEXER_DIR)/lexer_token_debug.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_destroy.c \
                    $(PARSER_DIR)/ast_destroy_domain.c \
@@ -190,6 +191,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_async.c
 RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
                    $(RUNTIME_DIR)/slot_manager_pin.c \
+                   $(RUNTIME_DIR)/slot_manager_query_lock.c \
                    $(RUNTIME_DIR)/slot_manager_secure_ops.c \
                    $(RUNTIME_DIR)/slot_type_utils.c \
                    $(RUNTIME_DIR)/slot_pool.c \
@@ -458,6 +460,7 @@ ifneq ($(LLVM_ENABLED),0)
                           $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
                           $(CODEGEN_DIR)/llvm_domain_zone_sync_relations.c \
                           $(CODEGEN_DIR)/llvm_domain_world_sync_directives.c \
+                          $(CODEGEN_DIR)/llvm_domain_world_frontier.c \
                           $(CODEGEN_DIR)/llvm_domain_world_sync.c \
                          $(CODEGEN_DIR)/llvm_domain_forward.c \
                          $(CODEGEN_DIR)/llvm_domain_struct_fields.c \

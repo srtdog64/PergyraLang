@@ -87,7 +87,7 @@ backend는 추가로 내부 세 구간으로 나뉜다.
 즉 현재 작은 ABI 샘플에서:
 
 - C는 generated C 자체보다 native compile이 대부분을 먹고
-- LLVM은 LLVM codegen보다 runtime library compile이 압도적으로 크다
+- LLVM은 LLVM codegen보다 runtime library compile 비중이 더 크다
 - 양쪽 모두 link 비용도 무시할 정도는 아니다
 
 ## 5. 현재 의미

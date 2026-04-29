@@ -53,9 +53,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     /* subject now allows both func (private internal computation)
      * and action (public plot behavior with zone/effect/authority). */
 
-    /* If the function has generic parameters (<T, U, ...>),
-     * register them as opaque types in a temporary scope so that
-     * resolve_type_node("T") succeeds for params and return type. */
+    /* Register function generic parameters as opaque metadata-visible types for
+     * parameter and return type resolution. */
     bool has_generics = (node->data.func_decl.generic_params != NULL
                          && node->data.func_decl.generic_params->count > 0);
     if (has_generics) {

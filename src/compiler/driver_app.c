@@ -296,6 +296,11 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
             "AIR synthesis failed", hir_error);
         goto cleanup;
     }
+    if (flags->dump_air) {
+        air_dump(air, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
     if (air->drift_count > 0) {
         driver_emit_air_drift_fail(flags, air);
         goto cleanup;
@@ -438,6 +443,7 @@ driver_print_usage(void)
         "  pgy --ast    <source.pgy>     dump merged/normalized AST\n"
         "  pgy --dir    <source.pgy>     dump lowered DIR summary\n"
         "  pgy --rir    <source.pgy>     dump lowered RIR summary\n"
+        "  pgy --air    <source.pgy>     dump AIR verification summary\n"
         "  pgy --mir    <source.pgy>     dump lowered MIR summary\n"
         "  pgy --hir     <source.pgy>     dump lowered HIR summary\n"
         "  pgy --hir-cfg <source.pgy>     dump HIR CFG view\n"

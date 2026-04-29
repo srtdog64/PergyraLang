@@ -13,6 +13,30 @@
 #define rollback_policy_name rir_rollback_policy_name
 
 static bool
+rir_call_name_is_io_boundary(const char *name)
+{
+    static const char *io_names[] = {
+        "FileOpen",
+        "FileRead",
+        "FileWrite",
+        "FileClose",
+        "ReadFile",
+        "WriteFile",
+        "Input",
+        "ReadLine",
+        "Now",
+        "Sleep",
+    };
+    if (name == NULL)
+        return false;
+    for (size_t i = 0; i < sizeof(io_names) / sizeof(io_names[0]); i++) {
+        if (strcmp(name, io_names[i]) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
 rir_walk_call(RIRScope *scope, ASTNode *node)
 {
     const char *name;
@@ -56,7 +80,11 @@ rir_walk_call(RIRScope *scope, ASTNode *node)
         ASTNode **args = node->data.call.arguments;
         size_t argc = node->data.call.arg_count;
 
-        if (strcmp(name, "Read") == 0 && argc >= 1) {
+        if (rir_call_name_is_io_boundary(name)) {
+            const char *first_arg = argc >= 1 ? expr_name(args[0]) : NULL;
+            if (!add_op(scope, RIR_OP_IO, name, first_arg, NULL, node))
+                return false;
+        } else if (strcmp(name, "Read") == 0 && argc >= 1) {
             if (!add_op(scope, RIR_OP_READ, expr_name(args[0]), NULL, NULL, node))
                 return false;
         } else if (strcmp(name, "Write") == 0 && argc >= 1) {
@@ -181,6 +209,48 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                 return false;
             return rir_walk_node(scope, node->data.await_expr.expression);
 
+        case AST_SPAWN_EXPR:
+            if (!add_op(scope, RIR_OP_SPAWN, "spawn", NULL, NULL, node))
+                return false;
+            if (!rir_walk_node(scope, node->data.spawn_expr.function))
+                return false;
+            for (size_t i = 0; i < node->data.spawn_expr.arg_count; i++) {
+                if (!rir_walk_node(scope, node->data.spawn_expr.arguments[i]))
+                    return false;
+            }
+            return true;
+
+        case AST_CHANNEL_SEND:
+            if (!add_op(scope,
+                        RIR_OP_CHANNEL_SEND,
+                        expr_name(node->data.channel_send.channel),
+                        expr_name(node->data.channel_send.value),
+                        NULL,
+                        node))
+                return false;
+            if (!rir_walk_node(scope, node->data.channel_send.channel))
+                return false;
+            return rir_walk_node(scope, node->data.channel_send.value);
+
+        case AST_CHANNEL_RECV:
+            if (!add_op(scope,
+                        RIR_OP_CHANNEL_RECV,
+                        expr_name(node->data.channel_recv.channel),
+                        NULL,
+                        NULL,
+                        node))
+                return false;
+            return rir_walk_node(scope, node->data.channel_recv.channel);
+
+        case AST_SELECT_STMT:
+            if (!add_op(scope, RIR_OP_CHANNEL_SELECT, "select", NULL, NULL, node))
+                return false;
+            for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
+                if (!rir_walk_node(scope, node->data.select_stmt.cases[i]))
+                    return false;
+            }
+            return rir_walk_node(scope, node->data.select_stmt.default_case);
+
         case AST_CALL:
             return rir_walk_call(scope, node);
 
@@ -227,8 +297,28 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
             return rir_walk_node(scope, node->data.match_case.body);
 
         case AST_PARALLEL_BLOCK:
+            if (!add_op(scope, RIR_OP_PARALLEL, "parallel", NULL, NULL, node))
+                return false;
             for (size_t i = 0; i < node->data.parallel.task_count; i++) {
                 if (!rir_walk_node(scope, node->data.parallel.tasks[i]))
+                    return false;
+            }
+            return true;
+
+        case AST_ASYNC_BLOCK:
+            if (!add_op(scope, RIR_OP_ASYNC, "async", NULL, NULL, node))
+                return false;
+            for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
+                if (!rir_walk_node(scope, node->data.async_block.statements[i]))
+                    return false;
+            }
+            return true;
+
+        case AST_TASK_GROUP:
+            if (!add_op(scope, RIR_OP_TASK_GROUP, "task-group", NULL, NULL, node))
+                return false;
+            for (size_t i = 0; i < node->data.task_group.task_count; i++) {
+                if (!rir_walk_node(scope, node->data.task_group.tasks[i]))
                     return false;
             }
             return true;

@@ -20,9 +20,10 @@
 </p>
 
 > **Current Status**: Executable experimental alpha, currently in a **late-stage alpha / beta-closure sprint**. The remaining beta work is not about widening the language surface; it is about freezing a narrower stable subset and aligning `syntax -> semantic -> runtime -> C -> LLVM -> diagnostics -> regression -> docs` on that subset.
-> **Stable subset being frozen for beta**: generics (`exact/ability/multi-bound` plus implemented default type argument actual resolution), `own/ref` anchored slot-handle boundaries with generalized provenance/escape diagnostics, collections (`List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`), and runtime observability (`last / history / active / recent`).
+> **Beta subset candidate being frozen**: generics (`exact/ability/multi-bound` plus implemented default type argument actual resolution), `own/ref` anchored slot-handle boundaries with generalized provenance/escape diagnostics, collections (`List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`, `HashMap<Bool, T>`), and runtime observability (`last / history / active / recent`). This is a scoped beta contract candidate, not a whole-language stability claim.
 > **Stable subset source of truth**: `docs/107_beta_stable_subset.md`.
 > **Explicit reject / beta-out-of-scope**: unsupported map key kinds, broader generic generalization, richer multi-instance observability queries, the full quantum resource model, and any ownership combination that still escapes the current semantic contract. `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` remain a partial `v2 / experimental` surface.
+> **Anti-hype rule**: Do not describe Pergyra as production-ready, Rust-level memory safe, AI-first, quantum-ready, zero-cost, or fully proven. Current external claims must match `docs/118_slot_model_rigor_audit.md`, `docs/119_pergyra_lineage_positioning.md`, and `docs/120_vision_and_capability_audit.md`.
 
 ---
 
@@ -40,7 +41,8 @@ Pergyra documents every major surface with one of these labels:
 Current classification snapshot:
 
 - language identity / core
-  - stable beta core: `intent`, `world`, `zone`, `subject`, `relation`, `effect`, `projection`, `authority`, `handoff`, runtime observability, anchored ownership boundaries, the generic contract system, module visibility/export contracts, and `parallel`
+  - beta core candidate: `intent`, `world`, `zone`, `subject`, `relation`, `effect`, `projection`, `authority`, `handoff`, runtime observability, anchored ownership boundaries, the generic contract system, module visibility/export contracts, and `parallel`
+  - this list names the identity surface under closure; strict beta readiness still depends on CFG/dataflow, AIR, DAG, runtime propagation, ABI ownership, and backend parity closure
   - generic contracts are core, not a compatibility feature: exact generics, ability bounds, multi-bounds, implemented default type argument resolution, and supported module/export consumers define the domain contract language
   - `parallel` is the core execution primitive; it is separate from `intent`, which remains the orchestration contract core
 - foundation layer

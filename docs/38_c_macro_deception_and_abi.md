@@ -1,10 +1,18 @@
 # C 매크로의 기만과 ABI의 본질
 
+Anti-hype status note (2026-04-29):
+
+- Treat this as an architecture direction, not a claim that every ABI edge is
+  already solved.
+- Absolute phrases such as "100%" in older text mean the desired compiler
+  ownership target. The current beta contract is narrower: layout and ABI facts
+  must be explicit, testable, and gated before they are called stable.
+
 ## 요약
 
 현재 Pergyra 런타임에 존재하는 `PGY_CHANNEL_DEFINE`, `PGY_SLOT_DEFINE`, `PGY_RESULT_DEFINE`, `PGY_OPTION_DEFINE`와 같은 C 매크로 기반 제네릭 구현체들은 **진정한 ABI가 아니다**. 이들은 컴파일 타임에 C 컴파일러(GCC/Clang)에 의해 전개되는 텍스트 복사일 뿐이며, Pergyra 컴파일러가 메모리 레이아웃을 완전히 통제하지 못하게 만든다.
 
-ABI를 통일한다는 것은, `Slot<T>`, `Option<T>`, `Result<T, E>`, `Channel<T>` 등의 모든 핵심 타입이 기계어 레벨에서 몇 바이트를 차지하고, 패딩(Padding)이 어떻게 들어가며, 레지스터에 어떻게 실려 전달되는지를 **Pergyra 컴파일러(MIR)가 100% 결정하고 예측할 수 있어야 함**을 의미한다.
+ABI를 통일한다는 것은, `Slot<T>`, `Option<T>`, `Result<T, E>`, `Channel<T>` 등의 핵심 타입이 기계어 레벨에서 몇 바이트를 차지하고, 패딩(Padding)이 어떻게 들어가며, 레지스터에 어떻게 실려 전달되는지를 **Pergyra 컴파일러(MIR)가 명시적으로 계산하고 검증할 수 있어야 함**을 의미한다.
 
 ---
 
@@ -379,8 +387,8 @@ typedef CONDITION_VARIABLE pgy_condvar_t;
 - 프론트엔드는 백엔드가 무엇을 하는지 완전히 통제하지 못함
 
 목표:
-- Pergyra MIR가 모든 타입의 바이트 레이아웃을 100% 결정
+- Pergyra MIR가 stable ABI subset의 바이트 레이아웃을 명시적으로 결정하고 검증
 - 백엔드는 MIR 명령어를 기계적으로 번역만 하는 "Dumb Emitter"로 강등
 - 런타임 함수는 명시적 라이브러리로 링크되며, 매크로 의존 제거
 
-이것이 이루어질 때, Pergyra는 비로소 **"Slot = 자원 소유"**라는 철학을 컴파일러 레벨에서 완전히 실현할 수 있다.
+이것이 이루어질 때, Pergyra는 **"Slot = 자원 소유"**라는 철학을 컴파일러 레벨에서 더 일관되게 실현할 수 있다.

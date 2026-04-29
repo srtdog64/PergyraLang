@@ -312,10 +312,10 @@ Read or Write through a `MoveToken<T>`. Move tokens are one-shot ownership trans
 
 #### `PGY_SEM_PARALLEL_SLOT_CONFLICT`
 
-Inside a `parallel` block, two or more tasks mutate or release the **same** slot. This is a hard error — data race by construction.
+Inside a `parallel` block, two or more tasks mutate or release the **same** slot. This is a hard error for the covered same-slot conflict subset.
 
 - **Cause IR**: `semantic:parallel:resource_conflict`
-- **Reason**: owning writes across tasks must be disjoint; identity and alias analysis both trace to the same slot.
+- **Reason**: owning writes across tasks must be disjoint for the stable subset; identity and alias analysis both trace to the same slot.
 - **Fix**: split the slot into per-task slots; use a `Channel<T>` to serialize writes; or move the write outside the parallel block.
 
 #### `PGY_SEM_PARALLEL_SLOT_RACE_RISK` (warning)

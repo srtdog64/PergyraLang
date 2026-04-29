@@ -168,16 +168,6 @@ struct SemanticContext
     size_t type_resolution_stage_alias_diagnostic_name_count;
     size_t type_resolution_stage_alias_diagnostic_name_capacity;
 
-    /* Memoization cache for resolve_type_node (AST node pointer -> Type*).
-     * Populated after a successful resolution to skip re-work for identical
-     * AST nodes revisited within the same compilation. Cleared on destroy. */
-    struct {
-        void **keys;     /* ASTNode * pointers */
-        void **values;   /* Type * pointers */
-        size_t count;
-        size_t capacity;
-    } resolve_type_cache;
-
     /* Graph-backed staged type metadata (AST type node -> Type*).
      * Populated by the DAG stage after a successful materialization, then
      * reused by Pass 2 owner seams without re-entering recursive materialization. */
@@ -502,12 +492,6 @@ Type* type_check_builtin_call(ASTNode* call, BuiltinKind kind,
 /* -----------------------------------------------------------------
  * Utility
  * ----------------------------------------------------------------- */
-
-/*
- * Resolve an AST type node (AST_TYPE) to a
- * Type* using the current scope's type definitions.
- */
-Type* resolve_type_node(ASTNode* type_node, SemanticContext* ctx);
 
 /*
  * Check two types are compatible for assignment (from → to).

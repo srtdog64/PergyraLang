@@ -26,6 +26,8 @@ require_term() {
 for rel in \
     "src/codegen/llvm_internal.h" \
     "src/codegen/llvm_inventory_internal.h" \
+    "src/codegen/llvm_inventory_decl_lookup.h" \
+    "src/codegen/llvm_inventory_host_methods.h" \
     "src/codegen/llvm_pipeline.c" \
     "src/codegen/llvm_domain.c" \
     "src/codegen/llvm_backend.h" \
@@ -42,21 +44,34 @@ done
 
 for term in \
     "llvm_active_inventory" \
-    "llvm_active_routine_inventory" \
-    "llvm_mir_routine_inventory_from_program" \
     "llvm_find_decl_header_in_context" \
     "llvm_find_host_decl_header_in_context" \
-    "llvm_host_decl_method_metadata" \
-    "llvm_find_host_method_metadata_in_context" \
-    "llvm_routine_inventory_get" \
     "llvm_find_decl_in_active_inventory" \
     "llvm_find_host_decl_in_active_inventory" \
-    "llvm_find_host_method_decl_in_context" \
-    "llvm_find_host_decl_methods_in_context" \
-    "llvm_active_nominal_inventory" \
-    "llvm_active_domain_inventory" \
     "mir_find_decl_header(ctx->mir, name)" \
     "llvm_is_host_decl_type"; do
+    require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
+done
+
+for term in \
+    "llvm_host_decl_method_metadata" \
+    "llvm_find_host_method_metadata_in_context" \
+    "llvm_find_host_method_decl_in_context" \
+    "llvm_find_host_decl_methods_in_context" \
+    "llvm_mir_decl_method_name" \
+    "llvm_mir_decl_method_param_count" \
+    "llvm_mir_decl_method_param" \
+    "llvm_mir_decl_method_return_type" \
+    "llvm_mir_decl_method_is_action_like"; do
+    require_term "src/codegen/llvm_inventory_host_methods.h" "$term"
+done
+
+for term in \
+    "llvm_active_routine_inventory" \
+    "llvm_mir_routine_inventory_from_program" \
+    "llvm_routine_inventory_get" \
+    "llvm_active_nominal_inventory" \
+    "llvm_active_domain_inventory"; do
     require_term "src/codegen/llvm_inventory_internal.h" "$term"
 done
 
@@ -65,8 +80,10 @@ for term in "mir_active_inventory" "mir_active_externs"; do
     require_term "src/compiler/mir_lower_public_api.h" "$term"
 done
 
-for rel in "src/codegen/llvm_inventory_internal.h" "src/codegen/transpiler.h"; do
+for rel in "src/codegen/llvm_inventory_decl_lookup.h" "src/codegen/transpiler.h"; do
     require_term "$rel" "mir_active_inventory(ctx->mir, decl_type, &nodes, &count)"
+done
+for rel in "src/codegen/llvm_inventory_internal.h" "src/codegen/transpiler.h"; do
     require_term "$rel" "mir_active_externs(ctx->mir, &nodes, &count)"
 done
 
@@ -123,18 +140,9 @@ $routine_raw_hits"
 fi
 
 if grep -Fq "decl_header->ast == decl" \
-    "$ROOT_DIR/src/codegen/llvm_inventory_internal.h"; then
+    "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
     fail "llvm_host_decl_methods must be MIRDeclHeader metadata-first; do not require decl_header->ast == decl"
 fi
-
-for term in \
-    "llvm_mir_decl_method_name" \
-    "llvm_mir_decl_method_param_count" \
-    "llvm_mir_decl_method_param" \
-    "llvm_mir_decl_method_return_type" \
-    "llvm_mir_decl_method_is_action_like"; do
-    require_term "src/codegen/llvm_inventory_internal.h" "$term"
-done
 
 for term in \
     "llvm_mir_decl_method_param_count(method_meta)" \
@@ -153,6 +161,7 @@ for forbidden in \
     if grep -Fq "$forbidden" \
         "$ROOT_DIR/src/codegen/llvm_register.c" \
         "$ROOT_DIR/src/codegen/llvm_inventory_internal.h" \
+        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" \
         "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
         fail "LLVM MIR method accessors must not fall back to AST method nodes: $forbidden"
     fi
@@ -177,7 +186,7 @@ for term in \
 done
 
 if awk '/decl = decl_header->ast;/{exit} {print}' \
-    "$ROOT_DIR/src/codegen/llvm_inventory_internal.h" |
+    "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" |
     grep -Fq "method->data.func_decl.name != NULL"; then
     fail "LLVM host method lookup must compare MIRDeclMethod.name before AST func_decl name"
 fi
@@ -199,6 +208,8 @@ domain_arrays=(
 allowed_raw_files=(
     "src/codegen/llvm_internal.h"
     "src/codegen/llvm_inventory_internal.h"
+    "src/codegen/llvm_inventory_decl_lookup.h"
+    "src/codegen/llvm_inventory_host_methods.h"
     "src/codegen/transpiler.h"
 )
 raw_hits=""

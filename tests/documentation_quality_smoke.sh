@@ -43,8 +43,11 @@ required_files=(
     "docs/INDEX.md"
     "docs/19_design_philosophy.md"
     "docs/116_documentation_quality_audit.md"
+    "docs/119_pergyra_lineage_positioning.md"
+    "docs/120_vision_and_capability_audit.md"
     "docs/107_beta_stable_subset.md"
     "docs/118_slot_model_rigor_audit.md"
+    "docs/README_ko.md"
     "docs/05_async_concurrency.md"
     "docs/113_memory_concurrency_model.md"
     "docs/114_async_model_positioning.md"
@@ -74,6 +77,8 @@ index_terms=(
     "Async, Parallel, And Memory"
     "116_documentation_quality_audit.md"
     "Current Documentation Policy"
+    "120_vision_and_capability_audit.md"
+    "anti-hype triad"
 )
 for term in "${index_terms[@]}"; do
     require_text "docs/INDEX.md" "$term"
@@ -98,6 +103,9 @@ audit_terms=(
     "Async Documentation Position"
     "capture-bearing detached async block stability"
     "Avoid using \"experimental\" as a dumping ground"
+    "anti-hype triad"
+    "118_slot_model_rigor_audit.md"
+    "120_vision_and_capability_audit.md"
 )
 for term in "${audit_terms[@]}"; do
     require_text "docs/116_documentation_quality_audit.md" "$term"
@@ -110,9 +118,51 @@ slot_rigor_terms=(
     "Zone-Bound Handle"
     "SlotHandle<T> in Zone"
     "Pinning solves lexical pinned access"
+    "Pergyra has a smaller static subset plus runtime handle/capability checks"
+    "must not be marketed as current behavior"
 )
 for term in "${slot_rigor_terms[@]}"; do
     require_text "docs/118_slot_model_rigor_audit.md" "$term"
+done
+
+vision_audit_terms=(
+    "Anti-hype rule (2026-04-29)"
+    "External wording must never be stronger than the narrowest implemented and"
+    "AI-first language"
+    "implemented for the frozen beta subset"
+    "proof obligation documented"
+)
+for term in "${vision_audit_terms[@]}"; do
+    require_text "docs/120_vision_and_capability_audit.md" "$term"
+done
+
+readme_anti_hype_terms=(
+    "Beta subset candidate being frozen"
+    "not a whole-language stability claim"
+    "Do not describe Pergyra as production-ready"
+    "beta core candidate"
+)
+for term in "${readme_anti_hype_terms[@]}"; do
+    require_text "README.md" "$term"
+done
+
+readme_ko_anti_hype_terms=(
+    "strict beta readiness"
+    "production-ready"
+    "Rust-level memory safe"
+    "fully proven"
+)
+for term in "${readme_ko_anti_hype_terms[@]}"; do
+    require_text "docs/README_ko.md" "$term"
+done
+
+for forbidden in \
+    "Static strength comparable to Rust 1.0" \
+    "categorically equivalent" \
+    "zero-cost security" \
+    "complete compile-time security"; do
+    forbid_text "docs/118_slot_model_rigor_audit.md" "$forbidden"
+    forbid_text "docs/119_pergyra_lineage_positioning.md" "$forbidden"
 done
 
 slot_pinning_terms=(
