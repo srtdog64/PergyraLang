@@ -228,17 +228,37 @@ Beta-safe direction:
 - `OptionMap`, `ResultMap`, `ResultAndThen`
 - small combinators that do not require new type-system axes
 
+Post-beta research notes:
+
+- Zig `comptime`-style type-level computation is not part of the beta type
+  system. Pergyra currently has monomorphized generics plus ability bounds, not
+  first-class `type` values, arbitrary type-level functions, imperative
+  compile-time membership checks, or user-customizable compile-time errors.
+- Sbv-style symbolic execution and solver DSL ports belong here as a
+  post-beta `pgy.compat.fp` experiment. They are useful stress tests for the
+  generic/ability system, but they must not redefine the beta core language.
+- If such a port needs type-level operators later, it must enter as an
+  importable compatibility module with explicit diagnostics and no new core
+  keyword by default.
+
 Beta-out-of-scope:
 
 - `Functor` as a first-class ability over higher-kinded type constructors
 - HKT
 - type-family generalization beyond the frozen generic contract subset
+- Zig-comptime-style type-level metaprogramming
+- user-customizable compile-time error generation
 
 결정:
 
 - generic contract는 core다.
 - Functor/HKT는 compatibility/future FP abstraction이다.
 - 이 둘을 섞지 않는다.
+
+Decision addendum:
+
+- Zig comptime / Sbv-style symbolic DSL work is compatibility/future FP
+  territory, not beta core.
 
 ## 11. Module Ecosystem Update Policy
 

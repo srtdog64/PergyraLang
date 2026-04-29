@@ -9,14 +9,8 @@
 static Type *
 roster_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    Type *resolved;
-
-    if (type_ref == NULL || ctx == NULL)
-        return TYPE_UNKNOWN;
-
-    resolved = semantic_type_resolution_lookup_resolved_annotation(ctx,
-                                                                   type_ref);
-    return resolved != NULL ? resolved : TYPE_UNKNOWN;
+    return semantic_type_resolution_lookup_annotation_or_unknown(ctx,
+                                                                 type_ref);
 }
 
 bool

@@ -4,6 +4,7 @@
 
 #include "diag_codes.h"
 #include "type_checker_internal.h"
+#include "type_checker_resolution_metadata_internal.h"
 
 static Type *
 metadata_type_ref_with_alias_stack(SemanticContext *ctx,

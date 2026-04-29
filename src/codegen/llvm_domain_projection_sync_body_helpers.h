@@ -311,16 +311,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
         }
 
         LLVMPositionBuilderAtEnd(ctx->builder, overflow_bb);
-        {
-            LLVMTypeRef abort_ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
-            LLVMFuncEntry *abort_fn = llvm_lookup_or_create_function(ctx, "abort",
-                abort_ft, ctx->type_void);
-            if (abort_fn != NULL) {
-                LLVMBuildCall2(ctx->builder, abort_fn->fn_type, abort_fn->fn,
-                    NULL, 0, "");
-            }
-            LLVMBuildUnreachable(ctx->builder);
-        }
+        llvm_emit_frontier_overflow_abort(ctx);
 
         LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
     }

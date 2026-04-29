@@ -23,6 +23,164 @@
 - 진행 노트마다 owner 라인 수를 명시하는 컨벤션 유지 (예: `slot_manager.c는 564 LOC`).
 - 현재 production scan: 0 `.c/.h` owners above 600 LOC (2026-04-29 기준).
 
+## UTF-8 Progress Note - 2026-04-30 - AIR/DAG/CFG Contract Tightening
+
+- AIR DAG evidence now reports actual generic/ability compatibility fact
+  counts and treats any non-zero metadata materializer fallback as
+  `AIR_DRIFT_DAG_FALLBACK_PRESENT` under strict evidence. This keeps DAG
+  fallback debt visible at the abstraction-safety layer instead of letting it
+  hide behind successful metadata hit counters.
+- AIR MIR evidence now records global cleanup-block evidence as
+  `AIR_EVIDENCE_MIR_CLEANUP` with `cleanup-block` provenance. MIR still owns
+  cleanup generation and validation; AIR audits that the MIR cleanup fact exists
+  and remains observable through the evidence graph.
+- LLVM MIR fallback control is aligned with the compiler CFG-owned control
+  contract. `llvm_mir_stmt_is_cfg_container(...)` now rejects fallback emission
+  for `with`, `unsafe`, `defer`, `if`, `while`, `for`, `select`, `match`,
+  `break`, `continue`, and `return`, matching the compiler-side
+  `mir_stmt_ast_is_cfg_owned_control(...)` policy.
+- Deleted the untracked root `ast` grep-output artifact. `src/**/*.inc` remains
+  at zero files, and representative production owners stay under the 600 LOC
+  split-review threshold.
+- Local gates: `make cfg-body-dataflow-test-smoke`, `make test-air`,
+  `make air-drift-test-smoke`, `make type-resolution-dag-test-smoke`,
+  `make type-resolution-resolver-inventory-test-smoke`, `make test-mir`, and
+  `make llvm-test-backend-compare` are green. Backend compare reports `65/65`
+  cases passed.
+- Follow-up DAG seam cleanup: metadata annotation readers are now centralized
+  behind `semantic_type_resolution_lookup_annotation_nullable(...)` and
+  `semantic_type_resolution_lookup_annotation_or_unknown(...)`. The resolver
+  inventory gate now requires annotation-sensitive direct seams to stay at
+  zero; local gates `make type-resolution-resolver-inventory-test-smoke`,
+  `make type-resolution-dag-test-smoke`, and `make test-semantic` are green
+  (`2359/0` semantic tests).
+- Follow-up DAG public seam cleanup: raw resolved-type lookup is no longer
+  exported through the semantic mega-header. It now lives behind the private
+  metadata-owner header `type_checker_resolution_metadata_internal.h`, and the
+  resolver inventory smoke rejects any re-export through
+  `type_checker_internal.h` or non-metadata owners. This keeps
+  `semantic_type_resolution_lookup_annotation_nullable(...)`,
+  `semantic_type_resolution_lookup_annotation_or_unknown(...)`, and
+  `semantic_type_resolution_lookup_or_materialize(...)` as the stable DAG-facing
+  APIs outside metadata materialization owners.
+- Follow-up DAG stage materializer gate: `type-resolution-dag-test-smoke` now
+  parses and caps `stage-metadata-materialize` totals directly. Calls, failed
+  materializations, and suppressed diagnostics must all remain `0`, not merely
+  the family counters. This prevents a compatibility materializer from
+  reappearing as a hidden successful path.
+- Follow-up DAG writer inventory gate: resolved-type metadata recorders are now
+  smoke-gated to graph, stage-signature, and metadata materialization owners.
+  New semantic owners cannot write DAG resolved-type facts directly without
+  failing `type-resolution-resolver-inventory-test-smoke`.
+- Follow-up DAG stage-signature fallback removal: signature staging no longer
+  calls the metadata materializer after a metadata miss. It now consumes graph
+  dependency evidence and existing metadata only, then returns `TYPE_UNKNOWN`
+  for unresolved quiet staging. The retired compatibility-family recorder was
+  removed and the inventory smoke rejects reintroducing it or a stage-signature
+  materializer call.
+- Follow-up DAG diagnostic read-only tightening: metadata diagnostics now use
+  `semantic_type_resolution_lookup_metadata_type_ref(...)` for generic argument
+  checks instead of the materializing type-ref helper. The resolver inventory
+  smoke rejects reintroducing materializer lookup from metadata diagnostics, so
+  diagnostic-only paths cannot create new DAG resolved-type facts.
+- Follow-up DAG helper inventory cap: metadata-first type-ref helper use is now
+  owner-classified and capped at 11 references. New
+  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` call sites
+  fail `type-resolution-resolver-inventory-test-smoke` until they are
+  deliberately classified, which prevents silent expansion of materializing DAG
+  seams.
+- Follow-up 600 LOC owner closure: `mir_cfg_contract_validate.h` no longer sits
+  on the split threshold. Cleanup-edge fact lookup moved to
+  `mir_cfg_contract_cleanup_fact.h` (26 LOC), leaving
+  `mir_cfg_contract_validate.h` at 584 LOC. Local gates: `make test-mir` and
+  `make cfg-body-dataflow-test-smoke`.
+- Follow-up AIR/MIR evidence consumption: AIR now records whether MIR input was
+  attached and default strict verification requires `AIR_EVIDENCE_MIR_PIN_CLEANUP`
+  for `pin` execution boundaries once MIR evidence is available. This keeps MIR
+  as the cleanup source of truth while preventing AIR from treating a pin
+  boundary as closed without the matching MIR `pin-unpin-cleanup-edge` evidence.
+  Local gate: `make test-air` (`48/0`).
+- Follow-up AIR/CFG cleanup fact tightening: AIR no longer accepts an orphan
+  `pin-unpin-cleanup-edge` instruction as pin cleanup evidence. The MIR pin
+  block must also have a real cleanup successor that targets the routine cleanup
+  block, so AIR consumes the CFG cleanup fact rather than trusting a standalone
+  instruction string.
+- Follow-up AIR evidence inventory shape tightening: strict evidence inventory is
+  now boundary-shape checked. Global evidence cannot attach to a concrete
+  boundary; HIR CFG evidence requires same-boundary HIR routine evidence; RIR
+  authority evidence requires same-boundary RIR boundary evidence and a declared
+  participant; MIR pin cleanup evidence can only target a `pin` execution
+  boundary. Local gates: `make test-air`, `make air-drift-test-smoke`,
+  `make air-json-schema-test-smoke`, and `make cfg-body-dataflow-test-smoke`.
+- Follow-up DAG materializing seam reduction: abstract ability method
+  signatures, projection path field readers, zone-authority subject-slot readers,
+  world domain/shared type readers, and expression-level lambda param/return
+  readers plus method-call return, host-expression, constructor field, and
+  action-contract readers plus intent participant, transfer, inherited-action,
+  and role-field readers now use
+  `semantic_type_resolution_lookup_metadata_type_ref(...)` instead of the
+  materializing type-ref helper. The owner-local fallback seam inventory is now
+  gated at `0` (`fallback seams=0 cap=0`) while `retired_resolver_calls=0`,
+  `materializer_fallbacks=0`, and `stage_materialize_calls=0` remain gated.
+  Remaining DAG gaps are not simple fallback replacements: host overlay
+  authority checks need domain host/slot metadata, generic ability
+  where-clause diagnostics need bound provenance evidence, and generic default
+  validation still needs effective-argument materialization evidence without
+  reopening recursive resolver seams.
+- Follow-up AIR JSON schema gate: `make air-json-schema-test-smoke` now runs
+  `pgy --air-json` on a stable intent/zone fixture and gates the
+  `pgy.air.graph.v1` summary, boundary, evidence, drift, and observability
+  shape. Python parses the JSON when present; when Python is absent, the smoke
+  falls back to literal schema checks so platform CI does not fail merely
+  because an interpreter is missing.
+- Post-beta/beta+1 modeling pain point: add a zone-first authoring path that
+  lets users model a business graph primarily with `zone` plus passive
+  `struct/object/vessel` shapes, then progressively introduce `subject`,
+  `authority`, and `projection` only when state-transition auditing, boundary
+  mutation, or selective exposure is actually needed. This is not a new keyword
+  track; it is a clause-density and progressive-disclosure track. Goal:
+  reduce the need to spell `subject`/`authorized by`/projection clauses for
+  every rich business object and avoid turning domain modeling into a compiler
+  puzzle.
+- Follow-up modeling guard: `docs/121_types_as_domain_medium.md`,
+  `docs/19_design_philosophy.md`, zone-shape diagnostics, semantic regression,
+  and `documentation-quality-test-smoke` now agree that `subject` is an
+  identity-bearing state-transition host, not "important information";
+  `authority` is boundary/mutation permission, not an importance rank; and
+  passive business graph state should remain `struct`/`object`/`vessel` until a
+  transition, handoff, authority, or projection contract is actually needed.
+  Local gates: `make test-semantic` (`2366/0`) and
+  `make documentation-quality-test-smoke`.
+- Follow-up CI hardening: `cfg-body-dataflow-test-smoke` no longer hard-fails
+  solely because Python is absent. When Python is available it still runs the
+  full source/document contract audit; otherwise it falls back to a shell
+  literal contract check and still runs the compiler HIR/RIR/MIR smoke. Local
+  gates covered both paths.
+- Follow-up runtime authority CI hardening:
+  `runtime-authority-contract-test-smoke` now has the same shape. Python keeps
+  the full raw-literal audit; no-Python runners get a shell literal contract
+  fallback that still verifies shared authority code/reason/stderr macros,
+  runtime include usage, raw literal bans, and LLVM authority token exports.
+- Follow-up runtime panic CI hardening:
+  `runtime-panic-contract-test-smoke` now also keeps its Python structural audit
+  when available, but no-Python runners execute a shell literal fallback that
+  verifies the shared panic class/reason surface, panic emitter ownership,
+  released-slot/secure-token/unwrap/checked-arithmetic lowering hooks, and the
+  core docs contract. `runtime-panic-abi-test-smoke` intentionally remains a
+  Python-required executable ABI test because it validates subprocess exit code
+  and stderr panic class behavior.
+- Follow-up AIR CI hardening: `air-drift-test-smoke` now keeps the full Python
+  source/document/test audit when available, but no-Python runners execute a
+  shell literal fallback for the core AIR contract: verification-only
+  architecture, strict evidence, `AIREvidenceNode`, MIR pin cleanup evidence,
+  DAG generic evidence, driver synthesis hook, diagnostic docs, backend
+  non-impact policy, and AIR proof obligations. Local gates covered both paths.
+- Follow-up `.inc`/owner-size recheck: source production `.inc` inventory is
+  still `0`. Local gates green:
+  `semantic-inc-size-test-smoke`, `semantic-tu-size-test-smoke`,
+  `production-header-size-test-smoke`, `backend-inc-size-test-smoke`,
+  `test-inc-size-test-smoke`, and `inc-sentinel-test-smoke`.
+
 ## UTF-8 Progress Note - 2026-04-30 - AIR Payload Containment
 
 - AIR final scope is now explicit: AIR is the 1.0 abstraction-safety closure
@@ -36,6 +194,10 @@
   authority evidence are recorded as provenance-carrying nodes and validated as
   AIR inventory. This is the first code-level step toward the AIR 1.0
   `EvidenceNode` contract while keeping existing driver diagnostics stable.
+- AIR strict evidence now treats `AIREvidenceNode` as authoritative whenever an
+  evidence inventory is present. Legacy per-boundary booleans remain as cached
+  summaries for dumps and compatibility fixtures, but they can no longer satisfy
+  strict HIR/RIR/MIR evidence by themselves once inventory nodes exist.
 - AIR now has the first MIR evidence seam: `air_collect_mir_evidence(...)`
   records `pin-unpin-cleanup-edge` as `AIR_EVIDENCE_MIR_PIN_CLEANUP` for the
   matching AIR `pin` execution boundary. AIR still does not create or validate
@@ -51,11 +213,11 @@
   synthesize the IO boundary at the nested call AST. `AST_EVENT_SUBSCRIBE` and
   `AST_EVENT_UNSUBSCRIBE` are also classified as AIR execution boundaries, so
   event subscription is no longer invisible to the abstraction-safety layer.
-  Local gate: `make test-air air-drift-test-smoke` (`41/0` AIR tests).
+  Local gate: `make test-air air-drift-test-smoke` (`51/0` AIR tests).
 - AIR evidence provenance is now non-empty by invariant. HIR routine evidence,
   RIR boundary evidence, and RIR authority evidence flags with empty provenance
   names are rejected as `PGY_AIR_INVARIANT_INVALID`. Local gate: `make
-  test-air air-drift-test-smoke` (`41/0` AIR tests).
+  test-air air-drift-test-smoke` (`51/0` AIR tests).
 
 ## UTF-8 Progress Note - 2026-04-29 - Runtime Frontier LLVM Owner And Parallel MIR Preservation
 
@@ -387,6 +549,13 @@
 
 ## UTF-8 Progress Note - 2026-04-29 - Runtime Frontier Policy And C Owner Split
 
+- 2026-04-30 follow-up: LLVM frontier overflow emission now has one owner.
+  World derived overflow, world transitive-frontier overflow, zone overflow,
+  and projection-chain overflow all route through
+  `llvm_emit_frontier_overflow_abort(...)` instead of open-coded abort blocks.
+  `runtime-frontier-contract-test-smoke` includes the shared helper in both
+  world/zone and projection contract bundles so future LLVM emitter drift is
+  caught at the helper seam, not by duplicated backend-local snippets.
 - Stable world outer frontier scheduling now consumes
   `pgy_frontier_world_transitive_pass_limit(...)` in both the C emitter and the
   LLVM world sync emitter. The helper currently delegates to the existing
@@ -2420,6 +2589,10 @@
 - Accelerator split: AI-first/GPU 방향은 `pgy.accel.spray` 논리 모듈로 예약한다. 이는 `parallel` / ownership / module visibility 위에 올라가는 accelerator library/runtime 축이며 core keyword 확장이 아니다.
 - Render split: Skia/shader/render graph 방향은 `pgy.render.skia` 논리 모듈로 예약한다. renderer/shader는 core keyword가 아니라 Spray/Execution 위의 생태계 모듈이다.
 - Compatibility split: OOP/FP/DOP는 각각 `pgy.compat.oop`, `pgy.compat.fp`, `pgy.compat.dop`로 분리한다. 기존 언어 스타일을 수용하되 core identity로 설명하지 않는다.
+- FP compatibility update: Zig `comptime`-style type-level computation,
+  user-customizable compile-time errors, and Sbv-style symbolic execution DSLs
+  are tracked as post-beta `pgy.compat.fp` research/module work, not beta core
+  language work.
 - Interop split: 외부 언어 연동(JVM 캐스팅/JNI 브릿지, Python C-API 등)은 `pgy.interop.*` 생태계 모듈로 분류하며, 베타 마일스톤에서는 완전히 제외(Out of Beta)한다.
 
 업데이트 정책:

@@ -53,6 +53,7 @@ for rel in \
     "src/codegen/transpiler_world_select_event_emit.h" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/llvm_domain.c" \
+    "src/codegen/llvm_domain_sync_frontier.c" \
     "src/codegen/llvm_domain_zone_sync.c" \
     "src/codegen/llvm_domain_world_frontier.c" \
     "src/codegen/llvm_domain_world_sync.c" \
@@ -83,12 +84,14 @@ cat \
 
 cat \
     "$ROOT_DIR/src/codegen/llvm_domain.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_sync_frontier.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_zone_sync.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_world_frontier.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_world_sync.c" \
     > "$llvm_domain_contract"
 
 cat \
+    "$ROOT_DIR/src/codegen/llvm_domain_sync_frontier.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_helpers.h" \
     "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_body_helpers.h" \
     > "$llvm_projection_contract"

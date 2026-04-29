@@ -105,6 +105,7 @@ and follow-up debt over older design notes.
 | [`118_slot_model_rigor_audit.md`](118_slot_model_rigor_audit.md) | Slot/ownership rigor audit and forbidden marketing vocabulary |
 | [`119_pergyra_lineage_positioning.md`](119_pergyra_lineage_positioning.md) | Lineage positioning without feature-parity claims |
 | [`120_vision_and_capability_audit.md`](120_vision_and_capability_audit.md) | Anti-hype capability audit: current state vs aspiration |
+| [`121_types_as_domain_medium.md`](121_types_as_domain_medium.md) | Type-system mandate and subject/authority/projection modeling guard |
 
 ## Implementation Guides
 
@@ -137,3 +138,7 @@ and follow-up debt over older design notes.
   `118_slot_model_rigor_audit.md` for vocabulary,
   `119_pergyra_lineage_positioning.md` for lineage, and
   `120_vision_and_capability_audit.md` for current capability vs aspiration.
+- Type-system and modeling claims must also pass
+  `121_types_as_domain_medium.md`: `subject` is not "important information,"
+  `authority` is not an importance ranking, and selective information exposure
+  belongs to projection/visibility.

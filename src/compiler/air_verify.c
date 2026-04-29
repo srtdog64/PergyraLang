@@ -194,6 +194,150 @@ air_evidence_kind_is_global(AIREvidenceKind kind)
 }
 
 static bool
+air_boundary_has_evidence_kind(const AIRProgram *air,
+                               size_t boundary_index,
+                               AIREvidenceKind kind)
+{
+    if (air == NULL || boundary_index >= air->boundary_count)
+        return false;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind && evidence->boundary_index == boundary_index)
+            return true;
+    }
+    return false;
+}
+
+static bool
+air_boundary_requires_mir_pin_cleanup_evidence(const AIRBoundaryNode *boundary);
+
+static bool
+air_evidence_node_matches_boundary_shape(const AIRProgram *air,
+                                         size_t evidence_index,
+                                         char **error_message)
+{
+    const AIREvidenceNode *evidence;
+    const AIRBoundaryNode *boundary;
+
+    if (air == NULL || evidence_index >= air->evidence_count)
+        return false;
+
+    evidence = &air->evidence_nodes[evidence_index];
+    if (air_evidence_kind_is_global(evidence->kind)) {
+        if (evidence->boundary_index != SIZE_MAX) {
+            air_set_invariant_error(error_message,
+                                    "AIR global evidence node %zu is attached to boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        return true;
+    }
+
+    if (evidence->boundary_index >= air->boundary_count) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu references missing boundary node %zu",
+                                evidence_index,
+                                evidence->boundary_index);
+        return false;
+    }
+
+    boundary = &air->boundaries[evidence->boundary_index];
+    switch (evidence->kind) {
+    case AIR_EVIDENCE_HIR_CFG:
+        if (!air_boundary_has_evidence_kind(air,
+                                            evidence->boundary_index,
+                                            AIR_EVIDENCE_HIR_ROUTINE)) {
+            air_set_invariant_error(error_message,
+                                    "AIR HIR CFG evidence node %zu has no HIR routine evidence for boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        return true;
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+        if (!air_boundary_requires_rir_evidence(boundary)) {
+            air_set_invariant_error(error_message,
+                                    "AIR RIR boundary evidence node %zu is attached to non-RIR boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        return true;
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+        if (!boundary->authority_required) {
+            air_set_invariant_error(error_message,
+                                    "AIR RIR authority evidence node %zu is attached to non-authority boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        if (!air_boundary_has_evidence_kind(air,
+                                            evidence->boundary_index,
+                                            AIR_EVIDENCE_RIR_BOUNDARY)) {
+            air_set_invariant_error(error_message,
+                                    "AIR RIR authority evidence node %zu has no RIR boundary evidence for boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        if (!air_boundary_declares_authority_name(boundary, evidence->subject_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR RIR authority evidence node %zu has undeclared authority subject for boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        return true;
+    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
+        if (!air_boundary_requires_mir_pin_cleanup_evidence(boundary)) {
+            air_set_invariant_error(error_message,
+                                    "AIR MIR pin cleanup evidence node %zu is attached to non-pin boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        return true;
+    case AIR_EVIDENCE_HIR_ROUTINE:
+        return true;
+    case AIR_EVIDENCE_DAG_GENERIC:
+    case AIR_EVIDENCE_DAG_ABILITY:
+    case AIR_EVIDENCE_MIR_CLEANUP:
+    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
+    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+        return true;
+    }
+
+    return false;
+}
+
+static bool
+air_boundary_has_authoritative_evidence(const AIRProgram *air,
+                                        const AIRBoundaryNode *boundary,
+                                        size_t boundary_index,
+                                        AIREvidenceKind kind,
+                                        bool legacy_flag)
+{
+    /*
+     * Compatibility fixtures may still construct AIRBoundaryNode booleans by
+     * hand. Once an evidence inventory exists, the inventory is the authority
+     * and the booleans are only cached summaries for dumps/legacy consumers.
+     */
+    (void)boundary;
+    if (air != NULL && air->evidence_count > 0)
+        return air_boundary_has_evidence_kind(air, boundary_index, kind);
+    return legacy_flag;
+}
+
+static bool
+air_boundary_requires_mir_pin_cleanup_evidence(const AIRBoundaryNode *boundary)
+{
+    return boundary != NULL
+        && boundary->kind == AIR_BOUNDARY_EXECUTION
+        && air_name_matches(boundary->source_name, "pin");
+}
+
+static bool
 air_append_drift(AIRProgram *air,
                  AIRDriftKind kind,
                  size_t intent_index,
@@ -480,6 +624,8 @@ air_validate(const AIRProgram *air, char **error_message)
                                     i);
             return false;
         }
+        if (!air_evidence_node_matches_boundary_shape(air, i, error_message))
+            return false;
     }
     return true;
 }
@@ -508,7 +654,9 @@ air_verify(AIRProgram *air, char **error_message)
         }
         if (air->strict_evidence
             && air_boundary_requires_rir_evidence(boundary)
-            && !boundary->has_rir_boundary_evidence) {
+            && !air_boundary_has_authoritative_evidence(
+                air, boundary, i, AIR_EVIDENCE_RIR_BOUNDARY,
+                boundary->has_rir_boundary_evidence)) {
             char message[512];
             snprintf(message,
                      sizeof(message),
@@ -528,7 +676,9 @@ air_verify(AIRProgram *air, char **error_message)
         if (air->strict_evidence
             && air->has_hir_input
             && air_boundary_requires_hir_routine_evidence(boundary)
-            && !boundary->has_hir_routine_evidence) {
+            && !air_boundary_has_authoritative_evidence(
+                air, boundary, i, AIR_EVIDENCE_HIR_ROUTINE,
+                boundary->has_hir_routine_evidence)) {
             char message[512];
             snprintf(message,
                      sizeof(message),
@@ -547,7 +697,9 @@ air_verify(AIRProgram *air, char **error_message)
         }
         if (air->strict_evidence
             && air_boundary_requires_hir_evidence(boundary)
-            && !boundary->has_hir_cfg_evidence) {
+            && !air_boundary_has_authoritative_evidence(
+                air, boundary, i, AIR_EVIDENCE_HIR_CFG,
+                boundary->has_hir_cfg_evidence)) {
             char message[512];
             snprintf(message,
                      sizeof(message),
@@ -566,7 +718,9 @@ air_verify(AIRProgram *air, char **error_message)
         }
         if (air->strict_evidence
             && boundary->authority_required
-            && !boundary->has_rir_authority_evidence) {
+            && !air_boundary_has_authoritative_evidence(
+                air, boundary, i, AIR_EVIDENCE_RIR_AUTHORITY,
+                boundary->has_rir_authority_evidence)) {
             char authority_names[256];
             char message[512];
             const char *drift_message =
@@ -588,6 +742,28 @@ air_verify(AIRProgram *air, char **error_message)
                                   boundary->intent_index,
                                   i,
                                   drift_message,
+                                  error_message)) {
+                return false;
+            }
+        }
+        if (air->strict_evidence
+            && air->has_mir_input
+            && air_boundary_requires_mir_pin_cleanup_evidence(boundary)
+            && !air_boundary_has_authoritative_evidence(
+                air, boundary, i, AIR_EVIDENCE_MIR_PIN_CLEANUP,
+                false)) {
+            char message[512];
+            snprintf(message,
+                     sizeof(message),
+                     PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                     ": AIR pin boundary has no matching MIR pin cleanup evidence; implementation boundary '%s' (%s)",
+                     boundary->source_name != NULL ? boundary->source_name : "<unknown>",
+                     air_boundary_kind_name(boundary->kind));
+            if (!air_append_drift(air,
+                                  AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                                  boundary->intent_index,
+                                  i,
+                                  message,
                                   error_message)) {
                 return false;
             }

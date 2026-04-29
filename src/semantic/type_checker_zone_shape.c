@@ -1,5 +1,14 @@
 ﻿#include "type_checker_internal.h"
 
+static const char *ZONE_SHAPE_SUBJECT_HEAVY_WARNING =
+    "Zone '%s' declares %llu subject slots; if some entries are passive business data, model them as object/vessel support state instead of authority-bearing subjects";
+
+static const char *ZONE_SHAPE_NO_PASSIVE_OBJECT_WARNING =
+    "Zone '%s' has multiple subject slots but no object slots; consider a zone-first shape where passive support state uses objects/vessels and only state-transition actors remain subjects";
+
+static const char *ZONE_SHAPE_NO_SUBJECT_MUTATION_WARNING =
+    "Zone '%s' mutates state or declares authority but has no subject slot";
+
 size_t
 type_check_zone_shape_warnings(ASTNode *node, SemanticContext *ctx)
 {
@@ -11,14 +20,14 @@ type_check_zone_shape_warnings(ASTNode *node, SemanticContext *ctx)
 
     if (subject_count > 4) {
         semantic_warning(ctx, node,
-            "Zone '%s' declares %llu subject slots; prefer keeping active subjects to 4 or fewer and model supporting state as objects",
+            ZONE_SHAPE_SUBJECT_HEAVY_WARNING,
             node->data.zone_decl.name,
             (unsigned long long) subject_count);
     }
 
     if (subject_count > 1 && object_count == 0) {
         semantic_warning(ctx, node,
-            "Zone '%s' has multiple subject slots but no object slots; consider modeling passive support state as objects",
+            ZONE_SHAPE_NO_PASSIVE_OBJECT_WARNING,
             node->data.zone_decl.name);
     }
 
@@ -34,7 +43,7 @@ type_check_zone_shape_warnings(ASTNode *node, SemanticContext *ctx)
     if (subject_count == 0
         && (mutation_rule_count > 0 || node->data.zone_decl.authority_count > 0)) {
         semantic_warning(ctx, node,
-            "Zone '%s' mutates state or declares authority but has no subject slot",
+            ZONE_SHAPE_NO_SUBJECT_MUTATION_WARNING,
             node->data.zone_decl.name);
     }
 

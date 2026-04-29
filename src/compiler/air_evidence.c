@@ -642,6 +642,19 @@ air_mir_find_pin_cleanup_instruction(const MIRBasicBlock *block)
 }
 
 static bool
+air_mir_pin_block_has_cleanup_successor(const MIRRoutine *routine,
+                                        const MIRBasicBlock *block)
+{
+    if (routine == NULL || block == NULL)
+        return false;
+    if (!routine->has_cleanup_block || routine->cleanup_block >= routine->block_count)
+        return false;
+    if (!block->has_cleanup_succ || block->cleanup_succ != routine->cleanup_block)
+        return false;
+    return routine->blocks[routine->cleanup_block].is_cleanup;
+}
+
+static bool
 air_mir_routine_has_cleanup_fact(const MIRRoutine *routine)
 {
     if (routine == NULL || !routine->has_cleanup_block)
@@ -661,6 +674,8 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
 {
     if (air == NULL || mir == NULL)
         return true;
+
+    air->has_mir_input = true;
 
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
@@ -697,6 +712,8 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
                 const MIRInstruction *inst;
                 if (!air_mir_pin_block_matches_boundary(block, boundary))
                     continue;
+                if (!air_mir_pin_block_has_cleanup_successor(routine, block))
+                    continue;
                 inst = air_mir_find_pin_cleanup_instruction(block);
                 if (inst == NULL)
                     continue;
@@ -710,7 +727,6 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
                                               error_message)) {
                     return false;
                 }
-                air->mir_cleanup_evidence_count++;
                 air->mir_pin_cleanup_evidence_count++;
                 break;
             }

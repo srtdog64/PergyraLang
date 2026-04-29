@@ -75,6 +75,15 @@ for token in ("pgy.core", "pgy.foundation", "pgy.execution"):
     if token not in readme:
         raise SystemExit(f"{token} missing from README")
 
+for token in (
+    "Zig `comptime`-style type-level computation is not part of the beta type",
+    "Sbv-style symbolic execution and solver DSL ports belong here",
+    "Zig-comptime-style type-level metaprogramming",
+    "user-customizable compile-time error generation",
+):
+    if token not in taxonomy:
+        raise SystemExit(f"pgy.compat.fp taxonomy missing post-beta FP boundary: {token}")
+
 cases = cases_doc.get("cases", [])
 if not cases:
     raise SystemExit("language_module_cases.json must contain cases")

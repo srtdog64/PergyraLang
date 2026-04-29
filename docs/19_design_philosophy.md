@@ -195,6 +195,35 @@ Slot / static / domain / verification은 *그 모양을 시스템급으로 만�
 외부 description (README / 블로그 / 비교 글 / 학술) 발행 전 3개 모두 점검
 필수. 한 개라도 실패하면 외부 표면이 거짓이 됨.
 
+### 0.9 Type system mandate — Lost-meaning recovery의 syntactic machine
+
+§0.7-0.8이 *외부 좌표*와 *현재/비전 분리*라면, type system이 *어떤 역할로*
+이 정체성을 *문법 수준에서* 운반하는지는 별개 mandate. 정식 위치:
+`docs/121_types_as_domain_medium.md`.
+
+핵심 design statement:
+
+> Pergyra type system = research-program thesis(lost-meaning recovery)의
+> *syntactic machine*. type은 도메인 좌표를 *운반*하고 (carrier), 도메인
+> 정합성을 *검사*하고 (coherence), 도메인 위반을 *거절*하는 (negative space)
+> 매개체. 계산 대상도 (Zig comptime) 증명 대상도 (Haskell Curry-Howard)
+> 아님.
+
+이 mandate가 type system 작업의 *off-axis 거절*을 결정함:
+- ability bound 표현력 확장 / WriteView XOR / AIR coherence 등 → ✅
+- Zig-style imperative comptime / HKT 부활 / 의존 타입 / type-as-pure-shape → ❌
+
+중요한 modeling guard도 `docs/121`에 고정한다: `subject`는 "중요 정보"가
+아니라 identity-bearing state-transition host이고, `authority`는 정보
+중요도 ranking이 아니라 state transition / boundary crossing permission이다.
+선택적 정보 노출은 `projection` / visibility가 맡는다.
+또한 Pergyra는 모든 business object lifetime을 정적으로 예측하는 언어가
+아니다. 정적 검사는 unsafe boundary transition을 거절하고, 동적 resource
+existence는 Slot generation / token / runtime state가 검증한다.
+
+§0.7 lineage 좌표 + §0.8 capability 좌표 + §0.9 type-system mandate가 모두
+project_research_program_thesis(memory)의 *root motivation*에서 derive.
+
 ---
 
 ## 1. 가장 중요한 전제

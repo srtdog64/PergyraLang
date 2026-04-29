@@ -3,6 +3,54 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
+DOCS_CHECK_DONE=0
+
+require_literal() {
+    local rel="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
+        echo "cfg body dataflow fallback check missing term in $rel: $term" >&2
+        exit 1
+    }
+}
+
+run_literal_doc_contract_smoke() {
+    local required_files=(
+        "docs/103_cfg_body_dataflow_need.md"
+        "docs/semantics/08_slot_capability_calculus.md"
+        "docs/100_beta_readiness_checklist.md"
+        "TODO.md"
+        "Makefile"
+        "src/semantic/type_checker_flow.c"
+        "src/semantic/type_checker_flow_resources.h"
+        "src/semantic/type_checker_flow_parallel.h"
+        "src/compiler/mir_cleanup.c"
+        "src/compiler/mir_cfg_contract_pin.h"
+        "src/compiler/mir_cfg_contract_validate.h"
+        "src/test_mir.c"
+        "src/semantic/type_checker_ownership_let.c"
+    )
+
+    for rel in "${required_files[@]}"; do
+        [[ -f "$ROOT_DIR/$rel" ]] || {
+            echo "missing required cfg/body dataflow contract input: $rel" >&2
+            exit 1
+        }
+    done
+
+    require_literal "docs/103_cfg_body_dataflow_need.md" "HIR has function CFG v0"
+    require_literal "docs/103_cfg_body_dataflow_need.md" "All-path return"
+    require_literal "docs/103_cfg_body_dataflow_need.md" "Definite assignment"
+    require_literal "docs/103_cfg_body_dataflow_need.md" "Move/use-after-move"
+    require_literal "docs/103_cfg_body_dataflow_need.md" "Drop/cleanup"
+    require_literal "src/compiler/mir_cleanup.c" "cleanup-edge"
+    require_literal "src/compiler/mir_cfg_contract_pin.h" "pin-unpin-cleanup-edge"
+    require_literal "src/test_mir.c" "pin-unpin-cleanup-edge"
+    require_literal "src/semantic/type_checker_ownership_let.c" "function-body lets must be initialized at the binding site"
+    require_literal "Makefile" "cfg-body-dataflow-test-smoke"
+
+    echo "cfg body dataflow docs: ok (literal fallback)"
+}
 
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
@@ -10,11 +58,12 @@ if [[ -z "$PYTHON_BIN" ]]; then
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
     else
-        echo "missing python for cfg body dataflow smoke" >&2
-        exit 1
+        run_literal_doc_contract_smoke
+        DOCS_CHECK_DONE=1
     fi
 fi
 
+if [[ "$DOCS_CHECK_DONE" -eq 0 ]]; then
 "$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
 import pathlib
 import sys
@@ -320,12 +369,17 @@ required_mir_codegen_control_terms = [
     "transpiler_mir_emit_for_in_body_binding",
     "_pgy_idx_%s",
     "transpiler_mir_find_loop_branch_inst",
-    "llvm_mir_emit_for_loop_init(const MIRInstruction *inst",
-    "llvm_mir_emit_for_loop_condition(const MIRInstruction *inst",
-    "llvm_mir_emit_for_in_body_binding",
-    "__pgy_idx_%s",
-    "pgy_list_size_raw_export",
-    "pgy_list_get_raw_export",
+	    "llvm_mir_emit_for_loop_init(const MIRInstruction *inst",
+	    "llvm_mir_emit_for_loop_condition(const MIRInstruction *inst",
+	    "llvm_mir_emit_for_in_body_binding",
+	    "AST_IF_STMT",
+	    "AST_WHILE_LOOP",
+	    "AST_RETURN",
+	    "AST_BREAK",
+	    "AST_CONTINUE",
+	    "__pgy_idx_%s",
+	    "pgy_list_size_raw_export",
+	    "pgy_list_get_raw_export",
     "llvm_mir_find_loop_branch_inst",
 ]
 missing_mir_codegen_control = [
@@ -696,6 +750,7 @@ for term in [
 
 print("cfg body dataflow docs: ok")
 PY
+fi
 
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"

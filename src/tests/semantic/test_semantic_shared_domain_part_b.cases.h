@@ -1,4 +1,4 @@
-    TEST("zone warns when subject count exceeds recommended shape");
+    TEST("zone warns when subject-heavy shape should be decomposed");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -17,6 +17,40 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
         EXPECT(result != NULL && result->warning_count >= 2);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "passive business data"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "object/vessel support state"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "zone-first shape"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "objects/vessels"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone-first passive object shape is accepted without subject pressure");
+    {
+        const char *source =
+            "object Order { id: Int; }\n"
+            "object Customer { id: Int; }\n"
+            "object AuditView { version: Int; }\n"
+            "zone OrderReadZone {\n"
+            "    object slot order: Order\n"
+            "    object slot customer: Customer\n"
+            "    object slot audit: AuditView\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

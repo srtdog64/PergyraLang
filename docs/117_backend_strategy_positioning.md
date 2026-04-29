@@ -14,6 +14,7 @@ Related documents:
 - `docs/118_slot_model_rigor_audit.md` — sister audit doc; Slot vs borrow-check rigor and marketing-language guide
 - `docs/119_pergyra_lineage_positioning.md` — sister positioning doc for language lineage (C# father, Tier 1-5 substrate borrow, DDD unique synthesis)
 - `docs/120_vision_and_capability_audit.md` — sister audit; capability negative-space + current-vs-vision separation
+- `docs/121_types_as_domain_medium.md` — sister positioning; type system as the syntactic machine of lost-meaning recovery (carrier / coherence / negative-space)
 
 This document positions Pergyra's backend strategy. It is a **positioning /
 rationale** doc, not a contract. Concrete ABI freezes live in

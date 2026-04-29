@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "type_checker_internal.h"
+#include "type_checker_resolution_metadata_internal.h"
 
 static Type *
 metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
@@ -163,10 +164,24 @@ semantic_type_resolution_lookup_resolved_type(SemanticContext *ctx,
 }
 
 Type *
-semantic_type_resolution_lookup_resolved_annotation(SemanticContext *ctx,
+semantic_type_resolution_lookup_annotation_nullable(SemanticContext *ctx,
                                                     ASTNode *type_node)
 {
     return semantic_type_resolution_lookup_resolved_type(ctx, type_node);
+}
+
+Type *
+semantic_type_resolution_lookup_annotation_or_unknown(SemanticContext *ctx,
+                                                      ASTNode *type_node)
+{
+    Type *resolved;
+
+    if (ctx == NULL || type_node == NULL)
+        return TYPE_UNKNOWN;
+
+    resolved = semantic_type_resolution_lookup_annotation_nullable(ctx,
+                                                                   type_node);
+    return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
 Type *

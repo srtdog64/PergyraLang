@@ -36,7 +36,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         LLVMValueRef derived_ptr = NULL;
         LLVMValueRef derived_val = LLVMConstInt(ctx->type_i1, 0, 0);
         size_t zone_count = stmt->data.world_decl.zone_count;
-        /* Per-zone "previously active" pointer cache ??populated during
+        /* Per-zone "previously active" pointer cache populated during
          * world sync emission and consumed once before this function
          * returns.  Never escapes. */
         LLVMValueRef *prev_active_addrs = pgy_arena_calloc(&ctx->scratch,

@@ -14,10 +14,23 @@ llvm_mir_stmt_is_cfg_container(ASTNode *node)
 {
     if (node == NULL)
         return false;
-    return node->type == AST_WITH_STMT
-        || node->type == AST_FOR_LOOP
-        || node->type == AST_SELECT_STMT
-        || node->type == AST_MATCH_STMT;
+
+    switch (node->type) {
+    case AST_WITH_STMT:
+    case AST_UNSAFE_BLOCK:
+    case AST_DEFER_STMT:
+    case AST_IF_STMT:
+    case AST_WHILE_LOOP:
+    case AST_FOR_LOOP:
+    case AST_SELECT_STMT:
+    case AST_MATCH_STMT:
+    case AST_BREAK:
+    case AST_CONTINUE:
+    case AST_RETURN:
+        return true;
+    default:
+        return false;
+    }
 }
 
 static ASTNode *

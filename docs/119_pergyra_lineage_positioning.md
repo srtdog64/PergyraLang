@@ -10,6 +10,7 @@ Related documents:
 - `docs/117_backend_strategy_positioning.md` — sister positioning doc for backend strategy (Tier 1 C+LLVM detail)
 - `docs/118_slot_model_rigor_audit.md` §8 — sister audit; vocabulary negative-space (this doc §11 is its lineage-level pair)
 - `docs/120_vision_and_capability_audit.md` — sister audit; capability negative-space + current-vs-vision separation (third pair)
+- `docs/121_types_as_domain_medium.md` — sister positioning; type system as the syntactic machine of lost-meaning recovery (the type-system-level expression of this lineage's research program)
 - `docs/104_air_compiler_architecture.md` — Tier 5 MLIR sibling-IR pattern
 
 This document is a **positioning / lineage** doc, not a contract. It exists so

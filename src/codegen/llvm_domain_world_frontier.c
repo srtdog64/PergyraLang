@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_domain_sync_frontier.h"
 #include "llvm_domain_world_sync_internal.h"
 #include "domain_frontier_policy.h"
 
@@ -396,16 +397,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, overflow_bb);
-    {
-        LLVMTypeRef abort_ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
-        LLVMFuncEntry *abort_fn = llvm_lookup_or_create_function(ctx, "abort",
-            abort_ft, ctx->type_void);
-        if (abort_fn != NULL) {
-            LLVMBuildCall2(ctx->builder, abort_fn->fn_type, abort_fn->fn,
-                NULL, 0, "");
-        }
-        LLVMBuildUnreachable(ctx->builder);
-    }
+    llvm_emit_frontier_overflow_abort(ctx);
 
     LLVMPositionBuilderAtEnd(ctx->builder, finalize_bb);
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), derived_dirty_addr);
@@ -453,16 +445,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_overflow_bb);
-    {
-        LLVMTypeRef abort_ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
-        LLVMFuncEntry *abort_fn = llvm_lookup_or_create_function(ctx, "abort",
-            abort_ft, ctx->type_void);
-        if (abort_fn != NULL) {
-            LLVMBuildCall2(ctx->builder, abort_fn->fn_type, abort_fn->fn,
-                NULL, 0, "");
-        }
-        LLVMBuildUnreachable(ctx->builder);
-    }
+    llvm_emit_frontier_overflow_abort(ctx);
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_exit_bb);
 }

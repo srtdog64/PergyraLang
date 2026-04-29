@@ -15,7 +15,7 @@ Operational mode:
   domain-slot initializers. These carrier nodes are not new AIR boundary kinds;
   they only prevent existing IO/parallel/channel/execution boundaries from
   being hidden behind a payload container. Gate: `make test-air
-  air-drift-test-smoke` (`41/0` AIR tests).
+  air-drift-test-smoke` (`51/0` AIR tests).
 - 2026-04-30 AIR event execution boundary update:
   `AST_EVENT_SUBSCRIBE` and `AST_EVENT_UNSUBSCRIBE` are now AIR execution
   boundaries with `event-subscribe` / `event-unsubscribe` sources. The handler
@@ -27,7 +27,7 @@ Operational mode:
   authority evidence provenance names. Evidence flags must carry named proof
   provenance; boolean-only or empty-string evidence is treated as
   `PGY_AIR_INVARIANT_INVALID`. Gate: `make test-air air-drift-test-smoke`
-  (`41/0` AIR tests).
+  (`51/0` AIR tests).
 - 2026-04-30 AIR 1.0 scope freeze:
   AIR is now documented as the 1.0 closure target for abstraction safety, not
   as a replacement for CFG, DAG, MIR, ownership, or runtime propagation. Beta
@@ -41,6 +41,13 @@ Operational mode:
   provenance-carrying nodes while the legacy per-boundary flags remain as the
   current driver compatibility seam. `air_validate(...)` rejects malformed
   evidence-node inventory.
+- 2026-04-30 AIR evidence boundary-shape tightening:
+  first-class evidence nodes are now validated against their boundary class.
+  Global evidence cannot attach to a concrete boundary; HIR CFG evidence requires
+  same-boundary HIR routine evidence; RIR authority evidence requires
+  same-boundary RIR boundary evidence and a declared participant; MIR pin cleanup
+  evidence can only satisfy a `pin` execution boundary. Gate: `make test-air`
+  (`51/0` AIR tests).
 - 2026-04-30 AIR MIR pin-cleanup evidence step:
   `air_collect_mir_evidence(...)` records MIR-owned `pin-unpin-cleanup-edge`
   facts as `AIR_EVIDENCE_MIR_PIN_CLEANUP` nodes for matching AIR `pin`
@@ -52,6 +59,70 @@ Operational mode:
   `retired-compatibility-cache`. This is a wording/contract tightening: the
   counters still gate `0` calls and `0` cache misses, but logs no longer make
   the removed resolver look like an active compatibility implementation.
+- 2026-04-30 DAG public seam tightening:
+  annotation-sensitive metadata readers are centralized behind
+  `semantic_type_resolution_lookup_annotation_nullable(...)` and
+  `semantic_type_resolution_lookup_annotation_or_unknown(...)`. The raw
+  resolved-type lookup is private to metadata materialization owners through
+  `type_checker_resolution_metadata_internal.h`, and
+  `type-resolution-resolver-inventory-test-smoke` rejects re-export through the
+  semantic mega-header or non-metadata owners. Local gates:
+  `make type-resolution-resolver-inventory-test-smoke`,
+  `make type-resolution-dag-test-smoke`, and `make test-semantic` (`2359/0`).
+- 2026-04-30 DAG declaration/helper reader tightening:
+  `type_checker_ability_decl.c`, `type_checker_projection_path.c`,
+  `type_checker_zone_decl_authority.c`, `type_checker_world_helpers.c`,
+  `type_checker_expr.c`, `type_checker_expr_call.c`, and
+  `type_checker_expr_host.c`, `type_checker_call_constructor.c`, and
+  `type_checker_func_action_contract.c`, and
+  `type_checker_intent_participants.c`, `type_checker_intent_transfer.c`,
+  `type_checker_intent_action_contract.c`, and
+  `type_checker_intent_role_fields.c` no longer use the materializing type-ref
+  helper for declaration/field/lambda/method-return/host-expression/constructor,
+  action-contract, intent participant, transfer, inherited-action, and
+  role-field reader paths that already have DAG metadata. They consume DAG
+  metadata-only type refs and closing the owner-local fallback seam inventory
+  at `0` while keeping retired resolver calls and materializer fallbacks at
+  `0`.
+- The remaining DAG gaps are classified as evidence/modeling gaps, not
+  fallback seams: domain host/slot metadata must feed authority checks,
+  generic ability where-clause checks must preserve bound provenance, and
+  generic defaults must expose effective-argument materialization evidence
+  without reintroducing recursive fallback consumers.
+- 2026-04-30 DAG stage materializer hard cap:
+  `type-resolution-dag-test-smoke` now gates `stage-metadata-materialize`
+  totals directly. `calls`, `failed`, and `suppressed_diagnostics` must remain
+  `0`, alongside the existing family-specific zero caps. This closes the gap
+  where a compatibility materializer could return successfully without showing
+  up as family debt.
+- 2026-04-30 DAG writer inventory gate:
+  resolved-type metadata recorders are restricted by smoke test to graph,
+  stage-signature, and metadata materialization owners. This prevents ordinary
+  semantic declaration/body owners from mutating DAG resolved-type facts
+  directly and keeps the graph/materializer boundary explicit.
+- 2026-04-30 DAG stage-signature fallback removal:
+  signature staging no longer calls the metadata materializer after metadata
+  miss. It consumes graph dependency evidence and pre-existing metadata, then
+  returns `TYPE_UNKNOWN` for unresolved quiet staging. The retired
+  compatibility-family recorder was deleted and the resolver inventory smoke
+  rejects reintroducing the recorder or stage-signature materializer fallback.
+- 2026-04-30 DAG diagnostic read-only tightening:
+  metadata diagnostics now resolve generic arguments through
+  `semantic_type_resolution_lookup_metadata_type_ref(...)`, not the
+  materializing type-ref helper. The resolver inventory smoke rejects
+  reintroducing materializer lookup in metadata diagnostics, keeping diagnostic
+  code read-only with respect to DAG resolved-type fact creation.
+- 2026-04-30 DAG fallback seam zero cap:
+  `type-resolution-resolver-inventory-test-smoke` now reports and gates active
+  fallback seams at `0` (`fallback seams=0 cap=0`). Any new semantic owner that
+  wants to consume a materializing DAG seam must update the resolver inventory
+  gate deliberately instead of expanding the seam invisibly.
+- 2026-04-30 MIR CFG owner split:
+  `mir_cfg_contract_validate.h` moved cleanup-edge fact lookup into
+  `mir_cfg_contract_cleanup_fact.h`, reducing the validator owner to 584 LOC.
+  The largest production owners are now below the 600 LOC split-review
+  threshold; local gates: `make test-mir` and
+  `make cfg-body-dataflow-test-smoke`.
 - 2026-04-28 semantic owner update: function declaration and host-helper
   implementation-header debt is closed. `type_checker_func_decl.c`,
   `type_checker_func_action_contract.c`, and `type_checker_host_helpers.c`
@@ -99,6 +170,13 @@ Operational mode:
   detection, derived-state recompute, and overflow abort emission. Gate:
   `make runtime-frontier-contract-test-smoke`; local sanity gate:
   `make llvm-test-smoke`.
+- 2026-04-30 LLVM frontier overflow helper update:
+  world derived overflow, transitive world frontier overflow, zone overflow,
+  and projection-chain overflow consume the shared
+  `llvm_emit_frontier_overflow_abort(...)` helper. The runtime-frontier
+  contract smoke now includes the helper owner in the LLVM world/zone and
+  projection contract bundles, so bounded-fixpoint hard-fail behavior is
+  source-of-truth checked at one LLVM seam.
 - 2026-04-29 CFG/MIR correction:
   `parallel { ... }` is not classified as CFG-owned until HIR/MIR has a real
   parallel CFG lowering. It remains AIR-visible and semantic-flow checked, but
@@ -1436,6 +1514,10 @@ Closed now:
 - AIR evidence validation now rejects RIR authority evidence without prior RIR
   boundary evidence and rejects authority evidence on a non-authority boundary,
   keeping evidence provenance as a layered proof instead of a boolean flag.
+- AIR evidence-node validation now also rejects mismatched boundary shapes:
+  global evidence attached to a concrete boundary, HIR CFG evidence without
+  same-boundary HIR routine evidence, undeclared authority subjects, and MIR pin
+  cleanup evidence attached to a non-pin boundary.
 - AIR inventory validation failures are now routed as
   `PGY_AIR_INVARIANT_INVALID` / `air:invariant:invalid` /
   `report-compiler-bug`, separate from user-facing
@@ -1556,6 +1638,7 @@ Evidence command:
 
 ```sh
 make air-drift-test-smoke
+make air-json-schema-test-smoke
 make air-backend-nonimpact-test-smoke
 make air-backend-nonimpact-full-test-smoke
 make air-strict-backend-compare-test-smoke
@@ -2150,7 +2233,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
   blocked outside central metadata/diagnostic compatibility owners by
   `type-resolution-resolver-inventory-test-smoke`.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage metadata materialization, and alias-stage split accounting. Earlier local stats for this slice were `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 stage_materialize_alias=83 stage_materialize_non_alias=0 alias_materialized=5 alias_diagnostic_unresolved=78 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero stage metadata materialization, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=3146 retired_resolver_calls=0 retired_resolver_unique_nodes=0 metadata_entries=3442 metadata_owned=257 metadata_hits=6768 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 stage_materialize_calls=0 stage_materialize_failed=0 stage_materialize_suppressed=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
 - The central metadata materializer fallback is closed, not merely capped:
   `materializer_fallbacks==0` and every metadata unresolved audit family must stay at

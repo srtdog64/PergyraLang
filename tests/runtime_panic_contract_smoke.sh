@@ -3,6 +3,103 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
+CONTRACT_CHECK_DONE=0
+
+require_literal() {
+    local rel="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
+        echo "[runtime-panic-contract] $rel missing term: $term" >&2
+        exit 1
+    }
+}
+
+forbid_literal() {
+    local rel="$1"
+    local term="$2"
+    if grep -Fq -- "$term" "$ROOT_DIR/$rel"; then
+        echo "[runtime-panic-contract] $rel contains forbidden term: $term" >&2
+        exit 1
+    fi
+}
+
+run_literal_contract_smoke() {
+    local required_files=(
+        "src/runtime/pgy_runtime_panic_contract.h"
+        "src/runtime/pgy_runtime_platform_io_core.h"
+        "src/runtime/pgy_runtime_memory_array_slot_inline.h"
+        "src/runtime/pgy_runtime_lib_authority_file_core.h"
+        "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h"
+        "src/runtime/pgy_runtime_lib_slot_exports.h"
+        "src/runtime/pgy_runtime_lib_device_slot_exports.h"
+        "src/runtime/pgy_runtime_lib_secure_slot_exports.h"
+        "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h"
+        "src/runtime/pgy_runtime_lib_array_map_exports.h"
+        "src/runtime/pgy_runtime_panic_checked_inline.h"
+        "src/codegen/transpiler_expr_core_emit.h"
+        "src/codegen/llvm_expr_scalar_core.h"
+        "src/codegen/llvm_runtime.c"
+        "docs/100_beta_readiness_checklist.md"
+        "docs/semantics/06_backend_parity.md"
+        "docs/105_runtime_panic_contract.md"
+    )
+    local panic_tokens=(
+        "PGY_RUNTIME_PANIC_CLASS_OOM"
+        "PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO"
+        "PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS"
+        "PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT"
+        "PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE"
+        "PGY_RUNTIME_PANIC_CLASS_INVALID_SECURE_TOKEN"
+        "PGY_RUNTIME_PANIC_CLASS_AUTHORITY_MISMATCH"
+        "PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT"
+        "PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_WRITE"
+        "PGY_RUNTIME_PANIC_REASON_RELEASED_SLOT_READ"
+        "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE"
+        "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_READ"
+        "PGY_RUNTIME_PANIC_REASON_DOUBLE_RELEASE_SLOT"
+        "PGY_RUNTIME_PANIC_REASON_AUTHORITY_MISMATCH"
+        "PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS"
+        "PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS"
+        "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED"
+        "PGY_RUNTIME_PANIC_REASON_DIVIDE_BY_ZERO"
+        "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR"
+        "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE"
+    )
+
+    for rel in "${required_files[@]}"; do
+        [[ -f "$ROOT_DIR/$rel" ]] || {
+            echo "[runtime-panic-contract] missing contract file: $rel" >&2
+            exit 1
+        }
+    done
+
+    for token in "${panic_tokens[@]}"; do
+        require_literal "src/runtime/pgy_runtime_panic_contract.h" "$token"
+    done
+    require_literal "src/runtime/pgy_runtime_panic_contract.h" "PGY_RUNTIME_PANIC("
+    require_literal "src/runtime/pgy_runtime_panic_contract.h" "pgy_runtime_panic_emit"
+    require_literal "src/runtime/pgy_runtime_platform_io_core.h" "pgy_runtime_panic_contract.h"
+    require_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "pgy_runtime_panic_contract.h"
+    require_literal "src/runtime/pgy_runtime_memory_array_slot_inline.h" "PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT"
+    require_literal "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT"
+    require_literal "src/runtime/pgy_runtime_lib_slot_exports.h" "PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE"
+    require_literal "src/runtime/pgy_runtime_lib_device_slot_exports.h" "PGY_RUNTIME_PANIC_REASON_RELEASED_DEVICE_SLOT_WRITE"
+    require_literal "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE"
+    require_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR"
+    require_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE"
+    require_literal "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO"
+    require_literal "src/codegen/transpiler_expr_core_emit.h" "pgy_checked_div_i32_export"
+    require_literal "src/codegen/llvm_expr_scalar_core.h" "pgy_checked_mod_i32_export"
+    require_literal "src/codegen/llvm_runtime.c" "pgy_runtime_panic_internal_invariant_export"
+    require_literal "docs/100_beta_readiness_checklist.md" "Runtime Panic Parity"
+    require_literal "docs/105_runtime_panic_contract.md" "invalid-secure-token"
+    require_literal "docs/semantics/06_backend_parity.md" "released-slot"
+
+    forbid_literal "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "fprintf(stderr, \"[pgy] slot "
+    forbid_literal "src/runtime/pgy_runtime_lib_slot_exports.h" "fprintf(stderr, \"[pgy] slot "
+
+    echo "[runtime-panic-contract] hard-fail panic surface is contract-backed (literal fallback)"
+}
 
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
@@ -10,11 +107,12 @@ if [[ -z "$PYTHON_BIN" ]]; then
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
     else
-        echo "missing python for runtime panic contract smoke" >&2
-        exit 1
+        run_literal_contract_smoke
+        CONTRACT_CHECK_DONE=1
     fi
 fi
 
+if [[ "$CONTRACT_CHECK_DONE" -eq 0 ]]; then
 "$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
 import pathlib
 import re
@@ -342,3 +440,4 @@ for path in docs:
 
 print("[runtime-panic-contract] hard-fail panic surface is contract-backed")
 PY
+fi

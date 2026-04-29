@@ -9,7 +9,10 @@ bad_fallback="$(mktemp)"
 fallback_matches="$(mktemp)"
 annotation_matches="$(mktemp)"
 bad_annotation="$(mktemp)"
-trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches" "$annotation_matches" "$bad_annotation"' EXIT
+bad_record="$(mktemp)"
+type_ref_helper_matches="$(mktemp)"
+bad_type_ref_helper="$(mktemp)"
+trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches" "$annotation_matches" "$bad_annotation" "$bad_record" "$type_ref_helper_matches" "$bad_type_ref_helper"' EXIT
 
 { grep -RIn "resolve_type_node(" src/semantic || true; } | while IFS=: read -r path line text; do
   case "$path" in
@@ -115,55 +118,45 @@ fi
 
 { grep -RIn 'semantic_type_resolution_lookup_resolved_type' src/semantic || true; } \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata(_alias|_constructed)?\.c' \
-  | grep -Ev 'src/semantic/type_checker_internal\.h' \
+  | grep -Ev 'src/semantic/type_checker_resolution_metadata_internal\.h' \
   >"$bad_annotation" || true
 
 if [ -s "$bad_annotation" ]; then
   echo "[type-resolution-resolver-inventory] raw resolved-type lookup escaped metadata owners:" >&2
   cat "$bad_annotation" >&2
-  echo "Use semantic_type_resolution_lookup_resolved_annotation(...) for deliberate annotation-sensitive seams." >&2
+  echo "Use semantic_type_resolution_lookup_annotation_nullable(...) or semantic_type_resolution_lookup_annotation_or_unknown(...)." >&2
   exit 1
 fi
 
 { grep -RIn 'semantic_type_resolution_lookup_resolved_annotation' src/semantic || true; } \
-  | grep -Ev 'src/semantic/type_checker_internal\.h|src/semantic/type_checker_resolution_metadata\.c' \
   >"$annotation_matches" || true
 
->"$bad_annotation"
-
-while IFS=: read -r path line text; do
-  [ -n "$path" ] || continue
-  case "$path" in
-    src/semantic/type_checker.c|\
-    src/semantic/type_checker_ability_fields.c|\
-    src/semantic/type_checker_async_channel.h|\
-    src/semantic/type_checker_builtins_projection.c|\
-    src/semantic/type_checker_builtins_query_domain.c|\
-    src/semantic/type_checker_event.c|\
-    src/semantic/type_checker_flow.c|\
-    src/semantic/type_checker_module_contract.c|\
-    src/semantic/type_checker_party_decl.c|\
-    src/semantic/type_checker_program.c|\
-    src/semantic/type_checker_role_decl.c|\
-    src/semantic/type_checker_roster_decl.c)
-      continue
-      ;;
-  esac
-  printf '%s:%s: %s\n' "$path" "$line" "$text" >>"$bad_annotation"
-done <"$annotation_matches"
-
-if [ -s "$bad_annotation" ]; then
-  echo "[type-resolution-resolver-inventory] unclassified resolved-annotation seam(s):" >&2
-  cat "$bad_annotation" >&2
-  echo "Route new seams through metadata-first APIs, or add a narrowly justified annotation-sensitive allowlist entry." >&2
+if [ -s "$annotation_matches" ]; then
+  echo "[type-resolution-resolver-inventory] retired resolved-annotation API reappeared:" >&2
+  cat "$annotation_matches" >&2
+  echo "Use semantic_type_resolution_lookup_annotation_nullable(...) or semantic_type_resolution_lookup_annotation_or_unknown(...)." >&2
   exit 1
 fi
 
 annotation_sites="$(wc -l <"$annotation_matches")"
-if [ "$annotation_sites" -ne 12 ]; then
-  echo "[type-resolution-resolver-inventory] resolved-annotation seam inventory changed: $annotation_sites != 12" >&2
-  echo "This is allowed only when a seam is deliberately retired or a new annotation-sensitive path is documented." >&2
+if [ "$annotation_sites" -ne 0 ]; then
+  echo "[type-resolution-resolver-inventory] resolved-annotation seam inventory changed: $annotation_sites != 0" >&2
+  echo "Use the centralized annotation nullable/or-unknown APIs instead of spreading annotation-sensitive reads." >&2
   cat "$annotation_matches" >&2
+  exit 1
+fi
+
+{ grep -RIn 'semantic_type_resolution_record_\(owned_\)\?resolved_type' src/semantic || true; } \
+  | grep -Ev 'src/semantic/type_checker_internal\.h' \
+  | grep -Ev 'src/semantic/type_checker_resolution_graph_core\.c' \
+  | grep -Ev 'src/semantic/type_checker_resolution_stage_signature\.c' \
+  | grep -Ev 'src/semantic/type_checker_resolution_metadata(_alias|_constructed)?\.c' \
+  >"$bad_record" || true
+
+if [ -s "$bad_record" ]; then
+  echo "[type-resolution-resolver-inventory] resolved-type metadata recorder escaped DAG owners:" >&2
+  cat "$bad_record" >&2
+  echo "Only graph/stage-signature/metadata materialization owners may write DAG resolved-type facts." >&2
   exit 1
 fi
 
@@ -181,7 +174,7 @@ grep -q 'semantic_type_resolution_try_record_stable_constructed_type(ctx, type_n
 
 grep -q 'resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_node)' \
   src/semantic/type_checker_resolution_stage_signature.c || {
-  echo "[type-resolution-resolver-inventory] signature stage no longer consumes metadata type-ref before compatibility fallback" >&2
+  echo "[type-resolution-resolver-inventory] signature stage no longer consumes metadata type-ref before returning unknown" >&2
   exit 1
 }
 
@@ -191,46 +184,52 @@ grep -q 'semantic_type_resolution_lookup_metadata_type_ref(ctx,' \
   exit 1
 }
 
-grep -q 'resolved = semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_node)' \
-  src/semantic/type_checker_resolution_stage_signature.c || {
-  echo "[type-resolution-resolver-inventory] signature stage no longer routes materialization through metadata-first type-ref helper" >&2
-  exit 1
-}
+{ grep -RIn 'semantic_type_resolution_lookup_type_ref_or_materialize' src/semantic || true; } \
+  >"$type_ref_helper_matches" || true
 
 for owner in \
   src/semantic/type_checker_ability_where.c \
-  src/semantic/type_checker_async_channel.h \
-  src/semantic/type_checker_call_constructor.c \
-  src/semantic/type_checker_call_generic_where.c \
   src/semantic/type_checker_class_decl.c \
   src/semantic/type_checker_decls_domain_helpers.c \
-  src/semantic/type_checker_expr.c \
-  src/semantic/type_checker_expr_call.c \
-  src/semantic/type_checker_expr_host.c \
-  src/semantic/type_checker_func_action_contract.c \
   src/semantic/type_checker_func_decl.c \
   src/semantic/type_checker_generic_contracts.h \
-  src/semantic/type_checker_generic_support.h \
   src/semantic/type_checker_generic_validation.c \
-  src/semantic/type_checker_helpers_late.c \
   src/semantic/type_checker_host_helpers.c \
-  src/semantic/type_checker_intent_action_contract.c \
   src/semantic/type_checker_intent_decl.c \
-  src/semantic/type_checker_intent_participants.c \
-  src/semantic/type_checker_intent_role_fields.c \
-  src/semantic/type_checker_intent_transfer.c \
-  src/semantic/type_checker_operator_expr.h \
-  src/semantic/type_checker_ownership_destructure.c \
-  src/semantic/type_checker_ownership_let.c \
-  src/semantic/type_checker_projection_path.c \
-  src/semantic/type_checker_world_helpers.c \
-  src/semantic/type_checker_zone_decl_authority.c
+  src/semantic/type_checker_ownership_let.c
 do
   grep -q 'semantic_type_resolution_lookup_type_ref_or_materialize' "$owner" || {
     echo "[type-resolution-resolver-inventory] semantic resolver owner lost metadata-first type-ref helper: $owner" >&2
     exit 1
   }
 done
+
+grep -Ev 'src/semantic/type_checker_ability_where\.c' "$type_ref_helper_matches" \
+  | grep -Ev 'src/semantic/type_checker_class_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \
+  | grep -Ev 'src/semantic/type_checker_func_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_generic_contracts\.h' \
+  | grep -Ev 'src/semantic/type_checker_generic_validation\.c' \
+  | grep -Ev 'src/semantic/type_checker_host_helpers\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_internal\.h' \
+  | grep -Ev 'src/semantic/type_checker_ownership_let\.c' \
+  | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
+  >"$bad_type_ref_helper" || true
+
+if [ -s "$bad_type_ref_helper" ]; then
+  echo "[type-resolution-resolver-inventory] unclassified metadata-first type-ref helper user(s):" >&2
+  cat "$bad_type_ref_helper" >&2
+  echo "Add a narrow owner classification before expanding DAG materializing helper use." >&2
+  exit 1
+fi
+
+type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
+if [ "$type_ref_helper_count" -ne 11 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 11" >&2
+  cat "$type_ref_helper_matches" >&2
+  exit 1
+fi
 
 direct_materializer_users="$(
   grep -RIn 'semantic_type_resolution_lookup_or_materialize(ctx' src/semantic \
@@ -249,6 +248,23 @@ direct_metadata_materializer_count="$(
 )"
 if [ "$direct_metadata_materializer_count" != "1" ]; then
   echo "[type-resolution-resolver-inventory] central metadata owner must keep exactly one type-ref helper materializer fallback (found $direct_metadata_materializer_count)" >&2
+  exit 1
+fi
+
+if grep -RIn 'semantic_stage_record_compat_family' src/semantic; then
+  echo "[type-resolution-resolver-inventory] retired stage compatibility-family recorder reappeared" >&2
+  exit 1
+fi
+
+if grep -q 'semantic_type_resolution_lookup_type_ref_or_materialize' \
+  src/semantic/type_checker_resolution_stage_signature.c; then
+  echo "[type-resolution-resolver-inventory] stage signature reintroduced materializer fallback" >&2
+  exit 1
+fi
+
+if grep -q 'semantic_type_resolution_lookup_type_ref_or_materialize' \
+  src/semantic/type_checker_resolution_metadata_diagnostics.c; then
+  echo "[type-resolution-resolver-inventory] metadata diagnostics reintroduced materializer lookup" >&2
   exit 1
 fi
 

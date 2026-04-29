@@ -23,6 +23,7 @@ Related documents:
 - `docs/00_vision.md` — vision narrative (intent-first, agent-readable contracts)
 - `docs/118_slot_model_rigor_audit.md` §8 — sister negative-space (vocabulary)
 - `docs/119_pergyra_lineage_positioning.md` §11 — sister negative-space (lineage)
+- `docs/121_types_as_domain_medium.md` — sister positioning; type system as the syntactic machine of lost-meaning recovery (this doc's §1 forbidden-claim list governs §7 vision territory of docs/121)
 - `docs/100_beta_readiness_checklist.md` — formal closure status
 
 This document is the **third negative-space pair**. Where `docs/118` §8 audits

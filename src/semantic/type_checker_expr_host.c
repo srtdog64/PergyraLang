@@ -7,7 +7,8 @@
 static Type *
 expr_host_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
+    Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
+    return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
 static Type *

@@ -48,6 +48,7 @@ required_files=(
     "docs/107_beta_stable_subset.md"
     "docs/118_slot_model_rigor_audit.md"
     "docs/README_ko.md"
+    "docs/121_types_as_domain_medium.md"
     "docs/05_async_concurrency.md"
     "docs/113_memory_concurrency_model.md"
     "docs/114_async_model_positioning.md"
@@ -136,6 +137,46 @@ for term in "${vision_audit_terms[@]}"; do
     require_text "docs/120_vision_and_capability_audit.md" "$term"
 done
 
+type_medium_terms=(
+    "Types as Domain Medium"
+    "Subject, Authority, Projection: Do Not Collapse The Axes"
+    "A type is not a \`subject\` merely because its data is important."
+    "Important information does not automatically require authority."
+    "Selective information exposure belongs to \`projection\` and visibility"
+    "\`authority\` guards mutation, handoff, external effect, and boundary"
+    "identity-bearing state transition host  -> subject"
+    "Graph-Shaped Reality, Not Tree-Shaped Ownership"
+    "Pergyra does not statically predict the lifetime of all business objects."
+    "statically rejects unsafe boundary transitions and dynamically validates"
+    "Do not force every business object into an owning tree."
+    "compile time rejects unsafe *transitions*; runtime"
+)
+for term in "${type_medium_terms[@]}"; do
+    require_text "docs/121_types_as_domain_medium.md" "$term"
+done
+
+zone_shape_diagnostic_terms=(
+    "passive business data"
+    "object/vessel support state"
+    "zone-first shape"
+    "objects/vessels"
+)
+for term in "${zone_shape_diagnostic_terms[@]}"; do
+    require_text "src/semantic/type_checker_zone_shape.c" "$term"
+done
+forbid_text "src/semantic/type_checker_zone_shape.c" "active subjects to 4 or fewer"
+
+zone_first_todo_terms=(
+    "zone-first authoring path"
+    "business graph primarily with \`zone\` plus passive"
+    "\`struct/object/vessel\` shapes"
+    "selective exposure is actually needed"
+    "avoid turning domain modeling into a compiler"
+)
+for term in "${zone_first_todo_terms[@]}"; do
+    require_text "TODO.md" "$term"
+done
+
 readme_anti_hype_terms=(
     "Beta subset candidate being frozen"
     "not a whole-language stability claim"
@@ -160,9 +201,11 @@ for forbidden in \
     "Static strength comparable to Rust 1.0" \
     "categorically equivalent" \
     "zero-cost security" \
-    "complete compile-time security"; do
+    "complete compile-time security" \
+    "Pergyra is the only language"; do
     forbid_text "docs/118_slot_model_rigor_audit.md" "$forbidden"
     forbid_text "docs/119_pergyra_lineage_positioning.md" "$forbidden"
+    forbid_text "docs/121_types_as_domain_medium.md" "$forbidden"
 done
 
 slot_pinning_terms=(

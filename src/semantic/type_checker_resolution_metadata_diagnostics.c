@@ -182,8 +182,8 @@ metadata_resolve_generic_arg_for_diagnostic(SemanticContext *ctx,
     if (ctx == NULL || gp == NULL)
         return NULL;
     if (gp->constraint != NULL)
-        return semantic_type_resolution_lookup_type_ref_or_materialize(
-            ctx, gp->constraint);
+        return semantic_type_resolution_lookup_metadata_type_ref(ctx,
+                                                                 gp->constraint);
     return semantic_type_resolution_lookup_metadata_name_or_alias(ctx, gp->name);
 }
 

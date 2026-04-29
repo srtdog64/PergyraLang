@@ -171,7 +171,10 @@
       "out_of_scope": [
         "Functor ability over HKT",
         "higher-kinded types",
-        "type-family generalization"
+        "type-family generalization",
+        "Zig-comptime-style type-level metaprogramming",
+        "user-customizable compile-time error generation",
+        "Sbv-style symbolic execution DSL in beta core"
       ]
     },
     {

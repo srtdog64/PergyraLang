@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "type_checker_internal.h"
+#include "type_checker_resolution_metadata_internal.h"
 
 static bool
 stable_constructed_type_node_is_builtin_constructed(const ASTNode *type_node)

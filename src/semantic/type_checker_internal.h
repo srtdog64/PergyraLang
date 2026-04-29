@@ -179,8 +179,6 @@ bool semantic_stage_should_defer_to_graph(ASTNode *type_node,
                                           const ASTNode *consumer_site,
                                           const char *consumer_name,
                                           const char *reason);
-void semantic_stage_record_compat_family(SemanticContext *ctx,
-                                         const char *reason);
 void semantic_stage_record_alias_diagnostic_unresolved(ASTNode *alias_decl,
                                                        SemanticContext *ctx);
 const char *semantic_symbol_kind_label(SymbolKind kind);
@@ -259,10 +257,10 @@ void semantic_type_resolution_record_resolved_type(SemanticContext *ctx,
 void semantic_type_resolution_record_owned_resolved_type(SemanticContext *ctx,
                                                          ASTNode *type_node,
                                                          Type *resolved_type);
-Type *semantic_type_resolution_lookup_resolved_type(SemanticContext *ctx,
-                                                    ASTNode *type_node);
-Type *semantic_type_resolution_lookup_resolved_annotation(SemanticContext *ctx,
+Type *semantic_type_resolution_lookup_annotation_nullable(SemanticContext *ctx,
                                                           ASTNode *type_node);
+Type *semantic_type_resolution_lookup_annotation_or_unknown(SemanticContext *ctx,
+                                                            ASTNode *type_node);
 Type *semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
                                                      ASTNode *type_node);
 Type *semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,

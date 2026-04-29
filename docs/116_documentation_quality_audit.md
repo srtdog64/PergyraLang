@@ -16,6 +16,7 @@ contract; the source-of-truth contracts remain:
 - `docs/118_slot_model_rigor_audit.md`
 - `docs/119_pergyra_lineage_positioning.md`
 - `docs/120_vision_and_capability_audit.md`
+- `docs/121_types_as_domain_medium.md`
 
 ## Current Findings
 
@@ -58,6 +59,11 @@ contract; the source-of-truth contracts remain:
     vocabulary, `docs/119_pergyra_lineage_positioning.md` separates influence
     from feature parity, and `docs/120_vision_and_capability_audit.md` separates
     current capability from aspiration.
+11. `docs/121_types_as_domain_medium.md` now blocks a core modeling drift:
+    `subject` is an identity-bearing state-transition host, not "important
+    information"; `authority` is boundary/state-transition permission, not
+    information importance; selective information exposure belongs to
+    projection and visibility.
 
 ## Async Documentation Position
 

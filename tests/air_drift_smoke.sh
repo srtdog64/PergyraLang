@@ -3,6 +3,68 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
+AIR_CHECK_DONE=0
+
+require_literal() {
+    local rel="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
+        echo "AIR drift literal fallback missing term in $rel: $term" >&2
+        exit 1
+    }
+}
+
+run_literal_air_drift_smoke() {
+    local required_files=(
+        "docs/104_air_compiler_architecture.md"
+        "docs/100_beta_readiness_checklist.md"
+        "TODO.md"
+        "Makefile"
+        "docs/semantics/07_air_abstraction_safety.md"
+        "src/compiler/air.h"
+        "src/compiler/air.c"
+        "src/compiler/air_boundary.c"
+        "src/compiler/air_boundary_walk.c"
+        "src/compiler/air_dump.c"
+        "src/compiler/air_evidence.c"
+        "src/compiler/air_verify.c"
+        "src/compiler/driver_app.c"
+        "src/compiler/driver_diag.c"
+        "src/test_air.c"
+        "src/test_rir.c"
+        "docs/72_diagnostic_codes.md"
+        "tests/air_backend_nonimpact_smoke.sh"
+        "tests/diagnostics_json_smoke.sh"
+    )
+
+    for rel in "${required_files[@]}"; do
+        [[ -f "$ROOT_DIR/$rel" ]] || {
+            echo "missing AIR gate input: $rel" >&2
+            exit 1
+        }
+    done
+
+    require_literal "docs/104_air_compiler_architecture.md" "verification-only"
+    require_literal "docs/104_air_compiler_architecture.md" "Strict evidence"
+    require_literal "docs/100_beta_readiness_checklist.md" "## 0f. AIR Abstraction Safety Closure"
+    require_literal "TODO.md" "AIR source of truth"
+    require_literal "Makefile" "air-drift-test-smoke"
+    require_literal "src/compiler/air.h" "AIREvidenceNode"
+    require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_MIR_PIN_CLEANUP"
+    require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_DAG_GENERIC"
+    require_literal "src/compiler/air_verify.c" "air_verify"
+    require_literal "src/compiler/driver_app.c" "air_synthesize"
+    require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
+    require_literal "src/test_air.c" "AIR strict evidence requires MIR pin cleanup"
+    require_literal "src/test_air.c" "AIR parsed transfer emits zone and world boundaries"
+    require_literal "src/test_rir.c" "RIR_OP_SPAWN"
+    require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING"
+    require_literal "tests/air_backend_nonimpact_smoke.sh" "PGY_AIR_STRICT_EVIDENCE=0"
+    require_literal "docs/semantics/07_air_abstraction_safety.md" "## Theorem: AIR Synthesis Read-Only"
+    require_literal "docs/semantics/07_air_abstraction_safety.md" "## Theorem: Codegen Non-Impact"
+
+    echo "AIR drift smoke: ok (literal fallback)"
+}
 
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
@@ -10,11 +72,12 @@ if [[ -z "$PYTHON_BIN" ]]; then
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
     else
-        echo "missing python for AIR drift smoke" >&2
-        exit 1
+        run_literal_air_drift_smoke
+        AIR_CHECK_DONE=1
     fi
 fi
 
+if [[ "$AIR_CHECK_DONE" -eq 0 ]]; then
 "$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
 import pathlib
 import sys
@@ -106,6 +169,7 @@ required_air_terms = [
     "AIR 는 새로운 keyword / syntax 를 추가하지 않는다",
     "Phase 1 (베타 closure 안)",
     "make air-drift-test-smoke",
+    "make air-json-schema-test-smoke",
     "make air-backend-nonimpact-test-smoke",
     "pgy --air <source.pgy>",
     "AIRProgram intents=... boundaries=... evidence_nodes=... drifts=...",
@@ -141,6 +205,7 @@ required_todo_terms = [
     "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
     "docs/104_air_compiler_architecture.md",
     "make air-drift-test-smoke",
+    "make air-json-schema-test-smoke",
     "air-backend-nonimpact-test-smoke",
 ]
 missing_todo = [term for term in required_todo_terms if term not in todo]
@@ -151,6 +216,7 @@ for term in [
     "TEST_AIR_SRC",
     "test-air:",
     "air-drift-test-smoke:",
+    "air-json-schema-test-smoke:",
     "air-backend-nonimpact-test-smoke:",
     "air-backend-nonimpact-full-test-smoke:",
     "air-strict-backend-compare-test-smoke:",
@@ -160,8 +226,10 @@ for term in [
     "$(BUILD_DIR)/compiler/air_boundary_walk.o",
     "$(MAKE) test-air",
     "tests/air_drift_smoke.sh",
+    "tests/air_json_schema_smoke.sh",
     "tests/air_backend_nonimpact_smoke.sh",
     "air-drift-test-smoke",
+    "air-json-schema-test-smoke",
     "air-backend-nonimpact-test-smoke",
     "air-backend-nonimpact-full-test-smoke",
     "air-strict-backend-compare-test-smoke",
@@ -260,6 +328,8 @@ required_impl_terms = [
     "air_hir_routine_matches_boundary",
     "air_hir_cfg_contains_boundary_ast",
     "air_rir_scope_matches_boundary",
+    "air_mir_pin_block_has_cleanup_successor",
+    "block->cleanup_succ != routine->cleanup_block",
     "AIR synthesis count mismatch",
     "intent_index != intent_node_count",
     "boundary_index != boundary_node_count",
@@ -361,6 +431,17 @@ missing_dag_drift_terms = [label for text, needle, label in required_dag_drift_t
 if missing_dag_drift_terms:
     raise SystemExit("AIR DAG drift gate missing term(s): " + ", ".join(missing_dag_drift_terms))
 
+required_evidence_shape_terms = [
+    (air_impl, "air_evidence_node_matches_boundary_shape", "AIR evidence boundary shape validator"),
+    (air_impl, "AIR global evidence node", "AIR global evidence concrete-boundary rejection"),
+    (air_impl, "AIR HIR CFG evidence node", "AIR HIR CFG evidence shape rejection"),
+    (air_impl, "AIR RIR authority evidence node", "AIR RIR authority evidence shape rejection"),
+    (air_impl, "AIR MIR pin cleanup evidence node", "AIR MIR pin cleanup boundary rejection"),
+]
+missing_evidence_shape_terms = [label for text, needle, label in required_evidence_shape_terms if needle not in text]
+if missing_evidence_shape_terms:
+    raise SystemExit("AIR evidence shape gate missing term(s): " + ", ".join(missing_evidence_shape_terms))
+
 backend_non_consumers = [
     root / "src" / "compiler" / "compiler.c",
     root / "src" / "compiler" / "c_runner.c",
@@ -380,6 +461,7 @@ required_test_terms = [
     "AIR drift checker accepts matching async boundary",
     "AIR strict evidence reports missing RIR boundary",
     "AIR strict evidence requires HIR for implementation boundary",
+    "AIR strict evidence prefers inventory over legacy flags",
     "AIR task group boundary requires RIR and HIR evidence",
     "AIR verify rejects invalid boundary inventory",
     "AIR verify rejects missing inventory arrays",
@@ -388,9 +470,13 @@ required_test_terms = [
     "AIR verify rejects boundary sync shape mismatch",
     "AIR verify rejects invalid drift inventory",
     "AIR verify rejects invalid evidence inventory",
+    "AIR verify rejects evidence boundary shape mismatch",
     "evidence count without evidence array",
     "references missing boundary node",
     "has no provider provenance",
+    "undeclared authority subject",
+    "global evidence node",
+    "no HIR routine evidence",
     "AIR verify rejects authority evidence shape mismatch",
     "AIR verify rejects CFG evidence without routine evidence",
     "AIR verify rejects empty evidence provenance",
@@ -406,10 +492,14 @@ required_test_terms = [
     "PGY_OBSERVABILITY_EVENT_INTENT_ENTER",
     "mir_pin_cleanup_evidence_count",
     "AIR collects MIR pin cleanup evidence",
+    "AIR rejects orphan MIR pin cleanup evidence",
+    "AIR strict evidence requires MIR pin cleanup",
     "AIR collects MIR cleanup block evidence",
     "AIR collects DAG generic ability evidence",
     "AIR reports DAG fallback drift",
     "strict_evidence=yes hir_input=yes",
+    "mir_input",
+    "AIR pin boundary has no matching MIR pin cleanup evidence",
     "evidence hir=yes(reserve) hir_cfg=yes",
     "evidence_node[0] kind=hir_routine",
     "evidence_node[3] kind=rir_authority",
@@ -523,3 +613,4 @@ if missing_semantics:
 
 print("AIR drift smoke: ok")
 PY
+fi

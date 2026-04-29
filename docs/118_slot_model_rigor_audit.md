@@ -16,6 +16,7 @@ Related documents:
 - `docs/security/` — AI Validator adversarial counterexample audits (Tier 3 invariants)
 - `docs/119_pergyra_lineage_positioning.md` — sister positioning doc for language lineage; §11 marketing-phrasing table extends this doc's §8 negative-space audit
 - `docs/120_vision_and_capability_audit.md` — sister audit; capability negative-space + current-vs-vision separation (completes the three-pair protocol with this doc's §8 and `docs/119` §11)
+- `docs/121_types_as_domain_medium.md` — sister positioning; type system as the syntactic machine of lost-meaning recovery (Slot is the state-transition coordinate axis in §2)
 
 This document is an **honest audit** of what Pergyra's Slot model and
 ownership system actually guarantee statically, what they check at runtime,

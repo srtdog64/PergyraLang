@@ -18,7 +18,9 @@ AIRProgram intents=... boundaries=... evidence_nodes=... drifts=... strict_evide
 It then prints evidence counters, intent nodes, boundary nodes, legacy
 per-boundary evidence flags, and first-class `AIREvidenceNode` provenance.
 Current first-class evidence node kinds are `hir_routine`, `hir_cfg`,
-`rir_boundary`, `rir_authority`, `mir_cleanup`, and `mir_pin_cleanup`.
+`rir_boundary`, `rir_authority`, `mir_cleanup`, `mir_pin_cleanup`,
+`dag_generic`, `dag_ability`, `rir_effect_propagation`, and
+`rir_relation_propagation`.
 
 마지막 업데이트: 2026-04-30
 
@@ -223,8 +225,9 @@ sixth compiler core and the architecture is wrong.
 - Phase 1 beta contract is frozen and green.
 - `EvidenceNode` is explicit rather than a loose set of booleans.
 - HIR, RIR, and MIR pin-cleanup evidence are represented as provenance-carrying
-  references; general MIR cleanup and DAG evidence remain the next closure
-  targets.
+  references. General MIR cleanup and DAG generic/ability evidence are also
+  represented as global provenance nodes; the next closure target is deeper
+  consumer coverage, not reintroducing boolean-only proof.
 - `pgy --air` has a stable text dump and a stable machine-readable dump for CI /
   tooling.
 - Positive and negative dogfood fixtures exercise intent, zone/world, event,
@@ -246,14 +249,26 @@ sixth compiler core and the architecture is wrong.
   a boundary AST is available. This prevents routine-only intent summaries from
   being mistaken for CFG-backed body evidence.
 - First-class `AIREvidenceNode` inventory is present for HIR routine, HIR CFG,
-  RIR boundary, RIR authority, and MIR pin-cleanup evidence. Legacy
+  RIR boundary, RIR authority, MIR cleanup/pin-cleanup, DAG generic/ability,
+  and RIR effect/relation propagation evidence. Legacy
   per-boundary flags remain as the driver compatibility seam; new cross-layer
   checks should add evidence nodes instead of adding more boolean-only proof
   flags.
-- MIR pin-cleanup evidence is collected through `air_collect_mir_evidence(...)`
-  after MIR has produced `pin-unpin-cleanup-edge` facts. AIR does not create
-  cleanup facts; it only records that the MIR-owned cleanup fact exists for the
-  matching AIR `pin` execution boundary.
+- Strict verification treats `AIREvidenceNode` as authoritative whenever an
+  evidence inventory exists. The legacy per-boundary flags are cached summaries
+  for dumps and compatibility fixtures; they do not independently satisfy
+  strict evidence once inventory nodes are present.
+- Evidence nodes are shape-checked against their boundary class. Global evidence
+  (`mir_cleanup`, `dag_*`, `rir_*_propagation`) must not attach to a concrete
+  boundary; `hir_cfg` evidence requires same-boundary `hir_routine` evidence;
+  `rir_authority` evidence requires same-boundary `rir_boundary` evidence and a
+  declared authority participant; `mir_pin_cleanup` evidence can attach only to
+  a `pin` execution boundary.
+- MIR cleanup and pin-cleanup evidence are collected through
+  `air_collect_mir_evidence(...)` after MIR has produced cleanup facts. AIR does
+  not create cleanup facts; it records that MIR-owned cleanup evidence exists,
+  and strict verification requires matching `mir_pin_cleanup` evidence for AIR
+  `pin` execution boundaries once MIR input has been attached.
 - Parsed-source intent routines now have a minimal HIR CFG materializer:
   `hir_lower_intent_cfg(...)` builds ordered clause blocks for intent
   priority/success/failure expressions and each step's `where`, `using`,
@@ -366,6 +381,10 @@ sixth compiler core and the architecture is wrong.
 - backend non-impact 회귀: `make air-backend-nonimpact-test-smoke` 는 relaxed AIR (`PGY_AIR_STRICT_EVIDENCE=0`)와 default strict AIR가 no-drift intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set에서 동일한 C/LLVM 텍스트를 생성하는지 비교한다.
 - full sweep: `make air-backend-nonimpact-full-test-smoke` 는 `tests/cases/backend_compare/*/main.pgy` 전체를 같은 방식으로 비교한다. 이 타겟은 Linux CI gate로 승격되어 default strict AIR가 backend output을 바꾸지 않는다는 full frozen fixture 증거를 제공한다.
 - execution parity: `make air-strict-backend-compare-test-smoke` 는 strict evidence 상태에서 C/LLVM backend compare를 실행해, default strict AIR validation이 실제 실행 결과 parity를 깨지 않는지 확인한다.
+- JSON schema gate: `make air-json-schema-test-smoke` 는 `pgy --air-json`
+  출력이 `pgy.air.graph.v1` graph shape를 유지하는지 확인한다. Python이
+  있으면 실제 JSON parser로 summary/boundary/evidence/observability schema를
+  검증하고, Python이 없는 환경에서는 literal schema gate로 통과한다.
 
 ### Phase 2 (post-beta, toward 1.0)
 
@@ -380,7 +399,9 @@ sixth compiler core and the architecture is wrong.
 
 ### Phase 3 (1.0 hardening)
 
-- AIR graph dump의 stable JSON schema를 고정한다.
+- AIR graph dump의 Phase 1 stable JSON baseline은 `pgy.air.graph.v1`로 고정됐고
+  `make air-json-schema-test-smoke`가 CI 소비 가능성을 gate한다. Phase 3는
+  Constraint/Effect node를 추가하되 Phase 1 key를 깨지 않는 방향으로 확장한다.
 - LSP/CI/tooling이 AIR JSON을 읽어 abstraction drift를 표시한다.
 - AIR가 안정되면 일부 metadata의 단일 source of truth화를 검토한다.
   예: zone boundary 정보가 DIR와 AIR 양쪽에 있던 것을 AIR 단일화.
@@ -450,6 +471,10 @@ bool air_verify(AIRProgram *air, char **error_message);
 - authority-required boundaries must carry explicit authority participant names;
 - RIR authority evidence must sit on an authority-required boundary and must
   have matching RIR boundary evidence first;
+- first-class evidence nodes must match their boundary class: global evidence is
+  global-only, HIR CFG evidence requires HIR routine evidence, authority evidence
+  must name a declared participant, and MIR pin cleanup evidence must target a
+  pin execution boundary;
 - implementation boundaries must carry matching HIR CFG evidence;
 - evidence flags must carry provenance names, not boolean-only claims;
 - strict evidence mode computes drift/evidence failures before MIR lowering.

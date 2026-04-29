@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM backend ??domain-specific passes (Party/Roster/World, Ability,
+ * LLVM backend domain-specific passes (Party/Roster/World, Ability,
  * Role, Event).  Extracted from llvm_backend.c to keep file sizes
  * manageable.
  */

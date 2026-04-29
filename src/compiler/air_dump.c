@@ -158,13 +158,14 @@ air_dump(const AIRProgram *air, FILE *out)
         fprintf(out, "AIRProgram(null)\n");
         return;
     }
-    fprintf(out, "AIRProgram intents=%zu boundaries=%zu evidence_nodes=%zu drifts=%zu strict_evidence=%s hir_input=%s\n",
+    fprintf(out, "AIRProgram intents=%zu boundaries=%zu evidence_nodes=%zu drifts=%zu strict_evidence=%s hir_input=%s mir_input=%s\n",
             air->intent_count,
             air->boundary_count,
             air->evidence_count,
             air->drift_count,
             air->strict_evidence ? "yes" : "no",
-            air->has_hir_input ? "yes" : "no");
+            air->has_hir_input ? "yes" : "no",
+            air->has_mir_input ? "yes" : "no");
     fprintf(out, "  evidence hir_routines=%zu hir_cfg=%zu rir_boundaries=%zu rir_authority=%zu mir_cleanup=%zu mir_pin_cleanup=%zu dag_generic=%zu dag_ability=%zu rir_effect=%zu/%zu rir_relation=%zu/%zu\n",
             air->hir_routine_evidence_count,
             air->hir_cfg_evidence_count,
@@ -251,6 +252,8 @@ air_dump_json(const AIRProgram *air, FILE *out)
     air_json_bool(out, air->strict_evidence);
     fputs(",\"hir_input\":", out);
     air_json_bool(out, air->has_hir_input);
+    fputs(",\"mir_input\":", out);
+    air_json_bool(out, air->has_mir_input);
     fprintf(out,
             ",\"hir_routine_evidence_count\":%zu,\"hir_cfg_evidence_count\":%zu,"
             "\"rir_boundary_evidence_count\":%zu,\"rir_authority_evidence_count\":%zu,"
