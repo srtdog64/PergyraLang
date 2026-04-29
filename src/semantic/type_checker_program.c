@@ -14,7 +14,8 @@ program_resolve_type_quiet(ASTNode *type_node, SemanticContext *ctx)
     if (type_node == NULL || ctx == NULL)
         return TYPE_UNKNOWN;
 
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
+    resolved = semantic_type_resolution_lookup_resolved_annotation(ctx,
+                                                                   type_node);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 

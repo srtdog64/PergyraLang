@@ -493,7 +493,11 @@ TEST_RIR_SRC            = $(SRC_DIR)/test_rir.c
 TEST_MIR_SRC            = $(SRC_DIR)/test_mir.c
 TEST_HIR_SRC            = $(SRC_DIR)/test_hir.c
 DRIVER_SRC              = $(SRC_DIR)/pgy_driver.c
-LSP_SRC                 = $(SRC_DIR)/lsp/pgy_lsp.c
+LSP_SRC                 = $(SRC_DIR)/lsp/pgy_lsp.c \
+                          $(SRC_DIR)/lsp/pgy_lsp_protocol.c \
+                          $(SRC_DIR)/lsp/pgy_lsp_features.c \
+                          $(SRC_DIR)/lsp/pgy_lsp_hover.c \
+                          $(SRC_DIR)/lsp/pgy_lsp_diagnostics.c
 
 # -----------------------------------------------------------------
 # Object files
@@ -570,7 +574,7 @@ TEST_RIR_OBJ           = $(BUILD_DIR)/test_rir.o
 TEST_MIR_OBJ           = $(BUILD_DIR)/test_mir.o
 TEST_HIR_OBJ           = $(BUILD_DIR)/test_hir.o
 DRIVER_OBJ             = $(BUILD_DIR)/pgy_driver.o
-LSP_OBJ                = $(BUILD_DIR)/lsp/pgy_lsp.o
+LSP_OBJECTS            = $(LSP_SRC:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
 # Common frontend objects used by many targets
 FRONTEND_OBJECTS = $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
@@ -714,7 +718,7 @@ $(HIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJ
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # LSP server
-$(PGY_LSP): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(LSP_OBJ) | $(BIN_DIR)
+$(PGY_LSP): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(LSP_OBJECTS) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 

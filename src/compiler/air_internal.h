@@ -14,6 +14,20 @@ bool        air_assign_first_owned_name(AIRProgram *air,
                                         const char *text,
                                         char **error_message,
                                         const char *what);
+bool        air_append_evidence_node(AIRProgram *air,
+                                     AIREvidenceKind kind,
+                                     size_t boundary_index,
+                                     const char *provider_name,
+                                     const char *subject_name,
+                                     char **error_message);
+bool        air_append_evidence_node_ex(AIRProgram *air,
+                                        AIREvidenceKind kind,
+                                        size_t boundary_index,
+                                        const char *provider_name,
+                                        const char *subject_name,
+                                        size_t fact_count,
+                                        size_t fallback_count,
+                                        char **error_message);
 void        air_clear_drifts(AIRProgram *air);
 bool        air_name_matches(const char *a, const char *b);
 bool        air_step_has_zone_boundary(const DIRIntentStep *step);

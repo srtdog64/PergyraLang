@@ -15,6 +15,12 @@ air_count_expr_boundaries(ASTNode *node)
         for (size_t i = 0; i < node->data.block.count; i++)
             count += air_count_expr_boundaries(node->data.block.statements[i]);
         break;
+    case AST_LET_DECL:
+        count += air_count_expr_boundaries(node->data.let_decl.initializer);
+        break;
+    case AST_LET_DESTRUCTURE:
+        count += air_count_expr_boundaries(node->data.let_destructure.initializer);
+        break;
     case AST_WITH_STMT:
         count += air_count_expr_boundaries(node->data.with_stmt.body);
         break;
@@ -117,6 +123,27 @@ air_count_expr_boundaries(ASTNode *node)
         for (size_t i = 0; i < node->data.event_invoke.arg_count; i++)
             count += air_count_expr_boundaries(node->data.event_invoke.arguments[i]);
         break;
+    case AST_EVENT_SUBSCRIBE:
+    case AST_EVENT_UNSUBSCRIBE:
+        count += air_count_expr_boundaries(node->data.event_op.event);
+        count += air_count_expr_boundaries(node->data.event_op.handler);
+        break;
+    case AST_PARTY_SHARED:
+        count += air_count_expr_boundaries(node->data.party_shared.initializer);
+        break;
+    case AST_PARTY_INSTANCE:
+        for (size_t i = 0; i < node->data.party_instance.assignment_count; i++)
+            count += air_count_expr_boundaries(node->data.party_instance.assignments[i].value);
+        break;
+    case AST_WORLD_SYSTEMIC:
+        count += air_count_expr_boundaries(node->data.world_roster.initializer);
+        break;
+    case AST_WORLD_ZONE:
+        count += air_count_expr_boundaries(node->data.world_zone.initializer);
+        break;
+    case AST_DOMAIN_SLOT:
+        count += air_count_expr_boundaries(node->data.domain_slot.initializer);
+        break;
     case AST_LAMBDA_EXPR:
         count += air_count_expr_boundaries(node->data.lambda_expr.body);
         break;
@@ -193,6 +220,22 @@ air_append_expr_boundaries(AIRProgram *air,
             if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.block.statements[i]))
                 return false;
         break;
+    case AST_LET_DECL:
+        return air_append_expr_boundaries(air,
+                                          boundaries,
+                                          boundary_index,
+                                          intent_index,
+                                          owner,
+                                          step,
+                                          node->data.let_decl.initializer);
+    case AST_LET_DESTRUCTURE:
+        return air_append_expr_boundaries(air,
+                                          boundaries,
+                                          boundary_index,
+                                          intent_index,
+                                          owner,
+                                          step,
+                                          node->data.let_destructure.initializer);
     case AST_FOR_LOOP:
         return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.for_loop.range_start)
             && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.for_loop.range_end)
@@ -295,6 +338,23 @@ air_append_expr_boundaries(AIRProgram *air,
             if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.event_invoke.arguments[i]))
                 return false;
         break;
+    case AST_EVENT_SUBSCRIBE:
+    case AST_EVENT_UNSUBSCRIBE:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.event_op.event)
+            && air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.event_op.handler);
+    case AST_PARTY_SHARED:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.party_shared.initializer);
+    case AST_PARTY_INSTANCE:
+        for (size_t i = 0; i < node->data.party_instance.assignment_count; i++)
+            if (!air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.party_instance.assignments[i].value))
+                return false;
+        break;
+    case AST_WORLD_SYSTEMIC:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.world_roster.initializer);
+    case AST_WORLD_ZONE:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.world_zone.initializer);
+    case AST_DOMAIN_SLOT:
+        return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.domain_slot.initializer);
     case AST_LAMBDA_EXPR:
         return air_append_expr_boundaries(air, boundaries, boundary_index, intent_index, owner, step, node->data.lambda_expr.body);
     case AST_UNSAFE_BLOCK:

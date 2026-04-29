@@ -72,6 +72,8 @@ dir_impl = "\n".join([
     dir_collect_path.read_text(encoding="utf-8"),
 ])
 air_header = air_header_path.read_text(encoding="utf-8")
+air_boundary_walk = air_boundary_walk_path.read_text(encoding="utf-8")
+air_evidence = air_evidence_path.read_text(encoding="utf-8")
 air_impl = "\n".join([
     air_impl_path.read_text(encoding="utf-8"),
     air_boundary_path.read_text(encoding="utf-8"),
@@ -106,7 +108,8 @@ required_air_terms = [
     "make air-drift-test-smoke",
     "make air-backend-nonimpact-test-smoke",
     "pgy --air <source.pgy>",
-    "AIRProgram intents=... boundaries=... drifts=...",
+    "AIRProgram intents=... boundaries=... evidence_nodes=... drifts=...",
+    "AIREvidenceNode",
     "CompilerIRBundle",
 ]
 missing_air = [term for term in required_air_terms if term not in air]
@@ -214,6 +217,14 @@ required_impl_terms = [
     "air_assign_first_owned_name",
     "air_boundary_sync_shape_valid",
     "air_boundary_requires_hir_evidence",
+    "AST_LET_DECL",
+    "AST_LET_DESTRUCTURE",
+    "AST_EVENT_SUBSCRIBE",
+    "event-subscribe",
+    "event-unsubscribe",
+    "AST_PARTY_INSTANCE",
+    "AST_WORLD_ZONE",
+    "AST_DOMAIN_SLOT",
     "AIR implementation boundary has no matching HIR CFG evidence",
     "AIR boundary has no matching HIR routine evidence",
     "air_drift_kind_valid",
@@ -257,6 +268,33 @@ missing_impl = [term for term in required_impl_terms if term not in air_impl]
 if missing_impl:
     raise SystemExit("AIR implementation missing term(s): " + ", ".join(missing_impl))
 
+shared_walker_terms = [
+    "AST_LET_DECL",
+    "AST_LET_DESTRUCTURE",
+    "AST_EVENT_SUBSCRIBE",
+    "AST_EVENT_UNSUBSCRIBE",
+    "AST_PARTY_SHARED",
+    "AST_PARTY_INSTANCE",
+    "AST_WORLD_SYSTEMIC",
+    "AST_WORLD_ZONE",
+    "AST_DOMAIN_SLOT",
+]
+missing_boundary_walk_terms = [
+    term for term in shared_walker_terms
+    if air_boundary_walk.count(term) < 2
+]
+if missing_boundary_walk_terms:
+    raise SystemExit(
+        "AIR boundary walker missing count/append mirrored payload term(s): "
+        + ", ".join(missing_boundary_walk_terms)
+    )
+missing_evidence_terms = [term for term in shared_walker_terms if term not in air_evidence]
+if missing_evidence_terms:
+    raise SystemExit(
+        "AIR evidence containment missing mirrored payload term(s): "
+        + ", ".join(missing_evidence_terms)
+    )
+
 required_driver_terms = [
     "air_synthesize(hir, dir, rir",
     "driver_emit_air_drift_fail",
@@ -274,8 +312,11 @@ required_driver_terms = [
     "air_boundary_requires_hir_evidence(boundary)",
     "air_boundary_requires_rir_evidence(boundary)",
     "--air",
+    "--air-json",
     "dump_air",
+    "dump_air_json",
     "air_dump(air, stdout)",
+    "air_dump_json(air, stdout)",
     "HIR CFG and RIR boundary evidence",
     "HIR CFG evidence",
     "RIR boundary evidence",
@@ -312,6 +353,14 @@ missing_span_terms = [label for text, needle, label in required_source_span_term
 if missing_span_terms:
     raise SystemExit("AIR source span gate missing term(s): " + ", ".join(missing_span_terms))
 
+required_dag_drift_terms = [
+    (air_impl, "dag_fallback_present", "AIR DAG fallback drift JSON name"),
+    (air_impl, "AIR DAG evidence contains metadata materializer fallback", "AIR DAG fallback drift message"),
+]
+missing_dag_drift_terms = [label for text, needle, label in required_dag_drift_terms if needle not in text]
+if missing_dag_drift_terms:
+    raise SystemExit("AIR DAG drift gate missing term(s): " + ", ".join(missing_dag_drift_terms))
+
 backend_non_consumers = [
     root / "src" / "compiler" / "compiler.c",
     root / "src" / "compiler" / "c_runner.c",
@@ -338,14 +387,44 @@ required_test_terms = [
     "AIR verify rejects boundary owner mismatch",
     "AIR verify rejects boundary sync shape mismatch",
     "AIR verify rejects invalid drift inventory",
+    "AIR verify rejects invalid evidence inventory",
+    "evidence count without evidence array",
+    "references missing boundary node",
+    "has no provider provenance",
     "AIR verify rejects authority evidence shape mismatch",
     "AIR verify rejects CFG evidence without routine evidence",
+    "AIR verify rejects empty evidence provenance",
     "PGY_AIR_INVARIANT_INVALID",
     "AIR check_drift remains verify compatibility wrapper",
     "AIR strict evidence rejects mismatched authority participant",
     "AIR dump prints evidence provenance",
+    "AIR JSON dump prints stable graph schema",
+    "pgy.air.graph.v1",
+    "pgy.intent.observability.v1",
+    "pgy.intent.trace.v1",
+    "PGY_OBSERVABILITY_SURFACE_LAST",
+    "PGY_OBSERVABILITY_EVENT_INTENT_ENTER",
+    "mir_pin_cleanup_evidence_count",
+    "AIR collects MIR pin cleanup evidence",
+    "AIR collects MIR cleanup block evidence",
+    "AIR collects DAG generic ability evidence",
+    "AIR reports DAG fallback drift",
     "strict_evidence=yes hir_input=yes",
     "evidence hir=yes(reserve) hir_cfg=yes",
+    "evidence_node[0] kind=hir_routine",
+    "evidence_node[3] kind=rir_authority",
+    "AIR_EVIDENCE_MIR_CLEANUP",
+    "AIR_EVIDENCE_MIR_PIN_CLEANUP",
+    "cleanup-block",
+    "AIR_EVIDENCE_DAG_GENERIC",
+    "AIR_EVIDENCE_DAG_ABILITY",
+    "AIR_DRIFT_DAG_FALLBACK_PRESENT",
+    "air_collect_mir_evidence",
+    "air_collect_dag_evidence",
+    "mir_pin_cleanup_evidence_count",
+    "dag_generic_evidence_count",
+    "dag_ability_evidence_count",
+    "type_resolution_metadata_entries",
     "AIR world boundary requires transfer evidence",
     "AIR world boundary accepts transfer evidence",
     "AIR world boundary rejects mismatched transfer AST evidence",
@@ -359,6 +438,10 @@ required_test_terms = [
     "rir_authority_evidence_name",
     "AIR lowers parsed intent source without drift",
     "AIR synthesis captures spawn boundary from intent step AST",
+    "AIR synthesis captures boundary from let initializer",
+    "test_air_synthesizes_boundary_from_let_initializer",
+    "AIR synthesis captures boundary from event handler payload",
+    "test_air_synthesizes_boundary_from_event_handler_payload",
     "AIR await boundary accepts exact RIR evidence",
     "AIR await boundary rejects generic RIR scope evidence",
     "AIR channel boundary accepts exact RIR op evidence",
@@ -367,9 +450,11 @@ required_test_terms = [
     "AIR synthesis captures IO boundary without sync drift",
     "AIR synthesis captures stable execution boundary set",
     "found_pin",
+    "found_event_subscribe",
+    "found_event_unsubscribe",
     "found_task_group",
     "found_nested_io",
-    "air->boundary_count == 12",
+    "air->boundary_count == 14",
     "AIR parsed IO boundary accepts exact RIR evidence",
     "AIR parsed transfer emits zone and world boundaries",
     "AIR parsed transfer reports zone missing authority evidence",

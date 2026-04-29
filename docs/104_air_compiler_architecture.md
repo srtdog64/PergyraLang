@@ -12,13 +12,15 @@ for review/debugging only; C and LLVM backends must not consume `AIRProgram`.
 The expected dump shape starts with:
 
 ```text
-AIRProgram intents=... boundaries=... drifts=... strict_evidence=...
+AIRProgram intents=... boundaries=... evidence_nodes=... drifts=... strict_evidence=...
 ```
 
-It then prints evidence counters, intent nodes, boundary nodes, and per-boundary
-evidence provenance.
+It then prints evidence counters, intent nodes, boundary nodes, legacy
+per-boundary evidence flags, and first-class `AIREvidenceNode` provenance.
+Current first-class evidence node kinds are `hir_routine`, `hir_cfg`,
+`rir_boundary`, `rir_authority`, `mir_cleanup`, and `mir_pin_cleanup`.
 
-마지막 업데이트: 2026-04-29
+마지막 업데이트: 2026-04-30
 
 ## 1. 포지셔닝: Verification IR, 별도 codegen 레이어 아님
 
@@ -160,6 +162,75 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
 
 ## 7. Phased Rollout
 
+## 7.0 Final 1.0 Blueprint — Cross-Layer Abstraction Verifier
+
+AIR is the 1.0 closure target for Pergyra's abstraction-safety story. This does
+not mean AIR becomes the owner of the whole language. It means AIR becomes the
+auditable ledger that checks whether facts proven by the lower layers agree
+with the declared intent/zone/world/effect boundary contract.
+
+The final AIR shape for 1.0 is:
+
+- `IntentNode`: intent owner, step order, sync class, failure class, rollback /
+  compensation policy, and source span.
+- `BoundaryNode`: zone, world, parallel, channel, IO, execution, event, and pin
+  boundaries with source identity and sync class.
+- `EvidenceNode`: first-class references to proof facts from HIR CFG, DIR, RIR,
+  MIR, and the type-resolution DAG.
+- `DriftFact`: user-facing mismatch between the declared abstraction contract
+  and the implementation evidence.
+
+AIR 1.0 input evidence must come from the owning layer:
+
+| Evidence source | Owner layer | AIR responsibility |
+|---|---|---|
+| Intent/zone/world declarations | DIR | Build `IntentNode` / declared `BoundaryNode` inventory |
+| Body/control-flow reachability | HIR CFG | Prove implementation boundaries exist in lowered body flow |
+| Authority/resource/effect/IO/channel/world ops | RIR | Prove boundary-specific resource and authority evidence |
+| Cleanup/drop/pin/resource final facts | MIR | Prove implementation cleanup facts match boundary promises |
+| Generic/ability/module/type facts | Type-resolution DAG | Prove declared contracts resolve to stable semantic facts |
+
+AIR 1.0 must verify:
+
+- declared intent sync/failure/authority constraints do not drift from actual
+  implementation boundaries;
+- zone/world handoff evidence is source-specific and does not pass through
+  unrelated same-name scopes;
+- IO/channel/parallel/event/execution boundaries have the required HIR and RIR
+  evidence;
+- pin/cleanup/resource boundaries have the required MIR cleanup facts when
+  those facts are part of the declared contract;
+- generic/ability/module facts referenced by abstraction contracts are resolved
+  by the DAG, not by a recursive compatibility path;
+- every drift diagnostic includes source span, reason, fix, and evidence
+  provenance.
+
+AIR 1.0 must not:
+
+- construct CFG;
+- perform type checking or generic resolution;
+- perform ownership / borrow checking;
+- run the runtime frontier scheduler;
+- lower to C or LLVM;
+- mutate HIR/DIR/RIR/MIR/DAG facts to make evidence fit.
+
+The rule is: **each layer proves its own facts; AIR audits cross-layer
+agreement.** If AIR starts replacing the owning layers, it becomes a duplicated
+sixth compiler core and the architecture is wrong.
+
+1.0 entry criteria for AIR:
+
+- Phase 1 beta contract is frozen and green.
+- `EvidenceNode` is explicit rather than a loose set of booleans.
+- HIR, RIR, and MIR pin-cleanup evidence are represented as provenance-carrying
+  references; general MIR cleanup and DAG evidence remain the next closure
+  targets.
+- `pgy --air` has a stable text dump and a stable machine-readable dump for CI /
+  tooling.
+- Positive and negative dogfood fixtures exercise intent, zone/world, event,
+  IO/channel/parallel, pin/cleanup, and generic/ability contract evidence.
+- C and LLVM backends remain non-consumers of `AIRProgram`.
+
 ### Phase 1 (베타 closure 안)
 
 - AIR 데이터 구조: Intent Node + Boundary Node 두 종류만
@@ -174,6 +245,15 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
   the matching routine also carries generated CFG for the same boundary AST when
   a boundary AST is available. This prevents routine-only intent summaries from
   being mistaken for CFG-backed body evidence.
+- First-class `AIREvidenceNode` inventory is present for HIR routine, HIR CFG,
+  RIR boundary, RIR authority, and MIR pin-cleanup evidence. Legacy
+  per-boundary flags remain as the driver compatibility seam; new cross-layer
+  checks should add evidence nodes instead of adding more boolean-only proof
+  flags.
+- MIR pin-cleanup evidence is collected through `air_collect_mir_evidence(...)`
+  after MIR has produced `pin-unpin-cleanup-edge` facts. AIR does not create
+  cleanup facts; it only records that the MIR-owned cleanup fact exists for the
+  matching AIR `pin` execution boundary.
 - Parsed-source intent routines now have a minimal HIR CFG materializer:
   `hir_lower_intent_cfg(...)` builds ordered clause blocks for intent
   priority/success/failure expressions and each step's `where`, `using`,
@@ -191,12 +271,13 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
   set is `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
   `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep` for IO; `spawn` /
   `async` / `await` / `parallel` / `task-group` for parallel; `channel-send` / `channel-recv` / `select`
-  for channel; and `with` / `unsafe` / `defer` / `pin` for execution. `Print` /
-  `Log*` are observability output calls, not AIR resource-boundary evidence in
-  Phase 1. Execution boundaries are synchronous body/CFG boundaries; strict
-  evidence checks HIR/CFG evidence for them, not RIR resource-boundary evidence.
-  `with` body traversal is part of the Phase 1 contract so nested IO/time
-  boundaries are not hidden by the execution container.
+  for channel; and `with` / `unsafe` / `defer` / `pin` / `event-subscribe` /
+  `event-unsubscribe` for execution. `Print` / `Log*` are observability output
+  calls, not AIR resource-boundary evidence in Phase 1. Execution boundaries
+  are synchronous body/CFG boundaries; strict evidence checks HIR/CFG evidence
+  for them, not RIR resource-boundary evidence. `with` and event-handler body
+  traversal are part of the Phase 1 contract so nested IO/time boundaries are
+  not hidden by execution containers.
 - Expression boundary evidence is source-specific: `spawn` / `async` / `await` /
   `parallel` / `task-group`, `channel` / `select`, and IO boundaries are not satisfied by a
   generic RIR scope with the same intent owner. They need matching
@@ -212,6 +293,13 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
   tuples, await, channel ops, select, match, unsafe, defer, event invoke, and
   lambda body. AIR does not accept routine-name evidence alone for these
   implementation boundaries.
+- AIR boundary walking and HIR containment also descend through executable
+  payload carriers that are not boundaries by themselves: `let` and
+  destructuring initializers, event subscribe/unsubscribe handler payloads,
+  party-instance assignment values, party shared-field initializers, world
+  roster/zone initializers, and domain-slot initializers. This prevents an IO /
+  parallel / channel / execution boundary from being hidden behind a container
+  node that only exists to carry a payload.
 - `await` evidence is operation-specific: AIR accepts await boundary evidence
   only when RIR exposes the exact `AwaitRemote` operation for the same AST
   boundary. A generic intent scope named `await` or an unrelated await operation
@@ -260,6 +348,10 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
   IO boundaries must carry the frozen sync-class shape (`world`, `parallel`,
   and `channel` are async; IO is either-sync). Failures use
   `PGY_AIR_INVARIANT_INVALID`.
+- Evidence provenance is also shape-checked. If HIR routine, RIR boundary, or
+  RIR authority evidence flags are set, their provenance names must be
+  non-empty. Boolean-only evidence and empty-string evidence are invalid AIR
+  inventory, not weak proof.
 - Existing drift inventory is validated before recomputation: persisted drift
   nodes must have a real drift kind, valid intent/boundary references, and a
   non-empty message. Placeholder `AIR_DRIFT_NONE` entries are invalid inventory,
@@ -275,16 +367,24 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
 - full sweep: `make air-backend-nonimpact-full-test-smoke` 는 `tests/cases/backend_compare/*/main.pgy` 전체를 같은 방식으로 비교한다. 이 타겟은 Linux CI gate로 승격되어 default strict AIR가 backend output을 바꾸지 않는다는 full frozen fixture 증거를 제공한다.
 - execution parity: `make air-strict-backend-compare-test-smoke` 는 strict evidence 상태에서 C/LLVM backend compare를 실행해, default strict AIR validation이 실제 실행 결과 parity를 깨지 않는지 확인한다.
 
-### Phase 2 (베타 후)
+### Phase 2 (post-beta, toward 1.0)
 
-- Constraint Node, Effect Node 도입
-- Drift fact 종류 확장 (failure class, transactional scope, persistence)
-- DB / Network / FileSystem / External device 효과 노드
+- `EvidenceNode` 도입: HIR/RIR/MIR/DAG provenance를 boolean flag가 아니라
+  first-class evidence reference로 표현한다.
+- Constraint Node, Effect Node 도입.
+- Drift fact 종류 확장: failure-class mismatch, transactional-scope mismatch,
+  persistence mismatch.
+- DB / Network / FileSystem / External device 효과 노드.
+- MIR cleanup / pin evidence 연결.
+- DAG generic / ability / module evidence 연결.
 
-### Phase 3
+### Phase 3 (1.0 hardening)
 
-- AIR 가 안정되면 일부 metadata 의 단일 source of truth 화
-- 예: zone boundary 정보가 DIR 와 AIR 양쪽에 있던 것을 AIR 단일화
+- AIR graph dump의 stable JSON schema를 고정한다.
+- LSP/CI/tooling이 AIR JSON을 읽어 abstraction drift를 표시한다.
+- AIR가 안정되면 일부 metadata의 단일 source of truth화를 검토한다.
+  예: zone boundary 정보가 DIR와 AIR 양쪽에 있던 것을 AIR 단일화.
+- 단, codegen backend는 계속 AIR를 consume하지 않는다.
 
 ## 8. 비용 분석
 

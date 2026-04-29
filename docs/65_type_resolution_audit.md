@@ -82,6 +82,10 @@ The next cleanup target is therefore precise:
 4. Keep `stage-compat-*` counters at zero. They are compatibility audit
    counters for the retired resolver surface, not an active recursive resolver
    path.
+5. Keep the resolved-annotation seam allowlist explicit. The current semantic
+   suite still has 12 annotation-sensitive quiet readers for already-resolved
+   generic defaults/effective ability references; new readers must either move
+   through metadata-first APIs or be deliberately added to the inventory gate.
 
 Do not reintroduce a hard-crash compatibility path. Beta policy is explicit
 diagnostic plus zero-use gate, not process abort.
@@ -99,3 +103,8 @@ make test-semantic
 The first two gates are the minimum DAG closure proof. `test-semantic` is the
 broader regression sweep and should be run before claiming a source-of-truth
 removal.
+
+`type-resolution-resolver-inventory-test-smoke` also gates
+`semantic_type_resolution_lookup_resolved_annotation(...)` at exactly 12
+non-metadata owner seams. This is remaining source-of-truth debt for
+annotation-sensitive readers, not recursive fallback debt.

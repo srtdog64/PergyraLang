@@ -8,6 +8,44 @@
 
 Operational mode:
 
+- 2026-04-30 AIR payload-containment update:
+  AIR boundary walking and HIR containment now also descend through event
+  subscribe/unsubscribe handler payloads, party-instance assignment values,
+  party shared-field initializers, world roster/zone initializers, and
+  domain-slot initializers. These carrier nodes are not new AIR boundary kinds;
+  they only prevent existing IO/parallel/channel/execution boundaries from
+  being hidden behind a payload container. Gate: `make test-air
+  air-drift-test-smoke` (`41/0` AIR tests).
+- 2026-04-30 AIR event execution boundary update:
+  `AST_EVENT_SUBSCRIBE` and `AST_EVENT_UNSUBSCRIBE` are now AIR execution
+  boundaries with `event-subscribe` / `event-unsubscribe` sources. The handler
+  payload is still traversed, so an event subscription can produce both the
+  outer execution boundary and nested IO/parallel/channel boundaries. This is
+  a verification-layer change only; AIR remains absent from codegen IR.
+- 2026-04-30 AIR evidence provenance tightening:
+  `air_validate(...)` now rejects empty HIR routine, RIR boundary, and RIR
+  authority evidence provenance names. Evidence flags must carry named proof
+  provenance; boolean-only or empty-string evidence is treated as
+  `PGY_AIR_INVARIANT_INVALID`. Gate: `make test-air air-drift-test-smoke`
+  (`41/0` AIR tests).
+- 2026-04-30 AIR 1.0 scope freeze:
+  AIR is now documented as the 1.0 closure target for abstraction safety, not
+  as a replacement for CFG, DAG, MIR, ownership, or runtime propagation. Beta
+  keeps Phase 1 narrow (`IntentNode`, `BoundaryNode`, strict evidence, drift
+  facts); 1.0 requires first-class `EvidenceNode`s that audit HIR CFG, DIR,
+  RIR, MIR cleanup/pin, and DAG generic/ability/module facts without becoming a
+  codegen IR.
+- 2026-04-30 AIR evidence-node implementation step:
+  `AIREvidenceNode` is now present in the AIR data model and dump output.
+  HIR routine, HIR CFG, RIR boundary, and RIR authority evidence are recorded as
+  provenance-carrying nodes while the legacy per-boundary flags remain as the
+  current driver compatibility seam. `air_validate(...)` rejects malformed
+  evidence-node inventory.
+- 2026-04-30 AIR MIR pin-cleanup evidence step:
+  `air_collect_mir_evidence(...)` records MIR-owned `pin-unpin-cleanup-edge`
+  facts as `AIR_EVIDENCE_MIR_PIN_CLEANUP` nodes for matching AIR `pin`
+  execution boundaries. This keeps MIR as the cleanup source of truth while
+  giving AIR a provenance-carrying audit hook for 1.0 abstraction safety.
 - 2026-04-29 DAG retired-audit label freeze:
   `PGY_TYPE_RES_STATS=1` now reports the removed recursive resolver counters as
   `retired-compatibility-resolver`, `retired-compatibility-resolver-kind`, and
@@ -284,6 +322,13 @@ Operational mode:
   spawn/call/assignment, arrays/tuples, await/channel/select, match, unsafe,
   defer, event invoke, and lambda bodies; a loop-condition `ReadFile` fixture
   locks the body-control case.
+- 2026-04-30 AIR initializer-boundary update:
+  AIR boundary walking and HIR evidence containment now descend into
+  `AST_LET_DECL` and `AST_LET_DESTRUCTURE` initializers. This closes the seam
+  where an implementation boundary hidden behind `let x = ReadFile(...)` inside
+  an intent-step block was ordinary syntax to AIR instead of an abstraction
+  boundary. Gate: `make test-air` with the `AIR synthesis captures boundary
+  from let initializer` regression and `make air-drift-test-smoke`.
 - 2026-04-29 HIR intent CFG evidence update:
   parsed-source intent routines now get a minimal ordered clause CFG from
   `src/compiler/hir_lower_intent_cfg.c`. `hir_lower_cfg.c` remains focused on
@@ -1312,12 +1357,20 @@ Goal:
 - AST 기반 traversal 에 ownership 을 분산시켰다 사고친 패턴을 abstraction safety 도메인에서 반복하지 않는다. 분산된 metadata + cross-IR query 가 아니라 **단일 source of truth (AIR) + read-only synthesis** 로 푼다.
 - 베타 후 ~1년간 코어 패치 freeze 가 예정되어 있으므로 AIR Phase 1 은 **문서 합의가 아니라 실 구현 완료 + 회귀 smoke 통과** 까지 닫는다.
 - AIR 는 codegen path 위가 아니라 옆에 위치하는 **verification-only synthesis IR** 이다 (HIR + DIR + RIR → AIR, 단방향 read-only). codegen 출력에 영향이 없으므로 stale 위험이 codegen IR 보다 작다.
+- 1.0 기준에서 AIR는 Pergyra의 abstraction-safety closure layer다. 단,
+  타입/DAG, CFG/body safety, ownership, MIR cleanup, runtime propagation을
+  대신하지 않는다. 각 layer가 자기 evidence를 만들고 AIR는 그 evidence가
+  intent/zone/world/effect/IO/parallel/event/pin 계약과 일치하는지 감사한다.
 
 Closed now:
 
 - AIR 컴파일러 아키텍처 결정과 단방향 synthesis IR 포지셔닝이 `docs/104_air_compiler_architecture.md` 에 고정됐다.
 - AIR 가 Rust MIR 과 의식적으로 다른 위치 (codegen path 옆) 에 산다는 architectural choice 가 명시됐다.
 - Phase 1 / 2 / 3 scope 가 명시적으로 분리됐고, Phase 1 은 Intent Node + Boundary Node + 1 개 drift check 로 좁혀졌다.
+- 1.0 AIR blueprint가 문서화됐다: Phase 1 beta는 `IntentNode` /
+  `BoundaryNode` / strict evidence / drift facts를 닫고, 1.0은
+  `EvidenceNode`를 1급화해 HIR CFG, DIR, RIR, MIR cleanup/pin, DAG
+  generic/ability/module facts를 cross-layer로 감사한다.
 - AIR 가 아닌 것 (codegen IR 아님, ownership/borrow 검사 home 아님, type 검사 home 아님, effect propagation 자체 아님, 새 keyword 추가 안 함) 이 명시적 negative space 로 docs 에 고정됐다.
 - CFG 사고 (AST 기반 ownership 분산) 와의 동형 비교가 docs 에 고정되어, 같은 함정에 빠지지 않는 이유가 추적 가능하다.
 - `src/compiler/air.h` defines the AIR Phase 1 data model,
@@ -1661,8 +1714,8 @@ Closed now:
   `materializer_fallbacks=0`.
 - Current local stats are `graph-backed skips=3140`,
   `resolve_calls=0`, `resolve_unique_nodes=0`,
-  `metadata_entries=3363`, `metadata_owned=257`,
-  `metadata_hits=6755`, and `materializer_fallbacks=0`.
+  `metadata_entries=3436`, `metadata_owned=257`,
+  `metadata_hits=6756`, and `materializer_fallbacks=0`.
 - Metadata fallback families are all zero, including named, generic-named,
   compound, other, builtin shell, generic class, alias, non-class symbol, and
   missing-symbol fallback.
@@ -1674,6 +1727,11 @@ Closed now:
   diagnostic unresolved path. The DAG smoke gates `compat_alias == 0`, so any
   alias replay that leaks back into the recursive resolver path fails the beta
   DAG contract.
+- Non-metadata `semantic_type_resolution_lookup_resolved_annotation(...)`
+  readers are now smoke-gated at exactly 12. They are not recursive resolver
+  fallback, but they remain a narrow source-of-truth seam for effective generic
+  defaults and ability references until those annotation facts move into DAG
+  metadata.
 - Central metadata materialization no longer falls through to
   `resolve_type_node(type_node, ctx)`. Unsupported shapes are recorded as
   explicit fallback inventory and return unresolved; the DAG smoke keeps

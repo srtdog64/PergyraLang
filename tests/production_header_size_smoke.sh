@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEFAULT_LIMIT="${PRODUCTION_HEADER_MAX_LINES:-1000}"
+DEFAULT_LIMIT="${PRODUCTION_HEADER_MAX_LINES:-600}"
 
 cd "$ROOT_DIR"
 
@@ -12,7 +12,7 @@ while IFS= read -r -d '' path; do
     if [ "$lines" -gt "$DEFAULT_LIMIT" ]; then
         violations="${violations}${lines} ${path} > ${DEFAULT_LIMIT}"$'\n'
     fi
-done < <(find src/codegen src/runtime src/compiler src/semantic -name '*.h' -type f -print0)
+done < <(find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp -name '*.h' -type f -print0)
 
 if [ -n "$violations" ]; then
     echo "[production-header-size] header owner size violation(s):" >&2

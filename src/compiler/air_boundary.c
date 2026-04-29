@@ -73,6 +73,8 @@ air_boundary_kind_from_ast(const ASTNode *node)
     case AST_WITH_STMT:
     case AST_UNSAFE_BLOCK:
     case AST_DEFER_STMT:
+    case AST_EVENT_SUBSCRIBE:
+    case AST_EVENT_UNSUBSCRIBE:
         return AIR_BOUNDARY_EXECUTION;
     case AST_CALL:
         return air_call_is_io_boundary(node) ? AIR_BOUNDARY_IO : AIR_BOUNDARY_UNKNOWN;
@@ -134,6 +136,10 @@ air_boundary_source_from_ast(const ASTNode *node)
             return "unsafe";
         if (node != NULL && node->type == AST_DEFER_STMT)
             return "defer";
+        if (node != NULL && node->type == AST_EVENT_SUBSCRIBE)
+            return "event-subscribe";
+        if (node != NULL && node->type == AST_EVENT_UNSUBSCRIBE)
+            return "event-unsubscribe";
         return "execution";
     default:
         return "boundary";

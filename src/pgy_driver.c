@@ -59,6 +59,8 @@ parse_args(int argc, char *argv[])
             f.dump_rir = true;
         } else if (strcmp(argv[i], "--air") == 0) {
             f.dump_air = true;
+        } else if (strcmp(argv[i], "--air-json") == 0) {
+            f.dump_air_json = true;
         } else if (strcmp(argv[i], "--mir") == 0) {
             f.dump_mir = true;
         } else if (strcmp(argv[i], "--hir") == 0) {

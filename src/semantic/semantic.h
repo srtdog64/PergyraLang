@@ -16,7 +16,7 @@
 /*
  * Result of semantic analysis
  */
-typedef struct
+typedef struct SemanticResult
 {
     bool         success;
     ASTNode*     annotated_ast;     /* Same AST, with Type* attached */
@@ -24,6 +24,11 @@ typedef struct
     size_t       diagnostic_count;
     size_t       error_count;
     size_t       warning_count;
+    size_t       type_resolution_metadata_entries;
+    size_t       type_resolution_metadata_hits;
+    size_t       type_resolution_metadata_materializer_fallbacks;
+    size_t       type_resolution_stage_compat_generic_contract_count;
+    size_t       type_resolution_stage_compat_ability_consumer_count;
 } SemanticResult;
 
 /* -----------------------------------------------------------------

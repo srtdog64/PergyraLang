@@ -9,6 +9,7 @@
 #define PERGYRA_AST_H
 
 #include "ast_types.h"
+#include "ast_domain_data.h"
 #include "../lexer/lexer.h"
 struct ASTNode
 {
@@ -393,378 +394,39 @@ struct ASTNode
             bool calls_super;
         } override_func;
         
-        /* Party declaration */
-        struct {
-            char* name;
-            ASTNode** role_slots;      /* Required roles */
-            size_t role_count;
-            ASTNode** shared_fields;   /* Shared data */
-            size_t shared_count;
-            ASTNode** methods;         /* Party methods */
-            size_t method_count;
-            ASTNode* extends;          /* Parent party (optional) */
-            GenericParams* generic_params;
-            StructuredComment* doc_comment;
-        } party_decl;
-        
-        /* Role slot in party */
-        struct {
-            char* slot_name;
-            ASTNode** required_abilities;  /* Ability requirements */
-            size_t ability_count;
-            bool is_array;                 /* Array<T> slot */
-            bool is_dynamic;               /* dyn modifier — runtime vtable swap */
-        } role_slot;
-        
-        /* Party shared field */
-        struct {
-            char* name;
-            ASTNode* type;
-            ASTNode* initializer;
-            AccessModifier access;
-        } party_shared;
-        
-        /* Context access */
-        struct {
-            char* method_name;     /* GetRole, FindRole, etc */
-            char* role_slot_name;  /* Which slot to access */
-            ASTNode* ability_type; /* Expected ability */
-        } context_access;
-        
-        /* Party instance creation */
-        struct {
-            char* party_type;
-            struct {
-                char* slot_name;
-                ASTNode* value;
-            }* assignments;
-            size_t assignment_count;
-        } party_instance;
-        
-        /* Roster declaration */
-        struct {
-            char* name;
-            ASTNode** party_slots;     /* Party slots */
-            size_t party_count;
-            ASTNode** shared_fields;   /* Shared system data */
-            size_t shared_count;
-            ASTNode** methods;         /* System methods */
-            size_t method_count;
-            GenericParams* generic_params;
-            StructuredComment* doc_comment;
-        } roster_decl;
-        
-        /* Roster slot */
-        struct {
-            char* slot_name;
-            char* party_type;          /* Required party type */
-            bool is_array;             /* Array<Party> slot */
-        } roster_slot;
-        
-        /* World declaration */
-        struct {
-            char* name;
-            ASTNode** rosters;       /* Roster instances */
-            size_t roster_count;
-            ASTNode** zones;           /* Zone instances */
-            size_t zone_count;
-            ASTNode** shared_fields;   /* World-level data */
-            size_t shared_count;
-            ASTNode** methods;         /* World methods */
-            size_t method_count;
-            ASTNode** activations;
-            size_t activate_count;
-            ASTNode** deactivations;
-            size_t deactivate_count;
-            ASTNode** maintained_zones;
-            size_t maintained_zone_count;
-            ASTNode** states;
-            size_t state_count;
-            StructuredComment* doc_comment;
-        } world_decl;
-        
-        /* World roster instance */
-        struct {
-            char* slot_name;
-            char* roster_type;
-            ASTNode* initializer;      /* Optional initialization */
-        } world_roster;
-
-        /* World zone instance */
-        struct {
-            char* slot_name;
-            char* zone_type;
-            ASTNode* initializer;      /* Optional initialization */
-        } world_zone;
-
-        /* World zone activation */
-        struct {
-            char* zone_slot_name;
-            char* state_name;
-        } world_activate;
-
-        /* World zone deactivation */
-        struct {
-            char* zone_slot_name;
-            char* state_name;
-        } world_deactivate;
-
-        /* World zone maintenance */
-        struct {
-            char* zone_slot_name;
-            char* state_name;
-        } world_maintain;
-
-        /* World zone state alias */
-        struct {
-            char* state_name;
-            char* zone_slot_name;
-            WorldStateSourceKind source_kind;
-            char* detail_name;
-            char** input_names;
-            size_t input_count;
-        } world_state;
-
-        /* Intent declaration */
-        struct {
-            char* name;
-            ASTNode** involves;
-            size_t involve_count;
-            ASTNode** values;
-            size_t value_count;
-            ASTNode** bindings;
-            size_t binding_count;
-            ASTNode** steps;
-            size_t step_count;
-            bool is_concurrent;
-            IntentRollbackPolicy rollback_policy;
-            ASTNode* priority_expr;
-            ASTNode* success_expr;
-            ASTNode* failure_expr;
-            StructuredComment* doc_comment;
-            /* Intent-level defaults (propagated to steps) */
-            char** default_who_names;
-            size_t default_who_count;
-            ASTNode* default_where_type;
-        } intent_decl;
-
-        /* Intent participant binding */
-        struct {
-            char* alias;
-            ASTNode* subject_type;
-        } intent_involves;
-
-        /* Intent value binding */
-        struct {
-            char* alias;
-            ASTNode* value_type;
-        } intent_value;
-
-        /* Intent step */
-        struct {
-            char* name;
-            ASTNode* where_type;
-            ASTNode* using_expr;
-            ASTNode* intent_expr;
-            char* transfer_from_alias;
-            char* transfer_to_alias;
-            char** who_names;
-            size_t who_count;
-            ASTNode** on_exprs;
-            size_t on_expr_count;
-            ASTNode** compensate_exprs;
-            size_t compensate_expr_count;
-            ASTNode* pre_expr;
-            ASTNode* guard_expr;
-            ASTNode* post_expr;
-            ASTNode* invariant_expr;
-            ASTNode** required_abilities;
-            size_t required_ability_count;
-            char* causes_effect;
-            char** authorized_by;
-            size_t authorized_by_count;
-            ASTNode* expect_expr;
-            bool inherited_who_from_action;
-            bool inherited_where_from_action;
-            bool inherited_requires_from_action;
-            bool inherited_causes_from_action;
-            bool inherited_authorized_by_from_action;
-            bool derived_where_from_using;
-            bool derived_where_from_transfer;
-            bool derived_using_from_transfer;
-        } intent_step;
-
-        /* Relation declaration */
-        struct {
-            char* name;
-            ASTNode** slots;
-            size_t slot_count;
-            ASTNode** refreshes;
-            size_t refresh_count;
-            ASTNode** shared_fields;
-            size_t shared_count;
-            ASTNode** methods;
-            size_t method_count;
-            StructuredComment* doc_comment;
-            /* between clause: relation X between Left, Right */
-            RelationEndpointKind between_left_kind;
-            RelationEndpointKind between_right_kind;
-            ASTNode* between_left_type;   /* concrete named/generic type when kind == NAMED */
-            ASTNode* between_right_type;  /* concrete named/generic type when kind == NAMED */
-            bool between_left_many;   /* true if left[] */
-            bool between_right_many;  /* true if right[] */
-        } relation_decl;
-
-        /* Effect declaration */
-        struct {
-            char* name;
-            ASTNode** slots;
-            size_t slot_count;
-            ASTNode** refreshes;
-            size_t refresh_count;
-            ASTNode** shared_fields;
-            size_t shared_count;
-            ASTNode** methods;
-            size_t method_count;
-            StructuredComment* doc_comment;
-        } effect_decl;
-
-        /* Zone declaration */
-        struct {
-            char* name;
-            ASTNode** slots;
-            size_t slot_count;
-            ASTNode** layer_slots;
-            size_t layer_slot_count;
-            ASTNode** applies;
-            size_t apply_count;
-            ASTNode** links;
-            size_t link_count;
-            ASTNode** detaches;
-            size_t detach_count;
-            ASTNode** unlinks;
-            size_t unlink_count;
-            ASTNode** refreshes;
-            size_t refresh_count;
-            ASTNode** maintained_effects;
-            size_t maintained_effect_count;
-            ASTNode** maintained_relations;
-            size_t maintained_relation_count;
-            ASTNode** maintained_states;
-            size_t maintained_state_count;
-            ASTNode** authorities;
-            size_t authority_count;
-            ASTNode** states;
-            size_t state_count;
-            ASTNode** shared_fields;
-            size_t shared_count;
-            ASTNode** methods;
-            size_t method_count;
-            StructuredComment* doc_comment;
-        } zone_decl;
-
-        /* Domain slot */
-        struct {
-            char* slot_name;
-            ASTNode* type;
-            bool is_subject;
-            bool is_vessel;
-            bool is_tobject;
-            bool is_binding;
-            ASTNode* initializer;
-        } domain_slot;
-
-        /* Zone relation/effect slot */
-        struct {
-            char* slot_name;
-            char* layer_type;
-            bool is_relation;
-            bool is_pool;
-            int  pool_capacity;
-        } zone_layer_slot;
-
-        /* Zone effect application */
-        struct {
-            char* effect_slot_name;
-            char* target_slot_name;
-            char* state_name;
-            char* participant_slot_name;
-        } zone_apply;
-
-        /* Zone relation link */
-        struct {
-            char* relation_slot_name;
-            char* left_slot_name;
-            char* right_slot_name;
-            char* state_name;
-            char* participant_slot_name;
-        } zone_link;
-
-        /* Zone effect detachment */
-        struct {
-            char* effect_slot_name;
-            char* target_slot_name;
-            char* state_name;
-            char* participant_slot_name;
-        } zone_detach;
-
-        /* Zone relation unlink */
-        struct {
-            char* relation_slot_name;
-            char* left_slot_name;
-            char* right_slot_name;
-            char* state_name;
-            char* participant_slot_name;
-        } zone_unlink;
-
-        /* Zone object refresh */
-        struct {
-            char* object_slot_name;
-            char* source_slot_name;
-            char* participant_slot_name;
-            bool requires_dto;
-            bool derive_target_kind;
-            char** mapped_target_fields;
-            char** mapped_source_fields;
-            size_t field_map_count;
-        } zone_refresh;
-
-        /* Zone effect maintenance rule */
-        struct {
-            char* effect_slot_name;
-            char* target_slot_name;
-            char* participant_slot_name;
-        } zone_maintain_effect;
-
-        /* Zone relation maintenance rule */
-        struct {
-            char* relation_slot_name;
-            char* left_slot_name;
-            char* right_slot_name;
-            char* participant_slot_name;
-        } zone_maintain_relation;
-
-        /* Zone lifecycle state maintenance rule */
-        struct {
-            char* state_name;
-            char* participant_slot_name;
-        } zone_maintain_state;
-
-        /* Zone authority declaration */
-        struct {
-            char* subject_slot_name;
-            ASTNode** required_abilities;
-            size_t ability_count;
-        } zone_authority;
-
-        /* Zone lifecycle state alias */
-        struct {
-            char* state_name;
-            bool is_relation;
-            char* layer_slot_name;
-            char* left_or_target_slot_name;
-            char* right_slot_name;
-        } zone_state;
+        ASTPartyDeclData party_decl;
+        ASTRoleSlotData role_slot;
+        ASTPartySharedData party_shared;
+        ASTContextAccessData context_access;
+        ASTPartyInstanceData party_instance;
+        ASTRosterDeclData roster_decl;
+        ASTRosterSlotData roster_slot;
+        ASTWorldDeclData world_decl;
+        ASTWorldRosterData world_roster;
+        ASTWorldZoneData world_zone;
+        ASTWorldActivateData world_activate;
+        ASTWorldDeactivateData world_deactivate;
+        ASTWorldMaintainData world_maintain;
+        ASTWorldStateData world_state;
+        ASTIntentDeclData intent_decl;
+        ASTIntentInvolvesData intent_involves;
+        ASTIntentValueData intent_value;
+        ASTIntentStepData intent_step;
+        ASTRelationDeclData relation_decl;
+        ASTEffectDeclData effect_decl;
+        ASTZoneDeclData zone_decl;
+        ASTDomainSlotData domain_slot;
+        ASTZoneLayerSlotData zone_layer_slot;
+        ASTZoneApplyData zone_apply;
+        ASTZoneLinkData zone_link;
+        ASTZoneDetachData zone_detach;
+        ASTZoneUnlinkData zone_unlink;
+        ASTZoneRefreshData zone_refresh;
+        ASTZoneMaintainEffectData zone_maintain_effect;
+        ASTZoneMaintainRelationData zone_maintain_relation;
+        ASTZoneMaintainStateData zone_maintain_state;
+        ASTZoneAuthorityData zone_authority;
+        ASTZoneStateData zone_state;
 
         /* Event declaration */
         struct {

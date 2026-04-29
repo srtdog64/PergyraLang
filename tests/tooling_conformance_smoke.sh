@@ -143,6 +143,10 @@ if stderr:
 
 required = [
     '"serverInfo":{"name":"pgy-lsp","version":"0.1"}',
+    '"experimental":{"airSchema":"pgy.air.graph.v1"',
+    '"observabilitySchema":"pgy.intent.observability.v1"',
+    '"traceSchema":"pgy.intent.trace.v1"',
+    '"observabilitySurfaces":["last","history","active","recent"]',
     '"textDocumentSync":1',
     '"hoverProvider":true',
     '"completionProvider":{"resolveProvider":false}',
@@ -159,6 +163,7 @@ if missing:
 PY
 
 grep -Fq '"serverInfo":{"name":"pgy-lsp","version":"0.1"}' "$WORK_DIR/lsp.out"
+grep -Fq '"observabilitySchema":"pgy.intent.observability.v1"' "$WORK_DIR/lsp.out"
 grep -Fq '"label":"subject"' "$WORK_DIR/lsp.out"
 
 echo "tooling-conformance-smoke: PASS"

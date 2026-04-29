@@ -1,5 +1,62 @@
 # Pergyra TODO (배포 준비)
 
+## 0. 코어 규칙 — 600 LOC split-review threshold
+
+**모든 production `.c` / `.h` owner는 600 LOC 이하로 유지한다.**
+초과 시 *feature-owner split* 필수 — 주석 줄이기 / 함수 인라인이 아니라
+*owner 분리*.
+
+| Scope | Cap | Gate |
+|---|---|---|
+| `src/{codegen,runtime,compiler,semantic,parser,lsp}`의 `.h` | 600 LOC (hard) | `tests/production_header_size_smoke.sh` (env `PRODUCTION_HEADER_MAX_LINES` override 가능) |
+| 같은 디렉터리의 `.c` | 600 LOC (split-review threshold) | 진행 노트에서 사람 검수 + 베타 closure sweep |
+| `tests/` / generated / `.inc` 파편 | 면제 | — |
+
+**Split 패턴:**
+- `.inc` field-fragment 분리 — `docs/92_inc_split_roadmap.md`
+- 별개 translation unit + 헬퍼 헤더 — `docs/101_semantic_split_template.md`
+- 진행 상태 — `docs/115_inc_cleanup_status.md`
+
+**의도:**
+- 행 수 자체가 목표 아님. *행동(behavior)이 1개 owner로 응집*하는지 확인.
+- 600 LOC를 넘었다는 신호 = "이 owner가 두 가지 책임을 지고 있다." split으로 응답.
+- 진행 노트마다 owner 라인 수를 명시하는 컨벤션 유지 (예: `slot_manager.c는 564 LOC`).
+- 현재 production scan: 0 `.c/.h` owners above 600 LOC (2026-04-29 기준).
+
+## UTF-8 Progress Note - 2026-04-30 - AIR Payload Containment
+
+- AIR final scope is now explicit: AIR is the 1.0 abstraction-safety closure
+  layer, not the owner of the whole language. Beta keeps AIR Phase 1 narrow
+  (`IntentNode`, `BoundaryNode`, strict evidence, drift facts). 1.0 requires
+  first-class `EvidenceNode`s that audit HIR CFG, DIR, RIR, MIR cleanup/pin, and
+  DAG generic/ability/module facts without letting AIR become a codegen IR or a
+  replacement for CFG/DAG/ownership/runtime propagation.
+- AIR now has first-class `AIREvidenceNode` inventory in addition to legacy
+  per-boundary compatibility flags. HIR routine, HIR CFG, RIR boundary, and RIR
+  authority evidence are recorded as provenance-carrying nodes and validated as
+  AIR inventory. This is the first code-level step toward the AIR 1.0
+  `EvidenceNode` contract while keeping existing driver diagnostics stable.
+- AIR now has the first MIR evidence seam: `air_collect_mir_evidence(...)`
+  records `pin-unpin-cleanup-edge` as `AIR_EVIDENCE_MIR_PIN_CLEANUP` for the
+  matching AIR `pin` execution boundary. AIR still does not create or validate
+  MIR cleanup facts; MIR remains the owner and AIR only audits provenance.
+- AIR boundary walking and HIR containment now descend through payload carriers
+  that can hide already-stable boundary kinds: event subscribe/unsubscribe
+  handler payloads, party-instance assignment values, party shared-field
+  initializers, world roster/zone initializers, and domain-slot initializers.
+  These nodes are not new AIR boundary kinds; they only forward the walker to
+  nested IO/parallel/channel/execution boundaries.
+- `src/test_air.c` now includes an event-handler payload regression where
+  `ReadFile(...)` is nested under an `AST_EVENT_SUBSCRIBE` handler. AIR must
+  synthesize the IO boundary at the nested call AST. `AST_EVENT_SUBSCRIBE` and
+  `AST_EVENT_UNSUBSCRIBE` are also classified as AIR execution boundaries, so
+  event subscription is no longer invisible to the abstraction-safety layer.
+  Local gate: `make test-air air-drift-test-smoke` (`41/0` AIR tests).
+- AIR evidence provenance is now non-empty by invariant. HIR routine evidence,
+  RIR boundary evidence, and RIR authority evidence flags with empty provenance
+  names are rejected as `PGY_AIR_INVARIANT_INVALID`. Local gate: `make
+  test-air air-drift-test-smoke` (`41/0` AIR tests).
+
 ## UTF-8 Progress Note - 2026-04-29 - Runtime Frontier LLVM Owner And Parallel MIR Preservation
 
 - CFG/MIR cleanup validation is tightened: reachable non-cleanup blocks with a
@@ -25,8 +82,21 @@
   `llvm_expr_assignment_member_projection.h` now delegates read-side member
   access emission to `llvm_expr_member_access.h`. Runtime file-path resolution
   now lives in `pgy_runtime_lib_file_path_core.h`, with runtime-cache
-  dependency tracking. These former owners are now below the 600 LOC
-  split-review line.
+  dependency tracking. `pgy_abi_spec.h` now keeps ABI layouts while
+  `pgy_abi_spec_asserts.h` owns compile-time layout assertions. These former
+  owners are now below the 600 LOC split-review line. `slot_security.c` now
+  delegates crypto/token encryption helpers to `slot_security_crypto_ops.h` and
+  context/statistics helpers to `slot_security_context_ops.h`. `world_roster.c`
+  now delegates execution-plan/statistics/visualization/free helpers to
+  `world_roster_plan_stats.h`. `party_runtime.c` now delegates parallel
+  dispatch/thread coordination to `party_runtime_dispatch.h`. `pgy_lsp.c` is
+  now dispatch-only; protocol helpers, document navigation handlers, hover
+  lookup, and diagnostic publication live in separate `src/lsp/` translation
+  units. `ast.h` now delegates domain-heavy AST payload shapes to
+  `ast_domain_data.h` as named structs, not `.inc`-style field fragments. The
+  current non-test production scan has 0 `.c/.h` owners above the 600 LOC
+  split-review line, and `production_header_size_smoke.sh` now uses 600 LOC as
+  its default cap for compiler/runtime/codegen/semantic/parser/LSP headers.
 - AIR strict evidence now records HIR input presence. When HIR input exists,
   each AIR boundary must have matching HIR routine provenance; RIR-only
   boundary evidence is no longer enough to make a boundary look complete.
@@ -188,6 +258,10 @@
   parallel/async/task-group bodies, spawn/call/assignment subexpressions,
   arrays/tuples, await/channel/select, match, unsafe/defer, event invoke, and
   lambda body.
+- AIR boundary walking and HIR containment now also descend into `let`
+  declaration and destructuring initializers. A boundary hidden behind
+  `let content = ReadFile(...)` inside an intent-step block is now synthesized
+  as an AIR IO boundary instead of being treated as ordinary local syntax.
 - Local gates: `make pgy`, `make llvm-test-smoke`,
   `make cfg-body-dataflow-test-smoke`, `make runtime-frontier-contract-test-smoke`,
   `make type-resolution-resolver-inventory-test-smoke`,
@@ -975,7 +1049,7 @@
 
 - Rechecked the type-resolution DAG gates. Current local stats are
   `graph-backed skips=3140 retired_resolver_calls=0 retired_resolver_unique_nodes=0
-  metadata_entries=3363 metadata_owned=257 metadata_hits=6755
+  metadata_entries=3436 metadata_owned=257 metadata_hits=6756
   materializer_fallbacks=0`.
 - Metadata unresolved audit families are all zero:
   `metadata_unresolved_named=0 metadata_unresolved_generic_named=0
@@ -986,6 +1060,10 @@
 - Stage metadata materialization is now zero for both alias and non-alias replay:
   `stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6
   alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0`.
+- `type-resolution-resolver-inventory-test-smoke` now gates 12
+  `semantic_type_resolution_lookup_resolved_annotation(...)` seams outside the
+  metadata owners. These are remaining DAG source-of-truth seams for
+  annotation-sensitive readers, not recursive resolver fallback.
 - DAG stage replay is now split by owner family:
   `type_checker_resolution_stage_nominal.c` owns class/enum/ability/role,
   `type_checker_resolution_stage_systemic.c` owns party/roster/world/intent,
@@ -1227,7 +1305,7 @@
   600 LOC split-review threshold.
 - Local gates: `make test-semantic` (2359/0) and
   `make type-resolution-dag-test-smoke` (graph-backed skips=3140,
-  retired_resolver_calls=0, metadata_entries=3363, metadata_hits=6755,
+  retired_resolver_calls=0, metadata_entries=3436, metadata_hits=6756,
   materializer_fallbacks=0).
 
 ## UTF-8 Progress Note - 2026-04-28 - Ownership Constructor Diagnostic Split
@@ -3640,7 +3718,7 @@ Source of truth:
     - 진행: `resolve_generic_type_arg(...)`도 metadata-first 조회 후 fallback으로 내려간다. constructed builtin/generic consumer path의 recursive resolver 의존 면적을 줄였다
     - 진행: owner-local resolver seams는 `semantic_type_resolution_lookup_or_materialize(...)` 공용 materializer로 수렴했다. resolver 구현체 밖에서 직접 `resolve_type_node(...)`를 호출하면 `type-resolution-resolver-inventory-test-smoke`가 실패한다. Central metadata owner도 `type_checker_resolution_metadata_diagnostics.c`를 분리해 stable-shell arity, invalid constructed HashMap key, unknown bare named diagnostics를 별도 owner가 맡고, alias-chain/cycle materialization은 `type_checker_resolution_metadata_alias.c`가 맡는다. central metadata materializer recursive escape hatch는 제거됐고 central metadata owner는 268 LOC, alias owner는 315 LOC로 분리됐다. 낡은 `resolve_type_alias_decl(...)`와 `SemanticContext.alias_resolution_*` stack도 제거되어 direct named alias resolution은 metadata alias owner만 통과한다. `resolve_named_type(...)` itself is now metadata-first for stable builtin/scope/generic/nominal/alias names, and the resolver-inventory smoke rejects recursive alias resolver debt if it reappears
     - 진행: party/role ability lookup은 `type_checker_domain_role_lookup.c`로 분리했다. 이후 projection contract diagnostics와 overlay scope setup도 각각 `type_checker_domain_projection.c` / `type_checker_overlay_common.c`로 분리되어 `type_checker_decls_domain_helpers.c`는 972 LOC까지 낮아졌다. 남은 helper owner는 zone/effect/relation slot helper 책임에 집중한다
-    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 retired compatibility resolver call cap, metadata entries/owned/hits, metadata materializer fallback count, zero stage metadata materialization, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3140 retired_resolver_calls=0 retired_resolver_unique_nodes=0 metadata_entries=3363 metadata_owned=257 metadata_hits=6755 materializer_fallbacks=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`
+    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 retired compatibility resolver call cap, metadata entries/owned/hits, metadata materializer fallback count, zero stage metadata materialization, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=3140 retired_resolver_calls=0 retired_resolver_unique_nodes=0 metadata_entries=3436 metadata_owned=257 metadata_hits=6756 materializer_fallbacks=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`
     - 진행: DAG smoke는 이제 graph-backed skip/metadata entry/metadata hit/owned metadata가 단순히 0보다 큰지만 보지 않고 beta floor(`skips>=3000`, `entries>=1500`, `hits>=2400`, `owned>=45`)와 retired compatibility resolver cap(`retired_resolver_calls<=0`)를 검사한다. DAG source-of-truth 사용량이 크게 후퇴하면 CI에서 즉시 잡는다
     - 진행: 중앙 metadata materializer의 마지막 recursive fallback은 0으로 닫혔다. `type-resolution-dag-test-smoke`는 `materializer_fallbacks==0`과 모든 metadata unresolved audit family 0을 고정한다
     - 진행: stage metadata materialization surface는 alias/non-alias 모두 0으로 고정됐다. `type_checker_resolution_stage_alias.c`가 unique alias diagnostic unresolved accounting과 optional trace를 소유한다. 성공 alias materialization과 diagnostic unresolved inventory를 별도 계측하고, 남은 78건은 recursive resolver 재진입이 아니라 alias-cycle diagnostic coverage에서 나오는 unresolved inventory다. `alias_diagnostic_resolver_calls==0` gate가 이 경계를 차단한다
@@ -4486,7 +4564,7 @@ Source of truth:
 - Rechecked DAG closure against the current gates:
   `type-resolution-resolver-inventory-test-smoke` reports owner-local fallback
   seams at 0, while `type-resolution-dag-test-smoke` reports
-  `metadata_entries=3363`, `metadata_hits=6755`,
+  `metadata_entries=3436`, `metadata_hits=6756`,
   `materializer_fallbacks=0`.
 - The central metadata materializer fallback inventory is now closed at 0.
   Missing-symbol diagnostics, generic-named fallback, and builtin

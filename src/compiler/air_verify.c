@@ -146,11 +146,51 @@ air_drift_kind_valid(AIRDriftKind kind)
     switch (kind) {
     case AIR_DRIFT_SYNC_ASYNC_CONFLICT:
     case AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING:
+    case AIR_DRIFT_EFFECT_PROPAGATION_MISSING:
+    case AIR_DRIFT_RELATION_PROPAGATION_MISSING:
+    case AIR_DRIFT_DAG_FALLBACK_PRESENT:
         return true;
     case AIR_DRIFT_NONE:
     default:
         return false;
     }
+}
+
+static bool
+air_drift_kind_is_global(AIRDriftKind kind)
+{
+    return kind == AIR_DRIFT_EFFECT_PROPAGATION_MISSING
+        || kind == AIR_DRIFT_RELATION_PROPAGATION_MISSING
+        || kind == AIR_DRIFT_DAG_FALLBACK_PRESENT;
+}
+
+static bool
+air_evidence_kind_valid(AIREvidenceKind kind)
+{
+    switch (kind) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+    case AIR_EVIDENCE_HIR_CFG:
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+    case AIR_EVIDENCE_MIR_CLEANUP:
+    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
+    case AIR_EVIDENCE_DAG_GENERIC:
+    case AIR_EVIDENCE_DAG_ABILITY:
+    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
+    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+        return true;
+    }
+    return false;
+}
+
+static bool
+air_evidence_kind_is_global(AIREvidenceKind kind)
+{
+    return kind == AIR_EVIDENCE_DAG_GENERIC
+        || kind == AIR_EVIDENCE_DAG_ABILITY
+        || kind == AIR_EVIDENCE_MIR_CLEANUP
+        || kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
+        || kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION;
 }
 
 static bool
@@ -237,6 +277,10 @@ air_validate(const AIRProgram *air, char **error_message)
     }
     if (air->drift_count > 0 && air->drifts == NULL) {
         air_set_invariant_error(error_message, "AIR has drift count without drift array");
+        return false;
+    }
+    if (air->evidence_count > 0 && air->evidence_nodes == NULL) {
+        air_set_invariant_error(error_message, "AIR has evidence count without evidence array");
         return false;
     }
     for (size_t i = 0; i < air->intent_count; i++) {
@@ -330,7 +374,7 @@ air_validate(const AIRProgram *air, char **error_message)
             return false;
         }
         if (air->boundaries[i].has_hir_routine_evidence
-            && air->boundaries[i].hir_routine_evidence_name == NULL) {
+            && air_name_is_empty(air->boundaries[i].hir_routine_evidence_name)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu has HIR evidence without provenance",
                                     i);
@@ -344,7 +388,7 @@ air_validate(const AIRProgram *air, char **error_message)
             return false;
         }
         if (air->boundaries[i].has_rir_boundary_evidence
-            && air->boundaries[i].rir_boundary_evidence_scope == NULL) {
+            && air_name_is_empty(air->boundaries[i].rir_boundary_evidence_scope)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu has RIR boundary evidence without provenance",
                                     i);
@@ -365,7 +409,7 @@ air_validate(const AIRProgram *air, char **error_message)
             return false;
         }
         if (air->boundaries[i].has_rir_authority_evidence
-            && air->boundaries[i].rir_authority_evidence_name == NULL) {
+            && air_name_is_empty(air->boundaries[i].rir_authority_evidence_name)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu has RIR authority evidence without provenance",
                                     i);
@@ -386,14 +430,18 @@ air_validate(const AIRProgram *air, char **error_message)
             air_set_invariant_error(error_message, "AIR drift node %zu has invalid kind", i);
             return false;
         }
-        if (air->drifts[i].intent_index >= air->intent_count) {
+        if (air->drifts[i].intent_index >= air->intent_count
+            && !(air->drifts[i].intent_index == SIZE_MAX
+                 && air_drift_kind_is_global(air->drifts[i].kind))) {
             air_set_invariant_error(error_message,
                                     "AIR drift node %zu references missing intent node %zu",
                                     i,
                                     air->drifts[i].intent_index);
             return false;
         }
-        if (air->drifts[i].boundary_index >= air->boundary_count) {
+        if (air->drifts[i].boundary_index >= air->boundary_count
+            && !(air->drifts[i].boundary_index == SIZE_MAX
+                 && air_drift_kind_is_global(air->drifts[i].kind))) {
             air_set_invariant_error(error_message,
                                     "AIR drift node %zu references missing boundary node %zu",
                                     i,
@@ -402,6 +450,34 @@ air_validate(const AIRProgram *air, char **error_message)
         }
         if (air_name_is_empty(air->drifts[i].message)) {
             air_set_invariant_error(error_message, "AIR drift node %zu has no message", i);
+            return false;
+        }
+    }
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (!air_evidence_kind_valid(evidence->kind)) {
+            air_set_invariant_error(error_message, "AIR evidence node %zu has invalid kind", i);
+            return false;
+        }
+        if (evidence->boundary_index >= air->boundary_count
+            && !(evidence->boundary_index == SIZE_MAX
+                 && air_evidence_kind_is_global(evidence->kind))) {
+            air_set_invariant_error(error_message,
+                                    "AIR evidence node %zu references missing boundary node %zu",
+                                    i,
+                                    evidence->boundary_index);
+            return false;
+        }
+        if (air_name_is_empty(evidence->provider_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR evidence node %zu has no provider provenance",
+                                    i);
+            return false;
+        }
+        if (air_name_is_empty(evidence->subject_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR evidence node %zu has no subject provenance",
+                                    i);
             return false;
         }
     }
@@ -514,6 +590,68 @@ air_verify(AIRProgram *air, char **error_message)
                                   drift_message,
                                   error_message)) {
                 return false;
+            }
+        }
+    }
+    if (air->strict_evidence
+        && air->rir_effect_propagation_required_count
+            > air->rir_effect_propagation_evidence_count) {
+        char message[256];
+        snprintf(message,
+                 sizeof(message),
+                 PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                 ": AIR effect propagation has RIR op without effect resource/state evidence; required=%zu evidence=%zu",
+                 air->rir_effect_propagation_required_count,
+                 air->rir_effect_propagation_evidence_count);
+        if (!air_append_drift(air,
+                              AIR_DRIFT_EFFECT_PROPAGATION_MISSING,
+                              SIZE_MAX,
+                              SIZE_MAX,
+                              message,
+                              error_message)) {
+            return false;
+        }
+    }
+    if (air->strict_evidence
+        && air->rir_relation_propagation_required_count
+            > air->rir_relation_propagation_evidence_count) {
+        char message[256];
+        snprintf(message,
+                 sizeof(message),
+                 PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                 ": AIR relation propagation has RIR op without relation resource/state evidence; required=%zu evidence=%zu",
+                 air->rir_relation_propagation_required_count,
+                 air->rir_relation_propagation_evidence_count);
+        if (!air_append_drift(air,
+                              AIR_DRIFT_RELATION_PROPAGATION_MISSING,
+                              SIZE_MAX,
+                              SIZE_MAX,
+                              message,
+                              error_message)) {
+            return false;
+        }
+    }
+    if (air->strict_evidence) {
+        for (size_t i = 0; i < air->evidence_count; i++) {
+            const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+            if ((evidence->kind == AIR_EVIDENCE_DAG_GENERIC
+                 || evidence->kind == AIR_EVIDENCE_DAG_ABILITY)
+                && evidence->fallback_count > 0) {
+                char message[256];
+                snprintf(message,
+                         sizeof(message),
+                         PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                         ": AIR DAG evidence contains metadata materializer fallback; kind=%s fallback_count=%zu",
+                         air_evidence_kind_name(evidence->kind),
+                         evidence->fallback_count);
+                if (!air_append_drift(air,
+                                      AIR_DRIFT_DAG_FALLBACK_PRESENT,
+                                      SIZE_MAX,
+                                      SIZE_MAX,
+                                      message,
+                                      error_message)) {
+                    return false;
+                }
             }
         }
     }

@@ -14,15 +14,11 @@
 - test fragments: `.cases.h` only
 - current gate: `make backend-inc-size-test-smoke`, `make production-header-size-test-smoke`, `make test_inc_size_smoke`
 
-남은 부채는 `.inc`가 아니라 large owner와 source-of-truth seam이다. 현재 600 LOC 초과 production owner는 다음 5개다:
+남은 부채는 `.inc`가 아니라 source-of-truth seam이다. 현재 600 LOC 초과 production owner는 없다:
 
 | LOC | file | owner debt |
 | ---: | --- | --- |
-| 851 | `src/runtime/party_runtime.c` | party runtime orchestration/body split |
-| 848 | `src/parser/ast.h` | AST public surface still large |
-| 817 | `src/runtime/world_roster.c` | world/roster runtime split |
-| 793 | `src/runtime/slot_security.c` | secure-slot policy/security helper split |
-| 653 | `src/runtime/pgy_abi_spec.h` | ABI spec audit surface |
+| - | - | 600 LOC 초과 production `.c/.h` owner 없음 |
 
 Current rule: `.inc` is closed; do not create new `.inc` files to split large owners. Split large owners into named `.c` / `.h` files with explicit owner responsibility and preserve ABI/source-of-truth gates.
 
@@ -59,6 +55,26 @@ Recently closed:
   owner threshold by moving file-path resolution helpers into
   `pgy_runtime_lib_file_path_core.h`; the runtime prebuilt-object cache now
   tracks the new file-path owner.
+- `runtime/pgy_abi_spec.h` — reduced below the 600 LOC owner threshold by
+  moving compile-time layout assertions into `pgy_abi_spec_asserts.h`; ABI
+  layouts remain in the spec header and `make test-abi` gates both files.
+- `runtime/slot_security.c` — reduced below the 600 LOC owner threshold by
+  moving crypto/token encryption helpers into `slot_security_crypto_ops.h` and
+  context/statistics helpers into `slot_security_context_ops.h`.
+- `runtime/world_roster.c` — reduced below the 600 LOC owner threshold by
+  moving execution-plan, world statistics, visualization, and free helpers into
+  `world_roster_plan_stats.h`.
+- `runtime/party_runtime.c` — reduced below the 600 LOC owner threshold by
+  moving parallel dispatch/thread coordination into `party_runtime_dispatch.h`.
+- `lsp/pgy_lsp.c` — reduced below the 600 LOC owner threshold by moving JSON
+  wire helpers, document symbol/definition/reference/rename handlers, hover
+  lookup, and diagnostic publication into separate LSP translation units.
+- `parser/ast.h` — reduced below the 600 LOC owner threshold by moving
+  domain-heavy AST payload shapes into `ast_domain_data.h` as named structs
+  rather than `.inc`-style field fragments.
+- `production_header_size_smoke.sh` now enforces a 600 LOC default cap and
+  includes parser/LSP headers, not just compiler/runtime/codegen/semantic
+  headers.
 - `semantic/type_checker_decls_domain_helpers.inc` — removed; body lives in `type_checker_decls_domain_helpers.c`.
 - `semantic/type_checker_decls_a.inc` — reduced to a one-line shim; body lives in `type_checker_intent_helpers.c`.
 - `codegen/transpiler_emitters_mir_inventory_ssa.inc` — reduced to a five-line shim that includes three sub-1000 LOC slices:
@@ -196,7 +212,8 @@ Backend 진행:
 - `type_checker_resolution_graph_inventory.c`가 graph inventory pass를 소유한다.
 - `type_checker_resolution_stage.c`는 DAG stage source of truth로 유지하고 include shim으로 되돌리지 않는다.
 - DAG stage 안의 retired resolver compatibility surface는 숨기지 않는다. `PGY_TYPE_RES_STATS=1`의 `stage-graph-backed` / `stage-metadata-materialize` / `stage-materialize-family` / `stage-alias` 통계와 `make type-resolution-dag-test-smoke`가 남은 migration debt를 공개 지표로 고정한다.
-- 현재 stage metadata materialization surface는 alias/non-alias 모두 0으로 고정됐다. 최신 local stats는 `stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`이다. 남은 78건은 recursive resolver 재진입이 아니라 alias-cycle diagnostic coverage의 unresolved inventory다.
+- 현재 stage metadata materialization surface는 alias/non-alias 모두 0으로 고정됐다. 최신 local stats는 `metadata_hits=6756 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`이다. 남은 78건은 recursive resolver 재진입이 아니라 alias-cycle diagnostic coverage의 unresolved inventory다.
+- `type-resolution-resolver-inventory-test-smoke`는 이제 non-metadata `semantic_type_resolution_lookup_resolved_annotation(...)` reader를 13개로 고정한다. 이들은 generic default/effective ability reference처럼 이미 계산된 annotation을 읽어야 하는 quiet seam이며, DAG metadata로 완전히 승격되기 전까지 새로 늘어나면 실패한다.
 - Program-level symbol inventory now predeclares ability declarations, and the ability checker reuses only its own predeclare. This closes the provider-after-consumer order gap for a frozen DAG slice covering generic default/where, zone authority, and party role-slot ability consumers.
 - `type_checker_resolution_stage_lookup.c`는 stage lookup/host-label mapping을 소유하고, `type_checker_resolution_stage_stats.c`는 graph-backed skip 판정과 compatibility-family 계측을 소유한다.
 - graph precollect TU는 stage runner를 호출하지 않는다. enum method inventory도 precollect action contract 경로로만 edge를 만든다.

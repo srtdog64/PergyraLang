@@ -10,6 +10,7 @@
 #include "compiler/air.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "runtime/pgy_runtime_observability_schema.h"
 #include "semantic/semantic.h"
 
 static int g_pass = 0;
@@ -487,6 +488,11 @@ test_air_verify_rejects_missing_inventory_arrays(void)
         .intent_count = 1,
         .drift_count = 1,
     };
+    AIRProgram missing_evidence = {
+        .intents = intents,
+        .intent_count = 1,
+        .evidence_count = 1,
+    };
     char *error = NULL;
     bool ok = !air_verify(&missing_intents, &error)
         && error != NULL
@@ -506,6 +512,13 @@ test_air_verify_rejects_missing_inventory_arrays(void)
         && error != NULL
         && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
         && strstr(error, "drift count without drift array") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&missing_evidence, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "evidence count without evidence array") != NULL;
     free(error);
     return ok;
 }
@@ -669,6 +682,76 @@ test_air_verify_rejects_invalid_drift_inventory(void)
 }
 
 static bool
+test_air_verify_rejects_invalid_evidence_inventory(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIREvidenceNode missing_boundary[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .boundary_index = 7,
+            .provider_name = "WarehouseZone",
+            .subject_name = "WarehouseZone",
+        },
+    };
+    AIREvidenceNode empty_provider[] = {
+        {
+            .kind = AIR_EVIDENCE_HIR_CFG,
+            .boundary_index = 0,
+            .provider_name = "",
+            .subject_name = "WarehouseZone",
+        },
+    };
+    AIRProgram bad_boundary = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = missing_boundary,
+        .evidence_count = 1,
+    };
+    AIRProgram bad_provider = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = empty_provider,
+        .evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&bad_boundary, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "references missing boundary node") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&bad_provider, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "has no provider provenance") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_verify_rejects_authority_evidence_shape_mismatch(void)
 {
     AIRIntentNode intents[] = {
@@ -802,6 +885,98 @@ test_air_verify_rejects_cfg_evidence_without_routine(void)
     bool ok = !air_verify(&air, &error)
         && error != NULL
         && strstr(error, "HIR CFG evidence without routine evidence") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_empty_evidence_provenance(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "Work",
+            .step_name = "run",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    const char *authority_names[] = { "worker" };
+    AIRBoundaryNode empty_hir[] = {
+        {
+            .kind = AIR_BOUNDARY_EXECUTION,
+            .owner_name = "Work",
+            .source_name = "with",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .has_hir_routine_evidence = true,
+            .hir_routine_evidence_name = "",
+        },
+    };
+    AIRBoundaryNode empty_rir_boundary[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "Work",
+            .source_name = "WorkZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .has_rir_boundary_evidence = true,
+            .rir_boundary_evidence_scope = "",
+        },
+    };
+    AIRBoundaryNode empty_rir_authority[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "Work",
+            .source_name = "WorkZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_required = true,
+            .authority_names = authority_names,
+            .authority_name_count = 1,
+            .has_rir_boundary_evidence = true,
+            .rir_boundary_evidence_scope = "WorkZone",
+            .has_rir_authority_evidence = true,
+            .rir_authority_evidence_name = "",
+        },
+    };
+    AIRProgram empty_hir_program = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = empty_hir,
+        .boundary_count = 1,
+    };
+    AIRProgram empty_rir_boundary_program = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = empty_rir_boundary,
+        .boundary_count = 1,
+    };
+    AIRProgram empty_rir_authority_program = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = empty_rir_authority,
+        .boundary_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&empty_hir_program, &error)
+        && error != NULL
+        && strstr(error, "HIR evidence without provenance") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&empty_rir_boundary_program, &error)
+        && error != NULL
+        && strstr(error, "RIR boundary evidence without provenance") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&empty_rir_authority_program, &error)
+        && error != NULL
+        && strstr(error, "RIR authority evidence without provenance") != NULL;
     free(error);
     return ok;
 }
@@ -1076,15 +1251,43 @@ test_air_dump_prints_evidence_provenance(void)
             .rir_authority_evidence_name = "shipper",
         },
     };
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .boundary_index = 0,
+            .provider_name = "reserve",
+            .subject_name = "WarehouseZone",
+        },
+        {
+            .kind = AIR_EVIDENCE_HIR_CFG,
+            .boundary_index = 0,
+            .provider_name = "reserve",
+            .subject_name = "WarehouseZone",
+        },
+        {
+            .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "WarehouseZone",
+        },
+        {
+            .kind = AIR_EVIDENCE_RIR_AUTHORITY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "shipper",
+        },
+    };
     AIRProgram air = {
         .intents = intents,
         .intent_count = 1,
         .boundaries = boundaries,
         .boundary_count = 1,
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 4,
         .strict_evidence = true,
         .has_hir_input = true,
     };
-    char buffer[1024];
+    char buffer[2048];
     FILE *out = tmpfile();
     size_t bytes;
     bool ok;
@@ -1101,7 +1304,370 @@ test_air_dump_prints_evidence_provenance(void)
     ok = strstr(buffer, "strict_evidence=yes hir_input=yes") != NULL
         && strstr(buffer, "evidence hir=yes(reserve) hir_cfg=yes") != NULL
         && strstr(buffer, "rir_boundary=yes(WarehouseZone)") != NULL
-        && strstr(buffer, "rir_authority=yes(shipper)") != NULL;
+        && strstr(buffer, "rir_authority=yes(shipper)") != NULL
+        && strstr(buffer, "evidence_node[0] kind=hir_routine") != NULL
+        && strstr(buffer, "evidence_node[3] kind=rir_authority") != NULL;
+    return ok;
+}
+
+static bool
+test_air_dump_json_prints_stable_graph_schema(void)
+{
+    /* Smoke-gated schema literals: pgy.intent.observability.v1, pgy.intent.trace.v1. */
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_EXECUTION,
+            .owner_name = "ShipOrder",
+            .source_name = "pin",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .boundary_index = 0,
+            .provider_name = "reserve",
+            .subject_name = "scores",
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+        .mir_cleanup_evidence_count = 1,
+        .mir_pin_cleanup_evidence_count = 1,
+        .strict_evidence = true,
+        .has_hir_input = true,
+    };
+    char buffer[4096];
+    FILE *out = tmpfile();
+    size_t bytes;
+    bool ok;
+
+    if (out == NULL)
+        return false;
+    air_dump_json(&air, out);
+    fflush(out);
+    rewind(out);
+    bytes = fread(buffer, 1, sizeof(buffer) - 1, out);
+    buffer[bytes] = '\0';
+    fclose(out);
+
+    ok = strstr(buffer, "\"schema\":\"pgy.air.graph.v1\"") != NULL
+        && strstr(buffer, "\"summary\"") != NULL
+        && strstr(buffer, "\"observability\"") != NULL
+        && strstr(buffer, "\"abi_schema\":\"" PGY_OBSERVABILITY_ABI_SCHEMA "\"") != NULL
+        && strstr(buffer, "\"trace_schema\":\"" PGY_OBSERVABILITY_TRACE_SCHEMA "\"") != NULL
+        && strstr(buffer, "\"surfaces\":[\"last\",\"history\",\"active\",\"recent\"]") != NULL
+        && strstr(buffer, "\"" PGY_OBSERVABILITY_SURFACE_LAST "\"") != NULL
+        && strstr(buffer, "\"event_kinds\"") != NULL
+        && strstr(buffer, "\"" PGY_OBSERVABILITY_EVENT_INTENT_ENTER "\"") != NULL
+        && strstr(buffer, "\"transfer\"") != NULL
+        && strstr(buffer, "\"history_fields\"") != NULL
+        && strstr(buffer, "\"from_zone\"") != NULL
+        && strstr(buffer, "\"intent_count\":1") != NULL
+        && strstr(buffer, "\"boundaries\"") != NULL
+        && strstr(buffer, "\"evidence\"") != NULL
+        && strstr(buffer, "\"kind\":\"mir_pin_cleanup\"") != NULL
+        && strstr(buffer, "\"mir_pin_cleanup_evidence_count\":1") != NULL
+        && strstr(buffer, "\"drifts\"") != NULL;
+    return ok;
+}
+
+static bool
+test_air_collects_mir_pin_cleanup_evidence(void)
+{
+    ASTNode pin_ast;
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram mir;
+    MIRRoutine routine;
+    MIRBasicBlock block;
+    MIRInstruction inst;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+    memset(&pin_ast, 0, sizeof(pin_ast));
+    pin_ast.type = AST_BLOCK;
+    pin_ast.data.block.is_pin_block = true;
+
+    air->intents = (AIRIntentNode *)calloc(1, sizeof(AIRIntentNode));
+    air->boundaries = (AIRBoundaryNode *)calloc(1, sizeof(AIRBoundaryNode));
+    if (air->intents == NULL || air->boundaries == NULL) {
+        air_destroy(air);
+        return false;
+    }
+    air->intent_count = 1;
+    air->boundary_count = 1;
+    air->intents[0].intent_owner = "ScoreIntent";
+    air->intents[0].step_name = "pin_scores";
+    air->intents[0].step_index = 0;
+    air->intents[0].sync_class = AIR_SYNC_SYNC;
+    air->intents[0].failure_class = AIR_FAILURE_RECOVERABLE;
+    air->boundaries[0].kind = AIR_BOUNDARY_EXECUTION;
+    air->boundaries[0].owner_name = "ScoreIntent";
+    air->boundaries[0].source_name = "pin";
+    air->boundaries[0].intent_index = 0;
+    air->boundaries[0].step_index = 0;
+    air->boundaries[0].sync_class = AIR_SYNC_SYNC;
+    air->boundaries[0].ast = &pin_ast;
+
+    memset(&inst, 0, sizeof(inst));
+    inst.kind = MIR_INST_CLEANUP_EDGE;
+    inst.name = "pin-unpin-cleanup-edge";
+    inst.slot_anchor = "scores";
+    inst.ast = &pin_ast;
+
+    memset(&block, 0, sizeof(block));
+    block.is_reachable = true;
+    block.is_pin_region = true;
+    block.pin_source_name = "scores";
+    block.pin_view_name = "view";
+    block.pin_block_ast = &pin_ast;
+    block.instructions = &inst;
+    block.instruction_count = 1;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.name = "pin_scores";
+    routine.blocks = &block;
+    routine.block_count = 1;
+
+    memset(&mir, 0, sizeof(mir));
+    mir.routines = &routine;
+    mir.routine_count = 1;
+
+    ok = air_collect_mir_evidence(air, &mir, &error)
+        && air_validate(air, &error)
+        && air->mir_cleanup_evidence_count == 1
+        && air->mir_pin_cleanup_evidence_count == 1
+        && air->evidence_count == 1
+        && air->evidence_nodes[0].kind == AIR_EVIDENCE_MIR_PIN_CLEANUP
+        && air->evidence_nodes[0].boundary_index == 0
+        && strcmp(air->evidence_nodes[0].provider_name, "pin_scores") == 0
+        && strcmp(air->evidence_nodes[0].subject_name, "scores") == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_collects_mir_cleanup_block_evidence(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram mir;
+    MIRRoutine routine;
+    MIRBasicBlock blocks[2];
+    MIRInstruction inst;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+
+    memset(&inst, 0, sizeof(inst));
+    inst.kind = MIR_INST_CLEANUP_EDGE;
+    inst.name = "cleanup-edge";
+
+    memset(blocks, 0, sizeof(blocks));
+    blocks[0].is_reachable = true;
+    blocks[0].has_cleanup_succ = true;
+    blocks[0].cleanup_succ = 1;
+    blocks[0].instructions = &inst;
+    blocks[0].instruction_count = 1;
+    blocks[1].id = 1;
+    blocks[1].is_reachable = true;
+    blocks[1].is_cleanup = true;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.name = "cleanup_owner";
+    routine.blocks = blocks;
+    routine.block_count = 2;
+    routine.has_cleanup_block = true;
+    routine.cleanup_block = 1;
+    routine.cleanup_instruction_count = 1;
+    routine.cleanup_edge_count = 1;
+
+    memset(&mir, 0, sizeof(mir));
+    mir.routines = &routine;
+    mir.routine_count = 1;
+
+    ok = air_collect_mir_evidence(air, &mir, &error)
+        && air_validate(air, &error)
+        && air->mir_cleanup_evidence_count == 1
+        && air->mir_pin_cleanup_evidence_count == 0
+        && air->evidence_count == 1
+        && air->evidence_nodes[0].kind == AIR_EVIDENCE_MIR_CLEANUP
+        && air->evidence_nodes[0].boundary_index == SIZE_MAX
+        && air->evidence_nodes[0].fact_count == 1
+        && air->evidence_nodes[0].fallback_count == 0
+        && strcmp(air->evidence_nodes[0].provider_name, "cleanup_owner") == 0
+        && strcmp(air->evidence_nodes[0].subject_name, "cleanup-block") == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_collects_dag_generic_ability_evidence(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    SemanticResult sem;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+    memset(&sem, 0, sizeof(sem));
+    sem.type_resolution_metadata_entries = 33;
+    sem.type_resolution_metadata_hits = 49;
+    sem.type_resolution_metadata_materializer_fallbacks = 0;
+    sem.type_resolution_stage_compat_generic_contract_count = 7;
+    sem.type_resolution_stage_compat_ability_consumer_count = 5;
+
+    ok = air_collect_dag_evidence(air, &sem, &error)
+        && air_validate(air, &error)
+        && air->dag_generic_evidence_count == 1
+        && air->dag_ability_evidence_count == 1
+        && air->evidence_count == 2
+        && air->evidence_nodes[0].kind == AIR_EVIDENCE_DAG_GENERIC
+        && air->evidence_nodes[0].boundary_index == SIZE_MAX
+        && air->evidence_nodes[0].fact_count == 7
+        && air->evidence_nodes[0].fallback_count == 0
+        && air->evidence_nodes[1].kind == AIR_EVIDENCE_DAG_ABILITY
+        && air->evidence_nodes[1].fact_count == 5
+        && air->evidence_nodes[1].fallback_count == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_reports_dag_fallback_drift(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    SemanticResult sem;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+    memset(&sem, 0, sizeof(sem));
+    air->strict_evidence = true;
+    sem.type_resolution_stage_compat_generic_contract_count = 1;
+    sem.type_resolution_stage_compat_ability_consumer_count = 1;
+    sem.type_resolution_metadata_materializer_fallbacks = 2;
+
+    ok = air_collect_dag_evidence(air, &sem, &error)
+        && air_verify(air, &error)
+        && air->drift_count == 2
+        && air->drifts[0].kind == AIR_DRIFT_DAG_FALLBACK_PRESENT
+        && air->drifts[0].intent_index == SIZE_MAX
+        && air->drifts[0].boundary_index == SIZE_MAX
+        && strstr(air->drifts[0].message, "dag_generic") != NULL
+        && air->drifts[1].kind == AIR_DRIFT_DAG_FALLBACK_PRESENT
+        && strstr(air->drifts[1].message, "dag_ability") != NULL;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_collects_rir_effect_relation_propagation_evidence(void)
+{
+    const char *src =
+        "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+        "ability Payable { func Pay() -> Void; }\n"
+        "role BuyerPay for Buyer {\n"
+        "    impl ability Payable { func Pay() -> Void { return; } }\n"
+        "}\n"
+        "relation CartLink for source: Buyer, target: Buyer { }\n"
+        "effect PaymentEffect for bearer: Buyer { }\n"
+        "zone PaymentZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    relation slot cart: CartLink\n"
+        "    effect slot fx: PaymentEffect\n"
+        "    authority buyer requires Payable\n"
+        "    apply fx to buyer by buyer\n"
+        "    link cart between buyer, buyer by buyer\n"
+        "}\n";
+    AIRProgram *air = lower_air_from_source(src);
+    bool found_effect = false;
+    bool found_relation = false;
+
+    if (air != NULL) {
+        for (size_t i = 0; i < air->evidence_count; i++) {
+            if (air->evidence_nodes[i].kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
+                && strcmp(air->evidence_nodes[i].subject_name, "fx") == 0) {
+                found_effect = true;
+            }
+            if (air->evidence_nodes[i].kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION
+                && strcmp(air->evidence_nodes[i].subject_name, "cart") == 0) {
+                found_relation = true;
+            }
+        }
+    }
+
+    bool ok = air != NULL
+        && air->rir_effect_propagation_required_count == 1
+        && air->rir_effect_propagation_evidence_count == 1
+        && air->rir_relation_propagation_required_count == 1
+        && air->rir_relation_propagation_evidence_count == 1
+        && found_effect
+        && found_relation;
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_reports_missing_effect_relation_propagation_evidence(void)
+{
+    AIRProgram air;
+    char *error = NULL;
+    bool found_effect = false;
+    bool found_relation = false;
+    bool ok;
+
+    memset(&air, 0, sizeof(air));
+    air.strict_evidence = true;
+    air.rir_effect_propagation_required_count = 2;
+    air.rir_effect_propagation_evidence_count = 1;
+    air.rir_relation_propagation_required_count = 1;
+    air.rir_relation_propagation_evidence_count = 0;
+
+    ok = air_verify(&air, &error);
+    for (size_t i = 0; i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_EFFECT_PROPAGATION_MISSING
+            && air.drifts[i].intent_index == SIZE_MAX
+            && air.drifts[i].boundary_index == SIZE_MAX
+            && strstr(air.drifts[i].message, "effect propagation") != NULL) {
+            found_effect = true;
+        }
+        if (air.drifts[i].kind == AIR_DRIFT_RELATION_PROPAGATION_MISSING
+            && air.drifts[i].intent_index == SIZE_MAX
+            && air.drifts[i].boundary_index == SIZE_MAX
+            && strstr(air.drifts[i].message, "relation propagation") != NULL) {
+            found_relation = true;
+        }
+    }
+
+    ok = ok && air.drift_count == 2 && found_effect && found_relation;
+    test_air_clear_stack_drifts(&air);
+    free(error);
     return ok;
 }
 
@@ -1411,6 +1977,185 @@ test_air_synthesizes_spawn_boundary_from_step_ast(void)
     air_destroy(air);
     free(error);
     ast_destroy(step_ast);
+    return ok;
+}
+
+static bool
+test_air_synthesizes_boundary_from_let_initializer(void)
+{
+    ASTNode intent_ast = { .line = 24, .column = 1 };
+    ASTNode *step_ast = ast_create_intent_step("load");
+    ASTNode *block = ast_create_block();
+    ASTNode *let_decl = ast_create_let_declaration("content");
+    ASTNode *call = ast_create_call(ast_create_identifier("ReadFile"));
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "LoadIntent", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        { .index = 0, .name = "load", .ast = step_ast },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    AIRProgram *air;
+    char *error = NULL;
+    bool found_io = false;
+    bool ok;
+
+    if (step_ast == NULL || block == NULL || let_decl == NULL || call == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(block);
+        ast_destroy(let_decl);
+        ast_destroy(call);
+        return false;
+    }
+    block->line = 25;
+    let_decl->line = 26;
+    call->line = 27;
+    let_decl->data.let_decl.initializer = call;
+    call = NULL;
+    ast_add_statement(block, let_decl);
+    let_decl = NULL;
+
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(1, sizeof(ASTNode *));
+    if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(block);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs[0] = block;
+    step_ast->data.intent_step.on_expr_count = 1;
+    block = NULL;
+
+    air = air_synthesize(NULL, &dir, NULL, &error);
+    if (air != NULL) {
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            const AIRBoundaryNode *boundary = &air->boundaries[i];
+            if (boundary->kind == AIR_BOUNDARY_IO
+                && boundary->source_name != NULL
+                && strcmp(boundary->source_name, "ReadFile") == 0
+                && boundary->ast != NULL
+                && boundary->ast->line == 27) {
+                found_io = true;
+            }
+        }
+    }
+    ok = air != NULL
+        && air->boundary_count == 1
+        && found_io;
+    air_destroy(air);
+    free(error);
+    ast_destroy(step_ast);
+    ast_destroy(block);
+    ast_destroy(let_decl);
+    ast_destroy(call);
+    return ok;
+}
+
+static bool
+test_air_synthesizes_boundary_from_event_handler_payload(void)
+{
+    ASTNode intent_ast = { .line = 28, .column = 1 };
+    ASTNode *step_ast = ast_create_intent_step("subscribe");
+    ASTNode *event_subscribe = (ASTNode *)calloc(1, sizeof(ASTNode));
+    ASTNode *event_name = ast_create_identifier("OnLoaded");
+    ASTNode *handler = (ASTNode *)calloc(1, sizeof(ASTNode));
+    ASTNode *call = ast_create_call(ast_create_identifier("ReadFile"));
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "SubscribeIntent", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        { .index = 0, .name = "subscribe", .ast = step_ast },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    AIRProgram *air;
+    char *error = NULL;
+    bool found_event = false;
+    bool found_io = false;
+    bool ok;
+
+    if (step_ast == NULL || event_subscribe == NULL || event_name == NULL
+        || handler == NULL || call == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(event_subscribe);
+        ast_destroy(event_name);
+        ast_destroy(handler);
+        ast_destroy(call);
+        return false;
+    }
+
+    event_subscribe->type = AST_EVENT_SUBSCRIBE;
+    event_subscribe->line = 29;
+    event_subscribe->column = 9;
+    event_subscribe->data.event_op.event = event_name;
+    event_name = NULL;
+
+    handler->type = AST_LAMBDA_EXPR;
+    handler->line = 30;
+    handler->column = 13;
+    call->line = 31;
+    call->column = 17;
+    handler->data.lambda_expr.body = call;
+    call = NULL;
+    event_subscribe->data.event_op.handler = handler;
+    handler = NULL;
+
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(1, sizeof(ASTNode *));
+    if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(event_subscribe);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs[0] = event_subscribe;
+    step_ast->data.intent_step.on_expr_count = 1;
+    event_subscribe = NULL;
+
+    air = air_synthesize(NULL, &dir, NULL, &error);
+    if (air != NULL) {
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            const AIRBoundaryNode *boundary = &air->boundaries[i];
+            if (boundary->kind == AIR_BOUNDARY_EXECUTION
+                && boundary->source_name != NULL
+                && strcmp(boundary->source_name, "event-subscribe") == 0
+                && boundary->ast != NULL
+                && boundary->ast->line == 29) {
+                found_event = true;
+            }
+            if (boundary->kind == AIR_BOUNDARY_IO
+                && boundary->source_name != NULL
+                && strcmp(boundary->source_name, "ReadFile") == 0
+                && boundary->ast != NULL
+                && boundary->ast->line == 31) {
+                found_io = true;
+            }
+        }
+    }
+
+    ok = air != NULL
+        && air->boundary_count == 2
+        && found_event
+        && found_io;
+    air_destroy(air);
+    free(error);
+    ast_destroy(step_ast);
+    ast_destroy(event_subscribe);
+    ast_destroy(event_name);
+    ast_destroy(handler);
+    ast_destroy(call);
     return ok;
 }
 
@@ -2264,6 +3009,8 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     ASTNode *unsafe_block = ast_create_unsafe_block(ast_create_block());
     ASTNode *defer_stmt = ast_create_defer_statement(ast_create_block());
     ASTNode *pin_block = ast_create_block();
+    ASTNode *event_subscribe = (ASTNode *)calloc(1, sizeof(ASTNode));
+    ASTNode *event_unsubscribe = (ASTNode *)calloc(1, sizeof(ASTNode));
     ASTNode *nested_read = ast_create_call(ast_create_identifier("ReadFile"));
     DIRNode nodes[] = {
         { .id = 1, .kind = DIR_NODE_INTENT, .name = "CoordinateWork", .ast = &intent_ast },
@@ -2293,6 +3040,8 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     bool found_unsafe = false;
     bool found_defer = false;
     bool found_pin = false;
+    bool found_event_subscribe = false;
+    bool found_event_unsubscribe = false;
     bool found_nested_io = false;
     bool ok;
 
@@ -2300,7 +3049,8 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         || task_group == NULL
         || send == NULL || recv == NULL || select_stmt == NULL
         || with_stmt == NULL || unsafe_block == NULL || defer_stmt == NULL
-        || pin_block == NULL || nested_read == NULL) {
+        || pin_block == NULL || event_subscribe == NULL
+        || event_unsubscribe == NULL || nested_read == NULL) {
         ast_destroy(step_ast);
         ast_destroy(parallel);
         ast_destroy(async_block);
@@ -2313,6 +3063,8 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         ast_destroy(unsafe_block);
         ast_destroy(defer_stmt);
         ast_destroy(pin_block);
+        ast_destroy(event_subscribe);
+        ast_destroy(event_unsubscribe);
         ast_destroy(nested_read);
         return false;
     }
@@ -2327,7 +3079,15 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     unsafe_block->line = 59;
     defer_stmt->line = 60;
     pin_block->line = 61;
-    nested_read->line = 62;
+    event_subscribe->type = AST_EVENT_SUBSCRIBE;
+    event_subscribe->line = 62;
+    event_subscribe->data.event_op.event = ast_create_identifier("OnReady");
+    event_subscribe->data.event_op.handler = ast_create_identifier("HandleReady");
+    event_unsubscribe->type = AST_EVENT_UNSUBSCRIBE;
+    event_unsubscribe->line = 63;
+    event_unsubscribe->data.event_op.event = ast_create_identifier("OnReady");
+    event_unsubscribe->data.event_op.handler = ast_create_identifier("HandleReady");
+    nested_read->line = 64;
     pin_block->data.block.is_pin_block = true;
     with_stmt->data.with_stmt.body = ast_create_block();
     if (with_stmt->data.with_stmt.body == NULL) {
@@ -2343,12 +3103,14 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         ast_destroy(unsafe_block);
         ast_destroy(defer_stmt);
         ast_destroy(pin_block);
+        ast_destroy(event_subscribe);
+        ast_destroy(event_unsubscribe);
         ast_destroy(nested_read);
         return false;
     }
     ast_add_statement(with_stmt->data.with_stmt.body, nested_read);
     nested_read = NULL;
-    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(11, sizeof(ASTNode *));
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(13, sizeof(ASTNode *));
     if (step_ast->data.intent_step.on_exprs == NULL) {
         ast_destroy(step_ast);
         ast_destroy(parallel);
@@ -2362,6 +3124,8 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         ast_destroy(unsafe_block);
         ast_destroy(defer_stmt);
         ast_destroy(pin_block);
+        ast_destroy(event_subscribe);
+        ast_destroy(event_unsubscribe);
         ast_destroy(nested_read);
         return false;
     }
@@ -2376,7 +3140,9 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     step_ast->data.intent_step.on_exprs[8] = unsafe_block;
     step_ast->data.intent_step.on_exprs[9] = defer_stmt;
     step_ast->data.intent_step.on_exprs[10] = pin_block;
-    step_ast->data.intent_step.on_expr_count = 11;
+    step_ast->data.intent_step.on_exprs[11] = event_subscribe;
+    step_ast->data.intent_step.on_exprs[12] = event_unsubscribe;
+    step_ast->data.intent_step.on_expr_count = 13;
 
     air = air_synthesize(NULL, &dir, NULL, &error);
     if (air != NULL) {
@@ -2415,15 +3181,21 @@ test_air_synthesizes_stable_execution_boundary_set(void)
             if (boundary->kind == AIR_BOUNDARY_EXECUTION
                 && strcmp(boundary->source_name, "pin") == 0)
                 found_pin = true;
+            if (boundary->kind == AIR_BOUNDARY_EXECUTION
+                && strcmp(boundary->source_name, "event-subscribe") == 0)
+                found_event_subscribe = true;
+            if (boundary->kind == AIR_BOUNDARY_EXECUTION
+                && strcmp(boundary->source_name, "event-unsubscribe") == 0)
+                found_event_unsubscribe = true;
             if (boundary->kind == AIR_BOUNDARY_IO
                 && boundary->ast != NULL
-                && boundary->ast->line == 62
+                && boundary->ast->line == 64
                 && strcmp(boundary->source_name, "ReadFile") == 0)
                 found_nested_io = true;
         }
     }
     ok = air != NULL
-        && air->boundary_count == 12
+        && air->boundary_count == 14
         && found_parallel
         && found_async
         && found_await
@@ -2435,6 +3207,8 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         && found_unsafe
         && found_defer
         && found_pin
+        && found_event_subscribe
+        && found_event_unsubscribe
         && found_nested_io;
     air_destroy(air);
     free(error);
@@ -2683,11 +3457,17 @@ main(void)
     TEST("AIR verify rejects invalid drift inventory");
     EXPECT(test_air_verify_rejects_invalid_drift_inventory());
 
+    TEST("AIR verify rejects invalid evidence inventory");
+    EXPECT(test_air_verify_rejects_invalid_evidence_inventory());
+
     TEST("AIR verify rejects authority evidence shape mismatch");
     EXPECT(test_air_verify_rejects_authority_evidence_shape_mismatch());
 
     TEST("AIR verify rejects CFG evidence without routine evidence");
     EXPECT(test_air_verify_rejects_cfg_evidence_without_routine());
+
+    TEST("AIR verify rejects empty evidence provenance");
+    EXPECT(test_air_verify_rejects_empty_evidence_provenance());
 
     TEST("AIR check_drift remains verify compatibility wrapper");
     EXPECT(test_air_check_drift_is_verify_compatibility_wrapper());
@@ -2700,6 +3480,27 @@ main(void)
 
     TEST("AIR dump prints evidence provenance");
     EXPECT(test_air_dump_prints_evidence_provenance());
+
+    TEST("AIR JSON dump prints stable graph schema");
+    EXPECT(test_air_dump_json_prints_stable_graph_schema());
+
+    TEST("AIR collects MIR pin cleanup evidence");
+    EXPECT(test_air_collects_mir_pin_cleanup_evidence());
+
+    TEST("AIR collects MIR cleanup block evidence");
+    EXPECT(test_air_collects_mir_cleanup_block_evidence());
+
+    TEST("AIR collects DAG generic ability evidence");
+    EXPECT(test_air_collects_dag_generic_ability_evidence());
+
+    TEST("AIR reports DAG fallback drift");
+    EXPECT(test_air_reports_dag_fallback_drift());
+
+    TEST("AIR collects RIR effect relation propagation evidence");
+    EXPECT(test_air_collects_rir_effect_relation_propagation_evidence());
+
+    TEST("AIR reports missing effect relation propagation evidence");
+    EXPECT(test_air_reports_missing_effect_relation_propagation_evidence());
 
     TEST("AIR world boundary requires transfer evidence");
     EXPECT(test_air_world_boundary_requires_transfer_evidence());
@@ -2715,6 +3516,12 @@ main(void)
 
     TEST("AIR synthesis captures spawn boundary from intent step AST");
     EXPECT(test_air_synthesizes_spawn_boundary_from_step_ast());
+
+    TEST("AIR synthesis captures boundary from let initializer");
+    EXPECT(test_air_synthesizes_boundary_from_let_initializer());
+
+    TEST("AIR synthesis captures boundary from event handler payload");
+    EXPECT(test_air_synthesizes_boundary_from_event_handler_payload());
 
     TEST("AIR rejects unmatched top-level intent HIR evidence");
     EXPECT(test_air_rejects_unmatched_top_level_intent_hir_evidence());

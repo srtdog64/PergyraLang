@@ -165,6 +165,16 @@ semantic_analyze(ASTNode *ast)
     result->annotated_ast    = ast;
     result->diagnostic_count = ctx->diagnostic_count;
     result->diagnostics      = ctx->diagnostics;
+    result->type_resolution_metadata_entries =
+        ctx->type_resolution_metadata.count;
+    result->type_resolution_metadata_hits =
+        ctx->type_resolution_metadata_hits;
+    result->type_resolution_metadata_materializer_fallbacks =
+        ctx->type_resolution_metadata_materializer_fallbacks;
+    result->type_resolution_stage_compat_generic_contract_count =
+        ctx->type_resolution_stage_compat_generic_contract_count;
+    result->type_resolution_stage_compat_ability_consumer_count =
+        ctx->type_resolution_stage_compat_ability_consumer_count;
 
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         if (ctx->diagnostics[i]->level == DIAG_ERROR)

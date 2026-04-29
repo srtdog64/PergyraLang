@@ -68,7 +68,7 @@ flow_has_fallthrough(FlowFlags flags)
 static Type *
 flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_lookup_resolved_type(ctx, type_ref);
+    return semantic_type_resolution_lookup_resolved_annotation(ctx, type_ref);
 }
 
 #include "type_checker_flow_loops.h"

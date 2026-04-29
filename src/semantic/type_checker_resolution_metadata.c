@@ -163,6 +163,13 @@ semantic_type_resolution_lookup_resolved_type(SemanticContext *ctx,
 }
 
 Type *
+semantic_type_resolution_lookup_resolved_annotation(SemanticContext *ctx,
+                                                    ASTNode *type_node)
+{
+    return semantic_type_resolution_lookup_resolved_type(ctx, type_node);
+}
+
+Type *
 semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
                                                ASTNode *type_node)
 {

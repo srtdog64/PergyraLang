@@ -55,6 +55,7 @@ required_files=(
     "src/semantic/diag_codes.h"
     "docs/72_diagnostic_codes.md"
     "src/runtime/pgy_abi_spec.h"
+    "src/runtime/pgy_abi_spec_asserts.h"
     ".github/workflows/ci.yml"
     "Makefile"
 )
@@ -400,15 +401,18 @@ typedef struct { int64_t value; bool occupied; uint64_t token; } pgy_abi_secure_
 typedef struct { float   value; bool occupied; uint64_t token; } pgy_abi_secure_slot_float_rel;
 typedef struct { double  value; bool occupied; uint64_t token; } pgy_abi_secure_slot_double_rel;
 typedef struct { bool    value; bool occupied; uint64_t token; } pgy_abi_secure_slot_bool_rel;
-secure_slot_string_rel_same_token_offset_as_dbg
-token_int_rel_same_size_as_dbg
-token_int_rel_can_write_same_offset_as_dbg
-token_int_rel_can_read_same_offset_as_dbg
 uint32 strong/weak counts plus an alive bit
 beta-stable shared ownership subset
 uint32_t strong_count;
 uint32_t weak_count;
 bool     alive;
+EOF
+
+require_terms "src/runtime/pgy_abi_spec_asserts.h" <<'EOF'
+secure_slot_string_rel_same_token_offset_as_dbg
+token_int_rel_same_size_as_dbg
+token_int_rel_can_write_same_offset_as_dbg
+token_int_rel_can_read_same_offset_as_dbg
 rc_ctrl_int_alive_at_8
 EOF
 

@@ -7,7 +7,9 @@ cd "$ROOT"
 bad_direct="$(mktemp)"
 bad_fallback="$(mktemp)"
 fallback_matches="$(mktemp)"
-trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches"' EXIT
+annotation_matches="$(mktemp)"
+bad_annotation="$(mktemp)"
+trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches" "$annotation_matches" "$bad_annotation"' EXIT
 
 { grep -RIn "resolve_type_node(" src/semantic || true; } | while IFS=: read -r path line text; do
   case "$path" in
@@ -108,6 +110,60 @@ if grep -RIn 'resolve_type_node(' src/semantic \
   | grep -v 'type_checker_resolution_metadata.c' >"$bad_direct"; then
   echo "[type-resolution-resolver-inventory] retired resolve_type_node evaluator reappeared" >&2
   cat "$bad_direct" >&2
+  exit 1
+fi
+
+{ grep -RIn 'semantic_type_resolution_lookup_resolved_type' src/semantic || true; } \
+  | grep -Ev 'src/semantic/type_checker_resolution_metadata(_alias|_constructed)?\.c' \
+  | grep -Ev 'src/semantic/type_checker_internal\.h' \
+  >"$bad_annotation" || true
+
+if [ -s "$bad_annotation" ]; then
+  echo "[type-resolution-resolver-inventory] raw resolved-type lookup escaped metadata owners:" >&2
+  cat "$bad_annotation" >&2
+  echo "Use semantic_type_resolution_lookup_resolved_annotation(...) for deliberate annotation-sensitive seams." >&2
+  exit 1
+fi
+
+{ grep -RIn 'semantic_type_resolution_lookup_resolved_annotation' src/semantic || true; } \
+  | grep -Ev 'src/semantic/type_checker_internal\.h|src/semantic/type_checker_resolution_metadata\.c' \
+  >"$annotation_matches" || true
+
+>"$bad_annotation"
+
+while IFS=: read -r path line text; do
+  [ -n "$path" ] || continue
+  case "$path" in
+    src/semantic/type_checker.c|\
+    src/semantic/type_checker_ability_fields.c|\
+    src/semantic/type_checker_async_channel.h|\
+    src/semantic/type_checker_builtins_projection.c|\
+    src/semantic/type_checker_builtins_query_domain.c|\
+    src/semantic/type_checker_event.c|\
+    src/semantic/type_checker_flow.c|\
+    src/semantic/type_checker_module_contract.c|\
+    src/semantic/type_checker_party_decl.c|\
+    src/semantic/type_checker_program.c|\
+    src/semantic/type_checker_role_decl.c|\
+    src/semantic/type_checker_roster_decl.c)
+      continue
+      ;;
+  esac
+  printf '%s:%s: %s\n' "$path" "$line" "$text" >>"$bad_annotation"
+done <"$annotation_matches"
+
+if [ -s "$bad_annotation" ]; then
+  echo "[type-resolution-resolver-inventory] unclassified resolved-annotation seam(s):" >&2
+  cat "$bad_annotation" >&2
+  echo "Route new seams through metadata-first APIs, or add a narrowly justified annotation-sensitive allowlist entry." >&2
+  exit 1
+fi
+
+annotation_sites="$(wc -l <"$annotation_matches")"
+if [ "$annotation_sites" -ne 12 ]; then
+  echo "[type-resolution-resolver-inventory] resolved-annotation seam inventory changed: $annotation_sites != 12" >&2
+  echo "This is allowed only when a seam is deliberately retired or a new annotation-sensitive path is documented." >&2
+  cat "$annotation_matches" >&2
   exit 1
 fi
 
@@ -295,4 +351,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0)"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites)"

@@ -1,0 +1,45 @@
+#ifndef PGY_RUNTIME_OBSERVABILITY_SCHEMA_H
+#define PGY_RUNTIME_OBSERVABILITY_SCHEMA_H
+
+/*
+ * Stable observability vocabulary shared by runtime exports and AIR JSON.
+ * The runtime owns the actual data; AIR only exposes the schema contract.
+ */
+
+#define PGY_OBSERVABILITY_ABI_SCHEMA "pgy.intent.observability.v1"
+#define PGY_OBSERVABILITY_TRACE_SCHEMA "pgy.intent.trace.v1"
+
+#define PGY_OBSERVABILITY_SURFACE_LAST "last"
+#define PGY_OBSERVABILITY_SURFACE_HISTORY "history"
+#define PGY_OBSERVABILITY_SURFACE_ACTIVE "active"
+#define PGY_OBSERVABILITY_SURFACE_RECENT "recent"
+
+#define PGY_OBSERVABILITY_EVENT_INTENT_ENTER "intent.enter"
+#define PGY_OBSERVABILITY_EVENT_STEP_BEGIN "step.begin"
+#define PGY_OBSERVABILITY_EVENT_BIND "bind"
+#define PGY_OBSERVABILITY_EVENT_MATERIALIZE "materialize"
+#define PGY_OBSERVABILITY_EVENT_TRANSFER "transfer"
+#define PGY_OBSERVABILITY_EVENT_STEP_OK "step.ok"
+#define PGY_OBSERVABILITY_EVENT_FAIL "fail"
+#define PGY_OBSERVABILITY_EVENT_MIR_RESOURCE "mir.resource"
+
+#define PGY_OBSERVABILITY_FIELD_HANDLE "handle"
+#define PGY_OBSERVABILITY_FIELD_PARENT_HANDLE "parent_handle"
+#define PGY_OBSERVABILITY_FIELD_TRACE_ID "trace_id"
+#define PGY_OBSERVABILITY_FIELD_NAME "name"
+#define PGY_OBSERVABILITY_FIELD_TRACE "trace"
+#define PGY_OBSERVABILITY_FIELD_FAILURE_REASON "failure_reason"
+#define PGY_OBSERVABILITY_FIELD_STEP_COUNT "step_count"
+#define PGY_OBSERVABILITY_FIELD_FAILED "failed"
+#define PGY_OBSERVABILITY_FIELD_ACTIVE "active"
+#define PGY_OBSERVABILITY_FIELD_PHASE "phase"
+#define PGY_OBSERVABILITY_FIELD_ZONE "zone"
+#define PGY_OBSERVABILITY_FIELD_PARTICIPANT "participant"
+#define PGY_OBSERVABILITY_FIELD_SLOT "slot"
+#define PGY_OBSERVABILITY_FIELD_FROM_ZONE "from_zone"
+#define PGY_OBSERVABILITY_FIELD_FROM_SLOT "from_slot"
+#define PGY_OBSERVABILITY_FIELD_TO_ZONE "to_zone"
+#define PGY_OBSERVABILITY_FIELD_TO_SLOT "to_slot"
+#define PGY_OBSERVABILITY_FIELD_OK "ok"
+
+#endif /* PGY_RUNTIME_OBSERVABILITY_SCHEMA_H */

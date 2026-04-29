@@ -97,8 +97,8 @@ semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
 
         param_is_token = semantic_type_ref_names_token(param->type);
         if (!param_is_token) {
-            param_type = semantic_type_resolution_lookup_resolved_type(ctx,
-                param->type);
+            param_type = semantic_type_resolution_lookup_resolved_annotation(
+                ctx, param->type);
             param_is_token = semantic_channel_type_is_token(param_type);
         }
         if (!param_is_token)

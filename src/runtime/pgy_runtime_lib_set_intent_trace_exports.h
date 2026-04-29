@@ -1,4 +1,5 @@
 #include "pgy_runtime_lib_set_raw_exports.h"
+#include "pgy_runtime_observability_schema.h"
 
 #define PGY_INTENT_ACTIVE_MAX 256
 #define PGY_INTENT_RECENT_MAX 16

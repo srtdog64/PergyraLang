@@ -108,6 +108,64 @@ air_assign_first_owned_name(AIRProgram *air,
     return true;
 }
 
+bool
+air_append_evidence_node(AIRProgram *air,
+                         AIREvidenceKind kind,
+                         size_t boundary_index,
+                         const char *provider_name,
+                         const char *subject_name,
+                         char **error_message)
+{
+    return air_append_evidence_node_ex(air,
+                                       kind,
+                                       boundary_index,
+                                       provider_name,
+                                       subject_name,
+                                       1,
+                                       0,
+                                       error_message);
+}
+
+bool
+air_append_evidence_node_ex(AIRProgram *air,
+                            AIREvidenceKind kind,
+                            size_t boundary_index,
+                            const char *provider_name,
+                            const char *subject_name,
+                            size_t fact_count,
+                            size_t fallback_count,
+                            char **error_message)
+{
+    AIREvidenceNode *next;
+    AIREvidenceNode *node;
+
+    if (air == NULL) {
+        air_set_error(error_message, "AIR evidence append requires a program");
+        return false;
+    }
+    next = (AIREvidenceNode *)realloc(air->evidence_nodes,
+                                      sizeof(AIREvidenceNode) * (air->evidence_count + 1));
+    if (next == NULL) {
+        air_set_error(error_message, "AIR evidence node allocation failed");
+        return false;
+    }
+
+    air->evidence_nodes = next;
+    node = &air->evidence_nodes[air->evidence_count];
+    memset(node, 0, sizeof(*node));
+    node->kind = kind;
+    node->boundary_index = boundary_index;
+    node->fact_count = fact_count;
+    node->fallback_count = fallback_count;
+    if (!air_assign_owned_name(air, &node->provider_name, provider_name)
+        || !air_assign_owned_name(air, &node->subject_name, subject_name)) {
+        air_set_error(error_message, "AIR evidence node provenance allocation failed");
+        return false;
+    }
+    air->evidence_count++;
+    return true;
+}
+
 static bool
 air_assign_authority_names(AIRProgram *air,
                            AIRBoundaryNode *boundary,
@@ -378,5 +436,6 @@ air_destroy(AIRProgram *air)
     free(air->owned_names);
     free(air->intents);
     free(air->boundaries);
+    free(air->evidence_nodes);
     free(air);
 }

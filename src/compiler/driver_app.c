@@ -296,12 +296,19 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
             "AIR synthesis failed", hir_error);
         goto cleanup;
     }
-    if (flags->dump_air) {
+    if (!air_collect_dag_evidence(air, sem, &hir_error)
+        || !air_verify(air, &hir_error)) {
+        driver_emit_stage_fail(flags, "air_dag_evidence",
+            "AIR DAG evidence collection failed",
+            hir_error != NULL ? hir_error : "invalid AIR/DAG evidence");
+        goto cleanup;
+    }
+    if (flags->dump_air && !flags->dump_air_json) {
         air_dump(air, stdout);
         exit_code = 0;
         goto cleanup;
     }
-    if (air->drift_count > 0) {
+    if (air->drift_count > 0 && !flags->dump_air_json) {
         driver_emit_air_drift_fail(flags, air);
         goto cleanup;
     }
@@ -328,6 +335,24 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     }
     if (timings != NULL)
         timings->mir_validate = driver_now_seconds() - phase_start;
+
+    if (flags->dump_air_json) {
+        if (!air_collect_mir_evidence(air, mir, &hir_error)) {
+            driver_emit_stage_fail(flags, "air_mir_evidence",
+                "AIR MIR evidence collection failed",
+                hir_error != NULL ? hir_error : "invalid AIR/MIR evidence");
+            goto cleanup;
+        }
+        if (!air_verify(air, &hir_error)) {
+            driver_emit_stage_fail(flags, "air_verify",
+                "AIR verification failed after MIR evidence collection",
+                hir_error != NULL ? hir_error : "invalid AIR graph");
+            goto cleanup;
+        }
+        air_dump_json(air, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
 
     bundle.hir = hir;
     bundle.dir = dir;
@@ -444,6 +469,7 @@ driver_print_usage(void)
         "  pgy --dir    <source.pgy>     dump lowered DIR summary\n"
         "  pgy --rir    <source.pgy>     dump lowered RIR summary\n"
         "  pgy --air    <source.pgy>     dump AIR verification summary\n"
+        "  pgy --air-json <source.pgy>   dump stable AIR graph JSON after MIR evidence\n"
         "  pgy --mir    <source.pgy>     dump lowered MIR summary\n"
         "  pgy --hir     <source.pgy>     dump lowered HIR summary\n"
         "  pgy --hir-cfg <source.pgy>     dump HIR CFG view\n"

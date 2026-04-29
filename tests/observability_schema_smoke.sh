@@ -15,10 +15,24 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 SCHEMA_DOC="$ROOT_DIR/docs/112_observability_trace_schema.md"
+SCHEMA_HEADER="$ROOT_DIR/src/runtime/pgy_runtime_observability_schema.h"
 if [[ ! -f "$SCHEMA_DOC" ]]; then
     echo "[observability-schema] missing schema doc: $SCHEMA_DOC" >&2
     exit 1
 fi
+if [[ ! -f "$SCHEMA_HEADER" ]]; then
+    echo "[observability-schema] missing schema header: $SCHEMA_HEADER" >&2
+    exit 1
+fi
+
+require_text() {
+    local path="$1"
+    local text="$2"
+    if ! grep -Fq "$text" "$path"; then
+        echo "[observability-schema] missing '$text' in ${path#$ROOT_DIR/}" >&2
+        exit 1
+    fi
+}
 
 for required in \
     "Observability And Trace Schema Beta Contract" \
@@ -33,10 +47,23 @@ for required in \
     "General event streaming schema" \
     "Structured JSON trace export" \
     "make observability-schema-test-smoke"; do
-    if ! grep -Fq "$required" "$SCHEMA_DOC"; then
-        echo "[observability-schema] schema doc missing: $required" >&2
-        exit 1
-    fi
+    require_text "$SCHEMA_DOC" "$required"
+done
+
+for required in \
+    "PGY_OBSERVABILITY_ABI_SCHEMA" \
+    "pgy.intent.observability.v1" \
+    "PGY_OBSERVABILITY_TRACE_SCHEMA" \
+    "pgy.intent.trace.v1" \
+    "PGY_OBSERVABILITY_SURFACE_LAST" \
+    "PGY_OBSERVABILITY_SURFACE_HISTORY" \
+    "PGY_OBSERVABILITY_SURFACE_ACTIVE" \
+    "PGY_OBSERVABILITY_SURFACE_RECENT" \
+    "PGY_OBSERVABILITY_EVENT_INTENT_ENTER" \
+    "PGY_OBSERVABILITY_EVENT_TRANSFER" \
+    "PGY_OBSERVABILITY_FIELD_FROM_ZONE" \
+    "PGY_OBSERVABILITY_FIELD_TO_SLOT"; do
+    require_text "$SCHEMA_HEADER" "$required"
 done
 
 PYTHON_BIN="${PYTHON_BIN:-}"
@@ -50,6 +77,23 @@ fi
 
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_observability_schema.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
+
+AIR_JSON_OUT="$WORK_DIR/air_observability.json"
+"$PGY" --air-json "$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy" --backend=c > "$AIR_JSON_OUT"
+for required in \
+    '"schema":"pgy.air.graph.v1"' \
+    '"observability"' \
+    '"abi_schema":"pgy.intent.observability.v1"' \
+    '"trace_schema":"pgy.intent.trace.v1"' \
+    '"surfaces":["last","history","active","recent"]' \
+    '"event_kinds"' \
+    '"intent.enter"' \
+    '"transfer"' \
+    '"history_fields"' \
+    '"from_zone"' \
+    '"to_slot"'; do
+    require_text "$AIR_JSON_OUT" "$required"
+done
 
 normalize_output() {
     tr -d '\r' | sed -E \
