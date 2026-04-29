@@ -289,6 +289,8 @@ required_mir_cleanup_validator_terms = [
     "incomplete loop-init fact",
     "incomplete loop-branch fact",
     "pin-region block[%zu] missing pin-unpin cleanup fact",
+    "rollback block missing cleanup-edge MIR fact",
+    "invalidation block missing cleanup-edge MIR fact",
     "cleanup block[%zu] must not have normal CFG successors",
     "cleanup block[%zu] must not be a pin region",
     "CFG-owned control statement as fallback STMT",
@@ -441,6 +443,7 @@ required_flow_terms = [
     "match_stmt_has_total_case_coverage",
     "flow_record_unreachable_statement",
     "loop_flow_record",
+    "resource_snapshots_equal",
     "type_check_while_loop",
     "type_check_for_loop",
     "merge_resource_snapshots_or",
@@ -479,6 +482,10 @@ if missing_flow:
     raise SystemExit(
         "semantic CFG body flow is missing implementation terms: "
         + ", ".join(missing_flow)
+    )
+if "if (a->used_states[i] != b->used_states[i])" not in flow:
+    raise SystemExit(
+        "semantic CFG loop fixed-point equality must compare resource used_states"
     )
 
 hir_routines = program_path.parent.parent / "compiler" / "hir_routines.c"
@@ -663,6 +670,7 @@ for term in [
     "MIR lowers for-loop init as loop-init instead of fallback statement",
     "MIR lowers for-in init as loop-init instead of fallback statement",
     "MIR validator rejects CFG-owned control fallback statements",
+    "MIR validator rejects missing rollback and invalidation cleanup facts",
     "MIR keeps pin cleanup fact across early return",
     "MIR keeps pin cleanup fact across branch returns",
     "MIR keeps pin cleanup fact across loop break and continue",

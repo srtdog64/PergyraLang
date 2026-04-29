@@ -93,6 +93,7 @@ typedef struct AIRProgram
     AIRDrift        *drifts;
     size_t           drift_count;
     bool             strict_evidence;
+    bool             has_hir_input;
     size_t           hir_routine_evidence_count;
     size_t           hir_cfg_evidence_count;
     size_t           rir_boundary_evidence_count;

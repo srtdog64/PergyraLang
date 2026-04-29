@@ -11,6 +11,8 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
             return false;
         if (a->states[i] != b->states[i])
             return false;
+        if (a->used_states[i] != b->used_states[i])
+            return false;
         if (a->slot_states[i] != b->slot_states[i])
             return false;
         if (a->sem_states[i] != b->sem_states[i])

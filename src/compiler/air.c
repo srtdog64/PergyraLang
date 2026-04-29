@@ -225,6 +225,7 @@ air_synthesize(const HIRProgram *hir,
         return NULL;
     }
     air->strict_evidence = air_strict_evidence_enabled();
+    air->has_hir_input = hir != NULL;
 
     size_t intent_node_count = 0;
     size_t boundary_node_count = 0;

@@ -354,7 +354,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     (unsigned long long) g_type_resolution_compat_future_type_calls,
                     (unsigned long long) g_type_resolution_compat_event_handler_type_calls,
                     (unsigned long long) g_type_resolution_compat_other_ast_calls);
-            fprintf(stderr, "[type-res-stats] stage-compat-resolve: calls=%llu failed=%llu suppressed_diagnostics=%llu\n",
+            fprintf(stderr, "[type-res-stats] stage-metadata-materialize: calls=%llu failed=%llu suppressed_diagnostics=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_compat_resolve_count,
                     (unsigned long long) ctx->type_resolution_stage_compat_resolve_failed_count,
                     (unsigned long long) ctx->type_resolution_stage_compat_resolve_suppressed_diag_count);
@@ -371,18 +371,18 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     (unsigned long long) ctx->type_resolution_metadata_hits,
                     (unsigned long long) ctx->type_resolution_metadata_misses,
                     (unsigned long long) ctx->type_resolution_metadata_materializer_fallbacks);
-            fprintf(stderr, "[type-res-stats] metadata-fallback: named=%llu generic_named=%llu compound=%llu other=%llu\n",
+            fprintf(stderr, "[type-res-stats] metadata-unresolved-audit: named=%llu generic_named=%llu compound=%llu other=%llu\n",
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named,
                     (unsigned long long) ctx->type_resolution_metadata_fallback_generic_named,
                     (unsigned long long) ctx->type_resolution_metadata_fallback_compound,
                     (unsigned long long) ctx->type_resolution_metadata_fallback_other);
-            fprintf(stderr, "[type-res-stats] metadata-fallback-named: builtin_shell=%llu generic_class=%llu alias=%llu non_class_symbol=%llu missing_symbol=%llu\n",
+            fprintf(stderr, "[type-res-stats] metadata-unresolved-audit-named: builtin_shell=%llu generic_class=%llu alias=%llu non_class_symbol=%llu missing_symbol=%llu\n",
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named_builtin_shell,
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named_generic_class,
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named_alias,
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named_non_class_symbol,
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named_missing_symbol);
-            fprintf(stderr, "[type-res-stats] stage-compat-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
+            fprintf(stderr, "[type-res-stats] stage-materialize-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_compat_generic_contract_count,
                     (unsigned long long) ctx->type_resolution_stage_compat_signature_count,
                     (unsigned long long) ctx->type_resolution_stage_compat_ability_consumer_count,

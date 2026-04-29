@@ -16,11 +16,12 @@ air_dump(const AIRProgram *air, FILE *out)
         fprintf(out, "AIRProgram(null)\n");
         return;
     }
-    fprintf(out, "AIRProgram intents=%zu boundaries=%zu drifts=%zu strict_evidence=%s\n",
+    fprintf(out, "AIRProgram intents=%zu boundaries=%zu drifts=%zu strict_evidence=%s hir_input=%s\n",
             air->intent_count,
             air->boundary_count,
             air->drift_count,
-            air->strict_evidence ? "yes" : "no");
+            air->strict_evidence ? "yes" : "no",
+            air->has_hir_input ? "yes" : "no");
     fprintf(out, "  evidence hir_routines=%zu hir_cfg=%zu rir_boundaries=%zu rir_authority=%zu\n",
             air->hir_routine_evidence_count,
             air->hir_cfg_evidence_count,

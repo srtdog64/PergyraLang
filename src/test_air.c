@@ -1082,6 +1082,7 @@ test_air_dump_prints_evidence_provenance(void)
         .boundaries = boundaries,
         .boundary_count = 1,
         .strict_evidence = true,
+        .has_hir_input = true,
     };
     char buffer[1024];
     FILE *out = tmpfile();
@@ -1097,7 +1098,8 @@ test_air_dump_prints_evidence_provenance(void)
     buffer[bytes] = '\0';
     fclose(out);
 
-    ok = strstr(buffer, "evidence hir=yes(reserve) hir_cfg=yes") != NULL
+    ok = strstr(buffer, "strict_evidence=yes hir_input=yes") != NULL
+        && strstr(buffer, "evidence hir=yes(reserve) hir_cfg=yes") != NULL
         && strstr(buffer, "rir_boundary=yes(WarehouseZone)") != NULL
         && strstr(buffer, "rir_authority=yes(shipper)") != NULL;
     return ok;
@@ -1461,6 +1463,7 @@ test_air_rejects_unmatched_top_level_intent_hir_evidence(void)
     };
     char *error = NULL;
     AIRProgram *air;
+    bool found_hir_routine_drift = false;
     bool found_hir_evidence_drift = false;
     bool ok;
 
@@ -1484,9 +1487,13 @@ test_air_rejects_unmatched_top_level_intent_hir_evidence(void)
         for (size_t i = 0; i < air->drift_count; i++) {
             if (air->drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
                 && strstr(air->drifts[i].message,
+                          "AIR boundary has no matching HIR routine evidence") != NULL) {
+                found_hir_routine_drift = true;
+            }
+            if (air->drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+                && strstr(air->drifts[i].message,
                           "AIR implementation boundary has no matching HIR CFG evidence") != NULL) {
                 found_hir_evidence_drift = true;
-                break;
             }
         }
     }
@@ -1496,6 +1503,7 @@ test_air_rejects_unmatched_top_level_intent_hir_evidence(void)
         && air->boundaries[0].kind == AIR_BOUNDARY_PARALLEL
         && !air->boundaries[0].has_hir_routine_evidence
         && air->boundaries[0].has_rir_boundary_evidence
+        && found_hir_routine_drift
         && found_hir_evidence_drift;
     air_destroy(air);
     free(error);

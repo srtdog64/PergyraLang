@@ -148,6 +148,21 @@ block_has_inst_named(const MIRBasicBlock *block, const char *name)
 }
 
 static bool
+block_rename_inst_named(MIRBasicBlock *block, const char *old_name, const char *new_name)
+{
+    if (block == NULL || old_name == NULL)
+        return false;
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        MIRInstruction *inst = &block->instructions[i];
+        if (inst->name != NULL && strcmp(inst->name, old_name) == 0) {
+            inst->name = new_name;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
 block_has_inst_named_with_slot(const MIRBasicBlock *block, const char *name, const char *slot_anchor)
 {
     if (block == NULL)
@@ -571,6 +586,82 @@ test_mir_lowering(void)
                    && strstr(mir_error, "cleanup block") != NULL
                    && strstr(mir_error, "normal CFG successors") != NULL;
         EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects missing rollback and invalidation cleanup facts");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *purchase = NULL;
+        char *mir_error = NULL;
+        bool rollback_corrupted = false;
+        bool invalidation_corrupted = false;
+        bool rollback_rejected = false;
+        bool invalidation_rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL && purchase->has_rollback_block) {
+            rollback_corrupted = block_rename_inst_named(
+                &purchase->blocks[purchase->rollback_block],
+                "cleanup-edge-from-rollback",
+                "corrupted-cleanup-edge-from-rollback");
+        }
+        rollback_rejected = ok
+                            && rollback_corrupted
+                            && !mir_validate(mir, &mir_error)
+                            && mir_error != NULL
+                            && strstr(mir_error, "rollback block missing cleanup-edge MIR fact") != NULL;
+        free(mir_error);
+        mir_error = NULL;
+        if (purchase != NULL && rollback_corrupted) {
+            (void)block_rename_inst_named(
+                &purchase->blocks[purchase->rollback_block],
+                "corrupted-cleanup-edge-from-rollback",
+                "cleanup-edge-from-rollback");
+        }
+        if (purchase != NULL && purchase->has_invalidation_block) {
+            invalidation_corrupted = block_rename_inst_named(
+                &purchase->blocks[purchase->invalidation_block],
+                "cleanup-edge-from-invalidation",
+                "corrupted-cleanup-edge-from-invalidation");
+        }
+        invalidation_rejected = ok
+                                && invalidation_corrupted
+                                && !mir_validate(mir, &mir_error)
+                                && mir_error != NULL
+                                && strstr(mir_error, "invalidation block missing cleanup-edge MIR fact") != NULL;
+        EXPECT(rollback_rejected && invalidation_rejected);
         free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);

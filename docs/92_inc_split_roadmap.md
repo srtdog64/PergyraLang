@@ -1,50 +1,30 @@
 # `.inc` Split Roadmap
 
-마지막 업데이트: 2026-04-24
+마지막 업데이트: 2026-04-30
 
-`type_checker.c` 및 transpiler/LLVM의 일부 `.inc` 파일은 “모듈화”가 아니라 **파일이 분할된 단일 translation unit**에 가깝다. 이 문서는 P1 (TODO.md 폐인 포인트 보드) 항목을 단계적으로 닫기 위한 axis-by-axis 절단 계획.
+과거의 `.inc` 파일은 “모듈화”가 아니라 **파일이 분할된 단일 translation unit**에 가까웠다. 2026-04-30 기준 production `src` tree의 `.inc` contract는 닫혔다: `src` 아래 `.inc` 파일은 0개이며, test fixture는 `.cases.h`만 사용한다. 이 문서는 닫힌 `.inc` debt와 아직 남은 large-owner / owner-boundary debt를 구분한다.
 
 ---
 
-## 현 상태 (2026-04-24)
+## 현 상태 (2026-04-30)
 
-`src/semantic/`:
-- `.c` 45개, `.h` 24개, `.inc` **47개**
-- `.inc` 개수는 split용 shim/include가 섞여 단순 감소 지표로 쓰지 않는다. 베타 debt 지표는 큰 `.inc` LOC, static cascade, direct include chain 축소로 본다.
-- 분리된 internal header 16개 (`type_checker_*_internal.h`) — leaf/axis 인터페이스는 translation unit 경계로 이동 중
+`src` production/test helper include contract:
+- `src/**/*.inc`: **0 files / 0 LOC**
+- behavior-owning `.inc`: **beta blocker if reintroduced**
+- test fragments: `.cases.h` only
+- current gate: `make backend-inc-size-test-smoke`, `make production-header-size-test-smoke`, `make test_inc_size_smoke`
 
-`type_checker.c` include chain (depth 4):
-```
-type_checker.c
-├─ type_checker_helpers.inc → core / host / late
-├─ type_checker_visibility.inc
-├─ type_checker_resolution.inc → graph / stage
-├─ type_checker_expr.inc → resolve
-├─ type_checker_ownership_boundaries.inc
-├─ type_checker_ownership_param_summary.inc
-├─ type_checker_decls.inc → a / b (5 추가 .inc)
-├─ type_checker_async_channel.h
-├─ type_checker_program.inc
-├─ type_checker_program.c
-└─ type_checker_class_decl.c
-```
+남은 부채는 `.inc`가 아니라 large owner와 source-of-truth seam이다. 현재 600 LOC 초과 production owner는 다음 5개다:
 
-가장 큰 .inc 파일 Top 5 (LOC, 2026-04-24 snapshot):
-1. `type_checker_helpers_late.inc` — 773
-2. `type_checker_builtins_query.inc` — 769
-3. `type_checker_expr.inc` — 758
-4. `type_checker_helpers_effects.inc` — 670
-5. `type_checker_builtins_nominal.inc` — 660
+| LOC | file | owner debt |
+| ---: | --- | --- |
+| 851 | `src/runtime/party_runtime.c` | party runtime orchestration/body split |
+| 848 | `src/parser/ast.h` | AST public surface still large |
+| 817 | `src/runtime/world_roster.c` | world/roster runtime split |
+| 793 | `src/runtime/slot_security.c` | secure-slot policy/security helper split |
+| 653 | `src/runtime/pgy_abi_spec.h` | ABI spec audit surface |
 
-Cross-subsystem `.inc` debt after Tier 1 split (LOC, 2026-04-24 snapshot):
-- No `src/runtime`, `src/codegen`, or `src/compiler` `.inc` exceeds 1,000 LOC.
-- `make backend-inc-size-test-smoke` enforces this gate.
-- Current largest files:
-  1. `codegen/transpiler_emitters_intent.inc` — 961
-  2. `compiler/rir_public.inc` — 911
-  3. `codegen/transpiler_expr_emitters_members.inc` — 900
-  4. `codegen/transpiler_expr_emitters_call_b.inc` — 900
-  5. `codegen/transpiler_expr_emitters_call_a.inc` — 900
+Current rule: `.inc` is closed; do not create new `.inc` files to split large owners. Split large owners into named `.c` / `.h` files with explicit owner responsibility and preserve ABI/source-of-truth gates.
 
 Recently closed:
 - `semantic/type_checker_ownership_return.inc`, `semantic/type_checker_ownership_assign.inc`,
@@ -64,6 +44,21 @@ Recently closed:
   codegen, compiler, and semantic production seams now live in named owner
   `.h` / `.c` files. Older bullets below remain as split history, not as the
   active target state.
+- `codegen/transpiler_mir_ssa_emit.h` — reduced below the 600 LOC owner threshold
+  by moving MIR SSA lookup helpers into `transpiler_mir_ssa_lookup.h`.
+- `runtime/pgy_runtime_lib_set_intent_trace_exports.h` — reduced below the 600 LOC
+  owner threshold by moving raw Set exports into `pgy_runtime_lib_set_raw_exports.h`;
+  the runtime prebuilt-object cache now tracks the new header as a dependency.
+- `codegen/llvm_backend_type_map.c` — reduced below the 600 LOC owner threshold
+  by moving early forward-declaration eligibility checks into
+  `llvm_backend_forward_declare.h`.
+- `codegen/llvm_expr_assignment_member_projection.h` — reduced below the 600
+  LOC owner threshold by moving read-side member access emission into
+  `llvm_expr_member_access.h`.
+- `runtime/pgy_runtime_lib_authority_file_core.h` — reduced below the 600 LOC
+  owner threshold by moving file-path resolution helpers into
+  `pgy_runtime_lib_file_path_core.h`; the runtime prebuilt-object cache now
+  tracks the new file-path owner.
 - `semantic/type_checker_decls_domain_helpers.inc` — removed; body lives in `type_checker_decls_domain_helpers.c`.
 - `semantic/type_checker_decls_a.inc` — reduced to a one-line shim; body lives in `type_checker_intent_helpers.c`.
 - `codegen/transpiler_emitters_mir_inventory_ssa.inc` — reduced to a five-line shim that includes three sub-1000 LOC slices:
@@ -188,7 +183,7 @@ Backend 진행:
 
 ## 장기 목표선 — 어디까지 모듈화해야 충분한가
 
-목표는 `.inc` 개수를 0으로 만드는 것이 아니라, **언어 축별 owner와 dependency direction이 명확한 translation unit 구조**를 만드는 것이다. 베타 이후에도 기능을 계속 추가하려면 최소한 다음 상태까지 가야 한다.
+`.inc` 제거는 닫혔다. 남은 목표는 **언어 축별 owner와 dependency direction이 명확한 translation unit 구조**를 유지하면서 large owner를 더 작게 쪼개는 것이다. 베타 이후에도 기능을 계속 추가하려면 최소한 다음 상태까지 가야 한다.
 
 ### Target State A — Semantic Core
 
@@ -196,12 +191,12 @@ Backend 진행:
 - 2026-04-25 stable constructed metadata slice: graph metadata can materialize `List<T>`, `Set<T>`, `HashMap<String|Int, T>`, `Option<T>`, and `Result<T,E>` when argument facts are present. Owned constructed `Type` shells are freed with the semantic context.
 - 2026-04-25 tuple/function metadata slice: graph collect now records tuple shells, event-handler/function shells, and channel/future constructed shells when all child facts are already available.
 - `resolve_generic_type_arg(...)` now queries graph metadata before recursive fallback, so constructed builtin and generic consumer paths share the same DAG metadata seam.
-- `make type-resolution-dag-test-smoke` now fails if graph-backed skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage compatibility fallback, or alias-stage split accounting regress. This keeps the DAG migration honest: graph inventory must produce reusable materialized facts, not just skip compatibility staging.
+- `make type-resolution-dag-test-smoke` now fails if graph-backed skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage metadata materialization, or alias-stage split accounting regress. This keeps the DAG migration honest: graph inventory must produce reusable materialized facts, not just skip compatibility staging.
 - `type_checker.c`는 orchestration만 담당한다.
 - `type_checker_resolution_graph_inventory.c`가 graph inventory pass를 소유한다.
 - `type_checker_resolution_stage.c`는 DAG stage source of truth로 유지하고 include shim으로 되돌리지 않는다.
-- DAG stage 안의 retired resolver compatibility surface는 숨기지 않는다. `PGY_TYPE_RES_STATS=1`의 `stage-graph-backed` / `stage-compat-resolve` / `stage-compat-family` / `stage-alias` 통계와 `make type-resolution-dag-test-smoke`가 남은 migration debt를 공개 지표로 고정한다.
-- 현재 stage compatibility surface는 alias-only diagnostic inventory로 고정됐고 최신 local stats는 `compat_alias=83 compat_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`이다. Valid alias fallback은 0으로 gate되며, unresolved fallback은 alias-cycle diagnostic coverage 경로다.
+- DAG stage 안의 retired resolver compatibility surface는 숨기지 않는다. `PGY_TYPE_RES_STATS=1`의 `stage-graph-backed` / `stage-metadata-materialize` / `stage-materialize-family` / `stage-alias` 통계와 `make type-resolution-dag-test-smoke`가 남은 migration debt를 공개 지표로 고정한다.
+- 현재 stage metadata materialization surface는 alias/non-alias 모두 0으로 고정됐다. 최신 local stats는 `stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`이다. 남은 78건은 recursive resolver 재진입이 아니라 alias-cycle diagnostic coverage의 unresolved inventory다.
 - Program-level symbol inventory now predeclares ability declarations, and the ability checker reuses only its own predeclare. This closes the provider-after-consumer order gap for a frozen DAG slice covering generic default/where, zone authority, and party role-slot ability consumers.
 - `type_checker_resolution_stage_lookup.c`는 stage lookup/host-label mapping을 소유하고, `type_checker_resolution_stage_stats.c`는 graph-backed skip 판정과 compatibility-family 계측을 소유한다.
 - graph precollect TU는 stage runner를 호출하지 않는다. enum method inventory도 precollect action contract 경로로만 edge를 만든다.
@@ -237,40 +232,40 @@ Semantic stop condition:
   return-type boundary.
 - `type_checker.c`는 600 LOC 이하이며 include aggregator가 아니다.
 - 현재 상태: `type_checker_event.c`와 `type_checker_qubit.c` owner 추출 후 `type_checker.c`는 481 LOC다. 남은 include는 helper shims와 statement/program orchestration 경계다.
-- 현재 상태: DAG graph stats, graph-backed stage skip, stage compatibility fallback inventory는 `type-resolution-dag-test-smoke`로 CI에 연결됐다. named type-ref는 generic argument를 포함해 graph-backed skip 경로로 들어가며, smoke는 skip 합계가 0으로 퇴행하면 실패한다. 다음 closure slice는 generic/default/bound validation 자체와 nested consumer metadata를 graph-backed result로 재사용해 compatibility 호출량을 더 줄이는 것이다.
+- 현재 상태: DAG graph stats, graph-backed stage skip, stage metadata materialization inventory는 `type-resolution-dag-test-smoke`로 CI에 연결됐다. named type-ref는 generic argument를 포함해 graph-backed skip 경로로 들어가며, smoke는 skip 합계가 0으로 퇴행하면 실패한다. 다음 closure slice는 generic/default/bound validation 자체와 nested consumer metadata를 graph-backed result로 재사용해 compatibility 호출량을 더 줄이는 것이다.
 - semantic 신규 기능은 `.inc` 수정 없이 해당 axis `.c`와 internal header만 수정해서 추가 가능해야 한다.
 
 ### Target State B — Backend Emitters
 
 - C transpiler와 LLVM은 각각 expression/statement/declaration/domain/runtime-call emitter를 실제 `.c` 단위로 소유한다.
-- `llvm_expr_calls.inc` and the concrete transpiler/LLVM expr helper chunks should continue shrinking toward 500-800 LOC feature modules; pass-through shim files should not be reintroduced.
+- LLVM/C expression helper owners should continue shrinking toward 500-800 LOC feature modules; pass-through `.inc` shim files must not be reintroduced.
 - backend declaration inventory는 AST-carried helper에 직접 기대지 않고 MIR/DIR/RIR metadata reader API를 통한다.
 - C/LLVM 공통 ABI naming, projection labels, runtime symbol lookup은 중복 helper가 아니라 공유 contract module에서 읽는다.
 
 Backend stop condition:
-- `src/codegen`에는 1,000 LOC 초과 `.inc`가 없다.
+- `src/codegen`에는 `.inc` 파일이 없다.
 - C/LLVM parity test에 새 frozen surface를 추가할 때 emitter helper를 두 곳에 복붙하지 않는다.
 - declaration emit path에서 raw AST fallback은 hard error 또는 dedicated inventory reader로만 흐른다.
 
 ### Target State C — Runtime / ABI
 
-- `pgy_runtime_part_*.inc`와 `pgy_runtime_lib_part_*.inc`는 domain별 `.c`로 분리한다: slot/resource, intent observability, zone/world frontier, projection propagation, authority failure, async/parallel.
+- runtime domain owners are split by `.c` / named `.h`: slot/resource, intent observability, zone/world frontier, projection propagation, authority failure, async/parallel.
 - runtime public ABI와 internal scheduler/storage helper를 같은 파일에 섞지 않는다.
 - recoverable failure state, hard-fail invariant, queryable observability state를 파일 경계에서도 분리한다.
 
 Runtime stop condition:
-- `src/runtime`에는 1,000 LOC 초과 `.inc`가 없다.
+- `src/runtime`에는 `.inc` 파일이 없다.
 - ABI struct/header 변경은 `pgy_abi_spec.h`와 해당 runtime `.c`만 보면 audit 가능하다.
 - world/zone/projection propagation의 bounded scheduler는 single source of truth로 존재하고 C/LLVM generated calls가 같은 runtime entrypoint를 호출한다.
 
 ### Target State D — Tests
 
-- 대형 semantic test `.inc`도 axis별 executable 또는 fixture module로 분리한다.
-- `test_semantic.c`가 10개 이상의 대형 `.inc`를 include하는 구조는 장기적으로 유지하지 않는다.
+- 대형 semantic test fragments는 axis별 executable 또는 fixture module로 분리한다.
+- `test_semantic.c`가 많은 `.cases.h` fragment를 include하는 구조는 장기적으로 feature runner로 나눈다.
 - beta frozen subset은 semantic/unit, C smoke, LLVM smoke, backend compare에 같은 case id로 연결한다.
 
 Test stop condition:
-- 1,500 LOC 초과 test `.inc`가 없다.
+- 1,500 LOC 초과 test fragment가 없다.
 - 실패 로그에서 case id만으로 feature axis와 backend parity 여부를 추적할 수 있다.
 
 ### Target State E — Speed / Build Performance

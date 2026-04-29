@@ -56,7 +56,7 @@ They are alias-cycle diagnostic coverage and are separately gated by
   parallel name lists.
 - Central metadata materialization no longer falls through to
   `resolve_type_node(type_node, ctx)`.
-- Metadata fallback family accounting is fixed at zero:
+- Metadata unresolved audit family accounting is fixed at zero:
   named, generic-named, compound, other, builtin shell, generic class, alias,
   non-class symbol, and missing-symbol fallback must all stay zero.
 - Recursive alias resolver debt is removed. Alias materialization and cycle

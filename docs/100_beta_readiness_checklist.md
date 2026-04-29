@@ -68,6 +68,11 @@ Operational mode:
   sends inside `parallel` from disappearing before LLVM select/channel tests.
   `make cfg-body-dataflow-test-smoke` now gates this distinction directly with
   a parallel-send/select MIR preservation fixture.
+- 2026-04-29 CFG loop fixed-point correction:
+  resource snapshot equality now compares `used_states` in addition to
+  consumed/released state. Loop convergence can no longer ignore borrow/use
+  facts while still treating ownership facts as stable. Gate:
+  `make cfg-body-dataflow-test-smoke`.
 - 2026-04-29 C MIR parallel residual emission correction:
   resource hooks for `parallel`/`async`/`spawn`/`await` are treated as
   observability hooks only; they do not mirror or replace the executable
@@ -92,6 +97,11 @@ Operational mode:
   inside a pin region. Those loop-control exits must keep cleanup successor
   routing and the `pin-unpin-cleanup-edge` fact before the broader loop
   ownership/lifetime lattice is considered closed.
+- 2026-04-30 MIR cleanup fact gate:
+  `test_mir` now corrupts rollback and invalidation cleanup fact names and
+  requires the MIR validator to reject both. Cleanup topology fields are not
+  sufficient beta evidence unless the named MIR cleanup fact inventory is
+  preserved.
 - 2026-04-29 AIR inspection update:
   `pgy --air <source.pgy>` dumps the AIR verification summary after evidence
   collection and before drift failure. AIR remains verification-only and is not
@@ -288,7 +298,7 @@ Operational mode:
   inventory instead of being treated as disposable AST fallback emission.
 - 2026-04-29 DAG compatibility inventory update:
   type-resolution DAG fallback remains closed (`materializer_fallbacks=0`,
-  alias/non-alias stage compatibility fallback 0). The
+  alias/non-alias stage metadata materialization 0). The
   `retired-compatibility-resolver` audit calls are now AST-kind accounted by
   smoke, and the current semantic-suite max inventory is 0 calls after public
   semantic regression helpers moved to
@@ -770,6 +780,11 @@ Closed now:
   matching `pin-unpin-cleanup-edge` fact for its source slot, view binding, and
   read/write mode. `test-mir` includes a negative corruption regression so this
   fact cannot silently become a backend convention again.
+- MIR validation now requires every reachable non-cleanup block with a cleanup
+  successor to also carry a materialized `cleanup-edge` MIR fact. Rollback and
+  invalidation cleanup blocks must likewise carry their named cleanup-edge
+  facts. This closes the field-vs-instruction drift seam: backend consumers can
+  trust cleanup topology only when the explicit MIR fact inventory exists.
 - MIR validation now also rejects cleanup blocks that carry normal CFG
   successors or pin-region state. Cleanup/rollback/invalidation blocks must stay
   on the exceptional cleanup chain rather than becoming normal body-flow blocks.
@@ -1442,6 +1457,12 @@ Strict evidence update:
   AIR-owned HIR routine, RIR boundary scope, and RIR authority participant names
   when evidence is found. This makes strict evidence failures debuggable without
   borrowing source IR lifetimes.
+- AIR synthesis now records whether HIR input was present. In default strict
+  evidence mode, any boundary synthesized with HIR input must have matching HIR
+  routine provenance before it can be accepted as an abstraction-boundary fact.
+  This is weaker than requiring HIR CFG proof for every boundary, but it closes
+  the prior gap where RIR-only zone/world evidence could look complete even
+  though AIR had no matching body-level routine owner.
 - AIR strict-evidence diagnostics now print the same provenance summary
   (`evidence hir=... hir_cfg=... rir_boundary=... rir_authority=...`) in text/JSON output,
   so tooling does not need to infer which proof leg was absent.
@@ -2071,12 +2092,12 @@ find src -path src/tests -prune -o -name '*.inc' -print
   blocked outside central metadata/diagnostic compatibility owners by
   `type-resolution-resolver-inventory-test-smoke`.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`resolve_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage compatibility fallback, and alias-stage split accounting. Earlier local stats for this slice were `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 compat_alias=83 compat_non_alias=0 alias_materialized=5 alias_diagnostic_unresolved=78 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage metadata materialization, and alias-stage split accounting. Earlier local stats for this slice were `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 stage_materialize_alias=83 stage_materialize_non_alias=0 alias_materialized=5 alias_diagnostic_unresolved=78 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
 - The central metadata materializer fallback is closed, not merely capped:
-  `materializer_fallbacks==0` and every metadata fallback family must stay at
+  `materializer_fallbacks==0` and every metadata unresolved audit family must stay at
   zero.
-- The remaining stage compatibility surface is alias-only diagnostic inventory.
+- The remaining stage metadata materialization surface is alias-only diagnostic inventory.
   Successful alias materialization and diagnostic unresolved inventory are
   reported separately, valid alias diagnostic resolution is gated at zero, and
   `alias_diagnostic_resolver_calls==0` proves the diagnostic path no longer
@@ -2125,7 +2146,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - world inventory precollector는 graph world TU로 이동했다.
 - zone refresh projection field-map collector는 graph zone TU로 이동했다.
 - world/zone local-contract stage replay는 stage domain TU로 이동했다.
-- DAG stage 내부의 retired resolver compatibility surface는 `PGY_TYPE_RES_STATS=1`에서 `stage-compat-resolve: calls/failed/suppressed_diagnostics`와 `stage-compat-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`로 노출된다.
+- DAG stage 내부의 retired resolver compatibility surface는 `PGY_TYPE_RES_STATS=1`에서 `stage-metadata-materialize: calls/failed/suppressed_diagnostics`와 `stage-materialize-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`로 노출된다.
 - DAG edge가 이미 있는 named type-ref는 generic argument를 포함해 stage에서 다시 materialize하지 않고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N`이 이 경로의 공개 지표이며 `type-resolution-dag-test-smoke`는 skip 합계가 0으로 퇴행하면 실패한다.
 - graph precollect TU는 더 이상 stage runner를 호출하지 않는다. enum methods도 `semantic_stage_method_array(...)`가 아니라 precollect action contract 경로로 edge를 수집한다.
 - stage lookup, stage stats, signature/materialization helpers, alias
@@ -2172,9 +2193,9 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - role/generic-contract/late-helper/expr resolution은 각각 local seam 1개로 수렴했다. remaining direct resolver inventory에서 이 파일들은 이제 metadata replacement owner를 명확히 가진다.
 - generic validation, ability where/module contract/declaration, class field, operator overload, ownership destructure resolution도 local seam으로 수렴했다. remaining direct resolver inventory는 resolver implementation, comments, or explicit seam sites로 압축됐다.
 - statement, ability field, builtin projection/query, flow, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다.
-- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage compatibility fallback/core fallback/local seam allowlist 밖에서 금지한다. It also blocks any new `semantic_type_resolution_resolve_or_fallback(...)` users and caps the named fallback seam inventory at 0, so owner-local fallback consumers cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
+- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage metadata materialization/core fallback/local seam allowlist 밖에서 금지한다. It also blocks any new `semantic_type_resolution_resolve_or_fallback(...)` users and caps the named fallback seam inventory at 0, so owner-local fallback consumers cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
 - `type_checker_decls_domain_helpers.c`의 zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. `dnd_tavern_campaign` 같은 multi-slot same-type zone에서 concrete participant alias가 false-positive ambiguous로 떨어지는 경로를 닫았다.
-- `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage compatibility fallback inventory를 CI gate로 검사한다.
+- `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage metadata materialization inventory를 CI gate로 검사한다.
 - intent/standalone helper dependency는 internal headers와 hard CFLAGS로 고정되어 DAG split 중 hidden include-order failure를 즉시 잡는다.
 - graph cycle과 compatibility alias cycle 모두 `Contract source`, `Reason`, `Fix` vocabulary를 쓴다.
 - provider-after-consumer source order is covered for a frozen DAG slice: function generic default/where references, type alias providers, zone authority ability consumers, and party role-slot ability consumers can appear before their ability/type providers. This is now covered by both semantic graph regression and C/LLVM backend compare.
@@ -2191,7 +2212,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
   in DAG metadata, and bare unknown named types emit `PGY_SEM_UNKNOWN_TYPE`
   directly from the metadata path. The current gate is green with
   `metadata_entries=3358`, `metadata_hits=6744`, `metadata_owned=253`,
-  `materializer_fallbacks=0`, and every metadata fallback family at `0`.
+  `materializer_fallbacks=0`, and every metadata unresolved audit family at `0`.
 - Alias-only diagnostic inventory no longer calls the recursive resolver. The
   current gate is green with `alias_diagnostic_unresolved=78`,
   `alias_diagnostic_resolver_calls=0`, `alias_diagnostic_resolved=0`, and
@@ -2200,7 +2221,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - The next DAG closure target is no longer central materializer fallback; it is
   making more stage/declaration consumers use graph facts directly while
   preserving alias cycle provenance and source-order diagnostics.
-- `stage-compat-resolve` non-alias family는 0이고 alias family는 diagnostic
+- `stage-metadata-materialize` non-alias family는 0이고 alias family는 diagnostic
   fallback으로만 남아 있다. `stage-graph-backed` skip 수는 DAG가 실제 stage
   source-of-truth로 옮겨간 양을 보여주는 공개 지표다.
 - frozen subset에서 declaration order에만 기대는 type dependency가 없어야 한다.

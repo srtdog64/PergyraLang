@@ -2,6 +2,23 @@
 #include "mir_cfg_contract_control.h"
 
 static bool
+mir_block_has_cleanup_edge_fact(const MIRBasicBlock *block, const char *edge_name)
+{
+    if (block == NULL || edge_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->kind == MIR_INST_CLEANUP_EDGE
+            && inst->name != NULL
+            && strcmp(inst->name, edge_name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
 mir_validate_cfg_contract_state(const MIRRoutine *routine,
                                bool require_cleanup,
                                bool require_cleanup_source_mapping,
@@ -258,6 +275,16 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                     if (error_message != NULL) {
                         *error_message = mir_strdup_fmt(
                             "MIR routine '%s' block[%zu] cleanup edge does not target cleanup block",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            i);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+                if (!mir_block_has_cleanup_edge_fact(block, "cleanup-edge")) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] missing cleanup-edge MIR fact",
                             routine->name != NULL ? routine->name : "(anonymous)",
                             i);
                     }
@@ -543,6 +570,28 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                 free(hir_block_seen);
                 return false;
             }
+        }
+        if (routine->has_rollback_block
+            && !mir_block_has_cleanup_edge_fact(&routine->blocks[routine->rollback_block],
+                                                "cleanup-edge-from-rollback")) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' rollback block missing cleanup-edge MIR fact",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            }
+            free(hir_block_seen);
+            return false;
+        }
+        if (routine->has_invalidation_block
+            && !mir_block_has_cleanup_edge_fact(&routine->blocks[routine->invalidation_block],
+                                                "cleanup-edge-from-invalidation")) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' invalidation block missing cleanup-edge MIR fact",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            }
+            free(hir_block_seen);
+            return false;
         }
     }
 

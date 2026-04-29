@@ -53,8 +53,8 @@ grep -a -q '\[type-res-stats\] nodes=' "$log" || {
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] stage-compat-resolve:' "$log" || {
-  echo "missing stage compatibility inventory" >&2
+grep -a -q '\[type-res-stats\] stage-metadata-materialize:' "$log" || {
+  echo "missing stage metadata materialization inventory" >&2
   exit 1
 }
 
@@ -68,8 +68,8 @@ grep -a -q '\[type-res-stats\] retired-compatibility-resolver-kind:' "$log" || {
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] stage-compat-family:' "$log" || {
-  echo "missing stage compatibility family inventory" >&2
+grep -a -q '\[type-res-stats\] stage-materialize-family:' "$log" || {
+  echo "missing stage metadata materialization family inventory" >&2
   exit 1
 }
 
@@ -88,13 +88,13 @@ grep -a -q '\[type-res-stats\] retired-compatibility-cache:' "$log" || {
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] metadata-fallback:' "$log" || {
-  echo "missing graph-backed metadata fallback family inventory" >&2
+grep -a -q '\[type-res-stats\] metadata-unresolved-audit:' "$log" || {
+  echo "missing graph-backed metadata unresolved audit family inventory" >&2
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] metadata-fallback-named:' "$log" || {
-  echo "missing graph-backed metadata named fallback inventory" >&2
+grep -a -q '\[type-res-stats\] metadata-unresolved-audit-named:' "$log" || {
+  echo "missing graph-backed metadata named unresolved audit inventory" >&2
   exit 1
 }
 
@@ -163,86 +163,86 @@ metadata_owned="$(
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-materializer_fallbacks="$(
+materializer_unresolved="$(
   grep -a '\[type-res-stats\] metadata:' "$log" \
     | sed -E 's/.*materializer_fallbacks=([0-9]+).*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-metadata_fallback_sum="$(
-  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
+metadata_unresolved_sum="$(
+  grep -a '\[type-res-stats\] metadata-unresolved-audit:' "$log" \
     | sed -E 's/.*named=([0-9]+).*generic_named=([0-9]+).*compound=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4/' \
     | awk '{ total += $1 + $2 + $3 + $4 } END { print total + 0 }'
 )"
 
-metadata_fallback_named="$(
-  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
-    | sed -E 's/.*metadata-fallback: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
+metadata_unresolved_named="$(
+  grep -a '\[type-res-stats\] metadata-unresolved-audit:' "$log" \
+    | sed -E 's/.*metadata-unresolved-audit: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-metadata_fallback_generic_named="$(
-  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
-    | sed -E 's/.*metadata-fallback: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
+metadata_unresolved_generic_named="$(
+  grep -a '\[type-res-stats\] metadata-unresolved-audit:' "$log" \
+    | sed -E 's/.*metadata-unresolved-audit: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
     | awk '{ total += $2 } END { print total + 0 }'
 )"
 
-metadata_fallback_compound="$(
-  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
-    | sed -E 's/.*metadata-fallback: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
+metadata_unresolved_compound="$(
+  grep -a '\[type-res-stats\] metadata-unresolved-audit:' "$log" \
+    | sed -E 's/.*metadata-unresolved-audit: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
     | awk '{ total += $3 } END { print total + 0 }'
 )"
 
-metadata_fallback_other="$(
-  grep -a '\[type-res-stats\] metadata-fallback:' "$log" \
-    | sed -E 's/.*metadata-fallback: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
+metadata_unresolved_other="$(
+  grep -a '\[type-res-stats\] metadata-unresolved-audit:' "$log" \
+    | sed -E 's/.*metadata-unresolved-audit: named=([0-9]+) generic_named=([0-9]+) compound=([0-9]+) other=([0-9]+).*/\1 \2 \3 \4/' \
     | awk '{ total += $4 } END { print total + 0 }'
 )"
 
 metadata_named_detail_sum="$(
-  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+  grep -a '\[type-res-stats\] metadata-unresolved-audit-named:' "$log" \
     | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ total += $1 + $2 + $3 + $4 + $5 } END { print total + 0 }'
 )"
 
 metadata_named_builtin_shell="$(
-  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+  grep -a '\[type-res-stats\] metadata-unresolved-audit-named:' "$log" \
     | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
 metadata_named_generic_class="$(
-  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+  grep -a '\[type-res-stats\] metadata-unresolved-audit-named:' "$log" \
     | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ total += $2 } END { print total + 0 }'
 )"
 
 metadata_named_alias="$(
-  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+  grep -a '\[type-res-stats\] metadata-unresolved-audit-named:' "$log" \
     | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ total += $3 } END { print total + 0 }'
 )"
 
 metadata_named_non_class_symbol="$(
-  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+  grep -a '\[type-res-stats\] metadata-unresolved-audit-named:' "$log" \
     | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ total += $4 } END { print total + 0 }'
 )"
 
 metadata_named_missing_symbol="$(
-  grep -a '\[type-res-stats\] metadata-fallback-named:' "$log" \
+  grep -a '\[type-res-stats\] metadata-unresolved-audit-named:' "$log" \
     | sed -E 's/.*builtin_shell=([0-9]+).*generic_class=([0-9]+).*alias=([0-9]+).*non_class_symbol=([0-9]+).*missing_symbol=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ total += $5 } END { print total + 0 }'
 )"
 
-compat_alias="$(
-  grep -a '\[type-res-stats\] stage-compat-family:' "$log" \
+stage_materialize_alias="$(
+  grep -a '\[type-res-stats\] stage-materialize-family:' "$log" \
     | sed -E 's/.*alias=([0-9]+).*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-compat_non_alias="$(
-  grep -a '\[type-res-stats\] stage-compat-family:' "$log" \
+stage_materialize_non_alias="$(
+  grep -a '\[type-res-stats\] stage-materialize-family:' "$log" \
     | sed -E 's/.*generic_contract=([0-9]+).*signature=([0-9]+).*ability_consumer=([0-9]+).*domain_contract=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ total += $1 + $2 + $3 + $4 + $5 } END { print total + 0 }'
 )"
@@ -342,64 +342,64 @@ if [ "$metadata_owned" -lt 200 ]; then
   exit 1
 fi
 
-if [ "$materializer_fallbacks" -ne 0 ]; then
-  echo "metadata materializer fallback inventory regressed above beta cap: $materializer_fallbacks > 0" >&2
+if [ "$materializer_unresolved" -ne 0 ]; then
+  echo "metadata materializer unresolved inventory regressed above beta cap: $materializer_unresolved > 0" >&2
   exit 1
 fi
 
-if [ "$metadata_fallback_sum" -ne "$materializer_fallbacks" ]; then
-  echo "metadata materializer fallback family accounting mismatch: sum=$metadata_fallback_sum total=$materializer_fallbacks" >&2
+if [ "$metadata_unresolved_sum" -ne "$materializer_unresolved" ]; then
+  echo "metadata unresolved audit family accounting mismatch: sum=$metadata_unresolved_sum total=$materializer_unresolved" >&2
   exit 1
 fi
 
-if [ "$metadata_named_detail_sum" -ne "$metadata_fallback_named" ]; then
-  echo "metadata named fallback detail accounting mismatch: sum=$metadata_named_detail_sum named=$metadata_fallback_named" >&2
+if [ "$metadata_named_detail_sum" -ne "$metadata_unresolved_named" ]; then
+  echo "metadata named unresolved audit detail accounting mismatch: sum=$metadata_named_detail_sum named=$metadata_unresolved_named" >&2
   exit 1
 fi
 
 if [ "$metadata_named_alias" -ne 0 ]; then
-  echo "alias metadata materialization regressed into fallback: $metadata_named_alias" >&2
+  echo "alias metadata materialization regressed into unresolved audit: $metadata_named_alias" >&2
   exit 1
 fi
 
-metadata_diagnostic_fallback_sum=$((metadata_named_builtin_shell + metadata_fallback_generic_named + metadata_named_missing_symbol))
-if [ "$metadata_diagnostic_fallback_sum" -ne "$materializer_fallbacks" ]; then
-  echo "metadata fallback contains non-diagnostic materializer debt: diagnostic_sum=$metadata_diagnostic_fallback_sum total=$materializer_fallbacks" >&2
+metadata_diagnostic_unresolved_sum=$((metadata_named_builtin_shell + metadata_unresolved_generic_named + metadata_named_missing_symbol))
+if [ "$metadata_diagnostic_unresolved_sum" -ne "$materializer_unresolved" ]; then
+  echo "metadata unresolved audit contains non-diagnostic materializer debt: diagnostic_sum=$metadata_diagnostic_unresolved_sum total=$materializer_unresolved" >&2
   exit 1
 fi
 
-if [ "$metadata_fallback_compound" -ne 0 ] || [ "$metadata_fallback_other" -ne 0 ]; then
-  echo "compound/other metadata fallback regressed: compound=$metadata_fallback_compound other=$metadata_fallback_other" >&2
+if [ "$metadata_unresolved_compound" -ne 0 ] || [ "$metadata_unresolved_other" -ne 0 ]; then
+  echo "compound/other metadata unresolved audit regressed: compound=$metadata_unresolved_compound other=$metadata_unresolved_other" >&2
   exit 1
 fi
 
 if [ "$metadata_named_generic_class" -ne 0 ] || [ "$metadata_named_non_class_symbol" -ne 0 ]; then
-  echo "non-diagnostic named metadata fallback regressed: generic_class=$metadata_named_generic_class non_class_symbol=$metadata_named_non_class_symbol" >&2
+  echo "non-diagnostic named metadata unresolved audit regressed: generic_class=$metadata_named_generic_class non_class_symbol=$metadata_named_non_class_symbol" >&2
   exit 1
 fi
 
 if [ "$metadata_named_builtin_shell" -ne 0 ]; then
-  echo "bare builtin-shell diagnostic fallback regressed above cap: $metadata_named_builtin_shell > 0" >&2
+  echo "bare builtin-shell unresolved audit regressed above cap: $metadata_named_builtin_shell > 0" >&2
   exit 1
 fi
 
-if [ "$metadata_fallback_generic_named" -ne 0 ]; then
-  echo "generic-named diagnostic fallback regressed above cap: $metadata_fallback_generic_named > 0" >&2
+if [ "$metadata_unresolved_generic_named" -ne 0 ]; then
+  echo "generic-named unresolved audit regressed above cap: $metadata_unresolved_generic_named > 0" >&2
   exit 1
 fi
 
 if [ "$metadata_named_missing_symbol" -ne 0 ]; then
-  echo "missing-symbol diagnostic fallback regressed above cap: $metadata_named_missing_symbol > 0" >&2
+  echo "missing-symbol unresolved audit regressed above cap: $metadata_named_missing_symbol > 0" >&2
   exit 1
 fi
 
-if [ "$compat_non_alias" -ne 0 ]; then
-  echo "non-alias DAG stage compatibility fallback regressed: $compat_non_alias" >&2
+if [ "$stage_materialize_non_alias" -ne 0 ]; then
+  echo "non-alias DAG stage metadata materialization regressed: $stage_materialize_non_alias" >&2
   exit 1
 fi
 
-if [ "$compat_alias" -ne 0 ]; then
-  echo "alias DAG stage compatibility fallback regressed above beta cap: $compat_alias > 0" >&2
+if [ "$stage_materialize_alias" -ne 0 ]; then
+  echo "alias DAG stage metadata materialization regressed above beta cap: $stage_materialize_alias > 0" >&2
   exit 1
 fi
 
@@ -433,4 +433,4 @@ grep -a -q 'topo_ok=1' "$log" || {
   exit 1
 }
 
-echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips resolve_calls=$resolve_calls resolve_unique_nodes=$resolve_unique_nodes resolve_kind_sum=$resolve_kind_sum resolve_kind_ast_type=$resolve_kind_ast_type resolve_kind_compound_or_other=$resolve_kind_compound_or_other resolver_body_fallbacks=$resolver_body_fallbacks metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks metadata_fallback_named=$metadata_fallback_named metadata_fallback_generic_named=$metadata_fallback_generic_named metadata_fallback_compound=$metadata_fallback_compound metadata_fallback_other=$metadata_fallback_other metadata_named_builtin_shell=$metadata_named_builtin_shell metadata_named_generic_class=$metadata_named_generic_class metadata_named_alias=$metadata_named_alias metadata_named_non_class_symbol=$metadata_named_non_class_symbol metadata_named_missing_symbol=$metadata_named_missing_symbol compat_alias=$compat_alias compat_non_alias=$compat_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"
+echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips retired_resolver_calls=$resolve_calls retired_resolver_unique_nodes=$resolve_unique_nodes retired_resolver_kind_sum=$resolve_kind_sum retired_resolver_kind_ast_type=$resolve_kind_ast_type retired_resolver_kind_compound_or_other=$resolve_kind_compound_or_other retired_resolver_body_fallbacks=$resolver_body_fallbacks metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_unresolved=$materializer_unresolved metadata_unresolved_named=$metadata_unresolved_named metadata_unresolved_generic_named=$metadata_unresolved_generic_named metadata_unresolved_compound=$metadata_unresolved_compound metadata_unresolved_other=$metadata_unresolved_other metadata_unresolved_builtin_shell=$metadata_named_builtin_shell metadata_unresolved_generic_class=$metadata_named_generic_class metadata_unresolved_alias=$metadata_named_alias metadata_unresolved_non_class_symbol=$metadata_named_non_class_symbol metadata_unresolved_missing_symbol=$metadata_named_missing_symbol stage_materialize_alias=$stage_materialize_alias stage_materialize_non_alias=$stage_materialize_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"
