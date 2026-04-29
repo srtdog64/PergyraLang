@@ -24,6 +24,7 @@ doc_path = root / "docs" / "103_cfg_body_dataflow_need.md"
 slot_proof_path = root / "docs" / "semantics" / "08_slot_capability_calculus.md"
 checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
 todo_path = root / "TODO.md"
+makefile_path = root / "Makefile"
 board_path = root / "docs" / "70_beta_closure_master_board.md"
 report_path = root / "docs" / "98_beta_closure_readiness_report.md"
 flow_path = root / "src" / "semantic" / "type_checker_flow.c"
@@ -33,12 +34,15 @@ flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.h
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
+mir_cfg_contract_control_path = root / "src" / "compiler" / "mir_cfg_contract_control.h"
 mir_cfg_contract_validate_path = root / "src" / "compiler" / "mir_cfg_contract_validate.h"
 mir_path = root / "src" / "compiler" / "mir.c"
 mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
 mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.h"
 mir_dce_path = root / "src" / "compiler" / "mir_dce.h"
 mir_stmt_population_path = root / "src" / "compiler" / "mir_stmt_population.h"
+hir_lower_cfg_path = root / "src" / "compiler" / "hir_lower_cfg.c"
+hir_lower_intent_cfg_path = root / "src" / "compiler" / "hir_lower_intent_cfg.c"
 mir_c_control_emit_path = root / "src" / "codegen" / "transpiler_mir_cfg_control_emit.h"
 mir_llvm_control_emit_path = root / "src" / "codegen" / "llvm_mir_cfg_control.c"
 mir_llvm_for_in_control_path = root / "src" / "codegen" / "llvm_mir_for_in_control.c"
@@ -69,6 +73,7 @@ for path in (
     slot_proof_path,
     checklist_path,
     todo_path,
+    makefile_path,
     board_path,
     report_path,
     flow_path,
@@ -78,12 +83,15 @@ for path in (
     flow_loops_path,
     flow_parallel_path,
     mir_cleanup_path,
+    mir_cfg_contract_control_path,
     mir_cfg_contract_validate_path,
     mir_path,
     mir_ssa_rename_path,
     mir_liveness_dce_path,
     mir_dce_path,
     mir_stmt_population_path,
+    hir_lower_cfg_path,
+    hir_lower_intent_cfg_path,
     mir_c_control_emit_path,
     mir_llvm_control_emit_path,
     mir_llvm_for_in_control_path,
@@ -116,6 +124,7 @@ doc = doc_path.read_text(encoding="utf-8")
 slot_proof = slot_proof_path.read_text(encoding="utf-8")
 checklist = checklist_path.read_text(encoding="utf-8")
 todo = todo_path.read_text(encoding="utf-8")
+makefile = makefile_path.read_text(encoding="utf-8")
 board = board_path.read_text(encoding="utf-8")
 report = report_path.read_text(encoding="utf-8")
 flow = (
@@ -146,6 +155,7 @@ flow = (
     + expr_path.read_text(encoding="utf-8")
 )
 mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
+mir_cfg_contract_control = mir_cfg_contract_control_path.read_text(encoding="utf-8")
 mir_cfg_contract_validate = mir_cfg_contract_validate_path.read_text(encoding="utf-8")
 mir = mir_path.read_text(encoding="utf-8")
 mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
@@ -366,6 +376,14 @@ required_mir_owner_terms = {
         "mir_let_decl_requires_stmt_preservation",
         "MIR_INST_LOOP_INIT",
         "mir_stmt_is_for_loop_init_payload",
+        "mir_stmt_is_semantic_carrier(&old_insts[r])",
+        "Intent metadata is MIR semantic inventory",
+        "#include \"mir_cfg_contract_control.h\"",
+        "mir_stmt_ast_is_cfg_owned_control(stmt)",
+    ],
+    "src/compiler/mir_cfg_contract_control.h": [
+        "PERGYRA_MIR_CFG_CONTRACT_CONTROL_H",
+        "mir_stmt_ast_is_cfg_owned_control",
         "AST_WITH_STMT",
         "AST_PARALLEL_BLOCK",
         "AST_UNSAFE_BLOCK",
@@ -383,6 +401,7 @@ mir_owner_text = {
     "src/compiler/mir_liveness_dce.h": mir_liveness_dce,
     "src/compiler/mir_dce.h": mir_dce,
     "src/compiler/mir_stmt_population.h": mir_stmt_population,
+    "src/compiler/mir_cfg_contract_control.h": mir_cfg_contract_control,
 }
 for owner, terms in required_mir_owner_terms.items():
     text = mir_owner_text[owner]
@@ -479,12 +498,20 @@ for term in [
 hir_cfg_path = root / "src" / "compiler" / "hir_cfg.c"
 hir_cfg_phi_path = root / "src" / "compiler" / "hir_cfg_phi.c"
 hir_cfg_internal_path = root / "src" / "compiler" / "hir_cfg_internal.h"
-for path in (hir_cfg_path, hir_cfg_phi_path, hir_cfg_internal_path):
+for path in (
+    hir_cfg_path,
+    hir_cfg_phi_path,
+    hir_cfg_internal_path,
+    hir_lower_cfg_path,
+    hir_lower_intent_cfg_path,
+):
     if not path.exists():
         raise SystemExit(f"missing HIR CFG owner file: {path.relative_to(root)}")
 
 hir_cfg_text = hir_cfg_path.read_text(encoding="utf-8")
 hir_cfg_phi_text = hir_cfg_phi_path.read_text(encoding="utf-8")
+hir_lower_cfg_text = hir_lower_cfg_path.read_text(encoding="utf-8")
+hir_lower_intent_cfg_text = hir_lower_intent_cfg_path.read_text(encoding="utf-8")
 for term in [
     "hir_compute_cfg_dominance",
     "hir_compute_cfg_dominance_frontier",
@@ -502,6 +529,25 @@ for term in [
 ]:
     if term not in hir_cfg_phi_text:
         raise SystemExit(f"HIR CFG phi owner missing {term}")
+for term in [
+    "hir_lower_func_body_cfg",
+    "hir_lower_intent_cfg",
+]:
+    if term not in (hir_lower_cfg_text + "\n" + hir_lower_intent_cfg_text):
+        raise SystemExit(f"HIR CFG lowerer split missing {term}")
+for term in [
+    "intent_cfg_append_step_statements",
+    "step->data.intent_step.using_expr",
+    "step->data.intent_step.compensate_exprs",
+]:
+    if term not in hir_lower_intent_cfg_text:
+        raise SystemExit(f"HIR intent CFG owner missing {term}")
+for term in [
+    "$(COMPILER_DIR)/hir_lower_intent_cfg.c",
+    "$(BUILD_DIR)/compiler/hir_lower_intent_cfg.o",
+]:
+    if term not in makefile:
+        raise SystemExit(f"Makefile must wire HIR intent CFG owner: {term}")
 
 for term in [
     "semantic_check_body_flow",

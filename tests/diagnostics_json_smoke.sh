@@ -680,7 +680,7 @@ fi
 check_json "air-evidence" "$AIR_ERR" \
   'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "semantic" and data[0].get("code") == "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING" and data[0].get("location", {}).get("line", 0) > 0 and data[0].get("location", {}).get("column", 0) > 0'
 check_json "air-evidence-hints" "$AIR_ERR" \
-  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent:boundary_evidence" and data[0].get("fix_source") == "align-intent-boundary-evidence" and "expected authority participant(s): buyer" in data[0].get("message", "") and "evidence hir=" in data[0].get("message", "") and "rir_boundary=PaymentZone" in data[0].get("message", "") and "rir_authority=<none>" in data[0].get("message", "")'
+  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent:boundary_evidence" and data[0].get("fix_source") == "align-intent-boundary-evidence" and "expected authority participant(s): buyer" in data[0].get("message", "") and "evidence hir=" in data[0].get("message", "") and "hir_cfg=" in data[0].get("message", "") and "rir_boundary=PaymentZone" in data[0].get("message", "") and "rir_authority=<none>" in data[0].get("message", "")'
 
 # --- case 2c: AIR strict evidence from parsed IO boundary ---
 AIR_IO_SRC="$WORK_DIR/air_missing_io_boundary.pgy"
@@ -711,7 +711,7 @@ fi
 check_json "air-io-evidence" "$AIR_IO_ERR" \
   'isinstance(data, list) and len(data) == 1 and data[0].get("stage") == "semantic" and data[0].get("code") == "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING" and data[0].get("location", {}).get("line", 0) > 0 and data[0].get("location", {}).get("column", 0) > 0'
 check_json "air-io-evidence-hints" "$AIR_IO_ERR" \
-  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent:boundary_evidence" and data[0].get("fix_source") == "align-intent-boundary-evidence" and "implementation boundary" in data[0].get("message", "") and "ReadFile" in data[0].get("message", "") and "evidence hir=" in data[0].get("message", "") and "rir_boundary=<none>" in data[0].get("message", "")'
+  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:intent:boundary_evidence" and data[0].get("fix_source") == "align-intent-boundary-evidence" and "implementation boundary" in data[0].get("message", "") and "ReadFile" in data[0].get("message", "") and "evidence hir=" in data[0].get("message", "") and "hir_cfg=" in data[0].get("message", "") and "rir_boundary=<none>" in data[0].get("message", "")'
 
 # --- case 2d: intent control-transfer explicit reject keeps source span ---
 INTENT_CONTROL_SRC="$WORK_DIR/intent_control_transfer_reject.pgy"

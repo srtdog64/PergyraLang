@@ -689,6 +689,44 @@ test_air_verify_rejects_authority_evidence_shape_mismatch(void)
 }
 
 static bool
+test_air_verify_rejects_cfg_evidence_without_routine(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "Work",
+            .step_name = "run",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_EXECUTION,
+            .owner_name = "Work",
+            .source_name = "with",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .has_hir_cfg_evidence = true,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .strict_evidence = true,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&air, &error)
+        && error != NULL
+        && strstr(error, "HIR CFG evidence without routine evidence") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_check_drift_is_verify_compatibility_wrapper(void)
 {
     AIRIntentNode intents[] = {
@@ -751,11 +789,20 @@ test_air_collects_hir_and_rir_evidence(void)
         .intents = intents,
         .intent_count = 1,
     };
+    HIRBasicBlock reserve_blocks[] = {
+        { .id = 0, .terminator_kind = HIR_BLOCK_RETURN, .is_reachable = true },
+    };
     HIRRoutine routines[] = {
         {
             .kind = HIR_TOPLEVEL_FUNCTION,
             .owner_name = "ShipOrder",
             .name = "reserve",
+            .has_cfg = true,
+            .cfg = {
+                .blocks = reserve_blocks,
+                .block_count = 1,
+                .entry_block = 0,
+            },
         },
     };
     HIRProgram hir = {
@@ -805,9 +852,11 @@ test_air_collects_hir_and_rir_evidence(void)
     AIRProgram *air = air_synthesize(&hir, &dir, &rir, &error);
     bool ok = air != NULL
         && air->hir_routine_evidence_count == 1
+        && air->hir_cfg_evidence_count == 1
         && air->rir_boundary_evidence_count == 1
         && air->rir_authority_evidence_count == 2
         && air->boundaries[0].has_hir_routine_evidence
+        && air->boundaries[0].has_hir_cfg_evidence
         && air->boundaries[0].has_rir_boundary_evidence
         && air->boundaries[0].has_rir_authority_evidence
         && air->boundaries[0].hir_routine_evidence_name != NULL
@@ -939,6 +988,7 @@ test_air_dump_prints_evidence_provenance(void)
             .sync_class = AIR_SYNC_SYNC,
             .authority_required = true,
             .has_hir_routine_evidence = true,
+            .has_hir_cfg_evidence = true,
             .has_rir_boundary_evidence = true,
             .has_rir_authority_evidence = true,
             .hir_routine_evidence_name = "reserve",
@@ -967,7 +1017,7 @@ test_air_dump_prints_evidence_provenance(void)
     buffer[bytes] = '\0';
     fclose(out);
 
-    ok = strstr(buffer, "evidence hir=yes(reserve)") != NULL
+    ok = strstr(buffer, "evidence hir=yes(reserve) hir_cfg=yes") != NULL
         && strstr(buffer, "rir_boundary=yes(WarehouseZone)") != NULL
         && strstr(buffer, "rir_authority=yes(shipper)") != NULL;
     return ok;
@@ -1354,6 +1404,235 @@ test_air_synthesizes_io_boundary_without_sync_drift(void)
 }
 
 static bool
+test_air_await_boundary_accepts_exact_rir_evidence(void)
+{
+    ASTNode intent_ast = { .line = 34, .column = 1 };
+    ASTNode *step_ast = ast_create_intent_step("join");
+    ASTNode *await_expr = ast_create_await_expression(ast_create_identifier("task"));
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "JoinWork", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        { .index = 0, .name = "join", .ast = step_ast },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    ASTNode *join_statements[] = { await_expr };
+    HIRBasicBlock join_blocks[] = {
+        {
+            .id = 0,
+            .statements = join_statements,
+            .statement_count = 1,
+            .terminator_kind = HIR_BLOCK_RETURN,
+            .is_reachable = true,
+        },
+    };
+    HIRRoutine routines[] = {
+        {
+            .kind = HIR_TOPLEVEL_INTENT,
+            .owner_name = "JoinWork",
+            .name = "join",
+            .has_cfg = true,
+            .cfg = {
+                .blocks = join_blocks,
+                .block_count = 1,
+                .entry_block = 0,
+            },
+        },
+    };
+    HIRProgram hir = {
+        .routines = routines,
+        .routine_count = 1,
+    };
+    RIROp ops[] = {
+        {
+            .kind = RIR_OP_AWAIT_REMOTE,
+            .subject = "task",
+            .ast = await_expr,
+        },
+    };
+    RIRScope scopes[] = {
+        {
+            .kind = RIR_SCOPE_INTENT,
+            .owner_name = "JoinWork",
+            .name = "join",
+            .ops = ops,
+            .op_count = 1,
+        },
+    };
+    RIRProgram rir = {
+        .scopes = scopes,
+        .scope_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air;
+    bool found_evidence_drift = false;
+    bool ok;
+
+    if (step_ast == NULL || await_expr == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(await_expr);
+        return false;
+    }
+    await_expr->line = 35;
+    await_expr->column = 9;
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(1, sizeof(ASTNode *));
+    if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(await_expr);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs[0] = await_expr;
+    step_ast->data.intent_step.on_expr_count = 1;
+
+    air = air_synthesize(&hir, &dir, &rir, &error);
+    if (air != NULL) {
+        for (size_t i = 0; i < air->drift_count; i++) {
+            if (air->drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING)
+                found_evidence_drift = true;
+        }
+    }
+
+    ok = air != NULL
+        && air->boundary_count == 1
+        && air->boundaries[0].kind == AIR_BOUNDARY_PARALLEL
+        && strcmp(air->boundaries[0].source_name, "await") == 0
+        && air->boundaries[0].ast == await_expr
+        && air->boundaries[0].has_hir_routine_evidence
+        && air->boundaries[0].has_hir_cfg_evidence
+        && air->boundaries[0].has_rir_boundary_evidence
+        && !found_evidence_drift;
+    air_destroy(air);
+    free(error);
+    ast_destroy(step_ast);
+    return ok;
+}
+
+static bool
+test_air_await_boundary_rejects_generic_rir_scope_evidence(void)
+{
+    ASTNode intent_ast = { .line = 36, .column = 1 };
+    ASTNode *step_ast = ast_create_intent_step("join");
+    ASTNode *await_expr = ast_create_await_expression(ast_create_identifier("task"));
+    ASTNode unrelated_await_ast = { .type = AST_AWAIT_EXPR, .line = 37, .column = 9 };
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "JoinWork", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        { .index = 0, .name = "join", .ast = step_ast },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    ASTNode *join_statements[] = { await_expr };
+    HIRBasicBlock join_blocks[] = {
+        {
+            .id = 0,
+            .statements = join_statements,
+            .statement_count = 1,
+            .terminator_kind = HIR_BLOCK_RETURN,
+            .is_reachable = true,
+        },
+    };
+    HIRRoutine routines[] = {
+        {
+            .kind = HIR_TOPLEVEL_INTENT,
+            .owner_name = "JoinWork",
+            .name = "join",
+            .has_cfg = true,
+            .cfg = {
+                .blocks = join_blocks,
+                .block_count = 1,
+                .entry_block = 0,
+            },
+        },
+    };
+    HIRProgram hir = {
+        .routines = routines,
+        .routine_count = 1,
+    };
+    RIROp ops[] = {
+        {
+            .kind = RIR_OP_AWAIT_REMOTE,
+            .subject = "task",
+            .ast = &unrelated_await_ast,
+        },
+    };
+    RIRScope scopes[] = {
+        {
+            .kind = RIR_SCOPE_INTENT,
+            .owner_name = "JoinWork",
+            .name = "await",
+            .ops = ops,
+            .op_count = 1,
+        },
+    };
+    RIRProgram rir = {
+        .scopes = scopes,
+        .scope_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air;
+    bool found_rir_evidence_drift = false;
+    bool ok;
+
+    if (step_ast == NULL || await_expr == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(await_expr);
+        return false;
+    }
+    await_expr->line = 36;
+    await_expr->column = 9;
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(1, sizeof(ASTNode *));
+    if (step_ast->data.intent_step.on_exprs == NULL) {
+        ast_destroy(step_ast);
+        ast_destroy(await_expr);
+        return false;
+    }
+    step_ast->data.intent_step.on_exprs[0] = await_expr;
+    step_ast->data.intent_step.on_expr_count = 1;
+
+    air = air_synthesize(&hir, &dir, &rir, &error);
+    if (air != NULL) {
+        for (size_t i = 0; i < air->drift_count; i++) {
+            if (air->drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+                && air->drifts[i].message != NULL
+                && strstr(air->drifts[i].message, "no matching RIR boundary evidence") != NULL) {
+                found_rir_evidence_drift = true;
+                break;
+            }
+        }
+    }
+
+    ok = air != NULL
+        && air->boundary_count == 1
+        && air->boundaries[0].kind == AIR_BOUNDARY_PARALLEL
+        && strcmp(air->boundaries[0].source_name, "await") == 0
+        && air->boundaries[0].ast == await_expr
+        && air->boundaries[0].has_hir_routine_evidence
+        && air->boundaries[0].has_hir_cfg_evidence
+        && !air->boundaries[0].has_rir_boundary_evidence
+        && found_rir_evidence_drift;
+    air_destroy(air);
+    free(error);
+    ast_destroy(step_ast);
+    return ok;
+}
+
+static bool
 test_air_synthesizes_stable_io_boundary_builtin_set(void)
 {
     const char *io_names[] = {
@@ -1439,6 +1718,7 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     ASTNode *step_ast = ast_create_intent_step("coordinate");
     ASTNode *parallel = ast_create_parallel_block();
     ASTNode *async_block = ast_create_async_block();
+    ASTNode *await_expr = ast_create_await_expression(ast_create_identifier("task"));
     ASTNode *send = ast_create_channel_send(ast_create_identifier("ch"),
                                             ast_create_number("1"));
     ASTNode *recv = ast_create_channel_recv(ast_create_identifier("ch"));
@@ -1465,6 +1745,7 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     char *error = NULL;
     bool found_parallel = false;
     bool found_async = false;
+    bool found_await = false;
     bool found_send = false;
     bool found_recv = false;
     bool found_select = false;
@@ -1473,12 +1754,13 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     bool found_defer = false;
     bool ok;
 
-    if (step_ast == NULL || parallel == NULL || async_block == NULL
+    if (step_ast == NULL || parallel == NULL || async_block == NULL || await_expr == NULL
         || send == NULL || recv == NULL || select_stmt == NULL
         || with_stmt == NULL || unsafe_block == NULL || defer_stmt == NULL) {
         ast_destroy(step_ast);
         ast_destroy(parallel);
         ast_destroy(async_block);
+        ast_destroy(await_expr);
         ast_destroy(send);
         ast_destroy(recv);
         ast_destroy(select_stmt);
@@ -1489,17 +1771,19 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     }
     parallel->line = 51;
     async_block->line = 52;
-    send->line = 53;
-    recv->line = 54;
-    select_stmt->line = 55;
-    with_stmt->line = 56;
-    unsafe_block->line = 57;
-    defer_stmt->line = 58;
+    await_expr->line = 53;
+    send->line = 54;
+    recv->line = 55;
+    select_stmt->line = 56;
+    with_stmt->line = 57;
+    unsafe_block->line = 58;
+    defer_stmt->line = 59;
     with_stmt->data.with_stmt.body = ast_create_block();
     if (with_stmt->data.with_stmt.body == NULL) {
         ast_destroy(step_ast);
         ast_destroy(parallel);
         ast_destroy(async_block);
+        ast_destroy(await_expr);
         ast_destroy(send);
         ast_destroy(recv);
         ast_destroy(select_stmt);
@@ -1508,11 +1792,12 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         ast_destroy(defer_stmt);
         return false;
     }
-    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(8, sizeof(ASTNode *));
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(9, sizeof(ASTNode *));
     if (step_ast->data.intent_step.on_exprs == NULL) {
         ast_destroy(step_ast);
         ast_destroy(parallel);
         ast_destroy(async_block);
+        ast_destroy(await_expr);
         ast_destroy(send);
         ast_destroy(recv);
         ast_destroy(select_stmt);
@@ -1523,13 +1808,14 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     }
     step_ast->data.intent_step.on_exprs[0] = parallel;
     step_ast->data.intent_step.on_exprs[1] = async_block;
-    step_ast->data.intent_step.on_exprs[2] = send;
-    step_ast->data.intent_step.on_exprs[3] = recv;
-    step_ast->data.intent_step.on_exprs[4] = select_stmt;
-    step_ast->data.intent_step.on_exprs[5] = with_stmt;
-    step_ast->data.intent_step.on_exprs[6] = unsafe_block;
-    step_ast->data.intent_step.on_exprs[7] = defer_stmt;
-    step_ast->data.intent_step.on_expr_count = 8;
+    step_ast->data.intent_step.on_exprs[2] = await_expr;
+    step_ast->data.intent_step.on_exprs[3] = send;
+    step_ast->data.intent_step.on_exprs[4] = recv;
+    step_ast->data.intent_step.on_exprs[5] = select_stmt;
+    step_ast->data.intent_step.on_exprs[6] = with_stmt;
+    step_ast->data.intent_step.on_exprs[7] = unsafe_block;
+    step_ast->data.intent_step.on_exprs[8] = defer_stmt;
+    step_ast->data.intent_step.on_expr_count = 9;
 
     air = air_synthesize(NULL, &dir, NULL, &error);
     if (air != NULL) {
@@ -1541,6 +1827,9 @@ test_air_synthesizes_stable_execution_boundary_set(void)
             if (boundary->kind == AIR_BOUNDARY_PARALLEL
                 && strcmp(boundary->source_name, "async") == 0)
                 found_async = true;
+            if (boundary->kind == AIR_BOUNDARY_PARALLEL
+                && strcmp(boundary->source_name, "await") == 0)
+                found_await = true;
             if (boundary->kind == AIR_BOUNDARY_CHANNEL
                 && strcmp(boundary->source_name, "channel-send") == 0)
                 found_send = true;
@@ -1562,9 +1851,10 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         }
     }
     ok = air != NULL
-        && air->boundary_count == 8
+        && air->boundary_count == 9
         && found_parallel
         && found_async
+        && found_await
         && found_send
         && found_recv
         && found_select
@@ -1818,6 +2108,9 @@ main(void)
     TEST("AIR verify rejects authority evidence shape mismatch");
     EXPECT(test_air_verify_rejects_authority_evidence_shape_mismatch());
 
+    TEST("AIR verify rejects CFG evidence without routine evidence");
+    EXPECT(test_air_verify_rejects_cfg_evidence_without_routine());
+
     TEST("AIR check_drift remains verify compatibility wrapper");
     EXPECT(test_air_check_drift_is_verify_compatibility_wrapper());
 
@@ -1847,6 +2140,12 @@ main(void)
 
     TEST("AIR synthesis captures IO boundary without sync drift");
     EXPECT(test_air_synthesizes_io_boundary_without_sync_drift());
+
+    TEST("AIR await boundary accepts exact RIR evidence");
+    EXPECT(test_air_await_boundary_accepts_exact_rir_evidence());
+
+    TEST("AIR await boundary rejects generic RIR scope evidence");
+    EXPECT(test_air_await_boundary_rejects_generic_rir_scope_evidence());
 
     TEST("AIR synthesis captures stable IO boundary builtin set");
     EXPECT(test_air_synthesizes_stable_io_boundary_builtin_set());

@@ -6,5 +6,6 @@
 #include "hir.h"
 
 bool hir_lower_func_body_cfg(ASTNode *body, HIRRoutine *routine);
+bool hir_lower_intent_cfg(ASTNode *intent, HIRRoutine *routine);
 
 #endif

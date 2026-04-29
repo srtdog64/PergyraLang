@@ -105,6 +105,11 @@ void validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
 extern size_t g_resolve_type_node_calls;
 extern size_t g_resolve_type_node_unique_nodes;
+extern size_t g_resolve_type_node_ast_type_calls;
+extern size_t g_resolve_type_node_channel_type_calls;
+extern size_t g_resolve_type_node_future_type_calls;
+extern size_t g_resolve_type_node_event_handler_type_calls;
+extern size_t g_resolve_type_node_other_ast_calls;
 extern size_t g_resolve_type_node_cache_hits;
 extern size_t g_resolve_type_node_cache_misses;
 

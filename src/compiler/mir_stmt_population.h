@@ -1,6 +1,8 @@
 #ifndef PERGYRA_MIR_STMT_POPULATION_H
 #define PERGYRA_MIR_STMT_POPULATION_H
 
+#include "mir_cfg_contract_control.h"
+
 /* ---------------------------------------------------------------------------
  * mir_populate_stmt_instructions
  *
@@ -141,22 +143,8 @@ mir_stmt_is_control_flow(const ASTNode *stmt, const MIRBasicBlock *mir_block)
     if (stmt->type == AST_RETURN)
         return true;
     if (mir_block->has_succ_true || mir_block->has_succ_false) {
-        switch (stmt->type) {
-        case AST_WITH_STMT:
-        case AST_PARALLEL_BLOCK:
-        case AST_UNSAFE_BLOCK:
-        case AST_DEFER_STMT:
-        case AST_IF_STMT:
-        case AST_WHILE_LOOP:
-        case AST_FOR_LOOP:
-        case AST_SELECT_STMT:
-        case AST_MATCH_STMT:
-        case AST_BREAK:
-        case AST_CONTINUE:
+        if (mir_stmt_ast_is_cfg_owned_control(stmt))
             return true;
-        default:
-            break;
-        }
     }
     return false;
 }
@@ -383,9 +371,13 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             }
         }
 
-        /* Copy remaining RESOURCE_OP / CLEANUP_EDGE after DEFs (preserve order) */
+        /* Copy remaining semantic-carrier / RESOURCE_OP / CLEANUP_EDGE after DEFs
+         * (preserve order). Intent metadata is MIR semantic inventory, not AST
+         * fallback body emission, so CFG-backed routines must retain it. */
         for (size_t r = 0; r < old_count; r++) {
-            if (old_insts[r].kind == MIR_INST_RESOURCE_OP
+            if ((old_insts[r].kind == MIR_INST_STMT
+                    && mir_stmt_is_semantic_carrier(&old_insts[r]))
+                || old_insts[r].kind == MIR_INST_RESOURCE_OP
                 || old_insts[r].kind == MIR_INST_CLEANUP_EDGE) {
                 if (copied_flags[r])
                     continue;

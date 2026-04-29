@@ -35,6 +35,7 @@ dir_collect_path = root / "src" / "compiler" / "dir_collect.c"
 air_header_path = root / "src" / "compiler" / "air.h"
 air_impl_path = root / "src" / "compiler" / "air.c"
 air_boundary_path = root / "src" / "compiler" / "air_boundary.c"
+air_boundary_walk_path = root / "src" / "compiler" / "air_boundary_walk.c"
 air_dump_path = root / "src" / "compiler" / "air_dump.c"
 air_evidence_path = root / "src" / "compiler" / "air_evidence.c"
 air_verify_path = root / "src" / "compiler" / "air_verify.c"
@@ -43,7 +44,7 @@ diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, parser_intent_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_dump_path, air_evidence_path, air_verify_path, air_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, parser_intent_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_verify_path, air_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -67,6 +68,7 @@ air_header = air_header_path.read_text(encoding="utf-8")
 air_impl = "\n".join([
     air_impl_path.read_text(encoding="utf-8"),
     air_boundary_path.read_text(encoding="utf-8"),
+    air_boundary_walk_path.read_text(encoding="utf-8"),
     air_dump_path.read_text(encoding="utf-8"),
     air_evidence_path.read_text(encoding="utf-8"),
     air_verify_path.read_text(encoding="utf-8"),
@@ -139,7 +141,9 @@ for term in [
     "air-backend-nonimpact-full-test-smoke:",
     "air-strict-backend-compare-test-smoke:",
     "$(COMPILER_DIR)/air_verify.c",
+    "$(COMPILER_DIR)/air_boundary_walk.c",
     "$(BUILD_DIR)/compiler/air_verify.o",
+    "$(BUILD_DIR)/compiler/air_boundary_walk.o",
     "$(MAKE) test-air",
     "tests/air_drift_smoke.sh",
     "tests/air_backend_nonimpact_smoke.sh",
@@ -159,6 +163,7 @@ required_header_terms = [
     "AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING",
     "strict_evidence",
     "has_hir_routine_evidence",
+    "has_hir_cfg_evidence",
     "has_rir_boundary_evidence",
     "has_rir_authority_evidence",
     "hir_routine_evidence_name",
@@ -167,6 +172,7 @@ required_header_terms = [
     "authority_names",
     "authority_name_count",
     "hir_routine_evidence_count",
+    "hir_cfg_evidence_count",
     "rir_boundary_evidence_count",
     "rir_authority_evidence_count",
     "air_synthesize",
@@ -202,14 +208,17 @@ required_impl_terms = [
     "air_collect_rir_evidence(air, rir, error_message)",
     "air_strdup_owned",
     "air_clear_drifts",
-    "air_boundary_from_ast_node",
+    "air_boundary_kind_from_ast",
     "air_count_step_expr_boundaries",
     "air_append_step_expr_boundaries",
-    "air_sync_from_boundary_kind",
+    "air_boundary_sync_from_kind",
+    "AST_AWAIT_EXPR",
+    "RIR_OP_AWAIT_REMOTE",
     "air_call_is_io_boundary",
     "air_format_authority_names",
     "air_boundary_authority_matches",
     "air_hir_routine_matches_boundary",
+    "air_hir_cfg_contains_boundary_ast",
     "air_rir_scope_matches_boundary",
     "AIR synthesis count mismatch",
     "intent_index != intent_node_count",
@@ -240,6 +249,7 @@ required_driver_terms = [
     "RIR boundary evidence",
     "expected authority participant(s):",
     "evidence hir=",
+    "hir_cfg=",
     "Reason:",
     "Fix:",
 ]
@@ -296,11 +306,12 @@ required_test_terms = [
     "AIR verify rejects boundary sync shape mismatch",
     "AIR verify rejects invalid drift inventory",
     "AIR verify rejects authority evidence shape mismatch",
+    "AIR verify rejects CFG evidence without routine evidence",
     "PGY_AIR_INVARIANT_INVALID",
     "AIR check_drift remains verify compatibility wrapper",
     "AIR strict evidence rejects mismatched authority participant",
     "AIR dump prints evidence provenance",
-    "evidence hir=yes(reserve)",
+    "evidence hir=yes(reserve) hir_cfg=yes",
     "AIR world boundary requires transfer evidence",
     "AIR world boundary accepts transfer evidence",
     "expected authority participant(s): shipper",
@@ -313,6 +324,8 @@ required_test_terms = [
     "rir_authority_evidence_name",
     "AIR lowers parsed intent source without drift",
     "AIR synthesis captures spawn boundary from intent step AST",
+    "AIR await boundary accepts exact RIR evidence",
+    "AIR await boundary rejects generic RIR scope evidence",
     "AIR synthesis captures IO boundary without sync drift",
     "AIR synthesis captures stable execution boundary set",
     "AIR parsed IO boundary reports missing evidence",

@@ -302,6 +302,13 @@ air_validate(const AIRProgram *air, char **error_message)
                                     i);
             return false;
         }
+        if (air->boundaries[i].has_hir_cfg_evidence
+            && !air->boundaries[i].has_hir_routine_evidence) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu has HIR CFG evidence without routine evidence",
+                                    i);
+            return false;
+        }
         if (air->boundaries[i].has_rir_boundary_evidence
             && air->boundaries[i].rir_boundary_evidence_scope == NULL) {
             air_set_invariant_error(error_message,
@@ -401,7 +408,7 @@ air_verify(AIRProgram *air, char **error_message)
         }
         if (air->strict_evidence
             && air_boundary_requires_hir_evidence(boundary)
-            && !boundary->has_hir_routine_evidence) {
+            && !boundary->has_hir_cfg_evidence) {
             char message[512];
             snprintf(message,
                      sizeof(message),

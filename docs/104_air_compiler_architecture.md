@@ -150,24 +150,40 @@ Pergyra 가 AIR 를 codegen path 위에 두지 **않는** 것은 의식적 선�
 - Strict evidence policy update: default strict AIR hard-fails missing HIR CFG,
   RIR boundary, and RIR authority evidence; older wording that mentions only
   RIR boundary/authority evidence is stale.
+- HIR provenance is now split into two facts: `has_hir_routine_evidence`
+  records a matching lowered routine, while `has_hir_cfg_evidence` records that
+  the matching routine also carries generated CFG for the same boundary AST when
+  a boundary AST is available. This prevents routine-only intent summaries from
+  being mistaken for CFG-backed body evidence.
+- Parsed-source intent routines now have a minimal HIR CFG materializer:
+  `hir_lower_intent_cfg(...)` builds ordered clause blocks for intent
+  priority/success/failure expressions and each step's `where`, `using`,
+  `intent`, contract, `on`, and `compensate` clauses. AIR consumes this as
+  CFG-backed evidence for intent-step boundaries. It is not a replacement for
+  the runtime propagation scheduler; it is the source-level CFG proof that the
+  boundary AST exists in the lowered routine.
 - Execution boundary scan: Phase 1 synthesis now walks intent-step AST clauses
   (`using`, `intent`, `pre`, `guard`, `post`, `invariant`, `expect`, `on`,
-  `compensate`) and promotes `spawn` / `async` / `parallel`, `channel` /
+  `compensate`) and promotes `spawn` / `async` / `await` / `parallel`, `channel` /
   `select`, `with` / `unsafe` / `defer`, and stable resource IO/time calls into
   AIR `Boundary Node`s before drift checking. The current stable AIR boundary
   set is `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
   `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep` for IO; `spawn` /
-  `async` / `parallel` for parallel; `channel-send` / `channel-recv` / `select`
+  `async` / `await` / `parallel` for parallel; `channel-send` / `channel-recv` / `select`
   for channel; and `with` / `unsafe` / `defer` for execution. `Print` / `Log*`
   are observability output calls, not AIR resource-boundary evidence in Phase 1.
   Execution boundaries are synchronous body/CFG boundaries; strict evidence
   checks HIR/CFG evidence for them, not RIR resource-boundary evidence.
-- Expression boundary evidence is source-specific: `spawn` / `async` /
+- Expression boundary evidence is source-specific: `spawn` / `async` / `await` /
   `parallel`, `channel` / `select`, and IO boundaries are not satisfied by a
   generic RIR scope with the same intent owner. They need matching
   boundary-source evidence, otherwise default strict AIR emits
   `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`. They also need HIR CFG evidence:
   RIR evidence alone cannot satisfy a body-boundary proof.
+- `await` evidence is operation-specific: AIR accepts await boundary evidence
+  only when RIR exposes the exact `AwaitRemote` operation for the same AST
+  boundary. A generic intent scope named `await` or an unrelated await operation
+  does not satisfy the proof.
 - Transfer boundary synthesis is split: a step with both `where: ZoneType` and
   `transfer: from -> to` emits a `Zone` boundary for the `where` type and a
   separate `World` boundary for the handoff. The world boundary source is the

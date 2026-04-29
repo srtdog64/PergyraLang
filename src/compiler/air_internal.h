@@ -18,6 +18,9 @@ void        air_clear_drifts(AIRProgram *air);
 bool        air_name_matches(const char *a, const char *b);
 bool        air_step_has_zone_boundary(const DIRIntentStep *step);
 bool        air_step_has_world_boundary(const DIRIntentStep *step);
+AIRBoundaryKind air_boundary_kind_from_ast(const ASTNode *node);
+AIRSyncClass    air_boundary_sync_from_kind(AIRBoundaryKind kind);
+const char     *air_boundary_source_from_ast(const ASTNode *node);
 size_t      air_count_step_expr_boundaries(const DIRIntentStep *step);
 bool        air_append_step_expr_boundaries(AIRProgram *air,
                                             AIRBoundaryNode *boundaries,

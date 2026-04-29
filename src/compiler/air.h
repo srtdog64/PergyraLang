@@ -68,6 +68,7 @@ typedef struct
     const char    **authority_names;
     size_t          authority_name_count;
     bool            has_hir_routine_evidence;
+    bool            has_hir_cfg_evidence;
     bool            has_rir_boundary_evidence;
     bool            has_rir_authority_evidence;
     const char     *hir_routine_evidence_name;
@@ -93,6 +94,7 @@ typedef struct AIRProgram
     size_t           drift_count;
     bool             strict_evidence;
     size_t           hir_routine_evidence_count;
+    size_t           hir_cfg_evidence_count;
     size_t           rir_boundary_evidence_count;
     size_t           rir_authority_evidence_count;
     char           **owned_names;

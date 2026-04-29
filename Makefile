@@ -343,6 +343,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_entry.c \
                    $(CODEGEN_DIR)/transpiler_symbols.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_decl_host_lookup.c \
                    $(CODEGEN_DIR)/transpiler_enum.c \
                    $(CODEGEN_DIR)/transpiler_extern.c \
                    $(CODEGEN_DIR)/transpiler_log_normalize.c \
@@ -364,6 +365,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/dir_validate.c \
                    $(COMPILER_DIR)/air.c \
                    $(COMPILER_DIR)/air_boundary.c \
+                   $(COMPILER_DIR)/air_boundary_walk.c \
                    $(COMPILER_DIR)/air_dump.c \
                    $(COMPILER_DIR)/air_evidence.c \
                    $(COMPILER_DIR)/air_verify.c \
@@ -379,6 +381,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_cfg.c \
                    $(COMPILER_DIR)/hir_cfg_phi.c \
                    $(COMPILER_DIR)/hir_lower_cfg.c \
+                   $(COMPILER_DIR)/hir_lower_intent_cfg.c \
                    $(COMPILER_DIR)/mir.c \
                    $(COMPILER_DIR)/mir_cleanup.c \
                    $(COMPILER_DIR)/mir_intent.c \
@@ -641,22 +644,22 @@ $(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJ
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # AIR synthesis and drift test
-$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/air.o $(BUILD_DIR)/compiler/air_boundary.o $(BUILD_DIR)/compiler/air_dump.o $(BUILD_DIR)/compiler/air_evidence.o $(BUILD_DIR)/compiler/air_verify.o $(TEST_AIR_OBJ) | $(BIN_DIR)
+$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/air.o $(BUILD_DIR)/compiler/air_boundary.o $(BUILD_DIR)/compiler/air_boundary_walk.o $(BUILD_DIR)/compiler/air_dump.o $(BUILD_DIR)/compiler/air_evidence.o $(BUILD_DIR)/compiler/air_verify.o $(TEST_AIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # RIR lowering test
-$(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(TEST_RIR_OBJ) | $(BIN_DIR)
+$(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(TEST_RIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # MIR lowering test
-$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/mir.o $(BUILD_DIR)/compiler/mir_cleanup.o $(BUILD_DIR)/compiler/mir_intent.o $(BUILD_DIR)/compiler/mir_type_helpers.o $(TEST_MIR_OBJ) | $(BIN_DIR)
+$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/mir.o $(BUILD_DIR)/compiler/mir_cleanup.o $(BUILD_DIR)/compiler/mir_intent.o $(BUILD_DIR)/compiler/mir_type_helpers.o $(TEST_MIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # HIR lowering test
-$(HIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(TEST_HIR_OBJ) | $(BIN_DIR)
+$(HIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(TEST_HIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 

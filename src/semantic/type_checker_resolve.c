@@ -19,6 +19,11 @@ resolve_generic_type_arg(GenericParam *gp, SemanticContext *ctx,
 /* Instrumentation counters for type-resolution audit. */
 size_t g_resolve_type_node_calls = 0;
 size_t g_resolve_type_node_unique_nodes = 0;
+size_t g_resolve_type_node_ast_type_calls = 0;
+size_t g_resolve_type_node_channel_type_calls = 0;
+size_t g_resolve_type_node_future_type_calls = 0;
+size_t g_resolve_type_node_event_handler_type_calls = 0;
+size_t g_resolve_type_node_other_ast_calls = 0;
 static void **g_resolve_type_node_seen = NULL;
 static size_t g_resolve_type_node_seen_cap = 0;
 size_t g_resolve_type_node_cache_hits = 0;
@@ -32,6 +37,27 @@ resolve_type_node_stats_record(ASTNode *node)
         return;
 
     g_resolve_type_node_calls++;
+    if (node == NULL) {
+        g_resolve_type_node_other_ast_calls++;
+    } else {
+        switch (node->type) {
+        case AST_TYPE:
+            g_resolve_type_node_ast_type_calls++;
+            break;
+        case AST_CHANNEL_TYPE:
+            g_resolve_type_node_channel_type_calls++;
+            break;
+        case AST_FUTURE_TYPE:
+            g_resolve_type_node_future_type_calls++;
+            break;
+        case AST_EVENT_HANDLER_TYPE:
+            g_resolve_type_node_event_handler_type_calls++;
+            break;
+        default:
+            g_resolve_type_node_other_ast_calls++;
+            break;
+        }
+    }
     for (size_t i = 0; i < g_resolve_type_node_unique_nodes; i++) {
         if (g_resolve_type_node_seen[i] == node)
             return;

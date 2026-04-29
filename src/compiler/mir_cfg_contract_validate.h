@@ -29,29 +29,7 @@ mir_block_has_pin_cleanup_edge(const MIRBasicBlock *block)
     return false;
 }
 
-static bool
-mir_stmt_ast_is_cfg_owned_control(const ASTNode *ast)
-{
-    if (ast == NULL)
-        return false;
-    switch (ast->type) {
-    case AST_WITH_STMT:
-    case AST_PARALLEL_BLOCK:
-    case AST_UNSAFE_BLOCK:
-    case AST_DEFER_STMT:
-    case AST_IF_STMT:
-    case AST_WHILE_LOOP:
-    case AST_FOR_LOOP:
-    case AST_SELECT_STMT:
-    case AST_MATCH_STMT:
-    case AST_BREAK:
-    case AST_CONTINUE:
-    case AST_RETURN:
-        return true;
-    default:
-        return false;
-    }
-}
+#include "mir_cfg_contract_control.h"
 
 static bool
 mir_validate_cfg_contract_state(const MIRRoutine *routine,

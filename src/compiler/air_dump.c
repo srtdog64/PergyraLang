@@ -21,8 +21,9 @@ air_dump(const AIRProgram *air, FILE *out)
             air->boundary_count,
             air->drift_count,
             air->strict_evidence ? "yes" : "no");
-    fprintf(out, "  evidence hir_routines=%zu rir_boundaries=%zu rir_authority=%zu\n",
+    fprintf(out, "  evidence hir_routines=%zu hir_cfg=%zu rir_boundaries=%zu rir_authority=%zu\n",
             air->hir_routine_evidence_count,
+            air->hir_cfg_evidence_count,
             air->rir_boundary_evidence_count,
             air->rir_authority_evidence_count);
     for (size_t i = 0; i < air->intent_count; i++) {
@@ -49,11 +50,12 @@ air_dump(const AIRProgram *air, FILE *out)
                 air_sync_class_name(boundary->sync_class),
                 boundary->authority_required ? "yes" : "no");
         fprintf(out,
-                "    evidence hir=%s(%s) rir_boundary=%s(%s) rir_authority=%s(%s)\n",
+                "    evidence hir=%s(%s) hir_cfg=%s rir_boundary=%s(%s) rir_authority=%s(%s)\n",
                 boundary->has_hir_routine_evidence ? "yes" : "no",
                 boundary->hir_routine_evidence_name != NULL
                     ? boundary->hir_routine_evidence_name
                     : "<none>",
+                boundary->has_hir_cfg_evidence ? "yes" : "no",
                 boundary->has_rir_boundary_evidence ? "yes" : "no",
                 boundary->rir_boundary_evidence_scope != NULL
                     ? boundary->rir_boundary_evidence_scope

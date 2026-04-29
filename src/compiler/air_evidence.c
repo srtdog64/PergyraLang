@@ -28,6 +28,29 @@ air_hir_routine_matches_boundary(const HIRRoutine *routine,
         || air_name_matches(routine->name, boundary->source_name);
 }
 
+static bool
+air_hir_cfg_contains_boundary_ast(const HIRRoutine *routine, const AIRBoundaryNode *boundary)
+{
+    if (routine == NULL || boundary == NULL || !routine->has_cfg)
+        return false;
+    if (boundary->ast == NULL)
+        return true;
+    for (size_t i = 0; i < routine->cfg.block_count; i++) {
+        const HIRBasicBlock *block = &routine->cfg.blocks[i];
+        if (block == NULL)
+            continue;
+        for (size_t j = 0; j < block->statement_count; j++) {
+            if (block->statements[j] == boundary->ast)
+                return true;
+        }
+        if (block->terminator_condition == boundary->ast)
+            return true;
+        if (block->pin_block_ast == boundary->ast)
+            return true;
+    }
+    return false;
+}
+
 bool
 air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir, char **error_message)
 {
@@ -51,6 +74,10 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir, char **error_me
                 }
                 boundary->has_hir_routine_evidence = true;
                 air->hir_routine_evidence_count++;
+                if (air_hir_cfg_contains_boundary_ast(routine, boundary)) {
+                    boundary->has_hir_cfg_evidence = true;
+                    air->hir_cfg_evidence_count++;
+                }
             }
         }
     }
@@ -87,6 +114,18 @@ static bool
 air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
                                          const AIRBoundaryNode *boundary)
 {
+    if (scope != NULL && boundary != NULL
+        && boundary->kind == AIR_BOUNDARY_PARALLEL
+        && air_name_matches(boundary->source_name, "await")) {
+        for (size_t i = 0; i < scope->op_count; i++) {
+            if (scope->ops[i].kind == RIR_OP_AWAIT_REMOTE
+                && scope->ops[i].ast == boundary->ast) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     if (!air_rir_scope_matches_boundary(scope, boundary))
         return false;
 

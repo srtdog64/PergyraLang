@@ -229,10 +229,11 @@ driver_format_air_evidence_summary(const AIRBoundaryNode *boundary,
 
     written = snprintf(out,
                        out_size,
-                       "evidence hir=%s rir_boundary=%s rir_authority=%s",
+                       "evidence hir=%s hir_cfg=%s rir_boundary=%s rir_authority=%s",
                        boundary->hir_routine_evidence_name != NULL
                            ? boundary->hir_routine_evidence_name
                            : "<none>",
+                       boundary->has_hir_cfg_evidence ? "yes" : "no",
                        boundary->rir_boundary_evidence_scope != NULL
                            ? boundary->rir_boundary_evidence_scope
                            : "<none>",
@@ -282,7 +283,7 @@ driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
     if (drift != NULL && drift->kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING) {
         bool missing_hir = boundary != NULL
             && air_boundary_requires_hir_evidence(boundary)
-            && !boundary->has_hir_routine_evidence;
+            && !boundary->has_hir_cfg_evidence;
         bool missing_rir = boundary != NULL
             && air_boundary_requires_rir_evidence(boundary)
             && !boundary->has_rir_boundary_evidence;

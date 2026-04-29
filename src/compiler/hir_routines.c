@@ -168,10 +168,8 @@ hir_validate_cfg_predecessors(const HIRRoutine *routine)
 }
 
 static bool
-hir_finish_func_routine(HIRRoutine *routine, ASTNode *func)
+hir_finish_cfg_routine(HIRRoutine *routine)
 {
-    if (!hir_lower_func_body_cfg(func->data.func_decl.body, routine))
-        return false;
     if (!hir_validate_cfg_shape(routine))
         return false;
     if (!hir_finalize_cfg(routine))
@@ -193,6 +191,16 @@ hir_finish_func_routine(HIRRoutine *routine, ASTNode *func)
     if (!hir_materialize_phi_nodes(routine))
         return false;
     hir_finalize_cfg_summary(routine);
+    return true;
+}
+
+static bool
+hir_finish_func_routine(HIRRoutine *routine, ASTNode *func)
+{
+    if (!hir_lower_func_body_cfg(func->data.func_decl.body, routine))
+        return false;
+    if (!hir_finish_cfg_routine(routine))
+        return false;
     if (!hir_collect_func_signature_refs(func,
                                          &routine->signature_type_refs,
                                          &routine->signature_type_ref_count)) {
@@ -447,7 +455,9 @@ hir_collect_intent_calls(ASTNode *intent, HIRRoutine *routine)
     }
     routine->has_control_flow = intent->data.intent_decl.step_count > 1
                                 || routine->direct_call_count > 0;
-    return true;
+    if (!hir_lower_intent_cfg(intent, routine))
+        return false;
+    return hir_finish_cfg_routine(routine);
 }
 
 bool

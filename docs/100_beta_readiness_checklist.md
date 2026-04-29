@@ -68,6 +68,40 @@ Operational mode:
   lowering live in `llvm_expr_spawn_call_helpers.h`. Gates: `make pgy`,
   `make llvm-test-smoke`, and `make llvm-test-backend-compare` (`196/0`
   ABI same-process, `64/64` backend compare).
+- 2026-04-29 C declaration lookup owner update:
+  `transpiler_decl_lookup.c` is now below the 600 LOC review threshold.
+  Current-host, owner-host, nominal-host, and nominal-method lookup live in
+  `transpiler_decl_host_lookup.c`; the original owner keeps named declaration,
+  alias, inventory, and method-list lookup. Gates: `make pgy`,
+  `make test-transpile`, `make production-header-size-test-smoke`,
+  `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `65/65` backend compare).
+- 2026-04-29 C type mapping owner update:
+  `transpiler_type_mapping_helpers.h` is now below the 600 LOC review
+  threshold. AST type-name rendering lives in
+  `transpiler_type_render_helpers.h`; the original owner keeps primitive,
+  collection, slot, result, and suffix mapping. Gates: `make pgy`,
+  `make test-transpile`, `make production-header-size-test-smoke`,
+  `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `65/65` backend compare).
+- 2026-04-29 CFG contract validator owner update:
+  `mir_cfg_contract_validate.h` is now below the 600 LOC review threshold.
+  CFG-owned AST control classification lives in
+  `mir_cfg_contract_control.h`; the original owner keeps cleanup, successor,
+  predecessor, and pin cleanup contract validation. Gates: `make test-mir`,
+  `make cfg-body-dataflow-test-smoke`, `make abi-ownership-shape-test-smoke`,
+  `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke`.
+- 2026-04-29 MIR SSA/local type owner update:
+  `transpiler_mir_ssa_names.h` is now below the 600 LOC review threshold.
+  AST body local type lookup and expression fallback inference live in
+  `transpiler_mir_local_type_lookup.h`; the original owner keeps SSA name
+  resolution, SSA map setup, claim-shape predicates, and implicit-field
+  rendering. Gates: `make pgy`, `make test-mir`,
+  `make cfg-body-dataflow-test-smoke`, `make test-transpile`,
+  `make production-header-size-test-smoke`, `make backend-inc-size-test-smoke`,
+  and `make llvm-test-backend-compare` (`196/0` ABI same-process,
+  `65/65` backend compare).
 - 2026-04-29 C let slot owner update:
   `transpiler_let_emit.h` no longer owns Slot/DeviceSlot claims,
   ReadView/WriteView/MoveToken declarations, or Slot/SecureSlot sugar
@@ -95,6 +129,13 @@ Operational mode:
   `make pgy`, `make test-transpile`, `make production-header-size-test-smoke`,
   `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
   (`196/0` ABI same-process, `65/65` backend compare).
+- 2026-04-29 C MIR block owner update:
+  small MIR emission predicate wrappers now live in
+  `transpiler_mir_emit_predicates.h`. `transpiler_mir_block_emit.h` is 589 LOC
+  and remains focused on MIR block statement emission. Gates:
+  `make test-mir`, `make cfg-body-dataflow-test-smoke`,
+  `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke`.
 - 2026-04-29 CFG consumer update:
   MIR statement population no longer preserves HIR-expanded control
   containers (`if`, `while`, `for`, `select`, `match`, `break`, `continue`) as
@@ -127,6 +168,44 @@ Operational mode:
   the previous abstraction-boundary gap: AIR can distinguish execution
   boundaries from ordinary AST syntax while leaving zone/world/parallel/channel
   and IO evidence rules unchanged.
+- 2026-04-29 AIR await-boundary update:
+  `await` is now synthesized as a stable AIR `parallel` boundary source instead
+  of being only recursively scanned through its operand. Strict AIR accepts RIR
+  evidence only from the exact `AwaitRemote` operation attached to the same AST
+  boundary; a generic scope named `await` is rejected. It still requires HIR/CFG
+  evidence for the implementation boundary.
+  The AIR boundary AST walk now lives in `src/compiler/air_boundary_walk.c`,
+  leaving `src/compiler/air_boundary.c` focused on boundary taxonomy/policy.
+- 2026-04-29 HIR intent CFG evidence update:
+  parsed-source intent routines now get a minimal ordered clause CFG from
+  `src/compiler/hir_lower_intent_cfg.c`. `hir_lower_cfg.c` remains focused on
+  function-body CFG at 598 LOC; the intent owner is 184 LOC and materializes
+  priority/success/failure expressions plus each intent step's `where`,
+  `using`, `intent`, contract, `on`, and `compensate` clauses as HIR CFG
+  statements. This is an AIR evidence closure, not a runtime scheduler:
+  strict AIR can now require HIR CFG evidence for parsed-source intent
+  boundaries without accepting routine-only provenance. MIR population also
+  preserves intent `MIR_INST_STMT` semantic carriers after CFG statement
+  reconstruction, so participant/zone/authority/causes metadata remains MIR
+  inventory instead of being treated as disposable AST fallback emission.
+- 2026-04-29 DAG compatibility inventory update:
+  type-resolution DAG fallback remains closed (`materializer_fallbacks=0`,
+  alias/non-alias legacy fallback 0). The remaining compatibility
+  `resolve_type_node(...)` calls are now AST-kind accounted by smoke:
+  current semantic-suite max inventory is 3 calls, all `AST_TYPE`; compound,
+  channel, future, event-handler, and other AST kinds are 0. The same gate
+  reads the global compatibility counters as max/last inventory rather than
+  summing repeated per-context stats lines, caps compatibility API calls at 64,
+  and requires compatibility resolver body fallbacks (`cache misses`) to remain
+  0. This makes the next DAG cleanup target explicit: named/generic `AST_TYPE`
+  compatibility entry points, not recursive resolver execution or constructed
+  compound materialization.
+- 2026-04-29 CFG-owned control classifier update:
+  `mir_cfg_contract_control.h` now has a real header guard and is consumed by
+  both MIR statement population and MIR CFG validation. This removes the
+  duplicated CFG-owned control list from `mir_stmt_population.h`, so fallback
+  `MIR_INST_STMT` filtering and validator rejection use the same source of
+  truth.
 - 2026-04-29 ABI ownership gate update:
   `make abi-ownership-shape-test-smoke` now gates the implemented Slot/Pin ABI
   shape, runtime pin generation/thread/token invariants, C/LLVM pin/unpin
@@ -1119,6 +1198,12 @@ Closed now:
   `src/compiler/air_verify.c` owns global AIR validation plus sync/async drift
   and strict evidence diagnostics.
 - AIR synthesis가 HIR routine evidence와 RIR boundary/authority evidence를 read-only로 수집하고 각 `Boundary Node`에 evidence flag를 부착한다. Default strict evidence에서 missing HIR CFG, RIR boundary, or RIR authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 된다.
+- 2026-04-29 AIR HIR provenance split: AIR boundary evidence now records
+  `has_hir_routine_evidence` separately from `has_hir_cfg_evidence`. A lowered
+  intent routine summary can still prove routine provenance, but only a routine
+  with generated CFG containing the same boundary AST increments
+  `hir_cfg_evidence_count` when a boundary AST is available. This closes the
+  routine-only-vs-CFG-backed wording drift without changing public syntax.
 - 2026-04-29 update: AIR evidence policy is exposed through
   `air_boundary_requires_hir_evidence(...)` and
   `air_boundary_requires_rir_evidence(...)`, and the driver diagnostic consumes
@@ -1246,7 +1331,7 @@ Strict evidence update:
   when evidence is found. This makes strict evidence failures debuggable without
   borrowing source IR lifetimes.
 - AIR strict-evidence diagnostics now print the same provenance summary
-  (`evidence hir=... rir_boundary=... rir_authority=...`) in text/JSON output,
+  (`evidence hir=... hir_cfg=... rir_boundary=... rir_authority=...`) in text/JSON output,
   so tooling does not need to infer which proof leg was absent.
 - `air_dump()` now prints per-boundary evidence provenance names and the AIR unit
   suite gates that debug surface, so compiler-debug output stays aligned with
@@ -2560,6 +2645,68 @@ make ast-dispatch-test-smoke
 - `transpiler_func_class_flow_emit.h` is now below the 600 LOC split-review
   threshold and no longer owns class field/container/method emission directly.
 - Verified with `make pgy`, `make test-transpile`,
+  `make production-header-size-test-smoke`,
+  `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `65/65` backend compare).
+
+## Progress Log — 2026-04-29 C MIR Block Owner Split
+
+- MIR emission predicate wrappers moved to `transpiler_mir_emit_predicates.h`.
+- `transpiler_mir_block_emit.h` is below the 600 LOC split-review threshold
+  and keeps block statement emission ownership focused.
+- Verified with `make test-mir`, `make cfg-body-dataflow-test-smoke`,
+  `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke`.
+
+## Progress Log - 2026-04-29 C Declaration Lookup Owner Split
+
+- Host and method declaration lookup moved to
+  `transpiler_decl_host_lookup.c`.
+- `transpiler_decl_lookup.c` is now 419 LOC and keeps named declaration,
+  alias, inventory, and method-list lookup ownership focused.
+- `transpiler_decl_host_lookup.c` is 216 LOC and owns current-host,
+  owner-host, nominal-host, and nominal-method lookup cache paths.
+- Verified with `make pgy`, `make test-transpile`,
+  `make production-header-size-test-smoke`,
+  `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `65/65` backend compare).
+
+## Progress Log - 2026-04-29 C Type Mapping Owner Split
+
+- AST type-name rendering moved to `transpiler_type_render_helpers.h`.
+- `transpiler_type_mapping_helpers.h` is now 563 LOC and keeps primitive,
+  collection, slot, result, and suffix mapping ownership focused.
+- `transpiler_type_render_helpers.h` is 102 LOC and owns recursive AST
+  type-name rendering plus arena-stable local render results.
+- Verified with `make pgy`, `make test-transpile`,
+  `make production-header-size-test-smoke`,
+  `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
+  (`196/0` ABI same-process, `65/65` backend compare).
+
+## Progress Log - 2026-04-29 CFG Contract Validator Owner Split
+
+- CFG-owned AST control classification moved to
+  `mir_cfg_contract_control.h`.
+- `mir_cfg_contract_validate.h` is now 581 LOC and keeps cleanup, successor,
+  predecessor, and pin cleanup contract validation ownership focused.
+- The pin cleanup terms remain in `mir_cfg_contract_validate.h`, preserving the
+  existing Slot/Pin ABI shape smoke contract.
+- Verified with `make test-mir`, `make cfg-body-dataflow-test-smoke`,
+  `make abi-ownership-shape-test-smoke`,
+  `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke`.
+
+## Progress Log - 2026-04-29 MIR SSA Local Type Owner Split
+
+- AST body local type lookup and expression fallback inference moved to
+  `transpiler_mir_local_type_lookup.h`.
+- `transpiler_mir_ssa_names.h` is now 357 LOC and keeps SSA name resolution,
+  SSA map setup, claim-shape predicates, and implicit-field rendering focused.
+- `transpiler_mir_local_type_lookup.h` is 293 LOC and owns MIR local type
+  recovery for let declarations, destructuring, with aliases, branch bodies,
+  member calls, and nominal constructor calls.
+- Verified with `make pgy`, `make test-mir`,
+  `make cfg-body-dataflow-test-smoke`, `make test-transpile`,
   `make production-header-size-test-smoke`,
   `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
   (`196/0` ABI same-process, `65/65` backend compare).

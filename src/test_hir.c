@@ -182,6 +182,9 @@ test_hir_lowering(void)
                && strcmp(main_routine->direct_calls[0], "Helper") == 0
                && intent_routine != NULL
                && intent_routine->is_entry_reachable
+               && intent_routine->has_cfg
+               && intent_routine->cfg.block_count >= 1
+               && intent_routine->cfg.blocks[0].statement_count >= 2
                && intent_routine->signature_type_ref_count >= 2
                && intent_routine->callee_routine_count == 1
                && intent_routine->direct_call_count == 1

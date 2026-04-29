@@ -348,6 +348,12 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                         ? 100.0 * (double)(g_resolve_type_node_calls - g_resolve_type_node_unique_nodes)
                           / (double)g_resolve_type_node_calls
                         : 0.0);
+            fprintf(stderr, "[type-res-stats] resolve_type_node-kind: ast_type=%llu channel=%llu future=%llu event_handler=%llu other=%llu\n",
+                    (unsigned long long) g_resolve_type_node_ast_type_calls,
+                    (unsigned long long) g_resolve_type_node_channel_type_calls,
+                    (unsigned long long) g_resolve_type_node_future_type_calls,
+                    (unsigned long long) g_resolve_type_node_event_handler_type_calls,
+                    (unsigned long long) g_resolve_type_node_other_ast_calls);
             fprintf(stderr, "[type-res-stats] stage-legacy-resolve: calls=%llu failed=%llu suppressed_diagnostics=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_legacy_resolve_count,
                     (unsigned long long) ctx->type_resolution_stage_legacy_resolve_failed_count,

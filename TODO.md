@@ -1,5 +1,42 @@
 ﻿# Pergyra TODO (배포 준비)
 
+## UTF-8 Progress Note - 2026-04-29 - HIR Intent CFG Evidence
+
+- Intent routines now get a minimal HIR CFG materializer instead of relying on
+  routine-only summaries for AIR boundary evidence.
+- `src/compiler/hir_lower_cfg.c` remains the function-body CFG owner at 598
+  LOC, while `src/compiler/hir_lower_intent_cfg.c` owns ordered intent-step
+  clause CFG materialization at 184 LOC. This keeps the CFG lowerer family
+  under the 600 LOC split-review threshold without adding `.inc` files.
+- The intent CFG is deliberately an ordered clause/inventory CFG, not a full
+  runtime propagation scheduler. It gives AIR strict evidence a concrete HIR
+  CFG block containing the same step/clause AST boundary, so parsed-source
+  intent boundaries can no longer pass on routine provenance alone.
+- MIR population now preserves intent `MIR_INST_STMT` semantic carriers after
+  CFG statement reconstruction. Intent participant/zone/authority/causes facts
+  stay MIR inventory even when the source intent routine has HIR CFG.
+- Local gates: `make test-hir`, `make test-air`,
+  `make cfg-body-dataflow-test-smoke`, and `make air-drift-test-smoke`.
+
+## UTF-8 Progress Note - 2026-04-29 - DAG Compatibility Inventory Tightening
+
+- Type-resolution DAG fallback remains closed: `materializer_fallbacks=0`,
+  alias/non-alias stage legacy fallback is 0, and direct semantic owner calls
+  into `resolve_type_node(...)` stay smoke-gated.
+- `resolve_type_node(...)` compatibility calls now report AST-kind inventory:
+  `ast_type`, `channel`, `future`, `event_handler`, and `other`. Current
+  semantic-suite max inventory is `3` compatibility calls and all are
+  `AST_TYPE`; compound/channel/future/event-handler/other calls are `0`.
+- `tests/type_resolution_dag_smoke.sh` now gates that accounting and also
+  requires compatibility resolver body fallbacks (`cache misses`) to stay `0`.
+  The compatibility API call cap is tightened from 1000 to 64 because the
+  global counter is now read as a max/last inventory value instead of summing
+  repeated per-context stats lines.
+  This makes the remaining DAG debt precise: named/generic `AST_TYPE` owner
+  seams still enter the compatibility API, but they are metadata-preflight hits;
+  compound type materialization and recursive resolver body fallback are already
+  on the graph-backed path.
+
 ## UTF-8 Progress Note - 2026-04-29 - C Let Slot Owner Split
 
 - C backend let-declaration lowering no longer carries Slot/DeviceSlot,
@@ -29,6 +66,46 @@
   `make backend-inc-size-test-smoke` are green. Parity gate:
   `make llvm-test-backend-compare` remains green (`196/0` ABI same-process,
   `65/65` backend compare).
+- C MIR block ownership is also back below the split threshold:
+  `transpiler_mir_emit_predicates.h` owns the small MIR emission predicate
+  wrappers, leaving `transpiler_mir_block_emit.h` focused on block statement
+  emission at 589 LOC. Local gates: `make test-mir`,
+  `make cfg-body-dataflow-test-smoke`,
+  `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke` are green.
+- C declaration lookup ownership is now split by concern:
+  `transpiler_decl_lookup.c` keeps named declaration, alias, inventory, and
+  method-list lookup at 419 LOC, while `transpiler_decl_host_lookup.c` owns
+  current-host, owner-host, nominal-host, and nominal-method lookup at 216 LOC.
+  Local gates: `make pgy`, `make test-transpile`,
+  `make production-header-size-test-smoke`,
+  `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
+  are green (`196/0` ABI same-process, `65/65` backend compare).
+- C type mapping ownership is now split by concern:
+  `transpiler_type_mapping_helpers.h` keeps primitive/collection/slot/result
+  mapping and suffix helpers at 563 LOC, while
+  `transpiler_type_render_helpers.h` owns AST type-name rendering at 102 LOC.
+  Local gates: `make pgy`, `make test-transpile`,
+  `make production-header-size-test-smoke`,
+  `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
+  are green (`196/0` ABI same-process, `65/65` backend compare).
+- CFG contract validation ownership is now below the split threshold:
+  `mir_cfg_contract_validate.h` keeps CFG cleanup, successor, predecessor,
+  and pin cleanup contract validation at 581 LOC, while
+  `mir_cfg_contract_control.h` owns CFG-owned AST control classification at
+  24 LOC. Local gates: `make test-mir`, `make cfg-body-dataflow-test-smoke`,
+  `make abi-ownership-shape-test-smoke`,
+  `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke` are green.
+- MIR SSA/local type ownership is now split by concern:
+  `transpiler_mir_ssa_names.h` keeps SSA name resolution, SSA map setup,
+  claim-shape predicates, and implicit-field rendering at 357 LOC, while
+  `transpiler_mir_local_type_lookup.h` owns AST body local type lookup and
+  expression fallback inference at 293 LOC. Local gates: `make pgy`,
+  `make test-mir`, `make cfg-body-dataflow-test-smoke`,
+  `make test-transpile`, `make production-header-size-test-smoke`,
+  `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
+  are green (`196/0` ABI same-process, `65/65` backend compare).
 
 ## UTF-8 Progress Note - 2026-04-29 - Runtime Frontier Policy And C Owner Split
 
@@ -61,6 +138,11 @@
   missing HIR CFG evidence, missing RIR boundary evidence, and missing authority
   evidence. This removes stale RIR-only wording after strict evidence started
   requiring HIR CFG evidence for implementation boundaries.
+- AIR HIR evidence now separates routine provenance from CFG provenance:
+  `has_hir_routine_evidence` and `has_hir_cfg_evidence` are distinct flags, and
+  `hir_cfg_evidence_count` increments only when the matching HIR routine carries
+  generated CFG for the same boundary AST when one is available. This keeps
+  routine-only intent summaries from masquerading as body CFG proof.
 - HIR evidence matching is now source-specific. A `HIR_TOPLEVEL_INTENT` routine
   no longer satisfies every AIR boundary by kind alone; it must match the intent
   owner, step, or boundary source name. `test_air` includes a negative case that
@@ -2004,6 +2086,8 @@
   - CFG 소비자 정리: `type_checker_flow_match.c`가 match pattern binding, match exhaustiveness, redundancy, total-coverage lattice를 소유한다. `type_checker_flow.c`는 branch/join, loop/defer/parallel boundary, body return/unreachable flow orchestration에 집중하며 435 LOC로 내려갔다. `semantic-core-shape-test-smoke`는 `type_checker_flow.c`와 `type_checker_flow_match.c`가 모두 600 LOC 이하인지 검사한다.
   - 2026-04-27 AIR IO boundary tightening: intent-step execution scan now treats the stable resource IO/time builtin set as AIR `io` boundaries, not only `ReadFile` / `WriteFile` / `ReadLine`. The gated set is `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep`; `Print` / `Log*` remain observability output calls rather than AIR resource-boundary evidence in Phase 1. `src/test_air.c` keeps the set synchronized with `src/compiler/air_boundary.c`.
   - 2026-04-27 AIR owner split: dump/vocabulary functions moved to `src/compiler/air_dump.c`; `src/compiler/air.c` is back under the 600 LOC split-review threshold and keeps synthesis/drift ownership focused.
+  - 2026-04-29 AIR await-boundary closure: `await` is now a synthesized AIR `parallel` boundary source, not just a recursive operand walk. Strict evidence accepts it only when RIR exposes the exact same-AST `AwaitRemote` operation; generic scope-name evidence such as a scope named `await` is rejected. HIR/CFG evidence is still required for implementation-boundary proof. AIR boundary AST traversal moved to `src/compiler/air_boundary_walk.c`; `src/compiler/air_boundary.c` now owns boundary taxonomy/policy only.
+  - 2026-04-29 CFG-owned control classifier closure: `mir_cfg_contract_control.h` now has a real include guard and is consumed by both MIR statement population and MIR CFG validation. The duplicated CFG-owned control switch in `mir_stmt_population.h` was removed, so fallback `MIR_INST_STMT` filtering and validator rejection share one classifier.
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
   - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 50%로 본다

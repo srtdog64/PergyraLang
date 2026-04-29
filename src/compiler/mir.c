@@ -342,7 +342,7 @@ mir_populate_instructions(MIRRoutine *routine)
     MIRBasicBlock *entry;
     MIRBasicBlock *rollback;
     MIRBasicBlock *invalidation;
-    bool appended_non_cfg_intent_steps = false;
+    bool appended_intent_steps = false;
 
     if (routine == NULL || routine->block_count == 0)
         return true;
@@ -356,11 +356,10 @@ mir_populate_instructions(MIRRoutine *routine)
         return true;
 
     if (routine->kind == MIR_SCOPE_INTENT
-        && routine->hir_routine != NULL
-        && !routine->hir_routine->has_cfg) {
+        && routine->hir_routine != NULL) {
         if (!mir_append_intent_step_instructions(routine, entry))
             return false;
-        appended_non_cfg_intent_steps = true;
+        appended_intent_steps = true;
     }
 
     for (size_t i = 0; i < rir_scope->op_count; i++) {
@@ -407,9 +406,8 @@ mir_populate_instructions(MIRRoutine *routine)
             return false;
     }
 
-    if (!appended_non_cfg_intent_steps && routine->kind == MIR_SCOPE_INTENT
-        && routine->hir_routine != NULL
-        && !routine->hir_routine->has_cfg) {
+    if (!appended_intent_steps && routine->kind == MIR_SCOPE_INTENT
+        && routine->hir_routine != NULL) {
         if (!mir_append_intent_step_instructions(routine, entry))
             return false;
     } else if (routine->hir_routine != NULL
