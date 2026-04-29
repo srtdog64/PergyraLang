@@ -19,7 +19,22 @@ llvm_mir_emit_with_claim_only(ASTNode *node, LLVMGenCtx *ctx)
     if (node->data.with_stmt.slot_type != NULL
         && node->data.with_stmt.slot_type->type == AST_TYPE
         && node->data.with_stmt.slot_type->data.type.name != NULL) {
-        inner = node->data.with_stmt.slot_type->data.type.name;
+        ASTNode *slot_type = node->data.with_stmt.slot_type;
+        GenericParams *generic_args = slot_type->data.type.generic_args;
+        if (generic_args != NULL && generic_args->count > 0
+            && generic_args->params != NULL
+            && generic_args->params[0] != NULL) {
+            GenericParam *param = generic_args->params[0];
+            if (param->constraint != NULL
+                && param->constraint->type == AST_TYPE
+                && param->constraint->data.type.name != NULL) {
+                inner = param->constraint->data.type.name;
+            } else if (param->name != NULL) {
+                inner = param->name;
+            }
+        } else {
+            inner = slot_type->data.type.name;
+        }
     }
 
     slot_ty = is_secure
@@ -264,6 +279,17 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
+        if (inst->kind == MIR_INST_RESOURCE_OP
+            && inst->name != NULL
+            && strcmp(inst->name, "Claim") == 0
+            && inst->ast != NULL
+            && inst->ast->type == AST_WITH_STMT) {
+            llvm_mir_emit_with_claim_only(inst->ast, ctx);
+        }
+    }
+
+    for (size_t i = 0; i < mir_block->instruction_count; i++) {
+        const MIRInstruction *inst = &mir_block->instructions[i];
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL) {
             fprintf(stderr,
                 "[llvm inst] block=%zu inst=%zu kind=%d ast=%d result=%s\n",
@@ -273,6 +299,12 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
         }
         switch (inst->kind) {
         case MIR_INST_RESOURCE_OP:
+            if (inst->name != NULL
+                && strcmp(inst->name, "Claim") == 0
+                && inst->ast != NULL
+                && inst->ast->type == AST_WITH_STMT) {
+                llvm_mir_emit_with_claim_only(inst->ast, ctx);
+            }
             if (inst->name != NULL
                 && (strcmp(inst->name, "BorrowRead") == 0
                     || strcmp(inst->name, "BorrowWrite") == 0)

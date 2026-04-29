@@ -103,15 +103,15 @@ void validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                                                     ASTNode *site,
                                                     SemanticContext *ctx);
 
-extern size_t g_resolve_type_node_calls;
-extern size_t g_resolve_type_node_unique_nodes;
-extern size_t g_resolve_type_node_ast_type_calls;
-extern size_t g_resolve_type_node_channel_type_calls;
-extern size_t g_resolve_type_node_future_type_calls;
-extern size_t g_resolve_type_node_event_handler_type_calls;
-extern size_t g_resolve_type_node_other_ast_calls;
-extern size_t g_resolve_type_node_cache_hits;
-extern size_t g_resolve_type_node_cache_misses;
+extern size_t g_type_resolution_compat_calls;
+extern size_t g_type_resolution_compat_unique_nodes;
+extern size_t g_type_resolution_compat_ast_type_calls;
+extern size_t g_type_resolution_compat_channel_type_calls;
+extern size_t g_type_resolution_compat_future_type_calls;
+extern size_t g_type_resolution_compat_event_handler_type_calls;
+extern size_t g_type_resolution_compat_other_ast_calls;
+extern size_t g_type_resolution_compat_cache_hits;
+extern size_t g_type_resolution_compat_cache_misses;
 
 bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
                          const char *action);
@@ -179,7 +179,7 @@ bool semantic_stage_should_defer_to_graph(ASTNode *type_node,
                                           const ASTNode *consumer_site,
                                           const char *consumer_name,
                                           const char *reason);
-void semantic_stage_record_legacy_family(SemanticContext *ctx,
+void semantic_stage_record_compat_family(SemanticContext *ctx,
                                          const char *reason);
 void semantic_stage_record_alias_diagnostic_unresolved(ASTNode *alias_decl,
                                                        SemanticContext *ctx);
@@ -280,6 +280,10 @@ bool semantic_type_resolution_metadata_stable_builtin_shell_arity(
     const char *name,
     size_t *out_min,
     size_t *out_max);
+Type *semantic_type_resolution_metadata_stable_constructed_shell(
+    const char *name,
+    size_t argc);
+bool semantic_type_resolution_metadata_stable_slot_like_shell(const char *name);
 bool semantic_type_resolution_metadata_name_is_shadowed_class(SemanticContext *ctx,
                                                               const char *name);
 bool semantic_type_resolution_reject_invalid_stable_shell_arity(

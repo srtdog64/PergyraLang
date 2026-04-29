@@ -30,6 +30,7 @@ driver_path = root / "src" / "compiler" / "driver_app.c"
 driver_diag_path = root / "src" / "compiler" / "driver_diag.c"
 pgy_driver_path = root / "src" / "pgy_driver.c"
 parser_intent_path = root / "src" / "parser" / "parser_intent.c"
+parser_intent_step_path = root / "src" / "parser" / "parser_intent_step.h"
 dir_header_path = root / "src" / "compiler" / "dir.h"
 dir_impl_path = root / "src" / "compiler" / "dir.c"
 dir_collect_path = root / "src" / "compiler" / "dir_collect.c"
@@ -46,7 +47,7 @@ diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_verify_path, air_test_path, rir_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_verify_path, air_test_path, rir_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -61,7 +62,10 @@ driver = "\n".join([
     driver_diag_path.read_text(encoding="utf-8"),
     pgy_driver_path.read_text(encoding="utf-8"),
 ])
-parser_intent = parser_intent_path.read_text(encoding="utf-8")
+parser_intent = "\n".join([
+    parser_intent_path.read_text(encoding="utf-8"),
+    parser_intent_step_path.read_text(encoding="utf-8"),
+])
 dir_header = dir_header_path.read_text(encoding="utf-8")
 dir_impl = "\n".join([
     dir_impl_path.read_text(encoding="utf-8"),

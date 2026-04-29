@@ -195,6 +195,7 @@ RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
                    $(RUNTIME_DIR)/slot_manager_secure_ops.c \
                    $(RUNTIME_DIR)/slot_type_utils.c \
                    $(RUNTIME_DIR)/slot_pool.c \
+                   $(RUNTIME_DIR)/slot_pool_perf.c \
                    $(RUNTIME_DIR)/slot_security.c \
                    $(RUNTIME_DIR)/slot_security_crypto.c \
                    $(RUNTIME_DIR)/slot_security_memory.c \
@@ -296,11 +297,12 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_param_summary.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_return.c \
-                   $(SEMANTIC_DIR)/type_checker_channel_transport.c \
-                   $(SEMANTIC_DIR)/type_checker_visibility.c \
-                   $(SEMANTIC_DIR)/type_checker_builtins_projection.c \
-                   $(SEMANTIC_DIR)/type_checker_resolve.c \
-                   $(SEMANTIC_DIR)/type_checker_expr_host.c \
+                    $(SEMANTIC_DIR)/type_checker_channel_transport.c \
+                    $(SEMANTIC_DIR)/type_checker_visibility.c \
+                    $(SEMANTIC_DIR)/type_checker_builtins_projection.c \
+                    $(SEMANTIC_DIR)/type_checker_resolution_retired.c \
+                    $(SEMANTIC_DIR)/type_checker_type_helpers.c \
+                    $(SEMANTIC_DIR)/type_checker_expr_host.c \
                    $(SEMANTIC_DIR)/type_checker_expr_call.c \
                    $(SEMANTIC_DIR)/type_checker_expr.c \
                    $(SEMANTIC_DIR)/type_checker_expr_names.c \
@@ -378,6 +380,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/rir_flow.c \
                    $(COMPILER_DIR)/rir_facts.c \
                    $(COMPILER_DIR)/rir_builder.c \
+                   $(COMPILER_DIR)/rir_builder_walk.c \
                    $(COMPILER_DIR)/rir_builder_intent.c \
                    $(COMPILER_DIR)/hir_analysis.c \
                    $(COMPILER_DIR)/hir_cfg.c \
@@ -508,6 +511,49 @@ SEMANTIC_OBJECTS = $(SEMANTIC_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 CODEGEN_OBJECTS  = $(CODEGEN_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 COMPILER_OBJECTS = $(COMPILER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
+BUILD_SOURCE_INVENTORY_SOURCES = \
+                   $(COMMON_SOURCES) \
+                   $(LEXER_SOURCES) \
+                   $(PARSER_SOURCES) \
+                   $(RUNTIME_SOURCES) \
+                   $(ASYNC_SOURCES) \
+                   $(SEMANTIC_SOURCES) \
+                   $(CODEGEN_SOURCES) \
+                   $(COMPILER_SOURCES) \
+                   $(LLVM_BACKEND_SOURCES) \
+                   $(RUNTIME_LIB_SOURCES) \
+                   $(MAIN_SOURCE) \
+                   $(PARSER_TEST_SOURCE) \
+                   $(TEST_DATASTRUCTURES_SRC) \
+                   $(TEST_SECURITY_SRC) \
+                   $(TEST_SEMANTIC_SRC) \
+                   $(TEST_TRANSPILE_SRC) \
+                   $(TEST_MEMORY_SRC) \
+                   $(TEST_ABI_SRC) \
+                   $(TEST_ABI_PIPELINE_SRC) \
+                   $(TEST_CONCURRENCY_SRC) \
+                   $(TEST_DIR_SRC) \
+                   $(TEST_AIR_SRC) \
+                   $(TEST_RIR_SRC) \
+                   $(TEST_MIR_SRC) \
+                   $(TEST_HIR_SRC) \
+                   $(DRIVER_SRC) \
+                   $(LSP_SRC)
+
+BUILD_CONTRACT_INVENTORY_FILES = \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_array_map_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_channel_int_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_channel_string_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_device_slot_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_io_string_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_qubit_state_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_raw_collection_common_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_raw_queue_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_raw_set_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_secure_slot_exports.h \
+                   tests/runtime_frontier_policy_smoke.sh
+
 MAIN_OBJECT            = $(BUILD_DIR)/main.o
 PARSER_TEST_OBJECT     = $(BUILD_DIR)/test_parser.o
 TEST_DATASTRUCTURES_OBJ = $(BUILD_DIR)/test_datastructures.o
@@ -601,6 +647,7 @@ $(PARSER_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(PARSER_TEST_OBJECT) | $(BIN
 
 # Data structures test
 $(DATASTRUCTURES_TEST): $(BUILD_DIR)/runtime/slot_pool.o \
+                         $(BUILD_DIR)/runtime/slot_pool_perf.o \
                          $(TEST_DATASTRUCTURES_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
@@ -647,17 +694,17 @@ $(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJ
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # AIR synthesis and drift test
-$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/air.o $(BUILD_DIR)/compiler/air_boundary.o $(BUILD_DIR)/compiler/air_boundary_walk.o $(BUILD_DIR)/compiler/air_dump.o $(BUILD_DIR)/compiler/air_evidence.o $(BUILD_DIR)/compiler/air_verify.o $(TEST_AIR_OBJ) | $(BIN_DIR)
+$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_walk.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/air.o $(BUILD_DIR)/compiler/air_boundary.o $(BUILD_DIR)/compiler/air_boundary_walk.o $(BUILD_DIR)/compiler/air_dump.o $(BUILD_DIR)/compiler/air_evidence.o $(BUILD_DIR)/compiler/air_verify.o $(TEST_AIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # RIR lowering test
-$(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(TEST_RIR_OBJ) | $(BIN_DIR)
+$(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_walk.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(TEST_RIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # MIR lowering test
-$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/mir.o $(BUILD_DIR)/compiler/mir_cleanup.o $(BUILD_DIR)/compiler/mir_intent.o $(BUILD_DIR)/compiler/mir_type_helpers.o $(TEST_MIR_OBJ) | $(BIN_DIR)
+$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_walk.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/mir.o $(BUILD_DIR)/compiler/mir_cleanup.o $(BUILD_DIR)/compiler/mir_intent.o $(BUILD_DIR)/compiler/mir_type_helpers.o $(TEST_MIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
@@ -908,6 +955,29 @@ unicode-policy-test-smoke: $(PGY)
 beta-test-suite-freeze-test-smoke:
 	"$(BASH)" tests/beta_test_suite_freeze_smoke.sh
 
+build-source-inventory-test-smoke:
+	@missing=0; \
+	for src in $(BUILD_SOURCE_INVENTORY_SOURCES) $(BUILD_CONTRACT_INVENTORY_FILES); do \
+		if [ ! -f "$$src" ]; then \
+			echo "[build-source-inventory] missing required build file: $$src" >&2; \
+			missing=1; \
+			continue; \
+		fi; \
+		if command -v git >/dev/null 2>&1 && git check-ignore -q --no-index "$$src" 2>/dev/null; then \
+			echo "[build-source-inventory] required build file is ignored: $$src" >&2; \
+			missing=1; \
+		fi; \
+		if [ "$${PGY_REQUIRE_TRACKED_SOURCES:-0}" = "1" ] \
+			&& command -v git >/dev/null 2>&1 \
+			&& git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+			&& ! git ls-files --error-unmatch "$$src" >/dev/null 2>&1; then \
+			echo "[build-source-inventory] required build file is not tracked: $$src" >&2; \
+			missing=1; \
+		fi; \
+	done; \
+	if [ "$$missing" -ne 0 ]; then exit 1; fi; \
+	echo "[build-source-inventory] Makefile source inventory ok"
+
 observability-schema-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/observability_schema_smoke.sh
 
@@ -1017,6 +1087,9 @@ abi-ownership-shape-test-smoke:
 runtime-frontier-contract-test-smoke:
 	"$(BASH)" tests/runtime_frontier_contract_smoke.sh
 
+runtime-frontier-policy-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/runtime_frontier_policy_smoke.sh
+
 parallel-core-contract-test-smoke:
 	"$(BASH)" tests/parallel_core_contract_smoke.sh
 
@@ -1088,6 +1161,7 @@ check-macos-toolchain:
 
 ci-linux:
 	$(MAKE) check-linux-toolchain
+	$(MAKE) build-source-inventory-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-smoke
@@ -1127,6 +1201,7 @@ ci-linux:
 	$(MAKE) runtime-abi-lifetime-test-smoke
 	$(MAKE) abi-ownership-shape-test-smoke
 	$(MAKE) runtime-frontier-contract-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" runtime-frontier-policy-test-smoke
 	$(MAKE) parallel-core-contract-test-smoke
 	$(MAKE) perf-contract-test-smoke
 	$(MAKE) parser-lexer-diagnostic-test-smoke
@@ -1146,6 +1221,7 @@ ci-linux:
 
 ci-macos:
 	$(MAKE) check-macos-toolchain
+	$(MAKE) build-source-inventory-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" test-all
 	PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" fmt-test-smoke
@@ -1183,6 +1259,7 @@ check-windows-toolchain:
 
 ci-windows:
 	$(MAKE) check-windows-toolchain
+	$(MAKE) build-source-inventory-test-smoke
 	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" clean
 	$(MAKE) beta-test-suite-freeze-test-smoke
 	$(MAKE) documentation-quality-test-smoke
@@ -1266,7 +1343,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

@@ -569,6 +569,33 @@ transpiler_find_block_exit_ssa_name(const MIRBasicBlock *block,
 }
 
 static const char *
+transpiler_find_block_renamed_ssa_name(const MIRBasicBlock *block,
+                                       const char *base_name)
+{
+    if (block == NULL || base_name == NULL || block->renamed_locals == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < block->renamed_local_count; i++) {
+        const char *versioned = block->renamed_locals[i];
+        char parsed_base[128];
+        size_t version = 0;
+
+        if (versioned == NULL)
+            continue;
+        if (!transpiler_parse_versioned_name(versioned,
+                                             parsed_base,
+                                             sizeof(parsed_base),
+                                             &version)) {
+            continue;
+        }
+        if (strcmp(parsed_base, base_name) == 0)
+            return versioned;
+    }
+
+    return NULL;
+}
+
+static const char *
 transpiler_find_routine_exit_ssa_name(const MIRRoutine *mir_routine,
                                       const char *base_name)
 {

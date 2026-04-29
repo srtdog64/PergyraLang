@@ -8,7 +8,7 @@ Anti-hype rule (2026-04-29):
   tested contract.
 - Avoid absolute claims unless the sentence names the exact scope and evidence
   source.
-- Forbidden without scoped evidence: "Rust-level memory safety", "zero-cost",
+- Forbidden without scoped evidence: "Rust-equivalent memory safety", "zero-cost",
   "production-ready", "AI-first language", "mathematically proven",
   "memory safe", "100% complete", "fully deterministic", and
   "no runtime overhead".
@@ -212,7 +212,7 @@ for these phrases and substitute the honest version.
 | "Distributed-safe" | "Cross-World rule designed; distributed runtime post-beta" (§1.3) |
 | "Industrial-grade" | "Industrial integration post-1.0; design-level fitness only" (§1.4) |
 | "Full multi-paradigm" | "OOP+async core; FP partial; DOP reserved" (§1.5) |
-| "Rust-level memory safety" | `docs/118` §8 row 1 |
+| "Rust-equivalent memory safety" | `docs/118` §8 row 1 |
 | "Slot is a borrow checker" | `docs/118` §8 row 2 |
 | "Aliasing-XOR-mutability enforced" | `docs/118` §8 row 4 |
 | "No data races possible" | `docs/118` §8 row 6 |

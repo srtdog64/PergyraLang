@@ -69,6 +69,19 @@ air_boundary_sync_shape_valid(const AIRBoundaryNode *boundary)
     }
 }
 
+static bool
+air_boundary_declares_authority_name(const AIRBoundaryNode *boundary,
+                                     const char *authority_name)
+{
+    if (boundary == NULL || authority_name == NULL)
+        return false;
+    for (size_t i = 0; i < boundary->authority_name_count; i++) {
+        if (air_name_matches(boundary->authority_names[i], authority_name))
+            return true;
+    }
+    return false;
+}
+
 bool
 air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary)
 {
@@ -336,6 +349,15 @@ air_validate(const AIRProgram *air, char **error_message)
             && air->boundaries[i].rir_authority_evidence_name == NULL) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu has RIR authority evidence without provenance",
+                                    i);
+            return false;
+        }
+        if (air->boundaries[i].has_rir_authority_evidence
+            && !air_boundary_declares_authority_name(
+                &air->boundaries[i],
+                air->boundaries[i].rir_authority_evidence_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu has RIR authority evidence for undeclared participant",
                                     i);
             return false;
         }

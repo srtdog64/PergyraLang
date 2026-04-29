@@ -29,6 +29,10 @@ transpiler_emit_mir_fallback_let_stmt(CodeBuf *buf,
     versioned_local = transpiler_find_block_exit_ssa_name(
         block, stmt->data.let_decl.name);
     if (versioned_local == NULL) {
+        versioned_local = transpiler_find_block_renamed_ssa_name(
+            block, stmt->data.let_decl.name);
+    }
+    if (versioned_local == NULL) {
         versioned_local = transpiler_resolve_ssa_name(
             (const TranspilerSSANameMap *)ssa_map_out,
             stmt->data.let_decl.name);

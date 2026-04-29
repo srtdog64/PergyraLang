@@ -21,15 +21,18 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 semantic_test = root / "src" / "tests" / "semantic" / "test_semantic_projection_diagnostics.cases.h"
-diagnostic_source = root / "src" / "semantic" / "type_checker_decls_domain_helpers.c"
+diagnostic_sources = [
+    root / "src" / "semantic" / "type_checker_decls_domain_helpers.c",
+    root / "src" / "semantic" / "type_checker_domain_projection.c",
+]
 proof_doc = root / "docs" / "semantics" / "02_relation_effect_projection.md"
 
-for path in [semantic_test, diagnostic_source, proof_doc]:
+for path in [semantic_test, *diagnostic_sources, proof_doc]:
     if not path.exists():
         raise SystemExit(f"missing required projection diagnostic contract file: {path.relative_to(root)}")
 
 test_text = semantic_test.read_text(encoding="utf-8")
-source_text = diagnostic_source.read_text(encoding="utf-8")
+source_text = "\n".join(path.read_text(encoding="utf-8") for path in diagnostic_sources)
 proof_text = proof_doc.read_text(encoding="utf-8")
 
 required_tests = {

@@ -476,6 +476,35 @@ mir_populate_use_edges(MIRRoutine *routine)
                 free((void *)raw_uses);
                 continue;
             }
+            if (inst->kind == MIR_INST_STMT) {
+                const char **raw_uses = NULL;
+                size_t raw_use_count = 0;
+                if (inst->ast != NULL
+                    && !mir_collect_expr_identifier_uses(inst->ast,
+                                                         &raw_uses,
+                                                         &raw_use_count)) {
+                    free((void *)raw_uses);
+                    free(current_versions);
+                    free((void *)ssa_names);
+                    return false;
+                }
+                for (size_t j = 0; j < raw_use_count; j++) {
+                    int idx = mir_find_ssa_name_index(ssa_names, ssa_name_count,
+                                                      raw_uses[j]);
+                    if (idx >= 0) {
+                        if (!mir_append_versioned_use(inst, raw_uses[j],
+                                                      current_versions[idx])) {
+                            free((void *)raw_uses);
+                            free(current_versions);
+                            free((void *)ssa_names);
+                            return false;
+                        }
+                        routine->use_edge_count++;
+                    }
+                }
+                free((void *)raw_uses);
+                continue;
+            }
             if (inst->kind == MIR_INST_RESOURCE_OP || inst->kind == MIR_INST_CLEANUP_EDGE) {
                 const char **raw_uses = NULL;
                 size_t raw_use_count = 0;

@@ -159,6 +159,14 @@ mir_stmt_is_for_loop_init_payload(const ASTNode *stmt, const MIRBasicBlock *mir_
 }
 
 static bool
+mir_stmt_is_inline_cfg_wrapper(const ASTNode *stmt)
+{
+    return stmt != NULL
+        && (stmt->type == AST_WITH_STMT
+            || stmt->type == AST_UNSAFE_BLOCK);
+}
+
+static bool
 mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry);
 
 static bool
@@ -195,6 +203,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 continue;
             }
             if (mir_stmt_is_control_flow(stmt, block)) {
+                if (mir_stmt_is_inline_cfg_wrapper(stmt))
+                    continue;
                 if (block->has_succ_true || block->has_succ_false)
                     break;
                 continue;
@@ -255,6 +265,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 continue;
             }
             if (mir_stmt_is_control_flow(stmt, block)) {
+                if (mir_stmt_is_inline_cfg_wrapper(stmt))
+                    continue;
                 if (block->has_succ_true || block->has_succ_false)
                     break;
                 continue;

@@ -57,27 +57,27 @@ semantic_stage_should_defer_to_graph(ASTNode *type_node,
 }
 
 void
-semantic_stage_record_legacy_family(SemanticContext *ctx,
+semantic_stage_record_compat_family(SemanticContext *ctx,
                                     const char *reason)
 {
     if (ctx == NULL)
         return;
 
     if (reason == NULL) {
-        ctx->type_resolution_stage_legacy_other_count++;
+        ctx->type_resolution_stage_compat_other_count++;
     } else if (strstr(reason, "default-type") != NULL
                || strstr(reason, "generic constraint") != NULL
                || strstr(reason, "where-bound") != NULL) {
-        ctx->type_resolution_stage_legacy_generic_contract_count++;
+        ctx->type_resolution_stage_compat_generic_contract_count++;
     } else if (strstr(reason, "ability consumer") != NULL
                || strstr(reason, "impl ability") != NULL) {
-        ctx->type_resolution_stage_legacy_ability_consumer_count++;
+        ctx->type_resolution_stage_compat_ability_consumer_count++;
     } else if (strstr(reason, "parameter type") != NULL
                || strstr(reason, "return type") != NULL
                || strstr(reason, "payload type") != NULL) {
-        ctx->type_resolution_stage_legacy_signature_count++;
+        ctx->type_resolution_stage_compat_signature_count++;
     } else if (strstr(reason, "type-alias") != NULL) {
-        ctx->type_resolution_stage_legacy_alias_count++;
+        ctx->type_resolution_stage_compat_alias_count++;
     } else if (strstr(reason, "slot type") != NULL
                || strstr(reason, "shared field") != NULL
                || strstr(reason, "host-type") != NULL
@@ -87,8 +87,8 @@ semantic_stage_record_legacy_family(SemanticContext *ctx,
                || strstr(reason, "where-type") != NULL
                || strstr(reason, "between-") != NULL
                || strstr(reason, "field type") != NULL) {
-        ctx->type_resolution_stage_legacy_domain_contract_count++;
+        ctx->type_resolution_stage_compat_domain_contract_count++;
     } else {
-        ctx->type_resolution_stage_legacy_other_count++;
+        ctx->type_resolution_stage_compat_other_count++;
     }
 }

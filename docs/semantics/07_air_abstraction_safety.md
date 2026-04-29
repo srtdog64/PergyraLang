@@ -58,7 +58,9 @@ default.
 Authority evidence is participant-sensitive. If an AIR boundary is derived from
 `authorized by: X`, matching RIR authority evidence must name `X`; unrelated
 authority facts or authorize ops in the same scope do not discharge the proof
-obligation.
+obligation. AIR well-formedness also rejects malformed synthesized inventory
+where `has_rir_authority_evidence` names a participant that the boundary did
+not declare.
 
 World-handoff evidence is operation-sensitive. If an AIR `World` boundary is
 derived from `transfer: from -> to`, matching the enclosing RIR intent/world
@@ -152,10 +154,12 @@ represented by at least one AIR `Boundary Node`.
   gates that debug surface so it cannot regress to boolean-only evidence output.
 - **Well-formedness gate**: `src/compiler/air_verify.c` rejects empty intent or
   boundary names, boundary-owner mismatch, step-index mismatch, and invalid
-  boundary sync-shape before drift computation. It also rejects invalid stale
+  boundary sync-shape before drift computation. It also rejects authority
+  evidence without boundary evidence, authority evidence on non-authority
+  boundaries, undeclared authority-evidence participants, and invalid stale
   drift inventory before recomputing. `src/test_air.c` carries direct negative
-  tests for owner mismatch, world-boundary sync-shape mismatch, and invalid
-  drift inventory.
+  tests for owner mismatch, world-boundary sync-shape mismatch, authority
+  evidence shape mismatch, and invalid drift inventory.
 - **Remaining obligation**: extend this parsed-source negative coverage to
   sync/async transfer drift once HIR/RIR can express that mismatch without
   earlier semantic rejection.

@@ -60,6 +60,8 @@ for rel in \
     "src/codegen/llvm_domain_projection_sync_body_helpers.h" \
     "tests/abi_pipeline_smoke.sh" \
     "tests/compare_backends.sh" \
+    "tests/runtime_frontier_policy_smoke.sh" \
+    "Makefile" \
     "docs/100_beta_readiness_checklist.md" \
     "TODO.md"; do
     require_file "$rel"
@@ -155,6 +157,18 @@ require_terms "frontier policy source of truth" "$ROOT_DIR/src/codegen/domain_fr
     "pgy_frontier_world_pass_limit" \
     "pgy_frontier_world_transitive_pass_limit" \
     "pgy_frontier_world_derived_pass_limit"
+
+require_terms "frontier policy arithmetic smoke" "$ROOT_DIR/tests/runtime_frontier_policy_smoke.sh" \
+    "pgy_frontier_pass_limit_cap" \
+    "pgy_frontier_pass_limit_add" \
+    "pgy_frontier_pass_limit_add_one" \
+    "pgy_frontier_world_transitive_pass_limit" \
+    "UINT32_MAX"
+
+require_terms "frontier policy Makefile wiring" "$ROOT_DIR/Makefile" \
+    "runtime-frontier-policy-test-smoke:" \
+    "tests/runtime_frontier_policy_smoke.sh" \
+    "runtime-frontier-policy-test-smoke"
 
 require_terms "ABI pipeline frontier case registry" "$ROOT_DIR/tests/abi_pipeline_smoke.sh" \
     "world_fixpoint_abi" \

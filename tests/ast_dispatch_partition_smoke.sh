@@ -23,7 +23,13 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
-ast_h = (root / "src/parser/ast.h").read_text(encoding="utf-8")
+ast_h = "\n".join(
+    path.read_text(encoding="utf-8")
+    for path in [
+        root / "src/parser/ast.h",
+        root / "src/parser/ast_types.h",
+    ]
+)
 llvm_expr = (root / "src/codegen/llvm_expr.c").read_text(encoding="utf-8")
 llvm_stmt = (root / "src/codegen/llvm_stmt.c").read_text(encoding="utf-8")
 doc = (root / "docs/95_ast_dispatch_partition.md").read_text(encoding="utf-8")

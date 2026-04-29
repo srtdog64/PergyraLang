@@ -9,6 +9,57 @@
 
 #include "llvm_domain_forward.h"
 #include "llvm_domain_role_helpers.h"
+#include "llvm_inventory_host_methods.h"
+
+static const char *
+llvm_domain_method_name_metadata_first(const MIRDeclMethod *method_meta,
+                                       ASTNode *method)
+{
+    const char *name = llvm_mir_decl_method_name(method_meta);
+    if (name != NULL)
+        return name;
+    if (method != NULL && method->type == AST_FUNC_DECL)
+        return method->data.func_decl.name;
+    return NULL;
+}
+
+static size_t
+llvm_domain_method_param_count_metadata_first(const MIRDeclMethod *method_meta,
+                                              ASTNode *method)
+{
+    if (method_meta != NULL)
+        return llvm_mir_decl_method_param_count(method_meta);
+    if (method != NULL && method->type == AST_FUNC_DECL)
+        return method->data.func_decl.param_count;
+    return 0;
+}
+
+static FuncParam *
+llvm_domain_method_param_metadata_first(const MIRDeclMethod *method_meta,
+                                        ASTNode *method,
+                                        size_t index)
+{
+    FuncParam *param = llvm_mir_decl_method_param(method_meta, index);
+    if (param != NULL)
+        return param;
+    if (method != NULL && method->type == AST_FUNC_DECL
+        && index < method->data.func_decl.param_count) {
+        return method->data.func_decl.params[index];
+    }
+    return NULL;
+}
+
+static ASTNode *
+llvm_domain_method_return_type_metadata_first(const MIRDeclMethod *method_meta,
+                                              ASTNode *method)
+{
+    ASTNode *return_type = llvm_mir_decl_method_return_type(method_meta);
+    if (return_type != NULL)
+        return return_type;
+    if (method != NULL && method->type == AST_FUNC_DECL)
+        return method->data.func_decl.return_type;
+    return NULL;
+}
 
 void
 llvm_emit_domain_sync_forward_decl(LLVMGenCtx *ctx,
@@ -45,7 +96,9 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
 
     for (size_t j = 0; j < method_count; j++) {
         ASTNode *method = methods[j];
+        const MIRDeclMethod *method_meta;
         const char *mname;
+        ASTNode *return_type;
         size_t pc;
         LLVMTypeRef ret;
         size_t user_pc = 0;
@@ -58,14 +111,19 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
 
-        mname = method->data.func_decl.name;
-        pc = method->data.func_decl.param_count;
+        method_meta = llvm_find_host_method_metadata_in_context(
+            ctx, decl_name, method->data.func_decl.name);
+        mname = llvm_domain_method_name_metadata_first(method_meta, method);
+        pc = llvm_domain_method_param_count_metadata_first(method_meta, method);
         ret = ctx->type_void;
-        if (method->data.func_decl.return_type != NULL)
-            ret = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
+        return_type =
+            llvm_domain_method_return_type_metadata_first(method_meta, method);
+        if (return_type != NULL)
+            ret = ast_type_to_llvm(ctx, return_type);
 
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = method->data.func_decl.params[k];
+            FuncParam *p =
+                llvm_domain_method_param_metadata_first(method_meta, method, k);
             if (!llvm_param_is_implicit_self_local(p))
                 user_pc++;
         }
@@ -74,7 +132,8 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
             (user_pc + 1) * sizeof(LLVMTypeRef));
         ptypes[0] = LLVMPointerType(struct_ty, 0);
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = method->data.func_decl.params[k];
+            FuncParam *p =
+                llvm_domain_method_param_metadata_first(method_meta, method, k);
             const char *type_name = NULL;
             LLVMClassTypeEntry *param_cls = NULL;
             if (llvm_param_is_implicit_self_local(p))
@@ -91,6 +150,8 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         }
 
         ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
+        if (mname == NULL)
+            continue;
         snprintf(fname, sizeof(fname), "%s_%s", decl_name, mname);
         fn = LLVMAddFunction(ctx->module, fname, ft);
         llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);

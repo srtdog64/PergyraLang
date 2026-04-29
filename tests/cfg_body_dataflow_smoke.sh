@@ -663,6 +663,11 @@ for term in [
     "MIR lowers for-loop init as loop-init instead of fallback statement",
     "MIR lowers for-in init as loop-init instead of fallback statement",
     "MIR validator rejects CFG-owned control fallback statements",
+    "MIR keeps pin cleanup fact across early return",
+    "MIR keeps pin cleanup fact across branch returns",
+    "MIR keeps pin cleanup fact across loop break and continue",
+    "source_terminator_kind == HIR_BLOCK_RETURN",
+    "source_terminator_kind != HIR_BLOCK_GOTO",
     "routine_has_complete_loop_init_for",
     "routine_has_complete_loop_branch_for",
 ]:

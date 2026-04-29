@@ -8,6 +8,12 @@
 
 Operational mode:
 
+- 2026-04-29 DAG retired-audit label freeze:
+  `PGY_TYPE_RES_STATS=1` now reports the removed recursive resolver counters as
+  `retired-compatibility-resolver`, `retired-compatibility-resolver-kind`, and
+  `retired-compatibility-cache`. This is a wording/contract tightening: the
+  counters still gate `0` calls and `0` cache misses, but logs no longer make
+  the removed resolver look like an active compatibility implementation.
 - 2026-04-28 semantic owner update: function declaration and host-helper
   implementation-header debt is closed. `type_checker_func_decl.c`,
   `type_checker_func_action_contract.c`, and `type_checker_host_helpers.c`
@@ -62,11 +68,43 @@ Operational mode:
   sends inside `parallel` from disappearing before LLVM select/channel tests.
   `make cfg-body-dataflow-test-smoke` now gates this distinction directly with
   a parallel-send/select MIR preservation fixture.
+- 2026-04-29 C MIR parallel residual emission correction:
+  resource hooks for `parallel`/`async`/`spawn`/`await` are treated as
+  observability hooks only; they do not mirror or replace the executable
+  residual statement. This fixes the C backend `parallel_channel_sum` hang
+  where receives were emitted without the send task body. Backend compare also
+  has a generated-executable timeout guard via
+  `PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS`. Gate:
+  `make llvm-test-backend-compare` (`196/0` ABI same-process, `65/65`
+  backend compare).
+- 2026-04-29 CFG/MIR pin cleanup early-exit gate:
+  `src/test_mir.c` now covers a pin-region block whose terminator is
+  `HIR_BLOCK_RETURN`. `cfg-body-dataflow-test-smoke` requires that fixture so
+  `pin-unpin-cleanup-edge` remains an all-exit fact, not only a fallthrough
+  convention.
+- 2026-04-29 CFG/MIR pin cleanup branch-return gate:
+  `PinBranchReturns` covers terminating `if`/`else` arms inside a pin region.
+  Both arms must keep cleanup successor routing and the
+  `pin-unpin-cleanup-edge` fact. This is still narrower than full branch/join
+  ownership closure, but it locks another concrete all-exit cleanup case.
+- 2026-04-29 CFG/MIR pin cleanup loop-control gate:
+  `PinLoopControl` covers `break` and `continue` lowered as `HIR_BLOCK_GOTO`
+  inside a pin region. Those loop-control exits must keep cleanup successor
+  routing and the `pin-unpin-cleanup-edge` fact before the broader loop
+  ownership/lifetime lattice is considered closed.
 - 2026-04-29 AIR inspection update:
   `pgy --air <source.pgy>` dumps the AIR verification summary after evidence
   collection and before drift failure. AIR remains verification-only and is not
   carried in `CompilerIRBundle`, but reviewers can now inspect intent,
   boundary, evidence, and drift state without reading unit-test internals.
+- 2026-04-29 runtime LLVM export owner update:
+  `pgy_runtime_lib_slot_array_io_string_exports.h` is now only an 8 LOC stable
+  include facade. Secure-slot, device-slot, array/map, and IO/string exports
+  live in separate runtime owners at 161/84/239/296 LOC without changing the
+  ABI symbol names or `pgy_runtime_lib.c` include seam. The runtime object cache
+  freshness list tracks the new leaf owners directly. Gates: `make pgy`,
+  `make test-abi`, `make production-header-size-test-smoke`, and
+  `make backend-inc-size-test-smoke`.
 - 2026-04-28 LLVM runtime registry owner update:
   `llvm_runtime.c` is now below the 600 LOC review threshold. Raw collection
   export declarations live in `llvm_runtime_raw_collections.c`; channel export
@@ -250,16 +288,17 @@ Operational mode:
   inventory instead of being treated as disposable AST fallback emission.
 - 2026-04-29 DAG compatibility inventory update:
   type-resolution DAG fallback remains closed (`materializer_fallbacks=0`,
-  alias/non-alias legacy fallback 0). Compatibility `resolve_type_node(...)`
-  calls are now AST-kind accounted by smoke, and the current semantic-suite max
-  inventory is 0 calls after public semantic regression helpers moved to
+  alias/non-alias stage compatibility fallback 0). The
+  `retired-compatibility-resolver` audit calls are now AST-kind accounted by
+  smoke, and the current semantic-suite max inventory is 0 calls after public
+  semantic regression helpers moved to
   `semantic_type_resolution_lookup_type_ref_or_materialize(...)`. The same gate
-  reads the global compatibility counters as max/last inventory rather than
-  summing repeated per-context stats lines, caps compatibility API calls at 0,
-  and requires compatibility resolver body fallbacks (`cache misses`) to remain
-  0. This makes the next DAG cleanup target explicit: keeping the compatibility
-  resolver as a narrow API seam without letting frozen semantic DAG coverage
-  execute it. The compatibility resolver is also no longer exposed from public
+  reads the global retired counters as max/last inventory rather than summing
+  repeated per-context stats lines, caps retired compatibility API calls at 0,
+  and requires retired compatibility body fallbacks (`cache misses`) to remain
+  0. This makes the next DAG cleanup target explicit: the recursive resolver is
+  gone from the beta path, and the remaining counters are audit-only debt
+  detectors. The resolver is also no longer exposed from public
   `type_checker.h`; the resolver inventory smoke rejects public header
   re-exposure and semantic regression tests that call it directly.
 - 2026-04-29 CFG-owned control classifier update:
@@ -465,10 +504,12 @@ Operational mode:
   zone-embedding handoff diagnostics. Current sizes are 504 LOC, 177 LOC, 132
   LOC, and 11 LOC respectively.
 - Expression resolver implementation-header debt is split:
-  `type_checker_expr.h` is declaration-only, while `type_checker_resolve.c`
-  now keeps only assignment/constructed-wrapper helpers and retired resolver
-  audit counters. The obsolete `type_checker_resolve.h` compatibility header is
-  deleted. `type_checker_resolution_helpers.h` is also declaration-only now;
+  `type_checker_expr.h` is declaration-only, the obsolete
+  `type_checker_resolve.c` / `type_checker_resolve.h` compatibility owner is
+  deleted, retired compatibility counters live in
+  `type_checker_resolution_retired.c`, and assignment/constructed-wrapper
+  helpers live in `type_checker_type_helpers.c`.
+  `type_checker_resolution_helpers.h` is also declaration-only now;
   `type_checker_resolution_helpers.c` owns
   metadata-first `resolve_named_type(...)`, alias lookup, symbol-kind labels,
   and the embedded-world-zone mutation guard. Expression dispatch, call typing,
@@ -987,6 +1028,9 @@ Runtime frontier scheduler closure:
   u32-bounded helper family before emission. This keeps C `size_t` loops and
   LLVM i32 loop counters on the same bounded contract for oversized generated
   frontier families.
+- 2026-04-29 update: `make runtime-frontier-policy-test-smoke` compiles and
+  executes the `src/codegen/domain_frontier_policy.h` arithmetic directly. This
+  keeps the frontier policy gate from being only a string-contract check.
 - Remaining blocker: the full bounded fixpoint / transitive frontier scheduler
   must broaden that same transitive frontier policy beyond the currently
   covered world/zone/projection slices so the broader world-zone propagation
@@ -998,6 +1042,7 @@ Evidence command:
 make formal-semantics-test-smoke
 make runtime-authority-contract-test-smoke
 make runtime-frontier-contract-test-smoke
+make runtime-frontier-policy-test-smoke
 make projection-diagnostic-contract-test-smoke
 make llvm-test-backend-compare
 ```
@@ -1600,12 +1645,12 @@ Closed now:
 - Metadata fallback families are all zero, including named, generic-named,
   compound, other, builtin shell, generic class, alias, non-class symbol, and
   missing-symbol fallback.
-- Alias legacy surface is closed at the DAG stage: `legacy_alias=0`,
-  `legacy_non_alias=0`, `alias_materialized=6`,
+- Alias compatibility surface is closed at the DAG stage: `compat_alias=0`,
+  `compat_non_alias=0`, `alias_materialized=6`,
   `alias_diagnostic_unresolved=78`, and
   `alias_diagnostic_resolver_calls=0`.
 - Valid alias stage replay now uses metadata-only lookup before the quiet
-  diagnostic unresolved path. The DAG smoke gates `legacy_alias == 0`, so any
+  diagnostic unresolved path. The DAG smoke gates `compat_alias == 0`, so any
   alias replay that leaks back into the recursive resolver path fails the beta
   DAG contract.
 - Central metadata materialization no longer falls through to
@@ -1634,7 +1679,7 @@ Closed now:
 - 2026-04-29 update: the metadata type-ref API now materializes stable
   constructed refs before the compatibility resolver can run, and
   `semantic_stage_resolve_type_quiet(...)` consumes that same type-ref API
-  before legacy fallback accounting. This closes a small but important
+  before compatibility fallback accounting. This closes a small but important
   signature-stage seam: constructed stable refs reached by compatibility
   callers stay DAG-metadata-first instead of silently reopening recursive
   resolver fallback.
@@ -1741,6 +1786,19 @@ make test-semantic
 - `parser_expr.c` is now a 524 LOC expression precedence/call/primary owner.
   Multiline/interpolated string helpers moved to `parser_expr_string.h` at
   150 LOC, removing the expression parser from the 600 LOC split-review queue.
+- `slot_pool.c` is now below the 600 LOC split-review threshold and focuses on
+  pool/list allocation. Timestamp, cache prefetch/alignment, and linked-list
+  benchmark helpers moved to `slot_pool_perf.c`; `test-datastructures`,
+  `test-abi`, header-size, and inc-size smoke gates are green.
+- `rir_builder.c` is now a 281 LOC scope-orchestration owner. AST body walking,
+  slot/call/resource op materialization, and block-condition walking moved to
+  `rir_builder_walk.c` at 363 LOC; RIR/AIR/MIR tests and header/inc smoke gates
+  are green.
+- LLVM hosted domain method forward declarations now consume `MIRDeclMethod`
+  metadata first for name, params, and return type before falling back to the
+  temporary AST payload. `mir-declaration-inventory-test-smoke` rejects direct
+  AST method `param_count` / `return_type` reads in that forward-declaration
+  section.
 - `type_checker_domain_role_lookup.c` now owns subject-role ability lookup used
   by party/role contract checks. `type_checker_decls_domain_helpers.c` is down
   to 1581 LOC; the remaining split candidates are projection, effect, and
@@ -1993,17 +2051,18 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - Graph metadata now also materializes tuple shells and event-handler/function shells when all element/parameter/return facts are available. Channel/future AST nodes now record their constructed shell during graph collect instead of waiting for recursive fallback.
 - Pass-2 owner resolver seams now query DAG metadata through the shared
   materializer instead of owning recursive fallback seams.
-- `resolve_type_node(...)` itself remains metadata-first for the resolver
-  implementation, but beta owner paths are gated so they do not re-enter it
-  through metadata materialization.
-- Owner-local resolver seams now converge through `semantic_type_resolution_lookup_or_materialize(...)`; direct `resolve_type_node(...)` calls are statically blocked outside the resolver implementation, and the central metadata materializer no longer has a recursive escape hatch.
-- The compatibility resolver now asks `semantic_type_resolution_lookup_metadata_type_ref(...)`
-  before entering its legacy body. This keeps bare builtin/named stable refs on
-  the metadata owner path even when an older caller still enters
-  `resolve_type_node(...)`.
+- The recursive `resolve_type_node(...)` evaluator is removed from the beta
+  owner path. Retired counters remain only as audit signals, and beta owner
+  paths are gated so they cannot re-enter a recursive resolver through metadata
+  materialization.
+- Owner-local resolver seams now converge through `semantic_type_resolution_lookup_or_materialize(...)`; direct `resolve_type_node(...)` calls are statically blocked outside explicit audit/test references, and the central metadata materializer no longer has a recursive escape hatch.
+- The retired compatibility audit path stays at 0 calls. Bare builtin/named
+  stable refs stay on the metadata owner path through
+  `semantic_type_resolution_lookup_metadata_type_ref(...)` instead of reopening
+  a compatibility resolver body.
 - The type-ref metadata API also records stable constructed refs before
   returning unresolved, and the signature-stage quiet resolver consumes that API
-  before legacy fallback accounting. `type-resolution-resolver-inventory-test-smoke`
+  before compatibility fallback accounting. `type-resolution-resolver-inventory-test-smoke`
   gates both seams.
 - Semantic owner helpers that still require unresolved-ref diagnostics now
   consume `semantic_type_resolution_lookup_type_ref_or_materialize(...)`, which
@@ -2012,12 +2071,12 @@ find src -path src/tests -prune -o -name '*.inc' -print
   blocked outside central metadata/diagnostic compatibility owners by
   `type-resolution-resolver-inventory-test-smoke`.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, compatibility resolver calls (`resolve_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage legacy fallback, and alias-stage split accounting. Earlier local stats for this slice were `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_unresolved=78 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`resolve_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero non-alias stage compatibility fallback, and alias-stage split accounting. Earlier local stats for this slice were `graph-backed skips=3137 metadata_entries=2044 metadata_owned=123 metadata_hits=3300 materializer_fallbacks=4135 compat_alias=83 compat_non_alias=0 alias_materialized=5 alias_diagnostic_unresolved=78 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
 - The central metadata materializer fallback is closed, not merely capped:
   `materializer_fallbacks==0` and every metadata fallback family must stay at
   zero.
-- The remaining stage legacy surface is alias-only diagnostic inventory.
+- The remaining stage compatibility surface is alias-only diagnostic inventory.
   Successful alias materialization and diagnostic unresolved inventory are
   reported separately, valid alias diagnostic resolution is gated at zero, and
   `alias_diagnostic_resolver_calls==0` proves the diagnostic path no longer
@@ -2066,7 +2125,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - world inventory precollector는 graph world TU로 이동했다.
 - zone refresh projection field-map collector는 graph zone TU로 이동했다.
 - world/zone local-contract stage replay는 stage domain TU로 이동했다.
-- DAG stage 내부의 legacy `resolve_type_node(...)` fallback은 `PGY_TYPE_RES_STATS=1`에서 `stage-legacy-resolve: calls/failed/suppressed_diagnostics`와 `stage-legacy-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`로 노출된다.
+- DAG stage 내부의 retired resolver compatibility surface는 `PGY_TYPE_RES_STATS=1`에서 `stage-compat-resolve: calls/failed/suppressed_diagnostics`와 `stage-compat-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`로 노출된다.
 - DAG edge가 이미 있는 named type-ref는 generic argument를 포함해 stage에서 다시 materialize하지 않고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N`이 이 경로의 공개 지표이며 `type-resolution-dag-test-smoke`는 skip 합계가 0으로 퇴행하면 실패한다.
 - graph precollect TU는 더 이상 stage runner를 호출하지 않는다. enum methods도 `semantic_stage_method_array(...)`가 아니라 precollect action contract 경로로 edge를 수집한다.
 - stage lookup, stage stats, signature/materialization helpers, alias
@@ -2113,11 +2172,11 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - role/generic-contract/late-helper/expr resolution은 각각 local seam 1개로 수렴했다. remaining direct resolver inventory에서 이 파일들은 이제 metadata replacement owner를 명확히 가진다.
 - generic validation, ability where/module contract/declaration, class field, operator overload, ownership destructure resolution도 local seam으로 수렴했다. remaining direct resolver inventory는 resolver implementation, comments, or explicit seam sites로 압축됐다.
 - statement, ability field, builtin projection/query, flow, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다.
-- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage legacy fallback/core fallback/local seam allowlist 밖에서 금지한다. It also blocks any new `semantic_type_resolution_resolve_or_fallback(...)` users and caps the named fallback seam inventory at 0, so owner-local fallback consumers cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
+- `make type-resolution-resolver-inventory-test-smoke`가 새 direct `resolve_type_node(...)` 호출을 resolver implementation/stage compatibility fallback/core fallback/local seam allowlist 밖에서 금지한다. It also blocks any new `semantic_type_resolution_resolve_or_fallback(...)` users and caps the named fallback seam inventory at 0, so owner-local fallback consumers cannot grow silently. This is now a debt ceiling only, not a lower-bound coverage floor.
 - `type_checker_decls_domain_helpers.c`의 zone authority participant resolver가 exact/qualified-tail direct slot match를 먼저 인정하고, direct match 반환 시 stale ambiguity flag를 지운다. `dnd_tavern_campaign` 같은 multi-slot same-type zone에서 concrete participant alias가 false-positive ambiguous로 떨어지는 경로를 닫았다.
-- `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage legacy fallback inventory를 CI gate로 검사한다.
+- `make type-resolution-dag-test-smoke`가 graph stats, topo validation, stage compatibility fallback inventory를 CI gate로 검사한다.
 - intent/standalone helper dependency는 internal headers와 hard CFLAGS로 고정되어 DAG split 중 hidden include-order failure를 즉시 잡는다.
-- graph cycle과 legacy alias cycle 모두 `Contract source`, `Reason`, `Fix` vocabulary를 쓴다.
+- graph cycle과 compatibility alias cycle 모두 `Contract source`, `Reason`, `Fix` vocabulary를 쓴다.
 - provider-after-consumer source order is covered for a frozen DAG slice: function generic default/where references, type alias providers, zone authority ability consumers, and party role-slot ability consumers can appear before their ability/type providers. This is now covered by both semantic graph regression and C/LLVM backend compare.
 
 남은 것:
@@ -2141,7 +2200,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - The next DAG closure target is no longer central materializer fallback; it is
   making more stage/declaration consumers use graph facts directly while
   preserving alias cycle provenance and source-order diagnostics.
-- `stage-legacy-resolve` non-alias family는 0이고 alias family는 diagnostic
+- `stage-compat-resolve` non-alias family는 0이고 alias family는 diagnostic
   fallback으로만 남아 있다. `stage-graph-backed` skip 수는 DAG가 실제 stage
   source-of-truth로 옮겨간 양을 보여주는 공개 지표다.
 - frozen subset에서 declaration order에만 기대는 type dependency가 없어야 한다.
@@ -2690,12 +2749,16 @@ make ast-dispatch-test-smoke
   world sync emitter.
 - `make runtime-frontier-contract-test-smoke` now gates that named transitive
   policy source of truth in addition to the existing zone, world-derived, and
-  projection pass-limit helpers.
+  projection pass-limit helpers. It also requires
+  `make runtime-frontier-policy-test-smoke` to stay wired so saturating
+  pass-limit arithmetic is checked by a compiled executable, not only by
+  string terms.
 - C world/select/event lowering is split into focused owners:
   `transpiler_world_select_event_emit.h` (370 LOC), `transpiler_select_emit.h`
   (155 LOC), and `transpiler_event_emit.h` (103 LOC). This removes the
   600+ LOC mixed owner without reintroducing `.inc` files.
 - Verified with `make pgy`, `make runtime-frontier-contract-test-smoke`,
+  `make runtime-frontier-policy-test-smoke`,
   `make production-header-size-test-smoke`, and
   `make backend-inc-size-test-smoke`.
 
@@ -2796,6 +2859,77 @@ make ast-dispatch-test-smoke
   `make production-header-size-test-smoke`,
   `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
   (`196/0` ABI same-process, `65/65` backend compare).
+
+## Progress Log - 2026-04-29 DAG Signature Stage Seam Tightening
+
+- `semantic_stage_resolve_type_quiet(...)` no longer calls
+  `semantic_type_resolution_lookup_or_materialize(...)` directly from the
+  signature stage. It now routes through
+  `semantic_type_resolution_lookup_type_ref_or_materialize(...)`, keeping
+  metadata-first type-ref behavior centralized.
+- `type-resolution-resolver-inventory-test-smoke` removed
+  `type_checker_resolution_stage_signature.c` from the direct materializer
+  allowlist. Direct diagnostic materializer calls are limited to central
+  metadata/diagnostic compatibility owners.
+- Stable constructed-type diagnostic argument resolution now uses the
+  metadata-first type-ref helper too. The only remaining direct
+  `semantic_type_resolution_lookup_or_materialize(ctx, ...)` call is the
+  central metadata type-ref helper's fallback branch.
+- The direct materializer smoke allowlist is now narrowed to that central
+  metadata owner only; `type_checker_resolve.c` remains counter-only.
+- Local gates: `make type-resolution-resolver-inventory-test-smoke
+  type-resolution-dag-test-smoke test-semantic` is green with
+  `resolve_calls=0`, `resolver_body_fallbacks=0`,
+  `materializer_fallbacks=0`, and semantic suite `2359/0`.
+
+## Progress Log - 2026-04-29 Runtime Channel/Qubit Export Owner Split
+
+- Runtime channel/qubit export ownership is now split without changing the
+  public runtime include seam.
+- `pgy_runtime_lib_channel_quantum_exports.h` is a 7 LOC facade over
+  `pgy_runtime_lib_channel_int_exports.h`,
+  `pgy_runtime_lib_channel_string_exports.h`, and
+  `pgy_runtime_lib_qubit_state_exports.h`.
+- The split owners are 327, 319, and 69 LOC respectively, keeping the
+  channel/qubit export surface below the 600 LOC split-review threshold without
+  reintroducing `.inc` files.
+- `compiler_runtime_cache_is_fresh(...)` tracks the leaf owners, so cached LLVM
+  runtime objects cannot stay stale after a channel or qubit export edit.
+- Verified with `make pgy`, `make test-abi`,
+  `make production-header-size-test-smoke`, and `make backend-inc-size-test-smoke`.
+
+## Progress Log - 2026-04-29 Runtime Raw Collection Export Owner Split
+
+- Runtime raw collection export ownership is now split without changing the
+  public runtime include seam.
+- `pgy_runtime_lib_raw_collection_exports.h` is an 8 LOC facade over
+  `pgy_runtime_lib_raw_collection_common_exports.h`,
+  `pgy_runtime_lib_raw_queue_exports.h`,
+  `pgy_runtime_lib_raw_map_exports.h`, and
+  `pgy_runtime_lib_raw_set_exports.h`.
+- The split owners are 13, 117, 431, and 153 LOC respectively, keeping raw
+  Queue/HashMap/Set export ownership below the 600 LOC split-review threshold
+  without reintroducing `.inc` files.
+- `compiler_runtime_cache_is_fresh(...)` tracks the leaf owners, so cached LLVM
+  runtime objects cannot stay stale after a raw collection export edit.
+- Verified with `make pgy`, `make test-abi`,
+  `make production-header-size-test-smoke`, and `make backend-inc-size-test-smoke`.
+
+## Progress Log - 2026-04-29 DAG Retired Resolver Owner Split
+
+- The obsolete `type_checker_resolve.c` owner is removed from the beta path.
+- Retired compatibility counters now live in
+  `type_checker_resolution_retired.c`; general type helper functions
+  `require_assignable(...)` and `wrap_constructed(...)` now live in
+  `type_checker_type_helpers.c`.
+- `type-resolution-resolver-inventory-test-smoke` rejects reintroducing
+  `type_checker_resolve.c` or `type_checker_resolve.h` and requires the retired
+  counter owner to keep its audit marker.
+- `semantic-core-shape-test-smoke` requires the new owners and verifies
+  assignability helpers do not move back into the retired counter owner.
+- Verified with `make type-resolution-resolver-inventory-test-smoke`,
+  `make type-resolution-dag-test-smoke`, `make test-semantic`,
+  `make semantic-core-shape-test-smoke`, and `make semantic-tu-size-test-smoke`.
 
 ## Progress Log — 2026-04-24 Parser/Lexer Diagnostic Routing
 

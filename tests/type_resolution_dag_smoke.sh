@@ -53,23 +53,23 @@ grep -a -q '\[type-res-stats\] nodes=' "$log" || {
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] stage-legacy-resolve:' "$log" || {
-  echo "missing stage legacy resolver inventory" >&2
+grep -a -q '\[type-res-stats\] stage-compat-resolve:' "$log" || {
+  echo "missing stage compatibility inventory" >&2
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] resolve_type_node:' "$log" || {
-  echo "missing compatibility resolver call inventory" >&2
+grep -a -q '\[type-res-stats\] retired-compatibility-resolver:' "$log" || {
+  echo "missing retired compatibility resolver call inventory" >&2
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] resolve_type_node-kind:' "$log" || {
-  echo "missing compatibility resolver AST-kind inventory" >&2
+grep -a -q '\[type-res-stats\] retired-compatibility-resolver-kind:' "$log" || {
+  echo "missing retired compatibility resolver AST-kind inventory" >&2
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] stage-legacy-family:' "$log" || {
-  echo "missing stage legacy resolver family inventory" >&2
+grep -a -q '\[type-res-stats\] stage-compat-family:' "$log" || {
+  echo "missing stage compatibility family inventory" >&2
   exit 1
 }
 
@@ -83,8 +83,8 @@ grep -a -q '\[type-res-stats\] metadata:' "$log" || {
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] cache:' "$log" || {
-  echo "missing compatibility resolver body-fallback/cache inventory" >&2
+grep -a -q '\[type-res-stats\] retired-compatibility-cache:' "$log" || {
+  echo "missing retired compatibility resolver body-fallback/cache inventory" >&2
   exit 1
 }
 
@@ -110,37 +110,37 @@ graph_skips="$(
 )"
 
 resolve_calls="$(
-  grep -a '\[type-res-stats\] resolve_type_node:' "$log" \
+  grep -a '\[type-res-stats\] retired-compatibility-resolver:' "$log" \
     | sed -E 's/.*calls=([0-9]+).*/\1/' \
     | awk '{ if ($1 > max) max = $1 } END { print max + 0 }'
 )"
 
 resolve_unique_nodes="$(
-  grep -a '\[type-res-stats\] resolve_type_node:' "$log" \
+  grep -a '\[type-res-stats\] retired-compatibility-resolver:' "$log" \
     | sed -E 's/.*unique_nodes=([0-9]+).*/\1/' \
     | awk '{ if ($1 > max) max = $1 } END { print max + 0 }'
 )"
 
 resolve_kind_sum="$(
-  grep -a '\[type-res-stats\] resolve_type_node-kind:' "$log" \
+  grep -a '\[type-res-stats\] retired-compatibility-resolver-kind:' "$log" \
     | sed -E 's/.*ast_type=([0-9]+).*channel=([0-9]+).*future=([0-9]+).*event_handler=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ v = $1 + $2 + $3 + $4 + $5; if (v > max) max = v } END { print max + 0 }'
 )"
 
 resolve_kind_ast_type="$(
-  grep -a '\[type-res-stats\] resolve_type_node-kind:' "$log" \
+  grep -a '\[type-res-stats\] retired-compatibility-resolver-kind:' "$log" \
     | sed -E 's/.*ast_type=([0-9]+).*channel=([0-9]+).*future=([0-9]+).*event_handler=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ if ($1 > max) max = $1 } END { print max + 0 }'
 )"
 
 resolve_kind_compound_or_other="$(
-  grep -a '\[type-res-stats\] resolve_type_node-kind:' "$log" \
+  grep -a '\[type-res-stats\] retired-compatibility-resolver-kind:' "$log" \
     | sed -E 's/.*ast_type=([0-9]+).*channel=([0-9]+).*future=([0-9]+).*event_handler=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ v = $2 + $3 + $4 + $5; if (v > max) max = v } END { print max + 0 }'
 )"
 
 resolver_body_fallbacks="$(
-  grep -a '\[type-res-stats\] cache:' "$log" \
+  grep -a '\[type-res-stats\] retired-compatibility-cache:' "$log" \
     | sed -E 's/.*misses=([0-9]+).*/\1/' \
     | awk '{ if ($1 > max) max = $1 } END { print max + 0 }'
 )"
@@ -235,14 +235,14 @@ metadata_named_missing_symbol="$(
     | awk '{ total += $5 } END { print total + 0 }'
 )"
 
-legacy_alias="$(
-  grep -a '\[type-res-stats\] stage-legacy-family:' "$log" \
+compat_alias="$(
+  grep -a '\[type-res-stats\] stage-compat-family:' "$log" \
     | sed -E 's/.*alias=([0-9]+).*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-legacy_non_alias="$(
-  grep -a '\[type-res-stats\] stage-legacy-family:' "$log" \
+compat_non_alias="$(
+  grep -a '\[type-res-stats\] stage-compat-family:' "$log" \
     | sed -E 's/.*generic_contract=([0-9]+).*signature=([0-9]+).*ability_consumer=([0-9]+).*domain_contract=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4 \5/' \
     | awk '{ total += $1 + $2 + $3 + $4 + $5 } END { print total + 0 }'
 )"
@@ -288,27 +288,27 @@ if [ "$graph_skips" -lt 3000 ]; then
 fi
 
 if [ "$resolve_calls" -ne 0 ]; then
-  echo "compatibility resolver calls regressed above beta cap: $resolve_calls > 0" >&2
+  echo "retired compatibility resolver calls regressed above beta cap: $resolve_calls > 0" >&2
   exit 1
 fi
 
 if [ "$resolve_kind_sum" -ne "$resolve_calls" ]; then
-  echo "compatibility resolver AST-kind accounting mismatch: kind_sum=$resolve_kind_sum calls=$resolve_calls" >&2
+  echo "retired compatibility resolver AST-kind accounting mismatch: kind_sum=$resolve_kind_sum calls=$resolve_calls" >&2
   exit 1
 fi
 
 if [ "$resolve_kind_ast_type" -ne "$resolve_calls" ]; then
-  echo "compatibility resolver non-AST_TYPE calls regressed: ast_type=$resolve_kind_ast_type calls=$resolve_calls" >&2
+  echo "retired compatibility resolver non-AST_TYPE calls regressed: ast_type=$resolve_kind_ast_type calls=$resolve_calls" >&2
   exit 1
 fi
 
 if [ "$resolve_kind_compound_or_other" -ne 0 ]; then
-  echo "compound/other compatibility resolver calls regressed: $resolve_kind_compound_or_other > 0" >&2
+  echo "compound/other retired compatibility resolver calls regressed: $resolve_kind_compound_or_other > 0" >&2
   exit 1
 fi
 
 if [ "$resolver_body_fallbacks" -ne 0 ]; then
-  echo "compatibility resolver body fallback regressed: $resolver_body_fallbacks > 0" >&2
+  echo "retired compatibility resolver body fallback regressed: $resolver_body_fallbacks > 0" >&2
   exit 1
 fi
 
@@ -393,13 +393,13 @@ if [ "$metadata_named_missing_symbol" -ne 0 ]; then
   exit 1
 fi
 
-if [ "$legacy_non_alias" -ne 0 ]; then
-  echo "non-alias DAG stage legacy fallback regressed: $legacy_non_alias" >&2
+if [ "$compat_non_alias" -ne 0 ]; then
+  echo "non-alias DAG stage compatibility fallback regressed: $compat_non_alias" >&2
   exit 1
 fi
 
-if [ "$legacy_alias" -ne 0 ]; then
-  echo "alias DAG stage legacy fallback regressed above beta cap: $legacy_alias > 0" >&2
+if [ "$compat_alias" -ne 0 ]; then
+  echo "alias DAG stage compatibility fallback regressed above beta cap: $compat_alias > 0" >&2
   exit 1
 fi
 
@@ -433,4 +433,4 @@ grep -a -q 'topo_ok=1' "$log" || {
   exit 1
 }
 
-echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips resolve_calls=$resolve_calls resolve_unique_nodes=$resolve_unique_nodes resolve_kind_sum=$resolve_kind_sum resolve_kind_ast_type=$resolve_kind_ast_type resolve_kind_compound_or_other=$resolve_kind_compound_or_other resolver_body_fallbacks=$resolver_body_fallbacks metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks metadata_fallback_named=$metadata_fallback_named metadata_fallback_generic_named=$metadata_fallback_generic_named metadata_fallback_compound=$metadata_fallback_compound metadata_fallback_other=$metadata_fallback_other metadata_named_builtin_shell=$metadata_named_builtin_shell metadata_named_generic_class=$metadata_named_generic_class metadata_named_alias=$metadata_named_alias metadata_named_non_class_symbol=$metadata_named_non_class_symbol metadata_named_missing_symbol=$metadata_named_missing_symbol legacy_alias=$legacy_alias legacy_non_alias=$legacy_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"
+echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips resolve_calls=$resolve_calls resolve_unique_nodes=$resolve_unique_nodes resolve_kind_sum=$resolve_kind_sum resolve_kind_ast_type=$resolve_kind_ast_type resolve_kind_compound_or_other=$resolve_kind_compound_or_other resolver_body_fallbacks=$resolver_body_fallbacks metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_fallbacks=$materializer_fallbacks metadata_fallback_named=$metadata_fallback_named metadata_fallback_generic_named=$metadata_fallback_generic_named metadata_fallback_compound=$metadata_fallback_compound metadata_fallback_other=$metadata_fallback_other metadata_named_builtin_shell=$metadata_named_builtin_shell metadata_named_generic_class=$metadata_named_generic_class metadata_named_alias=$metadata_named_alias metadata_named_non_class_symbol=$metadata_named_non_class_symbol metadata_named_missing_symbol=$metadata_named_missing_symbol compat_alias=$compat_alias compat_non_alias=$compat_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"

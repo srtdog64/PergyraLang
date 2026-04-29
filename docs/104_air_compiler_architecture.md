@@ -92,8 +92,9 @@ AIR 그래프는 일반적인 CFG 위에 다음 도메인 노드를 합성한다
 AIR 가 존재하는 이유는 **딱 하나**, "intent ↔ implementation abstraction
 safety 검증" 이다. Phase 1에서는 이것이 `air_verify(...)` 단일 entry point로
 고정된다. 검증 순서는 AIR inventory shape, owner/source identity shape,
-boundary sync-class shape, authority participant shape, evidence provenance
-shape, drift/evidence failure 계산이다.
+boundary sync-class shape, authority participant shape, authority evidence
+participant membership, evidence provenance shape, drift/evidence failure
+계산이다.
 Drift Detection remains the primary Phase 1 diagnostic family inside this
 global verification pass.
 

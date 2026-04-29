@@ -522,6 +522,11 @@ static subset plus runtime handle/capability validation. Level 2 evidence
 when the claim is scoped to Pergyra's frozen subset. Mechanized proof remains
 a multi-year research project, not a beta claim.
 
+The comparison to Rust 1.0 at launch is a scope-bounded analogy: Pergyra has
+active static rejection for the frozen subset and no mechanized proof, but it
+does not claim Rust-level borrow checking, full lifetime inference, or
+Rust-level memory safety.
+
 ## 8. Marketing Language Audit
 
 These are phrases that have appeared or could appear in docs / README /

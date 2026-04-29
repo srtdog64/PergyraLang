@@ -15,6 +15,29 @@ transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
             continue;
         if (resource_inst->ast != stmt)
             continue;
+        if (stmt->type == AST_PARALLEL_BLOCK
+            || stmt->type == AST_ASYNC_BLOCK
+            || stmt->type == AST_SPAWN_EXPR
+            || stmt->type == AST_AWAIT_EXPR) {
+            /*
+             * These resource ops are observability hooks, not semantic
+             * replacements. The residual statement must still lower the
+             * runtime body (tasks, sends, awaits, etc.).
+             */
+            continue;
+        }
+        if (resource_inst->name != NULL
+            && (strcmp(resource_inst->name, "IO") == 0
+                || strcmp(resource_inst->name, "ChannelSend") == 0
+                || strcmp(resource_inst->name, "ChannelRecv") == 0
+                || strcmp(resource_inst->name, "ChannelSelect") == 0)) {
+            /*
+             * AIR/RIR IO and channel ops are boundary evidence and
+             * observability hooks. They do not emit the concrete builtin or
+             * channel runtime call; the residual source statement owns that.
+             */
+            continue;
+        }
         if (resource_inst->name != NULL
             && strcmp(resource_inst->name, "Read") == 0) {
             continue;

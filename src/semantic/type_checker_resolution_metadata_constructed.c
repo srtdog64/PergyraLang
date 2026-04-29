@@ -3,46 +3,6 @@
 
 #include "type_checker_internal.h"
 
-static Type *
-stable_constructed_constructor(const char *name, size_t argc)
-{
-    if (name == NULL)
-        return NULL;
-    if (argc == 1 && strcmp(name, "Array") == 0)
-        return TYPE_ARRAY;
-    if (argc == 1 && strcmp(name, "Slice") == 0)
-        return TYPE_SLICE;
-    if (argc == 1 && strcmp(name, "List") == 0)
-        return TYPE_LIST;
-    if (argc == 1 && strcmp(name, "Queue") == 0)
-        return TYPE_QUEUE;
-    if (argc == 1 && strcmp(name, "Set") == 0)
-        return TYPE_SET;
-    if (argc == 1 && strcmp(name, "Box") == 0)
-        return TYPE_BOX;
-    if (argc == 1 && strcmp(name, "Rc") == 0)
-        return TYPE_RC;
-    if (argc == 1 && strcmp(name, "Weak") == 0)
-        return TYPE_WEAK;
-    if (argc == 1 && strcmp(name, "Channel") == 0)
-        return TYPE_CHANNEL;
-    if (argc == 1 && strcmp(name, "Future") == 0)
-        return TYPE_FUTURE;
-    if (argc == 1 && strcmp(name, "RemoteFuture") == 0)
-        return TYPE_REMOTE_FUTURE;
-    if (argc == 1 && strcmp(name, "Token") == 0)
-        return TYPE_TOKEN;
-    if (argc == 1 && strcmp(name, "DeviceSlot") == 0)
-        return TYPE_DEVICE_SLOT;
-    if (argc == 2 && strcmp(name, "HashMap") == 0)
-        return TYPE_HASHMAP;
-    if (argc == 1 && strcmp(name, "Option") == 0)
-        return TYPE_OPTION;
-    if ((argc == 1 || argc == 2) && strcmp(name, "Result") == 0)
-        return TYPE_RESULT;
-    return NULL;
-}
-
 static bool
 stable_constructed_type_node_is_builtin_constructed(const ASTNode *type_node)
 {
@@ -66,14 +26,12 @@ stable_constructed_type_node_is_builtin_constructed(const ASTNode *type_node)
     if (name == NULL || type_node->data.type.generic_args == NULL)
         return false;
     argc = type_node->data.type.generic_args->count;
-    if (stable_constructed_constructor(name, argc) != NULL)
+    if (semantic_type_resolution_metadata_stable_constructed_shell(name, argc)
+        != NULL) {
         return true;
+    }
     return argc == 1
-        && (strcmp(name, "Slot") == 0
-            || strcmp(name, "SecureSlot") == 0
-            || strcmp(name, "ReadView") == 0
-            || strcmp(name, "WriteView") == 0
-            || strcmp(name, "MoveToken") == 0);
+        && semantic_type_resolution_metadata_stable_slot_like_shell(name);
 }
 
 static Type *
@@ -284,12 +242,8 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
         return;
     }
 
-    if (type_node->data.type.name != NULL
-        && (strcmp(type_node->data.type.name, "Slot") == 0
-            || strcmp(type_node->data.type.name, "SecureSlot") == 0
-            || strcmp(type_node->data.type.name, "ReadView") == 0
-            || strcmp(type_node->data.type.name, "WriteView") == 0
-            || strcmp(type_node->data.type.name, "MoveToken") == 0)) {
+    if (semantic_type_resolution_metadata_stable_slot_like_shell(
+            type_node->data.type.name)) {
         Type *inner;
         Type *slot_type = NULL;
 
@@ -321,7 +275,7 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
     if (args_node == NULL || args_node->count == 0 || args_node->count > 2)
         return;
 
-    constructor = stable_constructed_constructor(
+    constructor = semantic_type_resolution_metadata_stable_constructed_shell(
         type_node->data.type.name,
         args_node->count);
     if (constructor == NULL) {

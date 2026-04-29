@@ -710,6 +710,23 @@ test_air_verify_rejects_authority_evidence_shape_mismatch(void)
             .rir_authority_evidence_name = "shipper",
         },
     };
+    AIRBoundaryNode undeclared_authority[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_required = true,
+            .authority_names = authority_names,
+            .authority_name_count = 1,
+            .has_rir_boundary_evidence = true,
+            .rir_boundary_evidence_scope = "WarehouseZone",
+            .has_rir_authority_evidence = true,
+            .rir_authority_evidence_name = "carrier",
+        },
+    };
     AIRProgram missing_boundary = {
         .intents = intents,
         .intent_count = 1,
@@ -720,6 +737,12 @@ test_air_verify_rejects_authority_evidence_shape_mismatch(void)
         .intents = intents,
         .intent_count = 1,
         .boundaries = authority_on_non_authority,
+        .boundary_count = 1,
+    };
+    AIRProgram mismatched_authority = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = undeclared_authority,
         .boundary_count = 1,
     };
     char *error = NULL;
@@ -734,6 +757,13 @@ test_air_verify_rejects_authority_evidence_shape_mismatch(void)
         && error != NULL
         && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
         && strstr(error, "authority evidence on non-authority boundary") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&mismatched_authority, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "authority evidence for undeclared participant") != NULL;
     free(error);
     return ok;
 }

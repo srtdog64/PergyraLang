@@ -28,6 +28,7 @@ for rel in \
     "src/runtime/pgy_runtime_slot_macros.h" \
     "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
     "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h" \
+    "src/runtime/pgy_runtime_lib_secure_slot_exports.h" \
     "src/test_abi_spec.c" \
     "src/test_memory_layout.c" \
     "src/test_security.c" \
@@ -68,7 +69,7 @@ require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "pgy_unpin_cleanup_##
 require_term "src/runtime/pgy_runtime_slot_macros.h" "PgyPinnedSecureSlotView_##SuffixName"
 require_term "src/runtime/pgy_runtime_slot_macros.h" "pgy_secure_unpin_cleanup_##SuffixName"
 require_term "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_unpin_##SuffixName"
-require_term "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h" "pgy_secure_unpin_##Suffix"
+require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_unpin_##Suffix"
 
 require_term "src/codegen/transpiler_mir_pin_emit.h" "pgy_pin_%s_%s"
 require_term "src/codegen/transpiler_mir_pin_emit.h" "pgy_unpin_%s(&%s);"

@@ -4,25 +4,6 @@
 
 #include "type_checker_internal.h"
 
-static bool
-metadata_name_is_bare_generic_builtin_shell(const char *name)
-{
-    if (name == NULL)
-        return false;
-    return strcmp(name, "Array") == 0
-        || strcmp(name, "Slice") == 0
-        || strcmp(name, "List") == 0
-        || strcmp(name, "Queue") == 0
-        || strcmp(name, "HashMap") == 0
-        || strcmp(name, "Set") == 0
-        || strcmp(name, "Box") == 0
-        || strcmp(name, "Rc") == 0
-        || strcmp(name, "Weak") == 0
-        || strcmp(name, "RemoteFuture") == 0
-        || strcmp(name, "DeviceSlot") == 0
-        || strcmp(name, "Option") == 0;
-}
-
 static void
 metadata_record_named_materializer_fallback(SemanticContext *ctx,
                                             ASTNode *type_node)
@@ -34,7 +15,8 @@ metadata_record_named_materializer_fallback(SemanticContext *ctx,
         return;
 
     name = type_node->data.type.name;
-    if (metadata_name_is_bare_generic_builtin_shell(name)) {
+    if (semantic_type_resolution_metadata_stable_builtin_shell_arity(
+            name, NULL, NULL)) {
         ctx->type_resolution_metadata_fallback_named_builtin_shell++;
         return;
     }

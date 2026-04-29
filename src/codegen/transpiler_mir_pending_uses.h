@@ -60,6 +60,8 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
 
         exit_versioned = transpiler_find_block_exit_ssa_name(block, base);
         if (exit_versioned == NULL)
+            exit_versioned = transpiler_find_block_renamed_ssa_name(block, base);
+        if (exit_versioned == NULL)
             continue;
 
         let_decl = NULL;

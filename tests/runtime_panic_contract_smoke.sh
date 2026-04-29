@@ -28,6 +28,8 @@ lib_top = root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h"
 slot_c = root / "src" / "runtime" / "pgy_runtime_lib_intent_slot_core_exports.h"
 slot_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_exports.h"
 slot_array_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h"
+device_slot_export = root / "src" / "runtime" / "pgy_runtime_lib_device_slot_exports.h"
+secure_slot_export = root / "src" / "runtime" / "pgy_runtime_lib_secure_slot_exports.h"
 docs = [
     root / "docs" / "100_beta_readiness_checklist.md",
     root / "docs" / "semantics" / "06_backend_parity.md",
@@ -102,7 +104,7 @@ for path in [slot_c, slot_export]:
         if token not in text:
             raise SystemExit(f"{path.relative_to(root)} missing {token}")
 
-device_text = slot_array_export.read_text(encoding="utf-8")
+device_text = device_slot_export.read_text(encoding="utf-8")
 device_macro = re.search(
     r"#define PGY_DEFINE_DEVICE_SLOT_EXPORTS\(Suffix, CType, ZeroExpr\)(.*?)"
     r"PGY_DEFINE_DEVICE_SLOT_EXPORTS\(Int, int32_t, 0\)",
@@ -124,7 +126,7 @@ if "return (ZeroExpr);" in device_body:
 if "if (s != NULL && s->claimed)" in device_body:
     raise SystemExit("device slot export macro still uses silent guard-only validation")
 
-secure_text = slot_array_export.read_text(encoding="utf-8")
+secure_text = secure_slot_export.read_text(encoding="utf-8")
 for token in [
     "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE",
     "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_READ",
@@ -190,6 +192,7 @@ for token in [
         raise SystemExit(f"inline allocator runtime missing {token}")
 
 export_array_text = (root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h").read_text(encoding="utf-8")
+export_array_text += "\n" + (root / "src" / "runtime" / "pgy_runtime_lib_array_map_exports.h").read_text(encoding="utf-8")
 for token in [
     "PGY_RUNTIME_PANIC_CLASS_OOM",
     "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED",
@@ -221,6 +224,9 @@ for token in [
 export_collection_text = "\n".join([
     (root / "src" / "runtime" / "pgy_runtime_lib_list_raw_exports.h").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_lib_raw_collection_exports.h").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_lib_raw_map_exports.h").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_lib_raw_queue_exports.h").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_lib_raw_set_exports.h").read_text(encoding="utf-8"),
 ])
 for token in [
     "list index out of bounds",
@@ -306,7 +312,10 @@ for path, tokens in array_lowering_paths.items():
         if token not in text:
             raise SystemExit(f"{path.relative_to(root)} missing checked array lowering {token}")
 
-compiler_text = (root / "src" / "compiler" / "compiler_toolchain.c").read_text(encoding="utf-8")
+compiler_text = "\n".join([
+    (root / "src" / "compiler" / "compiler_toolchain.c").read_text(encoding="utf-8"),
+    (root / "src" / "compiler" / "compiler_runtime_cache.c").read_text(encoding="utf-8"),
+])
 for token in [
     'PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_builtin_storage_inline.h"',

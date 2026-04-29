@@ -56,21 +56,11 @@ Current non-test production owners above the 600 LOC split-review threshold:
 
 | File | LOC | Status |
 | --- | ---: | --- |
-| `src/lsp/pgy_lsp.c` | 946 | tooling owner; beta conformance track, not core semantics |
-| `src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h` | 858 | generated-style runtime export surface |
-| `src/runtime/party_runtime.c` | 851 | runtime domain owner; split-review candidate |
-| `src/parser/ast.h` | 848 | central AST public shape; split only after declaration IR/AIR contracts settle |
-| `src/runtime/world_roster.c` | 817 | runtime domain owner; split-review candidate |
-| `src/runtime/slot_security.c` | 793 | token/context/audit owner; further split candidate |
-| `src/runtime/pgy_runtime_lib_channel_quantum_exports.h` | 761 | mixed channel/quantum export surface; quantum should remain beta-out-of-scope |
-| `src/runtime/pgy_runtime_lib_raw_collection_exports.h` | 759 | generated-style runtime export surface |
-| `src/runtime/pgy_runtime_lib_authority_file_core.h` | 664 | generated-style authority/file export surface |
-| `src/runtime/pgy_abi_spec.h` | 653 | compact ABI contract surface; split only with ABI review |
-| `src/codegen/llvm_expr_assignment_member_projection.h` | 653 | LLVM projection assignment helper; split-review candidate |
-| `src/compiler/rir_builder.c` | 642 | RIR builder owner; split-review candidate |
-| `src/codegen/llvm_backend_type_map.c` | 641 | LLVM type map owner; split-review candidate |
-| `src/runtime/pgy_runtime_lib_set_intent_trace_exports.h` | 622 | generated-style Set/intent trace export surface |
-| `src/runtime/slot_pool.c` | 603 | slot pool allocator owner; split-review candidate |
+| `src/lsp/pgy_lsp.c` | 865 | tooling owner; beta conformance track, not core semantics |
+| `src/parser/ast.h` | 797 | central AST public shape; split only after declaration IR/AIR contracts settle |
+| `src/runtime/world_roster.c` | 736 | runtime domain owner; split-review candidate |
+| `src/runtime/party_runtime.c` | 731 | runtime domain owner; split-review candidate |
+| `src/runtime/slot_security.c` | 712 | token/context/audit owner; further split candidate |
 - MIR CFG/body ownership is no longer a hard-size blocker:
   `src/compiler/mir.c` is 512 LOC after the SSA rename/use-edge,
   liveness/value-summary/DCE, and statement-population families moved into
@@ -150,6 +140,53 @@ Current non-test production owners above the 600 LOC split-review threshold:
   owner, while `src/parser/parser_expr_string.h` owns multiline/interpolation
   helpers at 150 LOC. Verified with `make test-parser` and
   `make test-semantic`.
+- Slot pool performance ownership is split:
+  `src/runtime/slot_pool.c` is now below the 600 LOC split-review threshold and
+  stays focused on pool/list allocation. `src/runtime/slot_pool_perf.c` owns
+  timestamp, cache prefetch/alignment, and linked-list benchmark helpers.
+  Verified with `make test-datastructures`, `make test-abi`,
+  `make production-header-size-test-smoke`, and `make backend-inc-size-test-smoke`.
+- RIR builder body-walk ownership is split:
+  `src/compiler/rir_builder.c` is now a 281 LOC scope-orchestration owner.
+  `src/compiler/rir_builder_walk.c` owns AST body walking, slot/call/resource
+  op materialization, and block-condition walking at 363 LOC. Verified with
+  `make test-rir`, `make test-air`, `make test-mir`,
+  `make production-header-size-test-smoke`, and `make backend-inc-size-test-smoke`.
+- Runtime LLVM slot/array/IO/string export ownership is split without changing
+  the public runtime include seam:
+  `src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h` is now an 8 LOC
+  facade over `pgy_runtime_lib_secure_slot_exports.h`,
+  `pgy_runtime_lib_device_slot_exports.h`,
+  `pgy_runtime_lib_array_map_exports.h`, and
+  `pgy_runtime_lib_io_string_exports.h`. The split owners are 161, 84, 239, and
+  296 LOC respectively and preserve the existing LLVM-linkable ABI symbol
+  names. `compiler_runtime_cache_is_fresh(...)` also tracks each leaf owner so
+  cached LLVM runtime objects cannot miss a split-header edit. Verified with
+  `make pgy`, `make test-abi`,
+  `make production-header-size-test-smoke`, and `make backend-inc-size-test-smoke`.
+- Runtime LLVM channel/qubit export ownership is split without changing the
+  public runtime include seam:
+  `src/runtime/pgy_runtime_lib_channel_quantum_exports.h` is now a 7 LOC facade
+  over `pgy_runtime_lib_channel_int_exports.h`,
+  `pgy_runtime_lib_channel_string_exports.h`, and
+  `pgy_runtime_lib_qubit_state_exports.h`. The split owners are 327, 319, and
+  69 LOC respectively and preserve the existing channel/qubit runtime symbols.
+  `compiler_runtime_cache_is_fresh(...)` also tracks each leaf owner so cached
+  LLVM runtime objects cannot miss a split-header edit. Verified with
+  `make pgy`, `make test-abi`,
+  `make production-header-size-test-smoke`, and `make backend-inc-size-test-smoke`.
+- Runtime LLVM raw collection export ownership is split without changing the
+  public runtime include seam:
+  `src/runtime/pgy_runtime_lib_raw_collection_exports.h` is now an 8 LOC facade
+  over `pgy_runtime_lib_raw_collection_common_exports.h`,
+  `pgy_runtime_lib_raw_queue_exports.h`,
+  `pgy_runtime_lib_raw_map_exports.h`, and
+  `pgy_runtime_lib_raw_set_exports.h`. The split owners are 13, 117, 431, and
+  153 LOC respectively and preserve the existing raw Queue/HashMap/Set runtime
+  symbols. `compiler_runtime_cache_is_fresh(...)` also tracks each leaf owner
+  so cached LLVM runtime objects cannot miss a split-header edit. Verified with
+  `make pgy`, `make test-abi`,
+  `make production-header-size-test-smoke`, and `make backend-inc-size-test-smoke`.
 - Driver scaffold ownership now has a separate TU:
   `src/compiler/driver_scaffold.c` owns `pgy scaffold` / `pgy new` file and
   project generation, while `src/compiler/driver_app.c` stays focused on
@@ -509,6 +546,12 @@ Current non-test production owners above the 600 LOC split-review threshold:
   this split, every `src/semantic/type_checker_resolution_*.c` DAG owner is
   below the 600 LOC split-review threshold while the graph/resolver smoke gates
   remain green.
+- Type-resolution retired-resolver ownership is now explicit: the obsolete
+  `src/semantic/type_checker_resolve.c` owner is gone, retired compatibility
+  counters live in `src/semantic/type_checker_resolution_retired.c`, and
+  general assignability / constructed-type helpers live in
+  `src/semantic/type_checker_type_helpers.c`. The resolver inventory and
+  semantic shape smokes reject bringing the old resolver owner back.
 
 - `src/codegen/transpiler_context.c` now owns the C backend output/context
   primitives that used to live in include bodies:

@@ -196,14 +196,14 @@ Backend 진행:
 - 2026-04-25 stable constructed metadata slice: graph metadata can materialize `List<T>`, `Set<T>`, `HashMap<String|Int, T>`, `Option<T>`, and `Result<T,E>` when argument facts are present. Owned constructed `Type` shells are freed with the semantic context.
 - 2026-04-25 tuple/function metadata slice: graph collect now records tuple shells, event-handler/function shells, and channel/future constructed shells when all child facts are already available.
 - `resolve_generic_type_arg(...)` now queries graph metadata before recursive fallback, so constructed builtin and generic consumer paths share the same DAG metadata seam.
-- `make type-resolution-dag-test-smoke` now fails if graph-backed skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage legacy fallback, or alias-stage split accounting regress. This keeps the DAG migration honest: graph inventory must produce reusable materialized facts, not just skip legacy staging.
+- `make type-resolution-dag-test-smoke` now fails if graph-backed skips, metadata entries, metadata owned entries, metadata hits, zero non-alias stage compatibility fallback, or alias-stage split accounting regress. This keeps the DAG migration honest: graph inventory must produce reusable materialized facts, not just skip compatibility staging.
 - `type_checker.c`는 orchestration만 담당한다.
 - `type_checker_resolution_graph_inventory.c`가 graph inventory pass를 소유한다.
 - `type_checker_resolution_stage.c`는 DAG stage source of truth로 유지하고 include shim으로 되돌리지 않는다.
-- DAG stage 안의 남은 `resolve_type_node(...)` legacy fallback은 숨기지 않는다. `PGY_TYPE_RES_STATS=1`의 `stage-graph-backed` / `stage-legacy-resolve` / `stage-legacy-family` / `stage-alias` 통계와 `make type-resolution-dag-test-smoke`가 남은 migration debt를 공개 지표로 고정한다.
-- 현재 stage legacy는 alias-only로 고정됐고 최신 local stats는 `legacy_alias=83 legacy_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`이다. Valid alias fallback은 0으로 gate되며, unresolved fallback은 alias-cycle diagnostic coverage 경로다.
+- DAG stage 안의 retired resolver compatibility surface는 숨기지 않는다. `PGY_TYPE_RES_STATS=1`의 `stage-graph-backed` / `stage-compat-resolve` / `stage-compat-family` / `stage-alias` 통계와 `make type-resolution-dag-test-smoke`가 남은 migration debt를 공개 지표로 고정한다.
+- 현재 stage compatibility surface는 alias-only diagnostic inventory로 고정됐고 최신 local stats는 `compat_alias=83 compat_non_alias=0 alias_materialized=5 alias_diagnostic_fallback=78 alias_fallback_resolved=0 alias_fallback_unresolved=78`이다. Valid alias fallback은 0으로 gate되며, unresolved fallback은 alias-cycle diagnostic coverage 경로다.
 - Program-level symbol inventory now predeclares ability declarations, and the ability checker reuses only its own predeclare. This closes the provider-after-consumer order gap for a frozen DAG slice covering generic default/where, zone authority, and party role-slot ability consumers.
-- `type_checker_resolution_stage_lookup.c`는 stage lookup/host-label mapping을 소유하고, `type_checker_resolution_stage_stats.c`는 graph-backed skip 판정과 legacy-family 계측을 소유한다.
+- `type_checker_resolution_stage_lookup.c`는 stage lookup/host-label mapping을 소유하고, `type_checker_resolution_stage_stats.c`는 graph-backed skip 판정과 compatibility-family 계측을 소유한다.
 - graph precollect TU는 stage runner를 호출하지 않는다. enum method inventory도 precollect action contract 경로로만 edge를 만든다.
 - `type_checker_generic_validation.c`는 generic where/default validation을 소유한다. graph core/precollect layer는 `resolve_type_node(...)`를 직접 호출하지 않는 resolver-free inventory/graph primitive layer로 고정하고, `semantic-core-shape-test-smoke`가 이를 검사한다.
 - `type_checker_intent_decl.c`의 participant/value/where type materialization은 local seam 3개로 수렴했고, 이제 graph-backed resolved metadata를 먼저 조회한 뒤 recursive fallback으로 내려간다.
@@ -237,7 +237,7 @@ Semantic stop condition:
   return-type boundary.
 - `type_checker.c`는 600 LOC 이하이며 include aggregator가 아니다.
 - 현재 상태: `type_checker_event.c`와 `type_checker_qubit.c` owner 추출 후 `type_checker.c`는 481 LOC다. 남은 include는 helper shims와 statement/program orchestration 경계다.
-- 현재 상태: DAG graph stats, graph-backed stage skip, stage legacy fallback inventory는 `type-resolution-dag-test-smoke`로 CI에 연결됐다. named type-ref는 generic argument를 포함해 graph-backed skip 경로로 들어가며, smoke는 skip 합계가 0으로 퇴행하면 실패한다. 다음 closure slice는 generic/default/bound validation 자체와 nested consumer metadata를 graph-backed result로 재사용해 legacy 호출량을 더 줄이는 것이다.
+- 현재 상태: DAG graph stats, graph-backed stage skip, stage compatibility fallback inventory는 `type-resolution-dag-test-smoke`로 CI에 연결됐다. named type-ref는 generic argument를 포함해 graph-backed skip 경로로 들어가며, smoke는 skip 합계가 0으로 퇴행하면 실패한다. 다음 closure slice는 generic/default/bound validation 자체와 nested consumer metadata를 graph-backed result로 재사용해 compatibility 호출량을 더 줄이는 것이다.
 - semantic 신규 기능은 `.inc` 수정 없이 해당 axis `.c`와 internal header만 수정해서 추가 가능해야 한다.
 
 ### Target State B — Backend Emitters

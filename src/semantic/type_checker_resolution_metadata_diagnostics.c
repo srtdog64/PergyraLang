@@ -61,6 +61,58 @@ semantic_type_resolution_metadata_stable_builtin_shell_arity(
 }
 
 bool
+semantic_type_resolution_metadata_stable_slot_like_shell(const char *name)
+{
+    return name != NULL
+        && (strcmp(name, "Slot") == 0
+            || strcmp(name, "SecureSlot") == 0
+            || strcmp(name, "ReadView") == 0
+            || strcmp(name, "WriteView") == 0
+            || strcmp(name, "MoveToken") == 0);
+}
+
+Type *
+semantic_type_resolution_metadata_stable_constructed_shell(const char *name,
+                                                           size_t argc)
+{
+    if (name == NULL)
+        return NULL;
+    if (argc == 1 && strcmp(name, "Array") == 0)
+        return TYPE_ARRAY;
+    if (argc == 1 && strcmp(name, "Slice") == 0)
+        return TYPE_SLICE;
+    if (argc == 1 && strcmp(name, "List") == 0)
+        return TYPE_LIST;
+    if (argc == 1 && strcmp(name, "Queue") == 0)
+        return TYPE_QUEUE;
+    if (argc == 1 && strcmp(name, "Set") == 0)
+        return TYPE_SET;
+    if (argc == 1 && strcmp(name, "Box") == 0)
+        return TYPE_BOX;
+    if (argc == 1 && strcmp(name, "Rc") == 0)
+        return TYPE_RC;
+    if (argc == 1 && strcmp(name, "Weak") == 0)
+        return TYPE_WEAK;
+    if (argc == 1 && strcmp(name, "Channel") == 0)
+        return TYPE_CHANNEL;
+    if (argc == 1 && strcmp(name, "Future") == 0)
+        return TYPE_FUTURE;
+    if (argc == 1 && strcmp(name, "RemoteFuture") == 0)
+        return TYPE_REMOTE_FUTURE;
+    if (argc == 1 && strcmp(name, "Token") == 0)
+        return TYPE_TOKEN;
+    if (argc == 1 && strcmp(name, "DeviceSlot") == 0)
+        return TYPE_DEVICE_SLOT;
+    if (argc == 2 && strcmp(name, "HashMap") == 0)
+        return TYPE_HASHMAP;
+    if (argc == 1 && strcmp(name, "Option") == 0)
+        return TYPE_OPTION;
+    if ((argc == 1 || argc == 2) && strcmp(name, "Result") == 0)
+        return TYPE_RESULT;
+    return NULL;
+}
+
+bool
 semantic_type_resolution_metadata_name_is_shadowed_class(SemanticContext *ctx,
                                                          const char *name)
 {
@@ -98,11 +150,7 @@ semantic_type_resolution_reject_invalid_stable_shell_arity(
     if (provided >= min_args && provided <= max_args)
         return false;
 
-    slot_like = strcmp(name, "Slot") == 0
-        || strcmp(name, "SecureSlot") == 0
-        || strcmp(name, "ReadView") == 0
-        || strcmp(name, "WriteView") == 0
-        || strcmp(name, "MoveToken") == 0;
+    slot_like = semantic_type_resolution_metadata_stable_slot_like_shell(name);
     if (slot_like) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
@@ -128,14 +176,14 @@ semantic_type_resolution_reject_invalid_stable_shell_arity(
 }
 
 static Type *
-metadata_resolve_generic_arg_metadata_only(SemanticContext *ctx,
-                                           GenericParam *gp)
+metadata_resolve_generic_arg_for_diagnostic(SemanticContext *ctx,
+                                            GenericParam *gp)
 {
     if (ctx == NULL || gp == NULL)
         return NULL;
     if (gp->constraint != NULL)
-        return semantic_type_resolution_lookup_or_materialize(ctx,
-                                                              gp->constraint);
+        return semantic_type_resolution_lookup_type_ref_or_materialize(
+            ctx, gp->constraint);
     return semantic_type_resolution_lookup_metadata_name_or_alias(ctx, gp->name);
 }
 
@@ -165,7 +213,7 @@ semantic_type_resolution_reject_invalid_stable_constructed_type(
         return false;
 
     for (size_t i = 0; i < argc; i++) {
-        args[i] = metadata_resolve_generic_arg_metadata_only(
+        args[i] = metadata_resolve_generic_arg_for_diagnostic(
             ctx, args_node->params[i]);
         if (args[i] == TYPE_UNKNOWN)
             return true;

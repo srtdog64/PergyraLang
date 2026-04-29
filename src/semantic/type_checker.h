@@ -150,15 +150,15 @@ struct SemanticContext
 
     TypeResolutionGraph type_resolution_graph;
     size_t type_resolution_stage_graph_backed_skip_count;
-    size_t type_resolution_stage_legacy_resolve_count;
-    size_t type_resolution_stage_legacy_resolve_failed_count;
-    size_t type_resolution_stage_legacy_resolve_suppressed_diag_count;
-    size_t type_resolution_stage_legacy_generic_contract_count;
-    size_t type_resolution_stage_legacy_signature_count;
-    size_t type_resolution_stage_legacy_ability_consumer_count;
-    size_t type_resolution_stage_legacy_domain_contract_count;
-    size_t type_resolution_stage_legacy_alias_count;
-    size_t type_resolution_stage_legacy_other_count;
+    size_t type_resolution_stage_compat_resolve_count;
+    size_t type_resolution_stage_compat_resolve_failed_count;
+    size_t type_resolution_stage_compat_resolve_suppressed_diag_count;
+    size_t type_resolution_stage_compat_generic_contract_count;
+    size_t type_resolution_stage_compat_signature_count;
+    size_t type_resolution_stage_compat_ability_consumer_count;
+    size_t type_resolution_stage_compat_domain_contract_count;
+    size_t type_resolution_stage_compat_alias_count;
+    size_t type_resolution_stage_compat_other_count;
     size_t type_resolution_stage_alias_materialized_count;
     size_t type_resolution_stage_alias_diagnostic_unresolved_count;
     size_t type_resolution_stage_alias_diagnostic_resolver_call_count;

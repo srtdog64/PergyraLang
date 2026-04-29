@@ -108,6 +108,7 @@ else
     esac
 fi
 WORK_DIR="$(mktemp -d "$WORK_ROOT/pgy_backend_compare.XXXXXX")"
+RUN_TIMEOUT_SECONDS="${PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS:-30}"
 
 add_path_if_dir() {
     local dir="$1"
@@ -229,6 +230,18 @@ resolve_native_bin() {
     fi
 }
 
+run_native_binary() {
+    local bin="$1"
+    local out="$2"
+    local err="$3"
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$RUN_TIMEOUT_SECONDS"s "$bin" >"$out" 2>"$err"
+    else
+        "$bin" >"$out" 2>"$err"
+    fi
+}
+
 run_case() {
     local case_ref="$1"
     local case_name
@@ -292,15 +305,19 @@ run_case() {
     setup_windows_launch_path "$c_bin"
     setup_windows_launch_path "$llvm_bin"
 
-    if (cd "$run_dir" && "$c_bin" >"$c_out" 2>"$c_err"); then
+    if (cd "$run_dir" && run_native_binary "$c_bin" "$c_out" "$c_err"); then
         c_rc=0
     else
         c_rc=$?
     fi
-    if (cd "$run_dir" && "$llvm_bin" >"$llvm_out" 2>"$llvm_err"); then
+    if (cd "$run_dir" && run_native_binary "$llvm_bin" "$llvm_out" "$llvm_err"); then
         llvm_rc=0
     else
         llvm_rc=$?
+    fi
+
+    if [[ "$c_rc" -eq 124 || "$llvm_rc" -eq 124 ]]; then
+        echo "backend-compare: execution timeout for $source_rel after ${RUN_TIMEOUT_SECONDS}s (C=$c_rc LLVM=$llvm_rc)" >&2
     fi
 
     case "$(uname -s 2>/dev/null || echo unknown):$c_rc:$llvm_rc" in

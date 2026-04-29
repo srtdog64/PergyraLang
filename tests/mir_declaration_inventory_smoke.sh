@@ -153,6 +153,26 @@ for term in \
     require_term "src/codegen/llvm_register.c" "$term"
 done
 
+domain_method_forward_body="$(
+    awk '
+        /llvm_emit_domain_method_forward_decls\(LLVMGenCtx \*ctx,/ { in_body = 1 }
+        /llvm_emit_domain_ability_vtables\(LLVMGenCtx \*ctx,/ { in_body = 0 }
+        in_body { print }
+    ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+)"
+for term in \
+    "llvm_find_host_method_metadata_in_context" \
+    "llvm_domain_method_param_count_metadata_first" \
+    "llvm_domain_method_param_metadata_first" \
+    "llvm_domain_method_return_type_metadata_first"; do
+    grep -Fq "$term" <<<"$domain_method_forward_body" ||
+        fail "LLVM domain method forward declarations must be MIRDeclMethod metadata-first: missing $term"
+done
+if grep -Eq 'method->data\.func_decl\.(param_count|return_type)' \
+    <<<"$domain_method_forward_body"; then
+    fail "LLVM domain method forward declarations must not read AST method param_count/return_type directly"
+fi
+
 for forbidden in \
     "llvm_mir_decl_method_name(method_meta, method)" \
     "llvm_mir_decl_method_param_count(method_meta, method)" \

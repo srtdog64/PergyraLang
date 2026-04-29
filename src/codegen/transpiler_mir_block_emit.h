@@ -95,6 +95,16 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         const MIRInstruction *inst = &block->instructions[inst_index];
         ASTNode *stmt = inst->ast;
 
+        if (stmt == NULL
+            && inst->kind == MIR_INST_DEF
+            && inst->arg0 != NULL) {
+            if (block->source_ast != NULL)
+                stmt = transpiler_find_let_decl_by_name_in_block(block->source_ast,
+                                                                 inst->arg0);
+            if (stmt == NULL)
+                stmt = transpiler_find_let_decl_by_name(func_decl, inst->arg0);
+        }
+
         if (!transpiler_materialize_pending_inst_uses(buf, ctx, func_decl, block,
                                                       inst, ssa_map_out, ctx->indent,
                                                       true, reason, reason_cap)) {

@@ -9,21 +9,23 @@ diagnostics.
 
 The type-resolution DAG is active for the frozen semantic suite. The previous
 private compatibility resolver body has been removed; only zero-call audit
-counters remain so regressions can be detected.
+counters remain so regressions can be detected. The stats labels use
+`retired-compatibility-*` vocabulary to avoid implying an active fallback
+resolver still exists.
 
 Current local DAG gate output:
 
 | Metric | Value |
 | --- | ---: |
 | graph-backed stage skips | 3140 |
-| compatibility `resolve_type_node` calls | 0 |
-| compatibility resolver body fallbacks / cache misses | 0 |
+| retired compatibility resolver calls | 0 |
+| retired compatibility resolver body fallbacks / cache misses | 0 |
 | metadata entries | 3363 |
 | metadata owned | 257 |
 | metadata hits | 6755 |
 | materializer fallbacks | 0 |
-| stage legacy alias fallback | 0 |
-| stage legacy non-alias fallback | 0 |
+| stage compatibility alias fallback | 0 |
+| stage compatibility non-alias fallback | 0 |
 | alias materialized | 6 |
 | alias diagnostic unresolved inventory | 78 |
 | alias diagnostic resolver calls | 0 |
@@ -35,10 +37,23 @@ They are alias-cycle diagnostic coverage and are separately gated by
 ## What Is Closed
 
 - Stable constructed refs materialize through graph/topo metadata before any
-  compatibility resolver path can run.
+  retired compatibility audit counter can be incremented.
 - Semantic owners are smoke-gated to use
   `semantic_type_resolution_lookup_type_ref_or_materialize(...)` instead of
   hand-rolled direct fallback calls.
+- Signature-stage quiet resolution is also routed through that metadata-first
+  type-ref helper after metadata preflight misses. The stage owner is no longer
+  on the direct diagnostic-materializer allowlist.
+- Stable constructed-type diagnostic argument resolution uses the same helper.
+  The only remaining direct `semantic_type_resolution_lookup_or_materialize(ctx,
+  ...)` call is the central metadata type-ref helper's fallback branch.
+- The direct materializer smoke allowlist is narrowed to that central metadata
+  owner only. The obsolete `type_checker_resolve.c` owner is gone; retired
+  zero-call audit counters live in `type_checker_resolution_retired.c`.
+- Stable constructed shell vocabulary is centralized in the metadata diagnostics
+  owner. Constructed metadata materialization and fallback accounting now consume
+  the same `stable shell` / `slot-like shell` helpers instead of maintaining
+  parallel name lists.
 - Central metadata materialization no longer falls through to
   `resolve_type_node(type_node, ctx)`.
 - Metadata fallback family accounting is fixed at zero:
@@ -64,6 +79,9 @@ The next cleanup target is therefore precise:
    metadata or an owner-local metadata-first API.
 3. Keep broader semantic and backend gates green while the deleted body stays
    absent.
+4. Keep `stage-compat-*` counters at zero. They are compatibility audit
+   counters for the retired resolver surface, not an active recursive resolver
+   path.
 
 Do not reintroduce a hard-crash compatibility path. Beta policy is explicit
 diagnostic plus zero-use gate, not process abort.

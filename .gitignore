@@ -63,4 +63,3 @@ tests/*_llvm
 tests/tmp_*
 .codex
 .claude/
-src/parser/ast_constructors.c

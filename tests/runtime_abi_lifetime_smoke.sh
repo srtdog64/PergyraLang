@@ -173,12 +173,20 @@ concat_runtime_text "$inline_text" \
 
 concat_runtime_text "$llvm_text" \
     "src/runtime/pgy_runtime_lib_core_exports.h" \
+    "src/runtime/pgy_runtime_lib_raw_collection_common_exports.h" \
     "src/runtime/pgy_runtime_lib_raw_collection_exports.h" \
+    "src/runtime/pgy_runtime_lib_raw_map_exports.h" \
+    "src/runtime/pgy_runtime_lib_raw_queue_exports.h" \
+    "src/runtime/pgy_runtime_lib_raw_set_exports.h" \
     "src/runtime/pgy_runtime_lib_set_intent_trace_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
     "src/runtime/pgy_runtime_lib_slot_exports.h" \
     "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h" \
+    "src/runtime/pgy_runtime_lib_secure_slot_exports.h" \
+    "src/runtime/pgy_runtime_lib_device_slot_exports.h" \
+    "src/runtime/pgy_runtime_lib_array_map_exports.h" \
+    "src/runtime/pgy_runtime_lib_io_string_exports.h" \
     "src/runtime/pgy_runtime_lib_std_exports.h" \
     "src/runtime/pgy_runtime_lib_channel_quantum_exports.h" \
     "src/runtime/pgy_runtime_lib_quantum_exports.h" \
@@ -189,6 +197,8 @@ concat_runtime_text "$inline_string_text" \
 
 concat_runtime_text "$llvm_string_text" \
     "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h" \
+    "src/runtime/pgy_runtime_lib_array_map_exports.h" \
+    "src/runtime/pgy_runtime_lib_io_string_exports.h" \
     "src/runtime/pgy_runtime_lib_std_exports.h" \
     "src/runtime/pgy_runtime_lib_channel_quantum_exports.h"
 

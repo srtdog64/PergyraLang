@@ -87,16 +87,22 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
 
     if (routine == NULL || inst == NULL || inst->result_name == NULL)
         return false;
-    if (inst->kind != MIR_INST_DEF && inst->kind != MIR_INST_PHI)
+    if (inst->kind == MIR_INST_DEF)
+        /* DEF instructions can carry source-local initializers whose later
+         * uses still flow through AST-backed STMTs during the beta MIR bridge.
+         * Removing them is not semantics-preserving until every body consumer
+         * uses complete MIR use edges. */
+        return false;
+    if (inst->kind != MIR_INST_PHI)
         return false;
     idx = mir_find_value_summary(routine, inst->result_name);
     if (idx < 0)
         return false;
     summary = &routine->value_summaries[idx];
-    /* AST-backed DEFs (let / assignment) remain conservatively preserved.
-     * Value-summary provenance is now richer, but loop-carried seed values
-     * still are not distinguished well enough to reopen dead local removal
-     * without changing runtime behavior. */
+    /* AST-backed PHIs remain conservatively preserved. Value-summary
+     * provenance is now richer, but loop-carried seed values still are not
+     * distinguished well enough to reopen dead local removal without changing
+     * runtime behavior. */
     if (inst->ast != NULL)
         return false;
     return summary->use_count == 0

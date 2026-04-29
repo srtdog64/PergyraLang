@@ -11,7 +11,7 @@ trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches"' EXIT
 
 { grep -RIn "resolve_type_node(" src/semantic || true; } | while IFS=: read -r path line text; do
   case "$path" in
-    src/semantic/type_checker_resolve.c|src/semantic/type_checker_resolution_metadata.c)
+    src/semantic/type_checker_resolution_metadata.c)
       continue
       ;;
   esac
@@ -32,7 +32,7 @@ done
 if [ -s "$bad_direct" ]; then
   echo "[type-resolution-resolver-inventory] unexpected direct resolver call(s):" >&2
   cat "$bad_direct" >&2
-  echo "Move new calls behind an owner-local resolver seam or explicitly document the legacy fallback allowlist." >&2
+  echo "Move new calls behind an owner-local resolver seam or explicitly document the compatibility fallback allowlist." >&2
   exit 1
 fi
 
@@ -41,10 +41,28 @@ if grep -q 'resolve_type_node(ASTNode' src/semantic/type_checker.h; then
   exit 1
 fi
 
-if [ -e src/semantic/type_checker_resolve.h ]; then
-  echo "[type-resolution-resolver-inventory] obsolete type_checker_resolve.h compatibility header reappeared" >&2
+if [ -e src/semantic/type_checker_resolve.c ] || [ -e src/semantic/type_checker_resolve.h ]; then
+  echo "[type-resolution-resolver-inventory] obsolete type_checker_resolve compatibility owner reappeared" >&2
   exit 1
 fi
+
+grep -q 'Retired compatibility resolver audit counters' \
+  src/semantic/type_checker_resolution_retired.c || {
+  echo "[type-resolution-resolver-inventory] retired compatibility counter owner missing" >&2
+  exit 1
+}
+
+grep -q 'size_t g_type_resolution_compat_calls = 0;' \
+  src/semantic/type_checker_resolution_retired.c || {
+  echo "[type-resolution-resolver-inventory] retired compatibility call counter missing" >&2
+  exit 1
+}
+
+grep -q 'require_assignable(Type \*from, Type \*to' \
+  src/semantic/type_checker_type_helpers.c || {
+  echo "[type-resolution-resolver-inventory] assignability helper did not move out of retired resolver owner" >&2
+  exit 1
+}
 
 test_direct="$(
   grep -RIn "resolve_type_node(" src/tests src/test_semantic.c 2>/dev/null || true
@@ -73,7 +91,7 @@ done <"$fallback_matches"
 if [ -s "$bad_fallback" ]; then
   echo "[type-resolution-resolver-inventory] unclassified metadata-first fallback seam(s):" >&2
   cat "$bad_fallback" >&2
-  echo "Classify new fallback users as graph-backed owner seams or explicit legacy seams before landing." >&2
+  echo "Classify new fallback users as graph-backed owner seams or explicit compatibility seams before landing." >&2
   exit 1
 fi
 
@@ -86,14 +104,16 @@ if [ "$fallback_sites" -gt 0 ]; then
   exit 1
 fi
 
-if grep -q 'resolve_type_node(' src/semantic/type_checker_resolve.c; then
-  echo "[type-resolution-resolver-inventory] legacy resolve_type_node evaluator reappeared" >&2
+if grep -RIn 'resolve_type_node(' src/semantic \
+  | grep -v 'type_checker_resolution_metadata.c' >"$bad_direct"; then
+  echo "[type-resolution-resolver-inventory] retired resolve_type_node evaluator reappeared" >&2
+  cat "$bad_direct" >&2
   exit 1
 fi
 
 if grep -q 'resolve_type_node_legacy_quarantined\|resolve_type_node_uncached' \
-  src/semantic/type_checker_resolve.c; then
-  echo "[type-resolution-resolver-inventory] legacy resolver compatibility body reappeared" >&2
+  src/semantic/type_checker_resolution_retired.c; then
+  echo "[type-resolution-resolver-inventory] retired resolver compatibility body reappeared" >&2
   exit 1
 fi
 
@@ -105,13 +125,19 @@ grep -q 'semantic_type_resolution_try_record_stable_constructed_type(ctx, type_n
 
 grep -q 'resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_node)' \
   src/semantic/type_checker_resolution_stage_signature.c || {
-  echo "[type-resolution-resolver-inventory] signature stage no longer consumes metadata type-ref before legacy fallback" >&2
+  echo "[type-resolution-resolver-inventory] signature stage no longer consumes metadata type-ref before compatibility fallback" >&2
   exit 1
 }
 
 grep -q 'semantic_type_resolution_lookup_metadata_type_ref(ctx,' \
   src/semantic/type_checker_resolution_metadata.c || {
   echo "[type-resolution-resolver-inventory] type-ref-or-materialize helper lost metadata preflight" >&2
+  exit 1
+}
+
+grep -q 'resolved = semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_node)' \
+  src/semantic/type_checker_resolution_stage_signature.c || {
+  echo "[type-resolution-resolver-inventory] signature stage no longer routes materialization through metadata-first type-ref helper" >&2
   exit 1
 }
 
@@ -152,12 +178,21 @@ done
 
 direct_materializer_users="$(
   grep -RIn 'semantic_type_resolution_lookup_or_materialize(ctx' src/semantic \
-    | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c|src/semantic/type_checker_resolution_metadata_diagnostics\.c|src/semantic/type_checker_resolution_stage_signature\.c|src/semantic/type_checker_resolve\.c' \
+    | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
     || true
 )"
 if [ -n "$direct_materializer_users" ]; then
   echo "[type-resolution-resolver-inventory] semantic owner bypassed metadata-first type-ref helper:" >&2
   echo "$direct_materializer_users" >&2
+  exit 1
+fi
+
+direct_metadata_materializer_count="$(
+  grep -c 'semantic_type_resolution_lookup_or_materialize(ctx' \
+    src/semantic/type_checker_resolution_metadata.c || true
+)"
+if [ "$direct_metadata_materializer_count" != "1" ]; then
+  echo "[type-resolution-resolver-inventory] central metadata owner must keep exactly one type-ref helper materializer fallback (found $direct_metadata_materializer_count)" >&2
   exit 1
 fi
 
@@ -219,8 +254,8 @@ for needle in \
   'strcmp(name, "Channel") == 0' \
   'strcmp(name, "Future") == 0' \
   'strcmp(name, "DeviceSlot") == 0' \
-  'strcmp(type_node->data.type.name, "Slot") == 0' \
-  'strcmp(type_node->data.type.name, "SecureSlot") == 0' \
+  'strcmp(name, "Slot") == 0' \
+  'strcmp(name, "SecureSlot") == 0' \
   'type_node->type == AST_EVENT_HANDLER_TYPE' \
   'type_create_function(param_types, param_count, return_type)' \
   'type_node->data.type.tuple_elements != NULL' \
@@ -229,11 +264,24 @@ for needle in \
   'TYPE_BOOL'; do
   grep -q "$needle" \
     src/semantic/type_checker_resolution_metadata.c \
-    src/semantic/type_checker_resolution_metadata_constructed.c || {
+    src/semantic/type_checker_resolution_metadata_constructed.c \
+    src/semantic/type_checker_resolution_metadata_diagnostics.c || {
     echo "[type-resolution-resolver-inventory] metadata materializer missing: $needle" >&2
     exit 1
   }
 done
+
+grep -q 'semantic_type_resolution_metadata_stable_constructed_shell(' \
+  src/semantic/type_checker_resolution_metadata_constructed.c || {
+  echo "[type-resolution-resolver-inventory] constructed metadata owner stopped using centralized stable shell vocabulary" >&2
+  exit 1
+}
+
+grep -q 'semantic_type_resolution_metadata_stable_builtin_shell_arity(' \
+  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  echo "[type-resolution-resolver-inventory] metadata fallback owner stopped using centralized stable shell arity" >&2
+  exit 1
+}
 
 for needle in \
   'case AST_CHANNEL_TYPE:' \

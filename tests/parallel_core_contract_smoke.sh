@@ -76,12 +76,24 @@ for module in ["pgy.core", "pgy.execution", "pgy.foundation"]:
 compare = require_text(
     "tests/compare_backends.sh",
     [
+        "PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS",
         "tests/cases/backend_compare/parallel_channel_sum",
         "tests/cases/backend_compare/parallel_channel_dual",
         "tests/cases/backend_compare/triple_paradigm",
     ],
 )
 require(compare.count("parallel_channel") >= 2, "backend compare must keep multiple parallel cases")
+
+require_text(
+    "src/codegen/transpiler_mir_stmt_emit.h",
+    [
+        "stmt->type == AST_PARALLEL_BLOCK",
+        "resource ops are observability hooks, not semantic",
+        "The residual statement must still lower the",
+        "strcmp(resource_inst->name, \"IO\") == 0",
+        "They do not emit the concrete builtin or",
+    ],
+)
 
 require_text(
     "tests/module_smoke.sh",

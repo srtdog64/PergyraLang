@@ -272,7 +272,7 @@ pin_mixed_read_view_sequence
 pin_write_view_block
 pin_secure_write_view_block
 straight-line typed-view read/write parity across
-Static strength comparable to Rust 1.0 at launch
+The comparison to Rust 1.0 at launch is a scope-bounded analogy
 TERMS
 
 for path in "$README_PATH" "$TODO_PATH"; do

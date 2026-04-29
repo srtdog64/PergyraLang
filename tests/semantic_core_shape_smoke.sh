@@ -55,7 +55,8 @@ for path in \
     src/semantic/type_checker_func_action_contract.c \
     src/semantic/type_checker_intent_authority.c \
     src/semantic/type_checker_intent_participants.c \
-    src/semantic/type_checker_resolve.c \
+    src/semantic/type_checker_resolution_retired.c \
+    src/semantic/type_checker_type_helpers.c \
     src/semantic/type_checker_expr.c \
     src/semantic/type_checker_expr_call.c \
     src/semantic/type_checker_expr_host.c \
@@ -100,7 +101,8 @@ for path in \
     src/semantic/type_checker_intent_decl.c \
     src/semantic/type_checker_intent_authority.c \
     src/semantic/type_checker_intent_participants.c \
-    src/semantic/type_checker_resolve.c \
+    src/semantic/type_checker_resolution_retired.c \
+    src/semantic/type_checker_type_helpers.c \
     src/semantic/type_checker_expr.c \
     src/semantic/type_checker_expr_call.c \
     src/semantic/type_checker_expr_host.c \
@@ -121,6 +123,16 @@ done
 if grep -q '#include "type_checker_resolution_graph_inventory.inc"' src/semantic/type_checker.c; then
     fail "type_checker.c must not include graph inventory body"
 fi
+
+if [ -e src/semantic/type_checker_resolve.c ] || [ -e src/semantic/type_checker_resolve.h ]; then
+    fail "obsolete type_checker_resolve compatibility owner must not reappear"
+fi
+
+grep -q 'Retired compatibility resolver audit counters' src/semantic/type_checker_resolution_retired.c \
+    || fail "retired DAG compatibility counter owner lost its audit marker"
+
+grep -q 'require_assignable(Type \*from, Type \*to' src/semantic/type_checker_type_helpers.c \
+    || fail "assignability helper must stay outside the retired resolver counter owner"
 
 if grep -R "resolve_type_node(" src/semantic/type_checker_resolution_graph_*.c src/semantic/type_checker_resolution_graph_core.h >/dev/null; then
     fail "DAG graph core/precollect layer must not call resolve_type_node directly"

@@ -56,14 +56,14 @@ semantic_stage_resolve_type_quiet(ASTNode *type_node,
         return resolved;
     }
 
-    ctx->type_resolution_stage_legacy_resolve_count++;
-    semantic_stage_record_legacy_family(ctx, reason);
+    ctx->type_resolution_stage_compat_resolve_count++;
+    semantic_stage_record_compat_family(ctx, reason);
     saved_diag = ctx->diagnostic_count;
     saved_error = ctx->has_error;
-    resolved = semantic_type_resolution_lookup_or_materialize(ctx, type_node);
+    resolved = semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_node);
     if (ctx->diagnostic_count > saved_diag) {
-        ctx->type_resolution_stage_legacy_resolve_failed_count++;
-        ctx->type_resolution_stage_legacy_resolve_suppressed_diag_count +=
+        ctx->type_resolution_stage_compat_resolve_failed_count++;
+        ctx->type_resolution_stage_compat_resolve_suppressed_diag_count +=
             ctx->diagnostic_count - saved_diag;
         for (size_t i = saved_diag; i < ctx->diagnostic_count; i++) {
             if (ctx->diagnostics[i] != NULL) {
@@ -78,7 +78,7 @@ semantic_stage_resolve_type_quiet(ASTNode *type_node,
     }
 
     if (resolved == NULL)
-        ctx->type_resolution_stage_legacy_resolve_failed_count++;
+        ctx->type_resolution_stage_compat_resolve_failed_count++;
     if (resolved != NULL)
         semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;

@@ -318,6 +318,22 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     return;
                 }
             }
+            for (size_t j = 0; j < block->renamed_local_count; j++) {
+                if (!transpiler_versioned_name_list_add(declared_versioned_names,
+                                                        &declared_versioned_count,
+                                                        4096,
+                                                        block->renamed_locals[j])) {
+                    if (ctx->backend_error == NULL) {
+                        ctx->backend_error = strdup_fmt(
+                            "too many MIR SSA locals while emitting function '%s'",
+                            name != NULL ? name : "<function>");
+                    }
+                    codebuf_destroy(params_sig);
+                    free(header_decl);
+            transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+                    return;
+                }
+            }
             for (size_t j = 0; j < block->instruction_count; j++) {
                 const MIRInstruction *inst = &block->instructions[j];
                 for (size_t u = 0; u < inst->use_count; u++) {
@@ -425,12 +441,6 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                         ASTNode *stmt = body->data.block.statements[s];
                         if (stmt == NULL)
                             continue;
-                        if (stmt->type == AST_LET_DECL
-                            && stmt->data.let_decl.name != NULL
-                            && strcmp(stmt->data.let_decl.name, base) == 0) {
-                            has_top_level = true;
-                            break;
-                        }
                         if (stmt->type == AST_WITH_STMT
                             && stmt->data.with_stmt.alias != NULL
                             && strcmp(stmt->data.with_stmt.alias, base) == 0) {

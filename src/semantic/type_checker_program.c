@@ -342,22 +342,22 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             fprintf(stderr, "[type-res-stats] nodes=%llu edges=%llu duplicate_labels=%llu topo_ok=%d topo_produced=%llu/%llu\n",
                     (unsigned long long) g->node_count, (unsigned long long) g->edge_count, (unsigned long long) name_dup,
                     topo_ok ? 1 : 0, (unsigned long long) topo_count, (unsigned long long) g->node_count);
-            fprintf(stderr, "[type-res-stats] resolve_type_node: calls=%llu unique_nodes=%llu revisit_rate=%.1f%%\n",
-                    (unsigned long long) g_resolve_type_node_calls, (unsigned long long) g_resolve_type_node_unique_nodes,
-                    g_resolve_type_node_calls > 0
-                        ? 100.0 * (double)(g_resolve_type_node_calls - g_resolve_type_node_unique_nodes)
-                          / (double)g_resolve_type_node_calls
+            fprintf(stderr, "[type-res-stats] retired-compatibility-resolver: calls=%llu unique_nodes=%llu revisit_rate=%.1f%%\n",
+                    (unsigned long long) g_type_resolution_compat_calls, (unsigned long long) g_type_resolution_compat_unique_nodes,
+                    g_type_resolution_compat_calls > 0
+                        ? 100.0 * (double)(g_type_resolution_compat_calls - g_type_resolution_compat_unique_nodes)
+                          / (double)g_type_resolution_compat_calls
                         : 0.0);
-            fprintf(stderr, "[type-res-stats] resolve_type_node-kind: ast_type=%llu channel=%llu future=%llu event_handler=%llu other=%llu\n",
-                    (unsigned long long) g_resolve_type_node_ast_type_calls,
-                    (unsigned long long) g_resolve_type_node_channel_type_calls,
-                    (unsigned long long) g_resolve_type_node_future_type_calls,
-                    (unsigned long long) g_resolve_type_node_event_handler_type_calls,
-                    (unsigned long long) g_resolve_type_node_other_ast_calls);
-            fprintf(stderr, "[type-res-stats] stage-legacy-resolve: calls=%llu failed=%llu suppressed_diagnostics=%llu\n",
-                    (unsigned long long) ctx->type_resolution_stage_legacy_resolve_count,
-                    (unsigned long long) ctx->type_resolution_stage_legacy_resolve_failed_count,
-                    (unsigned long long) ctx->type_resolution_stage_legacy_resolve_suppressed_diag_count);
+            fprintf(stderr, "[type-res-stats] retired-compatibility-resolver-kind: ast_type=%llu channel=%llu future=%llu event_handler=%llu other=%llu\n",
+                    (unsigned long long) g_type_resolution_compat_ast_type_calls,
+                    (unsigned long long) g_type_resolution_compat_channel_type_calls,
+                    (unsigned long long) g_type_resolution_compat_future_type_calls,
+                    (unsigned long long) g_type_resolution_compat_event_handler_type_calls,
+                    (unsigned long long) g_type_resolution_compat_other_ast_calls);
+            fprintf(stderr, "[type-res-stats] stage-compat-resolve: calls=%llu failed=%llu suppressed_diagnostics=%llu\n",
+                    (unsigned long long) ctx->type_resolution_stage_compat_resolve_count,
+                    (unsigned long long) ctx->type_resolution_stage_compat_resolve_failed_count,
+                    (unsigned long long) ctx->type_resolution_stage_compat_resolve_suppressed_diag_count);
             fprintf(stderr, "[type-res-stats] stage-graph-backed: skips=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_graph_backed_skip_count);
             size_t metadata_owned_count = 0;
@@ -382,13 +382,13 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named_alias,
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named_non_class_symbol,
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named_missing_symbol);
-            fprintf(stderr, "[type-res-stats] stage-legacy-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
-                    (unsigned long long) ctx->type_resolution_stage_legacy_generic_contract_count,
-                    (unsigned long long) ctx->type_resolution_stage_legacy_signature_count,
-                    (unsigned long long) ctx->type_resolution_stage_legacy_ability_consumer_count,
-                    (unsigned long long) ctx->type_resolution_stage_legacy_domain_contract_count,
-                    (unsigned long long) ctx->type_resolution_stage_legacy_alias_count,
-                    (unsigned long long) ctx->type_resolution_stage_legacy_other_count);
+            fprintf(stderr, "[type-res-stats] stage-compat-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
+                    (unsigned long long) ctx->type_resolution_stage_compat_generic_contract_count,
+                    (unsigned long long) ctx->type_resolution_stage_compat_signature_count,
+                    (unsigned long long) ctx->type_resolution_stage_compat_ability_consumer_count,
+                    (unsigned long long) ctx->type_resolution_stage_compat_domain_contract_count,
+                    (unsigned long long) ctx->type_resolution_stage_compat_alias_count,
+                    (unsigned long long) ctx->type_resolution_stage_compat_other_count);
             fprintf(stderr, "[type-res-stats] stage-alias: materialized=%llu diagnostic_unresolved=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_alias_materialized_count,
                     (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_unresolved_count);
@@ -397,12 +397,12 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_resolved_count,
                     (unsigned long long) ctx->type_resolution_stage_alias_diagnostic_cycle_count);
             {
-                size_t total = g_resolve_type_node_cache_hits + g_resolve_type_node_cache_misses;
-                fprintf(stderr, "[type-res-stats] cache: hits=%llu misses=%llu hit_rate=%.1f%%\n",
-                        (unsigned long long) g_resolve_type_node_cache_hits,
-                        (unsigned long long) g_resolve_type_node_cache_misses,
+                size_t total = g_type_resolution_compat_cache_hits + g_type_resolution_compat_cache_misses;
+                fprintf(stderr, "[type-res-stats] retired-compatibility-cache: hits=%llu misses=%llu hit_rate=%.1f%%\n",
+                        (unsigned long long) g_type_resolution_compat_cache_hits,
+                        (unsigned long long) g_type_resolution_compat_cache_misses,
                         total > 0
-                            ? 100.0 * (double)g_resolve_type_node_cache_hits / (double)total
+                            ? 100.0 * (double)g_type_resolution_compat_cache_hits / (double)total
                             : 0.0);
             }
             fprintf(stderr, "[type-res-stats] kind: TYPE_REF=%llu BUILTIN=%llu DECL=%llu ALIAS=%llu GENERIC_PARAM=%llu LOCAL_CONTRACT=%llu PROJECTION_PATH=%llu\n",
