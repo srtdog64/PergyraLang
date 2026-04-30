@@ -83,6 +83,12 @@ parser_parse_pin_block(Parser *parser)
     }
 
     slot_expr = parser_parse_expression(parser);
+    if (slot_expr == NULL || slot_expr->type != AST_IDENTIFIER) {
+        ast_destroy(slot_expr);
+        parser_error(parser,
+            "Pin/Lease source must be a named slot handle; bind the slot before pinning");
+        return NULL;
+    }
     parser_consume(parser, TOKEN_AS, "Expected 'as' after pinned slot expression");
     alias = consume_binding_name_token(parser, "Expected view name after 'as'");
 

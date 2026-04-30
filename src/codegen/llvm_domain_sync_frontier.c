@@ -29,20 +29,24 @@ llvm_emit_sync_generation_increment(LLVMGenCtx *ctx,
 }
 
 void
-llvm_emit_frontier_overflow_abort(LLVMGenCtx *ctx)
+llvm_emit_frontier_overflow_abort(LLVMGenCtx *ctx, const char *reason)
 {
-    LLVMTypeRef abort_ft;
-    LLVMFuncEntry *abort_fn;
+    LLVMTypeRef panic_ft;
+    LLVMFuncEntry *panic_fn;
 
     if (ctx == NULL)
         return;
 
-    abort_ft = LLVMFunctionType(ctx->type_void, NULL, 0, 0);
-    abort_fn = llvm_lookup_or_create_function(ctx, "abort",
-        abort_ft, ctx->type_void);
-    if (abort_fn != NULL) {
-        LLVMBuildCall2(ctx->builder, abort_fn->fn_type, abort_fn->fn,
-            NULL, 0, "");
+    panic_ft = LLVMFunctionType(ctx->type_void, &ctx->type_i8ptr, 1, 0);
+    panic_fn = llvm_lookup_or_create_function(ctx,
+        "pgy_runtime_panic_internal_invariant_export",
+        panic_ft, ctx->type_void);
+    if (panic_fn != NULL) {
+        LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
+            reason != NULL ? reason : "frontier recompute exceeded bounded pass limit",
+            llvm_tmp_name(ctx));
+        LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+            &reason_arg, 1, "");
     }
     LLVMBuildUnreachable(ctx->builder);
 }

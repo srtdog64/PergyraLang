@@ -255,6 +255,7 @@ struct HIRProgram
 
 HIRProgram *hir_lower(ASTNode *annotated_ast, char **error_message);
 void        hir_destroy(HIRProgram *hir);
+bool        hir_validate(const HIRProgram *hir, char **error_message);
 void        hir_dump(const HIRProgram *hir, FILE *out);
 void        hir_dump_mode(const HIRProgram *hir, FILE *out, HIRDumpMode mode);
 const char *hir_top_level_kind_name(HIRTopLevelKind kind);

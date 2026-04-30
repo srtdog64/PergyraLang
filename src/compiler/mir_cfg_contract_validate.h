@@ -1,6 +1,7 @@
 #include "mir_cfg_contract_pin.h"
 #include "mir_cfg_contract_control.h"
 #include "mir_cfg_contract_cleanup_fact.h"
+#include "mir_cfg_contract_roots.h"
 
 static bool
 mir_validate_cfg_contract_state(const MIRRoutine *routine,
@@ -31,64 +32,8 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
         }
     }
 
-    if (routine->entry_block >= routine->block_count) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR routine '%s' has invalid entry block",
-                routine->name != NULL ? routine->name : "(anonymous)");
-        }
+    if (!mir_validate_cfg_contract_roots(routine, error_message))
         return false;
-    }
-
-    if (routine->has_cleanup_block && routine->cleanup_block >= routine->block_count) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR routine '%s' has invalid cleanup block",
-                routine->name != NULL ? routine->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (routine->has_rollback_block && routine->rollback_block >= routine->block_count) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR routine '%s' has invalid rollback block",
-                routine->name != NULL ? routine->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (routine->has_invalidation_block && routine->invalidation_block >= routine->block_count) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR routine '%s' has invalid invalidation block",
-                routine->name != NULL ? routine->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (!routine->has_cleanup_block && routine->has_rollback_block) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR routine '%s' has rollback block without cleanup root",
-                routine->name != NULL ? routine->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (!routine->has_cleanup_block && routine->has_invalidation_block) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR routine '%s' has invalidation block without cleanup root",
-                routine->name != NULL ? routine->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (routine->has_rollback_block && routine->has_invalidation_block
-        && routine->rollback_block == routine->invalidation_block) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR routine '%s' rollback and invalidation blocks must be distinct",
-                routine->name != NULL ? routine->name : "(anonymous)");
-        }
-        return false;
-    }
 
     if (routine->has_cleanup_block) {
         const MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
@@ -206,6 +151,29 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             }
             free(hir_block_seen);
             return false;
+        }
+
+        if (block->is_reachable && !block->is_cleanup && block->is_pin_region) {
+            if (block->pin_source_name == NULL || block->pin_source_name[0] == '\0') {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' pin-region block[%zu] missing pin source name",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+            if (block->pin_view_name == NULL || block->pin_view_name[0] == '\0') {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' pin-region block[%zu] missing pin view name",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i);
+                }
+                free(hir_block_seen);
+                return false;
+            }
         }
 
         if (block->is_reachable && !block->is_cleanup

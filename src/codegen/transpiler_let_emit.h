@@ -1,4 +1,3 @@
-/* C backend let-declaration lowering owner. Included inside transpiler.c after emitter forward declarations. */
 void
 emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -9,13 +8,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     char       *ann_type_name = ann != NULL ? render_type_name(ann) : NULL;
     ASTNode    *callable_type = NULL;
     ASTNode    *callable_decl = NULL;
-
-    /* Generic class monomorphization trigger:
-     * If the annotation is a user-defined generic class (e.g. Node<Int>),
-     * monomorphize the class and replace ann_type_name with the
-     * specialized name (e.g. Node_Int). */
     const char *generic_class_spec_name = NULL;
-
     if (node->data.let_decl.is_alias) {
         register_alias_var(ctx, name, init);
         if (ann_type_name != NULL) {
@@ -28,7 +21,6 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         free(ann_type_name);
         return;
     }
-
     if (ann != NULL && ann->type == AST_TYPE
         && ann->data.type.name != NULL) {
         ASTNode *gc_decl = find_class_decl(ctx, ann->data.type.name);
@@ -37,12 +29,10 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 ensure_generic_class_specialization(ctx, gc_decl, ann);
             if (generic_class_spec_name == NULL)
                 return;
-            /* Replace ann_type_name with the specialized name */
             free(ann_type_name);
             ann_type_name = pergyra_strdup(generic_class_spec_name);
         }
     }
-
     if (ann != NULL && ann->type == AST_EVENT_HANDLER_TYPE) {
         callable_type = ann;
     } else if (init != NULL && init->type == AST_CALL
@@ -62,7 +52,6 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             callable_decl = decl;
         }
     }
-
     if (transpiler_try_emit_let_slot_claim(node, ctx, name, init, ann,
             &ann_type_name)) {
         return;
@@ -75,130 +64,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             &ann_type_name)) {
         return;
     }
-
-    if (init != NULL && init->type == AST_CALL
-        && init->data.call.callee->type == AST_IDENTIFIER
-        && strcmp(init->data.call.callee->data.identifier.name, "BoxArray") == 0) {
-        const char *inner = NULL;
-        if (ann_type_name != NULL && strncmp(ann_type_name, "Box<Array<", 10) == 0) {
-            inner = ann_type_name + 10;
-            const char *close = strstr(inner, ">>");
-            static char inner_buf[64];
-            size_t len = close != NULL ? (size_t)(close - inner) : strlen(inner);
-            if (len >= sizeof(inner_buf))
-                len = sizeof(inner_buf) - 1;
-            memcpy(inner_buf, inner, len);
-            inner_buf[len] = '\0';
-            inner = inner_buf;
-        }
-        if (inner == NULL) {
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "cannot emit BoxArray declaration for '%s': missing explicit Box<Array<T>> annotation",
-                    name != NULL ? name : "(anonymous)");
-            }
-            free(ann_type_name);
-            return;
-        }
-
-        char *capacity = (init->data.call.arg_count > 0)
-                         ? emit_expression(init->data.call.arguments[0], ctx)
-                         : pergyra_strdup("0");
-        char *allocator = (init->data.call.arg_count > 1)
-                          ? emit_expression(init->data.call.arguments[1], ctx)
-                          : pergyra_strdup("NULL");
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "PgyBoxArray_%s %s = pgy_box_array_new_%s(%s, %s);\n",
-            inner, name, inner, capacity, allocator);
-        if (ann_type_name != NULL) {
-            register_typed_var(ctx, name, ann_type_name);
-        } else {
-            char *box_array_type = strdup_fmt("Box<Array<%s>>", inner);
-            register_typed_var(ctx, name, box_array_type);
-            free(box_array_type);
-        }
-        free(capacity);
-        free(allocator);
-        free(ann_type_name);
-        return;
-    }
-
-    /* Detect Box<T> - Type inference from Box(value) */
-    bool is_box = false;
-    char *box_inner_owned = NULL;
-    if (init != NULL && init->type == AST_CALL
-        && init->data.call.callee->type == AST_IDENTIFIER) {
-        const char *callee_name = init->data.call.callee->data.identifier.name;
-        if (strcmp(callee_name, "Box") == 0
-            && find_class_decl(ctx, callee_name) == NULL) {
-            is_box = true;
-            /* Infer type from annotation or argument */
-            if (ann != NULL && ann->data.type.generic_args != NULL
-                && ann->data.type.generic_args->count > 0) {
-                GenericParam *param = ann->data.type.generic_args->params[0];
-                if (param != NULL && param->constraint != NULL)
-                    box_inner_owned = render_type_name(param->constraint);
-                else if (param != NULL && param->name != NULL)
-                    box_inner_owned = pergyra_strdup(param->name);
-            } else if (init->data.call.arg_count > 0) {
-                /* Infer from argument type */
-                ASTNode *arg = init->data.call.arguments[0];
-                const char *inferred_arg = infer_expression_type_name(ctx, arg);
-                if (inferred_arg != NULL && strcmp(inferred_arg, "Unknown") != 0)
-                    box_inner_owned = pergyra_strdup(inferred_arg);
-            }
-        }
-        /* Rc<T> - Reference counted box */
-        else if (strcmp(callee_name, "Rc") == 0
-                 && find_class_decl(ctx, callee_name) == NULL) {
-            is_box = true;
-            if (ann != NULL && ann->data.type.generic_args != NULL
-                && ann->data.type.generic_args->count > 0) {
-                GenericParam *param = ann->data.type.generic_args->params[0];
-                if (param != NULL && param->constraint != NULL)
-                    box_inner_owned = render_type_name(param->constraint);
-                else if (param != NULL && param->name != NULL)
-                    box_inner_owned = pergyra_strdup(param->name);
-            } else if (init->data.call.arg_count > 0) {
-                ASTNode *arg = init->data.call.arguments[0];
-                const char *inferred_arg = infer_expression_type_name(ctx, arg);
-                if (inferred_arg != NULL && strcmp(inferred_arg, "Unknown") != 0)
-                    box_inner_owned = pergyra_strdup(inferred_arg);
-            }
-        }
-    }
-
-    if (is_box) {
-        const char *box_inner = box_inner_owned;
-        char *registered_type = NULL;
-        if (box_inner == NULL || box_inner[0] == '\0') {
-            transpiler_set_backend_error_with_hints(ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "C backend: Box/Rc binding '%s' requires explicit Box<T>/Rc<T> annotation or inferable initializer type",
-                name != NULL ? name : "<binding>");
-            free(box_inner_owned);
-            free(ann_type_name);
-            return;
-        }
-        write_indent(ctx);
-        codebuf_write(ctx->out, "PgyBox_%s %s = pgy_box_new_%s(", 
-                      box_inner, name, box_inner);
-        if (init->data.call.arg_count > 0) {
-            char *arg = emit_expression(init->data.call.arguments[0], ctx);
-            codebuf_write(ctx->out, "%s", arg);
-            free(arg);
-        }
-        codebuf_write(ctx->out, ");\n");
-        registered_type = ann_type_name != NULL
-            ? pergyra_strdup(ann_type_name)
-            : strdup_fmt("Box<%s>", box_inner);
-        register_typed_var(ctx, name, registered_type);
-        free(registered_type);
-        free(box_inner_owned);
-        free(ann_type_name);
+    if (transpiler_try_emit_box_family_let(ctx, name, init, ann,
+            &ann_type_name)) {
         return;
     }
 

@@ -772,6 +772,92 @@ test_mir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects pin-region without source anchor");
+    {
+        const char *src =
+            "func PinFlow(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        Write(view, 1);\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        char *mir_error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "PinFlow", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t i = 0; i < routine->block_count; i++) {
+                MIRBasicBlock *block = &routine->blocks[i];
+                if (!block->is_pin_region)
+                    continue;
+                block->pin_source_name = NULL;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = ok
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "pin-region") != NULL
+                   && strstr(mir_error, "pin source name") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects pin-region without view name");
+    {
+        const char *src =
+            "func PinFlow(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        Write(view, 1);\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        char *mir_error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "PinFlow", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t i = 0; i < routine->block_count; i++) {
+                MIRBasicBlock *block = &routine->blocks[i];
+                if (!block->is_pin_region)
+                    continue;
+                block->pin_view_name = NULL;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = ok
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "pin-region") != NULL
+                   && strstr(mir_error, "pin view name") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects pin-region without cleanup root");
     {
         const char *src =

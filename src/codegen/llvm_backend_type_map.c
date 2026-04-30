@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_backend.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
 #include "../common/string_compat.h"
 
@@ -22,9 +23,6 @@ LLVMTypeRef pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
 static bool llvm_can_forward_declare_type_early(LLVMGenCtx *ctx, ASTNode *type_node);
 bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);
 
-static char *llvm_render_type_name(ASTNode *type_node);
-static char *llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena);
-
 void
 llvm_set_type_render_ctx(LLVMGenCtx *ctx)
 {
@@ -36,163 +34,6 @@ llvm_clear_type_render_ctx_if(LLVMGenCtx *ctx)
 {
     if (g_llvm_type_render_ctx == ctx)
         g_llvm_type_render_ctx = NULL;
-}
-
-static char *
-llvm_copy_first_constructed_arg_name(LLVMGenCtx *ctx, const char *type_name)
-{
-    if (ctx == NULL || type_name == NULL)
-        return NULL;
-
-    const char *lt = strchr(type_name, '<');
-    const char *gt = strrchr(type_name, '>');
-    if (lt == NULL || gt == NULL || gt <= lt + 1)
-        return NULL;
-
-    size_t len = (size_t)(gt - lt - 1);
-    char *copy = pgy_arena_alloc(&ctx->persistent, len + 1);
-    if (copy == NULL)
-        return NULL;
-    memcpy(copy, lt + 1, len);
-    copy[len] = '\0';
-    return copy;
-}
-
-void
-llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
-                        ASTNode *type_node)
-{
-    const char *type_name;
-
-    if (ctx == NULL || var_name == NULL || type_node == NULL)
-        return;
-
-    if (type_node->type == AST_EVENT_HANDLER_TYPE) {
-        llvm_register_callable_var(ctx, var_name, type_node);
-        return;
-    }
-
-    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
-        return;
-
-    type_name = type_node->data.type.name;
-
-    if ((strcmp(type_name, "Array") == 0 || strcmp(type_name, "Slice") == 0)
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-        char *elem_name = llvm_render_type_name_scratch(
-            type_node->data.type.generic_args->params[0]->constraint,
-            &ctx->scratch);
-        if (elem_name == NULL || elem_name[0] == '\0') {
-            llvm_set_error_at_with_hints(ctx, type_node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "LLVM Array/Slice registry requires concrete element metadata");
-            return;
-        }
-        LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
-        llvm_register_array_var(ctx, var_name, elem_type, -1);
-    }
-
-    if (strcmp(type_name, "List") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-        char *inner_name = llvm_render_type_name(
-            type_node->data.type.generic_args->params[0]->constraint);
-        llvm_register_list_var(ctx, var_name, inner_name);
-        return;
-    }
-
-    if (strcmp(type_name, "Set") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-        char *inner_name = llvm_render_type_name(
-            type_node->data.type.generic_args->params[0]->constraint);
-        llvm_register_set_var(ctx, var_name, inner_name);
-        return;
-    }
-
-    if (strcmp(type_name, "Queue") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-        char *inner_name = llvm_render_type_name(
-            type_node->data.type.generic_args->params[0]->constraint);
-        llvm_register_queue_var(ctx, var_name, inner_name);
-        return;
-    }
-
-    if (strcmp(type_name, "HashMap") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 1
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL
-        && type_node->data.type.generic_args->params[1] != NULL
-        && type_node->data.type.generic_args->params[1]->constraint != NULL) {
-        char *key_name = llvm_render_type_name(
-            type_node->data.type.generic_args->params[0]->constraint);
-        char *value_name = llvm_render_type_name(
-            type_node->data.type.generic_args->params[1]->constraint);
-        llvm_register_map_var(ctx, var_name, key_name, value_name);
-        return;
-    }
-
-    if ((strcmp(type_name, "Future") == 0 || strcmp(type_name, "RemoteFuture") == 0)
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-        char *inner_name = llvm_render_type_name(
-            type_node->data.type.generic_args->params[0]->constraint);
-        llvm_register_future_var(ctx, var_name, inner_name,
-            strcmp(type_name, "RemoteFuture") == 0);
-        return;
-    }
-
-    if (strcmp(type_name, "Channel") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-        char *inner_name = llvm_render_type_name(
-            type_node->data.type.generic_args->params[0]->constraint);
-        llvm_register_channel_var(ctx, var_name, inner_name);
-        return;
-    }
-
-    if (strcmp(type_name, "Rc") == 0 || strcmp(type_name, "Weak") == 0
-        || strncmp(type_name, "Rc<", 3) == 0
-        || strncmp(type_name, "Weak<", 5) == 0) {
-        char *inner_name = NULL;
-        if (type_node->data.type.generic_args != NULL
-            && type_node->data.type.generic_args->count > 0
-            && type_node->data.type.generic_args->params[0] != NULL
-            && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-            inner_name = llvm_render_type_name(
-                type_node->data.type.generic_args->params[0]->constraint);
-        } else {
-            inner_name = llvm_copy_first_constructed_arg_name(ctx, type_name);
-        }
-        if (inner_name == NULL)
-            return;
-        if (strcmp(type_name, "Rc") == 0 || strncmp(type_name, "Rc<", 3) == 0)
-            llvm_register_rc_var(ctx, var_name, inner_name);
-        else
-            llvm_register_weak_var(ctx, var_name, inner_name);
-        return;
-    }
-
-    if (llvm_lookup_class(ctx, type_name) != NULL
-        || llvm_find_enum_decl(ctx, type_name) != NULL)
-        llvm_register_var_class(ctx, var_name, type_name);
 }
 
 /* =================================================================
@@ -272,7 +113,7 @@ llvm_required_constructed_arg_name_at(LLVMGenCtx *ctx, const char *type_name,
     return "Unknown";
 }
 
-static char *
+char *
 llvm_render_type_name(ASTNode *type_node)
 {
     PgyArena arena;
@@ -285,7 +126,7 @@ llvm_render_type_name(ASTNode *type_node)
     return result;
 }
 
-static char *
+char *
 llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
 {
     ASTNode *alias_decl = NULL;
@@ -691,83 +532,6 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "LLVM type '%s' is not registered in the LLVM type map; silent i32 fallback is not allowed",
             type_name);
-    }
-    return ctx->type_i32;
-}
-
-LLVMTypeRef
-ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
-{
-    if (type_node == NULL)
-        return ctx->type_void;
-
-    if (type_node->type == AST_EVENT_HANDLER_TYPE) {
-        size_t param_count = type_node->data.event_handler_type.param_count;
-        LLVMTypeRef *param_types = NULL;
-        LLVMTypeRef ret_type = ctx->type_void;
-        LLVMTypeRef fn_type;
-
-        if (type_node->data.event_handler_type.return_type != NULL)
-            ret_type = ast_type_to_llvm(ctx,
-                type_node->data.event_handler_type.return_type);
-
-        if (param_count > 0) {
-            /* Param-type buffer is consumed by LLVMFunctionType (which
-             * copies contents) and never retained by the caller. */
-            param_types = pgy_arena_calloc(&ctx->scratch,
-                param_count * sizeof(LLVMTypeRef));
-            if (param_types == NULL)
-                return LLVMPointerType(LLVMFunctionType(ret_type, NULL, 0, 0), 0);
-            for (size_t i = 0; i < param_count; i++) {
-                param_types[i] = ast_type_to_llvm(ctx,
-                    type_node->data.event_handler_type.param_types[i]);
-            }
-        }
-
-        fn_type = LLVMFunctionType(ret_type, param_types, (unsigned)param_count, 0);
-        /* param_types is ctx->scratch-owned. */
-        return LLVMPointerType(fn_type, 0);
-    }
-
-    /* Tuple type: anonymous struct { T0, T1, ... } */
-    if (type_node->type == AST_TYPE
-        && type_node->data.type.tuple_elements != NULL
-        && type_node->data.type.tuple_element_count > 0) {
-        size_t n = type_node->data.type.tuple_element_count;
-        /* Field-type buffer is consumed by LLVMStructTypeInContext (copies). */
-        LLVMTypeRef *fields = pgy_arena_calloc(&ctx->scratch,
-            n * sizeof(LLVMTypeRef));
-        if (fields == NULL)
-            return ctx->type_i32;
-        for (size_t i = 0; i < n; i++)
-            fields[i] = ast_type_to_llvm(ctx,
-                type_node->data.type.tuple_elements[i]);
-        LLVMTypeRef result = LLVMStructTypeInContext(ctx->context, fields,
-            (unsigned)n, 0);
-        /* fields is ctx->scratch-owned. */
-        return result;
-    }
-
-    if (type_node->type == AST_TYPE && type_node->data.type.name != NULL) {
-        char *full_name = llvm_render_type_name_scratch(type_node, &ctx->scratch);
-        if (full_name == NULL || full_name[0] == '\0') {
-            llvm_set_error_at_with_hints(ctx, type_node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "LLVM type rendering requires concrete type metadata; silent Int fallback is not allowed");
-            return ctx->type_i32;
-        }
-        LLVMTypeRef resolved = pergyra_type_to_llvm(ctx, full_name);
-        return resolved;
-    }
-
-    if (ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, type_node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "LLVM AST type mapping requires AST_TYPE or event handler metadata; silent i32 fallback is not allowed");
     }
     return ctx->type_i32;
 }

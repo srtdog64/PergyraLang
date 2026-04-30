@@ -1892,6 +1892,133 @@ test_air_rejects_orphan_mir_pin_cleanup_evidence(void)
 }
 
 static bool
+test_air_rejects_unanchored_mir_pin_cleanup_evidence(void)
+{
+    ASTNode pin_ast;
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram mir;
+    MIRRoutine routine;
+    MIRBasicBlock blocks[2];
+    MIRInstruction inst;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+    memset(&pin_ast, 0, sizeof(pin_ast));
+    pin_ast.type = AST_BLOCK;
+    pin_ast.data.block.is_pin_block = true;
+
+    air->intents = (AIRIntentNode *)calloc(1, sizeof(AIRIntentNode));
+    air->boundaries = (AIRBoundaryNode *)calloc(1, sizeof(AIRBoundaryNode));
+    if (air->intents == NULL || air->boundaries == NULL) {
+        air_destroy(air);
+        return false;
+    }
+    air->intent_count = 1;
+    air->boundary_count = 1;
+    air->intents[0].intent_owner = "ScoreIntent";
+    air->intents[0].step_name = "pin_scores";
+    air->intents[0].step_index = 0;
+    air->intents[0].sync_class = AIR_SYNC_SYNC;
+    air->intents[0].failure_class = AIR_FAILURE_RECOVERABLE;
+    air->boundaries[0].kind = AIR_BOUNDARY_EXECUTION;
+    air->boundaries[0].owner_name = "ScoreIntent";
+    air->boundaries[0].source_name = "pin";
+    air->boundaries[0].intent_index = 0;
+    air->boundaries[0].step_index = 0;
+    air->boundaries[0].sync_class = AIR_SYNC_SYNC;
+    air->boundaries[0].ast = &pin_ast;
+
+    memset(&inst, 0, sizeof(inst));
+    inst.kind = MIR_INST_CLEANUP_EDGE;
+    inst.name = "pin-unpin-cleanup-edge";
+    inst.ast = &pin_ast;
+
+    memset(blocks, 0, sizeof(blocks));
+    blocks[0].is_reachable = true;
+    blocks[0].is_pin_region = true;
+    blocks[0].pin_source_name = "scores";
+    blocks[0].pin_view_name = "view";
+    blocks[0].pin_block_ast = &pin_ast;
+    blocks[0].has_cleanup_succ = true;
+    blocks[0].cleanup_succ = 1;
+    blocks[0].instructions = &inst;
+    blocks[0].instruction_count = 1;
+    blocks[1].id = 1;
+    blocks[1].is_cleanup = true;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.name = "pin_scores";
+    routine.blocks = blocks;
+    routine.block_count = 2;
+    routine.has_cleanup_block = true;
+    routine.cleanup_block = 1;
+
+    memset(&mir, 0, sizeof(mir));
+    mir.routines = &routine;
+    mir.routine_count = 1;
+
+    ok = air_collect_mir_evidence(air, &mir, &error)
+        && air_validate(air, &error)
+        && air->has_mir_input
+        && air->mir_cleanup_evidence_count == 1
+        && air->mir_pin_cleanup_evidence_count == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_rejects_pin_cleanup_evidence_without_slot_subject(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ScoreIntent",
+            .step_name = "pin_scores",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_EXECUTION,
+            .owner_name = "ScoreIntent",
+            .source_name = "pin",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .boundary_index = 0,
+            .provider_name = "pin_scores",
+            .subject_name = "pin",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "has no slot anchor subject") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_strict_evidence_requires_mir_pin_cleanup(void)
 {
     AIRIntentNode intents[] = {
@@ -2220,6 +2347,32 @@ test_air_rejects_invalid_dag_evidence_provider(void)
         && error != NULL
         && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
         && strstr(error, "DAG evidence node 0 has invalid provider") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_invalid_dag_evidence_subject(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_DAG_ABILITY,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "type-resolution-dag",
+            .subject_name = "generic-contracts",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "DAG evidence node 0 has invalid subject") != NULL;
     free(error);
     return ok;
 }
@@ -4052,6 +4205,12 @@ main(void)
     TEST("AIR rejects orphan MIR pin cleanup evidence");
     EXPECT(test_air_rejects_orphan_mir_pin_cleanup_evidence());
 
+    TEST("AIR rejects unanchored MIR pin cleanup evidence");
+    EXPECT(test_air_rejects_unanchored_mir_pin_cleanup_evidence());
+
+    TEST("AIR rejects pin cleanup evidence without slot subject");
+    EXPECT(test_air_rejects_pin_cleanup_evidence_without_slot_subject());
+
     TEST("AIR strict evidence requires MIR pin cleanup");
     EXPECT(test_air_strict_evidence_requires_mir_pin_cleanup());
 
@@ -4078,6 +4237,9 @@ main(void)
 
     TEST("AIR rejects invalid DAG evidence provider");
     EXPECT(test_air_rejects_invalid_dag_evidence_provider());
+
+    TEST("AIR rejects invalid DAG evidence subject");
+    EXPECT(test_air_rejects_invalid_dag_evidence_subject());
 
     TEST("AIR world boundary requires transfer evidence");
     EXPECT(test_air_world_boundary_requires_transfer_evidence());

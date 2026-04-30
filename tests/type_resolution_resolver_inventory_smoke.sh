@@ -196,7 +196,8 @@ for owner in \
   src/semantic/type_checker_generic_validation.c \
   src/semantic/type_checker_host_helpers.c \
   src/semantic/type_checker_intent_decl.c \
-  src/semantic/type_checker_ownership_let.c
+  src/semantic/type_checker_ownership_let_helpers.c \
+  src/semantic/type_checker_zone_decl_authority.c
 do
   grep -q 'semantic_type_resolution_lookup_type_ref_or_materialize' "$owner" || {
     echo "[type-resolution-resolver-inventory] semantic resolver owner lost metadata-first type-ref helper: $owner" >&2
@@ -213,7 +214,8 @@ grep -Ev 'src/semantic/type_checker_ability_where\.c' "$type_ref_helper_matches"
   | grep -Ev 'src/semantic/type_checker_host_helpers\.c' \
   | grep -Ev 'src/semantic/type_checker_intent_decl\.c' \
   | grep -Ev 'src/semantic/type_checker_internal\.h' \
-  | grep -Ev 'src/semantic/type_checker_ownership_let\.c' \
+  | grep -Ev 'src/semantic/type_checker_ownership_let_helpers\.c' \
+  | grep -Ev 'src/semantic/type_checker_zone_decl_authority\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
   >"$bad_type_ref_helper" || true
 
@@ -225,8 +227,8 @@ if [ -s "$bad_type_ref_helper" ]; then
 fi
 
 type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
-if [ "$type_ref_helper_count" -ne 11 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 11" >&2
+if [ "$type_ref_helper_count" -ne 12 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 12" >&2
   cat "$type_ref_helper_matches" >&2
   exit 1
 fi

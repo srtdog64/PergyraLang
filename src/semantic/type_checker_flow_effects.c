@@ -59,7 +59,11 @@ flow_record_branch_effect_conflict_labeled(SemanticContext *ctx,
 
     flow_effect_mask_to_string(left_delta, left_buf, sizeof(left_buf));
     flow_effect_mask_to_string(right_delta, right_buf, sizeof(right_buf));
-    semantic_warning(ctx, node,
+    semantic_warning_with_hints(ctx,
+        PGY_CODE_SEM_EFFECT_CONFLICT,
+        PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO,
+        PGY_FIX_SPLIT_EFFECT_FAMILIES,
+        node,
         "Control-flow branch/join combines conflicting effect classes (%s vs %s).\n"
         "Reason:\n"
         "- this control-flow join merges effect deltas from multiple paths\n"

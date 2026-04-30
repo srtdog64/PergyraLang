@@ -501,7 +501,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_overflow_bb);
-    llvm_emit_frontier_overflow_abort(ctx);
+    llvm_emit_frontier_overflow_abort(ctx,
+        "zone frontier recompute exceeded bounded pass limit");
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_exit_bb);
     LLVMBuildRetVoid(ctx->builder);

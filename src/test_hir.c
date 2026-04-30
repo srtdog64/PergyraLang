@@ -392,6 +392,227 @@ test_hir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("HIR validator rejects pin-region without source anchor");
+    {
+        const char *src =
+            "func PinFlow(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        Write(view, 1);\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        HIRRoutine *routine = NULL;
+        char *error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        if (hir != NULL) {
+            for (size_t i = 0; i < hir->routine_count; i++) {
+                if (hir->routines[i].name != NULL
+                    && strcmp(hir->routines[i].name, "PinFlow") == 0) {
+                    routine = &hir->routines[i];
+                    break;
+                }
+            }
+        }
+        if (routine != NULL && routine->has_cfg) {
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                HIRBasicBlock *block = &routine->cfg.blocks[i];
+                if (!block->is_pin_region)
+                    continue;
+                block->pin_source_name = NULL;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = hir != NULL
+                   && corrupted
+                   && !hir_validate(hir, &error)
+                   && error != NULL
+                   && strstr(error, "pin-region") != NULL
+                   && strstr(error, "pin source name") != NULL;
+        EXPECT(rejected);
+        free(error);
+        hir_destroy(hir);
+    }
+
+    TEST("HIR validator rejects pin-region without view name");
+    {
+        const char *src =
+            "func PinFlow(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        Write(view, 1);\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        HIRRoutine *routine = NULL;
+        char *error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        if (hir != NULL) {
+            for (size_t i = 0; i < hir->routine_count; i++) {
+                if (hir->routines[i].name != NULL
+                    && strcmp(hir->routines[i].name, "PinFlow") == 0) {
+                    routine = &hir->routines[i];
+                    break;
+                }
+            }
+        }
+        if (routine != NULL && routine->has_cfg) {
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                HIRBasicBlock *block = &routine->cfg.blocks[i];
+                if (!block->is_pin_region)
+                    continue;
+                block->pin_view_name = NULL;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = hir != NULL
+                   && corrupted
+                   && !hir_validate(hir, &error)
+                   && error != NULL
+                   && strstr(error, "pin-region") != NULL
+                   && strstr(error, "pin view name") != NULL;
+        EXPECT(rejected);
+        free(error);
+        hir_destroy(hir);
+    }
+
+    TEST("HIR validator rejects out-of-range CFG successor");
+    {
+        const char *src =
+            "func BranchFlow(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        HIRRoutine *routine = NULL;
+        char *error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        if (hir != NULL) {
+            for (size_t i = 0; i < hir->routine_count; i++) {
+                if (hir->routines[i].name != NULL
+                    && strcmp(hir->routines[i].name, "BranchFlow") == 0) {
+                    routine = &hir->routines[i];
+                    break;
+                }
+            }
+        }
+        if (routine != NULL && routine->has_cfg) {
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                HIRBasicBlock *block = &routine->cfg.blocks[i];
+                if (!block->has_succ_true)
+                    continue;
+                block->succ_true = routine->cfg.block_count + 1;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = hir != NULL
+                   && corrupted
+                   && !hir_validate(hir, &error)
+                   && error != NULL
+                   && strstr(error, "out-of-range successor") != NULL;
+        EXPECT(rejected);
+        free(error);
+        hir_destroy(hir);
+    }
+
+    TEST("HIR validator rejects successor without reciprocal predecessor");
+    {
+        const char *src =
+            "func BranchFlow(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        HIRRoutine *routine = NULL;
+        char *error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        if (hir != NULL) {
+            for (size_t i = 0; i < hir->routine_count; i++) {
+                if (hir->routines[i].name != NULL
+                    && strcmp(hir->routines[i].name, "BranchFlow") == 0) {
+                    routine = &hir->routines[i];
+                    break;
+                }
+            }
+        }
+        if (routine != NULL && routine->has_cfg) {
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                HIRBasicBlock *block = &routine->cfg.blocks[i];
+                HIRBasicBlock *target = NULL;
+                if (!block->has_succ_true)
+                    continue;
+                target = &routine->cfg.blocks[block->succ_true];
+                target->predecessor_count = 0;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = hir != NULL
+                   && corrupted
+                   && !hir_validate(hir, &error)
+                   && error != NULL
+                   && strstr(error, "reciprocal predecessor") != NULL;
+        EXPECT(rejected);
+        free(error);
+        hir_destroy(hir);
+    }
+
+    TEST("HIR validator rejects out-of-range CFG predecessor");
+    {
+        const char *src =
+            "func BranchFlow(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        HIRRoutine *routine = NULL;
+        char *error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        if (hir != NULL) {
+            for (size_t i = 0; i < hir->routine_count; i++) {
+                if (hir->routines[i].name != NULL
+                    && strcmp(hir->routines[i].name, "BranchFlow") == 0) {
+                    routine = &hir->routines[i];
+                    break;
+                }
+            }
+        }
+        if (routine != NULL && routine->has_cfg) {
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                HIRBasicBlock *block = &routine->cfg.blocks[i];
+                if (block->predecessor_count == 0 || block->predecessors == NULL)
+                    continue;
+                block->predecessors[0] = routine->cfg.block_count + 1;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = hir != NULL
+                   && corrupted
+                   && !hir_validate(hir, &error)
+                   && error != NULL
+                   && strstr(error, "out-of-range predecessor") != NULL;
+        EXPECT(rejected);
+        free(error);
+        hir_destroy(hir);
+    }
+
     TEST("HIR CFG lowers loop break and continue edges explicitly");
     {
         const char *src =

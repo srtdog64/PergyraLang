@@ -1,6 +1,6 @@
 # 02. Relation / Effect / Projection Proof Obligations
 
-Last updated: 2026-04-25
+Last updated: 2026-04-30
 
 Status: `IN PROGRESS / BLOCKER`
 
@@ -60,14 +60,35 @@ Assumptions:
 - Effect joins/meets/conflicts are computed against a canonical partial order.
 - Authority denial and effect conflict are distinct failure classes.
 
+Beta-stable partial order contract:
+
+```text
+effects        = local | secure | remote | nondeterministic | collapse
+closure        = collapse >= nondeterministic
+join(a, b)     = closure(a) union closure(b)
+meet(a, b)     = closure(a) intersection closure(b)
+authority      = secure requires authority provenance
+resource edge  = secure | remote | collapse touch a resource boundary
+conflict       = secure conflicts with remote | collapse | nondeterministic
+```
+
+Implementation source-of-truth:
+
+- `type_effect_mask_closure` defines the only beta-stable implication: `collapse` implies `nondeterministic`.
+- `type_effect_mask_join` and `type_effect_mask_meet` must be the only helpers used for effect lattice composition.
+- `type_effect_mask_requires_authority` is the semantic authority boundary for `secure`.
+- `type_effect_mask_touches_resource_boundary` is the semantic resource-boundary predicate.
+- `type_effect_mask_conflicts` is the semantic conflict predicate; branch/join diagnostics and function-level conflict warnings must consume it rather than duplicating ad-hoc conflict tables.
+
 Current evidence:
 
 - Effect join/meet/conflict baseline exists.
+- Semantic regressions cover collapse-as-nondeterministic closure, secure/remote incomparability, joined secure|remote supersets, authority/resource-boundary predicates, symmetric secure conflict cases, and branch/join provenance warnings.
 - Diagnostics have `Reason:` and `Fix:` vocabulary for projection-related failures.
 
 Remaining proof obligation:
 
-- Promote authority-resource-effect ordering from implementation helper behavior to an explicit semantic contract.
+- Extend the same source-of-truth discipline to runtime propagation failures so declaration-time effect conflicts and runtime authority/resource failures keep the same vocabulary.
 
 ## Theorem: Projection Diagnostic Completeness
 

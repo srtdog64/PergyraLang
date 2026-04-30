@@ -246,12 +246,16 @@ mir_materialize_pin_cleanup_edges(MIRRoutine *routine, MIRBasicBlock *block)
     MIRInstruction inst;
     if (routine == NULL || block == NULL || !block->is_pin_region)
         return true;
+    if (block->pin_source_name == NULL || block->pin_source_name[0] == '\0')
+        return false;
+    if (block->pin_view_name == NULL || block->pin_view_name[0] == '\0')
+        return false;
 
     memset(&inst, 0, sizeof(inst));
     inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_CLEANUP_EDGE;
     inst.name = "pin-unpin-cleanup-edge";
-    inst.slot_anchor = block->pin_source_name != NULL ? block->pin_source_name : "<expr>";
+    inst.slot_anchor = block->pin_source_name;
     inst.arg0 = block->pin_view_name;
     inst.arg1 = block->pin_view_is_write ? "write" : "read";
     inst.ast = block->pin_block_ast;

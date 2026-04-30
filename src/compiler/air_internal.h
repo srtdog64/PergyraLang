@@ -6,6 +6,8 @@
 #include "air.h"
 
 void        air_set_error(char **error_message, const char *fmt, ...);
+void        air_set_invariant_error(char **error_message, const char *fmt, ...);
+bool        air_name_is_empty(const char *name);
 char       *air_strdup_owned(const char *text);
 const char *air_program_owned_name(AIRProgram *air, const char *text);
 bool        air_assign_owned_name(AIRProgram *air, const char **slot, const char *text);
@@ -30,6 +32,8 @@ bool        air_append_evidence_node_ex(AIRProgram *air,
                                         char **error_message);
 void        air_clear_drifts(AIRProgram *air);
 bool        air_name_matches(const char *a, const char *b);
+bool        air_ast_contains_node(const ASTNode *container,
+                                  const ASTNode *needle);
 bool        air_step_has_zone_boundary(const DIRIntentStep *step);
 bool        air_step_has_world_boundary(const DIRIntentStep *step);
 AIRBoundaryKind air_boundary_kind_from_ast(const ASTNode *node);
@@ -48,5 +52,15 @@ bool        air_collect_hir_evidence(AIRProgram *air,
 bool        air_collect_rir_evidence(AIRProgram *air,
                                      const RIRProgram *rir,
                                      char **error_message);
+bool        air_boundary_has_evidence_kind(const AIRProgram *air,
+                                           size_t boundary_index,
+                                           AIREvidenceKind kind);
+bool        air_boundary_declares_authority_name(
+                const AIRBoundaryNode *boundary,
+                const char *authority_name);
+bool        air_boundary_requires_mir_pin_cleanup_evidence(
+                const AIRBoundaryNode *boundary);
+bool        air_validate_evidence_inventory(const AIRProgram *air,
+                                            char **error_message);
 
 #endif

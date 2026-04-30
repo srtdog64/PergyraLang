@@ -367,7 +367,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                                        func_type->data.function.effect_mask)) {
             effect_mask_to_string(func_type->data.function.effect_mask,
                                   derived_buf, sizeof(derived_buf));
-            semantic_warning_code(ctx, PGY_CODE_SEM_EFFECT_CONFLICT, node,
+            semantic_warning_with_hints(ctx,
+                PGY_CODE_SEM_EFFECT_CONFLICT,
+                PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO,
+                PGY_FIX_SPLIT_EFFECT_FAMILIES,
+                node,
                 "Function '%s' combines effect classes that are currently treated as conflicting (%s).\n"
                 "Reason:\n"
                 "- derived body effects joined into '%s'\n"

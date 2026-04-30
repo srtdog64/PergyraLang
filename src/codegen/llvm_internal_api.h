@@ -284,6 +284,13 @@ llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
  * Emitters -- expressions (llvm_expr.c)
  * ================================================================= */
 LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_expr_set_missing_type_error(LLVMGenCtx *ctx, ASTNode *node,
+                                      const char *surface);
+LLVMValueRef llvm_emit_checked_collection_get(LLVMGenCtx *ctx,
+                                              LLVMValueRef aggregate,
+                                              LLVMTypeRef aggregate_type,
+                                              LLVMValueRef index,
+                                              const char *struct_name);
 
 /* =================================================================
  * Emitters -- statements (llvm_stmt.c)
@@ -292,6 +299,7 @@ void llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx);
 bool llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx);
+bool llvm_stmt_emit_claim_slot_let(ASTNode *node, LLVMGenCtx *ctx);
 bool llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx);
 const char *llvm_stmt_render_type_annotation_static(ASTNode *type_ann);

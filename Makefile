@@ -158,6 +158,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_clone.c \
                    $(PARSER_DIR)/ast_constructors.c \
                    $(PARSER_DIR)/ast_domain_constructors.c \
+                   $(PARSER_DIR)/ast_domain_tail_constructors.c \
                    $(PARSER_DIR)/ast_print.c \
                    $(PARSER_DIR)/ast_print_domain.c \
                    $(PARSER_DIR)/ast_print_event.c \
@@ -212,6 +213,7 @@ ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
 RUNTIME_SOURCES  += $(ASYNC_SOURCES)
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
+                   $(SEMANTIC_DIR)/type_system_compat.c \
                    $(SEMANTIC_DIR)/type_effects.c \
                    $(SEMANTIC_DIR)/type_infer.c \
                    $(SEMANTIC_DIR)/type_env.c \
@@ -295,6 +297,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_call.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_destructure.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_let_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_param_summary.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_return.c \
                     $(SEMANTIC_DIR)/type_checker_channel_transport.c \
@@ -337,6 +340,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_active.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_boundary.c \
                    $(SEMANTIC_DIR)/type_checker_flow_effects.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_match_coverage.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \
                    $(SEMANTIC_DIR)/slot_analyzer.c \
@@ -371,7 +375,11 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_boundary.c \
                    $(COMPILER_DIR)/air_boundary_walk.c \
                    $(COMPILER_DIR)/air_dump.c \
+                   $(COMPILER_DIR)/air_evidence_ast.c \
                    $(COMPILER_DIR)/air_evidence.c \
+                   $(COMPILER_DIR)/air_evidence_rir.c \
+                   $(COMPILER_DIR)/air_validate_evidence.c \
+                   $(COMPILER_DIR)/air_validate.c \
                    $(COMPILER_DIR)/air_verify.c \
                    $(COMPILER_DIR)/rir.c \
                    $(COMPILER_DIR)/rir_names.c \
@@ -385,6 +393,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_analysis.c \
                    $(COMPILER_DIR)/hir_cfg.c \
                    $(COMPILER_DIR)/hir_cfg_phi.c \
+                   $(COMPILER_DIR)/hir_lower_cfg_blocks.c \
                    $(COMPILER_DIR)/hir_lower_cfg.c \
                    $(COMPILER_DIR)/hir_lower_intent_cfg.c \
                    $(COMPILER_DIR)/mir.c \
@@ -395,6 +404,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_routines.c \
                    $(COMPILER_DIR)/hir_destroy.c \
                    $(COMPILER_DIR)/hir_public.c \
+                   $(COMPILER_DIR)/hir_validate.c \
                    $(COMPILER_DIR)/module_loader.c \
                    $(COMPILER_DIR)/module_normalizer.c \
                    $(COMPILER_DIR)/module_normalizer_refs.c \
@@ -417,7 +427,9 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
 ifneq ($(LLVM_ENABLED),0)
   LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c \
+                   $(CODEGEN_DIR)/llvm_backend_ast_type.c \
                    $(CODEGEN_DIR)/llvm_backend_type_map.c \
+                   $(CODEGEN_DIR)/llvm_backend_type_registry.c \
                    $(CODEGEN_DIR)/llvm_type.c \
                    $(CODEGEN_DIR)/llvm_api.c \
                    $(CODEGEN_DIR)/llvm_backend_generic.c \
@@ -442,11 +454,13 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_intent_effect.c \
                          $(CODEGEN_DIR)/llvm_intent_flow.c \
                          $(CODEGEN_DIR)/llvm_expr.c \
+                         $(CODEGEN_DIR)/llvm_expr_helpers.c \
                          $(CODEGEN_DIR)/llvm_stmt.c \
                          $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
                          $(CODEGEN_DIR)/llvm_stmt_let_callable.c \
                          $(CODEGEN_DIR)/llvm_stmt_let_collections.c \
                          $(CODEGEN_DIR)/llvm_stmt_let_helpers.c \
+                         $(CODEGEN_DIR)/llvm_stmt_let_slots.c \
                          $(CODEGEN_DIR)/llvm_stmt_let_with.c \
                          $(CODEGEN_DIR)/llvm_stmt_with.c \
                          $(CODEGEN_DIR)/llvm_stmt_loop_match.c \
@@ -584,6 +598,44 @@ SEMANTIC_LINK_SUPPORT = $(BUILD_DIR)/compiler/import_resolver.o \
                         $(BUILD_DIR)/compiler/module_normalizer.o \
                         $(BUILD_DIR)/compiler/module_normalizer_refs.o \
                         $(BUILD_DIR)/compiler/path_utils.o
+DIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/dir.o \
+                   $(BUILD_DIR)/compiler/dir_collect.o \
+                   $(BUILD_DIR)/compiler/dir_collect_domain.o \
+                   $(BUILD_DIR)/compiler/dir_validate.o
+HIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/hir_analysis.o \
+                   $(BUILD_DIR)/compiler/hir_cfg.o \
+                   $(BUILD_DIR)/compiler/hir_cfg_phi.o \
+                   $(BUILD_DIR)/compiler/hir_lower_cfg_blocks.o \
+                   $(BUILD_DIR)/compiler/hir_lower_cfg.o \
+                   $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o \
+                   $(BUILD_DIR)/compiler/hir.o \
+                   $(BUILD_DIR)/compiler/hir_routines.o \
+                   $(BUILD_DIR)/compiler/hir_destroy.o \
+                   $(BUILD_DIR)/compiler/hir_public.o \
+                   $(BUILD_DIR)/compiler/hir_validate.o
+RIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/rir.o \
+                   $(BUILD_DIR)/compiler/rir_names.o \
+                   $(BUILD_DIR)/compiler/rir_public_surface.o \
+                   $(BUILD_DIR)/compiler/rir_validation.o \
+                   $(BUILD_DIR)/compiler/rir_flow.o \
+                   $(BUILD_DIR)/compiler/rir_facts.o \
+                   $(BUILD_DIR)/compiler/rir_builder.o \
+                   $(BUILD_DIR)/compiler/rir_builder_walk.o \
+                   $(BUILD_DIR)/compiler/rir_builder_intent.o
+AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air.o \
+                   $(BUILD_DIR)/compiler/air_boundary.o \
+                   $(BUILD_DIR)/compiler/air_boundary_walk.o \
+                   $(BUILD_DIR)/compiler/air_dump.o \
+                   $(BUILD_DIR)/compiler/air_evidence_ast.o \
+                   $(BUILD_DIR)/compiler/air_evidence.o \
+                   $(BUILD_DIR)/compiler/air_evidence_rir.o \
+                   $(BUILD_DIR)/compiler/air_validate_evidence.o \
+                   $(BUILD_DIR)/compiler/air_validate.o \
+                   $(BUILD_DIR)/compiler/air_verify.o
+MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_cleanup.o \
+                   $(BUILD_DIR)/compiler/mir_intent.o \
+                   $(BUILD_DIR)/compiler/mir_type_helpers.o
 
 # -----------------------------------------------------------------
 # Executables
@@ -623,7 +675,7 @@ endif
 # -----------------------------------------------------------------
 all: $(PGY) $(PGY_LSP) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST) $(HIR_TEST)
 
-pgy: $(PGY) $(REPO_BIN_DIR)/pgy$(EXEEXT)
+pgy: $(PGY) $(REPO_BIN_DIR)/pgy$(EXEEXT) $(REPO_BIN_DIR)/pgy.exe
 llvm:
 	$(MAKE) LLVM_ENABLED=1 all
 
@@ -637,6 +689,14 @@ $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm
 
 $(REPO_BIN_DIR)/pgy$(EXEEXT): $(PGY) | $(REPO_BIN_DIR)
+	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
+
+# Always keep bin/pgy.exe in sync with the canonical $(PGY) build, even on
+# hosts where EXEEXT is empty (e.g. WSL building for Windows-side workflows).
+# Without this, PowerShell-launched commands silently use a stale .exe and the
+# semantic/codegen behavior diverges from the freshly built binary. Listed as
+# dev pain point #1 in memory: project_dev_pain_points.md.
+$(REPO_BIN_DIR)/pgy.exe: $(PGY) | $(REPO_BIN_DIR)
 	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
 
 # Lexer smoke-test (original main.c)
@@ -693,27 +753,27 @@ $(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # DIR lowering test
-$(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(TEST_DIR_OBJ) | $(BIN_DIR)
+$(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(TEST_DIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # AIR synthesis and drift test
-$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_walk.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/air.o $(BUILD_DIR)/compiler/air_boundary.o $(BUILD_DIR)/compiler/air_boundary_walk.o $(BUILD_DIR)/compiler/air_dump.o $(BUILD_DIR)/compiler/air_evidence.o $(BUILD_DIR)/compiler/air_verify.o $(TEST_AIR_OBJ) | $(BIN_DIR)
+$(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(AIR_CORE_OBJECTS) $(TEST_AIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # RIR lowering test
-$(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/dir_collect.o $(BUILD_DIR)/compiler/dir_collect_domain.o $(BUILD_DIR)/compiler/dir_validate.o $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_walk.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(TEST_RIR_OBJ) | $(BIN_DIR)
+$(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(TEST_RIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # MIR lowering test
-$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/rir_names.o $(BUILD_DIR)/compiler/rir_public_surface.o $(BUILD_DIR)/compiler/rir_validation.o $(BUILD_DIR)/compiler/rir_flow.o $(BUILD_DIR)/compiler/rir_facts.o $(BUILD_DIR)/compiler/rir_builder.o $(BUILD_DIR)/compiler/rir_builder_walk.o $(BUILD_DIR)/compiler/rir_builder_intent.o $(BUILD_DIR)/compiler/mir.o $(BUILD_DIR)/compiler/mir_cleanup.o $(BUILD_DIR)/compiler/mir_intent.o $(BUILD_DIR)/compiler/mir_type_helpers.o $(TEST_MIR_OBJ) | $(BIN_DIR)
+$(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(MIR_CORE_OBJECTS) $(TEST_MIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # HIR lowering test
-$(HIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir_analysis.o $(BUILD_DIR)/compiler/hir_cfg.o $(BUILD_DIR)/compiler/hir_cfg_phi.o $(BUILD_DIR)/compiler/hir_lower_cfg.o $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/hir_routines.o $(BUILD_DIR)/compiler/hir_destroy.o $(BUILD_DIR)/compiler/hir_public.o $(TEST_HIR_OBJ) | $(BIN_DIR)
+$(HIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(HIR_CORE_OBJECTS) $(TEST_HIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 

@@ -1655,6 +1655,15 @@ main(void)
             1
         },
         {
+            "Pin Lease Block Rejects Non-Named Source",
+            "func Main() -> Void {\n"
+            "    pin ClaimSlot<Int>() as view: ReadView<Int> {\n"
+            "        Log(view);\n"
+            "    }\n"
+            "}",
+            0
+        },
+        {
             "Escaped String Literal",
             "func Main() -> Void {\n"
             "    Log(\"{\\\"ok\\\":true}\\n\");\n"

@@ -25,6 +25,7 @@ diagnostic_sources = [
     root / "src" / "semantic" / "type_checker_decls_domain_helpers.c",
     root / "src" / "semantic" / "type_checker_domain_projection.c",
 ]
+projection_source = root / "src" / "semantic" / "type_checker_domain_projection.c"
 proof_doc = root / "docs" / "semantics" / "02_relation_effect_projection.md"
 
 for path in [semantic_test, *diagnostic_sources, proof_doc]:
@@ -33,6 +34,7 @@ for path in [semantic_test, *diagnostic_sources, proof_doc]:
 
 test_text = semantic_test.read_text(encoding="utf-8")
 source_text = "\n".join(path.read_text(encoding="utf-8") for path in diagnostic_sources)
+projection_text = projection_source.read_text(encoding="utf-8")
 proof_text = proof_doc.read_text(encoding="utf-8")
 
 required_tests = {
@@ -90,6 +92,29 @@ if missing_source_terms:
     raise SystemExit(
         "projection diagnostic implementation missing required term(s): "
         + ", ".join(missing_source_terms)
+    )
+
+projection_error_count = projection_text.count("semantic_error_with_hints")
+projection_contract_source_count = projection_text.count('"Contract source:\\n"')
+if projection_error_count != projection_contract_source_count:
+    raise SystemExit(
+        "projection diagnostic implementation must give every projection "
+        f"contract error a Contract source block: errors={projection_error_count}, "
+        f"contract_source={projection_contract_source_count}"
+    )
+
+newly_gated_paths = [
+    "source slot '%s' cannot be a tobject slot",
+    "source slot '%s' is not a valid projection source",
+    "projection map refers to unknown target field '%s'",
+    "target field '%s' maps from missing source field '%s'",
+    "target field '%s' cannot accept source path '%s'",
+]
+missing_new_paths = [term for term in newly_gated_paths if term not in projection_text]
+if missing_new_paths:
+    raise SystemExit(
+        "projection diagnostic implementation missing newly gated path(s): "
+        + ", ".join(missing_new_paths)
     )
 
 required_proof_terms = [

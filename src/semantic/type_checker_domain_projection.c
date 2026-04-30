@@ -187,6 +187,9 @@ type_check_projection_contract(ASTNode **slots,
     if (source_slot->data.domain_slot.is_tobject) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s source slot '%s' cannot be a tobject slot.\n"
+            "Contract source:\n"
+            "- target slot '%s' on %s '%s'\n"
+            "- source slot '%s' is driving this %s path\n"
             "Reason:\n"
             "- projection consumer path is target slot '%s' <- source slot '%s'\n"
             "- tobject is already a boundary snapshot\n"
@@ -198,6 +201,11 @@ type_check_projection_contract(ASTNode **slots,
             "- or materialize a new object/tobject from the original source instead",
             owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label != NULL ? owner_label : "<owner>",
+            owner_name != NULL ? owner_name : "<owner>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_slot_name != NULL ? source_slot_name : "<unknown>",
@@ -216,6 +224,9 @@ type_check_projection_contract(ASTNode **slots,
     if (!decl_is_projection_source(source_decl)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s source slot '%s' is not a valid projection source.\n"
+            "Contract source:\n"
+            "- target slot '%s' on %s '%s'\n"
+            "- source slot '%s' is driving this %s path\n"
             "Reason:\n"
             "- projection consumer path is target slot '%s' <- source slot '%s'\n"
             "- projection sync reads fields from a subject/object declaration\n"
@@ -227,6 +238,11 @@ type_check_projection_contract(ASTNode **slots,
             "- or use an object slot that mirrors the desired fields",
             owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            owner_label != NULL ? owner_label : "<owner>",
+            owner_name != NULL ? owner_name : "<owner>",
+            source_slot_name != NULL ? source_slot_name : "<unknown>",
+            action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_type != NULL && source_type->name != NULL
@@ -247,6 +263,9 @@ type_check_projection_contract(ASTNode **slots,
             if (!projection_target_decl_has_field(target_decl, mapped_target)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                     "%s %s projection map refers to unknown target field '%s' in slot '%s'.\n"
+                    "Contract source:\n"
+                    "- target slot '%s' on %s '%s'\n"
+                    "- source slot '%s' is driving this %s path\n"
                     "Reason:\n"
                     "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                     "- explicit field map entry is '%s <- %s'\n"
@@ -259,6 +278,11 @@ type_check_projection_contract(ASTNode **slots,
                     owner_label, action_name,
                     mapped_target != NULL ? mapped_target : "<field>",
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    owner_label != NULL ? owner_label : "<owner>",
+                    owner_name != NULL ? owner_name : "<owner>",
+                    source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    action_name,
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
                     mapped_target != NULL ? mapped_target : "<field>",
@@ -288,6 +312,9 @@ type_check_projection_contract(ASTNode **slots,
                     && strcmp(mapped_target, other_target) == 0) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                         "%s %s projection map duplicates target field '%s'.\n"
+                        "Contract source:\n"
+                        "- target slot '%s' on %s '%s'\n"
+                        "- source slot '%s' is driving this %s path\n"
                         "Reason:\n"
                         "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                         "- each projection target field may be filled from exactly one source field\n"
@@ -297,6 +324,11 @@ type_check_projection_contract(ASTNode **slots,
                         "- keep a single mapping for '%s'\n"
                         "- or split the target into distinct projection fields",
                         owner_label, action_name, mapped_target,
+                        object_slot_name != NULL ? object_slot_name : "<unknown>",
+                        owner_label != NULL ? owner_label : "<owner>",
+                        owner_name != NULL ? owner_name : "<owner>",
+                        source_slot_name != NULL ? source_slot_name : "<unknown>",
+                        action_name,
                         object_slot_name != NULL ? object_slot_name : "<unknown>",
                         source_slot_name != NULL ? source_slot_name : "<unknown>",
                         object_slot_name != NULL ? object_slot_name : "<unknown>",
@@ -361,6 +393,9 @@ type_check_projection_contract(ASTNode **slots,
                 && strcmp(source_field_name, target_field->name) != 0) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                     "%s %s target field '%s' maps from missing source field '%s' in slot '%s'.\n"
+                    "Contract source:\n"
+                    "- target slot '%s' on %s '%s'\n"
+                    "- source slot '%s' is driving this %s path\n"
                     "Reason:\n"
                     "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                     "- field map explicitly requests '%s <- %s'\n"
@@ -373,6 +408,11 @@ type_check_projection_contract(ASTNode **slots,
                     target_field->name,
                     source_field_name,
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    owner_label != NULL ? owner_label : "<owner>",
+                    owner_name != NULL ? owner_name : "<owner>",
+                    source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    action_name,
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
                     target_field->name,
@@ -391,6 +431,9 @@ type_check_projection_contract(ASTNode **slots,
             } else {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                     "%s %s target field '%s' is missing from source slot '%s'.\n"
+                    "Contract source:\n"
+                    "- target slot '%s' on %s '%s'\n"
+                    "- source slot '%s' is driving this %s path\n"
                     "Reason:\n"
                     "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                     "- projection target '%s' expects field '%s'\n"
@@ -402,6 +445,11 @@ type_check_projection_contract(ASTNode **slots,
                     owner_label, action_name,
                     target_field->name,
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    object_slot_name != NULL ? object_slot_name : "<unknown>",
+                    owner_label != NULL ? owner_label : "<owner>",
+                    owner_name != NULL ? owner_name : "<owner>",
+                    source_slot_name != NULL ? source_slot_name : "<unknown>",
+                    action_name,
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
                     source_slot_name != NULL ? source_slot_name : "<unknown>",
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
@@ -421,6 +469,9 @@ type_check_projection_contract(ASTNode **slots,
         if (!type_is_assignable(source_field_type, target_field_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                 "%s %s target field '%s' cannot accept source path '%s' from slot '%s'.\n"
+                "Contract source:\n"
+                "- target slot '%s' on %s '%s'\n"
+                "- source slot '%s' is driving this %s path\n"
                 "Reason:\n"
                 "- projection consumer path is target slot '%s' <- source slot '%s'\n"
                 "- projection target slot '%s' expects field '%s' to have type '%s'\n"
@@ -433,6 +484,11 @@ type_check_projection_contract(ASTNode **slots,
                 target_field->name,
                 source_path != NULL ? source_path : source_field_name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
+                object_slot_name != NULL ? object_slot_name : "<unknown>",
+                owner_label != NULL ? owner_label : "<owner>",
+                owner_name != NULL ? owner_name : "<owner>",
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                action_name,
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<unknown>",

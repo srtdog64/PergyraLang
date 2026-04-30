@@ -1,0 +1,144 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Let-binding ownership helper routines.
+ */
+
+#include <string.h>
+
+#include "type_checker_ownership_let_internal.h"
+
+Type *
+ownership_let_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
+}
+
+Type *
+ownership_let_resolve_first_call_type_arg(ASTNode *call, SemanticContext *ctx)
+{
+    GenericParam *param;
+    ASTNode *inner_node;
+    const char *inner_name;
+
+    if (call == NULL || call->type != AST_CALL
+        || call->data.call.generic_args == NULL
+        || call->data.call.generic_args->count < 1
+        || call->data.call.generic_args->params == NULL
+        || call->data.call.generic_args->params[0] == NULL) {
+        return NULL;
+    }
+
+    param = call->data.call.generic_args->params[0];
+    inner_node = param->constraint;
+    inner_name = param->name;
+    if (inner_node != NULL)
+        return ownership_let_resolve_type_ref(inner_node, ctx);
+    if (inner_name != NULL) {
+        ASTNode synth = {0};
+        synth.type = AST_TYPE;
+        synth.data.type.name = (char *)inner_name;
+        return ownership_let_resolve_type_ref(&synth, ctx);
+    }
+    return NULL;
+}
+
+bool
+ownership_let_view_init_info(ASTNode *init,
+                             const char **source_slot,
+                             bool *is_write_view)
+{
+    const char *callee_name;
+
+    if (source_slot != NULL)
+        *source_slot = NULL;
+    if (is_write_view != NULL)
+        *is_write_view = false;
+    if (init == NULL || init->type != AST_CALL
+        || init->data.call.callee == NULL
+        || init->data.call.callee->type != AST_IDENTIFIER
+        || init->data.call.arg_count < 1
+        || init->data.call.arguments[0] == NULL
+        || init->data.call.arguments[0]->type != AST_IDENTIFIER) {
+        return false;
+    }
+
+    callee_name = init->data.call.callee->data.identifier.name;
+    if (callee_name == NULL)
+        return false;
+    if (strcmp(callee_name, "ViewRead") != 0
+        && strcmp(callee_name, "ViewWrite") != 0) {
+        return false;
+    }
+
+    if (source_slot != NULL)
+        *source_slot = init->data.call.arguments[0]->data.identifier.name;
+    if (is_write_view != NULL)
+        *is_write_view = strcmp(callee_name, "ViewWrite") == 0;
+    return true;
+}
+
+bool
+ownership_let_find_conflicting_view(Scope *scope,
+                                    const char *source_slot,
+                                    bool new_write_view,
+                                    const char **existing_name,
+                                    const char **existing_kind)
+{
+    for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
+        for (size_t i = 0; i < cur->symbol_count; i++) {
+            Symbol *sym = cur->symbols[i];
+            bool existing_read;
+            bool existing_write;
+
+            if (sym == NULL || sym->slot_info.paired_slot_name == NULL
+                || source_slot == NULL
+                || strcmp(sym->slot_info.paired_slot_name, source_slot) != 0) {
+                continue;
+            }
+            existing_read = type_is_read_view(sym->type);
+            existing_write = type_is_write_view(sym->type);
+            if (!existing_read && !existing_write)
+                continue;
+            if (!new_write_view && !existing_write)
+                continue;
+
+            if (existing_name != NULL)
+                *existing_name = sym->name;
+            if (existing_kind != NULL)
+                *existing_kind = existing_write ? "WriteView" : "ReadView";
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+ownership_let_is_unresolved_none_option(const Type *type)
+{
+    return type != NULL
+        && type->kind == TYPE_KIND_CONSTRUCTED
+        && type->data.constructed.constructor == TYPE_OPTION
+        && type->data.constructed.arg_count == 1
+        && type->data.constructed.args != NULL
+        && type->data.constructed.args[0] == TYPE_UNKNOWN;
+}
+
+bool
+ownership_let_is_unresolved_empty_array(const Type *type)
+{
+    return type_is_constructed_named(type, "Array")
+        && type->data.constructed.arg_count == 1
+        && type->data.constructed.args != NULL
+        && type->data.constructed.args[0] == TYPE_UNKNOWN;
+}
+
+bool
+ownership_let_is_unresolved_device_slot(const Type *type)
+{
+    return type_is_constructed_named(type, "DeviceSlot")
+        && type->data.constructed.arg_count == 1
+        && type->data.constructed.args != NULL
+        && type->data.constructed.args[0] == TYPE_UNKNOWN;
+}

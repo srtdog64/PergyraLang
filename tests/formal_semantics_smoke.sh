@@ -57,6 +57,13 @@ TODO_PATH="$ROOT_DIR/TODO.md"
 CI_PATH="$ROOT_DIR/.github/workflows/ci.yml"
 README_PATH="$ROOT_DIR/README.md"
 SLOT_COQ="$PROOF_DIR/proofs/SlotCalculus.v"
+EFFECT_SOURCE_PATH="$ROOT_DIR/src/semantic/type_effects.c"
+EFFECT_FLOW_PATH="$ROOT_DIR/src/semantic/type_checker_flow_effects.c"
+EFFECT_TEST_A_PATH="$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a.cases.h"
+EFFECT_TEST_B_PATH="$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_b.cases.h"
+B0_PROVENANCE_TEST_PATH="$ROOT_DIR/src/tests/semantic/test_semantic_b0_provenance.cases.h"
+BUILTINS_STDLIB_BODY_PATH="$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_body.c"
+FUNC_DECL_PATH="$ROOT_DIR/src/semantic/type_checker_func_decl.c"
 
 require_file "$INDEX_PATH" "docs/102_formal_semantics_and_proof_obligations.md"
 require_file "$PROOF_DIR" "docs/semantics proof folder"
@@ -69,6 +76,13 @@ require_file "$TODO_PATH" "TODO.md"
 require_file "$CI_PATH" ".github/workflows/ci.yml"
 require_file "$README_PATH" "README.md"
 require_file "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v"
+require_file "$EFFECT_SOURCE_PATH" "src/semantic/type_effects.c"
+require_file "$EFFECT_FLOW_PATH" "src/semantic/type_checker_flow_effects.c"
+require_file "$EFFECT_TEST_A_PATH" "src/tests/semantic/test_semantic_effects_part_a.cases.h"
+require_file "$EFFECT_TEST_B_PATH" "src/tests/semantic/test_semantic_effects_part_b.cases.h"
+require_file "$B0_PROVENANCE_TEST_PATH" "src/tests/semantic/test_semantic_b0_provenance.cases.h"
+require_file "$BUILTINS_STDLIB_BODY_PATH" "src/semantic/type_checker_builtins_stdlib_body.c"
+require_file "$FUNC_DECL_PATH" "src/semantic/type_checker_func_decl.c"
 
 require_terms "$PROOF_DIR/README.md" "docs/semantics/README.md" <<'TERMS'
 Status: `beta-proof-obligation`
@@ -117,8 +131,66 @@ require_terms "$PROOF_DIR/02_relation_effect_projection.md" "docs/semantics/02_r
 Keywords: `relation`, `effect`, `projection`, `refresh`, `publish`, `bind`.
 ## Theorem: Projection Freshness
 ## Theorem: Effect Conflict Soundness
+Beta-stable partial order contract:
+closure        = collapse >= nondeterministic
+join(a, b)     = closure(a) union closure(b)
+meet(a, b)     = closure(a) intersection closure(b)
+authority      = secure requires authority provenance
+resource edge  = secure | remote | collapse touch a resource boundary
+conflict       = secure conflicts with remote | collapse | nondeterministic
+type_effect_mask_conflicts
 ## Theorem: Projection Diagnostic Completeness
 TERMS
+
+require_terms "$EFFECT_SOURCE_PATH" "src/semantic/type_effects.c" <<'TERMS'
+type_effect_mask_closure
+type_effect_mask_join
+type_effect_mask_meet
+type_effect_mask_requires_authority
+type_effect_mask_touches_resource_boundary
+type_effect_mask_conflicts
+EFFECT_COLLAPSE
+EFFECT_NONDETERMINISTIC
+EFFECT_SECURE
+EFFECT_REMOTE
+TERMS
+
+require_terms "$EFFECT_FLOW_PATH" "src/semantic/type_checker_flow_effects.c" <<'TERMS'
+semantic_warning_with_hints
+PGY_CODE_SEM_EFFECT_CONFLICT
+PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO
+PGY_FIX_SPLIT_EFFECT_FAMILIES
+type_effect_mask_conflicts
+Control-flow branch/join combines conflicting effect classes
+Reason:
+Fix:
+TERMS
+
+require_terms "$EFFECT_TEST_A_PATH" "src/tests/semantic/test_semantic_effects_part_a.cases.h" <<'TERMS'
+effect-partial-order: collapse is a superset of nondeterministic by closure
+effect-partial-order: secure and remote are incomparable
+effect-partial-order: joined secure|remote is a superset of each side
+type_effect_mask_requires_authority
+type_effect_mask_touches_resource_boundary
+type_effect_mask_conflicts
+TERMS
+
+require_terms "$EFFECT_TEST_B_PATH" "src/tests/semantic/test_semantic_effects_part_b.cases.h" <<'TERMS'
+effect-partial-order: disjoint branch effects join into combined contract
+effect-conflict: secure and remote combination emits warning
+effect-conflict: secure and collapse combination emits warning
+effect-conflict: non-adjacent branch combination still emits warning
+TERMS
+
+require_terms "$B0_PROVENANCE_TEST_PATH" "src/tests/semantic/test_semantic_b0_provenance.cases.h" <<'TERMS'
+branch effect conflict warning reports reason and fix
+if branch effect conflict warning reports branch provenance
+then branch contributes 'secure'
+else branch contributes 'remote'
+TERMS
+
+forbid_term "$BUILTINS_STDLIB_BODY_PATH" "src/semantic/type_checker_builtins_stdlib_body.c" "EFFECT_NONDETERMINISTIC | EFFECT_COLLAPSE"
+forbid_term "$FUNC_DECL_PATH" "src/semantic/type_checker_func_decl.c" "semantic_warning_code(ctx, PGY_CODE_SEM_EFFECT_CONFLICT"
 
 require_terms "$PROOF_DIR/03_generics_modules_dag.md" "docs/semantics/03_generics_modules_dag.md" <<'TERMS'
 Keywords and surfaces: `where`, `ability`, generic parameters, default type arguments, module imports/exports, type-resolution DAG.

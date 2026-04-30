@@ -49,3 +49,25 @@ role EmberRole for Adventurer
         }
     }
 }
+
+// Sprint 1 Feature A — Multi-class composition (Fighter + Wizard).
+// Tests whether the `role` primitive expresses character multi-classing
+// without combinatorial explosion (FALSIFICATION.md F2).
+role WarmageRole for Adventurer
+{
+    impl ability Striking
+    {
+        func StrikeMark() -> String
+        {
+            return "warmage-strike";
+        }
+    }
+
+    impl ability Arcane
+    {
+        func ArcaneMark() -> String
+        {
+            return "warmage-arcane";
+        }
+    }
+}

@@ -397,7 +397,8 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, overflow_bb);
-    llvm_emit_frontier_overflow_abort(ctx);
+    llvm_emit_frontier_overflow_abort(ctx,
+        "world derived recompute exceeded bounded pass limit");
 
     LLVMPositionBuilderAtEnd(ctx->builder, finalize_bb);
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), derived_dirty_addr);
@@ -445,7 +446,8 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_overflow_bb);
-    llvm_emit_frontier_overflow_abort(ctx);
+    llvm_emit_frontier_overflow_abort(ctx,
+        "world frontier recompute exceeded bounded pass limit");
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_exit_bb);
 }

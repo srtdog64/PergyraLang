@@ -6463,6 +6463,7 @@ test_event_semantics(void)
 #include "tests/semantic/test_semantic_graph_part_a.cases.h"
 #include "tests/semantic/test_semantic_graph_part_b.cases.h"
 #include "tests/semantic/test_semantic_misc_a_part_a.cases.h"
+#include "tests/semantic/test_semantic_misc_a_part_a2.cases.h"
 #include "tests/semantic/test_semantic_misc_a_part_b.cases.h"
 #include "tests/semantic/test_semantic_misc_b1_part_a.cases.h"
 #include "tests/semantic/test_semantic_misc_b1_part_b.cases.h"

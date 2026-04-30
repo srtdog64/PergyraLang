@@ -141,13 +141,17 @@ require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
     "world.frontier.continue.addr" \
     "world.frontier.overflow" \
     "world.derived.overflow" \
-    "llvm_lookup_or_create_function(ctx, \"abort\"" \
+    "pgy_runtime_panic_internal_invariant_export" \
+    "zone frontier recompute exceeded bounded pass limit" \
+    "world frontier recompute exceeded bounded pass limit" \
+    "world derived recompute exceeded bounded pass limit" \
     "LLVMBuildUnreachable"
 
 require_terms "LLVM projection frontier emitter" "$llvm_projection_contract" \
     "pgy_frontier_projection_pass_limit" \
     "projection.loop.overflow" \
-    "llvm_lookup_or_create_function(ctx, \"abort\"" \
+    "pgy_runtime_panic_internal_invariant_export" \
+    "projection recompute exceeded bounded pass limit" \
     "LLVMBuildUnreachable"
 
 require_terms "frontier policy source of truth" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
@@ -240,6 +244,12 @@ if grep -Eiq 'frontier.*single[- ]pass' "$c_frontier_text"; then
 fi
 if grep -Eiq 'frontier.*single[- ]pass' "$llvm_domain_contract"; then
     fail "LLVM emitter contains single-pass frontier wording"
+fi
+if grep -Fq 'llvm_lookup_or_create_function(ctx, "abort"' "$llvm_domain_contract"; then
+    fail "LLVM frontier emitter must use runtime panic export, not raw abort"
+fi
+if grep -Fq 'llvm_lookup_or_create_function(ctx, "abort"' "$llvm_projection_contract"; then
+    fail "LLVM projection frontier emitter must use runtime panic export, not raw abort"
 fi
 
 echo "[runtime-frontier-contract] bounded C/LLVM frontier contracts are gated"

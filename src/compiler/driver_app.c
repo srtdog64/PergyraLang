@@ -218,6 +218,13 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
             "HIR lowering failed", hir_error);
         goto cleanup;
     }
+    driver_debug_stage("hir_validate");
+    if (!hir_validate(hir, &hir_error)) {
+        driver_emit_stage_fail(flags, "hir_validate",
+            "HIR validation failed",
+            hir_error != NULL ? hir_error : "invalid HIR");
+        goto cleanup;
+    }
 
     driver_debug_stage("dir_lower");
     phase_start = driver_now_seconds();
