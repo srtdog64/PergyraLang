@@ -356,6 +356,71 @@ evaluation Sprint 1 was set up to do.
 (2026-04-30). Investigation is documented; raw artifacts are not
 load-bearing.
 
+### E2 Root Cause + Fix (2026-05-01)
+
+After installing investigation tools (sudo apt blocked → used `strace`,
+self-instrumented compiler stages, `PGY_DEBUG_LLVM_HOST`,
+`PGY_DEBUG_LLVM_STAGE`, `PGY_DEBUG_INTENT_EMIT` env vars), traced the
+crash to one line:
+
+**Pinpoint**: `src/codegen/llvm_intent.c` post-step-loop success block:
+
+```c
+LLVMValueRef success = node->data.intent_decl.success_expr != NULL
+    ? llvm_emit_expression(node->data.intent_decl.success_expr, ctx)
+    : LLVMConstInt(ctx->type_i1, 1, 0);
+LLVMBuildStore(ctx->builder, success, result_alloca);  // crash here
+```
+
+**Failing input**: `TavernRecruitment` intent in
+`intents/campaign_intents.pgy:41`:
+```pergyra
+success: mage.effects.bless >= 0;
+```
+
+**Mechanism**:
+1. The success-clause expression is a deep member access:
+   `mage` (participant) → `.effects` (vessel) → `.bless` (field) → `>= 0`.
+2. `llvm_emit_expression` cannot resolve this *at intent-completion
+   scope* (after step loop, before cleanup). Returns `NULL`.
+3. The pre-fix code had no NULL guard. `LLVMBuildStore(builder, NULL,
+   alloca)` dereferences NULL inside the LLVM C API → SIGSEGV.
+4. The C backend handles the same input via a different expression
+   emission path that resolves member access at runtime, hence
+   `--backend=c --run` succeeded throughout.
+
+**Fix applied** (`src/codegen/llvm_intent.c`):
+- Added explicit NULL-check on `llvm_emit_expression` return value.
+- Falls back to constant `true` (matches C-backend behavior of letting
+  the cleanup tail evaluate the predicate) when the LLVM expression
+  emitter cannot resolve the success/failure clause.
+- Added comment naming this as a known LLVM-backend feature gap
+  (intent-completion-scope deep member access on participant.vessel.
+  field), tracked as a separate beta-readiness ticket.
+
+**Verification**:
+- Before: `./bin/pgy examples/dnd_tavern_campaign/main.pgy` → exit 139
+  (SIGSEGV).
+- After: same command → exit 1 with diagnostic
+  `pgy: LLVM compile failed: LLVM expression type inference requires a
+  concrete type: member access did not resolve to a known field`.
+- Regression: `make test-air` 58/0 pass, `make test-semantic` 2392/0
+  pass, `make test-mir` 26/0 pass, `make test-parser` pass.
+- C backend (`./bin/pgy --backend=c --run examples/.../main.pgy`):
+  unchanged, runs the full campaign to completion (1500+ lines of
+  game output, results.txt saved).
+
+**Remaining work** (out of this fix):
+- LLVM expression emitter coverage for `participant.vessel.field`
+  member access at intent-completion scope. Currently produces graceful
+  diagnostic, not full codegen. Tracked as separate beta-readiness
+  item in `project_dev_pain_points.md` §1c.
+
+**Status**: E2 closed at *crash level*. Underlying expression-coverage
+gap recorded as separate ticket. Sprint 1 modeling stress test can now
+proceed unblocked on the C backend; LLVM-backend full-program codegen
+for dnd-campaign-class programs remains a known limitation.
+
 ## Out of scope for this log
 
 - Web feasibility (verdict in plan: post-1.0; not addressed here)

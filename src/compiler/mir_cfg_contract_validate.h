@@ -2,6 +2,7 @@
 #include "mir_cfg_contract_control.h"
 #include "mir_cfg_contract_cleanup_fact.h"
 #include "mir_cfg_contract_roots.h"
+#include "mir_cfg_contract_cleanup_roots.h"
 
 static bool
 mir_validate_cfg_contract_state(const MIRRoutine *routine,
@@ -35,50 +36,9 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
     if (!mir_validate_cfg_contract_roots(routine, error_message))
         return false;
 
-    if (routine->has_cleanup_block) {
-        const MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
-        if (!cleanup->is_cleanup) {
-            if (error_message != NULL) {
-                *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' cleanup block %zu is not marked as cleanup",
-                    routine->name != NULL ? routine->name : "(anonymous)",
-                    routine->cleanup_block);
-            }
-            return false;
-        }
-        if (cfg_block_count > 0 && routine->cleanup_block >= routine->block_count) {
-            if (error_message != NULL) {
-                *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' has invalid cleanup block",
-                    routine->name != NULL ? routine->name : "(anonymous)");
-            }
-            return false;
-        }
-    }
-    if (routine->has_rollback_block) {
-        const MIRBasicBlock *rollback = &routine->blocks[routine->rollback_block];
-        if (!rollback->is_cleanup) {
-            if (error_message != NULL) {
-                *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' rollback block %zu is not marked as cleanup",
-                    routine->name != NULL ? routine->name : "(anonymous)",
-                    routine->rollback_block);
-            }
-            return false;
-        }
-    }
-    if (routine->has_invalidation_block) {
-        const MIRBasicBlock *invalidation = &routine->blocks[routine->invalidation_block];
-        if (!invalidation->is_cleanup) {
-            if (error_message != NULL) {
-                *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' invalidation block %zu is not marked as cleanup",
-                    routine->name != NULL ? routine->name : "(anonymous)",
-                    routine->invalidation_block);
-            }
-            return false;
-        }
-    }
+    if (!mir_validate_cfg_contract_cleanup_roots(
+            routine, requires_cleanup_for_body, error_message))
+        return false;
 
     if (cfg_block_count > 0) {
         hir_block_seen = calloc(cfg_block_count, sizeof(bool));
@@ -87,16 +47,6 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                 *error_message = pergyra_strdup("out of memory");
             return false;
         }
-    }
-
-    if (requires_cleanup_for_body && !routine->has_cleanup_block) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR routine '%s' requires cleanup block for exceptional flow",
-                routine->name != NULL ? routine->name : "(anonymous)");
-        }
-        free(hir_block_seen);
-        return false;
     }
 
     for (size_t i = 0; i < routine->block_count; i++) {

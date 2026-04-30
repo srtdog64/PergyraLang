@@ -3,6 +3,7 @@
 
 #include "transpiler_intent_prologue_emit.h"
 #include "transpiler_intent_cleanup_emit.h"
+#include "transpiler_intent_failure_emit.h"
 
 static void
 emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
@@ -333,35 +334,18 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
         if (pre_expr != NULL) {
             char *pre = emit_expression(pre_expr, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { ", pre != NULL ? pre : "false");
-            codebuf_write(ctx->out, "__intent_failed = true; ");
-            codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"pre:%s\"); __intent_result = false; ",
-                step_name != NULL ? step_name : "<step>");
-            if (emit_cleanup_from_mir) {
-                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
-                    node->data.intent_decl.name, mir_routine->cleanup_block);
-            } else {
-                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
-            }
+            emit_intent_step_condition_failure(ctx->out, ctx, pre, "pre",
+                step_name, node->data.intent_decl.name, emit_cleanup_from_mir,
+                mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(pre);
         }
 
         if (invariant_pre_expr != NULL) {
             char *invariant = emit_expression(invariant_pre_expr, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
-            codebuf_write(ctx->out, "__intent_failed = true; ");
-            codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-pre:%s\"); __intent_result = false; ",
-                step_name != NULL ? step_name : "<step>");
-            if (emit_cleanup_from_mir) {
-                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
-                    node->data.intent_decl.name, mir_routine->cleanup_block);
-            } else {
-                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
-            }
+            emit_intent_step_condition_failure(ctx->out, ctx, invariant,
+                "invariant-pre", step_name, node->data.intent_decl.name,
+                emit_cleanup_from_mir,
+                mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(invariant);
         }
 
@@ -377,18 +361,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         }
         if (subintent_expr != NULL) {
             char *intent_expr = emit_expression(subintent_expr, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { ", intent_expr != NULL ? intent_expr : "false");
-            codebuf_write(ctx->out, "__intent_failed = true; ");
-            codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"intent:%s\"); __intent_result = false; ",
-                step_name != NULL ? step_name : "<step>");
-            if (emit_cleanup_from_mir) {
-                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
-                    node->data.intent_decl.name, mir_routine->cleanup_block);
-            } else {
-                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
-            }
+            emit_intent_step_condition_failure(ctx->out, ctx, intent_expr,
+                "intent", step_name, node->data.intent_decl.name,
+                emit_cleanup_from_mir,
+                mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(intent_expr);
         } else if (on_expr_count == 0) {
             for (size_t j = 0; j < dispatch_alias_count; j++) {
@@ -455,69 +431,37 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
         if (guard_expr != NULL) {
             char *guard = emit_expression(guard_expr, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { ", guard != NULL ? guard : "false");
-            codebuf_write(ctx->out, "__intent_failed = true; ");
-            codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"guard:%s\"); __intent_result = false; ",
-                step_name != NULL ? step_name : "<step>");
-            if (emit_cleanup_from_mir) {
-                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
-                    node->data.intent_decl.name, mir_routine->cleanup_block);
-            } else {
-                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
-            }
+            emit_intent_step_condition_failure(ctx->out, ctx, guard,
+                "guard", step_name, node->data.intent_decl.name,
+                emit_cleanup_from_mir,
+                mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(guard);
         }
 
         if (expect_expr != NULL) {
             char *expect = emit_expression(expect_expr, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { ", expect != NULL ? expect : "false");
-            codebuf_write(ctx->out, "__intent_failed = true; ");
-            codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"expect:%s\"); __intent_result = false; ",
-                step_name != NULL ? step_name : "<step>");
-            if (emit_cleanup_from_mir) {
-                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
-                    node->data.intent_decl.name, mir_routine->cleanup_block);
-            } else {
-                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
-            }
+            emit_intent_step_condition_failure(ctx->out, ctx, expect,
+                "expect", step_name, node->data.intent_decl.name,
+                emit_cleanup_from_mir,
+                mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(expect);
         }
 
         if (post_expr != NULL) {
             char *post = emit_expression(post_expr, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { ", post != NULL ? post : "false");
-            codebuf_write(ctx->out, "__intent_failed = true; ");
-            codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"post:%s\"); __intent_result = false; ",
-                step_name != NULL ? step_name : "<step>");
-            if (emit_cleanup_from_mir) {
-                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
-                    node->data.intent_decl.name, mir_routine->cleanup_block);
-            } else {
-                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
-            }
+            emit_intent_step_condition_failure(ctx->out, ctx, post,
+                "post", step_name, node->data.intent_decl.name,
+                emit_cleanup_from_mir,
+                mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(post);
         }
 
         if (invariant_post_expr != NULL) {
             char *invariant = emit_expression(invariant_post_expr, ctx);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
-            codebuf_write(ctx->out, "__intent_failed = true; ");
-            codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-post:%s\"); __intent_result = false; ",
-                step_name != NULL ? step_name : "<step>");
-            if (emit_cleanup_from_mir) {
-                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
-                    node->data.intent_decl.name, mir_routine->cleanup_block);
-            } else {
-                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
-            }
+            emit_intent_step_condition_failure(ctx->out, ctx, invariant,
+                "invariant-post", step_name, node->data.intent_decl.name,
+                emit_cleanup_from_mir,
+                mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(invariant);
         }
         write_indent(ctx);
