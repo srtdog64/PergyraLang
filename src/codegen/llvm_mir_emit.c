@@ -389,15 +389,14 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     llvm_mir_debug_stage("emit_func_from_mir:blocks_ready", routine);
 
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
+    llvm_scope_push(ctx);
+    llvm_defer_scope_push(ctx);
+    llvm_emit_mir_param_allocas(routine, func_decl, fn, ctx, is_intent, is_method,
+                                owner_cls, owner_name, param_count);
     llvm_emit_mir_local_allocas(routine, ctx, &vars, &var_capacity, &var_count);
     llvm_mir_debug_stage("emit_func_from_mir:locals_ready", routine);
 
-    llvm_scope_push(ctx);
-    llvm_defer_scope_push(ctx);
-
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
-    llvm_emit_mir_param_allocas(routine, func_decl, fn, ctx, is_intent, is_method,
-                                owner_cls, owner_name, param_count);
     if (owner_sync != NULL) {
         LLVMVarEntry *self_entry = llvm_scope_lookup(ctx, "self");
         if (self_entry != NULL) {

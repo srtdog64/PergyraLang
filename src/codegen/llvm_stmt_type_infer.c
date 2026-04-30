@@ -40,7 +40,16 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
 
     if (init->type == AST_IDENTIFIER && init->data.identifier.name != NULL) {
         name = init->data.identifier.name;
-        if (llvm_scope_lookup(ctx, name) != NULL) {
+        {
+            LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
+            if (var != NULL) {
+                LLVMClassTypeEntry *var_cls =
+                    llvm_stmt_lookup_class_by_type(ctx, var->type);
+                if (var_cls != NULL)
+                    return var_cls->class_name;
+            }
+        }
+        {
             const char *tracked = llvm_lookup_var_class(ctx, name);
             if (tracked != NULL)
                 return tracked;
@@ -220,8 +229,23 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (field_idx >= 0)
                 return base_cls->fields[field_idx].field_type;
         }
-        return llvm_stmt_unknown_expr_type(ctx, expr,
-            "member access did not resolve to a known field");
+        {
+            char reason[256];
+            const char *field_name = expr->data.member.name != NULL
+                ? expr->data.member.name : "<field>";
+            const char *base_expr_name =
+                (expr->data.member.object != NULL
+                 && expr->data.member.object->type == AST_IDENTIFIER
+                 && expr->data.member.object->data.identifier.name != NULL)
+                    ? expr->data.member.object->data.identifier.name
+                    : NULL;
+            snprintf(reason, sizeof(reason),
+                     "member access '%s:%s.%s' did not resolve to a known field",
+                     base_expr_name != NULL ? base_expr_name : "<expr>",
+                     base_name != NULL ? base_name : "<unknown>",
+                     field_name);
+            return llvm_stmt_unknown_expr_type(ctx, expr, reason);
+        }
     }
     case AST_CALL:
         if (expr->data.call.callee != NULL

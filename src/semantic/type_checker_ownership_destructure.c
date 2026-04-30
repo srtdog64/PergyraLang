@@ -12,11 +12,19 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
 
+static Type *
+ownership_destructure_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 static bool
 type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
                                 SemanticContext *ctx)
 {
-    Type *init_type = init != NULL ? type_check_expression(init, ctx) : TYPE_UNKNOWN;
+    Type *init_type = init != NULL
+        ? ownership_destructure_normalize_type(type_check_expression(init, ctx))
+        : TYPE_UNKNOWN;
 
     if (type_is_tuple(init_type)) {
         size_t arity = type_tuple_arity(init_type);

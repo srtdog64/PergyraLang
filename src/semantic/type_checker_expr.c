@@ -12,6 +12,12 @@ expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
+static Type *
+expr_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 Type *
 type_check_expression(ASTNode *expr, SemanticContext *ctx)
 {
@@ -79,7 +85,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                 expr->data.lambda_expr.return_type, ctx);
         } else if (expr->data.lambda_expr.body != NULL
                    && expr->data.lambda_expr.body->type != AST_BLOCK) {
-            return_type = type_check_expression(expr->data.lambda_expr.body, ctx);
+            return_type = expr_normalize_type(
+                type_check_expression(expr->data.lambda_expr.body, ctx));
         } else {
             return_type = TYPE_VOID;
         }
@@ -214,8 +221,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         if (elems == NULL)
             return TYPE_UNKNOWN;
         for (size_t i = 0; i < n; i++)
-            elems[i] = type_check_expression(
-                expr->data.tuple_literal.elements[i], ctx);
+            elems[i] = expr_normalize_type(type_check_expression(
+                expr->data.tuple_literal.elements[i], ctx));
         Type *tup = type_create_tuple(elems, n);
         free(elems);
         return tup != NULL ? tup : TYPE_UNKNOWN;

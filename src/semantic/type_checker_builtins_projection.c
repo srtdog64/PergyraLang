@@ -9,6 +9,12 @@ builtin_projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 }
 
 static Type *
+builtin_projection_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+static Type *
 type_check_projection_call(ASTNode *call,
                            SemanticContext *ctx,
                            const char *builtin_name,
@@ -82,15 +88,16 @@ type_check_projection_call(ASTNode *call,
         return TYPE_UNKNOWN;
     }
 
-    source_type = type_check_expression(source_arg, ctx);
-    if (source_type == NULL || source_type == TYPE_UNKNOWN)
+    source_type = builtin_projection_normalize_type(
+        type_check_expression(source_arg, ctx));
+    if (source_type == TYPE_UNKNOWN)
         return TYPE_UNKNOWN;
 
     if (source_type->kind != TYPE_KIND_CLASS || source_type->name == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, source_arg,
             "%s source must be a subject binding, got '%s'",
             builtin_name,
-            source_type->name != NULL ? source_type->name : "<unknown>");
+            type_name_or_unknown(source_type));
         return TYPE_UNKNOWN;
     }
 
@@ -99,7 +106,7 @@ type_check_projection_call(ASTNode *call,
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, source_arg,
             "%s source '%s' must be a subject declaration",
             builtin_name,
-            source_type->name != NULL ? source_type->name : "<unknown>");
+            type_name_or_unknown(source_type));
         return TYPE_UNKNOWN;
     }
 
@@ -127,7 +134,7 @@ type_check_projection_call(ASTNode *call,
                 "- or expose the desired value directly on the subject host",
                 builtin_name,
                 target_field->name,
-                source_type->name != NULL ? source_type->name : "<unknown>",
+                type_name_or_unknown(source_type),
                 target_field->name);
             continue;
         }
@@ -136,13 +143,16 @@ type_check_projection_call(ASTNode *call,
                 "%s target field '%s' is missing from source subject '%s'",
                 builtin_name,
                 target_field->name,
-                source_type->name != NULL ? source_type->name : "<unknown>");
+                type_name_or_unknown(source_type));
             continue;
         }
 
         target_field_type = builtin_projection_resolve_type_ref(
             target_field->type, ctx);
-        require_assignable(source_field_type, target_field_type, call, ctx);
+        require_assignable(
+            builtin_projection_normalize_type(source_field_type),
+            builtin_projection_normalize_type(target_field_type),
+            call, ctx);
     }
 
     if (!in_projection_context) {

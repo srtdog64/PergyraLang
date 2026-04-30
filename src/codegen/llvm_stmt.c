@@ -100,8 +100,16 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
     llvm_emit_defers_from(ctx, 0);
 
     if (node->data.return_stmt.value != NULL) {
-        LLVMValueRef val = llvm_emit_expression(node->data.return_stmt.value,
-                                                 ctx);
+        const char *saved_expected_type_name = ctx->expected_type_name;
+        LLVMValueRef val;
+        if (ctx->current_func_decl != NULL
+            && ctx->current_func_decl->type == AST_FUNC_DECL
+            && ctx->current_func_decl->data.func_decl.return_type != NULL) {
+            ctx->expected_type_name = llvm_stmt_render_type_annotation_static(
+                ctx->current_func_decl->data.func_decl.return_type);
+        }
+        val = llvm_emit_expression(node->data.return_stmt.value, ctx);
+        ctx->expected_type_name = saved_expected_type_name;
         if (val != NULL) {
             /* Coerce to expected return type */
             LLVMTypeRef val_type = LLVMTypeOf(val);

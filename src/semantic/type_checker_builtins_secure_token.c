@@ -4,6 +4,14 @@
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
 
+static const char *
+secure_token_slot_name_or_unknown(const Symbol *slot_sym)
+{
+    return (slot_sym != NULL && slot_sym->name != NULL)
+        ? slot_sym->name
+        : "<slot>";
+}
+
 bool
 builtin_validate_secure_token_arg(ASTNode *token_arg,
                                   Symbol *slot_sym,
@@ -26,7 +34,7 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE, token_arg,
             "SecureSlot '%s' requires a named paired token identifier",
-            slot_sym->name != NULL ? slot_sym->name : "<slot>");
+            secure_token_slot_name_or_unknown(slot_sym));
         return false;
     }
 
@@ -37,7 +45,7 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE, token_arg,
             "'%s' is not a capability token for slot '%s'",
-            token_name, slot_sym->name != NULL ? slot_sym->name : "<slot>");
+            token_name, secure_token_slot_name_or_unknown(slot_sym));
         return false;
     }
 
@@ -47,11 +55,13 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE, token_arg,
             "Token '%s' is not paired with slot '%s'",
-            token_name, slot_sym->name);
+            token_name, secure_token_slot_name_or_unknown(slot_sym));
         return false;
     }
 
-    token_args[0] = slot_type->data.slot.inner_type;
+    token_args[0] = slot_type->data.slot.inner_type != NULL
+        ? slot_type->data.slot.inner_type
+        : TYPE_UNKNOWN;
     expected_token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
     if (token_sym->type != NULL && expected_token_type != NULL
         && !type_equals(token_sym->type, expected_token_type)) {
@@ -59,7 +69,7 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE, token_arg,
             "Token '%s' does not match SecureSlot '%s' capability type",
-            token_name, slot_sym->name);
+            token_name, secure_token_slot_name_or_unknown(slot_sym));
         return false;
     }
 

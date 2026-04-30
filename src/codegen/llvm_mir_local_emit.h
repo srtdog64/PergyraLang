@@ -26,10 +26,17 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 if (inst->ast != NULL) {
                     if (inst->ast->type == AST_LET_DECL) {
                         value_expr = inst->ast->data.let_decl.initializer;
-                        if (inst->ast->data.let_decl.type != NULL)
+                        if (inst->ast->data.let_decl.type != NULL) {
                             alloca_type = llvm_mir_type_from_ast(
                                 ctx, inst->ast->data.let_decl.type);
-                        else if (inst->ast->data.let_decl.initializer != NULL)
+                            if (has_base_name)
+                                llvm_register_typed_var(ctx, base_name,
+                                    inst->ast->data.let_decl.type);
+                            if (inst->ast->data.let_decl.name != NULL)
+                                llvm_register_typed_var(ctx,
+                                    inst->ast->data.let_decl.name,
+                                    inst->ast->data.let_decl.type);
+                        } else if (inst->ast->data.let_decl.initializer != NULL)
                             alloca_type = llvm_stmt_infer_expr_type(
                                 ctx, inst->ast->data.let_decl.initializer);
                     } else {

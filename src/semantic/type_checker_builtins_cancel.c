@@ -14,8 +14,11 @@ static Type *
 cancel_future_payload_type(Type *task_type)
 {
     if (!type_is_future_like(task_type))
-        return NULL;
-    return type_get_constructed_arg(task_type, 0);
+        return TYPE_UNKNOWN;
+    {
+        Type *payload = type_get_constructed_arg(task_type, 0);
+        return payload != NULL ? payload : TYPE_UNKNOWN;
+    }
 }
 
 bool
@@ -29,7 +32,7 @@ type_check_cancel_rejects_payload(ASTNode *site, Type *task_type,
         return false;
 
     payload_type = cancel_future_payload_type(task_type);
-    if (payload_type == NULL)
+    if (payload_type == TYPE_UNKNOWN)
         return false;
 
     if (type_is_constructed_named(payload_type, "Token")) {

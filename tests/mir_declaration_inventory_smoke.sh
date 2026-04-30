@@ -30,6 +30,7 @@ for rel in \
     "src/codegen/llvm_inventory_host_methods.h" \
     "src/codegen/llvm_pipeline.c" \
     "src/codegen/llvm_domain.c" \
+    "src/codegen/llvm_domain_method_helpers.c" \
     "src/codegen/llvm_backend.h" \
     "src/codegen/llvm_register.c" \
     "src/codegen/transpiler.h" \
@@ -143,6 +144,14 @@ if grep -Fq "decl_header->ast == decl" \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
     fail "llvm_host_decl_methods must be MIRDeclHeader metadata-first; do not require decl_header->ast == decl"
 fi
+
+for term in \
+    "llvm_find_host_method_metadata_in_context" \
+    "method_meta->has_routine" \
+    "llvm_routine_inventory_get" \
+    "routine->kind == MIR_SCOPE_METHOD"; do
+    require_term "src/codegen/llvm_domain_method_helpers.c" "$term"
+done
 
 for term in \
     "llvm_mir_decl_method_param_count(method_meta)" \

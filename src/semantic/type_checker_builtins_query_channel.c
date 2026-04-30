@@ -13,21 +13,27 @@ builtin_type_name_or_unknown(const Type *type)
 }
 
 static Type *
+channel_builtin_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+static Type *
 channel_builtin_element_type(ASTNode *expr, size_t channel_arg_index,
                              const char *name, SemanticContext *ctx)
 {
-    Type *ch_type = type_check_expression(
-        expr->data.call.arguments[channel_arg_index], ctx);
+    Type *ch_type = channel_builtin_normalize_type(type_check_expression(
+        expr->data.call.arguments[channel_arg_index], ctx));
     if (!type_is_constructed_named(ch_type, "Channel")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
             PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
             PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
             expr->data.call.arguments[channel_arg_index],
             "%s requires Channel<T>, got '%s'", name,
-            ch_type != NULL ? ch_type->name : "<null>");
+            builtin_type_name_or_unknown(ch_type));
         return TYPE_UNKNOWN;
     }
-    return type_get_constructed_arg(ch_type, 0);
+    return channel_builtin_normalize_type(type_get_constructed_arg(ch_type, 0));
 }
 
 static Type *
@@ -83,15 +89,18 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                                : TYPE_BOOL;
     }
     Type *element_type = channel_builtin_element_type(expr, 0, name, ctx);
-    Type *value_type = type_check_expression(expr->data.call.arguments[1], ctx);
+    Type *value_type = channel_builtin_normalize_type(
+        type_check_expression(expr->data.call.arguments[1], ctx));
     OwnershipTypeClass element_ownership =
         semantic_classify_ownership_type(element_type, ctx);
     OwnershipTypeClass value_ownership =
         semantic_classify_ownership_type(value_type, ctx);
 
     if (has_timeout) {
-        require_assignable(type_check_expression(expr->data.call.arguments[2], ctx),
-            TYPE_INT, expr->data.call.arguments[2], ctx);
+        Type *timeout_type = channel_builtin_normalize_type(
+            type_check_expression(expr->data.call.arguments[2], ctx));
+        require_assignable(timeout_type, TYPE_INT,
+            expr->data.call.arguments[2], ctx);
     }
 
     if (element_type == TYPE_UNKNOWN) {
@@ -200,8 +209,10 @@ type_check_channel_recv_builtin(ASTNode *expr, const char *name,
     }
     Type *element_type = channel_builtin_element_type(expr, 0, name, ctx);
     if (has_timeout) {
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-            TYPE_INT, expr->data.call.arguments[1], ctx);
+        Type *timeout_type = channel_builtin_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
+        require_assignable(timeout_type, TYPE_INT,
+            expr->data.call.arguments[1], ctx);
     }
     /* Token / movable / anchored / capability rejection lives in
      * channel_builtin_recv_result so the rule lives in one place. */

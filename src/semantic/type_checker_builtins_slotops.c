@@ -5,6 +5,11 @@
 #include "type_checker_channel_transport_internal.h"
 #include "diag_codes.h"
 
+static Type *
+slotops_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
 
 Type *
 type_check_claim_slot(ASTNode *call, SemanticContext *ctx)
@@ -38,7 +43,7 @@ type_check_view_source_type(ASTNode *arg, SemanticContext *ctx)
         }
     }
 
-    return type_check_expression(arg, ctx);
+    return slotops_normalize_type(type_check_expression(arg, ctx));
 }
 
 Type *
@@ -211,7 +216,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
             }
         }
     }
-    Type *slot_type = type_check_expression(slot_arg, ctx);
+    Type *slot_type = slotops_normalize_type(type_check_expression(slot_arg, ctx));
 
     if (type_is_constructed_named(slot_type, "RemoteFuture")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_REMOTE_FUTURE_MISUSE, PGY_CAUSE_REMOTE_FUTURE_DIRECT_ACCESS, PGY_FIX_AWAIT_FUTURE, slot_arg,
@@ -222,7 +227,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     if (slot_type->kind != TYPE_KIND_SLOT) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
             "First argument to Write must be a Slot, got '%s'",
-            slot_type->name);
+            slot_type->name != NULL ? slot_type->name : "<unknown>");
         return false;
     }
     if (type_is_read_view(slot_type)) {
@@ -293,8 +298,8 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     ASTNode *value_arg = call->data.call.arguments[1];
-    Type *value_type = type_check_expression(value_arg, ctx);
-    Type *inner_type = slot_type->data.slot.inner_type;
+    Type *value_type = slotops_normalize_type(type_check_expression(value_arg, ctx));
+    Type *inner_type = slotops_normalize_type(slot_type->data.slot.inner_type);
 
     if (!type_is_assignable(value_type, inner_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
@@ -302,7 +307,9 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
             PGY_FIX_ALIGN_VALUE_TO_SLOT_INNER,
             value_arg,
             "Cannot write '%s' to %s (expected '%s')",
-            value_type->name, slot_type->name, inner_type->name);
+            value_type->name != NULL ? value_type->name : "<unknown>",
+            slot_type->name != NULL ? slot_type->name : "<unknown>",
+            inner_type->name != NULL ? inner_type->name : "<unknown>");
         return false;
     }
 
@@ -321,7 +328,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     ASTNode *slot_arg = call->data.call.arguments[0];
-    Type *slot_type = type_check_expression(slot_arg, ctx);
+    Type *slot_type = slotops_normalize_type(type_check_expression(slot_arg, ctx));
 
     if (type_is_constructed_named(slot_type, "RemoteFuture")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_REMOTE_FUTURE_MISUSE, PGY_CAUSE_REMOTE_FUTURE_DIRECT_ACCESS, PGY_FIX_AWAIT_FUTURE, slot_arg,
@@ -332,7 +339,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
     if (slot_type->kind != TYPE_KIND_SLOT) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
             "First argument to Read must be a Slot, got '%s'",
-            slot_type->name);
+            slot_type->name != NULL ? slot_type->name : "<unknown>");
         return TYPE_UNKNOWN;
     }
     if (type_is_write_view(slot_type)) {
@@ -417,7 +424,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
         }
     }
 
-    return slot_type->data.slot.inner_type;
+    return slotops_normalize_type(slot_type->data.slot.inner_type);
 }
 
 bool
@@ -434,6 +441,13 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     ASTNode *slot_arg = call->data.call.arguments[0];
+    if (slot_arg == NULL) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            call,
+            "Release requires a slot identifier argument");
+        return false;
+    }
 
     /* RemoteFuture has no Release ??it is consumed by await */
     if (slot_arg->type == AST_IDENTIFIER) {

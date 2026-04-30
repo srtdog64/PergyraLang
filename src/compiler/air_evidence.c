@@ -237,31 +237,45 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
 bool
 air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem, char **error_message)
 {
+    const size_t fallback_count = sem != NULL
+        ? sem->type_resolution_metadata_materializer_fallbacks
+        : 0;
+    const size_t generic_fact_count = sem != NULL
+        ? sem->type_resolution_stage_compat_generic_contract_count
+        : 0;
+    const size_t ability_fact_count = sem != NULL
+        ? sem->type_resolution_stage_compat_ability_consumer_count
+        : 0;
+
     if (air == NULL || sem == NULL)
         return true;
 
-    if (!air_append_evidence_node_ex(air,
-                                     AIR_EVIDENCE_DAG_GENERIC,
-                                     SIZE_MAX,
-                                     "type-resolution-dag",
-                                     "generic-contracts",
-                                     sem->type_resolution_stage_compat_generic_contract_count,
-                                     sem->type_resolution_metadata_materializer_fallbacks,
-                                     error_message)) {
-        return false;
+    if (generic_fact_count > 0 || fallback_count > 0) {
+        if (!air_append_evidence_node_ex(air,
+                                         AIR_EVIDENCE_DAG_GENERIC,
+                                         SIZE_MAX,
+                                         "type-resolution-dag",
+                                         "generic-contracts",
+                                         generic_fact_count,
+                                         fallback_count,
+                                         error_message)) {
+            return false;
+        }
+        air->dag_generic_evidence_count++;
     }
-    air->dag_generic_evidence_count++;
 
-    if (!air_append_evidence_node_ex(air,
-                                     AIR_EVIDENCE_DAG_ABILITY,
-                                     SIZE_MAX,
-                                     "type-resolution-dag",
-                                     "ability-consumers",
-                                     sem->type_resolution_stage_compat_ability_consumer_count,
-                                     sem->type_resolution_metadata_materializer_fallbacks,
-                                     error_message)) {
-        return false;
+    if (ability_fact_count > 0 || fallback_count > 0) {
+        if (!air_append_evidence_node_ex(air,
+                                         AIR_EVIDENCE_DAG_ABILITY,
+                                         SIZE_MAX,
+                                         "type-resolution-dag",
+                                         "ability-consumers",
+                                         ability_fact_count,
+                                         fallback_count,
+                                         error_message)) {
+            return false;
+        }
+        air->dag_ability_evidence_count++;
     }
-    air->dag_ability_evidence_count++;
     return true;
 }

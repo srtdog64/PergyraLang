@@ -27,6 +27,7 @@ run_literal_doc_contract_smoke() {
         "src/compiler/mir_cleanup.c"
         "src/compiler/mir_cfg_contract_pin.h"
         "src/compiler/mir_cfg_contract_validate.h"
+        "src/compiler/mir_ssa_use_edges.h"
         "src/test_mir.c"
         "src/semantic/type_checker_ownership_let.c"
     )
@@ -88,6 +89,7 @@ mir_cfg_contract_control_path = root / "src" / "compiler" / "mir_cfg_contract_co
 mir_cfg_contract_validate_path = root / "src" / "compiler" / "mir_cfg_contract_validate.h"
 mir_path = root / "src" / "compiler" / "mir.c"
 mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
+mir_ssa_use_edges_path = root / "src" / "compiler" / "mir_ssa_use_edges.h"
 mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.h"
 mir_dce_path = root / "src" / "compiler" / "mir_dce.h"
 mir_stmt_population_path = root / "src" / "compiler" / "mir_stmt_population.h"
@@ -139,6 +141,7 @@ for path in (
     mir_cfg_contract_validate_path,
     mir_path,
     mir_ssa_rename_path,
+    mir_ssa_use_edges_path,
     mir_liveness_dce_path,
     mir_dce_path,
     mir_stmt_population_path,
@@ -214,6 +217,7 @@ mir_cfg_contract_validate = mir_cfg_contract_validate_path.read_text(encoding="u
 mir_cfg_contract_validator = mir_cfg_contract_pin + "\n" + mir_cfg_contract_validate
 mir = mir_path.read_text(encoding="utf-8")
 mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
+mir_ssa_use_edges = mir_ssa_use_edges_path.read_text(encoding="utf-8")
 mir_liveness_dce = mir_liveness_dce_path.read_text(encoding="utf-8")
 mir_dce = mir_dce_path.read_text(encoding="utf-8")
 mir_stmt_population = mir_stmt_population_path.read_text(encoding="utf-8")
@@ -408,6 +412,7 @@ for forbidden in [
 mir_owner_limits = {
     mir_path: 600,
     mir_ssa_rename_path: 600,
+    mir_ssa_use_edges_path: 600,
     mir_liveness_dce_path: 600,
     mir_dce_path: 600,
     mir_stmt_population_path: 600,
@@ -430,8 +435,13 @@ required_mir_owner_terms = {
     ],
     "src/compiler/mir_ssa_rename.h": [
         "mir_apply_ssa_rename",
-        "mir_populate_use_edges",
         "mir_collect_ssa_names",
+    ],
+    "src/compiler/mir_ssa_use_edges.h": [
+        "mir_append_versioned_use",
+        "mir_append_block_versioned_name",
+        "mir_parse_versioned_name",
+        "mir_populate_use_edges",
     ],
     "src/compiler/mir_liveness_dce.h": [
         "mir_compute_liveness",
@@ -473,6 +483,7 @@ required_mir_owner_terms = {
 mir_owner_text = {
     "src/compiler/mir.c": mir,
     "src/compiler/mir_ssa_rename.h": mir_ssa_rename,
+    "src/compiler/mir_ssa_use_edges.h": mir_ssa_use_edges,
     "src/compiler/mir_liveness_dce.h": mir_liveness_dce,
     "src/compiler/mir_dce.h": mir_dce,
     "src/compiler/mir_stmt_population.h": mir_stmt_population,

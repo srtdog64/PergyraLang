@@ -21,8 +21,9 @@ llvm_mir_emit_with_claim_only(ASTNode *node, LLVMGenCtx *ctx)
         && node->data.with_stmt.slot_type->data.type.name != NULL) {
         ASTNode *slot_type = node->data.with_stmt.slot_type;
         GenericParams *generic_args = slot_type->data.type.generic_args;
-        if (generic_args != NULL && generic_args->count > 0
-            && generic_args->params != NULL
+        if (generic_args == NULL || generic_args->count == 0) {
+            inner = slot_type->data.type.name;
+        } else if (generic_args->params != NULL
             && generic_args->params[0] != NULL) {
             GenericParam *param = generic_args->params[0];
             if (param->constraint != NULL
@@ -406,7 +407,16 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             llvm_emit_defers_from(ctx, 0);
             llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
             if (inst->ast != NULL) {
-                LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
+                const char *saved_expected_type_name = ctx->expected_type_name;
+                LLVMValueRef val;
+                if (ctx->current_func_decl != NULL
+                    && ctx->current_func_decl->type == AST_FUNC_DECL
+                    && ctx->current_func_decl->data.func_decl.return_type != NULL) {
+                    ctx->expected_type_name = llvm_stmt_render_type_annotation_static(
+                        ctx->current_func_decl->data.func_decl.return_type);
+                }
+                val = llvm_emit_expression(inst->ast, ctx);
+                ctx->expected_type_name = saved_expected_type_name;
                 if (val != NULL) {
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;

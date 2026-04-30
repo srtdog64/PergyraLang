@@ -52,6 +52,12 @@ spawn_find_callable_decl(ASTNode *program, const char *name)
 static bool
 semantic_channel_type_is_token(const Type *type);
 
+static Type *
+async_channel_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 static bool
 semantic_type_ref_names_token(ASTNode *type_ref)
 {
@@ -240,9 +246,10 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
         return type_create_constructed(TYPE_FUTURE, args, 1);
     }
     /* Type-check the spawned function/expression */
-    inner = type_check_expression(expr->data.spawn_expr.function, ctx);
+    inner = async_channel_normalize_type(
+        type_check_expression(expr->data.spawn_expr.function, ctx));
     semantic_validate_spawn_ref_boundary(expr, ctx, inner);
-    args[0] = inner != NULL ? inner : TYPE_UNKNOWN;
+    args[0] = inner;
     return type_create_constructed(TYPE_FUTURE, args, 1);
 }
 
@@ -264,10 +271,11 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         return TYPE_VOID;
     }
     /* Check channel and value types */
-    Type *channel_type = type_check_expression(expr->data.channel_send.channel, ctx);
-    Type *value_type = type_check_expression(expr->data.channel_send.value, ctx);
-    if (channel_type == NULL
-        || channel_type->kind != TYPE_KIND_CONSTRUCTED
+    Type *channel_type = async_channel_normalize_type(
+        type_check_expression(expr->data.channel_send.channel, ctx));
+    Type *value_type = async_channel_normalize_type(
+        type_check_expression(expr->data.channel_send.value, ctx));
+    if (channel_type->kind != TYPE_KIND_CONSTRUCTED
         || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
         || channel_type->data.constructed.arg_count != 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
@@ -275,11 +283,12 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
             PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
             expr->data.channel_send.channel,
             "Channel send requires Channel<T>, got '%s'",
-            channel_type != NULL ? channel_type->name : "<null>");
+            type_name_or_unknown(channel_type));
         return TYPE_VOID;
     }
 
-    Type *element_type = channel_type->data.constructed.args[0];
+    Type *element_type = async_channel_normalize_type(
+        channel_type->data.constructed.args[0]);
     OwnershipTypeClass element_ownership =
         semantic_classify_ownership_type(element_type, ctx);
     OwnershipTypeClass value_ownership =
@@ -399,9 +408,9 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
             "move the channel receive")) {
         return TYPE_UNKNOWN;
     }
-    Type *channel_type = type_check_expression(expr->data.channel_recv.channel, ctx);
-    if (channel_type == NULL
-        || channel_type->kind != TYPE_KIND_CONSTRUCTED
+    Type *channel_type = async_channel_normalize_type(
+        type_check_expression(expr->data.channel_recv.channel, ctx));
+    if (channel_type->kind != TYPE_KIND_CONSTRUCTED
         || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
         || channel_type->data.constructed.arg_count != 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
@@ -409,11 +418,13 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
             PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
             expr->data.channel_recv.channel,
             "Channel recv requires Channel<T>, got '%s'",
-            channel_type != NULL ? channel_type->name : "<null>");
+            type_name_or_unknown(channel_type));
         return TYPE_UNKNOWN;
     }
 
-    if (semantic_channel_type_is_token(channel_type->data.constructed.args[0])) {
+    Type *element_type = async_channel_normalize_type(
+        channel_type->data.constructed.args[0]);
+    if (semantic_channel_type_is_token(element_type)) {
         semantic_report_channel_transport_policy(
             expr->data.channel_recv.channel, ctx,
             "Channels cannot yield Token values yet",
@@ -424,5 +435,5 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    return channel_type->data.constructed.args[0];
+    return element_type;
 }

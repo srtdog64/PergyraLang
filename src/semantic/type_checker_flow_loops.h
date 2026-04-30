@@ -141,17 +141,18 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
 
     Type *var_type = TYPE_INT;
     if (node->data.for_loop.iterable != NULL) {
-        Type *coll_type = type_check_expression(node->data.for_loop.iterable, ctx);
+        Type *coll_type = flow_normalize_type(
+            type_check_expression(node->data.for_loop.iterable, ctx));
         if (type_is_constructed_named(coll_type, "Array")
             || type_is_constructed_named(coll_type, "Slice")
             || type_is_constructed_named(coll_type, "List")) {
-            var_type = type_get_constructed_arg(coll_type, 0);
-        } else if (coll_type != NULL && coll_type != TYPE_UNKNOWN) {
+            var_type = flow_normalize_type(type_get_constructed_arg(coll_type, 0));
+        } else if (coll_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_FOR_IN_NON_ITERABLE, PGY_FIX_USE_ARRAY_SLICE_OR_LIST,
                 node->data.for_loop.iterable,
                 "for-in requires Array<T>, Slice<T>, or List<T>, got '%s'",
-                coll_type->name != NULL ? coll_type->name : "<unknown>");
+                type_name_or_unknown(coll_type));
         }
     }
 
@@ -160,11 +161,13 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
     scope_declare(ctx->scope, loop_var);
 
     if (node->data.for_loop.range_start != NULL) {
-        Type *t = type_check_expression(node->data.for_loop.range_start, ctx);
+        Type *t = flow_normalize_type(
+            type_check_expression(node->data.for_loop.range_start, ctx));
         require_assignable(t, TYPE_INT, node->data.for_loop.range_start, ctx);
     }
     if (node->data.for_loop.range_end != NULL) {
-        Type *t = type_check_expression(node->data.for_loop.range_end, ctx);
+        Type *t = flow_normalize_type(
+            type_check_expression(node->data.for_loop.range_end, ctx));
         require_assignable(t, TYPE_INT, node->data.for_loop.range_end, ctx);
     }
 
@@ -283,14 +286,16 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
         loop_flow.loop_scope = ctx->scope;
         restore_resource_states(&entry);
         ctx->current_function_effects = effect_base;
-        Type *cond = type_check_expression(node->data.while_loop.condition, ctx);
+        Type *cond = flow_normalize_type(
+            type_check_expression(node->data.while_loop.condition, ctx));
         if (!type_equals(cond, TYPE_BOOL)) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_CONDITION_NON_BOOL,
                 PGY_FIX_CONVERT_CONDITION_TO_BOOL,
                 node,
-                "While condition must be Bool, got '%s'", cond->name);
+                "While condition must be Bool, got '%s'",
+                type_name_or_unknown(cond));
         }
 
         scope_enter(&ctx->scope, SCOPE_BLOCK);

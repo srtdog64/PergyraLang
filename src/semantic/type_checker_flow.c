@@ -71,6 +71,12 @@ flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return semantic_type_resolution_lookup_annotation_nullable(ctx, type_ref);
 }
 
+static Type *
+flow_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 static bool
 flow_condition_is_static_bool(const ASTNode *node)
 {
@@ -186,7 +192,8 @@ static FlowFlags
 type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
                         LoopFlowState *loop_flow)
 {
-    Type *cond = type_check_expression(node->data.if_stmt.condition, ctx);
+    Type *cond = flow_normalize_type(
+        type_check_expression(node->data.if_stmt.condition, ctx));
     uint32_t effect_base = ctx->current_function_effects;
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     ResourceConsumeSnapshot fallthrough = {0};
@@ -306,7 +313,8 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
         }
 
         if (mc->data.match_case.guard != NULL) {
-            Type *guard_type = type_check_expression(mc->data.match_case.guard, ctx);
+            Type *guard_type = flow_normalize_type(
+                type_check_expression(mc->data.match_case.guard, ctx));
             if (!type_equals(guard_type, TYPE_BOOL)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_CONDITION_NON_BOOL, PGY_FIX_CONVERT_CONDITION_TO_BOOL,
@@ -399,7 +407,7 @@ type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
     const char *alias = node->data.with_stmt.alias;
     bool is_secure = node->data.with_stmt.is_secure;
 
-    Type *inner = flow_resolve_type_ref(slot_type_node, ctx);
+    Type *inner = flow_normalize_type(flow_resolve_type_ref(slot_type_node, ctx));
     Type *slot_type = type_create_slot(inner, is_secure);
 
     Symbol *sym = symbol_create_slot(alias, slot_type, is_secure, NULL,

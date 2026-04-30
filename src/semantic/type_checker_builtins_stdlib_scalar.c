@@ -11,6 +11,12 @@
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
 
+static Type *
+stdlib_scalar_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 Type *
 type_check_stdlib_scalar_call(ASTNode *expr, const char *name,
                               SemanticContext *ctx, bool *handled_out)
@@ -21,15 +27,18 @@ type_check_stdlib_scalar_call(ASTNode *expr, const char *name,
     if (strcmp(name, "Abs") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        return type_check_expression(expr->data.call.arguments[0], ctx);
+        return stdlib_scalar_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
     }
     if (strcmp(name, "Min") == 0 || strcmp(name, "Max") == 0) {
         Type *a;
         Type *b;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        a = type_check_expression(expr->data.call.arguments[0], ctx);
-        b = type_check_expression(expr->data.call.arguments[1], ctx);
+        a = stdlib_scalar_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        b = stdlib_scalar_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
         require_assignable(b, a, expr->data.call.arguments[1], ctx);
         return a;
     }
@@ -101,7 +110,8 @@ type_check_stdlib_scalar_call(ASTNode *expr, const char *name,
         Type *arr_type;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        arr_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        arr_type = stdlib_scalar_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_constructed_named(arr_type, "Array")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
@@ -148,7 +158,8 @@ type_check_stdlib_scalar_call(ASTNode *expr, const char *name,
         Type *val;
         if (!check_call_arity(expr, 3, name, ctx))
             return TYPE_UNKNOWN;
-        val = type_check_expression(expr->data.call.arguments[0], ctx);
+        val = stdlib_scalar_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         type_check_expression(expr->data.call.arguments[1], ctx);
         type_check_expression(expr->data.call.arguments[2], ctx);
         return val;

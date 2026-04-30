@@ -19,6 +19,23 @@ llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
         return NULL;
 
     llvm_active_routine_inventory(ctx, &routine_inventory);
+    {
+        const MIRDeclMethod *method_meta =
+            llvm_find_host_method_metadata_in_context(
+                ctx, owner_name, method_name);
+        const MIRRoutine *routine =
+            method_meta != NULL && method_meta->has_routine
+                ? llvm_routine_inventory_get(
+                    &routine_inventory, method_meta->routine_index)
+                : NULL;
+        if (routine != NULL
+            && routine->kind == MIR_SCOPE_METHOD
+            && routine->name != NULL
+            && strcmp(routine->name, method_name) == 0) {
+            return routine;
+        }
+    }
+
     for (size_t i = 0; i < routine_inventory.count; i++) {
         const MIRRoutine *routine = &routine_inventory.routines[i];
         if (routine->kind != MIR_SCOPE_METHOD)

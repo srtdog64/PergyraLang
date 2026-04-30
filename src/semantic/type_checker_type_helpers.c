@@ -1,10 +1,19 @@
 #include "type_checker_internal.h"
 #include "diag_codes.h"
 
+static Type *
+assignable_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 bool
 require_assignable(Type *from, Type *to, const ASTNode *site,
                    SemanticContext *ctx)
 {
+    from = assignable_normalize_type(from);
+    to = assignable_normalize_type(to);
+
     if (type_is_assignable(from, to))
         return true;
 

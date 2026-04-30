@@ -500,6 +500,8 @@ test_mir_lowering(void)
         EXPECT(ok
                && mir_validate(mir, NULL)
                && purchase != NULL
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block],
+                   "IntentStep", "pay")
                && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
                    "IntentParticipant", "payment", "PaymentZone")
                && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
@@ -1115,6 +1117,8 @@ test_mir_lowering(void)
         if (patrol != NULL) {
             EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
                 "IntentParticipant", "hero", "Hero"));
+            EXPECT(block_has_inst_named_with_slot(&patrol->blocks[patrol->entry_block],
+                "IntentStep", "Guard"));
             EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
                 "IntentZoneWhere", "Arena", "Guard"));
             EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],

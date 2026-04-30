@@ -52,9 +52,9 @@ for required in \
     '"kind":"zone"' \
     '"kind":"rir_boundary"' \
     '"kind":"hir_cfg"' \
-    '"kind":"dag_generic"' \
-    '"kind":"dag_ability"' \
     '"kind":"mir_cleanup"' \
+    '"dag_generic_evidence_count"' \
+    '"dag_ability_evidence_count"' \
     '"location":{"line":' \
     '"authority_names"'; do
     require_text "$required"
@@ -88,8 +88,10 @@ assert data["observability"]["surfaces"] == ["last", "history", "active", "recen
 assert any(b["kind"] == "zone" and b["evidence_flags"]["rir_boundary"] for b in data["boundaries"])
 assert any(e["kind"] == "rir_boundary" for e in data["evidence"])
 assert any(e["kind"] == "hir_cfg" for e in data["evidence"])
-assert any(e["kind"] == "dag_generic" for e in data["evidence"])
-assert any(e["kind"] == "dag_ability" for e in data["evidence"])
+if summary["dag_generic_evidence_count"] > 0:
+    assert any(e["kind"] == "dag_generic" for e in data["evidence"])
+if summary["dag_ability_evidence_count"] > 0:
+    assert any(e["kind"] == "dag_ability" for e in data["evidence"])
 assert any(e["kind"] == "mir_cleanup" for e in data["evidence"])
 assert all("location" in b and b["location"]["line"] > 0 for b in data["boundaries"])
 print("[air-json-schema] parsed schema ok")

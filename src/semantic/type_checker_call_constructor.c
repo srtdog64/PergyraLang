@@ -21,6 +21,12 @@ constructor_call_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
+static Type *
+constructor_call_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 bool
 type_check_constructor_symbol_call(ASTNode *expr,
                                    Symbol *sym,
@@ -88,8 +94,9 @@ type_check_constructor_symbol_call(ASTNode *expr,
                             continue;
                         Type *field_type = constructor_call_resolve_type_ref(
                             field_type_node, ctx);
-                        Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
-                        if (field_type != NULL && arg_type != NULL
+                        Type *arg_type = constructor_call_normalize_type(
+                            type_check_expression(expr->data.call.arguments[i], ctx));
+                        if (field_type != NULL
                             && !type_is_assignable(arg_type, field_type)) {
                             semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr->data.call.arguments[i],
                                 "Constructor '%s' argument %llu initializes field '%s' of type '%s', got '%s'",

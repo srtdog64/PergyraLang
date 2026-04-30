@@ -9,6 +9,26 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
 
+static Type *
+ownership_return_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+static Type *
+ownership_return_apply_context(ASTNode *value, Type *value_type,
+                               Type *expected_type)
+{
+    if (value == NULL || expected_type == NULL || expected_type == TYPE_UNKNOWN)
+        return value_type;
+    if (value->type == AST_ARRAY_LITERAL
+        && value->data.array_literal.count == 0
+        && type_is_constructed_named(expected_type, "Array")) {
+        return expected_type;
+    }
+    return value_type;
+}
+
 bool
 type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 {
@@ -17,7 +37,11 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
     semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_RETURN);
 
     if (node->data.return_stmt.value != NULL)
-        ret_type = type_check_expression(node->data.return_stmt.value, ctx);
+        ret_type = ownership_return_normalize_type(
+            type_check_expression(node->data.return_stmt.value, ctx));
+    ret_type = ownership_return_apply_context(node->data.return_stmt.value,
+                                              ret_type,
+                                              ctx->current_return);
 
     if (ctx->current_return != NULL)
         require_assignable(ret_type, ctx->current_return, node, ctx);

@@ -211,14 +211,18 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             }
             stmt_count++;
         }
-        if (stmt_count == 0)
+        if (stmt_count == 0) {
+            free(copied_flags);
             continue;
+        }
 
         /* Allocate new instruction array */
         size_t new_cap = old_count + stmt_count;
         MIRInstruction *new_insts = calloc(new_cap, sizeof(MIRInstruction));
-        if (new_insts == NULL)
+        if (new_insts == NULL) {
+            free(copied_flags);
             return false;
+        }
         size_t new_count = 0;
 
         /* Phase 1: copy PHI instructions */

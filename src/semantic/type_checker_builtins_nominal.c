@@ -4,6 +4,12 @@
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
 
+static Type *
+nominal_builtin_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 static bool
 type_is_rc_weak_beta_payload(Type *type)
 {
@@ -41,7 +47,8 @@ type_check_rc_new(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcNew requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
-    Type *payload = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *payload = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!require_rc_weak_beta_payload(call, ctx, "RcNew", payload))
         return TYPE_UNKNOWN;
     return wrap_constructed(TYPE_RC, payload);
@@ -54,9 +61,10 @@ type_check_rc_clone(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcClone requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
-    Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *rc_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_is_constructed_named(rc_type, "Rc")) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcClone requires Rc<T>, got '%s'", rc_type->name);
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcClone requires Rc<T>, got '%s'", type_name_or_unknown(rc_type));
         return TYPE_UNKNOWN;
     }
     if (!require_rc_weak_beta_payload(call, ctx, "RcClone",
@@ -72,12 +80,14 @@ type_check_rc_get(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcGet requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
-    Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *rc_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_is_constructed_named(rc_type, "Rc")) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcGet requires Rc<T>, got '%s'", rc_type->name);
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcGet requires Rc<T>, got '%s'", type_name_or_unknown(rc_type));
         return TYPE_UNKNOWN;
     }
-    Type *payload = type_get_constructed_arg(rc_type, 0);
+    Type *payload = nominal_builtin_normalize_type(
+        type_get_constructed_arg(rc_type, 0));
     if (!require_rc_weak_beta_payload(call, ctx, "RcGet", payload))
         return TYPE_UNKNOWN;
     return payload;
@@ -90,12 +100,14 @@ type_check_rc_downgrade(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcDowngrade requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
-    Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *rc_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_is_constructed_named(rc_type, "Rc")) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcDowngrade requires Rc<T>, got '%s'", rc_type->name);
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "RcDowngrade requires Rc<T>, got '%s'", type_name_or_unknown(rc_type));
         return TYPE_UNKNOWN;
     }
-    Type *payload = type_get_constructed_arg(rc_type, 0);
+    Type *payload = nominal_builtin_normalize_type(
+        type_get_constructed_arg(rc_type, 0));
     if (!require_rc_weak_beta_payload(call, ctx, "RcDowngrade", payload))
         return TYPE_UNKNOWN;
     return wrap_constructed(TYPE_WEAK, payload);
@@ -108,13 +120,15 @@ type_check_weak_upgrade(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakUpgrade requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
-    Type *weak_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *weak_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_is_constructed_named(weak_type, "Weak")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakUpgrade requires Weak<T>, got '%s'",
-            weak_type->name);
+            type_name_or_unknown(weak_type));
         return TYPE_UNKNOWN;
     }
-    Type *payload = type_get_constructed_arg(weak_type, 0);
+    Type *payload = nominal_builtin_normalize_type(
+        type_get_constructed_arg(weak_type, 0));
     if (!require_rc_weak_beta_payload(call, ctx, "WeakUpgrade", payload))
         return TYPE_UNKNOWN;
     return wrap_constructed(TYPE_RC, payload);
@@ -127,9 +141,10 @@ type_check_weak_drop(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakDrop requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
-    Type *weak_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *weak_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_is_constructed_named(weak_type, "Weak")) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakDrop requires Weak<T>, got '%s'", weak_type->name);
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "WeakDrop requires Weak<T>, got '%s'", type_name_or_unknown(weak_type));
         return TYPE_UNKNOWN;
     }
     if (!require_rc_weak_beta_payload(call, ctx, "WeakDrop",
@@ -154,13 +169,14 @@ type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx,
     }
 
     if (requires_capacity) {
-        Type *cap_type = type_check_expression(call->data.call.arguments[0], ctx);
+        Type *cap_type = nominal_builtin_normalize_type(
+            type_check_expression(call->data.call.arguments[0], ctx));
         if (!type_equals(cap_type, TYPE_INT) && !type_equals(cap_type, TYPE_LONG)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_BUILTIN_CAPACITY_NON_INTEGER, PGY_FIX_USE_INT_OR_LONG_CAPACITY,
                 call->data.call.arguments[0],
                 "AllocatorPool capacity must be Int or Long, got '%s'",
-                cap_type->name);
+                type_name_or_unknown(cap_type));
             return TYPE_UNKNOWN;
         }
     }
@@ -177,7 +193,8 @@ type_check_box_builtin(ASTNode *call, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "Box requires exactly 1 argument");
         return TYPE_UNKNOWN;
     }
-    payload = type_check_expression(call->data.call.arguments[0], ctx);
+    payload = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (semantic_reject_active_slot_owner_escape(
             call->data.call.arguments[0], ctx, "box", "Box")) {
         return TYPE_UNKNOWN;
@@ -209,13 +226,14 @@ type_check_box_get(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *box_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_is_constructed_named(box_type, "Box")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxGet requires Box<T>, got '%s'",
-            box_type != NULL ? box_type->name : "<null>");
+            type_name_or_unknown(box_type));
         return TYPE_UNKNOWN;
     }
-    return type_get_constructed_arg(box_type, 0);
+    return nominal_builtin_normalize_type(type_get_constructed_arg(box_type, 0));
 }
 
 static Type *
@@ -226,15 +244,18 @@ type_check_box_set(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *box_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_is_constructed_named(box_type, "Box")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxSet requires Box<T>, got '%s'",
-            box_type != NULL ? box_type->name : "<null>");
+            type_name_or_unknown(box_type));
         return TYPE_UNKNOWN;
     }
 
-    Type *inner = type_get_constructed_arg(box_type, 0);
-    Type *value_type = type_check_expression(call->data.call.arguments[1], ctx);
+    Type *inner = nominal_builtin_normalize_type(
+        type_get_constructed_arg(box_type, 0));
+    Type *value_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[1], ctx));
     if (semantic_reject_active_slot_owner_escape(
             call->data.call.arguments[1], ctx, "box", "BoxSet")) {
         return TYPE_UNKNOWN;
@@ -267,10 +288,11 @@ type_check_box_drop(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *box_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_is_constructed_named(box_type, "Box")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxDrop requires Box<T>, got '%s'",
-            box_type != NULL ? box_type->name : "<null>");
+            type_name_or_unknown(box_type));
         return TYPE_UNKNOWN;
     }
     return TYPE_VOID;
@@ -284,10 +306,11 @@ type_check_box_is_valid(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *box_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_is_constructed_named(box_type, "Box")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "BoxIsValid requires Box<T>, got '%s'",
-            box_type != NULL ? box_type->name : "<null>");
+            type_name_or_unknown(box_type));
         return TYPE_UNKNOWN;
     }
     return TYPE_BOOL;
@@ -302,18 +325,22 @@ type_check_box_array_builtin(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    Type *cap_type = type_check_expression(call->data.call.arguments[0], ctx);
+    Type *cap_type = nominal_builtin_normalize_type(
+        type_check_expression(call->data.call.arguments[0], ctx));
     if (!type_equals(cap_type, TYPE_INT) && !type_equals(cap_type, TYPE_LONG)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call->data.call.arguments[0],
-            "BoxArray capacity must be Int or Long, got '%s'", cap_type->name);
+            "BoxArray capacity must be Int or Long, got '%s'",
+            type_name_or_unknown(cap_type));
         return TYPE_UNKNOWN;
     }
 
     if (call->data.call.arg_count == 2) {
-        Type *alloc_type = type_check_expression(call->data.call.arguments[1], ctx);
+        Type *alloc_type = nominal_builtin_normalize_type(
+            type_check_expression(call->data.call.arguments[1], ctx));
         if (!type_equals(alloc_type, TYPE_ALLOCATOR)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call->data.call.arguments[1],
-                "BoxArray allocator must be Allocator, got '%s'", alloc_type->name);
+                "BoxArray allocator must be Allocator, got '%s'",
+                type_name_or_unknown(alloc_type));
             return TYPE_UNKNOWN;
         }
     }

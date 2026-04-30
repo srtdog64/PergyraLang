@@ -2352,6 +2352,32 @@ test_air_rejects_invalid_dag_evidence_provider(void)
 }
 
 static bool
+test_air_rejects_empty_dag_evidence(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_DAG_GENERIC,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "type-resolution-dag",
+            .subject_name = "generic-contracts",
+            .fact_count = 0,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "DAG evidence node 0 has no DAG facts") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_rejects_invalid_dag_evidence_subject(void)
 {
     AIREvidenceNode evidence_nodes[] = {
@@ -4237,6 +4263,9 @@ main(void)
 
     TEST("AIR rejects invalid DAG evidence provider");
     EXPECT(test_air_rejects_invalid_dag_evidence_provider());
+
+    TEST("AIR rejects empty DAG evidence");
+    EXPECT(test_air_rejects_empty_dag_evidence());
 
     TEST("AIR rejects invalid DAG evidence subject");
     EXPECT(test_air_rejects_invalid_dag_evidence_subject());

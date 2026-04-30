@@ -15,11 +15,19 @@
 
 #include "type_checker_operator_expr.h"
 
+static Type *
+expr_ops_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 Type *
 type_check_binary(ASTNode *expr, SemanticContext *ctx)
 {
-    Type *left  = type_check_expression(expr->data.binary.left,  ctx);
-    Type *right = type_check_expression(expr->data.binary.right, ctx);
+    Type *left  = expr_ops_normalize_type(
+        type_check_expression(expr->data.binary.left,  ctx));
+    Type *right = expr_ops_normalize_type(
+        type_check_expression(expr->data.binary.right, ctx));
 
     if (type_is_slot_handle(left) && left->data.slot.inner_type != NULL)
         left = left->data.slot.inner_type;
@@ -52,7 +60,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
                 PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
                 expr,
                 "Cannot compare '%s' and '%s'",
-                left->name, right->name);
+                type_name_or_unknown(left), type_name_or_unknown(right));
         }
         return TYPE_BOOL;
     }
@@ -64,7 +72,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
             PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
             expr,
             "Type mismatch in binary operation: '%s' and '%s'",
-            left->name, right->name);
+            type_name_or_unknown(left), type_name_or_unknown(right));
         return TYPE_UNKNOWN;
     }
 
@@ -74,7 +82,8 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_unary(ASTNode *expr, SemanticContext *ctx)
 {
-    Type *operand = type_check_expression(expr->data.unary.operand, ctx);
+    Type *operand = expr_ops_normalize_type(
+        type_check_expression(expr->data.unary.operand, ctx));
 
     PgyTokenType op = expr->data.unary.op.type;
     if (op == TOKEN_NOT) {
@@ -82,7 +91,8 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
             semantic_error_with_hints(ctx, PGY_CODE_SEM_UNOP_TYPE_MISMATCH,
                 PGY_CAUSE_UNARY_OPERATOR_OPERAND, PGY_FIX_ALIGN_OPERAND_TYPE,
                 expr,
-                "'!' operator requires Bool, got '%s'", operand->name);
+                "'!' operator requires Bool, got '%s'",
+                type_name_or_unknown(operand));
         }
         return TYPE_BOOL;
     }
@@ -94,7 +104,7 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
                 PGY_CAUSE_UNARY_OPERATOR_OPERAND, PGY_FIX_ALIGN_OPERAND_TYPE,
                 expr,
                 "Unary '-' requires numeric type, got '%s'",
-                operand->name);
+                type_name_or_unknown(operand));
         }
         return operand;
     }
@@ -105,10 +115,10 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
                 PGY_CAUSE_UNARY_OPERATOR_OPERAND, PGY_FIX_ALIGN_OPERAND_TYPE,
                 expr,
                 "'?' operator requires Result<T> or Result<T, E>, got '%s'",
-                operand->name);
+                type_name_or_unknown(operand));
             return TYPE_UNKNOWN;
         }
-        return type_get_constructed_arg(operand, 0);
+        return expr_ops_normalize_type(type_get_constructed_arg(operand, 0));
     }
 
     return operand;
@@ -117,26 +127,29 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_array_access(ASTNode *expr, SemanticContext *ctx)
 {
-    Type *object_type = type_check_expression(expr->data.array_access.array, ctx);
-    Type *index_type  = type_check_expression(expr->data.array_access.index, ctx);
+    Type *object_type = expr_ops_normalize_type(
+        type_check_expression(expr->data.array_access.array, ctx));
+    Type *index_type  = expr_ops_normalize_type(
+        type_check_expression(expr->data.array_access.index, ctx));
 
     if (!type_equals(index_type, TYPE_INT)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_ARRAY_ACCESS_INDEX_NON_INT, PGY_FIX_USE_INT_INDEX,
             expr->data.array_access.index,
-            "Array index must be Int, got '%s'", index_type->name);
+            "Array index must be Int, got '%s'",
+            type_name_or_unknown(index_type));
         return TYPE_UNKNOWN;
     }
 
     if (type_is_constructed_named(object_type, "Array")
         || type_is_constructed_named(object_type, "Slice")) {
-        return type_get_constructed_arg(object_type, 0);
+        return expr_ops_normalize_type(type_get_constructed_arg(object_type, 0));
     }
 
     semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
         PGY_CAUSE_ARRAY_ACCESS_TARGET_NOT_INDEXABLE, PGY_FIX_USE_ARRAY_OR_SLICE,
         expr->data.array_access.array,
         "Index access requires Array<T> or Slice<T>, got '%s'",
-        object_type->name);
+        type_name_or_unknown(object_type));
     return TYPE_UNKNOWN;
 }

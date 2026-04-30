@@ -13,6 +13,12 @@ expr_call_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
+static Type *
+expr_call_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 static const char *
 expr_root_identifier_name(ASTNode *expr)
 {
@@ -170,8 +176,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             && (strcmp(method_name, "Write") == 0
                 || strcmp(method_name, "Read") == 0
                 || strcmp(method_name, "Release") == 0)) {
-            Type *slot_type = type_check_expression(object, ctx);
-            if (slot_type != NULL && slot_type->kind == TYPE_KIND_SLOT) {
+            Type *slot_type = expr_call_normalize_type(
+                type_check_expression(object, ctx));
+            if (slot_type->kind == TYPE_KIND_SLOT) {
                 size_t orig_argc = expr->data.call.arg_count;
                 bool inject_token = false;
                 char token_name_buf[256];
@@ -258,9 +265,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
               && object->data.identifier.name[0] <= 'Z')) {
             expr_reject_embedded_world_zone_mutation(ctx, expr, object,
                                                      "hosted func/action call");
-            Type *object_type = type_check_expression(object, ctx);
-            if (object_type != NULL
-                && method_name != NULL
+            Type *object_type = expr_call_normalize_type(
+                type_check_expression(object, ctx));
+            if (method_name != NULL
                 && strcmp(method_name, "Slice") == 0
                 && (type_is_constructed_named(object_type, "Array")
                     || type_is_constructed_named(object_type, "Slice"))) {
@@ -274,10 +281,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 }
 
                 require_assignable(
-                    type_check_expression(expr->data.call.arguments[0], ctx),
+                    expr_call_normalize_type(
+                        type_check_expression(expr->data.call.arguments[0], ctx)),
                     TYPE_INT, expr->data.call.arguments[0], ctx);
                 require_assignable(
-                    type_check_expression(expr->data.call.arguments[1], ctx),
+                    expr_call_normalize_type(
+                        type_check_expression(expr->data.call.arguments[1], ctx)),
                     TYPE_INT, expr->data.call.arguments[1], ctx);
 
                 if (object_type->kind == TYPE_KIND_CONSTRUCTED
@@ -290,8 +299,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 }
                 return TYPE_UNKNOWN;
             }
-            if (object_type != NULL
-                && object_type->kind == TYPE_KIND_SLOT
+            if (object_type->kind == TYPE_KIND_SLOT
                 && method_name != NULL) {
                 Symbol *sym = NULL;
                 Symbol *owner = NULL;
@@ -324,7 +332,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 PGY_FIX_RECLAIM_BEFORE_USE,
                                 object,
                                 "Cannot write to released slot '%s'",
-                                sym->name);
+                                sym->name != NULL ? sym->name : "<slot>");
                             return TYPE_UNKNOWN;
                         }
                     } else if (sym != NULL && type_is_write_view(sym->type)
@@ -337,14 +345,16 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 PGY_FIX_RECLAIM_SOURCE_OR_DROP_VIEW,
                                 object,
                                 "Cannot write through WriteView '%s' because source slot '%s' was released",
-                                sym->name, owner->name);
+                                sym->name != NULL ? sym->name : "<view>",
+                                owner->name != NULL ? owner->name : "<slot>");
                             return TYPE_UNKNOWN;
                         }
                         if (owner != NULL && owner->slot_info.is_secure)
                             semantic_record_effect(ctx, EFFECT_SECURE);
                     }
                     require_assignable(
-                        type_check_expression(expr->data.call.arguments[0], ctx),
+                        expr_call_normalize_type(
+                            type_check_expression(expr->data.call.arguments[0], ctx)),
                         object_type->data.slot.inner_type,
                         expr->data.call.arguments[0], ctx);
                     return TYPE_VOID;
@@ -371,7 +381,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 PGY_FIX_RECLAIM_BEFORE_USE,
                                 object,
                                 "Cannot read from released slot '%s'",
-                                sym->name);
+                                sym->name != NULL ? sym->name : "<slot>");
                             return TYPE_UNKNOWN;
                         }
                     } else if (sym != NULL && type_is_read_view(sym->type)
@@ -384,13 +394,14 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 PGY_FIX_RECLAIM_SOURCE_OR_DROP_VIEW,
                                 object,
                                 "Cannot read through ReadView '%s' because source slot '%s' was released",
-                                sym->name, owner->name);
+                                sym->name != NULL ? sym->name : "<view>",
+                                owner->name != NULL ? owner->name : "<slot>");
                             return TYPE_UNKNOWN;
                         }
                         if (owner != NULL && owner->slot_info.is_secure)
                             semantic_record_effect(ctx, EFFECT_SECURE);
                     }
-                    return object_type->data.slot.inner_type;
+                    return expr_call_normalize_type(object_type->data.slot.inner_type);
                 }
 
                 if (strcmp(method_name, "Release") == 0) {
@@ -401,12 +412,14 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     }
                     if (sym->slot_info.state == SLOT_STATE_RELEASED) {
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_SLOT_DOUBLE_RELEASE, PGY_CAUSE_RELEASE_DOUBLE, PGY_FIX_REMOVE_REDUNDANT_RELEASE, object,
-                            "Slot '%s' has already been released", sym->name);
+                            "Slot '%s' has already been released",
+                            sym->name != NULL ? sym->name : "<slot>");
                         return TYPE_UNKNOWN;
                     }
                     if (sym->slot_info.is_secure)
                         semantic_record_effect(ctx, EFFECT_SECURE);
-                    scope_release_slot(ctx->scope, sym->name);
+                    if (sym->name != NULL)
+                        scope_release_slot(ctx->scope, sym->name);
                     return TYPE_VOID;
                 }
             }

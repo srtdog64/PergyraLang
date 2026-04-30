@@ -1,9 +1,14 @@
 Type *
 type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 {
+    Type *value_type;
+    Type *target_type;
+
     reject_if_embedded_world_zone_mutation(ctx, expr,
         expr->data.assignment.target, "assignment");
-    Type *value_type  = type_check_expression(expr->data.assignment.value,  ctx);
+    value_type = type_check_expression(expr->data.assignment.value, ctx);
+    if (value_type == NULL)
+        value_type = TYPE_UNKNOWN;
 
     if (expr->data.assignment.target != NULL
         && expr->data.assignment.target->type == AST_IDENTIFIER) {
@@ -42,7 +47,9 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         }
     }
 
-    Type *target_type = type_check_expression(expr->data.assignment.target, ctx);
+    target_type = type_check_expression(expr->data.assignment.target, ctx);
+    if (target_type == NULL)
+        target_type = TYPE_UNKNOWN;
 
     if (type_is_slot_handle(target_type)
         && target_type->data.slot.inner_type != NULL

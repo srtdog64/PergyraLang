@@ -1,6 +1,11 @@
 #include "type_checker_internal.h"
 #include "diag_codes.h"
 
+static Type *
+async_decl_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
 
 bool
 type_check_async_block(ASTNode *node, SemanticContext *ctx)
@@ -58,8 +63,9 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
 
                 scope_enter(&ctx->scope, SCOPE_BLOCK);
                 if (recv_expr != NULL) {
-                    Type *recv_type = type_check_expression(recv_expr, ctx);
-                    if (bind_name != NULL && recv_type != NULL) {
+                    Type *recv_type = async_decl_normalize_type(
+                        type_check_expression(recv_expr, ctx));
+                    if (bind_name != NULL) {
                         Symbol *binding = symbol_create_variable(
                             bind_name, recv_type, first->line, first->column);
                         scope_declare(ctx->scope, binding);

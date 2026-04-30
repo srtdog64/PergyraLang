@@ -21,6 +21,12 @@ semantic_event_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return semantic_type_resolution_lookup_annotation_nullable(ctx, type_ref);
 }
 
+static Type *
+semantic_event_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 bool
 type_check_event_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -71,7 +77,7 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
                 "Event '%s' must return Void, got '%s'",
                 node->data.event_decl.name != NULL
                     ? node->data.event_decl.name : "<event>",
-                return_type->name != NULL ? return_type->name : "<type>");
+                type_name_or_unknown(return_type));
             ok = false;
         }
     }
@@ -119,7 +125,7 @@ semantic_event_handler_signature(ASTNode *handler, SemanticContext *ctx)
         return lambda_type != NULL ? lambda_type : TYPE_UNKNOWN;
     }
 
-    return type_check_expression(handler, ctx);
+    return semantic_event_normalize_type(type_check_expression(handler, ctx));
 }
 
 bool
@@ -143,11 +149,13 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
         return false;
     }
 
-    event_type = type_check_expression(node->data.event_op.event, ctx);
-    handler_type = semantic_event_handler_signature(node->data.event_op.handler, ctx);
+    event_type = semantic_event_normalize_type(
+        type_check_expression(node->data.event_op.event, ctx));
+    handler_type = semantic_event_normalize_type(
+        semantic_event_handler_signature(node->data.event_op.handler, ctx));
     event_name = semantic_event_expr_name(node->data.event_op.event);
 
-    if (event_type == NULL || event_type->kind != TYPE_KIND_FUNCTION) {
+    if (event_type->kind != TYPE_KIND_FUNCTION) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
             node->data.event_op.event,
@@ -167,7 +175,7 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
         ok = false;
     }
 
-    if (handler_type == NULL || handler_type->kind != TYPE_KIND_FUNCTION) {
+    if (handler_type->kind != TYPE_KIND_FUNCTION) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
             node->data.event_op.handler,
@@ -185,8 +193,7 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
             "Event %s handler for '%s' must return Void, got '%s'",
             op_name != NULL ? op_name : "operation",
             event_name,
-            handler_type->data.function.return_type->name != NULL
-                ? handler_type->data.function.return_type->name : "<type>");
+            type_name_or_unknown(handler_type->data.function.return_type));
         ok = false;
     }
 
@@ -219,8 +226,8 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
                 op_name != NULL ? op_name : "operation",
                 event_name,
                 (unsigned long long)(i + 1),
-                expected->name != NULL ? expected->name : "<type>",
-                actual->name != NULL ? actual->name : "<type>");
+                type_name_or_unknown(expected),
+                type_name_or_unknown(actual));
             ok = false;
         }
     }
@@ -238,10 +245,11 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
     if (node == NULL || ctx == NULL || node->type != AST_EVENT_INVOKE)
         return false;
 
-    event_type = type_check_expression(node->data.event_invoke.event, ctx);
+    event_type = semantic_event_normalize_type(
+        type_check_expression(node->data.event_invoke.event, ctx));
     event_name = semantic_event_expr_name(node->data.event_invoke.event);
 
-    if (event_type == NULL || event_type->kind != TYPE_KIND_FUNCTION) {
+    if (event_type->kind != TYPE_KIND_FUNCTION) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
             node->data.event_invoke.event,
@@ -262,7 +270,8 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < node->data.event_invoke.arg_count; i++) {
         Type *expected = event_type->data.function.param_types[i];
-        Type *actual = type_check_expression(node->data.event_invoke.arguments[i], ctx);
+        Type *actual = semantic_event_normalize_type(
+            type_check_expression(node->data.event_invoke.arguments[i], ctx));
 
         if (expected == NULL || actual == NULL
             || expected == TYPE_UNKNOWN || actual == TYPE_UNKNOWN) {
@@ -276,8 +285,8 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
                 "Event '%s' invoke argument %llu mismatch: expected '%s', got '%s'",
                 event_name,
                 (unsigned long long)(i + 1),
-                expected->name != NULL ? expected->name : "<type>",
-                actual->name != NULL ? actual->name : "<type>");
+                type_name_or_unknown(expected),
+                type_name_or_unknown(actual));
             ok = false;
         }
     }

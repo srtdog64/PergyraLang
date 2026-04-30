@@ -11,6 +11,12 @@
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
 
+static Type *
+stdlib_map_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 static bool
 stdlib_map_key_supported(Type *key_type)
 {
@@ -63,9 +69,12 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         Type *value_type;
         if (!check_call_arity(expr, 3, name, ctx))
             return TYPE_UNKNOWN;
-        map_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        key_type = type_check_expression(expr->data.call.arguments[1], ctx);
-        value_type = type_check_expression(expr->data.call.arguments[2], ctx);
+        map_type = stdlib_map_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        key_type = stdlib_map_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
+        value_type = stdlib_map_normalize_type(
+            type_check_expression(expr->data.call.arguments[2], ctx));
         reject_borrowed_boundary_container_store(
             expr->data.call.arguments[2], value_type, "map", "MapSet", ctx);
         if (type_is_constructed_named(map_type, "HashMap")
@@ -88,8 +97,10 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         Type *key_type;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        map_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        key_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        map_type = stdlib_map_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        key_type = stdlib_map_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
         if (type_is_constructed_named(map_type, "HashMap")
             && map_type->data.constructed.arg_count == 2) {
             Type *expected_key = map_type->data.constructed.args[0];
@@ -98,7 +109,8 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
             if (!stdlib_map_key_supported(expected_key))
                 report_unsupported_map_key(expr, name, map_type, ctx);
             if (strcmp(name, "MapGet") == 0)
-                return map_type->data.constructed.args[1];
+                return stdlib_map_normalize_type(
+                    map_type->data.constructed.args[1]);
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             report_expected_hashmap(expr, name, map_type, ctx);
         }
@@ -110,7 +122,8 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         Type *map_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        map_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        map_type = stdlib_map_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (map_type != NULL && map_type != TYPE_UNKNOWN
             && !type_is_constructed_named(map_type, "HashMap")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -127,7 +140,8 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         Type *args[1];
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        map_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        map_type = stdlib_map_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (type_is_constructed_named(map_type, "HashMap")
             && map_type->data.constructed.arg_count == 2) {
             key_type = map_type->data.constructed.args[0];

@@ -15,6 +15,12 @@ intent_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 }
 
 static Type *
+intent_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+static Type *
 intent_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
 {
     ASTNode *type_ref;
@@ -176,8 +182,10 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         if (step->data.intent_step.using_expr != NULL) {
-            Type *using_type = type_check_expression(step->data.intent_step.using_expr, ctx);
-            Type *zone_type = intent_resolve_step_where_type(step, ctx);
+            Type *using_type = intent_normalize_type(
+                type_check_expression(step->data.intent_step.using_expr, ctx));
+            Type *zone_type = intent_normalize_type(
+                intent_resolve_step_where_type(step, ctx));
             intent_clause_rejects_control_transfer(step->data.intent_step.using_expr, ctx,
                 step->data.intent_step.name, "using");
             if (step->data.intent_step.using_expr->type != AST_IDENTIFIER) {
@@ -192,12 +200,13 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     step->data.intent_step.using_expr->data.identifier.name != NULL
                         ? step->data.intent_step.using_expr->data.identifier.name : "<binding>");
             }
-            if (using_type != NULL && zone_type != NULL && !type_equals(using_type, zone_type)) {
+            if (using_type != TYPE_UNKNOWN && zone_type != TYPE_UNKNOWN
+                && !type_equals(using_type, zone_type)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.using_expr,
                     "Intent step '%s' using binding must match zone type '%s', got '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    zone_type->name != NULL ? zone_type->name : "<zone>",
-                    using_type->name != NULL ? using_type->name : "<type>");
+                    type_name_or_unknown(zone_type),
+                    type_name_or_unknown(using_type));
             }
         }
 
@@ -209,7 +218,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         if (step->data.intent_step.intent_expr != NULL) {
-            Type *intent_type = type_check_expression(step->data.intent_step.intent_expr, ctx);
+            Type *intent_type = intent_normalize_type(
+                type_check_expression(step->data.intent_step.intent_expr, ctx));
             const char *callee_name = "<callee>";
             intent_clause_rejects_control_transfer(step->data.intent_step.intent_expr, ctx,
                 step->data.intent_step.name, "intent");
@@ -239,14 +249,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         callee_name != NULL ? callee_name : "<callee>");
                 }
             }
-            if (intent_type != NULL && !type_equals(intent_type, TYPE_BOOL)) {
+            if (intent_type != TYPE_UNKNOWN && !type_equals(intent_type, TYPE_BOOL)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.intent_expr,
                     "Intent step '%s' intent clause must return Bool for boolean-orchestration, got '%s'. "
                     "Expected `Bool`; adjust the callee '%s' return type to Bool or wrap with a Bool predicate.",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    intent_type->name != NULL ? intent_type->name : "<type>",
+                    type_name_or_unknown(intent_type),
                     callee_name != NULL ? callee_name : "<callee>");
-            } else if (intent_type == NULL) {
+            } else if (intent_type == TYPE_UNKNOWN) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.intent_expr,
                     "Intent step '%s' intent clause type could not be resolved as Bool. "
                     "Boolean-gated orchestration requires the called clause to evaluate to Bool; "
@@ -473,15 +483,16 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     if (node->data.intent_decl.priority_expr != NULL) {
-        Type *priority_type = type_check_expression(node->data.intent_decl.priority_expr, ctx);
+        Type *priority_type = intent_normalize_type(
+            type_check_expression(node->data.intent_decl.priority_expr, ctx));
         intent_clause_rejects_control_transfer(node->data.intent_decl.priority_expr, ctx,
             name, "priority");
-        if (priority_type != NULL && !type_equals(priority_type, TYPE_INT)) {
+        if (priority_type != TYPE_UNKNOWN && !type_equals(priority_type, TYPE_INT)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_INTENT_PRIORITY_NON_INT, PGY_FIX_USE_INT_PRIORITY,
                 node->data.intent_decl.priority_expr,
                 "Intent priority expression must be Int, got '%s'",
-                priority_type->name != NULL ? priority_type->name : "<type>");
+                type_name_or_unknown(priority_type));
         }
     }
 

@@ -27,6 +27,7 @@ run_literal_contract_smoke() {
     local required_files=(
         "src/runtime/pgy_runtime_panic_contract.h"
         "src/runtime/pgy_runtime_platform_io_core.h"
+        "src/runtime/pgy_runtime_allocator_inline.h"
         "src/runtime/pgy_runtime_memory_array_slot_inline.h"
         "src/runtime/pgy_runtime_lib_authority_file_core.h"
         "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h"
@@ -36,6 +37,7 @@ run_literal_contract_smoke() {
         "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h"
         "src/runtime/pgy_runtime_lib_array_map_exports.h"
         "src/runtime/pgy_runtime_panic_checked_inline.h"
+        "src/runtime/pgy_runtime_result_option_inline.h"
         "src/codegen/transpiler_expr_core_emit.h"
         "src/codegen/llvm_expr_scalar_core.h"
         "src/codegen/llvm_runtime.c"
@@ -85,8 +87,8 @@ run_literal_contract_smoke() {
     require_literal "src/runtime/pgy_runtime_lib_slot_exports.h" "PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE"
     require_literal "src/runtime/pgy_runtime_lib_device_slot_exports.h" "PGY_RUNTIME_PANIC_REASON_RELEASED_DEVICE_SLOT_WRITE"
     require_literal "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE"
-    require_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR"
-    require_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE"
+    require_literal "src/runtime/pgy_runtime_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR"
+    require_literal "src/runtime/pgy_runtime_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE"
     require_literal "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO"
     require_literal "src/codegen/transpiler_expr_core_emit.h" "pgy_checked_div_i32_export"
     require_literal "src/codegen/llvm_expr_scalar_core.h" "pgy_checked_mod_i32_export"
@@ -122,6 +124,8 @@ root = pathlib.Path(sys.argv[1])
 header = root / "src" / "runtime" / "pgy_runtime_panic_contract.h"
 inline_top = root / "src" / "runtime" / "pgy_runtime_platform_io_core.h"
 inline_panic = root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h"
+allocator_inline = root / "src" / "runtime" / "pgy_runtime_allocator_inline.h"
+result_option_inline = root / "src" / "runtime" / "pgy_runtime_result_option_inline.h"
 lib_top = root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h"
 slot_c = root / "src" / "runtime" / "pgy_runtime_lib_intent_slot_core_exports.h"
 slot_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_exports.h"
@@ -279,7 +283,10 @@ for token in [
     if token not in array_text:
         raise SystemExit(f"inline array runtime missing {token}")
 
-allocator_text = (root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h").read_text(encoding="utf-8")
+allocator_text = "\n".join([
+    (root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h").read_text(encoding="utf-8"),
+    allocator_inline.read_text(encoding="utf-8"),
+])
 for token in [
     "PGY_RUNTIME_PANIC_CLASS_OOM",
     "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED",
@@ -369,7 +376,7 @@ for path in [
             raise SystemExit(f"{path.relative_to(root)} missing checked arithmetic lowering {token}")
 
 unwrap_lowering_paths = {
-    root / "src" / "runtime" / "pgy_runtime_zone_result_option_inline.h": [
+    result_option_inline: [
         "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR",
         "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE",
     ],

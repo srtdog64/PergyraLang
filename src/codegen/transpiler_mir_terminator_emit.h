@@ -77,8 +77,16 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
     char *ret_expr = NULL;
 
     transpiler_emit_defers_from(ctx, 0);
-    if (inst->ast != NULL)
+    if (inst->ast != NULL) {
+        const char *saved_expected_type = ctx->expected_type;
+        if (ctx->current_return_type[0] != '\0'
+            && strcmp(ctx->current_return_type, "Void") != 0
+            && strcmp(ctx->current_return_type, "void") != 0) {
+            ctx->expected_type = ctx->current_return_type;
+        }
         ret_expr = emit_expression_with_ssa_map(inst->ast, ctx, block_ssa_map);
+        ctx->expected_type = saved_expected_type;
+    }
     if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
                                             block_reason,
                                             block_reason_cap)) {

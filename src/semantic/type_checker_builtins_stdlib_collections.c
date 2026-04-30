@@ -4,6 +4,12 @@
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
 
+static Type *
+stdlib_collection_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 Type *
 type_check_stdlib_collection_call(ASTNode *expr,
                                   const char *name,
@@ -23,8 +29,10 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *value_type;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        list_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        value_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        list_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        value_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
         reject_borrowed_boundary_container_store(
             expr->data.call.arguments[1], value_type, "list", "ListPush", ctx);
         if (type_is_constructed_named(list_type, "List")
@@ -46,12 +54,15 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *index_type;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        list_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        index_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        list_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        index_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
         require_assignable(index_type, TYPE_INT, expr->data.call.arguments[1], ctx);
         if (type_is_constructed_named(list_type, "List")
             && list_type->data.constructed.arg_count == 1) {
-            return list_type->data.constructed.args[0];
+            return stdlib_collection_normalize_type(
+                list_type->data.constructed.args[0]);
         }
         if (list_type != NULL && list_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -68,9 +79,12 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *value_type;
         if (!check_call_arity(expr, 3, name, ctx))
             return TYPE_UNKNOWN;
-        list_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        index_type = type_check_expression(expr->data.call.arguments[1], ctx);
-        value_type = type_check_expression(expr->data.call.arguments[2], ctx);
+        list_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        index_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
+        value_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[2], ctx));
         reject_borrowed_boundary_container_store(
             expr->data.call.arguments[2], value_type, "list", "ListSet", ctx);
         require_assignable(index_type, TYPE_INT, expr->data.call.arguments[1], ctx);
@@ -92,7 +106,8 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *list_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        list_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        list_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (list_type != NULL && list_type != TYPE_UNKNOWN
             && !type_is_constructed_named(list_type, "List")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -108,8 +123,10 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *index_type;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        list_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        index_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        list_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        index_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
         require_assignable(index_type, TYPE_INT, expr->data.call.arguments[1], ctx);
         if (list_type != NULL && list_type != TYPE_UNKNOWN
             && !type_is_constructed_named(list_type, "List")) {
@@ -131,8 +148,10 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *value_type;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        set_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        value_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        set_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        value_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
         if (strcmp(name, "SetAdd") == 0) {
             reject_borrowed_boundary_container_store(
                 expr->data.call.arguments[1], value_type, "set", "SetAdd", ctx);
@@ -157,8 +176,10 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *value_type;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        set_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        value_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        set_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        value_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
         if (type_is_constructed_named(set_type, "Set")
             && set_type->data.constructed.arg_count == 1) {
             require_assignable(value_type,
@@ -177,7 +198,8 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *set_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        set_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        set_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (set_type != NULL && set_type != TYPE_UNKNOWN
             && !type_is_constructed_named(set_type, "Set")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -198,8 +220,10 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *value_type;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        queue_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        value_type = type_check_expression(expr->data.call.arguments[1], ctx);
+        queue_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        value_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
         reject_borrowed_boundary_container_store(
             expr->data.call.arguments[1], value_type, "queue", "QueuePush", ctx);
         if (type_is_constructed_named(queue_type, "Queue")
@@ -220,10 +244,12 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *queue_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        queue_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        queue_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (type_is_constructed_named(queue_type, "Queue")
             && queue_type->data.constructed.arg_count == 1) {
-            return queue_type->data.constructed.args[0];
+            return stdlib_collection_normalize_type(
+                queue_type->data.constructed.args[0]);
         }
         if (queue_type != NULL && queue_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -238,7 +264,8 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *queue_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        queue_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        queue_type = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (queue_type != NULL && queue_type != TYPE_UNKNOWN
             && !type_is_constructed_named(queue_type, "Queue")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -254,14 +281,15 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *arg;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        arg = type_check_expression(expr->data.call.arguments[0], ctx);
+        arg = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_constructed_named(arg, "Array")
             && !type_is_constructed_named(arg, "Slice")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ArrayLength requires Array<T> or Slice<T>, got '%s'",
-                arg->name);
+                type_name_or_unknown(arg));
         }
         return TYPE_INT;
     }
@@ -270,15 +298,18 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *val;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        arr = type_check_expression(expr->data.call.arguments[0], ctx);
-        val = type_check_expression(expr->data.call.arguments[1], ctx);
+        arr = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
+        val = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx));
         reject_borrowed_boundary_container_store(
             expr->data.call.arguments[1], val, "array", "ArrayPush", ctx);
         if (!type_is_constructed_named(arr, "Array")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "ArrayPush requires Array<T>, got '%s'", arr->name);
+                "ArrayPush requires Array<T>, got '%s'",
+                type_name_or_unknown(arr));
         } else {
             Type *inner = type_get_constructed_arg(arr, 0);
             if (inner != NULL)
@@ -291,18 +322,21 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *val;
         if (!check_call_arity(expr, 3, name, ctx))
             return TYPE_UNKNOWN;
-        arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        arr = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         require_assignable(
             type_check_expression(expr->data.call.arguments[1], ctx),
             TYPE_INT, expr->data.call.arguments[1], ctx);
-        val = type_check_expression(expr->data.call.arguments[2], ctx);
+        val = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[2], ctx));
         reject_borrowed_boundary_container_store(
             expr->data.call.arguments[2], val, "array", "ArraySet", ctx);
         if (!type_is_constructed_named(arr, "Array")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "ArraySet requires Array<T>, got '%s'", arr->name);
+                "ArraySet requires Array<T>, got '%s'",
+                type_name_or_unknown(arr));
         } else {
             Type *inner = type_get_constructed_arg(arr, 0);
             if (inner != NULL)
@@ -314,12 +348,14 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *arr;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        arr = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "ArrayPop requires Array<T>, got '%s'", arr->name);
+                "ArrayPop requires Array<T>, got '%s'",
+                type_name_or_unknown(arr));
         return TYPE_VOID;
     }
     if (strcmp(name, "ArraySort") == 0
@@ -327,25 +363,28 @@ type_check_stdlib_collection_call(ASTNode *expr,
         Type *arr;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        arr = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "%s requires Array<T>, got '%s'", name, arr->name);
+                "%s requires Array<T>, got '%s'", name,
+                type_name_or_unknown(arr));
         return arr;
     }
     if (strcmp(name, "ArrayMap") == 0 || strcmp(name, "ArrayFilter") == 0) {
         Type *arr;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        arr = stdlib_collection_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "%s requires Array<T> as first argument, got '%s'",
-                name, arr->name);
+                name, type_name_or_unknown(arr));
         type_check_expression(expr->data.call.arguments[1], ctx);
         return arr;
     }

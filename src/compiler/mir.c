@@ -352,15 +352,15 @@ mir_populate_instructions(MIRRoutine *routine)
     rollback = routine->has_rollback_block ? &routine->blocks[routine->rollback_block] : NULL;
     invalidation = routine->has_invalidation_block ? &routine->blocks[routine->invalidation_block] : NULL;
 
-    if (rir_scope == NULL)
-        return true;
-
     if (routine->kind == MIR_SCOPE_INTENT
         && routine->hir_routine != NULL) {
         if (!mir_append_intent_step_instructions(routine, entry))
             return false;
         appended_intent_steps = true;
     }
+
+    if (rir_scope == NULL)
+        return true;
 
     for (size_t i = 0; i < rir_scope->op_count; i++) {
         const RIROp *op = &rir_scope->ops[i];

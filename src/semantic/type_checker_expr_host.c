@@ -12,6 +12,12 @@ expr_host_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 }
 
 static Type *
+expr_host_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+static Type *
 expr_host_resolve_class_field_type(ClassField *field, SemanticContext *ctx)
 {
     if (field == NULL)
@@ -186,8 +192,9 @@ expr_type_check_host_method_call(ASTNode *expr,
     for (size_t i = 0; i < provided; i++) {
         FuncParam *param = method->data.func_decl.params[i + implicit_self];
         Type *param_type = expr_host_resolve_func_param_type(param, ctx);
-        Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
-        if (param_type != NULL && arg_type != NULL
+        Type *arg_type = expr_host_normalize_type(
+            type_check_expression(expr->data.call.arguments[i], ctx));
+        if (param_type != NULL
             && !type_is_assignable(arg_type, param_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_CALL_ARG_TYPE_MISMATCH, PGY_FIX_ALIGN_ARG_TYPE,
@@ -196,8 +203,8 @@ expr_type_check_host_method_call(ASTNode *expr,
                 (unsigned long long) (i + 1),
                 method->data.func_decl.name != NULL
                     ? method->data.func_decl.name : "<method>",
-                param_type->name != NULL ? param_type->name : "<type>",
-                arg_type->name != NULL ? arg_type->name : "<type>");
+                type_name_or_unknown(param_type),
+                type_name_or_unknown(arg_type));
         }
     }
 

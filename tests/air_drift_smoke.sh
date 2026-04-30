@@ -27,6 +27,11 @@ run_literal_air_drift_smoke() {
         "src/compiler/air_boundary_walk.c"
         "src/compiler/air_dump.c"
         "src/compiler/air_evidence.c"
+        "src/compiler/air_evidence_ast.c"
+        "src/compiler/air_evidence_rir.c"
+        "src/compiler/air_internal.h"
+        "src/compiler/air_validate.c"
+        "src/compiler/air_validate_evidence.c"
         "src/compiler/air_verify.c"
         "src/compiler/driver_app.c"
         "src/compiler/driver_diag.c"
@@ -103,6 +108,11 @@ air_boundary_path = root / "src" / "compiler" / "air_boundary.c"
 air_boundary_walk_path = root / "src" / "compiler" / "air_boundary_walk.c"
 air_dump_path = root / "src" / "compiler" / "air_dump.c"
 air_evidence_path = root / "src" / "compiler" / "air_evidence.c"
+air_evidence_ast_path = root / "src" / "compiler" / "air_evidence_ast.c"
+air_evidence_rir_path = root / "src" / "compiler" / "air_evidence_rir.c"
+air_internal_path = root / "src" / "compiler" / "air_internal.h"
+air_validate_path = root / "src" / "compiler" / "air_validate.c"
+air_validate_evidence_path = root / "src" / "compiler" / "air_validate_evidence.c"
 air_verify_path = root / "src" / "compiler" / "air_verify.c"
 air_test_path = root / "src" / "test_air.c"
 rir_test_path = root / "src" / "test_rir.c"
@@ -110,7 +120,7 @@ diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_verify_path, air_test_path, rir_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_verify_path, air_test_path, rir_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -136,13 +146,21 @@ dir_impl = "\n".join([
 ])
 air_header = air_header_path.read_text(encoding="utf-8")
 air_boundary_walk = air_boundary_walk_path.read_text(encoding="utf-8")
-air_evidence = air_evidence_path.read_text(encoding="utf-8")
+air_evidence = "\n".join([
+    air_evidence_path.read_text(encoding="utf-8"),
+    air_evidence_ast_path.read_text(encoding="utf-8"),
+])
 air_impl = "\n".join([
     air_impl_path.read_text(encoding="utf-8"),
     air_boundary_path.read_text(encoding="utf-8"),
     air_boundary_walk_path.read_text(encoding="utf-8"),
     air_dump_path.read_text(encoding="utf-8"),
     air_evidence_path.read_text(encoding="utf-8"),
+    air_evidence_ast_path.read_text(encoding="utf-8"),
+    air_evidence_rir_path.read_text(encoding="utf-8"),
+    air_internal_path.read_text(encoding="utf-8"),
+    air_validate_path.read_text(encoding="utf-8"),
+    air_validate_evidence_path.read_text(encoding="utf-8"),
     air_verify_path.read_text(encoding="utf-8"),
 ])
 air_test = air_test_path.read_text(encoding="utf-8")
@@ -503,6 +521,7 @@ required_test_terms = [
     "AIR reports DAG fallback drift",
     "AIR rejects empty RIR propagation evidence",
     "AIR rejects invalid DAG evidence provider",
+    "AIR rejects empty DAG evidence",
     "strict_evidence=yes hir_input=yes",
     "mir_input",
     "AIR pin boundary has no matching MIR pin cleanup evidence",

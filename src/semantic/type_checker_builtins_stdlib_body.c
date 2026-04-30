@@ -18,6 +18,12 @@
 #include "type_checker_channel_transport_internal.h"
 #include "diag_codes.h"
 
+static Type *
+stdlib_body_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 Type *
 type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
@@ -117,7 +123,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (strcmp(name, "Print") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+        require_assignable(stdlib_body_normalize_type(
+                type_check_expression(expr->data.call.arguments[0], ctx)),
             TYPE_STRING, expr->data.call.arguments[0], ctx);
         return TYPE_VOID;
     }
@@ -136,7 +143,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (strcmp(name, "Sleep") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+        require_assignable(stdlib_body_normalize_type(
+                type_check_expression(expr->data.call.arguments[0], ctx)),
             TYPE_INT, expr->data.call.arguments[0], ctx);
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
         return TYPE_VOID;
@@ -154,16 +162,19 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (strcmp(name, "DeviceRead") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        return type_get_constructed_arg(
-            type_check_device_handle_arg(expr->data.call.arguments[0], ctx, name, false), 0);
+        return stdlib_body_normalize_type(type_get_constructed_arg(
+            type_check_device_handle_arg(expr->data.call.arguments[0],
+                ctx, name, false), 0));
     }
     if (strcmp(name, "DeviceWrite") == 0) {
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
         Type *slot_type = type_check_device_handle_arg(
             expr->data.call.arguments[0], ctx, name, false);
-        Type *inner = type_get_constructed_arg(slot_type, 0);
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
+        Type *inner = stdlib_body_normalize_type(
+            type_get_constructed_arg(slot_type, 0));
+        require_assignable(stdlib_body_normalize_type(
+                type_check_expression(expr->data.call.arguments[1], ctx)),
             inner, expr->data.call.arguments[1], ctx);
         return TYPE_VOID;
     }
@@ -198,16 +209,15 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         Type *slot_type = type_check_device_handle_arg(
             expr->data.call.arguments[0], ctx, name, false);
         return wrap_constructed(TYPE_REMOTE_FUTURE,
-            type_get_constructed_arg(slot_type, 0));
+            stdlib_body_normalize_type(type_get_constructed_arg(slot_type, 0)));
     }
 
     /* ---- Clone: explicit copy of Slot ---- */
     if (strcmp(name, "Clone") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        Type *arg_type = type_check_expression(expr->data.call.arguments[0], ctx);
-        if (arg_type == NULL)
-            return TYPE_UNKNOWN;
+        Type *arg_type = stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         /* Clone returns the same type ??a fresh independent copy */
         return arg_type;
     }
@@ -223,7 +233,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         return wrap_constructed(TYPE_OPTION,
-            type_check_expression(expr->data.call.arguments[0], ctx));
+            stdlib_body_normalize_type(type_check_expression(
+                expr->data.call.arguments[0], ctx)));
     }
     if (strcmp(name, "None") == 0) {
         if (!check_call_arity(expr, 0, name, ctx))
@@ -234,11 +245,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         Type *ot;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        ot = type_check_expression(expr->data.call.arguments[0], ctx);
+        ot = stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_constructed_named(ot, "Option")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "%s requires Option<T>, got '%s'", name,
-                ot != NULL ? ot->name : "<null>");
+                type_name_or_unknown(ot));
             return TYPE_UNKNOWN;
         }
         return TYPE_BOOL;
@@ -247,29 +259,32 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         Type *ot;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        ot = type_check_expression(expr->data.call.arguments[0], ctx);
+        ot = stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (type_is_constructed_named(ot, "Option"))
-            return type_get_constructed_arg(ot, 0);
+            return stdlib_body_normalize_type(type_get_constructed_arg(ot, 0));
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
             "UnwrapOption requires Option<T>, got '%s'",
-            ot != NULL ? ot->name : "<null>");
+            type_name_or_unknown(ot));
         return TYPE_UNKNOWN;
     }
     if (strcmp(name, "Unwrap") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        Type *rt = type_check_expression(expr->data.call.arguments[0], ctx);
+        Type *rt = stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (type_is_constructed_named(rt, "Result"))
-            return type_get_constructed_arg(rt, 0);
+            return stdlib_body_normalize_type(type_get_constructed_arg(rt, 0));
         return TYPE_UNKNOWN;
     }
     if (strcmp(name, "UnwrapOr") == 0) {
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        Type *rt = type_check_expression(expr->data.call.arguments[0], ctx);
+        Type *rt = stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         type_check_expression(expr->data.call.arguments[1], ctx);
         if (type_is_constructed_named(rt, "Result"))
-            return type_get_constructed_arg(rt, 0);
+            return stdlib_body_normalize_type(type_get_constructed_arg(rt, 0));
         return TYPE_UNKNOWN;
     }
 
@@ -299,12 +314,13 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_REMOTE);
-        Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        Type *ch_type = stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_constructed_named(ch_type, "Channel")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "%s requires Channel<T>, got '%s'",
                 name,
-                ch_type != NULL ? ch_type->name : "<null>");
+                type_name_or_unknown(ch_type));
             return TYPE_UNKNOWN;
         }
         return strcmp(name, "ChannelFull") == 0 ? TYPE_BOOL : TYPE_INT;
@@ -313,11 +329,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_REMOTE);
-        Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        Type *ch_type = stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_constructed_named(ch_type, "Channel")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ChannelClosed requires Channel<T>, got '%s'",
-                ch_type != NULL ? ch_type->name : "<null>");
+                type_name_or_unknown(ch_type));
             return TYPE_UNKNOWN;
         }
         return TYPE_BOOL;
@@ -329,11 +346,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_REMOTE);
-        Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        Type *ch_type = stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_constructed_named(ch_type, "Channel")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "ChannelReady requires Channel<T>, got '%s'",
-                ch_type != NULL ? ch_type->name : "<null>");
+                type_name_or_unknown(ch_type));
             return TYPE_UNKNOWN;
         }
         return TYPE_BOOL;
@@ -348,11 +366,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 "move cancel")) {
             return TYPE_UNKNOWN;
         }
-        Type *task_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        Type *task_type = stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_future_like(task_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
                 "Cancel requires Future<T> or RemoteFuture<T>, got '%s'",
-                task_type != NULL ? task_type->name : "<null>");
+                type_name_or_unknown(task_type));
             return TYPE_UNKNOWN;
         }
         if (type_check_cancel_rejects_payload(expr->data.call.arguments[0],

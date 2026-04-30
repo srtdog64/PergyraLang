@@ -14,6 +14,12 @@
 #include "type_checker_ownership_let_internal.h"
 #include "type_checker_ownership_support_internal.h"
 
+static Type *
+ownership_let_normalize_type(Type *type)
+{
+    return type != NULL ? type : TYPE_UNKNOWN;
+}
+
 bool
 type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -40,6 +46,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
      * a SYMBOL_SLOT with proper metadata.
      */
     if (init != NULL && init->type == AST_CALL
+        && init->data.call.callee != NULL
         && init->data.call.callee->type == AST_IDENTIFIER) {
         const char *callee_name =
             init->data.call.callee->data.identifier.name;
@@ -61,6 +68,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
              * use it directly instead of double-wrapping. */
             if (ann != NULL) {
                 Type *ann_type = ownership_let_resolve_type_ref(ann, ctx);
+                if (ann_type == NULL)
+                    ann_type = TYPE_UNKNOWN;
                 if (ann_type->kind == TYPE_KIND_SLOT) {
                     slot_type = ann_type;
                     is_secure = ann_type->data.slot.is_secure;
@@ -119,7 +128,9 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     /* Normal variable declaration with type inference */
-    init_type = (init != NULL) ? type_check_expression(init, ctx) : TYPE_VOID;
+    init_type = (init != NULL)
+        ? ownership_let_normalize_type(type_check_expression(init, ctx))
+        : TYPE_VOID;
     if (init != NULL)
         mark_world_embedded_zone_arguments(init, ctx);
 
@@ -127,6 +138,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     if (ann != NULL) {
         /* Explicit type annotation */
         decl_type = ownership_let_resolve_type_ref(ann, ctx);
+        if (decl_type == NULL)
+            decl_type = TYPE_UNKNOWN;
         if (ctx->program_root != NULL
             && ann->type == AST_TYPE
             && ann->data.type.name != NULL) {
@@ -274,7 +287,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 
         /* For generic types like Box<T>, Array<T>, Result<T,E>,
            ensure the inferred type is concrete */
-        if (init_type->kind == TYPE_KIND_GENERIC) {
+        if (init_type != NULL && init_type->kind == TYPE_KIND_GENERIC) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_INFER_UNBOUND_GENERIC,

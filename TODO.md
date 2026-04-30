@@ -23,6 +23,248 @@
 - 진행 노트마다 owner 라인 수를 명시하는 컨벤션 유지 (예: `slot_manager.c는 564 LOC`).
 - 현재 production scan: 0 `.c/.h` owners above 600 LOC (2026-04-29 기준).
 
+## 0a. Strict Beta Closure Order — 2026-05-01 재고정
+
+**현재 판정:** 기능 구현률은 약 70%로 본다. 다만 strict beta 신뢰도는
+약 55-60%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
+source-of-truth로 소비되는 깊이다.
+
+**명시적 제외:** quantum full model, Rust급 lifetime/borrow checker, HKT/FP,
+새 대형 언어 축은 beta 100% 계산에서 제외한다. WASM/WebGL은 실제 dogfooding
+경로라 중요하지만, beta closure 자체를 흔드는 새 semantic surface가 아니라
+LLVM-family target/extern bridge track으로 둔다.
+
+**닫는 순서:**
+1. **AIR evidence producer 정합성.** 빈 evidence node 금지, DAG/MIR/RIR/HIR
+   evidence가 실제 fact 또는 explicit fallback debt가 있을 때만 생성되게 한다.
+   Gate: `make test-air air-drift-test-smoke air-json-schema-test-smoke`.
+2. **CFG body safety source-of-truth 승격.** all-path return / definite assignment /
+   move-use / pin cleanup 이후 ownership/drop/zone/effect transition 소비자가
+   CFG/MIR fact를 직접 소비하게 만든다.
+3. **DAG source-of-truth 마감.** fallback 수치 0 유지가 아니라 generic/ability/
+   alias/module visibility 판단이 DAG metadata/API를 공식 경로로만 통과하게 한다.
+4. **MIR/LLVM declaration inventory debt 제거.** frozen subset declaration/bootstrap
+   inventory는 AST-carried metadata가 아니라 DIR/RIR/MIR inventory만 소비한다.
+5. **Runtime propagation frontier scheduler.** world/zone/projection bounded
+   recompute 다음 단계인 full transitive frontier scheduler를 마감한다.
+6. **ABI ownership freeze.** Slot/Pin cleanup, Zone-bound handle, runtime-none,
+   raw escape, ABI non-leakage를 코드 gate와 문서 계약으로 동시에 고정한다.
+7. **WASM/WebGL dogfood feasibility.** beta semantic closure 이후 `C/LLVM family`
+   경로로 `wasm32` target과 최소 WebGL bridge smoke를 만든다.
+
+**운영 원칙:** 테스트 스위트를 무작정 넓히기 전에, 위 순서의 한 feature-owner를
+먼저 닫고 그 feature의 gate를 초록으로 만든다. 새 키워드/새 축은 추가하지 않는다.
+
+## 0b. Forward Plan — WASM/WebGL 경로 (post-beta 우선순위 2)
+
+**입안일:** 2026-05-01. **상태:** 계획. **scope:** 사용자가 *이미 만들고 싶어하는*
+도메인(웹 던전 크롤러)을 Pergyra 표면 안에서 가능하게 하는 최소 경로.
+
+**우선순위 메모 (2026-05-01 재평가):** 직전엔 priority 1로 박았으나 §0b
+analysis 후 priority 2로 강등. *언어 정체성 활용도*에서 server backend가
+WebGL보다 강함 — `intent` saga / `authority` / `Result<T>`는 transactional
+saga에서 *우회 없이* 작동하지만 WebGL은 DOM/JS shim 우회 필수. WebGL은
+*개인 동기 + 시각적 마케팅 가치*로 여전히 유의미하나 ecosystem leverage
+순서에서 §0b 뒤로.
+
+### 결정 — JS 백엔드 ❌, WASM 백엔드 ✅
+- **JS 백엔드 거부 사유:** GC + f64-only + reference-only emit 결과는
+  `slot<T>` / zone / intent / authority *모두 흘림*. parity gate가 tri-way로
+  분기 → 베타 closure 정합성 무너짐. docs/120 §4 vision territory 위반.
+- **WASM 채택 사유:** linear memory + i32/i64/f32/f64 native + 명시적
+  lifetime → slot/zone/intent 그대로 보존. LLVM target triple 한 줄 수준
+  ("LLVM family"의 자연 연장이라 새 semantic 표면 없음). dual-emit
+  parity gate에 영향 없음.
+
+### Why WebGL — Pergyra가 *유난히 잘 표현*하는 자리
+WebGL은 **불투명 리소스 핸들 API**. JS는 GC에 위임 → 텍스처 누수, 컨텍스트
+loss 미스, 프레임 간 상태 누수가 사용자 책임. Pergyra slot/zone/intent가
+바로 그 자리:
+
+| WebGL 개념 | Pergyra 자연 표현 |
+|---|---|
+| `WebGLBuffer` opaque | `slot<Buffer>` |
+| `WebGLTexture` opaque | `slot<Texture>` |
+| `WebGLProgram` opaque | `slot<ShaderProgram>` |
+| Vertex buffer ownership | `authority { ... }` |
+| Render pass 경계 | `zone GPUFrame { ... }` |
+| Frame 단위 의도 | `intent RenderFrame { precondition ... success ... }` |
+
+memory: `project_killer_usecase_dungeon_crawler.md` 와 1:1 일치.
+
+### 현재 인프라 — 70-80% 이미 있음
+- ✅ `extern "ABI" { func ...; }` 파싱 — `src/parser/parser_decl.c:296`
+  (`parse_extern_block`)
+- ✅ `AST_EXTERN_BLOCK` LLVM 등록 — `src/codegen/llvm_register.c:322-328`
+- ✅ LLVM 백엔드 자체 작동 (베타 inversion 완료)
+- ❌ `wasm32-unknown-unknown` target triple 옵션 — `Makefile` /
+  `src/codegen/llvm_pipeline.c` wiring 필요
+- ❌ `extern "wasm-import"` ABI 인식 (현재 `extern "C"`만) — 한 줄 작업
+- ❌ `Array<T>::as_raw_view()` stdlib (vertex buffer 데이터 패싱용)
+- ❌ JS shim 자체 (수백 LOC, *언어 외부*)
+
+### 진짜 막히는 자리 (3개)
+1. **Linear memory pointer 노출** — `slot<Array<f32>>` → `(ptr, len)` 추출.
+   JS shim이 zero-copy로 `new Float32Array(wasm.memory.buffer, ptr, len)`
+   읽음. `as_raw_view()` 추가 필요.
+2. **WASM module exports — frame loop** — JS의
+   `requestAnimationFrame`이 wasm 함수를 매 프레임 호출. LLVM `extern "C"`
+   symbol export 동작 검증 필요 (표준 LLVM이면 자동).
+3. **Texture 업로드 path** — `gl.texImage2D`의 `HTMLImageElement` 입력은
+   DOM-only. 우회: JS에서 디코드 → wasm 메모리에 raw pixel 쓰기 → wasm이
+   raw 버전 `texImage2D` 호출. glue 30~50 LOC.
+
+### Phase 분할
+
+**Phase 0 (1주, 베타 내부) — Feasibility 경로 확보**
+- [ ] `Makefile` / `src/codegen/llvm_pipeline.c`에 `--target=wasm32-unknown-unknown` 옵션
+- [ ] `examples/wasm_hello/` — `extern "C" fn console_log(...)` 호출하는
+  최소 .pgy + 손으로 쓴 wasm-loader HTML
+- [ ] 산출물: `pgy --backend=llvm --target=wasm32 hello.pgy → hello.wasm`,
+  브라우저에서 콘솔 출력
+- [ ] *베타 scope 확장 아님* — 경로 확보. 베타 closure 후 즉시 시작 가능
+  하도록.
+
+**Phase 1 (2-3주, 베타 직후) — WebGL MVP**
+- [ ] `extern "wasm-import"` ABI 토큰 인식
+- [ ] `Array<T>::as_raw_view()` stdlib 추가
+- [ ] `examples/webgl_triangle/` — 화면에 컬러 트라이앵글 1개
+- [ ] WebGL JS shim ~200 LOC (triangle 1개에 필요한 surface만)
+- [ ] **Falsification 자리 (docs/122 §4):** slot lifecycle이 GL 컨텍스트
+  loss와 자연스럽게 상호작용 하는가? authority가 GPU resource ownership을
+  잘 표현하는가? F1-F6 신호 기록.
+
+**Phase 2 (4-6주, 베타 후) — Dungeon crawler PoC**
+- [ ] 사용자가 Pergyra만으로 던전 1 floor 렌더링 + 캐릭터 이동
+- [ ] **WebGPU 직접 고려** — bind group / pipeline state object가 Pergyra
+  intent / zone과 *훨씬* 자연스럽게 매핑. WebGL은 stepping stone.
+- [ ] 1년 freeze recognition window의 핵심 evidence source
+  (docs/122 §2.5 신호 매트릭스 입력).
+
+### Out of scope (이 plan에서 *안* 함)
+- DOM 직접 바인딩 (Pergyra 정체성과 안 맞음 — 얇은 JS shell만 손으로)
+- HTTP server / 풀 networking stdlib (별도 plan)
+- WASM GC types (proposal unstable, docs/120에 명시적 거부)
+- JS 백엔드 (위 결정 사유)
+- WASI 풀 surface (브라우저 target 우선)
+
+### Verification 체크포인트
+- Phase 0: `pgy --target=wasm32` 가 valid `.wasm` 산출, 브라우저 로드 OK,
+  콘솔 출력 OK
+- Phase 1: triangle 화면 표시, slot 누수 없음 (Chrome DevTools WebGL
+  inspector), F1-F6 falsification 결과 `examples/webgl_triangle/FALSIFICATION.md`
+- Phase 2: 던전 floor 60fps 안정, 사용자 피드백 evidence 수집
+
+### 참조
+- `docs/117_backend_strategy_positioning.md` — dual-emit 정책. WASM은
+  LLVM family target 추가지 새 backend 아님
+- `docs/120_vision_and_capability_audit.md` §4 — vision territory 정합성
+- `docs/122_managing_intent_drift.md` §4 — falsification 프로토콜 적용
+- memory: `project_killer_usecase_dungeon_crawler.md` — 핵심 동기
+
+## UTF-8 Progress Note - 2026-05-01 - Hot-path Dispatch / Lookup Audit
+
+post-beta 우선순위 정리 audit. 3개 Explore agent 병렬 실행, codegen
+dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확성
+회귀 zero, but 큰 프로그램 컴파일 / 긴 trace / 큰 AST 빌드에서 누적 비용
+큰 자리들*. 베타 closure 위협 없음.
+
+### Category A — Stdlib builtin dispatch (`strcmp` 체인 50+ 분기)
+- `src/codegen/transpiler_expr_stdlib_scalar_builtin.h` 7-174 (15+ 분기)
+- `src/codegen/transpiler_expr_stdlib_collection_builtin.h` 106-460 (23+
+  분기). 추가로 line 147-219 부근 `strcmp(key, "Int"/"Long"/"Bool")`
+  3-way ternary 5+ 곳 중복
+- `src/codegen/transpiler_expr_stdlib_builtin.h` 112-289 (외부 dispatch
+  11+ 분기)
+- 처방: gperf 또는 정렬 + bsearch 단일 테이블, key_type 사전 분류
+  enum 도입. 표 한 번에서 jump
+
+### Category B — Symbol / scope / type lookup 선형 strcmp
+- `src/semantic/symbol_table.c:141-143` — `scope_lookup_current` 선형
+- `src/semantic/type_env.c:45-56` — `type_env_lookup_variable` scope chain
+  × 선형 strcmp
+- `src/codegen/transpiler_decl_lookup.c:113-118` — 캐시 있음, cold start
+  O(N)
+- `src/parser/parser_decl_hints.c:47-55, 99-108` — hint table 선형 strcmp
+- `src/codegen/transpiler_statement_dispatch.h:59-62` — typed_var 선형
+- `src/codegen/llvm_backend_type_map.c:147-156` — type alias 선형
+- `src/semantic/type_checker_builtins_query_domain.c:19-26, 38-45, 62-69,
+  76-100, 149+` — zone/relation/effect/world/state 5종 선형
+- 처방: `src/runtime/pgy_runtime_builtin_hashmap_inline.h` 패턴을
+  컴파일러측 owner로 분리 (e.g. `src/common/compiler_hashmap_inline.h`),
+  Scope/TypeEnv/program-level decl index 도입. core symbol resolution이
+  컴파일러의 가장 hot path — 영향 큼
+
+### Category C — 다중 pass / 준-quadratic
+- `src/semantic/slot_analyzer.c:59-97` — 2-pass scope walk (count → fill)
+- `src/semantic/slot_analyzer.c:168-176` — O(after × before) escape
+  detection
+- `src/compiler/air_evidence.c:54-93, 206-231` — O(routines × boundaries
+  × blocks) triple-nested
+- `src/compiler/hir.c:95-107, 378-415` — `find_routine_index_by_name`
+  call-graph closure 안에서 nested
+- 처방: routine/boundary id 인덱싱 (이름 strcmp 매칭 → id 비교), AIR
+  evidence 빌드는 outer 1회 인덱스 빌드 후 inner는 hashmap probe. slot
+  collect 1-pass
+
+### Category D — Runtime hot path 자료구조
+- `src/runtime/pgy_runtime_intent_trace_inline.h:200-206` — intent
+  registry 256-slot 선형 scan (handle 조회)
+- `src/runtime/pgy_runtime_intent_trace_inline.h:178-195` — trace string
+  `realloc + strlen` per append → 길이에 quadratic
+- `src/runtime/pgy_runtime_intent_trace_events_inline.h:20-30` — step당
+  9개 strdup, 대부분 빈 문자열
+- `src/parser/ast.c:14-18, 21-25, 28-32, 35-39, 48-52, 60-65` —
+  `realloc(count+1)` 비기하급수, AST 빌드 O(N²)
+- `src/runtime/pgy_runtime_builtin_hashmap_inline.h:113-120` — open
+  addressing linear probing + strcmp per probe
+- `src/runtime/pgy_runtime_queue_inline.h:40-43` — grow 시 ring 정렬
+  불필요
+- 처방: handle→slot inline hashmap, 빈 문자열 단일 sentinel 공유, AST
+  capacity 별도 추적 + `next_pow2` grow, secondary hash 또는 quadratic
+  probing
+
+### 좋은 패턴 (이미 정확 — 회귀 방지용 기록)
+- ✅ `src/common/arena.{c,h}` — bump + linked block + O(1) destroy
+- ✅ `src/runtime/pgy_runtime_channel_inline.h` — 링버퍼 정확
+- ✅ `src/runtime/pgy_runtime_plain_slot_inline.h` — debug-only safety
+  check, 릴리즈 zero-overhead
+- ✅ `src/codegen/transpiler_decl_lookup.c` — `last_decl_lookup_*` 캐시
+- ✅ `src/parser/ast_destroy.c` — 정확 (단 arena로 옮기면 O(1))
+
+### Sprint 우선순위 (베타 closure 후)
+
+**Sprint Q (1-2주, 베타 closure 직후)**
+- Q1. Category A 테이블화 — stdlib builtin dispatch 50+ 분기 → 단일 표
+  + bsearch (또는 gperf). `key_type_classify(key)` 단일 함수로 통합
+- Q2. Category B hashmap — Scope / TypeEnv / type alias map 도입.
+  `compiler_hashmap_inline.h` 신규 owner
+- Q3. AST geometric growth — `ast_add_*` capacity 별도 추적 + 기하 grow
+- 검증: backend-compare 69/69, `make test-{air,semantic,mir,parser}`
+  zero 회귀, 큰 .pgy 컴파일 시간 측정 표
+
+**Sprint R (2-3주, Q 후) — 분석 패스 단축**
+- R1. Routine/boundary id 인덱스 (Category C)
+- R2. slot analyzer 1-pass collect
+
+**Sprint S (1주, R 후) — Runtime trace 정리**
+- S1. Intent registry 핸들→슬롯 inline hashmap
+- S2. step strdup 빈 문자열 단일 sentinel 공유
+- S3. trace string append O(1) amortized (별도 buf+len+cap 트리플)
+
+### Out of scope (이 audit에서 *안* 다룸)
+- AST arena 이행 (별도 큰 ticket)
+- step name interned-id (별도 ticket, 언어 차원 변경 가능성)
+- LLVM 백엔드 자체 최적화 패스 추가
+- mimalloc/jemalloc 등 allocator 교체 (vision territory)
+- gperf 의존성 추가 부담 시 정렬 + bsearch로 대체 가능 — 결정 필요
+
+### 우선순위 정합
+- §0a (WASM/WebGL) / §0b (Server backend) 와 *직교*. 어느 쪽 path를 먼저
+  가든 Sprint Q/R/S 모두 이득
+- 사용자 1인 프로젝트면 Sprint Q만 우선 처리해도 큰 데모에서 차이 큼
+- 베타 closure 정합성 위협 없음 — 베타 후 우선순위 1 후보
+
 ## UTF-8 Progress Note - 2026-04-30 - AIR/DAG/CFG Contract Tightening
 
 - AIR DAG evidence now reports actual generic/ability compatibility fact
