@@ -176,6 +176,8 @@ mir_stmt_has_side_effect(const ASTNode *stmt)
         return true;
     if (stmt->type == AST_UNSAFE_BLOCK)
         return true;
+    if (stmt->type == AST_DEFER_STMT)
+        return true;
     if (stmt->type == AST_INTENT_STEP)
         return true;
     if (stmt->type == AST_WITH_STMT)

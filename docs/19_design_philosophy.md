@@ -224,6 +224,40 @@ existence는 Slot generation / token / runtime state가 검증한다.
 §0.7 lineage 좌표 + §0.8 capability 좌표 + §0.9 type-system mandate가 모두
 project_research_program_thesis(memory)의 *root motivation*에서 derive.
 
+### 0.10 Drift management discipline — 깨짐은 정상 상태
+
+§0.9가 type system이 *무엇을 운반*하는지(carrier mandate)라면, **운반자가
+깨질 때**(intent와 abstraction은 *반드시* 깨진다 — Spolsky 2002, Brooks
+1986) 어떻게 관리할지는 별개 discipline. 정식 위치:
+`docs/122_managing_intent_drift.md`.
+
+핵심 frame:
+
+> **Pergyra는 *깨지지 않는 abstraction*을 만드는 언어가 아니라 *깨질 때
+> 관리 가능*한 abstraction을 만드는 언어다.** 깨짐은 정상 상태. 5 차원
+> management(visibility / boundedness / evidence / recoverability /
+> recognition) × 5 종류 drift(static / runtime / semantic / layer / time)
+> 매트릭스로 분리해서 처리.
+
+언어 도구 vs 방법론 분리:
+
+- 언어 도구 (4 차원): visibility (`PGY_SEM_*` + AIR), boundedness
+  (zone/world/Slot/pin), evidence (provenance + 구조화 로그),
+  recoverability (compensate + supervision + retry policy)
+- 방법론 (5번째 차원, 자동화 불가): recognition — "패치할 깨짐인가
+  abstraction 자체가 틀린 깨짐인가"를 사람이 evidence 보고 판단. 1년
+  freeze가 *recognition window*.
+
+언어가 *못 풀 자리*도 정직하게:
+
+- Semantic drift (intent 자체가 틀림) — 언어 차원 도구 0. real program +
+  falsification만.
+- Time drift (세계가 변함) — intent versioning 미정. post-1.0 vision.
+
+§0.7-0.10 모두 project_research_program_thesis의 derivative. 정체성(0.7)
++ 좌표 분리(0.8) + 운반 mandate(0.9) + 깨짐 관리(0.10) 4축이 *베타
+closure 직전 정직성 인프라* 전체 구성.
+
 ---
 
 ## 1. 가장 중요한 전제

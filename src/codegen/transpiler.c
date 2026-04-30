@@ -115,6 +115,7 @@ static const char *transpiler_find_local_type_name(TranspilerCtx *ctx,
 static const char *transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                                                               const ASTNode *func_decl,
                                                               ASTNode *expr);
+static const char *transpiler_let_slot_inner_from_call_type_arg(ASTNode *call);
 static bool transpiler_emit_mir_block_with_ssa_map(TranspilerSSANameMap *ssa_map,
                                                   const MIRBasicBlock *block);
 static char *emit_expression_with_ssa_map(ASTNode *node,
@@ -162,6 +163,7 @@ static const char *ensure_generic_class_specialization(
     TranspilerCtx *ctx, ASTNode *class_decl, ASTNode *ann);
 
 #include "transpiler_helpers.h"
+#include "transpiler_defer_emit.h"
 #include "transpiler_base_a_emitters.h"
 #include "transpiler_base_b_emitters.h"
 #include "transpiler_intent_emit.h"

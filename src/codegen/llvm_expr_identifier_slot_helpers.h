@@ -209,7 +209,18 @@ llvm_direct_secure_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
     if (slot_var->type != NULL
         && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
         const char *inner = llvm_lookup_slot_inner(ctx, slot_var->name);
-        slot_ty = llvm_secure_slot_struct_type(ctx, inner != NULL ? inner : "Int");
+        if (inner == NULL || inner[0] == '\0') {
+            if (!ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, NULL,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM secure slot release for '%s' requires concrete SecureSlot<T> metadata",
+                    slot_var->name != NULL ? slot_var->name : "<slot>");
+            }
+            return;
+        }
+        slot_ty = llvm_secure_slot_struct_type(ctx, inner);
         slot_ptr = LLVMBuildLoad2(ctx->builder, slot_var->type,
                                   slot_var->alloca, llvm_tmp_name(ctx));
     } else {
@@ -220,6 +231,29 @@ llvm_direct_secure_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
         slot_ptr, 2, llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder,
         LLVMConstInt(ctx->type_i64, 0, 0), token_ptr);
+}
+
+static LLVMTypeRef
+llvm_required_slot_struct_type_for_var(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
+                                       bool secure)
+{
+    const char *inner;
+    if (ctx == NULL || slot_var == NULL)
+        return NULL;
+    inner = llvm_lookup_slot_inner(ctx, slot_var->name);
+    if (inner == NULL || inner[0] == '\0') {
+        if (!ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, NULL,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM slot helper for '%s' requires concrete Slot<T> metadata",
+                slot_var->name != NULL ? slot_var->name : "<slot>");
+        }
+        return NULL;
+    }
+    return secure ? llvm_secure_slot_struct_type(ctx, inner)
+                  : llvm_slot_struct_type(ctx, inner);
 }
 
 static void
@@ -236,11 +270,10 @@ llvm_direct_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
 
     if (slot_var->type != NULL
         && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
-        const char *inner = llvm_lookup_slot_inner(ctx, slot_var->name);
         bool secure = llvm_lookup_slot_is_secure(ctx, slot_var->name);
-        slot_ty = secure
-            ? llvm_secure_slot_struct_type(ctx, inner != NULL ? inner : "Int")
-            : llvm_slot_struct_type(ctx, inner != NULL ? inner : "Int");
+        slot_ty = llvm_required_slot_struct_type_for_var(ctx, slot_var, secure);
+        if (slot_ty == NULL)
+            return;
         slot_ptr = LLVMBuildLoad2(ctx->builder, slot_var->type,
                                   slot_var->alloca, llvm_tmp_name(ctx));
     } else {
@@ -270,11 +303,10 @@ llvm_direct_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
 
     if (slot_var->type != NULL
         && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
-        const char *inner = llvm_lookup_slot_inner(ctx, slot_var->name);
         bool secure = llvm_lookup_slot_is_secure(ctx, slot_var->name);
-        slot_ty = secure
-            ? llvm_secure_slot_struct_type(ctx, inner != NULL ? inner : "Int")
-            : llvm_slot_struct_type(ctx, inner != NULL ? inner : "Int");
+        slot_ty = llvm_required_slot_struct_type_for_var(ctx, slot_var, secure);
+        if (slot_ty == NULL)
+            return;
         slot_ptr = LLVMBuildLoad2(ctx->builder, slot_var->type,
                                   slot_var->alloca, llvm_tmp_name(ctx));
     } else {

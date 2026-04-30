@@ -541,5 +541,20 @@ transpiler_mir_intent_has_stmt(const MIRRoutine *routine,
     return false;
 }
 
-#include "transpiler_expr_emitters.h"
+static char *
+transpiler_emit_none_with_context(TranspilerCtx *ctx, ASTNode *site)
+{
+    const char *inner = transpiler_contextual_option_inner_type_name(ctx);
+    if (inner == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "None requires contextual Option<T> during C emission");
+        (void)site;
+        return pergyra_strdup("0");
+    }
+    return strdup_fmt("None_%s()", inner);
+}
 
+#include "transpiler_expr_emitters.h"

@@ -85,6 +85,14 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         char *elem_name = llvm_render_type_name_scratch(
             type_node->data.type.generic_args->params[0]->constraint,
             &ctx->scratch);
+        if (elem_name == NULL || elem_name[0] == '\0') {
+            llvm_set_error_at_with_hints(ctx, type_node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM Array/Slice registry requires concrete element metadata");
+            return;
+        }
         LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
         llvm_register_array_var(ctx, var_name, elem_type, -1);
     }
@@ -191,7 +199,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
  * Pergyra type → LLVM type mapping
  * ================================================================= */
 
-static const char *
+const char *
 llvm_constructed_arg_name_at(const char *type_name, int arg_index)
 {
     static char arg_buf[256];
@@ -244,6 +252,26 @@ llvm_constructed_arg_name_at(const char *type_name, int arg_index)
     return NULL;
 }
 
+static const char *
+llvm_required_constructed_arg_name_at(LLVMGenCtx *ctx, const char *type_name,
+                                      int arg_index, const char *container_name)
+{
+    const char *arg = llvm_constructed_arg_name_at(type_name, arg_index);
+    if (arg != NULL && arg[0] != '\0')
+        return arg;
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "%s requires explicit concrete type argument %d while lowering '%s'",
+            container_name != NULL ? container_name : "generic type",
+            arg_index + 1,
+            type_name != NULL ? type_name : "<null>");
+    }
+    return "Unknown";
+}
+
 static char *
 llvm_render_type_name(ASTNode *type_node)
 {
@@ -252,7 +280,7 @@ llvm_render_type_name(ASTNode *type_node)
 
     pgy_arena_init(&arena, 0);
     result = llvm_render_type_name_scratch(type_node, &arena);
-    result = result != NULL ? pergyra_strdup(result) : pergyra_strdup("Int");
+    result = result != NULL ? pergyra_strdup(result) : pergyra_strdup("Unknown");
     pgy_arena_destroy(&arena);
     return result;
 }
@@ -265,7 +293,7 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
     if (type_node == NULL)
         return pgy_arena_strdup(arena, "Void");
     if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
-        return pgy_arena_strdup(arena, "Int");
+        return NULL;
     if (type_node->data.type.generic_args == NULL
         || type_node->data.type.generic_args->count == 0) {
         ASTNode **types = NULL;
@@ -304,12 +332,14 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
         else if (gp->name != NULL)
             arg_name = pgy_arena_strdup(arena, gp->name);
         else
-            arg_name = pgy_arena_strdup(arena, "Int");
+            return NULL;
+        if (arg_name == NULL || arg_name[0] == '\0')
+            return NULL;
 
         need = strlen(result) + strlen(arg_name) + 4;
         grown = (char *)pgy_arena_alloc(arena, need);
         if (grown == NULL)
-            return pgy_arena_strdup(arena, "Int");
+            return NULL;
         memcpy(grown, result, strlen(result) + 1);
         result = grown;
         {
@@ -333,7 +363,7 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
         size_t cur_len = strlen(result);
         char *grown = (char *)pgy_arena_alloc(arena, cur_len + 2);
         if (grown == NULL)
-            return pgy_arena_strdup(arena, "Int");
+            return NULL;
         memcpy(grown, result, cur_len + 1);
         result = grown;
         result[cur_len] = '>';
@@ -346,20 +376,146 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
 LLVMTypeRef
 llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name)
 {
-    /* Find the inner type name between < and > */
-    const char *lt = strchr(type_name, '<');
-    const char *gt = strrchr(type_name, '>');
-    if (lt == NULL || gt == NULL || gt <= lt)
-        return ctx->type_i32;
-
-    char inner[128];
-    size_t len = (size_t)(gt - lt - 1);
-    if (len >= sizeof(inner)) len = sizeof(inner) - 1;
-    memcpy(inner, lt + 1, len);
-    inner[len] = '\0';
-
-    LLVMTypeRef resolved = pgy_kind_to_llvm(ctx, pgy_classify_type(inner));
+    const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
+        "Option<T>");
+    LLVMTypeRef resolved = pergyra_type_to_llvm(ctx, inner);
+    if (resolved == NULL && ctx != NULL && !ctx->has_error) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "Option<T>: cannot resolve concrete inner type metadata");
+    }
     return resolved != NULL ? resolved : ctx->type_i32;
+}
+
+static ASTNode *
+llvm_generic_default_from_params(GenericParams *params, const char *type_name)
+{
+    if (params == NULL || type_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam *param = params->params[i];
+        if (param == NULL || param->name == NULL)
+            continue;
+        if (strcmp(param->name, type_name) == 0) {
+            if (param->default_type != NULL)
+                return param->default_type;
+            if (param->constraint != NULL)
+                return param->constraint;
+            return NULL;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+llvm_generic_default_from_decl(ASTNode *decl, const char *type_name)
+{
+    if (decl == NULL || type_name == NULL)
+        return NULL;
+
+    switch (decl->type) {
+    case AST_FUNC_DECL:
+        return llvm_generic_default_from_params(
+            decl->data.func_decl.generic_params, type_name);
+    case AST_CLASS_DECL:
+        return llvm_generic_default_from_params(
+            decl->data.class_decl.generic_params, type_name);
+    case AST_ABILITY_DECL:
+        return llvm_generic_default_from_params(
+            decl->data.ability_decl.generic_params, type_name);
+    case AST_ROLE_DECL:
+        return llvm_generic_default_from_params(
+            decl->data.role_decl.generic_params, type_name);
+    case AST_PARTY_DECL:
+        return llvm_generic_default_from_params(
+            decl->data.party_decl.generic_params, type_name);
+    case AST_ROSTER_DECL:
+        return llvm_generic_default_from_params(
+            decl->data.roster_decl.generic_params, type_name);
+    default:
+        return NULL;
+    }
+}
+
+static ASTNode *
+llvm_find_generic_default_in_inventory(LLVMGenCtx *ctx, const char *type_name)
+{
+    ASTNode *resolved = NULL;
+    ASTNode *candidate = NULL;
+    ASTNodeType decl_types[] = {
+        AST_FUNC_DECL,
+        AST_CLASS_DECL,
+        AST_ABILITY_DECL,
+        AST_ROLE_DECL,
+        AST_PARTY_DECL,
+        AST_ROSTER_DECL
+    };
+
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+
+    resolved = llvm_generic_default_from_decl(ctx->current_host_decl, type_name);
+    if (resolved != NULL)
+        return resolved;
+
+    for (size_t kind = 0; kind < sizeof(decl_types) / sizeof(decl_types[0]); kind++) {
+        ASTNode **nodes = NULL;
+        size_t count = 0;
+        llvm_active_inventory(ctx, decl_types[kind], &nodes, &count);
+        for (size_t i = 0; i < count; i++) {
+            resolved = llvm_generic_default_from_decl(nodes != NULL ? nodes[i] : NULL,
+                                                      type_name);
+            if (resolved == NULL)
+                continue;
+            if (candidate == NULL) {
+                candidate = resolved;
+                continue;
+            }
+            {
+                char *candidate_name =
+                    llvm_render_type_name_scratch(candidate, &ctx->scratch);
+                char *resolved_name =
+                    llvm_render_type_name_scratch(resolved, &ctx->scratch);
+                if (candidate_name == NULL || resolved_name == NULL
+                    || strcmp(candidate_name, resolved_name) != 0)
+                    return NULL;
+            }
+        }
+    }
+
+    return candidate;
+}
+
+static LLVMTypeRef
+llvm_resolve_alias_type(LLVMGenCtx *ctx, const char *type_name)
+{
+    ASTNode *alias_decl;
+
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+
+    alias_decl = llvm_find_decl_in_active_inventory(ctx, AST_TYPE_ALIAS, type_name);
+    if (alias_decl == NULL || alias_decl->data.type_alias.target_type == NULL)
+        return NULL;
+
+    return ast_type_to_llvm(ctx, alias_decl->data.type_alias.target_type);
+}
+
+static LLVMTypeRef
+llvm_resolve_generic_formal_default(LLVMGenCtx *ctx, const char *type_name)
+{
+    ASTNode *default_type;
+
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+
+    default_type = llvm_find_generic_default_in_inventory(ctx, type_name);
+    if (default_type == NULL)
+        return NULL;
+
+    return ast_type_to_llvm(ctx, default_type);
 }
 
 LLVMTypeRef
@@ -368,21 +524,28 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (type_name == NULL)
         return ctx->type_void;
 
+    if (strcmp(type_name, "PgyError") == 0)
+        return ctx->type_i8ptr;
+
     if (strncmp(type_name, "List<", 5) == 0) {
-        const char *inner = llvm_constructed_arg_name_at(type_name, 0);
-        return llvm_list_struct_type(ctx, inner != NULL ? inner : "Int");
+        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
+            "List<T>");
+        return llvm_list_struct_type(ctx, inner);
     }
     if (strncmp(type_name, "Set<", 4) == 0) {
-        const char *inner = llvm_constructed_arg_name_at(type_name, 0);
-        return llvm_set_struct_type(ctx, inner != NULL ? inner : "Int");
+        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
+            "Set<T>");
+        return llvm_set_struct_type(ctx, inner);
     }
     if (strncmp(type_name, "Queue<", 6) == 0) {
-        const char *inner = llvm_constructed_arg_name_at(type_name, 0);
-        return llvm_queue_struct_type(ctx, inner != NULL ? inner : "Int");
+        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
+            "Queue<T>");
+        return llvm_queue_struct_type(ctx, inner);
     }
     if (strncmp(type_name, "HashMap<", 8) == 0) {
-        const char *value = llvm_constructed_arg_name_at(type_name, 1);
-        return llvm_hashmap_struct_type(ctx, value != NULL ? value : "Int");
+        const char *value = llvm_required_constructed_arg_name_at(ctx, type_name, 1,
+            "HashMap<K, V>");
+        return llvm_hashmap_struct_type(ctx, value);
     }
 
     /* Check active type substitution (monomorphization) first */
@@ -397,6 +560,19 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     LLVMTypeRef primitive = pgy_kind_to_llvm(ctx, kind);
     if (primitive != NULL)
         return primitive;
+
+    {
+        LLVMTypeRef alias_type = llvm_resolve_alias_type(ctx, type_name);
+        if (alias_type != NULL)
+            return alias_type;
+    }
+
+    {
+        LLVMTypeRef generic_default =
+            llvm_resolve_generic_formal_default(ctx, type_name);
+        if (generic_default != NULL)
+            return generic_default;
+    }
 
     /* Generic container types */
     switch (kind) {
@@ -423,10 +599,27 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
                 llvm_ensure_result_type(ctx, ok_name, err_name);
             if (spec != NULL && spec->struct_ty != NULL)
                 return spec->struct_ty;
-            /* fall through to legacy anonymous layout if resolution fails */
+            if (ctx != NULL && !ctx->has_error) {
+                llvm_set_error_with_hints(ctx,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "Result<%s, %s>: cannot materialize named layout",
+                    ok_name, err_name);
+            }
+            return ctx != NULL ? ctx->type_i32 : NULL;
         }
-        LLVMTypeRef ok_ty  = pergyra_type_to_llvm(ctx,
-            ok_name  != NULL ? ok_name  : "Int");
+        if (ok_name == NULL) {
+            if (ctx != NULL && !ctx->has_error) {
+                llvm_set_error_with_hints(ctx,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "Result<T>: concrete Ok type metadata is required");
+            }
+            return ctx != NULL ? ctx->type_i32 : NULL;
+        }
+        LLVMTypeRef ok_ty  = pergyra_type_to_llvm(ctx, ok_name);
         LLVMTypeRef err_ty = pergyra_type_to_llvm(ctx,
             err_name != NULL ? err_name : "PgyError");
         LLVMTypeRef fields[] = {
@@ -442,61 +635,31 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
         return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
     }
     case PGY_TK_SLOT: {
-        const char *inner_name = strchr(type_name, '<');
-        if (inner_name != NULL) {
-            inner_name++;
-            char buf[64]; size_t l = strcspn(inner_name, ">");
-            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
-            memcpy(buf, inner_name, l); buf[l] = '\0';
-            return llvm_slot_struct_type(ctx, buf);
-        }
-        return llvm_slot_struct_type(ctx, "Int");
+        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
+            "Slot<T>");
+        return llvm_slot_struct_type(ctx, inner);
     }
     case PGY_TK_SECURE_SLOT: {
-        const char *inner_name = strchr(type_name, '<');
-        if (inner_name != NULL) {
-            inner_name++;
-            char buf[64]; size_t l = strcspn(inner_name, ">");
-            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
-            memcpy(buf, inner_name, l); buf[l] = '\0';
-            return llvm_secure_slot_struct_type(ctx, buf);
-        }
-        return llvm_secure_slot_struct_type(ctx, "Int");
+        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
+            "SecureSlot<T>");
+        return llvm_secure_slot_struct_type(ctx, inner);
     }
     case PGY_TK_DEVICE_SLOT: {
-        const char *inner_name = strchr(type_name, '<');
-        if (inner_name != NULL) {
-            inner_name++;
-            char buf[64]; size_t l = strcspn(inner_name, ">");
-            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
-            memcpy(buf, inner_name, l); buf[l] = '\0';
-            return llvm_slot_struct_type(ctx, buf);
-        }
-        return llvm_slot_struct_type(ctx, "Int");
+        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
+            "DeviceSlot<T>");
+        return llvm_slot_struct_type(ctx, inner);
     }
     case PGY_TK_REMOTE_FUTURE:
         return ctx->type_task_handle;
     case PGY_TK_ARRAY: {
-        const char *inner_name = strchr(type_name, '<');
-        if (inner_name != NULL) {
-            inner_name++;
-            char buf[64]; size_t l = strcspn(inner_name, ">");
-            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
-            memcpy(buf, inner_name, l); buf[l] = '\0';
-            return llvm_array_struct_type(ctx, buf);
-        }
-        return llvm_array_struct_type(ctx, "Int");
+        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
+            "Array<T>");
+        return llvm_array_struct_type(ctx, inner);
     }
     case PGY_TK_SLICE: {
-        const char *inner_name = strchr(type_name, '<');
-        if (inner_name != NULL) {
-            inner_name++;
-            char buf[64]; size_t l = strcspn(inner_name, ">");
-            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
-            memcpy(buf, inner_name, l); buf[l] = '\0';
-            return llvm_slice_struct_type(ctx, buf);
-        }
-        return llvm_slice_struct_type(ctx, "Int");
+        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
+            "Slice<T>");
+        return llvm_slice_struct_type(ctx, inner);
     }
     case PGY_TK_CHANNEL:
     case PGY_TK_BOX:
@@ -518,6 +681,17 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (cls != NULL)
         return cls->struct_type;
 
+    if (llvm_find_enum_decl(ctx, type_name) != NULL)
+        return ctx->type_i32;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM type '%s' is not registered in the LLVM type map; silent i32 fallback is not allowed",
+            type_name);
+    }
     return ctx->type_i32;
 }
 
@@ -576,10 +750,25 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
 
     if (type_node->type == AST_TYPE && type_node->data.type.name != NULL) {
         char *full_name = llvm_render_type_name_scratch(type_node, &ctx->scratch);
+        if (full_name == NULL || full_name[0] == '\0') {
+            llvm_set_error_at_with_hints(ctx, type_node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM type rendering requires concrete type metadata; silent Int fallback is not allowed");
+            return ctx->type_i32;
+        }
         LLVMTypeRef resolved = pergyra_type_to_llvm(ctx, full_name);
         return resolved;
     }
 
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, type_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM AST type mapping requires AST_TYPE or event handler metadata; silent i32 fallback is not allowed");
+    }
     return ctx->type_i32;
 }
 

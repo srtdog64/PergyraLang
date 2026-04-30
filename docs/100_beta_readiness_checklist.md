@@ -710,6 +710,15 @@ Closed now:
   backend handle.
 - Canonical short form: Pergyra exposes memory as a modular resource boundary;
   Slot has a replaceable backend handle.
+- Canonical semantic split: static rejection covers unsafe transition across a
+  known boundary; runtime validation covers dynamic existence/state of a
+  resource handle. Pergyra does not statically predict every business object's
+  lifetime. It rejects unsupported world/zone/task handoff, missing authority,
+  unsupported token transport, pin/view suspension or transport crossing, and
+  projection source/target/kind mismatch when those coordinates are visible;
+  generation freshness, token validity, TTL cleanup, registry presence, and
+  tombstone state remain runtime facts unless a boundary rule exposes the escape
+  statically.
 - The Slot Coq sketch now models access modes explicitly (`Read`, `Write`,
   `Release`, `Pin`) and carries proof obligations for stale
   read/write/release handles, issued-token read/write/pin/release,
@@ -3092,6 +3101,27 @@ make ast-dispatch-test-smoke
 - Verified with `make type-resolution-resolver-inventory-test-smoke`,
   `make type-resolution-dag-test-smoke`, `make test-semantic`,
   `make semantic-core-shape-test-smoke`, and `make semantic-tu-size-test-smoke`.
+
+## Progress Log - 2026-04-30 C/LLVM Defer Cleanup Parity
+
+- C `defer` lowering now uses lexical inline cleanup instead of a file-scope GCC
+  cleanup helper. This keeps local state such as method `self` visible to the
+  deferred body and aligns the C backend with LLVM's defer stack model.
+- MIR-emitted C functions now register `AST_DEFER_STMT` through the same defer
+  stack and emit active defers on MIR return/fallthrough returns, so subject
+  method recursion with deferred state mutation is backend-parity gated.
+- Nested branch defer is now MIR-preserved rather than treated as CFG-owned
+  control, so `if { defer { ... } }` survives DCE and is smoke/parity gated.
+- Dynamic `defer` inside runtime-dependent `if`/match/loop control is not beta-stable
+  and is now rejected with `PGY_SEM_DEFER_DYNAMIC_CONTROL`. This avoids a false
+  parity state where C and LLVM both run the same wrong cleanup.
+- The old sentinel path is now a regression smell: C tests reject
+  `__attribute__((cleanup(_pgy_defer_...)))` for source-level `defer`.
+- Current evidence: `make test-transpile` (`682/0`), `make llvm-test-smoke`,
+  `make llvm-test-backend-compare` (`69/69`), and the CFG/AIR/DAG smoke gates
+  pass. A full monolithic `make ci-linux` was not completed locally because the
+  command exceeded the 15 minute execution window; the CI target groups were
+  run in slices instead.
 
 ## Progress Log — 2026-04-24 Parser/Lexer Diagnostic Routing
 

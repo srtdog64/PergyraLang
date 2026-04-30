@@ -32,10 +32,18 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             const char *name = capture_slot_names[i];
             const char *inner = lookup_slot_type(ctx, name);
             bool secure = lookup_slot_is_secure(ctx, name);
+            if (inner == NULL || inner[0] == '\0') {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "parallel capture '%s' requires concrete Slot<T> metadata",
+                    name);
+                return;
+            }
             codebuf_write(ctx->helpers,
                 secure ? "    PgySecureSlot_%s *%s;\n" : "    PgySlot_%s *%s;\n",
-                inner != NULL ? inner : "Int",
-                name);
+                inner, name);
         }
         for (int i = 0; i < capture_typed_count; i++) {
             TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
@@ -233,10 +241,19 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
             const char *name = capture_slot_names[i];
             const char *inner = lookup_slot_type(ctx, name);
             bool secure = lookup_slot_is_secure(ctx, name);
+            if (inner == NULL || inner[0] == '\0') {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "async capture '%s' requires concrete Slot<T> metadata",
+                    name);
+                return;
+            }
             codebuf_write(ctx->helpers, secure
                 ? "    PgySecureSlot_%s *%s;\n"
                 : "    PgySlot_%s *%s;\n",
-                inner != NULL ? inner : "Int", name);
+                inner, name);
         }
         for (int i = 0; i < capture_typed_count; i++) {
             TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);

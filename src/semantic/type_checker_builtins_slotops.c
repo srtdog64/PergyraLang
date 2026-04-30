@@ -23,7 +23,7 @@ type_check_claim_device_slot(ASTNode *call, SemanticContext *ctx)
     if (!check_call_arity(call, 0, "ClaimDeviceSlot", ctx))
         return TYPE_UNKNOWN;
     semantic_record_effect(ctx, EFFECT_REMOTE);
-    return wrap_constructed(TYPE_DEVICE_SLOT, TYPE_INT);
+    return wrap_constructed(TYPE_DEVICE_SLOT, TYPE_UNKNOWN);
 }
 
 static Type *

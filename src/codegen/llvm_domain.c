@@ -23,6 +23,26 @@
 
 /* World sync emission lives in llvm_domain_world_sync.c. */
 
+static LLVMTypeRef
+llvm_domain_required_ast_type(LLVMGenCtx *ctx,
+                              ASTNode *field_node,
+                              ASTNode *type_node,
+                              const char *field_kind)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (type_node != NULL)
+        return ast_type_to_llvm(ctx, type_node);
+
+    llvm_set_error_at_with_hints(ctx, field_node,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM domain %s requires explicit type metadata; silent i32 fallback is not allowed",
+        field_kind != NULL ? field_kind : "field");
+    return ctx->type_i32;
+}
+
 void
 llvm_emit_domain_passes(LLVMGenCtx *ctx)
 {
@@ -149,16 +169,12 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++, idx++) {
                 ASTNode *slot = stmt->data.zone_decl.slots[j];
                 ASTNode *slot_type = slot->data.domain_slot.type;
-                ftypes[idx] = (slot_type != NULL)
-                    ? ast_type_to_llvm(ctx, slot_type)
-                    : ctx->type_i32;
+                ftypes[idx] = llvm_domain_required_ast_type(ctx, slot, slot_type, "zone slot");
             }
             for (size_t j = 0; j < stmt->data.zone_decl.shared_count; j++, idx++) {
                 ASTNode *sf = stmt->data.zone_decl.shared_fields[j];
                 ASTNode *sf_type = sf->data.party_shared.type;
-                ftypes[idx] = (sf_type != NULL)
-                    ? ast_type_to_llvm(ctx, sf_type)
-                    : ctx->type_i32;
+                ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "zone shared field");
             }
             for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, idx++) {
                 ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
@@ -224,9 +240,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             for (size_t j = 0; j < stmt->data.roster_decl.shared_count; j++, idx++) {
                 ASTNode *sf = stmt->data.roster_decl.shared_fields[j];
                 ASTNode *sf_type = sf->data.party_shared.type;
-                ftypes[idx] = (sf_type != NULL)
-                    ? ast_type_to_llvm(ctx, sf_type)
-                    : ctx->type_i32;
+                ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "roster shared field");
             }
         } else if (stmt->type == AST_WORLD_DECL) {
             fc = stmt->data.world_decl.roster_count
@@ -257,8 +271,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             for (size_t j = 0; j < stmt->data.world_decl.shared_count; j++, idx++) {
                 ASTNode *sf = stmt->data.world_decl.shared_fields[j];
                 ASTNode *sf_type = sf->data.party_shared.type;
-                ftypes[idx] = (sf_type != NULL)
-                    ? ast_type_to_llvm(ctx, sf_type) : ctx->type_i32;
+                ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "world shared field");
             }
             for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++)
                 ftypes[idx] = ctx->type_i1;
@@ -289,16 +302,12 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             for (size_t j = 0; j < slot_count; j++, idx++) {
                 ASTNode *slot = slots[j];
                 ASTNode *slot_type = slot->data.domain_slot.type;
-                ftypes[idx] = (slot_type != NULL)
-                    ? ast_type_to_llvm(ctx, slot_type)
-                    : ctx->type_i32;
+                ftypes[idx] = llvm_domain_required_ast_type(ctx, slot, slot_type, "domain slot");
             }
             for (size_t j = 0; j < shared_count; j++, idx++) {
                 ASTNode *sf = shared_fields[j];
                 ASTNode *sf_type = sf->data.party_shared.type;
-                ftypes[idx] = (sf_type != NULL)
-                    ? ast_type_to_llvm(ctx, sf_type)
-                    : ctx->type_i32;
+                ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "domain shared field");
             }
             for (size_t j = 0; j < dyn_slot_count; j++, idx++)
                 ftypes[idx] = ctx->type_i8ptr;

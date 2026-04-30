@@ -22,9 +22,13 @@ llvm_stmt_render_type_annotation_static(ASTNode *type_ann)
     for (size_t i = 0; i < type_ann->data.type.generic_args->count; i++) {
         char *arg = llvm_stmt_render_type_arg(
             type_ann->data.type.generic_args->params[i]);
+        if (arg == NULL || arg[0] == '\0') {
+            free(arg);
+            return NULL;
+        }
         int written = snprintf(buf + offset, sizeof(buf) - offset,
                                "%s%s", i == 0 ? "" : ", ",
-                               arg != NULL ? arg : "Int");
+                               arg);
         free(arg);
         if (written < 0)
             break;
@@ -127,7 +131,7 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
     const char *method_name;
 
     if (expr == NULL)
-        return "Int";
+        return NULL;
 
     switch (expr->type) {
     case AST_NUMBER: return "Int";
@@ -137,7 +141,7 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
         LLVMVarEntry *entry = llvm_scope_lookup(ctx, expr->data.identifier.name);
         if (entry != NULL)
             return llvm_type_to_suffix(ctx, entry->type);
-        return "Int";
+        return NULL;
     }
     case AST_CALL:
         callee = expr->data.call.callee;
@@ -214,9 +218,9 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
             if (declared_ret != NULL)
                 return declared_ret;
         }
-        return "Int";
+        return NULL;
     default:
-        return "Int";
+        return NULL;
     }
 }
 
@@ -236,13 +240,13 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
     if (callee != NULL && callee->type == AST_IDENTIFIER)
         callee_name = callee->data.identifier.name;
     if (callee_name == NULL)
-        return "Int";
+        return NULL;
 
     ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx, callee_name);
     if (decl == NULL || decl->data.func_decl.return_type == NULL
         || decl->data.func_decl.return_type->type != AST_TYPE
         || decl->data.func_decl.return_type->data.type.name == NULL) {
-        return "Int";
+        return NULL;
     }
 
     const char *ret_name = decl->data.func_decl.return_type->data.type.name;
@@ -250,7 +254,7 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
         return ret_name;
 
     if (call == NULL)
-        return "Int";
+        return NULL;
 
     for (size_t i = 0; i < decl->data.func_decl.param_count
          && i < call->data.call.arg_count; i++) {
@@ -259,13 +263,16 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
             || param->type->data.type.name == NULL)
             continue;
         if (strcmp(param->type->data.type.name, ret_name) == 0) {
-            snprintf(buf, sizeof(buf), "%s",
-                llvm_simple_expr_type_name(ctx, call->data.call.arguments[i]));
+            const char *actual_type = llvm_simple_expr_type_name(ctx,
+                call->data.call.arguments[i]);
+            if (actual_type == NULL || actual_type[0] == '\0')
+                continue;
+            snprintf(buf, sizeof(buf), "%s", actual_type);
             return buf;
         }
     }
 
-    return "Int";
+    return NULL;
 }
 
 #endif /* PGY_LLVM_ENABLED */

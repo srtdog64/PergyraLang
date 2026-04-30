@@ -54,6 +54,8 @@ required_files=(
     "docs/114_async_model_positioning.md"
     "examples/async_demo.pgy"
     "docs/semantics/07_air_abstraction_safety.md"
+    "docs/semantics/00_proof_contract.md"
+    "docs/semantics/08_slot_capability_calculus.md"
     "examples/remote_future_result.pgy"
     "docs/grammar/01_syntax.md"
     "docs/grammar/02_grammar.md"
@@ -121,6 +123,8 @@ slot_rigor_terms=(
     "Pinning solves lexical pinned access"
     "Pergyra has a smaller static subset plus runtime handle/capability checks"
     "must not be marketed as current behavior"
+    "borrow-check analogue, narrow subset"
+    "not a claim of Rust-level lifetime or aliasing coverage"
 )
 for term in "${slot_rigor_terms[@]}"; do
     require_text "docs/118_slot_model_rigor_audit.md" "$term"
@@ -148,11 +152,32 @@ type_medium_terms=(
     "Graph-Shaped Reality, Not Tree-Shaped Ownership"
     "Pergyra does not statically predict the lifetime of all business objects."
     "statically rejects unsafe boundary transitions and dynamically validates"
+    "static rejection  = unsafe transition across a known boundary"
+    "runtime validate  = dynamic existence/state of a resource handle"
+    "Do not turn dynamic graph existence into a compile-time puzzle."
     "Do not force every business object into an owning tree."
     "compile time rejects unsafe *transitions*; runtime"
 )
 for term in "${type_medium_terms[@]}"; do
     require_text "docs/121_types_as_domain_medium.md" "$term"
+done
+
+semantic_split_terms=(
+    "static rejection  = unsafe transition across a known boundary"
+    "runtime validate  = dynamic existence/state of a resource handle"
+    "static proofs cover unsafe transitions; runtime proofs cover dynamic"
+)
+for term in "${semantic_split_terms[@]}"; do
+    require_text "docs/semantics/00_proof_contract.md" "$term"
+done
+
+slot_static_runtime_terms=(
+    "static rejection covers visible handle escape"
+    "Runtime validation covers generation freshness"
+    "the ownership/CFG/AIR layers prove which boundary transitions are accepted"
+)
+for term in "${slot_static_runtime_terms[@]}"; do
+    require_text "docs/semantics/08_slot_capability_calculus.md" "$term"
 done
 
 zone_shape_diagnostic_terms=(
@@ -164,7 +189,9 @@ zone_shape_diagnostic_terms=(
 for term in "${zone_shape_diagnostic_terms[@]}"; do
     require_text "src/semantic/type_checker_zone_shape.c" "$term"
 done
+require_text "src/semantic/type_checker_zone_shape.c" "identity-bearing state-transition subjects"
 forbid_text "src/semantic/type_checker_zone_shape.c" "active subjects to 4 or fewer"
+forbid_text "src/semantic/type_checker_zone_shape.c" "authority-bearing subjects"
 
 zone_first_todo_terms=(
     "zone-first authoring path"
@@ -199,6 +226,12 @@ done
 
 for forbidden in \
     "Static strength comparable to Rust 1.0" \
+    "current strength is *comparable* to Rust 1.0" \
+    "runs like Rust + Vale at the parts already implemented" \
+    "Rust-1.0-comparable static safety layer" \
+    "fully Rust-static-equivalent" \
+    "Looks like C#, runs like Rust + Vale" \
+    "Rust borrow-check equivalent" \
     "categorically equivalent" \
     "zero-cost security" \
     "complete compile-time security" \

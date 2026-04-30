@@ -17,6 +17,7 @@ Related documents:
 - `docs/119_pergyra_lineage_positioning.md` — sister positioning doc for language lineage; §11 marketing-phrasing table extends this doc's §8 negative-space audit
 - `docs/120_vision_and_capability_audit.md` — sister audit; capability negative-space + current-vs-vision separation (completes the three-pair protocol with this doc's §8 and `docs/119` §11)
 - `docs/121_types_as_domain_medium.md` — sister positioning; type system as the syntactic machine of lost-meaning recovery (Slot is the state-transition coordinate axis in §2)
+- `docs/122_managing_intent_drift.md` — sister positioning; drift management for when this doc's §6 danger zones produce real drift in real programs
 
 This document is an **honest audit** of what Pergyra's Slot model and
 ownership system actually guarantee statically, what they check at runtime,
@@ -234,7 +235,7 @@ Every guarantee in the system falls into one of three tiers. The tier
 determines *how* the guarantee is delivered, which determines what kind
 of marketing language is honest.
 
-### 4.1 Tier 1 — Active static rejection (Rust borrow-check equivalent)
+### 4.1 Tier 1 — Active static rejection (borrow-check analogue, narrow subset)
 
 These rejections fire at compile time today, with regression evidence.
 
@@ -252,8 +253,10 @@ These rejections fire at compile time today, with regression evidence.
 | Anonymous async spawn body | parser reject | parser test |
 | Movable resource non-blocking channel receive | semantic reject | `docs/113` happens-before contract |
 
-These are real Tier 1: the compiler rejects today, with regression evidence,
-and there is no path where invalid programs become accepted by accident.
+These are real Tier 1 for the listed rules: the compiler rejects today, with
+regression evidence, and there is no accepted stable path for these specific
+violations. This is a borrow-check analogue for a narrow domain-boundary subset,
+not a claim of Rust-level lifetime or aliasing coverage.
 
 ### 4.2 Tier 1-active for typed-view pin blocks, runtime-lowering pending
 

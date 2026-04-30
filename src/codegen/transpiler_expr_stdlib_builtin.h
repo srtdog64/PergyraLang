@@ -2,6 +2,100 @@
 #include "transpiler_expr_stdlib_scalar_builtin.h"
 #include "transpiler_expr_stdlib_collection_builtin.h"
 
+static bool
+transpiler_resolve_unary_constructed_inner(TranspilerCtx *ctx,
+                                           const char *type_name,
+                                           const char *family,
+                                           char *inner_buf,
+                                           size_t inner_buf_size,
+                                           const char **inner_out)
+{
+    const char *resolved_type = type_name;
+    char resolved_buf[128];
+    size_t family_len = family != NULL ? strlen(family) : 0;
+
+    if (resolved_type != NULL
+        && !(family_len > 0
+             && strncmp(resolved_type, family, family_len) == 0
+             && resolved_type[family_len] == '<')) {
+        ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
+        if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL) {
+            ASTNode *target = resolve_type_alias_target(
+                ctx, alias_decl->data.type_alias.target_type);
+            char *rendered = render_type_name(target);
+            if (rendered != NULL) {
+                snprintf(resolved_buf, sizeof(resolved_buf), "%s", rendered);
+                free(rendered);
+                resolved_type = resolved_buf;
+            }
+        }
+    }
+
+    if (resolved_type != NULL
+        && family_len > 0
+        && strncmp(resolved_type, family, family_len) == 0
+        && resolved_type[family_len] == '<') {
+        const char *inner = slot_inner_type_name(resolved_type);
+        if (inner != NULL && inner[0] != '\0') {
+            snprintf(inner_buf, inner_buf_size, "%s", inner);
+            if (inner_out != NULL)
+                *inner_out = inner_buf;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+transpiler_require_array_inner_type(TranspilerCtx *ctx, ASTNode *expr,
+                                    const char *operation,
+                                    bool allow_slice,
+                                    char *inner_buf,
+                                    size_t inner_buf_size,
+                                    const char **inner_out)
+{
+    const char *type_name = infer_expression_type_name(ctx, expr);
+    if (transpiler_resolve_unary_constructed_inner(ctx, type_name, "Array",
+            inner_buf, inner_buf_size, inner_out)) {
+        return true;
+    }
+    if (allow_slice
+        && transpiler_resolve_unary_constructed_inner(ctx, type_name, "Slice",
+            inner_buf, inner_buf_size, inner_out)) {
+        return true;
+    }
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "C backend: %s requires concrete %s metadata",
+        operation != NULL ? operation : "Array operation",
+        allow_slice ? "Array<T> or Slice<T>" : "Array<T>");
+    return false;
+}
+
+static const char *
+transpiler_require_channel_inner_type(TranspilerCtx *ctx, ASTNode *expr,
+                                      const char *operation,
+                                      char *inner_buf,
+                                      size_t inner_buf_size)
+{
+    const char *inner = NULL;
+    const char *type_name = infer_expression_type_name(ctx, expr);
+    if (transpiler_resolve_unary_constructed_inner(ctx, type_name, "Channel",
+            inner_buf, inner_buf_size, &inner)) {
+        return inner;
+    }
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "C backend: %s requires concrete Channel<T> metadata",
+        operation != NULL ? operation : "Channel operation");
+    return NULL;
+}
+
 static char *
 emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -14,6 +108,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
         if (strcmp(fn, "ArrayLength") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            const char *inner = NULL;
+            char inner_buf[64];
+            if (!transpiler_require_array_inner_type(ctx,
+                    call->data.call.arguments[0], "ArrayLength", true,
+                    inner_buf, sizeof(inner_buf), &inner)) {
+                free(arg);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt("((int32_t)(%s.length))", arg);
             free(arg);
             return result;
@@ -21,8 +123,15 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (strcmp(fn, "ArrayPush") == 0 && call->data.call.arg_count == 2) {
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
             char *val = emit_expression(call->data.call.arguments[1], ctx);
-            const char *suffix = infer_expression_type_name(
-                ctx, call->data.call.arguments[1]);
+            const char *suffix = NULL;
+            char inner_buf[64];
+            if (!transpiler_require_array_inner_type(ctx,
+                    call->data.call.arguments[0], "ArrayPush", false,
+                    inner_buf, sizeof(inner_buf), &suffix)) {
+                free(arr);
+                free(val);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_array_push_%s(&%s, %s)", suffix, arr, val);
             free(arr); free(val);
@@ -32,11 +141,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
             char *idx = emit_expression(call->data.call.arguments[1], ctx);
             char *val = emit_expression(call->data.call.arguments[2], ctx);
-            const char *arr_type = infer_expression_type_name(ctx,
-                call->data.call.arguments[0]);
-            const char *inner = "Int";
-            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
-                inner = slot_inner_type_name(arr_type);
+            const char *inner = NULL;
+            char inner_buf[64];
+            if (!transpiler_require_array_inner_type(ctx,
+                    call->data.call.arguments[0], "ArraySet", false,
+                    inner_buf, sizeof(inner_buf), &inner)) {
+                free(arr); free(idx); free(val);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_array_set_%s(&%s, %s, %s)", inner, arr, idx, val);
             free(arr); free(idx); free(val);
@@ -44,6 +156,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
         if (strcmp(fn, "ArrayPop") == 0 && call->data.call.arg_count == 1) {
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
+            const char *inner = NULL;
+            char inner_buf[64];
+            if (!transpiler_require_array_inner_type(ctx,
+                    call->data.call.arguments[0], "ArrayPop", false,
+                    inner_buf, sizeof(inner_buf), &inner)) {
+                free(arr);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt("((%s).length > 0 ? (%s).length-- : 0)",
                 arr, arr);
             free(arr);
@@ -52,11 +172,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         /* ArraySort ??hybrid sort using AlphaDev kernels for small arrays */
         if (strcmp(fn, "ArraySort") == 0 && call->data.call.arg_count == 1) {
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
-            const char *arr_type = infer_expression_type_name(ctx,
-                call->data.call.arguments[0]);
-            const char *inner = "Int";
-            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
-                inner = slot_inner_type_name(arr_type);
+            const char *inner = NULL;
+            char inner_buf[64];
+            if (!transpiler_require_array_inner_type(ctx,
+                    call->data.call.arguments[0], "ArraySort", false,
+                    inner_buf, sizeof(inner_buf), &inner)) {
+                free(arr);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "({ pgy_array_sort_%s((%s).data, (%s).length); %s; })",
                 inner, arr, arr, arr);
@@ -67,11 +190,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (strcmp(fn, "ArrayMap") == 0 && call->data.call.arg_count == 2) {
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
             char *fn_arg = emit_expression(call->data.call.arguments[1], ctx);
-            const char *arr_type = infer_expression_type_name(ctx,
-                call->data.call.arguments[0]);
-            const char *inner = "Int";
-            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
-                inner = slot_inner_type_name(arr_type);
+            const char *inner = NULL;
+            char inner_buf[64];
+            if (!transpiler_require_array_inner_type(ctx,
+                    call->data.call.arguments[0], "ArrayMap", false,
+                    inner_buf, sizeof(inner_buf), &inner)) {
+                free(arr); free(fn_arg);
+                return pergyra_strdup("0");
+            }
             int tmp_id = ++ctx->tmp_counter;
             char *result = strdup_fmt(
                 "({ PgyArray_%s _pgy_map_%d = pgy_array_new_%s((%s).length); "
@@ -89,11 +215,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (strcmp(fn, "ArrayFilter") == 0 && call->data.call.arg_count == 2) {
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
             char *fn_arg = emit_expression(call->data.call.arguments[1], ctx);
-            const char *arr_type = infer_expression_type_name(ctx,
-                call->data.call.arguments[0]);
-            const char *inner = "Int";
-            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
-                inner = slot_inner_type_name(arr_type);
+            const char *inner = NULL;
+            char inner_buf[64];
+            if (!transpiler_require_array_inner_type(ctx,
+                    call->data.call.arguments[0], "ArrayFilter", false,
+                    inner_buf, sizeof(inner_buf), &inner)) {
+                free(arr); free(fn_arg);
+                return pergyra_strdup("0");
+            }
             int tmp_id = ++ctx->tmp_counter;
             char *result = strdup_fmt(
                 "({ PgyArray_%s _pgy_filt_%d = pgy_array_new_%s((%s).length); "
@@ -137,8 +266,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         /* Channel builtins */
         if (strcmp(fn, "TryRecv") == 0 && call->data.call.arg_count == 1) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "TryRecv",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                return pergyra_strdup("0");
+            }
             const char *c_inner = pergyra_type_to_c(inner);
             char *result = strdup_fmt(
                 "({ %s _pgy_recv_tmp; "
@@ -151,8 +286,15 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (strcmp(fn, "RecvTimeout") == 0 && call->data.call.arg_count == 2) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
             char *timeout = emit_expression(call->data.call.arguments[1], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "RecvTimeout",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                free(timeout);
+                return pergyra_strdup("0");
+            }
             const char *c_inner = pergyra_type_to_c(inner);
             char *result = strdup_fmt(
                 "({ %s _pgy_recv_tmp; "
@@ -166,8 +308,15 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (strcmp(fn, "TrySend") == 0 && call->data.call.arg_count == 2) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
             char *val = emit_expression(call->data.call.arguments[1], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "TrySend",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                free(val);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_try_send_%s(&%s, %s)", inner, ch, val);
             free(ch);
@@ -177,8 +326,15 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (strcmp(fn, "TrySendStatus") == 0 && call->data.call.arg_count == 2) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
             char *val = emit_expression(call->data.call.arguments[1], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "TrySendStatus",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                free(val);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_try_send_status_%s(&%s, %s)", inner, ch, val);
             free(ch);
@@ -189,8 +345,16 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
             char *val = emit_expression(call->data.call.arguments[1], ctx);
             char *timeout = emit_expression(call->data.call.arguments[2], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "SendTimeout",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                free(val);
+                free(timeout);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_send_timeout_%s(&%s, %s, (uint64_t)(%s))",
                 inner, ch, val, timeout);
@@ -203,8 +367,16 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
             char *val = emit_expression(call->data.call.arguments[1], ctx);
             char *timeout = emit_expression(call->data.call.arguments[2], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "SendTimeoutStatus",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                free(val);
+                free(timeout);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_send_timeout_status_%s(&%s, %s, (uint64_t)(%s))",
                 inner, ch, val, timeout);
@@ -224,8 +396,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
         if (strcmp(fn, "ChannelClose") == 0 && call->data.call.arg_count == 1) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "ChannelClose",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_close_%s(&%s)", inner, ch);
             free(ch);
@@ -233,8 +411,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
         if (strcmp(fn, "ChannelReady") == 0 && call->data.call.arg_count == 1) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "ChannelReady",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_ready_%s(&%s)", inner, ch);
             free(ch);
@@ -242,8 +426,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
         if (strcmp(fn, "ChannelLength") == 0 && call->data.call.arg_count == 1) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "ChannelLength",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_length_%s(&%s)", inner, ch);
             free(ch);
@@ -251,8 +441,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
         if (strcmp(fn, "ChannelCapacity") == 0 && call->data.call.arg_count == 1) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "ChannelCapacity",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_capacity_%s(&%s)", inner, ch);
             free(ch);
@@ -260,8 +456,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
         if (strcmp(fn, "ChannelSpace") == 0 && call->data.call.arg_count == 1) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "ChannelSpace",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_space_%s(&%s)", inner, ch);
             free(ch);
@@ -269,8 +471,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
         if (strcmp(fn, "ChannelFull") == 0 && call->data.call.arg_count == 1) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "ChannelFull",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_full_%s(&%s)", inner, ch);
             free(ch);
@@ -278,8 +486,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
         if (strcmp(fn, "ChannelClosed") == 0 && call->data.call.arg_count == 1) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = channel_inner_type_name(ctx,
-                call->data.call.arguments[0]);
+            char inner_buf[64];
+            const char *inner = transpiler_require_channel_inner_type(ctx,
+                call->data.call.arguments[0], "ChannelClosed",
+                inner_buf, sizeof(inner_buf));
+            if (inner == NULL) {
+                free(ch);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt(
                 "pgy_channel_closed_%s(&%s)", inner, ch);
             free(ch);

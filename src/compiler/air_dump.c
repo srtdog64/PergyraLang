@@ -221,12 +221,14 @@ air_dump(const AIRProgram *air, FILE *out)
     for (size_t i = 0; i < air->evidence_count; i++) {
         const AIREvidenceNode *evidence = &air->evidence_nodes[i];
         fprintf(out,
-                "  evidence_node[%zu] kind=%s boundary=%zu provider=%s subject=%s\n",
+                "  evidence_node[%zu] kind=%s boundary=%zu provider=%s subject=%s facts=%zu fallbacks=%zu\n",
                 i,
                 air_evidence_kind_name(evidence->kind),
                 evidence->boundary_index,
                 evidence->provider_name != NULL ? evidence->provider_name : "<none>",
-                evidence->subject_name != NULL ? evidence->subject_name : "<none>");
+                evidence->subject_name != NULL ? evidence->subject_name : "<none>",
+                evidence->fact_count,
+                evidence->fallback_count);
     }
 }
 

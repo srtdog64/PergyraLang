@@ -93,6 +93,7 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
                  "_pgy_loop_continue_%d", loop_id);
         ctx->loop_break_label_used[loop_slot] = false;
         ctx->loop_continue_label_used[loop_slot] = false;
+        ctx->loop_defer_base_depth[loop_slot] = ctx->defer_scope_depth;
         ctx->loop_depth++;
     }
 
@@ -212,6 +213,7 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
                  "_pgy_loop_continue_%d", loop_id);
         ctx->loop_break_label_used[loop_slot] = false;
         ctx->loop_continue_label_used[loop_slot] = false;
+        ctx->loop_defer_base_depth[loop_slot] = ctx->defer_scope_depth;
         ctx->loop_depth++;
     }
     write_indent(ctx);

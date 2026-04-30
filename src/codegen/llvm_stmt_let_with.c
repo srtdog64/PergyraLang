@@ -1,5 +1,47 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+
+static bool
+llvm_stmt_require_let_type_arg(LLVMGenCtx *ctx, ASTNode *node,
+                               const char *binding_name,
+                               const char *container_name)
+{
+    if (ctx == NULL)
+        return false;
+    if (!ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM %s let-binding for '%s' requires an explicit concrete %s<T> annotation",
+            container_name != NULL ? container_name : "typed",
+            binding_name != NULL ? binding_name : "<binding>",
+            container_name != NULL ? container_name : "type");
+    }
+    return false;
+}
+
+static const char *
+llvm_stmt_first_call_type_arg_name(ASTNode *call)
+{
+    GenericParam *param;
+
+    if (call == NULL || call->type != AST_CALL
+        || call->data.call.generic_args == NULL
+        || call->data.call.generic_args->count < 1
+        || call->data.call.generic_args->params == NULL
+        || call->data.call.generic_args->params[0] == NULL) {
+        return NULL;
+    }
+    param = call->data.call.generic_args->params[0];
+    if (param->constraint != NULL
+        && param->constraint->type == AST_TYPE
+        && param->constraint->data.type.name != NULL) {
+        return param->constraint->data.type.name;
+    }
+    return param->name;
+}
+
 void
 llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -23,6 +65,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                     && type_ann->data.type.generic_args->count > 0)
                     inner = type_ann->data.type.generic_args->params[0]->name;
             }
+            if (inner == NULL)
+                inner = llvm_stmt_first_call_type_arg_name(init);
             if (inner == NULL) {
                 llvm_set_error_at_with_hints(ctx, node, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM %s let-binding for '%s' requires an explicit %s<T> annotation",
                     callee,
@@ -133,10 +177,15 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             || ((strcmp(ann_name, "MoveToken") == 0 || strncmp(ann_name, "MoveToken<", 10) == 0)
                 && strcmp(callee, "Move") == 0);
         if (alias_decl) {
-            const char *inner = "Int";
+            char *inner = NULL;
             if (type_ann->data.type.generic_args != NULL
-                && type_ann->data.type.generic_args->count > 0)
+                && type_ann->data.type.generic_args->count > 0
+                && type_ann->data.type.generic_args->params[0] != NULL)
                 inner = llvm_stmt_render_type_arg(type_ann->data.type.generic_args->params[0]);
+            if (inner == NULL || inner[0] == '\0') {
+                llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                return;
+            }
 
             LLVMVarEntry *source = llvm_scope_lookup(ctx, source_name);
             if (source == NULL)
@@ -184,11 +233,17 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         bool is_secure_slot_sugar = (strcmp(ann_name, "SecureSlot") == 0
                                   || strncmp(ann_name, "SecureSlot<", 11) == 0);
         if (is_slot_sugar || is_secure_slot_sugar) {
-            const char *inner = "Int";
+            char *inner = NULL;
             bool is_secure = is_secure_slot_sugar;
             if (type_ann->data.type.generic_args != NULL
-                && type_ann->data.type.generic_args->count > 0)
-                inner = type_ann->data.type.generic_args->params[0]->name;
+                && type_ann->data.type.generic_args->count > 0
+                && type_ann->data.type.generic_args->params[0] != NULL)
+                inner = llvm_stmt_render_type_arg(
+                    type_ann->data.type.generic_args->params[0]);
+            if (inner == NULL || inner[0] == '\0') {
+                llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                return;
+            }
 
             if (init != NULL && init->type == AST_IDENTIFIER) {
                 LLVMViewVarEntry *move_entry = llvm_lookup_view_var(ctx,
@@ -458,6 +513,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         char *elem_name = llvm_stmt_render_type_arg_scratch(
             type_ann->data.type.generic_args->params[0],
             &ctx->scratch);
+        if (elem_name == NULL || elem_name[0] == '\0') {
+            llvm_stmt_require_let_type_arg(ctx, node, name,
+                type_ann->data.type.name);
+            return;
+        }
         LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
         llvm_register_array_var(ctx, name, elem_type, -1);
     } else if (init != NULL
@@ -484,6 +544,10 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             && type_ann->data.type.generic_args->params[0] != NULL) {
             char *inner_name = llvm_stmt_render_type_arg(
                 type_ann->data.type.generic_args->params[0]);
+            if (inner_name == NULL || inner_name[0] == '\0') {
+                llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                return;
+            }
             llvm_register_list_var(ctx, name, inner_name);
         } else if (strcmp(ann_name, "Queue") == 0
             && type_ann->data.type.generic_args != NULL
@@ -491,6 +555,10 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             && type_ann->data.type.generic_args->params[0] != NULL) {
             char *inner_name = llvm_stmt_render_type_arg(
                 type_ann->data.type.generic_args->params[0]);
+            if (inner_name == NULL || inner_name[0] == '\0') {
+                llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                return;
+            }
             llvm_register_queue_var(ctx, name, inner_name);
         } else if (strcmp(ann_name, "HashMap") == 0
             && type_ann->data.type.generic_args != NULL
@@ -501,6 +569,14 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 type_ann->data.type.generic_args->params[0]);
             char *value_name = llvm_stmt_render_type_arg(
                 type_ann->data.type.generic_args->params[1]);
+            if (key_name == NULL || key_name[0] == '\0') {
+                llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                return;
+            }
+            if (value_name == NULL || value_name[0] == '\0') {
+                llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                return;
+            }
             llvm_register_map_var(ctx, name, key_name, value_name);
         } else if (strcmp(ann_name, "Rc") == 0
             || strcmp(ann_name, "Weak") == 0
@@ -517,8 +593,17 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *ann_name = type_ann->data.type.name;
         if (strcmp(ann_name, "Future") == 0
             || strcmp(ann_name, "RemoteFuture") == 0) {
-            llvm_register_future_var(ctx, name,
-                type_ann->data.type.generic_args->params[0]->name,
+            char *future_inner = NULL;
+            if (type_ann->data.type.generic_args->params != NULL
+                && type_ann->data.type.generic_args->params[0] != NULL) {
+                future_inner = llvm_stmt_render_type_arg(
+                    type_ann->data.type.generic_args->params[0]);
+            }
+            if (future_inner == NULL || future_inner[0] == '\0') {
+                llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                return;
+            }
+            llvm_register_future_var(ctx, name, future_inner,
                 strcmp(ann_name, "RemoteFuture") == 0);
         }
     } else if (init != NULL && init->type == AST_CALL
@@ -526,7 +611,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                && init->data.call.callee->type == AST_IDENTIFIER
                && strcmp(init->data.call.callee->data.identifier.name,
                          "SubmitDeviceRead") == 0) {
-        const char *inner = "Int";
+        const char *inner = NULL;
         ASTNode *slot_arg = init->data.call.arguments[0];
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
             const char *tracked = llvm_lookup_device_slot_inner(
@@ -534,11 +619,31 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             if (tracked != NULL)
                 inner = tracked;
         }
+        if (inner == NULL || inner[0] == '\0') {
+            if (!ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, init,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM SubmitDeviceRead future binding '%s' requires concrete DeviceSlot<T> metadata",
+                    name != NULL ? name : "<binding>");
+            }
+            return;
+        }
         llvm_register_future_var(ctx, name, inner, true);
     } else if (init != NULL && init->type == AST_SPAWN_EXPR) {
-        llvm_register_future_var(ctx, name,
-            spawn_future_inner != NULL ? spawn_future_inner : "Int",
-            false);
+        if (spawn_future_inner == NULL || spawn_future_inner[0] == '\0') {
+            if (!ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, init,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM spawn binding '%s' requires an explicit Future<T> annotation or an inferable spawned function return type",
+                    name != NULL ? name : "<binding>");
+            }
+            return;
+        }
+        llvm_register_future_var(ctx, name, spawn_future_inner, false);
     }
 
     /* Track class type for member access */

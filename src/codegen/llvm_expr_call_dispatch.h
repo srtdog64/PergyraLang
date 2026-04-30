@@ -107,12 +107,16 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     {
         LLVMValueRef result_option_call = llvm_emit_result_option_call(node, ctx, callee_name);
+        if (ctx->has_error)
+            return NULL;
         if (result_option_call != NULL)
             return result_option_call;
     }
 
     {
         LLVMValueRef task_channel_call = llvm_emit_task_channel_call(node, ctx, callee_name);
+        if (ctx->has_error)
+            return NULL;
         if (task_channel_call != NULL)
             return task_channel_call;
     }

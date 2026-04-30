@@ -1,6 +1,27 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 
+static bool
+llvm_stmt_require_collection_type_arg(LLVMGenCtx *ctx, ASTNode *node,
+                                      const char *binding_name,
+                                      const char *container_name,
+                                      size_t arg_index)
+{
+    if (ctx == NULL)
+        return false;
+    if (!ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM %s binding '%s' requires explicit concrete type argument %zu",
+            container_name != NULL ? container_name : "collection",
+            binding_name != NULL ? binding_name : "<binding>",
+            arg_index + 1);
+    }
+    return false;
+}
+
 bool
 llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -46,7 +67,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         && init->data.call.callee->type == AST_IDENTIFIER) {
         const char *ann_name = type_ann->data.type.name;
         const char *callee = init->data.call.callee->data.identifier.name;
-        const char *inner = "Int";
+        char *inner = NULL;
 
         if (type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 0
@@ -55,6 +76,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (strcmp(ann_name, "List") == 0 && strcmp(callee, "ListNew") == 0) {
+            if (inner == NULL || inner[0] == '\0')
+                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                    ann_name, 0);
             LLVMTypeRef list_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, list_ty, name);
@@ -72,6 +96,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (strcmp(ann_name, "Set") == 0 && strcmp(callee, "SetNew") == 0) {
+            if (inner == NULL || inner[0] == '\0')
+                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                    ann_name, 0);
             LLVMTypeRef set_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, set_ty, name);
@@ -89,6 +116,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (strcmp(ann_name, "Queue") == 0 && strcmp(callee, "QueueNew") == 0) {
+            if (inner == NULL || inner[0] == '\0')
+                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                    ann_name, 0);
             LLVMTypeRef queue_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, queue_ty, name);
@@ -106,8 +136,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (strcmp(ann_name, "HashMap") == 0 && strcmp(callee, "MapNew") == 0) {
-            const char *value_type = "Int";
-            const char *key_type = "String";
+            char *value_type = NULL;
+            char *key_type = NULL;
             LLVMTypeRef map_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef value_ty;
             LLVMValueRef alloca_val;
@@ -125,6 +155,14 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                 value_type = llvm_stmt_render_type_arg(
                     type_ann->data.type.generic_args->params[1]);
             }
+            if (key_type == NULL || key_type[0] == '\0') {
+                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                    "HashMap", 0);
+            }
+            if (value_type == NULL || value_type[0] == '\0') {
+                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                    "HashMap", 1);
+            }
             value_ty = pergyra_type_to_llvm(ctx, value_type);
             alloca_val = llvm_create_entry_alloca(ctx, map_ty, name);
             new_fn = llvm_lookup_function(ctx, "pgy_map_new_raw_export");
@@ -139,18 +177,37 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             llvm_register_map_var(ctx, name, key_type, value_type);
             return true;
         }
+        free(inner);
     }
 
     if (init != NULL && init->type == AST_CALL
         && init->data.call.callee != NULL
         && init->data.call.callee->type == AST_IDENTIFIER
         && strcmp(init->data.call.callee->data.identifier.name, "Channel") == 0) {
+        char *channel_inner = NULL;
+        char init_fn_name[128];
         LLVMTypeRef ch_type = LLVMArrayType(
             LLVMInt8TypeInContext(ctx->context), 256);
         LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, ch_type, name);
 
-        LLVMFuncEntry *init_fn = llvm_lookup_function(ctx,
-            "pgy_channel_init_Int");
+        if (type_ann == NULL || type_ann->type != AST_TYPE
+            || type_ann->data.type.generic_args == NULL
+            || type_ann->data.type.generic_args->count == 0
+            || type_ann->data.type.generic_args->params[0] == NULL) {
+            return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                "Channel", 0);
+        }
+
+        channel_inner = llvm_stmt_render_type_arg(
+            type_ann->data.type.generic_args->params[0]);
+        if (channel_inner == NULL || channel_inner[0] == '\0') {
+            return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                "Channel", 0);
+        }
+
+        snprintf(init_fn_name, sizeof(init_fn_name),
+            "pgy_channel_init_%s", channel_inner);
+        LLVMFuncEntry *init_fn = llvm_lookup_function(ctx, init_fn_name);
         if (init_fn != NULL) {
             LLVMValueRef cap = LLVMConstInt(ctx->type_i64, 16, 0);
             if (init->data.call.arg_count > 0)
@@ -162,21 +219,14 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                            init_fn->fn, args, 2, "");
         }
         llvm_scope_declare(ctx, name, alloca_val, ch_type);
-        if (type_ann != NULL && type_ann->type == AST_TYPE
-            && type_ann->data.type.generic_args != NULL
-            && type_ann->data.type.generic_args->count > 0) {
-            llvm_register_channel_var(ctx, name,
-                type_ann->data.type.generic_args->params[0]->name);
-        } else {
-            llvm_register_channel_var(ctx, name, "Int");
-        }
+        llvm_register_channel_var(ctx, name, channel_inner);
         return true;
     }
 
     if (init != NULL && init->type == AST_ARRAY_LITERAL) {
         size_t count = init->data.array_literal.count;
         LLVMTypeRef elem_type = ctx->type_i32;
-        const char *inner_name = "Int";
+        const char *inner_name = NULL;
 
         if (type_ann != NULL && type_ann->type == AST_TYPE
             && type_ann->data.type.name != NULL
@@ -196,6 +246,10 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                 if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
                     inner_name = suffix;
             }
+        }
+        if (inner_name == NULL || inner_name[0] == '\0') {
+            return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                "Array", 0);
         }
 
         LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);

@@ -16,13 +16,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (strcmp(callee_name, "ClaimDeviceSlot") == 0) {
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_claim_device_Int");
-        if (fn == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
-            return true;
-        }
-        *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-                              NULL, 0, llvm_tmp_name(ctx));
+        llvm_set_error_at_with_hints(ctx, node, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM standalone ClaimDeviceSlot requires an explicitly typed binding; use 'let value: DeviceSlot<T> = ClaimDeviceSlot()'");
         return true;
     }
 
@@ -32,7 +26,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
 
-        const char *inner = "Int";
+        const char *inner = NULL;
         const char *source_name = NULL;
         bool is_secure = false;
         ASTNode *slot_arg = node->data.call.arguments[0];
@@ -91,7 +85,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
 
-        const char *inner = "Int";
+        const char *inner = NULL;
         const char *source_name = NULL;
         bool is_secure = false;
         ASTNode *slot_arg = node->data.call.arguments[0];
@@ -141,7 +135,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
 
-        const char *inner = "Int";
+        const char *inner = NULL;
         const char *source_name = NULL;
         bool is_secure = false;
         ASTNode *slot_arg = node->data.call.arguments[0];

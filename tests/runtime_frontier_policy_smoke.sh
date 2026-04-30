@@ -32,12 +32,17 @@ main(void)
     failures += expect_size("add-saturates-left", pgy_frontier_pass_limit_add(cap, 1), cap);
     failures += expect_size("add-saturates-right", pgy_frontier_pass_limit_add(cap - 2, 7), cap);
     failures += expect_size("add-one-saturates", pgy_frontier_pass_limit_add_one(cap), cap);
+    failures += expect_size("projection-limit-zero", pgy_frontier_projection_pass_limit(0), 1);
     failures += expect_size("projection-limit", pgy_frontier_projection_pass_limit(3), 4);
     failures += expect_size("projection-limit-cap", pgy_frontier_projection_pass_limit(cap), cap);
+    failures += expect_size("zone-limit-zero", pgy_frontier_zone_pass_limit(0, 0), 1);
     failures += expect_size("zone-limit", pgy_frontier_zone_pass_limit(2, 3), 6);
     failures += expect_size("zone-limit-cap", pgy_frontier_zone_pass_limit(cap - 1, 9), cap);
+    failures += expect_size("world-limit-zero", pgy_frontier_world_pass_limit(0, 0), 1);
     failures += expect_size("world-limit", pgy_frontier_world_pass_limit(2, 4), 7);
+    failures += expect_size("world-transitive-limit-zero", pgy_frontier_world_transitive_pass_limit(0, 0), 1);
     failures += expect_size("world-transitive-limit", pgy_frontier_world_transitive_pass_limit(2, 4), 7);
+    failures += expect_size("world-derived-limit-zero", pgy_frontier_world_derived_pass_limit(0), 1);
     failures += expect_size("world-derived-limit", pgy_frontier_world_derived_pass_limit(4), 5);
     failures += expect_size("world-derived-limit-cap", pgy_frontier_world_derived_pass_limit(cap), cap);
 

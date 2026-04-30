@@ -18,9 +18,16 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
     case AST_BOOLEAN:
         return "Bool";
     case AST_ARRAY_LITERAL: {
-        const char *inner = "Int";
-        if (expr->data.array_literal.count > 0)
+        const char *inner = NULL;
+        if (expr->data.array_literal.count > 0) {
             inner = infer_expression_type_name(ctx, expr->data.array_literal.elements[0]);
+        } else if (ctx != NULL
+                   && ctx->expected_type != NULL
+                   && strncmp(ctx->expected_type, "Array<", 6) == 0) {
+            inner = slot_inner_type_name(ctx->expected_type);
+        }
+        if (inner == NULL || inner[0] == '\0')
+            inner = "Unknown";
         static char buf[128];
         snprintf(buf, sizeof(buf), "Array<%s>", inner);
         return buf;
@@ -32,6 +39,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         return "Unknown";
     }
     case AST_IDENTIFIER: {
+        if (strcmp(expr->data.identifier.name, "None") == 0) {
+            const char *context_type = transpiler_contextual_option_type_name(ctx);
+            return context_type != NULL ? context_type : "Option<Unknown>";
+        }
         ASTNode *alias_expr = lookup_alias_expr(ctx, expr->data.identifier.name);
         if (alias_expr != NULL)
             return infer_expression_type_name(ctx, alias_expr);
@@ -167,8 +178,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     && strcmp(method_name, "Slice") == 0) {
                     static char slice_buf[128];
                     const char *inner = slot_inner_type_name(receiver_type);
+                    if (inner == NULL || inner[0] == '\0')
+                        return "Unknown";
                     snprintf(slice_buf, sizeof(slice_buf), "Slice<%s>",
-                        inner != NULL ? inner : "Int");
+                        inner);
                     return slice_buf;
                 }
             }
@@ -249,12 +262,13 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     char key_buf[64];
                     copy_constructed_arg_name_at(map_type, 0,
                         key_buf, sizeof(key_buf));
+                    if (key_buf[0] == '\0')
+                        return "Unknown";
                     snprintf(map_keys_buf, sizeof(map_keys_buf), "Array<%s>",
-                        key_buf[0] != '\0' ? key_buf : "Int");
+                        key_buf);
                     return map_keys_buf;
                 }
-                snprintf(map_keys_buf, sizeof(map_keys_buf), "Array<Int>");
-                return map_keys_buf;
+                return "Unknown";
             }
             if (strcmp(name, "ToString") == 0)
                 return "String";
@@ -315,22 +329,34 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return "Cooldown";
             if (strcmp(name, "ClaimQubit") == 0)
                 return "QubitSlot";
-            if (strcmp(name, "ClaimDeviceSlot") == 0)
-                return "DeviceSlot<Int>";
+            if (strcmp(name, "ClaimDeviceSlot") == 0) {
+                if (ctx != NULL
+                    && ctx->active_type_hint != NULL
+                    && strncmp(ctx->active_type_hint, "DeviceSlot<", 11) == 0) {
+                    return ctx->active_type_hint;
+                }
+                return "Unknown";
+            }
             if (strcmp(name, "ViewRead") == 0 && expr->data.call.arg_count >= 1) {
                 static char read_view[128];
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
+                const char *inner = slot_inner_type_name(slot_type);
+                if (inner == NULL || inner[0] == '\0')
+                    return "Unknown";
                 snprintf(read_view, sizeof(read_view), "ReadView<%s>",
-                    slot_inner_type_name(slot_type));
+                    inner);
                 return read_view;
             }
             if (strcmp(name, "ViewWrite") == 0 && expr->data.call.arg_count >= 1) {
                 static char write_view[128];
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
+                const char *inner = slot_inner_type_name(slot_type);
+                if (inner == NULL || inner[0] == '\0')
+                    return "Unknown";
                 snprintf(write_view, sizeof(write_view), "WriteView<%s>",
-                    slot_inner_type_name(slot_type));
+                    inner);
                 return write_view;
             }
             if (strcmp(name, "Measure") == 0 || strcmp(name, "QubitState") == 0)
@@ -343,7 +369,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     || strncmp(slot_type, "ReadView<", 9) == 0
                     || strncmp(slot_type, "WriteView<", 10) == 0
                     || strncmp(slot_type, "DeviceSlot<", 11) == 0) {
-                    return slot_inner_type_name(slot_type);
+                    const char *inner = slot_inner_type_name(slot_type);
+                    return (inner != NULL && inner[0] != '\0') ? inner : "Unknown";
                 }
             }
             if ((strcmp(name, "Write") == 0 || strcmp(name, "Release") == 0)
@@ -361,19 +388,24 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "DeviceRead") == 0 && expr->data.call.arg_count >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
-                if (strncmp(slot_type, "DeviceSlot<", 11) == 0)
-                    return slot_inner_type_name(slot_type);
+                if (strncmp(slot_type, "DeviceSlot<", 11) == 0) {
+                    const char *inner = slot_inner_type_name(slot_type);
+                    return (inner != NULL && inner[0] != '\0') ? inner : "Unknown";
+                }
             }
             if (strcmp(name, "SubmitDeviceRead") == 0 && expr->data.call.arg_count >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 if (strncmp(slot_type, "DeviceSlot<", 11) == 0) {
                     static char device_future[128];
+                    const char *inner = slot_inner_type_name(slot_type);
+                    if (inner == NULL || inner[0] == '\0')
+                        return "Unknown";
                     snprintf(device_future, sizeof(device_future), "RemoteFuture<%s>",
-                        slot_inner_type_name(slot_type));
+                        inner);
                     return device_future;
                 }
-                return "RemoteFuture<Int>";
+                return "Unknown";
             }
             if (strcmp(name, "IsCollapsed") == 0
                 || strcmp(name, "IntoClassical") == 0)
@@ -431,8 +463,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 snprintf(opt_buf, sizeof(opt_buf), "Option<%s>", inner);
                 return opt_buf;
             }
-            if (strcmp(name, "None") == 0)
-                return "Option<Int>";
+            if (strcmp(name, "None") == 0) {
+                const char *context_type = transpiler_contextual_option_type_name(ctx);
+                return context_type != NULL ? context_type : "Option<Unknown>";
+            }
             if ((strcmp(name, "IsSome") == 0 || strcmp(name, "IsNone") == 0)
                 && expr->data.call.arg_count == 1)
                 return "Bool";

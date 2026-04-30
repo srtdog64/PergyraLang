@@ -84,8 +84,10 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                     || strncmp(receiver_type, "Slice<", 6) == 0)) {
                 static char rendered_slice[128];
                 const char *inner = slot_inner_type_name(receiver_type);
+                if (inner == NULL || inner[0] == '\0')
+                    return NULL;
                 snprintf(rendered_slice, sizeof(rendered_slice), "Slice<%s>",
-                    inner != NULL ? inner : "Int");
+                    inner);
                 return rendered_slice;
             }
             if (receiver_type != NULL)
@@ -173,12 +175,11 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                 const char *callee = init->data.call.callee->data.identifier.name;
                 if (strcmp(callee, "ClaimSecureSlot") == 0) {
                     static char rendered_secure[128];
-                    const char *inner = "Int";
+                    const char *inner = NULL;
                     if (init->data.call.generic_args != NULL
                         && init->data.call.generic_args->count > 0
-                        && init->data.call.generic_args->params[0] != NULL
-                        && init->data.call.generic_args->params[0]->name != NULL) {
-                        inner = init->data.call.generic_args->params[0]->name;
+                        && init->data.call.generic_args->params[0] != NULL) {
+                        inner = transpiler_let_slot_inner_from_call_type_arg(init);
                     } else {
                         const char *init_type = infer_expression_type_name(ctx, init);
                         if (init_type != NULL && strncmp(init_type, "SecureSlot<", 11) == 0) {
@@ -187,19 +188,22 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                                 inner = resolved_inner;
                         }
                     }
+                    if (inner == NULL || inner[0] == '\0')
+                        return NULL;
                     snprintf(rendered_secure, sizeof(rendered_secure),
                         i == 0 ? "SecureSlot<%s>" : "Token<%s>", inner);
                     return rendered_secure;
                 }
                 if (strcmp(callee, "ClaimSlot") == 0 && i == 0) {
                     static char rendered_slot[128];
-                    const char *inner = "Int";
+                    const char *inner = NULL;
                     if (init->data.call.generic_args != NULL
                         && init->data.call.generic_args->count > 0
-                        && init->data.call.generic_args->params[0] != NULL
-                        && init->data.call.generic_args->params[0]->name != NULL) {
-                        inner = init->data.call.generic_args->params[0]->name;
+                        && init->data.call.generic_args->params[0] != NULL) {
+                        inner = transpiler_let_slot_inner_from_call_type_arg(init);
                     }
+                    if (inner == NULL || inner[0] == '\0')
+                        return NULL;
                     snprintf(rendered_slot, sizeof(rendered_slot),
                         "Slot<%s>", inner);
                     return rendered_slot;
@@ -267,10 +271,12 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
             && strcmp(body->data.with_stmt.alias, base_name) == 0) {
             static char rendered_slot[256];
             char *inner = render_type_name(body->data.with_stmt.slot_type);
+            if (inner == NULL || inner[0] == '\0')
+                return NULL;
             snprintf(rendered_slot, sizeof(rendered_slot),
                      "%s<%s>",
                      body->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
-                     inner != NULL ? inner : "Int");
+                     inner);
             free(inner);
             return rendered_slot;
         }

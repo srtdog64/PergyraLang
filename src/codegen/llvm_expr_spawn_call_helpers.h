@@ -54,6 +54,26 @@ llvm_await_task_handle(LLVMGenCtx *ctx, LLVMValueRef task, const char *inner,
     return result;
 }
 
+static LLVMTypeRef
+llvm_spawn_required_param_type(LLVMGenCtx *ctx,
+                               ASTNode *owner,
+                               FuncParam *param,
+                               const char *callee_name)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (param != NULL && param->type != NULL)
+        return ast_type_to_llvm(ctx, param->type);
+
+    llvm_set_error_at_with_hints(ctx, owner,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM generic call '%s' parameter requires explicit type metadata; silent i32 fallback is not allowed",
+        callee_name != NULL ? callee_name : "<anonymous>");
+    return ctx->type_i32;
+}
+
 static LLVMValueRef
 llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
                              ASTNode **arg_nodes, size_t argc)
@@ -136,8 +156,8 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                     if (is_secure)
                         ptypes[real_pc++] = llvm_secure_token_type(ctx, inner);
                 } else {
-                    ptypes[real_pc++] = (p->type != NULL)
-                        ? ast_type_to_llvm(ctx, p->type) : ctx->type_i32;
+                    ptypes[real_pc++] = llvm_spawn_required_param_type(
+                        ctx, generic_ast, p, callee_name);
                 }
             }
         }
@@ -159,8 +179,8 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
             {
                 bool is_secure = false;
                 const char *inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
-                LLVMTypeRef pt = (p->type != NULL)
-                    ? ast_type_to_llvm(ctx, p->type) : ctx->type_i32;
+                LLVMTypeRef pt = llvm_spawn_required_param_type(
+                    ctx, generic_ast, p, callee_name);
                 if (inner != NULL) {
                     LLVMValueRef slot_ptr = LLVMGetParam(mono_fn, (unsigned)real_pc++);
                     llvm_scope_declare(ctx, p->name, slot_ptr, pt);

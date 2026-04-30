@@ -24,6 +24,20 @@ LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
 #include "llvm_member_call_emit.h"
 #include "llvm_expr_call_owners.h"
 
+static void
+llvm_expr_set_missing_type_error(LLVMGenCtx *ctx, ASTNode *node,
+                                 const char *surface)
+{
+    if (ctx == NULL || ctx->has_error)
+        return;
+    llvm_set_error_at_with_hints(ctx, node,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM %s requires concrete type metadata; add an explicit type annotation before using it in expression context",
+        surface != NULL ? surface : "expression");
+}
+
 static LLVMValueRef
 llvm_emit_checked_collection_get(LLVMGenCtx *ctx, LLVMValueRef aggregate,
                                  LLVMTypeRef aggregate_type,
@@ -116,7 +130,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_ARRAY_LITERAL: {
         size_t count = node->data.array_literal.count;
-        const char *inner_name = "Int";
+        const char *inner_name = NULL;
         LLVMTypeRef elem_type = ctx->type_i32;
         if (count > 0) {
             LLVMValueRef first = llvm_emit_expression(node->data.array_literal.elements[0], ctx);
@@ -126,6 +140,14 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
                     inner_name = suffix;
             }
+        } else if (ctx->expected_type_name != NULL
+                   && strncmp(ctx->expected_type_name, "Array<", 6) == 0) {
+            inner_name = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+        }
+        if (inner_name == NULL || inner_name[0] == '\0') {
+            llvm_expr_set_missing_type_error(ctx, node,
+                "array literal expression");
+            return LLVMConstInt(ctx->type_i32, 0, 0);
         }
 
         LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);
@@ -286,7 +308,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_CHANNEL_SEND: {
         /* ch <- value → pgy_channel_send_T(&ch, value) */
         LLVMVarEntry *ch_var = NULL;
-        const char *suffix = "Int";
+        const char *suffix = NULL;
         if (node->data.channel_send.channel != NULL
             && node->data.channel_send.channel->type == AST_IDENTIFIER) {
             const char *name = node->data.channel_send.channel->data.identifier.name;
@@ -296,6 +318,11 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 if (inner != NULL)
                     suffix = inner;
             }
+        }
+        if (suffix == NULL || suffix[0] == '\0') {
+            llvm_expr_set_missing_type_error(ctx, node,
+                "channel send expression");
+            return LLVMConstInt(ctx->type_i1, 0, 0);
         }
         if (ch_var != NULL) {
             LLVMValueRef val = llvm_emit_expression(
@@ -315,7 +342,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_CHANNEL_RECV: {
         /* <- ch → pgy_channel_recv_val_T(&ch) */
         LLVMVarEntry *ch_var = NULL;
-        const char *suffix = "Int";
+        const char *suffix = NULL;
         if (node->data.channel_recv.channel != NULL
             && node->data.channel_recv.channel->type == AST_IDENTIFIER) {
             const char *name = node->data.channel_recv.channel->data.identifier.name;
@@ -325,6 +352,11 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 if (inner != NULL)
                     suffix = inner;
             }
+        }
+        if (suffix == NULL || suffix[0] == '\0') {
+            llvm_expr_set_missing_type_error(ctx, node,
+                "channel receive expression");
+            return LLVMConstInt(ctx->type_i32, 0, 0);
         }
         if (ch_var != NULL) {
             char fname[128];

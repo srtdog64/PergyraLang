@@ -97,6 +97,7 @@
 #define PGY_CODE_SEM_PIN_AWAIT_BOUNDARY         "PGY_SEM_PIN_AWAIT_BOUNDARY"
 #define PGY_CODE_SEM_PIN_QUBIT_REJECT           "PGY_SEM_PIN_QUBIT_REJECT"
 #define PGY_CODE_SEM_PIN_TOKEN_INVALID          "PGY_SEM_PIN_TOKEN_INVALID"
+#define PGY_CODE_SEM_DEFER_DYNAMIC_CONTROL      "PGY_SEM_DEFER_DYNAMIC_CONTROL"
 #define PGY_CODE_SEM_RAW_ESCAPE_UNSTABLE        "PGY_SEM_RAW_ESCAPE_UNSTABLE"
 
 /* --- MIR (PGY_MIR_*) --- */
@@ -172,6 +173,7 @@
 #define PGY_CAUSE_PIN_AWAIT_BOUNDARY            "semantic:pin:await_boundary"
 #define PGY_CAUSE_PIN_QUBIT_REJECT              "semantic:pin:qubit_reject"
 #define PGY_CAUSE_PIN_TOKEN_INVALID             "semantic:pin:token_invalid"
+#define PGY_CAUSE_DEFER_DYNAMIC_CONTROL         "semantic:defer:dynamic_control"
 #define PGY_CAUSE_RAW_ESCAPE_UNSTABLE           "semantic:raw_escape:unstable"
 
 /* --- Semantic: ownership / move / handles --- */
@@ -389,6 +391,8 @@
 #define PGY_FIX_MOVE_DEFAULTS_TO_TRAILING       "move-defaults-to-trailing"
 #define PGY_FIX_MOVE_INTO_ASYNC_FUNCTION        "move-into-async-function"
 #define PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL     "move-into-loop-or-fix-label"
+#define PGY_FIX_MOVE_DEFER_OUTSIDE_DYNAMIC_CONTROL \
+                                                    "move-defer-outside-dynamic-control"
 #define PGY_FIX_MUTATE_FIELD_OR_USE_METHOD      "mutate-field-or-use-method"
 
 /* --- reclaim / release / return --- */

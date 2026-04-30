@@ -120,7 +120,7 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                 inner_type = ownership_destructure_resolve_type_ref(&synth, ctx);
             }
             if (inner_type == NULL)
-                inner_type = TYPE_INT;
+                inner_type = TYPE_UNKNOWN;
 
             Type *slot_type = type_create_slot(inner_type, is_claim_secure);
             if (is_claim_secure)

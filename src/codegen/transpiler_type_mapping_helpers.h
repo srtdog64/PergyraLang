@@ -337,7 +337,7 @@ constructed_arg_name_at(const char *type_name, int arg_index)
     while (out > 0 && buf[out - 1] == ' ')
         out--;
     buf[out] = '\0';
-    return out > 0 ? buf : "Int";
+    return out > 0 ? buf : "Unknown";
 }
 
 static void

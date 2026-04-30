@@ -54,6 +54,24 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
     return count;
 }
 
+static LLVMTypeRef
+llvm_decl_required_param_type(LLVMGenCtx *ctx, ASTNode *func, FuncParam *param)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (param != NULL && param->type != NULL)
+        return ast_type_to_llvm(ctx, param->type);
+    if (param != NULL && llvm_param_is_implicit_self(param))
+        return ctx->type_i32;
+
+    llvm_set_error_at_with_hints(ctx, func,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM function parameter requires explicit type metadata; silent i32 fallback is not allowed");
+    return ctx->type_i32;
+}
+
 static ASTNode *
 llvm_decl_find_current_host_decl(LLVMGenCtx *ctx)
 {
@@ -194,10 +212,9 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
         for (size_t i = 0; i < param_count; i++) {
             bool is_secure = false;
             FuncParam *p = node->data.func_decl.params[i];
-            LLVMTypeRef pt = (p->type != NULL)
-                ? ast_type_to_llvm(ctx, p->type)
-                : ctx->type_i32;
-            if (p->type != NULL
+            LLVMTypeRef pt = llvm_decl_required_param_type(ctx, node, p);
+            if (p != NULL
+                && p->type != NULL
                 && p->type->type == AST_TYPE
                 && p->type->data.type.name != NULL
                 && llvm_type_name_uses_pointer_self(ctx, p->type->data.type.name)) {
@@ -269,9 +286,7 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
         FuncParam *p = node->data.func_decl.params[i];
         bool is_secure = false;
         const char *inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
-        LLVMTypeRef pt = (p->type != NULL)
-            ? ast_type_to_llvm(ctx, p->type)
-            : ctx->type_i32;
+        LLVMTypeRef pt = llvm_decl_required_param_type(ctx, node, p);
         /* For 'self' parameter in class methods, use the class struct pointer
          * type instead of the default i32. */
         if (llvm_param_is_implicit_self(p)) {
@@ -285,7 +300,8 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
                     : cls->struct_type;
             }
         }
-        if (p->type != NULL
+        if (p != NULL
+            && p->type != NULL
             && p->type->type == AST_TYPE
             && p->type->data.type.name != NULL
             && llvm_type_name_uses_pointer_self(ctx, p->type->data.type.name)) {

@@ -67,7 +67,7 @@ llvm_defer_scope_pop(LLVMGenCtx *ctx)
     ctx->defer_body_counts[ctx->defer_scope_depth] = 0;
 }
 
-static void
+void
 llvm_register_defer(ASTNode *body, LLVMGenCtx *ctx)
 {
     if (body == NULL || ctx->defer_scope_depth <= 0)

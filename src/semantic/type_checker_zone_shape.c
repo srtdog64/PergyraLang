@@ -1,7 +1,7 @@
 ﻿#include "type_checker_internal.h"
 
 static const char *ZONE_SHAPE_SUBJECT_HEAVY_WARNING =
-    "Zone '%s' declares %llu subject slots; if some entries are passive business data, model them as object/vessel support state instead of authority-bearing subjects";
+    "Zone '%s' declares %llu subject slots; if some entries are passive business data, model them as object/vessel support state instead of identity-bearing state-transition subjects";
 
 static const char *ZONE_SHAPE_NO_PASSIVE_OBJECT_WARNING =
     "Zone '%s' has multiple subject slots but no object slots; consider a zone-first shape where passive support state uses objects/vessels and only state-transition actors remain subjects";

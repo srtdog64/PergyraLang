@@ -45,7 +45,7 @@
 - Local gates: `make cfg-body-dataflow-test-smoke`, `make test-air`,
   `make air-drift-test-smoke`, `make type-resolution-dag-test-smoke`,
   `make type-resolution-resolver-inventory-test-smoke`, `make test-mir`, and
-  `make llvm-test-backend-compare` are green. Backend compare reports `65/65`
+  `make llvm-test-backend-compare` are green. Backend compare reports `69/69`
   cases passed.
 - Follow-up DAG seam cleanup: metadata annotation readers are now centralized
   behind `semantic_type_resolution_lookup_annotation_nullable(...)` and
@@ -4784,3 +4784,37 @@ Source of truth:
   party/ability/role parsing, and the shared domain helper implementations.
 - Verified locally: `make test-parser pgy` remains green. The active 1,000+
   production `.c` owner queue is now AST-only: `ast.c` and `ast_print.c`.
+
+## Progress Log - 2026-04-30 C/LLVM Defer Cleanup Parity
+
+- C backend `defer` no longer lowers through a file-scope GCC cleanup helper.
+  That helper could not capture local method state such as `self`, which caused
+  backend drift on `subject_method_recursion_defer`.
+- `src/codegen/transpiler_defer_emit.h` now mirrors the LLVM lexical defer
+  stack: block scopes register defer bodies, normal scope exit emits the current
+  scope in LIFO order, `return` emits active defers before leaving, and
+  `break`/`continue` emit defers down to the target loop's defer base depth.
+- C MIR emission now consumes `AST_DEFER_STMT` directly, opens a MIR function
+  defer scope, and emits active defers on MIR return/fallthrough returns. This
+  closes the previous gap where source-level C lowering was fixed but
+  MIR-emitted subject methods still skipped deferred state mutation.
+- MIR no longer classifies `AST_DEFER_STMT` as CFG-owned control, and DCE now
+  preserves defer statements as side-effecting statements. This closes the
+  nested branch defer loss where `if { defer { ... } }` silently disappeared
+  from MIR.
+- Dynamic `defer` inside runtime-dependent `if`/match/loop control is now an explicit
+  beta reject (`PGY_SEM_DEFER_DYNAMIC_CONTROL`) instead of a shared C/LLVM
+  wrong-code path. Static control forms remain allowed; dynamic forms must wait
+  for a runtime defer stack model rather than pretending lexical lowering is
+  sound.
+- The transpiler unit test now asserts the new inline lexical cleanup contract
+  and rejects the old `__attribute__((cleanup(_pgy_defer_...)))` sentinel path.
+- Verified slice gates: `make test-transpile` (`682/0`), `make
+  llvm-test-smoke`, `make llvm-test-backend-compare` (`69/69`), `make
+  cfg-body-dataflow-test-smoke`, `make air-drift-test-smoke`, and `make
+  type-resolution-dag-test-smoke`.
+- CI status note: a monolithic `make ci-linux` run exceeded the local 15 minute
+  command window, so it is not claimed as a completed full run. The equivalent
+  CI target groups were run in slices: `test-all`, tooling/stdlib/module,
+  docs/runtime/diagnostics/IR/example gates, AIR nonimpact, LLVM ABI/campaign,
+  and backend compare all completed green locally.

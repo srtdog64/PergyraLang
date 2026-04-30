@@ -3,7 +3,7 @@ llvm_mir_emit_with_claim_only(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *alias;
     bool is_secure;
-    const char *inner = "Int";
+    const char *inner = NULL;
     LLVMTypeRef slot_ty;
     LLVMValueRef alloca_val;
     LLVMValueRef claimed_ptr;
@@ -32,9 +32,16 @@ llvm_mir_emit_with_claim_only(ASTNode *node, LLVMGenCtx *ctx)
             } else if (param->name != NULL) {
                 inner = param->name;
             }
-        } else {
-            inner = slot_type->data.type.name;
         }
+    }
+    if (inner == NULL || inner[0] == '\0') {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM MIR with-slot claim for '%s' requires concrete Slot<T> metadata",
+            alias != NULL ? alias : "<slot>");
+        return;
     }
 
     slot_ty = is_secure
@@ -426,6 +433,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
         case MIR_INST_STMT:
             if (inst->ast != NULL && inst->ast->type == AST_WITH_STMT) {
                 llvm_mir_emit_with_claim_only(inst->ast, ctx);
+            } else if (inst->ast != NULL && inst->ast->type == AST_DEFER_STMT) {
+                if (inst->ast->data.defer_stmt.body != NULL)
+                    llvm_register_defer(inst->ast->data.defer_stmt.body, ctx);
             } else if (inst->ast != NULL && !llvm_mir_stmt_is_cfg_container(inst->ast)) {
                 llvm_emit_statement(inst->ast, ctx);
             }

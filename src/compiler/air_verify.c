@@ -209,6 +209,25 @@ air_boundary_has_evidence_kind(const AIRProgram *air,
 }
 
 static bool
+air_boundary_has_evidence_kind_provider(const AIRProgram *air,
+                                        size_t boundary_index,
+                                        AIREvidenceKind kind,
+                                        const char *provider_name)
+{
+    if (air == NULL || boundary_index >= air->boundary_count)
+        return false;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind
+            && evidence->boundary_index == boundary_index
+            && air_name_matches(evidence->provider_name, provider_name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
 air_boundary_requires_mir_pin_cleanup_evidence(const AIRBoundaryNode *boundary);
 
 static bool
@@ -231,6 +250,56 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                                     evidence->boundary_index);
             return false;
         }
+        if (evidence->kind == AIR_EVIDENCE_MIR_CLEANUP) {
+            if (evidence->fact_count == 0) {
+                air_set_invariant_error(error_message,
+                                        "AIR MIR cleanup evidence node %zu has no cleanup facts",
+                                        evidence_index);
+                return false;
+            }
+            if (evidence->fallback_count != 0) {
+                air_set_invariant_error(error_message,
+                                        "AIR MIR cleanup evidence node %zu has fallback cleanup facts",
+                                        evidence_index);
+                return false;
+            }
+            if (!air_name_matches(evidence->subject_name, "cleanup-block")) {
+                air_set_invariant_error(error_message,
+                                        "AIR MIR cleanup evidence node %zu has invalid cleanup subject '%s'",
+                                        evidence_index,
+                                        evidence->subject_name != NULL
+                                            ? evidence->subject_name
+                                            : "<null>");
+                return false;
+            }
+        }
+        if (evidence->kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
+            || evidence->kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION) {
+            if (evidence->fact_count == 0) {
+                air_set_invariant_error(error_message,
+                                        "AIR RIR propagation evidence node %zu has no propagation facts",
+                                        evidence_index);
+                return false;
+            }
+            if (evidence->fallback_count != 0) {
+                air_set_invariant_error(error_message,
+                                        "AIR RIR propagation evidence node %zu has fallback propagation facts",
+                                        evidence_index);
+                return false;
+            }
+        }
+        if (evidence->kind == AIR_EVIDENCE_DAG_GENERIC
+            || evidence->kind == AIR_EVIDENCE_DAG_ABILITY) {
+            if (!air_name_matches(evidence->provider_name, "type-resolution-dag")) {
+                air_set_invariant_error(error_message,
+                                        "AIR DAG evidence node %zu has invalid provider '%s'",
+                                        evidence_index,
+                                        evidence->provider_name != NULL
+                                            ? evidence->provider_name
+                                            : "<null>");
+                return false;
+            }
+        }
         return true;
     }
 
@@ -243,13 +312,42 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
     }
 
     boundary = &air->boundaries[evidence->boundary_index];
+    if (evidence->fact_count == 0) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu has no evidence facts",
+                                evidence_index);
+        return false;
+    }
+    if (evidence->fallback_count != 0) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu has fallback evidence facts",
+                                evidence_index);
+        return false;
+    }
     switch (evidence->kind) {
-    case AIR_EVIDENCE_HIR_CFG:
-        if (!air_boundary_has_evidence_kind(air,
-                                            evidence->boundary_index,
-                                            AIR_EVIDENCE_HIR_ROUTINE)) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+        if (!air_name_matches(evidence->subject_name, boundary->source_name)) {
             air_set_invariant_error(error_message,
-                                    "AIR HIR CFG evidence node %zu has no HIR routine evidence for boundary %zu",
+                                    "AIR HIR routine evidence node %zu has subject/source mismatch for boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        return true;
+    case AIR_EVIDENCE_HIR_CFG:
+        if (!air_name_matches(evidence->subject_name, boundary->source_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR HIR CFG evidence node %zu has subject/source mismatch for boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        if (!air_boundary_has_evidence_kind_provider(air,
+                                                     evidence->boundary_index,
+                                                     AIR_EVIDENCE_HIR_ROUTINE,
+                                                     evidence->provider_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR HIR CFG evidence node %zu has no matching HIR routine evidence for boundary %zu",
                                     evidence_index,
                                     evidence->boundary_index);
             return false;
@@ -263,6 +361,13 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                                     evidence->boundary_index);
             return false;
         }
+        if (!air_name_matches(evidence->subject_name, boundary->source_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR RIR boundary evidence node %zu has subject/source mismatch for boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
         return true;
     case AIR_EVIDENCE_RIR_AUTHORITY:
         if (!boundary->authority_required) {
@@ -272,11 +377,12 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                                     evidence->boundary_index);
             return false;
         }
-        if (!air_boundary_has_evidence_kind(air,
-                                            evidence->boundary_index,
-                                            AIR_EVIDENCE_RIR_BOUNDARY)) {
+        if (!air_boundary_has_evidence_kind_provider(air,
+                                                     evidence->boundary_index,
+                                                     AIR_EVIDENCE_RIR_BOUNDARY,
+                                                     evidence->provider_name)) {
             air_set_invariant_error(error_message,
-                                    "AIR RIR authority evidence node %zu has no RIR boundary evidence for boundary %zu",
+                                    "AIR RIR authority evidence node %zu has no matching RIR boundary evidence for boundary %zu",
                                     evidence_index,
                                     evidence->boundary_index);
             return false;
@@ -297,8 +403,6 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                                     evidence->boundary_index);
             return false;
         }
-        return true;
-    case AIR_EVIDENCE_HIR_ROUTINE:
         return true;
     case AIR_EVIDENCE_DAG_GENERIC:
     case AIR_EVIDENCE_DAG_ABILITY:

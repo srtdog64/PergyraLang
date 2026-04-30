@@ -60,7 +60,7 @@ type_check_overlay_decl_common(ASTNode *node,
                 Symbol *slot_sym = calloc(1, sizeof(Symbol));
                 slot_sym->name = pergyra_strdup(slot->data.domain_slot.slot_name);
                 slot_sym->kind = SYMBOL_VARIABLE;
-                slot_sym->type = slot_type != NULL ? slot_type : TYPE_INT;
+                slot_sym->type = slot_type != NULL ? slot_type : TYPE_UNKNOWN;
                 slot_sym->decl_line = slot->line;
                 slot_sym->decl_col = slot->column;
                 scope_declare(ctx->scope, slot_sym);
@@ -78,7 +78,7 @@ type_check_overlay_decl_common(ASTNode *node,
                 Symbol *zone_sym = calloc(1, sizeof(Symbol));
                 zone_sym->name = pergyra_strdup(wz->data.world_zone.slot_name);
                 zone_sym->kind = SYMBOL_VARIABLE;
-                zone_sym->type = zone_type != NULL ? zone_type : TYPE_INT;
+                zone_sym->type = zone_type != NULL ? zone_type : TYPE_UNKNOWN;
                 zone_sym->decl_line = wz->line;
                 zone_sym->decl_col = wz->column;
                 scope_declare(ctx->scope, zone_sym);
@@ -89,7 +89,7 @@ type_check_overlay_decl_common(ASTNode *node,
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
         if (shared != NULL && shared->data.party_shared.name != NULL) {
-            Type *field_type = TYPE_INT;
+            Type *field_type = TYPE_UNKNOWN;
             if (shared->data.party_shared.type != NULL)
                 field_type = domain_resolve_shared_type(shared, ctx);
             Symbol *field_sym = calloc(1, sizeof(Symbol));

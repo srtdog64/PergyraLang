@@ -21,7 +21,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
         if (list_var == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        elem_ty = llvm_collection_required_value_type(ctx, node, "List",
+            list_arg->data.identifier.name, inner_name, out);
+        if (elem_ty == NULL)
+            return true;
         value = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (value == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
@@ -61,7 +64,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
         if (list_var == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        elem_ty = llvm_collection_required_value_type(ctx, node, "List",
+            list_arg->data.identifier.name, inner_name, out);
+        if (elem_ty == NULL)
+            return true;
         idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (idx == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
@@ -97,7 +103,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
         if (list_var == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        elem_ty = llvm_collection_required_value_type(ctx, node, "List",
+            list_arg->data.identifier.name, inner_name, out);
+        if (elem_ty == NULL)
+            return true;
         idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
         value = llvm_emit_expression(node->data.call.arguments[2], ctx);
         if (idx == NULL || value == NULL)
@@ -158,7 +167,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
         if (list_var == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        elem_ty = llvm_collection_required_value_type(ctx, node, "List",
+            list_arg->data.identifier.name, inner_name, out);
+        if (elem_ty == NULL)
+            return true;
         idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (idx == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
@@ -190,7 +202,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
         if (queue_var == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        elem_ty = llvm_collection_required_value_type(ctx, node, "Queue",
+            queue_arg->data.identifier.name, inner_name, out);
+        if (elem_ty == NULL)
+            return true;
         value = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (value == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
@@ -229,7 +244,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
         if (queue_var == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        elem_ty = llvm_collection_required_value_type(ctx, node, "Queue",
+            queue_arg->data.identifier.name, inner_name, out);
+        if (elem_ty == NULL)
+            return true;
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstNull(elem_ty), tmp);
         fn = llvm_lookup_function(ctx, "pgy_queue_pop_raw_export");
@@ -297,7 +315,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         value_name = llvm_lookup_map_value(ctx, map_arg->data.identifier.name);
         if (map_var == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        value_ty = pergyra_type_to_llvm(ctx, value_name != NULL ? value_name : "Int");
+        value_ty = llvm_collection_required_value_type(ctx, node, "HashMap",
+            map_arg->data.identifier.name, value_name, out);
+        if (value_ty == NULL)
+            return true;
         key = llvm_emit_expression(node->data.call.arguments[1], ctx);
         value = llvm_emit_expression(node->data.call.arguments[2], ctx);
         if (key == NULL || value == NULL)
@@ -361,7 +382,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         value_name = llvm_lookup_map_value(ctx, map_arg->data.identifier.name);
         if (map_var == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        value_ty = pergyra_type_to_llvm(ctx, value_name != NULL ? value_name : "Int");
+        value_ty = llvm_collection_required_value_type(ctx, node, "HashMap",
+            map_arg->data.identifier.name, value_name, out);
+        if (value_ty == NULL)
+            return true;
         key = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (key == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
@@ -433,7 +457,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         value_name = llvm_lookup_map_value(ctx, map_arg->data.identifier.name);
         if (map_var == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        value_ty = pergyra_type_to_llvm(ctx, value_name != NULL ? value_name : "Int");
+        value_ty = llvm_collection_required_value_type(ctx, node, "HashMap",
+            map_arg->data.identifier.name, value_name, out);
+        if (value_ty == NULL)
+            return true;
         key = llvm_emit_expression(node->data.call.arguments[1], ctx);
         fn = llvm_lookup_function(ctx,
             key_name != NULL && strcmp(key_name, "Int") == 0

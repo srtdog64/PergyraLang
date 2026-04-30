@@ -354,12 +354,14 @@ test_air_strict_evidence_prefers_inventory_over_legacy_flags(void)
             .boundary_index = 0,
             .provider_name = "dispatch",
             .subject_name = "spawn",
+            .fact_count = 1,
         },
         {
             .kind = AIR_EVIDENCE_RIR_BOUNDARY,
             .boundary_index = 0,
             .provider_name = "spawn",
             .subject_name = "spawn",
+            .fact_count = 1,
         },
     };
     AIRProgram air = {
@@ -779,6 +781,7 @@ test_air_verify_rejects_invalid_evidence_inventory(void)
             .boundary_index = 7,
             .provider_name = "WarehouseZone",
             .subject_name = "WarehouseZone",
+            .fact_count = 1,
         },
     };
     AIREvidenceNode empty_provider[] = {
@@ -787,6 +790,7 @@ test_air_verify_rejects_invalid_evidence_inventory(void)
             .boundary_index = 0,
             .provider_name = "",
             .subject_name = "WarehouseZone",
+            .fact_count = 1,
         },
     };
     AIRProgram bad_boundary = {
@@ -853,12 +857,14 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "WarehouseZone",
+            .fact_count = 1,
         },
         {
             .kind = AIR_EVIDENCE_RIR_AUTHORITY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "observer",
+            .fact_count = 1,
         },
     };
     AIREvidenceNode global_attached_to_boundary[] = {
@@ -867,6 +873,7 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
             .boundary_index = 0,
             .provider_name = "type-resolution-dag",
             .subject_name = "generic-contracts",
+            .fact_count = 1,
         },
     };
     AIREvidenceNode cfg_without_routine[] = {
@@ -874,7 +881,58 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
             .kind = AIR_EVIDENCE_HIR_CFG,
             .boundary_index = 0,
             .provider_name = "reserve",
-            .subject_name = "pin",
+            .subject_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+    };
+    AIREvidenceNode hir_subject_mismatch[] = {
+        {
+            .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .boundary_index = 0,
+            .provider_name = "reserve",
+            .subject_name = "OtherZone",
+            .fact_count = 1,
+        },
+    };
+    AIREvidenceNode rir_subject_mismatch[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "OtherZone",
+            .fact_count = 1,
+        },
+    };
+    AIREvidenceNode cfg_provider_mismatch[] = {
+        {
+            .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .boundary_index = 0,
+            .provider_name = "reserve",
+            .subject_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+        {
+            .kind = AIR_EVIDENCE_HIR_CFG,
+            .boundary_index = 0,
+            .provider_name = "otherRoutine",
+            .subject_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+    };
+    AIREvidenceNode authority_provider_mismatch[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+        {
+            .kind = AIR_EVIDENCE_RIR_AUTHORITY,
+            .boundary_index = 0,
+            .provider_name = "OtherScope",
+            .subject_name = "shipper",
+            .fact_count = 1,
         },
     };
     AIRProgram bad_authority_subject = {
@@ -901,6 +959,38 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         .evidence_nodes = cfg_without_routine,
         .evidence_count = 1,
     };
+    AIRProgram bad_hir_subject = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = hir_subject_mismatch,
+        .evidence_count = 1,
+    };
+    AIRProgram bad_rir_subject = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = rir_subject_mismatch,
+        .evidence_count = 1,
+    };
+    AIRProgram bad_cfg_provider = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = cfg_provider_mismatch,
+        .evidence_count = 2,
+    };
+    AIRProgram bad_authority_provider = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = authority_provider_mismatch,
+        .evidence_count = 2,
+    };
     char *error = NULL;
     bool ok = !air_verify(&bad_authority_subject, &error)
         && error != NULL
@@ -918,7 +1008,83 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         && !air_verify(&bad_cfg, &error)
         && error != NULL
         && strstr(error, "HIR CFG evidence node") != NULL
-        && strstr(error, "no HIR routine evidence") != NULL;
+        && strstr(error, "no matching HIR routine evidence") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&bad_hir_subject, &error)
+        && error != NULL
+        && strstr(error, "HIR routine evidence node") != NULL
+        && strstr(error, "subject/source mismatch") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&bad_rir_subject, &error)
+        && error != NULL
+        && strstr(error, "RIR boundary evidence node") != NULL
+        && strstr(error, "subject/source mismatch") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&bad_cfg_provider, &error)
+        && error != NULL
+        && strstr(error, "HIR CFG evidence node") != NULL
+        && strstr(error, "no matching HIR routine evidence") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&bad_authority_provider, &error)
+        && error != NULL
+        && strstr(error, "RIR authority evidence node") != NULL
+        && strstr(error, "no matching RIR boundary evidence") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_empty_boundary_evidence(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIREvidenceNode empty_hir_routine[] = {
+        {
+            .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .boundary_index = 0,
+            .provider_name = "reserve",
+            .subject_name = "WarehouseZone",
+            .fact_count = 0,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = empty_hir_routine,
+        .evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&air, &error)
+        && error != NULL
+        && strstr(error, "boundary evidence node 0 has no evidence facts") != NULL;
     free(error);
     return ok;
 }
@@ -1429,24 +1595,28 @@ test_air_dump_prints_evidence_provenance(void)
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "WarehouseZone",
+            .fact_count = 1,
         },
         {
             .kind = AIR_EVIDENCE_HIR_CFG,
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "WarehouseZone",
+            .fact_count = 1,
         },
         {
             .kind = AIR_EVIDENCE_RIR_BOUNDARY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "WarehouseZone",
+            .fact_count = 1,
         },
         {
             .kind = AIR_EVIDENCE_RIR_AUTHORITY,
             .boundary_index = 0,
             .provider_name = "WarehouseZone",
             .subject_name = "shipper",
+            .fact_count = 1,
         },
     };
     AIRProgram air = {
@@ -1478,7 +1648,9 @@ test_air_dump_prints_evidence_provenance(void)
         && strstr(buffer, "rir_boundary=yes(WarehouseZone)") != NULL
         && strstr(buffer, "rir_authority=yes(shipper)") != NULL
         && strstr(buffer, "evidence_node[0] kind=hir_routine") != NULL
-        && strstr(buffer, "evidence_node[3] kind=rir_authority") != NULL;
+        && strstr(buffer, "provider=reserve subject=WarehouseZone facts=1 fallbacks=0") != NULL
+        && strstr(buffer, "evidence_node[3] kind=rir_authority") != NULL
+        && strstr(buffer, "provider=WarehouseZone subject=shipper facts=1 fallbacks=0") != NULL;
     return ok;
 }
 
@@ -1511,6 +1683,7 @@ test_air_dump_json_prints_stable_graph_schema(void)
             .boundary_index = 0,
             .provider_name = "reserve",
             .subject_name = "scores",
+            .fact_count = 1,
         },
     };
     AIRProgram air = {
@@ -1825,6 +1998,32 @@ test_air_collects_mir_cleanup_block_evidence(void)
 }
 
 static bool
+test_air_rejects_empty_mir_cleanup_evidence(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "cleanup_owner",
+            .subject_name = "cleanup-block",
+            .fact_count = 0,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "MIR cleanup evidence node 0 has no cleanup facts") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_collects_dag_generic_ability_evidence(void)
 {
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
@@ -1969,6 +2168,58 @@ test_air_reports_missing_effect_relation_propagation_evidence(void)
 
     ok = ok && air.drift_count == 2 && found_effect && found_relation;
     test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_empty_rir_propagation_evidence(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "PaymentZone",
+            .subject_name = "fx",
+            .fact_count = 0,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "RIR propagation evidence node 0 has no propagation facts") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_invalid_dag_evidence_provider(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_DAG_GENERIC,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "legacy-resolver",
+            .subject_name = "generic-contracts",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "DAG evidence node 0 has invalid provider") != NULL;
     free(error);
     return ok;
 }
@@ -3768,6 +4019,9 @@ main(void)
     TEST("AIR verify rejects evidence boundary shape mismatch");
     EXPECT(test_air_verify_rejects_evidence_boundary_shape_mismatch());
 
+    TEST("AIR verify rejects empty boundary evidence");
+    EXPECT(test_air_verify_rejects_empty_boundary_evidence());
+
     TEST("AIR verify rejects authority evidence shape mismatch");
     EXPECT(test_air_verify_rejects_authority_evidence_shape_mismatch());
 
@@ -3804,6 +4058,9 @@ main(void)
     TEST("AIR collects MIR cleanup block evidence");
     EXPECT(test_air_collects_mir_cleanup_block_evidence());
 
+    TEST("AIR rejects empty MIR cleanup evidence");
+    EXPECT(test_air_rejects_empty_mir_cleanup_evidence());
+
     TEST("AIR collects DAG generic ability evidence");
     EXPECT(test_air_collects_dag_generic_ability_evidence());
 
@@ -3815,6 +4072,12 @@ main(void)
 
     TEST("AIR reports missing effect relation propagation evidence");
     EXPECT(test_air_reports_missing_effect_relation_propagation_evidence());
+
+    TEST("AIR rejects empty RIR propagation evidence");
+    EXPECT(test_air_rejects_empty_rir_propagation_evidence());
+
+    TEST("AIR rejects invalid DAG evidence provider");
+    EXPECT(test_air_rejects_invalid_dag_evidence_provider());
 
     TEST("AIR world boundary requires transfer evidence");
     EXPECT(test_air_world_boundary_requires_transfer_evidence());

@@ -3,17 +3,12 @@ emit_unary(ASTNode *expr, TranspilerCtx *ctx)
 {
     /* Postfix ? ??try/propagate: expr? ??early return on error */
     if (expr->data.unary.op.type == TOKEN_QUESTION) {
-        char *operand = emit_expression(expr->data.unary.operand, ctx);
-        int try_id = ctx->tmp_counter++;
-        char *result = strdup_fmt(
-            "({ __typeof__(%s) __try_%d = %s; "
-            "if (__try_%d.tag != PgyResultOk) return __try_%d; "
-            "__try_%d.ok; })",
-            operand, try_id, operand,
-            try_id, try_id,
-            try_id);
-        free(operand);
-        return result;
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_BINDING_TYPE,
+            "C backend: '?' is only supported in let-initializer statement context; use 'let value: T = result?;' before using the value");
+        return pergyra_strdup("0");
     }
 
     char *operand = emit_expression(expr->data.unary.operand, ctx);

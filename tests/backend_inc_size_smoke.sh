@@ -32,4 +32,32 @@ do
     fi
 done
 
-echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0; legacy RIR implementation headers = 0"
+if grep -RIn "fallback_ty = ctx->type_i32" \
+    "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.h" >/dev/null 2>&1; then
+    echo "LLVM task/channel receive reintroduced anonymous Option<Int> fallback" >&2
+    grep -RIn "fallback_ty = ctx->type_i32" \
+        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.h" >&2 || true
+    exit 1
+fi
+
+if grep -RIn "return LLVMConstInt(ctx->type_i[13]2\\?, 0" \
+    "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.h" >/dev/null 2>&1; then
+    echo "LLVM task/channel builtin reintroduced silent zero/false fallback" >&2
+    grep -RIn "return LLVMConstInt(ctx->type_i[13]2\\?, 0" \
+        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.h" >&2 || true
+    exit 1
+fi
+
+for required_term in \
+    "llvm_required_channel_function" \
+    "llvm_required_channel_var" \
+    "llvm_required_task_function"
+do
+    if ! grep -q "$required_term" \
+        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.h"; then
+        echo "LLVM task/channel builtin lost explicit failure helper: $required_term" >&2
+        exit 1
+    fi
+done
+
+echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0; legacy RIR implementation headers = 0; LLVM task/channel fallback = 0"

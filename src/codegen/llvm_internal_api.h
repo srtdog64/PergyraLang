@@ -28,6 +28,7 @@ void          llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
 LLVMVarEntry *llvm_scope_lookup(LLVMGenCtx *ctx, const char *name);
 void          llvm_defer_scope_push(LLVMGenCtx *ctx);
 void          llvm_defer_scope_pop(LLVMGenCtx *ctx);
+void          llvm_register_defer(ASTNode *body, LLVMGenCtx *ctx);
 void          llvm_emit_defers_from(LLVMGenCtx *ctx, int from_depth);
 
 void llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
@@ -166,6 +167,8 @@ LLVMEventTypeEntry *llvm_register_event(LLVMGenCtx *ctx, const char *name,
 LLVMTypeRef   pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
 LLVMTypeRef   ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node);
 LLVMTypeRef   llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name);
+const char   *llvm_constructed_arg_name_at(const char *type_name,
+                                           int arg_index);
 const char   *llvm_tmp_name(LLVMGenCtx *ctx);
 LLVMValueRef  llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
                                         const char *name);

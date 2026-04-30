@@ -10,6 +10,7 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                                char **error_message)
 {
     bool *hir_block_seen = NULL;
+    bool requires_cleanup_for_body = require_cleanup;
     const size_t cfg_block_count = (routine != NULL && routine->hir_routine != NULL
                                    && routine->hir_routine->has_cfg)
                                     ? routine->hir_routine->cfg.block_count
@@ -20,6 +21,14 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
 
     if (routine->blocks == NULL || routine->block_count == 0) {
         return false;
+    }
+
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (!block->is_cleanup && block->is_pin_region) {
+            requires_cleanup_for_body = true;
+            break;
+        }
     }
 
     if (routine->entry_block >= routine->block_count) {
@@ -135,7 +144,7 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
         }
     }
 
-    if (require_cleanup && !routine->has_cleanup_block) {
+    if (requires_cleanup_for_body && !routine->has_cleanup_block) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR routine '%s' requires cleanup block for exceptional flow",

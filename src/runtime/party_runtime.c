@@ -427,14 +427,8 @@ GetSchedulerForTag(SchedulerTag tag)
         }
     }
 
-    FiberScheduler* current = SchedulerGetCurrent();
-    if (current != NULL) {
-        if (tag != SCHEDULER_ANY) {
-            party_runtime_warn("scheduler.lookup",
-                               "scheduler tag not registered; falling back to current scheduler");
-        }
-        return current;
-    }
+    if (tag == SCHEDULER_ANY)
+        return SchedulerGetCurrent();
 
     if (tag != SCHEDULER_ANY) {
         party_runtime_warn("scheduler.lookup", "scheduler tag not registered");

@@ -471,6 +471,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             continue;
     }
 
+    transpiler_defer_scope_push(ctx);
+
     write_indent(ctx);
     codebuf_write(ctx->out, "/* emitted-from-mir */\n");
     write_indent(ctx);
@@ -505,6 +507,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     (unsigned long long) block->id,
                     block_reason[0] != '\0' ? block_reason : "unknown reason");
             }
+            transpiler_defer_scope_pop(ctx);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
             return;
         }
@@ -526,6 +529,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 node, mir_routine, block, i, name, ctx, &block_ssa_map,
                 &terminator_emitted, block_reason, sizeof(block_reason))) {
             transpiler_ssa_map_clear(&block_ssa_map);
+            transpiler_defer_scope_pop(ctx);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
             return;
         }
@@ -534,6 +538,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     mir_routine, block, i, name, ctx,
                     block_reason, sizeof(block_reason))) {
                 transpiler_ssa_map_clear(&block_ssa_map);
+                transpiler_defer_scope_pop(ctx);
                 transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
                 return;
             }
@@ -562,6 +567,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 if (inst->kind == MIR_INST_CLEANUP_EDGE) {
                     if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst,
                                                            cleanup_handle, true)) {
+            transpiler_defer_scope_pop(ctx);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
                         return;
                     }
@@ -581,6 +587,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
 
+    transpiler_defer_scope_pop(ctx);
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
     transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);

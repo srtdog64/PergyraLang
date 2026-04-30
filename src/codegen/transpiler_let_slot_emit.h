@@ -7,10 +7,39 @@ transpiler_let_slot_inner_from_annotation(ASTNode *ann)
     if (ann == NULL || ann->type != AST_TYPE || ann->data.type.name == NULL)
         return NULL;
     if (ann->data.type.generic_args != NULL
-        && ann->data.type.generic_args->count > 0) {
-        return ann->data.type.generic_args->params[0]->name;
+        && ann->data.type.generic_args->count > 0
+        && ann->data.type.generic_args->params != NULL
+        && ann->data.type.generic_args->params[0] != NULL) {
+        GenericParam *param = ann->data.type.generic_args->params[0];
+        if (param->constraint != NULL
+            && param->constraint->type == AST_TYPE
+            && param->constraint->data.type.name != NULL) {
+            return param->constraint->data.type.name;
+        }
+        return param->name;
     }
     return slot_inner_type_name(ann->data.type.name);
+}
+
+static const char *
+transpiler_let_slot_inner_from_call_type_arg(ASTNode *call)
+{
+    GenericParam *param;
+
+    if (call == NULL || call->type != AST_CALL
+        || call->data.call.generic_args == NULL
+        || call->data.call.generic_args->count < 1
+        || call->data.call.generic_args->params == NULL
+        || call->data.call.generic_args->params[0] == NULL) {
+        return NULL;
+    }
+    param = call->data.call.generic_args->params[0];
+    if (param->constraint != NULL
+        && param->constraint->type == AST_TYPE
+        && param->constraint->data.type.name != NULL) {
+        return param->constraint->data.type.name;
+    }
+    return param->name;
 }
 
 static bool
@@ -45,12 +74,14 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
     }
 
     slot_inner = transpiler_let_slot_inner_from_annotation(ann);
+    if (slot_inner == NULL && is_slot)
+        slot_inner = transpiler_let_slot_inner_from_call_type_arg(init);
     if (slot_inner == NULL) {
         if (ctx->backend_error == NULL) {
             ctx->backend_error = strdup_fmt(
                 is_device_slot
                     ? "cannot emit device slot claim for '%s': missing explicit DeviceSlot<T> annotation"
-                    : "cannot emit slot claim for '%s': missing explicit Slot<T>/SecureSlot<T> annotation",
+                    : "cannot emit slot claim for '%s': missing explicit Slot<T>/SecureSlot<T> annotation or ClaimSlot<T>() type argument",
                 name != NULL ? name : "(anonymous)");
         }
         free(*ann_type_name_io);
@@ -77,6 +108,12 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
         codebuf_write(ctx->out, "(void)%s;\n", name);
         if (*ann_type_name_io != NULL)
             register_typed_var(ctx, name, *ann_type_name_io);
+        else {
+            char *slot_type = strdup_fmt("%s<%s>",
+                is_secure_slot ? "SecureSlot" : "Slot", slot_inner);
+            register_typed_var(ctx, name, slot_type);
+            free(slot_type);
+        }
         free(*ann_type_name_io);
         *ann_type_name_io = NULL;
         return true;

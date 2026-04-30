@@ -96,8 +96,18 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             char *elem_name = llvm_stmt_render_type_arg_scratch(
                                 decl->data.func_decl.return_type->data.type.generic_args->params[0],
                                 &ctx->scratch);
-                            elem_type = pergyra_type_to_llvm(ctx,
-                                elem_name != NULL ? elem_name : "Int");
+                            if (elem_name == NULL || elem_name[0] == '\0') {
+                                if (!ctx->has_error) {
+                                    llvm_set_error_at_with_hints(ctx, value_expr,
+                                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                                        "LLVM MIR Slice receiver '%s' requires concrete element type metadata",
+                                        receiver->data.call.callee->data.identifier.name);
+                                }
+                            } else {
+                                elem_type = pergyra_type_to_llvm(ctx, elem_name);
+                            }
                         }
                     }
                     llvm_register_array_var(ctx, pergyra_strdup(base_name),
@@ -151,8 +161,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 continue;
             }
 
-            pt = (p->type != NULL) ? llvm_mir_type_from_ast(ctx, p->type)
-                                   : ctx->type_i32;
+            pt = llvm_mir_required_type_from_ast(ctx, func_decl, p->type,
+                "function parameter");
             slot_inner = llvm_mir_boundary_slot_inner_name(p, &is_secure_slot);
             if (slot_inner != NULL) {
                 LLVMTypeRef slot_ptr_ty = LLVMPointerType(pt, 0);
@@ -207,8 +217,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             }
             if (type_node != NULL && type_node->type == AST_TYPE)
                 type_name = type_node->data.type.name;
-            if (type_node != NULL)
-                pt = llvm_mir_type_from_ast(ctx, type_node);
+            pt = llvm_mir_required_type_from_ast(ctx, binding, type_node,
+                "intent binding");
             if (pointer_param)
                 pt = LLVMPointerType(pt, 0);
             LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt,
@@ -254,8 +264,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 }
                 if (p == NULL)
                     continue;
-                LLVMTypeRef pt = (p->type != NULL) ? llvm_mir_type_from_ast(ctx, p->type)
-                                                   : ctx->type_i32;
+                LLVMTypeRef pt = llvm_mir_required_type_from_ast(
+                    ctx, func_decl, p->type, "function parameter");
                 if (p->type != NULL && llvm_mir_param_uses_pointer_self(ctx, p->type))
                     pt = LLVMPointerType(pt, 0);
                 LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);

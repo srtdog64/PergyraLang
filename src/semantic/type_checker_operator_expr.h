@@ -205,7 +205,7 @@ Type *
 type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 {
     if (expr->data.array_literal.count == 0)
-        return wrap_constructed(TYPE_ARRAY, TYPE_INT);
+        return wrap_constructed(TYPE_ARRAY, TYPE_UNKNOWN);
 
     Type *elem_type = type_check_expression(expr->data.array_literal.elements[0], ctx);
     reject_borrowed_array_literal_store(

@@ -39,10 +39,20 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
             if (init->data.call.generic_args != NULL
                 && init->data.call.generic_args->count > 0
                 && init->data.call.generic_args->params[0] != NULL) {
-                inner = init->data.call.generic_args->params[0]->name;
+                inner = transpiler_let_slot_inner_from_call_type_arg(init);
             }
-            if (inner == NULL)
-                inner = "Int";
+            if (inner == NULL || inner[0] == '\0') {
+                if (reason != NULL && reason_cap > 0) {
+                    snprintf(reason, reason_cap,
+                        "ClaimSecureSlot destructuring requires concrete generic type");
+                }
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: ClaimSecureSlot destructuring requires concrete SecureSlot<T> metadata");
+                return false;
+            }
             slot_name = stmt->data.let_destructure.names[0];
             token_name = stmt->data.let_destructure.names[1];
             write_indent_to(buf, ctx->indent);
@@ -79,10 +89,20 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         if (init->data.call.generic_args != NULL
             && init->data.call.generic_args->count > 0
             && init->data.call.generic_args->params[0] != NULL) {
-            inner = init->data.call.generic_args->params[0]->name;
+            inner = transpiler_let_slot_inner_from_call_type_arg(init);
         }
-        if (inner == NULL)
-            inner = "Int";
+        if (inner == NULL || inner[0] == '\0') {
+            if (reason != NULL && reason_cap > 0) {
+                snprintf(reason, reason_cap,
+                    "ClaimSlot destructuring requires concrete generic type");
+            }
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: ClaimSlot destructuring requires concrete Slot<T> metadata");
+            return false;
+        }
         slot_name = stmt->data.let_destructure.names[0];
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "PgySlot_%s %s = pgy_claim_%s();\n",

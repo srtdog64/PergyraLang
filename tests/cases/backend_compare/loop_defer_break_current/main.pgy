@@ -1,0 +1,9 @@
+func Main() -> Void {
+    while true {
+        defer {
+            Log(1);
+        };
+        break;
+    }
+    Log(2);
+}

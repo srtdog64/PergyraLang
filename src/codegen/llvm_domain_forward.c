@@ -61,6 +61,28 @@ llvm_domain_method_return_type_metadata_first(const MIRDeclMethod *method_meta,
     return NULL;
 }
 
+static LLVMTypeRef
+llvm_domain_forward_required_param_type(LLVMGenCtx *ctx,
+                                        ASTNode *owner,
+                                        FuncParam *param,
+                                        const char *owner_kind,
+                                        const char *owner_name)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (param != NULL && param->type != NULL)
+        return ast_type_to_llvm(ctx, param->type);
+
+    llvm_set_error_at_with_hints(ctx, owner,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM %s '%s' parameter requires explicit type metadata; silent i32 fallback is not allowed",
+        owner_kind != NULL ? owner_kind : "domain forward declaration",
+        owner_name != NULL ? owner_name : "<anonymous>");
+    return ctx->type_i32;
+}
+
 void
 llvm_emit_domain_sync_forward_decl(LLVMGenCtx *ctx,
                                    const char *decl_name,
@@ -138,15 +160,14 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
             LLVMClassTypeEntry *param_cls = NULL;
             if (llvm_param_is_implicit_self_local(p))
                 continue;
-            if (p->type != NULL && p->type->type == AST_TYPE)
+            if (p != NULL && p->type != NULL && p->type->type == AST_TYPE)
                 type_name = p->type->data.type.name;
             param_cls = type_name != NULL ? llvm_lookup_class(ctx, type_name) : NULL;
             if (param_cls != NULL && param_cls->is_pointer_self_host)
                 ptypes[pidx++] = LLVMPointerType(param_cls->struct_type, 0);
             else
-                ptypes[pidx++] = (p->type != NULL)
-                    ? ast_type_to_llvm(ctx, p->type)
-                    : ctx->type_i32;
+                ptypes[pidx++] = llvm_domain_forward_required_param_type(
+                    ctx, method, p, "domain method", mname);
         }
 
         ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
@@ -213,9 +234,9 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                 FuncParam *p = method->data.func_decl.params[k];
                 if (llvm_param_is_implicit_self_local(p))
                     continue;
-                ptypes[pidx++] = (p->type != NULL)
-                    ? ast_type_to_llvm(ctx, p->type)
-                    : ctx->type_i32;
+                ptypes[pidx++] = llvm_domain_forward_required_param_type(
+                    ctx, method, p, "ability method",
+                    method->data.func_decl.name);
             }
 
             fn_type = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
@@ -294,9 +315,8 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                     FuncParam *p = method->data.func_decl.params[k];
                     if (llvm_param_is_implicit_self_local(p))
                         continue;
-                    ptypes[pidx++] = (p->type != NULL)
-                        ? ast_type_to_llvm(ctx, p->type)
-                        : ctx->type_i32;
+                    ptypes[pidx++] = llvm_domain_forward_required_param_type(
+                        ctx, method, p, "role method", mname);
                 }
 
                 ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
@@ -349,8 +369,8 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                     continue;
 
                 lhs_type = ast_type_to_llvm(ctx, stmt->data.role_decl.for_type);
-                rhs_type = (rhs_param != NULL && rhs_param->type != NULL)
-                    ? ast_type_to_llvm(ctx, rhs_param->type) : ctx->type_i32;
+                rhs_type = llvm_domain_forward_required_param_type(
+                    ctx, method, rhs_param, "role operator", opname);
                 ret = method->data.func_decl.return_type != NULL
                     ? ast_type_to_llvm(ctx, method->data.func_decl.return_type)
                     : ctx->type_void;

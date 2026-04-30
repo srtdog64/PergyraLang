@@ -114,9 +114,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             Scope *parent = ctx->scope->parent;
             const char *nominal_name = NULL;
 
-            if (ctx->current_nominal_decl != NULL
-                && ctx->current_nominal_decl->type == AST_CLASS_DECL) {
-                nominal_name = ctx->current_nominal_decl->data.class_decl.name;
+            if (ctx->current_nominal_decl != NULL) {
+                if (ctx->current_nominal_decl->type == AST_CLASS_DECL)
+                    nominal_name = ctx->current_nominal_decl->data.class_decl.name;
+                else if (ctx->current_nominal_decl->type == AST_ENUM_DECL)
+                    nominal_name = ctx->current_nominal_decl->data.enum_decl.name;
             }
 
             if (parent != NULL && nominal_name != NULL) {
@@ -125,19 +127,23 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     param_types[i] = self_sym->type;
             }
 
-            if (param_types[i] == NULL && parent != NULL) {
-                /* Fallback for older paths that do not set current_nominal_decl. */
-                for (size_t s = parent->symbol_count; s > 0; s--) {
-                    Symbol *cs = parent->symbols[s - 1];
-                    if (cs != NULL && cs->kind == SYMBOL_CLASS) {
-                        param_types[i] = cs->type;
-                        break;
-                    }
-                }
-            }
-
-            if (param_types[i] == NULL)
+            if (param_types[i] == NULL) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_CALL_ARG_TYPE_MISMATCH,
+                    PGY_FIX_REPORT_COMPILER_BUG,
+                    node,
+                    "Cannot infer implicit self type for function '%s'.\n"
+                    "Reason:\n"
+                    "- function is in a nominal scope, but current_nominal_decl is not set\n"
+                    "- beta semantic lowering no longer guesses self from the parent scope symbol order\n"
+                    "Fix:\n"
+                    "- route class/subject/enum method checking through the nominal owner pass\n"
+                    "- or add an explicit self type annotation",
+                    node->data.func_decl.name != NULL
+                        ? node->data.func_decl.name : "<anonymous>");
                 param_types[i] = TYPE_UNKNOWN;
+            }
         } else {
             param_types[i] = program_body_resolve_param_type(param, ctx);
         }

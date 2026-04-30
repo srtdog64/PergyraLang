@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "diag_codes.h"
 #include "type_checker_internal.h"
 
 static void
@@ -100,6 +101,16 @@ metadata_trace_materializer_fallback(ASTNode *type_node)
             type_node != NULL ? type_node->column : 0);
 }
 
+static const char *
+metadata_fallback_type_name(ASTNode *type_node)
+{
+    if (type_node == NULL)
+        return "<null>";
+    if (type_node->type == AST_TYPE && type_node->data.type.name != NULL)
+        return type_node->data.type.name;
+    return metadata_fallback_ast_kind(type_node);
+}
+
 void
 semantic_type_resolution_record_materializer_fallback(SemanticContext *ctx,
                                                       ASTNode *type_node)
@@ -108,6 +119,13 @@ semantic_type_resolution_record_materializer_fallback(SemanticContext *ctx,
         return;
 
     metadata_trace_materializer_fallback(type_node);
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_UNKNOWN_TYPE,
+        PGY_CAUSE_TYPE_UNKNOWN,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        type_node,
+        "Type-resolution DAG could not materialize type metadata for '%s'; beta mode requires a graph-backed type fact instead of resolver fallback",
+        metadata_fallback_type_name(type_node));
     ctx->type_resolution_metadata_materializer_fallbacks++;
     if (type_node == NULL) {
         ctx->type_resolution_metadata_fallback_other++;

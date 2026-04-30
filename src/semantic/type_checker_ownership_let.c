@@ -19,6 +19,35 @@ ownership_let_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
 }
 
+static Type *
+ownership_let_resolve_first_call_type_arg(ASTNode *call, SemanticContext *ctx)
+{
+    GenericParam *param;
+    ASTNode *inner_node;
+    const char *inner_name;
+
+    if (call == NULL || call->type != AST_CALL
+        || call->data.call.generic_args == NULL
+        || call->data.call.generic_args->count < 1
+        || call->data.call.generic_args->params == NULL
+        || call->data.call.generic_args->params[0] == NULL) {
+        return NULL;
+    }
+
+    param = call->data.call.generic_args->params[0];
+    inner_node = param->constraint;
+    inner_name = param->name;
+    if (inner_node != NULL)
+        return ownership_let_resolve_type_ref(inner_node, ctx);
+    if (inner_name != NULL) {
+        ASTNode synth = {0};
+        synth.type = AST_TYPE;
+        synth.data.type.name = (char *)inner_name;
+        return ownership_let_resolve_type_ref(&synth, ctx);
+    }
+    return NULL;
+}
+
 static bool
 ownership_let_view_init_info(ASTNode *init,
                              const char **source_slot,
@@ -89,6 +118,35 @@ ownership_let_find_conflicting_view(Scope *scope,
     return false;
 }
 
+static bool
+ownership_let_is_unresolved_none_option(const Type *type)
+{
+    return type != NULL
+        && type->kind == TYPE_KIND_CONSTRUCTED
+        && type->data.constructed.constructor == TYPE_OPTION
+        && type->data.constructed.arg_count == 1
+        && type->data.constructed.args != NULL
+        && type->data.constructed.args[0] == TYPE_UNKNOWN;
+}
+
+static bool
+ownership_let_is_unresolved_empty_array(const Type *type)
+{
+    return type_is_constructed_named(type, "Array")
+        && type->data.constructed.arg_count == 1
+        && type->data.constructed.args != NULL
+        && type->data.constructed.args[0] == TYPE_UNKNOWN;
+}
+
+static bool
+ownership_let_is_unresolved_device_slot(const Type *type)
+{
+    return type_is_constructed_named(type, "DeviceSlot")
+        && type->data.constructed.arg_count == 1
+        && type->data.constructed.args != NULL
+        && type->data.constructed.args[0] == TYPE_UNKNOWN;
+}
+
 bool
 type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -143,7 +201,31 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                     slot_type = type_create_slot(ann_type, is_secure);
                 }
             } else {
-                slot_type = type_create_slot(TYPE_INT, is_secure);
+                Type *inner_type =
+                    ownership_let_resolve_first_call_type_arg(init, ctx);
+                if (inner_type == NULL || inner_type == TYPE_UNKNOWN) {
+                    semantic_error_with_hints(ctx,
+                        PGY_CODE_SEM_INFER_REQUIRED,
+                        PGY_CAUSE_INFER_NO_SOURCE,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        init,
+                        "Cannot infer %s<T> from %s without a type argument or annotation.\n"
+                        "Reason:\n"
+                        "- %s allocates a resource but carries no payload value\n"
+                        "- defaulting the slot payload to Int would discard generic evidence\n"
+                        "Fix:\n"
+                        "- write 'let %s: %s<T> = %s()' with a concrete T\n"
+                        "- or call '%s<T>()' with a concrete T",
+                        is_secure ? "SecureSlot" : "Slot",
+                        callee_name,
+                        callee_name,
+                        name != NULL ? name : "slot",
+                        is_secure ? "SecureSlot" : "Slot",
+                        callee_name,
+                        callee_name);
+                    inner_type = TYPE_UNKNOWN;
+                }
+                slot_type = type_create_slot(inner_type, is_secure);
             }
 
             if (is_secure) {
@@ -229,6 +311,17 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                        && decl_type != NULL
                        && decl_type->kind == TYPE_KIND_CONSTRUCTED) {
                 init_type = decl_type;
+            } else if (init->type == AST_ARRAY_LITERAL
+                       && init->data.array_literal.count == 0
+                       && type_is_constructed_named(decl_type, "Array")) {
+                init_type = decl_type;
+            } else if (init->type == AST_CALL
+                       && init->data.call.callee != NULL
+                       && init->data.call.callee->type == AST_IDENTIFIER
+                       && strcmp(init->data.call.callee->data.identifier.name,
+                                 "ClaimDeviceSlot") == 0
+                       && type_is_constructed_named(decl_type, "DeviceSlot")) {
+                init_type = decl_type;
             }
             if (!slot_transfer_compatible(init_type, decl_type))
                 require_assignable(init_type, decl_type, init, ctx);
@@ -236,6 +329,56 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     } else if (init != NULL) {
         /* Infer type from initializer */
         decl_type = init_type;
+
+        if (ownership_let_is_unresolved_none_option(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_REQUIRED,
+                PGY_CAUSE_INFER_NO_SOURCE,
+                PGY_FIX_ADD_ANNOTATION_OR_INITIALIZER,
+                init,
+                "Cannot infer Option<T> from None without an explicit annotation.\n"
+                "Reason:\n"
+                "- None carries absence but no payload type\n"
+                "- defaulting None to Option<Int> would make backend output depend on a local fallback\n"
+                "Fix:\n"
+                "- write 'let %s: Option<T> = None()' with a concrete T\n"
+                "- or initialize with Some(value) when the payload type should be inferred",
+                name != NULL ? name : "value");
+            decl_type = TYPE_UNKNOWN;
+        }
+
+        if (ownership_let_is_unresolved_empty_array(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_COLLECTION,
+                PGY_CAUSE_INFER_COLLECTION_NEEDS_ANNOTATION,
+                PGY_FIX_ANNOTATE_COLLECTION_ELEMENT_TYPE,
+                init,
+                "Cannot infer Array<T> from an empty array literal without an explicit annotation.\n"
+                "Reason:\n"
+                "- [] has no element value from which T can be inferred\n"
+                "- defaulting [] to Array<Int> would make backend output depend on a local fallback\n"
+                "Fix:\n"
+                "- write 'let %s: Array<T> = []' with a concrete T\n"
+                "- or initialize with at least one element when T should be inferred",
+                name != NULL ? name : "value");
+            decl_type = TYPE_UNKNOWN;
+        }
+
+        if (ownership_let_is_unresolved_device_slot(init_type)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_REQUIRED,
+                PGY_CAUSE_INFER_NO_SOURCE,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                init,
+                "Cannot infer DeviceSlot<T> from ClaimDeviceSlot without an explicit annotation.\n"
+                "Reason:\n"
+                "- ClaimDeviceSlot allocates a device resource but carries no payload value\n"
+                "- defaulting DeviceSlot<T> to DeviceSlot<Int> would diverge from backend requirements\n"
+                "Fix:\n"
+                "- write 'let %s: DeviceSlot<T> = ClaimDeviceSlot()' with a concrete T",
+                name != NULL ? name : "device");
+            decl_type = TYPE_UNKNOWN;
+        }
 
         if (init->type == AST_CALL
             && init->data.call.callee != NULL

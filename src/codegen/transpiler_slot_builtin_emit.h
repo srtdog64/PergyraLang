@@ -77,7 +77,7 @@ emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
     (void)call;
     transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: standalone ClaimDeviceSlot expression is unsupported; ClaimDeviceSlot<T>() must lower through let binding");
-    return pergyra_strdup("pgy_claim_device_Int()");
+    return pergyra_strdup("0");
 }
 
 char *
@@ -89,11 +89,12 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
     }
 
     /* Resolve slot inner type from tracking table */
-    const char *inner = "Int";
+    const char *inner = NULL;
     const char *slot_name = NULL;
     bool secure = false;
     ASTNode *slot_arg = call->data.call.arguments[0];
-    (void)resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure);
+    if (!resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure))
+        return pergyra_strdup("0");
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -214,6 +215,28 @@ resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
     return slot_name != NULL;
 }
 
+static const char *
+resolve_device_slot_inner_or_error(TranspilerCtx *ctx, ASTNode *slot_arg,
+                                   const char *operation)
+{
+    const char *inner = NULL;
+    if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
+        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
+            inner = slot_inner_type_name(type_name);
+    }
+    if (inner == NULL || inner[0] == '\0') {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "C backend: %s requires concrete DeviceSlot<T> metadata",
+            operation != NULL ? operation : "DeviceSlot operation");
+        return NULL;
+    }
+    return inner;
+}
+
 char *
 emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
 {
@@ -223,11 +246,12 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
     }
 
     /* Resolve slot inner type from tracking table */
-    const char *inner = "Int";
+    const char *inner = NULL;
     const char *slot_name = NULL;
     bool secure = false;
     ASTNode *slot_arg = call->data.call.arguments[0];
-    (void)resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure);
+    if (!resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure))
+        return pergyra_strdup("0");
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -270,11 +294,12 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
     }
 
     /* Resolve slot inner type from tracking table */
-    const char *inner = "Int";
+    const char *inner = NULL;
     const char *slot_name = NULL;
     bool secure = false;
     ASTNode *slot_arg = call->data.call.arguments[0];
-    (void)resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure);
+    if (!resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure))
+        return pergyra_strdup("0");
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -322,20 +347,17 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
 static char *
 emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 {
-    const char *inner = "Int";
     ASTNode *slot_arg = call->data.call.arguments[0];
+    const char *inner = resolve_device_slot_inner_or_error(ctx, slot_arg,
+        "DeviceWrite");
+    if (inner == NULL)
+        return pergyra_strdup("0");
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
     char *value_expr = emit_expression(call->data.call.arguments[1], ctx);
     char *result;
-
-    if (slot_arg->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
-        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
-            inner = slot_inner_type_name(type_name);
-    }
 
     result = strdup_fmt("pgy_device_write_%s(&%s, %s)", inner, slot_expr, value_expr);
     free(slot_expr);
@@ -346,19 +368,16 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 static char *
 emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
-    const char *inner = "Int";
     ASTNode *slot_arg = call->data.call.arguments[0];
+    const char *inner = resolve_device_slot_inner_or_error(ctx, slot_arg,
+        "DeviceRead");
+    if (inner == NULL)
+        return pergyra_strdup("0");
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
     char *result;
-
-    if (slot_arg->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
-        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
-            inner = slot_inner_type_name(type_name);
-    }
 
     result = strdup_fmt("pgy_device_read_%s(&%s)", inner, slot_expr);
     free(slot_expr);
@@ -368,19 +387,16 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 static char *
 emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
-    const char *inner = "Int";
     ASTNode *slot_arg = call->data.call.arguments[0];
+    const char *inner = resolve_device_slot_inner_or_error(ctx, slot_arg,
+        "ReleaseDeviceSlot");
+    if (inner == NULL)
+        return pergyra_strdup("0");
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
     char *result;
-
-    if (slot_arg->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
-        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
-            inner = slot_inner_type_name(type_name);
-    }
 
     result = strdup_fmt("pgy_release_device_%s(&%s)", inner, slot_expr);
     free(slot_expr);
@@ -390,19 +406,16 @@ emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 static char *
 emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
-    const char *inner = "Int";
     ASTNode *slot_arg = call->data.call.arguments[0];
+    const char *inner = resolve_device_slot_inner_or_error(ctx, slot_arg,
+        "SubmitDeviceRead");
+    if (inner == NULL)
+        return pergyra_strdup("0");
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
     char *result;
-
-    if (slot_arg->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
-        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
-            inner = slot_inner_type_name(type_name);
-    }
 
     result = strdup_fmt("pgy_submit_device_read_%s(&%s)", inner, slot_expr);
     free(slot_expr);

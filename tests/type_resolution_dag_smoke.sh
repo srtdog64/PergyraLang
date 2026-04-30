@@ -9,6 +9,11 @@ fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+DAG_GRAPH_SKIPS_FLOOR=3100
+DAG_METADATA_ENTRIES_FLOOR=3400
+DAG_METADATA_HITS_FLOOR=6500
+DAG_METADATA_OWNED_FLOOR=240
+
 case "$bin" in
   /*)
     ;;
@@ -300,8 +305,8 @@ if [ "$graph_skips" -le 0 ]; then
   exit 1
 fi
 
-if [ "$graph_skips" -lt 3000 ]; then
-  echo "graph-backed stage skip inventory regressed below beta floor: $graph_skips < 3000" >&2
+if [ "$graph_skips" -lt "$DAG_GRAPH_SKIPS_FLOOR" ]; then
+  echo "graph-backed stage skip inventory regressed below beta floor: $graph_skips < $DAG_GRAPH_SKIPS_FLOOR" >&2
   exit 1
 fi
 
@@ -335,8 +340,8 @@ if [ "$metadata_entries" -le 0 ]; then
   exit 1
 fi
 
-if [ "$metadata_entries" -lt 3300 ]; then
-  echo "graph-backed metadata inventory regressed below beta floor: $metadata_entries < 3300" >&2
+if [ "$metadata_entries" -lt "$DAG_METADATA_ENTRIES_FLOOR" ]; then
+  echo "graph-backed metadata inventory regressed below beta floor: $metadata_entries < $DAG_METADATA_ENTRIES_FLOOR" >&2
   exit 1
 fi
 
@@ -345,8 +350,8 @@ if [ "$metadata_hits" -le 0 ]; then
   exit 1
 fi
 
-if [ "$metadata_hits" -lt 4900 ]; then
-  echo "graph-backed metadata reuse regressed below beta floor: $metadata_hits < 4900" >&2
+if [ "$metadata_hits" -lt "$DAG_METADATA_HITS_FLOOR" ]; then
+  echo "graph-backed metadata reuse regressed below beta floor: $metadata_hits < $DAG_METADATA_HITS_FLOOR" >&2
   exit 1
 fi
 
@@ -355,8 +360,8 @@ if [ "$metadata_owned" -le 0 ]; then
   exit 1
 fi
 
-if [ "$metadata_owned" -lt 200 ]; then
-  echo "graph-backed stable constructed metadata regressed below beta floor: $metadata_owned < 200" >&2
+if [ "$metadata_owned" -lt "$DAG_METADATA_OWNED_FLOOR" ]; then
+  echo "graph-backed stable constructed metadata regressed below beta floor: $metadata_owned < $DAG_METADATA_OWNED_FLOOR" >&2
   exit 1
 fi
 

@@ -1,0 +1,17 @@
+subject Counter {
+    let ticks: Int;
+
+    func Sum(self, n: Int) -> Int {
+        if n <= 0 { return 0; }
+        defer {
+            ticks = ticks + 1;
+        };
+        return n + self.Sum(n - 1);
+    }
+}
+
+func Main() -> Void {
+    let c: Counter = Counter(0);
+    Log(c.Sum(4));
+    Log(c.ticks);
+}

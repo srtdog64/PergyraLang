@@ -654,19 +654,21 @@ air_mir_pin_block_has_cleanup_successor(const MIRRoutine *routine,
     return routine->blocks[routine->cleanup_block].is_cleanup;
 }
 
-static bool
-air_mir_routine_has_cleanup_fact(const MIRRoutine *routine)
+static size_t
+air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
 {
+    size_t count = 0;
+
     if (routine == NULL || !routine->has_cleanup_block)
-        return false;
+        return 0;
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
         for (size_t j = 0; j < block->instruction_count; j++) {
             if (block->instructions[j].kind == MIR_INST_CLEANUP_EDGE)
-                return true;
+                count++;
         }
     }
-    return false;
+    return count;
 }
 
 bool
@@ -682,14 +684,15 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
         const char *routine_name = routine->name != NULL
             ? routine->name
             : routine->owner_name;
-        if (!air_mir_routine_has_cleanup_fact(routine))
+        size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
+        if (cleanup_fact_count == 0)
             continue;
         if (!air_append_evidence_node_ex(air,
                                          AIR_EVIDENCE_MIR_CLEANUP,
                                          SIZE_MAX,
                                          routine_name,
                                          "cleanup-block",
-                                         routine->cleanup_instruction_count,
+                                         cleanup_fact_count,
                                          0,
                                          error_message)) {
             return false;

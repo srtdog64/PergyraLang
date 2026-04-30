@@ -45,6 +45,39 @@ llvm_mir_type_from_ast(LLVMGenCtx *ctx, ASTNode *type_node)
     return type != NULL ? type : ctx->type_i32;
 }
 
+static LLVMTypeRef
+llvm_mir_required_type_from_ast(LLVMGenCtx *ctx,
+                                ASTNode *owner,
+                                ASTNode *type_node,
+                                const char *slot_kind)
+{
+    LLVMTypeRef type;
+
+    if (ctx == NULL)
+        return NULL;
+    if (type_node == NULL) {
+        llvm_set_error_at_with_hints(ctx, owner,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM MIR %s requires explicit type metadata; silent i32 fallback is not allowed",
+            slot_kind != NULL ? slot_kind : "signature slot");
+        return ctx->type_i32;
+    }
+
+    type = ast_type_to_llvm(ctx, type_node);
+    if (type != NULL)
+        return type;
+
+    llvm_set_error_at_with_hints(ctx, type_node,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM MIR %s has unsupported type metadata; silent i32 fallback is not allowed",
+        slot_kind != NULL ? slot_kind : "signature slot");
+    return ctx->type_i32;
+}
+
 static bool
 llvm_mir_param_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
 {
@@ -248,7 +281,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 param_types[i] = llvm_mir_type_from_ast(
                     ctx, binding->data.intent_value.value_type);
             } else {
-                param_types[i] = ctx->type_i32;
+                param_types[i] = llvm_mir_required_type_from_ast(
+                    ctx, binding, NULL, "intent binding");
             }
         } else if (is_method && i == 0) {
             if (owner_cls != NULL) {
@@ -288,9 +322,11 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 }
             } else {
                 if (p != NULL && p->type != NULL)
-                    param_types[i] = llvm_mir_type_from_ast(ctx, p->type);
+                    param_types[i] = llvm_mir_required_type_from_ast(
+                        ctx, func_decl, p->type, "function parameter");
                 else
-                    param_types[i] = ctx->type_i32;
+                    param_types[i] = llvm_mir_required_type_from_ast(
+                        ctx, func_decl, NULL, "function parameter");
                 if (p != NULL && p->type != NULL
                     && llvm_mir_param_uses_pointer_self(ctx, p->type)) {
                     param_types[i] = LLVMPointerType(param_types[i], 0);

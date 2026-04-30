@@ -118,6 +118,21 @@ DispatchParallel(FiberMap* map,
     }
     result.resultCount = map->entryCount;
 
+    if (joinStrategy == JOIN_CUSTOM) {
+        uint64_t dispatchStartTime = GetTimeNanos();
+        party_runtime_warn("dispatch_parallel",
+                           "JOIN_CUSTOM is unsupported without a custom join contract");
+        for (size_t i = 0; i < map->entryCount; i++) {
+            result.results[i].roleId = map->entries[i].roleId;
+            result.results[i].success = false;
+            result.results[i].error =
+                "JOIN_CUSTOM unsupported: no custom join contract configured";
+        }
+        result.allSucceeded = false;
+        result.totalExecutionTimeNs = GetTimeNanos() - dispatchStartTime;
+        return result;
+    }
+
     pthread_t* threads = (pthread_t*)calloc(map->entryCount, sizeof(pthread_t));
     bool* threadStarted = (bool*)calloc(map->entryCount, sizeof(bool));
     atomic_bool* stopFlags = (atomic_bool*)calloc(map->entryCount, sizeof(atomic_bool));
@@ -155,8 +170,11 @@ DispatchParallel(FiberMap* map,
         }
 
         if (GetSchedulerForTag(entry->schedulerTag) == NULL && entry->schedulerTag != SCHEDULER_ANY) {
+            result.results[i].error = "Scheduler tag unresolved";
+            atomic_store(&completedFlags[i], true);
             party_runtime_warn("dispatch_parallel",
-                               "scheduler tag unresolved; using thread fallback");
+                               "scheduler tag unresolved");
+            continue;
         }
 
         threadData[i].entry = entry;
@@ -177,11 +195,6 @@ DispatchParallel(FiberMap* map,
         }
 
         threadStarted[i] = true;
-    }
-
-    if (joinStrategy == JOIN_CUSTOM) {
-        party_runtime_warn("dispatch_parallel", "JOIN_CUSTOM falls back to JOIN_ALL");
-        joinStrategy = JOIN_ALL;
     }
 
     size_t completedCount = 0;

@@ -974,6 +974,37 @@ func Main() -> Void {
 EOF
 run_case "defer_scope_exit" "$TMPDIR/defer_scope_exit.pgy" "2" "1"
 
+cat > "$TMPDIR/branch_defer_scope.pgy" <<'EOF'
+func Main() -> Void {
+    if true {
+        defer { Log(1); };
+    }
+    Log(2);
+}
+EOF
+run_case "branch_defer_scope" "$TMPDIR/branch_defer_scope.pgy" "2" "1"
+
+cat > "$TMPDIR/branch_defer_skipped.pgy" <<'EOF'
+func Main() -> Void {
+    if false {
+        defer { Log(1); };
+    }
+    Log(2);
+}
+EOF
+run_case "branch_defer_skipped" "$TMPDIR/branch_defer_skipped.pgy" "2"
+
+cat > "$TMPDIR/loop_defer_break_current.pgy" <<'EOF'
+func Main() -> Void {
+    while true {
+        defer { Log(1); };
+        break;
+    }
+    Log(2);
+}
+EOF
+run_case "loop_defer_break_current" "$TMPDIR/loop_defer_break_current.pgy" "2" "1"
+
 cat > "$TMPDIR/generic_call.pgy" <<'EOF'
 func Identity<T>(x: T) -> T {
     return x;

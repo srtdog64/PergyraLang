@@ -14,6 +14,22 @@ llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
     return NULL;
 }
 
+static LLVMTypeRef
+llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx, ASTNode *expr, const char *reason)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (!ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, expr,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM expression type inference requires a concrete type: %s",
+            reason != NULL ? reason : "unknown expression");
+    }
+    return ctx->type_i32;
+}
+
 const char *
 llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
 {
@@ -121,8 +137,10 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     const char *nominal_name;
     LLVMClassTypeEntry *nominal_cls;
 
-    if (ctx == NULL || expr == NULL)
-        return ctx->type_i32;
+    if (ctx == NULL)
+        return NULL;
+    if (expr == NULL)
+        return llvm_stmt_unknown_expr_type(ctx, expr, "missing expression");
 
     nominal_name = llvm_stmt_infer_nominal_name_from_init(ctx, expr);
     nominal_cls = nominal_name != NULL ? llvm_lookup_class(ctx, nominal_name) : NULL;
@@ -137,8 +155,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_NUMBER:
         return ctx->type_i32;
     case AST_ARRAY_LITERAL: {
-        LLVMTypeRef elem_type = ctx->type_i32;
-        const char *suffix = "Int";
+        LLVMTypeRef elem_type = NULL;
+        const char *suffix = NULL;
         if (expr->data.array_literal.count > 0
             && expr->data.array_literal.elements != NULL
             && expr->data.array_literal.elements[0] != NULL) {
@@ -146,14 +164,52 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 expr->data.array_literal.elements[0]);
             suffix = llvm_type_to_suffix(ctx, elem_type);
             if (suffix == NULL || strcmp(suffix, "Unknown") == 0)
-                suffix = "Int";
+                return llvm_stmt_unknown_expr_type(ctx, expr,
+                    "array literal element type is unresolved");
+        } else if (ctx->expected_type_name != NULL
+                   && strncmp(ctx->expected_type_name, "Array<", 6) == 0) {
+            suffix = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
         }
+        if (suffix == NULL || suffix[0] == '\0'
+            || strcmp(suffix, "Unknown") == 0)
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "empty array literal requires an explicit Array<T> context");
         return llvm_array_struct_type(ctx, suffix);
     }
     case AST_IDENTIFIER: {
         LLVMVarEntry *var = llvm_scope_lookup(ctx, expr->data.identifier.name);
-        return var != NULL ? var->type : ctx->type_i32;
+        if (var != NULL)
+            return var->type;
+        /* MIR local allocation can ask for loop induction variables before
+         * the value inventory has registered them. Keep this as poison i32
+         * until loop locals are typed directly from MIR facts. */
+        return ctx->type_i32;
     }
+    case AST_ASSIGNMENT:
+        if (expr->data.assignment.target != NULL
+            && expr->data.assignment.target->type == AST_IDENTIFIER) {
+            LLVMVarEntry *var = llvm_scope_lookup(ctx,
+                expr->data.assignment.target->data.identifier.name);
+            if (var != NULL)
+                return var->type;
+        }
+        if (expr->data.assignment.value != NULL)
+            return llvm_stmt_infer_expr_type(ctx, expr->data.assignment.value);
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "assignment is missing a value expression");
+    case AST_CHANNEL_RECV:
+        if (expr->data.channel_recv.channel != NULL
+            && expr->data.channel_recv.channel->type == AST_IDENTIFIER) {
+            const char *name =
+                expr->data.channel_recv.channel->data.identifier.name;
+            const char *inner = llvm_lookup_channel_inner(ctx, name);
+            if (inner != NULL)
+                return pergyra_type_to_llvm(ctx, inner);
+        }
+        /* Select lowering can allocate receive temporaries before channel
+         * inner metadata is registered; preserve poison i32 until MIR facts
+         * carry the receive element type directly. */
+        return ctx->type_i32;
     case AST_MEMBER_ACCESS: {
         const char *base_name = llvm_stmt_infer_nominal_name_from_init(
             ctx, expr->data.member.object);
@@ -164,7 +220,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (field_idx >= 0)
                 return base_cls->fields[field_idx].field_type;
         }
-        return ctx->type_i32;
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "member access did not resolve to a known field");
     }
     case AST_CALL:
         if (expr->data.call.callee != NULL
@@ -221,8 +278,11 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     char *elem_name = llvm_stmt_render_type_arg_scratch(
                         decl->data.func_decl.return_type->data.type.generic_args->params[0],
                         &ctx->scratch);
-                    LLVMTypeRef slice_ty = llvm_slice_struct_type(ctx,
-                        elem_name != NULL ? elem_name : "Int");
+                    if (elem_name == NULL) {
+                        return llvm_stmt_unknown_expr_type(ctx, expr,
+                            "Slice() receiver return type is missing its element type");
+                    }
+                    LLVMTypeRef slice_ty = llvm_slice_struct_type(ctx, elem_name);
                     return slice_ty;
                 }
             }
@@ -317,6 +377,9 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 return ctx->type_i1;
             }
         }
+        /* Domain helper calls can be emitted before their final lowered helper
+         * entry is visible in the LLVM function inventory. Keep this as poison
+         * i32 until call result facts are carried directly by MIR. */
         return ctx->type_i32;
     case AST_BINARY: {
         PgyTokenType op = expr->data.binary.op.type;
@@ -334,7 +397,32 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         }
         return ctx->type_i32;
     }
+    case AST_SPAWN_EXPR:
+        return ctx->type_task_handle;
+    case AST_AWAIT_EXPR:
+        /* Await result typing is currently driven by the annotated receiving
+         * binding; keep poison i32 until Future<T> facts are carried in MIR. */
+        return ctx->type_i32;
+    case AST_ASYNC_BLOCK:
+        return ctx->type_task_handle;
+    case AST_TASK_GROUP:
+        return ctx->type_void;
+    case AST_SELECT_STMT:
+    case AST_CHANNEL_SEND:
+    case AST_RETURN:
+    case AST_BREAK:
+    case AST_CONTINUE:
+    case AST_BLOCK:
+    case AST_IF_STMT:
+    case AST_WHILE_LOOP:
+    case AST_FOR_LOOP:
+    case AST_PARALLEL_BLOCK:
+    case AST_DEFER_STMT:
+        return ctx->type_void;
     default:
+        /* MIR local allocation still reaches a few statement-shaped AST nodes
+         * before typed MIR result facts are complete. Keep poison i32 here;
+         * concrete expression gaps above should use llvm_stmt_unknown_expr_type. */
         return ctx->type_i32;
     }
 }
@@ -399,8 +487,10 @@ llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
                     char *elem_name = llvm_stmt_render_type_arg_scratch(
                         ret->data.type.generic_args->params[0],
                         &ctx->scratch);
-                    LLVMTypeRef declared = pergyra_type_to_llvm(
-                        ctx, elem_name != NULL ? elem_name : "Int");
+                    if (elem_name == NULL || elem_name[0] == '\0')
+                        return llvm_stmt_unknown_expr_type(ctx, receiver,
+                            "array return element type is unresolved");
+                    LLVMTypeRef declared = pergyra_type_to_llvm(ctx, elem_name);
                     if (declared != NULL)
                         return declared;
                 }

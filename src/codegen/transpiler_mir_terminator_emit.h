@@ -76,6 +76,7 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
 {
     char *ret_expr = NULL;
 
+    transpiler_emit_defers_from(ctx, 0);
     if (inst->ast != NULL)
         ret_expr = emit_expression_with_ssa_map(inst->ast, ctx, block_ssa_map);
     if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
@@ -169,6 +170,7 @@ transpiler_emit_mir_fallthrough_terminator(const MIRRoutine *mir_routine,
     }
 
     if (!block->has_succ_false) {
+        transpiler_emit_defers_from(ctx, 0);
         if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
                                                 block_reason,
                                                 block_reason_cap)) {

@@ -251,6 +251,91 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             }
 
             lhs = transpiler_render_ssa_name(ctx, inst->result_name);
+            if (stmt->data.let_decl.initializer != NULL
+                && stmt->data.let_decl.initializer->type == AST_UNARY
+                && stmt->data.let_decl.initializer->data.unary.op.type == TOKEN_QUESTION) {
+                ASTNode *operand = stmt->data.let_decl.initializer->data.unary.operand;
+                const char *result_type = infer_expression_type_name(ctx, operand);
+                const char *result_c_type = NULL;
+                char *operand_expr = NULL;
+                int try_id;
+
+                ctx->active_type_hint = saved_type_hint;
+                free(rendered_type_hint);
+                if (lhs == NULL
+                    || result_type == NULL
+                    || strncmp(result_type, "Result<", 7) != 0) {
+                    free(lhs);
+                    free(local_type_name_owned);
+                    if (reason != NULL && reason_cap > 0) {
+                        snprintf(reason, reason_cap,
+                                 "MIR block %llu emission failed: '?' let binding '%s' requires Result<T,E> operand",
+                                 (unsigned long long) block->id,
+                                 stmt->data.let_decl.name != NULL
+                                     ? stmt->data.let_decl.name
+                                     : "<binding>");
+                    }
+                    ok = false;
+                    break;
+                }
+                if (ctx->current_return_type[0] == '\0'
+                    || strncmp(ctx->current_return_type, "Result<", 7) != 0) {
+                    free(lhs);
+                    free(local_type_name_owned);
+                    if (reason != NULL && reason_cap > 0) {
+                        snprintf(reason, reason_cap,
+                                 "MIR block %llu emission failed: '?' let binding '%s' requires a Result-returning function",
+                                 (unsigned long long) block->id,
+                                 stmt->data.let_decl.name != NULL
+                                     ? stmt->data.let_decl.name
+                                     : "<binding>");
+                    }
+                    ok = false;
+                    break;
+                }
+
+                result_c_type = pergyra_type_to_c(result_type);
+                operand_expr = emit_expression_with_ssa_map(operand, ctx, ssa_map_out);
+                if (operand_expr == NULL) {
+                    free(lhs);
+                    free(local_type_name_owned);
+                    if (reason != NULL && reason_cap > 0) {
+                        snprintf(reason, reason_cap,
+                                 "MIR block %llu emission failed: unable to render '?' operand for '%s'",
+                                 (unsigned long long) block->id,
+                                 stmt->data.let_decl.name != NULL
+                                     ? stmt->data.let_decl.name
+                                     : "<binding>");
+                    }
+                    ok = false;
+                    break;
+                }
+                try_id = ctx->tmp_counter++;
+                write_indent_to(buf, ctx->indent);
+                codebuf_write(buf, "%s __try_%d = %s;\n",
+                              result_c_type, try_id, operand_expr);
+                write_indent_to(buf, ctx->indent);
+                codebuf_write(buf,
+                              "if (__try_%d.tag != PgyResultOk) return __try_%d;\n",
+                              try_id, try_id);
+                write_indent_to(buf, ctx->indent);
+                codebuf_write(buf, "%s = __try_%d.ok;\n", lhs, try_id);
+                free(operand_expr);
+                free(lhs);
+
+                if (!transpiler_ssa_name_map_set(ssa_map_out,
+                                                 stmt->data.let_decl.name,
+                                                 inst->result_name)) {
+                    free(local_type_name_owned);
+                    ok = false;
+                    break;
+                }
+                if (local_type_name_owned != NULL)
+                    register_typed_var(ctx, stmt->data.let_decl.name,
+                                       local_type_name_owned);
+                free(local_type_name_owned);
+                continue;
+            }
             {
                 const char *saved_expected_type = ctx->expected_type;
                 ctx->expected_type = local_type_name_owned;
@@ -488,7 +573,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
 
         if (inst->kind != MIR_INST_STMT)
             continue;
-        if (stmt == NULL || stmt->type == AST_BLOCK || stmt->type == AST_RETURN) {
+        if (stmt != NULL && stmt->type == AST_DEFER_STMT)
+            transpiler_register_defer(stmt->data.defer_stmt.body, ctx);
+        if (stmt == NULL || stmt->type == AST_BLOCK || stmt->type == AST_RETURN
+            || stmt->type == AST_DEFER_STMT) {
             continue;
         }
         if (stmt->type == AST_LET_DECL
@@ -591,9 +679,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         }
         emit_statement(stmt, ctx);
     }
-
     ctx->active_ssa_map = saved_active_ssa_map;
     return ok;
 }
-
 #include "transpiler_mir_emit_predicates.h"

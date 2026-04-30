@@ -389,32 +389,99 @@ transpiler_mir_is_result_destructor(ASTNode *pat,
     return false;
 }
 
+static const char *
+transpiler_mir_match_payload_field(const char *kind)
+{
+    if (kind == NULL)
+        return NULL;
+    if (strcmp(kind, "Some") == 0)
+        return "value";
+    if (strcmp(kind, "Ok") == 0)
+        return "ok";
+    if (strcmp(kind, "Err") == 0)
+        return "err";
+    return NULL;
+}
+
+static bool
+transpiler_mir_match_payload_type_name(TranspilerCtx *ctx,
+                                       ASTNode *subject_node,
+                                       const char *kind,
+                                       char *buf,
+                                       size_t buf_size)
+{
+    const char *subject_type;
+
+    if (buf == NULL || buf_size == 0)
+        return false;
+    buf[0] = '\0';
+    if (ctx == NULL || subject_node == NULL || kind == NULL)
+        return false;
+
+    subject_type = infer_expression_type_name(ctx, subject_node);
+    if (subject_type == NULL || subject_type[0] == '\0')
+        return false;
+
+    if (strcmp(kind, "Some") == 0) {
+        if (strncmp(subject_type, "Option<", 7) != 0)
+            return false;
+        snprintf(buf, buf_size, "%s", slot_inner_type_name(subject_type));
+        return buf[0] != '\0';
+    }
+    if (strcmp(kind, "Ok") == 0) {
+        if (strncmp(subject_type, "Result<", 7) != 0)
+            return false;
+        copy_constructed_arg_name_at(subject_type, 0, buf, buf_size);
+        return buf[0] != '\0' && strcmp(buf, "Unknown") != 0;
+    }
+    if (strcmp(kind, "Err") == 0) {
+        if (strncmp(subject_type, "Result<", 7) != 0)
+            return false;
+        copy_constructed_arg_name_at(subject_type, 1, buf, buf_size);
+        return buf[0] != '\0' && strcmp(buf, "Unknown") != 0;
+    }
+
+    return false;
+}
+
 static void
 transpiler_mir_emit_match_payload_binding(CodeBuf *buf,
                                           TranspilerCtx *ctx,
+                                          ASTNode *subject_node,
                                           const char *subject,
                                           const char *kind,
                                           const char *binding)
 {
     const char *field;
+    const char *payload_c_type;
+    char payload_type[128];
 
     if (buf == NULL || ctx == NULL || subject == NULL
         || kind == NULL || binding == NULL) {
         return;
     }
 
-    if (strcmp(kind, "Some") == 0)
-        field = "value";
-    else if (strcmp(kind, "Ok") == 0)
-        field = "ok";
-    else if (strcmp(kind, "Err") == 0)
-        field = "err";
-    else
+    field = transpiler_mir_match_payload_field(kind);
+    if (field == NULL)
         return;
+    if (!transpiler_mir_match_payload_type_name(ctx, subject_node, kind,
+                                                payload_type,
+                                                sizeof(payload_type))) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C MIR match lowering cannot derive payload type for %s(%s); explicit Option<T>/Result<T,E> subject type is required",
+            kind,
+            binding);
+        return;
+    }
+
+    payload_c_type = pergyra_type_to_c(payload_type);
 
     write_indent_to(buf, ctx->indent);
-    codebuf_write(buf, "__typeof__((%s).%s) %s = (%s).%s;\n",
-                  subject, field, binding, subject, field);
+    codebuf_write(buf, "%s %s = (%s).%s;\n",
+                  payload_c_type, binding, subject, field);
 }
 
 static char *
@@ -465,6 +532,7 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
             const char *tag = strcmp(kind, "Some") == 0
                 ? "PgyOptionSome" : "PgyOptionNone";
             transpiler_mir_emit_match_payload_binding(ctx->out, ctx,
+                                                      subject_node,
                                                       subject, kind, binding);
             cond = strdup_fmt("(%s).tag == %s", subject, tag);
         } else if (transpiler_mir_is_result_destructor(
@@ -472,6 +540,7 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
             const char *tag = strcmp(kind, "Ok") == 0
                 ? "PgyResultOk" : "PgyResultErr";
             transpiler_mir_emit_match_payload_binding(ctx->out, ctx,
+                                                      subject_node,
                                                       subject, kind, binding);
             cond = strdup_fmt("(%s).tag == %s", subject, tag);
         } else {

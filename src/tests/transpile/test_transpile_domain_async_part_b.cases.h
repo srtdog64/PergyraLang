@@ -139,6 +139,7 @@ test_parallel_execution_emit(void)
         send_node.data.channel_send.value = &val_node;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
+        register_typed_var(ctx, "myChan", "Channel<Int>");
         char *result = emit_expression(&send_node, ctx);
 
         EXPECT(result != NULL);
@@ -160,6 +161,7 @@ test_parallel_execution_emit(void)
         recv_node.data.channel_recv.channel = &ch_node;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
+        register_typed_var(ctx, "myChan", "Channel<Int>");
         char *result = emit_expression(&recv_node, ctx);
 
         EXPECT(result != NULL);

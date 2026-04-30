@@ -25,13 +25,10 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_IDENTIFIER: {
         const char *id_name = node->data.identifier.name;
-        /* Handle None used without parentheses as Option<Int> fallback */
+        /* None is target-typed; without contextual Option<T> semantic should
+         * already reject it, and the backend keeps a hard guard. */
         if (strcmp(id_name, "None") == 0) {
-            const char *inner = "Int";
-            if (ctx->expected_type != NULL && strncmp(ctx->expected_type, "Option<", 7) == 0) {
-                inner = slot_inner_type_name(ctx->expected_type);
-            }
-            return strdup_fmt("None_%s()", inner);
+            return transpiler_emit_none_with_context(ctx, node);
         }
         /* Inside parallel wrapper: captured outer variables are accessed
          * through the context struct pointer.  (*_pctx->x) yields the
@@ -283,7 +280,15 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
                 const char *et =
                     infer_expression_type_name(ctx, node->data.tuple_literal.elements[i]);
-                if (et == NULL || et[0] == '\0') et = "Int";
+                if (et == NULL || et[0] == '\0'
+                    || strcmp(et, "Unknown") == 0) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C backend: tuple literal requires concrete element type metadata");
+                    return pergyra_strdup("0");
+                }
                 if (i > 0) {
                     off += (size_t)snprintf(tuple_name_buf + off,
                         sizeof(tuple_name_buf) - off, ", ");

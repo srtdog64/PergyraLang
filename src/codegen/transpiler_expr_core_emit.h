@@ -133,7 +133,7 @@ lookup_wrapped_inner_type(TranspilerCtx *ctx, ASTNode *arg, const char *wrapper)
             return slot_inner_type_name(type_name);
         }
     }
-    return "Int";
+    return NULL;
 }
 
 static const char *
@@ -153,7 +153,7 @@ expected_wrapped_inner_type(TranspilerCtx *ctx, const char *wrapper)
 char *
 emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
-    const char *inner = "Int";
+    const char *inner = NULL;
     ASTNode *arg = call->data.call.arg_count > 0 ? call->data.call.arguments[0] : NULL;
 
     switch (kind) {
@@ -173,6 +173,14 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             if (expected_inner == NULL && arg_type != NULL
                 && strcmp(arg_type, "Unknown") != 0)
                 inner = arg_type;
+            if (inner == NULL || inner[0] == '\0') {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: RcNew requires concrete Rc<T> metadata or a typed initializer");
+                return pergyra_strdup("0");
+            }
         }
         break;
     case BUILTIN_RC_CLONE:
@@ -180,10 +188,26 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     case BUILTIN_RC_GET:
     case BUILTIN_RC_DOWNGRADE:
         inner = lookup_wrapped_inner_type(ctx, arg, "Rc");
+        if (inner == NULL || inner[0] == '\0') {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: Rc operation requires concrete Rc<T> metadata");
+            return pergyra_strdup("0");
+        }
         break;
     case BUILTIN_WEAK_UPGRADE:
     case BUILTIN_WEAK_DROP:
         inner = lookup_wrapped_inner_type(ctx, arg, "Weak");
+        if (inner == NULL || inner[0] == '\0') {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: Weak operation requires concrete Weak<T> metadata");
+            return pergyra_strdup("0");
+        }
         break;
     default:
         break;
@@ -245,7 +269,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 char *
 emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
-    const char *inner = "Int";
+    const char *inner = NULL;
     ASTNode *arg = call->data.call.arg_count > 0 ? call->data.call.arguments[0] : NULL;
 
     switch (kind) {
@@ -266,18 +290,26 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 inner = callee_name;
             else {
                 const char *arg_type = infer_expression_type_name(ctx, arg);
-                if (arg_type != NULL)
+                if (arg_type != NULL && strcmp(arg_type, "Unknown") != 0)
                     inner = arg_type;
             }
         }
         else if (arg->type == AST_IDENTIFIER) {
             const char *arg_type = lookup_typed_var(ctx, arg->data.identifier.name);
-            if (arg_type != NULL)
+            if (arg_type != NULL && strcmp(arg_type, "Unknown") != 0)
                 inner = arg_type;
         } else {
             const char *arg_type = infer_expression_type_name(ctx, arg);
-            if (arg_type != NULL)
+            if (arg_type != NULL && strcmp(arg_type, "Unknown") != 0)
                 inner = arg_type;
+        }
+        if (inner == NULL || inner[0] == '\0') {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: Box requires concrete Box<T> metadata or a typed initializer");
+            return pergyra_strdup("0");
         }
         break;
     case BUILTIN_BOX_GET:
@@ -285,6 +317,14 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     case BUILTIN_BOX_DROP:
     case BUILTIN_BOX_IS_VALID:
         inner = lookup_wrapped_inner_type(ctx, arg, "Box");
+        if (inner == NULL || inner[0] == '\0') {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: Box operation requires concrete Box<T> metadata");
+            return pergyra_strdup("0");
+        }
         break;
     case BUILTIN_BOX_ARRAY:
         /* BoxArray(arr) ??Box<Array<T>> wrapper around an existing array */
@@ -296,8 +336,14 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             const char *arr_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
             if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
                 inner = arr_type;
-            else if (arr_type != NULL)
-                inner = arr_type;
+            if (inner == NULL || inner[0] == '\0') {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: BoxArray requires concrete Array<T> metadata");
+                return pergyra_strdup("0");
+            }
         }
         break;
     default:

@@ -7,11 +7,20 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
     const char *alias = node->data.with_stmt.alias;
     bool is_secure    = node->data.with_stmt.is_secure;
 
-    const char *inner = "Int";
+    const char *inner = NULL;
     if (node->data.with_stmt.slot_type != NULL
         && node->data.with_stmt.slot_type->type == AST_TYPE
         && node->data.with_stmt.slot_type->data.type.name != NULL)
         inner = node->data.with_stmt.slot_type->data.type.name;
+    if (inner == NULL || inner[0] == '\0') {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM with-slot alias '%s' requires concrete Slot<T> metadata",
+            alias != NULL ? alias : "<alias>");
+        return;
+    }
 
     LLVMTypeRef slot_ty = is_secure
         ? llvm_secure_slot_struct_type(ctx, inner)

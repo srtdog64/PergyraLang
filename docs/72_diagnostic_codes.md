@@ -281,6 +281,20 @@ Secure slot pin fails token/capability validation.
 - **cause_ir**: `semantic:pin:token_invalid`
 - **fix_source**: `provide-valid-pin-token`
 
+#### `PGY_SEM_DEFER_DYNAMIC_CONTROL`
+
+`defer` appears inside runtime-dependent `if`, `match`, `while`, or repeated
+`for` control. Static control forms remain accepted, but dynamic control needs
+a runtime defer stack before the compiler can guarantee cleanup executes only
+for paths that actually entered the deferred region.
+
+- **Reason**: lexical C/LLVM lowering can otherwise produce a false parity state
+  where both backends run the same wrong cleanup.
+- **Fix**: move the `defer` outside the dynamic control, make the control
+  compile-time static, or wait for the runtime defer stack contract.
+- **cause_ir**: `semantic:defer:dynamic_control`
+- **fix_source**: `move-defer-outside-dynamic-control`
+
 #### `PGY_SEM_RAW_ESCAPE_UNSTABLE`
 
 Attempt to use a system-tier raw escape surface such as `SlotRawPointer(...)`.
@@ -513,10 +527,17 @@ A type, alias, or domain-decl forms a resolution cycle — the graph has an edge
 
 #### `PGY_SEM_MATCH_PATTERN_INVALID`
 
-A `match` pattern is malformed: `None` pattern carries a payload binding, enum variant payload arity mismatches the variant's declared fields, or the matched variant has no usable constructor type.
+A `match` pattern is malformed or the subject is outside the beta-stable match
+surface. Stable subjects are `Int`, `Long`, `Bool`, enum, `Option<T>`, and
+`Result<T, E>`.
 
-- **Reason**: pattern bindings must line up exactly with the value's shape; a mismatch would bind the wrong slot or leave bindings unresolved.
-- **Fix**: remove extra payload bindings on `None`, align enum payload arity with the declaration, or import/declare the enum before matching on it.
+- **Reason**: pattern bindings must line up exactly with the value's shape, and
+  backend lowering must not rely on local equality assumptions for unsupported
+  subject types.
+- **Fix**: remove extra payload bindings on `None`, align enum payload arity
+  with the declaration, import/declare the enum before matching on it, or
+  rewrite unsupported subject matches as explicit conditionals until the subject
+  type has a stable equality contract.
 
 #### `PGY_SEM_SELECT_CASE_INVALID`
 

@@ -504,36 +504,55 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             return result;
         }
         if (strcmp(fn, "None") == 0 && call->data.call.arg_count == 0) {
-            /* Use expected target type from enclosing let declaration if available */
-            const char *inner = "Int";
-            if (ctx->expected_type != NULL && strncmp(ctx->expected_type, "Option<", 7) == 0) {
-                inner = slot_inner_type_name(ctx->expected_type);
-            }
-            return strdup_fmt("None_%s()", inner);
+            return transpiler_emit_none_with_context(ctx, call);
         }
         if (strcmp(fn, "IsSome") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
             const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *inner = strncmp(opt_type, "Option<", 7) == 0
-                ? slot_inner_type_name(opt_type) : "Int";
+            if (opt_type == NULL || strncmp(opt_type, "Option<", 7) != 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: IsSome requires Option<T>; inferred '%s'",
+                    opt_type != NULL ? opt_type : "<unknown>");
+                return pergyra_strdup("false");
+            }
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            const char *inner = slot_inner_type_name(opt_type);
             char *result = strdup_fmt("IsSome_%s(%s)", inner, arg);
             free(arg);
             return result;
         }
         if (strcmp(fn, "IsNone") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
             const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *inner = strncmp(opt_type, "Option<", 7) == 0
-                ? slot_inner_type_name(opt_type) : "Int";
+            if (opt_type == NULL || strncmp(opt_type, "Option<", 7) != 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: IsNone requires Option<T>; inferred '%s'",
+                    opt_type != NULL ? opt_type : "<unknown>");
+                return pergyra_strdup("false");
+            }
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            const char *inner = slot_inner_type_name(opt_type);
             char *result = strdup_fmt("IsNone_%s(%s)", inner, arg);
             free(arg);
             return result;
         }
         if (strcmp(fn, "UnwrapOption") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
             const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            const char *inner = strncmp(opt_type, "Option<", 7) == 0
-                ? slot_inner_type_name(opt_type) : "Int";
+            if (opt_type == NULL || strncmp(opt_type, "Option<", 7) != 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: UnwrapOption requires Option<T>; inferred '%s'",
+                    opt_type != NULL ? opt_type : "<unknown>");
+                return pergyra_strdup("0");
+            }
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            const char *inner = slot_inner_type_name(opt_type);
             char *result = strdup_fmt("UnwrapOption_%s(%s)", inner, arg);
             free(arg);
             return result;

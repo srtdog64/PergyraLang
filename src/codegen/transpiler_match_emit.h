@@ -71,6 +71,7 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
                            const char **variant_name_out,
                            const char **enum_name_out,
                            const char ***bindings_out,
+                           ASTNode ***binding_types_out,
                            size_t *binding_count_out)
 {
     const char *name = NULL;
@@ -117,6 +118,7 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
                 *variant_name_out = name;
                 *enum_name_out = stmt->data.enum_decl.name;
                 static const char *bindings_buf[8];
+                static ASTNode *binding_types_buf[8];
                 *binding_count_out = 0;
                 for (size_t k = 0; k < argc && k < 8; k++) {
                     ASTNode *arg = pat->data.call.arguments[k];
@@ -124,9 +126,19 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
                         bindings_buf[k] = arg->data.identifier.name;
                     else
                         bindings_buf[k] = NULL;
+                    if (stmt->data.enum_decl.variant_params != NULL
+                        && stmt->data.enum_decl.variant_params[j] != NULL
+                        && stmt->data.enum_decl.variant_param_counts != NULL
+                        && k < stmt->data.enum_decl.variant_param_counts[j]) {
+                        binding_types_buf[k] = stmt->data.enum_decl.variant_params[j][k];
+                    } else {
+                        binding_types_buf[k] = NULL;
+                    }
                     (*binding_count_out)++;
                 }
                 *bindings_out = bindings_buf;
+                if (binding_types_out != NULL)
+                    *binding_types_out = binding_types_buf;
                 return true;
             }
         }
@@ -140,40 +152,25 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
     char *subj = emit_expression(node->data.match_stmt.subject, ctx);
     int tmp_id = ctx->tmp_counter++;
     const char *subject_type = infer_expression_type_name(ctx, node->data.match_stmt.subject);
+    const char *subject_c_type;
     bool subject_is_option = subject_type != NULL && strncmp(subject_type, "Option<", 7) == 0;
 
-    bool is_result_match = false;
-    bool is_option_match = false;
-    bool is_enum_match = false;
-    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-        ASTNode *pat = node->data.match_stmt.cases[i]->data.match_case.pattern;
-        const char *k, *b;
-        if (subject_is_option && is_option_destructor(pat, &k, &b)) {
-            is_option_match = true;
-            break;
-        }
-        if (is_result_destructor(pat, &k, &b)) {
-            is_result_match = true;
-            break;
-        }
-        const char *vn, *en; const char **bs; size_t bc;
-        if (is_enum_variant_destructor(pat, ctx, &vn, &en, &bs, &bc)) {
-            is_enum_match = true;
-            break;
-        }
+    if (subject_type == NULL || subject_type[0] == '\0') {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C match lowering requires a concrete subject type; implicit Int match fallback is disabled");
+        subject_type = "Unknown";
     }
+    subject_c_type = pergyra_type_to_c(subject_type);
 
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
 
-    if (is_result_match || is_option_match || is_enum_match) {
-        write_indent(ctx);
-        codebuf_write(ctx->out, "__typeof__(%s) __match_%d = %s;\n", subj, tmp_id, subj);
-    } else {
-        write_indent(ctx);
-        codebuf_write(ctx->out, "int32_t __match_%d = %s;\n", tmp_id, subj);
-    }
+    write_indent(ctx);
+    codebuf_write(ctx->out, "%s __match_%d = %s;\n", subject_c_type, tmp_id, subj);
     free(subj);
 
     for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
@@ -218,9 +215,11 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         } else {
             const char *vname = NULL, *ename = NULL;
             const char **bindings = NULL;
+            ASTNode **binding_types = NULL;
             size_t bind_count = 0;
             if (is_enum_variant_destructor(mc->data.match_case.pattern, ctx,
-                                            &vname, &ename, &bindings, &bind_count)) {
+                                            &vname, &ename, &bindings,
+                                            &binding_types, &bind_count)) {
                 if (i == 0)
                     codebuf_write(ctx->out, "if (__match_%d.tag == %s_TAG_%s",
                         tmp_id, ename, vname);
@@ -251,15 +250,50 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
 
         if (binding != NULL && kind != NULL) {
             write_indent(ctx);
-            if (strcmp(kind, "Some") == 0)
-                codebuf_write(ctx->out, "__typeof__(__match_%d.value) %s = __match_%d.value;\n",
-                    tmp_id, binding, tmp_id);
-            else if (strcmp(kind, "Ok") == 0)
-                codebuf_write(ctx->out, "__typeof__(__match_%d.ok) %s = __match_%d.ok;\n",
-                    tmp_id, binding, tmp_id);
-            else if (strcmp(kind, "Err") == 0)
-                codebuf_write(ctx->out, "__typeof__(__match_%d.err) %s = __match_%d.err;\n",
-                    tmp_id, binding, tmp_id);
+            if (strcmp(kind, "Some") == 0) {
+                const char *inner = subject_is_option
+                    ? slot_inner_type_name(subject_type) : NULL;
+                if (inner == NULL) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C match lowering cannot bind Some(%s) without Option<T> subject type",
+                        binding);
+                    inner = "Unknown";
+                }
+                codebuf_write(ctx->out, "%s %s = __match_%d.value;\n",
+                    pergyra_type_to_c(inner), binding, tmp_id);
+            } else if (strcmp(kind, "Ok") == 0) {
+                const char *ok_type = strncmp(subject_type, "Result<", 7) == 0
+                    ? constructed_arg_name_at(subject_type, 0) : NULL;
+                if (ok_type == NULL || strcmp(ok_type, "Unknown") == 0) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C match lowering cannot bind Ok(%s) without Result<T,E> subject type",
+                        binding);
+                    ok_type = "Unknown";
+                }
+                codebuf_write(ctx->out, "%s %s = __match_%d.ok;\n",
+                    pergyra_type_to_c(ok_type), binding, tmp_id);
+            } else if (strcmp(kind, "Err") == 0) {
+                const char *err_type = "PgyError";
+                if (strncmp(subject_type, "Result<", 7) != 0) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C match lowering cannot bind Err(%s) without Result<T,E> subject type",
+                        binding);
+                    err_type = "Unknown";
+                } else if (strchr(slot_inner_type_name(subject_type), ',') != NULL) {
+                    err_type = constructed_arg_name_at(subject_type, 1);
+                }
+                codebuf_write(ctx->out, "%s %s = __match_%d.err;\n",
+                    pergyra_type_to_c(err_type), binding, tmp_id);
+            }
         }
         if (kind != NULL
             && strcmp(kind, "Some") != 0
@@ -268,14 +302,17 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
             && strcmp(kind, "Err") != 0) {
             const char *vn2 = NULL, *en2 = NULL;
             const char **bs2 = NULL;
+            ASTNode **bt2 = NULL;
             size_t bc2 = 0;
             if (is_enum_variant_destructor(mc->data.match_case.pattern, ctx,
-                                            &vn2, &en2, &bs2, &bc2)) {
+                                            &vn2, &en2, &bs2, &bt2, &bc2)) {
                 for (size_t b = 0; b < bc2; b++) {
                     if (bs2[b] != NULL) {
                         write_indent(ctx);
                         codebuf_write(ctx->out,
-                            "int32_t %s = __match_%d.%s._%zu;\n",
+                            "%s %s = __match_%d.%s._%zu;\n",
+                            bt2 != NULL && bt2[b] != NULL
+                                ? pergyra_ast_type_to_c(bt2[b]) : "int32_t",
                             bs2[b], tmp_id, vn2, b);
                     }
                 }

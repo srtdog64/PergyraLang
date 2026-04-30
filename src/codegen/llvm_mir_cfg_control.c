@@ -312,8 +312,15 @@ llvm_mir_emit_channel_ready_condition(ASTNode *channel, LLVMGenCtx *ctx)
         return NULL;
 
     inner = llvm_lookup_channel_inner(ctx, channel_name);
-    if (inner == NULL)
-        inner = "Int";
+    if (inner == NULL || inner[0] == '\0') {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM select channel '%s' requires concrete Channel<T> metadata",
+            channel_name);
+        return NULL;
+    }
 
     snprintf(fn_name, sizeof(fn_name), "pgy_channel_ready_%s", inner);
     ready_fn = llvm_lookup_function(ctx, fn_name);
@@ -389,8 +396,15 @@ llvm_mir_declare_assignment_recv_target(ASTNode *node, LLVMGenCtx *ctx)
         return true;
 
     inner = llvm_lookup_channel_inner(ctx, channel_name);
-    if (inner == NULL)
-        inner = "Int";
+    if (inner == NULL || inner[0] == '\0') {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM channel receive target '%s' requires concrete Channel<T> metadata",
+            target_name);
+        return false;
+    }
 
     value_ty = pergyra_type_to_llvm(ctx, inner);
     alloca_val = llvm_create_entry_alloca(ctx, value_ty, target_name);

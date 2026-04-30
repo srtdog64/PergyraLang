@@ -632,6 +632,170 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("CFG dynamic branch defer is explicitly rejected");
+    {
+        const char *source =
+            "func Main(flag: Bool) -> Void {\n"
+            "    if flag {\n"
+            "        defer {\n"
+            "            Log(1);\n"
+            "        };\n"
+            "    }\n"
+            "    Log(2);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "defer inside dynamic if control is not beta-stable"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG static match defer remains accepted");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    match 1 {\n"
+            "        case 1:\n"
+            "            defer {\n"
+            "                Log(1);\n"
+            "            };\n"
+            "        default:\n"
+            "            Log(0);\n"
+            "    }\n"
+            "    Log(2);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG dynamic match defer is explicitly rejected");
+    {
+        const char *source =
+            "func Main(value: Int) -> Void {\n"
+            "    match value {\n"
+            "        case 1:\n"
+            "            defer {\n"
+            "                Log(1);\n"
+            "            };\n"
+            "        default:\n"
+            "            Log(0);\n"
+            "    }\n"
+            "    Log(2);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "defer inside dynamic match control is not beta-stable"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Match subject outside beta-stable scalar or algebraic surface is rejected");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let value: String = \"a\";\n"
+            "    match value {\n"
+            "        case \"a\":\n"
+            "            Log(1);\n"
+            "        default:\n"
+            "            Log(0);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Match subject type 'String' is not beta-stable"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("None without contextual Option annotation is rejected");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let maybe = None();\n"
+            "    Log(0);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Cannot infer Option<T> from None without an explicit annotation"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG dynamic loop defer is explicitly rejected");
+    {
+        const char *source =
+            "func Main(flag: Bool) -> Void {\n"
+            "    while flag {\n"
+            "        defer {\n"
+            "            Log(1);\n"
+            "        };\n"
+            "        break;\n"
+            "    }\n"
+            "    Log(2);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "defer inside dynamic while control is not beta-stable"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("CFG slot release in terminating branch does not poison fallthrough path");
     {
         const char *source =

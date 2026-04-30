@@ -278,13 +278,17 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
         }
         if (stmt->type == AST_WITH_STMT && stmt->data.with_stmt.alias != NULL) {
             char *inner = render_type_name(stmt->data.with_stmt.slot_type);
+            if (inner == NULL || inner[0] == '\0') {
+                free(inner);
+                continue;
+            }
             char *slot_type = strdup_fmt("%s<%s>",
                 stmt->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
-                inner != NULL ? inner : "Int");
+                inner);
             register_typed_var(ctx, stmt->data.with_stmt.alias,
-                slot_type != NULL ? slot_type : "Slot<Int>");
+                slot_type != NULL ? slot_type : "Slot<Unknown>");
             register_slot_var(ctx, stmt->data.with_stmt.alias,
-                inner != NULL ? inner : "Int",
+                inner,
                 stmt->data.with_stmt.is_secure, false);
             free(slot_type);
             free(inner);

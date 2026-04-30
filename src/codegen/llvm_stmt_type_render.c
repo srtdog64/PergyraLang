@@ -12,7 +12,7 @@ llvm_stmt_render_type_arg(GenericParam *param)
 
     pgy_arena_init(&arena, 0);
     result = llvm_stmt_render_type_arg_scratch(param, &arena);
-    result = result != NULL ? pergyra_strdup(result) : pergyra_strdup("Int");
+    result = result != NULL ? pergyra_strdup(result) : NULL;
     pgy_arena_destroy(&arena);
     return result;
 }
@@ -23,7 +23,7 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
     ASTNode *type = NULL;
 
     if (param == NULL)
-        return pgy_arena_strdup(arena, "Int");
+        return NULL;
 
     type = param->constraint;
     if (type != NULL && type->type == AST_TYPE && type->data.type.name != NULL) {
@@ -34,12 +34,14 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
         for (size_t i = 0; i < type->data.type.generic_args->count; i++) {
             char *arg = llvm_stmt_render_type_arg_scratch(
                 type->data.type.generic_args->params[i], arena);
+            if (arg == NULL || arg[0] == '\0')
+                return NULL;
             size_t cur_len = strlen(result);
             size_t arg_len = strlen(arg);
             size_t need = cur_len + arg_len + 4;
             char *grown = pgy_arena_alloc(arena, need);
             if (grown == NULL)
-                return pgy_arena_strdup(arena, "Int");
+                return NULL;
             memcpy(grown, result, cur_len + 1);
             result = grown;
             size_t offset = cur_len;
@@ -57,7 +59,7 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
             size_t cur_len = strlen(result);
             char *grown = pgy_arena_alloc(arena, cur_len + 2);
             if (grown == NULL)
-                return pgy_arena_strdup(arena, "Int");
+                return NULL;
             memcpy(grown, result, cur_len + 1);
             result = grown;
             result[cur_len] = '>';
@@ -68,7 +70,7 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
 
     if (param->name != NULL)
         return pgy_arena_strdup(arena, param->name);
-    return pgy_arena_strdup(arena, "Int");
+    return NULL;
 }
 
 #endif /* PGY_LLVM_ENABLED */

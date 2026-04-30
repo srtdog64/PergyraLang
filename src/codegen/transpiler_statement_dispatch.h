@@ -44,35 +44,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             emit_block(node->data.unsafe_block.body, ctx);
         break;
     case AST_DEFER_STMT: {
-        /* defer { body } → GCC __attribute__((cleanup)) pattern.
-         * 1. Emit a static cleanup function into the helpers buffer.
-         * 2. Declare a sentinel variable with cleanup attribute.
-         * When the sentinel goes out of scope, GCC calls the cleanup. */
-        int defer_id = ctx->defer_counter++;
-
-        /* Generate cleanup function in helpers buffer */
-        codebuf_write(ctx->helpers,
-            "\nstatic void _pgy_defer_%d(int *_pgy_unused) {\n"
-            "    (void)_pgy_unused;\n", defer_id);
-
-        /* Save current output, redirect to helpers for the body */
-        CodeBuf *saved_out = ctx->out;
-        int saved_indent = ctx->indent;
-        ctx->out = ctx->helpers;
-        ctx->indent = 1;
-        if (node->data.defer_stmt.body != NULL)
-            emit_block(node->data.defer_stmt.body, ctx);
-        ctx->out = saved_out;
-        ctx->indent = saved_indent;
-
-        codebuf_write(ctx->helpers, "}\n");
-
-        /* Emit sentinel with cleanup attribute */
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "int _pgy_defer_sentinel_%d "
-            "__attribute__((cleanup(_pgy_defer_%d))) = 0;\n",
-            defer_id, defer_id);
+        transpiler_register_defer(node->data.defer_stmt.body, ctx);
         break;
     }
     case AST_BIND_STMT: {
@@ -190,17 +162,27 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         emit_return_stmt(node, ctx);
         break;
     case AST_BREAK:
-        write_indent(ctx);
         if (node->data.break_stmt.label != NULL) {
             int target = transpiler_find_loop_label_depth(
                 ctx, node->data.break_stmt.label);
             if (target >= 0) {
                 ctx->loop_break_label_used[target] = true;
+                transpiler_emit_defers_from(ctx,
+                    ctx->loop_defer_base_depth[target]);
+                write_indent(ctx);
                 codebuf_write(ctx->out, "goto %s;\n",
                     ctx->loop_break_labels[target]);
-            } else
+            } else {
+                write_indent(ctx);
                 codebuf_write(ctx->out, "break;\n");
+            }
         } else {
+            if (ctx->loop_depth > 0) {
+                int target = ctx->loop_depth - 1;
+                transpiler_emit_defers_from(ctx,
+                    ctx->loop_defer_base_depth[target]);
+            }
+            write_indent(ctx);
             codebuf_write(ctx->out, "break;\n");
         }
         break;
@@ -208,17 +190,27 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         emit_enum_decl_stmt(node, ctx);
         break;
     case AST_CONTINUE:
-        write_indent(ctx);
         if (node->data.continue_stmt.label != NULL) {
             int target = transpiler_find_loop_label_depth(
                 ctx, node->data.continue_stmt.label);
             if (target >= 0) {
                 ctx->loop_continue_label_used[target] = true;
+                transpiler_emit_defers_from(ctx,
+                    ctx->loop_defer_base_depth[target]);
+                write_indent(ctx);
                 codebuf_write(ctx->out, "goto %s;\n",
                     ctx->loop_continue_labels[target]);
-            } else
+            } else {
+                write_indent(ctx);
                 codebuf_write(ctx->out, "continue;\n");
+            }
         } else {
+            if (ctx->loop_depth > 0) {
+                int target = ctx->loop_depth - 1;
+                transpiler_emit_defers_from(ctx,
+                    ctx->loop_defer_base_depth[target]);
+            }
+            write_indent(ctx);
             codebuf_write(ctx->out, "continue;\n");
         }
         break;

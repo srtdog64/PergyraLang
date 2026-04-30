@@ -173,6 +173,10 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
     ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
     bool known_iterations = false;
     size_t known_cap = for_loop_known_iteration_cap(node, &known_iterations);
+    if (flow_ast_contains_defer_stmt(node->data.for_loop.body)
+        && (!known_iterations || known_cap > 1)) {
+        flow_reject_dynamic_defer_control(ctx, node, "for");
+    }
     size_t max_iterations = (known_iterations && known_cap <= 1)
         ? 1
         : (base.count + 1);
@@ -260,6 +264,10 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     ResourceConsumeSnapshot merged = copy_resource_snapshot(&base);
     ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
+    if (flow_ast_contains_defer_stmt(node->data.while_loop.body)
+        && !flow_condition_is_static_bool(node->data.while_loop.condition)) {
+        flow_reject_dynamic_defer_control(ctx, node, "while");
+    }
     size_t max_iterations = base.count + 1;
     if (max_iterations == 0)
         max_iterations = 1;

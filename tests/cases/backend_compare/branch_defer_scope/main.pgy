@@ -1,0 +1,8 @@
+func Main() -> Void {
+    if true {
+        defer {
+            Log(1);
+        };
+    }
+    Log(2);
+}

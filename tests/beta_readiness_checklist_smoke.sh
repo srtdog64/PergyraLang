@@ -129,6 +129,13 @@ SecureSlot token ABI is now build-mode stable
 Pergyra does not expose memory as address ownership
 modular resource boundary
 replaceable backend handle
+Canonical semantic split
+static rejection covers unsafe transition across a
+known boundary
+runtime validation covers dynamic existence/state of a
+resource handle
+Pergyra does not statically predict every business object's
+lifetime
 old release-mode SecureSlot macro has been removed
 Non-pin handle expiration is a layered contract
 Zone-Bound Handle typing

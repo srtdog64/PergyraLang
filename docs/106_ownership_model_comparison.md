@@ -14,6 +14,7 @@ Related documents:
 - `docs/119_pergyra_lineage_positioning.md` — sister positioning doc for language lineage (C# father, Tier 1-5 substrate borrow, DDD unique synthesis)
 - `docs/120_vision_and_capability_audit.md` — sister audit; capability negative-space + current-vs-vision separation
 - `docs/121_types_as_domain_medium.md` — sister positioning; type system as the syntactic machine of lost-meaning recovery (carrier / coherence / negative-space)
+- `docs/122_managing_intent_drift.md` — sister positioning; drift management discipline (visibility / boundedness / evidence / recoverability / recognition across five drift kinds)
 - `docs/semantics/04_ownership_abi.md`
 
 ## 1. Purpose

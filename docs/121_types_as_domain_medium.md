@@ -19,6 +19,7 @@ Related documents:
 - `docs/118_slot_model_rigor_audit.md` §8 — sister negative-space (vocabulary)
 - `docs/119_pergyra_lineage_positioning.md` §11 — sister negative-space (lineage)
 - `docs/120_vision_and_capability_audit.md` — sister negative-space (capability)
+- `docs/122_managing_intent_drift.md` — sister positioning; the *operational counterpart* (this doc states what types should carry; docs/122 states what to do when carriers fail)
 - Memory: `project_research_program_thesis.md` — root motivation (lost-meaning
   recovery); this doc is the *type-system-level expression* of that thesis
 
@@ -250,9 +251,33 @@ The mainstream-language alternative is *runtime check* or *convention*. Both
 leak into README / comments / Jira / senior heads. The Pergyra alternative
 is *type-level rejection*: the program does not compile.
 
-**Mandate**: when faced with a design choice between "permit and check at
-runtime" and "reject at type level," prefer rejection. Negative-space is
-the strongest recovery surface.
+**Mandate**: when faced with a design choice between "permit an observable
+domain-boundary violation" and "reject at type level," prefer rejection.
+Negative-space is the strongest recovery surface.
+
+This mandate is intentionally narrower than "reject everything that could fail
+at runtime." Pergyra does **not** try to statically predict every business
+object's lifetime (§2.2). The semantic split is:
+
+```text
+static rejection  = unsafe transition across a known boundary
+runtime validate  = dynamic existence/state of a resource handle
+```
+
+Reject at type level when the compiler can see a coordinate violation:
+
+- unsupported world/zone/task handoff
+- missing authority for a declared state transition
+- token transport through an unsupported boundary
+- pin/view crossing a suspension or transport boundary
+- projection kind/source/target mismatch
+
+Do not turn dynamic graph existence into a compile-time puzzle. Slot generation,
+token validity, TTL cleanup, runtime registry presence, and tombstone state are
+runtime facts unless an enclosing boundary rule makes the escape statically
+visible. This preserves the "graph-shaped reality, not tree-shaped ownership"
+identity: the type system rejects unsafe *transitions*; the runtime validates
+dynamic *existence*.
 
 ## 4. What to Resist — Off-Axis Temptations
 

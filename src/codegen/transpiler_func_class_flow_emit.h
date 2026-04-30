@@ -151,30 +151,16 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     if (ctx->backend_error != NULL)
         goto emit_func_decl_named_fail;
 
-    /* If the function returns a non-void type and the body does not end
-     * with an explicit return (e.g. ends with a match/if/while), emit a
-     * fallback return to silence C compiler warnings about missing return. */
+    /* Non-void fallthrough should be rejected by CFG/body-flow before backend
+     * emission. Keep a hard runtime invariant here only as defense in depth;
+     * never synthesize a value that could hide a missing-return bug. */
     if (strcmp(ctx->current_return_type, "Void") != 0
         && strcmp(ctx->current_return_type, "void") != 0) {
-        const char *ret_type = ctx->current_return_type;
-        /* Simple zero-initialised return for non-void functions that may
-         * fall off the end (e.g. match without default, or if/else with
-         * only one branch returning). */
         write_indent(ctx);
-        if (strcmp(ret_type, "Bool") == 0) {
-            codebuf_write(ctx->out, "return false;  /* fallback return */\n");
-        } else if (strcmp(ret_type, "String") == 0
-                   || strncmp(ret_type, "char *", 6) == 0) {
-            codebuf_write(ctx->out, "return NULL;  /* fallback return */\n");
-        } else if (strncmp(ret_type, "Option<", 7) == 0) {
-            const char *inner = slot_inner_type_name(ret_type);
-            codebuf_write(ctx->out, "return None_%s();  /* fallback return */\n", inner);
-        } else if (strncmp(ret_type, "Result<", 7) == 0) {
-            const char *inner = slot_inner_type_name(ret_type);
-            codebuf_write(ctx->out, "return Err_%s(0);  /* fallback return */\n", inner);
-        } else {
-            codebuf_write(ctx->out, "return 0;  /* fallback return */\n");
-        }
+        codebuf_write(ctx->out,
+            "PGY_PANIC(\"non-void function reached end without return\");\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "__builtin_unreachable();\n");
     }
 
     ctx->indent--;
@@ -563,6 +549,7 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
+    transpiler_emit_defers_from(ctx, 0);
     write_indent(ctx);
     if (node->data.return_stmt.value != NULL) {
         if (ctx->current_return_type[0] != '\0'
@@ -583,6 +570,12 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
                     codebuf_write(ctx->out, "return None_%s();\n", inner);
                     return;
                 }
+            }
+            if (value->type == AST_IDENTIFIER
+                && value->data.identifier.name != NULL
+                && strcmp(value->data.identifier.name, "None") == 0) {
+                codebuf_write(ctx->out, "return None_%s();\n", inner);
+                return;
             }
         }
         char *val = emit_expression(node->data.return_stmt.value, ctx);

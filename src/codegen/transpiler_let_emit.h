@@ -126,7 +126,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
 
     /* Detect Box<T> - Type inference from Box(value) */
     bool is_box = false;
-    const char *box_inner = "Int";
+    char *box_inner_owned = NULL;
     if (init != NULL && init->type == AST_CALL
         && init->data.call.callee->type == AST_IDENTIFIER) {
         const char *callee_name = init->data.call.callee->data.identifier.name;
@@ -136,13 +136,17 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             /* Infer type from annotation or argument */
             if (ann != NULL && ann->data.type.generic_args != NULL
                 && ann->data.type.generic_args->count > 0) {
-                box_inner = ann->data.type.generic_args->params[0]->name;
+                GenericParam *param = ann->data.type.generic_args->params[0];
+                if (param != NULL && param->constraint != NULL)
+                    box_inner_owned = render_type_name(param->constraint);
+                else if (param != NULL && param->name != NULL)
+                    box_inner_owned = pergyra_strdup(param->name);
             } else if (init->data.call.arg_count > 0) {
                 /* Infer from argument type */
                 ASTNode *arg = init->data.call.arguments[0];
-                if (arg->type == AST_NUMBER) box_inner = "Int";
-                else if (arg->type == AST_STRING) box_inner = "String";
-                else if (arg->type == AST_BOOLEAN) box_inner = "Bool";
+                const char *inferred_arg = infer_expression_type_name(ctx, arg);
+                if (inferred_arg != NULL && strcmp(inferred_arg, "Unknown") != 0)
+                    box_inner_owned = pergyra_strdup(inferred_arg);
             }
         }
         /* Rc<T> - Reference counted box */
@@ -151,17 +155,34 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             is_box = true;
             if (ann != NULL && ann->data.type.generic_args != NULL
                 && ann->data.type.generic_args->count > 0) {
-                box_inner = ann->data.type.generic_args->params[0]->name;
+                GenericParam *param = ann->data.type.generic_args->params[0];
+                if (param != NULL && param->constraint != NULL)
+                    box_inner_owned = render_type_name(param->constraint);
+                else if (param != NULL && param->name != NULL)
+                    box_inner_owned = pergyra_strdup(param->name);
             } else if (init->data.call.arg_count > 0) {
                 ASTNode *arg = init->data.call.arguments[0];
-                if (arg->type == AST_NUMBER) box_inner = "Int";
-                else if (arg->type == AST_STRING) box_inner = "String";
-                else if (arg->type == AST_BOOLEAN) box_inner = "Bool";
+                const char *inferred_arg = infer_expression_type_name(ctx, arg);
+                if (inferred_arg != NULL && strcmp(inferred_arg, "Unknown") != 0)
+                    box_inner_owned = pergyra_strdup(inferred_arg);
             }
         }
     }
 
     if (is_box) {
+        const char *box_inner = box_inner_owned;
+        char *registered_type = NULL;
+        if (box_inner == NULL || box_inner[0] == '\0') {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: Box/Rc binding '%s' requires explicit Box<T>/Rc<T> annotation or inferable initializer type",
+                name != NULL ? name : "<binding>");
+            free(box_inner_owned);
+            free(ann_type_name);
+            return;
+        }
         write_indent(ctx);
         codebuf_write(ctx->out, "PgyBox_%s %s = pgy_box_new_%s(", 
                       box_inner, name, box_inner);
@@ -171,8 +192,12 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             free(arg);
         }
         codebuf_write(ctx->out, ");\n");
-        register_typed_var(ctx, name,
-            ann_type_name != NULL ? ann_type_name : "Box<Int>");
+        registered_type = ann_type_name != NULL
+            ? pergyra_strdup(ann_type_name)
+            : strdup_fmt("Box<%s>", box_inner);
+        register_typed_var(ctx, name, registered_type);
+        free(registered_type);
+        free(box_inner_owned);
         free(ann_type_name);
         return;
     }
@@ -247,12 +272,25 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             GenericParam *value_param = resolved_ann->data.type.generic_args->params[1];
             char *key = (key_param != NULL && key_param->constraint != NULL)
                 ? render_type_name(key_param->constraint)
-                : pergyra_strdup((key_param != NULL && key_param->name != NULL)
-                    ? key_param->name : "Int");
+                : (key_param != NULL && key_param->name != NULL
+                    ? pergyra_strdup(key_param->name) : NULL);
             char *value = (value_param != NULL && value_param->constraint != NULL)
                 ? render_type_name(value_param->constraint)
-                : pergyra_strdup((value_param != NULL && value_param->name != NULL)
-                    ? value_param->name : "Int");
+                : (value_param != NULL && value_param->name != NULL
+                    ? pergyra_strdup(value_param->name) : NULL);
+            if (key == NULL || key[0] == '\0'
+                || value == NULL || value[0] == '\0') {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: HashMap binding '%s' requires explicit concrete HashMap<K, V> annotation",
+                    name != NULL ? name : "<binding>");
+                free(key);
+                free(value);
+                free(ann_type_name);
+                return;
+            }
             if (strcmp(key, "String") == 0 && value != NULL) {
                 ensure_collection_specialization(ctx, "Map", value);
                 write_indent(ctx);
@@ -322,7 +360,24 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             ? ann_type_name
             : infer_expression_type_name(ctx, init);
         const char *array_c_type = pergyra_type_to_c(array_type_name);
-        char *init_expr = emit_expression(init, ctx);
+        const char *saved_expected_type = ctx->expected_type;
+        char *init_expr;
+        if (array_type_name == NULL
+            || strcmp(array_type_name, "Array<Unknown>") == 0
+            || array_c_type == NULL
+            || strcmp(array_c_type, "void*") == 0) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: empty array literal binding '%s' requires an explicit Array<T> annotation",
+                name != NULL ? name : "<binding>");
+            free(ann_type_name);
+            return;
+        }
+        ctx->expected_type = array_type_name;
+        init_expr = emit_expression(init, ctx);
+        ctx->expected_type = saved_expected_type;
         write_indent(ctx);
         codebuf_write(ctx->out, "%s %s = %s;\n", array_c_type, name, init_expr);
         free(init_expr);
@@ -377,6 +432,62 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                       c_type, name, suffix);
         register_typed_var(ctx, name, ann_type_name);
         free(ann_type_name);
+        return;
+    }
+
+    if (init != NULL
+        && init->type == AST_UNARY
+        && init->data.unary.op.type == TOKEN_QUESTION) {
+        ASTNode *operand = init->data.unary.operand;
+        const char *result_type = infer_expression_type_name(ctx, operand);
+        const char *result_c_type;
+        char *operand_expr;
+        int try_id;
+
+        if (result_type == NULL || strncmp(result_type, "Result<", 7) != 0) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C try lowering for let binding '%s' requires Result<T,E> operand type",
+                name != NULL ? name : "<binding>");
+            free(ann_type_name);
+            return;
+        }
+        if (ctx->current_return_type[0] == '\0'
+            || strncmp(ctx->current_return_type, "Result<", 7) != 0) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C try lowering for let binding '%s' requires an enclosing Result-returning function",
+                name != NULL ? name : "<binding>");
+            free(ann_type_name);
+            return;
+        }
+
+        result_c_type = pergyra_type_to_c(result_type);
+        operand_expr = emit_expression(operand, ctx);
+        try_id = ctx->tmp_counter++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s __try_%d = %s;\n",
+                      result_c_type, try_id, operand_expr);
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "if (__try_%d.tag != PgyResultOk) return __try_%d;\n",
+            try_id, try_id);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s %s = __try_%d.ok;\n",
+                      c_type, name, try_id);
+        free(operand_expr);
+        if (ann_type_name != NULL) {
+            register_typed_var(ctx, name, ann_type_name);
+            free(ann_type_name);
+        } else {
+            const char *inferred = infer_expression_type_name(ctx, init);
+            if (inferred != NULL)
+                register_typed_var(ctx, name, inferred);
+        }
         return;
     }
 

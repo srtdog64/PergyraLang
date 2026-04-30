@@ -772,6 +772,53 @@ test_mir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects pin-region without cleanup root");
+    {
+        const char *src =
+            "func PinFlow(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        if flag {\n"
+            "            Write(view, 1);\n"
+            "        } else {\n"
+            "            Write(view, 2);\n"
+            "        }\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        char *mir_error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "PinFlow", MIR_SCOPE_FUNCTION);
+        if (routine != NULL && routine->has_cleanup_block) {
+            routine->has_cleanup_block = false;
+            for (size_t i = 0; i < routine->block_count; i++) {
+                MIRBasicBlock *block = &routine->blocks[i];
+                if (!block->is_pin_region)
+                    continue;
+                block->has_cleanup_succ = false;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = ok
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "cleanup root") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR keeps pin cleanup fact across early return");
     {
         const char *src =
@@ -1258,6 +1305,58 @@ test_mir_lowering(void)
                    && strstr(mir_error, "CFG-owned control statement") != NULL;
         EXPECT(rejected);
         free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR preserves defer statements inside CFG branch blocks");
+    {
+        const char *src =
+            "func BranchDefer() -> Void {\n"
+            "    if true {\n"
+            "        defer { Log(1); };\n"
+            "    }\n"
+            "    Log(2);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "BranchDefer", MIR_SCOPE_FUNCTION);
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && routine_has_stmt_ast_type(routine, AST_DEFER_STMT)
+               && routine_has_stmt_call_named(routine, "Log"));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR preserves defer statements inside CFG loop blocks");
+    {
+        const char *src =
+            "func LoopDefer() -> Void {\n"
+            "    while true {\n"
+            "        defer {\n"
+            "            Log(1);\n"
+            "        };\n"
+            "        break;\n"
+            "    }\n"
+            "    Log(2);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        EXPECT(lower_mir_from_source(src, &hir, &rir, &mir)
+               && mir != NULL
+               && mir->routine_count == 1
+               && mir_validate(mir, NULL)
+               && routine_has_stmt_ast_type(&mir->routines[0], AST_DEFER_STMT)
+               && routine_has_stmt_call_named(&mir->routines[0], "Log"));
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

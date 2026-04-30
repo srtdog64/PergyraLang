@@ -355,6 +355,12 @@ grep -q 'semantic_type_resolution_metadata_stable_builtin_shell_arity(' \
   exit 1
 }
 
+grep -q 'Type-resolution DAG could not materialize type metadata' \
+  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  echo "[type-resolution-resolver-inventory] metadata fallback no longer emits an explicit DAG diagnostic" >&2
+  exit 1
+}
+
 for needle in \
   'case AST_CHANNEL_TYPE:' \
   'case AST_FUTURE_TYPE:' \

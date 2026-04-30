@@ -72,7 +72,12 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
             return true;
         }
-        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
+            set_arg->data.identifier.name, inner_name, NULL);
+        if (elem_ty == NULL) {
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
+        }
         value = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (value == NULL) {
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
@@ -119,7 +124,12 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             *out = LLVMConstInt(ctx->type_i1, 0, 0);
             return true;
         }
-        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
+            set_arg->data.identifier.name, inner_name, NULL);
+        if (elem_ty == NULL) {
+            *out = LLVMConstInt(ctx->type_i1, 0, 0);
+            return true;
+        }
         value = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (value == NULL) {
             *out = LLVMConstInt(ctx->type_i1, 0, 0);
@@ -170,7 +180,12 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
             return true;
         }
-        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
+            set_arg->data.identifier.name, inner_name, NULL);
+        if (elem_ty == NULL) {
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
+        }
         value = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (value == NULL) {
             *out = LLVMConstInt(ctx->type_i32, 0, 0);

@@ -1,5 +1,29 @@
 /* LLVM call emitter split into sub-1000 LOC include chunks.
  * Keep this shim for the existing llvm_expr include order. */
+static LLVMTypeRef
+llvm_collection_required_value_type(LLVMGenCtx *ctx, ASTNode *node,
+                                    const char *collection_kind,
+                                    const char *var_name,
+                                    const char *type_name,
+                                    LLVMValueRef *out)
+{
+    if (type_name == NULL || type_name[0] == '\0') {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM %s operation requires concrete element/value type metadata for '%s'",
+                collection_kind != NULL ? collection_kind : "collection",
+                var_name != NULL ? var_name : "<collection>");
+        }
+        if (out != NULL && ctx != NULL)
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
+    }
+    return pergyra_type_to_llvm(ctx, type_name);
+}
+
 #include "llvm_expr_constructor_calls.h"
 #include "llvm_expr_array_calls.h"
 #include "llvm_expr_collection_base_calls.h"

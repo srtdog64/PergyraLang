@@ -82,6 +82,21 @@ Any public wording that says "Slot is Pergyra's borrow checker" is rejected by
 this proof pack. The honest wording is: "Slot is runtime-validated; Pergyra's
 borrow-checker-equivalent is the static ownership/CFG layer above Slot."
 
+The same distinction is the global static/runtime split:
+
+```text
+static rejection  = unsafe transition across a known boundary
+runtime validate  = dynamic existence/state of a resource handle
+```
+
+For Slot specifically, static rejection covers visible handle escape, typed-view
+escape, unsupported task/channel/world transport, token transport, and
+pin-boundary crossing. Runtime validation covers generation freshness, token
+validity, release/tombstone state, TTL cleanup, and pin-state when execution
+reaches the Slot boundary. This calculus proves runtime capability predicates;
+the ownership/CFG/AIR layers prove which boundary transitions are accepted
+before runtime.
+
 ## Stable Surface
 
 - `Slot<T>` and `SecureSlot<T>` handles with generation checks.

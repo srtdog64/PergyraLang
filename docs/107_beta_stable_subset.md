@@ -49,6 +49,10 @@ Stable core:
 - Primitive values, `func`, `let`, control flow, basic callable values,
   `Option<T>`, `Result<T, E>`, and the collection implementations required by
   the core contract language.
+- `match` is beta-stable only for `Int`, `Long`, `Bool`, enum, `Option<T>`,
+  and `Result<T, E>` subjects. Other subject types must be rejected before
+  backend lowering; they are not allowed to fall through to C/LLVM local
+  equality assumptions.
 - UTF-8 string payload preservation is stable for string literals and C/LLVM
   output. `StringLength` is byte-length, and equality/search are byte-exact and
   normalization-blind for beta.

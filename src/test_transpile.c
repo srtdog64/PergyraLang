@@ -14,6 +14,7 @@
 
 #include "common/string_compat.h"
 #include "codegen/transpiler.h"
+#include "codegen/transpiler_symbols.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
@@ -209,6 +210,22 @@ make_call(const char *callee_name, ASTNode **args, size_t arg_count,
         memcpy(n->data.call.arguments, args, arg_count * sizeof(ASTNode *));
     }
     n->data.call.arg_count = arg_count;
+    return n;
+}
+
+static ASTNode *
+make_call_generic1(const char *callee_name, const char *type_name,
+                   ASTNode **args, size_t arg_count, uint32_t line)
+{
+    ASTNode *n = make_call(callee_name, args, arg_count, line);
+    GenericParams *params = calloc(1, sizeof(GenericParams));
+    GenericParam *param = calloc(1, sizeof(GenericParam));
+    params->count = 1;
+    params->params = calloc(1, sizeof(GenericParam *));
+    param->name = pergyra_strdup(type_name);
+    param->constraint = ast_create_type(type_name);
+    params->params[0] = param;
+    n->data.call.generic_args = params;
     return n;
 }
 
@@ -897,11 +914,12 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("None() → None_Int()");
+    TEST("None() without contextual Option<T> emits diagnostic recovery");
     {
         ctx = transpiler_ctx_create();
         result = emit_expression(make_call("None", NULL, 0, 1), ctx);
-        EXPECT(strcmp(result, "None_Int()") == 0);
+        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(ctx->backend_error != NULL);
         free(result);
         transpiler_ctx_destroy(ctx);
     }
@@ -986,6 +1004,7 @@ test_expression_emit(void)
     TEST("Read(s) → pgy_read_Int(&s)");
     {
         ctx = transpiler_ctx_create();
+        register_slot_var(ctx, "s", "Int", false, false);
         ASTNode *args[1] = { make_identifier("s", 1) };
         result = emit_expression(make_call("Read", args, 1, 1), ctx);
         EXPECT(strcmp(result, "pgy_read_Int(&s)") == 0);
@@ -996,6 +1015,7 @@ test_expression_emit(void)
     TEST("Release(s) → pgy_release_Int(&s)");
     {
         ctx = transpiler_ctx_create();
+        register_slot_var(ctx, "s", "Int", false, false);
         ASTNode *args[1] = { make_identifier("s", 1) };
         result = emit_expression(make_call("Release", args, 1, 1), ctx);
         EXPECT(strcmp(result, "pgy_release_Int(&s)") == 0);
@@ -1667,8 +1687,7 @@ test_statement_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "__match_");
         EXPECT_STR_CONTAINS(ctx->out->data, "if (__match_");
         EXPECT_STR_CONTAINS(ctx->out->data, ".tag == PgyOptionSome");
-        EXPECT_STR_CONTAINS(ctx->out->data, "__typeof__(__match_");
-        EXPECT_STR_CONTAINS(ctx->out->data, "v = __match_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t v = __match_");
         EXPECT_STR_CONTAINS(ctx->out->data, ".value;");
         EXPECT_STR_CONTAINS(ctx->out->data, "else if (__match_");
         EXPECT_STR_CONTAINS(ctx->out->data, ".tag == PgyOptionNone");
@@ -1748,6 +1767,16 @@ test_statement_emit(void)
         ASTNode *node = make_let("slot", make_type_node("Slot<Int>"), init, 1);
         const char *out = emit_stmt_to_str(node, &ctx);
         EXPECT_STR_CONTAINS(out, "PgySlot_Int slot = pgy_claim_Int();");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let slot = ClaimSlot<String>() → PgySlot_String slot = pgy_claim_String();");
+    {
+        ASTNode *args[0];
+        ASTNode *init = make_call_generic1("ClaimSlot", "String", args, 0, 1);
+        ASTNode *node = make_let("slot", NULL, init, 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgySlot_String slot = pgy_claim_String();");
         transpiler_ctx_destroy(ctx);
     }
 
@@ -2183,7 +2212,10 @@ test_statement_emit(void)
     {
         ASTNode *args[2] = { make_identifier("slot", 1), make_number(42, 1) };
         ASTNode *call    = make_call("Write", args, 2, 1);
-        const char *out  = emit_stmt_to_str(call, &ctx);
+        ctx = transpiler_ctx_create();
+        register_slot_var(ctx, "slot", "Int", false, false);
+        emit_statement(call, ctx);
+        const char *out  = ctx->out->data;
         EXPECT_STR_CONTAINS(out, "pgy_write_Int(&slot, 42)");
         transpiler_ctx_destroy(ctx);
     }
@@ -2200,15 +2232,19 @@ test_statement_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("defer statement emits cleanup sentinel");
+    TEST("defer statement emits lexical inline cleanup");
     {
         ASTNode *body = ast_create_block();
         ASTNode *args[1] = { make_number(1, 1) };
         ast_add_statement(body, make_call("Log", args, 1, 1));
         ASTNode *defer_stmt = ast_create_defer_statement(body);
-        const char *out = emit_stmt_to_str(defer_stmt, &ctx);
-        EXPECT_STR_CONTAINS(out, "__attribute__((cleanup(_pgy_defer_");
-        EXPECT_STR_CONTAINS(ctx->helpers->data, "static void _pgy_defer_");
+        ASTNode *block = ast_create_block();
+        ast_add_statement(block, defer_stmt);
+        ctx = transpiler_ctx_create();
+        emit_block(block, ctx);
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(1)");
+        EXPECT_STR_NOT_CONTAINS(ctx->out->data, "__attribute__((cleanup(_pgy_defer_");
+        EXPECT_STR_NOT_CONTAINS(ctx->helpers->data, "static void _pgy_defer_");
         transpiler_ctx_destroy(ctx);
     }
 
@@ -3721,6 +3757,37 @@ test_stdlib_and_enum_emit(void)
         const char *out = emit_stmt_to_str(node, &ctx);
         EXPECT_STR_CONTAINS(out, "PgyArray_Int values = ({");
         EXPECT_STR_CONTAINS(out, "pgy_array_push_Int");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("empty array literal uses explicit Array<T> annotation");
+    {
+        ASTNode *arr = calloc(1, sizeof(ASTNode));
+        arr->type = AST_ARRAY_LITERAL;
+        arr->line = 1;
+        arr->data.array_literal.count = 0;
+        arr->data.array_literal.elements = NULL;
+
+        ASTNode *node = make_let("values", make_generic_type("Array", "String"), arr, 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(out, "PgyArray_String values = ({");
+        EXPECT_STR_CONTAINS(out, "pgy_array_new_String(0)");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("empty array literal without annotation is rejected by C backend");
+    {
+        ASTNode *arr = calloc(1, sizeof(ASTNode));
+        arr->type = AST_ARRAY_LITERAL;
+        arr->line = 1;
+        arr->data.array_literal.count = 0;
+        arr->data.array_literal.elements = NULL;
+
+        ASTNode *node = make_let("values", NULL, arr, 1);
+        (void)emit_stmt_to_str(node, &ctx);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error, "requires an explicit Array<T> annotation");
         transpiler_ctx_destroy(ctx);
     }
 

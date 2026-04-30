@@ -57,6 +57,29 @@ contract violation has stable diagnostic provenance
 internal invariant break hard-fails
 ```
 
+## Static Boundary vs Runtime Existence
+
+Pergyra's proof vocabulary separates two different questions:
+
+```text
+static rejection  = unsafe transition across a known boundary
+runtime validate  = dynamic existence/state of a resource handle
+```
+
+The compiler should reject transitions when the relevant coordinate is visible
+in the stable semantic facts: unsupported world/zone/task handoff, missing
+authority for a declared state transition, token transport through an unsupported
+boundary, pin/view crossing a suspension or transport boundary, and projection
+kind/source/target mismatch.
+
+The compiler does not try to statically predict every business object's
+creation and destruction point. Slot generation, token validity, TTL cleanup,
+runtime registry presence, and tombstone state are runtime facts unless an
+enclosing boundary rule makes the escape statically visible. This is why the
+proof pack treats graph-shaped domain relations differently from tree-shaped
+ownership: static proofs cover unsafe transitions; runtime proofs cover dynamic
+existence and fail-safe rejection.
+
 ## Global Theorems
 
 ### Type Preservation

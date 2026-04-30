@@ -56,6 +56,8 @@ bool     codebuf_dump_file(const CodeBuf *buf, const char *path);
 #define MAX_GENERIC_SPECIALIZATIONS 128
 #define MAX_COLLECTION_SPECIALIZATIONS 128
 #define TRANSPILE_MAX_LOOP_DEPTH 64
+#define TRANSPILE_MAX_SCOPE_DEPTH 128
+#define TRANSPILE_MAX_DEFER_PER_SCOPE 64
 
 typedef struct
 {
@@ -186,7 +188,14 @@ typedef struct
     char        loop_continue_labels[TRANSPILE_MAX_LOOP_DEPTH][64];
     bool        loop_break_label_used[TRANSPILE_MAX_LOOP_DEPTH];
     bool        loop_continue_label_used[TRANSPILE_MAX_LOOP_DEPTH];
+    int         loop_defer_base_depth[TRANSPILE_MAX_LOOP_DEPTH];
     int         loop_depth;
+
+    /* Lexical defer stack. Defer bodies are emitted inline at scope exits
+     * and returns so they can reference locals such as method `self`. */
+    ASTNode    *defer_bodies[TRANSPILE_MAX_SCOPE_DEPTH][TRANSPILE_MAX_DEFER_PER_SCOPE];
+    int         defer_body_counts[TRANSPILE_MAX_SCOPE_DEPTH];
+    int         defer_scope_depth;
 
     /* Scratch arena for transpiler-local temporary strings.
      * Long-lived caches/metadata must not retain pointers from here. */

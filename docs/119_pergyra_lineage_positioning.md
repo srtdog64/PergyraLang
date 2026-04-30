@@ -11,6 +11,7 @@ Related documents:
 - `docs/118_slot_model_rigor_audit.md` §8 — sister audit; vocabulary negative-space (this doc §11 is its lineage-level pair)
 - `docs/120_vision_and_capability_audit.md` — sister audit; capability negative-space + current-vs-vision separation (third pair)
 - `docs/121_types_as_domain_medium.md` — sister positioning; type system as the syntactic machine of lost-meaning recovery (the type-system-level expression of this lineage's research program)
+- `docs/122_managing_intent_drift.md` — sister positioning; drift management discipline (the operational counterpart to docs/121 — what to do when carriers fail)
 - `docs/104_air_compiler_architecture.md` — Tier 5 MLIR sibling-IR pattern
 
 This document is a **positioning / lineage** doc, not a contract. It exists so
@@ -27,7 +28,7 @@ The honest one-line answer to "which language is Pergyra in the lineage of":
 > (multi-paradigm versatility, OOP+FP+DOP fusion, async/await, properties,
 > generics, records, partial class, pattern matching, LINQ-style pipelines) and
 > *rewrites that target shape on a systems-language substrate* (C universal
-> substrate + Rust-1.0-comparable static safety layer + Vale-style
+> substrate + Rust-1.0-inspired static-safety patterns + Vale-style
 > generational handles + Pony/Verona-inspired capability/region patterns +
 > Erlang/Koka-style concurrency decomposition + OCaml-style type/Result
 > discipline + MLIR-style sibling verification IR concept). On top of this,
@@ -37,9 +38,9 @@ The honest one-line answer to "which language is Pergyra in the lineage of":
 > current-vs-vision separation).
 
 The "aspires to" is load-bearing. Pergyra at beta is *not yet* fully
-C#-shaped at every surface, *not yet* fully Rust-static-equivalent, and
-*not yet* MLIR-class in verification depth. Each tier names a *direction
-and pattern borrowed*, not a *feature parity claim*.
+C#-shaped at every surface, does **not** claim Rust-level memory safety, and is
+*not yet* MLIR-class in verification depth. Each tier names a *direction and
+pattern borrowed*, not a *feature parity claim*.
 
 Three layers, three roles:
 
@@ -80,7 +81,7 @@ the *negative-space* (phrases to avoid). This doc is the *positive-space*
 | Tier | Domain | Parent(s) | How it entered Pergyra |
 |---|---|---|---|
 | **0 (Father)** | **Identity / Shape / Spirit** | **C#** | Multi-paradigm aspiration (OOP+FP+DOP), async/await syntax, properties, generics, records, partial class, pattern matching, LINQ-style. *What Pergyra aspires to read and feel like.* |
-| 1 | Systems substrate | C, Rust 1.0 | C is universal substrate borrow (ABI / FFI / predictable memory). Rust 1.0 is the *target reference* for the static safety 5-component layer (ownership classifier + CFG + pin + Channel + Token); current strength is *comparable* to Rust 1.0, not equivalent (see `docs/118` §7). |
+| 1 | Systems substrate | C, Rust 1.0 | C is universal substrate borrow (ABI / FFI / predictable memory). Rust 1.0 is the *target reference* for the static safety 5-component layer (ownership classifier + CFG + pin + Channel + Token); Pergyra currently implements a narrower, domain-boundary-focused subset, not Rust-level memory safety (see `docs/118` §7). |
 | 2 | Resource model | Vale, Pony, Verona | Vale-style generational references → Slot. Pony-style reference capabilities → Token / authority. Verona-style region / cown → World / Zone. Pattern borrowed; full feature parity not claimed. |
 | 3 | Concurrency | Erlang/Elixir, Koka/Effekt | Erlang-style Channel-isolated parallel + supervision-tree DNA. Koka-style effect / handler decomposition → coloring split. **Syntax surface aspires to C# (Tier 0).** |
 | 4 | Type / Data discipline | OCaml/ML, Haskell (partial) | ADT, Result, pattern matching (OCaml/ML). Parametric polymorphism (Haskell). Functor / HKT explicitly **rejected**. Joins Tier 0 records / pattern matching. |
@@ -89,8 +90,9 @@ the *negative-space* (phrases to avoid). This doc is the *positive-space*
 **Tier 0 vs Tier 1-5 distinction is load-bearing**: Tier 0 is the *target
 shape*; Tier 1-5 are *implementation pattern borrowings used to realize that
 shape on a systems substrate*. Pergyra is **not** "a language that looks
-like Rust" — it *aspires to* "a language that reads like C# and runs like
-Rust + Vale at the parts already implemented." For the gap between
+like Rust" and does not claim Rust-level memory safety. It aspires to a
+C#-readable systems language whose implemented stable subset uses C/Rust/Vale
+patterns where they fit. For the gap between
 aspiration and current implementation, see
 `docs/120_vision_and_capability_audit.md`.
 
@@ -248,7 +250,7 @@ pair to `docs/118` §8 (negative-space audit).
 
 | Context | Accurate phrasing |
 |---|---|
-| 1-second elevator | "Looks like C#, runs like Rust + Vale, with DDD primitives as first-class language constructs." |
+| 1-second elevator | "C#-shaped systems language with first-class DDD primitives." |
 | 30-second pitch | "Pergyra rewrites C#'s versatile multi-paradigm shape on a systems-language substrate (C + Rust 1.0 + Vale + Erlang/Koka + OCaml + MLIR), and lifts intent / zone / world / authority into first-class primitives." |
 | 5-minute depth | §0 thesis, verbatim. |
 | Technical comparison | §2 six-tier table, verbatim. Tier 0 = C# father; Tier 1-5 = substrate borrow; §10 = unique synthesis. |

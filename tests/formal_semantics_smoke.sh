@@ -95,6 +95,10 @@ TERMS
 require_terms "$PROOF_DIR/00_proof_contract.md" "docs/semantics/00_proof_contract.md" <<'TERMS'
 ## Semantic Domains
 ## Core Judgments
+## Static Boundary vs Runtime Existence
+static rejection  = unsafe transition across a known boundary
+runtime validate  = dynamic existence/state of a resource handle
+static proofs cover unsafe transitions; runtime proofs cover dynamic
 ### Type Preservation
 ### Progress
 ### Failure Separation
@@ -165,6 +169,10 @@ Status: `IN PROGRESS / PROOF-SKETCH`
 ## Negative Claim: Slot Is Not A Borrow Checker
 Slot = runtime capability + generation + token + pin-state safety.
 borrow-checker-equivalent is the static ownership/CFG layer above Slot.
+static rejection  = unsafe transition across a known boundary
+runtime validate  = dynamic existence/state of a resource handle
+Runtime validation covers generation freshness
+the ownership/CFG/AIR layers prove which boundary transitions are accepted
 ## Semantic Domains
 ## Theorem: ABA Safety
 ## Theorem: Token Unforgeability
@@ -189,6 +197,8 @@ docs/102_formal_semantics_and_proof_obligations.md
 docs/semantics/
 Do not advertise mechanized proof for beta
 Do not advertise "Slot as borrow checker"
+Canonical semantic split
+runtime validation covers dynamic existence/state
 TERMS
 
 require_terms "$TODO_PATH" "TODO.md" <<'TERMS'
@@ -281,7 +291,8 @@ for path in "$README_PATH" "$TODO_PATH"; do
     forbid_term "$path" "$path" "Slot is Pergyra's borrow checker"
     forbid_term "$path" "$path" "Slot proves borrow safety"
     forbid_term "$path" "$path" "Slot proves Rust-style borrow checking"
-    forbid_term "$path" "$path" "Rust-level memory safety"
+    forbid_term "$path" "$path" "Pergyra provides Rust-level memory safety"
+    forbid_term "$path" "$path" "Pergyra guarantees Rust-level memory safety"
     forbid_term "$path" "$path" "pin blocks statically reject crossing await"
     forbid_term "$path" "$path" "WriteView<T> exclusive is not enforced"
 done
@@ -297,7 +308,8 @@ while IFS= read -r -d '' path; do
     forbid_term "$path" "$path" "Slot is Pergyra's borrow checker"
     forbid_term "$path" "$path" "Slot proves borrow safety"
     forbid_term "$path" "$path" "Slot proves Rust-style borrow checking"
-    forbid_term "$path" "$path" "Rust-level memory safety"
+    forbid_term "$path" "$path" "Pergyra provides Rust-level memory safety"
+    forbid_term "$path" "$path" "Pergyra guarantees Rust-level memory safety"
     forbid_term "$path" "$path" "pin blocks reject crossing await"
     forbid_term "$path" "$path" "pin blocks statically reject crossing await"
     forbid_term "$path" "$path" "WriteView<T> exclusive is not enforced"

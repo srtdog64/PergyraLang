@@ -270,6 +270,52 @@ test_type_checker_slot_rules(void)
         semantic_context_destroy(ctx);
     }
 
+    TEST("ClaimSlot<T> let inference preserves generic payload type");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let s = ClaimSlot<String>();\n"
+            "    Write(s, \"ok\");\n"
+            "    return;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ClaimSlot without annotation or type argument is rejected");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let s = ClaimSlot();\n"
+            "    return;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "Cannot infer Slot<T> from ClaimSlot"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     /* --- R2: SecureSlot requires token --- */
     TEST("R2: Write to SecureSlot without token → error");
     {
@@ -964,6 +1010,62 @@ test_arrays_and_enums(void)
         ast_destroy(arr);
     }
 
+    TEST("empty array literal carries unresolved element type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *arr = calloc(1, sizeof(ASTNode));
+        arr->type = AST_ARRAY_LITERAL;
+        arr->line = 1;
+        arr->data.array_literal.count = 0;
+        arr->data.array_literal.elements = NULL;
+
+        Type *t = type_check_expression(arr, ctx);
+        EXPECT(!ctx->has_error && type_is_constructed_named(t, "Array")
+               && t->data.constructed.arg_count == 1
+               && t->data.constructed.args[0] == TYPE_UNKNOWN);
+        semantic_context_destroy(ctx);
+        ast_destroy(arr);
+    }
+
+    TEST("empty array let without annotation reports inference diagnostic");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *arr = calloc(1, sizeof(ASTNode));
+        arr->type = AST_ARRAY_LITERAL;
+        arr->line = 1;
+        arr->data.array_literal.count = 0;
+        arr->data.array_literal.elements = NULL;
+
+        ASTNode *decl = ast_create_let_declaration("values");
+        decl->data.let_decl.initializer = arr;
+        type_check_let_decl(decl, ctx);
+        EXPECT(ctx->has_error
+               && ctx_has_diagnostic_substring(ctx,
+                   "Cannot infer Array<T> from an empty array literal"));
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
+    TEST("empty array let with annotation is concrete");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *arr = calloc(1, sizeof(ASTNode));
+        arr->type = AST_ARRAY_LITERAL;
+        arr->line = 1;
+        arr->data.array_literal.count = 0;
+        arr->data.array_literal.elements = NULL;
+
+        ASTNode *decl = ast_create_let_declaration("values");
+        decl->data.let_decl.type = make_generic_type("Array", "String");
+        decl->data.let_decl.initializer = arr;
+        type_check_let_decl(decl, ctx);
+        Symbol *sym = scope_lookup(ctx->scope, "values");
+        EXPECT(!ctx->has_error && sym != NULL && sym->type != NULL
+               && strcmp(sym->type->name, "Array<String>") == 0);
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
     TEST("enum variants are visible as enum-typed identifiers");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -1027,7 +1129,7 @@ test_stdlib_and_io(void)
         semantic_context_destroy(ctx);
     }
 
-    TEST("ClaimDeviceSlot infers DeviceSlot<Int>");
+    TEST("ClaimDeviceSlot carries unresolved DeviceSlot<T> without annotation");
     {
         SemanticContext *ctx = semantic_context_create();
         Type *t = type_check_expression(make_call("ClaimDeviceSlot", NULL, 0, 1), ctx);
@@ -1036,8 +1138,37 @@ test_stdlib_and_io(void)
             && t->kind == TYPE_KIND_CONSTRUCTED
             && t->data.constructed.constructor == TYPE_DEVICE_SLOT
             && t->data.constructed.arg_count == 1
-            && type_equals(t->data.constructed.args[0], TYPE_INT));
+            && t->data.constructed.args[0] == TYPE_UNKNOWN);
         semantic_context_destroy(ctx);
+    }
+
+    TEST("ClaimDeviceSlot let without annotation reports inference diagnostic");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *decl = ast_create_let_declaration("device");
+        decl->data.let_decl.initializer =
+            make_call("ClaimDeviceSlot", NULL, 0, 1);
+        type_check_let_decl(decl, ctx);
+        EXPECT(ctx->has_error
+               && ctx_has_diagnostic_substring(ctx,
+                   "Cannot infer DeviceSlot<T> from ClaimDeviceSlot"));
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
+    TEST("ClaimDeviceSlot let with annotation is concrete");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *decl = ast_create_let_declaration("device");
+        decl->data.let_decl.type = make_generic_type("DeviceSlot", "Long");
+        decl->data.let_decl.initializer =
+            make_call("ClaimDeviceSlot", NULL, 0, 1);
+        type_check_let_decl(decl, ctx);
+        Symbol *sym = scope_lookup(ctx->scope, "device");
+        EXPECT(!ctx->has_error && sym != NULL && sym->type != NULL
+               && strcmp(sym->type->name, "DeviceSlot<Long>") == 0);
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
     }
 
     TEST("DeviceRead returns inner type");

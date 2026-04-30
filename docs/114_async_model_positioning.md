@@ -27,6 +27,9 @@ Related documents:
 - `docs/121_types_as_domain_medium.md` - sister positioning; type system as
   the syntactic machine of lost-meaning recovery (carrier / coherence /
   negative-space).
+- `docs/122_managing_intent_drift.md` - sister positioning; drift management
+  discipline (5 dimensions x 5 drift kinds; methodology where language
+  cannot reach).
 
 This document positions Pergyra's concurrency model relative to the
 callback -> promise/future -> async/await history. It is a positioning and

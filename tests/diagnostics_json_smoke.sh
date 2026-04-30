@@ -593,6 +593,26 @@ fi
 check_json "pin-source-defer-boundary" "$PIN_SOURCE_DEFER_ERR" \
   'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "defer cleanup boundary" in d.get("message", "") for d in data)'
 
+DYNAMIC_DEFER_SRC="$WORK_DIR/dynamic_defer_control.pgy"
+cat > "$DYNAMIC_DEFER_SRC" <<'EOF'
+func Main(flag: Bool) -> Void {
+    if flag {
+        defer {
+            Log(1);
+        };
+    }
+    Log(2);
+}
+EOF
+DYNAMIC_DEFER_ERR="$WORK_DIR/dynamic_defer_control.err"
+if "$PGY" "$DYNAMIC_DEFER_SRC" --backend=c --error-format=json 2>"$DYNAMIC_DEFER_ERR"; then
+    echo "[diag-json] dynamic-defer-control: FAIL -- expected non-zero exit" >&2
+    cat "$DYNAMIC_DEFER_ERR" >&2
+    exit 1
+fi
+check_json "dynamic-defer-control" "$DYNAMIC_DEFER_ERR" \
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_DEFER_DYNAMIC_CONTROL" and d.get("cause_ir") == "semantic:defer:dynamic_control" and d.get("fix_source") == "move-defer-outside-dynamic-control" for d in data)'
+
 PIN_AWAIT_SRC="$WORK_DIR/pin_await_boundary.pgy"
 cat > "$PIN_AWAIT_SRC" <<'EOF'
 async func Main() -> Void {
@@ -852,6 +872,31 @@ else
     # CompilerResult → driver_emit_single_diag_json_full.
     check_json "spec-limit-hints" "$SPEC_ERR" \
       'isinstance(data, list) and any(d.get("cause_ir") == "llvm:result_spec:capacity_exceeded" and d.get("fix_source") == "reuse-shared-error-enum" for d in data)'
+fi
+
+# --- case 2c.1: LLVM channel runtime lookup has no silent fallback ---
+# Channel<Bool> is allowed through the frontend here, but the beta LLVM
+# runtime only declares concrete channel helpers for Int/String. LLVM codegen
+# must reject the missing runtime helper with a structured diagnostic instead
+# of silently lowering to i32/false/None.
+LLVM_CHANNEL_SRC="$WORK_DIR/llvm_channel_runtime_missing.pgy"
+cat > "$LLVM_CHANNEL_SRC" <<'EOF'
+func Main() -> Void {
+    let ch: Channel<Bool> = Channel(1);
+    let got: Option<Bool> = TryRecv(ch);
+}
+EOF
+LLVM_CHANNEL_ERR="$WORK_DIR/llvm_channel_runtime_missing.err"
+LLVM_CHANNEL_OBJ="$WORK_DIR/llvm_channel_runtime_missing_obj"
+if "$PGY" "$LLVM_CHANNEL_SRC" --backend=llvm --error-format=json -o "$LLVM_CHANNEL_OBJ" \
+        >/dev/null 2>"$LLVM_CHANNEL_ERR"; then
+    echo "[diag-json] llvm-channel-runtime-missing: FAIL -- expected missing runtime helper" >&2
+    exit 1
+elif grep -Fq "compiled without LLVM backend support" "$LLVM_CHANNEL_ERR"; then
+    echo "[diag-json] llvm-channel-runtime-missing: SKIP (compiler built without LLVM backend support)"
+else
+    check_json "llvm-channel-runtime-missing" "$LLVM_CHANNEL_ERR" \
+      'isinstance(data, list) and any(d.get("stage") == "llvm_codegen" and d.get("code") == "PGY_LLVM_TYPE_UNSUPPORTED" and d.get("cause_ir") == "llvm:type:unsupported_or_unknown" and d.get("fix_source") == "inspect-mir-inventory" and "pgy_channel_try_recv_Bool" in d.get("message", "") for d in data)'
 fi
 
 # --- case 3: success path emits [] ---

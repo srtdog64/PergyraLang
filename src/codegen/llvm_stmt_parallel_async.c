@@ -352,7 +352,15 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
                     const char *channel_name = channel->data.identifier.name;
                     const char *inner = llvm_lookup_channel_inner(ctx, channel_name);
                     LLVMVarEntry *ch_var = llvm_scope_lookup(ctx, channel_name);
-                    if (inner == NULL) inner = "Int";
+                    if (inner == NULL || inner[0] == '\0') {
+                        llvm_set_error_at_with_hints(ctx, channel,
+                            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                            "LLVM select channel '%s' requires concrete Channel<T> metadata",
+                            channel_name != NULL ? channel_name : "<channel>");
+                        return;
+                    }
 
                     if (ch_var != NULL) {
                         char fn_name[128];

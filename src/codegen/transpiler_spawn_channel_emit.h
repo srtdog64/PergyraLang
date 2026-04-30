@@ -165,7 +165,7 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
 {
     char *ch  = emit_expression(node->data.channel_send.channel, ctx);
     char *val = emit_expression(node->data.channel_send.value, ctx);
-    const char *inner = "Int";
+    const char *inner = NULL;
 
     if (node->data.channel_send.channel != NULL
         && node->data.channel_send.channel->type == AST_IDENTIFIER) {
@@ -173,6 +173,16 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
             node->data.channel_send.channel->data.identifier.name);
         if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
             inner = slot_inner_type_name(type_name);
+    }
+    if (inner == NULL || inner[0] == '\0') {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "C backend: channel send requires concrete Channel<T> metadata");
+        free(ch);
+        free(val);
+        return pergyra_strdup("0");
     }
 
     char *result = strdup_fmt("pgy_channel_send_%s(&%s, %s)", inner, ch, val);
@@ -185,7 +195,7 @@ char *
 emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
 {
     char *ch = emit_expression(node->data.channel_recv.channel, ctx);
-    const char *inner = "Int";
+    const char *inner = NULL;
 
     if (node->data.channel_recv.channel != NULL
         && node->data.channel_recv.channel->type == AST_IDENTIFIER) {
@@ -193,6 +203,15 @@ emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
             node->data.channel_recv.channel->data.identifier.name);
         if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
             inner = slot_inner_type_name(type_name);
+    }
+    if (inner == NULL || inner[0] == '\0') {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "C backend: channel receive requires concrete Channel<T> metadata");
+        free(ch);
+        return pergyra_strdup("0");
     }
 
     char *result = strdup_fmt("pgy_channel_recv_val_%s(&%s)", inner, ch);

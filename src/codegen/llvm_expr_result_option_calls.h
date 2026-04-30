@@ -45,6 +45,21 @@ llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, LLVMValueRef aggregate,
         llvm_tmp_name(ctx));
 }
 
+static bool
+llvm_result_option_context_struct(LLVMGenCtx *ctx, unsigned field_count,
+                                  LLVMTypeRef *fields_out)
+{
+    if (ctx == NULL || ctx->current_ret_type == NULL)
+        return false;
+    if (LLVMGetTypeKind(ctx->current_ret_type) != LLVMStructTypeKind)
+        return false;
+    if (LLVMCountStructElementTypes(ctx->current_ret_type) != field_count)
+        return false;
+    if (fields_out != NULL)
+        LLVMGetStructElementTypes(ctx->current_ret_type, fields_out);
+    return true;
+}
+
 static LLVMValueRef
 llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
 {    /* Built-in: Ok(value) ??Result<T, E>; prefer active expected layout. */
@@ -52,17 +67,15 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
         LLVMTypeRef result_ty = NULL;
         LLVMTypeRef fields[3];
-        if (ctx->current_ret_type != NULL
-            && LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind
-            && LLVMCountStructElementTypes(ctx->current_ret_type) == 3) {
+        if (llvm_result_option_context_struct(ctx, 3, fields)) {
             result_ty = ctx->current_ret_type;
-            LLVMGetStructElementTypes(result_ty, fields);
         } else {
-            LLVMTypeRef fallback_fields[] = { ctx->type_i32, LLVMTypeOf(val), ctx->type_i8ptr };
-            result_ty = LLVMStructTypeInContext(ctx->context, fallback_fields, 3, 0);
-            fields[0] = fallback_fields[0];
-            fields[1] = fallback_fields[1];
-            fields[2] = fallback_fields[2];
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM Ok(value) requires contextual Result<T, E>; anonymous Result layout fallback is disabled");
+            return LLVMConstInt(ctx->type_i32, 0, 0);
         }
         LLVMValueRef r = LLVMGetUndef(result_ty);
         r = LLVMBuildInsertValue(ctx->builder, r,
@@ -96,17 +109,15 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
         LLVMTypeRef result_ty = NULL;
         LLVMTypeRef fields[3];
-        if (ctx->current_ret_type != NULL
-            && LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind
-            && LLVMCountStructElementTypes(ctx->current_ret_type) == 3) {
+        if (llvm_result_option_context_struct(ctx, 3, fields)) {
             result_ty = ctx->current_ret_type;
-            LLVMGetStructElementTypes(result_ty, fields);
         } else {
-            LLVMTypeRef fallback_fields[] = { ctx->type_i32, ctx->type_i32, ctx->type_i8ptr };
-            result_ty = LLVMStructTypeInContext(ctx->context, fallback_fields, 3, 0);
-            fields[0] = fallback_fields[0];
-            fields[1] = fallback_fields[1];
-            fields[2] = fallback_fields[2];
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM Err(value) requires contextual Result<T, E>; anonymous Result layout fallback is disabled");
+            return LLVMConstInt(ctx->type_i32, 0, 0);
         }
         LLVMValueRef r = LLVMGetUndef(result_ty);
         if (LLVMTypeOf(val) != fields[2]) {
@@ -183,14 +194,17 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
 
     /* Built-in: None() ??{ .tag=PgyOptionNone, .value=zero } */
     if (strcmp(callee_name, "None") == 0 && node->data.call.arg_count == 0) {
-        LLVMTypeRef value_ty = ctx->type_i32;
-        if (LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind
-            && LLVMCountStructElementTypes(ctx->current_ret_type) == 2) {
-            LLVMTypeRef fields[2];
-            LLVMGetStructElementTypes(ctx->current_ret_type, fields);
-            if (fields[0] == ctx->type_i32)
-                value_ty = fields[1];
+        LLVMTypeRef fields[2];
+        if (!llvm_result_option_context_struct(ctx, 2, fields)
+            || fields[0] != ctx->type_i32) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM None() requires contextual Option<T>; Option<Int> fallback is disabled");
+            return LLVMConstInt(ctx->type_i32, 0, 0);
         }
+        LLVMTypeRef value_ty = fields[1];
         LLVMTypeRef option_ty = LLVMStructTypeInContext(ctx->context,
             (LLVMTypeRef[]){ ctx->type_i32, value_ty }, 2, 0);
         LLVMValueRef o = LLVMGetUndef(option_ty);

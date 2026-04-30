@@ -71,6 +71,89 @@ flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return semantic_type_resolution_lookup_annotation_nullable(ctx, type_ref);
 }
 
+static bool
+flow_condition_is_static_bool(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_BOOLEAN;
+}
+
+static bool
+flow_expr_is_static_literal(const ASTNode *node)
+{
+    return node != NULL
+        && (node->type == AST_NUMBER
+            || node->type == AST_STRING
+            || node->type == AST_BOOLEAN);
+}
+
+static bool
+flow_match_subject_is_beta_supported(const Type *type)
+{
+    if (type == NULL || type == TYPE_UNKNOWN)
+        return true;
+    if (type_equals(type, TYPE_INT)
+        || type_equals(type, TYPE_LONG)
+        || type_equals(type, TYPE_BOOL))
+        return true;
+    if (type->kind == TYPE_KIND_ENUM)
+        return true;
+    if (type_is_constructed_named(type, "Option")
+        || type_is_constructed_named(type, "Result"))
+        return true;
+    return false;
+}
+
+static bool
+flow_ast_contains_defer_stmt(const ASTNode *node)
+{
+    if (node == NULL)
+        return false;
+
+    switch (node->type) {
+    case AST_DEFER_STMT:
+        return true;
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.count; i++) {
+            if (flow_ast_contains_defer_stmt(node->data.block.statements[i]))
+                return true;
+        }
+        return false;
+    case AST_IF_STMT:
+        return flow_ast_contains_defer_stmt(node->data.if_stmt.then_branch)
+            || flow_ast_contains_defer_stmt(node->data.if_stmt.else_branch);
+    case AST_WHILE_LOOP:
+        return flow_ast_contains_defer_stmt(node->data.while_loop.body);
+    case AST_FOR_LOOP:
+        return flow_ast_contains_defer_stmt(node->data.for_loop.body);
+    case AST_MATCH_STMT:
+        for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+            if (flow_ast_contains_defer_stmt(node->data.match_stmt.cases[i]))
+                return true;
+        }
+        return flow_ast_contains_defer_stmt(node->data.match_stmt.default_body);
+    case AST_MATCH_CASE:
+        return flow_ast_contains_defer_stmt(node->data.match_case.body);
+    default:
+        return false;
+    }
+}
+
+static void
+flow_reject_dynamic_defer_control(SemanticContext *ctx,
+                                  ASTNode *site,
+                                  const char *control_kind)
+{
+    if (ctx == NULL || site == NULL || ctx->has_error)
+        return;
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_DEFER_DYNAMIC_CONTROL,
+        PGY_CAUSE_DEFER_DYNAMIC_CONTROL,
+        PGY_FIX_MOVE_DEFER_OUTSIDE_DYNAMIC_CONTROL,
+        site,
+        "defer inside dynamic %s control is not beta-stable; move the defer outside the dynamic control or make the control condition compile-time static",
+        control_kind != NULL ? control_kind : "flow");
+}
+
 #include "type_checker_flow_loops.h"
 
 static FlowFlags
@@ -112,6 +195,12 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     FlowFlags then_flags = FLOW_NONE;
     uint32_t then_effect_delta = EFFECT_NONE;
     uint32_t else_effect_delta = EFFECT_NONE;
+
+    if (!flow_condition_is_static_bool(node->data.if_stmt.condition)
+        && (flow_ast_contains_defer_stmt(node->data.if_stmt.then_branch)
+            || flow_ast_contains_defer_stmt(node->data.if_stmt.else_branch))) {
+        flow_reject_dynamic_defer_control(ctx, node, "if");
+    }
 
     if (!type_equals(cond, TYPE_BOOL)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
@@ -189,6 +278,21 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
     ResourceConsumeSnapshot fallthrough = {0};
     bool has_fallthrough = false;
     FlowFlags flags = FLOW_NONE;
+
+    if (flow_ast_contains_defer_stmt(node)
+        && !flow_expr_is_static_literal(node->data.match_stmt.subject)) {
+        flow_reject_dynamic_defer_control(ctx, node, "match");
+    }
+
+    if (!flow_match_subject_is_beta_supported(subj_type)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_MATCH_PATTERN_INVALID,
+            PGY_CAUSE_MATCH_PATTERN_SHAPE,
+            PGY_FIX_ALIGN_PATTERN_ARITY_OR_KIND,
+            node->data.match_stmt.subject,
+            "Match subject type '%s' is not beta-stable; supported subjects are Int, Long, Bool, enum, Option<T>, and Result<T>",
+            subj_type != NULL && subj_type->name != NULL ? subj_type->name : "<unknown>");
+    }
 
     for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
         ASTNode *mc = node->data.match_stmt.cases[i];

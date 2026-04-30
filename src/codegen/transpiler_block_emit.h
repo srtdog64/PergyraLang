@@ -102,8 +102,11 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
         int saved_slot_count = ctx->slot_var_count;
         int saved_typed_count = ctx->typed_var_count;
         int saved_alias_count = ctx->alias_var_count;
+        transpiler_defer_scope_push(ctx);
         for (size_t i = 0; i < node->data.block.count; i++)
             emit_statement(node->data.block.statements[i], ctx);
+
+        transpiler_emit_defers_from(ctx, ctx->defer_scope_depth - 1);
 
         /* Slot sugar: auto-release slot vars declared in this scope (LIFO).
          * Skip slots already explicitly released by the user. */
@@ -125,6 +128,7 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
         transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
                                                       saved_typed_count,
                                                       saved_alias_count);
+        transpiler_defer_scope_pop(ctx);
         if (pin_scope_open) {
             ctx->indent--;
             write_indent(ctx);
