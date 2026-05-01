@@ -9,23 +9,13 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
+#include "type_checker_collection_policy.h"
 #include "diag_codes.h"
 
 static Type *
 stdlib_map_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
-}
-
-static bool
-stdlib_map_key_supported(Type *key_type)
-{
-    return key_type != NULL
-        && key_type->name != NULL
-        && (strcmp(key_type->name, "String") == 0
-            || strcmp(key_type->name, "Int") == 0
-            || strcmp(key_type->name, "Long") == 0
-            || strcmp(key_type->name, "Bool") == 0);
 }
 
 static void
@@ -35,9 +25,16 @@ report_unsupported_map_key(ASTNode *expr, const char *name, Type *map_type,
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
         PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
         expr->data.call.arguments[0],
-        "%s currently supports only HashMap<String, T>, HashMap<Int, T>, "
-        "HashMap<Long, T>, and HashMap<Bool, T>, got '%s'",
-        name, map_type->name != NULL ? map_type->name : "<type>");
+        "%s currently supports only %s, got '%s'",
+        name,
+        type_checker_hashmap_type_policy_text(),
+        map_type->name != NULL ? map_type->name : "<type>");
+}
+
+static bool
+stdlib_map_key_supported(Type *key_type)
+{
+    return type_checker_hashmap_key_supported(key_type);
 }
 
 static void

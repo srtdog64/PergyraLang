@@ -46,7 +46,7 @@ THREAD_LINK_LIB = -lwinpthread
 # routes printf/fprintf/sprintf/snprintf through MinGW's C99-conformant
 # __mingw_vfprintf wrapper so diagnostic messages (e.g. "expects %zu
 # argument(s), got %zu") print correctly and -Wformat validation passes.
-# This is MinGW's own documented opt-in — no effect on Linux/macOS.
+# This is MinGW's own documented opt-in - no effect on Linux/macOS.
 PLATFORM_CFLAGS = -D__USE_MINGW_ANSI_STDIO=1
 endif
 TMPDIR ?= /tmp
@@ -93,8 +93,8 @@ endif
 
 # -----------------------------------------------------------------
 # LLVM backend (enabled by default)
-#   make                         — build with LLVM native backend (default)
-#   make LLVM_ENABLED=0          — build without LLVM (C transpiler only)
+#   make                         - build with LLVM native backend (default)
+#   make LLVM_ENABLED=0          - build without LLVM (C transpiler only)
 # -----------------------------------------------------------------
 LLVM_DIR     = third_party
 LLVM_INSTALL = C:/Program Files/LLVM
@@ -173,6 +173,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_enum.c \
                    $(PARSER_DIR)/parser_export.c \
                    $(PARSER_DIR)/parser_expr.c \
+                   $(PARSER_DIR)/parser_expr_string.c \
                    $(PARSER_DIR)/parser_pin.c \
                    $(PARSER_DIR)/parser_stmt.c \
                    $(PARSER_DIR)/parser_statement_dispatch.c \
@@ -183,6 +184,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_decl_function_clause.c \
                    $(PARSER_DIR)/parser_decl_start.c \
                    $(PARSER_DIR)/parser_intent.c \
+                   $(PARSER_DIR)/parser_intent_step.c \
                    $(PARSER_DIR)/parser_domain.c \
                    $(PARSER_DIR)/parser_domain_event.c \
                    $(PARSER_DIR)/parser_domain_projection.c \
@@ -266,6 +268,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ability_decl.c \
                    $(SEMANTIC_DIR)/type_checker_world_decl.c \
                    $(SEMANTIC_DIR)/type_checker_world_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_world_state.c \
                    $(SEMANTIC_DIR)/type_checker_domain_slots.c \
                    $(SEMANTIC_DIR)/type_checker_intent_decl.c \
                    $(SEMANTIC_DIR)/type_checker_intent_action_contract.c \
@@ -299,6 +302,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_destructure.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_let_slot_claim.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_param_summary.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_return.c \
                     $(SEMANTIC_DIR)/type_checker_channel_transport.c \
@@ -316,12 +320,17 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_nominal.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_query.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_query_channel.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_channel_state.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_state_tools.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_query_domain.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_query_world.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_resolve.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_secure_token.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_device_slot.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_slotops.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_slotops_view.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_cancel.c \
+                   $(SEMANTIC_DIR)/type_checker_collection_policy.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_scalar.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_map.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_collections.c \
@@ -345,11 +354,15 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \
                    $(SEMANTIC_DIR)/slot_analyzer.c \
+                   $(SEMANTIC_DIR)/slot_analyzer_builtin.c \
                    $(SEMANTIC_DIR)/slot_analyzer_escape.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
+                   $(CODEGEN_DIR)/codegen_hashmap_key_policy.c \
+                   $(CODEGEN_DIR)/codegen_slot_type_policy.c \
                    $(CODEGEN_DIR)/intent_observability_usage.c \
+                   $(CODEGEN_DIR)/transpiler_builtin_type_table.c \
                    $(CODEGEN_DIR)/transpiler_entry.c \
                    $(CODEGEN_DIR)/transpiler_symbols.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \
@@ -462,6 +475,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_expr_helpers.c \
                          $(CODEGEN_DIR)/llvm_stmt.c \
                          $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
+                         $(CODEGEN_DIR)/llvm_stmt_type_infer_helpers.c \
                          $(CODEGEN_DIR)/llvm_stmt_let_callable.c \
                          $(CODEGEN_DIR)/llvm_stmt_let_collections.c \
                          $(CODEGEN_DIR)/llvm_stmt_let_helpers.c \
@@ -676,7 +690,7 @@ ABI_PERF_LINKER_ENV =
 endif
 
 # -----------------------------------------------------------------
-# Default target — build the driver and all tests
+# Default target - build the driver and all tests
 # -----------------------------------------------------------------
 all: $(PGY) $(PGY_LSP) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST) $(HIR_TEST)
 
@@ -1047,6 +1061,9 @@ build-source-inventory-test-smoke:
 	if [ "$$missing" -ne 0 ]; then exit 1; fi; \
 	echo "[build-source-inventory] Makefile source inventory ok"
 
+source-utf8-test-smoke:
+	"$(BASH)" tests/source_utf8_smoke.sh
+
 observability-schema-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/observability_schema_smoke.sh
 
@@ -1238,6 +1255,7 @@ check-macos-toolchain:
 ci-linux:
 	$(MAKE) check-linux-toolchain
 	$(MAKE) build-source-inventory-test-smoke
+	$(MAKE) source-utf8-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-smoke
@@ -1299,6 +1317,7 @@ ci-linux:
 ci-macos:
 	$(MAKE) check-macos-toolchain
 	$(MAKE) build-source-inventory-test-smoke
+	$(MAKE) source-utf8-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" test-all
 	PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" fmt-test-smoke
@@ -1338,6 +1357,7 @@ check-windows-toolchain:
 ci-windows:
 	$(MAKE) check-windows-toolchain
 	$(MAKE) build-source-inventory-test-smoke
+	$(MAKE) source-utf8-test-smoke
 	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" clean
 	$(MAKE) beta-test-suite-freeze-test-smoke
 	$(MAKE) documentation-quality-test-smoke

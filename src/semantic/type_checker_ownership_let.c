@@ -26,7 +26,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     const char *name = node->data.let_decl.name;
     ASTNode *init = node->data.let_decl.initializer;
     ASTNode *ann = node->data.let_decl.type;
-    bool is_slot_decl = false;
+    bool handled_slot_claim = false;
     Type *init_type;
     Type *decl_type;
 
@@ -41,91 +41,12 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     }
 
-    /*
-     * Detect ClaimSlot / ClaimSecureSlot calls so we can register
-     * a SYMBOL_SLOT with proper metadata.
-     */
-    if (init != NULL && init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER) {
-        const char *callee_name =
-            init->data.call.callee->data.identifier.name;
-        BuiltinKind bk = builtin_resolve(callee_name);
-
-        if (bk == BUILTIN_CLAIM_SLOT || bk == BUILTIN_CLAIM_SECURE_SLOT) {
-            bool is_secure = (bk == BUILTIN_CLAIM_SECURE_SLOT);
-            Type *slot_type = NULL;
-            char token_name_buf[256];
-            const char *paired_token = NULL;
-            Symbol *sym;
-
-            is_slot_decl = true;
-            if (is_secure)
-                semantic_record_effect(ctx, EFFECT_SECURE);
-
-            /* Resolve inner type from annotation if present.
-             * If the annotation is already a Slot type (e.g. Slot<String>),
-             * use it directly instead of double-wrapping. */
-            if (ann != NULL) {
-                Type *ann_type = ownership_let_resolve_type_ref(ann, ctx);
-                if (ann_type == NULL)
-                    ann_type = TYPE_UNKNOWN;
-                if (ann_type->kind == TYPE_KIND_SLOT) {
-                    slot_type = ann_type;
-                    is_secure = ann_type->data.slot.is_secure;
-                } else {
-                    slot_type = type_create_slot(ann_type, is_secure);
-                }
-            } else {
-                Type *inner_type =
-                    ownership_let_resolve_first_call_type_arg(init, ctx);
-                if (inner_type == NULL || inner_type == TYPE_UNKNOWN) {
-                    semantic_error_with_hints(ctx,
-                        PGY_CODE_SEM_INFER_REQUIRED,
-                        PGY_CAUSE_INFER_NO_SOURCE,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        init,
-                        "Cannot infer %s<T> from %s without a type argument or annotation.\n"
-                        "Reason:\n"
-                        "- %s allocates a resource but carries no payload value\n"
-                        "- defaulting the slot payload to Int would discard generic evidence\n"
-                        "Fix:\n"
-                        "- write 'let %s: %s<T> = %s()' with a concrete T\n"
-                        "- or call '%s<T>()' with a concrete T",
-                        is_secure ? "SecureSlot" : "Slot",
-                        callee_name,
-                        callee_name,
-                        name != NULL ? name : "slot",
-                        is_secure ? "SecureSlot" : "Slot",
-                        callee_name,
-                        callee_name);
-                    inner_type = TYPE_UNKNOWN;
-                }
-                slot_type = type_create_slot(inner_type, is_secure);
-            }
-
-            if (is_secure) {
-                snprintf(token_name_buf, sizeof(token_name_buf), "%s_token", name);
-                paired_token = token_name_buf;
-            }
-            sym = symbol_create_slot(name, slot_type, is_secure, paired_token,
-                                     node->line, node->column);
-            scope_declare(ctx->scope, sym);
-            if (is_secure) {
-                Symbol *tok = symbol_create_token(paired_token, name,
-                                                  node->line, node->column);
-                if (tok != NULL && slot_type != NULL
-                    && slot_type->kind == TYPE_KIND_SLOT) {
-                    Type *token_args[1] = { slot_type->data.slot.inner_type };
-                    tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
-                }
-                if (!scope_declare(ctx->scope, tok))
-                    symbol_destroy(tok);
-            }
-            scope_register_slot(ctx->scope, sym);
-            return true;
-        }
+    if (!ownership_let_try_claim_slot_decl(node, ctx, name, init, ann,
+                                           &handled_slot_claim)) {
+        return false;
     }
+    if (handled_slot_claim)
+        return true;
 
     /* Normal variable declaration with type inference */
     init_type = (init != NULL)
@@ -587,8 +508,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    if (!is_slot_decl)
-        scope_declare(ctx->scope, sym);
+    scope_declare(ctx->scope, sym);
 
     return !ctx->has_error;
 }

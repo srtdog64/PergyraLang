@@ -22,6 +22,93 @@ parser_match_domain_layer_group_kind(Parser *parser)
     return DOMAIN_LAYER_GROUP_NONE;
 }
 
+static bool
+parser_append_owned_string(Parser *parser, char ***items, size_t *count,
+                           const char *text)
+{
+    char **grown;
+    char *owned;
+    size_t next_count;
+
+    if (parser == NULL || items == NULL || count == NULL)
+        return false;
+    owned = pergyra_strdup(text);
+    if (owned == NULL) {
+        parser_error(parser, "Out of memory while parsing projection name");
+        return false;
+    }
+
+    next_count = *count + 1;
+    grown = malloc(next_count * sizeof(char *));
+    if (grown == NULL) {
+        free(owned);
+        parser_error(parser, "Out of memory while growing projection name list");
+        return false;
+    }
+
+    if (*items != NULL && *count > 0)
+        memcpy(grown, *items, *count * sizeof(char *));
+    grown[next_count - 1] = owned;
+    free(*items);
+    *items = grown;
+    *count = next_count;
+    return true;
+}
+
+static bool
+parser_append_projection_field_map(Parser *parser,
+                                   char ***target_fields,
+                                   char ***source_fields,
+                                   size_t *count,
+                                   const char *target_text,
+                                   const char *source_text)
+{
+    char **grown_targets;
+    char **grown_sources;
+    char *owned_target;
+    char *owned_source;
+    size_t next_count;
+
+    if (parser == NULL || target_fields == NULL || source_fields == NULL
+        || count == NULL) {
+        return false;
+    }
+
+    owned_target = pergyra_strdup(target_text);
+    owned_source = pergyra_strdup(source_text);
+    if (owned_target == NULL || owned_source == NULL) {
+        free(owned_target);
+        free(owned_source);
+        parser_error(parser, "Out of memory while parsing projection map");
+        return false;
+    }
+
+    next_count = *count + 1;
+    grown_targets = malloc(next_count * sizeof(char *));
+    grown_sources = malloc(next_count * sizeof(char *));
+    if (grown_targets == NULL || grown_sources == NULL) {
+        free(grown_targets);
+        free(grown_sources);
+        free(owned_target);
+        free(owned_source);
+        parser_error(parser, "Out of memory while growing projection map");
+        return false;
+    }
+
+    if (*target_fields != NULL && *count > 0)
+        memcpy(grown_targets, *target_fields, *count * sizeof(char *));
+    if (*source_fields != NULL && *count > 0)
+        memcpy(grown_sources, *source_fields, *count * sizeof(char *));
+    grown_targets[next_count - 1] = owned_target;
+    grown_sources[next_count - 1] = owned_source;
+    free(*target_fields);
+    free(*source_fields);
+    *target_fields = grown_targets;
+    *source_fields = grown_sources;
+    *count = next_count;
+    return true;
+}
+
 static void
 parser_parse_projection_field_map(Parser *parser,
                                   char ***mapped_target_fields,
@@ -50,15 +137,11 @@ parser_parse_projection_field_map(Parser *parser,
 
         if (mapped_target_fields != NULL && mapped_source_fields != NULL
             && field_map_count != NULL) {
-            *mapped_target_fields = realloc(*mapped_target_fields,
-                sizeof(char *) * (*field_map_count + 1));
-            *mapped_source_fields = realloc(*mapped_source_fields,
-                sizeof(char *) * (*field_map_count + 1));
-            (*mapped_target_fields)[*field_map_count] =
-                pergyra_strdup(target_field.text);
-            (*mapped_source_fields)[*field_map_count] =
-                pergyra_strdup(source_field.text);
-            (*field_map_count)++;
+            if (!parser_append_projection_field_map(parser,
+                    mapped_target_fields, mapped_source_fields,
+                    field_map_count, target_field.text, source_field.text)) {
+                break;
+            }
         }
 
         parser_match(parser, TOKEN_SEMICOLON);
@@ -100,8 +183,10 @@ append_domain_projection_sync_entries(Parser *parser,
                     : (requires_dto
                         ? "Expected tobject slot name in publish group"
                         : "Expected object slot name in refresh group"));
-            target_names = realloc(target_names, sizeof(char *) * (target_count + 1));
-            target_names[target_count++] = pergyra_strdup(target_name.text);
+            if (!parser_append_owned_string(parser, &target_names,
+                    &target_count, target_name.text)) {
+                break;
+            }
             if (target_count == 1) {
                 first_line = target_name.line;
                 first_column = target_name.column;
@@ -116,8 +201,10 @@ append_domain_projection_sync_entries(Parser *parser,
                 : (requires_dto
                     ? "Expected tobject slot name after 'publish'"
                     : "Expected object slot name after 'refresh'"));
-        target_names = realloc(target_names, sizeof(char *));
-        target_names[target_count++] = pergyra_strdup(target_name.text);
+        if (!parser_append_owned_string(parser, &target_names,
+                &target_count, target_name.text)) {
+            return;
+        }
         first_line = target_name.line;
         first_column = target_name.column;
     }

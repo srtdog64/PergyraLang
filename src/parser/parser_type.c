@@ -94,6 +94,150 @@ consume_member_name_token(Parser* parser, const char* message)
     return parser_consume(parser, TOKEN_IDENTIFIER, message);
 }
 
+static bool
+parser_append_generic_param(Parser *parser, GenericParams *params, GenericParam *param)
+{
+    GenericParam **grown;
+    size_t next_count;
+
+    if (params == NULL)
+        return false;
+
+    next_count = params->count + 1;
+    grown = realloc(params->params, next_count * sizeof(GenericParam *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while appending generic parameter");
+        return false;
+    }
+
+    grown[params->count] = param;
+    params->params = grown;
+    params->count = next_count;
+    return true;
+}
+
+static void
+parser_free_generic_param(GenericParam *param)
+{
+    if (param == NULL)
+        return;
+
+    free(param->name);
+    ast_destroy(param->constraint);
+    ast_destroy(param->default_type);
+    free(param);
+}
+
+static bool
+parser_append_type_bound(Parser *parser, TypeConstraint *constraint, ASTNode *bound)
+{
+    ASTNode **grown;
+    size_t next_count;
+
+    if (constraint == NULL)
+        return false;
+
+    next_count = constraint->bound_count + 1;
+    grown = realloc(constraint->bounds, next_count * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while appending type bound");
+        return false;
+    }
+
+    grown[constraint->bound_count] = bound;
+    constraint->bounds = grown;
+    constraint->bound_count = next_count;
+    return true;
+}
+
+static bool
+parser_append_where_constraint(Parser *parser, WhereClause *where, TypeConstraint *constraint)
+{
+    TypeConstraint **grown;
+    size_t next_count;
+
+    if (where == NULL)
+        return false;
+
+    next_count = where->count + 1;
+    grown = realloc(where->constraints, next_count * sizeof(TypeConstraint *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while appending where constraint");
+        return false;
+    }
+
+    grown[where->count] = constraint;
+    where->constraints = grown;
+    where->count = next_count;
+    return true;
+}
+
+static void
+parser_free_type_constraint(TypeConstraint *constraint)
+{
+    size_t i;
+
+    if (constraint == NULL)
+        return;
+
+    free(constraint->type_param);
+    for (i = 0; i < constraint->bound_count; i++)
+        ast_destroy(constraint->bounds[i]);
+    free(constraint->bounds);
+    free(constraint);
+}
+
+static bool
+parser_append_type_node(Parser *parser, ASTNode ***items, size_t *count, ASTNode *item)
+{
+    ASTNode **grown;
+    size_t next_count;
+
+    if (items == NULL || count == NULL)
+        return false;
+
+    next_count = *count + 1;
+    grown = realloc(*items, next_count * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while appending type node");
+        return false;
+    }
+
+    grown[*count] = item;
+    *items = grown;
+    *count = next_count;
+    return true;
+}
+
+static bool
+parser_append_type_node_with_capacity(Parser *parser,
+                                      ASTNode ***items,
+                                      size_t *count,
+                                      size_t *capacity,
+                                      ASTNode *item)
+{
+    ASTNode **grown;
+    size_t next_capacity;
+
+    if (items == NULL || count == NULL || capacity == NULL)
+        return false;
+
+    if (*count >= *capacity) {
+        next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        grown = realloc(*items, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while growing type node list");
+            return false;
+        }
+        *items = grown;
+        *capacity = next_capacity;
+    }
+
+    (*items)[*count] = item;
+    (*count)++;
+    return true;
+}
+
 // ============= 제네릭 파싱 =============
 
 // 제네릭 파라미터 파싱: <T, U: Trait, V = Default>
@@ -122,9 +266,10 @@ GenericParams* parse_generic_params(Parser* parser) {
         }
 
         // 파라미터 추가
-        params->count++;
-        params->params = realloc(params->params, params->count * sizeof(GenericParam*));
-        params->params[params->count - 1] = param;
+        if (!parser_append_generic_param(parser, params, param)) {
+            parser_free_generic_param(param);
+            break;
+        }
 
         if (!parser_match(parser, TOKEN_COMMA)) break;
     }
@@ -156,9 +301,10 @@ GenericParams* parse_type_arguments(Parser* parser) {
         }
         param->constraint = arg_type;
 
-        params->count++;
-        params->params = realloc(params->params, params->count * sizeof(GenericParam*));
-        params->params[params->count - 1] = param;
+        if (!parser_append_generic_param(parser, params, param)) {
+            parser_free_generic_param(param);
+            break;
+        }
 
         if (!parser_match(parser, TOKEN_COMMA)) break;
     }
@@ -178,6 +324,7 @@ WhereClause* parse_where_clause(Parser* parser) {
 
     do {
         TypeConstraint* constraint = calloc(1, sizeof(TypeConstraint));
+        bool constraint_ok = true;
 
         // 타입 파라미터
         Token param = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type parameter");
@@ -191,17 +338,18 @@ WhereClause* parse_where_clause(Parser* parser) {
 
         do {
             ASTNode* trait = parse_type(parser);
-            constraint->bound_count++;
-            constraint->bounds = realloc(constraint->bounds,
-                                       constraint->bound_count * sizeof(ASTNode*));
-            constraint->bounds[constraint->bound_count - 1] = trait;
+            if (!parser_append_type_bound(parser, constraint, trait)) {
+                ast_destroy(trait);
+                constraint_ok = false;
+                break;
+            }
         } while (parser_match(parser, TOKEN_PLUS));
 
         // 제약조건 추가
-        where->count++;
-        where->constraints = realloc(where->constraints,
-                                   where->count * sizeof(TypeConstraint*));
-        where->constraints[where->count - 1] = constraint;
+        if (!constraint_ok || !parser_append_where_constraint(parser, where, constraint)) {
+            parser_free_type_constraint(constraint);
+            break;
+        }
 
     } while (parser_match(parser, TOKEN_COMMA));
 
@@ -218,12 +366,13 @@ ASTNode* parse_type(Parser* parser) {
 
         while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
             ASTNode *param_type = parse_type(parser);
-            handler_type->data.event_handler_type.param_count++;
-            handler_type->data.event_handler_type.param_types = realloc(
-                handler_type->data.event_handler_type.param_types,
-                handler_type->data.event_handler_type.param_count * sizeof(ASTNode *));
-            handler_type->data.event_handler_type.param_types[
-                handler_type->data.event_handler_type.param_count - 1] = param_type;
+            if (!parser_append_type_node(parser,
+                    &handler_type->data.event_handler_type.param_types,
+                    &handler_type->data.event_handler_type.param_count,
+                    param_type)) {
+                ast_destroy(param_type);
+                break;
+            }
 
             if (!parser_match(parser, TOKEN_COMMA))
                 break;
@@ -250,11 +399,14 @@ ASTNode* parse_type(Parser* parser) {
 
         while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
             ASTNode *elem = parse_type(parser);
-            if (element_count == element_cap) {
-                element_cap = element_cap == 0 ? 4 : element_cap * 2;
-                elements = realloc(elements, element_cap * sizeof(ASTNode *));
+            if (!parser_append_type_node_with_capacity(parser,
+                    &elements,
+                    &element_count,
+                    &element_cap,
+                    elem)) {
+                ast_destroy(elem);
+                break;
             }
-            elements[element_count++] = elem;
             if (!parser_match(parser, TOKEN_COMMA))
                 break;
         }

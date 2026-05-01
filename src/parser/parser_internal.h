@@ -57,6 +57,8 @@ ASTNode *parse_multiplication(Parser *parser);
 ASTNode *parse_unary(Parser *parser);
 ASTNode *finish_call(Parser *parser, ASTNode *callee);
 ASTNode *parse_lambda_expression(Parser *parser);
+bool     is_multiline_string_token(const char *value);
+ASTNode *parse_interpolation_body(const char *raw, bool is_fstring);
 
 /* --- Parser local surface helpers (parser_pin.c / parser_zone_context.c) --- */
 bool     parser_is_exportable_decl(ASTNode *node);
@@ -107,6 +109,11 @@ ASTNode *parse_party_declaration(Parser *parser);
 ASTNode *parse_roster_declaration(Parser *parser);
 ASTNode *parse_world_declaration(Parser *parser);
 ASTNode *parse_intent_declaration(Parser *parser);
+ASTNode *parse_intent_step(Parser *parser);
+bool parser_intent_match_keyword(Parser *parser, const char *keyword);
+void intent_append_node(ASTNode ***items, size_t *count, ASTNode *node);
+void parse_intent_name_list(Parser *parser, char ***items, size_t *count,
+                            const char *message);
 ASTNode *parse_relation_declaration(Parser *parser);
 ASTNode *parse_effect_declaration(Parser *parser);
 ASTNode *parse_zone_declaration(Parser *parser);

@@ -1,6 +1,8 @@
 /* Slot-related let-declaration lowering helpers.
  * Included inside transpiler.c before transpiler_let_emit.h. */
 
+#include "codegen_slot_type_policy.h"
+
 static const char *
 transpiler_let_slot_inner_from_annotation(ASTNode *ann)
 {
@@ -152,10 +154,7 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
         return false;
 
     const char *ann_name = ann->data.type.name;
-    if (!(strcmp(ann_name, "ReadView") == 0
-          || strncmp(ann_name, "ReadView<", 9) == 0
-          || strcmp(ann_name, "WriteView") == 0
-          || strncmp(ann_name, "WriteView<", 10) == 0
+    if (!(pgy_codegen_type_name_is_view(ann_name)
           || strcmp(ann_name, "MoveToken") == 0
           || strncmp(ann_name, "MoveToken<", 10) == 0)
         || init == NULL || init->type != AST_CALL
@@ -169,8 +168,7 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
 
     const char *callee_name = init->data.call.callee->data.identifier.name;
     const char *source_name = init->data.call.arguments[0]->data.identifier.name;
-    bool is_view_decl = (strcmp(callee_name, "ViewRead") == 0
-                      || strcmp(callee_name, "ViewWrite") == 0);
+    bool is_view_decl = pgy_codegen_call_name_is_view_constructor(callee_name);
     bool is_move_decl = strcmp(callee_name, "Move") == 0;
     if (!is_view_decl && !is_move_decl)
         return false;

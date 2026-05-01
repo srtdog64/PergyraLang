@@ -6,6 +6,62 @@
 
 #include "parser_internal.h"
 
+static bool
+parser_append_async_param(Parser *parser, ASTNode *func, FuncParam *param)
+{
+    FuncParam **grown;
+    size_t next_count;
+
+    if (parser == NULL || func == NULL || param == NULL)
+        return false;
+
+    if (func->data.async_func_decl.param_count >= (size_t)-1 / sizeof(FuncParam *)) {
+        parser_error(parser, "Too many async function parameters");
+        return false;
+    }
+
+    next_count = func->data.async_func_decl.param_count + 1;
+    grown = realloc(func->data.async_func_decl.params,
+                    next_count * sizeof(FuncParam *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing async function parameters");
+        return false;
+    }
+
+    func->data.async_func_decl.params = grown;
+    func->data.async_func_decl.params[func->data.async_func_decl.param_count] = param;
+    func->data.async_func_decl.param_count = next_count;
+    return true;
+}
+
+static bool
+parser_append_async_node(Parser *parser, ASTNode ***nodes, size_t *count,
+                         ASTNode *node, const char *error_message)
+{
+    ASTNode **grown;
+    size_t next_count;
+
+    if (parser == NULL || nodes == NULL || count == NULL || node == NULL)
+        return false;
+
+    if (*count >= (size_t)-1 / sizeof(ASTNode *)) {
+        parser_error(parser, error_message);
+        return false;
+    }
+
+    next_count = *count + 1;
+    grown = realloc(*nodes, next_count * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, error_message);
+        return false;
+    }
+
+    *nodes = grown;
+    (*nodes)[*count] = node;
+    *count = next_count;
+    return true;
+}
+
 // Parse async function declaration
 ASTNode* parser_parse_async_function(Parser* parser)
 {
@@ -53,12 +109,7 @@ ASTNode* parser_parse_async_function(Parser* parser)
             param->type = param_type;
         }
         
-        func->data.async_func_decl.param_count++;
-        func->data.async_func_decl.params = realloc(
-            func->data.async_func_decl.params,
-            func->data.async_func_decl.param_count * sizeof(FuncParam*)
-        );
-        func->data.async_func_decl.params[func->data.async_func_decl.param_count - 1] = param;
+        parser_append_async_param(parser, func, param);
         
         if (!parser_match(parser, TOKEN_COMMA)) break;
     }
@@ -107,13 +158,10 @@ ASTNode* parser_parse_async_block(Parser* parser)
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         ASTNode* stmt = parser_parse_statement(parser);
         if (stmt != NULL) {
-            block->data.async_block.statement_count++;
-            block->data.async_block.statements = realloc(
-                block->data.async_block.statements,
-                block->data.async_block.statement_count * sizeof(ASTNode*)
-            );
-            block->data.async_block.statements[
-                block->data.async_block.statement_count - 1] = stmt;
+            parser_append_async_node(parser, &block->data.async_block.statements,
+                                     &block->data.async_block.statement_count,
+                                     stmt,
+                                     "Out of memory while parsing async block");
         }
         if (parser->has_error) {
             parser_synchronize(parser);
@@ -280,12 +328,10 @@ ASTNode* parser_parse_select_statement(Parser* parser)
             }
             
             // Add case to select statement
-            select_stmt->data.select_stmt.case_count++;
-            select_stmt->data.select_stmt.cases = realloc(
-                select_stmt->data.select_stmt.cases,
-                select_stmt->data.select_stmt.case_count * sizeof(ASTNode*)
-            );
-            select_stmt->data.select_stmt.cases[select_stmt->data.select_stmt.case_count - 1] = case_node;
+            parser_append_async_node(parser, &select_stmt->data.select_stmt.cases,
+                                     &select_stmt->data.select_stmt.case_count,
+                                     case_node,
+                                     "Out of memory while parsing select cases");
             
         } else if (parser_match(parser, TOKEN_DEFAULT)) {
             // Default case

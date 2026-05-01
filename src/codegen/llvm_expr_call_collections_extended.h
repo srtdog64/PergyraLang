@@ -1,4 +1,36 @@
 #include "llvm_expr_call_collections_queue_extended.h"
+#include "codegen_hashmap_key_policy.h"
+
+static LLVMFuncEntry *
+llvm_lookup_hashmap_raw_export(LLVMGenCtx *ctx,
+                               const char *operation,
+                               const char *key_name)
+{
+    char export_name[64];
+
+    if (!pgy_hashmap_key_raw_export_name(operation, key_name,
+            export_name, sizeof(export_name))) {
+        return NULL;
+    }
+    return llvm_lookup_function(ctx, export_name);
+}
+
+static LLVMTypeRef
+llvm_hashmap_key_array_type(LLVMGenCtx *ctx, const char *key_name)
+{
+    switch (pgy_hashmap_key_kind_from_name(key_name)) {
+    case PGY_HASHMAP_KEY_INT:
+        return ctx->array_type_Int;
+    case PGY_HASHMAP_KEY_LONG:
+        return ctx->array_type_Long;
+    case PGY_HASHMAP_KEY_BOOL:
+        return ctx->array_type_Bool;
+    case PGY_HASHMAP_KEY_STRING:
+    case PGY_HASHMAP_KEY_UNKNOWN:
+        return ctx->array_type_String;
+    }
+    return ctx->array_type_String;
+}
 
 static bool
 llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
@@ -228,35 +260,15 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         tmp = llvm_create_entry_alloca(ctx, value_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, value, tmp);
-        fn = llvm_lookup_function(ctx,
-            key_name != NULL && strcmp(key_name, "Int") == 0
-                ? "pgy_map_set_raw_i32_export"
-                : key_name != NULL && strcmp(key_name, "Long") == 0
-                    ? "pgy_map_set_raw_i64_export"
-                    : key_name != NULL && strcmp(key_name, "Bool") == 0
-                        ? "pgy_map_set_raw_bool_export"
-                        : "pgy_map_set_raw_export");
+        fn = llvm_lookup_hashmap_raw_export(ctx, "set", key_name);
         if (fn != NULL) {
-            if (key_name != NULL
-                && (strcmp(key_name, "Int") == 0
-                    || strcmp(key_name, "Long") == 0
-                    || strcmp(key_name, "Bool") == 0)) {
-                LLVMValueRef args[] = {
-                    LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                    key,
-                    LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                    llvm_sizeof_type_i64(ctx, value_ty)
-                };
-                LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
-            } else {
-                LLVMValueRef args[] = {
-                    LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                    key,
-                    LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                    llvm_sizeof_type_i64(ctx, value_ty)
-                };
-                LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
-            }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                key,
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, value_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
         }
         { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
     }
@@ -286,15 +298,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
         tmp = llvm_create_entry_alloca(ctx, value_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstNull(value_ty), tmp);
-        fn = llvm_lookup_function(ctx,
-            key_name != NULL && strcmp(key_name, "Int") == 0
-                ? "pgy_map_get_raw_i32_export"
-
-                : key_name != NULL && strcmp(key_name, "Long") == 0
-                    ? "pgy_map_get_raw_i64_export"
-                    : key_name != NULL && strcmp(key_name, "Bool") == 0
-                        ? "pgy_map_get_raw_bool_export"
-                        : "pgy_map_get_raw_export");
+        fn = llvm_lookup_hashmap_raw_export(ctx, "get", key_name);
         if (fn != NULL) {
             LLVMValueRef args[] = {
                 LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
@@ -318,14 +322,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
         key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
         key = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        fn = llvm_lookup_function(ctx,
-            key_name != NULL && strcmp(key_name, "Int") == 0
-                ? "pgy_map_has_raw_i32_export"
-                : key_name != NULL && strcmp(key_name, "Long") == 0
-                    ? "pgy_map_has_raw_i64_export"
-                    : key_name != NULL && strcmp(key_name, "Bool") == 0
-                        ? "pgy_map_has_raw_bool_export"
-                        : "pgy_map_has_raw_export");
+        fn = llvm_lookup_hashmap_raw_export(ctx, "has", key_name);
         if (map_var == NULL || key == NULL || fn == NULL)
             { *out = LLVMConstInt(ctx->type_i1, 0, 0); return true; }
         {
@@ -357,14 +354,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (value_ty == NULL)
             return true;
         key = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        fn = llvm_lookup_function(ctx,
-            key_name != NULL && strcmp(key_name, "Int") == 0
-                ? "pgy_map_remove_raw_i32_export"
-                : key_name != NULL && strcmp(key_name, "Long") == 0
-                    ? "pgy_map_remove_raw_i64_export"
-                    : key_name != NULL && strcmp(key_name, "Bool") == 0
-                        ? "pgy_map_remove_raw_bool_export"
-                        : "pgy_map_remove_raw_export");
+        fn = llvm_lookup_hashmap_raw_export(ctx, "remove", key_name);
         if (key == NULL || fn == NULL)
             { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
         {
@@ -407,25 +397,12 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             { *out = LLVMConstNull(ctx->array_type_String); return true; }
         map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
         key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
-        array_ty = (key_name != NULL && strcmp(key_name, "Int") == 0)
-            ? ctx->array_type_Int
-            : (key_name != NULL && strcmp(key_name, "Long") == 0)
-                ? ctx->array_type_Long
-                : (key_name != NULL && strcmp(key_name, "Bool") == 0)
-                    ? ctx->array_type_Bool
-                    : ctx->array_type_String;
+        array_ty = llvm_hashmap_key_array_type(ctx, key_name);
         if (map_var == NULL)
             { *out = LLVMConstNull(array_ty); return true; }
         tmp = llvm_create_entry_alloca(ctx, array_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstNull(array_ty), tmp);
-        fn = llvm_lookup_function(ctx,
-            key_name != NULL && strcmp(key_name, "Int") == 0
-                ? "pgy_map_keys_raw_i32_export"
-                : key_name != NULL && strcmp(key_name, "Long") == 0
-                    ? "pgy_map_keys_raw_i64_export"
-                    : key_name != NULL && strcmp(key_name, "Bool") == 0
-                        ? "pgy_map_keys_raw_bool_export"
-                        : "pgy_map_keys_raw_export");
+        fn = llvm_lookup_hashmap_raw_export(ctx, "keys", key_name);
         if (fn != NULL) {
             LLVMValueRef args[] = {
                 LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),

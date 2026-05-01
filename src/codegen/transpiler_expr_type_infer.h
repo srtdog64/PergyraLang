@@ -1,3 +1,7 @@
+﻿#include "transpiler_builtin_type_table.h"
+
+#include "codegen_slot_type_policy.h"
+
 static const char *
 infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
@@ -153,22 +157,15 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             const char *method_name = expr->data.call.callee->data.member.name;
             const char *receiver_type = infer_expression_type_name(ctx, receiver);
             if (receiver_type != NULL && method_name != NULL) {
-                if ((strncmp(receiver_type, "Slot<", 5) == 0
-                     || strncmp(receiver_type, "SecureSlot<", 11) == 0
-                     || strncmp(receiver_type, "ReadView<", 9) == 0
-                     || strncmp(receiver_type, "WriteView<", 10) == 0)
+                if (pgy_codegen_type_name_is_slot_or_view(receiver_type)
                     && strcmp(method_name, "Read") == 0) {
                     return slot_inner_type_name(receiver_type);
                 }
-                if ((strncmp(receiver_type, "DeviceSlot<", 11) == 0)
+                if (pgy_codegen_type_name_is_device_slot(receiver_type)
                     && strcmp(method_name, "Read") == 0) {
                     return slot_inner_type_name(receiver_type);
                 }
-                if (((strncmp(receiver_type, "Slot<", 5) == 0
-                      || strncmp(receiver_type, "SecureSlot<", 11) == 0
-                      || strncmp(receiver_type, "ReadView<", 9) == 0
-                      || strncmp(receiver_type, "WriteView<", 10) == 0
-                      || strncmp(receiver_type, "DeviceSlot<", 11) == 0))
+                if (pgy_codegen_type_name_is_slot_family(receiver_type)
                     && (strcmp(method_name, "Write") == 0
                         || strcmp(method_name, "Release") == 0)) {
                     return "Void";
@@ -203,6 +200,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             && expr->data.call.callee->type == AST_IDENTIFIER
             && expr->data.call.callee->data.identifier.name != NULL) {
             const char *name = expr->data.call.callee->data.identifier.name;
+            const char *simple_type = NULL;
             if (strcmp(name, "Min") == 0
                 || strcmp(name, "Max") == 0
                 || strcmp(name, "Abs") == 0
@@ -215,38 +213,6 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return "Int";
             }
-            if (strcmp(name, "ToInt") == 0)
-                return "Int";
-            if (strcmp(name, "ToFloat") == 0)
-                return "Float";
-            if (strcmp(name, "Floor") == 0
-                || strcmp(name, "Ceil") == 0
-                || strcmp(name, "Sqrt") == 0
-                || strcmp(name, "Pow") == 0)
-                return "Float";
-            if (strcmp(name, "Replace") == 0
-                || strcmp(name, "Trim") == 0
-                || strcmp(name, "Upper") == 0
-                || strcmp(name, "Lower") == 0
-                || strcmp(name, "Join") == 0)
-                return "String";
-            if (strcmp(name, "Split") == 0)
-                return "Array<String>";
-            if (strcmp(name, "Length") == 0
-                || strcmp(name, "Random") == 0)
-                return "Int";
-            if (strcmp(name, "FileOpen") == 0)
-                return "Int";
-            if (strcmp(name, "FileRead") == 0)
-                return "String";
-            if (strcmp(name, "FileWrite") == 0
-                || strcmp(name, "FileClose") == 0
-                || strcmp(name, "WriteFile") == 0)
-                return "Void";
-            if (strcmp(name, "ReadFile") == 0)
-                return "String";
-            if (strcmp(name, "MapNew") == 0)
-                return "HashMap";
             if (strcmp(name, "MapGet") == 0 && expr->data.call.arg_count >= 1) {
                 const char *map_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
@@ -270,44 +236,6 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return "Unknown";
             }
-            if (strcmp(name, "ToString") == 0)
-                return "String";
-            if (strcmp(name, "IntentLastTrace") == 0
-                || strcmp(name, "IntentLastFailure") == 0
-                || strcmp(name, "IntentLastName") == 0
-                || strcmp(name, "IntentHistoryStepName") == 0
-                || strcmp(name, "IntentHistoryStepZone") == 0
-                || strcmp(name, "IntentHistoryStepPhase") == 0
-                || strcmp(name, "IntentHistoryStepParticipant") == 0
-                || strcmp(name, "IntentHistoryStepSlot") == 0
-                || strcmp(name, "IntentHistoryStepFromZone") == 0
-                || strcmp(name, "IntentHistoryStepFromSlot") == 0
-                || strcmp(name, "IntentHistoryStepToZone") == 0
-                || strcmp(name, "IntentHistoryStepToSlot") == 0
-                || strcmp(name, "IntentHistoryStepFailure") == 0
-                || strcmp(name, "IntentActiveName") == 0
-                || strcmp(name, "IntentActiveFailure") == 0
-                || strcmp(name, "IntentActiveTrace") == 0
-                || strcmp(name, "IntentRecentName") == 0
-                || strcmp(name, "IntentRecentTrace") == 0
-                || strcmp(name, "IntentRecentFailure") == 0)
-                return "String";
-            if (strcmp(name, "IntentLastHandle") == 0
-                || strcmp(name, "IntentLastTraceId") == 0
-                || strcmp(name, "IntentLastStepCount") == 0
-                || strcmp(name, "IntentHistoryCount") == 0
-                || strcmp(name, "IntentActiveCount") == 0
-                || strcmp(name, "IntentActiveHandle") == 0
-                || strcmp(name, "IntentActiveParentHandle") == 0
-                || strcmp(name, "IntentActiveTraceId") == 0
-                || strcmp(name, "IntentActivePriority") == 0
-                || strcmp(name, "IntentActiveSubjectCount") == 0
-                || strcmp(name, "IntentActiveStepCount") == 0
-                || strcmp(name, "IntentRecentCount") == 0
-                || strcmp(name, "IntentRecentStepCount") == 0)
-                return "Int";
-            if (strcmp(name, "ListNew") == 0)
-                return "List";
             if (strcmp(name, "ListGet") == 0 && expr->data.call.arg_count >= 1) {
                 const char *list_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
@@ -315,20 +243,6 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     return slot_inner_type_name(list_type);
                 return "Unknown";
             }
-            if (strcmp(name, "ListSize") == 0)
-                return "Int";
-            if (strcmp(name, "SetNew") == 0)
-                return "Set";
-            if (strcmp(name, "QueueNew") == 0)
-                return "Queue";
-            if (strcmp(name, "FsmNew") == 0)
-                return "Fsm";
-            if (strcmp(name, "TimerNew") == 0)
-                return "Timer";
-            if (strcmp(name, "CooldownNew") == 0)
-                return "Cooldown";
-            if (strcmp(name, "ClaimQubit") == 0)
-                return "QubitSlot";
             if (strcmp(name, "ClaimDeviceSlot") == 0) {
                 if (ctx != NULL
                     && ctx->active_type_hint != NULL
@@ -364,11 +278,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "Read") == 0 && expr->data.call.arg_count >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
-                if (strncmp(slot_type, "Slot<", 5) == 0
-                    || strncmp(slot_type, "SecureSlot<", 11) == 0
-                    || strncmp(slot_type, "ReadView<", 9) == 0
-                    || strncmp(slot_type, "WriteView<", 10) == 0
-                    || strncmp(slot_type, "DeviceSlot<", 11) == 0) {
+                if (pgy_codegen_type_name_is_slot_family(slot_type)) {
                     const char *inner = slot_inner_type_name(slot_type);
                     return (inner != NULL && inner[0] != '\0') ? inner : "Unknown";
                 }
@@ -377,11 +287,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 && expr->data.call.arg_count >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
-                if (strncmp(slot_type, "Slot<", 5) == 0
-                    || strncmp(slot_type, "SecureSlot<", 11) == 0
-                    || strncmp(slot_type, "ReadView<", 9) == 0
-                    || strncmp(slot_type, "WriteView<", 10) == 0
-                    || strncmp(slot_type, "DeviceSlot<", 11) == 0) {
+                if (pgy_codegen_type_name_is_slot_family(slot_type)) {
                     return "Void";
                 }
             }
@@ -407,15 +313,6 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return "Unknown";
             }
-            if (strcmp(name, "IsCollapsed") == 0
-                || strcmp(name, "IntoClassical") == 0)
-                return "Bool";
-            if (strcmp(name, "H") == 0
-                || strcmp(name, "ArrayPush") == 0
-                || strcmp(name, "ArraySet") == 0
-                || strcmp(name, "ArrayPop") == 0
-                || strcmp(name, "ChannelClose") == 0)
-                return "Void";
             if ((strcmp(name, "TryRecv") == 0
                  || strcmp(name, "RecvTimeout") == 0
                  || strcmp(name, "TrySendStatus") == 0
@@ -432,31 +329,6 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return opt_buf;
             }
-            if (strcmp(name, "TrySend") == 0
-                || strcmp(name, "SendTimeout") == 0
-                || strcmp(name, "Cancel") == 0
-                || strcmp(name, "IsCancelled") == 0
-                || strcmp(name, "IntentLastFailed") == 0
-                || strcmp(name, "IntentHistoryStepOk") == 0
-                || strcmp(name, "IntentActiveConcurrent") == 0
-                || strcmp(name, "IntentActiveFailed") == 0
-                || strcmp(name, "IntentRecentFailed") == 0
-                || strcmp(name, "MapHas") == 0
-                || strcmp(name, "HasProjection") == 0
-                || strcmp(name, "HasLayer") == 0
-                || strcmp(name, "HasState") == 0
-                || strcmp(name, "HasZone") == 0
-                || strcmp(name, "HasZoneProjection") == 0
-                || strcmp(name, "HasZoneLayer") == 0
-                || strcmp(name, "HasZoneState") == 0
-                || strcmp(name, "ChannelFull") == 0
-                || strcmp(name, "ChannelClosed") == 0
-                || strcmp(name, "ChannelReady") == 0)
-                return "Bool";
-            if (strcmp(name, "ChannelLength") == 0
-                || strcmp(name, "ChannelCapacity") == 0
-                || strcmp(name, "ChannelSpace") == 0)
-                return "Int";
             if (strcmp(name, "Some") == 0 && expr->data.call.arg_count == 1) {
                 static char opt_buf[128];
                 const char *inner = infer_expression_type_name(ctx, expr->data.call.arguments[0]);
@@ -470,6 +342,9 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if ((strcmp(name, "IsSome") == 0 || strcmp(name, "IsNone") == 0)
                 && expr->data.call.arg_count == 1)
                 return "Bool";
+            simple_type = pgy_builtin_simple_return_type(name);
+            if (simple_type != NULL)
+                return simple_type;
             if (strcmp(name, "UnwrapOption") == 0 && expr->data.call.arg_count == 1) {
                 const char *opt_type = infer_expression_type_name(ctx, expr->data.call.arguments[0]);
                 if (strncmp(opt_type, "Option<", 7) == 0)

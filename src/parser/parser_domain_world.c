@@ -1,5 +1,29 @@
 #include "parser_domain_internal.h"
 
+static bool
+parser_world_append_input_name(Parser *parser, const char ***items,
+                               size_t *count, const char *name)
+{
+    const char **grown;
+    size_t next_count;
+
+    if (parser == NULL || items == NULL || count == NULL)
+        return false;
+    next_count = *count + 1;
+    grown = malloc(next_count * sizeof(char *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing composed world state");
+        return false;
+    }
+    if (*items != NULL && *count > 0)
+        memcpy(grown, *items, *count * sizeof(char *));
+    grown[next_count - 1] = name;
+    free((void *)*items);
+    *items = grown;
+    *count = next_count;
+    return true;
+}
+
 /*
  * world GameWorld {
  *     roster combat: CombatSystem
@@ -33,12 +57,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             ws->line = slot_name.line;
             ws->column = slot_name.column;
 
-            world->data.world_decl.roster_count++;
-            world->data.world_decl.rosters = realloc(
-                world->data.world_decl.rosters,
-                world->data.world_decl.roster_count * sizeof(ASTNode*));
-            world->data.world_decl.rosters[
-                world->data.world_decl.roster_count - 1] = ws;
+            append_child_node(&world->data.world_decl.rosters,
+                &world->data.world_decl.roster_count, ws);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -55,12 +75,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             wz->line = slot_name.line;
             wz->column = slot_name.column;
 
-            world->data.world_decl.zone_count++;
-            world->data.world_decl.zones = realloc(
-                world->data.world_decl.zones,
-                world->data.world_decl.zone_count * sizeof(ASTNode*));
-            world->data.world_decl.zones[
-                world->data.world_decl.zone_count - 1] = wz;
+            append_child_node(&world->data.world_decl.zones,
+                &world->data.world_decl.zone_count, wz);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -131,9 +147,10 @@ ASTNode* parse_world_declaration(Parser* parser) {
                 do {
                     Token input = consume_name_token(parser,
                         "Expected world zone/state name in composed world state");
-                    input_names = realloc((void*)input_names,
-                        sizeof(char*) * (input_count + 1));
-                    input_names[input_count++] = input.text;
+                    if (!parser_world_append_input_name(parser, &input_names,
+                            &input_count, input.text)) {
+                        break;
+                    }
                 } while (parser_match(parser, TOKEN_COMMA));
 
                 ASTNode *state = ast_create_world_state_compose(
@@ -208,12 +225,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
                     parser_parse_expression(parser);
             }
 
-            world->data.world_decl.shared_count++;
-            world->data.world_decl.shared_fields = realloc(
-                world->data.world_decl.shared_fields,
-                world->data.world_decl.shared_count * sizeof(ASTNode*));
-            world->data.world_decl.shared_fields[
-                world->data.world_decl.shared_count - 1] = shared;
+            append_child_node(&world->data.world_decl.shared_fields,
+                &world->data.world_decl.shared_count, shared);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -221,12 +234,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
         } else if (parser_match(parser, TOKEN_FUNC)) {
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
-            world->data.world_decl.method_count++;
-            world->data.world_decl.methods = realloc(
-                world->data.world_decl.methods,
-                world->data.world_decl.method_count * sizeof(ASTNode*));
-            world->data.world_decl.methods[
-                world->data.world_decl.method_count - 1] = method;
+            append_child_node(&world->data.world_decl.methods,
+                &world->data.world_decl.method_count, method);
 
         } else {
             parser_discard_pending_doc_comment(parser);

@@ -1,6 +1,6 @@
 #include "parser_internal.h"
 
-static bool
+bool
 parser_intent_match_keyword(Parser *parser, const char *keyword)
 {
     if (parser == NULL || keyword == NULL) {
@@ -20,20 +20,25 @@ parser_intent_match_keyword(Parser *parser, const char *keyword)
     return true;
 }
 
-static void
+void
 intent_append_node(ASTNode ***items, size_t *count, ASTNode *node)
 {
     ASTNode **grown;
+    size_t next_count;
 
     if (items == NULL || count == NULL || node == NULL)
         return;
 
-    grown = realloc(*items, (*count + 1) * sizeof(ASTNode *));
+    if (*count >= (size_t)-1 / sizeof(ASTNode *))
+        return;
+
+    next_count = *count + 1;
+    grown = realloc(*items, next_count * sizeof(ASTNode *));
     if (grown == NULL)
         return;
     grown[*count] = node;
     *items = grown;
-    (*count)++;
+    *count = next_count;
 }
 
 static void
@@ -49,16 +54,28 @@ static void
 intent_append_name(char ***items, size_t *count, const char *name)
 {
     char **grown;
+    char *owned_name;
+    size_t next_count;
 
     if (items == NULL || count == NULL || name == NULL)
         return;
 
-    grown = realloc(*items, (*count + 1) * sizeof(char *));
-    if (grown == NULL)
+    if (*count >= (size_t)-1 / sizeof(char *))
         return;
-    grown[*count] = pergyra_strdup(name);
+
+    owned_name = pergyra_strdup(name);
+    if (owned_name == NULL)
+        return;
+
+    next_count = *count + 1;
+    grown = realloc(*items, next_count * sizeof(char *));
+    if (grown == NULL) {
+        free(owned_name);
+        return;
+    }
+    grown[*count] = owned_name;
     *items = grown;
-    (*count)++;
+    *count = next_count;
 }
 
 static bool
@@ -118,7 +135,7 @@ intent_has_step_name(ASTNode *intent, const char *name)
     return false;
 }
 
-static void
+void
 parse_intent_name_list(Parser *parser, char ***items, size_t *count,
                        const char *message)
 {
@@ -223,8 +240,6 @@ parse_intent_param_list(Parser *parser, ASTNode *intent)
     }
     parser_consume(parser, TOKEN_RPAREN, "Expected ')' after intent parameter list");
 }
-
-#include "parser_intent_step.h"
 
 ASTNode *
 parse_intent_declaration(Parser *parser)

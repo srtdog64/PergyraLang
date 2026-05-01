@@ -2,6 +2,8 @@
  * Type mapping
  * ----------------------------------------------------------------- */
 
+#include "codegen_slot_type_policy.h"
+
 const char *
 pergyra_primitive_to_c(const char *name)
 {
@@ -306,13 +308,13 @@ pergyra_type_to_c(const char *name)
         snprintf(buf, sizeof(buf), "PgySecureSlot_%s", inner);
         return buf;
     }
-    if (strncmp(name, "ReadView<", 9) == 0) {
+    if (pgy_codegen_type_name_is_read_view(name)) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
         snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
         return buf;
     }
-    if (strncmp(name, "WriteView<", 10) == 0) {
+    if (pgy_codegen_type_name_is_write_view(name)) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
         snprintf(buf, sizeof(buf), "PgySlot_%s", inner);

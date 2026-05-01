@@ -36,12 +36,8 @@ ASTNode* parse_roster_declaration(Parser* parser) {
             ps->line = slot_name.line;
             ps->column = slot_name.column;
 
-            sys->data.roster_decl.party_count++;
-            sys->data.roster_decl.party_slots = realloc(
-                sys->data.roster_decl.party_slots,
-                sys->data.roster_decl.party_count * sizeof(ASTNode*));
-            sys->data.roster_decl.party_slots[
-                sys->data.roster_decl.party_count - 1] = ps;
+            append_child_node(&sys->data.roster_decl.party_slots,
+                &sys->data.roster_decl.party_count, ps);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -63,12 +59,8 @@ ASTNode* parse_roster_declaration(Parser* parser) {
                     parser_parse_expression(parser);
             }
 
-            sys->data.roster_decl.shared_count++;
-            sys->data.roster_decl.shared_fields = realloc(
-                sys->data.roster_decl.shared_fields,
-                sys->data.roster_decl.shared_count * sizeof(ASTNode*));
-            sys->data.roster_decl.shared_fields[
-                sys->data.roster_decl.shared_count - 1] = shared;
+            append_child_node(&sys->data.roster_decl.shared_fields,
+                &sys->data.roster_decl.shared_count, shared);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -76,12 +68,8 @@ ASTNode* parse_roster_declaration(Parser* parser) {
         } else if (parser_match(parser, TOKEN_FUNC)) {
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
-            sys->data.roster_decl.method_count++;
-            sys->data.roster_decl.methods = realloc(
-                sys->data.roster_decl.methods,
-                sys->data.roster_decl.method_count * sizeof(ASTNode*));
-            sys->data.roster_decl.methods[
-                sys->data.roster_decl.method_count - 1] = method;
+            append_child_node(&sys->data.roster_decl.methods,
+                &sys->data.roster_decl.method_count, method);
 
         } else {
             parser_discard_pending_doc_comment(parser);

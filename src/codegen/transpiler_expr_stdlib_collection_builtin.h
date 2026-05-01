@@ -1,6 +1,8 @@
 /* Collection stdlib call lowering.
  * Included by transpiler_expr_stdlib_builtin.h inside transpiler.c. */
 
+#include "codegen_hashmap_key_policy.h"
+
 static bool
 transpiler_require_hashmap_type(TranspilerCtx *ctx, const char *map_type,
                                 const char *operation,
@@ -144,10 +146,8 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         }
         ensure_collection_specialization(ctx, "Map", value);
         char *result = strdup_fmt(
-            strcmp(key, "Int") == 0 ? "pgy_map_set_i32_%s(&%s, %s, %s)"
-            : strcmp(key, "Long") == 0 ? "pgy_map_set_i64_%s(&%s, %s, %s)"
-            : strcmp(key, "Bool") == 0 ? "pgy_map_set_bool_%s(&%s, %s, %s)"
-            : "pgy_map_set_%s(&%s, %s, %s)",
+            "pgy_map_set%s_%s(&%s, %s, %s)",
+            pgy_hashmap_key_c_infix(key),
             collection_runtime_suffix(value), m, k, v);
         free(m); free(k); free(v);
         return result;
@@ -168,10 +168,8 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         }
         ensure_collection_specialization(ctx, "Map", value);
         char *result = strdup_fmt(
-            strcmp(key, "Int") == 0 ? "pgy_map_get_i32_%s(&%s, %s)"
-            : strcmp(key, "Long") == 0 ? "pgy_map_get_i64_%s(&%s, %s)"
-            : strcmp(key, "Bool") == 0 ? "pgy_map_get_bool_%s(&%s, %s)"
-            : "pgy_map_get_%s(&%s, %s)",
+            "pgy_map_get%s_%s(&%s, %s)",
+            pgy_hashmap_key_c_infix(key),
             collection_runtime_suffix(value), m, k);
         free(m); free(k);
         return result;
@@ -192,10 +190,8 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         }
         ensure_collection_specialization(ctx, "Map", value);
         char *result = strdup_fmt(
-            strcmp(key, "Int") == 0 ? "pgy_map_has_i32_%s(&%s, %s)"
-            : strcmp(key, "Long") == 0 ? "pgy_map_has_i64_%s(&%s, %s)"
-            : strcmp(key, "Bool") == 0 ? "pgy_map_has_bool_%s(&%s, %s)"
-            : "pgy_map_has_%s(&%s, %s)",
+            "pgy_map_has%s_%s(&%s, %s)",
+            pgy_hashmap_key_c_infix(key),
             collection_runtime_suffix(value), m, k);
         free(m); free(k);
         return result;
@@ -216,10 +212,8 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         }
         ensure_collection_specialization(ctx, "Map", value);
         char *result = strdup_fmt(
-            strcmp(key, "Int") == 0 ? "pgy_map_remove_i32_%s(&%s, %s)"
-            : strcmp(key, "Long") == 0 ? "pgy_map_remove_i64_%s(&%s, %s)"
-            : strcmp(key, "Bool") == 0 ? "pgy_map_remove_bool_%s(&%s, %s)"
-            : "pgy_map_remove_%s(&%s, %s)",
+            "pgy_map_remove%s_%s(&%s, %s)",
+            pgy_hashmap_key_c_infix(key),
             collection_runtime_suffix(value), m, k);
         free(m); free(k);
         return result;
@@ -259,10 +253,8 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         }
         ensure_collection_specialization(ctx, "Map", value);
         char *result = strdup_fmt(
-            strcmp(key, "Int") == 0 ? "pgy_map_keys_i32_%s(&%s)"
-            : strcmp(key, "Long") == 0 ? "pgy_map_keys_i64_%s(&%s)"
-            : strcmp(key, "Bool") == 0 ? "pgy_map_keys_bool_%s(&%s)"
-            : "pgy_map_keys_%s(&%s)",
+            "pgy_map_keys%s_%s(&%s)",
+            pgy_hashmap_key_c_infix(key),
             collection_runtime_suffix(value), m);
         free(m);
         return result;

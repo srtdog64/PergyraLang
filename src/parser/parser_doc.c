@@ -97,12 +97,31 @@ parser_ensure_pending_doc_comment(Parser *parser)
     return parser->pending_doc_comment;
 }
 
+static bool
+parser_append_doc_tag(StructuredComment *comment, DocTag *tag)
+{
+    DocTag **new_tags;
+    size_t next_count;
+
+    if (comment == NULL)
+        return false;
+
+    next_count = comment->tag_count + 1;
+    new_tags = realloc(comment->tags, next_count * sizeof(DocTag *));
+    if (new_tags == NULL)
+        return false;
+
+    new_tags[comment->tag_count] = tag;
+    comment->tags = new_tags;
+    comment->tag_count = next_count;
+    return true;
+}
+
 static void
 parser_add_doc_tag(Parser *parser, DocTagType type, const char *content)
 {
     StructuredComment *comment;
     DocTag *tag;
-    DocTag **new_tags;
 
     if (content == NULL)
         return;
@@ -118,15 +137,11 @@ parser_add_doc_tag(Parser *parser, DocTagType type, const char *content)
     tag->type = type;
     tag->content = parser_trimmed_copy(content);
 
-    new_tags = realloc(comment->tags, (comment->tag_count + 1) * sizeof(DocTag *));
-    if (new_tags == NULL) {
+    if (!parser_append_doc_tag(comment, tag)) {
         free(tag->content);
         free(tag);
         return;
     }
-
-    comment->tags = new_tags;
-    comment->tags[comment->tag_count++] = tag;
 }
 
 static void

@@ -42,19 +42,13 @@ slot_escape_record(SlotEscapeEntry **entries, size_t *count, size_t *capacity,
 static bool
 slot_call_is_non_escape_builtin(ASTNode *callee)
 {
-    const char *name;
-
     if (callee == NULL || callee->type != AST_IDENTIFIER
         || callee->data.identifier.name == NULL) {
         return false;
     }
 
-    name = callee->data.identifier.name;
-    return strcmp(name, "Read") == 0
-        || strcmp(name, "Write") == 0
-        || strcmp(name, "Release") == 0
-        || strcmp(name, "ReadView") == 0
-        || strcmp(name, "WriteView") == 0;
+    return slot_builtin_call_is_local_non_escape(
+        callee->data.identifier.name);
 }
 
 unsigned

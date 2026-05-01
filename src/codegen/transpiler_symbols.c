@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "transpiler_symbols.h"
+#include "codegen_slot_type_policy.h"
 #include "../common/string_compat.h"
 
 static char *
@@ -109,21 +110,13 @@ lookup_slot_type(TranspilerCtx *ctx, const char *var_name)
     }
     typed_name = lookup_typed_var(ctx, var_name);
     if (typed_name != NULL) {
-        if (strncmp(typed_name, "Slot<", 5) == 0
-            || strncmp(typed_name, "SecureSlot<", 11) == 0
-            || strncmp(typed_name, "DeviceSlot<", 11) == 0
-            || strncmp(typed_name, "ReadView<", 9) == 0
-            || strncmp(typed_name, "WriteView<", 10) == 0) {
+        if (pgy_codegen_type_name_is_slot_family(typed_name)) {
             return slot_inner_type_name(typed_name);
         }
         return typed_name;
     }
     if (ctx->active_type_hint != NULL) {
-        if (strncmp(ctx->active_type_hint, "Slot<", 5) == 0
-            || strncmp(ctx->active_type_hint, "SecureSlot<", 11) == 0
-            || strncmp(ctx->active_type_hint, "DeviceSlot<", 11) == 0
-            || strncmp(ctx->active_type_hint, "ReadView<", 9) == 0
-            || strncmp(ctx->active_type_hint, "WriteView<", 10) == 0) {
+        if (pgy_codegen_type_name_is_slot_family(ctx->active_type_hint)) {
             return slot_inner_type_name(ctx->active_type_hint);
         }
         return ctx->active_type_hint;
@@ -236,10 +229,7 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
         && strcmp(ctx->typed_vars[ctx->last_typed_var_index].name, name) == 0
         && (ctx->typed_vars[ctx->last_typed_var_index].is_view
             || ctx->typed_vars[ctx->last_typed_var_index].is_move_token)
-        && (strcmp(type_name, "ReadView") == 0
-            || strncmp(type_name, "ReadView<", 9) == 0
-            || strcmp(type_name, "WriteView") == 0
-            || strncmp(type_name, "WriteView<", 10) == 0
+        && (pgy_codegen_type_name_is_view(type_name)
             || strcmp(type_name, "MoveToken") == 0
             || strncmp(type_name, "MoveToken<", 10) == 0)) {
         e = &ctx->typed_vars[ctx->last_typed_var_index];

@@ -1,5 +1,137 @@
 #include "parser_internal.h"
 
+static bool
+parser_append_enum_method(Parser *parser, ASTNode *node, ASTNode *method)
+{
+    ASTNode **grown;
+    size_t next_count;
+
+    if (parser == NULL || node == NULL || method == NULL)
+        return false;
+
+    if (node->data.enum_decl.method_count >= (size_t)-1 / sizeof(ASTNode *)) {
+        parser_error(parser, "Too many enum methods");
+        return false;
+    }
+
+    next_count = node->data.enum_decl.method_count + 1;
+    grown = realloc(node->data.enum_decl.methods,
+                    next_count * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing enum methods");
+        return false;
+    }
+
+    node->data.enum_decl.methods = grown;
+    node->data.enum_decl.methods[node->data.enum_decl.method_count] = method;
+    node->data.enum_decl.method_count = next_count;
+    return true;
+}
+
+static bool
+parser_reserve_enum_variants(Parser *parser, ASTNode *node, size_t *capacity,
+                             size_t needed)
+{
+    char **new_variants;
+    ASTNode ***new_params;
+    size_t *new_counts;
+    size_t new_capacity;
+
+    if (parser == NULL || node == NULL || capacity == NULL)
+        return false;
+    if (needed <= *capacity)
+        return true;
+
+    new_capacity = *capacity == 0 ? 4 : *capacity;
+    while (new_capacity < needed) {
+        if (new_capacity > (size_t)-1 / 2) {
+            parser_error(parser, "Too many enum variants");
+            return false;
+        }
+        new_capacity *= 2;
+    }
+    if (new_capacity > (size_t)-1 / sizeof(char *)
+        || new_capacity > (size_t)-1 / sizeof(ASTNode **)
+        || new_capacity > (size_t)-1 / sizeof(size_t)) {
+        parser_error(parser, "Too many enum variants");
+        return false;
+    }
+
+    new_variants = calloc(new_capacity, sizeof(char *));
+    new_params = calloc(new_capacity, sizeof(ASTNode **));
+    new_counts = calloc(new_capacity, sizeof(size_t));
+    if (new_variants == NULL || new_params == NULL || new_counts == NULL) {
+        free(new_variants);
+        free(new_params);
+        free(new_counts);
+        parser_error(parser, "Out of memory while parsing enum variants");
+        return false;
+    }
+
+    if (node->data.enum_decl.variant_count > 0) {
+        memcpy(new_variants, node->data.enum_decl.variants,
+               node->data.enum_decl.variant_count * sizeof(char *));
+        memcpy(new_params, node->data.enum_decl.variant_params,
+               node->data.enum_decl.variant_count * sizeof(ASTNode **));
+        memcpy(new_counts, node->data.enum_decl.variant_param_counts,
+               node->data.enum_decl.variant_count * sizeof(size_t));
+    }
+
+    free(node->data.enum_decl.variants);
+    free(node->data.enum_decl.variant_params);
+    free(node->data.enum_decl.variant_param_counts);
+    node->data.enum_decl.variants = new_variants;
+    node->data.enum_decl.variant_params = new_params;
+    node->data.enum_decl.variant_param_counts = new_counts;
+    *capacity = new_capacity;
+    return true;
+}
+
+static bool
+parser_append_enum_variant_param(Parser *parser, ASTNode *node, size_t variant,
+                                 size_t *capacity, ASTNode *param_type)
+{
+    ASTNode **grown;
+    size_t count;
+    size_t new_capacity;
+
+    if (parser == NULL || node == NULL || capacity == NULL || param_type == NULL)
+        return false;
+
+    count = node->data.enum_decl.variant_param_counts[variant];
+    if (count < *capacity) {
+        node->data.enum_decl.variant_params[variant][count] = param_type;
+        node->data.enum_decl.variant_param_counts[variant] = count + 1;
+        return true;
+    }
+
+    if (*capacity > (size_t)-1 / 2
+        || (*capacity > 0 && *capacity * 2 > (size_t)-1 / sizeof(ASTNode *))) {
+        parser_error(parser, "Too many enum variant parameters");
+        return false;
+    }
+    new_capacity = *capacity == 0 ? 4 : *capacity * 2;
+    grown = realloc(node->data.enum_decl.variant_params[variant],
+                    new_capacity * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing enum variant parameters");
+        return false;
+    }
+
+    node->data.enum_decl.variant_params[variant] = grown;
+    *capacity = new_capacity;
+    node->data.enum_decl.variant_params[variant][count] = param_type;
+    node->data.enum_decl.variant_param_counts[variant] = count + 1;
+    return true;
+}
+
+static void
+parser_commit_enum_variant(ASTNode *node)
+{
+    if (node != NULL)
+        node->data.enum_decl.variant_count++;
+}
+
 ASTNode *
 parser_parse_enum_declaration_after_keyword(Parser *parser)
 {
@@ -27,27 +159,21 @@ parser_parse_enum_declaration_after_keyword(Parser *parser)
         if (parser_match(parser, TOKEN_FUNC)) {
             ASTNode *method = parser_finalize_statement(parser,
                 parse_function_declaration(parser));
-            node->data.enum_decl.method_count++;
-            node->data.enum_decl.methods = realloc(
-                node->data.enum_decl.methods,
-                node->data.enum_decl.method_count * sizeof(ASTNode *));
-            node->data.enum_decl.methods[node->data.enum_decl.method_count - 1] = method;
+            if (!parser_append_enum_method(parser, node, method))
+                return node;
             continue;
         }
 
         var_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variant name");
         idx = node->data.enum_decl.variant_count;
-        if (idx >= cap) {
-            cap = cap == 0 ? 4 : cap * 2;
-            node->data.enum_decl.variants = realloc(
-                node->data.enum_decl.variants, cap * sizeof(char *));
-            node->data.enum_decl.variant_params = realloc(
-                node->data.enum_decl.variant_params, cap * sizeof(ASTNode **));
-            node->data.enum_decl.variant_param_counts = realloc(
-                node->data.enum_decl.variant_param_counts, cap * sizeof(size_t));
-        }
+        if (!parser_reserve_enum_variants(parser, node, &cap, idx + 1))
+            return node;
         node->data.enum_decl.variants[idx] =
             pergyra_strndup(var_tok.text, var_tok.length);
+        if (node->data.enum_decl.variants[idx] == NULL) {
+            parser_error(parser, "Out of memory while parsing enum variant name");
+            return node;
+        }
         node->data.enum_decl.variant_params[idx] = NULL;
         node->data.enum_decl.variant_param_counts[idx] = 0;
 
@@ -56,15 +182,11 @@ parser_parse_enum_declaration_after_keyword(Parser *parser)
             while (!parser_check(parser, TOKEN_RPAREN)
                    && !parser_is_at_end(parser)) {
                 ASTNode *ptype = parse_type(parser);
-                size_t pc = node->data.enum_decl.variant_param_counts[idx];
-                if (pc >= pcap) {
-                    pcap = pcap == 0 ? 4 : pcap * 2;
-                    node->data.enum_decl.variant_params[idx] = realloc(
-                        node->data.enum_decl.variant_params[idx],
-                        pcap * sizeof(ASTNode *));
+                if (!parser_append_enum_variant_param(parser, node, idx, &pcap, ptype)) {
+                    ast_destroy(ptype);
+                    parser_commit_enum_variant(node);
+                    return node;
                 }
-                node->data.enum_decl.variant_params[idx][pc] = ptype;
-                node->data.enum_decl.variant_param_counts[idx]++;
                 if (!parser_match(parser, TOKEN_COMMA))
                     break;
             }
@@ -72,7 +194,7 @@ parser_parse_enum_declaration_after_keyword(Parser *parser)
                 "Expected ')' after variant parameters");
         }
 
-        node->data.enum_decl.variant_count++;
+        parser_commit_enum_variant(node);
         if (!parser_match(parser, TOKEN_COMMA))
             break;
     }

@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "diag_codes.h"
+#include "type_checker_collection_policy.h"
 #include "type_checker_internal.h"
 
 bool
@@ -222,16 +223,14 @@ semantic_type_resolution_reject_invalid_stable_constructed_type(
     }
 
     if (strcmp(name, "HashMap") == 0
-        && !type_equals(args[0], TYPE_STRING)
-        && !type_equals(args[0], TYPE_INT)
-        && !type_equals(args[0], TYPE_LONG)
-        && !type_equals(args[0], TYPE_BOOL)) {
+        && !type_checker_hashmap_key_supported(args[0])) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             type_node,
-            "HashMap currently supports only String, Int, Long, or Bool keys");
+            "HashMap currently supports only %s keys",
+            type_checker_hashmap_key_policy_text());
         return true;
     }
 

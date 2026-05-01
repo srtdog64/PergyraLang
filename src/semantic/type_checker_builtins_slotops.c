@@ -2,7 +2,6 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
-#include "type_checker_channel_transport_internal.h"
 #include "diag_codes.h"
 
 static Type *
@@ -20,98 +19,6 @@ type_check_claim_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     return TYPE_UNKNOWN;
-}
-
-Type *
-type_check_claim_device_slot(ASTNode *call, SemanticContext *ctx)
-{
-    if (!check_call_arity(call, 0, "ClaimDeviceSlot", ctx))
-        return TYPE_UNKNOWN;
-    semantic_record_effect(ctx, EFFECT_REMOTE);
-    return wrap_constructed(TYPE_DEVICE_SLOT, TYPE_UNKNOWN);
-}
-
-static Type *
-type_check_view_source_type(ASTNode *arg, SemanticContext *ctx)
-{
-    if (arg != NULL && arg->type == AST_IDENTIFIER
-        && arg->data.identifier.name != NULL) {
-        Symbol *sym = scope_lookup(ctx->scope, arg->data.identifier.name);
-        if (sym != NULL && sym->kind == SYMBOL_SLOT && sym->type != NULL) {
-            sym->is_used = true;
-            return sym->type;
-        }
-    }
-
-    return slotops_normalize_type(type_check_expression(arg, ctx));
-}
-
-Type *
-type_check_view_read(ASTNode *call, SemanticContext *ctx)
-{
-    if (!check_call_arity(call, 1, "ViewRead", ctx))
-        return TYPE_UNKNOWN;
-
-    Type *slot_type = type_check_view_source_type(
-        call->data.call.arguments[0], ctx);
-    if (type_is_qubit(slot_type)) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_PIN_QUBIT_REJECT,
-            PGY_CAUSE_PIN_QUBIT_REJECT,
-            PGY_FIX_DO_NOT_PIN_QUBIT,
-            call->data.call.arguments[0],
-            "ViewRead cannot pin QubitSlot resources.\n"
-            "Reason:\n"
-            "- QubitSlot has a movable quantum state machine, not a stable resource-boundary lease\n"
-            "- pinning it would bypass measurement/entanglement lifecycle checks\n"
-            "Fix:\n"
-            "- use the quantum operations directly\n"
-            "- or convert to a classical value before creating a view");
-        return TYPE_UNKNOWN;
-    }
-    if (!type_is_owned_slot_handle(slot_type)) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-            PGY_CAUSE_BUILTIN_SLOT_TYPE_REQUIRED, PGY_FIX_PASS_OWNING_SLOT,
-            call->data.call.arguments[0],
-            "ViewRead requires owning Slot<T>, got '%s'",
-            slot_type != NULL ? slot_type->name : "<null>");
-        return TYPE_UNKNOWN;
-    }
-    return type_create_read_view(slot_type->data.slot.inner_type);
-}
-
-Type *
-type_check_view_write(ASTNode *call, SemanticContext *ctx)
-{
-    if (!check_call_arity(call, 1, "ViewWrite", ctx))
-        return TYPE_UNKNOWN;
-
-    Type *slot_type = type_check_view_source_type(
-        call->data.call.arguments[0], ctx);
-    if (type_is_qubit(slot_type)) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_PIN_QUBIT_REJECT,
-            PGY_CAUSE_PIN_QUBIT_REJECT,
-            PGY_FIX_DO_NOT_PIN_QUBIT,
-            call->data.call.arguments[0],
-            "ViewWrite cannot pin QubitSlot resources.\n"
-            "Reason:\n"
-            "- QubitSlot has a movable quantum state machine, not a stable resource-boundary lease\n"
-            "- pinning it would bypass measurement/entanglement lifecycle checks\n"
-            "Fix:\n"
-            "- use the quantum operations directly\n"
-            "- or convert to a classical value before creating a view");
-        return TYPE_UNKNOWN;
-    }
-    if (!type_is_owned_slot_handle(slot_type)) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-            PGY_CAUSE_BUILTIN_SLOT_TYPE_REQUIRED, PGY_FIX_PASS_OWNING_SLOT,
-            call->data.call.arguments[0],
-            "ViewWrite requires owning Slot<T>, got '%s'",
-            slot_type != NULL ? slot_type->name : "<null>");
-        return TYPE_UNKNOWN;
-    }
-    return type_create_write_view(slot_type->data.slot.inner_type);
 }
 
 Type *
@@ -538,47 +445,4 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
 
     scope_release_slot(ctx->scope, slot_name);
     return true;
-}
-
-Type *
-type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
-                             const char *builtin_name,
-                             bool allow_released)
-{
-    Type *slot_type;
-    Symbol *sym = NULL;
-
-    if (expr == NULL)
-        return TYPE_UNKNOWN;
-
-    slot_type = type_check_expression(expr, ctx);
-    if (!type_is_constructed_named(slot_type, "DeviceSlot")) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-            PGY_CAUSE_BUILTIN_SLOT_TYPE_REQUIRED, PGY_FIX_PASS_DEVICE_SLOT,
-            expr,
-            "%s requires DeviceSlot<T>, got '%s'",
-            builtin_name, slot_type->name);
-        return TYPE_UNKNOWN;
-    }
-
-    if (expr->type == AST_IDENTIFIER) {
-        sym = scope_lookup(ctx->scope, expr->data.identifier.name);
-        if (!allow_released
-            && sym != NULL
-            && sym->slot_info.state == SLOT_STATE_RELEASED) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_SLOT_RELEASED, PGY_CAUSE_DEVICE_SLOT_USE_AFTER_RELEASE, PGY_FIX_RECLAIM_BEFORE_USE, expr,
-                "Cannot use released DeviceSlot '%s' in %s",
-                expr->data.identifier.name, builtin_name);
-            return TYPE_UNKNOWN;
-        }
-    }
-
-    if (ctx->in_parallel) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
-            "Parallel context does not permit DeviceSlot operations yet; keep device access serialized outside the parallel block");
-        return TYPE_UNKNOWN;
-    }
-
-    semantic_record_effect(ctx, EFFECT_REMOTE);
-    return slot_type;
 }

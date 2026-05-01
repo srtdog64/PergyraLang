@@ -1,4 +1,4 @@
-    TEST("zone sync binds object-target relation/effect layers before projection reads");
+﻿    TEST("zone sync binds object-target relation/effect layers before projection reads");
     {
         const char *source =
             "object Door { hp: Int; }\n"

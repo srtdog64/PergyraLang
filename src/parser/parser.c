@@ -79,6 +79,36 @@ bool parser_check(Parser* parser, PgyTokenType type) {
     return parser->current_token.type == type;
 }
 
+static bool
+parser_append_destructure_name(Parser *parser, ASTNode *node, const char *name)
+{
+    char **grown;
+    char *owned_name;
+    size_t next_count;
+
+    if (parser == NULL || node == NULL)
+        return false;
+    owned_name = pergyra_strdup(name);
+    if (owned_name == NULL) {
+        parser_error(parser, "Out of memory while parsing destructuring name");
+        return false;
+    }
+
+    next_count = node->data.let_destructure.name_count + 1;
+    grown = realloc(node->data.let_destructure.names,
+        next_count * sizeof(char *));
+    if (grown == NULL) {
+        free(owned_name);
+        parser_error(parser, "Out of memory while parsing destructuring names");
+        return false;
+    }
+
+    node->data.let_destructure.names = grown;
+    node->data.let_destructure.names[next_count - 1] = owned_name;
+    node->data.let_destructure.name_count = next_count;
+    return true;
+}
+
 // 토큰 매칭 및 진행
 bool parser_match(Parser* parser, PgyTokenType type) {
     if (!parser_check(parser, type)) return false;
@@ -280,10 +310,8 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
 
         while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
             Token var = consume_binding_name_token(parser, "Expected variable name in destructuring");
-            size_t n = ++node->data.let_destructure.name_count;
-            node->data.let_destructure.names = realloc(
-                node->data.let_destructure.names, n * sizeof(char *));
-            node->data.let_destructure.names[n - 1] = pergyra_strdup(var.text);
+            if (!parser_append_destructure_name(parser, node, var.text))
+                break;
             if (!parser_match(parser, TOKEN_COMMA))
                 break;
         }

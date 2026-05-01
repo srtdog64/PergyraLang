@@ -1,6 +1,64 @@
 #include "parser_internal.h"
 
 // for 루프 파싱
+static bool
+parser_append_match_pattern(Parser *parser, ASTNode *match_case, ASTNode *pattern)
+{
+    ASTNode **grown;
+    size_t next_count;
+
+    if (parser == NULL || match_case == NULL || pattern == NULL)
+        return false;
+
+    if (match_case->data.match_case.pattern_count >=
+        (size_t)-1 / sizeof(ASTNode *)) {
+        parser_error(parser, "Too many match OR patterns");
+        return false;
+    }
+
+    next_count = match_case->data.match_case.pattern_count + 1;
+    grown = realloc(match_case->data.match_case.patterns,
+                    next_count * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing OR pattern");
+        return false;
+    }
+
+    match_case->data.match_case.patterns = grown;
+    match_case->data.match_case.patterns[
+        match_case->data.match_case.pattern_count] = pattern;
+    match_case->data.match_case.pattern_count = next_count;
+    return true;
+}
+
+static bool
+parser_append_match_case(Parser *parser, ASTNode *match, ASTNode *match_case)
+{
+    ASTNode **grown;
+    size_t next_count;
+
+    if (parser == NULL || match == NULL || match_case == NULL)
+        return false;
+
+    if (match->data.match_stmt.case_count >= (size_t)-1 / sizeof(ASTNode *)) {
+        parser_error(parser, "Too many match cases");
+        return false;
+    }
+
+    next_count = match->data.match_stmt.case_count + 1;
+    grown = realloc(match->data.match_stmt.cases,
+                    next_count * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing match cases");
+        return false;
+    }
+
+    match->data.match_stmt.cases = grown;
+    match->data.match_stmt.cases[match->data.match_stmt.case_count] = match_case;
+    match->data.match_stmt.case_count = next_count;
+    return true;
+}
+
 // Supports two forms:
 //   for x in start..end { }   — range loop
 //   for item in collection { } — for-in collection loop
@@ -80,15 +138,8 @@ ASTNode* parse_match_statement(Parser* parser) {
             }
             while (parser_match(parser, TOKEN_PATTERN_OR)) {
                 ASTNode *alt = parser_parse_expression(parser);
-                ASTNode **grown = realloc(
-                    mc->data.match_case.patterns,
-                    sizeof(ASTNode *) * (mc->data.match_case.pattern_count + 1));
-                if (grown == NULL) {
-                    parser_error(parser, "Out of memory while parsing OR pattern");
+                if (!parser_append_match_pattern(parser, mc, alt))
                     break;
-                }
-                mc->data.match_case.patterns = grown;
-                mc->data.match_case.patterns[mc->data.match_case.pattern_count++] = alt;
             }
 
             // guard (선택적)
@@ -113,11 +164,7 @@ ASTNode* parse_match_statement(Parser* parser) {
             mc->data.match_case.body = body;
 
             // case를 match에 추가
-            match->data.match_stmt.case_count++;
-            match->data.match_stmt.cases = realloc(
-                match->data.match_stmt.cases,
-                sizeof(ASTNode*) * match->data.match_stmt.case_count);
-            match->data.match_stmt.cases[match->data.match_stmt.case_count - 1] = mc;
+            parser_append_match_case(parser, match, mc);
 
         } else if (parser_match(parser, TOKEN_DEFAULT)) {
             parser_consume(parser, TOKEN_COLON, "Expected ':' after default");

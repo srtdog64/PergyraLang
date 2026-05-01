@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "codegen_slot_type_policy.h"
 
 bool
 llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind)
@@ -52,7 +53,7 @@ pgy_classify_type(const char *type_name)
     case 'V': if (strcmp(type_name, "Void") == 0)       return PGY_TK_VOID;       break;
     case 'Q': if (strcmp(type_name, "QubitSlot") == 0)  return PGY_TK_QUBIT_SLOT; break;
     case 'R':
-        if (strncmp(type_name, "ReadView<", 9) == 0)    return PGY_TK_SLOT;
+        if (pgy_codegen_type_name_is_read_view(type_name)) return PGY_TK_SLOT;
         if (strncmp(type_name, "RemoteFuture<", 13) == 0) return PGY_TK_REMOTE_FUTURE;
         if (strncmp(type_name, "Result<", 7) == 0)      return PGY_TK_RESULT;
         if (strncmp(type_name, "Rc<", 3) == 0)          return PGY_TK_RC;
@@ -64,7 +65,7 @@ pgy_classify_type(const char *type_name)
         if (strncmp(type_name, "Channel<", 8) == 0)     return PGY_TK_CHANNEL;
         break;
     case 'W':
-        if (strncmp(type_name, "WriteView<", 10) == 0)  return PGY_TK_SLOT;
+        if (pgy_codegen_type_name_is_write_view(type_name)) return PGY_TK_SLOT;
         if (strncmp(type_name, "Weak<", 5) == 0)        return PGY_TK_WEAK;
         break;
     case 'A':

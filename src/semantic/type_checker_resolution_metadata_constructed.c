@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "type_checker_internal.h"
+#include "type_checker_collection_policy.h"
 #include "type_checker_resolution_metadata_internal.h"
 
 static bool
@@ -291,10 +292,7 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
     }
 
     if (constructor == TYPE_HASHMAP
-        && !type_equals(args[0], TYPE_STRING)
-        && !type_equals(args[0], TYPE_INT)
-        && !type_equals(args[0], TYPE_LONG)
-        && !type_equals(args[0], TYPE_BOOL)) {
+        && !type_checker_hashmap_key_supported(args[0])) {
         return;
     }
 

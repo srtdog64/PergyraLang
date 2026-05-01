@@ -4,73 +4,9 @@
  */
 
 #include "intent_observability_usage.h"
-
-#include <string.h>
+#include "transpiler_builtin_type_table.h"
 
 #include "../compiler/mir.h"
-
-static bool
-pgy_is_intent_observability_builtin_name(const char *name)
-{
-    /* All observability builtins start with "Intent". Quick reject
-     * non-Intent identifiers so the strcmp chain is skipped on the
-     * common path. strncmp is null-byte-safe even when name is shorter
-     * than 6 bytes. */
-    if (name == NULL || strncmp(name, "Intent", 6) != 0)
-        return false;
-
-    return strcmp(name, "IntentLastTrace") == 0
-        || strcmp(name, "IntentLastFailure") == 0
-        || strcmp(name, "IntentLastName") == 0
-        || strcmp(name, "IntentLastHandle") == 0
-        || strcmp(name, "IntentLastTraceId") == 0
-        || strcmp(name, "IntentLastStepCount") == 0
-        || strcmp(name, "IntentLastFailed") == 0
-        || strcmp(name, "IntentHistoryCount") == 0
-        || strcmp(name, "IntentHistoryStepName") == 0
-        || strcmp(name, "IntentHistoryStepZone") == 0
-        || strcmp(name, "IntentHistoryStepPhase") == 0
-        || strcmp(name, "IntentHistoryStepParticipant") == 0
-        || strcmp(name, "IntentHistoryStepSlot") == 0
-        || strcmp(name, "IntentHistoryStepFromZone") == 0
-        || strcmp(name, "IntentHistoryStepFromSlot") == 0
-        || strcmp(name, "IntentHistoryStepToZone") == 0
-        || strcmp(name, "IntentHistoryStepToSlot") == 0
-        || strcmp(name, "IntentHistoryStepOk") == 0
-        || strcmp(name, "IntentHistoryStepFailure") == 0
-        || strcmp(name, "IntentActiveCount") == 0
-        || strcmp(name, "IntentActiveName") == 0
-        || strcmp(name, "IntentActiveHandle") == 0
-        || strcmp(name, "IntentActiveParentHandle") == 0
-        || strcmp(name, "IntentActiveTraceId") == 0
-        || strcmp(name, "IntentActivePriority") == 0
-        || strcmp(name, "IntentActiveSubjectCount") == 0
-        || strcmp(name, "IntentActiveStepCount") == 0
-        || strcmp(name, "IntentActiveConcurrent") == 0
-        || strcmp(name, "IntentActiveFailed") == 0
-        || strcmp(name, "IntentActiveFailure") == 0
-        || strcmp(name, "IntentActiveTrace") == 0
-        || strcmp(name, "IntentActiveStepName") == 0
-        || strcmp(name, "IntentActiveStepZone") == 0
-        || strcmp(name, "IntentActiveStepPhase") == 0
-        || strcmp(name, "IntentActiveStepParticipant") == 0
-        || strcmp(name, "IntentActiveStepSlot") == 0
-        || strcmp(name, "IntentActiveStepFromZone") == 0
-        || strcmp(name, "IntentActiveStepFromSlot") == 0
-        || strcmp(name, "IntentActiveStepToZone") == 0
-        || strcmp(name, "IntentActiveStepToSlot") == 0
-        || strcmp(name, "IntentActiveStepOk") == 0
-        || strcmp(name, "IntentActiveStepFailure") == 0
-        || strcmp(name, "IntentCurrentHandle") == 0
-        || strcmp(name, "IntentRecentCount") == 0
-        || strcmp(name, "IntentRecentHandle") == 0
-        || strcmp(name, "IntentRecentTraceId") == 0
-        || strcmp(name, "IntentRecentName") == 0
-        || strcmp(name, "IntentRecentTrace") == 0
-        || strcmp(name, "IntentRecentFailure") == 0
-        || strcmp(name, "IntentRecentStepCount") == 0
-        || strcmp(name, "IntentRecentFailed") == 0;
-}
 
 static bool pgy_ast_uses_intent_observability(const ASTNode *node);
 
@@ -189,7 +125,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
     case AST_CALL:
         if (node->data.call.callee != NULL
             && node->data.call.callee->type == AST_IDENTIFIER
-            && pgy_is_intent_observability_builtin_name(
+            && pgy_builtin_is_intent_observability(
                 node->data.call.callee->data.identifier.name)) {
             return true;
         }
@@ -468,4 +404,3 @@ pgy_mir_program_uses_intent_observability(const MIRProgram *mir)
         || pgy_ast_array_uses_intent_observability(mir->functions, mir->function_count)
         || pgy_ast_array_uses_intent_observability(mir->externs, mir->extern_count);
 }
-

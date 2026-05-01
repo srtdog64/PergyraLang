@@ -52,6 +52,74 @@ parser_decl_report_invalid_function_clause(Parser *parser, bool is_action)
 }
 
 static bool
+parser_append_required_ability(Parser *parser, ASTNode *func, ASTNode *ability)
+{
+    ASTNode **grown;
+    size_t next_count;
+
+    if (parser == NULL || func == NULL || ability == NULL)
+        return false;
+
+    if (func->data.func_decl.required_ability_count >=
+        (size_t)-1 / sizeof(ASTNode *)) {
+        parser_error(parser, "Too many required abilities");
+        return false;
+    }
+
+    next_count = func->data.func_decl.required_ability_count + 1;
+    grown = realloc(func->data.func_decl.required_abilities,
+                    next_count * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing required abilities");
+        return false;
+    }
+
+    func->data.func_decl.required_abilities = grown;
+    func->data.func_decl.required_abilities[
+        func->data.func_decl.required_ability_count] = ability;
+    func->data.func_decl.required_ability_count = next_count;
+    return true;
+}
+
+static bool
+parser_append_authorized_by(Parser *parser, ASTNode *func, const char *name)
+{
+    char **grown;
+    char *copy;
+    size_t next_count;
+
+    if (parser == NULL || func == NULL || name == NULL)
+        return false;
+
+    if (func->data.func_decl.authorized_by_count >=
+        (size_t)-1 / sizeof(char *)) {
+        parser_error(parser, "Too many authorized-by subjects");
+        return false;
+    }
+
+    copy = pergyra_strdup(name);
+    if (copy == NULL) {
+        parser_error(parser, "Out of memory while parsing authorized-by subjects");
+        return false;
+    }
+
+    next_count = func->data.func_decl.authorized_by_count + 1;
+    grown = realloc(func->data.func_decl.authorized_by,
+                    next_count * sizeof(char *));
+    if (grown == NULL) {
+        free(copy);
+        parser_error(parser, "Out of memory while parsing authorized-by subjects");
+        return false;
+    }
+
+    func->data.func_decl.authorized_by = grown;
+    func->data.func_decl.authorized_by[
+        func->data.func_decl.authorized_by_count] = copy;
+    func->data.func_decl.authorized_by_count = next_count;
+    return true;
+}
+
+static bool
 parse_function_clause_where(Parser *parser, ASTNode *func, bool is_action)
 {
     WhereClause *where_clause = NULL;
@@ -102,12 +170,7 @@ parse_function_clause_requires(Parser *parser, ASTNode *func, bool is_action)
     }
     do {
         ASTNode *ability = parse_type(parser);
-        size_t next = func->data.func_decl.required_ability_count + 1;
-        func->data.func_decl.required_abilities = realloc(
-            func->data.func_decl.required_abilities,
-            next * sizeof(ASTNode *));
-        func->data.func_decl.required_abilities[next - 1] = ability;
-        func->data.func_decl.required_ability_count = next;
+        parser_append_required_ability(parser, func, ability);
     } while (parser_match(parser, TOKEN_COMMA));
     return true;
 }
@@ -185,13 +248,7 @@ parse_function_clause_authorized_by(Parser *parser, ASTNode *func,
     do {
         Token participant = parser_consume(parser, TOKEN_IDENTIFIER,
             "Expected subject name after 'authorized by'");
-        size_t next = func->data.func_decl.authorized_by_count + 1;
-        func->data.func_decl.authorized_by = realloc(
-            func->data.func_decl.authorized_by,
-            next * sizeof(char *));
-        func->data.func_decl.authorized_by[next - 1] =
-            pergyra_strdup(participant.text);
-        func->data.func_decl.authorized_by_count = next;
+        parser_append_authorized_by(parser, func, participant.text);
     } while (parser_match(parser, TOKEN_COMMA));
     return true;
 }

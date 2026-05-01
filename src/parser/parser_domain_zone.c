@@ -1,5 +1,37 @@
 #include "parser_domain_internal.h"
 
+static bool
+parser_zone_append_owned_name(Parser *parser, char ***items, size_t *count,
+                              const char *name)
+{
+    char **grown;
+    char *owned_name;
+    size_t next_count;
+
+    if (parser == NULL || items == NULL || count == NULL)
+        return false;
+    owned_name = pergyra_strdup(name);
+    if (owned_name == NULL) {
+        parser_error(parser, "Out of memory while parsing zone group name");
+        return false;
+    }
+
+    next_count = *count + 1;
+    grown = malloc(next_count * sizeof(char *));
+    if (grown == NULL) {
+        free(owned_name);
+        parser_error(parser, "Out of memory while growing zone group");
+        return false;
+    }
+    if (*items != NULL && *count > 0)
+        memcpy(grown, *items, *count * sizeof(char *));
+    grown[next_count - 1] = owned_name;
+    free(*items);
+    *items = grown;
+    *count = next_count;
+    return true;
+}
+
 ASTNode* parse_zone_declaration(Parser* parser) {
     Token name = consume_name_token(parser, "Expected zone name");
     ASTNode* zone = ast_create_zone_declaration(name.text);
@@ -20,8 +52,10 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             size_t name_count = 0;
             do {
                 Token n = consume_name_token(parser, "Expected slot name in group");
-                names = realloc(names, (name_count + 1) * sizeof(char *));
-                names[name_count++] = pergyra_strdup(n.text);
+                if (!parser_zone_append_owned_name(parser, &names, &name_count,
+                        n.text)) {
+                    break;
+                }
             } while (parser_match(parser, TOKEN_COMMA));
             parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after group slot names");
             parser_consume(parser, TOKEN_COLON, "Expected ':' after group slot list");
@@ -48,8 +82,10 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             size_t name_count = 0;
             do {
                 Token n = consume_name_token(parser, "Expected slot name in group");
-                names = realloc(names, (name_count + 1) * sizeof(char *));
-                names[name_count++] = pergyra_strdup(n.text);
+                if (!parser_zone_append_owned_name(parser, &names, &name_count,
+                        n.text)) {
+                    break;
+                }
             } while (parser_match(parser, TOKEN_COMMA));
             parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after group layer names");
             parser_consume(parser, TOKEN_COLON, "Expected ':' after group layer list");
@@ -287,12 +323,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             if (parser_match_identifier_keyword(parser, "requires")) {
                 do {
                     ASTNode *ability_name = parse_type(parser);
-                    authority->data.zone_authority.ability_count++;
-                    authority->data.zone_authority.required_abilities = realloc(
-                        authority->data.zone_authority.required_abilities,
-                        authority->data.zone_authority.ability_count * sizeof(ASTNode *));
-                    authority->data.zone_authority.required_abilities[
-                        authority->data.zone_authority.ability_count - 1] = ability_name;
+                    append_child_node(&authority->data.zone_authority.required_abilities,
+                        &authority->data.zone_authority.ability_count, ability_name);
                 } while (parser_match(parser, TOKEN_COMMA));
             }
             authority->line = subject_slot.line;
@@ -373,23 +405,15 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                     parser_parse_expression(parser);
             }
 
-            zone->data.zone_decl.shared_count++;
-            zone->data.zone_decl.shared_fields = realloc(
-                zone->data.zone_decl.shared_fields,
-                zone->data.zone_decl.shared_count * sizeof(ASTNode*));
-            zone->data.zone_decl.shared_fields[
-                zone->data.zone_decl.shared_count - 1] = shared;
+            append_child_node(&zone->data.zone_decl.shared_fields,
+                &zone->data.zone_decl.shared_count, shared);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match(parser, TOKEN_FUNC)) {
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
-            zone->data.zone_decl.method_count++;
-            zone->data.zone_decl.methods = realloc(
-                zone->data.zone_decl.methods,
-                zone->data.zone_decl.method_count * sizeof(ASTNode*));
-            zone->data.zone_decl.methods[
-                zone->data.zone_decl.method_count - 1] = method;
+            append_child_node(&zone->data.zone_decl.methods,
+                &zone->data.zone_decl.method_count, method);
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,

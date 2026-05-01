@@ -24,5 +24,6 @@ bool resolve_world_zone_state(ASTNode *world,
                               SemanticContext *ctx,
                               const char *action_name,
                               const char **zone_slot_name_out);
+void type_check_world_states(ASTNode *world, SemanticContext *ctx);
 
 #endif /* PGY_TYPE_CHECKER_WORLD_INTERNAL_H */

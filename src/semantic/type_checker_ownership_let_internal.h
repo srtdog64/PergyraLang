@@ -7,6 +7,12 @@
 
 Type *ownership_let_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
 Type *ownership_let_resolve_first_call_type_arg(ASTNode *call, SemanticContext *ctx);
+bool  ownership_let_try_claim_slot_decl(ASTNode *node,
+                                        SemanticContext *ctx,
+                                        const char *name,
+                                        ASTNode *init,
+                                        ASTNode *ann,
+                                        bool *handled);
 bool  ownership_let_view_init_info(ASTNode *init,
                                    const char **source_slot,
                                    bool *is_write_view);

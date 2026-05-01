@@ -1,4 +1,4 @@
-static void
+﻿static void
 test_roster_world_emit(void)
 {
     printf("\n[roster_world_emit]\n");

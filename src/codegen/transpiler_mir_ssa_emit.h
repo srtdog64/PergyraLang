@@ -232,10 +232,7 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
             }
             if (type_name != NULL && type_name[0] != '\0') {
                 bool registered_view_like = false;
-                if ((strcmp(type_name, "ReadView") == 0
-                     || strncmp(type_name, "ReadView<", 9) == 0
-                     || strcmp(type_name, "WriteView") == 0
-                     || strncmp(type_name, "WriteView<", 10) == 0)
+                if (transpiler_type_name_is_view_like(type_name)
                     && stmt->data.let_decl.initializer != NULL
                     && stmt->data.let_decl.initializer->type == AST_CALL
                     && stmt->data.let_decl.initializer->data.call.callee != NULL
@@ -249,8 +246,7 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
                         stmt->data.let_decl.initializer->data.call.arguments[0]->data.identifier.name;
                     if (callee != NULL
                         && source != NULL
-                        && (strcmp(callee, "ViewRead") == 0
-                            || strcmp(callee, "ViewWrite") == 0)) {
+                        && pgy_codegen_call_name_is_view_constructor(callee)) {
                         const char *source_type = lookup_typed_var(ctx, source);
                         bool source_secure = lookup_slot_is_secure(ctx, source);
                         if (!source_secure

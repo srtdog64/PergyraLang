@@ -241,27 +241,14 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
         if (node->data.call.callee != NULL
             && node->data.call.callee->type == AST_IDENTIFIER) {
             const char *name = node->data.call.callee->data.identifier.name;
-            if ((strcmp(name, "Write") == 0
-                 || strcmp(name, "ViewWrite") == 0
-                 || strcmp(name, "Move") == 0)
+            unsigned access_mask = slot_builtin_access_mask(name);
+            if (access_mask != 0
                 && node->data.call.arg_count >= 1
                 && node->data.call.arguments[0] != NULL
                 && node->data.call.arguments[0]->type == AST_IDENTIFIER
-                && strcmp(node->data.call.arguments[0]->data.identifier.name, symbol_name) == 0) {
-                mask |= SLOT_ACCESS_WRITE;
-            } else if ((strcmp(name, "Read") == 0
-                        || strcmp(name, "ViewRead") == 0)
-                       && node->data.call.arg_count >= 1
-                       && node->data.call.arguments[0] != NULL
-                       && node->data.call.arguments[0]->type == AST_IDENTIFIER
-                       && strcmp(node->data.call.arguments[0]->data.identifier.name, symbol_name) == 0) {
-                mask |= SLOT_ACCESS_READ;
-            } else if (strcmp(name, "Release") == 0
-                       && node->data.call.arg_count >= 1
-                       && node->data.call.arguments[0] != NULL
-                       && node->data.call.arguments[0]->type == AST_IDENTIFIER
-                       && strcmp(node->data.call.arguments[0]->data.identifier.name, symbol_name) == 0) {
-                mask |= SLOT_ACCESS_RELEASE;
+                && strcmp(node->data.call.arguments[0]->data.identifier.name,
+                          symbol_name) == 0) {
+                mask |= access_mask;
             } else if (program_root != NULL) {
                 ASTNode *callee_decl = slot_analyzer_find_function_decl(program_root, name);
                 size_t param_count = 0;
@@ -425,30 +412,14 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
         if (node->data.call.callee != NULL
             && node->data.call.callee->type == AST_IDENTIFIER) {
             const char *name = node->data.call.callee->data.identifier.name;
-            if ((strcmp(name, "Write") == 0
-                 || strcmp(name, "ViewWrite") == 0
-                 || strcmp(name, "Move") == 0)
+            unsigned access_mask = slot_builtin_access_mask(name);
+            if (access_mask != 0
                 && node->data.call.arg_count >= 1
                 && node->data.call.arguments[0] != NULL
                 && node->data.call.arguments[0]->type == AST_IDENTIFIER) {
                 slot_access_record(entries, count, capacity,
                     node->data.call.arguments[0]->data.identifier.name,
-                    SLOT_ACCESS_WRITE);
-            } else if ((strcmp(name, "Read") == 0
-                        || strcmp(name, "ViewRead") == 0)
-                       && node->data.call.arg_count >= 1
-                       && node->data.call.arguments[0] != NULL
-                       && node->data.call.arguments[0]->type == AST_IDENTIFIER) {
-                slot_access_record(entries, count, capacity,
-                    node->data.call.arguments[0]->data.identifier.name,
-                    SLOT_ACCESS_READ);
-            } else if (strcmp(name, "Release") == 0
-                       && node->data.call.arg_count >= 1
-                       && node->data.call.arguments[0] != NULL
-                       && node->data.call.arguments[0]->type == AST_IDENTIFIER) {
-                slot_access_record(entries, count, capacity,
-                    node->data.call.arguments[0]->data.identifier.name,
-                    SLOT_ACCESS_RELEASE);
+                    access_mask);
             }
         }
         if (node->data.call.callee != NULL

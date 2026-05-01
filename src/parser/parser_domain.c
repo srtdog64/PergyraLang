@@ -133,23 +133,45 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
 void
 append_domain_slot(ASTNode ***slots, size_t *slot_count, ASTNode *slot)
 {
+    ASTNode **grown;
+    size_t next_count;
+
     if (slots == NULL || slot_count == NULL || slot == NULL)
         return;
 
-    *slot_count += 1;
-    *slots = realloc(*slots, *slot_count * sizeof(ASTNode *));
-    (*slots)[*slot_count - 1] = slot;
+    if (*slot_count >= (size_t)-1 / sizeof(ASTNode *))
+        return;
+
+    next_count = *slot_count + 1;
+    grown = realloc(*slots, next_count * sizeof(ASTNode *));
+    if (grown == NULL)
+        return;
+
+    grown[*slot_count] = slot;
+    *slots = grown;
+    *slot_count = next_count;
 }
 
 void
 append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node)
 {
+    ASTNode **grown;
+    size_t next_count;
+
     if (nodes == NULL || count == NULL || node == NULL)
         return;
 
-    *count += 1;
-    *nodes = realloc(*nodes, *count * sizeof(ASTNode *));
-    (*nodes)[*count - 1] = node;
+    if (*count >= (size_t)-1 / sizeof(ASTNode *))
+        return;
+
+    next_count = *count + 1;
+    grown = realloc(*nodes, next_count * sizeof(ASTNode *));
+    if (grown == NULL)
+        return;
+
+    grown[*count] = node;
+    *nodes = grown;
+    *count = next_count;
 }
 
 char *
@@ -207,20 +229,12 @@ ASTNode* parse_party_declaration(Parser* parser) {
             /* Parse ability types separated by & */
             do {
                 ASTNode* ability_type = parse_type(parser);
-                rs->data.role_slot.ability_count++;
-                rs->data.role_slot.required_abilities = realloc(
-                    rs->data.role_slot.required_abilities,
-                    rs->data.role_slot.ability_count * sizeof(ASTNode*));
-                rs->data.role_slot.required_abilities[
-                    rs->data.role_slot.ability_count - 1] = ability_type;
+                append_child_node(&rs->data.role_slot.required_abilities,
+                    &rs->data.role_slot.ability_count, ability_type);
             } while (parser_match(parser, TOKEN_AND));
 
-            party->data.party_decl.role_count++;
-            party->data.party_decl.role_slots = realloc(
-                party->data.party_decl.role_slots,
-                party->data.party_decl.role_count * sizeof(ASTNode*));
-            party->data.party_decl.role_slots[
-                party->data.party_decl.role_count - 1] = rs;
+            append_child_node(&party->data.party_decl.role_slots,
+                &party->data.party_decl.role_count, rs);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -243,12 +257,8 @@ ASTNode* parse_party_declaration(Parser* parser) {
                     parser_parse_expression(parser);
             }
 
-            party->data.party_decl.shared_count++;
-            party->data.party_decl.shared_fields = realloc(
-                party->data.party_decl.shared_fields,
-                party->data.party_decl.shared_count * sizeof(ASTNode*));
-            party->data.party_decl.shared_fields[
-                party->data.party_decl.shared_count - 1] = shared;
+            append_child_node(&party->data.party_decl.shared_fields,
+                &party->data.party_decl.shared_count, shared);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -257,12 +267,8 @@ ASTNode* parse_party_declaration(Parser* parser) {
             /* Party method */
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
-            party->data.party_decl.method_count++;
-            party->data.party_decl.methods = realloc(
-                party->data.party_decl.methods,
-                party->data.party_decl.method_count * sizeof(ASTNode*));
-            party->data.party_decl.methods[
-                party->data.party_decl.method_count - 1] = method;
+            append_child_node(&party->data.party_decl.methods,
+                &party->data.party_decl.method_count, method);
 
         } else {
             parser_discard_pending_doc_comment(parser);
@@ -313,12 +319,8 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
             req->line = field_name.line;
             req->column = field_name.column;
 
-            ability->data.ability_decl.require_count++;
-            ability->data.ability_decl.require_fields = realloc(
-                ability->data.ability_decl.require_fields,
-                ability->data.ability_decl.require_count * sizeof(ASTNode*));
-            ability->data.ability_decl.require_fields[
-                ability->data.ability_decl.require_count - 1] = req;
+            append_child_node(&ability->data.ability_decl.require_fields,
+                &ability->data.ability_decl.require_count, req);
 
             /* Optional semicolon */
             parser_match(parser, TOKEN_SEMICOLON);
@@ -328,12 +330,8 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
             /* Method declaration (may have body or be abstract) */
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
-            ability->data.ability_decl.method_count++;
-            ability->data.ability_decl.methods = realloc(
-                ability->data.ability_decl.methods,
-                ability->data.ability_decl.method_count * sizeof(ASTNode*));
-            ability->data.ability_decl.methods[
-                ability->data.ability_decl.method_count - 1] = method;
+            append_child_node(&ability->data.ability_decl.methods,
+                &ability->data.ability_decl.method_count, method);
 
         } else {
             parser_discard_pending_doc_comment(parser);
@@ -388,12 +386,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
             /* Optional type args */
             inc->data.include_stmt.type_args = parse_type_arguments(parser);
 
-            role->data.role_decl.include_count++;
-            role->data.role_decl.includes = realloc(
-                role->data.role_decl.includes,
-                role->data.role_decl.include_count * sizeof(ASTNode*));
-            role->data.role_decl.includes[
-                role->data.role_decl.include_count - 1] = inc;
+            append_child_node(&role->data.role_decl.includes,
+                &role->data.role_decl.include_count, inc);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -414,12 +408,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
                 parser_collect_doc_comments(parser);
                 if (parser_match(parser, TOKEN_FUNC)) {
                     ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
-                    impl->data.impl_ability.method_count++;
-                    impl->data.impl_ability.methods = realloc(
-                        impl->data.impl_ability.methods,
-                        impl->data.impl_ability.method_count * sizeof(ASTNode*));
-                    impl->data.impl_ability.methods[
-                        impl->data.impl_ability.method_count - 1] = method;
+                    append_child_node(&impl->data.impl_ability.methods,
+                        &impl->data.impl_ability.method_count, method);
                 } else {
                     parser_discard_pending_doc_comment(parser);
                     parser_error(parser,
@@ -430,12 +420,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
             parser_consume(parser, TOKEN_RBRACE,
                 "Expected '}' after impl ability body");
 
-            role->data.role_decl.impl_count++;
-            role->data.role_decl.impl_abilities = realloc(
-                role->data.role_decl.impl_abilities,
-                role->data.role_decl.impl_count * sizeof(ASTNode*));
-            role->data.role_decl.impl_abilities[
-                role->data.role_decl.impl_count - 1] = impl;
+            append_child_node(&role->data.role_decl.impl_abilities,
+                &role->data.role_decl.impl_count, impl);
 
         } else if (parser_match(parser, TOKEN_OVERRIDE)) {
             /* override func FuncName(...) { ... } */
@@ -450,12 +436,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
             ovr->data.override_func.calls_super = false;
 
             /* Add as an impl with special name "__override__" */
-            role->data.role_decl.impl_count++;
-            role->data.role_decl.impl_abilities = realloc(
-                role->data.role_decl.impl_abilities,
-                role->data.role_decl.impl_count * sizeof(ASTNode*));
-            role->data.role_decl.impl_abilities[
-                role->data.role_decl.impl_count - 1] = ovr;
+            append_child_node(&role->data.role_decl.impl_abilities,
+                &role->data.role_decl.impl_count, ovr);
 
         } else if (parser_match(parser, TOKEN_FUNC)) {
             /* Direct method in role (not in impl block) */
@@ -467,12 +449,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
             impl->data.impl_ability.methods = calloc(1, sizeof(ASTNode*));
             impl->data.impl_ability.methods[0] = method;
 
-            role->data.role_decl.impl_count++;
-            role->data.role_decl.impl_abilities = realloc(
-                role->data.role_decl.impl_abilities,
-                role->data.role_decl.impl_count * sizeof(ASTNode*));
-            role->data.role_decl.impl_abilities[
-                role->data.role_decl.impl_count - 1] = impl;
+            append_child_node(&role->data.role_decl.impl_abilities,
+                &role->data.role_decl.impl_count, impl);
 
         } else {
             parser_discard_pending_doc_comment(parser);
@@ -490,4 +468,4 @@ ASTNode* parse_role_declaration(Parser* parser) {
  * Event system parsing functions
  * ================================================================= */
 
-// ?´ë²¤??? ì–¸ ?Œì‹±: event OnClick(sender: Object, args: EventArgs);
+// Event declaration parsing: event OnClick(sender: Object, args: EventArgs);

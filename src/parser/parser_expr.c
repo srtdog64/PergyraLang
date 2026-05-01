@@ -50,7 +50,80 @@ parser_is_lambda_start(Parser *parser)
     }
 }
 
-#include "parser_expr_string.h"
+static bool
+parser_append_expr_node(Parser *parser, ASTNode ***items, size_t *count, ASTNode *item)
+{
+    ASTNode **grown;
+    size_t next_count;
+
+    if (items == NULL || count == NULL)
+        return false;
+
+    next_count = *count + 1;
+    grown = realloc(*items, next_count * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while appending expression node");
+        return false;
+    }
+
+    grown[*count] = item;
+    *items = grown;
+    *count = next_count;
+    return true;
+}
+
+static bool
+parser_append_expr_node_with_capacity(Parser *parser,
+                                      ASTNode ***items,
+                                      size_t *count,
+                                      size_t *capacity,
+                                      ASTNode *item)
+{
+    ASTNode **grown;
+    size_t next_capacity;
+
+    if (items == NULL || count == NULL || capacity == NULL)
+        return false;
+
+    if (*count >= *capacity) {
+        next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        grown = realloc(*items, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while growing expression node list");
+            return false;
+        }
+        *items = grown;
+        *capacity = next_capacity;
+    }
+
+    (*items)[*count] = item;
+    (*count)++;
+    return true;
+}
+
+static bool
+parser_prepend_call_argument(Parser *parser, ASTNode *call, ASTNode *argument)
+{
+    ASTNode **new_args;
+    size_t old_count;
+
+    if (call == NULL || call->type != AST_CALL)
+        return false;
+
+    old_count = call->data.call.arg_count;
+    new_args = realloc(call->data.call.arguments,
+        (old_count + 1) * sizeof(ASTNode *));
+    if (new_args == NULL) {
+        parser_error(parser, "Out of memory while prepending pipe argument");
+        return false;
+    }
+
+    memmove(new_args + 1, new_args, old_count * sizeof(ASTNode *));
+    new_args[0] = argument;
+    call->data.call.arguments = new_args;
+    call->data.call.arg_count = old_count + 1;
+    return true;
+}
 
 // 표현식 파싱 (우선순위 기반)
 ASTNode* parser_parse_expression(Parser* parser) {
@@ -90,20 +163,12 @@ ASTNode* parse_pipe(Parser* parser) {
         ASTNode* right = parse_logical_or(parser);
         /* a |> f → f(a).  If right is a call f(b), transform to f(a, b). */
         if (right->type == AST_CALL) {
-            /* Insert expr as first argument */
-            size_t old_count = right->data.call.arg_count;
-            ASTNode **new_args = realloc(right->data.call.arguments,
-                (old_count + 1) * sizeof(ASTNode *));
-            if (new_args == NULL) {
+            if (!parser_prepend_call_argument(parser, right, expr)) {
                 /* realloc 실패: expr와 right를 해제하고 NULL 반환 */
                 ast_destroy(expr);
                 ast_destroy(right);
                 return NULL;
             }
-            memmove(new_args + 1, new_args, old_count * sizeof(ASTNode *));
-            new_args[0] = expr;
-            right->data.call.arguments = new_args;
-            right->data.call.arg_count = old_count + 1;
             expr = right;
         } else if (right->type == AST_IDENTIFIER) {
             /* a |> f → f(a) */
@@ -113,7 +178,6 @@ ASTNode* parse_pipe(Parser* parser) {
             call->data.call.arg_count = 1;
             expr = call;
         } else {
-            /* Fallback: treat as binary op */
             expr = ast_create_binary(expr, op, right);
         }
     }
@@ -346,13 +410,14 @@ ASTNode* parser_parse_primary(Parser* parser) {
         if (!parser_check(parser, TOKEN_RBRACKET)) {
             do {
                 ASTNode *elem = parser_parse_expression(parser);
-                if (arr->data.array_literal.count >= capacity) {
-                    capacity = capacity == 0 ? 4 : capacity * 2;
-                    arr->data.array_literal.elements = realloc(
-                        arr->data.array_literal.elements,
-                        capacity * sizeof(ASTNode*));
+                if (!parser_append_expr_node_with_capacity(parser,
+                        &arr->data.array_literal.elements,
+                        &arr->data.array_literal.count,
+                        &capacity,
+                        elem)) {
+                    ast_destroy(elem);
+                    break;
                 }
-                arr->data.array_literal.elements[arr->data.array_literal.count++] = elem;
             } while (parser_match(parser, TOKEN_COMMA));
         }
         parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after array literal");
@@ -450,18 +515,26 @@ ASTNode* parser_parse_primary(Parser* parser) {
             size_t cap = 4;
             tuple->data.tuple_literal.elements = calloc(cap, sizeof(ASTNode *));
             tuple->data.tuple_literal.count = 0;
-            tuple->data.tuple_literal.elements[tuple->data.tuple_literal.count++] = first;
+            if (!parser_append_expr_node_with_capacity(parser,
+                    &tuple->data.tuple_literal.elements,
+                    &tuple->data.tuple_literal.count,
+                    &cap,
+                    first)) {
+                ast_destroy(first);
+                return tuple;
+            }
             while (parser_match(parser, TOKEN_COMMA)) {
                 if (parser_check(parser, TOKEN_RPAREN))
                     break; /* allow trailing comma */
                 ASTNode *elem = parser_parse_expression(parser);
-                if (tuple->data.tuple_literal.count >= cap) {
-                    cap *= 2;
-                    tuple->data.tuple_literal.elements = realloc(
-                        tuple->data.tuple_literal.elements,
-                        cap * sizeof(ASTNode *));
+                if (!parser_append_expr_node_with_capacity(parser,
+                        &tuple->data.tuple_literal.elements,
+                        &tuple->data.tuple_literal.count,
+                        &cap,
+                        elem)) {
+                    ast_destroy(elem);
+                    break;
                 }
-                tuple->data.tuple_literal.elements[tuple->data.tuple_literal.count++] = elem;
             }
             parser_consume(parser, TOKEN_RPAREN, "Expected ')' after tuple literal");
             return tuple;
@@ -495,12 +568,13 @@ ASTNode* parse_lambda_expression(Parser* parser) {
             param = typed_param;
         }
 
-        lambda->data.lambda_expr.param_count++;
-        lambda->data.lambda_expr.params = realloc(
-            lambda->data.lambda_expr.params,
-            lambda->data.lambda_expr.param_count * sizeof(ASTNode*)
-        );
-        lambda->data.lambda_expr.params[lambda->data.lambda_expr.param_count - 1] = param;
+        if (!parser_append_expr_node(parser,
+                &lambda->data.lambda_expr.params,
+                &lambda->data.lambda_expr.param_count,
+                param)) {
+            ast_destroy(param);
+            break;
+        }
 
         if (!parser_match(parser, TOKEN_COMMA)) break;
     }

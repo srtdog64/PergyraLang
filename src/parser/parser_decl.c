@@ -1,5 +1,89 @@
 ﻿#include "parser_internal.h"
 
+static bool
+parser_append_func_param(Parser *parser, ASTNode *func, FuncParam *param)
+{
+    FuncParam **grown;
+    size_t next_count;
+
+    if (parser == NULL || func == NULL || param == NULL)
+        return false;
+
+    if (func->data.func_decl.param_count >= (size_t)-1 / sizeof(FuncParam *)) {
+        parser_error(parser, "Too many function parameters");
+        return false;
+    }
+
+    next_count = func->data.func_decl.param_count + 1;
+    grown = realloc(func->data.func_decl.params,
+                    next_count * sizeof(FuncParam *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing function parameters");
+        return false;
+    }
+
+    func->data.func_decl.params = grown;
+    func->data.func_decl.params[func->data.func_decl.param_count] = param;
+    func->data.func_decl.param_count = next_count;
+    return true;
+}
+
+static bool
+parser_append_class_field(Parser *parser, ASTNode *class_decl, ClassField *field)
+{
+    ClassField **grown;
+    size_t next_count;
+
+    if (parser == NULL || class_decl == NULL || field == NULL)
+        return false;
+
+    if (class_decl->data.class_decl.field_count >= (size_t)-1 / sizeof(ClassField *)) {
+        parser_error(parser, "Too many nominal fields");
+        return false;
+    }
+
+    next_count = class_decl->data.class_decl.field_count + 1;
+    grown = realloc(class_decl->data.class_decl.fields,
+                    next_count * sizeof(ClassField *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing nominal fields");
+        return false;
+    }
+
+    class_decl->data.class_decl.fields = grown;
+    class_decl->data.class_decl.fields[class_decl->data.class_decl.field_count] = field;
+    class_decl->data.class_decl.field_count = next_count;
+    return true;
+}
+
+static bool
+parser_append_class_method(Parser *parser, ASTNode *class_decl, ASTNode *method)
+{
+    ASTNode **grown;
+    size_t next_count;
+
+    if (parser == NULL || class_decl == NULL || method == NULL)
+        return false;
+
+    if (class_decl->data.class_decl.method_count >= (size_t)-1 / sizeof(ASTNode *)) {
+        parser_error(parser, "Too many nominal methods");
+        return false;
+    }
+
+    next_count = class_decl->data.class_decl.method_count + 1;
+    grown = realloc(class_decl->data.class_decl.methods,
+                    next_count * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing nominal methods");
+        return false;
+    }
+
+    class_decl->data.class_decl.methods = grown;
+    class_decl->data.class_decl.methods[class_decl->data.class_decl.method_count] = method;
+    class_decl->data.class_decl.method_count = next_count;
+    return true;
+}
+
 // 함수 선언 파싱
 static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) {
     // 함수 이름
@@ -41,11 +125,7 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
             param->type = param_type;
         }
 
-        // 파라미터 추가
-        func->data.func_decl.param_count++;
-        func->data.func_decl.params = realloc(func->data.func_decl.params,
-                                             func->data.func_decl.param_count * sizeof(FuncParam*));
-        func->data.func_decl.params[func->data.func_decl.param_count - 1] = param;
+        parser_append_func_param(parser, func, param);
 
         if (!parser_match(parser, TOKEN_COMMA)) break;
     }
@@ -245,13 +325,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             field->has_explicit_access = explicit_access;
             field->is_vessel_field = is_vessel_field;
 
-            // 필드 추가
-            class_decl->data.class_decl.field_count++;
-            class_decl->data.class_decl.fields = realloc(
-                class_decl->data.class_decl.fields,
-                class_decl->data.class_decl.field_count * sizeof(ClassField*)
-            );
-            class_decl->data.class_decl.fields[class_decl->data.class_decl.field_count - 1] = field;
+            parser_append_class_field(parser, class_decl, field);
 
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after field declaration");
             parser_discard_pending_doc_comment(parser);
@@ -261,25 +335,14 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             method->data.func_decl.access = access;
             method->data.func_decl.has_explicit_access = explicit_access;
 
-            // 메서드 추가
-            class_decl->data.class_decl.method_count++;
-            class_decl->data.class_decl.methods = realloc(
-                class_decl->data.class_decl.methods,
-                class_decl->data.class_decl.method_count * sizeof(ASTNode*)
-            );
-            class_decl->data.class_decl.methods[class_decl->data.class_decl.method_count - 1] = method;
+            parser_append_class_method(parser, class_decl, method);
         } else if (decl_kind == NOMINAL_DECL_SUBJECT
             && parser_decl_match_contextual_keyword(parser, "action")) {
             ASTNode* method = parser_finalize_statement(parser, parse_action_declaration(parser));
             method->data.func_decl.access = access;
             method->data.func_decl.has_explicit_access = explicit_access;
 
-            class_decl->data.class_decl.method_count++;
-            class_decl->data.class_decl.methods = realloc(
-                class_decl->data.class_decl.methods,
-                class_decl->data.class_decl.method_count * sizeof(ASTNode*)
-            );
-            class_decl->data.class_decl.methods[class_decl->data.class_decl.method_count - 1] = method;
+            parser_append_class_method(parser, class_decl, method);
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser, "Expected %s member declaration",

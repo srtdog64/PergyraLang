@@ -61,7 +61,6 @@ void ast_add_statement(ASTNode* parent, ASTNode* statement) {
     }
 }
 
-// parallel ?쒖뒪??異붽?
 void ast_add_parallel_task(ASTNode* parallel, ASTNode* task) {
     if (parallel->type != AST_PARALLEL_BLOCK) return;
 
@@ -71,7 +70,6 @@ void ast_add_parallel_task(ASTNode* parallel, ASTNode* task) {
                     task);
 }
 
-// ?⑥닔 ?몄옄 異붽?
 void ast_add_argument(ASTNode* call, ASTNode* arg) {
     if (call->type != AST_CALL) return;
 

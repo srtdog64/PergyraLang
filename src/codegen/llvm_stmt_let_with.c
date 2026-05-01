@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "codegen_slot_type_policy.h"
 
 static bool
 llvm_stmt_require_let_type_arg(LLVMGenCtx *ctx, ASTNode *node,
@@ -44,10 +45,10 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *callee = init->data.call.callee->data.identifier.name;
         const char *source_name = init->data.call.arguments[0]->data.identifier.name;
         bool alias_decl =
-            ((strcmp(ann_name, "ReadView") == 0 || strncmp(ann_name, "ReadView<", 9) == 0)
-             && strcmp(callee, "ViewRead") == 0)
-            || ((strcmp(ann_name, "WriteView") == 0 || strncmp(ann_name, "WriteView<", 10) == 0)
-                && strcmp(callee, "ViewWrite") == 0)
+            (pgy_codegen_type_name_is_read_view(ann_name)
+             && pgy_codegen_call_name_is_view_read(callee))
+            || (pgy_codegen_type_name_is_write_view(ann_name)
+                && pgy_codegen_call_name_is_view_write(callee))
             || ((strcmp(ann_name, "MoveToken") == 0 || strncmp(ann_name, "MoveToken<", 10) == 0)
                 && strcmp(callee, "Move") == 0);
         if (alias_decl) {

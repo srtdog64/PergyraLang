@@ -1,14 +1,32 @@
-/*
- * Copyright (c) 2025 Pergyra Language Project
- * Intent step parser owner.
- * BSD 3-Clause License
- */
+#include "parser_internal.h"
 
-#ifndef PERGYRA_PARSER_INTENT_STEP_H
-#define PERGYRA_PARSER_INTENT_STEP_H
+static bool
+parser_intent_step_append_required_ability(Parser *parser, ASTNode *step,
+                                           ASTNode *ability)
+{
+    ASTNode **grown;
+    size_t next;
+
+    if (parser == NULL || step == NULL || ability == NULL)
+        return false;
+
+    next = step->data.intent_step.required_ability_count + 1;
+    grown = realloc(step->data.intent_step.required_abilities,
+                    next * sizeof(ASTNode *));
+    if (grown == NULL) {
+        parser_error(parser, "Out of memory while parsing intent step requires");
+        return false;
+    }
+
+    grown[next - 1] = ability;
+    step->data.intent_step.required_abilities = grown;
+    step->data.intent_step.required_ability_count = next;
+    return true;
+}
 
 static void
-parse_intent_step_transfer_clause(Parser *parser, ASTNode *step, bool shorthand_move)
+parse_intent_step_transfer_clause(Parser *parser, ASTNode *step,
+                                  bool shorthand_move)
 {
     Token from_alias;
     Token to_alias;
@@ -20,9 +38,8 @@ parse_intent_step_transfer_clause(Parser *parser, ASTNode *step, bool shorthand_
         return;
     }
 
-    if (!shorthand_move) {
+    if (!shorthand_move)
         parser_consume(parser, TOKEN_COLON, "Expected ':' after 'transfer'");
-    }
 
     from_alias = consume_binding_name_token(
         parser,
@@ -56,7 +73,7 @@ parse_intent_step_transfer_clause(Parser *parser, ASTNode *step, bool shorthand_
             : "Expected ';' after step transfer clause");
 }
 
-static ASTNode *
+ASTNode *
 parse_intent_step(Parser *parser)
 {
     Token name_tok = consume_decl_name_token(parser, "Expected step name");
@@ -188,7 +205,8 @@ parse_intent_step(Parser *parser)
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'invariant'");
             ast_destroy(step->data.intent_step.invariant_expr);
             step->data.intent_step.invariant_expr = parser_parse_expression(parser);
-            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step invariant clause");
+            parser_consume(parser, TOKEN_SEMICOLON,
+                           "Expected ';' after step invariant clause");
             continue;
         }
 
@@ -200,12 +218,10 @@ parse_intent_step(Parser *parser)
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'requires'");
             do {
                 ASTNode *ability = parse_type(parser);
-                size_t next = step->data.intent_step.required_ability_count + 1;
-                step->data.intent_step.required_abilities = realloc(
-                    step->data.intent_step.required_abilities,
-                    next * sizeof(ASTNode *));
-                step->data.intent_step.required_abilities[next - 1] = ability;
-                step->data.intent_step.required_ability_count = next;
+                if (!parser_intent_step_append_required_ability(parser, step, ability)) {
+                    ast_destroy(ability);
+                    break;
+                }
             } while (parser_match(parser, TOKEN_COMMA));
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step requires clause");
             continue;
@@ -226,7 +242,8 @@ parse_intent_step(Parser *parser)
                 &step->data.intent_step.authorized_by,
                 &step->data.intent_step.authorized_by_count,
                 "Expected involves alias after 'authorized by:'");
-            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step authorization clause");
+            parser_consume(parser, TOKEN_SEMICOLON,
+                           "Expected ';' after step authorization clause");
             continue;
         }
 
@@ -258,18 +275,6 @@ parse_intent_step(Parser *parser)
             return step;
         }
 
-        if (parser_intent_match_keyword(parser, "intent")) {
-            if (step->data.intent_step.intent_expr != NULL) {
-                parser_error(parser, "Duplicate 'intent' clause in intent step");
-                return step;
-            }
-            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'intent'");
-            ast_destroy(step->data.intent_step.intent_expr);
-            step->data.intent_step.intent_expr = parser_parse_expression(parser);
-            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step intent clause");
-            continue;
-        }
-
         if (parser_intent_match_keyword(parser, "expect")) {
             if (step->data.intent_step.expect_expr != NULL) {
                 parser_error(parser, "Duplicate 'expect' clause in intent step");
@@ -293,5 +298,3 @@ parse_intent_step(Parser *parser)
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after step body");
     return step;
 }
-
-#endif /* PERGYRA_PARSER_INTENT_STEP_H */

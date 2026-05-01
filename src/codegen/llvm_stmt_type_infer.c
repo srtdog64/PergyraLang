@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_stmt_type_infer_helpers.h"
 
 LLVMClassTypeEntry *
 llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
@@ -77,25 +78,15 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
         && init->data.call.callee->type == AST_IDENTIFIER
         && init->data.call.callee->data.identifier.name != NULL) {
         name = init->data.call.callee->data.identifier.name;
-        if ((strcmp(name, "ListGet") == 0 || strcmp(name, "QueuePop") == 0)
+        if (llvm_stmt_call_returns_collection_value(name)
             && init->data.call.arg_count >= 1
             && init->data.call.arguments[0] != NULL
             && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
             const char *collection = init->data.call.arguments[0]->data.identifier.name;
-            const char *inner = strcmp(name, "ListGet") == 0
-                ? llvm_lookup_list_inner(ctx, collection)
-                : llvm_lookup_queue_inner(ctx, collection);
+            const char *inner = llvm_stmt_lookup_collection_get_inner(
+                ctx, name, collection);
             if (inner != NULL && llvm_lookup_class(ctx, inner) != NULL)
                 return inner;
-        }
-        if (strcmp(name, "MapGet") == 0
-            && init->data.call.arg_count >= 1
-            && init->data.call.arguments[0] != NULL
-            && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            const char *collection = init->data.call.arguments[0]->data.identifier.name;
-            const char *value = llvm_lookup_map_value(ctx, collection);
-            if (value != NULL && llvm_lookup_class(ctx, value) != NULL)
-                return value;
         }
         if (llvm_lookup_class(ctx, name) != NULL)
             return name;
@@ -256,22 +247,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             const char *method_name = expr->data.call.callee->data.member.name;
             const char *receiver_name = receiver->type == AST_IDENTIFIER
                 ? receiver->data.identifier.name : NULL;
-            const char *inner = receiver_name != NULL
-                ? llvm_lookup_slot_inner(ctx, receiver_name) : NULL;
-            if (inner == NULL) {
-                LLVMViewVarEntry *view = receiver_name != NULL
-                    ? llvm_lookup_view_var(ctx, receiver_name) : NULL;
-                if (view != NULL)
-                    inner = view->inner_type;
-            }
-            if (inner == NULL)
-                inner = receiver_name != NULL
-                    ? llvm_lookup_device_slot_inner(ctx, receiver_name) : NULL;
-            if (inner != NULL && strcmp(method_name, "Read") == 0)
+            const char *inner = llvm_stmt_lookup_slot_or_view_inner(
+                ctx, receiver_name);
+            if (inner != NULL && llvm_stmt_slot_call_returns_value(method_name))
                 return pergyra_type_to_llvm(ctx, inner);
             if (inner != NULL
-                && (strcmp(method_name, "Write") == 0
-                    || strcmp(method_name, "Release") == 0)) {
+                && llvm_stmt_call_is_slot_builtin(method_name)) {
                 return ctx->type_void;
             }
             if (strcmp(method_name, "Slice") == 0 && receiver_name != NULL) {
@@ -315,23 +296,15 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             && expr->data.call.callee->type == AST_IDENTIFIER
             && expr->data.call.callee->data.identifier.name != NULL) {
             const char *callee = expr->data.call.callee->data.identifier.name;
-            if ((strcmp(callee, "Read") == 0
-                 || strcmp(callee, "Write") == 0
-                 || strcmp(callee, "Release") == 0)
+            if (llvm_stmt_call_is_slot_builtin(callee)
                 && expr->data.call.arg_count >= 1
                 && expr->data.call.arguments[0] != NULL
                 && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
                 const char *receiver_name =
                     expr->data.call.arguments[0]->data.identifier.name;
-                const char *inner = llvm_lookup_slot_inner(ctx, receiver_name);
-                if (inner == NULL) {
-                    LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, receiver_name);
-                    if (view != NULL)
-                        inner = view->inner_type;
-                }
-                if (inner == NULL)
-                    inner = llvm_lookup_device_slot_inner(ctx, receiver_name);
-                if (inner != NULL && strcmp(callee, "Read") == 0)
+                const char *inner = llvm_stmt_lookup_slot_or_view_inner(
+                    ctx, receiver_name);
+                if (inner != NULL && llvm_stmt_slot_call_returns_value(callee))
                     return pergyra_type_to_llvm(ctx, inner);
                 if (inner != NULL)
                     return ctx->type_void;
@@ -347,6 +320,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             }
             if (fn != NULL)
                 return fn->ret_type;
+            {
+                LLVMTypeRef builtin_type =
+                    llvm_stmt_infer_scalar_builtin_type(ctx, callee);
+                if (builtin_type != NULL)
+                    return builtin_type;
+            }
             if (strcmp(callee, "ToString") == 0
                 || strcmp(callee, "ReadFile") == 0
                 || strcmp(callee, "Input") == 0
@@ -358,48 +337,22 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 || strcmp(callee, "StringConcat") == 0) {
                 return ctx->type_i8ptr;
             }
-            if (strcmp(callee, "ListGet") == 0
+            if (llvm_stmt_call_returns_collection_value(callee)
                 && expr->data.call.arg_count >= 1
                 && expr->data.call.arguments[0] != NULL
                 && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
-                const char *inner = llvm_lookup_list_inner(
-                    ctx, expr->data.call.arguments[0]->data.identifier.name);
+                const char *inner = llvm_stmt_lookup_collection_get_inner(
+                    ctx, callee,
+                    expr->data.call.arguments[0]->data.identifier.name);
                 if (inner != NULL)
                     return pergyra_type_to_llvm(ctx, inner);
             }
-            if (strcmp(callee, "QueuePop") == 0
-                && expr->data.call.arg_count >= 1
-                && expr->data.call.arguments[0] != NULL
-                && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
-                const char *inner = llvm_lookup_queue_inner(
-                    ctx, expr->data.call.arguments[0]->data.identifier.name);
-                if (inner != NULL)
-                    return pergyra_type_to_llvm(ctx, inner);
-            }
-            if (strcmp(callee, "MapGet") == 0
-                && expr->data.call.arg_count >= 1
-                && expr->data.call.arguments[0] != NULL
-                && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
-                const char *value = llvm_lookup_map_value(
-                    ctx, expr->data.call.arguments[0]->data.identifier.name);
-                if (value != NULL)
-                    return pergyra_type_to_llvm(ctx, value);
-            }
-            if (strcmp(callee, "ListSize") == 0
-                || strcmp(callee, "QueueSize") == 0
-                || strcmp(callee, "MapSize") == 0) {
+            if (llvm_stmt_call_returns_collection_size(callee))
                 return ctx->type_i32;
-            }
-            if (strcmp(callee, "QueueEmpty") == 0
-                || strcmp(callee, "MapHas") == 0) {
+            if (llvm_stmt_call_returns_collection_bool(callee))
                 return ctx->type_i1;
-            }
-            if (strcmp(callee, "HasZone") == 0
-                || strcmp(callee, "HasState") == 0
-                || strcmp(callee, "HasLayer") == 0
-                || strcmp(callee, "HasProjection") == 0) {
+            if (llvm_stmt_call_returns_domain_bool(callee))
                 return ctx->type_i1;
-            }
         }
         /* Domain helper calls can be emitted before their final lowered helper
          * entry is visible in the LLVM function inventory. Keep this as poison

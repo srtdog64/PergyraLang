@@ -158,12 +158,8 @@ ASTNode* parse_relation_declaration(Parser* parser) {
                         parser_parse_expression(parser);
                 }
 
-                relation->data.relation_decl.shared_count++;
-                relation->data.relation_decl.shared_fields = realloc(
-                    relation->data.relation_decl.shared_fields,
-                    relation->data.relation_decl.shared_count * sizeof(ASTNode*));
-                relation->data.relation_decl.shared_fields[
-                    relation->data.relation_decl.shared_count - 1] = shared;
+                append_child_node(&relation->data.relation_decl.shared_fields,
+                    &relation->data.relation_decl.shared_count, shared);
 
                 parser_match(parser, TOKEN_SEMICOLON);
                 parser_discard_pending_doc_comment(parser);
@@ -178,12 +174,8 @@ ASTNode* parse_relation_declaration(Parser* parser) {
             } else if (parser_match(parser, TOKEN_FUNC)) {
                 ASTNode* method = parser_finalize_statement(parser,
                     parse_function_declaration(parser));
-                relation->data.relation_decl.method_count++;
-                relation->data.relation_decl.methods = realloc(
-                    relation->data.relation_decl.methods,
-                    relation->data.relation_decl.method_count * sizeof(ASTNode*));
-                relation->data.relation_decl.methods[
-                    relation->data.relation_decl.method_count - 1] = method;
+                append_child_node(&relation->data.relation_decl.methods,
+                    &relation->data.relation_decl.method_count, method);
             } else {
                 parser_discard_pending_doc_comment(parser);
                 parser_error(parser,
@@ -243,12 +235,8 @@ ASTNode* parse_effect_declaration(Parser* parser) {
                         parser_parse_expression(parser);
                 }
 
-                effect->data.effect_decl.shared_count++;
-                effect->data.effect_decl.shared_fields = realloc(
-                    effect->data.effect_decl.shared_fields,
-                    effect->data.effect_decl.shared_count * sizeof(ASTNode*));
-                effect->data.effect_decl.shared_fields[
-                    effect->data.effect_decl.shared_count - 1] = shared;
+                append_child_node(&effect->data.effect_decl.shared_fields,
+                    &effect->data.effect_decl.shared_count, shared);
 
                 parser_match(parser, TOKEN_SEMICOLON);
                 parser_discard_pending_doc_comment(parser);
@@ -263,12 +251,8 @@ ASTNode* parse_effect_declaration(Parser* parser) {
             } else if (parser_match(parser, TOKEN_FUNC)) {
                 ASTNode* method = parser_finalize_statement(parser,
                     parse_function_declaration(parser));
-                effect->data.effect_decl.method_count++;
-                effect->data.effect_decl.methods = realloc(
-                    effect->data.effect_decl.methods,
-                    effect->data.effect_decl.method_count * sizeof(ASTNode*));
-                effect->data.effect_decl.methods[
-                    effect->data.effect_decl.method_count - 1] = method;
+                append_child_node(&effect->data.effect_decl.methods,
+                    &effect->data.effect_decl.method_count, method);
             } else {
                 parser_discard_pending_doc_comment(parser);
                 parser_error(parser,

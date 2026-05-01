@@ -1,4 +1,4 @@
-static void
+﻿static void
 test_parallel_family_emit(void)
 {
     printf("\n[parallel_family_emit]\n");

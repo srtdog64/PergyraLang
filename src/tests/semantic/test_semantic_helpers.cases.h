@@ -185,9 +185,9 @@ static const char *g_current_test_name = NULL;
 
 #define EXPECT(cond) \
     do { \
-        if (cond) { printf("✓\n"); g_pass++; } \
+        if (cond) { printf("ok\n"); g_pass++; } \
         else       { \
-            printf("✗  (%s @ line %d: %s)\n", \
+            printf("FAIL (%s @ line %d: %s)\n", \
                    g_current_test_name != NULL ? g_current_test_name : "<unnamed test>", \
                    __LINE__, \
                    #cond); \

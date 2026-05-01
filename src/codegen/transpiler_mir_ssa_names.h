@@ -1,3 +1,6 @@
+/* Slot/view string classification is shared with non-MIR codegen paths. */
+#include "codegen_slot_type_policy.h"
+
 static const char *
 transpiler_resolve_ssa_name(const TranspilerSSANameMap *ssa_map,
                             const char *base_name)
@@ -99,26 +102,13 @@ transpiler_name_is_token_local(const char *name)
 static bool
 transpiler_type_name_is_slot_like(const char *type_name)
 {
-    if (type_name == NULL)
-        return false;
-    return strncmp(type_name, "Slot<", 5) == 0
-        || strncmp(type_name, "SecureSlot<", 11) == 0
-        || strncmp(type_name, "DeviceSlot<", 11) == 0
-        || strcmp(type_name, "ReadView") == 0
-        || strncmp(type_name, "ReadView<", 9) == 0
-        || strcmp(type_name, "WriteView") == 0
-        || strncmp(type_name, "WriteView<", 10) == 0;
+    return pgy_codegen_type_name_is_slot_family(type_name);
 }
 
 static bool
 transpiler_type_name_is_view_like(const char *type_name)
 {
-    if (type_name == NULL)
-        return false;
-    return strcmp(type_name, "ReadView") == 0
-        || strncmp(type_name, "ReadView<", 9) == 0
-        || strcmp(type_name, "WriteView") == 0
-        || strncmp(type_name, "WriteView<", 10) == 0;
+    return pgy_codegen_type_name_is_view(type_name);
 }
 
 /* Locals whose declaration is emitted alongside a slot claim (slots,

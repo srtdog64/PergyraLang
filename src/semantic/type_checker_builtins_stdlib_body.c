@@ -41,78 +41,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (handled)
         return collection_type;
 
-    /* FSM builtins */
-    if (strcmp(name, "FsmNew") == 0) { return TYPE_UNKNOWN; }
-    if (strcmp(name, "FsmAddState") == 0) {
-        if (expr->data.call.arg_count >= 2) {
-            type_check_expression(expr->data.call.arguments[0], ctx);
-            type_check_expression(expr->data.call.arguments[1], ctx);
-        }
-        return TYPE_INT;
-    }
-    if (strcmp(name, "FsmTransition") == 0) {
-        if (expr->data.call.arg_count >= 4) {
-            for (size_t ai = 0; ai < 4; ai++)
-                type_check_expression(expr->data.call.arguments[ai], ctx);
-        }
-        return TYPE_VOID;
-    }
-    if (strcmp(name, "FsmStep") == 0) {
-        if (expr->data.call.arg_count >= 2) {
-            type_check_expression(expr->data.call.arguments[0], ctx);
-            type_check_expression(expr->data.call.arguments[1], ctx);
-        }
-        return TYPE_BOOL;
-    }
-    if (strcmp(name, "FsmCurrent") == 0) {
-        if (expr->data.call.arg_count >= 1)
-            type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_INT;
-    }
-    if (strcmp(name, "FsmCurrentName") == 0) {
-        if (expr->data.call.arg_count >= 1)
-            type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_STRING;
-    }
-    /* Timer builtins */
-    if (strcmp(name, "TimerNew") == 0) {
-        if (expr->data.call.arg_count >= 1)
-            type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_UNKNOWN;
-    }
-    if (strcmp(name, "TimerTick") == 0) {
-        if (expr->data.call.arg_count >= 2) {
-            type_check_expression(expr->data.call.arguments[0], ctx);
-            type_check_expression(expr->data.call.arguments[1], ctx);
-        }
-        return TYPE_VOID;
-    }
-    if (strcmp(name, "TimerRemaining") == 0) {
-        if (expr->data.call.arg_count >= 1)
-            type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_INT;
-    }
-    if (strcmp(name, "TimerDone") == 0 || strcmp(name, "CooldownReady") == 0) {
-        if (expr->data.call.arg_count >= 1)
-            type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_BOOL;
-    }
-    if (strcmp(name, "TimerReset") == 0 || strcmp(name, "CooldownTrigger") == 0) {
-        if (expr->data.call.arg_count >= 1)
-            type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_VOID;
-    }
-    if (strcmp(name, "CooldownNew") == 0) {
-        if (expr->data.call.arg_count >= 1)
-            type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_UNKNOWN;
-    }
-    if (strcmp(name, "CooldownTick") == 0) {
-        if (expr->data.call.arg_count >= 2) {
-            type_check_expression(expr->data.call.arguments[0], ctx);
-            type_check_expression(expr->data.call.arguments[1], ctx);
-        }
-        return TYPE_VOID;
+    {
+        Type *state_tool_type = type_check_state_tool_builtin(
+            expr, name, ctx, &handled);
+        if (handled)
+            return state_tool_type;
     }
     if (strcmp(name, "ToString") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
@@ -307,54 +240,14 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (strcmp(name, "SendTimeoutStatus") == 0) {
         return type_check_channel_send_builtin(expr, name, true, true, ctx);
     }
-    if (strcmp(name, "ChannelLength") == 0
-        || strcmp(name, "ChannelCapacity") == 0
-        || strcmp(name, "ChannelSpace") == 0
-        || strcmp(name, "ChannelFull") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_REMOTE);
-        Type *ch_type = stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        if (!type_is_constructed_named(ch_type, "Channel")) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "%s requires Channel<T>, got '%s'",
-                name,
-                type_name_or_unknown(ch_type));
-            return TYPE_UNKNOWN;
-        }
-        return strcmp(name, "ChannelFull") == 0 ? TYPE_BOOL : TYPE_INT;
-    }
-    if (strcmp(name, "ChannelClosed") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_REMOTE);
-        Type *ch_type = stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        if (!type_is_constructed_named(ch_type, "Channel")) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "ChannelClosed requires Channel<T>, got '%s'",
-                type_name_or_unknown(ch_type));
-            return TYPE_UNKNOWN;
-        }
-        return TYPE_BOOL;
+    {
+        Type *channel_state_type = type_check_channel_state_builtin(
+            expr, name, ctx, &handled);
+        if (handled)
+            return channel_state_type;
     }
     if (strcmp(name, "ChannelClose") == 0) {
         return type_check_channel_close_builtin(expr, ctx);
-    }
-    if (strcmp(name, "ChannelReady") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_REMOTE);
-        Type *ch_type = stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        if (!type_is_constructed_named(ch_type, "Channel")) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "ChannelReady requires Channel<T>, got '%s'",
-                type_name_or_unknown(ch_type));
-            return TYPE_UNKNOWN;
-        }
-        return TYPE_BOOL;
     }
     if (strcmp(name, "Cancel") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))

@@ -26,6 +26,9 @@ typedef struct
     unsigned    mask;
 } SlotEscapeEntry;
 
+unsigned slot_builtin_access_mask(const char *name);
+bool slot_builtin_call_is_local_non_escape(const char *name);
+
 void slot_access_record(SlotAccessEntry **entries, size_t *count,
                         size_t *capacity, const char *name, unsigned mask);
 void slot_escape_record(SlotEscapeEntry **entries, size_t *count,

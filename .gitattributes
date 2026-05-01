@@ -29,3 +29,6 @@ bin/**    linguist-generated=true
 *.pgy text eol=lf
 *.c   text eol=lf
 *.h   text eol=lf
+*.sh  text eol=lf
+Makefile text eol=lf
+.gitattributes text eol=lf

@@ -29,6 +29,14 @@ Type *type_check_channel_recv_builtin(ASTNode *expr, const char *name,
 
 Type *type_check_channel_close_builtin(ASTNode *expr, SemanticContext *ctx);
 
+Type *type_check_channel_state_builtin(ASTNode *expr, const char *name,
+                                       SemanticContext *ctx,
+                                       bool *handled_out);
+
+Type *type_check_state_tool_builtin(ASTNode *expr, const char *name,
+                                    SemanticContext *ctx,
+                                    bool *handled_out);
+
 bool type_check_cancel_rejects_payload(ASTNode *site, Type *task_type,
                                        SemanticContext *ctx);
 

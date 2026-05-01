@@ -30,6 +30,45 @@ parser_decl_hint_name(ASTNode *node)
     }
 }
 
+static bool
+parser_grow_decl_hints(Parser *parser, size_t new_capacity)
+{
+    char **new_names;
+    ASTNodeType *new_types;
+    NominalDeclKind *new_nominal_kinds;
+    size_t old_count;
+
+    if (parser == NULL)
+        return false;
+
+    old_count = parser->decl_hint_count;
+    new_names = calloc(new_capacity, sizeof(char *));
+    new_types = calloc(new_capacity, sizeof(ASTNodeType));
+    new_nominal_kinds = calloc(new_capacity, sizeof(NominalDeclKind));
+    if (new_names == NULL || new_types == NULL || new_nominal_kinds == NULL) {
+        free(new_names);
+        free(new_types);
+        free(new_nominal_kinds);
+        return false;
+    }
+
+    if (old_count > 0) {
+        memcpy(new_names, parser->decl_hint_names, old_count * sizeof(char *));
+        memcpy(new_types, parser->decl_hint_types, old_count * sizeof(ASTNodeType));
+        memcpy(new_nominal_kinds, parser->decl_hint_nominal_kinds,
+               old_count * sizeof(NominalDeclKind));
+    }
+
+    free(parser->decl_hint_names);
+    free(parser->decl_hint_types);
+    free(parser->decl_hint_nominal_kinds);
+    parser->decl_hint_names = new_names;
+    parser->decl_hint_types = new_types;
+    parser->decl_hint_nominal_kinds = new_nominal_kinds;
+    parser->decl_hint_capacity = new_capacity;
+    return true;
+}
+
 void
 parser_register_decl_hint(Parser *parser, ASTNode *node)
 {
@@ -57,22 +96,8 @@ parser_register_decl_hint(Parser *parser, ASTNode *node)
     if (parser->decl_hint_count >= parser->decl_hint_capacity) {
         size_t new_capacity = parser->decl_hint_capacity == 0
             ? 16 : parser->decl_hint_capacity * 2;
-        char **new_names = realloc(parser->decl_hint_names,
-            new_capacity * sizeof(char *));
-        ASTNodeType *new_types = realloc(parser->decl_hint_types,
-            new_capacity * sizeof(ASTNodeType));
-        NominalDeclKind *new_nominal_kinds = realloc(parser->decl_hint_nominal_kinds,
-            new_capacity * sizeof(NominalDeclKind));
-        if (new_names == NULL || new_types == NULL || new_nominal_kinds == NULL) {
-            free(new_names);
-            free(new_types);
-            free(new_nominal_kinds);
+        if (!parser_grow_decl_hints(parser, new_capacity))
             return;
-        }
-        parser->decl_hint_names = new_names;
-        parser->decl_hint_types = new_types;
-        parser->decl_hint_nominal_kinds = new_nominal_kinds;
-        parser->decl_hint_capacity = new_capacity;
     }
 
     node_type = node->type;
