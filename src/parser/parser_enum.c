@@ -4,27 +4,32 @@ static bool
 parser_append_enum_method(Parser *parser, ASTNode *node, ASTNode *method)
 {
     ASTNode **grown;
-    size_t next_count;
+    size_t next_capacity;
 
     if (parser == NULL || node == NULL || method == NULL)
         return false;
 
-    if (node->data.enum_decl.method_count >= (size_t)-1 / sizeof(ASTNode *)) {
-        parser_error(parser, "Too many enum methods");
-        return false;
+    if (node->data.enum_decl.method_count
+        >= node->data.enum_decl.method_capacity) {
+        next_capacity = node->data.enum_decl.method_capacity == 0
+            ? 4 : node->data.enum_decl.method_capacity * 2;
+        if (next_capacity <= node->data.enum_decl.method_count
+            || next_capacity > (size_t)-1 / sizeof(ASTNode *)) {
+            parser_error(parser, "Too many enum methods");
+            return false;
+        }
+        grown = realloc(node->data.enum_decl.methods,
+                        next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing enum methods");
+            return false;
+        }
+        node->data.enum_decl.methods = grown;
+        node->data.enum_decl.method_capacity = next_capacity;
     }
 
-    next_count = node->data.enum_decl.method_count + 1;
-    grown = realloc(node->data.enum_decl.methods,
-                    next_count * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing enum methods");
-        return false;
-    }
-
-    node->data.enum_decl.methods = grown;
     node->data.enum_decl.methods[node->data.enum_decl.method_count] = method;
-    node->data.enum_decl.method_count = next_count;
+    node->data.enum_decl.method_count += 1;
     return true;
 }
 
@@ -151,6 +156,7 @@ parser_parse_enum_declaration_after_keyword(Parser *parser)
     node->data.enum_decl.variant_count = 0;
     node->data.enum_decl.methods = NULL;
     node->data.enum_decl.method_count = 0;
+    node->data.enum_decl.method_capacity = 0;
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         Token var_tok;

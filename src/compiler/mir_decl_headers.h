@@ -6,15 +6,17 @@
 static bool
 mir_append_decl_header(MIRProgram *mir, MIRDeclHeader header)
 {
-    MIRDeclHeader *grown;
-
     if (mir == NULL)
         return false;
-    grown = realloc(mir->decl_headers,
-                    (mir->decl_header_count + 1) * sizeof(MIRDeclHeader));
-    if (grown == NULL)
-        return false;
-    mir->decl_headers = grown;
+    if (mir->decl_header_count == mir->decl_header_capacity) {
+        size_t next_capacity = mir->decl_header_capacity == 0 ? 8 : mir->decl_header_capacity * 2;
+        MIRDeclHeader *grown =
+            realloc(mir->decl_headers, next_capacity * sizeof(MIRDeclHeader));
+        if (grown == NULL)
+            return false;
+        mir->decl_headers = grown;
+        mir->decl_header_capacity = next_capacity;
+    }
     mir->decl_headers[mir->decl_header_count++] = header;
     return true;
 }

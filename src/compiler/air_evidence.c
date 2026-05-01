@@ -180,6 +180,69 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
     return count;
 }
 
+static bool
+air_has_mir_pin_cleanup_evidence(const AIRProgram *air,
+                                 size_t boundary_index,
+                                 const char *routine_name);
+
+static bool
+air_collect_mir_pin_block_evidence(AIRProgram *air,
+                                   const MIRRoutine *routine,
+                                   const MIRBasicBlock *block,
+                                   const char *routine_name,
+                                   char **error_message)
+{
+    const MIRInstruction *inst;
+
+    if (air == NULL || routine == NULL || block == NULL)
+        return true;
+    if (!block->is_pin_region)
+        return true;
+    if (!air_mir_pin_block_has_cleanup_successor(routine, block))
+        return true;
+
+    inst = air_mir_find_pin_cleanup_instruction(block);
+    if (!air_mir_pin_cleanup_instruction_has_anchor(inst))
+        return true;
+
+    for (size_t i = 0; i < air->boundary_count; i++) {
+        AIRBoundaryNode *boundary = &air->boundaries[i];
+
+        if (!air_mir_pin_block_matches_boundary(block, boundary))
+            continue;
+        if (air_has_mir_pin_cleanup_evidence(air, i, routine_name))
+            continue;
+        if (!air_append_evidence_node(air,
+                                      AIR_EVIDENCE_MIR_PIN_CLEANUP,
+                                      i,
+                                      routine_name,
+                                      inst->slot_anchor,
+                                      error_message)) {
+            return false;
+        }
+        air->mir_pin_cleanup_evidence_count++;
+    }
+    return true;
+}
+
+static bool
+air_has_mir_pin_cleanup_evidence(const AIRProgram *air,
+                                 size_t boundary_index,
+                                 const char *routine_name)
+{
+    if (air == NULL)
+        return false;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *node = &air->evidence_nodes[i];
+        if (node->kind == AIR_EVIDENCE_MIR_PIN_CLEANUP
+            && node->boundary_index == boundary_index
+            && air_name_matches(node->provider_name, routine_name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool
 air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_message)
 {
@@ -209,36 +272,17 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
         air->mir_cleanup_evidence_count++;
     }
 
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        AIRBoundaryNode *boundary = &air->boundaries[i];
-        if (!air_boundary_is_pin_boundary(boundary))
-            continue;
-
-        for (size_t j = 0; j < mir->routine_count; j++) {
-            const MIRRoutine *routine = &mir->routines[j];
-            const char *routine_name = routine->name != NULL
-                ? routine->name
-                : routine->owner_name;
-            for (size_t k = 0; k < routine->block_count; k++) {
-                const MIRBasicBlock *block = &routine->blocks[k];
-                const MIRInstruction *inst;
-                if (!air_mir_pin_block_matches_boundary(block, boundary))
-                    continue;
-                if (!air_mir_pin_block_has_cleanup_successor(routine, block))
-                    continue;
-                inst = air_mir_find_pin_cleanup_instruction(block);
-                if (!air_mir_pin_cleanup_instruction_has_anchor(inst))
-                    continue;
-                if (!air_append_evidence_node(air,
-                                              AIR_EVIDENCE_MIR_PIN_CLEANUP,
-                                              i,
-                                              routine_name,
-                                              inst->slot_anchor,
-                                              error_message)) {
-                    return false;
-                }
-                air->mir_pin_cleanup_evidence_count++;
-                break;
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        const MIRRoutine *routine = &mir->routines[i];
+        const char *routine_name = routine->name != NULL
+            ? routine->name
+            : routine->owner_name;
+        for (size_t j = 0; j < routine->block_count; j++) {
+            if (!air_collect_mir_pin_block_evidence(air, routine,
+                                                    &routine->blocks[j],
+                                                    routine_name,
+                                                    error_message)) {
+                return false;
             }
         }
     }

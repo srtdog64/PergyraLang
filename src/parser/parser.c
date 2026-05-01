@@ -84,7 +84,6 @@ parser_append_destructure_name(Parser *parser, ASTNode *node, const char *name)
 {
     char **grown;
     char *owned_name;
-    size_t next_count;
 
     if (parser == NULL || node == NULL)
         return false;
@@ -94,18 +93,21 @@ parser_append_destructure_name(Parser *parser, ASTNode *node, const char *name)
         return false;
     }
 
-    next_count = node->data.let_destructure.name_count + 1;
-    grown = realloc(node->data.let_destructure.names,
-        next_count * sizeof(char *));
-    if (grown == NULL) {
-        free(owned_name);
-        parser_error(parser, "Out of memory while parsing destructuring names");
-        return false;
+    if (node->data.let_destructure.name_count == node->data.let_destructure.name_capacity) {
+        size_t next_capacity = node->data.let_destructure.name_capacity == 0
+            ? 4
+            : node->data.let_destructure.name_capacity * 2;
+        grown = realloc(node->data.let_destructure.names, next_capacity * sizeof(char *));
+        if (grown == NULL) {
+            free(owned_name);
+            parser_error(parser, "Out of memory while parsing destructuring names");
+            return false;
+        }
+        node->data.let_destructure.names = grown;
+        node->data.let_destructure.name_capacity = next_capacity;
     }
 
-    node->data.let_destructure.names = grown;
-    node->data.let_destructure.names[next_count - 1] = owned_name;
-    node->data.let_destructure.name_count = next_count;
+    node->data.let_destructure.names[node->data.let_destructure.name_count++] = owned_name;
     return true;
 }
 
@@ -306,6 +308,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
         node->column = parser->previous_token.column;
         node->data.let_destructure.names = NULL;
         node->data.let_destructure.name_count = 0;
+        node->data.let_destructure.name_capacity = 0;
         node->data.let_destructure.initializer = NULL;
 
         while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {

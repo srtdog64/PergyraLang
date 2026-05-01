@@ -86,6 +86,7 @@ ASTNode* ast_create_function(const char* name) {
     node->data.func_decl.name = pergyra_strdup(name);
     node->data.func_decl.params = NULL;
     node->data.func_decl.param_count = 0;
+    node->data.func_decl.param_capacity = 0;
     node->data.func_decl.return_type = NULL;
     node->data.func_decl.body = NULL;
     node->data.func_decl.generic_params = NULL;
@@ -97,10 +98,12 @@ ASTNode* ast_create_function(const char* name) {
     node->data.func_decl.is_action = false;
     node->data.func_decl.required_abilities = NULL;
     node->data.func_decl.required_ability_count = 0;
+    node->data.func_decl.required_ability_capacity = 0;
     node->data.func_decl.within_zone = NULL;
     node->data.func_decl.causes_effect = NULL;
     node->data.func_decl.authorized_by = NULL;
     node->data.func_decl.authorized_by_count = 0;
+    node->data.func_decl.authorized_by_capacity = 0;
     return node;
 }
 
@@ -110,8 +113,10 @@ ASTNode* ast_create_class(const char* name) {
     node->data.class_decl.name = pergyra_strdup(name);
     node->data.class_decl.fields = NULL;
     node->data.class_decl.field_count = 0;
+    node->data.class_decl.field_capacity = 0;
     node->data.class_decl.methods = NULL;
     node->data.class_decl.method_count = 0;
+    node->data.class_decl.method_capacity = 0;
     node->data.class_decl.generic_params = NULL;
     node->data.class_decl.where_clause = NULL;
     node->data.class_decl.is_struct = false;
@@ -249,6 +254,7 @@ ASTNode* ast_create_match_statement(void) {
     node->data.match_stmt.subject = NULL;
     node->data.match_stmt.cases = NULL;
     node->data.match_stmt.case_count = 0;
+    node->data.match_stmt.case_capacity = 0;
     node->data.match_stmt.default_body = NULL;
     return node;
 }
@@ -259,6 +265,7 @@ ASTNode* ast_create_match_case(void) {
     node->data.match_case.pattern = NULL;
     node->data.match_case.patterns = NULL;
     node->data.match_case.pattern_count = 0;
+    node->data.match_case.pattern_capacity = 0;
     node->data.match_case.guard = NULL;
     node->data.match_case.body = NULL;
     return node;
@@ -452,14 +459,17 @@ ASTNode* ast_create_async_function(const char* name, bool is_async) {
     node->data.func_decl.is_action = false;
     node->data.func_decl.required_abilities = NULL;
     node->data.func_decl.required_ability_count = 0;
+    node->data.func_decl.required_ability_capacity = 0;
     node->data.func_decl.within_zone = NULL;
     node->data.func_decl.causes_effect = NULL;
     node->data.func_decl.authorized_by = NULL;
     node->data.func_decl.authorized_by_count = 0;
+    node->data.func_decl.authorized_by_capacity = 0;
 
     node->data.async_func_decl.name = pergyra_strdup(name);
     node->data.async_func_decl.params = NULL;
     node->data.async_func_decl.param_count = 0;
+    node->data.async_func_decl.param_capacity = 0;
     node->data.async_func_decl.return_type = NULL;
     node->data.async_func_decl.body = NULL;
     node->data.async_func_decl.generic_params = NULL;
@@ -499,6 +509,7 @@ ASTNode* ast_create_select_statement(void) {
     if (!node) return NULL;
     node->data.select_stmt.cases = NULL;
     node->data.select_stmt.case_count = 0;
+    node->data.select_stmt.case_capacity = 0;
     node->data.select_stmt.default_case = NULL;
     return node;
 }
@@ -508,6 +519,7 @@ ASTNode* ast_create_async_block(void) {
     if (!node) return NULL;
     node->data.async_block.statements = NULL;
     node->data.async_block.statement_count = 0;
+    node->data.async_block.statement_capacity = 0;
     return node;
 }
 

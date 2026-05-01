@@ -39,6 +39,7 @@ struct ASTNode
             char*          name;
             FuncParam**    params;
             size_t         param_count;
+            size_t         param_capacity;
             ASTNode*       return_type;
             ASTNode*       body;
             GenericParams* generic_params;
@@ -50,10 +51,12 @@ struct ASTNode
             bool           is_action;
             ASTNode**      required_abilities;
             size_t         required_ability_count;
+            size_t         required_ability_capacity;
             char*          within_zone;
             char*          causes_effect;
             char**         authorized_by;
             size_t         authorized_by_count;
+            size_t         authorized_by_capacity;
             StructuredComment* doc_comment;  /* Attached documentation */
         } func_decl;
         
@@ -62,8 +65,10 @@ struct ASTNode
             char*          name;
             ClassField**   fields;
             size_t         field_count;
+            size_t         field_capacity;
             ASTNode**      methods;
             size_t         method_count;
+            size_t         method_capacity;
             GenericParams* generic_params;
             WhereClause*   where_clause;
             bool           is_struct;
@@ -98,6 +103,7 @@ struct ASTNode
         struct {
             char**   names;
             size_t   name_count;
+            size_t   name_capacity;
             ASTNode* initializer;
         } let_destructure;
         
@@ -221,6 +227,7 @@ struct ASTNode
             size_t     variant_count;
             ASTNode**  methods;
             size_t     method_count;
+            size_t     method_capacity;
         } enum_decl;
 
         /* Assignment */
@@ -263,6 +270,7 @@ struct ASTNode
             char*          name;
             FuncParam**    params;
             size_t         param_count;
+            size_t         param_capacity;
             ASTNode*       return_type;
             ASTNode*       body;
             GenericParams* generic_params;
@@ -293,6 +301,7 @@ struct ASTNode
         struct {
             ASTNode** cases;
             size_t case_count;
+            size_t case_capacity;
             ASTNode* default_case;
         } select_stmt;
         
@@ -301,6 +310,7 @@ struct ASTNode
             ASTNode* subject;           /* match target expression */
             ASTNode** cases;            /* AST_MATCH_CASE array */
             size_t case_count;
+            size_t case_capacity;
             ASTNode* default_body;      /* default block (optional) */
         } match_stmt;
 
@@ -309,6 +319,7 @@ struct ASTNode
             ASTNode* pattern;           /* literal value or identifier */
             ASTNode** patterns;         /* OR patterns; pattern aliases patterns[0] */
             size_t pattern_count;
+            size_t pattern_capacity;
             ASTNode* guard;             /* optional if guard */
             ASTNode* body;              /* case body block */
         } match_case;
@@ -317,6 +328,7 @@ struct ASTNode
         struct {
             ASTNode** statements;
             size_t statement_count;
+            size_t statement_capacity;
         } async_block;
         
         /* Spawn expression */
@@ -350,8 +362,10 @@ struct ASTNode
             char* name;
             ASTNode** require_fields;
             size_t require_count;
+            size_t require_capacity;
             ASTNode** methods;
             size_t method_count;
+            size_t method_capacity;
             GenericParams* generic_params;
             WhereClause* where_clause;
             AccessModifier access;
@@ -366,8 +380,10 @@ struct ASTNode
             ASTNode* for_type;  /* The struct this role is for */
             ASTNode** includes; /* Other roles to include */
             size_t include_count;
+            size_t include_capacity;
             ASTNode** impl_abilities;  /* Abilities implemented */
             size_t impl_count;
+            size_t impl_capacity;
             ASTNode* parallel_block;  /* Optional parallel on block */
             GenericParams* generic_params;
             WhereClause* where_clause;
@@ -391,6 +407,7 @@ struct ASTNode
             ASTNode* ability_ref;
             ASTNode** methods;
             size_t method_count;
+            size_t method_capacity;
         } impl_ability;
         
         /* Override function */
@@ -438,6 +455,7 @@ struct ASTNode
             char* name;
             ASTNode** params;          /* Event handler parameters */
             size_t param_count;
+            size_t param_capacity;
             ASTNode* return_type;      /* Usually Void */
             AccessModifier access;
         } event_decl;
@@ -463,6 +481,7 @@ struct ASTNode
         struct {
             ASTNode** param_types;     /* Parameter types */
             size_t param_count;
+            size_t param_capacity;
             ASTNode* return_type;      /* Return type */
         } event_handler_type;
 
@@ -470,6 +489,7 @@ struct ASTNode
         struct {
             ASTNode** params;          /* Lambda parameters */
             size_t param_count;
+            size_t param_capacity;
             ASTNode* body;             /* Expression or block */
             ASTNode* return_type;      /* Optional return type */
             bool is_async;             /* async lambda */

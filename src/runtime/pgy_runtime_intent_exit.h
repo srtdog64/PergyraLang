@@ -93,6 +93,7 @@ pgy_intent_exit_export(int32_t handle)
         entry->priority = 0;
         entry->trace_id = 0;
         entry->trace = NULL;
+        entry->trace_len = 0;
         entry->failure_reason = NULL;
         entry->step_count = 0;
         entry->failed = false;

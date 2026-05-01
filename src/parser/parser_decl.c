@@ -4,27 +4,24 @@ static bool
 parser_append_func_param(Parser *parser, ASTNode *func, FuncParam *param)
 {
     FuncParam **grown;
-    size_t next_count;
 
     if (parser == NULL || func == NULL || param == NULL)
         return false;
 
-    if (func->data.func_decl.param_count >= (size_t)-1 / sizeof(FuncParam *)) {
-        parser_error(parser, "Too many function parameters");
-        return false;
+    if (func->data.func_decl.param_count == func->data.func_decl.param_capacity) {
+        size_t next_capacity = func->data.func_decl.param_capacity == 0
+            ? 4
+            : func->data.func_decl.param_capacity * 2;
+        grown = realloc(func->data.func_decl.params, next_capacity * sizeof(FuncParam *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing function parameters");
+            return false;
+        }
+        func->data.func_decl.params = grown;
+        func->data.func_decl.param_capacity = next_capacity;
     }
 
-    next_count = func->data.func_decl.param_count + 1;
-    grown = realloc(func->data.func_decl.params,
-                    next_count * sizeof(FuncParam *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing function parameters");
-        return false;
-    }
-
-    func->data.func_decl.params = grown;
-    func->data.func_decl.params[func->data.func_decl.param_count] = param;
-    func->data.func_decl.param_count = next_count;
+    func->data.func_decl.params[func->data.func_decl.param_count++] = param;
     return true;
 }
 
@@ -32,27 +29,24 @@ static bool
 parser_append_class_field(Parser *parser, ASTNode *class_decl, ClassField *field)
 {
     ClassField **grown;
-    size_t next_count;
 
     if (parser == NULL || class_decl == NULL || field == NULL)
         return false;
 
-    if (class_decl->data.class_decl.field_count >= (size_t)-1 / sizeof(ClassField *)) {
-        parser_error(parser, "Too many nominal fields");
-        return false;
+    if (class_decl->data.class_decl.field_count == class_decl->data.class_decl.field_capacity) {
+        size_t next_capacity = class_decl->data.class_decl.field_capacity == 0
+            ? 4
+            : class_decl->data.class_decl.field_capacity * 2;
+        grown = realloc(class_decl->data.class_decl.fields, next_capacity * sizeof(ClassField *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing nominal fields");
+            return false;
+        }
+        class_decl->data.class_decl.fields = grown;
+        class_decl->data.class_decl.field_capacity = next_capacity;
     }
 
-    next_count = class_decl->data.class_decl.field_count + 1;
-    grown = realloc(class_decl->data.class_decl.fields,
-                    next_count * sizeof(ClassField *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing nominal fields");
-        return false;
-    }
-
-    class_decl->data.class_decl.fields = grown;
-    class_decl->data.class_decl.fields[class_decl->data.class_decl.field_count] = field;
-    class_decl->data.class_decl.field_count = next_count;
+    class_decl->data.class_decl.fields[class_decl->data.class_decl.field_count++] = field;
     return true;
 }
 
@@ -60,27 +54,24 @@ static bool
 parser_append_class_method(Parser *parser, ASTNode *class_decl, ASTNode *method)
 {
     ASTNode **grown;
-    size_t next_count;
 
     if (parser == NULL || class_decl == NULL || method == NULL)
         return false;
 
-    if (class_decl->data.class_decl.method_count >= (size_t)-1 / sizeof(ASTNode *)) {
-        parser_error(parser, "Too many nominal methods");
-        return false;
+    if (class_decl->data.class_decl.method_count == class_decl->data.class_decl.method_capacity) {
+        size_t next_capacity = class_decl->data.class_decl.method_capacity == 0
+            ? 4
+            : class_decl->data.class_decl.method_capacity * 2;
+        grown = realloc(class_decl->data.class_decl.methods, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing nominal methods");
+            return false;
+        }
+        class_decl->data.class_decl.methods = grown;
+        class_decl->data.class_decl.method_capacity = next_capacity;
     }
 
-    next_count = class_decl->data.class_decl.method_count + 1;
-    grown = realloc(class_decl->data.class_decl.methods,
-                    next_count * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing nominal methods");
-        return false;
-    }
-
-    class_decl->data.class_decl.methods = grown;
-    class_decl->data.class_decl.methods[class_decl->data.class_decl.method_count] = method;
-    class_decl->data.class_decl.method_count = next_count;
+    class_decl->data.class_decl.methods[class_decl->data.class_decl.method_count++] = method;
     return true;
 }
 

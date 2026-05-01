@@ -7,7 +7,10 @@ typedef struct
     QubitSemanticState   *sem_states;
     int32_t              *pool_ids;
     size_t                count;
+    size_t                capacity;
 } ResourceConsumeSnapshot;
+
+static void destroy_resource_snapshot(ResourceConsumeSnapshot *snap);
 
 static bool
 flow_snapshot_tracks_symbol(const Symbol *sym, SemanticContext *ctx)
@@ -37,43 +40,54 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
             if (!flow_snapshot_tracks_symbol(sym, ctx))
                 continue;
 
-            Symbol **new_symbols = realloc(snap.symbols,
-                (snap.count + 1) * sizeof(Symbol *));
-            bool *new_states = realloc(snap.states,
-                (snap.count + 1) * sizeof(bool));
-            bool *new_used_states = realloc(snap.used_states,
-                (snap.count + 1) * sizeof(bool));
-            SlotState *new_slot_states = realloc(snap.slot_states,
-                (snap.count + 1) * sizeof(SlotState));
-            QubitSemanticState *new_sem = realloc(snap.sem_states,
-                (snap.count + 1) * sizeof(QubitSemanticState));
-            int32_t *new_pools = realloc(snap.pool_ids,
-                (snap.count + 1) * sizeof(int32_t));
-            if (new_symbols == NULL || new_states == NULL
-                || new_used_states == NULL || new_slot_states == NULL
-                || new_sem == NULL || new_pools == NULL) {
-                free(new_symbols);
-                free(new_states);
-                free(new_used_states);
-                free(new_slot_states);
-                free(new_sem);
-                free(new_pools);
-                snap.symbols = NULL;
-                snap.states = NULL;
-                snap.used_states = NULL;
-                snap.slot_states = NULL;
-                snap.sem_states = NULL;
-                snap.pool_ids = NULL;
-                snap.count = 0;
+            if (snap.count == snap.capacity) {
+                size_t next_capacity = snap.capacity == 0 ? 8 : snap.capacity * 2;
+                Symbol **new_symbols = calloc(next_capacity, sizeof(Symbol *));
+                bool *new_states = calloc(next_capacity, sizeof(bool));
+                bool *new_used_states = calloc(next_capacity, sizeof(bool));
+                SlotState *new_slot_states = calloc(next_capacity, sizeof(SlotState));
+                QubitSemanticState *new_sem = calloc(next_capacity, sizeof(QubitSemanticState));
+                int32_t *new_pools = calloc(next_capacity, sizeof(int32_t));
+                if (new_symbols == NULL || new_states == NULL
+                    || new_used_states == NULL || new_slot_states == NULL
+                    || new_sem == NULL || new_pools == NULL) {
+                    free(new_symbols);
+                    free(new_states);
+                    free(new_used_states);
+                    free(new_slot_states);
+                    free(new_sem);
+                    free(new_pools);
+                    destroy_resource_snapshot(&snap);
+                    return snap;
+                }
+                if (snap.count > 0) {
+                    memcpy(new_symbols, snap.symbols, snap.count * sizeof(Symbol *));
+                    memcpy(new_states, snap.states, snap.count * sizeof(bool));
+                    memcpy(new_used_states, snap.used_states, snap.count * sizeof(bool));
+                    memcpy(new_slot_states, snap.slot_states, snap.count * sizeof(SlotState));
+                    memcpy(new_sem, snap.sem_states, snap.count * sizeof(QubitSemanticState));
+                    memcpy(new_pools, snap.pool_ids, snap.count * sizeof(int32_t));
+                }
+                free(snap.symbols);
+                free(snap.states);
+                free(snap.used_states);
+                free(snap.slot_states);
+                free(snap.sem_states);
+                free(snap.pool_ids);
+                snap.symbols = new_symbols;
+                snap.states = new_states;
+                snap.used_states = new_used_states;
+                snap.slot_states = new_slot_states;
+                snap.sem_states = new_sem;
+                snap.pool_ids = new_pools;
+                snap.capacity = next_capacity;
+            }
+            if (snap.symbols == NULL || snap.states == NULL
+                || snap.used_states == NULL || snap.slot_states == NULL
+                || snap.sem_states == NULL || snap.pool_ids == NULL) {
+                destroy_resource_snapshot(&snap);
                 return snap;
             }
-
-            snap.symbols = new_symbols;
-            snap.states = new_states;
-            snap.used_states = new_used_states;
-            snap.slot_states = new_slot_states;
-            snap.sem_states = new_sem;
-            snap.pool_ids = new_pools;
             snap.symbols[snap.count] = sym;
             snap.states[snap.count] = sym->is_consumed;
             snap.used_states[snap.count] = sym->is_used;
@@ -242,4 +256,5 @@ destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
     snap->sem_states = NULL;
     snap->pool_ids = NULL;
     snap->count = 0;
+    snap->capacity = 0;
 }

@@ -15,6 +15,7 @@ mir_free_instruction_payload(MIRInstruction *inst)
     free((void *)inst->uses);
     inst->uses = NULL;
     inst->use_count = 0;
+    inst->use_capacity = 0;
     if (inst->phi_incomings != NULL) {
         for (size_t i = 0; i < inst->phi_incoming_count; i++)
             free((void *)inst->phi_incomings[i].value_name);
@@ -41,10 +42,14 @@ mir_reset_routine_analysis(MIRRoutine *routine)
 
     for (size_t i = 0; i < routine->block_count; i++) {
         MIRBasicBlock *block = &routine->blocks[i];
-        mir_clear_block_name_set(&block->def_names, &block->def_name_count);
-        mir_clear_block_name_set(&block->use_names, &block->use_name_count);
-        mir_clear_block_name_set(&block->live_in_names, &block->live_in_name_count);
-        mir_clear_block_name_set(&block->live_out_names, &block->live_out_name_count);
+        mir_clear_block_name_set(&block->def_names, &block->def_name_count, &block->def_name_capacity);
+        mir_clear_block_name_set(&block->use_names, &block->use_name_count, &block->use_name_capacity);
+        mir_clear_block_name_set(&block->live_in_names,
+                                 &block->live_in_name_count,
+                                 &block->live_in_name_capacity);
+        mir_clear_block_name_set(&block->live_out_names,
+                                 &block->live_out_name_count,
+                                 &block->live_out_name_capacity);
     }
 }
 

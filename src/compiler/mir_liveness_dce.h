@@ -2,11 +2,11 @@
 #define PERGYRA_MIR_LIVENESS_DCE_H
 
 static bool
-mir_append_block_set(const char ***names, size_t *count, const char *name)
+mir_append_block_set(const char ***names, size_t *count, size_t *capacity, const char *name)
 {
     if (name == NULL)
         return true;
-    return append_name_unique(names, count, name);
+    return append_name_unique(names, count, capacity, name);
 }
 
 static bool
@@ -21,7 +21,10 @@ mir_collect_block_defs_uses(MIRRoutine *routine)
             MIRInstruction *inst = &block->instructions[j];
             if (inst->kind == MIR_INST_PHI) {
                 if (inst->result_name != NULL) {
-                    if (!mir_append_block_set(&block->def_names, &block->def_name_count, inst->result_name))
+                    if (!mir_append_block_set(&block->def_names,
+                                              &block->def_name_count,
+                                              &block->def_name_capacity,
+                                              inst->result_name))
                         return false;
                 }
                 continue;
@@ -29,12 +32,18 @@ mir_collect_block_defs_uses(MIRRoutine *routine)
             for (size_t k = 0; k < inst->use_count; k++) {
                 const char *use = inst->uses[k];
                 if (!mir_name_set_contains(block->def_names, block->def_name_count, use)) {
-                    if (!mir_append_block_set(&block->use_names, &block->use_name_count, use))
+                    if (!mir_append_block_set(&block->use_names,
+                                              &block->use_name_count,
+                                              &block->use_name_capacity,
+                                              use))
                         return false;
                 }
             }
             if (inst->result_name != NULL) {
-                if (!mir_append_block_set(&block->def_names, &block->def_name_count, inst->result_name))
+                if (!mir_append_block_set(&block->def_names,
+                                          &block->def_name_count,
+                                          &block->def_name_capacity,
+                                          inst->result_name))
                     return false;
             }
         }
@@ -48,12 +57,13 @@ mir_collect_successor_live_in(const MIRRoutine *routine,
                               size_t predecessor_block,
                               const MIRBasicBlock *block,
                               const char ***names,
-                              size_t *count)
+                              size_t *count,
+                              size_t *capacity)
 {
     size_t succs[5];
     size_t succ_count = 0;
 
-    if (routine == NULL || block == NULL || names == NULL || count == NULL)
+    if (routine == NULL || block == NULL || names == NULL || count == NULL || capacity == NULL)
         return false;
 
     if (block->has_succ_true)
@@ -72,7 +82,10 @@ mir_collect_successor_live_in(const MIRRoutine *routine,
         if (succ >= routine->block_count)
             continue;
         for (size_t j = 0; j < routine->blocks[succ].live_in_name_count; j++) {
-            if (!mir_append_block_set(names, count, routine->blocks[succ].live_in_names[j]))
+            if (!mir_append_block_set(names,
+                                      count,
+                                      capacity,
+                                      routine->blocks[succ].live_in_names[j]))
                 return false;
         }
         for (size_t j = 0; j < routine->blocks[succ].instruction_count; j++) {
@@ -81,7 +94,10 @@ mir_collect_successor_live_in(const MIRRoutine *routine,
                 continue;
             for (size_t k = 0; k < inst->phi_incoming_count; k++) {
                 if (inst->phi_incomings[k].predecessor_block == predecessor_block) {
-                    if (!mir_append_block_set(names, count, inst->phi_incomings[k].value_name))
+                    if (!mir_append_block_set(names,
+                                              count,
+                                              capacity,
+                                              inst->phi_incomings[k].value_name))
                         return false;
                 }
             }
@@ -177,11 +193,13 @@ mir_build_liveness_postorder(const MIRRoutine *routine, size_t **order_out, size
 }
 
 static void
-mir_clear_block_name_set(const char ***names, size_t *count)
+mir_clear_block_name_set(const char ***names, size_t *count, size_t *capacity)
 {
     free((void *)*names);
     *names = NULL;
     *count = 0;
+    if (capacity != NULL)
+        *capacity = 0;
 }
 
 static int
@@ -204,7 +222,6 @@ mir_append_value_summary(MIRRoutine *routine,
                          size_t def_block,
                          size_t def_inst)
 {
-    MIRValueSummary *grown;
     MIRValueSummary summary;
 
     if (routine == NULL || name == NULL)
@@ -227,13 +244,18 @@ mir_append_value_summary(MIRRoutine *routine,
     summary.crosses_block_boundary = false;
     summary.has_ast_reassignment = false;
 
-    grown = realloc(routine->value_summaries,
-                    sizeof(MIRValueSummary) * (routine->value_summary_count + 1));
-    if (grown == NULL) {
-        free((void *)summary.name);
-        return false;
+    if (routine->value_summary_count == routine->value_summary_capacity) {
+        size_t next_capacity =
+            routine->value_summary_capacity == 0 ? 8 : routine->value_summary_capacity * 2;
+        MIRValueSummary *grown =
+            realloc(routine->value_summaries, next_capacity * sizeof(MIRValueSummary));
+        if (grown == NULL) {
+            free((void *)summary.name);
+            return false;
+        }
+        routine->value_summaries = grown;
+        routine->value_summary_capacity = next_capacity;
     }
-    routine->value_summaries = grown;
     routine->value_summaries[routine->value_summary_count++] = summary;
     return true;
 }
@@ -249,6 +271,7 @@ mir_build_value_summaries(MIRRoutine *routine)
     free(routine->value_summaries);
     routine->value_summaries = NULL;
     routine->value_summary_count = 0;
+    routine->value_summary_capacity = 0;
     routine->has_use_def_summary = false;
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
@@ -364,19 +387,29 @@ mir_compute_liveness(MIRRoutine *routine)
             MIRBasicBlock *block = &routine->blocks[idx];
             const char **new_live_out = NULL;
             size_t new_live_out_count = 0;
+            size_t new_live_out_capacity = 0;
             const char **new_live_in = NULL;
             size_t new_live_in_count = 0;
+            size_t new_live_in_capacity = 0;
             bool same_live_out = true;
             bool same_live_in = true;
 
-            if (!mir_collect_successor_live_in(routine, idx, block, &new_live_out, &new_live_out_count)) {
+            if (!mir_collect_successor_live_in(routine,
+                                               idx,
+                                               block,
+                                               &new_live_out,
+                                               &new_live_out_count,
+                                               &new_live_out_capacity)) {
                 free((void *)new_live_out);
                 free((void *)new_live_in);
                 return false;
             }
 
             for (size_t i = 0; i < block->use_name_count; i++) {
-                if (!mir_append_block_set(&new_live_in, &new_live_in_count, block->use_names[i])) {
+                if (!mir_append_block_set(&new_live_in,
+                                          &new_live_in_count,
+                                          &new_live_in_capacity,
+                                          block->use_names[i])) {
                     free((void *)new_live_out);
                     free((void *)new_live_in);
                     return false;
@@ -385,7 +418,10 @@ mir_compute_liveness(MIRRoutine *routine)
             for (size_t i = 0; i < new_live_out_count; i++) {
                 const char *name = new_live_out[i];
                 if (!mir_name_set_contains(block->def_names, block->def_name_count, name)) {
-                    if (!mir_append_block_set(&new_live_in, &new_live_in_count, name)) {
+                    if (!mir_append_block_set(&new_live_in,
+                                              &new_live_in_count,
+                                              &new_live_in_capacity,
+                                              name)) {
                         free((void *)new_live_out);
                         free((void *)new_live_in);
                         return false;
@@ -416,17 +452,25 @@ mir_compute_liveness(MIRRoutine *routine)
             }
 
             if (!same_live_out) {
-                mir_clear_block_name_set(&block->live_out_names, &block->live_out_name_count);
+                mir_clear_block_name_set(&block->live_out_names,
+                                         &block->live_out_name_count,
+                                         &block->live_out_name_capacity);
                 block->live_out_names = new_live_out;
                 block->live_out_name_count = new_live_out_count;
+                block->live_out_name_capacity = new_live_out_capacity;
                 new_live_out = NULL;
+                new_live_out_capacity = 0;
                 changed = true;
             }
             if (!same_live_in) {
-                mir_clear_block_name_set(&block->live_in_names, &block->live_in_name_count);
+                mir_clear_block_name_set(&block->live_in_names,
+                                         &block->live_in_name_count,
+                                         &block->live_in_name_capacity);
                 block->live_in_names = new_live_in;
                 block->live_in_name_count = new_live_in_count;
+                block->live_in_name_capacity = new_live_in_capacity;
                 new_live_in = NULL;
+                new_live_in_capacity = 0;
                 changed = true;
             }
 

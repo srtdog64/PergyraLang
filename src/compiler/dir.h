@@ -95,10 +95,13 @@ typedef struct
     const char *transfer_to_alias;
     const char **who_names;
     size_t      who_count;
+    size_t      who_capacity;
     const char **required_abilities;
     size_t      required_ability_count;
+    size_t      required_ability_capacity;
     const char **authorized_by;
     size_t      authorized_by_count;
+    size_t      authorized_by_capacity;
     const char *causes_effect_name;
     size_t      causes_effect_node_id;
     ASTNode    *ast;
@@ -109,20 +112,26 @@ typedef struct
     size_t                 node_id;
     DIRIntentParticipant  *participants;
     size_t                 participant_count;
+    size_t                 participant_capacity;
     DIRIntentStep         *steps;
     size_t                 step_count;
+    size_t                 step_capacity;
 } DIRIntentInfo;
 
 struct DIRProgram
 {
     DIRNode       *nodes;
     size_t         node_count;
+    size_t         node_capacity;
     DIREdge       *edges;
     size_t         edge_count;
+    size_t         edge_capacity;
     DIRIntentInfo *intents;
     size_t         intent_count;
+    size_t         intent_capacity;
     char         **owned_names;
     size_t         owned_name_count;
+    size_t         owned_name_capacity;
 };
 
 DIRProgram *dir_lower(ASTNode *annotated_ast, char **error_message);

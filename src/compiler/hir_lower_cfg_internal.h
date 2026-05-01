@@ -25,11 +25,15 @@ typedef struct HIRLoopContext
     const struct HIRLoopContext *parent;
 } HIRLoopContext;
 
-bool    hir_cfg_append_stmt(ASTNode ***items, size_t *count, ASTNode *node);
+bool    hir_cfg_append_stmt(ASTNode ***items,
+                            size_t *count,
+                            size_t *capacity,
+                            ASTNode *node);
 void    hir_cfg_apply_pin_region(HIRBasicBlock *block, const HIRPinRegionContext *pin);
-ssize_t hir_cfg_new_block(HIRBasicBlock **blocks, size_t *count);
+ssize_t hir_cfg_new_block(HIRBasicBlock **blocks, size_t *count, size_t *capacity);
 ssize_t hir_cfg_new_region_block(HIRBasicBlock **blocks,
                                  size_t *count,
+                                 size_t *capacity,
                                  const HIRPinRegionContext *pin);
 bool    hir_cfg_set_goto(HIRBasicBlock *block, size_t succ);
 bool    hir_cfg_set_branch(HIRBasicBlock *block,

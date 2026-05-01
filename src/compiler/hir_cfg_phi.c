@@ -4,18 +4,24 @@
 #include <string.h>
 
 static bool
-hir_stmt_collect_local_defs(ASTNode *node, const char ***names, size_t *count)
+hir_stmt_collect_local_defs(ASTNode *node,
+                            const char ***names,
+                            size_t *count,
+                            size_t *capacity)
 {
     if (node == NULL)
         return true;
 
     switch (node->type) {
         case AST_LET_DECL:
-            return hir_cfg_append_name_unique(names, count, node->data.let_decl.name);
+            return hir_cfg_append_name_unique(names, count, capacity, node->data.let_decl.name);
 
         case AST_LET_DESTRUCTURE:
             for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
-                if (!hir_cfg_append_name_unique(names, count, node->data.let_destructure.names[i]))
+                if (!hir_cfg_append_name_unique(names,
+                                                count,
+                                                capacity,
+                                                node->data.let_destructure.names[i]))
                     return false;
             }
             return true;
@@ -25,6 +31,7 @@ hir_stmt_collect_local_defs(ASTNode *node, const char ***names, size_t *count)
                 && node->data.assignment.target->type == AST_IDENTIFIER) {
                 return hir_cfg_append_name_unique(names,
                                                   count,
+                                                  capacity,
                                                   node->data.assignment.target->data.identifier.name);
             }
             return true;
@@ -45,11 +52,13 @@ hir_collect_cfg_local_defs(HIRRoutine *routine)
         free((void *)block->local_defs);
         block->local_defs = NULL;
         block->local_def_count = 0;
+        block->local_def_capacity = 0;
 
         for (size_t j = 0; j < block->statement_count; j++) {
             if (!hir_stmt_collect_local_defs(block->statements[j],
                                              &block->local_defs,
-                                             &block->local_def_count)) {
+                                             &block->local_def_count,
+                                             &block->local_def_capacity)) {
                 return false;
             }
         }
@@ -59,7 +68,10 @@ hir_collect_cfg_local_defs(HIRRoutine *routine)
 }
 
 static bool
-hir_routine_collect_ssa_names(const HIRRoutine *routine, const char ***names, size_t *count)
+hir_routine_collect_ssa_names(const HIRRoutine *routine,
+                              const char ***names,
+                              size_t *count,
+                              size_t *capacity)
 {
     if (routine == NULL || !routine->has_cfg || routine->cfg.blocks == NULL)
         return true;
@@ -69,7 +81,7 @@ hir_routine_collect_ssa_names(const HIRRoutine *routine, const char ***names, si
         if (!block->is_reachable)
             continue;
         for (size_t j = 0; j < block->local_def_count; j++) {
-            if (!hir_cfg_append_name_unique(names, count, block->local_defs[j]))
+            if (!hir_cfg_append_name_unique(names, count, capacity, block->local_defs[j]))
                 return false;
         }
     }
@@ -103,11 +115,13 @@ hir_compute_cfg_phi_candidates(HIRRoutine *routine)
         free((void *)block->phi_candidates);
         block->phi_candidates = NULL;
         block->phi_candidate_count = 0;
+        block->phi_candidate_capacity = 0;
     }
 
     const char **names = NULL;
     size_t name_count = 0;
-    if (!hir_routine_collect_ssa_names(routine, &names, &name_count))
+    size_t name_capacity = 0;
+    if (!hir_routine_collect_ssa_names(routine, &names, &name_count, &name_capacity))
         return false;
 
     bool *has_phi = calloc(routine->cfg.block_count, sizeof(bool));
@@ -145,6 +159,7 @@ hir_compute_cfg_phi_candidates(HIRRoutine *routine)
 
                 if (!hir_cfg_append_name_unique(&routine->cfg.blocks[frontier_block].phi_candidates,
                                                 &routine->cfg.blocks[frontier_block].phi_candidate_count,
+                                                &routine->cfg.blocks[frontier_block].phi_candidate_capacity,
                                                 name)) {
                     free((void *)names);
                     free(has_phi);

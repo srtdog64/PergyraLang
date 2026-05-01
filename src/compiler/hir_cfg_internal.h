@@ -3,6 +3,9 @@
 
 #include "hir_cfg.h"
 
-bool hir_cfg_append_name_unique(const char ***names, size_t *count, const char *name);
+bool hir_cfg_append_name_unique(const char ***names,
+                                size_t *count,
+                                size_t *capacity,
+                                const char *name);
 
 #endif

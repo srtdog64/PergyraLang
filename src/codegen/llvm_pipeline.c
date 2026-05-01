@@ -230,37 +230,6 @@ llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
     return true;
 }
 
-static const MIRRoutine *
-llvm_find_mir_method_routine(const MIRProgram *mir,
-                             const char *owner_name,
-                             ASTNode *method)
-{
-    const char *method_name;
-    LLVMMIRRoutineInventory routine_inventory;
-
-    if (mir == NULL || owner_name == NULL || method == NULL || method->type != AST_FUNC_DECL)
-        return NULL;
-    method_name = method->data.func_decl.name;
-    if (method_name == NULL)
-        return NULL;
-
-    llvm_mir_routine_inventory_from_program(mir, &routine_inventory);
-    for (size_t i = 0; i < routine_inventory.count; i++) {
-        const MIRRoutine *routine = &routine_inventory.routines[i];
-        if (routine->kind != MIR_SCOPE_METHOD)
-            continue;
-        if (routine->ast == method)
-            return routine;
-        if (routine->name != NULL
-            && routine->owner_name != NULL
-            && strcmp(routine->name, method_name) == 0
-            && strcmp(routine->owner_name, owner_name) == 0) {
-            return routine;
-        }
-    }
-    return NULL;
-}
-
 void
 llvm_emit_main_wrapper(LLVMGenCtx *ctx)
 {
@@ -334,7 +303,8 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
             LLVMBuildCall2(ctx->builder, top_level_entry->fn_type,
                            top_level_entry->fn, NULL, 0, "");
         } else {
-            llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_MIR_ROUTINE_MISSING, PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING, PGY_FIX_INSPECT_MIR_INVENTORY, "MIR-only LLVM path missing emitted top-level executable wrapper '__pgy_top_level_exec'");
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing emitted top-level executable wrapper '__pgy_top_level_exec'");
             llvm_scope_pop(ctx);
             return;
         }
@@ -495,13 +465,11 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                 continue;
             }
             if (!llvm_mir_routine_has_instructions(routine)) {
-                char msg[256];
-                snprintf(msg, sizeof(msg),
-                         "MIR-only LLVM path missing routine for function '%s'",
-                         stmt->data.func_decl.name != NULL
-                             ? stmt->data.func_decl.name
-                             : "(anonymous)");
-                llvm_set_error(ctx, msg);
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing routine for function '%s'",
+                    stmt->data.func_decl.name != NULL
+                        ? stmt->data.func_decl.name
+                        : "(anonymous)");
                 return false;
             }
         } else if (routine->kind == MIR_SCOPE_INTENT
@@ -519,53 +487,45 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
         for (size_t i = 0; i < nominal_count; i++) {
             ASTNode *decl = nominal_nodes != NULL ? nominal_nodes[i] : NULL;
             const char *cls_name;
-            ASTNode **methods;
-            size_t method_count;
+            const MIRDeclHeader *decl_header;
+            const MIRDeclMethod *method_metadata;
+            size_t method_metadata_count;
 
             if (decl == NULL || decl->type != AST_CLASS_DECL)
                 continue;
 
             cls_name = llvm_decl_node_name(decl);
-            methods = NULL;
-            method_count = 0;
-            llvm_find_host_decl_methods_in_context(ctx, cls_name, &methods, &method_count);
-            for (size_t j = 0; j < method_count; j++) {
-                ASTNode *method = methods != NULL ? methods[j] : NULL;
-                const MIRDeclMethod *method_meta;
+            decl_header = llvm_find_host_decl_header_in_context(ctx, cls_name);
+            method_metadata = NULL;
+            method_metadata_count = 0;
+            llvm_host_decl_method_metadata(decl_header,
+                &method_metadata, &method_metadata_count);
+            if (decl_header == NULL && decl->data.class_decl.method_count > 0) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing declaration metadata for class method '%s.%s'",
+                    cls_name != NULL ? cls_name : "(anonymous-class)",
+                    "(metadata)");
+                return false;
+            }
+            for (size_t j = 0; j < method_metadata_count; j++) {
+                const MIRDeclMethod *method_meta = &method_metadata[j];
                 const char *method_name;
                 const MIRRoutine *mir_method;
-                if (method == NULL || method->type != AST_FUNC_DECL)
-                    continue;
-                method_name = method->data.func_decl.name;
-                method_meta = llvm_find_host_method_metadata_in_context(
-                    ctx, cls_name, method_name);
-                if (method_meta == NULL) {
-                    char msg[384];
-                    snprintf(msg, sizeof(msg),
-                             "MIR-only LLVM path missing declaration metadata for class method '%s.%s'",
-                             cls_name != NULL ? cls_name : "(anonymous-class)",
-                             method_name != NULL ? method_name : "(anonymous)");
-                    llvm_set_error(ctx, msg);
-                    return false;
-                }
+
                 method_name = llvm_mir_decl_method_name(method_meta);
                 mir_method = method_meta != NULL && method_meta->has_routine
                     ? llvm_routine_inventory_get(
                         &routine_inventory, method_meta->routine_index)
                     : NULL;
-                if (mir_method == NULL)
-                    mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
                 if (mir_method != NULL) {
                     llvm_emit_func_from_mir(mir_method, ctx);
                     continue;
                 }
                 {
-                    char msg[384];
-                    snprintf(msg, sizeof(msg),
-                             "MIR-only LLVM path missing routine for class method '%s.%s'",
-                             cls_name != NULL ? cls_name : "(anonymous-class)",
-                             method_name != NULL ? method_name : "(anonymous)");
-                    llvm_set_error(ctx, msg);
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing routine for class method '%s.%s'",
+                        cls_name != NULL ? cls_name : "(anonymous-class)",
+                        method_name != NULL ? method_name : "(anonymous)");
                     return false;
                 }
             }

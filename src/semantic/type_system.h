@@ -144,6 +144,7 @@ struct TypeEnv
         Type* type;
     }* variables;
     size_t var_count;
+    size_t var_capacity;
     
     /* Type definitions */
     struct
@@ -152,6 +153,7 @@ struct TypeEnv
         Type* type;
     }* types;
     size_t type_count;
+    size_t type_capacity;
     
     /* Generic parameters in scope */
     GenericParams* generic_params;

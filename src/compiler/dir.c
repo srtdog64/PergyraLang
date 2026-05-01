@@ -8,13 +8,17 @@
 #include "../common/string_compat.h"
 
 static bool
-append_node(DIRNode **nodes, size_t *count, DIRNode node)
+append_node(DIRNode **nodes, size_t *count, size_t *capacity, DIRNode node)
 {
-    DIRNode *grown = realloc(*nodes, (*count + 1) * sizeof(DIRNode));
-    if (grown == NULL)
-        return false;
-    grown[*count] = node;
-    *nodes = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 16 : *capacity * 2;
+        DIRNode *grown = realloc(*nodes, next_capacity * sizeof(DIRNode));
+        if (grown == NULL)
+            return false;
+        *nodes = grown;
+        *capacity = next_capacity;
+    }
+    (*nodes)[*count] = node;
     (*count)++;
     return true;
 }
@@ -88,13 +92,17 @@ dir_failf(const char *fmt, ...)
 }
 
 static bool
-append_edge(DIREdge **edges, size_t *count, DIREdge edge)
+append_edge(DIREdge **edges, size_t *count, size_t *capacity, DIREdge edge)
 {
-    DIREdge *grown = realloc(*edges, (*count + 1) * sizeof(DIREdge));
-    if (grown == NULL)
-        return false;
-    grown[*count] = edge;
-    *edges = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 32 : *capacity * 2;
+        DIREdge *grown = realloc(*edges, next_capacity * sizeof(DIREdge));
+        if (grown == NULL)
+            return false;
+        *edges = grown;
+        *capacity = next_capacity;
+    }
+    (*edges)[*count] = edge;
     (*count)++;
     return true;
 }
@@ -107,11 +115,15 @@ dir_track_owned_name(DIRProgram *dir, char *name)
     if (dir == NULL || name == NULL)
         return false;
 
-    grown = realloc(dir->owned_names, (dir->owned_name_count + 1) * sizeof(char *));
-    if (grown == NULL)
-        return false;
-    grown[dir->owned_name_count] = name;
-    dir->owned_names = grown;
+    if (dir->owned_name_count == dir->owned_name_capacity) {
+        size_t next_capacity = dir->owned_name_capacity == 0 ? 16 : dir->owned_name_capacity * 2;
+        grown = realloc(dir->owned_names, next_capacity * sizeof(char *));
+        if (grown == NULL)
+            return false;
+        dir->owned_names = grown;
+        dir->owned_name_capacity = next_capacity;
+    }
+    dir->owned_names[dir->owned_name_count] = name;
     dir->owned_name_count++;
     return true;
 }
@@ -257,7 +269,7 @@ dir_add_node(DIRProgram *dir, DIRNodeKind kind, const char *name, ASTNode *ast)
     node.kind = kind;
     node.name = name;
     node.ast = ast;
-    return append_node(&dir->nodes, &dir->node_count, node);
+    return append_node(&dir->nodes, &dir->node_count, &dir->node_capacity, node);
 }
 
 ssize_t
@@ -299,7 +311,7 @@ dir_add_named_edge(DIRProgram *dir,
     edge.to_node_id = to_node_id;
     edge.label = label;
     edge.target_name = target_name;
-    return append_edge(&dir->edges, &dir->edge_count, edge);
+    return append_edge(&dir->edges, &dir->edge_count, &dir->edge_capacity, edge);
 }
 
 static char *

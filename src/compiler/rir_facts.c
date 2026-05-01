@@ -50,11 +50,15 @@ rir_find_domain_slot_in_owner(ASTNode *owner, const char *slot_name)
 bool
 append_scope(RIRProgram *rir, RIRScope scope)
 {
-    RIRScope *grown = realloc(rir->scopes, (rir->scope_count + 1) * sizeof(RIRScope));
-    if (grown == NULL)
-        return false;
-    grown[rir->scope_count] = scope;
-    rir->scopes = grown;
+    if (rir->scope_count == rir->scope_capacity) {
+        size_t next_capacity = rir->scope_capacity == 0 ? 8 : rir->scope_capacity * 2;
+        RIRScope *grown = realloc(rir->scopes, next_capacity * sizeof(RIRScope));
+        if (grown == NULL)
+            return false;
+        rir->scopes = grown;
+        rir->scope_capacity = next_capacity;
+    }
+    rir->scopes[rir->scope_count] = scope;
     rir->scope_count++;
     return true;
 }
@@ -89,11 +93,15 @@ rir_strdup_fmt(const char *fmt, ...)
 static bool
 scope_add_fact(RIRScope *scope, RIRFact fact)
 {
-    RIRFact *grown = realloc(scope->facts, (scope->fact_count + 1) * sizeof(RIRFact));
-    if (grown == NULL)
-        return false;
-    grown[scope->fact_count] = fact;
-    scope->facts = grown;
+    if (scope->fact_count == scope->fact_capacity) {
+        size_t next_capacity = scope->fact_capacity == 0 ? 8 : scope->fact_capacity * 2;
+        RIRFact *grown = realloc(scope->facts, next_capacity * sizeof(RIRFact));
+        if (grown == NULL)
+            return false;
+        scope->facts = grown;
+        scope->fact_capacity = next_capacity;
+    }
+    scope->facts[scope->fact_count] = fact;
     scope->fact_count++;
     return true;
 }
@@ -101,11 +109,15 @@ scope_add_fact(RIRScope *scope, RIRFact fact)
 static bool
 scope_add_op(RIRScope *scope, RIROp op)
 {
-    RIROp *grown = realloc(scope->ops, (scope->op_count + 1) * sizeof(RIROp));
-    if (grown == NULL)
-        return false;
-    grown[scope->op_count] = op;
-    scope->ops = grown;
+    if (scope->op_count == scope->op_capacity) {
+        size_t next_capacity = scope->op_capacity == 0 ? 8 : scope->op_capacity * 2;
+        RIROp *grown = realloc(scope->ops, next_capacity * sizeof(RIROp));
+        if (grown == NULL)
+            return false;
+        scope->ops = grown;
+        scope->op_capacity = next_capacity;
+    }
+    scope->ops[scope->op_count] = op;
     scope->op_count++;
     return true;
 }
@@ -126,12 +138,17 @@ rir_free_flow_blocks(RIRScope *scope)
 static bool
 scope_add_state_summary(RIRScope *scope, RIRStateSummary summary)
 {
-    RIRStateSummary *grown = realloc(scope->state_summaries,
-                                     (scope->state_summary_count + 1) * sizeof(RIRStateSummary));
-    if (grown == NULL)
-        return false;
-    grown[scope->state_summary_count] = summary;
-    scope->state_summaries = grown;
+    if (scope->state_summary_count == scope->state_summary_capacity) {
+        size_t next_capacity =
+            scope->state_summary_capacity == 0 ? 8 : scope->state_summary_capacity * 2;
+        RIRStateSummary *grown =
+            realloc(scope->state_summaries, next_capacity * sizeof(RIRStateSummary));
+        if (grown == NULL)
+            return false;
+        scope->state_summaries = grown;
+        scope->state_summary_capacity = next_capacity;
+    }
+    scope->state_summaries[scope->state_summary_count] = summary;
     scope->state_summary_count++;
     return true;
 }

@@ -7,6 +7,7 @@
 #include "air_internal.h"
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,11 +56,38 @@ air_strdup_owned(const char *text)
     return copy;
 }
 
+static bool
+air_ensure_owned_name_capacity(AIRProgram *air)
+{
+    char **grown;
+    size_t new_capacity;
+
+    if (air == NULL)
+        return false;
+    if (air->owned_name_count < air->owned_name_capacity)
+        return true;
+
+    new_capacity = air->owned_name_capacity == 0
+        ? 16
+        : air->owned_name_capacity * 2;
+    if (new_capacity < air->owned_name_capacity
+        || new_capacity > SIZE_MAX / sizeof(char *)) {
+        return false;
+    }
+
+    grown = (char **)realloc(air->owned_names,
+                             new_capacity * sizeof(char *));
+    if (grown == NULL)
+        return false;
+    air->owned_names = grown;
+    air->owned_name_capacity = new_capacity;
+    return true;
+}
+
 const char *
 air_program_owned_name(AIRProgram *air, const char *text)
 {
     char *copy;
-    char **next;
 
     if (air == NULL || text == NULL)
         return NULL;
@@ -68,14 +96,11 @@ air_program_owned_name(AIRProgram *air, const char *text)
     if (copy == NULL)
         return NULL;
 
-    next = (char **)realloc(air->owned_names,
-                            sizeof(char *) * (air->owned_name_count + 1));
-    if (next == NULL) {
+    if (!air_ensure_owned_name_capacity(air)) {
         free(copy);
         return NULL;
     }
 
-    air->owned_names = next;
     air->owned_names[air->owned_name_count++] = copy;
     return copy;
 }
@@ -136,21 +161,36 @@ air_append_evidence_node_ex(AIRProgram *air,
                             size_t fallback_count,
                             char **error_message)
 {
-    AIREvidenceNode *next;
     AIREvidenceNode *node;
 
     if (air == NULL) {
         air_set_error(error_message, "AIR evidence append requires a program");
         return false;
     }
-    next = (AIREvidenceNode *)realloc(air->evidence_nodes,
-                                      sizeof(AIREvidenceNode) * (air->evidence_count + 1));
-    if (next == NULL) {
+    if (air->evidence_count >= air->evidence_capacity) {
+        AIREvidenceNode *next;
+        size_t new_capacity = air->evidence_capacity == 0
+            ? 16
+            : air->evidence_capacity * 2;
+        if (new_capacity < air->evidence_capacity
+            || new_capacity > SIZE_MAX / sizeof(AIREvidenceNode)) {
+            air_set_error(error_message, "AIR evidence node allocation failed");
+            return false;
+        }
+        next = (AIREvidenceNode *)realloc(air->evidence_nodes,
+                                          new_capacity * sizeof(AIREvidenceNode));
+        if (next == NULL) {
+            air_set_error(error_message, "AIR evidence node allocation failed");
+            return false;
+        }
+        air->evidence_nodes = next;
+        air->evidence_capacity = new_capacity;
+    }
+    if (air->evidence_nodes == NULL) {
         air_set_error(error_message, "AIR evidence node allocation failed");
         return false;
     }
 
-    air->evidence_nodes = next;
     node = &air->evidence_nodes[air->evidence_count];
     memset(node, 0, sizeof(*node));
     node->kind = kind;
@@ -203,6 +243,7 @@ air_clear_drifts(AIRProgram *air)
     free(air->drifts);
     air->drifts = NULL;
     air->drift_count = 0;
+    air->drift_capacity = 0;
 }
 
 static const char *

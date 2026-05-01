@@ -84,6 +84,7 @@ typedef struct
     const char      *result_name;
     const char     **uses;
     size_t           use_count;
+    size_t           use_capacity;
     MIRPhiIncoming  *phi_incomings;
     size_t           phi_incoming_count;
     const RIROp     *rir_op;
@@ -121,6 +122,7 @@ typedef struct
     size_t           source_phi_node_count;
     size_t          *predecessors;
     size_t           predecessor_count;
+    size_t           predecessor_capacity;
     size_t           succ_true;
     size_t           succ_false;
     bool             has_succ_true;
@@ -133,23 +135,31 @@ typedef struct
     bool             has_invalidation_succ;
     const char     **renamed_locals;
     size_t           renamed_local_count;
+    size_t           renamed_local_capacity;
     const char     **ssa_entry_values;
     size_t           ssa_entry_value_count;
+    size_t           ssa_entry_value_capacity;
     const char     **ssa_exit_values;
     size_t           ssa_exit_value_count;
+    size_t           ssa_exit_value_capacity;
     const char     **use_names;
     size_t           use_name_count;
+    size_t           use_name_capacity;
     const char     **def_names;
     size_t           def_name_count;
+    size_t           def_name_capacity;
     const char     **live_in_names;
     size_t           live_in_name_count;
+    size_t           live_in_name_capacity;
     const char     **live_out_names;
     size_t           live_out_name_count;
+    size_t           live_out_name_capacity;
     size_t          *ssa_entry_versions;
     size_t          *ssa_exit_versions;
     size_t           ssa_version_count;
     MIRInstruction  *instructions;
     size_t           instruction_count;
+    size_t           instruction_capacity;
 } MIRBasicBlock;
 
 typedef struct
@@ -184,6 +194,7 @@ typedef struct
     const RIRScope    *rir_scope;
     MIRBasicBlock     *blocks;
     size_t             block_count;
+    size_t             block_capacity;
     size_t             entry_block;
     size_t             cleanup_block;
     bool               has_cleanup_block;
@@ -203,6 +214,7 @@ typedef struct
     bool               has_dce;
     MIRValueSummary   *value_summaries;
     size_t             value_summary_count;
+    size_t             value_summary_capacity;
     bool               has_use_def_summary;
     /* Pass-local scratch arena: reused across MIR passes (SSA rename,
      * future liveness/DCE transforms).  Lifetime binds to the enclosing
@@ -242,8 +254,10 @@ struct MIRProgram
 {
     MIRRoutine *routines;
     size_t      routine_count;
+    size_t      routine_capacity;
     MIRDeclHeader *decl_headers;
     size_t      decl_header_count;
+    size_t      decl_header_capacity;
     ASTNode   **externs;
     size_t      extern_count;
     ASTNode   **types;

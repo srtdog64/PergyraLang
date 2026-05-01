@@ -10,42 +10,57 @@
 #include "hir_internal.h"
 
 static bool
-append_ast(ASTNode ***items, size_t *count, ASTNode *node)
+append_ast(ASTNode ***items, size_t *count, size_t *capacity, ASTNode *node)
 {
-    ASTNode **grown = realloc(*items, (*count + 1) * sizeof(ASTNode *));
-    if (grown == NULL)
-        return false;
-    grown[*count] = node;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        ASTNode **grown = realloc(*items, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = node;
     (*count)++;
     return true;
 }
 
 static bool
-append_item(HIRTopLevelItem **items, size_t *count, HIRTopLevelItem item)
+append_item(HIRTopLevelItem **items,
+            size_t *count,
+            size_t *capacity,
+            HIRTopLevelItem item)
 {
-    HIRTopLevelItem *grown = realloc(*items, (*count + 1) * sizeof(HIRTopLevelItem));
-    if (grown == NULL)
-        return false;
-    grown[*count] = item;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 16 : *capacity * 2;
+        HIRTopLevelItem *grown = realloc(*items, next_capacity * sizeof(HIRTopLevelItem));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = item;
     (*count)++;
     return true;
 }
 
 static bool
-append_index_unique(size_t **items, size_t *count, size_t value)
+append_index_unique(size_t **items, size_t *count, size_t *capacity, size_t value)
 {
     for (size_t i = 0; i < *count; i++) {
         if ((*items)[i] == value)
             return true;
     }
 
-    size_t *grown = realloc(*items, (*count + 1) * sizeof(size_t));
-    if (grown == NULL)
-        return false;
-    grown[*count] = value;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        size_t *grown = realloc(*items, next_capacity * sizeof(size_t));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = value;
     (*count)++;
     return true;
 }
@@ -92,18 +107,84 @@ hir_node_name(ASTNode *node)
     }
 }
 
-static ssize_t
-hir_find_routine_index_by_name(const HIRProgram *hir, const char *name)
+typedef struct
 {
-    if (hir == NULL || name == NULL)
-        return -1;
+    const char *name;
+    size_t      index;
+} HIRRoutineNameIndex;
+
+static int
+hir_routine_name_index_compare(const void *lhs, const void *rhs)
+{
+    const HIRRoutineNameIndex *a = (const HIRRoutineNameIndex *)lhs;
+    const HIRRoutineNameIndex *b = (const HIRRoutineNameIndex *)rhs;
+    int name_cmp = strcmp(a->name, b->name);
+
+    if (name_cmp != 0)
+        return name_cmp;
+    return (a->index > b->index) - (a->index < b->index);
+}
+
+static HIRRoutineNameIndex *
+hir_build_routine_name_index(const HIRProgram *hir, size_t *out_count)
+{
+    HIRRoutineNameIndex *index;
+    size_t count = 0;
+
+    if (out_count == NULL)
+        return NULL;
+    *out_count = 0;
+    if (hir == NULL || hir->routine_count == 0)
+        return NULL;
+
+    index = calloc(hir->routine_count, sizeof(HIRRoutineNameIndex));
+    if (index == NULL)
+        return NULL;
 
     for (size_t i = 0; i < hir->routine_count; i++) {
-        if (hir->routines[i].name != NULL && strcmp(hir->routines[i].name, name) == 0)
-            return (ssize_t)i;
+        if (hir->routines[i].name == NULL)
+            continue;
+        index[count].name = hir->routines[i].name;
+        index[count].index = i;
+        count++;
     }
 
-    return -1;
+    qsort(index, count, sizeof(HIRRoutineNameIndex),
+          hir_routine_name_index_compare);
+    *out_count = count;
+    return index;
+}
+
+static ssize_t
+hir_lookup_routine_index_by_name(const HIRRoutineNameIndex *index,
+                                 size_t count,
+                                 const char *name)
+{
+    HIRRoutineNameIndex key;
+    HIRRoutineNameIndex *found;
+    size_t pos;
+    size_t best;
+
+    if (index == NULL || count == 0 || name == NULL)
+        return -1;
+
+    key.name = name;
+    key.index = 0;
+    found = bsearch(&key, index, count, sizeof(HIRRoutineNameIndex),
+                    hir_routine_name_index_compare);
+    if (found == NULL)
+        return -1;
+
+    pos = (size_t)(found - index);
+    while (pos > 0 && strcmp(index[pos - 1].name, name) == 0)
+        pos--;
+    best = index[pos].index;
+    while (pos < count && strcmp(index[pos].name, name) == 0) {
+        if (index[pos].index < best)
+            best = index[pos].index;
+        pos++;
+    }
+    return (ssize_t)best;
 }
 
 const char *
@@ -153,69 +234,69 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
     switch (node->type) {
         case AST_EXTERN_BLOCK:
             item.kind = HIR_TOPLEVEL_EXTERN;
-            if (!append_ast(&hir->externs, &hir->extern_count, node))
+            if (!append_ast(&hir->externs, &hir->extern_count, &hir->extern_capacity, node))
                 goto oom;
             break;
         case AST_CLASS_DECL:
         case AST_TYPE_ALIAS:
         case AST_ENUM_DECL:
             item.kind = HIR_TOPLEVEL_TYPE;
-            if (!append_ast(&hir->types, &hir->type_count, node))
+            if (!append_ast(&hir->types, &hir->type_count, &hir->type_capacity, node))
                 goto oom;
             break;
         case AST_ABILITY_DECL:
             item.kind = HIR_TOPLEVEL_ABILITY;
-            if (!append_ast(&hir->abilities, &hir->ability_count, node))
+            if (!append_ast(&hir->abilities, &hir->ability_count, &hir->ability_capacity, node))
                 goto oom;
             break;
         case AST_ROLE_DECL:
             item.kind = HIR_TOPLEVEL_ROLE;
-            if (!append_ast(&hir->roles, &hir->role_count, node))
+            if (!append_ast(&hir->roles, &hir->role_count, &hir->role_capacity, node))
                 goto oom;
             break;
         case AST_PARTY_DECL:
             item.kind = HIR_TOPLEVEL_PARTY;
-            if (!append_ast(&hir->parties, &hir->party_count, node))
+            if (!append_ast(&hir->parties, &hir->party_count, &hir->party_capacity, node))
                 goto oom;
             break;
         case AST_ROSTER_DECL:
             item.kind = HIR_TOPLEVEL_SYSTEMIC;
-            if (!append_ast(&hir->rosters, &hir->roster_count, node))
+            if (!append_ast(&hir->rosters, &hir->roster_count, &hir->roster_capacity, node))
                 goto oom;
             break;
         case AST_WORLD_DECL:
             item.kind = HIR_TOPLEVEL_WORLD;
-            if (!append_ast(&hir->worlds, &hir->world_count, node))
+            if (!append_ast(&hir->worlds, &hir->world_count, &hir->world_capacity, node))
                 goto oom;
             break;
         case AST_INTENT_DECL:
             item.kind = HIR_TOPLEVEL_INTENT;
-            if (!append_ast(&hir->intents, &hir->intent_count, node))
+            if (!append_ast(&hir->intents, &hir->intent_count, &hir->intent_capacity, node))
                 goto oom;
             break;
         case AST_RELATION_DECL:
             item.kind = HIR_TOPLEVEL_RELATION;
-            if (!append_ast(&hir->relations, &hir->relation_count, node))
+            if (!append_ast(&hir->relations, &hir->relation_count, &hir->relation_capacity, node))
                 goto oom;
             break;
         case AST_EFFECT_DECL:
             item.kind = HIR_TOPLEVEL_EFFECT;
-            if (!append_ast(&hir->effects, &hir->effect_count, node))
+            if (!append_ast(&hir->effects, &hir->effect_count, &hir->effect_capacity, node))
                 goto oom;
             break;
         case AST_ZONE_DECL:
             item.kind = HIR_TOPLEVEL_ZONE;
-            if (!append_ast(&hir->zones, &hir->zone_count, node))
+            if (!append_ast(&hir->zones, &hir->zone_count, &hir->zone_capacity, node))
                 goto oom;
             break;
         case AST_EVENT_DECL:
             item.kind = HIR_TOPLEVEL_EVENT;
-            if (!append_ast(&hir->events, &hir->event_count, node))
+            if (!append_ast(&hir->events, &hir->event_count, &hir->event_capacity, node))
                 goto oom;
             break;
         case AST_FUNC_DECL:
             item.kind = HIR_TOPLEVEL_FUNCTION;
-            if (!append_ast(&hir->functions, &hir->function_count, node))
+            if (!append_ast(&hir->functions, &hir->function_count, &hir->function_capacity, node))
                 goto oom;
             if (node->data.func_decl.name != NULL
                 && strcmp(node->data.func_decl.name, "Main") == 0) {
@@ -256,7 +337,10 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
         case AST_LAMBDA_EXPR:
         case AST_BLOCK:
             item.kind = HIR_TOPLEVEL_EXECUTABLE;
-            if (!append_ast(&hir->executables, &hir->executable_count, node))
+            if (!append_ast(&hir->executables,
+                            &hir->executable_count,
+                            &hir->executable_capacity,
+                            node))
                 goto oom;
             break;
 
@@ -268,7 +352,10 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
         case AST_DEFER_STMT:
         case AST_BIND_STMT:
             item.kind = HIR_TOPLEVEL_EXECUTABLE;
-            if (!append_ast(&hir->executables, &hir->executable_count, node))
+            if (!append_ast(&hir->executables,
+                            &hir->executable_count,
+                            &hir->executable_capacity,
+                            node))
                 goto oom;
             break;
 
@@ -283,7 +370,7 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
             return false;
     }
 
-    if (!append_item(&hir->items, &hir->item_count, item))
+    if (!append_item(&hir->items, &hir->item_count, &hir->item_capacity, item))
         goto oom;
     if (!hir_append_decl_and_routine(hir, item, error_message))
         goto oom;
@@ -326,7 +413,7 @@ hir_append_synthetic_executable_routine(HIRProgram *hir, char **error_message)
     item.ast = func;
     item.name = func->data.func_decl.name;
 
-    if (!append_item(&hir->items, &hir->item_count, item)) {
+    if (!append_item(&hir->items, &hir->item_count, &hir->item_capacity, item)) {
         if (error_message != NULL)
             *error_message = pergyra_strdup("Out of memory");
         return false;
@@ -375,21 +462,35 @@ hir_lower(ASTNode *annotated_ast, char **error_message)
         return NULL;
     }
 
+    size_t routine_index_count = 0;
+    HIRRoutineNameIndex *routine_index =
+        hir_build_routine_name_index(hir, &routine_index_count);
+    if (hir->routine_count > 0 && routine_index == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("Out of memory");
+        hir_destroy(hir);
+        return NULL;
+    }
+
     for (size_t i = 0; i < hir->routine_count; i++) {
         HIRRoutine *routine = &hir->routines[i];
         for (size_t j = 0; j < routine->direct_call_count; j++) {
-            ssize_t callee = hir_find_routine_index_by_name(hir, routine->direct_calls[j]);
+            ssize_t callee = hir_lookup_routine_index_by_name(
+                routine_index, routine_index_count, routine->direct_calls[j]);
             if (callee >= 0
                 && !append_index_unique(&routine->callee_routine_ids,
                                         &routine->callee_routine_count,
+                                        &routine->callee_routine_capacity,
                                         (size_t)callee)) {
                 if (error_message != NULL)
                     *error_message = pergyra_strdup("Out of memory");
+                free(routine_index);
                 hir_destroy(hir);
                 return NULL;
             }
         }
     }
+    free(routine_index);
 
     bool changed = true;
     while (changed) {

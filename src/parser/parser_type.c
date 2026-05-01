@@ -98,21 +98,22 @@ static bool
 parser_append_generic_param(Parser *parser, GenericParams *params, GenericParam *param)
 {
     GenericParam **grown;
-    size_t next_count;
 
     if (params == NULL)
         return false;
 
-    next_count = params->count + 1;
-    grown = realloc(params->params, next_count * sizeof(GenericParam *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while appending generic parameter");
-        return false;
+    if (params->count == params->capacity) {
+        size_t next_capacity = params->capacity == 0 ? 4 : params->capacity * 2;
+        grown = realloc(params->params, next_capacity * sizeof(GenericParam *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while appending generic parameter");
+            return false;
+        }
+        params->params = grown;
+        params->capacity = next_capacity;
     }
 
-    grown[params->count] = param;
-    params->params = grown;
-    params->count = next_count;
+    params->params[params->count++] = param;
     return true;
 }
 
@@ -132,21 +133,24 @@ static bool
 parser_append_type_bound(Parser *parser, TypeConstraint *constraint, ASTNode *bound)
 {
     ASTNode **grown;
-    size_t next_count;
 
     if (constraint == NULL)
         return false;
 
-    next_count = constraint->bound_count + 1;
-    grown = realloc(constraint->bounds, next_count * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while appending type bound");
-        return false;
+    if (constraint->bound_count == constraint->bound_capacity) {
+        size_t next_capacity = constraint->bound_capacity == 0
+            ? 4
+            : constraint->bound_capacity * 2;
+        grown = realloc(constraint->bounds, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while appending type bound");
+            return false;
+        }
+        constraint->bounds = grown;
+        constraint->bound_capacity = next_capacity;
     }
 
-    grown[constraint->bound_count] = bound;
-    constraint->bounds = grown;
-    constraint->bound_count = next_count;
+    constraint->bounds[constraint->bound_count++] = bound;
     return true;
 }
 
@@ -154,21 +158,22 @@ static bool
 parser_append_where_constraint(Parser *parser, WhereClause *where, TypeConstraint *constraint)
 {
     TypeConstraint **grown;
-    size_t next_count;
 
     if (where == NULL)
         return false;
 
-    next_count = where->count + 1;
-    grown = realloc(where->constraints, next_count * sizeof(TypeConstraint *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while appending where constraint");
-        return false;
+    if (where->count == where->capacity) {
+        size_t next_capacity = where->capacity == 0 ? 4 : where->capacity * 2;
+        grown = realloc(where->constraints, next_capacity * sizeof(TypeConstraint *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while appending where constraint");
+            return false;
+        }
+        where->constraints = grown;
+        where->capacity = next_capacity;
     }
 
-    grown[where->count] = constraint;
-    where->constraints = grown;
-    where->count = next_count;
+    where->constraints[where->count++] = constraint;
     return true;
 }
 
@@ -185,28 +190,6 @@ parser_free_type_constraint(TypeConstraint *constraint)
         ast_destroy(constraint->bounds[i]);
     free(constraint->bounds);
     free(constraint);
-}
-
-static bool
-parser_append_type_node(Parser *parser, ASTNode ***items, size_t *count, ASTNode *item)
-{
-    ASTNode **grown;
-    size_t next_count;
-
-    if (items == NULL || count == NULL)
-        return false;
-
-    next_count = *count + 1;
-    grown = realloc(*items, next_count * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while appending type node");
-        return false;
-    }
-
-    grown[*count] = item;
-    *items = grown;
-    *count = next_count;
-    return true;
 }
 
 static bool
@@ -246,6 +229,7 @@ GenericParams* parse_generic_params(Parser* parser) {
 
     GenericParams* params = calloc(1, sizeof(GenericParams));
     params->count = 0;
+    params->capacity = 0;
     params->params = NULL;
 
     while (!parser_check(parser, TOKEN_GREATER) && !parser_is_at_end(parser)) {
@@ -285,6 +269,7 @@ GenericParams* parse_type_arguments(Parser* parser) {
 
     GenericParams* params = calloc(1, sizeof(GenericParams));
     params->count = 0;
+    params->capacity = 0;
     params->params = NULL;
 
     while (!parser_check(parser, TOKEN_GREATER) && !parser_is_at_end(parser)) {
@@ -320,6 +305,7 @@ WhereClause* parse_where_clause(Parser* parser) {
 
     WhereClause* where = calloc(1, sizeof(WhereClause));
     where->count = 0;
+    where->capacity = 0;
     where->constraints = NULL;
 
     do {
@@ -334,6 +320,7 @@ WhereClause* parse_where_clause(Parser* parser) {
 
         // Trait 바운드 (Trait1 + Trait2 + ...)
         constraint->bound_count = 0;
+        constraint->bound_capacity = 0;
         constraint->bounds = NULL;
 
         do {
@@ -366,9 +353,10 @@ ASTNode* parse_type(Parser* parser) {
 
         while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
             ASTNode *param_type = parse_type(parser);
-            if (!parser_append_type_node(parser,
+            if (!parser_append_type_node_with_capacity(parser,
                     &handler_type->data.event_handler_type.param_types,
                     &handler_type->data.event_handler_type.param_count,
+                    &handler_type->data.event_handler_type.param_capacity,
                     param_type)) {
                 ast_destroy(param_type);
                 break;

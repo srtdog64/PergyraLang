@@ -5,6 +5,7 @@
  * Slot Resource-Boundary Analyzer implementation
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "slot_analyzer_internal.h"
@@ -58,42 +59,75 @@ slot_analyzer_destroy(SlotAnalyzer *sa)
 static Symbol **
 collect_live_slots(Scope *scope, size_t *out_count)
 {
-    /* Two-pass: count then fill */
     size_t count = 0;
+    size_t capacity = 0;
+    Symbol **result = NULL;
+
+    if (out_count == NULL)
+        return NULL;
+    *out_count = 0;
+
     for (Scope *s = scope; s != NULL; s = s->parent) {
         for (size_t i = 0; i < s->symbol_count; i++) {
             Symbol *sym = s->symbols[i];
-            if (sym->kind == SYMBOL_SLOT
-                && sym->slot_info.state == SLOT_STATE_CLAIMED) {
-                count++;
+            Symbol **grown;
+            size_t new_capacity;
+
+            if (sym == NULL || sym->kind != SYMBOL_SLOT
+                || sym->slot_info.state != SLOT_STATE_CLAIMED) {
+                continue;
             }
-        }
-    }
 
-    if (count == 0) {
-        *out_count = 0;
-        return NULL;
-    }
-
-    Symbol **result = calloc(count, sizeof(Symbol *));
-    if (result == NULL) {
-        *out_count = 0;
-        return NULL;
-    }
-
-    size_t idx = 0;
-    for (Scope *s = scope; s != NULL; s = s->parent) {
-        for (size_t i = 0; i < s->symbol_count; i++) {
-            Symbol *sym = s->symbols[i];
-            if (sym->kind == SYMBOL_SLOT
-                && sym->slot_info.state == SLOT_STATE_CLAIMED) {
-                result[idx++] = sym;
+            if (count >= capacity) {
+                new_capacity = capacity == 0 ? 8 : capacity * 2;
+                if (new_capacity < capacity
+                    || new_capacity > SIZE_MAX / sizeof(Symbol *)) {
+                    free(result);
+                    return NULL;
+                }
+                grown = realloc(result, new_capacity * sizeof(Symbol *));
+                if (grown == NULL) {
+                    free(result);
+                    return NULL;
+                }
+                result = grown;
+                capacity = new_capacity;
             }
+            result[count++] = sym;
         }
     }
 
     *out_count = count;
     return result;
+}
+
+static int
+symbol_ptr_compare(const void *lhs, const void *rhs)
+{
+    uintptr_t a = (uintptr_t)*(Symbol *const *)lhs;
+    uintptr_t b = (uintptr_t)*(Symbol *const *)rhs;
+
+    return (a > b) - (a < b);
+}
+
+static void
+symbol_ptr_array_sort(Symbol **items, size_t count)
+{
+    if (items == NULL || count < 2)
+        return;
+    qsort(items, count, sizeof(Symbol *), symbol_ptr_compare);
+}
+
+static bool
+symbol_ptr_array_contains(Symbol *const *items, size_t count, Symbol *needle)
+{
+    Symbol *const *found;
+
+    if (items == NULL || count == 0 || needle == NULL)
+        return false;
+    found = bsearch(&needle, items, count, sizeof(Symbol *),
+                    symbol_ptr_compare);
+    return found != NULL;
 }
 
 /* -----------------------------------------------------------------
@@ -152,6 +186,7 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
      */
     size_t   live_count  = 0;
     Symbol **live_before = collect_live_slots(sa->ctx->scope, &live_count);
+    symbol_ptr_array_sort(live_before, live_count);
 
     slot_analyze_block(body, sa);
 
@@ -167,14 +202,7 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
 
     for (size_t i = 0; i < after_count; i++) {
         Symbol *sym = live_after[i];
-        bool was_live_before = false;
-        for (size_t j = 0; j < live_count; j++) {
-            if (live_before[j] == sym) {
-                was_live_before = true;
-                break;
-            }
-        }
-        if (!was_live_before) {
+        if (!symbol_ptr_array_contains(live_before, live_count, sym)) {
             /* This slot was claimed inside the function and not released */
             ASTNode dummy = {0};
             dummy.line   = sym->decl_line;
@@ -269,12 +297,14 @@ slot_analyze_if_stmt(ASTNode *ifstmt, SlotAnalyzer *sa)
      */
     size_t   snap_count = 0;
     Symbol **snap       = collect_live_slots(sa->ctx->scope, &snap_count);
+    symbol_ptr_array_sort(snap, snap_count);
 
     /* Then-branch */
     slot_analyze_block(ifstmt->data.if_stmt.then_branch, sa);
 
     size_t   after_then_count = 0;
     Symbol **after_then = collect_live_slots(sa->ctx->scope, &after_then_count);
+    symbol_ptr_array_sort(after_then, after_then_count);
 
     /* Else-branch (if present) */
     if (ifstmt->data.if_stmt.else_branch != NULL) {
@@ -288,6 +318,7 @@ slot_analyze_if_stmt(ASTNode *ifstmt, SlotAnalyzer *sa)
         size_t   after_else_count = 0;
         Symbol **after_else = collect_live_slots(sa->ctx->scope,
                                                  &after_else_count);
+        symbol_ptr_array_sort(after_else, after_else_count);
 
         /*
          * L3 check: a slot that was live before but is now released
@@ -296,21 +327,10 @@ slot_analyze_if_stmt(ASTNode *ifstmt, SlotAnalyzer *sa)
         for (size_t i = 0; i < snap_count; i++) {
             Symbol *sym = snap[i];
 
-            bool released_in_then = true;
-            for (size_t j = 0; j < after_then_count; j++) {
-                if (after_then[j] == sym) {
-                    released_in_then = false;
-                    break;
-                }
-            }
-
-            bool released_in_else = true;
-            for (size_t j = 0; j < after_else_count; j++) {
-                if (after_else[j] == sym) {
-                    released_in_else = false;
-                    break;
-                }
-            }
+            bool released_in_then =
+                !symbol_ptr_array_contains(after_then, after_then_count, sym);
+            bool released_in_else =
+                !symbol_ptr_array_contains(after_else, after_else_count, sym);
 
             if (released_in_then != released_in_else) {
                 ASTNode dummy = {0};

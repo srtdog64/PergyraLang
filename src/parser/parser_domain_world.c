@@ -2,25 +2,33 @@
 
 static bool
 parser_world_append_input_name(Parser *parser, const char ***items,
-                               size_t *count, const char *name)
+                               size_t *count, size_t *capacity,
+                               const char *name)
 {
     const char **grown;
-    size_t next_count;
+    size_t next_capacity;
 
-    if (parser == NULL || items == NULL || count == NULL)
+    if (parser == NULL || items == NULL || count == NULL || capacity == NULL)
         return false;
-    next_count = *count + 1;
-    grown = malloc(next_count * sizeof(char *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing composed world state");
-        return false;
+
+    if (*count >= *capacity) {
+        next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        if (next_capacity <= *count
+            || next_capacity > (size_t)-1 / sizeof(char *)) {
+            parser_error(parser, "Out of memory while parsing composed world state");
+            return false;
+        }
+        grown = realloc((void *)*items, next_capacity * sizeof(char *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing composed world state");
+            return false;
+        }
+        *items = grown;
+        *capacity = next_capacity;
     }
-    if (*items != NULL && *count > 0)
-        memcpy(grown, *items, *count * sizeof(char *));
-    grown[next_count - 1] = name;
-    free((void *)*items);
-    *items = grown;
-    *count = next_count;
+
+    (*items)[*count] = name;
+    *count += 1;
     return true;
 }
 
@@ -58,7 +66,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             ws->column = slot_name.column;
 
             append_child_node(&world->data.world_decl.rosters,
-                &world->data.world_decl.roster_count, ws);
+                &world->data.world_decl.roster_count,
+                &world->data.world_decl.roster_capacity, ws);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -76,7 +85,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             wz->column = slot_name.column;
 
             append_child_node(&world->data.world_decl.zones,
-                &world->data.world_decl.zone_count, wz);
+                &world->data.world_decl.zone_count,
+                &world->data.world_decl.zone_capacity, wz);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -92,7 +102,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             activate->column = zone_or_state.column;
 
             append_child_node(&world->data.world_decl.activations,
-                &world->data.world_decl.activate_count, activate);
+                &world->data.world_decl.activate_count,
+                &world->data.world_decl.activate_capacity, activate);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -108,7 +119,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             deactivate->column = zone_or_state.column;
 
             append_child_node(&world->data.world_decl.deactivations,
-                &world->data.world_decl.deactivate_count, deactivate);
+                &world->data.world_decl.deactivate_count,
+                &world->data.world_decl.deactivate_capacity, deactivate);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -124,7 +136,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             maintain->column = zone_or_state.column;
 
             append_child_node(&world->data.world_decl.maintained_zones,
-                &world->data.world_decl.maintained_zone_count, maintain);
+                &world->data.world_decl.maintained_zone_count,
+                &world->data.world_decl.maintained_zone_capacity, maintain);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -139,6 +152,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
                 WorldStateSourceKind source_kind = WORLD_STATE_SOURCE_ANY;
                 const char **input_names = NULL;
                 size_t input_count = 0;
+                size_t input_capacity = 0;
                 if (parser->previous_token.text != NULL
                     && strcmp(parser->previous_token.text, "all") == 0) {
                     source_kind = WORLD_STATE_SOURCE_ALL;
@@ -148,7 +162,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
                     Token input = consume_name_token(parser,
                         "Expected world zone/state name in composed world state");
                     if (!parser_world_append_input_name(parser, &input_names,
-                            &input_count, input.text)) {
+                            &input_count, &input_capacity, input.text)) {
                         break;
                     }
                 } while (parser_match(parser, TOKEN_COMMA));
@@ -160,7 +174,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
                 state->column = state_name.column;
 
                 append_child_node(&world->data.world_decl.states,
-                    &world->data.world_decl.state_count, state);
+                    &world->data.world_decl.state_count,
+                    &world->data.world_decl.state_capacity, state);
 
                 parser_match(parser, TOKEN_SEMICOLON);
                 parser_discard_pending_doc_comment(parser);
@@ -203,7 +218,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             state->column = state_name.column;
 
             append_child_node(&world->data.world_decl.states,
-                &world->data.world_decl.state_count, state);
+                &world->data.world_decl.state_count,
+                &world->data.world_decl.state_capacity, state);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -226,7 +242,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             }
 
             append_child_node(&world->data.world_decl.shared_fields,
-                &world->data.world_decl.shared_count, shared);
+                &world->data.world_decl.shared_count,
+                &world->data.world_decl.shared_capacity, shared);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -235,7 +252,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
             append_child_node(&world->data.world_decl.methods,
-                &world->data.world_decl.method_count, method);
+                &world->data.world_decl.method_count,
+                &world->data.world_decl.method_capacity, method);
 
         } else {
             parser_discard_pending_doc_comment(parser);

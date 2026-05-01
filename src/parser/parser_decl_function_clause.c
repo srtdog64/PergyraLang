@@ -55,29 +55,27 @@ static bool
 parser_append_required_ability(Parser *parser, ASTNode *func, ASTNode *ability)
 {
     ASTNode **grown;
-    size_t next_count;
 
     if (parser == NULL || func == NULL || ability == NULL)
         return false;
 
-    if (func->data.func_decl.required_ability_count >=
-        (size_t)-1 / sizeof(ASTNode *)) {
-        parser_error(parser, "Too many required abilities");
-        return false;
+    if (func->data.func_decl.required_ability_count
+        == func->data.func_decl.required_ability_capacity) {
+        size_t next_capacity = func->data.func_decl.required_ability_capacity == 0
+            ? 4
+            : func->data.func_decl.required_ability_capacity * 2;
+        grown = realloc(func->data.func_decl.required_abilities,
+                        next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing required abilities");
+            return false;
+        }
+        func->data.func_decl.required_abilities = grown;
+        func->data.func_decl.required_ability_capacity = next_capacity;
     }
 
-    next_count = func->data.func_decl.required_ability_count + 1;
-    grown = realloc(func->data.func_decl.required_abilities,
-                    next_count * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing required abilities");
-        return false;
-    }
-
-    func->data.func_decl.required_abilities = grown;
     func->data.func_decl.required_abilities[
-        func->data.func_decl.required_ability_count] = ability;
-    func->data.func_decl.required_ability_count = next_count;
+        func->data.func_decl.required_ability_count++] = ability;
     return true;
 }
 
@@ -86,16 +84,9 @@ parser_append_authorized_by(Parser *parser, ASTNode *func, const char *name)
 {
     char **grown;
     char *copy;
-    size_t next_count;
 
     if (parser == NULL || func == NULL || name == NULL)
         return false;
-
-    if (func->data.func_decl.authorized_by_count >=
-        (size_t)-1 / sizeof(char *)) {
-        parser_error(parser, "Too many authorized-by subjects");
-        return false;
-    }
 
     copy = pergyra_strdup(name);
     if (copy == NULL) {
@@ -103,19 +94,24 @@ parser_append_authorized_by(Parser *parser, ASTNode *func, const char *name)
         return false;
     }
 
-    next_count = func->data.func_decl.authorized_by_count + 1;
-    grown = realloc(func->data.func_decl.authorized_by,
-                    next_count * sizeof(char *));
-    if (grown == NULL) {
-        free(copy);
-        parser_error(parser, "Out of memory while parsing authorized-by subjects");
-        return false;
+    if (func->data.func_decl.authorized_by_count
+        == func->data.func_decl.authorized_by_capacity) {
+        size_t next_capacity = func->data.func_decl.authorized_by_capacity == 0
+            ? 4
+            : func->data.func_decl.authorized_by_capacity * 2;
+        grown = realloc(func->data.func_decl.authorized_by,
+                        next_capacity * sizeof(char *));
+        if (grown == NULL) {
+            free(copy);
+            parser_error(parser, "Out of memory while parsing authorized-by subjects");
+            return false;
+        }
+        func->data.func_decl.authorized_by = grown;
+        func->data.func_decl.authorized_by_capacity = next_capacity;
     }
 
-    func->data.func_decl.authorized_by = grown;
     func->data.func_decl.authorized_by[
-        func->data.func_decl.authorized_by_count] = copy;
-    func->data.func_decl.authorized_by_count = next_count;
+        func->data.func_decl.authorized_by_count++] = copy;
     return true;
 }
 

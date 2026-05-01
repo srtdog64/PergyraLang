@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -62,6 +63,142 @@ metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
     return sym->type;
 }
 
+static size_t
+metadata_key_hash(const void *key)
+{
+    uintptr_t value = (uintptr_t)key;
+
+    value >>= 3;
+    value ^= value >> 16;
+    value *= (uintptr_t)0x7feb352dU;
+    value ^= value >> 15;
+    return (size_t)value;
+}
+
+static bool
+metadata_index_insert(SemanticContext *ctx, void *key, size_t entry_index)
+{
+    size_t mask;
+    size_t slot;
+
+    if (ctx == NULL || key == NULL
+        || ctx->type_resolution_metadata.index_capacity == 0) {
+        return false;
+    }
+
+    mask = ctx->type_resolution_metadata.index_capacity - 1;
+    slot = metadata_key_hash(key) & mask;
+    for (size_t probe = 0;
+         probe < ctx->type_resolution_metadata.index_capacity;
+         probe++) {
+        void *existing = ctx->type_resolution_metadata.index_keys[slot];
+        if (existing == NULL || existing == key) {
+            ctx->type_resolution_metadata.index_keys[slot] = key;
+            ctx->type_resolution_metadata.index_entries[slot] = entry_index + 1;
+            return true;
+        }
+        slot = (slot + 1) & mask;
+    }
+    return false;
+}
+
+static bool
+metadata_rebuild_index(SemanticContext *ctx, size_t capacity)
+{
+    void **keys;
+    size_t *entries;
+
+    if (ctx == NULL || capacity == 0)
+        return false;
+
+    keys = calloc(capacity, sizeof(void *));
+    entries = calloc(capacity, sizeof(size_t));
+    if (keys == NULL || entries == NULL) {
+        free(keys);
+        free(entries);
+        return false;
+    }
+
+    free(ctx->type_resolution_metadata.index_keys);
+    free(ctx->type_resolution_metadata.index_entries);
+    ctx->type_resolution_metadata.index_keys = keys;
+    ctx->type_resolution_metadata.index_entries = entries;
+    ctx->type_resolution_metadata.index_capacity = capacity;
+
+    for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
+        if (!metadata_index_insert(ctx,
+                                   ctx->type_resolution_metadata.keys[i],
+                                   i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool
+metadata_ensure_index_capacity(SemanticContext *ctx, size_t next_count)
+{
+    size_t new_capacity;
+
+    if (ctx == NULL)
+        return false;
+    if (ctx->type_resolution_metadata.index_capacity != 0
+        && next_count * 2 < ctx->type_resolution_metadata.index_capacity) {
+        return true;
+    }
+
+    new_capacity = ctx->type_resolution_metadata.index_capacity == 0
+        ? 256
+        : ctx->type_resolution_metadata.index_capacity * 2;
+    while (next_count * 2 >= new_capacity) {
+        if (new_capacity > SIZE_MAX / 2)
+            return false;
+        new_capacity *= 2;
+    }
+    return metadata_rebuild_index(ctx, new_capacity);
+}
+
+static bool
+metadata_lookup_entry_index(SemanticContext *ctx, ASTNode *type_node,
+                            size_t *out_index)
+{
+    size_t mask;
+    size_t slot;
+    void *key = (void *)type_node;
+
+    if (out_index != NULL)
+        *out_index = 0;
+    if (ctx == NULL || type_node == NULL)
+        return false;
+    if (ctx->type_resolution_metadata.count == 0)
+        return false;
+    if (ctx->type_resolution_metadata.index_capacity == 0
+        && !metadata_ensure_index_capacity(ctx,
+                                           ctx->type_resolution_metadata.count)) {
+        return false;
+    }
+
+    mask = ctx->type_resolution_metadata.index_capacity - 1;
+    slot = metadata_key_hash(key) & mask;
+    for (size_t probe = 0;
+         probe < ctx->type_resolution_metadata.index_capacity;
+         probe++) {
+        void *existing = ctx->type_resolution_metadata.index_keys[slot];
+        if (existing == NULL)
+            return false;
+        if (existing == key) {
+            size_t entry = ctx->type_resolution_metadata.index_entries[slot];
+            if (entry == 0)
+                return false;
+            if (out_index != NULL)
+                *out_index = entry - 1;
+            return true;
+        }
+        slot = (slot + 1) & mask;
+    }
+    return false;
+}
+
 static void
 semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
                                                    ASTNode *type_node,
@@ -77,8 +214,10 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
         return;
     }
 
-    for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
-        if (ctx->type_resolution_metadata.keys[i] == (void *)type_node) {
+    {
+        size_t existing = 0;
+        if (metadata_lookup_entry_index(ctx, type_node, &existing)) {
+            size_t i = existing;
             if (ctx->type_resolution_metadata.owned[i]
                 && ctx->type_resolution_metadata.values[i] != resolved_type) {
                 semantic_type_resolution_free_owned_type(
@@ -118,12 +257,21 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
         ctx->type_resolution_metadata.capacity = new_cap;
     }
 
+    if (!metadata_ensure_index_capacity(
+            ctx, ctx->type_resolution_metadata.count + 1)) {
+        return;
+    }
     ctx->type_resolution_metadata.keys[ctx->type_resolution_metadata.count] =
         (void *)type_node;
     ctx->type_resolution_metadata.values[ctx->type_resolution_metadata.count] =
         resolved_type;
     ctx->type_resolution_metadata.owned[ctx->type_resolution_metadata.count] =
         owned;
+    if (!metadata_index_insert(ctx,
+                               (void *)type_node,
+                               ctx->type_resolution_metadata.count)) {
+        return;
+    }
     ctx->type_resolution_metadata.count++;
 }
 
@@ -152,10 +300,11 @@ semantic_type_resolution_lookup_resolved_type(SemanticContext *ctx,
     if (ctx == NULL || type_node == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
-        if (ctx->type_resolution_metadata.keys[i] == (void *)type_node) {
+    {
+        size_t entry = 0;
+        if (metadata_lookup_entry_index(ctx, type_node, &entry)) {
             ctx->type_resolution_metadata_hits++;
-            return (Type *)ctx->type_resolution_metadata.values[i];
+            return (Type *)ctx->type_resolution_metadata.values[entry];
         }
     }
 

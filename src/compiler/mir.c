@@ -15,7 +15,7 @@
 #include "mir_intent.h"
 #include "mir_type_helpers.h"
 
-static void mir_clear_block_name_set(const char ***names, size_t *count);
+static void mir_clear_block_name_set(const char ***names, size_t *count, size_t *capacity);
 static int mir_find_value_summary(const MIRRoutine *routine, const char *name);
 static bool mir_compute_liveness(MIRRoutine *routine);
 static const char *mir_stmt_def_name(const ASTNode *stmt);

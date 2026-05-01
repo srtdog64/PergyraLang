@@ -20,6 +20,7 @@ ast_clone_generic_params(GenericParams* params)
         return NULL;
 
     clone->count = params->count;
+    clone->capacity = params->count;
     if (params->count == 0)
         return clone;
 
@@ -106,4 +107,3 @@ ast_clone(ASTNode* node)
 
     return clone;
 }
-

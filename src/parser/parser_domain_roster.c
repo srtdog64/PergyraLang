@@ -37,7 +37,8 @@ ASTNode* parse_roster_declaration(Parser* parser) {
             ps->column = slot_name.column;
 
             append_child_node(&sys->data.roster_decl.party_slots,
-                &sys->data.roster_decl.party_count, ps);
+                &sys->data.roster_decl.party_count,
+                &sys->data.roster_decl.party_capacity, ps);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -60,7 +61,8 @@ ASTNode* parse_roster_declaration(Parser* parser) {
             }
 
             append_child_node(&sys->data.roster_decl.shared_fields,
-                &sys->data.roster_decl.shared_count, shared);
+                &sys->data.roster_decl.shared_count,
+                &sys->data.roster_decl.shared_capacity, shared);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -69,7 +71,8 @@ ASTNode* parse_roster_declaration(Parser* parser) {
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
             append_child_node(&sys->data.roster_decl.methods,
-                &sys->data.roster_decl.method_count, method);
+                &sys->data.roster_decl.method_count,
+                &sys->data.roster_decl.method_capacity, method);
 
         } else {
             parser_discard_pending_doc_comment(parser);

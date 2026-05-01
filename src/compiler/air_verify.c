@@ -92,19 +92,32 @@ air_append_drift(AIRProgram *air,
                  char **error_message)
 {
     char *message_copy = air_strdup_owned(message);
-    AIRDrift *next;
 
     if (message_copy == NULL) {
         air_set_error(error_message, "AIR drift message allocation failed");
         return false;
     }
-    next = (AIRDrift *)realloc(air->drifts, sizeof(AIRDrift) * (air->drift_count + 1));
-    if (next == NULL) {
-        free(message_copy);
-        air_set_error(error_message, "AIR drift allocation failed");
-        return false;
+    if (air->drift_count >= air->drift_capacity) {
+        AIRDrift *next;
+        size_t new_capacity = air->drift_capacity == 0
+            ? 8
+            : air->drift_capacity * 2;
+        if (new_capacity < air->drift_capacity
+            || new_capacity > SIZE_MAX / sizeof(AIRDrift)) {
+            free(message_copy);
+            air_set_error(error_message, "AIR drift allocation failed");
+            return false;
+        }
+        next = (AIRDrift *)realloc(air->drifts,
+                                   sizeof(AIRDrift) * new_capacity);
+        if (next == NULL) {
+            free(message_copy);
+            air_set_error(error_message, "AIR drift allocation failed");
+            return false;
+        }
+        air->drifts = next;
+        air->drift_capacity = new_capacity;
     }
-    air->drifts = next;
     air->drifts[air->drift_count].kind = kind;
     air->drifts[air->drift_count].intent_index = intent_index;
     air->drifts[air->drift_count].boundary_index = boundary_index;

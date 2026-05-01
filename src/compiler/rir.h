@@ -184,10 +184,13 @@ typedef struct
     ASTNode      *ast;
     RIRFact      *facts;
     size_t        fact_count;
+    size_t        fact_capacity;
     RIROp        *ops;
     size_t        op_count;
+    size_t        op_capacity;
     RIRStateSummary *state_summaries;
     size_t           state_summary_count;
+    size_t           state_summary_capacity;
     bool             has_state_errors;
     unsigned int     conservative_semantics;
     RIRFlowBlock    *flow_blocks;
@@ -199,6 +202,7 @@ struct RIRProgram
 {
     RIRScope *scopes;
     size_t    scope_count;
+    size_t    scope_capacity;
 };
 
 RIRProgram *rir_lower(ASTNode *annotated_ast, char **error_message);

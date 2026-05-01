@@ -5,29 +5,32 @@ static bool
 parser_append_match_pattern(Parser *parser, ASTNode *match_case, ASTNode *pattern)
 {
     ASTNode **grown;
-    size_t next_count;
+    size_t next_capacity;
 
     if (parser == NULL || match_case == NULL || pattern == NULL)
         return false;
 
-    if (match_case->data.match_case.pattern_count >=
-        (size_t)-1 / sizeof(ASTNode *)) {
-        parser_error(parser, "Too many match OR patterns");
-        return false;
+    if (match_case->data.match_case.pattern_count
+        >= match_case->data.match_case.pattern_capacity) {
+        next_capacity = match_case->data.match_case.pattern_capacity == 0
+            ? 4 : match_case->data.match_case.pattern_capacity * 2;
+        if (next_capacity <= match_case->data.match_case.pattern_count
+            || next_capacity > (size_t)-1 / sizeof(ASTNode *)) {
+            parser_error(parser, "Too many match OR patterns");
+            return false;
+        }
+        grown = realloc(match_case->data.match_case.patterns,
+                        next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing OR pattern");
+            return false;
+        }
+        match_case->data.match_case.patterns = grown;
+        match_case->data.match_case.pattern_capacity = next_capacity;
     }
 
-    next_count = match_case->data.match_case.pattern_count + 1;
-    grown = realloc(match_case->data.match_case.patterns,
-                    next_count * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing OR pattern");
-        return false;
-    }
-
-    match_case->data.match_case.patterns = grown;
     match_case->data.match_case.patterns[
-        match_case->data.match_case.pattern_count] = pattern;
-    match_case->data.match_case.pattern_count = next_count;
+        match_case->data.match_case.pattern_count++] = pattern;
     return true;
 }
 
@@ -35,27 +38,32 @@ static bool
 parser_append_match_case(Parser *parser, ASTNode *match, ASTNode *match_case)
 {
     ASTNode **grown;
-    size_t next_count;
+    size_t next_capacity;
 
     if (parser == NULL || match == NULL || match_case == NULL)
         return false;
 
-    if (match->data.match_stmt.case_count >= (size_t)-1 / sizeof(ASTNode *)) {
-        parser_error(parser, "Too many match cases");
-        return false;
+    if (match->data.match_stmt.case_count >=
+        match->data.match_stmt.case_capacity) {
+        next_capacity = match->data.match_stmt.case_capacity == 0
+            ? 4 : match->data.match_stmt.case_capacity * 2;
+        if (next_capacity <= match->data.match_stmt.case_count
+            || next_capacity > (size_t)-1 / sizeof(ASTNode *)) {
+            parser_error(parser, "Too many match cases");
+            return false;
+        }
+        grown = realloc(match->data.match_stmt.cases,
+                        next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing match cases");
+            return false;
+        }
+        match->data.match_stmt.cases = grown;
+        match->data.match_stmt.case_capacity = next_capacity;
     }
 
-    next_count = match->data.match_stmt.case_count + 1;
-    grown = realloc(match->data.match_stmt.cases,
-                    next_count * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing match cases");
-        return false;
-    }
-
-    match->data.match_stmt.cases = grown;
     match->data.match_stmt.cases[match->data.match_stmt.case_count] = match_case;
-    match->data.match_stmt.case_count = next_count;
+    match->data.match_stmt.case_count += 1;
     return true;
 }
 
@@ -135,6 +143,7 @@ ASTNode* parse_match_statement(Parser* parser) {
             if (mc->data.match_case.patterns != NULL) {
                 mc->data.match_case.patterns[0] = mc->data.match_case.pattern;
                 mc->data.match_case.pattern_count = 1;
+                mc->data.match_case.pattern_capacity = 1;
             }
             while (parser_match(parser, TOKEN_PATTERN_OR)) {
                 ASTNode *alt = parser_parse_expression(parser);

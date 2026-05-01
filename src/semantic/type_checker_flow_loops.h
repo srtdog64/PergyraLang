@@ -76,6 +76,7 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
     memcpy(dst.sem_states, src->sem_states, src->count * sizeof(QubitSemanticState));
     memcpy(dst.pool_ids, src->pool_ids, src->count * sizeof(int32_t));
     dst.count = src->count;
+    dst.capacity = src->count;
     return dst;
 }
 

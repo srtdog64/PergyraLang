@@ -4,13 +4,17 @@
 #include <string.h>
 
 bool
-hir_cfg_append_stmt(ASTNode ***items, size_t *count, ASTNode *node)
+hir_cfg_append_stmt(ASTNode ***items, size_t *count, size_t *capacity, ASTNode *node)
 {
-    ASTNode **grown = realloc(*items, (*count + 1) * sizeof(ASTNode *));
-    if (grown == NULL)
-        return false;
-    grown[*count] = node;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        ASTNode **grown = realloc(*items, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = node;
     (*count)++;
     return true;
 }
@@ -28,15 +32,19 @@ hir_cfg_apply_pin_region(HIRBasicBlock *block, const HIRPinRegionContext *pin)
 }
 
 ssize_t
-hir_cfg_new_block(HIRBasicBlock **blocks, size_t *count)
+hir_cfg_new_block(HIRBasicBlock **blocks, size_t *count, size_t *capacity)
 {
-    HIRBasicBlock *grown = realloc(*blocks, (*count + 1) * sizeof(HIRBasicBlock));
-    if (grown == NULL)
-        return -1;
-    memset(&grown[*count], 0, sizeof(HIRBasicBlock));
-    grown[*count].id = *count;
-    grown[*count].terminator_kind = HIR_BLOCK_FALLTHROUGH;
-    *blocks = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        HIRBasicBlock *grown = realloc(*blocks, next_capacity * sizeof(HIRBasicBlock));
+        if (grown == NULL)
+            return -1;
+        *blocks = grown;
+        *capacity = next_capacity;
+    }
+    memset(&(*blocks)[*count], 0, sizeof(HIRBasicBlock));
+    (*blocks)[*count].id = *count;
+    (*blocks)[*count].terminator_kind = HIR_BLOCK_FALLTHROUGH;
     (*count)++;
     return (ssize_t)(*count - 1);
 }
@@ -44,9 +52,10 @@ hir_cfg_new_block(HIRBasicBlock **blocks, size_t *count)
 ssize_t
 hir_cfg_new_region_block(HIRBasicBlock **blocks,
                          size_t *count,
+                         size_t *capacity,
                          const HIRPinRegionContext *pin)
 {
-    ssize_t id = hir_cfg_new_block(blocks, count);
+    ssize_t id = hir_cfg_new_block(blocks, count, capacity);
     if (id >= 0)
         hir_cfg_apply_pin_region(&(*blocks)[(size_t)id], pin);
     return id;

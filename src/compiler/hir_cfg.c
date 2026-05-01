@@ -4,24 +4,31 @@
 #include <string.h>
 
 static bool
-hir_cfg_append_index_unique(size_t **items, size_t *count, size_t value)
+hir_cfg_append_index_unique(size_t **items, size_t *count, size_t *capacity, size_t value)
 {
     for (size_t i = 0; i < *count; i++) {
         if ((*items)[i] == value)
             return true;
     }
 
-    size_t *grown = realloc(*items, (*count + 1) * sizeof(size_t));
-    if (grown == NULL)
-        return false;
-    grown[*count] = value;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        size_t *grown = realloc(*items, next_capacity * sizeof(size_t));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = value;
     (*count)++;
     return true;
 }
 
 bool
-hir_cfg_append_name_unique(const char ***names, size_t *count, const char *name)
+hir_cfg_append_name_unique(const char ***names,
+                           size_t *count,
+                           size_t *capacity,
+                           const char *name)
 {
     if (names == NULL || count == NULL || name == NULL || *name == '\0')
         return true;
@@ -30,11 +37,15 @@ hir_cfg_append_name_unique(const char ***names, size_t *count, const char *name)
             return true;
     }
 
-    const char **grown = realloc((void *)*names, (*count + 1) * sizeof(const char *));
-    if (grown == NULL)
-        return false;
-    grown[*count] = name;
-    *names = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        const char **grown = realloc((void *)*names, next_capacity * sizeof(const char *));
+        if (grown == NULL)
+            return false;
+        *names = grown;
+        *capacity = next_capacity;
+    }
+    (*names)[*count] = name;
     (*count)++;
     return true;
 }
@@ -50,12 +61,14 @@ hir_finalize_cfg(HIRRoutine *routine)
         if (block->has_succ_true
             && !hir_cfg_append_index_unique(&routine->cfg.blocks[block->succ_true].predecessors,
                                             &routine->cfg.blocks[block->succ_true].predecessor_count,
+                                            &routine->cfg.blocks[block->succ_true].predecessor_capacity,
                                             i)) {
             return false;
         }
         if (block->has_succ_false
             && !hir_cfg_append_index_unique(&routine->cfg.blocks[block->succ_false].predecessors,
                                             &routine->cfg.blocks[block->succ_false].predecessor_count,
+                                            &routine->cfg.blocks[block->succ_false].predecessor_capacity,
                                             i)) {
             return false;
         }
@@ -232,6 +245,7 @@ hir_compute_cfg_dominance_frontier(HIRRoutine *routine)
         free(block->dominance_frontier);
         block->dominance_frontier = NULL;
         block->dominance_frontier_count = 0;
+        block->dominance_frontier_capacity = 0;
     }
 
     for (size_t i = 0; i < routine->cfg.block_count; i++) {
@@ -244,6 +258,7 @@ hir_compute_cfg_dominance_frontier(HIRRoutine *routine)
             while (runner != block->immediate_dominator) {
                 if (!hir_cfg_append_index_unique(&routine->cfg.blocks[runner].dominance_frontier,
                                                  &routine->cfg.blocks[runner].dominance_frontier_count,
+                                                 &routine->cfg.blocks[runner].dominance_frontier_capacity,
                                                  i)) {
                     return false;
                 }
@@ -271,6 +286,7 @@ hir_compute_cfg_dom_tree(HIRRoutine *routine)
         free(block->dom_tree_children);
         block->dom_tree_children = NULL;
         block->dom_tree_child_count = 0;
+        block->dom_tree_child_capacity = 0;
     }
 
     for (size_t i = 0; i < routine->cfg.block_count; i++) {
@@ -281,6 +297,7 @@ hir_compute_cfg_dom_tree(HIRRoutine *routine)
             continue;
         if (!hir_cfg_append_index_unique(&routine->cfg.blocks[block->immediate_dominator].dom_tree_children,
                                          &routine->cfg.blocks[block->immediate_dominator].dom_tree_child_count,
+                                         &routine->cfg.blocks[block->immediate_dominator].dom_tree_child_capacity,
                                          i)) {
             return false;
         }

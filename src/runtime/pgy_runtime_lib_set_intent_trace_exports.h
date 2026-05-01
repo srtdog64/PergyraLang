@@ -33,6 +33,7 @@ typedef struct {
     int32_t priority;
     int32_t trace_id;
     char   *trace;
+    size_t  trace_len;
     char   *failure_reason;
     int32_t step_count;
     bool    failed;
@@ -159,15 +160,16 @@ pgy_intent_recent_entry_copy_from_active_export(PgyIntentRecentEntry *dst,
 }
 
 static void
-pgy_intent_append_line_export(char **dst, const char *line)
+pgy_intent_append_line_len_export(char **dst, size_t *dst_len, const char *line)
 {
-    size_t old_len = 0;
-    size_t add_len = 0;
+    size_t old_len;
+    size_t add_len;
     char *grown;
 
-    if (dst == NULL || line == NULL)
+    if (dst == NULL || dst_len == NULL || line == NULL)
         return;
-    if (*dst != NULL)
+    old_len = *dst_len;
+    if (*dst != NULL && old_len == 0)
         old_len = strlen(*dst);
     add_len = strlen(line);
     grown = (char *)realloc(*dst, old_len + add_len + 1);
@@ -175,6 +177,15 @@ pgy_intent_append_line_export(char **dst, const char *line)
         return;
     memcpy(grown + old_len, line, add_len + 1);
     *dst = grown;
+    *dst_len = old_len + add_len;
+}
+
+static void
+pgy_intent_append_line_export(char **dst, const char *line)
+{
+    size_t ignored_len = 0;
+
+    pgy_intent_append_line_len_export(dst, &ignored_len, line);
 }
 
 static PgyIntentActiveEntry *
@@ -331,6 +342,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     pgy_intent_active_registry[free_index].trace_id = PGY_INTENT_OBSERVABILITY_ENABLED
         ? pgy_intent_next_trace_id++ : 0;
     pgy_intent_active_registry[free_index].trace = NULL;
+    pgy_intent_active_registry[free_index].trace_len = 0;
     pgy_intent_active_registry[free_index].failure_reason = NULL;
     pgy_intent_active_registry[free_index].step_count = 0;
     pgy_intent_active_registry[free_index].failed = false;
@@ -340,7 +352,10 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
         char line[256];
         snprintf(line, sizeof(line), "[intent] enter %s\n",
             name != NULL ? name : "<intent>");
-        pgy_intent_append_line_export(&pgy_intent_active_registry[free_index].trace, line);
+        pgy_intent_append_line_len_export(
+            &pgy_intent_active_registry[free_index].trace,
+            &pgy_intent_active_registry[free_index].trace_len,
+            line);
     }
     pgy_intent_push_current_handle_export(handle);
 
@@ -363,21 +378,14 @@ pgy_intent_trace_step_export(int32_t handle, char *step_name, char *zone_name)
         snprintf(line, sizeof(line), "[step] begin %s @ %s\n",
             step_name != NULL ? step_name : "<step>",
             zone_name != NULL ? zone_name : "<zone>");
-        pgy_intent_append_line_export(&entry->trace, line);
+        pgy_intent_append_line_len_export(&entry->trace, &entry->trace_len, line);
         if (entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_clear_export(&entry->steps[index]);
             entry->steps[index].name = pgy_runtime_strdup_export(step_name != NULL ? step_name : "");
             entry->steps[index].zone = pgy_runtime_strdup_export(zone_name != NULL ? zone_name : "");
             entry->steps[index].phase = pgy_runtime_strdup_export("begin");
-            entry->steps[index].participant = pgy_runtime_strdup_export("");
-            entry->steps[index].slot = pgy_runtime_strdup_export("");
-            entry->steps[index].from_zone = pgy_runtime_strdup_export("");
-            entry->steps[index].from_slot = pgy_runtime_strdup_export("");
-            entry->steps[index].to_zone = pgy_runtime_strdup_export("");
-            entry->steps[index].to_slot = pgy_runtime_strdup_export("");
             entry->steps[index].ok = false;
-            entry->steps[index].failure_reason = pgy_runtime_strdup_export("");
         }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -395,7 +403,7 @@ pgy_intent_trace_bind_export(int32_t handle, char *participant_name, char *slot_
         snprintf(line, sizeof(line), "[bind] %s -> %s\n",
             participant_name != NULL ? participant_name : "<participant>",
             slot_name != NULL ? slot_name : "<unbound>");
-        pgy_intent_append_line_export(&entry->trace, line);
+        pgy_intent_append_line_len_export(&entry->trace, &entry->trace_len, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_set_string_export(&entry->steps[index].participant, participant_name);
@@ -419,7 +427,7 @@ pgy_intent_trace_materialize_export(int32_t handle, char *participant_name,
             participant_name != NULL ? participant_name : "<participant>",
             zone_name != NULL ? zone_name : "<zone>",
             slot_name != NULL ? slot_name : "<unbound>");
-        pgy_intent_append_line_export(&entry->trace, line);
+        pgy_intent_append_line_len_export(&entry->trace, &entry->trace_len, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_set_string_export(&entry->steps[index].phase, "materialize");
@@ -449,7 +457,7 @@ pgy_intent_trace_transfer_export(int32_t handle, char *participant_name,
             from_slot_name != NULL ? from_slot_name : "<unbound>",
             to_zone_name != NULL ? to_zone_name : "<zone>",
             to_slot_name != NULL ? to_slot_name : "<unbound>");
-        pgy_intent_append_line_export(&entry->trace, line);
+        pgy_intent_append_line_len_export(&entry->trace, &entry->trace_len, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_set_string_export(&entry->steps[index].phase, "transfer");
@@ -478,7 +486,7 @@ pgy_intent_trace_step_ok_export(int32_t handle, char *step_name)
         char line[256];
         snprintf(line, sizeof(line), "[step] ok %s\n",
             step_name != NULL ? step_name : "<step>");
-        pgy_intent_append_line_export(&entry->trace, line);
+        pgy_intent_append_line_len_export(&entry->trace, &entry->trace_len, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             pgy_intent_history_step_set_string_export(
                 &entry->steps[entry->step_count - 1].phase, "ok");
@@ -508,7 +516,7 @@ pgy_intent_trace_fail_export(int32_t handle, char *reason)
         }
         snprintf(line, sizeof(line), "[fail] %s\n",
             reason != NULL ? reason : "<failure>");
-        pgy_intent_append_line_export(&entry->trace, line);
+        pgy_intent_append_line_len_export(&entry->trace, &entry->trace_len, line);
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }

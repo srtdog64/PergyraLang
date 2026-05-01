@@ -20,25 +20,32 @@ parser_intent_match_keyword(Parser *parser, const char *keyword)
     return true;
 }
 
-void
-intent_append_node(ASTNode ***items, size_t *count, ASTNode *node)
+bool
+intent_append_node(ASTNode ***items, size_t *count, size_t *capacity,
+                   ASTNode *node)
 {
     ASTNode **grown;
-    size_t next_count;
+    size_t next_capacity;
 
-    if (items == NULL || count == NULL || node == NULL)
-        return;
+    if (items == NULL || count == NULL || capacity == NULL || node == NULL)
+        return false;
 
-    if (*count >= (size_t)-1 / sizeof(ASTNode *))
-        return;
+    if (*count >= *capacity) {
+        next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        if (next_capacity <= *count)
+            return false;
+        if (next_capacity > (size_t)-1 / sizeof(ASTNode *))
+            return false;
+        grown = realloc(*items, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
 
-    next_count = *count + 1;
-    grown = realloc(*items, next_count * sizeof(ASTNode *));
-    if (grown == NULL)
-        return;
-    grown[*count] = node;
-    *items = grown;
-    *count = next_count;
+    (*items)[*count] = node;
+    *count += 1;
+    return true;
 }
 
 static void
@@ -47,35 +54,41 @@ intent_append_binding(ASTNode *intent, ASTNode *node)
     if (intent == NULL || intent->type != AST_INTENT_DECL || node == NULL)
         return;
     intent_append_node(&intent->data.intent_decl.bindings,
-        &intent->data.intent_decl.binding_count, node);
+        &intent->data.intent_decl.binding_count,
+        &intent->data.intent_decl.binding_capacity, node);
 }
 
-static void
-intent_append_name(char ***items, size_t *count, const char *name)
+static bool
+intent_append_name(char ***items, size_t *count, size_t *capacity,
+                   const char *name)
 {
     char **grown;
     char *owned_name;
-    size_t next_count;
+    size_t next_capacity;
 
-    if (items == NULL || count == NULL || name == NULL)
-        return;
+    if (items == NULL || count == NULL || capacity == NULL || name == NULL)
+        return false;
 
-    if (*count >= (size_t)-1 / sizeof(char *))
-        return;
+    if (*count >= *capacity) {
+        next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        if (next_capacity <= *count)
+            return false;
+        if (next_capacity > (size_t)-1 / sizeof(char *))
+            return false;
+        grown = realloc(*items, next_capacity * sizeof(char *));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
 
     owned_name = pergyra_strdup(name);
     if (owned_name == NULL)
-        return;
+        return false;
 
-    next_count = *count + 1;
-    grown = realloc(*items, next_count * sizeof(char *));
-    if (grown == NULL) {
-        free(owned_name);
-        return;
-    }
-    grown[*count] = owned_name;
-    *items = grown;
-    *count = next_count;
+    (*items)[*count] = owned_name;
+    *count += 1;
+    return true;
 }
 
 static bool
@@ -137,11 +150,11 @@ intent_has_step_name(ASTNode *intent, const char *name)
 
 void
 parse_intent_name_list(Parser *parser, char ***items, size_t *count,
-                       const char *message)
+                       size_t *capacity, const char *message)
 {
     do {
         Token name = consume_binding_name_token(parser, message);
-        intent_append_name(items, count, name.text);
+        intent_append_name(items, count, capacity, name.text);
     } while (parser_match(parser, TOKEN_COMMA));
 }
 
@@ -225,13 +238,15 @@ parse_intent_param_list(Parser *parser, ASTNode *intent)
                 ASTNode *value = ast_create_intent_value(alias.text);
                 value->data.intent_value.value_type = binding_type;
                 intent_append_node(&intent->data.intent_decl.values,
-                    &intent->data.intent_decl.value_count, value);
+                    &intent->data.intent_decl.value_count,
+                    &intent->data.intent_decl.value_capacity, value);
                 intent_append_binding(intent, value);
             } else {
                 ASTNode *involves = ast_create_intent_involves(alias.text);
                 involves->data.intent_involves.subject_type = binding_type;
                 intent_append_node(&intent->data.intent_decl.involves,
-                    &intent->data.intent_decl.involve_count, involves);
+                    &intent->data.intent_decl.involve_count,
+                    &intent->data.intent_decl.involve_capacity, involves);
                 intent_append_binding(intent, involves);
             }
         }
@@ -326,6 +341,7 @@ parse_intent_declaration(Parser *parser)
                 parse_intent_name_list(parser,
                     &intent->data.intent_decl.default_who_names,
                     &intent->data.intent_decl.default_who_count,
+                    &intent->data.intent_decl.default_who_capacity,
                     "Expected involves alias after 'who:'");
                 parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent-level who clause");
                 continue;
@@ -346,10 +362,12 @@ parse_intent_declaration(Parser *parser)
                 involves->data.intent_involves.subject_type = parse_type(parser);
                 parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent-level who declaration");
                 intent_append_node(&intent->data.intent_decl.involves,
-                    &intent->data.intent_decl.involve_count, involves);
+                    &intent->data.intent_decl.involve_count,
+                    &intent->data.intent_decl.involve_capacity, involves);
                 intent_append_binding(intent, involves);
                 intent_append_name(&intent->data.intent_decl.default_who_names,
-                    &intent->data.intent_decl.default_who_count, alias.text);
+                    &intent->data.intent_decl.default_who_count,
+                    &intent->data.intent_decl.default_who_capacity, alias.text);
                 continue;
             }
         }
@@ -379,7 +397,8 @@ parse_intent_declaration(Parser *parser)
             involves->data.intent_involves.subject_type = parse_type(parser);
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after involves clause");
             intent_append_node(&intent->data.intent_decl.involves,
-                &intent->data.intent_decl.involve_count, involves);
+                &intent->data.intent_decl.involve_count,
+                &intent->data.intent_decl.involve_capacity, involves);
             intent_append_binding(intent, involves);
             continue;
         }
@@ -398,7 +417,8 @@ parse_intent_declaration(Parser *parser)
             value->data.intent_value.value_type = parse_type(parser);
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent value clause");
             intent_append_node(&intent->data.intent_decl.values,
-                &intent->data.intent_decl.value_count, value);
+                &intent->data.intent_decl.value_count,
+                &intent->data.intent_decl.value_capacity, value);
             intent_append_binding(intent, value);
             continue;
         }
@@ -415,7 +435,8 @@ parse_intent_declaration(Parser *parser)
                 return intent;
             }
             intent_append_node(&intent->data.intent_decl.steps,
-                &intent->data.intent_decl.step_count, step);
+                &intent->data.intent_decl.step_count,
+                &intent->data.intent_decl.step_capacity, step);
             continue;
         }
 
@@ -467,6 +488,7 @@ parse_intent_declaration(Parser *parser)
             for (size_t j = 0; j < intent->data.intent_decl.default_who_count; j++) {
                 intent_append_name(&step->data.intent_step.who_names,
                     &step->data.intent_step.who_count,
+                    &step->data.intent_step.who_capacity,
                     intent->data.intent_decl.default_who_names[j]);
             }
         }

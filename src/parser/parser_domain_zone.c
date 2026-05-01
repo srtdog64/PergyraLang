@@ -2,33 +2,38 @@
 
 static bool
 parser_zone_append_owned_name(Parser *parser, char ***items, size_t *count,
-                              const char *name)
+                              size_t *capacity, const char *name)
 {
     char **grown;
     char *owned_name;
-    size_t next_count;
+    size_t next_capacity;
 
-    if (parser == NULL || items == NULL || count == NULL)
+    if (parser == NULL || items == NULL || count == NULL || capacity == NULL)
         return false;
+
+    if (*count >= *capacity) {
+        next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        if (next_capacity <= *count
+            || next_capacity > (size_t)-1 / sizeof(char *)) {
+            parser_error(parser, "Out of memory while growing zone group");
+            return false;
+        }
+        grown = realloc(*items, next_capacity * sizeof(char *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while growing zone group");
+            return false;
+        }
+        *items = grown;
+        *capacity = next_capacity;
+    }
+
     owned_name = pergyra_strdup(name);
     if (owned_name == NULL) {
         parser_error(parser, "Out of memory while parsing zone group name");
         return false;
     }
-
-    next_count = *count + 1;
-    grown = malloc(next_count * sizeof(char *));
-    if (grown == NULL) {
-        free(owned_name);
-        parser_error(parser, "Out of memory while growing zone group");
-        return false;
-    }
-    if (*items != NULL && *count > 0)
-        memcpy(grown, *items, *count * sizeof(char *));
-    grown[next_count - 1] = owned_name;
-    free(*items);
-    *items = grown;
-    *count = next_count;
+    (*items)[*count] = owned_name;
+    *count += 1;
     return true;
 }
 
@@ -50,10 +55,11 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_consume(parser, TOKEN_LBRACKET, "Expected '[' after group slot keyword");
             char **names = NULL;
             size_t name_count = 0;
+            size_t name_capacity = 0;
             do {
                 Token n = consume_name_token(parser, "Expected slot name in group");
                 if (!parser_zone_append_owned_name(parser, &names, &name_count,
-                        n.text)) {
+                        &name_capacity, n.text)) {
                     break;
                 }
             } while (parser_match(parser, TOKEN_COMMA));
@@ -67,7 +73,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 slot->line = zone->line;
                 slot->column = zone->column;
                 append_domain_slot(&zone->data.zone_decl.slots,
-                    &zone->data.zone_decl.slot_count, slot);
+                    &zone->data.zone_decl.slot_count,
+                    &zone->data.zone_decl.slot_capacity, slot);
                 free(names[gi]);
             }
             free(names);
@@ -80,10 +87,11 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_consume(parser, TOKEN_LBRACKET, "Expected '[' after group layer keyword");
             char **names = NULL;
             size_t name_count = 0;
+            size_t name_capacity = 0;
             do {
                 Token n = consume_name_token(parser, "Expected slot name in group");
                 if (!parser_zone_append_owned_name(parser, &names, &name_count,
-                        n.text)) {
+                        &name_capacity, n.text)) {
                     break;
                 }
             } while (parser_match(parser, TOKEN_COMMA));
@@ -97,7 +105,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 layer_slot->line = zone->line;
                 layer_slot->column = zone->column;
                 append_child_node(&zone->data.zone_decl.layer_slots,
-                    &zone->data.zone_decl.layer_slot_count, layer_slot);
+                    &zone->data.zone_decl.layer_slot_count,
+                    &zone->data.zone_decl.layer_slot_capacity, layer_slot);
                 free(names[gi]);
             }
             free(names);
@@ -107,7 +116,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         ASTNode *slot = parse_domain_slot_entry(parser, "zone");
         if (slot != NULL) {
             append_domain_slot(&zone->data.zone_decl.slots,
-                &zone->data.zone_decl.slot_count, slot);
+                &zone->data.zone_decl.slot_count,
+                &zone->data.zone_decl.slot_capacity, slot);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -149,7 +159,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             layer_slot->column = slot_name.column;
 
             append_child_node(&zone->data.zone_decl.layer_slots,
-                &zone->data.zone_decl.layer_slot_count, layer_slot);
+                &zone->data.zone_decl.layer_slot_count,
+                &zone->data.zone_decl.layer_slot_capacity, layer_slot);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -174,7 +185,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             apply->column = effect_slot.column;
 
             append_child_node(&zone->data.zone_decl.applies,
-                &zone->data.zone_decl.apply_count, apply);
+                &zone->data.zone_decl.apply_count,
+                &zone->data.zone_decl.apply_capacity, apply);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -204,7 +216,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             link->column = relation_slot.column;
 
             append_child_node(&zone->data.zone_decl.links,
-                &zone->data.zone_decl.link_count, link);
+                &zone->data.zone_decl.link_count,
+                &zone->data.zone_decl.link_capacity, link);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -229,7 +242,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             detach->column = effect_slot.column;
 
             append_child_node(&zone->data.zone_decl.detaches,
-                &zone->data.zone_decl.detach_count, detach);
+                &zone->data.zone_decl.detach_count,
+                &zone->data.zone_decl.detach_capacity, detach);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -259,7 +273,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             unlink->column = relation_slot.column;
 
             append_child_node(&zone->data.zone_decl.unlinks,
-                &zone->data.zone_decl.unlink_count, unlink);
+                &zone->data.zone_decl.unlink_count,
+                &zone->data.zone_decl.unlink_capacity, unlink);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -268,7 +283,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                    || parser_match(parser, TOKEN_BIND)) {
             append_domain_projection_sync_entries(parser,
                 &zone->data.zone_decl.refreshes,
-                &zone->data.zone_decl.refresh_count, true);
+                &zone->data.zone_decl.refresh_count,
+                &zone->data.zone_decl.refresh_capacity, true);
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "maintain")) {
@@ -286,7 +302,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 maintain->column = layer_slot.column;
 
                 append_child_node(&zone->data.zone_decl.maintained_effects,
-                    &zone->data.zone_decl.maintained_effect_count, maintain);
+                    &zone->data.zone_decl.maintained_effect_count,
+                    &zone->data.zone_decl.maintained_effect_capacity, maintain);
             } else if (parser_match_identifier_keyword(parser, "between")) {
                 Token left_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                     "Expected left slot name after 'between'");
@@ -302,7 +319,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 maintain->column = layer_slot.column;
 
                 append_child_node(&zone->data.zone_decl.maintained_relations,
-                    &zone->data.zone_decl.maintained_relation_count, maintain);
+                    &zone->data.zone_decl.maintained_relation_count,
+                    &zone->data.zone_decl.maintained_relation_capacity, maintain);
             } else {
                 ASTNode *maintain = ast_create_zone_maintain_state(layer_slot.text);
                 maintain->data.zone_maintain_state.participant_slot_name =
@@ -311,7 +329,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 maintain->column = layer_slot.column;
 
                 append_child_node(&zone->data.zone_decl.maintained_states,
-                    &zone->data.zone_decl.maintained_state_count, maintain);
+                    &zone->data.zone_decl.maintained_state_count,
+                    &zone->data.zone_decl.maintained_state_capacity, maintain);
             }
 
             parser_match(parser, TOKEN_SEMICOLON);
@@ -324,14 +343,17 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 do {
                     ASTNode *ability_name = parse_type(parser);
                     append_child_node(&authority->data.zone_authority.required_abilities,
-                        &authority->data.zone_authority.ability_count, ability_name);
+                        &authority->data.zone_authority.ability_count,
+                        &authority->data.zone_authority.ability_capacity,
+                        ability_name);
                 } while (parser_match(parser, TOKEN_COMMA));
             }
             authority->line = subject_slot.line;
             authority->column = subject_slot.column;
 
             append_child_node(&zone->data.zone_decl.authorities,
-                &zone->data.zone_decl.authority_count, authority);
+                &zone->data.zone_decl.authority_count,
+                &zone->data.zone_decl.authority_capacity, authority);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -357,7 +379,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 state->column = state_name.column;
 
                 append_child_node(&zone->data.zone_decl.states,
-                    &zone->data.zone_decl.state_count, state);
+                    &zone->data.zone_decl.state_count,
+                    &zone->data.zone_decl.state_capacity, state);
             } else if (parser_match(parser, TOKEN_RELATION)) {
                 Token relation_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                     "Expected relation slot name after 'relation'");
@@ -378,7 +401,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 state->column = state_name.column;
 
                 append_child_node(&zone->data.zone_decl.states,
-                    &zone->data.zone_decl.state_count, state);
+                    &zone->data.zone_decl.state_count,
+                    &zone->data.zone_decl.state_capacity, state);
             } else {
                 parser_error(parser,
                     "Expected 'effect' or 'relation' after ':' in zone state");
@@ -406,14 +430,16 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             }
 
             append_child_node(&zone->data.zone_decl.shared_fields,
-                &zone->data.zone_decl.shared_count, shared);
+                &zone->data.zone_decl.shared_count,
+                &zone->data.zone_decl.shared_capacity, shared);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match(parser, TOKEN_FUNC)) {
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
             append_child_node(&zone->data.zone_decl.methods,
-                &zone->data.zone_decl.method_count, method);
+                &zone->data.zone_decl.method_count,
+                &zone->data.zone_decl.method_capacity, method);
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,

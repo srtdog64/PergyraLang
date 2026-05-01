@@ -122,8 +122,10 @@ typedef struct AIRProgram
     size_t           boundary_count;
     AIRDrift        *drifts;
     size_t           drift_count;
+    size_t           drift_capacity;
     AIREvidenceNode *evidence_nodes;
     size_t           evidence_count;
+    size_t           evidence_capacity;
     bool             strict_evidence;
     bool             has_hir_input;
     bool             has_mir_input;
@@ -141,6 +143,7 @@ typedef struct AIRProgram
     size_t           rir_relation_propagation_evidence_count;
     char           **owned_names;
     size_t           owned_name_count;
+    size_t           owned_name_capacity;
 } AIRProgram;
 
 AIRProgram *air_synthesize(const HIRProgram *hir,

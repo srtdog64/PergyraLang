@@ -1,14 +1,18 @@
 static bool
 append_instruction(MIRBasicBlock *block, MIRInstruction inst)
 {
-    MIRInstruction *grown;
     if (block == NULL)
         return false;
-    grown = realloc(block->instructions, (block->instruction_count + 1) * sizeof(MIRInstruction));
-    if (grown == NULL)
-        return false;
-    grown[block->instruction_count] = inst;
-    block->instructions = grown;
+    if (block->instruction_count == block->instruction_capacity) {
+        size_t next_capacity = block->instruction_capacity == 0 ? 8 : block->instruction_capacity * 2;
+        MIRInstruction *grown =
+            realloc(block->instructions, next_capacity * sizeof(MIRInstruction));
+        if (grown == NULL)
+            return false;
+        block->instructions = grown;
+        block->instruction_capacity = next_capacity;
+    }
+    block->instructions[block->instruction_count] = inst;
     block->instruction_count++;
     return true;
 }
@@ -43,65 +47,77 @@ mir_strdup_fmt(const char *fmt, ...)
 static bool
 insert_instruction(MIRBasicBlock *block, size_t index, MIRInstruction inst)
 {
-    MIRInstruction *grown;
     if (block == NULL)
         return false;
     if (index > block->instruction_count)
         index = block->instruction_count;
-    grown = realloc(block->instructions, (block->instruction_count + 1) * sizeof(MIRInstruction));
-    if (grown == NULL)
-        return false;
-    memmove(&grown[index + 1],
-            &grown[index],
+    if (block->instruction_count == block->instruction_capacity) {
+        size_t next_capacity = block->instruction_capacity == 0 ? 8 : block->instruction_capacity * 2;
+        MIRInstruction *grown =
+            realloc(block->instructions, next_capacity * sizeof(MIRInstruction));
+        if (grown == NULL)
+            return false;
+        block->instructions = grown;
+        block->instruction_capacity = next_capacity;
+    }
+    memmove(&block->instructions[index + 1],
+            &block->instructions[index],
             (block->instruction_count - index) * sizeof(MIRInstruction));
-    grown[index] = inst;
-    block->instructions = grown;
+    block->instructions[index] = inst;
     block->instruction_count++;
     return true;
 }
 
 static bool
-append_name(const char ***names, size_t *count, const char *name)
+append_name(const char ***names, size_t *count, size_t *capacity, const char *name)
 {
     const char **grown;
-    if (names == NULL || count == NULL || name == NULL)
+    if (names == NULL || count == NULL || capacity == NULL || name == NULL)
         return false;
-    grown = realloc((void *)*names, (*count + 1) * sizeof(const char *));
-    if (grown == NULL)
-        return false;
-    grown[*count] = name;
-    *names = grown;
-    (*count)++;
-    return true;
-}
-
-static bool
-append_owned_name(const char ***names, size_t *count, char *name)
-{
-    const char **grown;
-    if (names == NULL || count == NULL || name == NULL)
-        return false;
-    grown = realloc((void *)*names, (*count + 1) * sizeof(const char *));
-    if (grown == NULL) {
-        free(name);
-        return false;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        grown = realloc((void *)*names, next_capacity * sizeof(const char *));
+        if (grown == NULL)
+            return false;
+        *names = grown;
+        *capacity = next_capacity;
     }
-    grown[*count] = name;
-    *names = grown;
+    (*names)[*count] = name;
     (*count)++;
     return true;
 }
 
 static bool
-append_name_unique(const char ***names, size_t *count, const char *name)
+append_owned_name(const char ***names, size_t *count, size_t *capacity, char *name)
 {
-    if (names == NULL || count == NULL || name == NULL)
+    const char **grown;
+    if (names == NULL || count == NULL || capacity == NULL || name == NULL)
+        return false;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        grown = realloc((void *)*names, next_capacity * sizeof(const char *));
+        if (grown == NULL) {
+            free(name);
+            return false;
+        }
+        *names = grown;
+        *capacity = next_capacity;
+    }
+    (*names)[*count] = name;
+    (*count)++;
+    return true;
+}
+
+static bool
+append_name_unique(const char ***names, size_t *count, size_t *capacity, const char *name)
+{
+    if (names == NULL || count == NULL || capacity == NULL || name == NULL)
         return false;
     for (size_t i = 0; i < *count; i++) {
         if ((*names)[i] != NULL && strcmp((*names)[i], name) == 0)
             return true;
     }
-    return append_name(names, count, name);
+    return append_name(names, count, capacity, name);
 }
 
 static bool
@@ -119,14 +135,17 @@ mir_name_set_contains(const char **names, size_t count, const char *name)
 static bool
 append_block(MIRRoutine *routine, MIRBasicBlock block)
 {
-    MIRBasicBlock *grown;
     if (routine == NULL)
         return false;
-    grown = realloc(routine->blocks, (routine->block_count + 1) * sizeof(MIRBasicBlock));
-    if (grown == NULL)
-        return false;
-    grown[routine->block_count] = block;
-    routine->blocks = grown;
+    if (routine->block_count == routine->block_capacity) {
+        size_t next_capacity = routine->block_capacity == 0 ? 8 : routine->block_capacity * 2;
+        MIRBasicBlock *grown = realloc(routine->blocks, next_capacity * sizeof(MIRBasicBlock));
+        if (grown == NULL)
+            return false;
+        routine->blocks = grown;
+        routine->block_capacity = next_capacity;
+    }
+    routine->blocks[routine->block_count] = block;
     routine->block_count++;
     return true;
 }
@@ -134,14 +153,17 @@ append_block(MIRRoutine *routine, MIRBasicBlock block)
 static bool
 append_routine(MIRProgram *mir, MIRRoutine routine)
 {
-    MIRRoutine *grown;
     if (mir == NULL)
         return false;
-    grown = realloc(mir->routines, (mir->routine_count + 1) * sizeof(MIRRoutine));
-    if (grown == NULL)
-        return false;
-    grown[mir->routine_count] = routine;
-    mir->routines = grown;
+    if (mir->routine_count == mir->routine_capacity) {
+        size_t next_capacity = mir->routine_capacity == 0 ? 8 : mir->routine_capacity * 2;
+        MIRRoutine *grown = realloc(mir->routines, next_capacity * sizeof(MIRRoutine));
+        if (grown == NULL)
+            return false;
+        mir->routines = grown;
+        mir->routine_capacity = next_capacity;
+    }
+    mir->routines[mir->routine_count] = routine;
     mir->routine_count++;
     return true;
 }

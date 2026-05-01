@@ -7,7 +7,7 @@ mir_append_versioned_use(MIRInstruction *inst, const char *base, size_t version)
     versioned = mir_make_versioned_name(base, version);
     if (versioned == NULL)
         return false;
-    return append_owned_name(&inst->uses, &inst->use_count, versioned);
+    return append_owned_name(&inst->uses, &inst->use_count, &inst->use_capacity, versioned);
 }
 
 static bool
@@ -19,6 +19,7 @@ mir_append_block_versioned_name(MIRBasicBlock *block,
     char *versioned;
     const char ***names;
     size_t *count;
+    size_t *capacity;
     if (block == NULL || base == NULL)
         return true;
     versioned = mir_make_versioned_name(base, version);
@@ -26,7 +27,8 @@ mir_append_block_versioned_name(MIRBasicBlock *block,
         return false;
     names = is_entry ? &block->ssa_entry_values : &block->ssa_exit_values;
     count = is_entry ? &block->ssa_entry_value_count : &block->ssa_exit_value_count;
-    return append_owned_name(names, count, versioned);
+    capacity = is_entry ? &block->ssa_entry_value_capacity : &block->ssa_exit_value_capacity;
+    return append_owned_name(names, count, capacity, versioned);
 }
 
 static bool
@@ -92,9 +94,10 @@ mir_populate_use_edges(MIRRoutine *routine)
             MIRInstruction *inst = &block->instructions[i];
             if (inst->kind == MIR_INST_PHI) {
 	                for (size_t j = 0; j < inst->phi_incoming_count; j++) {
-	                    if (!append_owned_name(&inst->uses,
-	                                           &inst->use_count,
-	                                           pergyra_strdup(inst->phi_incomings[j].value_name))) {
+                    if (!append_owned_name(&inst->uses,
+                                           &inst->use_count,
+                                           &inst->use_capacity,
+                                           pergyra_strdup(inst->phi_incomings[j].value_name))) {
 	                        free(current_versions);
 	                        free((void *)ssa_names);
 	                        return false;
@@ -130,12 +133,16 @@ mir_populate_use_edges(MIRRoutine *routine)
                     ASTNode *expr = NULL;
                     const char **raw_uses = NULL;
                     size_t raw_use_count = 0;
+                    size_t raw_use_capacity = 0;
                     if (stmt != NULL && stmt->type == AST_LET_DECL)
                         expr = stmt->data.let_decl.initializer;
                     else if (stmt != NULL && stmt->type == AST_ASSIGNMENT)
                         expr = stmt->data.assignment.value;
                     if (expr != NULL
-                        && !mir_collect_expr_identifier_uses(expr, &raw_uses, &raw_use_count)) {
+                        && !mir_collect_expr_identifier_uses(expr,
+                                                            &raw_uses,
+                                                            &raw_use_count,
+                                                            &raw_use_capacity)) {
                         free((void *)raw_uses);
                         free(current_versions);
                         free((void *)ssa_names);
@@ -171,10 +178,14 @@ mir_populate_use_edges(MIRRoutine *routine)
             if (inst->kind == MIR_INST_BRANCH || inst->kind == MIR_INST_RETURN) {
                 const char **raw_uses = NULL;
                 size_t raw_use_count = 0;
+                size_t raw_use_capacity = 0;
                 ASTNode *expr = (inst->kind == MIR_INST_BRANCH)
                                     ? block->source_terminator_condition
                                     : block->source_terminator_value;
-	                if (!mir_collect_expr_identifier_uses(expr, &raw_uses, &raw_use_count)) {
+	                if (!mir_collect_expr_identifier_uses(expr,
+                                                       &raw_uses,
+                                                       &raw_use_count,
+                                                       &raw_use_capacity)) {
 	                    free((void *)raw_uses);
 	                    free(current_versions);
 	                    free((void *)ssa_names);
@@ -198,10 +209,12 @@ mir_populate_use_edges(MIRRoutine *routine)
             if (inst->kind == MIR_INST_STMT) {
                 const char **raw_uses = NULL;
                 size_t raw_use_count = 0;
+                size_t raw_use_capacity = 0;
                 if (inst->ast != NULL
                     && !mir_collect_expr_identifier_uses(inst->ast,
                                                          &raw_uses,
-                                                         &raw_use_count)) {
+                                                         &raw_use_count,
+                                                         &raw_use_capacity)) {
                     free((void *)raw_uses);
                     free(current_versions);
                     free((void *)ssa_names);
@@ -227,7 +240,11 @@ mir_populate_use_edges(MIRRoutine *routine)
             if (inst->kind == MIR_INST_RESOURCE_OP || inst->kind == MIR_INST_CLEANUP_EDGE) {
                 const char **raw_uses = NULL;
                 size_t raw_use_count = 0;
-	                if (inst->ast != NULL && !mir_collect_expr_identifier_uses(inst->ast, &raw_uses, &raw_use_count)) {
+                size_t raw_use_capacity = 0;
+	                if (inst->ast != NULL && !mir_collect_expr_identifier_uses(inst->ast,
+                                                                            &raw_uses,
+                                                                            &raw_use_count,
+                                                                            &raw_use_capacity)) {
 	                    free((void *)raw_uses);
 	                    free(current_versions);
 	                    free((void *)ssa_names);

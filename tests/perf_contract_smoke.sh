@@ -27,5 +27,375 @@ grep -Fq "llvm 1 0.250 0.250 projection_abi 0.003 0.003 projection_abi" "$SUMMAR
 grep -Fq "test-abi-perf" "$ROOT_DIR/docs/100_beta_readiness_checklist.md"
 grep -Fq "perf-summary" "$ROOT_DIR/docs/100_beta_readiness_checklist.md"
 grep -Fq "P10" "$ROOT_DIR/TODO.md"
+grep -Fq "trace_len" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
+grep -Fq "pgy_intent_append_line_len" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_events_inline.h"
+grep -Fq "pgy_intent_append_line_len_export" "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.h"
+grep -Fq "symbol_ptr_array_contains" "$ROOT_DIR/src/semantic/slot_analyzer.c"
+grep -Fq "bsearch(&needle" "$ROOT_DIR/src/semantic/slot_analyzer.c"
+grep -Fq "air_collect_mir_pin_block_evidence" "$ROOT_DIR/src/compiler/air_evidence.c"
+grep -Fq "air_has_mir_pin_cleanup_evidence" "$ROOT_DIR/src/compiler/air_evidence.c"
+grep -Fq "realloc(q->data, nc * sizeof" "$ROOT_DIR/src/runtime/pgy_runtime_queue_inline.h"
+grep -Fq "HIRRoutineNameIndex" "$ROOT_DIR/src/compiler/hir.c"
+grep -Fq "hir_build_routine_name_index" "$ROOT_DIR/src/compiler/hir.c"
+grep -Fq "hir_lookup_routine_index_by_name" "$ROOT_DIR/src/compiler/hir.c"
+grep -Fq "evidence_capacity" "$ROOT_DIR/src/compiler/air.h"
+grep -Fq "drift_capacity" "$ROOT_DIR/src/compiler/air.h"
+grep -Fq "owned_name_capacity" "$ROOT_DIR/src/compiler/air.h"
+grep -Fq "air_ensure_owned_name_capacity" "$ROOT_DIR/src/compiler/air.c"
+grep -Fq "index_keys" "$ROOT_DIR/src/semantic/type_checker.h"
+grep -Fq "metadata_lookup_entry_index" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata.c"
+grep -Fq "metadata_index_insert" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata.c"
+grep -Fq "semantic_loaded_modules_append" "$ROOT_DIR/src/semantic/semantic.c"
+grep -Fq "capacity;" "$ROOT_DIR/src/semantic/type_checker_flow_resources.h"
+grep -Fq "next_capacity = snap.capacity == 0 ? 8 : snap.capacity * 2" \
+    "$ROOT_DIR/src/semantic/type_checker_flow_resources.h"
+grep -Fq "var_capacity" "$ROOT_DIR/src/semantic/type_system.h"
+grep -Fq "type_capacity" "$ROOT_DIR/src/semantic/type_system.h"
+grep -Fq "node_capacity" "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "edge_capacity" "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "intent_capacity" "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "owned_name_capacity" "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "participant_capacity" "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "who_capacity" "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "item_capacity" "$ROOT_DIR/src/compiler/hir.h"
+grep -Fq "decl_capacity" "$ROOT_DIR/src/compiler/hir.h"
+grep -Fq "routine_capacity" "$ROOT_DIR/src/compiler/hir.h"
+grep -Fq "callee_routine_capacity" "$ROOT_DIR/src/compiler/hir.h"
+grep -Fq "signature_type_ref_capacity" "$ROOT_DIR/src/compiler/hir.h"
+grep -Fq "direct_call_capacity" "$ROOT_DIR/src/compiler/hir.h"
+grep -Fq "predecessor_capacity" "$ROOT_DIR/src/compiler/hir.h"
+grep -Fq "dominance_frontier_capacity" "$ROOT_DIR/src/compiler/hir.h"
+grep -Fq "phi_candidate_capacity" "$ROOT_DIR/src/compiler/hir.h"
+grep -Fq "scope_capacity" "$ROOT_DIR/src/compiler/rir.h"
+grep -Fq "fact_capacity" "$ROOT_DIR/src/compiler/rir.h"
+grep -Fq "op_capacity" "$ROOT_DIR/src/compiler/rir.h"
+grep -Fq "state_summary_capacity" "$ROOT_DIR/src/compiler/rir.h"
+grep -Fq "instruction_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "block_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "routine_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "predecessor_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "decl_header_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "value_summary_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "use_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "renamed_local_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "ssa_entry_value_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "ssa_exit_value_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "live_in_name_capacity" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "live_out_name_capacity" "$ROOT_DIR/src/compiler/mir.h"
+if grep -Fq "hir_find_routine_index_by_name" "$ROOT_DIR/src/compiler/hir.c"; then
+    echo "[perf-contract] HIR call graph regressed to routine-name linear lookup" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(ASTNode *)" "$ROOT_DIR/src/compiler/hir.c"; then
+    echo "[perf-contract] HIR top-level AST append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(HIRTopLevelItem)" "$ROOT_DIR/src/compiler/hir.c"; then
+    echo "[perf-contract] HIR item append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(size_t)" "$ROOT_DIR/src/compiler/hir.c"; then
+    echo "[perf-contract] HIR callee append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(HIRDecl)" "$ROOT_DIR/src/compiler/hir_routines.c"; then
+    echo "[perf-contract] HIR decl append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "hir->routine_count + 1" "$ROOT_DIR/src/compiler/hir_routines.c"; then
+    echo "[perf-contract] HIR routine append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(const char *)" "$ROOT_DIR/src/compiler/hir_analysis.c"; then
+    echo "[perf-contract] HIR signature/call collection regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(size_t)" "$ROOT_DIR/src/compiler/hir_cfg.c"; then
+    echo "[perf-contract] HIR CFG index fact append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(const char *)" "$ROOT_DIR/src/compiler/hir_cfg.c"; then
+    echo "[perf-contract] HIR CFG name fact append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(ASTNode *)" "$ROOT_DIR/src/compiler/hir_lower_intent_cfg.c"; then
+    echo "[perf-contract] HIR intent CFG statement append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(HIRBasicBlock)" "$ROOT_DIR/src/compiler/hir_lower_intent_cfg.c"; then
+    echo "[perf-contract] HIR intent CFG block append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(ASTNode *)" "$ROOT_DIR/src/compiler/hir_lower_cfg_blocks.c"; then
+    echo "[perf-contract] HIR CFG statement append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(HIRBasicBlock)" "$ROOT_DIR/src/compiler/hir_lower_cfg_blocks.c"; then
+    echo "[perf-contract] HIR CFG block append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "rir->scope_count + 1" "$ROOT_DIR/src/compiler/rir_facts.c"; then
+    echo "[perf-contract] RIR scope append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "scope->fact_count + 1" "$ROOT_DIR/src/compiler/rir_facts.c"; then
+    echo "[perf-contract] RIR fact append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "scope->op_count + 1" "$ROOT_DIR/src/compiler/rir_facts.c"; then
+    echo "[perf-contract] RIR op append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "scope->state_summary_count + 1" "$ROOT_DIR/src/compiler/rir_facts.c"; then
+    echo "[perf-contract] RIR state summary append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "block->instruction_count + 1" "$ROOT_DIR/src/compiler/mir_base_helpers.h"; then
+    echo "[perf-contract] MIR base instruction append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "routine->block_count + 1" "$ROOT_DIR/src/compiler/mir_base_helpers.h"; then
+    echo "[perf-contract] MIR base block append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "mir->routine_count + 1" "$ROOT_DIR/src/compiler/mir_base_helpers.h"; then
+    echo "[perf-contract] MIR base routine append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(const char *)" "$ROOT_DIR/src/compiler/mir_base_helpers.h"; then
+    echo "[perf-contract] MIR base name-list append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "append_name_unique(names, count, name)" "$ROOT_DIR/src/compiler/mir_liveness_dce.h"; then
+    echo "[perf-contract] MIR liveness name-set append lost capacity tracking" >&2
+    exit 1
+fi
+if grep -Fq "block->instruction_count + 1" "$ROOT_DIR/src/compiler/mir_cleanup.c"; then
+    echo "[perf-contract] MIR cleanup instruction append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "routine->block_count + 1" "$ROOT_DIR/src/compiler/mir_cleanup.c"; then
+    echo "[perf-contract] MIR cleanup block append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(size_t)" "$ROOT_DIR/src/compiler/mir_cleanup.c"; then
+    echo "[perf-contract] MIR cleanup predecessor append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "block->instruction_count + 1" "$ROOT_DIR/src/compiler/mir_intent.c"; then
+    echo "[perf-contract] MIR intent instruction append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "mir->decl_header_count + 1" "$ROOT_DIR/src/compiler/mir_decl_headers.h"; then
+    echo "[perf-contract] MIR declaration header append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "routine->value_summary_count + 1" "$ROOT_DIR/src/compiler/mir_liveness_dce.h"; then
+    echo "[perf-contract] MIR value summary append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(DIRNode)" "$ROOT_DIR/src/compiler/dir.c"; then
+    echo "[perf-contract] DIR node append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(DIREdge)" "$ROOT_DIR/src/compiler/dir.c"; then
+    echo "[perf-contract] DIR edge append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "dir->owned_name_count + 1" "$ROOT_DIR/src/compiler/dir.c"; then
+    echo "[perf-contract] DIR owned-name append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(DIRIntent" "$ROOT_DIR/src/compiler/dir_collect.c"; then
+    echo "[perf-contract] DIR intent append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(*count + 1) * sizeof(const char *)" "$ROOT_DIR/src/compiler/dir_collect.c"; then
+    echo "[perf-contract] DIR intent name append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "program->data.program.count + 1" "$ROOT_DIR/src/semantic/semantic.c"; then
+    echo "[perf-contract] semantic stdlib preload regressed to program count+1 append" >&2
+    exit 1
+fi
+if grep -Fq "loaded_count + 1" "$ROOT_DIR/src/semantic/semantic.c"; then
+    echo "[perf-contract] semantic stdlib preload regressed to loaded-module count+1 append" >&2
+    exit 1
+fi
+if grep -Fq "snap.count + 1" "$ROOT_DIR/src/semantic/type_checker_flow_resources.h"; then
+    echo "[perf-contract] semantic resource snapshot append regressed to count+1 allocation" >&2
+    exit 1
+fi
+if grep -Fq "n + 1" "$ROOT_DIR/src/semantic/type_env.c"; then
+    echo "[perf-contract] semantic type environment append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "(old_count + 1) * sizeof(ASTNode *)" "$ROOT_DIR/src/parser/parser_expr.c"; then
+    echo "[perf-contract] parser call-argument prepend regressed to count+1 realloc" >&2
+    exit 1
+fi
+grep -Fq "name_capacity" "$ROOT_DIR/src/parser/ast.h"
+grep -Fq "param_capacity" "$ROOT_DIR/src/parser/ast.h"
+grep -Fq "field_capacity" "$ROOT_DIR/src/parser/ast.h"
+grep -Fq "method_capacity" "$ROOT_DIR/src/parser/ast.h"
+grep -Fq "statement_capacity" "$ROOT_DIR/src/parser/ast.h"
+grep -Fq "case_capacity" "$ROOT_DIR/src/parser/ast.h"
+grep -Fq "pattern_capacity" "$ROOT_DIR/src/parser/ast.h"
+grep -Fq "method_capacity" "$ROOT_DIR/src/parser/ast.h"
+grep -Fq "param_capacity" "$ROOT_DIR/src/parser/ast.h"
+if grep -Fq "let_destructure.name_count + 1" "$ROOT_DIR/src/parser/parser.c"; then
+    echo "[perf-contract] parser destructuring names regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "next_count = *count + 1" "$ROOT_DIR/src/parser/parser_async.c"; then
+    echo "[perf-contract] parser async node append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "async_func_decl.param_count + 1" "$ROOT_DIR/src/parser/parser_async.c"; then
+    echo "[perf-contract] parser async params regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "func_decl.param_count + 1" "$ROOT_DIR/src/parser/parser_decl.c"; then
+    echo "[perf-contract] parser function params regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "class_decl.field_count + 1" "$ROOT_DIR/src/parser/parser_decl.c"; then
+    echo "[perf-contract] parser nominal fields regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "class_decl.method_count + 1" "$ROOT_DIR/src/parser/parser_decl.c"; then
+    echo "[perf-contract] parser nominal methods regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "func_decl.required_ability_count + 1" \
+    "$ROOT_DIR/src/parser/parser_decl_function_clause.c"; then
+    echo "[perf-contract] parser function requires clause regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "func_decl.authorized_by_count + 1" \
+    "$ROOT_DIR/src/parser/parser_decl_function_clause.c"; then
+    echo "[perf-contract] parser function authorized-by clause regressed to count+1 realloc" >&2
+    exit 1
+fi
+grep -Fq "who_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "involve_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "value_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "binding_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "step_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "default_who_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "on_expr_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "compensate_expr_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "required_ability_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "authorized_by_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "slot_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "refresh_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "authority_capacity" "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "size_t         capacity;" "$ROOT_DIR/src/parser/ast_types.h"
+grep -Fq "tag_capacity" "$ROOT_DIR/src/parser/ast_types.h"
+grep -Fq "bound_capacity" "$ROOT_DIR/src/parser/ast_types.h"
+grep -Fq "param_capacity" "$ROOT_DIR/src/parser/ast.h"
+if grep -Fq "(*count + 1) * sizeof(char *)" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_action_contract.c"; then
+    echo "[perf-contract] intent action contract name append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "required_ability_count + 1" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_action_contract.c"; then
+    echo "[perf-contract] intent action contract ability append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "next_count = *count + 1" "$ROOT_DIR/src/parser/parser_intent.c"; then
+    echo "[perf-contract] parser intent declaration append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "required_ability_count + 1" "$ROOT_DIR/src/parser/parser_intent_step.c"; then
+    echo "[perf-contract] parser intent step requires append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "next_count = *count + 1" "$ROOT_DIR/src/parser/parser_domain_world.c"; then
+    echo "[perf-contract] parser world compose input append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "next_count = *count + 1" "$ROOT_DIR/src/parser/parser_domain_zone.c"; then
+    echo "[perf-contract] parser zone group-name append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "next_count = *count + 1" "$ROOT_DIR/src/parser/parser_domain_projection.c"; then
+    echo "[perf-contract] parser projection append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "pattern_count + 1" "$ROOT_DIR/src/parser/parser_stmt.c"; then
+    echo "[perf-contract] parser match pattern append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "case_count + 1" "$ROOT_DIR/src/parser/parser_stmt.c"; then
+    echo "[perf-contract] parser match case append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "method_count + 1" "$ROOT_DIR/src/parser/parser_enum.c"; then
+    echo "[perf-contract] parser enum method append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "parser_append_expr_node(" "$ROOT_DIR/src/parser/parser_expr.c"; then
+    echo "[perf-contract] parser expression append bypassed capacity helper" >&2
+    exit 1
+fi
+if grep -Fq "next_count = *slot_count + 1" "$ROOT_DIR/src/parser/parser_domain.c"; then
+    echo "[perf-contract] parser domain slot append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "next_count = *count + 1" "$ROOT_DIR/src/parser/parser_domain.c"; then
+    echo "[perf-contract] parser domain child append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "tag_count + 1" "$ROOT_DIR/src/parser/parser_doc.c"; then
+    echo "[perf-contract] parser structured-comment tags regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "params->count + 1" "$ROOT_DIR/src/parser/parser_type.c"; then
+    echo "[perf-contract] parser generic parameter append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "constraint->bound_count + 1" "$ROOT_DIR/src/parser/parser_type.c"; then
+    echo "[perf-contract] parser type-bound append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "where->count + 1" "$ROOT_DIR/src/parser/parser_type.c"; then
+    echo "[perf-contract] parser where-clause append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "parser_append_type_node(" "$ROOT_DIR/src/parser/parser_type.c"; then
+    echo "[perf-contract] parser type node append bypassed capacity helper" >&2
+    exit 1
+fi
+if grep -Fq "ctx->type_resolution_metadata.keys[i] == (void *)type_node" \
+    "$ROOT_DIR/src/semantic/type_checker_resolution_metadata.c"; then
+    echo "[perf-contract] DAG metadata lookup regressed to linear scan in metadata owner" >&2
+    exit 1
+fi
+if grep -Fq "sizeof(AIREvidenceNode) * (air->evidence_count + 1)" \
+    "$ROOT_DIR/src/compiler/air.c"; then
+    echo "[perf-contract] AIR evidence append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "sizeof(AIRDrift) * (air->drift_count + 1)" \
+    "$ROOT_DIR/src/compiler/air_verify.c"; then
+    echo "[perf-contract] AIR drift append regressed to count+1 realloc" >&2
+    exit 1
+fi
+if grep -Fq "Two-pass: count then fill" "$ROOT_DIR/src/semantic/slot_analyzer.c"; then
+    echo "[perf-contract] slot analyzer live-slot collection regressed to two-pass" >&2
+    exit 1
+fi
+if grep -Fq 'participant = pgy_runtime_strdup("")' \
+    "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_events_inline.h"; then
+    echo "[perf-contract] inline intent step begin reintroduced empty participant allocation" >&2
+    exit 1
+fi
+if grep -Fq 'participant = pgy_runtime_strdup_export("")' \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.h"; then
+    echo "[perf-contract] exported intent step begin reintroduced empty participant allocation" >&2
+    exit 1
+fi
 
 echo "[perf-contract] perf summary contract is smoke-gated"

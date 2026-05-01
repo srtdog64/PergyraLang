@@ -13,21 +13,14 @@ pgy_intent_trace_step_export(int32_t handle, const char *step_name, const char *
         snprintf(line, sizeof(line), "[step] begin %s @ %s\n",
             step_name != NULL ? step_name : "<step>",
             zone_name != NULL ? zone_name : "<zone>");
-        pgy_intent_append_line(&entry->trace, line);
+        pgy_intent_append_line_len(&entry->trace, &entry->trace_len, line);
         if (entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_clear(&entry->steps[index]);
             entry->steps[index].name = pgy_runtime_strdup(step_name != NULL ? step_name : "");
             entry->steps[index].zone = pgy_runtime_strdup(zone_name != NULL ? zone_name : "");
             entry->steps[index].phase = pgy_runtime_strdup("begin");
-            entry->steps[index].participant = pgy_runtime_strdup("");
-            entry->steps[index].slot = pgy_runtime_strdup("");
-            entry->steps[index].from_zone = pgy_runtime_strdup("");
-            entry->steps[index].from_slot = pgy_runtime_strdup("");
-            entry->steps[index].to_zone = pgy_runtime_strdup("");
-            entry->steps[index].to_slot = pgy_runtime_strdup("");
             entry->steps[index].ok = false;
-            entry->steps[index].failure_reason = pgy_runtime_strdup("");
         }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -45,7 +38,7 @@ pgy_intent_trace_bind_export(int32_t handle, const char *participant_name, const
         snprintf(line, sizeof(line), "[bind] %s -> %s\n",
             participant_name != NULL ? participant_name : "<participant>",
             slot_name != NULL ? slot_name : "<unbound>");
-        pgy_intent_append_line(&entry->trace, line);
+        pgy_intent_append_line_len(&entry->trace, &entry->trace_len, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_set_string(&entry->steps[index].participant, participant_name);
@@ -69,7 +62,7 @@ pgy_intent_trace_materialize_export(int32_t handle, const char *participant_name
             participant_name != NULL ? participant_name : "<participant>",
             zone_name != NULL ? zone_name : "<zone>",
             slot_name != NULL ? slot_name : "<unbound>");
-        pgy_intent_append_line(&entry->trace, line);
+        pgy_intent_append_line_len(&entry->trace, &entry->trace_len, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_set_string(&entry->steps[index].phase, "materialize");
@@ -99,7 +92,7 @@ pgy_intent_trace_transfer_export(int32_t handle, const char *participant_name,
             from_slot_name != NULL ? from_slot_name : "<unbound>",
             to_zone_name != NULL ? to_zone_name : "<zone>",
             to_slot_name != NULL ? to_slot_name : "<unbound>");
-        pgy_intent_append_line(&entry->trace, line);
+        pgy_intent_append_line_len(&entry->trace, &entry->trace_len, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_set_string(&entry->steps[index].phase, "transfer");
@@ -128,7 +121,7 @@ pgy_intent_trace_step_ok_export(int32_t handle, const char *step_name)
         char line[256];
         snprintf(line, sizeof(line), "[step] ok %s\n",
             step_name != NULL ? step_name : "<step>");
-        pgy_intent_append_line(&entry->trace, line);
+        pgy_intent_append_line_len(&entry->trace, &entry->trace_len, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             pgy_intent_history_step_set_string(
                 &entry->steps[entry->step_count - 1].phase, "ok");
@@ -158,7 +151,7 @@ pgy_intent_trace_fail_export(int32_t handle, const char *reason)
         }
         snprintf(line, sizeof(line), "[fail] %s\n",
             reason != NULL ? reason : "<failure>");
-        pgy_intent_append_line(&entry->trace, line);
+        pgy_intent_append_line_len(&entry->trace, &entry->trace_len, line);
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -180,7 +173,7 @@ pgy_mir_resource_op_export(int32_t handle,
             op_name != NULL ? op_name : "<op>",
             slot_anchor != NULL ? slot_anchor : "<slot>",
             arg_name != NULL ? arg_name : "<arg>");
-        pgy_intent_append_line(&entry->trace, line);
+        pgy_intent_append_line_len(&entry->trace, &entry->trace_len, line);
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }

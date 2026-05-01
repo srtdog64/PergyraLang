@@ -101,19 +101,26 @@ static bool
 parser_append_doc_tag(StructuredComment *comment, DocTag *tag)
 {
     DocTag **new_tags;
-    size_t next_count;
+    size_t next_capacity;
 
     if (comment == NULL)
         return false;
 
-    next_count = comment->tag_count + 1;
-    new_tags = realloc(comment->tags, next_count * sizeof(DocTag *));
-    if (new_tags == NULL)
-        return false;
+    if (comment->tag_count >= comment->tag_capacity) {
+        next_capacity = comment->tag_capacity == 0 ? 4 : comment->tag_capacity * 2;
+        if (next_capacity <= comment->tag_count
+            || next_capacity > (size_t)-1 / sizeof(DocTag *)) {
+            return false;
+        }
+        new_tags = realloc(comment->tags, next_capacity * sizeof(DocTag *));
+        if (new_tags == NULL)
+            return false;
+        comment->tags = new_tags;
+        comment->tag_capacity = next_capacity;
+    }
 
-    new_tags[comment->tag_count] = tag;
-    comment->tags = new_tags;
-    comment->tag_count = next_count;
+    comment->tags[comment->tag_count] = tag;
+    comment->tag_count += 1;
     return true;
 }
 

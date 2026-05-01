@@ -5,22 +5,32 @@ parser_intent_step_append_required_ability(Parser *parser, ASTNode *step,
                                            ASTNode *ability)
 {
     ASTNode **grown;
-    size_t next;
+    size_t next_capacity;
 
     if (parser == NULL || step == NULL || ability == NULL)
         return false;
 
-    next = step->data.intent_step.required_ability_count + 1;
-    grown = realloc(step->data.intent_step.required_abilities,
-                    next * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing intent step requires");
-        return false;
+    if (step->data.intent_step.required_ability_count
+        >= step->data.intent_step.required_ability_capacity) {
+        next_capacity = step->data.intent_step.required_ability_capacity == 0
+            ? 4 : step->data.intent_step.required_ability_capacity * 2;
+        if (next_capacity <= step->data.intent_step.required_ability_count
+            || next_capacity > (size_t)-1 / sizeof(ASTNode *)) {
+            parser_error(parser, "Out of memory while parsing intent step requires");
+            return false;
+        }
+        grown = realloc(step->data.intent_step.required_abilities,
+                        next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing intent step requires");
+            return false;
+        }
+        step->data.intent_step.required_abilities = grown;
+        step->data.intent_step.required_ability_capacity = next_capacity;
     }
 
-    grown[next - 1] = ability;
-    step->data.intent_step.required_abilities = grown;
-    step->data.intent_step.required_ability_count = next;
+    step->data.intent_step.required_abilities[
+        step->data.intent_step.required_ability_count++] = ability;
     return true;
 }
 
@@ -104,6 +114,7 @@ parse_intent_step(Parser *parser)
             parse_intent_name_list(parser,
                 &step->data.intent_step.who_names,
                 &step->data.intent_step.who_count,
+                &step->data.intent_step.who_capacity,
                 "Expected involves alias after 'who:'");
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step who clause");
             continue;
@@ -144,19 +155,23 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "on")) {
+            ASTNode *expr;
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'on'");
+            expr = parser_parse_expression(parser);
             intent_append_node(&step->data.intent_step.on_exprs,
                 &step->data.intent_step.on_expr_count,
-                parser_parse_expression(parser));
+                &step->data.intent_step.on_expr_capacity, expr);
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step on clause");
             continue;
         }
 
         if (parser_intent_match_keyword(parser, "compensate")) {
+            ASTNode *expr;
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'compensate'");
+            expr = parser_parse_expression(parser);
             intent_append_node(&step->data.intent_step.compensate_exprs,
                 &step->data.intent_step.compensate_expr_count,
-                parser_parse_expression(parser));
+                &step->data.intent_step.compensate_expr_capacity, expr);
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step compensate clause");
             continue;
         }
@@ -241,6 +256,7 @@ parse_intent_step(Parser *parser)
             parse_intent_name_list(parser,
                 &step->data.intent_step.authorized_by,
                 &step->data.intent_step.authorized_by_count,
+                &step->data.intent_step.authorized_by_capacity,
                 "Expected involves alias after 'authorized by:'");
             parser_consume(parser, TOKEN_SEMICOLON,
                            "Expected ';' after step authorization clause");

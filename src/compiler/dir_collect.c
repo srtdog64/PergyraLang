@@ -5,28 +5,36 @@
 #include <string.h>
 
 static bool
-append_name(const char ***items, size_t *count, const char *name)
+append_name(const char ***items, size_t *count, size_t *capacity, const char *name)
 {
     const char **grown;
     if (name == NULL)
         return true;
-    grown = realloc((void *)*items, (*count + 1) * sizeof(const char *));
-    if (grown == NULL)
-        return false;
-    grown[*count] = name;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        grown = realloc((void *)*items, next_capacity * sizeof(const char *));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = name;
     (*count)++;
     return true;
 }
 
 static bool
-append_intent_info(DIRIntentInfo **items, size_t *count, DIRIntentInfo info)
+append_intent_info(DIRIntentInfo **items, size_t *count, size_t *capacity, DIRIntentInfo info)
 {
-    DIRIntentInfo *grown = realloc(*items, (*count + 1) * sizeof(DIRIntentInfo));
-    if (grown == NULL)
-        return false;
-    grown[*count] = info;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        DIRIntentInfo *grown = realloc(*items, next_capacity * sizeof(DIRIntentInfo));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = info;
     (*count)++;
     return true;
 }
@@ -34,25 +42,34 @@ append_intent_info(DIRIntentInfo **items, size_t *count, DIRIntentInfo info)
 static bool
 append_intent_participant(DIRIntentParticipant **items,
                           size_t *count,
+                          size_t *capacity,
                           DIRIntentParticipant participant)
 {
-    DIRIntentParticipant *grown = realloc(*items, (*count + 1) * sizeof(DIRIntentParticipant));
-    if (grown == NULL)
-        return false;
-    grown[*count] = participant;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        DIRIntentParticipant *grown = realloc(*items, next_capacity * sizeof(DIRIntentParticipant));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = participant;
     (*count)++;
     return true;
 }
 
 static bool
-append_intent_step(DIRIntentStep **items, size_t *count, DIRIntentStep step)
+append_intent_step(DIRIntentStep **items, size_t *count, size_t *capacity, DIRIntentStep step)
 {
-    DIRIntentStep *grown = realloc(*items, (*count + 1) * sizeof(DIRIntentStep));
-    if (grown == NULL)
-        return false;
-    grown[*count] = step;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        DIRIntentStep *grown = realloc(*items, next_capacity * sizeof(DIRIntentStep));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = step;
     (*count)++;
     return true;
 }
@@ -328,7 +345,10 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             ssize_t to = dir_find_any_node_by_name(dir, participant.subject_type_name);
             participant.subject_type_node_id = to >= 0 ? (size_t)to : SIZE_MAX;
         }
-        if (!append_intent_participant(&info.participants, &info.participant_count, participant))
+        if (!append_intent_participant(&info.participants,
+                                       &info.participant_count,
+                                       &info.participant_capacity,
+                                       participant))
             goto oom;
         if (!dir_add_named_edge(dir,
                                 DIR_EDGE_INTENT_PARTICIPANT_TYPE,
@@ -349,7 +369,10 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             ssize_t to = dir_find_any_node_by_name(dir, participant.subject_type_name);
             participant.subject_type_node_id = to >= 0 ? (size_t)to : SIZE_MAX;
         }
-        if (!append_intent_participant(&info.participants, &info.participant_count, participant))
+        if (!append_intent_participant(&info.participants,
+                                       &info.participant_count,
+                                       &info.participant_capacity,
+                                       participant))
             goto oom;
         if (!dir_add_named_edge(dir,
                                 DIR_EDGE_INTENT_PARTICIPANT_TYPE,
@@ -413,7 +436,10 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
                 goto oom;
         }
         for (size_t j = 0; j < step_node->data.intent_step.who_count; j++) {
-            if (!append_name(&step.who_names, &step.who_count, step_node->data.intent_step.who_names[j]))
+            if (!append_name(&step.who_names,
+                             &step.who_count,
+                             &step.who_capacity,
+                             step_node->data.intent_step.who_names[j]))
                 goto oom;
             if (!dir_add_named_edge(dir,
                                     DIR_EDGE_INTENT_STEP_WHO,
@@ -431,6 +457,7 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
                 continue;
             if (!append_name(&step.required_abilities,
                              &step.required_ability_count,
+                             &step.required_ability_capacity,
                              ability_name))
                 goto oom;
             if (!dir_add_named_edge(dir,
@@ -446,6 +473,7 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         for (size_t j = 0; j < step_node->data.intent_step.authorized_by_count; j++) {
             if (!append_name(&step.authorized_by,
                              &step.authorized_by_count,
+                             &step.authorized_by_capacity,
                              step_node->data.intent_step.authorized_by[j]))
                 goto oom;
             if (!dir_add_named_edge(dir,
@@ -456,11 +484,11 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
                                     step_node->data.intent_step.authorized_by[j]))
                 goto oom;
         }
-        if (!append_intent_step(&info.steps, &info.step_count, step))
+        if (!append_intent_step(&info.steps, &info.step_count, &info.step_capacity, step))
             goto oom;
     }
 
-    if (!append_intent_info(&dir->intents, &dir->intent_count, info))
+    if (!append_intent_info(&dir->intents, &dir->intent_count, &dir->intent_capacity, info))
         goto oom;
     return true;
 

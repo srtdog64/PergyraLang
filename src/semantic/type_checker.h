@@ -175,8 +175,11 @@ struct SemanticContext
         void **keys;     /* ASTNode * pointers */
         void **values;   /* Type * pointers */
         bool *owned;     /* true when the metadata cache owns the Type shell */
+        void **index_keys;      /* ASTNode * -> entry index + 1 */
+        size_t *index_entries;
         size_t count;
         size_t capacity;
+        size_t index_capacity;
     } type_resolution_metadata;
     size_t type_resolution_metadata_hits;
     size_t type_resolution_metadata_misses;

@@ -32,14 +32,24 @@ static inline void pgy_queue_push_##SuffixName(PgyQueue_##SuffixName *q, CType v
     } \
     if (q->count >= q->capacity) { \
         size_t nc = q->capacity == 0 ? 16 : q->capacity * 2; \
-        CType *nd = (CType *)calloc(nc, sizeof(CType)); \
-        if (nd == NULL) { \
-            pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "growth allocation failed"); \
-            return; \
+        CType *nd = NULL; \
+        if (q->head == 0) { \
+            nd = (CType *)realloc(q->data, nc * sizeof(CType)); \
+            if (nd == NULL) { \
+                pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "growth allocation failed"); \
+                return; \
+            } \
+        } else { \
+            nd = (CType *)calloc(nc, sizeof(CType)); \
+            if (nd == NULL) { \
+                pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "growth allocation failed"); \
+                return; \
+            } \
+            for (size_t i = 0; i < q->count; i++) \
+                nd[i] = q->data[(q->head + i) % q->capacity]; \
+            free(q->data); \
         } \
-        for (size_t i = 0; i < q->count; i++) \
-            nd[i] = q->data[(q->head + i) % q->capacity]; \
-        free(q->data); q->data = nd; \
+        q->data = nd; \
         q->head = 0; q->tail = q->count; q->capacity = nc; \
     } \
     q->data[q->tail] = val; \
@@ -92,14 +102,23 @@ static inline void pgy_queue_push_int(PgyQueue_Int *q, int32_t val)
     }
     if (q->count >= q->capacity) {
         size_t nc = q->capacity == 0 ? 16 : q->capacity * 2;
-        int32_t *nd = (int32_t *)calloc(nc, sizeof(int32_t));
-        if (nd == NULL) {
-            pgy_runtime_warn_invalid_collection("queue_push_int", "growth allocation failed");
-            return;
+        int32_t *nd = NULL;
+        if (q->head == 0) {
+            nd = (int32_t *)realloc(q->data, nc * sizeof(int32_t));
+            if (nd == NULL) {
+                pgy_runtime_warn_invalid_collection("queue_push_int", "growth allocation failed");
+                return;
+            }
+        } else {
+            nd = (int32_t *)calloc(nc, sizeof(int32_t));
+            if (nd == NULL) {
+                pgy_runtime_warn_invalid_collection("queue_push_int", "growth allocation failed");
+                return;
+            }
+            for (size_t i = 0; i < q->count; i++)
+                nd[i] = q->data[(q->head + i) % q->capacity];
+            free(q->data);
         }
-        for (size_t i = 0; i < q->count; i++)
-            nd[i] = q->data[(q->head + i) % q->capacity];
-        free(q->data);
         q->data = nd;
         q->head = 0;
         q->tail = q->count;
@@ -158,14 +177,23 @@ static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
     }
     if (q->count >= q->capacity) {
         size_t nc = q->capacity == 0 ? 16 : q->capacity * 2;
-        char **nd = (char **)calloc(nc, sizeof(char *));
-        if (nd == NULL) {
-            pgy_runtime_warn_invalid_collection("queue_push_string", "growth allocation failed");
-            return;
+        char **nd = NULL;
+        if (q->head == 0) {
+            nd = (char **)realloc(q->data, nc * sizeof(char *));
+            if (nd == NULL) {
+                pgy_runtime_warn_invalid_collection("queue_push_string", "growth allocation failed");
+                return;
+            }
+        } else {
+            nd = (char **)calloc(nc, sizeof(char *));
+            if (nd == NULL) {
+                pgy_runtime_warn_invalid_collection("queue_push_string", "growth allocation failed");
+                return;
+            }
+            for (size_t i = 0; i < q->count; i++)
+                nd[i] = q->data[(q->head + i) % q->capacity];
+            free(q->data);
         }
-        for (size_t i = 0; i < q->count; i++)
-            nd[i] = q->data[(q->head + i) % q->capacity];
-        free(q->data);
         q->data = nd;
         q->head = 0;
         q->tail = q->count;

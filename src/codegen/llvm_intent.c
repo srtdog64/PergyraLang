@@ -81,23 +81,19 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
     if (ctx->mir != NULL && node->data.intent_decl.step_count > 0) {
         if (mir_routine == NULL) {
-            char msg[256];
-            snprintf(msg, sizeof(msg),
-                     "MIR-only LLVM path missing intent routine for '%s'",
-                     node->data.intent_decl.name != NULL
-                         ? node->data.intent_decl.name
-                         : "(anonymous)");
-            llvm_set_error(ctx, msg);
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing intent routine for '%s'",
+                node->data.intent_decl.name != NULL
+                    ? node->data.intent_decl.name
+                    : "(anonymous)");
             return;
         }
         if (step_count == 0) {
-            char msg[256];
-            snprintf(msg, sizeof(msg),
-                     "MIR-only LLVM path missing intent step sequence for '%s'",
-                     node->data.intent_decl.name != NULL
-                         ? node->data.intent_decl.name
-                         : "(anonymous)");
-            llvm_set_error(ctx, msg);
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing intent step sequence for '%s'",
+                node->data.intent_decl.name != NULL
+                    ? node->data.intent_decl.name
+                    : "(anonymous)");
             return;
         }
         mir_only_intent = true;
@@ -114,25 +110,21 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
     if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
         if (participant_count < node->data.intent_decl.involve_count) {
-            char msg[256];
-            snprintf(msg, sizeof(msg),
-                     "MIR-only LLVM path missing intent participant metadata for '%s'",
-                     node->data.intent_decl.name != NULL
-                         ? node->data.intent_decl.name
-                         : "(anonymous)");
-            llvm_set_error(ctx, msg);
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing intent participant metadata for '%s'",
+                node->data.intent_decl.name != NULL
+                    ? node->data.intent_decl.name
+                    : "(anonymous)");
             return;
         }
         for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
             if (participant_aliases == NULL || participant_types == NULL
                 || participant_aliases[i] == NULL || participant_types[i] == NULL) {
-                char msg[256];
-                snprintf(msg, sizeof(msg),
-                         "MIR-only LLVM path has incomplete intent participant metadata for '%s'",
-                         node->data.intent_decl.name != NULL
-                             ? node->data.intent_decl.name
-                             : "(anonymous)");
-                llvm_set_error(ctx, msg);
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path has incomplete intent participant metadata for '%s'",
+                    node->data.intent_decl.name != NULL
+                        ? node->data.intent_decl.name
+                        : "(anonymous)");
                 return;
             }
         }

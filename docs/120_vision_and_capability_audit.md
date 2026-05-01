@@ -182,21 +182,39 @@ See `docs/100_beta_readiness_checklist.md` for the authoritative list.
 Do not list beta-target items here — they belong in the closure checklist,
 not in vision, because they are *contractually scheduled*, not aspirational.
 
-### 4.4 Post-1.0 Trajectory — Self-Host (aspirational, not committed)
+### 4.4 Post-BETA Trajectory — Self-Host (committed sequence, partial recommended)
 
-This is **post-1.0 ambition**, not a beta or pre-1.0 commitment. Recorded
-here so external description can source the *direction* without quoting it
-as a current capability. Memory `project_no_self_host_decision.md` and
-`docs/117` §6 hold the *current decision* (do not self-host until 1.0).
-This subsection records what *self-host would mean* if and when it lands.
+**Status (2026-05-02):** Upgraded from *aspirational* to *committed
+sequence*. BDFL declared the explicit progression: BETA closure → final
+dogfood → BETA+ self-host start. Recorded in `TODO.md` "★ Core Goal" and
+memory `project_no_self_host_decision.md`. The *partial self-host*
+recommendation below remains the recommended scope; full self-host is
+not assumed inevitable.
 
-**Why post-1.0, not earlier**
+**Why post-BETA, not pre-BETA**
 
 Pergyra's positioning (transactional saga, DDD primitive 1급) does *not*
-require self-host for credibility with its target audience. The post-1.0
-trigger is *bottom-up demand* from real users who need to extend the
-compiler — not a top-down vanity goal. Until that demand materializes,
-C + LLVM dual-emit per `docs/117` is the stable position.
+require self-host for credibility with its target audience. The pre-BETA
+position would distract from closure work; the post-BETA position lets
+us *use BETA closure + dogfood as the entry qualification* — i.e., the
+language must demonstrate it can express its target domains before being
+asked to express its own compiler. C + LLVM dual-emit per `docs/117`
+remains the parallel-stable foundation throughout.
+
+**Why slot makes self-host tractable (2026-05-02 reflection)**
+
+Rust's self-host journey was tax-loaded by lifetime annotation: every
+function signature in the rustc compiler had to commit to a lifetime
+proof, and the proofs cascaded. Pergyra intentionally removed lifetime
+annotation as a user-facing surface, replacing it with the slot model
+(generational refs, runtime-validated handles, Vale lineage). That
+choice — recorded in `docs/118` §6 negative-space and
+`docs/119` §10 substrate borrow — pays back specifically here:
+self-hosting Pergyra in Pergyra does *not* require encoding a borrow
+proof for every compiler internal. The compiler can express its data
+flow with `slot` handles without paying the lifetime tax that rustc
+paid. **The decision was scoped to user-language ergonomics; the
+self-host ergonomics gain is a positive externality.**
 
 **Prerequisite — current Pergyra has the building blocks**
 
@@ -261,9 +279,11 @@ re-traversed Pergyra wrappers).
   value. Self-host compounds into *language credibility* but not *user
   value*. The trade-off must be made consciously.
 
-**Trigger for re-evaluation post-1.0**
+**Trigger for entry timing (post-BETA, post-dogfood)**
 
-Self-host work begins when at least *one* of these holds:
+Self-host work *begins* after BETA closure + final dogfood (committed
+sequence). The *scope* (Stage 1-3 partial vs Stage 5 full) is decided
+when at least *one* of these holds:
 
 1. Real users (not core team) request compiler extension capability —
    plugins, custom passes, embedded DSLs.
@@ -273,8 +293,11 @@ Self-host work begins when at least *one* of these holds:
    cleanly in C-host but *can* be expressed in Pergyra-host (no candidate
    currently identified — recorded as a possibility, not a forecast).
 
-If none of the three hold by year 2 post-1.0, **partial self-host
-remains the final form**. Full self-host is not assumed inevitable.
+If none of the three hold by year 2 post-BETA, **partial self-host
+remains the final form**. Full self-host is not assumed inevitable —
+the slot model removes one of the largest costs (vs Rust's lifetime
+tax), but other costs (debugger story, bootstrap protocol, external
+tooling degradation) remain real. Partial is honest steady state.
 
 ## 5. The Three-Layer Composition Reminder
 

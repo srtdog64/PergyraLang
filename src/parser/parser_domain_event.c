@@ -24,7 +24,8 @@ ASTNode* parse_event_declaration(Parser* parser) {
         ASTNode* param = ast_create_let_declaration(param_name.text);
         param->data.let_decl.type = param_type;
         append_child_node(&event_decl->data.event_decl.params,
-                          &event_decl->data.event_decl.param_count, param);
+                          &event_decl->data.event_decl.param_count,
+                          &event_decl->data.event_decl.param_capacity, param);
 
         if (!parser_match(parser, TOKEN_COMMA)) break;
     }

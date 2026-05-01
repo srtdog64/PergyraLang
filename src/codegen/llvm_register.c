@@ -116,22 +116,25 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
          * destroyed in llvm_ctx_destroy(). */
     }
 
-    for (size_t j = 0; j < stmt->data.enum_decl.method_count; j++) {
-        ASTNode *method = stmt->data.enum_decl.methods[j];
-        const MIRDeclMethod *method_meta = NULL;
+    const MIRDeclHeader *enum_decl_header =
+        llvm_find_host_decl_header_in_context(ctx, enum_name);
+    const MIRDeclMethod *enum_method_metadata = NULL;
+    size_t enum_method_metadata_count = 0;
+    llvm_host_decl_method_metadata(enum_decl_header,
+        &enum_method_metadata, &enum_method_metadata_count);
+    if (enum_decl_header == NULL && stmt->data.enum_decl.method_count > 0) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing enum method declaration metadata");
+        return;
+    }
+
+    for (size_t j = 0; j < enum_method_metadata_count; j++) {
+        const MIRDeclMethod *method_meta = &enum_method_metadata[j];
+        ASTNode *method = llvm_mir_decl_method_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;
         ASTNode *return_type = NULL;
-        if (method == NULL || method->type != AST_FUNC_DECL)
-            continue;
 
-        method_meta = llvm_find_host_method_metadata_in_context(
-            ctx, enum_name, method->data.func_decl.name);
-        if (method_meta == NULL) {
-            llvm_set_error(ctx,
-                "MIR-only LLVM path missing enum method declaration metadata");
-            return;
-        }
         method_name = llvm_mir_decl_method_name(method_meta);
         pc = llvm_mir_decl_method_param_count(method_meta);
         return_type = llvm_mir_decl_method_return_type(method_meta);
@@ -223,23 +226,26 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     /* field_types is ctx->scratch-owned. */
 
-    for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
-        ASTNode *method = stmt->data.class_decl.methods[j];
-        const MIRDeclMethod *method_meta = NULL;
+    const MIRDeclHeader *class_decl_header =
+        llvm_find_host_decl_header_in_context(ctx, cls_name);
+    const MIRDeclMethod *class_method_metadata = NULL;
+    size_t class_method_metadata_count = 0;
+    llvm_host_decl_method_metadata(class_decl_header,
+        &class_method_metadata, &class_method_metadata_count);
+    if (class_decl_header == NULL && stmt->data.class_decl.method_count > 0) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class method declaration metadata");
+        return;
+    }
+
+    for (size_t j = 0; j < class_method_metadata_count; j++) {
+        const MIRDeclMethod *method_meta = &class_method_metadata[j];
+        ASTNode *method = llvm_mir_decl_method_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;
         ASTNode *return_type = NULL;
         bool method_is_action = false;
-        if (method == NULL || method->type != AST_FUNC_DECL)
-            continue;
 
-        method_meta = llvm_find_host_method_metadata_in_context(
-            ctx, cls_name, method->data.func_decl.name);
-        if (method_meta == NULL) {
-            llvm_set_error(ctx,
-                "MIR-only LLVM path missing class method declaration metadata");
-            return;
-        }
         method_name = llvm_mir_decl_method_name(method_meta);
         pc = llvm_mir_decl_method_param_count(method_meta);
         return_type = llvm_mir_decl_method_return_type(method_meta);

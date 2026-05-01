@@ -41,6 +41,7 @@ validate_utf8_file() {
 
 required_files=(
     "docs/INDEX.md"
+    "docs/00_vision.md"
     "docs/19_design_philosophy.md"
     "docs/116_documentation_quality_audit.md"
     "docs/119_pergyra_lineage_positioning.md"
@@ -202,6 +203,34 @@ zone_first_todo_terms=(
 )
 for term in "${zone_first_todo_terms[@]}"; do
     require_text "TODO.md" "$term"
+done
+
+self_hosting_terms=(
+    "self-hosting은 beta blocker가 아니라 beta 이후의 검증 목표"
+    "compiler-adjacent tool부터"
+    "AIR graph JSON validator"
+    "MIR dump diff tool"
+    "C/LLVM backend output comparator"
+    "full self-hosted compiler는 장기 proof target"
+    "Slot은 포인터 주소가"
+    "static verifier는 unsafe"
+    "boundary transition을 거절"
+)
+for term in "${self_hosting_terms[@]}"; do
+    require_text "TODO.md" "$term"
+done
+
+vision_self_hosting_terms=(
+    "Self-hosting is a post-beta validation target, not a beta blocker."
+    "Dogfood small tools first"
+    "C and LLVM as validation anchors"
+    "not Rust-style lifetime programming"
+    "Slot as a resource boundary"
+    "not a missing Rust borrow"
+    "checker."
+)
+for term in "${vision_self_hosting_terms[@]}"; do
+    require_text "docs/00_vision.md" "$term"
 done
 
 readme_anti_hype_terms=(

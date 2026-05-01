@@ -1,5 +1,66 @@
 # Pergyra TODO (배포 준비)
 
+## 0-selfhost. Beta 이후 self-hosting 목표
+
+**결정:** self-hosting은 beta blocker가 아니라 beta 이후의 검증 목표다.
+
+Beta까지의 핵심 목표는 compiler core를 닫는 것이다: CFG body safety,
+AIR evidence, DAG resolution, MIR/C/LLVM parity, ABI ownership, runtime
+frontier, 그리고 dogfood path. 이 축이 닫힌 뒤에야 self-hosting을 시작한다.
+
+**순서:**
+1. beta closure를 끝내고 stable core surface를 freeze한다.
+2. 첫 dogfood는 compiler 전체 rewrite가 아니라 compiler-adjacent tool부터 한다:
+   diagnostic catalog checker, AIR graph JSON validator, MIR dump diff tool,
+   C/LLVM backend output comparator, module/package resolver helper.
+3. Pergyra로 작성한 도구는 기존 C compiler로 빌드하고, 기존 C 구현 결과와
+   golden 비교한다.
+4. beta+에서 parser/formatter/diagnostic 일부를 점진 이식한다.
+5. full self-hosted compiler는 장기 proof target으로 둔다.
+
+**Slot/ownership 기준:** Pergyra는 Rust-style lifetime 언어가 아니다. 모든
+business-object lifetime을 정적으로 예측하려 하지 않는다. Slot은 포인터 주소가
+아니라 resource boundary / ownership handle이며, static verifier는 unsafe
+boundary transition을 거절하고 runtime은 generation/token/resource state를
+검증한다. 이 선택은 borrow checker 누락이 아니라 의도적인 추상화 기준이다.
+
+## ★ Core Goal — 진행 시퀀스 (2026-05-02 명시)
+
+**확정 순서 — BDFL 결정:**
+
+1. **BETA closure** — 현재 (§0a 참조). 70% 기능 / 55-60% strict 신뢰도
+   → 100% 신뢰도까지 닫기
+2. **마지막 도그푸드** — BETA 안정 후 사용자 직접 *전부 사용*. examples/
+   50+ 양 백엔드 검증, dnd_tavern_campaign 회귀, 결제 saga / AI
+   orchestration mock 워크로드 등
+3. **BETA+ 시점 self-host 시작** — partial self-host 권고
+   (parser + 의미 분석 → Pergyra, LLVM C API wrap은 C 유지). docs/120
+   §4.4 참조. *aspiration이 아니라 committed 일정*.
+
+**의도:**
+- §0a (Strict Beta) → §0b (review/ 메타) → 코드 품질 sprint
+  (review/compiler-quality-audit.md) → 이 모든 게 *self-host 진입 자격*
+  을 만드는 작업. 1.0 닫기 전에 *컴파일러를 우리 언어로 다시 쓸 수 있는
+  상태*가 목표
+- 단, BDFL 의지에 *시기 강제*는 없음. trigger (사용자 demand 또는 C
+  escape hatch 유지 비용 폭발 또는 Pergyra-only 표현이 필요한 feature)
+  발생 시 진입. trigger 없으면 partial이 final form.
+
+**Why slot was the right call (2026-05-02 reflection):**
+
+> "러스트의 본질적 핵심 문제점인 라이프타임을 의도적으로 뺐어 그걸 slot
+> 이라고 했지. 그게 좋은 선택이었던 거 같다." — BDFL
+
+→ docs/118 §6 negative-space + memory project_lineage_synthesis.md 의
+*substrate borrow* 결정 정합. Pergyra는 Rust의 lifetime annotation 학습
+비용을 *의도적으로 회피*하고 generational refs (Vale-style
+runtime-validated handles) 로 대체. 진입 비용 낮춘 자리, 자기인식 정합.
+
+이 reflection은 *self-host 진입 시 가장 큰 자산*: lifetime annotation이
+없으니 컴파일러 자체를 Pergyra로 다시 쓸 때 그 자리가 *일관되게 표현
+가능*. Rust가 self-host 시 lifetime annotation으로 부닥친 자리를 우리는
+회피.
+
 ## 0. 코어 규칙 — 600 LOC split-review threshold
 
 **모든 production `.c` / `.h` owner는 600 LOC 이하로 유지한다.**
@@ -266,30 +327,112 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   컴파일러의 가장 hot path — 영향 큼
 
 ### Category C — 다중 pass / 준-quadratic
-- `src/semantic/slot_analyzer.c:59-97` — 2-pass scope walk (count → fill)
-- `src/semantic/slot_analyzer.c:168-176` — O(after × before) escape
-  detection
-- `src/compiler/air_evidence.c:54-93, 206-231` — O(routines × boundaries
-  × blocks) triple-nested
-- `src/compiler/hir.c:95-107, 378-415` — `find_routine_index_by_name`
-  call-graph closure 안에서 nested
+- ✅ `src/semantic/slot_analyzer.c` — live slot collection is now 1-pass
+  geometric growth, and function/branch live-set membership uses sorted
+  pointer sets instead of O(after × before) nested scans.
+- [~] `src/compiler/air_evidence.c` — MIR pin-cleanup evidence collection now
+  iterates MIR routines/blocks first and only matches actual pin-region blocks
+  against AIR pin boundaries. Remaining AIR cost item is broader HIR routine /
+  boundary matching and typed boundary-id indexing.
+- ✅ `src/compiler/air.c` — AIR evidence inventory and owned-name storage now
+  use explicit capacity growth instead of `realloc(count+1)`.
+- ✅ `src/compiler/air_verify.c` — AIR drift inventory now uses explicit
+  capacity growth instead of `realloc(count+1)`.
+- ✅ `src/compiler/hir.c` — call-graph closure now builds a sorted
+  `HIRRoutineNameIndex` once and resolves direct calls through indexed lookup
+  instead of scanning every routine for every call.
+- ✅ `src/semantic/type_checker_resolution_metadata.c` — DAG metadata lookup now
+  uses an AST-node pointer index instead of scanning every metadata entry on
+  each lookup. The raw arrays remain for ordered iteration / ownership cleanup.
+- ✅ `src/semantic/semantic.c` — stdlib preload append paths now consume AST
+  program capacity and use geometric growth for the loaded-module list instead
+  of `count+1` realloc.
+- ✅ `src/compiler/dir.{h,c}` / `src/compiler/dir_collect.c` — DIR node,
+  edge, owned-name, intent, participant, step, and intent-step name arrays now
+  use explicit capacity growth instead of `count+1` realloc. This keeps the
+  domain graph storage owner aligned with the same IR-storage contract as AIR
+  and semantic preload.
+- ✅ `src/compiler/hir.{h,c}` / `src/compiler/hir_routines.c` — HIR top-level
+  category arrays, item/decl/routine arrays, and routine callee-id lists now use
+  explicit capacity growth. Remaining HIR storage debt is scoped to CFG-local
+  block/statement/predecessor/name arrays in the CFG owners.
+- ✅ `src/compiler/hir_analysis.c`, `src/compiler/hir_cfg.c`,
+  `src/compiler/hir_cfg_phi.c` — HIR signature/direct-call collection and CFG
+  fact arrays (predecessors, dominance frontier, dom-tree children, local defs,
+  phi candidates) now use explicit capacity growth. Remaining HIR storage debt
+  is narrowed to CFG lowering block/statement construction.
+- ✅ `src/compiler/hir_lower_intent_cfg.c` — intent CFG block and statement
+  construction now uses explicit capacity growth. Remaining HIR lowering debt is
+  the general statement CFG builder in `hir_lower_cfg_blocks.c`.
+- ✅ `src/compiler/hir_lower_cfg_blocks.c` / `src/compiler/hir_lower_cfg.c` —
+  general function-body CFG block and statement construction now uses explicit
+  capacity growth and carries `cfg.block_capacity` through lowering. HIR no
+  longer has known `count+1` append storage in its stable lowering/analysis
+  owners.
+- ✅ `src/compiler/rir.{h}` / `src/compiler/rir_facts.c` — RIR scope, fact,
+  operation, and state-summary storage now uses explicit capacity growth instead
+  of `count+1` realloc. The RIR fact owner now follows the same storage contract
+  as HIR/DIR/AIR.
+- ✅ `src/compiler/mir.h`, `src/compiler/mir_base_helpers.h`,
+  `src/compiler/mir_cleanup.c`, `src/compiler/mir_intent.c` — MIR routine/block
+  storage, instruction append/insert, cleanup predecessor append, and intent
+  instruction append now use explicit capacity growth.
+- ✅ `src/compiler/mir_decl_headers.h` / `src/compiler/mir_liveness_dce.h` —
+  MIR declaration-header and value-summary storage now uses explicit capacity
+  growth.
+- ✅ `src/compiler/mir.h`, `src/compiler/mir_base_helpers.h`,
+  `src/compiler/mir_ssa_rename.h`, `src/compiler/mir_ssa_use_edges.h`,
+  `src/compiler/mir_liveness_dce.h` — MIR SSA/use/liveness name-list arrays now
+  carry explicit capacities and grow geometrically. Remaining MIR reallocs in
+  this owner are deliberate DCE shrink operations or fixed-size copies, not
+  append-path `count+1` storage.
 - 처방: routine/boundary id 인덱싱 (이름 strcmp 매칭 → id 비교), AIR
   evidence 빌드는 outer 1회 인덱스 빌드 후 inner는 hashmap probe. slot
   collect 1-pass
 
 ### Category D — Runtime hot path 자료구조
-- `src/runtime/pgy_runtime_intent_trace_inline.h:200-206` — intent
-  registry 256-slot 선형 scan (handle 조회)
-- `src/runtime/pgy_runtime_intent_trace_inline.h:178-195` — trace string
-  `realloc + strlen` per append → 길이에 quadratic
-- `src/runtime/pgy_runtime_intent_trace_events_inline.h:20-30` — step당
-  9개 strdup, 대부분 빈 문자열
-- `src/parser/ast.c:14-18, 21-25, 28-32, 35-39, 48-52, 60-65` —
-  `realloc(count+1)` 비기하급수, AST 빌드 O(N²)
+- ✅ `src/runtime/pgy_runtime_intent_trace_inline.h` — intent registry
+  handle 조회는 handle→slot inline index로 고정됨.
+- ✅ `src/runtime/pgy_runtime_intent_trace_inline.h` — trace append는
+  `trace_len`을 추적해 기존 trace 길이 `strlen` 재계산을 피함.
+- ✅ `src/runtime/pgy_runtime_intent_trace_events_inline.h` — step begin은
+  빈 participant/slot/from/to/failure 필드를 미리 `strdup("")`하지 않고
+  필요할 때만 materialize함.
+- ✅ `src/parser/ast.c` — AST list append uses explicit capacity and
+  geometric growth; the old `realloc(count+1)` O(N²) path is closed.
+- ✅ `src/semantic/type_checker_flow_resources.h` /
+  `src/semantic/type_checker_flow_loops.h` — body-safety resource snapshots now
+  carry explicit capacity and grow through all-or-nothing reserve copies. This
+  removes the prior multi-`realloc(count+1)` append path from parallel/loop
+  ownership snapshots and avoids partial-realloc pointer loss on OOM.
+- ✅ `src/semantic/type_system.h` / `src/semantic/type_env.c` — type environment
+  variable/type bindings now carry explicit capacities and grow geometrically
+  instead of reallocating on every append.
+- ✅ `src/parser/parser_expr.c` — call pipe-prepend now uses the existing
+  `AST_CALL.arg_capacity` field instead of reallocating to `old_count + 1`.
+  Broader parser AST-list capacity cleanup remains a separate parser-owner
+  task because many node variants still expose count-only arrays.
+- ✅ `src/parser/parser.c`, `src/parser/parser_async.c`, `src/parser/ast.h` —
+  destructuring names, async function parameters, async block statements, and
+  select cases now carry explicit capacity fields and grow geometrically.
+- ✅ `src/parser/parser_decl.c`, `src/parser/ast_constructors.c`,
+  `src/parser/ast.h` — function parameters and nominal field/method lists now
+  carry explicit capacities and grow geometrically during parse.
+- ✅ `src/parser/parser_decl_function_clause.c`, `src/parser/ast.h` —
+  function/action `requires` and `authorized by` clause arrays now use explicit
+  capacities instead of count-only append reallocs.
+- ✅ `src/parser/parser_type.c`, `src/parser/ast_types.h`,
+  `src/parser/ast_domain_tail_constructors.c` — generic parameter lists,
+  where-clause constraint lists, type-bound lists, and event-handler function
+  type parameter lists now use explicit capacities.
+- ✅ `src/parser/ast_domain_data.h` /
+  `src/semantic/type_checker_intent_action_contract.c` — inherited intent-step
+  `who`, `requires`, and `authorized by` lists now carry explicit capacities
+  and avoid semantic `count+1` append paths.
 - `src/runtime/pgy_runtime_builtin_hashmap_inline.h:113-120` — open
   addressing linear probing + strcmp per probe
-- `src/runtime/pgy_runtime_queue_inline.h:40-43` — grow 시 ring 정렬
-  불필요
+- ✅ `src/runtime/pgy_runtime_queue_inline.h` — queue grow now uses `realloc`
+  when `head == 0`; wrap-around queues keep the ordered-copy path.
 - 처방: handle→slot inline hashmap, 빈 문자열 단일 sentinel 공유, AST
   capacity 별도 추적 + `next_pow2` grow, secondary hash 또는 quadratic
   probing
@@ -314,13 +457,14 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   zero 회귀, 큰 .pgy 컴파일 시간 측정 표
 
 **Sprint R (2-3주, Q 후) — 분석 패스 단축**
-- R1. Routine/boundary id 인덱스 (Category C)
-- R2. slot analyzer 1-pass collect
+- R1. [~] Routine/boundary id 인덱스 (HIR routine-name call graph closed;
+  AIR typed boundary-id indexing remains)
+- R2. ✅ slot analyzer 1-pass collect + sorted live-set membership
 
 **Sprint S (1주, R 후) — Runtime trace 정리**
-- S1. Intent registry 핸들→슬롯 inline hashmap
-- S2. step strdup 빈 문자열 단일 sentinel 공유
-- S3. trace string append O(1) amortized (별도 buf+len+cap 트리플)
+- S1. ✅ Intent registry 핸들→슬롯 inline index
+- S2. ✅ step begin 빈 문자열 allocation 제거
+- S3. ✅ trace string append length tracking (`trace_len`)
 
 ### Out of scope (이 audit에서 *안* 다룸)
 - AST arena 이행 (별도 큰 ticket)
@@ -4959,7 +5103,8 @@ Source of truth:
 
 - [~] **DIR (Domain IR)** — declaration graph / intent step graph 시작
   - 완료: `src/compiler/dir.h`, `src/compiler/dir.c`, `src/compiler/dir_collect.c`, `src/compiler/dir_collect_domain.c`, `src/compiler/dir_validate.c`, `pgy --dir`, `test-dir`
-  - 완료: DIR owner split — `dir.c`는 graph storage / lookup / lower orchestration만 담당하고, node/role/party/world/intent collection, zone/relation/effect projection collection, validation/dump는 별도 TU로 분리됨 (`dir.c` 467 LOC, `dir_collect.c` 546 LOC, `dir_collect_domain.c` 274 LOC, `dir_validate.c` 278 LOC)
+- 완료: DIR owner split — `dir.c`는 graph storage / lookup / lower orchestration만 담당하고, node/role/party/world/intent collection, zone/relation/effect projection collection, validation/dump는 별도 TU로 분리됨 (`dir.c` 467 LOC, `dir_collect.c` 546 LOC, `dir_collect_domain.c` 274 LOC, `dir_validate.c` 278 LOC)
+- 완료: DIR storage growth debt — node/edge/owned-name/intent/participant/step/name arrays use explicit capacity fields and geometric growth; `tests/perf_contract_smoke.sh` rejects the old `count+1` realloc pattern.
   - 완료: intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency
   - 완료: role/ability completeness edge, missing-ability-method edge
   - 남음: richer zone/world membership graph
@@ -5130,3 +5275,131 @@ Source of truth:
   CI target groups were run in slices: `test-all`, tooling/stdlib/module,
   docs/runtime/diagnostics/IR/example gates, AIR nonimpact, LLVM ABI/campaign,
   and backend compare all completed green locally.
+
+## Progress Log - 2026-05-02 Parser Intent Append Capacity Closure
+
+- Intent declaration parsing now tracks geometric capacities for involves,
+  values, binding inventory, step inventory, and intent-level `who` defaults.
+  This removes the beta-core parser `count+1 realloc` path for intent headers
+  and body clauses.
+- Intent step parsing now tracks geometric capacities for `who`,
+  `authorized by`, `requires`, `on`, and `compensate` clause collections. The
+  parser helper seam now takes explicit capacity pointers instead of hiding
+  one-element growth behind `intent_append_node` / `parse_intent_name_list`.
+- `tests/perf_contract_smoke.sh` now gates these capacity fields and rejects
+  regression to count-only append in `parser_intent.c` and
+  `parser_intent_step.c`.
+- Verified slice probes: direct GCC compile probes for `parser_intent.c`,
+  `parser_intent_step.c`, and `ast_domain_constructors.c`.
+
+## Progress Log - 2026-05-02 Parser Domain Local Buffer Capacity Closure
+
+- World composed-state input-name parsing now uses a local geometric capacity
+  buffer instead of rebuilding the temporary array on every input.
+- Zone grouped slot/layer name parsing now uses a local geometric capacity
+  buffer instead of `malloc(count+1) + memcpy + free` for every name.
+- `tests/perf_contract_smoke.sh` now rejects count-only append regressions in
+  `parser_domain_world.c` and `parser_domain_zone.c`.
+- Verified slice probes: direct GCC compile probes for
+  `parser_domain_world.c` and `parser_domain_zone.c`.
+
+## Progress Log - 2026-05-02 Parser Projection Buffer Capacity Closure
+
+- Projection target-name parsing now uses a geometric capacity buffer instead of
+  rebuilding the target array per refresh/publish/bind target.
+- Projection field-map parsing now uses geometric capacity for paired
+  target/source field arrays instead of per-entry `malloc(count+1) + memcpy`.
+- `tests/perf_contract_smoke.sh` now rejects count-only append regression in
+  `parser_domain_projection.c`.
+- Verified slice probe: direct GCC compile probe for
+  `parser_domain_projection.c`.
+
+## Progress Log - 2026-05-02 Parser Match Capacity Closure
+
+- Match statement case lists and match-case OR-pattern lists now carry explicit
+  capacities and grow geometrically during parsing.
+- `tests/perf_contract_smoke.sh` now gates `pattern_capacity` and rejects
+  match case / pattern regression to count-only append.
+- Verified slice probes: direct GCC compile probes for `parser_stmt.c` and
+  `ast_constructors.c`.
+
+## Progress Log - 2026-05-02 Parser Enum Method Capacity Closure
+
+- Enum method lists now carry explicit capacity and grow geometrically during
+  parsing instead of reallocating to `method_count + 1` per method.
+- `tests/perf_contract_smoke.sh` now rejects enum method append regression to
+  count-only growth.
+- Verified slice probe: direct GCC compile probe for `parser_enum.c`.
+
+## Progress Log - 2026-05-02 Parser Lambda Parameter Capacity Closure
+
+- Lambda parameter lists now carry explicit capacity and use the shared
+  expression-list capacity helper. The old count-only `parser_append_expr_node`
+  helper was removed from `parser_expr.c`.
+- `tests/perf_contract_smoke.sh` now rejects expression append paths that bypass
+  the capacity helper.
+- Verified slice probes: direct GCC compile probes for `parser_expr.c` and
+  `ast_domain_tail_constructors.c`.
+
+## Progress Log - 2026-05-02 Parser Domain Shared Append Capacity Closure
+
+- Shared domain parser append helpers now require explicit capacity pointers:
+  `append_domain_slot` and `append_child_node` no longer own hidden `count+1`
+  realloc growth.
+- Domain-heavy AST payloads now carry capacity fields for party/roster/world,
+  relation/effect/zone, role-slot ability lists, zone authority abilities, and
+  ability/role/impl/event parser lists.
+- Projection sync append now passes the destination refresh capacity through the
+  domain parser helper seam, so relation/effect/zone projection entries use the
+  same capacity contract.
+- The parser `count+1` append scan for the tracked patterns is now empty.
+  `tests/perf_contract_smoke.sh` rejects regression in the shared domain
+  helpers.
+- Verified slice probes: direct GCC compile probes for `parser_domain.c`,
+  `parser_domain_relation_effect.c`, `parser_domain_zone.c`,
+  `parser_domain_projection.c`, `parser_domain_world.c`,
+  `parser_domain_roster.c`, and `parser_domain_event.c`.
+
+## Progress Log - 2026-05-02 Parser Count+1 Append Scan Closure
+
+- Structured comment tags now carry `tag_capacity` and grow geometrically in
+  `parser_doc.c`.
+- The tracked `count+1` append scan across `src/**/*.c` and `src/**/*.h` is now
+  empty for the grep patterns used by the perf/debt audit.
+- `tests/perf_contract_smoke.sh` now gates structured-comment tag capacity and
+  rejects regression to `tag_count + 1`.
+- Verified slice probe: direct GCC compile probe for `parser_doc.c`.
+
+## Progress Log - 2026-05-02 LLVM MIR Inventory Diagnostic Routing
+
+- Added `llvm_set_mir_inventory_missing(...)` as the central diagnostic helper
+  for LLVM MIR inventory gaps. It always attaches
+  `PGY_CODE_LLVM_MIR_ROUTINE_MISSING`,
+  `PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING`, and
+  `PGY_FIX_INSPECT_MIR_INVENTORY`.
+- Converted the intent entry path and top-level/class method pipeline missing
+  inventory errors, including the top-level executable wrapper path, from
+  ad-hoc error routing to the central helper.
+  These remain honest hard errors; the change closes diagnostic routing drift,
+  not the underlying declaration inventory TODO.
+- `tests/mir_declaration_inventory_smoke.sh` now gates the helper and rejects
+  plain-error regression for these MIR-missing diagnostics.
+- Verified slice probes: direct GCC compile probes for `llvm_error.c`,
+  `llvm_intent.c`, and `llvm_pipeline.c` with `PGY_LLVM_ENABLED`.
+
+## Progress - 2026-05-02 - LLVM MIR declaration metadata-first close
+
+- LLVM nominal method forward registration now iterates `MIRDeclMethod`
+  metadata arrays through `llvm_host_decl_method_metadata(...)` instead of
+  walking `class_decl.methods[]` / `enum_decl.methods[]` AST arrays.
+- LLVM class-method routine emission now consumes `MIRDeclMethod.has_routine`
+  and `MIRDeclMethod.routine_index`. The old local method-routine fallback scan
+  was removed so missing links fail through the shared MIR inventory diagnostic.
+- `llvm_set_mir_inventory_missing(...)` remains the required path for
+  declaration/routine inventory gaps. `mir_declaration_inventory_smoke.sh`
+  now gates metadata-first registration and rejects AST method-array loops.
+- Local lightweight gate passed:
+  `documentation_quality_smoke`, `perf_contract_smoke`, `source_utf8_smoke`,
+  `test_inc_size_smoke`, `air_drift_smoke`,
+  `type_resolution_resolver_inventory_smoke`,
+  `mir_declaration_inventory_smoke`, and `beta_readiness_checklist_smoke`.

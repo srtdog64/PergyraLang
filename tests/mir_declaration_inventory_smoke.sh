@@ -90,12 +90,37 @@ done
 
 for term in \
     "llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count)" \
-    "llvm_find_host_decl_methods_in_context(ctx, cls_name, &methods, &method_count)" \
+    "llvm_host_decl_method_metadata(decl_header" \
+    "method_meta->has_routine" \
+    "method_meta->routine_index" \
+    "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing routine for class method" \
     "MIR-only LLVM path missing routine for function" \
     "declaration inventory is still AST-carried inside MIRProgram"; do
     require_term "src/codegen/llvm_pipeline.c" "$term"
 done
+if grep -Fq "llvm_find_mir_method_routine" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline class-method emission must use linked MIRDeclMethod routine indexes, not local routine fallback search"
+fi
+if grep -Fq "llvm_find_host_decl_methods_in_context(ctx, cls_name" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline class-method emission must consume MIRDeclMethod metadata, not AST method arrays"
+fi
+
+require_term "src/codegen/llvm_internal_api.h" "llvm_set_mir_inventory_missing"
+require_term "src/codegen/llvm_error.c" "llvm_set_mir_inventory_missing"
+require_term "src/codegen/llvm_error.c" "PGY_CODE_LLVM_MIR_ROUTINE_MISSING"
+require_term "src/codegen/llvm_error.c" "PGY_FIX_INSPECT_MIR_INVENTORY"
+
+if grep -A8 -F "MIR-only LLVM path missing intent routine" \
+    "$ROOT_DIR/src/codegen/llvm_intent.c" | grep -Fq "llvm_set_error(ctx"; then
+    fail "LLVM intent MIR-missing diagnostics must use llvm_set_mir_inventory_missing"
+fi
+if grep -A8 -F "MIR-only LLVM path missing routine for function" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c" | grep -Fq "llvm_set_error(ctx"; then
+    fail "LLVM pipeline MIR-missing diagnostics must use llvm_set_mir_inventory_missing"
+fi
 
 require_term "src/codegen/llvm_domain.c" "llvm_active_domain_inventory(ctx, &inventory)"
 
@@ -157,10 +182,21 @@ for term in \
     "llvm_mir_decl_method_param_count(method_meta)" \
     "llvm_mir_decl_method_return_type(method_meta)" \
     "llvm_mir_decl_method_is_action_like(method_meta)" \
+    "llvm_host_decl_method_metadata" \
+    "llvm_mir_decl_method_ast(method_meta)" \
+    "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing enum method declaration metadata" \
     "MIR-only LLVM path missing class method declaration metadata"; do
     require_term "src/codegen/llvm_register.c" "$term"
 done
+if grep -Eq 'for[[:space:]]*\([^)]*stmt->data\.(enum_decl|class_decl)\.method_count' \
+    "$ROOT_DIR/src/codegen/llvm_register.c"; then
+    fail "LLVM nominal method registration must iterate MIRDeclMethod metadata, not AST method_count"
+fi
+if grep -Eq 'stmt->data\.(enum_decl|class_decl)\.methods\[[^]]+\]' \
+    "$ROOT_DIR/src/codegen/llvm_register.c"; then
+    fail "LLVM nominal method registration must not index AST method arrays"
+fi
 
 domain_method_forward_body="$(
     awk '

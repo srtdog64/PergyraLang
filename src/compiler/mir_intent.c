@@ -6,15 +6,18 @@
 static bool
 mir_intent_append_instruction(MIRBasicBlock *block, MIRInstruction inst)
 {
-    MIRInstruction *grown;
-
     if (block == NULL)
         return false;
-    grown = realloc(block->instructions, (block->instruction_count + 1) * sizeof(MIRInstruction));
-    if (grown == NULL)
-        return false;
-    grown[block->instruction_count] = inst;
-    block->instructions = grown;
+    if (block->instruction_count == block->instruction_capacity) {
+        size_t next_capacity = block->instruction_capacity == 0 ? 8 : block->instruction_capacity * 2;
+        MIRInstruction *grown =
+            realloc(block->instructions, next_capacity * sizeof(MIRInstruction));
+        if (grown == NULL)
+            return false;
+        block->instructions = grown;
+        block->instruction_capacity = next_capacity;
+    }
+    block->instructions[block->instruction_count] = inst;
     block->instruction_count++;
     return true;
 }

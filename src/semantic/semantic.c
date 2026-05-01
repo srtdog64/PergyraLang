@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "../common/string_compat.h"
 #include "semantic.h"
 #include "diag_payload.h"
@@ -19,17 +20,63 @@ static bool
 semantic_program_append_statement(ASTNode *program, ASTNode *stmt)
 {
     ASTNode **grown;
+    size_t new_capacity;
 
     if (program == NULL || program->type != AST_PROGRAM || stmt == NULL)
         return false;
 
-    grown = realloc(program->data.program.statements,
-        sizeof(ASTNode *) * (program->data.program.count + 1));
-    if (grown == NULL)
-        return false;
+    if (program->data.program.count >= program->data.program.capacity) {
+        new_capacity = program->data.program.capacity == 0
+            ? 8
+            : program->data.program.capacity * 2;
+        if (new_capacity < program->data.program.capacity
+            || new_capacity > SIZE_MAX / sizeof(ASTNode *)) {
+            return false;
+        }
+        grown = realloc(program->data.program.statements,
+            sizeof(ASTNode *) * new_capacity);
+        if (grown == NULL)
+            return false;
+        program->data.program.statements = grown;
+        program->data.program.capacity = new_capacity;
+    }
 
-    program->data.program.statements = grown;
     program->data.program.statements[program->data.program.count++] = stmt;
+    return true;
+}
+
+static bool
+semantic_loaded_modules_append(char ***module_names,
+                               size_t *count,
+                               size_t *capacity,
+                               const char *module_name)
+{
+    char **grown;
+    size_t new_capacity;
+    char *copy;
+
+    if (module_names == NULL || count == NULL || capacity == NULL
+        || module_name == NULL) {
+        return false;
+    }
+
+    if (*count >= *capacity) {
+        new_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        if (new_capacity < *capacity
+            || new_capacity > SIZE_MAX / sizeof(char *)) {
+            return false;
+        }
+        grown = realloc(*module_names, sizeof(char *) * new_capacity);
+        if (grown == NULL)
+            return false;
+        *module_names = grown;
+        *capacity = new_capacity;
+    }
+
+    copy = pergyra_strdup(module_name);
+    if (copy == NULL)
+        return false;
+    (*module_names)[(*count)++] = copy;
     return true;
 }
 
@@ -52,6 +99,7 @@ semantic_preload_stdlib_uses(ASTNode *ast)
 {
     char  **loaded_modules = NULL;
     size_t  loaded_count = 0;
+    size_t  loaded_capacity = 0;
     PgyArena path_arena;
 
     if (ast == NULL || ast->type != AST_PROGRAM)
@@ -92,16 +140,10 @@ semantic_preload_stdlib_uses(ASTNode *ast)
             continue;
         }
 
-        {
-            char **grown = realloc(loaded_modules, sizeof(char *) * (loaded_count + 1));
-            if (grown != NULL) {
-                loaded_modules = grown;
-                loaded_modules[loaded_count] =
-                    pergyra_strdup(stmt->data.use_decl.module_name);
-                if (loaded_modules[loaded_count] != NULL)
-                    loaded_count++;
-            }
-        }
+        (void)semantic_loaded_modules_append(&loaded_modules,
+                                             &loaded_count,
+                                             &loaded_capacity,
+                                             stmt->data.use_decl.module_name);
 
         for (size_t j = 0; j < loaded->data.program.count; j++) {
             ASTNode *imported_stmt = loaded->data.program.statements[j];

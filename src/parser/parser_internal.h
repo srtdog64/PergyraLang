@@ -111,9 +111,10 @@ ASTNode *parse_world_declaration(Parser *parser);
 ASTNode *parse_intent_declaration(Parser *parser);
 ASTNode *parse_intent_step(Parser *parser);
 bool parser_intent_match_keyword(Parser *parser, const char *keyword);
-void intent_append_node(ASTNode ***items, size_t *count, ASTNode *node);
+bool intent_append_node(ASTNode ***items, size_t *count, size_t *capacity,
+                        ASTNode *node);
 void parse_intent_name_list(Parser *parser, char ***items, size_t *count,
-                            const char *message);
+                            size_t *capacity, const char *message);
 ASTNode *parse_relation_declaration(Parser *parser);
 ASTNode *parse_effect_declaration(Parser *parser);
 ASTNode *parse_zone_declaration(Parser *parser);

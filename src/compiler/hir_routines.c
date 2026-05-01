@@ -11,13 +11,17 @@
 #include "hir_lower_cfg.h"
 
 static bool
-append_decl(HIRDecl **decls, size_t *count, HIRDecl decl)
+append_decl(HIRDecl **decls, size_t *count, size_t *capacity, HIRDecl decl)
 {
-    HIRDecl *grown = realloc(*decls, (*count + 1) * sizeof(HIRDecl));
-    if (grown == NULL)
-        return false;
-    grown[*count] = decl;
-    *decls = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 16 : *capacity * 2;
+        HIRDecl *grown = realloc(*decls, next_capacity * sizeof(HIRDecl));
+        if (grown == NULL)
+            return false;
+        *decls = grown;
+        *capacity = next_capacity;
+    }
+    (*decls)[*count] = decl;
     (*count)++;
     return true;
 }
@@ -203,23 +207,28 @@ hir_finish_func_routine(HIRRoutine *routine, ASTNode *func)
         return false;
     if (!hir_collect_func_signature_refs(func,
                                          &routine->signature_type_refs,
-                                         &routine->signature_type_ref_count)) {
+                                         &routine->signature_type_ref_count,
+                                         &routine->signature_type_ref_capacity)) {
         return false;
     }
     return hir_collect_direct_calls(func->data.func_decl.body,
                                     &routine->direct_calls,
-                                    &routine->direct_call_count);
+                                    &routine->direct_call_count,
+                                    &routine->direct_call_capacity);
 }
 
 static bool
 hir_append_routine(HIRProgram *hir, HIRRoutine *routine)
 {
-    HIRRoutine *grown = realloc(hir->routines,
-                                (hir->routine_count + 1) * sizeof(HIRRoutine));
-    if (grown == NULL)
-        return false;
-    grown[hir->routine_count] = *routine;
-    hir->routines = grown;
+    if (hir->routine_count == hir->routine_capacity) {
+        size_t next_capacity = hir->routine_capacity == 0 ? 16 : hir->routine_capacity * 2;
+        HIRRoutine *grown = realloc(hir->routines, next_capacity * sizeof(HIRRoutine));
+        if (grown == NULL)
+            return false;
+        hir->routines = grown;
+        hir->routine_capacity = next_capacity;
+    }
+    hir->routines[hir->routine_count] = *routine;
     hir->routine_count++;
     return true;
 }
@@ -390,25 +399,29 @@ hir_collect_intent_calls(ASTNode *intent, HIRRoutine *routine)
 {
     if (!hir_collect_intent_signature_refs(intent,
                                            &routine->signature_type_refs,
-                                           &routine->signature_type_ref_count)) {
+                                           &routine->signature_type_ref_count,
+                                           &routine->signature_type_ref_capacity)) {
         return false;
     }
     if (intent->data.intent_decl.priority_expr != NULL
         && !hir_collect_direct_calls(intent->data.intent_decl.priority_expr,
                                      &routine->direct_calls,
-                                     &routine->direct_call_count)) {
+                                     &routine->direct_call_count,
+                                     &routine->direct_call_capacity)) {
         return false;
     }
     if (intent->data.intent_decl.success_expr != NULL
         && !hir_collect_direct_calls(intent->data.intent_decl.success_expr,
                                      &routine->direct_calls,
-                                     &routine->direct_call_count)) {
+                                     &routine->direct_call_count,
+                                     &routine->direct_call_capacity)) {
         return false;
     }
     if (intent->data.intent_decl.failure_expr != NULL
         && !hir_collect_direct_calls(intent->data.intent_decl.failure_expr,
                                      &routine->direct_calls,
-                                     &routine->direct_call_count)) {
+                                     &routine->direct_call_count,
+                                     &routine->direct_call_capacity)) {
         return false;
     }
 
@@ -418,38 +431,46 @@ hir_collect_intent_calls(ASTNode *intent, HIRRoutine *routine)
             continue;
         if (!hir_collect_direct_calls(step->data.intent_step.using_expr,
                                       &routine->direct_calls,
-                                      &routine->direct_call_count))
+                                      &routine->direct_call_count,
+                                      &routine->direct_call_capacity))
             return false;
         if (!hir_collect_direct_calls(step->data.intent_step.pre_expr,
                                       &routine->direct_calls,
-                                      &routine->direct_call_count))
+                                      &routine->direct_call_count,
+                                      &routine->direct_call_capacity))
             return false;
         if (!hir_collect_direct_calls(step->data.intent_step.guard_expr,
                                       &routine->direct_calls,
-                                      &routine->direct_call_count))
+                                      &routine->direct_call_count,
+                                      &routine->direct_call_capacity))
             return false;
         if (!hir_collect_direct_calls(step->data.intent_step.post_expr,
                                       &routine->direct_calls,
-                                      &routine->direct_call_count))
+                                      &routine->direct_call_count,
+                                      &routine->direct_call_capacity))
             return false;
         if (!hir_collect_direct_calls(step->data.intent_step.invariant_expr,
                                       &routine->direct_calls,
-                                      &routine->direct_call_count))
+                                      &routine->direct_call_count,
+                                      &routine->direct_call_capacity))
             return false;
         if (!hir_collect_direct_calls(step->data.intent_step.expect_expr,
                                       &routine->direct_calls,
-                                      &routine->direct_call_count))
+                                      &routine->direct_call_count,
+                                      &routine->direct_call_capacity))
             return false;
         for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
             if (!hir_collect_direct_calls(step->data.intent_step.on_exprs[j],
                                           &routine->direct_calls,
-                                          &routine->direct_call_count))
+                                          &routine->direct_call_count,
+                                          &routine->direct_call_capacity))
                 return false;
         }
         for (size_t j = 0; j < step->data.intent_step.compensate_expr_count; j++) {
             if (!hir_collect_direct_calls(step->data.intent_step.compensate_exprs[j],
                                           &routine->direct_calls,
-                                          &routine->direct_call_count))
+                                          &routine->direct_call_count,
+                                          &routine->direct_call_capacity))
                 return false;
         }
     }
@@ -470,7 +491,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
     decl.phase = hir_phase_for_kind(item.kind);
     decl.ast = item.ast;
     decl.name = item.name;
-    if (!append_decl(&hir->decls, &hir->decl_count, decl))
+    if (!append_decl(&hir->decls, &hir->decl_count, &hir->decl_capacity, decl))
         goto oom;
 
     if (item.kind == HIR_TOPLEVEL_FUNCTION

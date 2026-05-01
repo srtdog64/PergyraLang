@@ -131,47 +131,56 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
 }
 
 void
-append_domain_slot(ASTNode ***slots, size_t *slot_count, ASTNode *slot)
+append_domain_slot(ASTNode ***slots, size_t *slot_count,
+                   size_t *slot_capacity, ASTNode *slot)
 {
     ASTNode **grown;
-    size_t next_count;
+    size_t next_capacity;
 
-    if (slots == NULL || slot_count == NULL || slot == NULL)
+    if (slots == NULL || slot_count == NULL || slot_capacity == NULL
+        || slot == NULL)
         return;
 
-    if (*slot_count >= (size_t)-1 / sizeof(ASTNode *))
-        return;
+    if (*slot_count >= *slot_capacity) {
+        next_capacity = *slot_capacity == 0 ? 4 : *slot_capacity * 2;
+        if (next_capacity <= *slot_count
+            || next_capacity > (size_t)-1 / sizeof(ASTNode *))
+            return;
+        grown = realloc(*slots, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL)
+            return;
+        *slots = grown;
+        *slot_capacity = next_capacity;
+    }
 
-    next_count = *slot_count + 1;
-    grown = realloc(*slots, next_count * sizeof(ASTNode *));
-    if (grown == NULL)
-        return;
-
-    grown[*slot_count] = slot;
-    *slots = grown;
-    *slot_count = next_count;
+    (*slots)[*slot_count] = slot;
+    *slot_count += 1;
 }
 
 void
-append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node)
+append_child_node(ASTNode ***nodes, size_t *count, size_t *capacity,
+                  ASTNode *node)
 {
     ASTNode **grown;
-    size_t next_count;
+    size_t next_capacity;
 
-    if (nodes == NULL || count == NULL || node == NULL)
+    if (nodes == NULL || count == NULL || capacity == NULL || node == NULL)
         return;
 
-    if (*count >= (size_t)-1 / sizeof(ASTNode *))
-        return;
+    if (*count >= *capacity) {
+        next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        if (next_capacity <= *count
+            || next_capacity > (size_t)-1 / sizeof(ASTNode *))
+            return;
+        grown = realloc(*nodes, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL)
+            return;
+        *nodes = grown;
+        *capacity = next_capacity;
+    }
 
-    next_count = *count + 1;
-    grown = realloc(*nodes, next_count * sizeof(ASTNode *));
-    if (grown == NULL)
-        return;
-
-    grown[*count] = node;
-    *nodes = grown;
-    *count = next_count;
+    (*nodes)[*count] = node;
+    *count += 1;
 }
 
 char *
@@ -230,11 +239,13 @@ ASTNode* parse_party_declaration(Parser* parser) {
             do {
                 ASTNode* ability_type = parse_type(parser);
                 append_child_node(&rs->data.role_slot.required_abilities,
-                    &rs->data.role_slot.ability_count, ability_type);
+                    &rs->data.role_slot.ability_count,
+                    &rs->data.role_slot.ability_capacity, ability_type);
             } while (parser_match(parser, TOKEN_AND));
 
             append_child_node(&party->data.party_decl.role_slots,
-                &party->data.party_decl.role_count, rs);
+                &party->data.party_decl.role_count,
+                &party->data.party_decl.role_capacity, rs);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -258,7 +269,8 @@ ASTNode* parse_party_declaration(Parser* parser) {
             }
 
             append_child_node(&party->data.party_decl.shared_fields,
-                &party->data.party_decl.shared_count, shared);
+                &party->data.party_decl.shared_count,
+                &party->data.party_decl.shared_capacity, shared);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -268,7 +280,8 @@ ASTNode* parse_party_declaration(Parser* parser) {
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
             append_child_node(&party->data.party_decl.methods,
-                &party->data.party_decl.method_count, method);
+                &party->data.party_decl.method_count,
+                &party->data.party_decl.method_capacity, method);
 
         } else {
             parser_discard_pending_doc_comment(parser);
@@ -320,7 +333,8 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
             req->column = field_name.column;
 
             append_child_node(&ability->data.ability_decl.require_fields,
-                &ability->data.ability_decl.require_count, req);
+                &ability->data.ability_decl.require_count,
+                &ability->data.ability_decl.require_capacity, req);
 
             /* Optional semicolon */
             parser_match(parser, TOKEN_SEMICOLON);
@@ -331,7 +345,8 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
             append_child_node(&ability->data.ability_decl.methods,
-                &ability->data.ability_decl.method_count, method);
+                &ability->data.ability_decl.method_count,
+                &ability->data.ability_decl.method_capacity, method);
 
         } else {
             parser_discard_pending_doc_comment(parser);
@@ -387,7 +402,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
             inc->data.include_stmt.type_args = parse_type_arguments(parser);
 
             append_child_node(&role->data.role_decl.includes,
-                &role->data.role_decl.include_count, inc);
+                &role->data.role_decl.include_count,
+                &role->data.role_decl.include_capacity, inc);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -409,7 +425,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
                 if (parser_match(parser, TOKEN_FUNC)) {
                     ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
                     append_child_node(&impl->data.impl_ability.methods,
-                        &impl->data.impl_ability.method_count, method);
+                        &impl->data.impl_ability.method_count,
+                        &impl->data.impl_ability.method_capacity, method);
                 } else {
                     parser_discard_pending_doc_comment(parser);
                     parser_error(parser,
@@ -421,7 +438,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
                 "Expected '}' after impl ability body");
 
             append_child_node(&role->data.role_decl.impl_abilities,
-                &role->data.role_decl.impl_count, impl);
+                &role->data.role_decl.impl_count,
+                &role->data.role_decl.impl_capacity, impl);
 
         } else if (parser_match(parser, TOKEN_OVERRIDE)) {
             /* override func FuncName(...) { ... } */
@@ -437,7 +455,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
 
             /* Add as an impl with special name "__override__" */
             append_child_node(&role->data.role_decl.impl_abilities,
-                &role->data.role_decl.impl_count, ovr);
+                &role->data.role_decl.impl_count,
+                &role->data.role_decl.impl_capacity, ovr);
 
         } else if (parser_match(parser, TOKEN_FUNC)) {
             /* Direct method in role (not in impl block) */
@@ -446,11 +465,13 @@ ASTNode* parse_role_declaration(Parser* parser) {
             /* Wrap as impl with no ability name (role's own method) */
             ASTNode* impl = ast_create_impl_ability(NULL);
             impl->data.impl_ability.method_count = 1;
+            impl->data.impl_ability.method_capacity = 1;
             impl->data.impl_ability.methods = calloc(1, sizeof(ASTNode*));
             impl->data.impl_ability.methods[0] = method;
 
             append_child_node(&role->data.role_decl.impl_abilities,
-                &role->data.role_decl.impl_count, impl);
+                &role->data.role_decl.impl_count,
+                &role->data.role_decl.impl_capacity, impl);
 
         } else {
             parser_discard_pending_doc_comment(parser);

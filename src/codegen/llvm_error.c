@@ -149,6 +149,24 @@ llvm_set_error_at_with_hints(LLVMGenCtx *ctx, ASTNode *node, const char *code,
     va_end(args);
 }
 
+void
+llvm_set_mir_inventory_missing(LLVMGenCtx *ctx, const char *fmt, ...)
+{
+    if (ctx->has_error)
+        return;
+    ctx->has_error = true;
+    ctx->error_line = 0;
+    ctx->error_column = 0;
+    ctx->error_code = PGY_CODE_LLVM_MIR_ROUTINE_MISSING;
+    ctx->error_cause_ir = PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING;
+    ctx->error_fix_source = PGY_FIX_INSPECT_MIR_INVENTORY;
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    va_end(args);
+}
+
 LLVMGenResult *
 llvm_result_error(const char *message)
 {

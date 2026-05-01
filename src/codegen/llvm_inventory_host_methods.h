@@ -103,6 +103,14 @@ llvm_mir_decl_method_name(const MIRDeclMethod *method)
     return NULL;
 }
 
+static inline ASTNode *
+llvm_mir_decl_method_ast(const MIRDeclMethod *method)
+{
+    if (method != NULL)
+        return method->ast;
+    return NULL;
+}
+
 static inline size_t
 llvm_mir_decl_method_param_count(const MIRDeclMethod *method)
 {

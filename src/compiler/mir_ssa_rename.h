@@ -6,6 +6,7 @@ mir_collect_ssa_names(const MIRRoutine *routine, const char ***names_out, size_t
 {
     const char **names = NULL;
     size_t count = 0;
+    size_t capacity = 0;
 
     if (names_out == NULL || count_out == NULL)
         return false;
@@ -17,13 +18,13 @@ mir_collect_ssa_names(const MIRRoutine *routine, const char ***names_out, size_t
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
         for (size_t j = 0; j < block->source_local_def_count; j++) {
-            if (!append_name_unique(&names, &count, block->source_local_defs[j])) {
+            if (!append_name_unique(&names, &count, &capacity, block->source_local_defs[j])) {
                 free((void *)names);
                 return false;
             }
         }
         for (size_t j = 0; j < block->source_phi_node_count; j++) {
-            if (!append_name_unique(&names, &count, block->source_phi_nodes[j].name)) {
+            if (!append_name_unique(&names, &count, &capacity, block->source_phi_nodes[j].name)) {
                 free((void *)names);
                 return false;
             }
@@ -48,34 +49,67 @@ mir_find_ssa_name_index(const char **names, size_t count, const char *name)
 }
 
 static bool
-mir_collect_expr_identifier_uses(ASTNode *node, const char ***uses, size_t *use_count)
+mir_collect_expr_identifier_uses(ASTNode *node,
+                                 const char ***uses,
+                                 size_t *use_count,
+                                 size_t *use_capacity)
 {
     if (node == NULL)
         return true;
     switch (node->type) {
         case AST_IDENTIFIER:
-            return append_name_unique(uses, use_count, node->data.identifier.name);
+            return append_name_unique(uses, use_count, use_capacity, node->data.identifier.name);
         case AST_BINARY:
-            return mir_collect_expr_identifier_uses(node->data.binary.left, uses, use_count)
-                   && mir_collect_expr_identifier_uses(node->data.binary.right, uses, use_count);
+            return mir_collect_expr_identifier_uses(node->data.binary.left,
+                                                    uses,
+                                                    use_count,
+                                                    use_capacity)
+                   && mir_collect_expr_identifier_uses(node->data.binary.right,
+                                                       uses,
+                                                       use_count,
+                                                       use_capacity);
         case AST_UNARY:
-            return mir_collect_expr_identifier_uses(node->data.unary.operand, uses, use_count);
+            return mir_collect_expr_identifier_uses(node->data.unary.operand,
+                                                    uses,
+                                                    use_count,
+                                                    use_capacity);
         case AST_CALL:
-            if (!mir_collect_expr_identifier_uses(node->data.call.callee, uses, use_count))
+            if (!mir_collect_expr_identifier_uses(node->data.call.callee,
+                                                  uses,
+                                                  use_count,
+                                                  use_capacity))
                 return false;
             for (size_t i = 0; i < node->data.call.arg_count; i++) {
-                if (!mir_collect_expr_identifier_uses(node->data.call.arguments[i], uses, use_count))
+                if (!mir_collect_expr_identifier_uses(node->data.call.arguments[i],
+                                                      uses,
+                                                      use_count,
+                                                      use_capacity))
                     return false;
             }
             return true;
         case AST_MEMBER_ACCESS:
-            return mir_collect_expr_identifier_uses(node->data.member.object, uses, use_count);
+            return mir_collect_expr_identifier_uses(node->data.member.object,
+                                                    uses,
+                                                    use_count,
+                                                    use_capacity);
         case AST_ARRAY_ACCESS:
-            return mir_collect_expr_identifier_uses(node->data.array_access.array, uses, use_count)
-                   && mir_collect_expr_identifier_uses(node->data.array_access.index, uses, use_count);
+            return mir_collect_expr_identifier_uses(node->data.array_access.array,
+                                                    uses,
+                                                    use_count,
+                                                    use_capacity)
+                   && mir_collect_expr_identifier_uses(node->data.array_access.index,
+                                                       uses,
+                                                       use_count,
+                                                       use_capacity);
         case AST_ASSIGNMENT:
-            return mir_collect_expr_identifier_uses(node->data.assignment.target, uses, use_count)
-                   && mir_collect_expr_identifier_uses(node->data.assignment.value, uses, use_count);
+            return mir_collect_expr_identifier_uses(node->data.assignment.target,
+                                                    uses,
+                                                    use_count,
+                                                    use_capacity)
+                   && mir_collect_expr_identifier_uses(node->data.assignment.value,
+                                                       uses,
+                                                       use_count,
+                                                       use_capacity);
         default:
             return true;
     }
@@ -153,7 +187,10 @@ mir_assign_ssa_recursive(MIRRoutine *routine,
             free(current_versions);
             return false;
         }
-        if (!append_name(&mir_block->renamed_locals, &mir_block->renamed_local_count, versioned)) {
+        if (!append_name(&mir_block->renamed_locals,
+                         &mir_block->renamed_local_count,
+                         &mir_block->renamed_local_capacity,
+                         versioned)) {
             free(versioned);
             free(current_versions);
             return false;

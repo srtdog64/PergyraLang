@@ -1,5 +1,36 @@
 # Pergyra 언어 비전
 
+## Beta Then Self-Hosting
+
+Self-hosting is a post-beta validation target, not a beta blocker.
+
+The beta goal is to close the core first: CFG body safety, AIR evidence,
+DAG resolution, MIR/C/LLVM parity, ABI ownership, and the dogfood path. After
+that closure, Pergyra should start dogfooding with compiler-adjacent tools
+written in Pergyra and checked against the existing C implementation.
+
+The intended order is:
+
+1. Finish beta closure and freeze the stable core surface.
+2. Dogfood small tools first: diagnostic catalog checks, AIR graph JSON
+   validation, MIR dump diffing, backend output comparison, and module/package
+   resolver helpers.
+3. Move to beta+ self-hosting work only after those tools can be compiled by
+   the existing compiler and compared against the C implementation.
+4. Treat full compiler self-hosting as a long-term proof of the language, not
+   as the first dogfood milestone.
+
+This keeps C and LLVM as validation anchors. Pergyra code should be compared
+against the existing C compiler behavior before any self-hosted component is
+allowed to become authoritative.
+
+The ownership model is also intentionally not Rust-style lifetime programming.
+Pergyra does not try to statically predict every business-object lifetime.
+Instead, it uses Slot as a resource boundary: static checks reject unsafe
+boundary transitions, while runtime handles validate generation, token, and
+resource state. This is a deliberate design choice, not a missing Rust borrow
+checker.
+
 ## 한 문장 정의
 
 **Pergyra는 포인터를 숨기기 위한 언어가 아니라, 추적하기 어려운 자원을 슬롯 단위로 통제하기 위한 언어다.**

@@ -10,55 +10,48 @@ static bool
 parser_append_async_param(Parser *parser, ASTNode *func, FuncParam *param)
 {
     FuncParam **grown;
-    size_t next_count;
 
     if (parser == NULL || func == NULL || param == NULL)
         return false;
 
-    if (func->data.async_func_decl.param_count >= (size_t)-1 / sizeof(FuncParam *)) {
-        parser_error(parser, "Too many async function parameters");
-        return false;
+    if (func->data.async_func_decl.param_count == func->data.async_func_decl.param_capacity) {
+        size_t next_capacity = func->data.async_func_decl.param_capacity == 0
+            ? 4
+            : func->data.async_func_decl.param_capacity * 2;
+        grown = realloc(func->data.async_func_decl.params, next_capacity * sizeof(FuncParam *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while parsing async function parameters");
+            return false;
+        }
+        func->data.async_func_decl.params = grown;
+        func->data.async_func_decl.param_capacity = next_capacity;
     }
 
-    next_count = func->data.async_func_decl.param_count + 1;
-    grown = realloc(func->data.async_func_decl.params,
-                    next_count * sizeof(FuncParam *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while parsing async function parameters");
-        return false;
-    }
-
-    func->data.async_func_decl.params = grown;
-    func->data.async_func_decl.params[func->data.async_func_decl.param_count] = param;
-    func->data.async_func_decl.param_count = next_count;
+    func->data.async_func_decl.params[func->data.async_func_decl.param_count++] = param;
     return true;
 }
 
 static bool
-parser_append_async_node(Parser *parser, ASTNode ***nodes, size_t *count,
+parser_append_async_node(Parser *parser, ASTNode ***nodes, size_t *count, size_t *capacity,
                          ASTNode *node, const char *error_message)
 {
     ASTNode **grown;
-    size_t next_count;
 
-    if (parser == NULL || nodes == NULL || count == NULL || node == NULL)
+    if (parser == NULL || nodes == NULL || count == NULL || capacity == NULL || node == NULL)
         return false;
 
-    if (*count >= (size_t)-1 / sizeof(ASTNode *)) {
-        parser_error(parser, error_message);
-        return false;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        grown = realloc(*nodes, next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            parser_error(parser, error_message);
+            return false;
+        }
+        *nodes = grown;
+        *capacity = next_capacity;
     }
 
-    next_count = *count + 1;
-    grown = realloc(*nodes, next_count * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, error_message);
-        return false;
-    }
-
-    *nodes = grown;
-    (*nodes)[*count] = node;
-    *count = next_count;
+    (*nodes)[(*count)++] = node;
     return true;
 }
 
@@ -160,6 +153,7 @@ ASTNode* parser_parse_async_block(Parser* parser)
         if (stmt != NULL) {
             parser_append_async_node(parser, &block->data.async_block.statements,
                                      &block->data.async_block.statement_count,
+                                     &block->data.async_block.statement_capacity,
                                      stmt,
                                      "Out of memory while parsing async block");
         }
@@ -330,6 +324,7 @@ ASTNode* parser_parse_select_statement(Parser* parser)
             // Add case to select statement
             parser_append_async_node(parser, &select_stmt->data.select_stmt.cases,
                                      &select_stmt->data.select_stmt.case_count,
+                                     &select_stmt->data.select_stmt.case_capacity,
                                      case_node,
                                      "Out of memory while parsing select cases");
             

@@ -31,9 +31,14 @@ semantic_type_resolution_free_metadata(SemanticContext *ctx)
     free(ctx->type_resolution_metadata.keys);
     free(ctx->type_resolution_metadata.values);
     free(ctx->type_resolution_metadata.owned);
+    free(ctx->type_resolution_metadata.index_keys);
+    free(ctx->type_resolution_metadata.index_entries);
     ctx->type_resolution_metadata.keys = NULL;
     ctx->type_resolution_metadata.values = NULL;
     ctx->type_resolution_metadata.owned = NULL;
+    ctx->type_resolution_metadata.index_keys = NULL;
+    ctx->type_resolution_metadata.index_entries = NULL;
     ctx->type_resolution_metadata.count = 0;
     ctx->type_resolution_metadata.capacity = 0;
+    ctx->type_resolution_metadata.index_capacity = 0;
 }

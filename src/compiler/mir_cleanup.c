@@ -10,14 +10,18 @@
 static bool
 mir_cleanup_append_instruction(MIRBasicBlock *block, MIRInstruction inst)
 {
-    MIRInstruction *grown;
     if (block == NULL)
         return false;
-    grown = realloc(block->instructions, (block->instruction_count + 1) * sizeof(MIRInstruction));
-    if (grown == NULL)
-        return false;
-    grown[block->instruction_count] = inst;
-    block->instructions = grown;
+    if (block->instruction_count == block->instruction_capacity) {
+        size_t next_capacity = block->instruction_capacity == 0 ? 8 : block->instruction_capacity * 2;
+        MIRInstruction *grown =
+            realloc(block->instructions, next_capacity * sizeof(MIRInstruction));
+        if (grown == NULL)
+            return false;
+        block->instructions = grown;
+        block->instruction_capacity = next_capacity;
+    }
+    block->instructions[block->instruction_count] = inst;
     block->instruction_count++;
     return true;
 }
@@ -25,33 +29,39 @@ mir_cleanup_append_instruction(MIRBasicBlock *block, MIRInstruction inst)
 static bool
 mir_cleanup_append_block(MIRRoutine *routine, MIRBasicBlock block)
 {
-    MIRBasicBlock *grown;
     if (routine == NULL)
         return false;
-    grown = realloc(routine->blocks, (routine->block_count + 1) * sizeof(MIRBasicBlock));
-    if (grown == NULL)
-        return false;
-    grown[routine->block_count] = block;
-    routine->blocks = grown;
+    if (routine->block_count == routine->block_capacity) {
+        size_t next_capacity = routine->block_capacity == 0 ? 8 : routine->block_capacity * 2;
+        MIRBasicBlock *grown = realloc(routine->blocks, next_capacity * sizeof(MIRBasicBlock));
+        if (grown == NULL)
+            return false;
+        routine->blocks = grown;
+        routine->block_capacity = next_capacity;
+    }
+    routine->blocks[routine->block_count] = block;
     routine->block_count++;
     return true;
 }
 
 static bool
-mir_cleanup_append_index_unique(size_t **items, size_t *count, size_t value)
+mir_cleanup_append_index_unique(size_t **items, size_t *count, size_t *capacity, size_t value)
 {
-    size_t *grown;
     if (items == NULL || count == NULL)
         return false;
     for (size_t i = 0; i < *count; i++) {
         if ((*items)[i] == value)
             return true;
     }
-    grown = realloc(*items, (*count + 1) * sizeof(size_t));
-    if (grown == NULL)
-        return false;
-    grown[*count] = value;
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        size_t *grown = realloc(*items, next_capacity * sizeof(size_t));
+        if (grown == NULL)
+            return false;
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = value;
     (*count)++;
     return true;
 }
@@ -289,6 +299,7 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         }
         if (!mir_cleanup_append_index_unique(&routine->blocks[routine->cleanup_block].predecessors,
                                              &routine->blocks[routine->cleanup_block].predecessor_count,
+                                             &routine->blocks[routine->cleanup_block].predecessor_capacity,
                                              i)) {
             return false;
         }
@@ -306,6 +317,7 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         cleanup->has_rollback_succ = true;
         if (!mir_cleanup_append_index_unique(&rollback->predecessors,
                                              &rollback->predecessor_count,
+                                             &rollback->predecessor_capacity,
                                              cleanup->id)) {
             return false;
         }
@@ -326,6 +338,7 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         }
         if (!mir_cleanup_append_index_unique(&routine->blocks[rollback_cleanup_target].predecessors,
                                              &routine->blocks[rollback_cleanup_target].predecessor_count,
+                                             &routine->blocks[rollback_cleanup_target].predecessor_capacity,
                                              routine->rollback_block)) {
             return false;
         }
@@ -338,6 +351,7 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         cleanup->has_invalidation_succ = true;
         if (!mir_cleanup_append_index_unique(&invalidation->predecessors,
                                              &invalidation->predecessor_count,
+                                             &invalidation->predecessor_capacity,
                                              cleanup->id)) {
             return false;
         }
@@ -358,6 +372,7 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         }
         if (!mir_cleanup_append_index_unique(&cleanup->predecessors,
                                              &cleanup->predecessor_count,
+                                             &cleanup->predecessor_capacity,
                                              routine->invalidation_block)) {
             return false;
         }
@@ -370,6 +385,7 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         rollback->has_invalidation_succ = true;
         if (!mir_cleanup_append_index_unique(&invalidation->predecessors,
                                              &invalidation->predecessor_count,
+                                             &invalidation->predecessor_capacity,
                                              rollback->id)) {
             return false;
         }

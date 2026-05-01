@@ -101,6 +101,7 @@ ASTNode* ast_create_event_handler_type(void) {
     ASTNode* node = ast_create_node(AST_EVENT_HANDLER_TYPE);
     node->data.event_handler_type.param_types = NULL;
     node->data.event_handler_type.param_count = 0;
+    node->data.event_handler_type.param_capacity = 0;
     node->data.event_handler_type.return_type = NULL;
     return node;
 }
@@ -110,6 +111,7 @@ ASTNode* ast_create_lambda_expression(void) {
     ASTNode* node = ast_create_node(AST_LAMBDA_EXPR);
     node->data.lambda_expr.params = NULL;
     node->data.lambda_expr.param_count = 0;
+    node->data.lambda_expr.param_capacity = 0;
     node->data.lambda_expr.body = NULL;
     node->data.lambda_expr.return_type = NULL;
     node->data.lambda_expr.is_async = false;

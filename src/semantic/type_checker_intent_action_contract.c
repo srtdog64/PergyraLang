@@ -203,18 +203,51 @@ subject_decl_find_action_named(ASTNode *decl, const char *action_name)
 }
 
 static bool
-intent_semantic_append_name(char ***items, size_t *count, const char *name)
+intent_semantic_append_name(char ***items, size_t *count, size_t *capacity, const char *name)
 {
     char **grown;
+    char *owned_name;
 
-    if (items == NULL || count == NULL || name == NULL)
+    if (items == NULL || count == NULL || capacity == NULL || name == NULL)
         return false;
-    grown = realloc(*items, (*count + 1) * sizeof(char *));
-    if (grown == NULL)
+    owned_name = pergyra_strdup(name);
+    if (owned_name == NULL)
         return false;
-    grown[*count] = pergyra_strdup(name);
-    *items = grown;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        grown = realloc(*items, next_capacity * sizeof(char *));
+        if (grown == NULL) {
+            free(owned_name);
+            return false;
+        }
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = owned_name;
     (*count)++;
+    return true;
+}
+
+static bool
+intent_step_append_required_ability(ASTNode *step, ASTNode *ability)
+{
+    ASTNode **grown;
+    if (step == NULL || ability == NULL || step->type != AST_INTENT_STEP)
+        return false;
+    if (step->data.intent_step.required_ability_count
+        == step->data.intent_step.required_ability_capacity) {
+        size_t next_capacity = step->data.intent_step.required_ability_capacity == 0
+            ? 4
+            : step->data.intent_step.required_ability_capacity * 2;
+        grown = realloc(step->data.intent_step.required_abilities,
+            next_capacity * sizeof(ASTNode *));
+        if (grown == NULL)
+            return false;
+        step->data.intent_step.required_abilities = grown;
+        step->data.intent_step.required_ability_capacity = next_capacity;
+    }
+    step->data.intent_step.required_abilities[
+        step->data.intent_step.required_ability_count++] = ability;
     return true;
 }
 
@@ -384,7 +417,9 @@ intent_step_derive_who_from_action(ASTNode *intent_decl, ASTNode *step,
 
     if (matched_alias != NULL
         && intent_semantic_append_name(&step->data.intent_step.who_names,
-               &step->data.intent_step.who_count, matched_alias)) {
+               &step->data.intent_step.who_count,
+               &step->data.intent_step.who_capacity,
+               matched_alias)) {
         step->data.intent_step.inherited_who_from_action = true;
     }
 }
@@ -409,17 +444,17 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
 
     if (step->data.intent_step.required_ability_count == 0
         && action_decl->data.func_decl.required_ability_count > 0) {
+        bool copied_all = true;
         for (size_t i = 0; i < action_decl->data.func_decl.required_ability_count; i++) {
             ASTNode *ability_ref = action_decl->data.func_decl.required_abilities[i];
             ASTNode *ability_copy = ast_clone(ability_ref);
-            size_t next = step->data.intent_step.required_ability_count + 1;
-            step->data.intent_step.required_abilities = realloc(
-                step->data.intent_step.required_abilities,
-                next * sizeof(ASTNode *));
-            step->data.intent_step.required_abilities[next - 1] = ability_copy;
-            step->data.intent_step.required_ability_count = next;
+            if (!intent_step_append_required_ability(step, ability_copy)) {
+                ast_destroy(ability_copy);
+                copied_all = false;
+                break;
+            }
         }
-        step->data.intent_step.inherited_requires_from_action = true;
+        step->data.intent_step.inherited_requires_from_action = copied_all;
     }
 
     if (step->data.intent_step.causes_effect == NULL
@@ -463,7 +498,9 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
                 break;
             }
             if (!intent_semantic_append_name(&step->data.intent_step.authorized_by,
-                    &step->data.intent_step.authorized_by_count, mapped_alias)) {
+                    &step->data.intent_step.authorized_by_count,
+                    &step->data.intent_step.authorized_by_capacity,
+                    mapped_alias)) {
                 mapped_all = false;
                 break;
             }
@@ -477,6 +514,7 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
             free(step->data.intent_step.authorized_by);
             step->data.intent_step.authorized_by = NULL;
             step->data.intent_step.authorized_by_count = 0;
+            step->data.intent_step.authorized_by_capacity = 0;
         }
     }
 }

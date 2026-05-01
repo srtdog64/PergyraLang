@@ -24,34 +24,38 @@ parser_match_domain_layer_group_kind(Parser *parser)
 
 static bool
 parser_append_owned_string(Parser *parser, char ***items, size_t *count,
-                           const char *text)
+                           size_t *capacity, const char *text)
 {
     char **grown;
     char *owned;
-    size_t next_count;
+    size_t next_capacity;
 
-    if (parser == NULL || items == NULL || count == NULL)
+    if (parser == NULL || items == NULL || count == NULL || capacity == NULL)
         return false;
+
+    if (*count >= *capacity) {
+        next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        if (next_capacity <= *count
+            || next_capacity > (size_t)-1 / sizeof(char *)) {
+            parser_error(parser, "Out of memory while growing projection name list");
+            return false;
+        }
+        grown = realloc(*items, next_capacity * sizeof(char *));
+        if (grown == NULL) {
+            parser_error(parser, "Out of memory while growing projection name list");
+            return false;
+        }
+        *items = grown;
+        *capacity = next_capacity;
+    }
+
     owned = pergyra_strdup(text);
     if (owned == NULL) {
         parser_error(parser, "Out of memory while parsing projection name");
         return false;
     }
-
-    next_count = *count + 1;
-    grown = malloc(next_count * sizeof(char *));
-    if (grown == NULL) {
-        free(owned);
-        parser_error(parser, "Out of memory while growing projection name list");
-        return false;
-    }
-
-    if (*items != NULL && *count > 0)
-        memcpy(grown, *items, *count * sizeof(char *));
-    grown[next_count - 1] = owned;
-    free(*items);
-    *items = grown;
-    *count = next_count;
+    (*items)[*count] = owned;
+    *count += 1;
     return true;
 }
 
@@ -60,6 +64,7 @@ parser_append_projection_field_map(Parser *parser,
                                    char ***target_fields,
                                    char ***source_fields,
                                    size_t *count,
+                                   size_t *capacity,
                                    const char *target_text,
                                    const char *source_text)
 {
@@ -67,11 +72,33 @@ parser_append_projection_field_map(Parser *parser,
     char **grown_sources;
     char *owned_target;
     char *owned_source;
-    size_t next_count;
+    size_t next_capacity;
 
     if (parser == NULL || target_fields == NULL || source_fields == NULL
-        || count == NULL) {
+        || count == NULL || capacity == NULL) {
         return false;
+    }
+
+    if (*count >= *capacity) {
+        next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        if (next_capacity <= *count
+            || next_capacity > (size_t)-1 / sizeof(char *)) {
+            parser_error(parser, "Out of memory while growing projection map");
+            return false;
+        }
+        grown_targets = realloc(*target_fields, next_capacity * sizeof(char *));
+        if (grown_targets == NULL) {
+            parser_error(parser, "Out of memory while growing projection map");
+            return false;
+        }
+        *target_fields = grown_targets;
+        grown_sources = realloc(*source_fields, next_capacity * sizeof(char *));
+        if (grown_sources == NULL) {
+            parser_error(parser, "Out of memory while growing projection map");
+            return false;
+        }
+        *source_fields = grown_sources;
+        *capacity = next_capacity;
     }
 
     owned_target = pergyra_strdup(target_text);
@@ -82,30 +109,9 @@ parser_append_projection_field_map(Parser *parser,
         parser_error(parser, "Out of memory while parsing projection map");
         return false;
     }
-
-    next_count = *count + 1;
-    grown_targets = malloc(next_count * sizeof(char *));
-    grown_sources = malloc(next_count * sizeof(char *));
-    if (grown_targets == NULL || grown_sources == NULL) {
-        free(grown_targets);
-        free(grown_sources);
-        free(owned_target);
-        free(owned_source);
-        parser_error(parser, "Out of memory while growing projection map");
-        return false;
-    }
-
-    if (*target_fields != NULL && *count > 0)
-        memcpy(grown_targets, *target_fields, *count * sizeof(char *));
-    if (*source_fields != NULL && *count > 0)
-        memcpy(grown_sources, *source_fields, *count * sizeof(char *));
-    grown_targets[next_count - 1] = owned_target;
-    grown_sources[next_count - 1] = owned_source;
-    free(*target_fields);
-    free(*source_fields);
-    *target_fields = grown_targets;
-    *source_fields = grown_sources;
-    *count = next_count;
+    (*target_fields)[*count] = owned_target;
+    (*source_fields)[*count] = owned_source;
+    *count += 1;
     return true;
 }
 
@@ -115,6 +121,7 @@ parser_parse_projection_field_map(Parser *parser,
                                   char ***mapped_source_fields,
                                   size_t *field_map_count)
 {
+    size_t field_map_capacity = 0;
     if (mapped_target_fields != NULL)
         *mapped_target_fields = NULL;
     if (mapped_source_fields != NULL)
@@ -139,7 +146,8 @@ parser_parse_projection_field_map(Parser *parser,
             && field_map_count != NULL) {
             if (!parser_append_projection_field_map(parser,
                     mapped_target_fields, mapped_source_fields,
-                    field_map_count, target_field.text, source_field.text)) {
+                    field_map_count, &field_map_capacity,
+                    target_field.text, source_field.text)) {
                 break;
             }
         }
@@ -158,6 +166,7 @@ void
 append_domain_projection_sync_entries(Parser *parser,
                                       ASTNode ***refreshes,
                                       size_t *refresh_count,
+                                      size_t *refresh_capacity,
                                       bool allow_participant)
 {
     bool derive_target_kind =
@@ -169,6 +178,7 @@ append_domain_projection_sync_entries(Parser *parser,
         && strcmp(parser->previous_token.text, "publish") == 0;
     char **target_names = NULL;
     size_t target_count = 0;
+    size_t target_capacity = 0;
     unsigned first_line = parser->current_token.line;
     unsigned first_column = parser->current_token.column;
     char **mapped_target_fields = NULL;
@@ -184,7 +194,7 @@ append_domain_projection_sync_entries(Parser *parser,
                         ? "Expected tobject slot name in publish group"
                         : "Expected object slot name in refresh group"));
             if (!parser_append_owned_string(parser, &target_names,
-                    &target_count, target_name.text)) {
+                    &target_count, &target_capacity, target_name.text)) {
                 break;
             }
             if (target_count == 1) {
@@ -202,7 +212,7 @@ append_domain_projection_sync_entries(Parser *parser,
                     ? "Expected tobject slot name after 'publish'"
                     : "Expected object slot name after 'refresh'"));
         if (!parser_append_owned_string(parser, &target_names,
-                &target_count, target_name.text)) {
+                &target_count, &target_capacity, target_name.text)) {
             return;
         }
         first_line = target_name.line;
@@ -256,7 +266,7 @@ append_domain_projection_sync_entries(Parser *parser,
         }
         refresh->line = first_line;
         refresh->column = first_column;
-        append_child_node(refreshes, refresh_count, refresh);
+        append_child_node(refreshes, refresh_count, refresh_capacity, refresh);
         free(target_names[i]);
     }
 

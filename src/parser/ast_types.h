@@ -81,6 +81,7 @@ typedef struct DocTag {
 typedef struct StructuredComment {
     DocTag** tags;
     size_t tag_count;
+    size_t tag_capacity;
     struct StructuredComment* next;  /* Linked list for multiple comment blocks */
 } StructuredComment;
 
@@ -223,6 +224,7 @@ struct GenericParam {
 struct GenericParams {
     GenericParam** params;
     size_t         count;
+    size_t         capacity;
 };
 
 /*
@@ -232,11 +234,13 @@ struct TypeConstraint {
     char*     type_param;
     ASTNode** bounds;      /* Trait bounds */
     size_t    bound_count;
+    size_t    bound_capacity;
 };
 
 struct WhereClause {
     TypeConstraint** constraints;
     size_t           count;
+    size_t           capacity;
 };
 
 /*

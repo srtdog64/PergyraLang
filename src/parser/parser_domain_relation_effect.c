@@ -2,7 +2,7 @@
 
 static void
 parse_header_subject_targets(Parser *parser, ASTNode ***slots, size_t *slot_count,
-                             const char *owner_kind)
+                             size_t *slot_capacity, const char *owner_kind)
 {
     if (!parser_match(parser, TOKEN_FOR))
         return;
@@ -25,7 +25,7 @@ parse_header_subject_targets(Parser *parser, ASTNode ***slots, size_t *slot_coun
         slot->data.domain_slot.is_binding = true;
         slot->line = slot_name.line;
         slot->column = slot_name.column;
-        append_domain_slot(slots, slot_count, slot);
+        append_domain_slot(slots, slot_count, slot_capacity, slot);
     } while (parser_match(parser, TOKEN_COMMA));
 
     (void)owner_kind;
@@ -121,6 +121,7 @@ ASTNode* parse_relation_declaration(Parser* parser) {
     parse_header_subject_targets(parser,
         &relation->data.relation_decl.slots,
         &relation->data.relation_decl.slot_count,
+        &relation->data.relation_decl.slot_capacity,
         "relation");
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after relation name");
 
@@ -131,6 +132,7 @@ ASTNode* parse_relation_declaration(Parser* parser) {
             parse_header_subject_targets(parser,
                 &relation->data.relation_decl.slots,
                 &relation->data.relation_decl.slot_count,
+                &relation->data.relation_decl.slot_capacity,
                 "relation");
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -138,7 +140,8 @@ ASTNode* parse_relation_declaration(Parser* parser) {
             ASTNode *slot = parse_domain_slot_entry(parser, "relation");
             if (slot != NULL) {
                 append_domain_slot(&relation->data.relation_decl.slots,
-                    &relation->data.relation_decl.slot_count, slot);
+                    &relation->data.relation_decl.slot_count,
+                    &relation->data.relation_decl.slot_capacity, slot);
                 parser_match(parser, TOKEN_SEMICOLON);
                 parser_discard_pending_doc_comment(parser);
             } else if (parser_match(parser, TOKEN_SHARED)) {
@@ -159,7 +162,8 @@ ASTNode* parse_relation_declaration(Parser* parser) {
                 }
 
                 append_child_node(&relation->data.relation_decl.shared_fields,
-                    &relation->data.relation_decl.shared_count, shared);
+                    &relation->data.relation_decl.shared_count,
+                    &relation->data.relation_decl.shared_capacity, shared);
 
                 parser_match(parser, TOKEN_SEMICOLON);
                 parser_discard_pending_doc_comment(parser);
@@ -168,14 +172,16 @@ ASTNode* parse_relation_declaration(Parser* parser) {
                        || parser_match(parser, TOKEN_BIND)) {
                 append_domain_projection_sync_entries(parser,
                     &relation->data.relation_decl.refreshes,
-                    &relation->data.relation_decl.refresh_count, false);
+                    &relation->data.relation_decl.refresh_count,
+                    &relation->data.relation_decl.refresh_capacity, false);
                 parser_match(parser, TOKEN_SEMICOLON);
                 parser_discard_pending_doc_comment(parser);
             } else if (parser_match(parser, TOKEN_FUNC)) {
                 ASTNode* method = parser_finalize_statement(parser,
                     parse_function_declaration(parser));
                 append_child_node(&relation->data.relation_decl.methods,
-                    &relation->data.relation_decl.method_count, method);
+                    &relation->data.relation_decl.method_count,
+                    &relation->data.relation_decl.method_capacity, method);
             } else {
                 parser_discard_pending_doc_comment(parser);
                 parser_error(parser,
@@ -198,6 +204,7 @@ ASTNode* parse_effect_declaration(Parser* parser) {
     parse_header_subject_targets(parser,
         &effect->data.effect_decl.slots,
         &effect->data.effect_decl.slot_count,
+        &effect->data.effect_decl.slot_capacity,
         "effect");
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after effect name");
 
@@ -208,6 +215,7 @@ ASTNode* parse_effect_declaration(Parser* parser) {
             parse_header_subject_targets(parser,
                 &effect->data.effect_decl.slots,
                 &effect->data.effect_decl.slot_count,
+                &effect->data.effect_decl.slot_capacity,
                 "effect");
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -215,7 +223,8 @@ ASTNode* parse_effect_declaration(Parser* parser) {
             ASTNode *slot = parse_domain_slot_entry(parser, "effect");
             if (slot != NULL) {
                 append_domain_slot(&effect->data.effect_decl.slots,
-                    &effect->data.effect_decl.slot_count, slot);
+                    &effect->data.effect_decl.slot_count,
+                    &effect->data.effect_decl.slot_capacity, slot);
                 parser_match(parser, TOKEN_SEMICOLON);
                 parser_discard_pending_doc_comment(parser);
             } else if (parser_match(parser, TOKEN_SHARED)) {
@@ -236,7 +245,8 @@ ASTNode* parse_effect_declaration(Parser* parser) {
                 }
 
                 append_child_node(&effect->data.effect_decl.shared_fields,
-                    &effect->data.effect_decl.shared_count, shared);
+                    &effect->data.effect_decl.shared_count,
+                    &effect->data.effect_decl.shared_capacity, shared);
 
                 parser_match(parser, TOKEN_SEMICOLON);
                 parser_discard_pending_doc_comment(parser);
@@ -245,14 +255,16 @@ ASTNode* parse_effect_declaration(Parser* parser) {
                        || parser_match(parser, TOKEN_BIND)) {
                 append_domain_projection_sync_entries(parser,
                     &effect->data.effect_decl.refreshes,
-                    &effect->data.effect_decl.refresh_count, false);
+                    &effect->data.effect_decl.refresh_count,
+                    &effect->data.effect_decl.refresh_capacity, false);
                 parser_match(parser, TOKEN_SEMICOLON);
                 parser_discard_pending_doc_comment(parser);
             } else if (parser_match(parser, TOKEN_FUNC)) {
                 ASTNode* method = parser_finalize_statement(parser,
                     parse_function_declaration(parser));
                 append_child_node(&effect->data.effect_decl.methods,
-                    &effect->data.effect_decl.method_count, method);
+                    &effect->data.effect_decl.method_count,
+                    &effect->data.effect_decl.method_capacity, method);
             } else {
                 parser_discard_pending_doc_comment(parser);
                 parser_error(parser,

@@ -207,12 +207,16 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.name = name ? pergyra_strdup(name) : NULL;
     node->data.intent_decl.involves = NULL;
     node->data.intent_decl.involve_count = 0;
+    node->data.intent_decl.involve_capacity = 0;
     node->data.intent_decl.values = NULL;
     node->data.intent_decl.value_count = 0;
+    node->data.intent_decl.value_capacity = 0;
     node->data.intent_decl.bindings = NULL;
     node->data.intent_decl.binding_count = 0;
+    node->data.intent_decl.binding_capacity = 0;
     node->data.intent_decl.steps = NULL;
     node->data.intent_decl.step_count = 0;
+    node->data.intent_decl.step_capacity = 0;
     node->data.intent_decl.is_concurrent = false;
     node->data.intent_decl.rollback_policy = INTENT_ROLLBACK_FULL;
     node->data.intent_decl.priority_expr = NULL;
@@ -221,6 +225,7 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.doc_comment = NULL;
     node->data.intent_decl.default_who_names = NULL;
     node->data.intent_decl.default_who_count = 0;
+    node->data.intent_decl.default_who_capacity = 0;
     node->data.intent_decl.default_where_type = NULL;
     return node;
 }
@@ -251,8 +256,10 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.who_count = 0;
     node->data.intent_step.on_exprs = NULL;
     node->data.intent_step.on_expr_count = 0;
+    node->data.intent_step.on_expr_capacity = 0;
     node->data.intent_step.compensate_exprs = NULL;
     node->data.intent_step.compensate_expr_count = 0;
+    node->data.intent_step.compensate_expr_capacity = 0;
     node->data.intent_step.pre_expr = NULL;
     node->data.intent_step.guard_expr = NULL;
     node->data.intent_step.post_expr = NULL;

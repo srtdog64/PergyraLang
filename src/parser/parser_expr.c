@@ -51,28 +51,6 @@ parser_is_lambda_start(Parser *parser)
 }
 
 static bool
-parser_append_expr_node(Parser *parser, ASTNode ***items, size_t *count, ASTNode *item)
-{
-    ASTNode **grown;
-    size_t next_count;
-
-    if (items == NULL || count == NULL)
-        return false;
-
-    next_count = *count + 1;
-    grown = realloc(*items, next_count * sizeof(ASTNode *));
-    if (grown == NULL) {
-        parser_error(parser, "Out of memory while appending expression node");
-        return false;
-    }
-
-    grown[*count] = item;
-    *items = grown;
-    *count = next_count;
-    return true;
-}
-
-static bool
 parser_append_expr_node_with_capacity(Parser *parser,
                                       ASTNode ***items,
                                       size_t *count,
@@ -82,9 +60,7 @@ parser_append_expr_node_with_capacity(Parser *parser,
     ASTNode **grown;
     size_t next_capacity;
 
-    if (items == NULL || count == NULL || capacity == NULL)
-        return false;
-
+    if (items == NULL || count == NULL || capacity == NULL) return false;
     if (*count >= *capacity) {
         next_capacity = *capacity == 0 ? 4 : *capacity * 2;
         grown = realloc(*items, next_capacity * sizeof(ASTNode *));
@@ -111,16 +87,20 @@ parser_prepend_call_argument(Parser *parser, ASTNode *call, ASTNode *argument)
         return false;
 
     old_count = call->data.call.arg_count;
-    new_args = realloc(call->data.call.arguments,
-        (old_count + 1) * sizeof(ASTNode *));
-    if (new_args == NULL) {
-        parser_error(parser, "Out of memory while prepending pipe argument");
-        return false;
+    if (old_count == call->data.call.arg_capacity) {
+        size_t next_capacity = call->data.call.arg_capacity == 0 ? 4 : call->data.call.arg_capacity * 2;
+        new_args = realloc(call->data.call.arguments,
+            next_capacity * sizeof(ASTNode *));
+        if (new_args == NULL) {
+            parser_error(parser, "Out of memory while prepending pipe argument");
+            return false;
+        }
+        call->data.call.arguments = new_args;
+        call->data.call.arg_capacity = next_capacity;
     }
 
-    memmove(new_args + 1, new_args, old_count * sizeof(ASTNode *));
-    new_args[0] = argument;
-    call->data.call.arguments = new_args;
+    memmove(call->data.call.arguments + 1, call->data.call.arguments, old_count * sizeof(ASTNode *));
+    call->data.call.arguments[0] = argument;
     call->data.call.arg_count = old_count + 1;
     return true;
 }
@@ -568,9 +548,10 @@ ASTNode* parse_lambda_expression(Parser* parser) {
             param = typed_param;
         }
 
-        if (!parser_append_expr_node(parser,
+        if (!parser_append_expr_node_with_capacity(parser,
                 &lambda->data.lambda_expr.params,
                 &lambda->data.lambda_expr.param_count,
+                &lambda->data.lambda_expr.param_capacity,
                 param)) {
             ast_destroy(param);
             break;

@@ -69,6 +69,7 @@ typedef struct {
     int32_t priority;
     int32_t trace_id;
     char   *trace;
+    size_t  trace_len;
     char   *failure_reason;
     int32_t step_count;
     bool    failed;
@@ -179,16 +180,17 @@ pgy_intent_recent_entry_copy_from_active(PgyIntentRecentEntry *dst,
 }
 
 static inline void
-pgy_intent_append_line(char **dst, const char *line)
+pgy_intent_append_line_len(char **dst, size_t *dst_len, const char *line)
 {
-    size_t old_len = 0;
-    size_t add_len = 0;
+    size_t old_len;
+    size_t add_len;
     char *grown;
 
-    if (dst == NULL || line == NULL)
+    if (dst == NULL || dst_len == NULL || line == NULL)
         return;
 
-    if (*dst != NULL)
+    old_len = *dst_len;
+    if (*dst != NULL && old_len == 0)
         old_len = strlen(*dst);
     add_len = strlen(line);
     grown = (char *)realloc(*dst, old_len + add_len + 1);
@@ -196,6 +198,15 @@ pgy_intent_append_line(char **dst, const char *line)
         return;
     memcpy(grown + old_len, line, add_len + 1);
     *dst = grown;
+    *dst_len = old_len + add_len;
+}
+
+static inline void
+pgy_intent_append_line(char **dst, const char *line)
+{
+    size_t ignored_len = 0;
+
+    pgy_intent_append_line_len(dst, &ignored_len, line);
 }
 
 static inline PgyIntentActiveEntry *
@@ -439,6 +450,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     pgy_intent_active_registry[free_index].trace_id = PGY_INTENT_OBSERVABILITY_ENABLED
         ? pgy_intent_next_trace_id++ : 0;
     pgy_intent_active_registry[free_index].trace = NULL;
+    pgy_intent_active_registry[free_index].trace_len = 0;
     pgy_intent_active_registry[free_index].failure_reason = NULL;
     pgy_intent_active_registry[free_index].step_count = 0;
     pgy_intent_active_registry[free_index].failed = false;
@@ -448,7 +460,9 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
         char line[256];
         snprintf(line, sizeof(line), "[intent] enter %s\n",
             name != NULL ? name : "<intent>");
-        pgy_intent_append_line(&pgy_intent_active_registry[free_index].trace, line);
+        pgy_intent_append_line_len(&pgy_intent_active_registry[free_index].trace,
+                                   &pgy_intent_active_registry[free_index].trace_len,
+                                   line);
     }
     pgy_intent_push_current_handle(handle);
 
