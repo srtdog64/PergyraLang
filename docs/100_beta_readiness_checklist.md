@@ -1,13 +1,20 @@
 # Beta Readiness Checklist
 
-마지막 업데이트: 2026-04-29
+마지막 업데이트: 2026-05-01
 
-이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety**다. 현재 공식 beta readiness는 약 50%로 본다.
+이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%로 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 더 닫히면 75-80% 범위로 재평가한다.
 
 베타 진입 후 약 1년간 코어 패치를 멈추고 생태계 (`pgy.compat.*`, `pgy.kit.*`, `pgy.std.*`, `pgy.accel.spray`, `pgy.render.skia` 등) 를 올리는 것이 다음 단계이므로, 베타 closure 는 **"이 1년동안 코어가 자력으로 버틸 수 있는가"** 기준으로 본다. 이 의미에서 AIR/CFG/runtime invariant 는 모두 closure 직전까지 실 구현이 끝나야 하며, 단순 문서 합의로 끝나지 않는다.
 
 Operational mode:
 
+- 2026-05-01 dogfood-first beta gate:
+  the beta target is now "core stable enough to start a small WebGL/chat-game
+  dogfood", not a full 1.0 compiler. Quantum, Rust-style lifetime borrow
+  checking, and native LLVM wasm are not beta blockers. The first dogfood path
+  is `Pergyra -> C backend -> optional Emscripten/WebGL bridge`. Gate:
+  `make dogfood-webgl-test-smoke`. The smoke validates host-import/frame-callback
+  C emission and links with `emcc` only when Emscripten is installed.
 - 2026-04-30 AIR payload-containment update:
   AIR boundary walking and HIR containment now also descend through event
   subscribe/unsubscribe handler payloads, party-instance assignment values,

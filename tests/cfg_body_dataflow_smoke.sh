@@ -100,6 +100,10 @@ mir_llvm_control_emit_path = root / "src" / "codegen" / "llvm_mir_cfg_control.c"
 mir_llvm_for_in_control_path = root / "src" / "codegen" / "llvm_mir_for_in_control.c"
 mir_llvm_internal_api_path = root / "src" / "codegen" / "llvm_internal_api.h"
 mir_tests_path = root / "src" / "test_mir.c"
+mir_test_case_paths = [
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_a.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_b.cases.h",
+]
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.h"
 helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.c"
 builtins_query_channel_path = root / "src" / "semantic" / "type_checker_builtins_query_channel.c"
@@ -152,6 +156,7 @@ for path in (
     mir_llvm_for_in_control_path,
     mir_llvm_internal_api_path,
     mir_tests_path,
+    *mir_test_case_paths,
     async_channel_path,
     helpers_effects_path,
     builtins_query_channel_path,
@@ -230,7 +235,10 @@ mir_codegen_control = (
     + "\n"
     + mir_llvm_internal_api_path.read_text(encoding="utf-8")
 )
-mir_tests = mir_tests_path.read_text(encoding="utf-8")
+mir_tests = "\n".join(
+    [mir_tests_path.read_text(encoding="utf-8")]
+    + [path.read_text(encoding="utf-8") for path in mir_test_case_paths]
+)
 program = program_path.read_text(encoding="utf-8")
 diag = diag_path.read_text(encoding="utf-8")
 diag_doc = diag_doc_path.read_text(encoding="utf-8")

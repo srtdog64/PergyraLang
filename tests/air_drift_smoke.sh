@@ -98,7 +98,7 @@ driver_path = root / "src" / "compiler" / "driver_app.c"
 driver_diag_path = root / "src" / "compiler" / "driver_diag.c"
 pgy_driver_path = root / "src" / "pgy_driver.c"
 parser_intent_path = root / "src" / "parser" / "parser_intent.c"
-parser_intent_step_path = root / "src" / "parser" / "parser_intent_step.h"
+parser_intent_step_path = root / "src" / "parser" / "parser_intent_step.c"
 dir_header_path = root / "src" / "compiler" / "dir.h"
 dir_impl_path = root / "src" / "compiler" / "dir.c"
 dir_collect_path = root / "src" / "compiler" / "dir_collect.c"
@@ -115,12 +115,22 @@ air_validate_path = root / "src" / "compiler" / "air_validate.c"
 air_validate_evidence_path = root / "src" / "compiler" / "air_validate_evidence.c"
 air_verify_path = root / "src" / "compiler" / "air_verify.c"
 air_test_path = root / "src" / "test_air.c"
+air_test_case_paths = [
+    root / "src" / "tests" / "air" / "test_air_core_part_a.cases.h",
+    root / "src" / "tests" / "air" / "test_air_evidence_part_b.cases.h",
+    root / "src" / "tests" / "air" / "test_air_cleanup_transfer_part_c.cases.h",
+    root / "src" / "tests" / "air" / "test_air_boundary_part_d.cases.h",
+    root / "src" / "tests" / "air" / "test_air_parsed_part_e.cases.h",
+]
 rir_test_path = root / "src" / "test_rir.c"
+rir_test_case_paths = [
+    root / "src" / "tests" / "rir" / "test_rir_lowering.cases.h",
+]
 diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_verify_path, air_test_path, rir_test_path, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -163,8 +173,14 @@ air_impl = "\n".join([
     air_validate_evidence_path.read_text(encoding="utf-8"),
     air_verify_path.read_text(encoding="utf-8"),
 ])
-air_test = air_test_path.read_text(encoding="utf-8")
-rir_test = rir_test_path.read_text(encoding="utf-8")
+air_test = "\n".join(
+    [air_test_path.read_text(encoding="utf-8")]
+    + [path.read_text(encoding="utf-8") for path in air_test_case_paths]
+)
+rir_test = "\n".join(
+    [rir_test_path.read_text(encoding="utf-8")]
+    + [path.read_text(encoding="utf-8") for path in rir_test_case_paths]
+)
 diag_docs = diag_docs_path.read_text(encoding="utf-8")
 air_backend_nonimpact = air_backend_nonimpact_path.read_text(encoding="utf-8")
 diagnostics_json = diagnostics_json_path.read_text(encoding="utf-8")
@@ -199,7 +215,7 @@ if missing_air:
     raise SystemExit("AIR architecture doc missing term(s): " + ", ".join(missing_air))
 
 required_checklist_terms = [
-    "현재 공식 beta readiness는 약 50%",
+    "strict beta readiness는 약 60%",
     "## 0f. AIR Abstraction Safety Closure",
     "Source of truth: `docs/104_air_compiler_architecture.md`",
     "Status: `BLOCKER`",
@@ -216,7 +232,7 @@ if missing_checklist:
     raise SystemExit("beta checklist missing AIR term(s): " + ", ".join(missing_checklist))
 
 required_todo_terms = [
-    "베타 readiness 추정: 약 `50%`",
+    "베타 readiness 추정: 약 `60%`",
     "AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline",
     "strict evidence는 기본값으로 승격됐다",
     "PGY_AIR_STRICT_EVIDENCE=0",

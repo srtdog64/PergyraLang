@@ -177,6 +177,23 @@ memory: `project_killer_usecase_dungeon_crawler.md` 와 1:1 일치.
 - `docs/122_managing_intent_drift.md` §4 — falsification 프로토콜 적용
 - memory: `project_killer_usecase_dungeon_crawler.md` — 핵심 동기
 
+## UTF-8 Progress Note - 2026-05-01 - Dogfood-first WebGL Bridge Gate
+
+2026-05-01 update:
+- Beta progress is now tracked as two numbers: user-visible feature progress is
+  about 70%, while strict beta readiness is about 60%. The delta is
+  CFG/AIR/DAG/MIR/ABI source-of-truth closure, not missing surface syntax.
+- WebGL/WASM is no longer framed as "native LLVM wasm before beta". The beta
+  dogfood entry path is `Pergyra -> C backend --emit-c -> optional Emscripten`.
+  Native LLVM wasm and richer render modules stay beta+1.
+- Added `make dogfood-webgl-test-smoke`. The smoke emits C for an `extern "C"`
+  host log plus one frame callback and verifies that the generated C preserves
+  the bridge calls. If `emcc` is installed, it also links an HTML/JS wasm shell;
+  otherwise it reports a skip after the C bridge is validated.
+- This is a dogfood-path gate, not a new keyword or new semantic axis. It does
+  not change the runtime-none contract, which still explicitly rejects false
+  freestanding lowering claims.
+
 ## UTF-8 Progress Note - 2026-05-01 - Hot-path Dispatch / Lookup Audit
 
 2026-05-01 update:
@@ -2857,7 +2874,7 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
 
 ### 종합 판단: Late-Stage Alpha
 
-- 베타 readiness 추정: 약 `50%`
+- 베타 readiness 추정: 약 `60%`
 - 현재 표현: `late-stage alpha / beta-closure sprint`
 - 보정 이유:
   - 기능 표면만 보면 core/foundation 구현은 넓지만, beta는 기능 개수가 아니라 end-to-end 신뢰도다
@@ -2870,7 +2887,7 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   - 2026-04-29 CFG-owned control classifier closure: `mir_cfg_contract_control.h` now has a real include guard and is consumed by both MIR statement population and MIR CFG validation. The duplicated CFG-owned control switch in `mir_stmt_population.h` was removed, so fallback `MIR_INST_STMT` filtering and validator rejection share one classifier.
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
-  - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 50%로 본다
+  - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 60%로 본다
 
 ## Beta taxonomy freeze: core / foundation / style
 

@@ -8,6 +8,39 @@ fail() {
     exit 1
 }
 
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python3)"
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python)"
+    fi
+fi
+
+if [[ -n "$PYTHON_BIN" ]]; then
+    "$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+replacement = b"\xef\xbf\xbd"
+
+for path in sorted((root / "src").rglob("*")):
+    if path.suffix not in (".c", ".h"):
+        continue
+    data = path.read_bytes()
+    rel = path.relative_to(root).as_posix()
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise SystemExit(f"[source-utf8] {rel} is not valid UTF-8: {exc}") from exc
+    if replacement in data:
+        raise SystemExit(f"[source-utf8] {rel} contains Unicode replacement characters")
+PY
+    echo "[source-utf8] src .c/.h files are valid UTF-8"
+    exit 0
+fi
+
 if ! command -v iconv >/dev/null 2>&1; then
     fail "missing iconv"
 fi

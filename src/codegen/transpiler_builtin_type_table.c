@@ -160,7 +160,12 @@ pgy_builtin_simple_return_type(const char *name)
 bool
 pgy_builtin_is_intent_observability(const char *name)
 {
-    const PgyBuiltinInfo *entry = pgy_builtin_lookup(name);
+    const PgyBuiltinInfo *entry;
+
+    if (name == NULL || strncmp(name, "Intent", 6) != 0)
+        return false;
+
+    entry = pgy_builtin_lookup(name);
     return entry != NULL
         && (entry->flags & PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY) != 0;
 }

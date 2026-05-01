@@ -160,11 +160,14 @@ make async-model-positioning-test-smoke
 make memory-concurrency-model-test-smoke
 make perf-contract-test-smoke
 make tooling-conformance-test-smoke
+dogfood-first path
+make dogfood-webgl-test-smoke
+Pergyra -> C backend -> optional Emscripten/WebGL bridge
 LSP beta-stable: initialize capability response, keyword hover, and keyword completion
 Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interactive quit path
 DAP, binary breakpoints, variable watch, multi-file workspace indexing
 beta readiness
-50%
+60%
 EOF
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'
@@ -443,6 +446,7 @@ unicode-policy-test-smoke:
 beta-test-suite-freeze-test-smoke:
 observability-schema-test-smoke:
 memory-concurrency-model-test-smoke:
+dogfood-webgl-test-smoke:
 ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare
 ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare
 EOF

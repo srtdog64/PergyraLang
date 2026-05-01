@@ -589,6 +589,8 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_queue_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_set_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_secure_slot_exports.h \
+                   tests/build_source_inventory_smoke.sh \
+                   tests/dogfood_webgl_smoke.sh \
                    tests/runtime_frontier_policy_smoke.sh
 
 MAIN_OBJECT            = $(BUILD_DIR)/main.o
@@ -694,7 +696,11 @@ endif
 # -----------------------------------------------------------------
 all: $(PGY) $(PGY_LSP) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST) $(HIR_TEST)
 
+ifeq ($(EXEEXT),.exe)
+pgy: $(PGY) $(REPO_BIN_DIR)/pgy$(EXEEXT)
+else
 pgy: $(PGY) $(REPO_BIN_DIR)/pgy$(EXEEXT) $(REPO_BIN_DIR)/pgy.exe
+endif
 llvm:
 	$(MAKE) LLVM_ENABLED=1 all
 
@@ -710,6 +716,7 @@ $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
 $(REPO_BIN_DIR)/pgy$(EXEEXT): $(PGY) | $(REPO_BIN_DIR)
 	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
 
+ifneq ($(EXEEXT),.exe)
 # Always keep bin/pgy.exe in sync with the canonical $(PGY) build, even on
 # hosts where EXEEXT is empty (e.g. WSL building for Windows-side workflows).
 # Without this, PowerShell-launched commands silently use a stale .exe and the
@@ -717,6 +724,7 @@ $(REPO_BIN_DIR)/pgy$(EXEEXT): $(PGY) | $(REPO_BIN_DIR)
 # dev pain point #1 in memory: project_dev_pain_points.md.
 $(REPO_BIN_DIR)/pgy.exe: $(PGY) | $(REPO_BIN_DIR)
 	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
+endif
 
 # Lexer smoke-test (original main.c)
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
@@ -1039,27 +1047,37 @@ beta-test-suite-freeze-test-smoke:
 	"$(BASH)" tests/beta_test_suite_freeze_smoke.sh
 
 build-source-inventory-test-smoke:
-	@missing=0; \
-	for src in $(BUILD_SOURCE_INVENTORY_SOURCES) $(BUILD_CONTRACT_INVENTORY_FILES); do \
-		if [ ! -f "$$src" ]; then \
-			echo "[build-source-inventory] missing required build file: $$src" >&2; \
-			missing=1; \
-			continue; \
-		fi; \
-		if command -v git >/dev/null 2>&1 && git check-ignore -q --no-index "$$src" 2>/dev/null; then \
-			echo "[build-source-inventory] required build file is ignored: $$src" >&2; \
-			missing=1; \
-		fi; \
-		if [ "$${PGY_REQUIRE_TRACKED_SOURCES:-0}" = "1" ] \
-			&& command -v git >/dev/null 2>&1 \
-			&& git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
-			&& ! git ls-files --error-unmatch "$$src" >/dev/null 2>&1; then \
-			echo "[build-source-inventory] required build file is not tracked: $$src" >&2; \
-			missing=1; \
-		fi; \
-	done; \
-	if [ "$$missing" -ne 0 ]; then exit 1; fi; \
-	echo "[build-source-inventory] Makefile source inventory ok"
+	"$(BASH)" tests/build_source_inventory_smoke.sh
+
+__pgy_build_source_inventory_print:
+	@printf '%s\n' $(COMMON_SOURCES)
+	@printf '%s\n' $(LEXER_SOURCES)
+	@printf '%s\n' $(PARSER_SOURCES)
+	@printf '%s\n' $(RUNTIME_SOURCES)
+	@printf '%s\n' $(ASYNC_SOURCES)
+	@printf '%s\n' $(SEMANTIC_SOURCES)
+	@printf '%s\n' $(CODEGEN_SOURCES)
+	@printf '%s\n' $(COMPILER_SOURCES)
+	@printf '%s\n' $(LLVM_BACKEND_SOURCES)
+	@printf '%s\n' $(RUNTIME_LIB_SOURCES)
+	@printf '%s\n' $(MAIN_SOURCE)
+	@printf '%s\n' $(PARSER_TEST_SOURCE)
+	@printf '%s\n' $(TEST_DATASTRUCTURES_SRC)
+	@printf '%s\n' $(TEST_SECURITY_SRC)
+	@printf '%s\n' $(TEST_SEMANTIC_SRC)
+	@printf '%s\n' $(TEST_TRANSPILE_SRC)
+	@printf '%s\n' $(TEST_MEMORY_SRC)
+	@printf '%s\n' $(TEST_ABI_SRC)
+	@printf '%s\n' $(TEST_ABI_PIPELINE_SRC)
+	@printf '%s\n' $(TEST_CONCURRENCY_SRC)
+	@printf '%s\n' $(TEST_DIR_SRC)
+	@printf '%s\n' $(TEST_AIR_SRC)
+	@printf '%s\n' $(TEST_RIR_SRC)
+	@printf '%s\n' $(TEST_MIR_SRC)
+	@printf '%s\n' $(TEST_HIR_SRC)
+	@printf '%s\n' $(DRIVER_SRC)
+	@printf '%s\n' $(LSP_SRC)
+	@printf '%s\n' $(BUILD_CONTRACT_INVENTORY_FILES)
 
 source-utf8-test-smoke:
 	"$(BASH)" tests/source_utf8_smoke.sh
@@ -1087,6 +1105,9 @@ llvm-dnd-campaign-test-smoke:
 
 beta-readiness-checklist-test-smoke:
 	"$(BASH)" tests/beta_readiness_checklist_smoke.sh
+
+dogfood-webgl-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/dogfood_webgl_smoke.sh
 
 formal-semantics-test-smoke:
 	"$(BASH)" tests/formal_semantics_smoke.sh
@@ -1271,6 +1292,7 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" memory-concurrency-model-test-smoke
 	$(MAKE) documentation-quality-test-smoke
 	$(MAKE) beta-readiness-checklist-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" dogfood-webgl-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" runtime-none-contract-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" raw-escape-contract-test-smoke
 	$(MAKE) formal-semantics-test-smoke
@@ -1331,6 +1353,7 @@ ci-macos:
 	PGY_MEMORY_CONCURRENCY_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" memory-concurrency-model-test-smoke
 	$(MAKE) documentation-quality-test-smoke
 	$(MAKE) beta-readiness-checklist-test-smoke
+	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" dogfood-webgl-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" runtime-none-contract-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" raw-escape-contract-test-smoke
 	$(MAKE) formal-semantics-test-smoke
@@ -1367,6 +1390,7 @@ ci-windows:
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" test-all; \
 		PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" fmt-test-smoke; \
 		PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" stdlib-test-smoke; \
+		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" dogfood-webgl-test-smoke; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" runtime-none-contract-test-smoke; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" raw-escape-contract-test-smoke; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" air-json-schema-test-smoke; \
@@ -1442,7 +1466,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
