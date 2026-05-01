@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM backend ??MIR-backed intent declaration helpers
+ * LLVM backend: MIR-backed intent declaration helpers.
  */
 
 #ifdef PGY_LLVM_ENABLED
@@ -165,13 +165,19 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         return;
     enter_fn = llvm_lookup_function(ctx, "pgy_intent_enter_export");
     exit_fn = llvm_lookup_function(ctx, "pgy_intent_exit_export");
-    trace_step_fn = llvm_lookup_function(ctx, "pgy_intent_trace_step_export");
-    trace_bind_fn = llvm_lookup_function(ctx, "pgy_intent_trace_bind_export");
-    trace_step_ok_fn = llvm_lookup_function(ctx, "pgy_intent_trace_step_ok_export");
-    trace_fail_fn = llvm_lookup_function(ctx, "pgy_intent_trace_fail_export");
-    if (enter_fn == NULL || exit_fn == NULL
-        || trace_step_fn == NULL || trace_bind_fn == NULL
-        || trace_step_ok_fn == NULL || trace_fail_fn == NULL)
+    trace_step_fn = ctx->uses_intent_observability
+        ? llvm_lookup_function(ctx, "pgy_intent_trace_step_export") : NULL;
+    trace_bind_fn = ctx->uses_intent_observability
+        ? llvm_lookup_function(ctx, "pgy_intent_trace_bind_export") : NULL;
+    trace_step_ok_fn = ctx->uses_intent_observability
+        ? llvm_lookup_function(ctx, "pgy_intent_trace_step_ok_export") : NULL;
+    trace_fail_fn = ctx->uses_intent_observability
+        ? llvm_lookup_function(ctx, "pgy_intent_trace_fail_export") : NULL;
+    if (enter_fn == NULL || exit_fn == NULL)
+        return;
+    if (ctx->uses_intent_observability
+        && (trace_step_fn == NULL || trace_bind_fn == NULL
+            || trace_step_ok_fn == NULL || trace_fail_fn == NULL))
         return;
 
     fn = entry->fn;
@@ -208,7 +214,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), handle_alloca);
     llvm_scope_declare(ctx, "__intent_handle", handle_alloca, ctx->type_i32);
     if (has_compensate_steps && step_count > 0) {
-        /* Per-step completion flag allocas ??transient tracking array used
+        /* Per-step completion flag allocas: transient tracking array used
          * only during intent emission; never escapes. */
         completed_allocas = pgy_arena_calloc(&ctx->scratch,
             step_count * sizeof(LLVMValueRef));
@@ -266,7 +272,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             goto intent_emit_fail;
         causes_effect = step_ctx.causes_effect;
 
-        {
+        if (ctx->uses_intent_observability && trace_step_fn != NULL) {
             LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
                 handle_alloca, llvm_tmp_name(ctx));
             LLVMValueRef args[] = {
@@ -280,6 +286,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             };
             LLVMBuildCall2(ctx->builder, trace_step_fn->fn_type, trace_step_fn->fn, args, 3, "");
         }
+        if (ctx->uses_intent_observability && trace_bind_fn != NULL) {
         for (size_t j = 0; j < step_ctx.who_alias_count; j++) {
             LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
                 handle_alloca, llvm_tmp_name(ctx));
@@ -294,6 +301,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     llvm_tmp_name(ctx))
             };
             LLVMBuildCall2(ctx->builder, trace_bind_fn->fn_type, trace_bind_fn->fn, args, 3, "");
+        }
         }
         llvm_emit_intent_step_validate_authority(ctx, fn, fail_bb, fail_reason_alloca,
             step_name, step_ctx.zone_type_name, step_ctx.zone_alias,
@@ -480,7 +488,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         /* saved_participant_ptrs is ctx->scratch-owned; clear the local
          * reference so the next step rebinds fresh (blocks stay in arena). */
         saved_participant_ptrs = NULL;
-        {
+        if (ctx->uses_intent_observability && trace_step_ok_fn != NULL) {
             LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
                 handle_alloca, llvm_tmp_name(ctx));
             LLVMValueRef args[] = {
@@ -521,8 +529,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             handle_alloca, llvm_tmp_name(ctx));
         LLVMValueRef reason = LLVMBuildLoad2(ctx->builder, ctx->type_i8ptr,
             fail_reason_alloca, llvm_tmp_name(ctx));
-        LLVMValueRef trace_args[] = { handle, reason };
-        LLVMBuildCall2(ctx->builder, trace_fail_fn->fn_type, trace_fail_fn->fn, trace_args, 2, "");
+        if (ctx->uses_intent_observability && trace_fail_fn != NULL) {
+            LLVMValueRef trace_args[] = { handle, reason };
+            LLVMBuildCall2(ctx->builder, trace_fail_fn->fn_type, trace_fail_fn->fn, trace_args, 2, "");
+        }
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), failed_alloca);
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), result_alloca);
         LLVMBuildBr(ctx->builder, cleanup_bb);

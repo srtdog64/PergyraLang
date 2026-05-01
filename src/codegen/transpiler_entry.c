@@ -11,6 +11,7 @@
 #include "transpiler.h"
 #include "transpiler_context.h"
 #include "transpiler_program.h"
+#include "intent_observability_usage.h"
 #include "../common/string_compat.h"
 
 static TranspileResult *
@@ -30,6 +31,7 @@ transpile_mir_only(const MIRProgram *mir, const char *output_path)
     }
 
     ctx->mir = mir;
+    ctx->uses_intent_observability = pgy_mir_program_uses_intent_observability(mir);
     emit_program(ctx);
 
     if (ctx->backend_error != NULL) {

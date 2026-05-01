@@ -2,6 +2,8 @@
 #include "pgy_runtime_observability_schema.h"
 
 #define PGY_INTENT_ACTIVE_MAX 256
+#define PGY_INTENT_ACTIVE_INDEX_MAX 512
+#define PGY_INTENT_ACTIVE_INDEX_TOMBSTONE (-1)
 #define PGY_INTENT_RECENT_MAX 16
 
 typedef struct {
@@ -49,6 +51,8 @@ typedef struct {
 } PgyIntentRecentEntry;
 
 static PgyIntentActiveEntry pgy_intent_active_registry[PGY_INTENT_ACTIVE_MAX];
+static int32_t pgy_intent_active_index_handles[PGY_INTENT_ACTIVE_INDEX_MAX];
+static int32_t pgy_intent_active_index_slots[PGY_INTENT_ACTIVE_INDEX_MAX];
 static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
 static _Thread_local int32_t pgy_intent_current_stack[PGY_INTENT_ACTIVE_MAX];
 static _Thread_local int32_t pgy_intent_current_depth = 0;
@@ -174,7 +178,7 @@ pgy_intent_append_line_export(char **dst, const char *line)
 }
 
 static PgyIntentActiveEntry *
-pgy_intent_find_active_entry_export(int32_t handle)
+pgy_intent_find_active_entry_linear_export(int32_t handle)
 {
     for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
         if (pgy_intent_active_registry[i].active
@@ -184,6 +188,8 @@ pgy_intent_find_active_entry_export(int32_t handle)
     }
     return NULL;
 }
+
+#include "pgy_runtime_lib_intent_active_index_exports.h"
 
 int32_t
 pgy_intent_current_handle_export(void)
@@ -329,6 +335,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     pgy_intent_active_registry[free_index].step_count = 0;
     pgy_intent_active_registry[free_index].failed = false;
     pgy_intent_active_registry[free_index].active = true;
+    pgy_intent_active_index_set_export(handle, free_index);
     if (PGY_INTENT_OBSERVABILITY_ENABLED) {
         char line[256];
         snprintf(line, sizeof(line), "[intent] enter %s\n",

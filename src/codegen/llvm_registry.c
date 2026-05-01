@@ -11,8 +11,6 @@
 
 #include "llvm_backend.h"
 #include "llvm_internal.h"
-#include "../common/string_compat.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -332,101 +330,6 @@ llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name)
     for (int i = ctx->array_var_count - 1; i >= 0; i--) {
         if (strcmp(ctx->array_vars[i].var_name, var_name) == 0)
             return &ctx->array_vars[i];
-    }
-    return NULL;
-}
-
-void
-llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
-                       const char *inner_type)
-{
-    PGY_DYNARR_ENSURE(ctx->list_vars, ctx->list_var_count,
-                      ctx->list_var_capacity, LLVMListVarEntry);
-    ctx->list_vars[ctx->list_var_count].var_name = var_name;
-    ctx->list_vars[ctx->list_var_count].inner_type = inner_type;
-    ctx->list_var_count++;
-}
-
-const char *
-llvm_lookup_list_inner(LLVMGenCtx *ctx, const char *var_name)
-{
-    for (int i = ctx->list_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->list_vars[i].var_name, var_name) == 0)
-            return ctx->list_vars[i].inner_type;
-    }
-    return NULL;
-}
-
-void
-llvm_register_set_var(LLVMGenCtx *ctx, const char *var_name,
-                      const char *inner_type)
-{
-    PGY_DYNARR_ENSURE(ctx->set_vars, ctx->set_var_count,
-                      ctx->set_var_capacity, LLVMSetVarEntry);
-    ctx->set_vars[ctx->set_var_count].var_name = var_name;
-    ctx->set_vars[ctx->set_var_count].inner_type = inner_type;
-    ctx->set_var_count++;
-}
-
-const char *
-llvm_lookup_set_inner(LLVMGenCtx *ctx, const char *var_name)
-{
-    for (int i = ctx->set_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->set_vars[i].var_name, var_name) == 0)
-            return ctx->set_vars[i].inner_type;
-    }
-    return NULL;
-}
-
-void
-llvm_register_queue_var(LLVMGenCtx *ctx, const char *var_name,
-                        const char *inner_type)
-{
-    PGY_DYNARR_ENSURE(ctx->queue_vars, ctx->queue_var_count,
-                      ctx->queue_var_capacity, LLVMQueueVarEntry);
-    ctx->queue_vars[ctx->queue_var_count].var_name = var_name;
-    ctx->queue_vars[ctx->queue_var_count].inner_type = inner_type;
-    ctx->queue_var_count++;
-}
-
-const char *
-llvm_lookup_queue_inner(LLVMGenCtx *ctx, const char *var_name)
-{
-    for (int i = ctx->queue_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->queue_vars[i].var_name, var_name) == 0)
-            return ctx->queue_vars[i].inner_type;
-    }
-    return NULL;
-}
-
-void
-llvm_register_map_var(LLVMGenCtx *ctx, const char *var_name,
-                      const char *key_type, const char *value_type)
-{
-    PGY_DYNARR_ENSURE(ctx->map_vars, ctx->map_var_count,
-                      ctx->map_var_capacity, LLVMMapVarEntry);
-    ctx->map_vars[ctx->map_var_count].var_name = var_name;
-    ctx->map_vars[ctx->map_var_count].key_type = key_type;
-    ctx->map_vars[ctx->map_var_count].value_type = value_type;
-    ctx->map_var_count++;
-}
-
-const char *
-llvm_lookup_map_key(LLVMGenCtx *ctx, const char *var_name)
-{
-    for (int i = ctx->map_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->map_vars[i].var_name, var_name) == 0)
-            return ctx->map_vars[i].key_type;
-    }
-    return NULL;
-}
-
-const char *
-llvm_lookup_map_value(LLVMGenCtx *ctx, const char *var_name)
-{
-    for (int i = ctx->map_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->map_vars[i].var_name, var_name) == 0)
-            return ctx->map_vars[i].value_type;
     }
     return NULL;
 }

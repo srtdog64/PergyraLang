@@ -235,7 +235,13 @@ emit_program(TranspilerCtx *ctx)
         "#include <stdint.h>\n"
         "#include <stdbool.h>\n"
         "#include <stdio.h>\n"
-        "#include <stdlib.h>\n"
+        "#include <stdlib.h>\n");
+    codebuf_write(ctx->out,
+        "#ifndef PGY_INTENT_OBSERVABILITY_ENABLED\n"
+        "#define PGY_INTENT_OBSERVABILITY_ENABLED %d\n"
+        "#endif\n",
+        ctx->uses_intent_observability ? 1 : 0);
+    codebuf_write(ctx->out,
         "#include \"pgy_runtime.h\"\n"
         "#include \"pgy_parallel.h\"\n"
         "#include \"pgy_channel.h\"\n"

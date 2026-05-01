@@ -8,10 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "../common/string_compat.h"
 #include "symbol_table.h"
 
 #define INITIAL_SYMBOL_CAPACITY 16
+#define INITIAL_SYMBOL_INDEX_CAPACITY 32
 #define INITIAL_SLOT_CAPACITY   8
 
 static bool
@@ -32,6 +34,105 @@ symbol_tracks_slot_state(const Symbol *sym)
     return false;
 }
 
+static uint64_t
+symbol_hash_name(const char *name)
+{
+    uint64_t hash = 1469598103934665603ull;
+
+    if (name == NULL)
+        return 0;
+
+    while (*name != '\0') {
+        hash ^= (unsigned char)*name++;
+        hash *= 1099511628211ull;
+    }
+    return hash;
+}
+
+static bool
+symbol_index_insert(Symbol **index, size_t capacity, Symbol *symbol)
+{
+    size_t mask;
+    size_t slot;
+
+    if (index == NULL || capacity == 0 || symbol == NULL || symbol->name == NULL)
+        return false;
+
+    mask = capacity - 1;
+    slot = (size_t)symbol_hash_name(symbol->name) & mask;
+    for (size_t probe = 0; probe < capacity; probe++) {
+        Symbol *current = index[slot];
+        if (current == NULL) {
+            index[slot] = symbol;
+            return true;
+        }
+        if (strcmp(current->name, symbol->name) == 0)
+            return false;
+        slot = (slot + 1) & mask;
+    }
+    return false;
+}
+
+static bool
+scope_rebuild_symbol_index(Scope *scope, size_t new_capacity)
+{
+    Symbol **index;
+
+    if (scope == NULL || new_capacity == 0)
+        return false;
+
+    index = calloc(new_capacity, sizeof(Symbol *));
+    if (index == NULL)
+        return false;
+
+    for (size_t i = 0; i < scope->symbol_count; i++) {
+        if (!symbol_index_insert(index, new_capacity, scope->symbols[i])) {
+            free(index);
+            return false;
+        }
+    }
+
+    free(scope->symbol_index);
+    scope->symbol_index = index;
+    scope->symbol_index_capacity = new_capacity;
+    return true;
+}
+
+static bool
+scope_ensure_symbol_index_capacity(Scope *scope, size_t next_count)
+{
+    size_t new_capacity;
+
+    if (scope == NULL)
+        return false;
+
+    if (scope->symbol_index_capacity != 0
+        && next_count * 2 < scope->symbol_index_capacity) {
+        return true;
+    }
+
+    new_capacity = scope->symbol_index_capacity == 0
+        ? INITIAL_SYMBOL_INDEX_CAPACITY
+        : scope->symbol_index_capacity * 2;
+    while (next_count * 2 >= new_capacity)
+        new_capacity *= 2;
+
+    return scope_rebuild_symbol_index(scope, new_capacity);
+}
+
+static Symbol *
+scope_lookup_current_linear(Scope *scope, const char *name)
+{
+    if (scope == NULL || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < scope->symbol_count; i++) {
+        if (strcmp(scope->symbols[i]->name, name) == 0)
+            return scope->symbols[i];
+    }
+    return NULL;
+}
+
 /* -----------------------------------------------------------------
  * Scope
  * ----------------------------------------------------------------- */
@@ -48,11 +149,15 @@ scope_create(Scope *parent, ScopeKind kind)
     s->depth            = (parent != NULL) ? parent->depth + 1 : 0;
     s->symbol_capacity  = INITIAL_SYMBOL_CAPACITY;
     s->symbols          = calloc(INITIAL_SYMBOL_CAPACITY, sizeof(Symbol *));
+    s->symbol_index_capacity = INITIAL_SYMBOL_INDEX_CAPACITY;
+    s->symbol_index = calloc(INITIAL_SYMBOL_INDEX_CAPACITY, sizeof(Symbol *));
     s->owned_slot_capacity = INITIAL_SLOT_CAPACITY;
     s->owned_slots      = calloc(INITIAL_SLOT_CAPACITY, sizeof(Symbol *));
 
-    if (s->symbols == NULL || s->owned_slots == NULL) {
+    if (s->symbols == NULL || s->symbol_index == NULL
+        || s->owned_slots == NULL) {
         free(s->symbols);
+        free(s->symbol_index);
         free(s->owned_slots);
         free(s);
         return NULL;
@@ -71,6 +176,7 @@ scope_destroy(Scope *scope)
         symbol_destroy(scope->symbols[i]);
 
     free(scope->symbols);
+    free(scope->symbol_index);
     free(scope->owned_slots); /* Symbols already freed above */
     free(scope);
 }
@@ -101,12 +207,11 @@ scope_exit(Scope **current)
 bool
 scope_declare(Scope *scope, Symbol *symbol)
 {
-    /* Check for duplicate in current scope only */
-    for (size_t i = 0; i < scope->symbol_count; i++) {
-        if (strcmp(scope->symbols[i]->name, symbol->name) == 0) {
-            return false;
-        }
-    }
+    if (scope == NULL || symbol == NULL || symbol->name == NULL)
+        return false;
+
+    if (scope_lookup_current(scope, symbol->name) != NULL)
+        return false;
 
     /* Grow if needed */
     if (scope->symbol_count >= scope->symbol_capacity) {
@@ -116,6 +221,15 @@ scope_declare(Scope *scope, Symbol *symbol)
             return false;
         scope->symbols          = grown;
         scope->symbol_capacity  = new_cap;
+    }
+
+    if (!scope_ensure_symbol_index_capacity(scope, scope->symbol_count + 1))
+        return false;
+
+    if (!symbol_index_insert(scope->symbol_index,
+                             scope->symbol_index_capacity,
+                             symbol)) {
+        return false;
     }
 
     scope->symbols[scope->symbol_count++] = symbol;
@@ -138,9 +252,24 @@ scope_lookup(Scope *scope, const char *name)
 Symbol *
 scope_lookup_current(Scope *scope, const char *name)
 {
-    for (size_t i = 0; i < scope->symbol_count; i++) {
-        if (strcmp(scope->symbols[i]->name, name) == 0)
-            return scope->symbols[i];
+    size_t mask;
+    size_t slot;
+
+    if (scope == NULL || name == NULL)
+        return NULL;
+
+    if (scope->symbol_index == NULL || scope->symbol_index_capacity == 0)
+        return scope_lookup_current_linear(scope, name);
+
+    mask = scope->symbol_index_capacity - 1;
+    slot = (size_t)symbol_hash_name(name) & mask;
+    for (size_t probe = 0; probe < scope->symbol_index_capacity; probe++) {
+        Symbol *sym = scope->symbol_index[slot];
+        if (sym == NULL)
+            return NULL;
+        if (strcmp(sym->name, name) == 0)
+            return sym;
+        slot = (slot + 1) & mask;
     }
     return NULL;
 }

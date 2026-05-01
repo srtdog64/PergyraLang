@@ -147,6 +147,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     bool anchor_is_indirect = false;
     bool is_secure_slot = false;
     bool is_device_slot = false;
+    const char *op_name = inst->name;  /* "Claim", "Read", "Write", "Release", etc. */
 
     if (effective_layout == NULL) {
         const char *abi_key = inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor;
@@ -154,16 +155,29 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             effective_layout = mir_abi_lookup(abi_key);
     }
 
-    /* Priority 1: use runtime_fn from type_layout */
+    /* Priority 1: use runtime_fn from type_layout only for the op it names.
+     * MIRTypeLayout stores constructor/claim runtime entrypoints for resource
+     * families. Reusing that function for Read/Write/Release is incorrect; for
+     * those ops the layout is used as type evidence and the op-specific runtime
+     * name is derived below. */
     if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
-        fn = effective_layout->runtime_fn;
-        suffix = transpiler_extract_type_suffix_from_fn(fn);
-        if (strncmp(fn, "pgy_claim_secure_", 17) == 0
-            || strncmp(fn, "pgy_secure_", 11) == 0) {
+        const char *layout_fn = effective_layout->runtime_fn;
+        suffix = transpiler_extract_type_suffix_from_fn(layout_fn);
+        if (strncmp(layout_fn, "pgy_claim_secure_", 17) == 0
+            || strncmp(layout_fn, "pgy_secure_", 11) == 0) {
             is_secure_slot = true;
-        } else if (strncmp(fn, "pgy_claim_device_", 17) == 0
-                   || strncmp(fn, "pgy_device_", 11) == 0) {
+        } else if (strncmp(layout_fn, "pgy_claim_device_", 17) == 0
+                   || strncmp(layout_fn, "pgy_device_", 11) == 0) {
             is_device_slot = true;
+        }
+        if (op_name != NULL && strcmp(op_name, "Claim") == 0)
+            fn = layout_fn;
+        if (inner_name == NULL
+            && effective_layout->abi_type_name != NULL
+            && (strncmp(effective_layout->abi_type_name, "Slot<", 5) == 0
+                || strncmp(effective_layout->abi_type_name, "SecureSlot<", 11) == 0
+                || strncmp(effective_layout->abi_type_name, "DeviceSlot<", 11) == 0)) {
+            inner_name = slot_inner_type_name(effective_layout->abi_type_name);
         }
     }
 
@@ -176,6 +190,21 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             }
         }
         if (typed_name != NULL) {
+            if (fn == NULL && effective_layout == NULL)
+                effective_layout = mir_abi_lookup(typed_name);
+            if (fn == NULL
+                && effective_layout != NULL
+                && effective_layout->runtime_fn != NULL) {
+                fn = effective_layout->runtime_fn;
+                suffix = transpiler_extract_type_suffix_from_fn(fn);
+                if (strncmp(fn, "pgy_claim_secure_", 17) == 0
+                    || strncmp(fn, "pgy_secure_", 11) == 0) {
+                    is_secure_slot = true;
+                } else if (strncmp(fn, "pgy_claim_device_", 17) == 0
+                           || strncmp(fn, "pgy_device_", 11) == 0) {
+                    is_device_slot = true;
+                }
+            }
             if (strncmp(typed_name, "SecureSlot<", 11) == 0) {
                 is_secure_slot = true;
             } else if (strncmp(typed_name, "DeviceSlot<", 11) == 0) {
@@ -190,7 +219,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         if (inner_name != NULL) {
             inner_c = pergyra_type_to_c(inner_name);
             if (inner_c != NULL && inner_c[0] != '\0') {
-                const char *op = inst->name;
+                const char *op = op_name;
                 if (op != NULL) {
                     if (strcmp(op, "Claim") == 0) {
                         if (is_secure_slot) {
@@ -269,7 +298,6 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     if (fn == NULL)
         return false;
 
-    const char *op_name = inst->name;  /* "Claim", "Read", "Write", "Release", etc. */
     char anchor_expr_buf[128];
     const char *anchor_expr = NULL;
 

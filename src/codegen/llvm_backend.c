@@ -295,6 +295,24 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     if (ctx->context != NULL)
         LLVMContextDispose(ctx->context);
 
+    for (int i = 0; i < ctx->list_var_count; i++) {
+        free((char *)ctx->list_vars[i].var_name);
+        free((char *)ctx->list_vars[i].inner_type);
+    }
+    for (int i = 0; i < ctx->set_var_count; i++) {
+        free((char *)ctx->set_vars[i].var_name);
+        free((char *)ctx->set_vars[i].inner_type);
+    }
+    for (int i = 0; i < ctx->queue_var_count; i++) {
+        free((char *)ctx->queue_vars[i].var_name);
+        free((char *)ctx->queue_vars[i].inner_type);
+    }
+    for (int i = 0; i < ctx->map_var_count; i++) {
+        free((char *)ctx->map_vars[i].var_name);
+        free((char *)ctx->map_vars[i].key_type);
+        free((char *)ctx->map_vars[i].value_type);
+    }
+
     /* Free dynamic arrays */
     free(ctx->functions);
     free(ctx->slot_vars);

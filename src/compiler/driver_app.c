@@ -181,7 +181,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         if (flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {
             semantic_result_print_json(sem);  /* terminal: error array */
         } else {
-            fprintf(stderr, "pgy: %zu error(s) ??aborting\n", sem->error_count);
+            fprintf(stderr, "pgy: %zu error(s); aborting\n", sem->error_count);
         }
         goto cleanup;
     }
@@ -310,11 +310,6 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
             hir_error != NULL ? hir_error : "invalid AIR/DAG evidence");
         goto cleanup;
     }
-    if (flags->dump_air && !flags->dump_air_json) {
-        air_dump(air, stdout);
-        exit_code = 0;
-        goto cleanup;
-    }
     if (air->drift_count > 0 && !flags->dump_air_json) {
         driver_emit_air_drift_fail(flags, air);
         goto cleanup;
@@ -343,21 +338,31 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->mir_validate = driver_now_seconds() - phase_start;
 
+    driver_debug_stage("air_mir_evidence");
+    if (!air_collect_mir_evidence(air, mir, &hir_error)) {
+        driver_emit_stage_fail(flags, "air_mir_evidence",
+            "AIR MIR evidence collection failed",
+            hir_error != NULL ? hir_error : "invalid AIR/MIR evidence");
+        goto cleanup;
+    }
+    if (!air_verify(air, &hir_error)) {
+        driver_emit_stage_fail(flags, "air_verify",
+            "AIR verification failed after MIR evidence collection",
+            hir_error != NULL ? hir_error : "invalid AIR graph");
+        goto cleanup;
+    }
+    if (flags->dump_air && !flags->dump_air_json) {
+        air_dump(air, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
     if (flags->dump_air_json) {
-        if (!air_collect_mir_evidence(air, mir, &hir_error)) {
-            driver_emit_stage_fail(flags, "air_mir_evidence",
-                "AIR MIR evidence collection failed",
-                hir_error != NULL ? hir_error : "invalid AIR/MIR evidence");
-            goto cleanup;
-        }
-        if (!air_verify(air, &hir_error)) {
-            driver_emit_stage_fail(flags, "air_verify",
-                "AIR verification failed after MIR evidence collection",
-                hir_error != NULL ? hir_error : "invalid AIR graph");
-            goto cleanup;
-        }
         air_dump_json(air, stdout);
         exit_code = 0;
+        goto cleanup;
+    }
+    if (air->drift_count > 0) {
+        driver_emit_air_drift_fail(flags, air);
         goto cleanup;
     }
 
@@ -421,7 +426,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
      * runners emit their own error array on failure (exit_code != 0) and
      * we skip here to avoid a second JSON array on stderr. HIR/DIR/RIR/MIR
      * mid-pipeline failures also keep exit_code == 1 (initial value) so
-     * this guard correctly suppresses emit for those too ??they are a
+     * this guard correctly suppresses emit for those too; they are a
      * separate pre-existing gap tracked outside this fix. */
     if (sem != NULL && exit_code == 0
         && flags != NULL && flags->diag_format == DIAG_FORMAT_JSON) {

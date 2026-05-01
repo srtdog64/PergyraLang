@@ -5255,12 +5255,179 @@ test_mir_vertical_slice_emit(void)
         hir_destroy(hir);
         ast_destroy(program);
     }
+
+    TEST("MIR WriteView write uses slot write runtime, not layout claim runtime");
+    {
+        const char *source =
+            "func Score() -> Int {\n"
+            "    let scores: Slot<Int> = 41;\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        Write(view, 42);\n"
+            "    }\n"
+            "    return Read(scores);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_pin_write_view.c");
+        const char *path = path_buf;
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok && output != NULL);
+        if (output != NULL) {
+            EXPECT_STR_CONTAINS(output, "pgy_pin_write_Int(&scores)");
+            EXPECT_STR_CONTAINS(output, "pgy_write_Int(&scores, 42)");
+            EXPECT_STR_NOT_CONTAINS(output, "pgy_claim_Int(&scores");
+        }
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
 }
 
 static void
 test_intent_observability_emit(void)
 {
     printf("\n[intent_observability_emit]\n");
+
+    TEST("intent trace calls are omitted when observability builtins are unused");
+    {
+        const char *source =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    authority buyer requires Payable\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "    success: true;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char path_buf[512];
+        const char *path = NULL;
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        TranspileResult *res = NULL;
+
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_no_trace_fast_path.c");
+        path = path_buf;
+        if (ok) {
+            res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok && res != NULL && output != NULL);
+        if (ok && res != NULL && output != NULL) {
+            EXPECT(!res->uses_intent_observability);
+            EXPECT_STR_CONTAINS(output, "#define PGY_INTENT_OBSERVABILITY_ENABLED 0");
+            EXPECT_STR_NOT_CONTAINS(output, "pgy_intent_trace_step_export(");
+            EXPECT_STR_NOT_CONTAINS(output, "pgy_intent_trace_bind_export(");
+            EXPECT_STR_NOT_CONTAINS(output, "pgy_intent_trace_step_ok_export(");
+            EXPECT_STR_NOT_CONTAINS(output, "pgy_intent_trace_fail_export(");
+        }
+
+        transpile_result_destroy(res);
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("intent trace calls stay enabled when observability builtin appears later");
+    {
+        const char *source =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    authority buyer requires Payable\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "    success: true;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    Log(IntentLastTrace());\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char path_buf[512];
+        const char *path = NULL;
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        TranspileResult *res = NULL;
+
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_trace_prescan.c");
+        path = path_buf;
+        if (ok) {
+            res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok && res != NULL && output != NULL);
+        if (ok && res != NULL && output != NULL) {
+            EXPECT(res->uses_intent_observability);
+            EXPECT_STR_CONTAINS(output, "#define PGY_INTENT_OBSERVABILITY_ENABLED 1");
+            EXPECT_STR_CONTAINS(output, "pgy_intent_trace_step_export(");
+            EXPECT_STR_CONTAINS(output, "pgy_intent_trace_bind_export(");
+            EXPECT_STR_CONTAINS(output, "pgy_intent_trace_step_ok_export(");
+            EXPECT_STR_CONTAINS(output, "pgy_intent_last_trace_export(");
+        }
+
+        transpile_result_destroy(res);
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
 
     TEST("intent observability builtins lower to runtime exports");
     {

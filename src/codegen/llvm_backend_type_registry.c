@@ -8,6 +8,7 @@
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 static char *
@@ -77,6 +78,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         char *inner_name = llvm_render_type_name(
             type_node->data.type.generic_args->params[0]->constraint);
         llvm_register_list_var(ctx, var_name, inner_name);
+        free(inner_name);
         return;
     }
 
@@ -88,6 +90,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         char *inner_name = llvm_render_type_name(
             type_node->data.type.generic_args->params[0]->constraint);
         llvm_register_set_var(ctx, var_name, inner_name);
+        free(inner_name);
         return;
     }
 
@@ -99,6 +102,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         char *inner_name = llvm_render_type_name(
             type_node->data.type.generic_args->params[0]->constraint);
         llvm_register_queue_var(ctx, var_name, inner_name);
+        free(inner_name);
         return;
     }
 
@@ -114,6 +118,8 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         char *value_name = llvm_render_type_name(
             type_node->data.type.generic_args->params[1]->constraint);
         llvm_register_map_var(ctx, var_name, key_name, value_name);
+        free(key_name);
+        free(value_name);
         return;
     }
 

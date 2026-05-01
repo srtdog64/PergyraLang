@@ -68,7 +68,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             bool is_move = (strcmp(callee, "Move") == 0);
 
             if (is_move) {
-                /* Move: structural copy ??new alloca owns the data,
+                /* Move: structural copy; the new alloca owns the data,
                  * source is invalidated */
                 LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
                 LLVMValueRef alloca_val = llvm_create_entry_alloca(
@@ -85,7 +85,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                     }
                 }
             } else {
-                /* ReadView / WriteView: non-owning alias ??                 * share the source slot's alloca directly.
+                /* ReadView / WriteView: non-owning alias; share the source
+                 * slot's alloca directly.
                  * No separate storage; reads/writes go through
                  * the same address as the owning slot. */
                 llvm_scope_declare(ctx, name, source->alloca, source->type);
@@ -98,7 +99,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (llvm_stmt_emit_collection_like_let(node, ctx))
         return;
 
-    /* Slot sugar: let x: Slot<Int> = 42 ??auto Claim + Write */
+    /* Slot sugar: let x: Slot<Int> = 42; auto Claim + Write. */
     if (type_ann != NULL && type_ann->type == AST_TYPE
         && type_ann->data.type.name != NULL) {
         const char *ann_name = type_ann->data.type.name;
@@ -420,9 +421,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 type_ann->data.type.generic_args->params[0]);
             if (inner_name == NULL || inner_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                free(inner_name);
                 return;
             }
             llvm_register_list_var(ctx, name, inner_name);
+            free(inner_name);
         } else if (strcmp(ann_name, "Queue") == 0
             && type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 0
@@ -431,9 +434,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 type_ann->data.type.generic_args->params[0]);
             if (inner_name == NULL || inner_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                free(inner_name);
                 return;
             }
             llvm_register_queue_var(ctx, name, inner_name);
+            free(inner_name);
         } else if (strcmp(ann_name, "HashMap") == 0
             && type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 1
@@ -445,13 +450,19 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 type_ann->data.type.generic_args->params[1]);
             if (key_name == NULL || key_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                free(key_name);
+                free(value_name);
                 return;
             }
             if (value_name == NULL || value_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                free(key_name);
+                free(value_name);
                 return;
             }
             llvm_register_map_var(ctx, name, key_name, value_name);
+            free(key_name);
+            free(value_name);
         } else if (strcmp(ann_name, "Rc") == 0
             || strcmp(ann_name, "Weak") == 0
             || strncmp(ann_name, "Rc<", 3) == 0

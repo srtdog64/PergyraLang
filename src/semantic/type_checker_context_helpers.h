@@ -27,12 +27,14 @@ semantic_ctx_embedded_world_zone_index(SemanticContext *ctx, const char *name)
     return (size_t)-1;
 }
 
+__attribute__((unused))
 static bool
 semantic_ctx_has_embedded_world_zone_name(SemanticContext *ctx, const char *name)
 {
     return semantic_ctx_embedded_world_zone_index(ctx, name) != (size_t)-1;
 }
 
+__attribute__((unused))
 static const char *
 semantic_ctx_embedded_world_zone_world_name(SemanticContext *ctx, const char *name)
 {
@@ -42,6 +44,7 @@ semantic_ctx_embedded_world_zone_world_name(SemanticContext *ctx, const char *na
     return ctx->embedded_world_zone_world_names[index];
 }
 
+__attribute__((unused))
 static const char *
 semantic_ctx_embedded_world_zone_slot_name(SemanticContext *ctx, const char *name)
 {

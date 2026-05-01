@@ -18,12 +18,16 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
             if ((inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI)
                 && inst->result_name != NULL) {
                 LLVMTypeRef alloca_type = ctx->type_i32;
+                LLVMTypeRef layout_type = llvm_mir_type_from_abi_layout(
+                    ctx, inst->type_layout);
                 ASTNode *value_expr = inst->ast;
                 char base_name[128];
                 bool has_base_name = llvm_mir_base_name_from_versioned(
                     inst->result_name, base_name, sizeof(base_name));
 
-                if (inst->ast != NULL) {
+                if (layout_type != NULL) {
+                    alloca_type = layout_type;
+                } else if (inst->ast != NULL) {
                     if (inst->ast->type == AST_LET_DECL) {
                         value_expr = inst->ast->data.let_decl.initializer;
                         if (inst->ast->data.let_decl.type != NULL) {

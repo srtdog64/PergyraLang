@@ -1,6 +1,6 @@
 # Vision and Capability Audit — Current vs Aspirational
 
-Last updated: 2026-04-28
+Last updated: 2026-05-01
 
 Anti-hype rule (2026-04-29):
 
@@ -182,6 +182,100 @@ See `docs/100_beta_readiness_checklist.md` for the authoritative list.
 Do not list beta-target items here — they belong in the closure checklist,
 not in vision, because they are *contractually scheduled*, not aspirational.
 
+### 4.4 Post-1.0 Trajectory — Self-Host (aspirational, not committed)
+
+This is **post-1.0 ambition**, not a beta or pre-1.0 commitment. Recorded
+here so external description can source the *direction* without quoting it
+as a current capability. Memory `project_no_self_host_decision.md` and
+`docs/117` §6 hold the *current decision* (do not self-host until 1.0).
+This subsection records what *self-host would mean* if and when it lands.
+
+**Why post-1.0, not earlier**
+
+Pergyra's positioning (transactional saga, DDD primitive 1급) does *not*
+require self-host for credibility with its target audience. The post-1.0
+trigger is *bottom-up demand* from real users who need to extend the
+compiler — not a top-down vanity goal. Until that demand materializes,
+C + LLVM dual-emit per `docs/117` is the stable position.
+
+**Prerequisite — current Pergyra has the building blocks**
+
+Pergyra already supports the structural minimum for compiler self-host:
+
+- payload-bearing `enum` (sum types) — see `examples/party_system_demo.pgy`
+  `enum Effect { StatBoost(stat: String, amount: Int) ... }`
+- exhaustive `match` with `case` patterns — see
+  `examples/bsd_packet_server/main.pgy` `match pt { case Connect: ... }`
+- `Result<T>` mandate matches every parse / type / codegen failure point
+- `slot<T>` provides stable AST handles (generational refs, like Vale)
+- `extern "C"` provides FFI to libllvm
+
+Missing for full self-host (the actual gap, recorded honestly):
+
+- Rich string slicing / interning stdlib (currently lean)
+- Mature debugger story (Pergyra-debug-Pergyra requires non-trivial
+  investment)
+- Paired Pergyra↔C reference examples for compiler-shaped patterns
+- Stable C escape hatch policy (so partial self-host is recoverable)
+
+**Recommended trajectory — partial self-host first**
+
+The natural sequence, *if and when* post-1.0 self-host begins:
+
+| Stage | What moves to Pergyra | What stays in C | Estimated effort |
+|---|---|---|---|
+| **Stage 1** | Lexer + Parser | Type checker, IR, codegen | ~3 months |
+| **Stage 2** | Type checker | IR, codegen | +5 months |
+| **Stage 3** | HIR/MIR/AIR passes | Codegen, LLVM C API wrap | +4 months |
+| **Stage 4** | C backend codegen | LLVM C API wrap | +2 months |
+| **Stage 5 (full self-host)** | LLVM backend codegen + LLVM C API wrap | — | +4 months |
+
+**Stage 1-3 is "partial self-host"**; Stage 5 is full. *Partial is
+recommended as the long-term steady state.* Keeping LLVM C API wrap in C
+preserves: (a) external tooling help that knows the LLVM C API directly,
+(b) bootstrap robustness (codegen never depends on a Pergyra-built
+compiler), (c) LLVM upgrade path (LLVM C API churn handled in C, not in
+re-traversed Pergyra wrappers).
+
+**Honest external phrase pattern**:
+
+- ✅ "Self-host is a post-1.0 aspiration; current implementation is C +
+  LLVM dual-emit per `docs/117`."
+- ✅ "Pergyra has the structural minimum (payload `enum`, `match`,
+  `Result`, `slot`, `extern "C"`) for partial self-host. Realization is
+  post-1.0."
+- ❌ "Self-hosted compiler" / "Pergyra is written in Pergyra" /
+  "Self-hosting language" — *all forbidden as current claims*.
+
+**Risks to record openly**
+
+- **Bootstrap fragility** — once compiler depends on prior compiler
+  build, regressions cascade. Stage 5 requires an N-1 stage equivalence
+  protocol before merge.
+- **External tooling degradation** — Claude / other LLM assistants have
+  rich training data on C/C++/Rust compiler internals; have *zero*
+  training data on Pergyra. Each session bootstraps Pergyra context from
+  scratch. Self-host shifts the help equation toward the user.
+- **Distraction cost** — same person-time spent on stdlib (server
+  backend per TODO §0b, WebGL per TODO §0a) compounds into ecosystem
+  value. Self-host compounds into *language credibility* but not *user
+  value*. The trade-off must be made consciously.
+
+**Trigger for re-evaluation post-1.0**
+
+Self-host work begins when at least *one* of these holds:
+
+1. Real users (not core team) request compiler extension capability —
+   plugins, custom passes, embedded DSLs.
+2. C escape hatch becomes a maintenance liability (LLVM C API churn
+   exceeds wrap maintenance budget).
+3. A specific Pergyra-only feature emerges that *cannot* be expressed
+   cleanly in C-host but *can* be expressed in Pergyra-host (no candidate
+   currently identified — recorded as a possibility, not a forecast).
+
+If none of the three hold by year 2 post-1.0, **partial self-host
+remains the final form**. Full self-host is not assumed inevitable.
+
 ## 5. The Three-Layer Composition Reminder
 
 `docs/119` §10 frames Pergyra as a three-layer composition:
@@ -225,6 +319,9 @@ for these phrases and substitute the honest version.
 | "Bare-metal capable" | "Bare-metal trajectory marked 🔴 in `docs/19` §0.3" |
 | "Zero-runtime" | "Runtime optional 🟡; fiber/arena are default" (§2 row 3) |
 | "Fully deterministic codegen" | "Compile-time determinism baseline; verification pending" (§2 row 4) |
+| "Self-hosted compiler" | "Self-host is post-1.0 aspiration; current implementation is C + LLVM dual-emit" (§4.4) |
+| "Pergyra is written in Pergyra" | "Compiler implementation in C with LLVM C API; partial self-host is post-1.0 ambition per §4.4" |
+| "Self-hosting language" | "Post-1.0 trajectory; current state is C + LLVM dual-emit per `docs/117`" |
 
 ## 7. How To Use This Doc
 

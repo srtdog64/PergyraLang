@@ -1776,6 +1776,8 @@ test_air_collects_mir_pin_cleanup_evidence(void)
     inst.kind = MIR_INST_CLEANUP_EDGE;
     inst.name = "pin-unpin-cleanup-edge";
     inst.slot_anchor = "scores";
+    inst.arg0 = "view";
+    inst.arg1 = "read";
     inst.ast = &pin_ast;
 
     memset(blocks, 0, sizeof(blocks));
@@ -1933,6 +1935,87 @@ test_air_rejects_unanchored_mir_pin_cleanup_evidence(void)
     memset(&inst, 0, sizeof(inst));
     inst.kind = MIR_INST_CLEANUP_EDGE;
     inst.name = "pin-unpin-cleanup-edge";
+    inst.ast = &pin_ast;
+
+    memset(blocks, 0, sizeof(blocks));
+    blocks[0].is_reachable = true;
+    blocks[0].is_pin_region = true;
+    blocks[0].pin_source_name = "scores";
+    blocks[0].pin_view_name = "view";
+    blocks[0].pin_block_ast = &pin_ast;
+    blocks[0].has_cleanup_succ = true;
+    blocks[0].cleanup_succ = 1;
+    blocks[0].instructions = &inst;
+    blocks[0].instruction_count = 1;
+    blocks[1].id = 1;
+    blocks[1].is_cleanup = true;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.name = "pin_scores";
+    routine.blocks = blocks;
+    routine.block_count = 2;
+    routine.has_cleanup_block = true;
+    routine.cleanup_block = 1;
+
+    memset(&mir, 0, sizeof(mir));
+    mir.routines = &routine;
+    mir.routine_count = 1;
+
+    ok = air_collect_mir_evidence(air, &mir, &error)
+        && air_validate(air, &error)
+        && air->has_mir_input
+        && air->mir_cleanup_evidence_count == 1
+        && air->mir_pin_cleanup_evidence_count == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_rejects_mismatched_mir_pin_cleanup_evidence(void)
+{
+    ASTNode pin_ast;
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram mir;
+    MIRRoutine routine;
+    MIRBasicBlock blocks[2];
+    MIRInstruction inst;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+    memset(&pin_ast, 0, sizeof(pin_ast));
+    pin_ast.type = AST_BLOCK;
+    pin_ast.data.block.is_pin_block = true;
+
+    air->intents = (AIRIntentNode *)calloc(1, sizeof(AIRIntentNode));
+    air->boundaries = (AIRBoundaryNode *)calloc(1, sizeof(AIRBoundaryNode));
+    if (air->intents == NULL || air->boundaries == NULL) {
+        air_destroy(air);
+        return false;
+    }
+    air->intent_count = 1;
+    air->boundary_count = 1;
+    air->intents[0].intent_owner = "ScoreIntent";
+    air->intents[0].step_name = "pin_scores";
+    air->intents[0].step_index = 0;
+    air->intents[0].sync_class = AIR_SYNC_SYNC;
+    air->intents[0].failure_class = AIR_FAILURE_RECOVERABLE;
+    air->boundaries[0].kind = AIR_BOUNDARY_EXECUTION;
+    air->boundaries[0].owner_name = "ScoreIntent";
+    air->boundaries[0].source_name = "pin";
+    air->boundaries[0].intent_index = 0;
+    air->boundaries[0].step_index = 0;
+    air->boundaries[0].sync_class = AIR_SYNC_SYNC;
+    air->boundaries[0].ast = &pin_ast;
+
+    memset(&inst, 0, sizeof(inst));
+    inst.kind = MIR_INST_CLEANUP_EDGE;
+    inst.name = "pin-unpin-cleanup-edge";
+    inst.slot_anchor = "scores";
+    inst.arg0 = "other_view";
+    inst.arg1 = "read";
     inst.ast = &pin_ast;
 
     memset(blocks, 0, sizeof(blocks));
@@ -4233,6 +4316,9 @@ main(void)
 
     TEST("AIR rejects unanchored MIR pin cleanup evidence");
     EXPECT(test_air_rejects_unanchored_mir_pin_cleanup_evidence());
+
+    TEST("AIR rejects mismatched MIR pin cleanup evidence");
+    EXPECT(test_air_rejects_mismatched_mir_pin_cleanup_evidence());
 
     TEST("AIR rejects pin cleanup evidence without slot subject");
     EXPECT(test_air_rejects_pin_cleanup_evidence_without_slot_subject());

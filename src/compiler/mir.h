@@ -11,7 +11,7 @@
 typedef struct MIRProgram MIRProgram;
 
 /* =================================================================
- * ABI Type Layout — explicit memory layout for MIR instructions
+ * ABI Type Layout: explicit memory layout for MIR instructions
  *
  * This is the bridge between the Pergyra type system and the
  * C/LLVM backends. Instead of backends inventing their own struct
@@ -39,7 +39,7 @@ typedef struct
 
 typedef struct
 {
-    const char      *abi_type_name;    /* e.g. "pgy_abi_slot_int_dbg" */
+    const char      *abi_type_name;    /* Canonical surface type, e.g. "Slot<Int>" */
     uint32_t         size_bytes;
     uint32_t         align_bytes;
     uint16_t         field_count;
@@ -88,7 +88,7 @@ typedef struct
     size_t           phi_incoming_count;
     const RIROp     *rir_op;
     ASTNode         *ast;
-    /* ABI type layout — backends read this instead of inventing layouts */
+    /* ABI type layout: backends read this instead of inventing layouts. */
     ASTNode         *expr0;
     ASTNode         *expr1;
     const MIRTypeLayout *type_layout;
@@ -206,7 +206,7 @@ typedef struct
     bool               has_use_def_summary;
     /* Pass-local scratch arena: reused across MIR passes (SSA rename,
      * future liveness/DCE transforms).  Lifetime binds to the enclosing
-     * MIRRoutine — initialised at construction, destroyed in mir_destroy().
+     * MIRRoutine: initialised at construction, destroyed in mir_destroy().
      * Do NOT write to hir_routine->scratch from MIR passes; HIR is frozen
      * by the time MIR runs. */
     PgyArena           scratch;
@@ -297,7 +297,7 @@ void        mir_dump(const MIRProgram *mir, FILE *out);
 const char *mir_scope_kind_name(MIRScopeKind kind);
 const char *mir_inst_kind_name(MIRInstKind kind);
 
-/* ABI Type Layout Lookup — backends use this instead of inventing layouts */
+/* ABI Type Layout Lookup: backends use this instead of inventing layouts. */
 const MIRTypeLayout *mir_abi_lookup(const char *pergyra_type_name);
 void                 mir_abi_table_init(void);
 

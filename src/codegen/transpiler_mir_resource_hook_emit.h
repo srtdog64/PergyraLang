@@ -123,13 +123,16 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
             }
 
             if (view_source_slot != NULL && view_source_slot[0] != '\0') {
+                const char *source_type_name = lookup_typed_var(ctx, view_source_slot);
                 if (emit_inst != &inst_copy) {
                     inst_copy = *emit_inst;
                     emit_inst = &inst_copy;
                 }
                 inst_copy.slot_anchor = view_source_slot;
                 inst_copy.arg0 = view_source_slot;
-                inst_copy.type_layout = NULL;
+                inst_copy.type_layout = source_type_name != NULL
+                    ? mir_abi_lookup(source_type_name)
+                    : NULL;
                 redirected_view_resource = true;
             }
         }

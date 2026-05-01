@@ -187,6 +187,7 @@ validate_generic_param_default_bounds(GenericParams *gp,
     }
 }
 
+__attribute__((unused))
 static void
 validate_class_where_clause_instantiation(ASTNode *class_decl,
                                           Type *constructed_type,

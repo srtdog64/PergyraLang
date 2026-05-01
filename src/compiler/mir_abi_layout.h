@@ -2,7 +2,8 @@
  * ABI Type Layout Lookup
  *
  * Maps Pergyra surface type names (e.g. "Slot<Int>") to explicit
- * MIRTypeLayout structs sourced from pgy_abi_spec.h.
+ * MIRTypeLayout structs sourced from pgy_abi_spec.h. The layout key stored
+ * in MIRTypeLayout is the canonical surface type, not the C ABI typedef name.
  *
  * Backends MUST use these lookups instead of inventing their own
  * struct layouts.

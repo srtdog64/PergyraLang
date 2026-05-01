@@ -23,6 +23,21 @@
 - 진행 노트마다 owner 라인 수를 명시하는 컨벤션 유지 (예: `slot_manager.c는 564 LOC`).
 - 현재 production scan: 0 `.c/.h` owners above 600 LOC (2026-04-29 기준).
 
+## 0-meta. review/ 폴더 운영 프로세스 검토 (2026-05-01)
+
+- review/ 폴더는 외부 리뷰 + 코드 감사 결과 누적 자리로 사용 중
+  (`review/compiler-quality-audit.md` 추가됨 2026-05-01)
+- **검토 필요 항목:**
+  - review/ 문서가 TODO.md / docs/ 와 *어떻게 연동*되는지 명시적 룰 부재
+  - audit 발견 → review/ 작성 → TODO.md sprint entry → 수정 → 검증의
+    *closure 절차* 표준화 안 됨
+  - review/README.md 가 단순 인덱스 — *프로세스 가이드* 부재
+  - review/ 문서가 stale 됐을 때 detection 메커니즘 없음
+- **결정 필요:** review/ 를 *living docs* 로 둘지 *snapshot 아카이브*로
+  둘지. 현재 README는 "수정 작업의 근거" 표현 — living docs 의도로
+  보이지만 운영 룰 부재
+- *베타 closure 작업 아님*. 메타 프로세스 정합성 자리. 1.0 전 정리 권고
+
 ## 0a. Strict Beta Closure Order — 2026-05-01 재고정
 
 **현재 판정:** 기능 구현률은 약 70%로 본다. 다만 strict beta 신뢰도는
@@ -163,6 +178,44 @@ memory: `project_killer_usecase_dungeon_crawler.md` 와 1:1 일치.
 - memory: `project_killer_usecase_dungeon_crawler.md` — 핵심 동기
 
 ## UTF-8 Progress Note - 2026-05-01 - Hot-path Dispatch / Lookup Audit
+
+2026-05-01 update:
+- Closed one active Category A seam: `src/semantic/type_checker_builtins_resolve.c`
+  no longer uses a 120+ entry sequential `strcmp` chain. It now owns a sorted
+  builtin registry table and resolves through `bsearch`.
+- Verification: `make test-semantic LLVM_ENABLED=0` and
+  `make type-resolution-dag-test-smoke LLVM_ENABLED=0` passed with isolated
+  `BUILD_DIR`/`BIN_DIR`. The DAG smoke kept `retired_resolver_calls=0` and
+  `materializer_unresolved=0`.
+- Intent observability codegen scan status: the old implementation-header/TU
+  duplication claim is stale. `intent_observability_usage.h` is declaration-only,
+  `intent_observability_usage.c` owns the scan, and both C/LLVM entry points use
+  it once per backend compile. Remaining debt is layering, not catastrophic hot
+  path cost.
+- Safety note: do not replace the current `strncmp(name, "Intent", 6)` prefix
+  guard with `memcmp` unless caller-provided string storage is proven at least
+  6 bytes. `strncmp` is the safe prefix cutoff for arbitrary C strings.
+- Remaining high-value follow-up: move whole-program feature facts
+  (`uses_intent_observability`, later `uses_parallel` / `uses_async` /
+  `uses_unsafe`) into semantic/MIR analysis flags so codegen consumes facts
+  instead of rescanning AST payloads. `transpiler_expr_type_infer.h` still
+  duplicates builtin return-type knowledge and should be retired behind semantic
+  typed facts rather than expanded with more name checks.
+- Closed parser AST growth debt: `src/parser/ast.c` no longer uses
+  `realloc(count + 1)` for program/block/extern/namespace/parallel/call node
+  lists. These lists now carry explicit capacity, grow geometrically, and leave
+  the AST unchanged on allocation failure.
+- Closed semantic scope lookup hot path: `Scope` now keeps an append-only
+  open-addressed symbol index for current-scope duplicate checks and lookups
+  while preserving the original `symbols` array for whole-scope iteration.
+- Closed runtime intent active-handle lookup debt for the stable runtime
+  surfaces: generated-C inline runtime and LLVM/export runtime now both keep a
+  handle-to-active-slot index. Sequential active scans remain only where the API
+  is explicitly index/enumeration based.
+- Verification: `make test-semantic LLVM_ENABLED=0`, `make test-abi
+  LLVM_ENABLED=0`, and `PGY_OBSERVABILITY_BACKENDS=c make
+  observability-schema-test-smoke LLVM_ENABLED=0` passed with isolated
+  `BUILD_DIR`/`BIN_DIR`.
 
 post-beta 우선순위 정리 audit. 3개 Explore agent 병렬 실행, codegen
 dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확성

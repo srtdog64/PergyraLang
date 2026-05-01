@@ -111,20 +111,20 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                 return false;
             }
         }
-	        if (evidence->kind == AIR_EVIDENCE_DAG_GENERIC
-	            || evidence->kind == AIR_EVIDENCE_DAG_ABILITY) {
-	            const char *expected_subject = evidence->kind == AIR_EVIDENCE_DAG_GENERIC
-	                ? "generic-contracts"
-	                : "ability-consumers";
-	            if (evidence->fact_count == 0 && evidence->fallback_count == 0) {
-	                air_set_invariant_error(error_message,
-	                                        "AIR DAG evidence node %zu has no DAG facts",
-	                                        evidence_index);
-	                return false;
-	            }
-	            if (!air_name_matches(evidence->provider_name, "type-resolution-dag")) {
-	                air_set_invariant_error(error_message,
-	                                        "AIR DAG evidence node %zu has invalid provider '%s'",
+        if (evidence->kind == AIR_EVIDENCE_DAG_GENERIC
+            || evidence->kind == AIR_EVIDENCE_DAG_ABILITY) {
+            const char *expected_subject = evidence->kind == AIR_EVIDENCE_DAG_GENERIC
+                ? "generic-contracts"
+                : "ability-consumers";
+            if (evidence->fact_count == 0 && evidence->fallback_count == 0) {
+                air_set_invariant_error(error_message,
+                                        "AIR DAG evidence node %zu has no DAG facts",
+                                        evidence_index);
+                return false;
+            }
+            if (!air_name_matches(evidence->provider_name, "type-resolution-dag")) {
+                air_set_invariant_error(error_message,
+                                        "AIR DAG evidence node %zu has invalid provider '%s'",
                                         evidence_index,
                                         evidence->provider_name != NULL
                                             ? evidence->provider_name

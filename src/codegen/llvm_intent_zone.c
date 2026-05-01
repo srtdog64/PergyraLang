@@ -101,8 +101,10 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
         return;
 
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
-    trace_materialize_fn = llvm_lookup_function(ctx, "pgy_intent_trace_materialize_export");
-    trace_transfer_fn = llvm_lookup_function(ctx, "pgy_intent_trace_transfer_export");
+    trace_materialize_fn = ctx->uses_intent_observability
+        ? llvm_lookup_function(ctx, "pgy_intent_trace_materialize_export") : NULL;
+    trace_transfer_fn = ctx->uses_intent_observability
+        ? llvm_lookup_function(ctx, "pgy_intent_trace_transfer_export") : NULL;
     from_zone_type_name = llvm_intent_zone_binding_type_name(ctx, from_alias);
 
     if (from_alias != NULL && from_zone_type_name != NULL) {

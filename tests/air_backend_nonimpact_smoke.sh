@@ -28,6 +28,36 @@ if [[ ! -x "$PGY_BIN" ]]; then
     exit 1
 fi
 
+require_normal_backend_air_mir_gate() {
+    local source_rel="tests/cases/backend_compare/intent_zone_binding/main.pgy"
+    local out="$WORK_DIR/air_mir_gate.c"
+    local log="$WORK_DIR/air_mir_gate.log"
+
+    if ! (cd "$ROOT_DIR" && PGY_DEBUG_PIPELINE_STAGE=1 "$PGY_BIN" "$source_rel" --emit-c -o "$out") \
+        >"$log" 2>&1; then
+        echo "air-backend-nonimpact: normal backend AIR/MIR gate probe failed" >&2
+        cat "$log" >&2
+        return 1
+    fi
+
+    if ! grep -Fq "[driver stage] air_mir_evidence" "$log"; then
+        echo "air-backend-nonimpact: normal backend path did not report AIR MIR evidence stage" >&2
+        cat "$log" >&2
+        return 1
+    fi
+    if ! awk '
+        /\[driver stage\] air_mir_evidence/ { saw_air = NR }
+        /\[driver stage\] backend_c/ { saw_backend = NR }
+        END { exit !(saw_air > 0 && saw_backend > saw_air) }
+    ' "$log"; then
+        echo "air-backend-nonimpact: backend stage did not run after AIR MIR evidence gate" >&2
+        cat "$log" >&2
+        return 1
+    fi
+}
+
+require_normal_backend_air_mir_gate
+
 DEFAULT_SOURCES=(
     "tests/cases/backend_compare/intent_zone_binding/main.pgy"
     "tests/cases/backend_compare/intent_cross_world_transfer/main.pgy"

@@ -31,6 +31,7 @@ struct ASTNode
         struct {
             ASTNode** statements;
             size_t    count;
+            size_t    capacity;
         } program;
         
         /* Function declaration */
@@ -75,6 +76,7 @@ struct ASTNode
             char*    abi;
             ASTNode** declarations;
             size_t   count;
+            size_t   capacity;
         } extern_block;
         
         /* Let declaration */
@@ -112,6 +114,7 @@ struct ASTNode
         struct {
             ASTNode** tasks;
             size_t    task_count;
+            size_t    task_capacity;
         } parallel;
         
         /* For loop */
@@ -155,6 +158,7 @@ struct ASTNode
         struct {
             ASTNode** statements;
             size_t    count;
+            size_t    capacity;
             bool      is_pin_block;
             bool      pin_view_is_write;
             char*     pin_source_name;
@@ -179,6 +183,7 @@ struct ASTNode
             ASTNode*       callee;
             ASTNode**      arguments;
             size_t         arg_count;
+            size_t         arg_capacity;
             GenericParams* generic_args; /* optional: callee<T, U> type args */
         } call;
         
@@ -485,6 +490,7 @@ struct ASTNode
             char*    name;
             ASTNode** statements;
             size_t   count;
+            size_t   capacity;
         } namespace_decl;
 
         /* unsafe { ... } */

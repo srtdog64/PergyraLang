@@ -22,6 +22,35 @@ llvm_stmt_require_collection_type_arg(LLVMGenCtx *ctx, ASTNode *node,
     return false;
 }
 
+/*
+ * Surface a hard error when a required runtime export (e.g. pgy_list_new_raw_export)
+ * is not registered. Previously these call sites silently skipped the runtime call
+ * yet still declared the variable, emitting a binary that uses uninitialized
+ * collection storage. That is worse than a crash because the wrong-code is
+ * invisible. This helper preserves the error-reporting style used elsewhere
+ * in the LLVM backend.
+ */
+static bool
+llvm_stmt_require_collection_runtime_fn(LLVMGenCtx *ctx, ASTNode *node,
+                                        const char *binding_name,
+                                        const char *container_name,
+                                        const char *fn_name)
+{
+    if (ctx == NULL)
+        return false;
+    if (!ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM %s binding '%s' requires runtime export '%s'; not registered",
+            container_name != NULL ? container_name : "collection",
+            binding_name != NULL ? binding_name : "<binding>",
+            fn_name != NULL ? fn_name : "<unknown>");
+    }
+    return false;
+}
+
 bool
 llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -76,14 +105,22 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (strcmp(ann_name, "List") == 0 && strcmp(callee, "ListNew") == 0) {
-            if (inner == NULL || inner[0] == '\0')
-                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+            if (inner == NULL || inner[0] == '\0') {
+                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
                     ann_name, 0);
+                free(inner);
+                return ok;
+            }
             LLVMTypeRef list_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, list_ty, name);
             LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_list_new_raw_export");
-            if (new_fn != NULL) {
+            if (new_fn == NULL) {
+                free(inner);
+                return llvm_stmt_require_collection_runtime_fn(ctx, node, name,
+                    "List", "pgy_list_new_raw_export");
+            }
+            {
                 LLVMValueRef args[] = {
                     LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                     llvm_sizeof_type_i64(ctx, elem_ty)
@@ -92,18 +129,27 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
             llvm_scope_declare(ctx, name, alloca_val, list_ty);
             llvm_register_list_var(ctx, name, inner);
+            free(inner);
             return true;
         }
 
         if (strcmp(ann_name, "Set") == 0 && strcmp(callee, "SetNew") == 0) {
-            if (inner == NULL || inner[0] == '\0')
-                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+            if (inner == NULL || inner[0] == '\0') {
+                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
                     ann_name, 0);
+                free(inner);
+                return ok;
+            }
             LLVMTypeRef set_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, set_ty, name);
             LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_set_new_raw_export");
-            if (new_fn != NULL) {
+            if (new_fn == NULL) {
+                free(inner);
+                return llvm_stmt_require_collection_runtime_fn(ctx, node, name,
+                    "Set", "pgy_set_new_raw_export");
+            }
+            {
                 LLVMValueRef args[] = {
                     LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                     llvm_sizeof_type_i64(ctx, elem_ty)
@@ -112,18 +158,27 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
             llvm_scope_declare(ctx, name, alloca_val, set_ty);
             llvm_register_set_var(ctx, name, inner);
+            free(inner);
             return true;
         }
 
         if (strcmp(ann_name, "Queue") == 0 && strcmp(callee, "QueueNew") == 0) {
-            if (inner == NULL || inner[0] == '\0')
-                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+            if (inner == NULL || inner[0] == '\0') {
+                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
                     ann_name, 0);
+                free(inner);
+                return ok;
+            }
             LLVMTypeRef queue_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, queue_ty, name);
             LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_queue_new_raw_export");
-            if (new_fn != NULL) {
+            if (new_fn == NULL) {
+                free(inner);
+                return llvm_stmt_require_collection_runtime_fn(ctx, node, name,
+                    "Queue", "pgy_queue_new_raw_export");
+            }
+            {
                 LLVMValueRef args[] = {
                     LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                     llvm_sizeof_type_i64(ctx, elem_ty)
@@ -132,6 +187,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
             llvm_scope_declare(ctx, name, alloca_val, queue_ty);
             llvm_register_queue_var(ctx, name, inner);
+            free(inner);
             return true;
         }
 
@@ -156,17 +212,33 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                     type_ann->data.type.generic_args->params[1]);
             }
             if (key_type == NULL || key_type[0] == '\0') {
-                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
                     "HashMap", 0);
+                free(inner);
+                free(key_type);
+                free(value_type);
+                return ok;
             }
             if (value_type == NULL || value_type[0] == '\0') {
-                return llvm_stmt_require_collection_type_arg(ctx, node, name,
+                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
                     "HashMap", 1);
+                free(inner);
+                free(key_type);
+                free(value_type);
+                return ok;
             }
             value_ty = pergyra_type_to_llvm(ctx, value_type);
             alloca_val = llvm_create_entry_alloca(ctx, map_ty, name);
             new_fn = llvm_lookup_function(ctx, "pgy_map_new_raw_export");
-            if (new_fn != NULL) {
+            if (new_fn == NULL) {
+                bool ok = llvm_stmt_require_collection_runtime_fn(ctx, node, name,
+                    "HashMap", "pgy_map_new_raw_export");
+                free(inner);
+                free(key_type);
+                free(value_type);
+                return ok;
+            }
+            {
                 LLVMValueRef args[] = {
                     LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                     llvm_sizeof_type_i64(ctx, value_ty)
@@ -175,6 +247,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
             llvm_scope_declare(ctx, name, alloca_val, map_ty);
             llvm_register_map_var(ctx, name, key_type, value_type);
+            free(inner);
+            free(key_type);
+            free(value_type);
             return true;
         }
         free(inner);

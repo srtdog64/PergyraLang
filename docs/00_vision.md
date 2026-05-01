@@ -261,3 +261,46 @@ Pergyra는:
   포인터는 클래식 컴퓨팅의 유물이고,
   Slot은 자원 추상화의 시작이다.
 ```
+ 
+---
+
+## Post-1.0 Self-Hosting Vision
+
+Self-hosting is a long-term credibility goal, not a beta or 1.0
+requirement.
+
+Current state:
+
+- The compiler core is implemented in C.
+- The stable compiler contract is C/LLVM dual emission, not a
+  Pergyra-written compiler.
+- External claims must not say "self-hosted", "written in Pergyra", or
+  "self-hosting language" as current capability.
+
+Why it still belongs in the vision:
+
+- A language that models intent, zones, resource handles, ABI boundaries,
+  diagnostics, and compiler evidence should eventually be able to express
+  parts of its own toolchain.
+- Self-hosting would test whether Pergyra can model real systems work
+  without collapsing into compiler-specific shortcuts.
+- Partial self-hosting is the pragmatic path: formatter, package metadata,
+  diagnostic fixtures, small IR transforms, and smoke tools should come
+  before parser/type-checker/codegen migration.
+
+Trajectory:
+
+1. Soft self-host: compiler-adjacent tools and generated fixtures in
+   Pergyra.
+2. Partial self-host: selected analysis or transform passes that consume
+   stable AIR/MIR/diagnostic JSON.
+3. Hard self-host: frontend or backend migration only after the stable
+   subset, AIR, CFG/body dataflow, DAG, ABI, and backend parity are already
+   frozen.
+
+This vision is governed by
+[`docs/117_backend_strategy_positioning.md`](117_backend_strategy_positioning.md)
+and
+[`docs/120_vision_and_capability_audit.md`](120_vision_and_capability_audit.md).
+If those documents say self-host is deferred, this document must not be
+quoted as a current roadmap commitment.

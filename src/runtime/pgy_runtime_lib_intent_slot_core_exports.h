@@ -103,6 +103,7 @@ pgy_intent_exit_export(int32_t handle)
         entry->failure_reason = NULL;
         entry->step_count = 0;
         entry->failed = false;
+        pgy_intent_active_index_clear_export(handle);
         entry->active = false;
         break;
     }

@@ -101,6 +101,7 @@ LLVM_INSTALL = C:/Program Files/LLVM
 LLVM_ENABLED ?= 1
 STDLIB_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 RUNTIME_PANIC_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
+AIR_NONIMPACT_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 MEMORY_CONCURRENCY_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 CC_TAG       := $(shell printf '%s' "$(CC_MACHINE)" | tr -c 'A-Za-z0-9_.-' '_')
 CONFIG_STAMP = $(BUILD_DIR)/.config_llvm_$(LLVM_ENABLED)_$(CC_TAG).stamp
@@ -348,6 +349,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
+                   $(CODEGEN_DIR)/intent_observability_usage.c \
                    $(CODEGEN_DIR)/transpiler_entry.c \
                    $(CODEGEN_DIR)/transpiler_symbols.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \
@@ -439,14 +441,17 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_intent_cleanup.c \
                          $(CODEGEN_DIR)/llvm_intent_step_context.c \
                          $(CODEGEN_DIR)/llvm_registry.c \
+                         $(CODEGEN_DIR)/llvm_registry_collections.c \
                          $(CODEGEN_DIR)/llvm_registry_resources.c \
                          $(CODEGEN_DIR)/llvm_error.c \
                           $(CODEGEN_DIR)/llvm_register.c \
                           $(CODEGEN_DIR)/llvm_runtime.c \
                           $(CODEGEN_DIR)/llvm_runtime_raw_collections.c \
                           $(CODEGEN_DIR)/llvm_runtime_channels.c \
-                         $(CODEGEN_DIR)/llvm_event.c \
+                        $(CODEGEN_DIR)/llvm_event.c \
                         $(CODEGEN_DIR)/llvm_mir_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_vars.c \
+                        $(CODEGEN_DIR)/llvm_mir_phi.c \
                         $(CODEGEN_DIR)/llvm_mir_cfg_control.c \
                         $(CODEGEN_DIR)/llvm_mir_for_in_control.c \
                         $(CODEGEN_DIR)/llvm_intent_mir_meta.c \
@@ -1078,13 +1083,16 @@ air-json-schema-test-smoke:
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/air_json_schema_smoke.sh
 
 air-backend-nonimpact-test-smoke:
-	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/air_backend_nonimpact_smoke.sh
+	$(MAKE) LLVM_ENABLED="$(LLVM_ENABLED)" $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_AIR_NONIMPACT_BACKENDS="$(AIR_NONIMPACT_BACKENDS)" \
+	"$(BASH)" tests/air_backend_nonimpact_smoke.sh
 
 air-backend-nonimpact-full-test-smoke:
-	$(MAKE) LLVM_ENABLED=1 $(PGY)
+	$(MAKE) LLVM_ENABLED="$(LLVM_ENABLED)" $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_AIR_NONIMPACT_SOURCE=all \
+	PGY_AIR_NONIMPACT_BACKENDS="$(AIR_NONIMPACT_BACKENDS)" \
 	"$(BASH)" tests/air_backend_nonimpact_smoke.sh
 
 codegen-determinism-test-smoke:

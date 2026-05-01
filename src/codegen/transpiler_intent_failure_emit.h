@@ -15,10 +15,13 @@ emit_intent_step_condition_failure(CodeBuf *out,
     codebuf_write(out, "if (!(%s)) { ",
         condition_expr != NULL ? condition_expr : "false");
     codebuf_write(out, "__intent_failed = true; ");
-    codebuf_write(out,
-        "pgy_intent_trace_fail_export(__intent_handle, \"%s:%s\"); __intent_result = false; ",
-        phase,
-        step_name != NULL ? step_name : "<step>");
+    if (ctx->uses_intent_observability) {
+        codebuf_write(out,
+            "pgy_intent_trace_fail_export(__intent_handle, \"%s:%s\"); ",
+            phase,
+            step_name != NULL ? step_name : "<step>");
+    }
+    codebuf_write(out, "__intent_result = false; ");
     if (emit_cleanup_from_mir) {
         codebuf_write(out, "goto _pgy_mir_bb_%s_%zu; }\n",
             intent_name != NULL ? intent_name : "intent",

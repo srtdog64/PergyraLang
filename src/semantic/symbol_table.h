@@ -124,6 +124,8 @@ struct Scope
     Symbol**  symbols;
     size_t    symbol_count;
     size_t    symbol_capacity;
+    Symbol**  symbol_index;
+    size_t    symbol_index_capacity;
 
     /*
      * Slots that were opened in this scope and must be released

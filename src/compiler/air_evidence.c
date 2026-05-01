@@ -119,12 +119,23 @@ air_mir_pin_block_matches_boundary(const MIRBasicBlock *block,
 static const MIRInstruction *
 air_mir_find_pin_cleanup_instruction(const MIRBasicBlock *block)
 {
+    const char *expected_access;
+
     if (block == NULL)
         return NULL;
+    if (block->pin_source_name == NULL || block->pin_source_name[0] == '\0')
+        return NULL;
+    if (block->pin_view_name == NULL || block->pin_view_name[0] == '\0')
+        return NULL;
+
+    expected_access = block->pin_view_is_write ? "write" : "read";
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->kind == MIR_INST_CLEANUP_EDGE
-            && air_name_matches(inst->name, "pin-unpin-cleanup-edge")) {
+            && air_name_matches(inst->name, "pin-unpin-cleanup-edge")
+            && air_name_matches(inst->slot_anchor, block->pin_source_name)
+            && air_name_matches(inst->arg0, block->pin_view_name)
+            && air_name_matches(inst->arg1, expected_access)) {
             return inst;
         }
     }

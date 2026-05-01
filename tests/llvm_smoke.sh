@@ -37,6 +37,46 @@ run_case() {
     echo "[llvm-smoke] $name ok"
 }
 
+run_ir_contains_case() {
+    local name="$1"
+    local file="$2"
+    local needle="$3"
+    local ll="$TMPDIR/${name}.ll"
+    local output
+
+    output="$(
+        cd "$(dirname "$file")"
+        "$PGY" "$file" --emit-llvm -o "$ll" 2>&1
+    )"
+    if [[ ! -f "$ll" ]] || ! grep -Fq -- "$needle" "$ll"; then
+        echo "[llvm-smoke] $name failed" >&2
+        echo "--- output ---" >&2
+        echo "$output" >&2
+        echo "--- llvm ir ---" >&2
+        [[ -f "$ll" ]] && sed -n '1,220p' "$ll" >&2
+        echo "--------------" >&2
+        exit 1
+    fi
+    echo "[llvm-smoke] $name ok"
+}
+
+cat > "$TMPDIR/phi_lowering.pgy" <<'EOF'
+func Choose(flag: Bool) -> Int {
+    let x: Int = 0;
+    if flag {
+        x = 10;
+    } else {
+        x = 20;
+    }
+    return x;
+}
+
+func Main() -> Void {
+    Log(Choose(true));
+}
+EOF
+run_ir_contains_case "true_phi_lowering" "$TMPDIR/phi_lowering.pgy" " phi i32 "
+
 cat > "$TMPDIR/loop_break_continue.pgy" <<'EOF'
 func Main() -> Void {
     let sum: Int = 0;

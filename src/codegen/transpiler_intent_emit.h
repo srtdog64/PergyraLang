@@ -299,19 +299,21 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "/* intent step: %s */\n",
             step_name != NULL ? step_name : "<step>");
-        write_indent(ctx);
-        codebuf_write(ctx->out, "pgy_intent_trace_step_export(__intent_handle, \"%s\", \"%s\");\n",
-            step_name != NULL ? step_name : "<step>",
-            step_zone_name != NULL ? step_zone_name : "<zone>");
-        for (size_t j = 0; j < who_alias_count; j++) {
-            const char *alias = who_aliases[j];
-            const char *slot_name = (mir_only_intent && step_zone_name != NULL)
-                ? resolve_intent_zone_slot_name_for_zone(ctx, node, step_zone_name, alias)
-                : resolve_intent_zone_slot_name(ctx, node, step, alias);
+        if (ctx->uses_intent_observability) {
             write_indent(ctx);
-            codebuf_write(ctx->out, "pgy_intent_trace_bind_export(__intent_handle, \"%s\", \"%s\");\n",
-                alias != NULL ? alias : "<participant>",
-                slot_name != NULL ? slot_name : "<unbound>");
+            codebuf_write(ctx->out, "pgy_intent_trace_step_export(__intent_handle, \"%s\", \"%s\");\n",
+                step_name != NULL ? step_name : "<step>",
+                step_zone_name != NULL ? step_zone_name : "<zone>");
+            for (size_t j = 0; j < who_alias_count; j++) {
+                const char *alias = who_aliases[j];
+                const char *slot_name = (mir_only_intent && step_zone_name != NULL)
+                    ? resolve_intent_zone_slot_name_for_zone(ctx, node, step_zone_name, alias)
+                    : resolve_intent_zone_slot_name(ctx, node, step, alias);
+                write_indent(ctx);
+                codebuf_write(ctx->out, "pgy_intent_trace_bind_export(__intent_handle, \"%s\", \"%s\");\n",
+                    alias != NULL ? alias : "<participant>",
+                    slot_name != NULL ? slot_name : "<unbound>");
+            }
         }
         emit_intent_step_validate_authority(ctx->out, ctx,
             node->data.intent_decl.name, step_name, step_zone_name, step_zone_alias,
@@ -464,9 +466,11 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(invariant);
         }
-        write_indent(ctx);
-        codebuf_write(ctx->out, "pgy_intent_trace_step_ok_export(__intent_handle, \"%s\");\n",
-            step_name != NULL ? step_name : "<step>");
+        if (ctx->uses_intent_observability) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "pgy_intent_trace_step_ok_export(__intent_handle, \"%s\");\n",
+                step_name != NULL ? step_name : "<step>");
+        }
         free(on_exprs);
         if (mir_only_intent)
             free((void *)who_aliases);

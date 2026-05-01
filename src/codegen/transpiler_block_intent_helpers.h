@@ -174,22 +174,26 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
             if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
                 write_indent(ctx);
                 codebuf_write(out, "%s->%s = *%s;\n", from_alias, from_slot_name, alias);
-                write_indent(ctx);
-                codebuf_write(out,
-                    "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
-                    alias, from_slot_name, from_zone_type);
+                if (ctx->uses_intent_observability) {
+                    write_indent(ctx);
+                    codebuf_write(out,
+                        "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+                        alias, from_slot_name, from_zone_type);
+                }
             }
             if (to_slot_name != NULL && strcmp(to_slot_name, "<unbound>") != 0) {
                 write_indent(ctx);
                 codebuf_write(out, "%s->%s = *%s;\n", zone_alias, to_slot_name, alias);
-                write_indent(ctx);
-                codebuf_write(out,
-                    "pgy_intent_trace_transfer_export(__intent_handle, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
-                    alias,
-                    from_zone_type != NULL ? from_zone_type : "<zone>",
-                    from_slot_name != NULL ? from_slot_name : "<unbound>",
-                    zone_type,
-                    to_slot_name);
+                if (ctx->uses_intent_observability) {
+                    write_indent(ctx);
+                    codebuf_write(out,
+                        "pgy_intent_trace_transfer_export(__intent_handle, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
+                        alias,
+                        from_zone_type != NULL ? from_zone_type : "<zone>",
+                        from_slot_name != NULL ? from_slot_name : "<unbound>",
+                        zone_type,
+                        to_slot_name);
+                }
             }
         }
         write_indent(ctx);
@@ -208,10 +212,12 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
             continue;
         write_indent(ctx);
         codebuf_write(out, "%s->%s = *%s;\n", zone_alias, slot_name, alias);
-        write_indent(ctx);
-        codebuf_write(out,
-            "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
-            alias, slot_name, zone_type);
+        if (ctx->uses_intent_observability) {
+            write_indent(ctx);
+            codebuf_write(out,
+                "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+                alias, slot_name, zone_type);
+        }
     }
     write_indent(ctx);
     codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
@@ -251,22 +257,26 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
             if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
                 write_indent(ctx);
                 codebuf_write(out, "%s->%s = *%s;\n", from_alias, from_slot_name, alias);
-                write_indent(ctx);
-                codebuf_write(out,
-                    "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
-                    alias, from_slot_name, from_zone_type);
+                if (ctx->uses_intent_observability) {
+                    write_indent(ctx);
+                    codebuf_write(out,
+                        "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+                        alias, from_slot_name, from_zone_type);
+                }
             }
             if (to_slot_name != NULL && strcmp(to_slot_name, "<unbound>") != 0) {
                 write_indent(ctx);
                 codebuf_write(out, "%s->%s = *%s;\n", zone_alias, to_slot_name, alias);
-                write_indent(ctx);
-                codebuf_write(out,
-                    "pgy_intent_trace_transfer_export(__intent_handle, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
-                    alias,
-                    from_zone_type != NULL ? from_zone_type : "<zone>",
-                    from_slot_name != NULL ? from_slot_name : "<unbound>",
-                    zone_type,
-                    to_slot_name);
+                if (ctx->uses_intent_observability) {
+                    write_indent(ctx);
+                    codebuf_write(out,
+                        "pgy_intent_trace_transfer_export(__intent_handle, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
+                        alias,
+                        from_zone_type != NULL ? from_zone_type : "<zone>",
+                        from_slot_name != NULL ? from_slot_name : "<unbound>",
+                        zone_type,
+                        to_slot_name);
+                }
             }
         }
         write_indent(ctx);
@@ -285,10 +295,12 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
             continue;
         write_indent(ctx);
         codebuf_write(out, "%s->%s = *%s;\n", zone_alias, slot_name, alias);
-        write_indent(ctx);
-        codebuf_write(out,
-            "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
-            alias, slot_name, zone_type);
+        if (ctx->uses_intent_observability) {
+            write_indent(ctx);
+            codebuf_write(out,
+                "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+                alias, slot_name, zone_type);
+        }
     }
     write_indent(ctx);
     codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
@@ -390,9 +402,12 @@ emit_intent_step_validate_authority(CodeBuf *out,
             zone_type,
             alias);
         codebuf_write(out, "__intent_failed = true; ");
-        codebuf_write(out,
-            "pgy_intent_trace_fail_export(__intent_handle, \"authority:%s\"); __intent_result = false; ",
-            step_name != NULL ? step_name : "<step>");
+        if (ctx->uses_intent_observability) {
+            codebuf_write(out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"authority:%s\"); ",
+                step_name != NULL ? step_name : "<step>");
+        }
+        codebuf_write(out, "__intent_result = false; ");
         if (emit_cleanup_from_mir) {
             codebuf_write(out, "goto _pgy_mir_bb_%s_%zu; }\n",
                 intent_name != NULL ? intent_name : "intent", cleanup_block);
