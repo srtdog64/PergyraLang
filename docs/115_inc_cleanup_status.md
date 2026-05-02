@@ -1643,7 +1643,7 @@ Observed results:
   `src/codegen/llvm_mir_blocks.inc` into
   `src/codegen/llvm_mir_block_emit.h`,
   `src/semantic/type_checker_resolution_graph_core.inc` into
-  `src/semantic/type_checker_resolution_graph_core.h`, and
+  `src/semantic/type_checker_resolution_graph_core.c`, and
   `src/codegen/transpiler_emitters_enum_decl.inc` into
   `src/codegen/transpiler_enum_decl_emit.h`. The current production source
   `.inc` inventory is 25 files / 1,675 LOC.

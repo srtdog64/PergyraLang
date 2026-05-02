@@ -214,16 +214,26 @@ air_format_boundary_provenance(const AIRIntentNode *intent,
         source_provenance = "intent-default+transfer";
     else if (boundary->source_from_intent_default)
         source_provenance = "intent-default";
+    else if (boundary->source_from_action)
+        source_provenance = "action-inherited";
     else if (boundary->source_from_transfer)
         source_provenance = "transfer";
     else
         source_provenance = "explicit";
-    who_provenance = intent->who_from_intent_default
-        ? "intent-default"
-        : "explicit";
-    authority_provenance = boundary->authority_from_zone
-        ? "zone-derived"
-        : (boundary->authority_required ? "explicit" : "none");
+    if (intent->who_from_intent_default)
+        who_provenance = "intent-default";
+    else if (intent->who_from_on_receiver)
+        who_provenance = "on-receiver";
+    else if (intent->who_from_single_participant)
+        who_provenance = "single-participant";
+    else
+        who_provenance = "explicit";
+    if (boundary->authority_from_zone)
+        authority_provenance = "zone-derived";
+    else if (boundary->authority_from_action)
+        authority_provenance = "action-inherited";
+    else
+        authority_provenance = boundary->authority_required ? "explicit" : "none";
     snprintf(out,
              out_size,
              "; owner=%s step=%s boundary_source=%s source_provenance=%s who_provenance=%s authority_provenance=%s",

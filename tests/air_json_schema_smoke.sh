@@ -60,10 +60,16 @@ for required in \
     '"surfaces":["last","history","active","recent"]' \
     '"intents"' \
     '"who_from_intent_default"' \
+    '"who_from_on_receiver"' \
+    '"who_from_single_participant"' \
+    '"requires_from_action"' \
+    '"causes_from_action"' \
     '"boundaries"' \
     '"source_from_intent_default"' \
+    '"source_from_action"' \
     '"source_from_transfer"' \
     '"authority_from_zone"' \
+    '"authority_from_action"' \
     '"evidence"' \
     '"drifts":[]' \
     '"evidence_flags"' \
@@ -85,6 +91,9 @@ for required in \
     '"rir_effect_propagation_evidence_count"' \
     '"rir_relation_propagation_required_count"' \
     '"rir_relation_propagation_evidence_count"' \
+    '"observability_schema_evidence_count"' \
+    '"kind":"observability_schema"' \
+    '"provider":"runtime-observability-schema"' \
     '"location":{"line":' \
     '"authority_names"'; do
     require_text "$required"
@@ -117,9 +126,15 @@ assert data["observability"]["abi_schema"] == "pgy.intent.observability.v1"
 assert data["observability"]["trace_schema"] == "pgy.intent.trace.v1"
 assert data["observability"]["surfaces"] == ["last", "history", "active", "recent"]
 assert all("who_from_intent_default" in intent for intent in data["intents"])
+assert all("who_from_on_receiver" in intent for intent in data["intents"])
+assert all("who_from_single_participant" in intent for intent in data["intents"])
+assert all("requires_from_action" in intent for intent in data["intents"])
+assert all("causes_from_action" in intent for intent in data["intents"])
 assert all("source_from_intent_default" in boundary for boundary in data["boundaries"])
+assert all("source_from_action" in boundary for boundary in data["boundaries"])
 assert all("source_from_transfer" in boundary for boundary in data["boundaries"])
 assert all("authority_from_zone" in boundary for boundary in data["boundaries"])
+assert all("authority_from_action" in boundary for boundary in data["boundaries"])
 assert any(b["kind"] == "zone" and b["evidence_flags"]["rir_boundary"] for b in data["boundaries"])
 assert any(e["kind"] == "rir_boundary" for e in data["evidence"])
 assert any(e["kind"] == "hir_cfg" for e in data["evidence"])
@@ -137,6 +152,8 @@ assert summary["mir_cleanup_evidence_count"] >= 1
 assert summary["mir_pin_cleanup_evidence_count"] >= 0
 assert summary["rir_effect_propagation_evidence_count"] <= summary["rir_effect_propagation_required_count"]
 assert summary["rir_relation_propagation_evidence_count"] <= summary["rir_relation_propagation_required_count"]
+assert summary["observability_schema_evidence_count"] == 1
+assert any(e["kind"] == "observability_schema" and e["provider"] == "runtime-observability-schema" for e in data["evidence"])
 assert all("location" in b and b["location"]["line"] > 0 for b in data["boundaries"])
 print("[air-json-schema] parsed schema ok")
 PY

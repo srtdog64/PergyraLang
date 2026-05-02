@@ -134,7 +134,7 @@ grep -q 'Retired compatibility resolver audit counters' src/semantic/type_checke
 grep -q 'require_assignable(Type \*from, Type \*to' src/semantic/type_checker_type_helpers.c \
     || fail "assignability helper must stay outside the retired resolver counter owner"
 
-if grep -R "resolve_type_node(" src/semantic/type_checker_resolution_graph_*.c src/semantic/type_checker_resolution_graph_core.h >/dev/null; then
+if grep -R "resolve_type_node(" src/semantic/type_checker_resolution_graph_*.c >/dev/null; then
     fail "DAG graph core/precollect layer must not call resolve_type_node directly"
 fi
 

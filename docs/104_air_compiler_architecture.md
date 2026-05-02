@@ -19,8 +19,8 @@ It then prints evidence counters, intent nodes, boundary nodes, legacy
 per-boundary evidence flags, and first-class `AIREvidenceNode` provenance.
 Current first-class evidence node kinds are `hir_routine`, `hir_cfg`,
 `rir_boundary`, `rir_authority`, `mir_cleanup`, `mir_pin_cleanup`,
-`dag_metadata`, `dag_generic`, `dag_ability`, `rir_effect_propagation`, and
-`rir_relation_propagation`.
+`dag_metadata`, `dag_generic`, `dag_ability`, `rir_effect_propagation`,
+`rir_relation_propagation`, and `observability_schema`.
 
 2026-05-02 debt status:
 
@@ -268,7 +268,8 @@ sixth compiler core and the architecture is wrong.
   being mistaken for CFG-backed body evidence.
 - First-class `AIREvidenceNode` inventory is present for HIR routine, HIR CFG,
   RIR boundary, RIR authority, MIR cleanup/pin-cleanup, DAG generic/ability,
-  and RIR effect/relation propagation evidence. Legacy
+  RIR effect/relation propagation, and observability/trace schema evidence.
+  Legacy
   per-boundary flags remain as the driver compatibility seam; new cross-layer
   checks should add evidence nodes instead of adding more boolean-only proof
   flags.

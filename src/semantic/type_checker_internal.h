@@ -189,6 +189,12 @@ ASTNode *intent_step_resolve_transfer_target_involves(
     ASTNode *intent_decl,
     ASTNode *step,
     const char **resolved_alias_out);
+Type *intent_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
+Type *intent_normalize_type(Type *type);
+Type *intent_resolve_involves_type(ASTNode *involves, SemanticContext *ctx);
+Type *intent_resolve_value_type(ASTNode *value, SemanticContext *ctx);
+Type *intent_resolve_step_where_type(ASTNode *step, SemanticContext *ctx);
+const char *intent_step_where_source_label(const ASTNode *step);
 const char *intent_involves_type_name(ASTNode *involves);
 bool domain_has_subject_slot_type(ASTNode **slots,
                                   size_t slot_count,
@@ -235,6 +241,13 @@ ASTNode **collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                               const char *owner_kind,
                                               const char *owner_name,
                                               size_t *out_count);
+Type **collect_effective_generic_arg_types(GenericParams *decl_params,
+                                           GenericParams *provided_args,
+                                           const ASTNode *site,
+                                           SemanticContext *ctx,
+                                           const char *owner_kind,
+                                           const char *owner_name,
+                                           size_t *out_count);
 char *format_type_constraint_bounds(TypeConstraint *tc);
 int find_generic_param_index(GenericParams *gp, const char *param_name);
 bool concrete_type_satisfies_bound(Type *concrete_type,
@@ -342,6 +355,9 @@ void semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                                                          SemanticContext *ctx);
 void semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
                                                         SemanticContext *ctx);
+void semantic_type_resolution_precollect_zone_command_inventory(
+    ASTNode *zone_decl,
+    SemanticContext *ctx);
 void semantic_type_resolution_precollect_zone_state_authority_inventory(
     ASTNode *zone_decl,
     SemanticContext *ctx);

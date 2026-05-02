@@ -184,19 +184,23 @@ air_dump(const AIRProgram *air, FILE *out)
     for (size_t i = 0; i < air->intent_count; i++) {
         const AIRIntentNode *intent = &air->intents[i];
         fprintf(out,
-                "  intent[%zu] owner=%s step=%s index=%zu sync=%s failure=%s who_from_intent_default=%s\n",
+                "  intent[%zu] owner=%s step=%s index=%zu sync=%s failure=%s who_from_intent_default=%s who_from_on_receiver=%s who_from_single_participant=%s requires_from_action=%s causes_from_action=%s\n",
                 i,
                 intent->intent_owner != NULL ? intent->intent_owner : "<anonymous>",
                 intent->step_name != NULL ? intent->step_name : "<unnamed>",
                 intent->step_index,
                 air_sync_class_name(intent->sync_class),
                 air_failure_class_name(intent->failure_class),
-                intent->who_from_intent_default ? "yes" : "no");
+                intent->who_from_intent_default ? "yes" : "no",
+                intent->who_from_on_receiver ? "yes" : "no",
+                intent->who_from_single_participant ? "yes" : "no",
+                intent->requires_from_action ? "yes" : "no",
+                intent->causes_from_action ? "yes" : "no");
     }
     for (size_t i = 0; i < air->boundary_count; i++) {
         const AIRBoundaryNode *boundary = &air->boundaries[i];
         fprintf(out,
-                "  boundary[%zu] kind=%s owner=%s source=%s intent=%zu step=%zu sync=%s authority=%s source_from_intent_default=%s source_from_transfer=%s authority_from_zone=%s\n",
+                "  boundary[%zu] kind=%s owner=%s source=%s intent=%zu step=%zu sync=%s authority=%s source_from_intent_default=%s source_from_action=%s source_from_transfer=%s authority_from_zone=%s authority_from_action=%s\n",
                 i,
                 air_boundary_kind_name(boundary->kind),
                 boundary->owner_name != NULL ? boundary->owner_name : "<anonymous>",
@@ -206,8 +210,10 @@ air_dump(const AIRProgram *air, FILE *out)
                 air_sync_class_name(boundary->sync_class),
                 boundary->authority_required ? "yes" : "no",
                 boundary->source_from_intent_default ? "yes" : "no",
+                boundary->source_from_action ? "yes" : "no",
                 boundary->source_from_transfer ? "yes" : "no",
-                boundary->authority_from_zone ? "yes" : "no");
+                boundary->authority_from_zone ? "yes" : "no",
+                boundary->authority_from_action ? "yes" : "no");
         fprintf(out,
                 "    evidence hir=%s(%s) hir_cfg=%s rir_boundary=%s(%s) rir_authority=%s(%s)\n",
                 air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_ROUTINE) ? "yes" : "no",
@@ -270,7 +276,8 @@ air_dump_json(const AIRProgram *air, FILE *out)
             "\"mir_cleanup_evidence_count\":%zu,\"mir_pin_cleanup_evidence_count\":%zu,"
             "\"dag_metadata_evidence_count\":%zu,\"dag_generic_evidence_count\":%zu,\"dag_ability_evidence_count\":%zu,"
             "\"rir_effect_propagation_required_count\":%zu,\"rir_effect_propagation_evidence_count\":%zu,"
-            "\"rir_relation_propagation_required_count\":%zu,\"rir_relation_propagation_evidence_count\":%zu},",
+            "\"rir_relation_propagation_required_count\":%zu,\"rir_relation_propagation_evidence_count\":%zu,"
+            "\"observability_schema_evidence_count\":%zu},",
             air->hir_routine_evidence_count,
             air->hir_cfg_evidence_count,
             air->rir_boundary_evidence_count,
@@ -283,7 +290,8 @@ air_dump_json(const AIRProgram *air, FILE *out)
             air->rir_effect_propagation_required_count,
             air->rir_effect_propagation_evidence_count,
             air->rir_relation_propagation_required_count,
-            air->rir_relation_propagation_evidence_count);
+            air->rir_relation_propagation_evidence_count,
+            air->observability_schema_evidence_count);
 
     air_dump_json_observability_schema(out);
     fputs(",\"intents\":[", out);
@@ -301,6 +309,14 @@ air_dump_json(const AIRProgram *air, FILE *out)
         air_json_string(out, air_failure_class_name(intent->failure_class));
         fputs(",\"who_from_intent_default\":", out);
         air_json_bool(out, intent->who_from_intent_default);
+        fputs(",\"who_from_on_receiver\":", out);
+        air_json_bool(out, intent->who_from_on_receiver);
+        fputs(",\"who_from_single_participant\":", out);
+        air_json_bool(out, intent->who_from_single_participant);
+        fputs(",\"requires_from_action\":", out);
+        air_json_bool(out, intent->requires_from_action);
+        fputs(",\"causes_from_action\":", out);
+        air_json_bool(out, intent->causes_from_action);
         fprintf(out,
                 ",\"location\":{\"line\":%u,\"column\":%u}}",
                 air_node_line(intent->ast),
@@ -328,10 +344,14 @@ air_dump_json(const AIRProgram *air, FILE *out)
         air_json_bool(out, boundary->authority_required);
         fputs(",\"source_from_intent_default\":", out);
         air_json_bool(out, boundary->source_from_intent_default);
+        fputs(",\"source_from_action\":", out);
+        air_json_bool(out, boundary->source_from_action);
         fputs(",\"source_from_transfer\":", out);
         air_json_bool(out, boundary->source_from_transfer);
         fputs(",\"authority_from_zone\":", out);
         air_json_bool(out, boundary->authority_from_zone);
+        fputs(",\"authority_from_action\":", out);
+        air_json_bool(out, boundary->authority_from_action);
         fputs(",\"authority_names\":[", out);
         for (size_t j = 0; j < boundary->authority_name_count; j++) {
             if (j > 0)
@@ -472,6 +492,7 @@ air_evidence_kind_name(AIREvidenceKind kind)
     case AIR_EVIDENCE_DAG_ABILITY: return "dag_ability";
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION: return "rir_effect_propagation";
     case AIR_EVIDENCE_RIR_RELATION_PROPAGATION: return "rir_relation_propagation";
+    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA: return "observability_schema";
     }
     return "invalid";
 }

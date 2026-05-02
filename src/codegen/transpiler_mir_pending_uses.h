@@ -1,3 +1,32 @@
+static ASTNode *
+transpiler_find_block_let_decl_from_mir_insts(const MIRBasicBlock *block,
+                                              const char *name)
+{
+    if (block == NULL || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        ASTNode *stmt;
+
+        if (inst->kind != MIR_INST_DEF || inst->arg0 == NULL)
+            continue;
+        if (strcmp(inst->arg0, name) != 0)
+            continue;
+
+        stmt = inst->ast;
+        if (stmt == NULL
+            || stmt->type != AST_LET_DECL
+            || stmt->data.let_decl.name == NULL) {
+            continue;
+        }
+        if (strcmp(stmt->data.let_decl.name, name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
 static bool
 transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                                          TranspilerCtx *ctx,
@@ -64,19 +93,7 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         if (exit_versioned == NULL)
             continue;
 
-        let_decl = NULL;
-        if (block->source_statements != NULL) {
-            for (size_t stmt_idx = 0; stmt_idx < block->source_statement_count; stmt_idx++) {
-                ASTNode *source_stmt = block->source_statements[stmt_idx];
-                if (source_stmt == NULL || source_stmt->type != AST_LET_DECL)
-                    continue;
-                if (source_stmt->data.let_decl.name != NULL
-                    && strcmp(source_stmt->data.let_decl.name, base) == 0) {
-                    let_decl = source_stmt;
-                    break;
-                }
-            }
-        }
+        let_decl = transpiler_find_block_let_decl_from_mir_insts(block, base);
         if (let_decl == NULL)
             let_decl = transpiler_find_let_decl_by_name(func_decl, base);
         if (let_decl == NULL || let_decl->type != AST_LET_DECL)

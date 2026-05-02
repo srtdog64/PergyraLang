@@ -158,7 +158,9 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
 
     if (step->data.intent_step.who_count > 0
         && !step->data.intent_step.inherited_who_from_action
-        && !step->data.intent_step.inherited_who_from_intent) {
+        && !step->data.intent_step.inherited_who_from_intent
+        && !step->data.intent_step.derived_who_from_on_receiver
+        && !step->data.intent_step.derived_who_from_single_participant) {
         size_t alias_used = 0;
         for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
             const char *alias = step->data.intent_step.who_names != NULL
@@ -274,6 +276,42 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         }
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused who from intent-level default%s%s",
+            has_any ? "\n" : "",
+            alias_list[0] != '\0' ? ": " : "",
+            alias_list);
+        has_any = true;
+        alias_list[0] = '\0';
+    }
+    if (step->data.intent_step.derived_who_from_on_receiver) {
+        size_t alias_used = 0;
+        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+            const char *alias = step->data.intent_step.who_names != NULL
+                ? step->data.intent_step.who_names[i] : NULL;
+            if (alias == NULL)
+                continue;
+            intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
+                "%s%s", alias_used > 0 ? ", " : "", alias);
+        }
+        intent_step_summary_append(buffer, buffer_size, &used,
+            "%s- derived who from on-call receiver%s%s",
+            has_any ? "\n" : "",
+            alias_list[0] != '\0' ? ": " : "",
+            alias_list);
+        has_any = true;
+        alias_list[0] = '\0';
+    }
+    if (step->data.intent_step.derived_who_from_single_participant) {
+        size_t alias_used = 0;
+        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+            const char *alias = step->data.intent_step.who_names != NULL
+                ? step->data.intent_step.who_names[i] : NULL;
+            if (alias == NULL)
+                continue;
+            intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
+                "%s%s", alias_used > 0 ? ", " : "", alias);
+        }
+        intent_step_summary_append(buffer, buffer_size, &used,
+            "%s- derived who from single subject participant%s%s",
             has_any ? "\n" : "",
             alias_list[0] != '\0' ? ": " : "",
             alias_list);

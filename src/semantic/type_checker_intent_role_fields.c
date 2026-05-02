@@ -1,7 +1,6 @@
 #include "type_checker_internal.h"
 #include "type_checker_ability_ref_internal.h"
 #include "diag_codes.h"
-#include "../common/string_compat.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -126,15 +125,14 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
                                          Type **out_type)
 {
     GenericParams *decl_params;
-    ASTNode **effective_args = NULL;
+    Type **effective_types = NULL;
     size_t effective_count = 0;
     char *ability_text = NULL;
 
     if (out_type != NULL)
         *out_type = TYPE_UNKNOWN;
-    if (ctx == NULL || out_type == NULL || type_node == NULL) {
+    if (ctx == NULL || out_type == NULL || type_node == NULL)
         return;
-    }
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
         || ability_ref == NULL || ability_ref->type != AST_TYPE) {
         *out_type = intent_role_resolve_type_ref(type_node, ctx);
@@ -149,7 +147,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
 
     ability_text = ability_ref_display(ability_ref);
 
-    effective_args = collect_effective_generic_arg_nodes(
+    effective_types = collect_effective_generic_arg_types(
         decl_params,
         ability_ref->data.type.generic_args,
         site != NULL ? site : type_node,
@@ -158,7 +156,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         ability_decl->data.ability_decl.name != NULL
             ? ability_decl->data.ability_decl.name : "<ability>",
         &effective_count);
-    if (effective_args == NULL) {
+    if (effective_types == NULL) {
         free(ability_text);
         *out_type = TYPE_UNKNOWN;
         return;
@@ -172,7 +170,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
 
         if (param == NULL || param->name == NULL)
             continue;
-        if (effective_args[i] == NULL) {
+        if (i >= effective_count || effective_types[i] == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 site != NULL ? site : type_node,
@@ -209,7 +207,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
             continue;
         }
 
-        arg_type = intent_role_resolve_type_ref(effective_args[i], ctx);
+        arg_type = effective_types[i];
         if (arg_type == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
@@ -259,7 +257,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
     *out_type = intent_role_resolve_type_ref(type_node, ctx);
     scope_exit(&ctx->scope);
     free(ability_text);
-    free(effective_args);
+    free(effective_types);
 }
 
 void
@@ -395,70 +393,6 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
     free(ability_text);
 }
 
-ASTNode *
-find_intent_involves_local(ASTNode *intent, const char *alias)
-{
-    if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent->data.intent_decl.involves[i];
-        if (involves != NULL && involves->type == AST_INTENT_INVOLVES
-            && involves->data.intent_involves.alias != NULL
-            && strcmp(involves->data.intent_involves.alias, alias) == 0) {
-            return involves;
-        }
-    }
-    return NULL;
-}
-
-ASTNode *find_intent_value_local(ASTNode *intent, const char *alias)
-{
-    if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < intent->data.intent_decl.value_count; i++) {
-        ASTNode *value = intent->data.intent_decl.values[i];
-        if (value != NULL && value->type == AST_INTENT_VALUE
-            && value->data.intent_value.alias != NULL
-            && strcmp(value->data.intent_value.alias, alias) == 0) {
-            return value;
-        }
-    }
-    return NULL;
-}
-
-static ASTNode *
-find_unique_intent_involves_by_type_name(ASTNode *intent,
-                                         const char *type_name,
-                                         const char **alias_out)
-{
-    ASTNode *matched = NULL;
-
-    if (alias_out != NULL)
-        *alias_out = NULL;
-    if (intent == NULL || intent->type != AST_INTENT_DECL || type_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent->data.intent_decl.involves[i];
-        const char *participant_type_name = intent_involves_type_name(involves);
-
-        if (participant_type_name == NULL
-            || strcmp(participant_type_name, type_name) != 0) {
-            continue;
-        }
-
-        if (matched != NULL)
-            return NULL;
-        matched = involves;
-    }
-
-    if (matched != NULL && alias_out != NULL)
-        *alias_out = matched->data.intent_involves.alias;
-    return matched;
-}
-
 static const char *find_unique_intent_binding_alias_by_type_name(
     ASTNode *intent, const char *type_name, SemanticContext *ctx)
 {
@@ -494,41 +428,6 @@ static const char *find_unique_intent_binding_alias_by_type_name(
     }
 
     return matched_alias;
-}
-
-ASTNode *
-intent_step_resolve_transfer_target_involves(ASTNode *intent_decl,
-                                             ASTNode *step,
-                                             const char **resolved_alias_out)
-{
-    const char *to_name;
-    ASTNode *to_involves;
-    const char *resolved_alias = NULL;
-
-    if (resolved_alias_out != NULL)
-        *resolved_alias_out = NULL;
-    if (intent_decl == NULL || step == NULL || step->type != AST_INTENT_STEP)
-        return NULL;
-
-    to_name = step->data.intent_step.transfer_to_alias;
-    if (to_name == NULL)
-        return NULL;
-
-    to_involves = find_intent_involves_local(intent_decl, to_name);
-    if (to_involves == NULL) {
-        to_involves = find_unique_intent_involves_by_type_name(
-            intent_decl, to_name, &resolved_alias);
-        if (to_involves != NULL && resolved_alias != NULL) {
-            free(step->data.intent_step.transfer_to_alias);
-            step->data.intent_step.transfer_to_alias = pergyra_strdup(resolved_alias);
-        }
-    } else {
-        resolved_alias = to_name;
-    }
-
-    if (resolved_alias_out != NULL)
-        *resolved_alias_out = resolved_alias;
-    return to_involves;
 }
 
 void

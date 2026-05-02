@@ -268,8 +268,18 @@ dir_dump(const DIRProgram *dir, FILE *out)
             }
             if (step->who_inherited_from_intent)
                 fputs(" who-default=intent", out);
+            if (step->who_derived_from_on_receiver)
+                fputs(" who-derived=on-receiver", out);
+            if (step->who_derived_from_single_participant)
+                fputs(" who-derived=single-participant", out);
             if (step->where_inherited_from_intent)
                 fputs(" where-default=intent", out);
+            if (step->where_inherited_from_action)
+                fputs(" where-default=action", out);
+            if (step->requires_inherited_from_action)
+                fputs(" requires-default=action", out);
+            if (step->causes_inherited_from_action)
+                fputs(" causes-default=action", out);
             fputc('\n', out);
             for (size_t k = 0; k < step->who_count; k++)
                 fprintf(out, "      who[%zu] %s\n", k, step->who_names[k]);
@@ -279,6 +289,8 @@ dir_dump(const DIRProgram *dir, FILE *out)
                 fprintf(out, "      authorized_by[%zu] %s\n", k, step->authorized_by[k]);
             if (step->authorized_by_derived_from_zone)
                 fputs("      authorized_by_provenance zone-derived\n", out);
+            if (step->authorized_by_inherited_from_action)
+                fputs("      authorized_by_provenance action-inherited\n", out);
         }
     }
 }

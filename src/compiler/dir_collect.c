@@ -407,10 +407,22 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         step.transfer_to_alias = step_node->data.intent_step.transfer_to_alias;
         step.who_inherited_from_intent =
             step_node->data.intent_step.inherited_who_from_intent;
+        step.who_derived_from_on_receiver =
+            step_node->data.intent_step.derived_who_from_on_receiver;
+        step.who_derived_from_single_participant =
+            step_node->data.intent_step.derived_who_from_single_participant;
         step.where_inherited_from_intent =
             step_node->data.intent_step.inherited_where_from_intent;
+        step.where_inherited_from_action =
+            step_node->data.intent_step.inherited_where_from_action;
+        step.requires_inherited_from_action =
+            step_node->data.intent_step.inherited_requires_from_action;
+        step.causes_inherited_from_action =
+            step_node->data.intent_step.inherited_causes_from_action;
         step.authorized_by_derived_from_zone =
             step_node->data.intent_step.derived_authorized_by_from_zone;
+        step.authorized_by_inherited_from_action =
+            step_node->data.intent_step.inherited_authorized_by_from_action;
         step.causes_effect_name = step_node->data.intent_step.causes_effect;
         {
             ssize_t to = dir_find_effect_node_by_name(dir, step.causes_effect_name);

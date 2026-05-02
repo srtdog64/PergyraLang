@@ -11,7 +11,7 @@
 static Type *
 ability_where_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
+    return semantic_type_resolution_lookup_annotation_or_unknown(ctx, type_ref);
 }
 
 static int
@@ -78,7 +78,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
     GenericParams *decl_params;
     WhereClause *wc;
     char *required_text;
-    ASTNode **effective_args;
+    Type **effective_types;
     size_t effective_count = 0;
 
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
@@ -101,7 +101,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
         return true;
     }
 
-    effective_args = collect_effective_generic_arg_nodes(
+    effective_types = collect_effective_generic_arg_types(
         decl_params,
         ability_ref->data.type.generic_args,
         site,
@@ -111,7 +111,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
             ? ability_decl->data.ability_decl.name
             : "<ability>",
         &effective_count);
-    if (effective_args == NULL)
+    if (effective_types == NULL)
         return !ctx->has_error;
 
     required_text = ability_ref_effective_display(ability_decl, ability_ref);
@@ -149,13 +149,12 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                 ability_decl->data.ability_decl.name != NULL
                     ? ability_decl->data.ability_decl.name : "<ability>");
             free(required_text);
-            free(effective_args);
+            free(effective_types);
             return false;
         }
 
-        concrete_type = ability_where_resolve_type_ref(
-            effective_args[param_index], ctx);
-        if (concrete_type == NULL) {
+        concrete_type = effective_types[param_index];
+        if (concrete_type == NULL || concrete_type == TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 site,
@@ -176,7 +175,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                 tc->type_param,
                 tc->type_param);
             free(required_text);
-            free(effective_args);
+            free(effective_types);
             return false;
         }
 
@@ -205,7 +204,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     concrete_type->name != NULL ? concrete_type->name : "<type>");
                 free(bounds_text);
                 free(required_text);
-                free(effective_args);
+                free(effective_types);
                 return false;
             }
             free(bounds_text);
@@ -213,6 +212,6 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
     }
 
     free(required_text);
-    free(effective_args);
+    free(effective_types);
     return true;
 }

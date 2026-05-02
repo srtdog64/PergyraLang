@@ -62,7 +62,8 @@ typedef enum
     AIR_EVIDENCE_DAG_GENERIC,
     AIR_EVIDENCE_DAG_ABILITY,
     AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
-    AIR_EVIDENCE_RIR_RELATION_PROPAGATION
+    AIR_EVIDENCE_RIR_RELATION_PROPAGATION,
+    AIR_EVIDENCE_OBSERVABILITY_SCHEMA
 } AIREvidenceKind;
 
 typedef struct
@@ -75,6 +76,10 @@ typedef struct
     AIRFailureClass  failure_class;
     const char      *compensation_hook;
     bool             who_from_intent_default;
+    bool             who_from_on_receiver;
+    bool             who_from_single_participant;
+    bool             requires_from_action;
+    bool             causes_from_action;
 } AIRIntentNode;
 
 typedef struct
@@ -88,8 +93,10 @@ typedef struct
     AIRSyncClass    sync_class;
     bool            authority_required;
     bool            source_from_intent_default;
+    bool            source_from_action;
     bool            source_from_transfer;
     bool            authority_from_zone;
+    bool            authority_from_action;
     const char    **authority_names;
     size_t          authority_name_count;
     bool            has_hir_routine_evidence;
@@ -148,6 +155,7 @@ typedef struct AIRProgram
     size_t           rir_effect_propagation_evidence_count;
     size_t           rir_relation_propagation_required_count;
     size_t           rir_relation_propagation_evidence_count;
+    size_t           observability_schema_evidence_count;
     char           **owned_names;
     size_t           owned_name_count;
     size_t           owned_name_capacity;

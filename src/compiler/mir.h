@@ -89,6 +89,8 @@ typedef struct
     size_t           phi_incoming_count;
     const RIROp     *rir_op;
     ASTNode         *ast;
+    size_t           source_statement_index;
+    bool             has_source_statement_index;
     /* ABI type layout: backends read this instead of inventing layouts. */
     ASTNode         *expr0;
     ASTNode         *expr1;

@@ -386,7 +386,7 @@ local/block emission, DAG graph core, and enum declaration emission now live in
 `src/semantic/type_checker_builtins_query_channel.h`,
 `src/semantic/type_checker_operator_expr.h`,
 `src/codegen/llvm_mir_local_emit.h`, `src/codegen/llvm_mir_block_emit.h`,
-`src/semantic/type_checker_resolution_graph_core.h`, and
+`src/semantic/type_checker_resolution_graph_core.c`, and
 `src/codegen/transpiler_enum_decl_emit.h`. The production `.inc` inventory is
 now 25 files / 1,675 LOC.
 Semantic context helpers, LLVM log/array calls, and C backend MIR/base emitter
@@ -874,6 +874,10 @@ Recommended beta approach:
 - do not add new keywords before beta;
 - keep the explicit form as the canonical source of truth;
 - keep compressed examples only when they are already semantically equivalent and smoke-covered;
+- treat intent compression as a sequence of fail-closed inference rules. The
+  first implemented rule is single-subject participant `who` inference:
+  omitted `who` derives from the enclosing intent only when exactly one
+  subject participant exists. Multi-subject intents remain explicit;
 - expand `docs/69_authoring_pair_examples.md` with examples that are actually tested.
 
 ### Projection Diagnostics
@@ -963,3 +967,56 @@ The project is close enough that broad new design should stop. The remaining val
 - every structural debt item should be described as either user-visible beta risk or internal representation debt.
 
 The next most valuable implementation target is the remaining handoff propagation tail: authority/failure visibility after transfer. Projection, active world-state, and action-caused layer/state handoff slices are now covered on both backends.
+
+## Progress Note - 2026-05-02 Intent On-Receiver Compression
+
+- Implemented the second narrow Intent-Compress `who` rule:
+  `on: receiver.Action(...)` derives omitted `who` only when `receiver` is an
+  intent subject participant and the receiver's subject declares `Action`.
+- The rule is fail-closed. Multiple distinct matching receivers do not infer,
+  so ambiguous business authority stays explicit instead of hidden in the
+  compression layer.
+- Provenance now reaches AST print, semantic contract summary, DIR, AIR, and
+  `pgy.air.graph.v1` JSON as `who_from_on_receiver`.
+- This improves the intent verbosity pain point without claiming full intent
+  inference. `where`, `using`, `requires`, and `authorized by` compression are
+  still open design/implementation work.
+
+## Progress Note - 2026-05-02 Intent On-Receiver Where/Using Compression
+
+- Extended the `on` evidence path so `on: receiver.Action(...)` can derive the
+  step `where` from the resolved action's `within <Zone>` clause.
+- Existing unique zone binding inference then derives `using` when exactly one
+  intent binding has that zone type.
+- Explicit `where` remains authoritative, and conflicting `on` action zones do
+  not infer. This keeps the compression rule narrow and avoids hiding authority
+  or effect decisions inside syntax sugar.
+
+## Progress Note - 2026-05-02 Intent On-Receiver Action Contract
+
+- A single resolved `on: receiver.Action(...)` now inherits the action
+  contract's `requires` and `causes` clauses when the step leaves them omitted.
+- `authorized by self` maps to the receiver alias. `authorized by
+  <action-param>` now maps through a single `on` call argument when the
+  argument is a declared intent participant identifier. Expression-valued
+  arguments, missing bindings, and multiple `on` calls remain explicit rather
+  than silently inferred.
+- The authority provenance now survives lowering: DIR records
+  `authorized_by_inherited_from_action`, AIR records `authority_from_action`,
+  and AIR drift diagnostics can report `authority_provenance=action-inherited`.
+  The action-derived zone source is also preserved as
+  `where_inherited_from_action` / `source_from_action` in DIR/AIR JSON.
+  Action-derived `requires` and `causes` are preserved as
+  `requires_inherited_from_action` / `requires_from_action` and
+  `causes_inherited_from_action` / `causes_from_action`.
+- `causes` is no longer AIR-only provenance. Intent RIR lowering materializes
+  step causes as `RIR_RESOURCE_EFFECT_INSTANCE` plus `RIR_OP_ATTACH_EFFECT`,
+  preferring the unique zone effect-slot anchor over the effect type name when
+  the current zone makes that anchor unambiguous. AIR strict evidence observes
+  it as `AIR_EVIDENCE_RIR_EFFECT_PROPAGATION`.
+- Action-derived `authorized by` is also no longer accepted as a boundary flag
+  alone in the parsed on-receiver regression. The fixture now requires matching
+  `AIR_EVIDENCE_RIR_AUTHORITY`, `has_rir_authority_evidence`, and
+  `rir_authority_evidence_name` for the inherited authority participant.
+- Multiple `on` actions do not merge contracts. This keeps the compressed
+  surface predictable and fail-closed.

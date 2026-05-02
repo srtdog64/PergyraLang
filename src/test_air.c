@@ -58,6 +58,12 @@ lower_air_from_source(const char *source)
             (void)rir_enrich_with_hir_flow(rir, hir, &error);
         if (dir != NULL && hir != NULL && rir != NULL)
             air = air_synthesize(hir, dir, rir, &error);
+        if (air != NULL
+            && (!air_collect_dag_evidence(air, sem, &error)
+                || !air_verify(air, &error))) {
+            air_destroy(air);
+            air = NULL;
+        }
     }
 
     if (air == NULL && error != NULL)
@@ -80,6 +86,7 @@ lower_air_from_source(const char *source)
 #include "tests/air/test_air_boundary_part_d.cases.h"
 #include "tests/air/test_air_parsed_part_e.cases.h"
 #include "tests/air/test_air_strict_part_f.cases.h"
+#include "tests/air/test_air_observability_pin_part_g.cases.h"
 
 int
 main(void)
@@ -166,6 +173,15 @@ main(void)
 
     TEST("AIR JSON dump prints stable graph schema");
     EXPECT(test_air_dump_json_prints_stable_graph_schema());
+
+    TEST("AIR synthesis collects observability schema evidence");
+    EXPECT(test_air_synthesis_collects_observability_schema_evidence());
+
+    TEST("AIR rejects invalid observability schema provider");
+    EXPECT(test_air_rejects_invalid_observability_schema_provider());
+
+    TEST("AIR rejects empty observability schema evidence");
+    EXPECT(test_air_rejects_empty_observability_schema_evidence());
 
     TEST("AIR collects MIR pin cleanup evidence");
     EXPECT(test_air_collects_mir_pin_cleanup_evidence());
@@ -271,6 +287,9 @@ main(void)
 
     TEST("AIR parsed transfer reports zone missing authority evidence");
     EXPECT(test_air_parsed_transfer_reports_zone_missing_authority_evidence());
+
+    TEST("AIR parsed on-receiver action contract provenance");
+    EXPECT(test_air_parsed_on_receiver_action_contract_provenance());
 
     printf("\nAIR tests: %d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

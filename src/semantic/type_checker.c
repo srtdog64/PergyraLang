@@ -46,22 +46,6 @@ static char *
 semantic_assignment_target_path_impl(ASTNode *expr,
                                      SemanticContext *ctx,
                                      bool scratch);
-static bool
-type_resolution_find_cycle_visit(TypeResolutionGraph *graph,
-                                 size_t current,
-                                 unsigned char *color,
-                                 size_t *stack,
-                                 size_t *stack_len,
-                                 size_t *cycle_path,
-                                 size_t *cycle_len,
-                                 size_t cycle_cap,
-                                 size_t *closing_node);
-bool
-type_resolution_validate_graph(SemanticContext *ctx);
-bool
-type_resolution_build_topo_order(TypeResolutionGraph *graph,
-                                 size_t **out_order,
-                                 size_t *out_count);
 ASTNode **
 collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     GenericParams *provided_args,
@@ -86,8 +70,6 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
 #include "type_checker_helpers_effects.h"
 /* type_checker_visibility was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
-
-#include "type_checker_resolution_graph_core.h"
 
 void
 semantic_run_type_resolution_worklist(ASTNode *program,

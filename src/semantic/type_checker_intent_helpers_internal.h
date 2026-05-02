@@ -34,11 +34,37 @@ bool intent_clause_rejects_control_transfer(ASTNode *expr,
 
 bool intent_involves_is_subject_host(ASTNode *program, ASTNode *involves);
 
+ASTNode *subject_decl_find_action_named(ASTNode *decl, const char *action_name);
+
 bool subject_decl_has_action_named(ASTNode *decl, const char *action_name);
+
+bool intent_semantic_append_name(char ***items,
+                                 size_t *count,
+                                 size_t *capacity,
+                                 const char *name);
+
+bool intent_step_append_required_ability_clone(ASTNode *step,
+                                               ASTNode *ability);
 
 void intent_step_derive_who_from_action(ASTNode *intent_decl,
                                         ASTNode *step,
                                         SemanticContext *ctx);
+
+void intent_step_derive_who_from_on_receiver(ASTNode *intent_decl,
+                                             ASTNode *step,
+                                             SemanticContext *ctx);
+
+void intent_step_derive_where_from_on_receiver(ASTNode *intent_decl,
+                                               ASTNode *step,
+                                               SemanticContext *ctx);
+
+void intent_step_inherit_contract_from_on_receiver(ASTNode *intent_decl,
+                                                   ASTNode *step,
+                                                   SemanticContext *ctx);
+
+void intent_step_derive_who_from_single_participant(ASTNode *intent_decl,
+                                                    ASTNode *step,
+                                                    SemanticContext *ctx);
 
 void intent_step_inherit_action_contract(ASTNode *intent_decl,
                                          ASTNode *step,

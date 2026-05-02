@@ -155,6 +155,7 @@ COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_token_debug.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
+                   $(PARSER_DIR)/ast_analysis.c \
                    $(PARSER_DIR)/ast_destroy.c \
                    $(PARSER_DIR)/ast_destroy_domain.c \
                    $(PARSER_DIR)/ast_clone.c \
@@ -225,17 +226,21 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker.c \
                    $(SEMANTIC_DIR)/type_checker_diag.c \
                    $(SEMANTIC_DIR)/type_checker_generic_diag.c \
+                   $(SEMANTIC_DIR)/type_checker_generic_effective_args.c \
                    $(SEMANTIC_DIR)/type_checker_generic_validation.c \
                    $(SEMANTIC_DIR)/type_checker_type_constraint.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_core.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_validate.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_collect.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_labels.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_domain.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_world.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_zone.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_zone_inventory.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_zone_commands.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_zone_tail.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_intent.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_inventory.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_body.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_decl.c \
@@ -273,6 +278,9 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_domain_slots.c \
                    $(SEMANTIC_DIR)/type_checker_intent_decl.c \
                    $(SEMANTIC_DIR)/type_checker_intent_action_contract.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_on_inference.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_bindings.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_types.c \
                    $(SEMANTIC_DIR)/type_checker_intent_contract_summary.c \
                    $(SEMANTIC_DIR)/type_checker_intent_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_intent_authority.c \

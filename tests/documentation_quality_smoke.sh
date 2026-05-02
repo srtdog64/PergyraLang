@@ -60,6 +60,8 @@ required_files=(
     "examples/remote_future_result.pgy"
     "docs/grammar/01_syntax.md"
     "docs/grammar/02_grammar.md"
+    "docs/37_compiler_contracts.md"
+    "docs/42_keyword_orthogonality.md"
     "TODO.md"
 )
 
@@ -359,6 +361,31 @@ grammar_terms=(
 for term in "${grammar_terms[@]}"; do
     require_text "docs/grammar/01_syntax.md" "$term"
     require_text "docs/grammar/02_grammar.md" "$term"
+done
+
+orthogonality_terms=(
+    "네 개의 상위 축"
+    "통합은 verifier graph에서 하고, ownership은 각 의미 축 owner에 남긴다"
+    "intent는 모든 권한의 owner가 아니다"
+    "ability/role vs authority"
+    "zone vs world"
+    "직교성 audit 절차"
+    "owner fact는 흐려지면 안 된다"
+    "AIR는 통합 검증 레이어이지"
+)
+for term in "${orthogonality_terms[@]}"; do
+    require_text "docs/42_keyword_orthogonality.md" "$term"
+done
+
+compiler_contract_orthogonality_terms=(
+    "Compiler-facing orthogonality rule"
+    "backend가 AST를 다시 걸어 semantic feature를 재발견하는 것"
+    "authority/effect/zone의 최종 판정을 대신하는 것"
+    "Slot / Pin vs Static Lifetime"
+    "이전 문서에서 이들을 \`TOKEN_IDENTIFIER\`로 둔 표기는 lexer/parser 계약 drift로 본다"
+)
+for term in "${compiler_contract_orthogonality_terms[@]}"; do
+    require_text "docs/37_compiler_contracts.md" "$term"
 done
 
 air_terms=(

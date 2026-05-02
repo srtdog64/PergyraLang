@@ -93,6 +93,7 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_event_part_a.cases.h"
 #include "tests/semantic/test_semantic_projection_diagnostics.cases.h"
 #include "tests/semantic/test_semantic_intent_observability.cases.h"
+#include "tests/semantic/test_semantic_intent_compression_part_a.cases.h"
 #include "tests/semantic/test_semantic_b0_provenance.cases.h"
 
 #include "tests/semantic/test_semantic_shared_domain_part_a.cases.h"
@@ -149,6 +150,7 @@ main(void)
     test_projection_contract_diagnostics();
     test_b0_provenance_closure_diagnostics();
     test_intent_observability_semantics();
+    test_intent_compression_semantics();
     test_ability_decl();
     test_role_decl();
     test_party_decl();

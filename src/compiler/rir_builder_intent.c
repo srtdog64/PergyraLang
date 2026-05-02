@@ -9,6 +9,49 @@
 #define call_name rir_call_name
 #define rollback_policy_name rir_rollback_policy_name
 
+static ASTNode *
+find_top_level_zone_named(const char *zone_name)
+{
+    if (g_rir_program_root == NULL
+        || g_rir_program_root->type != AST_PROGRAM
+        || zone_name == NULL) {
+        return NULL;
+    }
+    for (size_t i = 0; i < g_rir_program_root->data.program.count; i++) {
+        ASTNode *node = g_rir_program_root->data.program.statements[i];
+        if (node != NULL
+            && node->type == AST_ZONE_DECL
+            && node->data.zone_decl.name != NULL
+            && strcmp(node->data.zone_decl.name, zone_name) == 0) {
+            return node;
+        }
+    }
+    return NULL;
+}
+
+static const char *
+unique_effect_slot_for_type(const char *zone_name, const char *effect_type_name)
+{
+    ASTNode *zone = find_top_level_zone_named(zone_name);
+    const char *slot_name = NULL;
+    if (zone == NULL || effect_type_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+        if (slot == NULL
+            || slot->type != AST_ZONE_LAYER_SLOT
+            || slot->data.zone_layer_slot.is_relation
+            || slot->data.zone_layer_slot.layer_type == NULL
+            || strcmp(slot->data.zone_layer_slot.layer_type, effect_type_name) != 0) {
+            continue;
+        }
+        if (slot_name != NULL)
+            return NULL;
+        slot_name = slot->data.zone_layer_slot.slot_name;
+    }
+    return slot_name;
+}
+
 bool
 rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
 {
@@ -80,6 +123,28 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
             if (!add_authority_fact(&scope, step->data.intent_step.name,
                                     ability_name,
                                     step))
+                goto oom;
+        }
+        if (step->data.intent_step.causes_effect != NULL) {
+            const char *where_name = step->data.intent_step.where_type != NULL
+                ? type_name(step->data.intent_step.where_type) : NULL;
+            const char *effect_slot_name =
+                unique_effect_slot_for_type(where_name, step->data.intent_step.causes_effect);
+            const char *effect_anchor = effect_slot_name != NULL
+                ? effect_slot_name : step->data.intent_step.causes_effect;
+            if (!add_named_resource_fact(&scope,
+                                         effect_anchor,
+                                         step->data.intent_step.causes_effect,
+                                         RIR_RESOURCE_EFFECT_INSTANCE,
+                                         RIR_STATE_DETACHED,
+                                         step))
+                goto oom;
+            if (!add_op(&scope,
+                        RIR_OP_ATTACH_EFFECT,
+                        effect_anchor,
+                        step->data.intent_step.name,
+                        where_name,
+                        step))
                 goto oom;
         }
         for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {

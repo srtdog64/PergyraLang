@@ -169,6 +169,15 @@ mir_stmt_is_inline_cfg_wrapper(const ASTNode *stmt)
 static bool
 mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry);
 
+static void
+mir_set_inst_source_statement_index(MIRInstruction *inst, size_t index)
+{
+    if (inst == NULL)
+        return;
+    inst->source_statement_index = index;
+    inst->has_source_statement_index = true;
+}
+
 static bool
 mir_populate_stmt_instructions(MIRRoutine *routine)
 {
@@ -258,6 +267,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 inst.name = "loop-init";
                 inst.ast = stmt;
                 inst.arg0 = stmt->data.for_loop.variable;
+                mir_set_inst_source_statement_index(&inst, s);
                 if (stmt->data.for_loop.iterable != NULL) {
                     inst.expr0 = stmt->data.for_loop.iterable;
                     inst.expr1 = stmt->data.for_loop.iterable;
@@ -291,6 +301,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 inst.kind = MIR_INST_STMT;
                 inst.name = "stmt";
                 inst.ast = stmt;
+                mir_set_inst_source_statement_index(&inst, s);
                 new_insts[new_count++] = inst;
                 continue;
             }
@@ -308,6 +319,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 inst.kind = MIR_INST_STMT;
                 inst.name = "stmt";
                 inst.ast = stmt;
+                mir_set_inst_source_statement_index(&inst, s);
                 new_insts[new_count++] = inst;
                 continue;
             }
@@ -345,6 +357,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                         def_inst.kind = MIR_INST_STMT;
                         def_inst.name = "stmt";
                         def_inst.ast = stmt;
+                        mir_set_inst_source_statement_index(&def_inst, s);
                         new_insts[new_count++] = def_inst;
                         continue;
                     }
@@ -352,6 +365,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                      * extract both the type annotation and the initializer. */
                     if (def_inst.ast == NULL)
                         def_inst.ast = stmt;
+                    mir_set_inst_source_statement_index(&def_inst, s);
                     new_insts[new_count++] = def_inst;
                     copied_flags[def_cursor] = true;
                     def_cursor++;
@@ -373,6 +387,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     inst.kind = MIR_INST_STMT;
                     inst.name = "stmt";
                     inst.ast = stmt;
+                    mir_set_inst_source_statement_index(&inst, s);
                     new_insts[new_count++] = inst;
                 }
             } else {
@@ -383,6 +398,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 inst.kind = MIR_INST_STMT;
                 inst.name = "stmt";
                 inst.ast = stmt;
+                mir_set_inst_source_statement_index(&inst, s);
                 new_insts[new_count++] = inst;
             }
         }
@@ -455,6 +471,8 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             .kind = MIR_INST_STMT,
             .name = "stmt",
             .ast = body,
+            .source_statement_index = 0,
+            .has_source_statement_index = true,
         });
 
     if (entry->source_statements != NULL && entry->source_statement_count > 0) {
@@ -482,6 +500,8 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                     .kind = MIR_INST_STMT,
                     .name = "stmt",
                     .ast = stmt,
+                    .source_statement_index = i,
+                    .has_source_statement_index = true,
                 })) {
                 return false;
             }
@@ -494,6 +514,8 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                     .kind = MIR_INST_STMT,
                     .name = "stmt",
                     .ast = stmt,
+                    .source_statement_index = i,
+                    .has_source_statement_index = true,
                 })) {
                 return false;
             }
@@ -513,6 +535,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                 }
                 if (inst->ast == NULL)
                     inst->ast = stmt;
+                mir_set_inst_source_statement_index(inst, i);
                 matched_def = true;
                 break;
             }
@@ -524,6 +547,8 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                 .kind = MIR_INST_STMT,
                 .name = "stmt",
                 .ast = stmt,
+                .source_statement_index = i,
+                .has_source_statement_index = true,
             })) {
             return false;
         }

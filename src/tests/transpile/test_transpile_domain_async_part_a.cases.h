@@ -691,7 +691,8 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__zone_state_inner != _pgy_prev_zone_state_inner) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "if (_pgy_world_continue) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PANIC(\"world derived recompute exceeded bounded pass limit\");");
-        EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__world_derived_dirty || self->__zone_dirty_battle) {");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "if (_pgy_world_derived_changed_any || self->__world_derived_dirty || self->__zone_dirty_battle) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_world_frontier_continue = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PANIC(\"world frontier recompute exceeded bounded pass limit\");");
 

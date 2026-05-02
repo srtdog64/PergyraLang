@@ -59,8 +59,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         return false;
     }
     source_order_mode = !transpiler_mir_routine_has_explicit_cfg(mir_routine)
-        && block->source_statement_count > 0
-        && block->source_statements != NULL
+        && transpiler_mir_block_has_source_order_metadata(block)
         && block->instruction_count > 0;
     if (source_order_mode) {
         if (!transpiler_mir_block_build_source_order(block, &inst_order,

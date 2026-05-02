@@ -11,6 +11,9 @@
 #include "type_checker_intent_helpers_internal.h"
 #include "diag_codes.h"
 
+#include "../common/string_compat.h"
+
+#include <stdlib.h>
 #include <string.h>
 
 bool
@@ -21,6 +24,64 @@ const char *
 intent_involves_type_name(ASTNode *involves);
 bool
 intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx);
+
+bool
+intent_semantic_append_name(char ***items, size_t *count, size_t *capacity,
+                            const char *name)
+{
+    char **grown;
+    char *owned_name;
+
+    if (items == NULL || count == NULL || capacity == NULL || name == NULL)
+        return false;
+    owned_name = pergyra_strdup(name);
+    if (owned_name == NULL)
+        return false;
+    if (*count == *capacity) {
+        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        grown = realloc(*items, next_capacity * sizeof(char *));
+        if (grown == NULL) {
+            free(owned_name);
+            return false;
+        }
+        *items = grown;
+        *capacity = next_capacity;
+    }
+    (*items)[*count] = owned_name;
+    (*count)++;
+    return true;
+}
+
+bool
+intent_step_append_required_ability_clone(ASTNode *step, ASTNode *ability)
+{
+    ASTNode **grown;
+    ASTNode *ability_copy;
+
+    if (step == NULL || ability == NULL || step->type != AST_INTENT_STEP)
+        return false;
+    ability_copy = ast_clone(ability);
+    if (ability_copy == NULL)
+        return false;
+    if (step->data.intent_step.required_ability_count
+        == step->data.intent_step.required_ability_capacity) {
+        size_t next_capacity =
+            step->data.intent_step.required_ability_capacity == 0
+                ? 4
+                : step->data.intent_step.required_ability_capacity * 2;
+        grown = realloc(step->data.intent_step.required_abilities,
+            next_capacity * sizeof(ASTNode *));
+        if (grown == NULL) {
+            ast_destroy(ability_copy);
+            return false;
+        }
+        step->data.intent_step.required_abilities = grown;
+        step->data.intent_step.required_ability_capacity = next_capacity;
+    }
+    step->data.intent_step.required_abilities[
+        step->data.intent_step.required_ability_count++] = ability_copy;
+    return true;
+}
 
 const char *
 intent_step_single_who_alias(const ASTNode *step)
@@ -76,12 +137,12 @@ intent_involves_is_subject_host(ASTNode *program, ASTNode *involves)
     return decl_is_subject_host(decl);
 }
 
-bool
-subject_decl_has_action_named(ASTNode *decl, const char *action_name)
+ASTNode *
+subject_decl_find_action_named(ASTNode *decl, const char *action_name)
 {
     if (decl == NULL || decl->type != AST_CLASS_DECL || action_name == NULL
         || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
-        return false;
+        return NULL;
     }
 
     for (size_t i = 0; i < decl->data.class_decl.method_count; i++) {
@@ -90,10 +151,16 @@ subject_decl_has_action_named(ASTNode *decl, const char *action_name)
             && method->data.func_decl.is_action
             && method->data.func_decl.name != NULL
             && strcmp(method->data.func_decl.name, action_name) == 0) {
-            return true;
+            return method;
         }
     }
-    return false;
+    return NULL;
+}
+
+bool
+subject_decl_has_action_named(ASTNode *decl, const char *action_name)
+{
+    return subject_decl_find_action_named(decl, action_name) != NULL;
 }
 
 const char *

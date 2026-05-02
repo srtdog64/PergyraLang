@@ -12,8 +12,9 @@ Operational mode:
   the current blocker map is now separated into closed seams and remaining
   source-of-truth seams. CFG/MIR use facts prefer instruction-carried
   provenance for DEF/branch/return and MIR value summaries consume DEF slot
-  anchors, but backend residual emission still has source-array compatibility
-  paths. AIR evidence inventory is the preferred consumer API for covered
+  anchors. C backend block-local usage/pending/order facts now consume MIR
+  instruction provenance instead of MIR block source statement arrays, while
+  MIR lowering still carries HIR source arrays as construction input. AIR evidence inventory is the preferred consumer API for covered
   facts, but not every abstraction boundary is fully evidence-node driven.
   DAG fallback counters are still zero; the remaining DAG debt is recursive
   resolver compatibility removal from semantic judgement paths, not another
@@ -22,12 +23,24 @@ Operational mode:
   inside `MIRProgram` are still AST-backed. Runtime intent exit uses active
   registry indexed lookup; the full transitive frontier scheduler remains a
   blocker.
+- 2026-05-02 pending-use provenance tightening:
+  C backend pending-use materialization now uses block `MIR_INST_DEF.ast`
+  provenance to recover local let declarations and no longer scans
+  `block->source_statements` directly. Source-order scheduling now consumes
+  `MIRInstruction.source_statement_index` metadata instead of walking
+  `block->source_statements`, so C backend block-local ordering also depends on
+  MIR instruction provenance.
 - 2026-05-02 thread-pool usage fact tightening:
   shared C/LLVM runtime thread-pool detection now treats `await` and
   `task-group` as direct runtime surfaces and scans MIR instruction `ast`,
-  `expr0`, and `expr1` provenance before falling back to source-only block
-  arrays. The remaining source-array fallback is localized in
-  `thread_pool_usage.c` and gated by `parallel-core-contract-test-smoke`.
+  `expr0`, and `expr1` provenance only; source-only block arrays are no longer
+  consulted for this feature-use decision. The structural AST traversal is now owned by
+  `src/parser/ast_analysis.c` through `ast_uses_thread_pool_surface(...)`;
+  `thread_pool_usage.c` only adapts that fact for C/LLVM MIR consumers. The
+  backend entry points no longer special-case `__pgy_top_level_exec`; that
+  synthetic executable must be present in the MIR routine inventory like any
+  other routine. `parallel-core-contract-test-smoke` rejects reintroducing
+  source-array fallback in this path.
 - 2026-05-02 intent zone-authority compression:
   authority-sensitive intent steps can now derive `authorized by` from a single
   unambiguous `who` participant mapped to the current zone's authority subject
@@ -35,11 +48,40 @@ Operational mode:
   `derived_authorized_by_from_zone` provenance and then validates through the
   normal authorized-by path. Pure local-zone declarations still require explicit
   approval and keep the existing diagnostic.
+- 2026-05-02 intent on-receiver compression:
+  intent steps can now derive omitted `who` from `on: receiver.Action(...)`
+  when the receiver is an intent subject participant and the subject declares
+  that action. Ambiguous receivers stay explicit. The provenance is visible in
+  AST print, contract summary, DIR, AIR, and `pgy.air.graph.v1` as
+  `who_from_on_receiver`. This is intentionally narrower than full
+  Intent-Compress; `where`, `using`, `requires`, and `authorized by` inference
+  remain separate closure work.
+- 2026-05-02 intent on-receiver where/using compression:
+  the same receiver/action evidence can now derive `where` from the resolved
+  action's `within <Zone>` clause when no step-local zone is present. Existing
+  unique-zone-binding logic then derives `using` from that zone type. Explicit
+  `where` still wins, and conflicting `on` action zones fail closed by not
+  inferring.
+- 2026-05-02 intent on-receiver action contract compression:
+  a single resolved `on: receiver.Action(...)` now inherits `requires` and
+  `causes` from that action when the step has no local clause. `authorized by
+  self` maps to the receiver alias. `authorized by <action-param>` also maps
+  to the corresponding single `on` call argument when that argument is a
+  declared intent participant identifier. Non-identifier arguments, missing
+  parameter bindings, and multiple `on` calls stay explicit.
 - 2026-05-02 AIR authority provenance lift:
   derived approval is no longer semantic-only. DIR carries
-  `authorized_by_derived_from_zone`, AIR carries `authority_from_zone`, JSON
-  dumps expose that field, and AIR diagnostics report
-  `authority_provenance=zone-derived|explicit|none`.
+  `authorized_by_derived_from_zone` and
+  `authorized_by_inherited_from_action`; action-derived `where` also carries
+  `where_inherited_from_action`, and action-derived `requires`/`causes` carry
+  `requires_inherited_from_action` / `causes_inherited_from_action`. AIR carries
+  `authority_from_zone`, `authority_from_action`, `source_from_action`,
+  `requires_from_action`, and `causes_from_action`; JSON dumps expose those
+  fields, and AIR diagnostics report
+  `authority_provenance=zone-derived|action-inherited|explicit|none`.
+  The parsed AIR regression also requires action-inherited authority to match
+  real RIR authority evidence (`AIR_EVIDENCE_RIR_AUTHORITY` plus
+  `rir_authority_evidence_name`), not just the AIR boundary flag.
 - 2026-05-02 MIR cleanup ownership repair:
   MIR statement reconstruction now restores `instruction_capacity` after
   rebuilding a block's instruction array. This closes a heap-corruption path
@@ -71,6 +113,74 @@ Operational mode:
   consume annotation metadata instead of the materializing type-ref helper.
   Current gate: helper refs `12`, graph-backed skips `1980`, metadata hits
   `8052`, fallback/materializer counters `0`.
+- 2026-05-02 DAG effective generic arg seam tightening:
+  ability where validation now consumes centralized effective-argument type
+  evidence from `collect_effective_generic_arg_types(...)`. The materializing
+  helper is owned by `type_checker_generic_effective_args.c`;
+  `type_checker_ability_where.c` is annotation-only, so ability-bound validation
+  no longer creates DAG facts as a side effect. ABI/runtime layout remains
+  unchanged and the generic support implementation header did not grow. Intent
+  role-field require checks also consume that centralized effective-argument
+  type evidence, keeping `type_checker_intent_role_fields.c` below the 600 LOC
+  split-review line.
+- 2026-05-02 AST analysis ownership tightening:
+  intent observability no-trace detection no longer carries a large
+  codegen-local AST visitor. `src/parser/ast_analysis.c` owns the reusable
+  `ast_contains_identifier_call(...)` traversal, and
+  `src/codegen/intent_observability_usage.c` now supplies only the
+  intent-observability predicate plus MIR-level scan. Block-level source arrays
+  and routine AST payloads are no longer scanned for this fact; declaration
+  inventory AST scans remain compatibility debt until observability becomes a semantic/MIR analysis
+  flag. This removes a codegen layering violation and gives future
+  `uses_parallel` / `uses_async` / `uses_unsafe` facts a shared AST-owner
+  migration path.
+- 2026-05-02 generic class specialization evidence tightening:
+  class specialization where-clause validation consumes the same centralized
+  effective generic argument type evidence instead of building a local type
+  array from effective arg nodes. This removes duplicate dependency/materialize
+  work without changing ABI/runtime layout. Current DAG gate after the slice:
+  helper refs `12`, graph-backed skips `1980`, metadata hits `8044`,
+  fallback/materializer counters `0`.
+- 2026-05-02 intent binding owner split:
+  intent participant/value lookup and transfer-target alias resolution moved to
+  `type_checker_intent_bindings.c`. The role-field owner now focuses on
+  ability require-field validation and zone-binding derivation, staying at 499
+  LOC after the split. ABI/runtime layout is unchanged, and the DAG resolver
+  inventory remains capped at helper refs `12` with fallback/materializer
+  counters `0`.
+- 2026-05-02 intent type owner split:
+  intent-local type-ref resolution, participant/value type resolution, and
+  step where-source labeling moved to `type_checker_intent_types.c`.
+  `type_checker_intent_decl.c` is now 529 LOC and stays focused on intent
+  orchestration validation. The materializing seam count remains unchanged:
+  helper refs `12`, fallback/materializer counters `0`.
+- 2026-05-02 DAG intent inventory owner split:
+  intent declaration precollect moved from the general declaration graph owner
+  to `type_checker_resolution_graph_intent.c`. This makes intent DAG inventory
+  a named source owner and drops `type_checker_resolution_graph_decl.c` to 481
+  LOC without changing DAG stats or fallback/materializer counters.
+- 2026-05-02 DAG zone command inventory owner split:
+  zone refresh/apply/link/detach/unlink/maintain dependency precollect moved to
+  `type_checker_resolution_graph_zone_commands.c`. The original
+  `type_checker_resolution_graph_zone_inventory.c` now owns only zone
+  slot/shared/layer type inventory and is 76 LOC. This is a responsibility
+  split under the 600 LOC application guide, not a mechanical slicing rule.
+  DAG stats remain unchanged: graph-backed skips `1980`, metadata hits `8044`,
+  fallback/materializer counters `0`.
+- 2026-05-02 DAG graph validation owner split:
+  `type_checker_resolution_graph_core.h` is no longer an implementation
+  header included by `type_checker.c`. Cycle validation and topo ordering now
+  live in `type_checker_resolution_graph_validate.c`; the core graph owner
+  keeps node/edge/path/dependency primitives below the 600 LOC split-review
+  signal.
+- 2026-05-02 split-policy correction and helper consolidation:
+  the 600 LOC rule is now documented as a split-review trigger, not a
+  mechanical slicing mandate. New `_helpers` owners are discouraged unless
+  they represent a real feature/fact owner. `llvm_stmt_let_collections.c`
+  applies the policy by replacing parallel missing-type-argument and
+  missing-runtime-export helpers with one enum-driven
+  `llvm_stmt_diag_collection(...)` path. Syntax gate:
+  `gcc -DPGY_LLVM_ENABLED -fsyntax-only src/codegen/llvm_stmt_let_collections.c`.
 - 2026-05-02 CFG/MIR root identity validation:
   MIR validation now rejects overlapping entry, cleanup, rollback, and
   invalidation roots. This closes a cleanup-chain shape hole where a corrupted
@@ -123,6 +233,13 @@ Operational mode:
   same-boundary RIR boundary evidence and a declared participant; MIR pin cleanup
   evidence can only satisfy a `pin` execution boundary. Gate: `make test-air`
   (`51/0` AIR tests).
+- 2026-05-02 AIR observability schema evidence:
+  the stable observability/trace schema is now represented as global
+  `AIR_EVIDENCE_OBSERVABILITY_SCHEMA` evidence. The evidence provider is
+  `runtime-observability-schema`, the subject is `pgy.intent.observability.v1`,
+  and the fact count is derived from the runtime schema vocabulary. Gate:
+  `make test-air air-drift-test-smoke air-json-schema-test-smoke
+  air-backend-nonimpact-full-test-smoke`.
 - 2026-04-30 AIR MIR pin-cleanup evidence step:
   `air_collect_mir_evidence(...)` records MIR-owned `pin-unpin-cleanup-edge`
   facts as `AIR_EVIDENCE_MIR_PIN_CLEANUP` nodes for matching AIR `pin`
@@ -543,6 +660,15 @@ Operational mode:
   `.h` files. 1,000 LOC remains the hard stop / risk line, but files between
   600 and 1,000 LOC still need a named owner-seam plan unless they are compact
   generated tables, ABI declarations, or single-purpose orchestration layers.
+- 2026-05-02 split application guide: this is not a rule change. 600 LOC
+  remains the signal, not the prescription. The checklist is:
+  "two responsibilities?" -> split by responsibility; "one responsibility but
+  large?" -> keep one owner and improve internal structure; "new owner name
+  expresses the responsibility?" -> land only if yes. New `_helpers` owners are
+  forbidden by default because `_helpers` does not name a responsibility;
+  exceptions require a documented cross-owner shared utility caller set. The
+  larger recovery path is self-host feature modules, not a risky pre-beta
+  feature-folder migration.
 - Current owner-size baseline: production `.inc` debt under `src/` is closed,
   but production `.c` and private owner `.h` files are not yet all below the
   600 LOC split-review threshold. The remaining 600-1,000 LOC review-band
@@ -1606,6 +1732,10 @@ Closed now:
   global evidence attached to a concrete boundary, HIR CFG evidence without
   same-boundary HIR routine evidence, undeclared authority subjects, and MIR pin
   cleanup evidence attached to a non-pin boundary.
+- AIR evidence-node validation now also accepts and validates the global
+  observability schema evidence node. This keeps `pgy.intent.observability.v1`
+  and `pgy.intent.trace.v1` tied to AIR evidence inventory, not only JSON
+  presentation.
 - AIR inventory validation failures are now routed as
   `PGY_AIR_INVARIANT_INVALID` / `air:invariant:invalid` /
   `report-compiler-bug`, separate from user-facing
@@ -2411,7 +2541,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
   authority, and method-tail collection at 169 LOC. All
   `type_checker_resolution_*.c` DAG owners are now below the 600 LOC
   split-review threshold.
-- generic where/default validation은 `type_checker_generic_validation.c`가 소유한다. `type_checker_resolution_graph_*.c`와 `type_checker_resolution_graph_core.h`는 resolver-free graph layer로 고정됐고, `semantic-core-shape-test-smoke`가 graph layer의 직접 `resolve_type_node(...)` 호출을 금지한다.
+- generic where/default validation은 `type_checker_generic_validation.c`가 소유한다. `type_checker_resolution_graph_*.c`는 resolver-free graph layer로 고정됐고, `semantic-core-shape-test-smoke`가 graph layer의 직접 `resolve_type_node(...)` 호출을 금지한다. The old `type_checker_resolution_graph_core.h` implementation header is gone; graph validation/topo ownership now lives in `type_checker_resolution_graph_validate.c`.
 - intent declaration resolution은 participant/value/where local seam 3개로 수렴했고, 이제 graph metadata-first 조회 후 recursive fallback으로 내려간다. 단순 lookup-only 전환은 semantic suite 후반 parallel execution path에서 segfault를 만들었으므로, direct semantic/bootstrap path와 step/local binding materialization이 lookup-only 계약을 만족할 때까지 explicit fallback seam으로 남긴다.
 - domain contract resolution은 slot/shared/named-ref local seam 3개로 수렴했고, projection/relation/effect contract도 graph metadata-first 조회 후 fallback으로 내려간다.
 - intent helper resolution은 `intent_helper_resolve_type_ref(...)` 단일 seam으로 수렴했다. transfer-derived using/where, ability generic arg, role-field checks는 이 seam에서 graph-backed metadata로 교체할 수 있다.
@@ -3184,8 +3314,20 @@ make ast-dispatch-test-smoke
 ## Progress Log - 2026-05-02 AIR/DAG Source-Of-Truth Tightening
 
 - AIR now carries zone-derived authority provenance through DIR and AIR:
-  `authorized_by_derived_from_zone` becomes `authority_from_zone`, and AIR JSON
-  plus drift diagnostics expose `authority_provenance=zone-derived|explicit|none`.
+  `authorized_by_derived_from_zone` becomes `authority_from_zone`, and
+  action-inherited authority becomes `authority_from_action`. Action-inherited
+  zone source becomes `source_from_action`, while action-inherited ability/effect
+  contracts become `requires_from_action` and `causes_from_action`. AIR JSON plus
+  drift diagnostics expose
+  `authority_provenance=zone-derived|action-inherited|explicit|none`.
+- Action-derived intent `causes` now also reaches RIR propagation evidence:
+  intent RIR lowering emits `RIR_RESOURCE_EFFECT_INSTANCE` and
+  `RIR_OP_ATTACH_EFFECT`, prefers the unique zone effect-slot anchor when one
+  exists, and AIR observes it as `AIR_EVIDENCE_RIR_EFFECT_PROPAGATION`.
+- Action-derived intent `authorized by` is pinned to RIR authority evidence in
+  the same parsed on-receiver fixture. This keeps `authority_from_action`
+  honest by requiring `AIR_EVIDENCE_RIR_AUTHORITY` and a matching
+  `rir_authority_evidence_name`.
 - MIR cleanup evidence accounting is stricter and more CFG-backed:
   `AIR_EVIDENCE_MIR_CLEANUP` consumes MIR cleanup successors first, while pin
   cleanup remains boundary-specific `AIR_EVIDENCE_MIR_PIN_CLEANUP`.
@@ -3200,9 +3342,13 @@ make ast-dispatch-test-smoke
   metadata as a side effect.
 - The next attempted candidates are now classified as true stage-order seams,
   not low-risk annotation readers: world helpers, action contract effect-slot
-  checks, compressed intent role/ability field checks, and ability where
-  generic-bound actual validation still need a materialization prepass before
-  they can leave the allowlist.
+  checks, and compressed intent role/ability field checks still need a
+  materialization prepass before they can leave the allowlist. Their effective
+  generic-argument derivation now consumes centralized type evidence, but the
+  role-field owner still has a local type-ref resolver for binding and zone
+  derivation. Ability where generic-bound actual validation now consumes
+  centralized effective-argument type evidence instead of owning a local
+  materializer seam.
 - Class/ability signature staging now opens a generic-parameter scope before
   resolving staged fields and methods, aligning DAG staging with the full
   semantic checker even where the materializer allowlist is still required.
@@ -3210,6 +3356,24 @@ make ast-dispatch-test-smoke
   `make type-resolution-resolver-inventory-test-smoke`,
   `make type-resolution-dag-test-smoke`, `air-drift-test-smoke`,
   `intent_compression_contract_smoke.sh`.
+
+## Progress Log - 2026-05-02 Intent Single-Subject Who Inference
+
+- Closed the first safe Intent-Compress `who` rule: a step with omitted `who`
+  derives it from the enclosing intent only when there is exactly one
+  subject participant and no action/default has already supplied a `who`.
+- Multi-subject intents remain explicit. This keeps the rule fail-closed and
+  prevents intent compression from becoming an authority/effect owner.
+- The provenance now flows through AST print, semantic contract summary, DIR,
+  AIR, and `pgy.air.graph.v1` JSON as `who_from_single_participant`.
+- Added positive and negative semantic regressions plus source-gated smoke
+  checks for the derivation owner and AIR JSON schema field.
+- Split the AIR evidence test case owner so `src/tests/*.cases.h` stays below
+  the size gate without weakening AIR coverage.
+- Verified locally with `make test-semantic` (`2430/0`), `make test-air`
+  (`65/0`), `make intent-compression-contract-test-smoke`,
+  `make air-json-schema-test-smoke`, `make test-inc-size-test-smoke`, and
+  `make source-utf8-test-smoke`.
 
 ## Progress Log - 2026-04-30 C/LLVM Defer Cleanup Parity
 

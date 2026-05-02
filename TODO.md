@@ -87,6 +87,28 @@ runtime-validated handles) 로 대체. 진입 비용 낮춘 자리, 자기인식
 - 별개 translation unit + 헬퍼 헤더 — `docs/101_semantic_split_template.md`
 - 진행 상태 — `docs/115_inc_cleanup_status.md`
 
+**Split application guide (2026-05-02):**
+- This is not a rule change. 600 LOC remains the signal; it is not the
+  prescription.
+- Checklist when an owner reaches the signal:
+  1. Does this owner carry two responsibilities? If yes, split by
+     responsibility.
+  2. Is it still one responsibility but large? If yes, keep one owner and
+     improve internal structure with `static` helpers in the same `.c`.
+  3. If split is needed, does the new owner name express the responsibility?
+     If not, do not land the split.
+- New `_helpers` owners are forbidden by default because `_helpers` does not
+  name a responsibility. Exception: a genuinely cross-owner shared utility with
+  a documented caller set.
+- Prefer responsibility names such as `intent_types.c`,
+  `resolution_graph_intent.c`, or `cleanup_fact.h`.
+- If two helpers differ only by message/kind, prefer a data-driven helper with
+  an enum or small table over adding another near-duplicate helper.
+- Self-hosting is the planned large-scale structure recovery point: the
+  Pergyra compiler should move toward feature-owned modules (`intent`,
+  `zone`, `mir`, `air`, `dag`) rather than horizontal helper sprawl. Do not do
+  a risky feature-folder migration before beta.
+
 **의도:**
 - 행 수 자체가 목표 아님. *행동(behavior)이 1개 owner로 응집*하는지 확인.
 - 600 LOC를 넘었다는 신호 = "이 owner가 두 가지 책임을 지고 있다." split으로 응답.
@@ -127,6 +149,20 @@ LLVM-family target/extern bridge track으로 둔다.
      DIR records `authorized_by_derived_from_zone`, AIR records
      `authority_from_zone`, AIR JSON exposes it, and drift diagnostics include
      `authority_provenance=zone-derived|explicit|none`.
+   - 2026-05-02 slice: action-derived intent `causes` now reaches RIR
+     propagation evidence. `rir_builder_intent.c` materializes inherited or
+     explicit step causes as `RIR_RESOURCE_EFFECT_INSTANCE` +
+     `RIR_OP_ATTACH_EFFECT`, preferring the unique zone effect-slot anchor over
+     the effect type name when the current zone makes that anchor unambiguous.
+     AIR verifies it through
+     `AIR_EVIDENCE_RIR_EFFECT_PROPAGATION` instead of keeping
+     `causes_from_action` as AIR-only provenance.
+   - 2026-05-02 slice: action-derived `authorized by` is now pinned in the same
+     parsed AIR fixture through real RIR authority evidence. The on-receiver
+     action contract regression requires `authority_from_action`,
+     `has_rir_authority_evidence`, `rir_authority_evidence_name == "healer"`,
+     and an `AIR_EVIDENCE_RIR_AUTHORITY` node, so action-inherited authority is
+     no longer only an AIR boundary flag.
    - 2026-05-02 cleanup evidence repair: AIR global MIR cleanup evidence now
      consumes MIR CFG cleanup successors before instruction-name fallbacks.
      Pin cleanup remains boundary-specific `AIR_EVIDENCE_MIR_PIN_CLEANUP`.
@@ -433,11 +469,15 @@ churn. *진짜 시간 비용은 dogfood evidence 수집* (별도 step). sprint
   `make type-resolution-dag-test-smoke LLVM_ENABLED=0` passed with isolated
   `BUILD_DIR`/`BIN_DIR`. The DAG smoke kept `retired_resolver_calls=0` and
   `materializer_unresolved=0`.
-- Intent observability codegen scan status: the old implementation-header/TU
+- Intent observability scan status: the old implementation-header/TU
   duplication claim is stale. `intent_observability_usage.h` is declaration-only,
-  `intent_observability_usage.c` owns the scan, and both C/LLVM entry points use
-  it once per backend compile. Remaining debt is layering, not catastrophic hot
-  path cost.
+  and both C/LLVM entry points use the scan once per backend compile. The
+  structural AST walk is now owned by `src/parser/ast_analysis.c` via
+  `ast_contains_identifier_call(...)`; `intent_observability_usage.c` only
+  supplies the intent-observability predicate and MIR traversal. Block-level
+  source arrays and routine AST payloads are no longer scanned for this fact;
+  declaration inventory AST scans remain compatibility debt until whole-program feature
+  facts are promoted into semantic/MIR analysis flags.
 - Safety note: do not replace the current `strncmp(name, "Intent", 6)` prefix
   guard with `memcmp` unless caller-provided string storage is proven at least
   6 bytes. `strncmp` is the safe prefix cutoff for arbitrary C strings.
@@ -733,6 +773,68 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   materializing type-ref helper. The helper inventory is capped at 12
   references, with local DAG stats at `graph-backed skips=1980`,
   `metadata_hits=8052`, and all materializer/retired-resolver counters at 0.
+- Follow-up DAG effective generic arg seam tightening: ability where validation
+  now consumes centralized `collect_effective_generic_arg_types(...)` evidence.
+  `type_checker_ability_where.c` is annotation-only again; the one remaining
+  materializing lookup for effective ability args lives in
+  `type_checker_generic_effective_args.c`, so owner-local ability validation no
+  longer creates DAG facts as a side effect. ABI/runtime layout is unchanged,
+  and the implementation did not grow the generic support implementation header.
+  Intent role-field require checks now consume the same centralized effective
+  generic arg type evidence, leaving `type_checker_intent_role_fields.c` under
+  the 600 LOC split-review line.
+- Follow-up generic class specialization evidence tightening: class
+  specialization where-clause validation now consumes the same centralized
+  effective generic arg type evidence instead of building a local Type array
+  from effective arg nodes. This removes duplicate dependency/materialization
+  work while keeping the materializing seam count capped at 12. Local DAG stats:
+  `graph-backed skips=1980`, `metadata_hits=8044`, and all
+  materializer/retired-resolver counters at 0.
+- Follow-up intent binding owner split: intent participant/value lookup and
+  transfer-target alias resolution moved to
+  `type_checker_intent_bindings.c`. `type_checker_intent_role_fields.c` now
+  stays focused on ability require-field validation and zone-binding
+  derivation, dropping to 499 LOC without changing ABI/runtime layout or DAG
+  fallback policy. Local gates: `make test-semantic`,
+  `make type-resolution-resolver-inventory-test-smoke`,
+  `make type-resolution-dag-test-smoke`,
+  `make build-source-inventory-test-smoke`, and
+  `make semantic-tu-size-test-smoke`.
+- Follow-up intent type owner split: intent-local type-ref resolution,
+  participant/value type resolution, and step where-source labeling moved to
+  `type_checker_intent_types.c`. `type_checker_intent_decl.c` dropped to 529
+  LOC and now focuses on orchestration validation rather than carrying the
+  materializing type helper inline. The resolver inventory still gates the same
+  12 metadata-first type-ref helper references and all fallback/materializer
+  counters remain at 0.
+- Follow-up DAG intent inventory owner split: intent declaration precollect
+  moved from the general declaration graph owner to
+  `type_checker_resolution_graph_intent.c`. This keeps intent DAG inventory
+  facts close to the intent surface and drops
+  `type_checker_resolution_graph_decl.c` to 481 LOC without changing DAG stats
+  or metadata/fallback counters.
+- Follow-up DAG zone command inventory owner split: zone refresh/apply/link/
+  detach/unlink/maintain dependency precollect moved to
+  `type_checker_resolution_graph_zone_commands.c`. The remaining
+  `type_checker_resolution_graph_zone_inventory.c` now owns only zone
+  slot/shared/layer type inventory and is 76 LOC. This is a responsibility
+  split, not a mechanical line-count split, and preserves the existing DAG
+  stats (`graph-backed skips=1980`, `metadata_hits=8044`) with all
+  materializer/retired-resolver counters at 0.
+- Follow-up DAG graph validation owner split: the old
+  `type_checker_resolution_graph_core.h` implementation header is removed.
+  Graph cycle validation and topo ordering now live in
+  `type_checker_resolution_graph_validate.c`, while
+  `type_checker_resolution_graph_core.c` keeps node/edge/path/dependency
+  primitives below the 600 LOC split-review signal.
+- Follow-up split-policy correction: the 600 LOC rule is now a split-review
+  trigger, not a mechanical slicing mandate. New `_helpers` owners are
+  discouraged unless they name a real feature/fact owner, and near-duplicate
+  helpers should become data-driven dispatch. As a small cleanup proof,
+  `llvm_stmt_let_collections.c` now uses one enum-driven
+  `llvm_stmt_diag_collection(...)` helper for missing type-argument and missing
+  runtime-export diagnostics instead of two parallel helpers. Syntax gate:
+  `gcc -DPGY_LLVM_ENABLED -fsyntax-only src/codegen/llvm_stmt_let_collections.c`.
 - Follow-up CFG/MIR root identity validation: MIR validation now rejects
   overlapping entry/cleanup/rollback/invalidation roots, not only invalid root
   indexes. This prevents cleanup chain corruption from being hidden behind a
@@ -760,6 +862,13 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   participant; MIR pin cleanup evidence can only target a `pin` execution
   boundary. Local gates: `make test-air`, `make air-drift-test-smoke`,
   `make air-json-schema-test-smoke`, and `make cfg-body-dataflow-test-smoke`.
+- Follow-up AIR observability evidence closure: observability/trace schema is
+  now a global `AIR_EVIDENCE_OBSERVABILITY_SCHEMA` node with provider
+  `runtime-observability-schema`, subject `pgy.intent.observability.v1`, and
+  a fact count derived from the runtime schema vocabulary. This moves the
+  trace/observability ABI contract from JSON-only output into AIR evidence
+  inventory. Local gates: `make test-air air-drift-test-smoke
+  air-json-schema-test-smoke air-backend-nonimpact-full-test-smoke`.
 - Follow-up DAG materializing seam reduction: abstract ability method
   signatures, projection path field readers, zone-authority subject-slot readers,
   world domain/shared type readers, expression-level method-call return,
@@ -841,6 +950,9 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   authority evidence are recorded as provenance-carrying nodes and validated as
   AIR inventory. This is the first code-level step toward the AIR 1.0
   `EvidenceNode` contract while keeping existing driver diagnostics stable.
+- AIR evidence inventory also carries the stable observability/trace schema as
+  global evidence. `pgy.intent.observability.v1` is no longer only a JSON dump
+  literal; it is validated as an evidence node sourced from the runtime schema.
 - AIR strict evidence now treats `AIREvidenceNode` as authoritative whenever an
   evidence inventory is present. Legacy per-boundary booleans remain as cached
   summaries for dumps and compatibility fixtures, but they can no longer satisfy
@@ -5641,14 +5753,22 @@ Closed or narrowed in this slice:
 - C/LLVM thread-pool requirement detection now shares one owner:
   `src/codegen/thread_pool_usage.c`. The C backend and LLVM pipeline no longer
   carry duplicate AST/MIR walkers for this feature. The helper prefers
-  instruction-carried AST provenance and keeps source-array traversal only as a
-  compatibility fallback.
+  instruction-carried AST provenance; source-array traversal has been removed
+  from this usage decision.
 - MIR SSA use-edge collection now prefers instruction-carried provenance for
   `DEF`, `RETURN`, and branch operands. Source statement / source terminator
   arrays remain fallback context, not the first source of use facts.
 - MIR value-summary collection now counts slot writes from `MIR_INST_DEF`
   anchors through `mir_instruction_slot_anchor(...)`; it no longer walks
   `block->source_statements` for the write summary.
+- C backend pending-use materialization now finds local let declarations from
+  block `MIR_INST_DEF.ast` provenance before using the function-wide fallback.
+  It no longer scans `block->source_statements` directly.
+- C backend source-order scheduling now consumes `MIRInstruction`
+  `source_statement_index` metadata instead of walking `block->source_statements`.
+  Codegen no longer directly consumes MIR block source statement arrays for
+  thread-pool usage, intent-observability usage, pending-use materialization, or
+  source-order scheduling.
 - Runtime intent exit now uses the active-registry index helper for stable
   active-handle lookup instead of scanning all active entries. The remaining
   linear scans are either free-slot allocation or semantic conflict scans, not
@@ -5661,14 +5781,15 @@ Closed or narrowed in this slice:
 Remaining debt after this slice:
 
 - CFG/MIR is closer to source-of-truth for body facts, but not fully closed.
-  Codegen owners still consume compatibility source arrays for residual
-  statement emission and pending-use mapping. Ownership/drop/zone/effect
-  consumers are not yet all forced through CFG/MIR facts.
+  MIR lowering still carries HIR source arrays as construction input, and
+  codegen still has declaration/routine AST compatibility seams, but C backend
+  block-local usage/pending/order facts now consume MIR instruction provenance.
+  Ownership/drop/zone/effect consumers are not yet all forced through CFG/MIR facts.
 - AIR consumes first-class evidence inventory for the covered facts, but it is
-  not yet the verifier for every abstraction boundary. The next AIR closure is
-  consumer coverage: effect propagation drift, trace/observability ABI evidence,
-  and DAG/module evidence must be read through `AIREvidenceNode`, not ad-hoc
-  side checks.
+  not yet the verifier for every abstraction boundary. Trace/observability ABI
+  evidence now flows through a global `AIREvidenceNode`; remaining AIR closure is
+  consumer coverage for deeper effect propagation drift and DAG/module evidence,
+  not ad-hoc side checks.
 - DAG fallback counters remain zero, and materializer fallback now diagnoses as
   retired compatibility debt. The remaining work is not a numeric fallback
   cleanup; it is removing the recursive-resolver compatibility seam from
@@ -5703,15 +5824,22 @@ Local verification for this debt refresh:
   `task-group` as direct runtime-thread-pool surfaces instead of relying on
   nested fallback traversal.
 - MIR instruction scanning now checks `inst->ast`, `inst->expr0`, and
-  `inst->expr1` before falling back to source-only MIR block arrays. This keeps
-  the path aligned with instruction-carried provenance as source arrays are
-  progressively retired.
+  `inst->expr1` only. Source-only MIR block arrays are no longer consulted for
+  thread-pool usage decisions.
 - `tests/parallel_core_contract_smoke.sh` now gates the shared owner and both
   backend consumers so C/LLVM cannot reintroduce duplicate thread-pool usage
   walkers.
-- Remaining debt: source-only block fallback still exists for MIR blocks whose
-  executable facts are not yet fully materialized as instructions. That fallback
-  is now localized to `thread_pool_usage.c`.
+- The structural AST walk for thread-pool surfaces now lives in
+  `src/parser/ast_analysis.c` as `ast_uses_thread_pool_surface(...)`.
+  `src/codegen/thread_pool_usage.c` is now an adapter over MIR instruction
+  provenance.
+- C and LLVM backend entry points no longer re-scan the synthetic
+  `__pgy_top_level_exec` AST body. Top-level executable code must appear in the
+  MIR routine inventory, so thread-pool detection now has one backend entry
+  contract: iterate MIR routines and consume `pgy_mir_routine_uses_thread_pool`.
+- Closed in this slice: the source-only block fallback was removed from
+  `thread_pool_usage.c`. If a future construct needs the runtime thread pool,
+  it must be materialized as MIR instruction-carried provenance.
 
 ## Progress - 2026-05-02 - Intent Zone-Authority Compression Slice
 
@@ -5781,9 +5909,12 @@ Local verification for this debt refresh:
   effect/action/compressed-intent checks can run before the relevant metadata is
   guaranteed to be materialized. The next DAG closure step is therefore a
   stage-order/materialization prepass fix, not another local helper rename.
-- `type_checker_ability_where.c` was also rechecked and remains allowlisted:
-  generic bound/default actual validation still needs the materializer seam
-  until generic actual metadata is guaranteed before ability where checks.
+- `type_checker_ability_where.c` no longer owns that materializer seam:
+  effective ability generic actuals now materialize through
+  `collect_effective_generic_arg_types(...)` in
+  `type_checker_generic_effective_args.c`.
+  Ability where validation consumes the resulting type evidence and otherwise
+  stays annotation-only.
 - DAG stage signature now installs generic parameter scope while staging class
   and ability signatures. This does not remove another allowlist owner by
   itself, but it closes a real stage-order gap: staged field/method signature
@@ -5791,3 +5922,108 @@ Local verification for this debt refresh:
   semantic checker later installs.
 - Local gates: `make type-resolution-resolver-inventory-test-smoke`,
   `make type-resolution-dag-test-smoke`, and `make test-semantic`.
+
+## Progress - 2026-05-02 - Intent Single-Subject Who Inference Slice
+
+- Intent compression now has its first fail-closed `who` inference rule:
+  if an intent step omits `who`, no action/default already supplied it, and the
+  enclosing intent has exactly one subject participant, semantic analysis
+  derives `who` from that single subject participant.
+- The rule deliberately does not infer across multiple subject participants.
+  Ambiguous participant sets keep the existing explicit-`who` requirement and
+  are covered by a negative semantic regression.
+- Provenance is carried end-to-end:
+  `ASTIntentStepData.derived_who_from_single_participant` flows through AST
+  print/contract summary diagnostics, DIR, AIR, and `pgy.air.graph.v1` JSON as
+  `who_from_single_participant`.
+- This is not full Intent-Compress. Remaining compressed-default work still
+  includes receiver/enclosing-subject `who`, broader `where`, requires/guard
+  inference policy, explicit-vs-inferred conflict diagnostics, and example
+  migration.
+- Test owner cleanup: AIR evidence tests were split at function boundaries into
+  `test_air_evidence_part_b.cases.h` and
+  `test_air_observability_pin_part_g.cases.h`, restoring the test-case size
+  gate without changing AIR behavior.
+- Local gates: `make test-semantic` (`2430/0`), `make test-air` (`65/0`),
+  `make intent-compression-contract-test-smoke`,
+  `make air-json-schema-test-smoke`, `make test-inc-size-test-smoke`, and
+  `make source-utf8-test-smoke`.
+
+## Progress - 2026-05-02 - Intent On-Receiver Who Inference Slice
+
+- Intent compression now has a second fail-closed `who` inference rule:
+  if a step omits `who` and carries `on: receiver.Action(...)`, semantic
+  analysis derives `who` from the receiver only when the receiver is an intent
+  subject participant and that subject declares the referenced action.
+- Multiple distinct matching receivers do not infer. The step remains explicit
+  and existing participant/action diagnostics own the failure. This prevents
+  compressed syntax from becoming an authority or effect owner.
+- Provenance is carried end-to-end:
+  `ASTIntentStepData.derived_who_from_on_receiver` flows through AST print,
+  semantic contract summary, DIR, AIR, and `pgy.air.graph.v1` JSON as
+  `who_from_on_receiver`.
+- The owner is responsibility-named, not size-split:
+  `type_checker_intent_on_inference.c` owns on-clause inference, while
+  `type_checker_intent_action_contract.c` stays focused on inherited action
+  contracts. This keeps all production owners below the 600 LOC review gate.
+- This is still not full Intent-Compress. `where`, `using`, `requires`, and
+  `authorized by` inference remain separate closure work with explicit
+  conflict diagnostics.
+- Local gates: `make test-semantic` (`2443/0`), `make test-air` (`65/0`),
+  `make intent-compression-contract-test-smoke`,
+  `make air-json-schema-test-smoke`, `make test-inc-size-test-smoke`,
+  `make source-utf8-test-smoke`, and `make documentation-quality-test-smoke`.
+
+## Progress - 2026-05-02 - Intent On-Receiver Where/Using Inference Slice
+
+- `on: receiver.Action(...)` now supplies a narrow `where` derivation when the
+  resolved receiver action declares `within <Zone>` and the step has no
+  explicit/local zone. This works even when the step name differs from the
+  action name, making the `on` clause a real evidence source instead of only a
+  redundant execution clause.
+- The existing unique-zone-binding rule then derives `using` from the inferred
+  zone when the intent has exactly one binding of that zone type. No new public
+  syntax or keyword was added.
+- The rule remains fail-closed: conflicting `within` zones across multiple
+  `on` calls do not infer, and explicit `where` continues to win.
+- `type_checker_intent_on_inference.c` owns the receiver/action evidence path;
+  shared subject-action lookup moved to `type_checker_intent_helpers.c` so the
+  action-contract owner stays below the 600 LOC review threshold.
+- This still does not infer `requires` or `authorized by` from arbitrary `on`
+  clauses. `authorized by` remains owned by action/zone authority validation,
+  not by intent compression.
+- Local gate: `make test-semantic` (`2454/0`).
+
+## Progress - 2026-05-02 - Intent On-Receiver Action Contract Slice
+
+- A step with exactly one resolved `on: receiver.Action(...)` now inherits the
+  action contract's `requires` and `causes` clauses when the step has not
+  declared those clauses locally.
+- `authorized by self` is mapped to the on-call receiver alias and recorded as
+  `inherited_authorized_by_from_action`.
+- The same evidence path now also maps `authorized by <action-param>` to the
+  corresponding single `on` call argument when that argument is a declared
+  intent participant identifier. Non-identifier arguments, missing parameter
+  bindings, and multiple `on` calls remain explicit.
+- Action-derived zone, ability, effect, and authority provenance now reaches DIR/AIR as
+  `where_inherited_from_action` / `source_from_action` and
+  `requires_inherited_from_action` / `requires_from_action`,
+  `causes_inherited_from_action` / `causes_from_action`, and
+  `authorized_by_inherited_from_action` / `authority_from_action`. AIR
+  diagnostics report the authority side as `authority_provenance=action-inherited`
+  instead of flattening it into `explicit`.
+- Action-derived authority is now checked through RIR evidence in the parsed
+  on-receiver AIR regression: `authority_from_action` must pair with matching
+  `AIR_EVIDENCE_RIR_AUTHORITY` / `rir_authority_evidence_name` rather than
+  remaining a boundary flag only.
+- Multiple or conflicting `on` actions remain fail-closed. The implementation
+  does not union ability requirements or merge effect clauses across actions.
+- Shared ability-clone append logic moved to `type_checker_intent_helpers.c`,
+  keeping `type_checker_intent_on_inference.c` focused on on-clause evidence
+  and `type_checker_intent_action_contract.c` focused on step-name action
+  inheritance.
+- Local gates: `make test-semantic` (`2490/0`), `make test-air` (`66/0`),
+  `make intent-compression-contract-test-smoke`,
+  `make air-json-schema-test-smoke`, `make test-inc-size-test-smoke`,
+  `git diff --check`, `make source-utf8-test-smoke`, and
+  `make documentation-quality-test-smoke`.

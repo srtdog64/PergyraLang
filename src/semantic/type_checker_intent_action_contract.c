@@ -182,75 +182,6 @@ intent_step_same_who_binding(ASTNode *intent_decl,
 }
 
 static ASTNode *
-subject_decl_find_action_named(ASTNode *decl, const char *action_name)
-{
-    if (decl == NULL || decl->type != AST_CLASS_DECL || action_name == NULL
-        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < decl->data.class_decl.method_count; i++) {
-        ASTNode *method = decl->data.class_decl.methods[i];
-        if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.is_action
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, action_name) == 0) {
-            return method;
-        }
-    }
-    return NULL;
-}
-
-static bool
-intent_semantic_append_name(char ***items, size_t *count, size_t *capacity, const char *name)
-{
-    char **grown;
-    char *owned_name;
-
-    if (items == NULL || count == NULL || capacity == NULL || name == NULL)
-        return false;
-    owned_name = pergyra_strdup(name);
-    if (owned_name == NULL)
-        return false;
-    if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
-        grown = realloc(*items, next_capacity * sizeof(char *));
-        if (grown == NULL) {
-            free(owned_name);
-            return false;
-        }
-        *items = grown;
-        *capacity = next_capacity;
-    }
-    (*items)[*count] = owned_name;
-    (*count)++;
-    return true;
-}
-
-static bool
-intent_step_append_required_ability(ASTNode *step, ASTNode *ability)
-{
-    ASTNode **grown;
-    if (step == NULL || ability == NULL || step->type != AST_INTENT_STEP)
-        return false;
-    if (step->data.intent_step.required_ability_count
-        == step->data.intent_step.required_ability_capacity) {
-        size_t next_capacity = step->data.intent_step.required_ability_capacity == 0
-            ? 4
-            : step->data.intent_step.required_ability_capacity * 2;
-        grown = realloc(step->data.intent_step.required_abilities,
-            next_capacity * sizeof(ASTNode *));
-        if (grown == NULL)
-            return false;
-        step->data.intent_step.required_abilities = grown;
-        step->data.intent_step.required_ability_capacity = next_capacity;
-    }
-    step->data.intent_step.required_abilities[
-        step->data.intent_step.required_ability_count++] = ability;
-    return true;
-}
-
-static ASTNode *
 intent_step_find_inheritable_action(ASTNode *intent_decl, ASTNode *step,
                                     SemanticContext *ctx,
                                     ASTNode **subject_decl_out)
@@ -424,6 +355,42 @@ intent_step_derive_who_from_action(ASTNode *intent_decl, ASTNode *step,
 }
 
 void
+intent_step_derive_who_from_single_participant(ASTNode *intent_decl,
+                                               ASTNode *step,
+                                               SemanticContext *ctx)
+{
+    const char *matched_alias = NULL;
+
+    if (intent_decl == NULL || step == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP
+        || step->data.intent_step.who_count != 0) {
+        return;
+    }
+
+    for (size_t i = 0; i < intent_decl->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent_decl->data.intent_decl.involves[i];
+        const char *alias;
+
+        if (!intent_involves_is_subject_host(ctx->program_root, involves))
+            continue;
+        alias = involves->data.intent_involves.alias;
+        if (alias == NULL)
+            continue;
+        if (matched_alias != NULL)
+            return;
+        matched_alias = alias;
+    }
+
+    if (matched_alias != NULL
+        && intent_semantic_append_name(&step->data.intent_step.who_names,
+               &step->data.intent_step.who_count,
+               &step->data.intent_step.who_capacity,
+               matched_alias)) {
+        step->data.intent_step.derived_who_from_single_participant = true;
+    }
+}
+
+void
 intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
                                     SemanticContext *ctx)
 {
@@ -446,9 +413,7 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
         bool copied_all = true;
         for (size_t i = 0; i < action_decl->data.func_decl.required_ability_count; i++) {
             ASTNode *ability_ref = action_decl->data.func_decl.required_abilities[i];
-            ASTNode *ability_copy = ast_clone(ability_ref);
-            if (!intent_step_append_required_ability(step, ability_copy)) {
-                ast_destroy(ability_copy);
+            if (!intent_step_append_required_ability_clone(step, ability_ref)) {
                 copied_all = false;
                 break;
             }

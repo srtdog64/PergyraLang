@@ -34,7 +34,9 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
         if (involves == NULL) {
             const char *source = step->data.intent_step.inherited_who_from_intent
                 ? " inherited from the intent-level who default"
-                : "";
+                : (step->data.intent_step.derived_who_from_single_participant
+                    ? " derived from the single subject participant"
+                    : "");
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                 "Intent step '%s' refers to unknown participant '%s'%s.\n"
                 "Reason:\n"

@@ -217,6 +217,8 @@ semantic_analyze(ASTNode *ast)
         ctx->type_resolution_stage_compat_generic_contract_count;
     result->type_resolution_stage_compat_ability_consumer_count =
         ctx->type_resolution_stage_compat_ability_consumer_count;
+    result->type_resolution_dag_ability_evidence_count =
+        ctx->type_resolution_dag_ability_evidence_count;
 
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         if (ctx->diagnostics[i]->level == DIAG_ERROR)

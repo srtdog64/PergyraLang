@@ -200,14 +200,14 @@ grep -q 'semantic_type_resolution_lookup_metadata_type_ref(ctx,' \
   >"$type_ref_helper_matches" || true
 
 for owner in \
-  src/semantic/type_checker_ability_where.c \
   src/semantic/type_checker_expr.c \
   src/semantic/type_checker_func_decl.c \
   src/semantic/type_checker_func_action_contract.c \
+  src/semantic/type_checker_generic_effective_args.c \
   src/semantic/type_checker_generic_contracts.h \
   src/semantic/type_checker_generic_validation.c \
   src/semantic/type_checker_host_helpers.c \
-  src/semantic/type_checker_intent_decl.c \
+  src/semantic/type_checker_intent_types.c \
   src/semantic/type_checker_intent_role_fields.c \
   src/semantic/type_checker_ownership_let_helpers.c
 do
@@ -217,14 +217,14 @@ do
   }
 done
 
-grep -Ev 'src/semantic/type_checker_ability_where\.c' "$type_ref_helper_matches" \
-  | grep -Ev 'src/semantic/type_checker_expr\.c' \
+grep -Ev 'src/semantic/type_checker_expr\.c' "$type_ref_helper_matches" \
   | grep -Ev 'src/semantic/type_checker_func_decl\.c' \
   | grep -Ev 'src/semantic/type_checker_func_action_contract\.c' \
+  | grep -Ev 'src/semantic/type_checker_generic_effective_args\.c' \
   | grep -Ev 'src/semantic/type_checker_generic_contracts\.h' \
   | grep -Ev 'src/semantic/type_checker_generic_validation\.c' \
   | grep -Ev 'src/semantic/type_checker_host_helpers\.c' \
-  | grep -Ev 'src/semantic/type_checker_intent_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
   | grep -Ev 'src/semantic/type_checker_intent_role_fields\.c' \
   | grep -Ev 'src/semantic/type_checker_internal\.h' \
   | grep -Ev 'src/semantic/type_checker_ownership_let_helpers\.c' \

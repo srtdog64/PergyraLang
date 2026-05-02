@@ -420,3 +420,111 @@ test_air_parsed_transfer_reports_zone_missing_authority_evidence(void)
     air_destroy(air);
     return ok;
 }
+
+static bool
+test_air_parsed_on_receiver_action_contract_provenance(void)
+{
+    const char *source =
+        "ability Prepared {\n"
+        "    func Ready() -> Bool;\n"
+        "}\n"
+        "subject Hero {\n"
+        "    let hp: Int;\n"
+        "    action Protect(self, healer: Healer) -> Void\n"
+        "        requires Prepared\n"
+        "        within BattleZone\n"
+        "        authorized by healer\n"
+        "        causes Protected {\n"
+        "        self.hp = self.hp + 1;\n"
+        "    }\n"
+        "}\n"
+        "role HeroPrepared for Hero {\n"
+        "    impl ability Prepared {\n"
+        "        func Ready() -> Bool { return true; }\n"
+        "    }\n"
+        "}\n"
+        "subject Healer { let level: Int; }\n"
+        "effect Protected for bearer: Hero {\n"
+        "    subject slot bearer: Hero\n"
+        "}\n"
+        "zone BattleZone {\n"
+        "    subject slot hero: Hero\n"
+        "    subject slot healer: Healer\n"
+        "    effect slot protected: Protected\n"
+        "    authority healer\n"
+        "}\n"
+        "intent Rescue(battle: BattleZone, hero: Hero, healer: Healer) {\n"
+        "    step Verify {\n"
+        "        on: hero.Protect(healer);\n"
+        "        expect: true;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n";
+    AIRProgram *air = lower_air_from_source(source);
+    bool found_intent = false;
+    bool found_boundary = false;
+    bool found_rir_authority = false;
+    bool found_rir_effect = false;
+    bool found_dag_ability = false;
+
+    if (air != NULL) {
+        for (size_t i = 0; i < air->intent_count; i++) {
+            if (air->intents[i].who_from_on_receiver
+                && air->intents[i].requires_from_action
+                && air->intents[i].causes_from_action) {
+                found_intent = true;
+                break;
+            }
+        }
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            const AIRBoundaryNode *boundary = &air->boundaries[i];
+            if (boundary->kind == AIR_BOUNDARY_ZONE
+                && boundary->source_name != NULL
+                && strcmp(boundary->source_name, "BattleZone") == 0
+                && boundary->source_from_action
+                && boundary->authority_from_action
+                && !boundary->authority_from_zone
+                && boundary->authority_name_count == 1
+                && strcmp(boundary->authority_names[0], "healer") == 0
+                && boundary->has_rir_authority_evidence
+                && boundary->rir_authority_evidence_name != NULL
+                && strcmp(boundary->rir_authority_evidence_name, "healer") == 0) {
+                found_boundary = true;
+            }
+        }
+        for (size_t i = 0; i < air->evidence_count; i++) {
+            const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+            if (evidence->kind == AIR_EVIDENCE_RIR_AUTHORITY
+                && evidence->subject_name != NULL
+                && strcmp(evidence->subject_name, "healer") == 0) {
+                found_rir_authority = true;
+            }
+            if (evidence->kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
+                && evidence->subject_name != NULL
+                && strcmp(evidence->subject_name, "protected") == 0) {
+                found_rir_effect = true;
+            }
+            if (evidence->kind == AIR_EVIDENCE_DAG_ABILITY
+                && evidence->subject_name != NULL
+                && strcmp(evidence->subject_name, "ability-consumers") == 0
+                && evidence->fact_count > 0
+                && evidence->fallback_count == 0) {
+                found_dag_ability = true;
+            }
+        }
+    }
+
+    bool ok = air != NULL
+        && air->drift_count == 0
+        && air->dag_ability_evidence_count == 1
+        && air->rir_effect_propagation_required_count == 1
+        && air->rir_effect_propagation_evidence_count == 1
+        && found_intent
+        && found_boundary
+        && found_rir_authority
+        && found_rir_effect
+        && found_dag_ability;
+    air_destroy(air);
+    return ok;
+}

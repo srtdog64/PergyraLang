@@ -29,6 +29,7 @@ typedef struct SemanticResult
     size_t       type_resolution_metadata_materializer_fallbacks;
     size_t       type_resolution_stage_compat_generic_contract_count;
     size_t       type_resolution_stage_compat_ability_consumer_count;
+    size_t       type_resolution_dag_ability_evidence_count;
 } SemanticResult;
 
 /* -----------------------------------------------------------------

@@ -3,6 +3,7 @@
 #include "mir_cfg_contract_pin.h"
 
 #include "../semantic/semantic.h"
+#include "../runtime/pgy_runtime_observability_schema.h"
 
 #include <string.h>
 
@@ -287,7 +288,7 @@ air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem, char **erro
         ? sem->type_resolution_stage_compat_generic_contract_count
         : 0;
     const size_t ability_fact_count = sem != NULL
-        ? sem->type_resolution_stage_compat_ability_consumer_count
+        ? sem->type_resolution_dag_ability_evidence_count
         : 0;
 
     if (air == NULL || sem == NULL)
@@ -334,5 +335,24 @@ air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem, char **erro
         }
         air->dag_ability_evidence_count++;
     }
+    return true;
+}
+
+bool
+air_collect_observability_schema_evidence(AIRProgram *air, char **error_message)
+{
+    if (air == NULL)
+        return true;
+    if (!air_append_evidence_node_ex(air,
+                                     AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
+                                     SIZE_MAX,
+                                     "runtime-observability-schema",
+                                     PGY_OBSERVABILITY_ABI_SCHEMA,
+                                     PGY_OBSERVABILITY_SCHEMA_FACT_COUNT,
+                                     0,
+                                     error_message)) {
+        return false;
+    }
+    air->observability_schema_evidence_count++;
     return true;
 }

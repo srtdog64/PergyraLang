@@ -1,15 +1,27 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 
+typedef enum
+{
+    LLVM_STMT_COLLECTION_DIAG_TYPE_ARG,
+    LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN
+} LLVMStmtCollectionDiagKind;
+
 static bool
-llvm_stmt_require_collection_type_arg(LLVMGenCtx *ctx, ASTNode *node,
-                                      const char *binding_name,
-                                      const char *container_name,
-                                      size_t arg_index)
+llvm_stmt_diag_collection(LLVMGenCtx *ctx,
+                          ASTNode *node,
+                          LLVMStmtCollectionDiagKind kind,
+                          const char *binding_name,
+                          const char *container_name,
+                          size_t arg_index,
+                          const char *fn_name)
 {
     if (ctx == NULL)
         return false;
-    if (!ctx->has_error) {
+    if (ctx->has_error)
+        return false;
+
+    if (kind == LLVM_STMT_COLLECTION_DIAG_TYPE_ARG) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -18,36 +30,17 @@ llvm_stmt_require_collection_type_arg(LLVMGenCtx *ctx, ASTNode *node,
             container_name != NULL ? container_name : "collection",
             binding_name != NULL ? binding_name : "<binding>",
             arg_index + 1);
-    }
-    return false;
-}
-
-/*
- * Surface a hard error when a required runtime export (e.g. pgy_list_new_raw_export)
- * is not registered. Previously these call sites silently skipped the runtime call
- * yet still declared the variable, emitting a binary that uses uninitialized
- * collection storage. That is worse than a crash because the wrong-code is
- * invisible. This helper preserves the error-reporting style used elsewhere
- * in the LLVM backend.
- */
-static bool
-llvm_stmt_require_collection_runtime_fn(LLVMGenCtx *ctx, ASTNode *node,
-                                        const char *binding_name,
-                                        const char *container_name,
-                                        const char *fn_name)
-{
-    if (ctx == NULL)
         return false;
-    if (!ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "LLVM %s binding '%s' requires runtime export '%s'; not registered",
-            container_name != NULL ? container_name : "collection",
-            binding_name != NULL ? binding_name : "<binding>",
-            fn_name != NULL ? fn_name : "<unknown>");
     }
+
+    llvm_set_error_at_with_hints(ctx, node,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM %s binding '%s' requires runtime export '%s'; not registered",
+        container_name != NULL ? container_name : "collection",
+        binding_name != NULL ? binding_name : "<binding>",
+        fn_name != NULL ? fn_name : "<unknown>");
     return false;
 }
 
@@ -106,8 +99,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 
         if (strcmp(ann_name, "List") == 0 && strcmp(callee, "ListNew") == 0) {
             if (inner == NULL || inner[0] == '\0') {
-                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
-                    ann_name, 0);
+                bool ok = llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, ann_name, 0, NULL);
                 free(inner);
                 return ok;
             }
@@ -117,8 +110,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_list_new_raw_export");
             if (new_fn == NULL) {
                 free(inner);
-                return llvm_stmt_require_collection_runtime_fn(ctx, node, name,
-                    "List", "pgy_list_new_raw_export");
+                return llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
+                    "List", 0, "pgy_list_new_raw_export");
             }
             {
                 LLVMValueRef args[] = {
@@ -135,8 +129,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 
         if (strcmp(ann_name, "Set") == 0 && strcmp(callee, "SetNew") == 0) {
             if (inner == NULL || inner[0] == '\0') {
-                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
-                    ann_name, 0);
+                bool ok = llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, ann_name, 0, NULL);
                 free(inner);
                 return ok;
             }
@@ -146,8 +140,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_set_new_raw_export");
             if (new_fn == NULL) {
                 free(inner);
-                return llvm_stmt_require_collection_runtime_fn(ctx, node, name,
-                    "Set", "pgy_set_new_raw_export");
+                return llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
+                    "Set", 0, "pgy_set_new_raw_export");
             }
             {
                 LLVMValueRef args[] = {
@@ -164,8 +159,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 
         if (strcmp(ann_name, "Queue") == 0 && strcmp(callee, "QueueNew") == 0) {
             if (inner == NULL || inner[0] == '\0') {
-                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
-                    ann_name, 0);
+                bool ok = llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, ann_name, 0, NULL);
                 free(inner);
                 return ok;
             }
@@ -175,8 +170,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_queue_new_raw_export");
             if (new_fn == NULL) {
                 free(inner);
-                return llvm_stmt_require_collection_runtime_fn(ctx, node, name,
-                    "Queue", "pgy_queue_new_raw_export");
+                return llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
+                    "Queue", 0, "pgy_queue_new_raw_export");
             }
             {
                 LLVMValueRef args[] = {
@@ -212,16 +208,16 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                     type_ann->data.type.generic_args->params[1]);
             }
             if (key_type == NULL || key_type[0] == '\0') {
-                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
-                    "HashMap", 0);
+                bool ok = llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "HashMap", 0, NULL);
                 free(inner);
                 free(key_type);
                 free(value_type);
                 return ok;
             }
             if (value_type == NULL || value_type[0] == '\0') {
-                bool ok = llvm_stmt_require_collection_type_arg(ctx, node, name,
-                    "HashMap", 1);
+                bool ok = llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "HashMap", 1, NULL);
                 free(inner);
                 free(key_type);
                 free(value_type);
@@ -231,8 +227,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             alloca_val = llvm_create_entry_alloca(ctx, map_ty, name);
             new_fn = llvm_lookup_function(ctx, "pgy_map_new_raw_export");
             if (new_fn == NULL) {
-                bool ok = llvm_stmt_require_collection_runtime_fn(ctx, node, name,
-                    "HashMap", "pgy_map_new_raw_export");
+                bool ok = llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
+                    "HashMap", 0, "pgy_map_new_raw_export");
                 free(inner);
                 free(key_type);
                 free(value_type);
@@ -269,15 +266,15 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             || type_ann->data.type.generic_args == NULL
             || type_ann->data.type.generic_args->count == 0
             || type_ann->data.type.generic_args->params[0] == NULL) {
-            return llvm_stmt_require_collection_type_arg(ctx, node, name,
-                "Channel", 0);
+            return llvm_stmt_diag_collection(ctx, node,
+                LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Channel", 0, NULL);
         }
 
         channel_inner = llvm_stmt_render_type_arg(
             type_ann->data.type.generic_args->params[0]);
         if (channel_inner == NULL || channel_inner[0] == '\0') {
-            return llvm_stmt_require_collection_type_arg(ctx, node, name,
-                "Channel", 0);
+            return llvm_stmt_diag_collection(ctx, node,
+                LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Channel", 0, NULL);
         }
 
         snprintf(init_fn_name, sizeof(init_fn_name),
@@ -323,8 +320,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
         if (inner_name == NULL || inner_name[0] == '\0') {
-            return llvm_stmt_require_collection_type_arg(ctx, node, name,
-                "Array", 0);
+            return llvm_stmt_diag_collection(ctx, node,
+                LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Array", 0, NULL);
         }
 
         LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);

@@ -39,6 +39,13 @@ def require_text(rel, needles):
     return text
 
 
+def reject_text(rel, needles):
+    text = read(rel)
+    for needle in needles:
+        require(needle not in text, f"{rel} must not contain: {needle}")
+    return text
+
+
 taxonomy = require_text(
     "docs/99_language_module_taxonomy.md",
     [
@@ -99,11 +106,28 @@ require_text(
     "src/codegen/thread_pool_usage.c",
     [
         "pgy_mir_instruction_uses_thread_pool",
-        "AST_AWAIT_EXPR",
-        "AST_TASK_GROUP",
+        "ast_uses_thread_pool_surface",
         "inst->expr0",
         "inst->expr1",
+    ],
+)
+reject_text(
+    "src/codegen/thread_pool_usage.c",
+    [
+        "source_terminator_condition",
+        "source_terminator_value",
+        "source_statements",
+        "source_statement_count",
         "Compatibility fallback for source-only MIR blocks",
+    ],
+)
+
+require_text(
+    "src/parser/ast_analysis.c",
+    [
+        "ast_uses_thread_pool_surface",
+        "AST_AWAIT_EXPR",
+        "AST_TASK_GROUP",
     ],
 )
 
@@ -111,7 +135,13 @@ require_text(
     "src/codegen/transpiler_thread_pool.c",
     [
         "pgy_mir_routine_uses_thread_pool",
-        "pgy_ast_uses_thread_pool",
+        "ctx->mir->routine_count",
+    ],
+)
+reject_text(
+    "src/codegen/transpiler_thread_pool.c",
+    [
+        "pgy_ast_uses_thread_pool(",
     ],
 )
 
@@ -119,7 +149,13 @@ require_text(
     "src/codegen/llvm_pipeline.c",
     [
         "pgy_mir_routine_uses_thread_pool",
-        "pgy_ast_uses_thread_pool",
+        "llvm_active_routine_inventory",
+    ],
+)
+reject_text(
+    "src/codegen/llvm_pipeline.c",
+    [
+        "pgy_ast_uses_thread_pool(",
     ],
 )
 

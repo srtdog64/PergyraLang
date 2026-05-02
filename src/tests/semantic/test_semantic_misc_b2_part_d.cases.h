@@ -237,7 +237,6 @@
             "intent Patrol(battle: BattleZone, hero: Hero) {\n"
             "    step Guard {\n"
             "        using: battle;\n"
-            "        on: hero.Guard();\n"
             "        expect: true;\n"
             "    }\n"
             "}\n";

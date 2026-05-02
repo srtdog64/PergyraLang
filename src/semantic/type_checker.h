@@ -161,6 +161,7 @@ struct SemanticContext
     size_t type_resolution_stage_compat_domain_contract_count;
     size_t type_resolution_stage_compat_alias_count;
     size_t type_resolution_stage_compat_other_count;
+    size_t type_resolution_dag_ability_evidence_count;
     size_t type_resolution_stage_alias_materialized_count;
     size_t type_resolution_stage_alias_diagnostic_unresolved_count;
     size_t type_resolution_stage_alias_diagnostic_resolver_call_count;

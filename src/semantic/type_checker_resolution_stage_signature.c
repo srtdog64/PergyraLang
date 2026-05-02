@@ -107,6 +107,7 @@ semantic_stage_required_abilities(ASTNode **ability_refs,
         if (ability_ref != NULL
             && ability_ref->type == AST_TYPE
             && ability_ref->data.type.name != NULL) {
+            ctx->type_resolution_dag_ability_evidence_count++;
             (void)semantic_stage_named_decl_quiet(
                 ctx,
                 AST_ABILITY_DECL,

@@ -271,6 +271,8 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.authorized_by_count = 0;
     node->data.intent_step.expect_expr = NULL;
     node->data.intent_step.inherited_who_from_intent = false;
+    node->data.intent_step.derived_who_from_on_receiver = false;
+    node->data.intent_step.derived_who_from_single_participant = false;
     node->data.intent_step.inherited_where_from_intent = false;
     node->data.intent_step.inherited_who_from_action = false;
     node->data.intent_step.inherited_where_from_action = false;

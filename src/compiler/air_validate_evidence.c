@@ -4,6 +4,7 @@
  */
 
 #include "air_internal.h"
+#include "../runtime/pgy_runtime_observability_schema.h"
 
 static bool
 air_evidence_kind_valid(AIREvidenceKind kind)
@@ -20,6 +21,7 @@ air_evidence_kind_valid(AIREvidenceKind kind)
     case AIR_EVIDENCE_DAG_ABILITY:
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
     case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
         return true;
     }
     return false;
@@ -33,7 +35,8 @@ air_evidence_kind_is_global(AIREvidenceKind kind)
         || kind == AIR_EVIDENCE_DAG_ABILITY
         || kind == AIR_EVIDENCE_MIR_CLEANUP
         || kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
-        || kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION;
+        || kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION
+        || kind == AIR_EVIDENCE_OBSERVABILITY_SCHEMA;
 }
 
 static bool
@@ -139,6 +142,40 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
             if (!air_name_matches(evidence->subject_name, expected_subject)) {
                 air_set_invariant_error(error_message,
                                         "AIR DAG evidence node %zu has invalid subject '%s'",
+                                        evidence_index,
+                                        evidence->subject_name != NULL
+                                            ? evidence->subject_name
+                                            : "<null>");
+                return false;
+            }
+        }
+        if (evidence->kind == AIR_EVIDENCE_OBSERVABILITY_SCHEMA) {
+            if (evidence->fact_count == 0) {
+                air_set_invariant_error(error_message,
+                                        "AIR observability schema evidence node %zu has no schema facts",
+                                        evidence_index);
+                return false;
+            }
+            if (evidence->fallback_count != 0) {
+                air_set_invariant_error(error_message,
+                                        "AIR observability schema evidence node %zu has fallback schema facts",
+                                        evidence_index);
+                return false;
+            }
+            if (!air_name_matches(evidence->provider_name,
+                                  "runtime-observability-schema")) {
+                air_set_invariant_error(error_message,
+                                        "AIR observability schema evidence node %zu has invalid provider '%s'",
+                                        evidence_index,
+                                        evidence->provider_name != NULL
+                                            ? evidence->provider_name
+                                            : "<null>");
+                return false;
+            }
+            if (!air_name_matches(evidence->subject_name,
+                                  PGY_OBSERVABILITY_ABI_SCHEMA)) {
+                air_set_invariant_error(error_message,
+                                        "AIR observability schema evidence node %zu has invalid subject '%s'",
                                         evidence_index,
                                         evidence->subject_name != NULL
                                             ? evidence->subject_name
@@ -263,6 +300,7 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
     case AIR_EVIDENCE_MIR_CLEANUP:
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
     case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
         return true;
     }
 

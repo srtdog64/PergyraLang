@@ -1,3 +1,9 @@
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include "diag_codes.h"
+#include "type_checker_internal.h"
+
 static bool
 type_resolution_find_cycle_visit(TypeResolutionGraph *graph,
                                  size_t current,
@@ -99,7 +105,11 @@ type_resolution_validate_graph(SemanticContext *ctx)
             ASTNode *site = (ASTNode *)graph->nodes[closing_node].site;
             char *cycle_text = type_resolution_format_cycle(
                 graph, cycle_path, cycle_len, closing_node);
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, site,
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE,
+                PGY_CAUSE_TYPE_RESOLUTION_CYCLE,
+                PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION,
+                site,
                 "Type resolution dependency cycle detected in the semantic graph around '%s'.\n"
                 "Contract source:\n"
                 "- graph edge provenance: %s\n"

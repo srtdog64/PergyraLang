@@ -418,7 +418,7 @@ semantic_classify_ownership_type
 - 선행 seam: DONE — intent declaration precollector를 `type_checker_resolution_graph_decl.c`로 이동
 - 선행 seam: DONE — world inventory precollector를 `type_checker_resolution_graph_world.c`로 이동
 - cleanup: DONE — `find_type_alias_decl`의 cross-include dangling return-type seam을 명시 선언으로 정리
-- cleanup: DONE — `type_checker_resolution_graph_core.h` → inventory include 경계의 dangling `static void` seam 2개를 명시 return type으로 정리
+- cleanup: DONE — `type_checker_resolution_graph_core.h` implementation-header seam removed; graph validation/topo ownership now lives in `type_checker_resolution_graph_validate.c`.
 - cleanup: DONE — `type_checker_decls_a.inc -> type_checker_decls_domain_helpers.inc`, `type_checker_decls_intent.inc -> type_checker_world_decl.c`, `type_checker_helpers_effects.inc -> type_checker_helpers_host.inc` 사이의 dangling return-type seams 제거
 - cleanup: DONE — `type_checker_ability_decl.c`, `type_checker_zone_decl.c`, `type_checker_world_decl.c`를 standalone semantic TU로 빌드 가능하게 만들고 hidden helper 의존을 internal/header 계약으로 승격
 - cascade: `type_resolution_intern_node`, `type_resolution_add_edge`, `type_resolution_find_path`, `type_resolution_format_cycle`, `semantic_type_resolution_record_named_dependency`, `semantic_type_resolution_record_type_ref_dependency`, `semantic_type_resolution_collect_type_refs`, `find_type_alias_decl`, `find_domain_decl_by_name`, `semantic_world_find_zone_slot_local`, `create_overlay_nominal_type`를 internal API로 승격

@@ -311,7 +311,6 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 {
     GenericParams *decl_params;
     WhereClause *wc;
-    ASTNode **effective_args = NULL;
     Type **effective_types = NULL;
     size_t effective_count = 0;
     const char *expected_text = NULL;
@@ -336,7 +335,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             ? class_decl->data.class_decl.name : "<class>",
         decl_params);
 
-    effective_args = collect_effective_generic_arg_nodes(
+    effective_types = collect_effective_generic_arg_types(
         decl_params,
         specialized_type->data.type.generic_args,
         specialized_type,
@@ -345,7 +344,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         class_decl->data.class_decl.name != NULL
             ? class_decl->data.class_decl.name : "<class>",
         &effective_count);
-    if (effective_args == NULL)
+    if (effective_types == NULL)
         return;
     if ((specialized_type->data.type.generic_args == NULL
          || specialized_type->data.type.generic_args->count < effective_count)
@@ -353,17 +352,11 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         site_label = "instantiated";
     }
 
-    effective_types = effective_count > 0
-        ? calloc(effective_count, sizeof(Type *))
-        : NULL;
-    if (effective_count > 0 && effective_types != NULL) {
+    if (effective_count > 0) {
         bool all_effective_types_resolved = true;
 
         for (size_t i = 0; i < effective_count; i++) {
-            effective_types[i] = effective_args[i] != NULL
-                ? generic_contract_resolve_type_ref(effective_args[i], ctx)
-                : NULL;
-            if (effective_types[i] == NULL)
+            if (effective_types[i] == NULL || effective_types[i] == TYPE_UNKNOWN)
                 all_effective_types_resolved = false;
         }
         if (all_effective_types_resolved) {
@@ -378,18 +371,6 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
     if (actual_text == NULL) {
         actual_text = specialized_type->data.type.name != NULL
             ? specialized_type->data.type.name : "<specialized>";
-    }
-
-    for (size_t i = 0; i < effective_count; i++) {
-        if (effective_args[i] != NULL) {
-            semantic_type_resolution_record_type_ref_dependency(
-                ctx,
-                specialized_type,
-                class_decl->data.class_decl.name != NULL
-                    ? class_decl->data.class_decl.name : "<class>",
-                effective_args[i],
-                "class specialization effective argument lookup");
-        }
     }
 
     for (size_t ci = 0; ci < wc->count; ci++) {
@@ -419,8 +400,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             continue;
         }
 
-        concrete_type = generic_contract_resolve_type_ref(
-            effective_args[param_index], ctx);
+        concrete_type = effective_types[param_index];
         if (concrete_type == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
                 "Class '%s' could not resolve specialized type argument for '%s'.\n"
@@ -477,5 +457,4 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         }
     }
     free(effective_types);
-    free(effective_args);
 }

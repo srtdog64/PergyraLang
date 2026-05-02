@@ -12,6 +12,8 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
     if (!node->data.intent_step.inherited_who_from_action
         && !node->data.intent_step.inherited_where_from_action
         && !node->data.intent_step.inherited_who_from_intent
+        && !node->data.intent_step.derived_who_from_on_receiver
+        && !node->data.intent_step.derived_who_from_single_participant
         && !node->data.intent_step.inherited_where_from_intent
         && !node->data.intent_step.inherited_requires_from_action
         && !node->data.intent_step.inherited_causes_from_action
@@ -32,6 +34,14 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
     }
     if (node->data.intent_step.inherited_who_from_intent) {
         printf("%sreused who from intent-level default", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.derived_who_from_on_receiver) {
+        printf("%sderived who from on-call receiver", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.derived_who_from_single_participant) {
+        printf("%sderived who from single subject participant", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.inherited_where_from_action) {

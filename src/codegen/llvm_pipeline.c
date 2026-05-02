@@ -20,7 +20,6 @@ llvm_pipeline_debug_stage(const char *stage)
 static bool
 llvm_requires_thread_pool(const LLVMGenCtx *ctx)
 {
-    ASTNode *synthetic_executable_func = NULL;
     LLVMMIRRoutineInventory routine_inventory;
 
     if (ctx == NULL || ctx->mir == NULL)
@@ -30,14 +29,6 @@ llvm_requires_thread_pool(const LLVMGenCtx *ctx)
     for (size_t i = 0; i < routine_inventory.count; i++) {
         if (pgy_mir_routine_uses_thread_pool(&routine_inventory.routines[i]))
             return true;
-    }
-
-    synthetic_executable_func = mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
-    if (synthetic_executable_func != NULL
-        && synthetic_executable_func->type == AST_FUNC_DECL
-        && pgy_ast_uses_thread_pool(
-            synthetic_executable_func->data.func_decl.body)) {
-        return true;
     }
 
     return false;

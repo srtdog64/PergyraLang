@@ -52,6 +52,8 @@ bool        air_collect_hir_evidence(AIRProgram *air,
 bool        air_collect_rir_evidence(AIRProgram *air,
                                      const RIRProgram *rir,
                                      char **error_message);
+bool        air_collect_observability_schema_evidence(AIRProgram *air,
+                                                      char **error_message);
 bool        air_boundary_has_evidence_kind(const AIRProgram *air,
                                            size_t boundary_index,
                                            AIREvidenceKind kind);

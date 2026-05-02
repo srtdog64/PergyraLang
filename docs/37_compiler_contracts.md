@@ -411,7 +411,11 @@ MIR로 이월하는 것:
 - `true`
 - `false`
 
-### 컨텍스트 키워드
+### 문맥/도메인 표면 키워드
+
+이 절은 역사적으로 contextual surface로 관리되던 도메인 단어까지 포함한
+인벤토리다. 실제 lexer 분류는 아래 `키워드 Taxonomy`와 `전체 키워드 매트릭스`가
+최종 기준이다.
 
 도메인 / host:
 
@@ -533,16 +537,7 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 
 예시:
 
-- `object`
-- `vessel`
-- `intent`
-- `world`
-- `roster`
-- `roster`
-- `relation`
-- `effect`
-- `zone`
-- `event`
+- `action`
 
 판정 규칙:
 
@@ -551,6 +546,9 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 
 주의:
 
+- 현재 구현에서 `object`, `vessel`, `intent`, `roster`, `world`, `relation`,
+  `effect`, `zone`, `event`는 모두 reserved token이다. 이들을
+  declaration-context keyword로 문서화하면 lexer/parser 계약 drift다.
 - 현재 구현에서 `object`와 `tobject`는 모두 reserved token이며, 차이는 token이 아니라 projection contract다
 
 ### C. Clause Keyword
@@ -718,7 +716,10 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `class` | `TOKEN_CLASS` | declaration | 중간 | `HIR` | passive nominal host |
 | `subject` | `TOKEN_SUBJECT` | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host type |
 | `struct` | `TOKEN_STRUCT` | declaration | 낮음 | `HIR` | pure value type |
+| `object` | `TOKEN_OBJECT` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | local/internal projection contract |
 | `tobject` | `TOKEN_TOBJECT` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | boundary projection |
+| `vessel` | `TOKEN_VESSEL` | declaration | 중간 | `HIR -> DIR -> RIR -> MIR` | subject internal state vessel |
+| `intent` | `TOKEN_INTENT` | declaration + clause host | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | orchestration contract root |
 | `extern` | `TOKEN_EXTERN` | declaration | 낮음 | `HIR` | foreign block surface |
 | `with` | `TOKEN_WITH` | statement / clause | 중간 | `HIR -> RIR -> MIR` | scoped resource binding |
 | `as` | `TOKEN_AS` | type / alias / clause | 낮음 | `HIR` | naming/typing helper |
@@ -743,7 +744,6 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `impl` | `TOKEN_IMPL` | declaration helper | 중간 | `HIR -> DIR` | role/ability implementation |
 | `async` | `TOKEN_ASYNC` | declaration / statement | 중간 | `HIR -> MIR` | suspension/coroutine surface |
 | `await` | `TOKEN_AWAIT` | expression | 중간 | `HIR -> RIR -> MIR` | future synchronization |
-| `subject` | reserved (`TOKEN_CLASS`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host type |
 | `channel` | `TOKEN_CHANNEL` | type/declaration surface | 중간 | `HIR -> RIR -> MIR` | channel resource surface |
 | `select` | `TOKEN_SELECT` | statement | 중간 | `HIR -> MIR` | readiness arbitration surface |
 | `case` | `TOKEN_CASE` | statement | 낮음 | `HIR -> MIR` | match/select arm |
@@ -774,21 +774,22 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `dyn` | `TOKEN_DYN` | type modifier | 중간 | `HIR -> DIR -> RIR` | dynamic dispatch surface |
 | `own` | `TOKEN_OWN` | parameter/type modifier | 중간 | `HIR -> RIR` | ownership mode |
 | `ref` | `TOKEN_REF` | parameter/type modifier | 중간 | `HIR -> RIR` | reference mode |
+| `roster` | `TOKEN_ROSTER` | declaration | 낮음 | `HIR -> DIR` | roster container surface |
+| `world` | `TOKEN_WORLD` | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | top execution boundary |
+| `relation` | `TOKEN_RELATION` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | relation contract root |
+| `effect` | `TOKEN_EFFECT` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | effect contract root |
+| `zone` | `TOKEN_ZONE` | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | execution / authority boundary |
+| `event` | `TOKEN_EVENT` | declaration | 중간 | `HIR -> MIR` | event declaration surface |
 
 ### B. Declaration-Context Keywords
 
 | 키워드 | Lexer 토큰 | Parser 역할 | 계약 무게 | 최종 고정 계층 | 비고 |
 | --- | --- | --- | --- | --- | --- |
-| `object` | `TOKEN_IDENTIFIER` | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | local/internal projection contract |
-| `vessel` | `TOKEN_IDENTIFIER` | declaration-context | 중간 | `HIR -> DIR -> RIR -> MIR` | subject internal state vessel |
-| `intent` | `TOKEN_IDENTIFIER` | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | orchestration declaration root |
-| `world` | `TOKEN_IDENTIFIER` | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | top execution boundary |
-| `roster` | `TOKEN_IDENTIFIER` | declaration-context | 낮음 | `HIR -> DIR` | roster alias surface |
-| `roster` | `TOKEN_IDENTIFIER` | declaration-context | 중간 | `HIR -> DIR -> RIR -> MIR` | deprecated but active host keyword |
-| `relation` | `TOKEN_IDENTIFIER` | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | relation contract root |
-| `effect` | `TOKEN_IDENTIFIER` | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | effect contract root |
-| `zone` | `TOKEN_IDENTIFIER` | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | execution / authority boundary |
-| `event` | `TOKEN_IDENTIFIER` | declaration-context | 중간 | `HIR -> MIR` | event declaration surface |
+| `action` | `TOKEN_IDENTIFIER` | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | function-like action contract surface |
+
+현재 `object`, `vessel`, `intent`, `roster`, `world`, `relation`, `effect`,
+`zone`, `event`는 lexer에서 전용 토큰으로 예약되어 있으므로 이 표에 두지 않는다.
+이전 문서에서 이들을 `TOKEN_IDENTIFIER`로 둔 표기는 lexer/parser 계약 drift로 본다.
 
 ### C. High-Value Clause Keywords
 
@@ -907,6 +908,35 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 
 Pergyra는 존재론이 많기 때문에, 서로 다른 축의 책임이 겹치지 않도록 아래 경계를 고정한다.
 
+### Compiler-facing orthogonality rule
+
+언어 표면에서 여러 키워드가 한 구문 안에 함께 나타나도, compiler owner는
+반드시 분리되어야 한다.
+
+| 축 | compiler 질문 | 최종 책임 계층 |
+|----|---------------|----------------|
+| Resource | 이 값/핸들은 어떤 상태이고 경계를 넘을 수 있는가 | `RIR -> MIR` |
+| Execution | 이 작업은 어떤 CFG/cleanup/parallel boundary를 만드는가 | `HIR -> MIR` |
+| Domain | 이 선언/관계/권한은 어떤 도메인 계약인가 | `DIR -> RIR` |
+| Type/Contract | 이 이름/타입/ability는 어떤 계약을 만족하는가 | DAG / semantic metadata |
+
+금지:
+
+- backend가 AST를 다시 걸어 semantic feature를 재발견하는 것
+- `intent` owner가 authority/effect/zone의 최종 판정을 대신하는 것
+- `slot` runtime handle 검사를 static borrow checker처럼 문서화하는 것
+- `parallel/async` execution surface가 domain policy owner가 되는 것
+
+허용:
+
+- intent가 여러 축의 clause를 한 orchestration spine으로 모으는 것
+- AIR가 여러 축의 evidence를 한 graph에서 검증하는 것
+- MIR가 source statement provenance를 metadata로 보존하는 것
+
+핵심 규칙:
+
+> 통합은 verifier graph에서 하고, ownership은 각 의미 축 owner에 남긴다.
+
 ### Party vs Zone / Vessel
 
 - `party`는 협력 슬롯과 역할 조합을 다룬다.
@@ -957,6 +987,42 @@ Pergyra는 존재론이 많기 때문에, 서로 다른 축의 책임이 겹치�
 를 담당한다.
 
 둘을 같은 계층에서 섞지 않는다.
+
+### Intent vs Authority / Effect / Zone
+
+`intent`는 `who`, `where`, `requires`, `authorized by`, `causes`,
+`success/failure/rollback`을 한 실행 척추로 묶는다. 그러나 intent가 각 clause의
+최종 semantic owner가 되면 안 된다.
+
+| intent clause | 최종 판정 owner | IR 계약 |
+|---------------|-----------------|---------|
+| `who` | participant / subject binding | `DIR` participant graph |
+| `where` / `within` | zone/world boundary | `DIR -> RIR` boundary fact |
+| `requires` | ability/capability contract | DAG + `DIR` contract fact |
+| `authorized by` | authority subject/slot | `DIR -> RIR` authority fact |
+| `causes` | effect lifecycle | `DIR -> RIR` effect fact |
+| `success` / `failure` / `rollback` / `compensate` | intent orchestration path | `DIR -> RIR -> MIR` rollback/cleanup edge |
+
+따라서 compressed intent나 inferred clause를 구현하더라도 lowering 결과는
+각 owner의 fact로 materialize되어야 한다. intent-local boolean이나 문자열 flag로
+최종 판정을 끝내면 compiler contract 위반이다.
+
+### Slot / Pin vs Static Lifetime
+
+`slot`은 runtime-validated handle이고 `pin`은 lexical lease다. 둘은 Rust식
+사용자 lifetime annotation 체계를 대체하지 않는다.
+
+compiler 계약:
+
+- `slot` validity는 generation/token/runtime state가 최종 fallback이다.
+- `pin` validity는 MIR cleanup edge와 AIR evidence로 검증한다.
+- `own/ref`는 anchored boundary subset에서만 stable하다.
+- business object graph의 전체 lifetime을 정적으로 예측하려 하지 않는다.
+- 정적 검사는 boundary escape, channel/world transfer, pin/await conflict,
+  token transport, move/use-after-move 같은 제한된 fact에 집중한다.
+
+이 규칙은 추상화 portability를 위한 것이다. Pergyra는 현실 도메인 그래프를
+tree-shaped ownership으로 억지 변환하지 않는다.
 
 ## 2. Resource State Lattice 계약
 

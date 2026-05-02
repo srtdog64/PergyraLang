@@ -3,12 +3,45 @@
 
 /* MIR block scheduling/prepass helpers for C emission. */
 static bool
+transpiler_mir_block_has_source_order_metadata(const MIRBasicBlock *block)
+{
+    if (block == NULL)
+        return false;
+
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        if (block->instructions[i].has_source_statement_index)
+            return true;
+    }
+    return false;
+}
+
+static bool
+transpiler_mir_inst_should_precede(const MIRInstruction *left,
+                                   size_t left_original_index,
+                                   const MIRInstruction *right,
+                                   size_t right_original_index)
+{
+    if (left == NULL || right == NULL)
+        return left_original_index < right_original_index;
+
+    if (left->has_source_statement_index && right->has_source_statement_index) {
+        if (left->source_statement_index != right->source_statement_index)
+            return left->source_statement_index < right->source_statement_index;
+        return left_original_index < right_original_index;
+    }
+
+    if (left->has_source_statement_index != right->has_source_statement_index)
+        return left->has_source_statement_index;
+
+    return left_original_index < right_original_index;
+}
+
+static bool
 transpiler_mir_block_build_source_order(const MIRBasicBlock *block,
                                         size_t **inst_order_out,
                                         char *reason,
                                         size_t reason_cap)
 {
-    bool *scheduled;
     size_t *inst_order;
     size_t order_count = 0;
 
@@ -17,10 +50,8 @@ transpiler_mir_block_build_source_order(const MIRBasicBlock *block,
     if (block == NULL || inst_order_out == NULL)
         return false;
 
-    scheduled = calloc(block->instruction_count, sizeof(bool));
     inst_order = calloc(block->instruction_count, sizeof(size_t));
-    if (scheduled == NULL || inst_order == NULL) {
-        free(scheduled);
+    if (inst_order == NULL) {
         free(inst_order);
         if (reason != NULL && reason_cap > 0) {
             snprintf(reason, reason_cap,
@@ -30,44 +61,27 @@ transpiler_mir_block_build_source_order(const MIRBasicBlock *block,
         return false;
     }
 
-    for (size_t stmt_idx = 0; stmt_idx < block->source_statement_count; stmt_idx++) {
-        ASTNode *source_stmt = block->source_statements[stmt_idx];
-        for (size_t inst_idx = 0; inst_idx < block->instruction_count; inst_idx++) {
-            const MIRInstruction *inst = &block->instructions[inst_idx];
-            bool attach_to_source_stmt = false;
-            if (scheduled[inst_idx])
-                continue;
-            if (inst->ast == source_stmt) {
-                attach_to_source_stmt = true;
-            } else if (source_stmt != NULL
-                       && inst->kind == MIR_INST_DEF
-                       && inst->arg0 != NULL) {
-                if (source_stmt->type == AST_LET_DECL
-                    && source_stmt->data.let_decl.name != NULL
-                    && strcmp(inst->arg0,
-                              source_stmt->data.let_decl.name) == 0) {
-                    attach_to_source_stmt = true;
-                } else if (source_stmt->type == AST_ASSIGNMENT
-                           && source_stmt->data.assignment.target != NULL
-                           && source_stmt->data.assignment.target->type == AST_IDENTIFIER
-                           && source_stmt->data.assignment.target->data.identifier.name != NULL
-                           && strcmp(inst->arg0,
-                                     source_stmt->data.assignment.target->data.identifier.name) == 0) {
-                    attach_to_source_stmt = true;
-                }
-            }
-            if (!attach_to_source_stmt)
-                continue;
-            inst_order[order_count++] = inst_idx;
-            scheduled[inst_idx] = true;
-        }
-    }
     for (size_t inst_idx = 0; inst_idx < block->instruction_count; inst_idx++) {
-        if (!scheduled[inst_idx])
-            inst_order[order_count++] = inst_idx;
+        inst_order[order_count++] = inst_idx;
     }
 
-    free(scheduled);
+    for (size_t i = 1; i < order_count; i++) {
+        size_t current = inst_order[i];
+        size_t j = i;
+        while (j > 0) {
+            size_t previous = inst_order[j - 1];
+            if (transpiler_mir_inst_should_precede(&block->instructions[previous],
+                                                   previous,
+                                                   &block->instructions[current],
+                                                   current)) {
+                break;
+            }
+            inst_order[j] = previous;
+            j--;
+        }
+        inst_order[j] = current;
+    }
+
     *inst_order_out = inst_order;
     return true;
 }

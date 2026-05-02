@@ -94,8 +94,14 @@ typedef struct
     const char *transfer_from_alias;
     const char *transfer_to_alias;
     bool        who_inherited_from_intent;
+    bool        who_derived_from_on_receiver;
+    bool        who_derived_from_single_participant;
     bool        where_inherited_from_intent;
+    bool        where_inherited_from_action;
+    bool        requires_inherited_from_action;
+    bool        causes_inherited_from_action;
     bool        authorized_by_derived_from_zone;
+    bool        authorized_by_inherited_from_action;
     const char **who_names;
     size_t      who_count;
     size_t      who_capacity;

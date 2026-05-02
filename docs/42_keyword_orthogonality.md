@@ -4,6 +4,41 @@
 
 > 모든 선언 키워드는 다른 키워드로 대체할 수 없는 고유한 존재론적 역할을 가져야 한다.
 
+직교성은 키워드 수를 줄인다는 뜻이 아니다. Pergyra의 목표는 현실 도메인을
+하나의 넓은 `class`나 하나의 넓은 workflow primitive로 뭉개지 않고, 서로
+다른 의미 축으로 나누는 것이다. 따라서 표면은 넓을 수 있지만, 같은 의미를
+두 키워드가 동시에 소유하면 안 된다.
+
+핵심 판정식:
+
+```
+같은 상황을 두 키워드로 똑같이 표현할 수 있으면 비직교다.
+두 키워드가 함께 쓰이지만 서로 다른 질문에 답하면 직교다.
+```
+
+---
+
+## 0. 네 개의 상위 축
+
+Pergyra의 키워드는 먼저 아래 네 축으로 나뉜다.
+
+| 축 | 질문 | 대표 표면 |
+|----|------|-----------|
+| Resource | 어떤 자원/핸들을 누가 어떻게 보유하는가 | `slot`, `own`, `ref`, `pin`, `unsafe`, `extern` |
+| Execution | 작업이 언제, 어디서, 어떤 동시성 관계로 실행되는가 | `parallel`, `spawn`, `async`, `await`, `select`, `channel` |
+| Domain | 현실 도메인의 의미와 경계가 무엇인가 | `subject`, `intent`, `zone`, `world`, `authority`, `relation`, `effect`, `projection` |
+| Type/Contract | 어떤 형태와 능력 계약을 만족하는가 | `class`, `struct`, `ability`, `role`, `where`, generic |
+
+이 축들은 서로 대체재가 아니다.
+
+- `intent`는 Domain 축의 orchestration spine이지 Execution 축의 `async` 대체재가 아니다.
+- `slot`은 Resource 축의 runtime-validated handle이지 Rust식 static borrow checker가 아니다.
+- `authority`는 Domain/Resource 경계의 승인 주체이지 `effect`나 `relation`이 아니다.
+- `ability`는 Type/Contract 축의 capability contract이지 runtime authority 그 자체가 아니다.
+
+따라서 Pergyra 코드는 여러 축이 한 화면에 보일 수 있다. 이것은 혼재가 아니라
+stack이 visible한 상태다. 다만 각 축이 답하는 질문은 반드시 달라야 한다.
+
 ---
 
 ## 1. 선언 키워드 공식 정의
@@ -118,6 +153,22 @@ ability와 role은 직교가 아니라 **계층**이다. 계약(ability) → 이
 
 action은 **무엇을 하는가**. intent는 **왜 하는가**.
 
+intent는 모든 권한의 owner가 아니다. intent는 `who`, `where`, `requires`,
+`authorized by`, `causes`, `success/failure/rollback`을 한 실행 척추로 묶지만,
+각 clause의 최종 의미 owner는 별도로 남는다.
+
+| clause | 최종 owner |
+|--------|------------|
+| `who` | participant / subject binding |
+| `where` / `within` | zone/world boundary |
+| `requires` | ability/capability contract |
+| `authorized by` | authority boundary |
+| `causes` | effect lifecycle |
+| `success` / `failure` / `rollback` / `compensate` | intent orchestration path |
+
+이 규칙이 깨지면 intent가 범용 workflow VM이 되고, `zone`, `authority`,
+`effect`의 직교성이 무너진다.
+
 ---
 
 ## 2. 직교성 매트릭스
@@ -157,9 +208,106 @@ struct에 func 넣으려 하면 → "class로 바꿔라" 컴파일 에러.
 
 vessel은 subject 안에서만 사용 가능을 컴파일러가 강제하면 구조적 차이가 생긴다.
 
+### 3.4 intent vs authority/effect/zone — ⚠ 과밀 모니터링 필요
+
+intent는 코드의 척추라서 여러 clause를 모으는 것이 정상이다. 그러나 clause를
+모은다는 것과 그 clause의 의미를 소유한다는 것은 다르다.
+
+- intent는 `authorized by`를 기록하고 검증 경로에 넣지만 authority owner가 아니다.
+- intent는 `causes`를 선언하지만 effect lifecycle owner가 아니다.
+- intent는 `where`/`within`을 선언하지만 zone/world state owner가 아니다.
+- intent는 rollback path를 만든다. 이 부분만 intent의 고유 실행 의미다.
+
+따라서 intent compression이나 자동 추론을 추가하더라도, 추론 결과는 각 owner의
+계약으로 다시 검증되어야 한다. intent가 모든 것을 대신 승인하면 비직교다.
+
+### 3.5 slot/pin vs lifetime — ⚠ Rust식 오독 금지
+
+`slot`과 `pin`은 lifetime annotation을 대체하는 문법이 아니다.
+
+- `slot`은 포인터 주소를 직접 노출하지 않는 resource handle이다.
+- `pin`은 block-scoped lease다.
+- `own/ref`는 anchored boundary subset에서만 안정 표면이다.
+- business object graph의 전체 lifetime을 컴파일 타임에 예측하지 않는다.
+
+Pergyra의 정적 검사는 "객체가 언제 죽는가"가 아니라 "이 경계를 넘어도 되는가",
+"이 handle이 escape해도 되는가", "이 authority가 유효한가"를 잡는다. 나머지는
+generation/token/runtime state로 검증한다.
+
+### 3.6 ability/role vs authority — ⚠ 계약과 승인의 혼동 금지
+
+`ability`와 `role`은 Type/Contract 축의 자격 계약이다. `authority`는 Domain/Resource
+경계에서 실제 mutation이나 handoff를 승인하는 주체다.
+
+- `ability`는 "무엇을 할 수 있는가"를 말한다.
+- `role`은 "이 subject가 그 ability를 어떻게 이행하는가"를 말한다.
+- `authority`는 "이 경계에서 누가 승인하는가"를 말한다.
+
+따라서 ability bound가 만족되어도 authority가 필요한 mutation은 자동 허용되지
+않는다. 반대로 authority subject가 있어도 필요한 ability/capability 계약이 없으면
+실행 자격은 없다.
+
+### 3.7 zone vs world — 포함 관계지만 같은 경계가 아님
+
+`world`는 실행/신뢰/실패의 최외곽 경계이고, `zone`은 그 안의 행위 허용 구역이다.
+둘은 포함 관계를 갖지만 서로 대체하면 안 된다.
+
+- `world`는 zone들을 포함하고, handoff/embedding/failure propagation의 큰 경계다.
+- `zone`은 authority, projection freshness, state transition을 검증하는 실행 경계다.
+- zone-local authority 실패를 world failure로 즉시 승격할지 여부는 runtime propagation 정책이 결정한다.
+
+이 구분이 흐려지면 모든 상태 전이가 world-level global state처럼 보이고,
+zone이 가진 국소 검증 장점이 사라진다.
+
 ---
 
-## 4. 비직교적이면 안 되는 이유
+## 4. 직교성 audit 절차
+
+새 키워드나 새 clause를 추가하거나, 기존 키워드의 의미를 넓힐 때는 아래 질문을
+모두 통과해야 한다.
+
+1. 이 표면은 Resource / Execution / Domain / Type-Contract 중 어느 축에 속하는가?
+2. 이미 같은 질문에 답하는 키워드가 있는가?
+3. 이 표면의 최종 semantic owner는 어느 계층인가? (`HIR`, `DIR`, `RIR`, `MIR`, DAG/AIR)
+4. backend가 이 의미를 AST 재탐색으로 재발견해야 하는가? 그렇다면 설계 실패다.
+5. 이 표면이 `intent` 아래에 들어가더라도 실제 owner fact로 다시 materialize되는가?
+6. compressed/inferred form이 explicit form과 같은 owner fact를 만드는가?
+7. 실패 진단이 "어느 축이 실패했는가"를 말할 수 있는가?
+
+합격 기준:
+
+```
+문법은 짧아질 수 있다.
+owner fact는 흐려지면 안 된다.
+```
+
+실무적으로는 AIR가 여러 축의 evidence를 모으는 verifier graph가 될 수 있지만,
+AIR가 각 축의 owner를 흡수하면 안 된다. AIR는 통합 검증 레이어이지
+도메인/자원/실행/타입 의미의 단일 소유자가 아니다.
+
+핵심 규칙:
+
+> 통합은 verifier graph에서 하고, ownership은 각 의미 축 owner에 남긴다.
+
+---
+
+## 5. 현재 위험 등록표
+
+| 경계 | 현재 판정 | 베타 전 관리 방식 |
+|------|-----------|------------------|
+| `intent` vs `authority/effect/zone` | 의도적으로 과밀하지만 직교 가능 | compressed intent는 각 owner fact로 expansion해야 함 |
+| `object` vs `tobject` | 직교하나 사용자 혼동 위험 큼 | refresh/publish/boundary 진단을 강하게 유지 |
+| `ability/role` vs `authority` | 계약/승인 혼동 위험 | ability 만족과 authority 승인을 별도 진단 |
+| `zone` vs `world` | 포함 관계 때문에 drift 가능 | world propagation과 zone-local validation을 분리 |
+| `slot/pin` vs lifetime | 외부 오독 위험 큼 | static borrow checker 마케팅 금지, layered model 유지 |
+| `parallel` vs `async/spawn/await` | execution 계층 내부 혼동 가능 | `parallel`은 실행 관계, async family는 suspension/task surface로 고정 |
+
+이 표의 항목은 "나쁜 설계"라는 뜻이 아니다. beta 이후에도 계속 회귀 테스트와
+문서 검토가 필요한 고압 경계라는 뜻이다.
+
+---
+
+## 6. 비직교적이면 안 되는 이유
 
 ```
 비직교 키워드가 있으면:

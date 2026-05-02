@@ -386,6 +386,14 @@ air_synthesize(const HIRProgram *hir,
             air->intents[intent_index].failure_class = air_failure_from_dir_step(step);
             air->intents[intent_index].who_from_intent_default =
                 step->who_inherited_from_intent;
+            air->intents[intent_index].who_from_on_receiver =
+                step->who_derived_from_on_receiver;
+            air->intents[intent_index].who_from_single_participant =
+                step->who_derived_from_single_participant;
+            air->intents[intent_index].requires_from_action =
+                step->requires_inherited_from_action;
+            air->intents[intent_index].causes_from_action =
+                step->causes_inherited_from_action;
 
             if (air_step_has_zone_boundary(step)) {
                 air->boundaries[boundary_index].kind = AIR_BOUNDARY_ZONE;
@@ -408,8 +416,12 @@ air_synthesize(const HIRProgram *hir,
                 air->boundaries[boundary_index].authority_required = step->authorized_by_count > 0;
                 air->boundaries[boundary_index].source_from_intent_default =
                     step->where_inherited_from_intent;
+                air->boundaries[boundary_index].source_from_action =
+                    step->where_inherited_from_action;
                 air->boundaries[boundary_index].authority_from_zone =
                     step->authorized_by_derived_from_zone;
+                air->boundaries[boundary_index].authority_from_action =
+                    step->authorized_by_inherited_from_action;
                 boundary_index++;
             }
             if (air_step_has_world_boundary(step)) {
@@ -436,6 +448,8 @@ air_synthesize(const HIRProgram *hir,
                 air->boundaries[boundary_index].source_from_transfer = true;
                 air->boundaries[boundary_index].authority_from_zone =
                     step->authorized_by_derived_from_zone;
+                air->boundaries[boundary_index].authority_from_action =
+                    step->authorized_by_inherited_from_action;
                 boundary_index++;
             }
             if (!air_append_step_expr_boundaries(air,
@@ -462,7 +476,8 @@ air_synthesize(const HIRProgram *hir,
         return NULL;
     }
     if (!air_collect_hir_evidence(air, hir, error_message)
-        || !air_collect_rir_evidence(air, rir, error_message)) {
+        || !air_collect_rir_evidence(air, rir, error_message)
+        || !air_collect_observability_schema_evidence(air, error_message)) {
         air_destroy(air);
         return NULL;
     }
